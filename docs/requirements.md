@@ -36,8 +36,8 @@ not assume more protection than they have.
 |---|---|---|
 | Someone who picks up the unlocked device | Partly | Auto-lock on inactivity and on backgrounding; screenshots and task-switcher previews blocked |
 | Someone who picks up the locked device | Yes | Vault keys are derived from the password (Argon2id) and never stored in plaintext |
-| Cloud provider / sync relay / self-hosted server operator | Yes | Sees only ciphertext and coarse sizes |
-| Attacker with a copy of the vault files | Yes, given a strong password | Argon2id + XChaCha20-Poly1305; password strength meter at creation |
+| Cloud provider / sync relay / self-hosted server operator | Yes | Sees only ciphertext and padded sizes; cannot guess the password without the Secret Key |
+| Attacker with a copy of the vault files | Yes | Password + 128-bit Secret Key, Argon2id + XChaCha20-Poly1305. See `adr/0001-encryption.md` |
 | Malware on the device | No | Out of scope |
 | Someone who coerces the user into unlocking | No | Out of scope; the app does not attempt deniability |
 
@@ -48,12 +48,22 @@ first code).
 
 ### Vaults
 
-- Create a vault with a name and a password; show a strength meter and
-  require an explicit "I understand there is no recovery" confirmation.
+- First run: generate the Secret Key and the Emergency Kit (printable PDF);
+  setup does not finish until the user confirms the kit is saved.
+- Add a device: scan a QR code from an unlocked device, or type the Secret
+  Key from the Emergency Kit.
+- Create a vault with a name and a password; refuse weak passwords (zxcvbn
+  score < 3) and require an explicit "I understand there is no recovery"
+  confirmation.
 - Unlock screen shows **one password field and no vault list**. The password
   entered determines which vault opens. Only that vault's contents are shown
   while it is open; switching vaults means locking first.
-- Change a vault's password (re-wraps the vault key; data is not re-encrypted).
+- Change a vault's password from inside the vault: current password, new
+  password, done in under 2 s whatever the vault size (re-wraps the vault
+  key). Biometric unlock keeps working. The screen says that earlier
+  exported backups keep the old password.
+- "I think it was exposed" offers **Rotate all keys**: new keys, everything
+  re-encrypted in the background, resumable.
 - Delete a vault with a strong confirmation.
 
 ### Content
@@ -61,8 +71,54 @@ first code).
 - Notes: plain text / Markdown, with title, created and modified times.
 - Files: any file, stored in encrypted chunks; large files stream, never load
   fully into memory.
-- Photos: imported from the system picker or camera; thumbnails are generated
-  inside the vault and are themselves encrypted.
+- Photos: imported from the system picker or taken with the in-app camera;
+  thumbnails are generated inside the vault and are themselves encrypted.
+
+### Adding content from outside the vault
+
+One "Add" button (the + inside a vault) opens every source:
+
+| Source | Mobile | Desktop | Notes |
+|---|---|---|---|
+| Take photo | in-app camera | — | see below |
+| Photos from library | Android Photo Picker, iOS PHPicker | — | system pickers, **no library permission** |
+| Files | Android Storage Access Framework, iOS document picker | native open dialog | includes cloud drives the OS exposes (iCloud, Google Drive, Dropbox, OneDrive) |
+| Whole folder | Android SAF tree, iOS folder picker | native folder dialog | keeps the folder structure |
+| Paste | text and images | text, images, files | |
+| Drag and drop / share sheet | see "Drag and drop, share, copy" | | |
+
+- Imports stream and encrypt; large or many files show progress, run in the
+  background, can be cancelled, and resume after the app is killed. Nothing
+  is half-imported: an item appears only once fully encrypted.
+- Duplicates (same content hash inside the vault) are detected and offered
+  as skip / keep both.
+- After import the app offers to **delete the originals**: photos through
+  the system delete prompt (MediaStore delete request, PHPhotoLibrary), files
+  where the source allows it. It states that deleting on a phone or SSD is
+  not a guaranteed wipe.
+- Original file name, type and dates are kept inside encrypted metadata;
+  location metadata follows the same rule as the camera.
+
+### In-app camera (mobile)
+
+- Photos go straight into the open vault: the frame is captured to memory
+  and encrypted while it streams to storage. It never reaches the system
+  gallery, a shared folder or a plaintext temporary file. (Flutter's
+  `camera` plugin writes `takePicture` output to a cache file, so capture
+  needs our own thin native layer: AVFoundation on iOS, CameraX on Android.)
+- Only the camera permission is requested; no photo-library permission.
+- Location is stripped from photos by default (EXIF GPS); a per-vault setting
+  keeps it.
+- Burst of several shots in one session, then review and delete before
+  saving.
+- **Quick capture while locked**: an app shortcut / home-screen quick action
+  opens the camera without unlocking; shots are encrypted to the inbox key
+  (same mechanism as the share inbox, see `adr/0001-encryption.md`) and
+  imported on next unlock. Locked mode cannot show earlier shots.
+- Document scanning (edge detection, perspective fix, multi-page PDF) after
+  v0.1; must run on-device without Google Play Services so F-Droid builds
+  keep it.
+- Video after v0.1 (chunked streaming encryption is already in the format).
 - In-app viewers for images and PDF; other files open via the OS with a
   temporary decrypted copy that is wiped afterwards.
 - Search by title and note body within the open vault.
@@ -80,10 +136,47 @@ first code).
 
 - Block screenshots and task-switcher previews (`FLAG_SECURE` on Android,
   cover view on iOS, best-effort on desktop).
-- Clipboard: anything copied from the vault is cleared after a short delay.
+- Clipboard: anything copied from the vault is marked sensitive (Android 13+
+  `EXTRA_IS_SENSITIVE`, iOS `localOnly` + expiry, so no Universal Clipboard)
+  and cleared after 60 s (configurable) and on lock.
 - Password fields disable autocorrect, suggestions and keyboard learning.
 - No analytics, no crash reporting that could carry vault data. Diagnostics
   are opt-in and reviewed by the user before sending.
+
+### Drag and drop, share, copy
+
+Everything that leaves the vault leaves it decrypted. The app makes that
+easy but never silent.
+
+- **Inside the app**: drag items to reorder, into folders/collections, and
+  between panes on desktop and tablets. Only one vault is open at a time, so
+  there is no dragging between vaults.
+- **Into the app**: drop files and photos from Finder, Explorer, file
+  managers, other apps (iPad/Android split screen, desktop) onto the window
+  or a folder. Items are encrypted while streaming in. Afterwards the app
+  offers to delete the originals, noting that deleting from a phone or SSD is
+  not a guaranteed wipe.
+- **Out of the app**: drag items to other apps or the desktop. Data is
+  produced lazily when dropped (macOS file promises, Windows virtual files,
+  iOS/Android item providers), streamed without a temporary copy where the
+  OS allows; otherwise a temporary copy is wiped on lock and on app start.
+  The first drag-out per vault shows a one-time note that the copy is no
+  longer protected.
+- **OS share sheet, in**: "Save to Cozy Safe" share target (iOS share
+  extension, Android `ACTION_SEND`/`SEND_MULTIPLE`, macOS share extension).
+  Works while locked: items are encrypted to the vault's inbox key and
+  imported on next unlock. The share target asks which vault only after
+  unlock, so the locked screen still lists no vaults; until then items wait
+  in a library-level inbox encrypted to every vault's inbox key.
+- **OS share sheet, out**: share notes as text, files and photos as files,
+  same lazy/temporary-copy rules as drag-out.
+- **Copy and paste**: copy note text and, on desktop, copy items as files
+  (Ctrl/Cmd+C → paste in Finder/Explorer) and paste files in. Clipboard rules
+  under Leak prevention apply.
+- **Per-vault policy "Keep data inside"**: disables drag-out, share-out and
+  copy for that vault.
+- Implementation note: evaluate `super_drag_and_drop` / `super_clipboard`
+  under the supply-chain policy; share extensions are native code.
 
 ### Backup and export
 
@@ -101,20 +194,33 @@ first code).
 
 ### Theming
 
-- Light / dark / follow system.
-- User-adjustable theme: preset (warm, professional, night), accent colour,
-  corner radius, type scale. Implemented as design tokens, see `ui.md`.
+- One design, done well. The only user choice is light / dark / follow
+  system (default: follow system).
+- No theme presets, accent colours, layout options or special effects
+  (e.g. glass/blur). Fewer variants means each screen gets polished and
+  tested in both modes.
+- Colours, spacing, radii and type still live in design tokens so the
+  look can be refined in one place, see `ui.md`.
 
 ### Localisation
 
-- Vietnamese and English at launch. All user-visible strings go through the
-  localisation layer from day one.
+- Vietnamese and English at launch; more languages are added as translation
+  files only, with no code changes.
+- All user-visible strings go through the localisation layer from day one
+  (Flutter `gen_l10n` / ARB files). A test fails on hard-coded UI strings
+  and on missing or empty keys in any language.
+- Settings → Language: "Follow system" (default), then each language by its
+  own name (Tiếng Việt, English). Follow system picks the first device
+  language the app supports, else English.
+- The choice applies immediately, without restarting, and is stored in app
+  settings (outside any vault, so the unlock screen uses it too).
+- Dates, numbers and file sizes are formatted per language
+  (2,4 MB / 2.4 MB).
 
 ## Non-functional requirements
 
-- Vault open on a mid-range phone: under 1.5 s with Argon2id parameters that
-  still cost an attacker meaningfully (tuned per platform, floor defined in
-  `architecture.md`).
+- Vault open on a mid-range phone: under 1.5 s with Argon2id floors of
+  128 MiB (phones) / 512 MiB (desktop), t = 3 (`adr/0001-encryption.md`).
 - No plaintext secret ever crosses into Dart. See `architecture.md`.
 - Accessibility: screen readers, dynamic type, WCAG AA contrast.
 - Touch targets ≥ 44 px.
@@ -123,7 +229,8 @@ first code).
 
 ### v0.1 — single device
 
-Android + macOS + Windows + Linux. Vaults, notes, files, photos, auto-lock,
+Android + macOS + Windows + Linux. Vaults, notes, files, photos, in-app
+camera (Android), auto-lock,
 leak prevention, encrypted backup/restore, change password, theming, vi/en.
 
 ### v0.2 — sync
