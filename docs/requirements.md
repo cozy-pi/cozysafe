@@ -48,8 +48,18 @@ first code).
 
 ### Vaults
 
-- First run: generate the Secret Key and the Emergency Kit (printable PDF);
-  setup does not finish until the user confirms the kit is saved.
+- First run: generate the Secret Key and the Emergency Kit (printable PDF).
+  Setup finishes only after the user types the last 4 characters of the key
+  from the saved kit; the app re-checks every few months.
+- Secret Key sync through iCloud Keychain / Google Password Manager is on by
+  default and can be turned off (Settings → Security), see
+  `adr/0001-encryption.md`.
+- First run also asks where vaults live: **a cloud folder** (default,
+  recommended; the cloud only ever sees ciphertext), **a folder the user
+  picks** (survives uninstalling the app), or **this device only** (opt-in,
+  red warning: uninstalling the app deletes the vault).
+- A device-only vault that has never been backed up shows a persistent
+  warning inside the vault.
 - Add a device: scan a QR code from an unlocked device, or type the Secret
   Key from the Emergency Kit.
 - Create a vault with a name and a password; refuse weak passwords (zxcvbn

@@ -33,13 +33,23 @@ without AES instructions.
 Each library (the set of vaults on a user's devices) has a **Secret Key**:
 128 random bits generated on the first device, stored in the platform
 keystore (Keychain / Android Keystore / DPAPI / libsecret), never synced
-through the vault transport.
+through the vault transport (the cloud folder never holds it).
 
 - A copy of the vault files alone is useless to an attacker, even with a weak
   password: they would also need to guess 128 random bits.
-- New device: scan a QR code from an unlocked device, or type the Secret Key
-  from the **Emergency Kit** (a printable PDF made at setup, also shown in
-  Settings). Setup does not finish until the user confirms the kit is saved.
+- **Key sync, on by default (opt-out).** The Secret Key is also saved to the
+  platform's end-to-end encrypted credential sync: iCloud Keychain
+  (`kSecAttrSynchronizable`) on Apple platforms, Google Password Manager via
+  Credential Manager on Android. A reinstall or a new phone on the same
+  account needs only the password. An attacker now needs the vault copy,
+  the user's Apple/Google account and a correct guess of a strong password.
+  Users who want the strictest mode turn key sync off in Settings; the
+  synced copy is then deleted.
+- New device without key sync (desktop, other account, sync off): scan a QR
+  code from an unlocked device, or type the Secret Key from the **Emergency
+  Kit** (a printable PDF made at setup, also in Settings). Setup asks the user
+  to type the last 4 characters of the key from the saved kit, and the app
+  asks again every few months.
 - Losing every copy of the Secret Key **and** the password loses the data.
   The app says so at setup, as it does for the password.
 
@@ -128,6 +138,11 @@ format version bump.
   vaults, forcing weaker parameters.
 - **Optional Secret Key**: most users would leave it off and stay exposed to
   offline guessing of the cloud copy.
+- **Secret Key only on devices + Emergency Kit** (no key sync): strongest, but
+  ordinary users lose paper kits; one lost kit plus a lost phone means lost
+  data. Kept as the opt-out mode instead of the default.
+- **Password only**: simplest, but a leaked cloud copy can be guessed
+  offline; relies entirely on password strength.
 
 ## Consequences
 
