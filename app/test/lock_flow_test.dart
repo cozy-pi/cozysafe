@@ -187,6 +187,10 @@ void main() {
     await _tapDigits(t, _pin);
     await _settle(t);
     // The action already opened (the camera covers the vault), so look offstage too.
+    // ignore: avoid_print
+    print('SCREENS: ${t.allWidgets.map((w) => w.runtimeType.toString()).where((n) => n.endsWith('Screen')).toSet()}');
+    // ignore: avoid_print
+    print('TEXTS: ${find.byType(Text).evaluate().map((e) => (e.widget as Text).data).whereType<String>().take(30).toList()}');
     final home = t.widget<VaultHomeScreen>(find.byType(VaultHomeScreen, skipOffstage: false));
     expect(home.initialAction?.name, 'camera');
   });
