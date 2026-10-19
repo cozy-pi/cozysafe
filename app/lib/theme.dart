@@ -81,6 +81,9 @@ ThemeData buildTheme(Brightness brightness) {
     surfaceContainerHighest: colors.soft,
   );
 
+  // Button labels derive from the theme's own type scale so they keep its font.
+  final label = ThemeData(brightness: brightness).textTheme.labelLarge!;
+
   OutlineInputBorder field(Color c) => OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: c, width: 1.5),
@@ -115,14 +118,14 @@ ThemeData buildTheme(Brightness brightness) {
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        textStyle: label.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: accent,
         minimumSize: const Size(44, 44),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        textStyle: label.copyWith(fontWeight: FontWeight.w600),
       ),
     ),
   );
