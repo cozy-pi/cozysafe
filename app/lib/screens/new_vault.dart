@@ -157,15 +157,15 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         ),
       );
     } on _Wait catch (w) {
-      if (mounted) _back(l.pinWait(_minutes(w.left)));
+      if (mounted) _retryPin(l.pinWait(_minutes(w.left)));
     } on rust.VaultError catch (e) {
       if (!mounted) return;
       if (e == rust.VaultError.pinInUse) {
         final wait = await PinStore.addFail();
         if (!mounted) return;
-        if (wait > Duration.zero) return _back(l.pinWait(_minutes(wait)));
+        if (wait > Duration.zero) return _retryPin(l.pinWait(_minutes(wait)));
       }
-      _back(vaultErrorText(l, e));
+      _retryPin(vaultErrorText(l, e));
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -176,7 +176,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     }
   }
 
-  void _back(String error) => setState(() {
+  void _retryPin(String error) => setState(() {
         _busy = false;
         _step = _Step.pin;
         _first = null;
