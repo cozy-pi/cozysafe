@@ -48,7 +48,8 @@ jobs:
       - working-directory: app
         env:
           CS_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        run: flutter build apk --release
+        # arm64 only: every current phone; skips building Rust for armv7 and x86_64 (emulators).
+        run: flutter build apk --release --target-platform android-arm64
       - run: mv app/build/app/outputs/flutter-apk/app-release.apk CozySafe-android.apk
       - name: Check the APK carries the release key
         run: |
