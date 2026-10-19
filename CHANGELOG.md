@@ -4,22 +4,6 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.1.4 (2026-10-20)
-
-### Changed
-- The vault's top-right button is now Settings (a gear) and opens it directly. Change
-  icon and colour, Recently deleted and New vault moved into Settings.
-- The PIN card on the lock screen is shorter.
-
-### Fixed
-- The lock screen's ⋯ menu was almost unreadable in dark mode (light text on white).
-- 0.1.3 did not build for iPhone, Mac and Linux. Video previews need iOS 16 and
-  macOS 13, now the minimum versions.
-
-### Changed (release)
-- Android builds go to internal testing first (no review, minutes) and to closed
-  testing at the same time (after Google's review).
-
 ## 0.1.3 (2026-10-20)
 
 ### Added
@@ -37,6 +21,15 @@ Dates are UTC.
 - The middle button says what it does (Pick photos, New note, Pick files); only the
   camera keeps the round shutter.
 - The vault never opens on the camera.
+- The vault's top-right button is Settings (a gear) and opens it directly. Change
+  icon and colour, Recently deleted and New vault moved into Settings.
+- The PIN card on the lock screen is shorter.
+- Needs iOS 16 or macOS 13 (for video previews).
+- Android builds reach internal testers within minutes (no review) and closed
+  testing after Google's review.
+
+### Fixed
+- The lock screen's ⋯ menu was almost unreadable in dark mode (light text on white).
 
 ## 0.1.2 (2026-10-20)
 
