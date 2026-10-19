@@ -3,8 +3,8 @@
 //! On disk (all under one library directory):
 //!
 //! ```text
-//! library.json            format, Argon2id parameters, library salt (not secret)
-//! secret-key              the 128-bit Secret Key            ← M0 only, see below
+//! library.json            format, Argon2id parameters, library salt, Secret Key
+//!                         fingerprint (none of it secret)
 //! vaults/<id>/header.json vault salt, wrapped Master Key, sealed metadata (name)
 //! vaults/<id>/items/      one encrypted object per item, see [`items`]
 //! ```
@@ -13,9 +13,10 @@
 //! password alone decides which vault opens, and nothing on disk names a vault in
 //! the clear.
 //!
-//! **M0 limitation:** the Secret Key sits in a file readable only by the app. It moves
-//! to the platform keystore (Keychain / Android Keystore / DPAPI / libsecret) with
-//! key sync and the Emergency Kit; see `docs/adr/0001-encryption.md`.
+//! The Secret Key is not stored here: the app keeps it in the platform keystore and
+//! passes it in (`docs/adr/0001-encryption.md`). Libraries from the first previews kept
+//! it in a `secret-key` file; [`Library::legacy_secret_key`] reads that once for the
+//! move, [`Library::forget_legacy_secret_key`] wipes it afterwards.
 
 use std::fs;
 use std::io::Write;
@@ -26,14 +27,15 @@ use cs_crypto::{wrap, Key, SecretKey, SALT_LEN, SECRET_KEY_LEN};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
+pub mod backup;
 pub mod items;
 pub use items::ItemMeta;
 
 const FORMAT: u32 = 1;
-const LIBRARY_FILE: &str = "library.json";
+pub(crate) const LIBRARY_FILE: &str = "library.json";
 const SECRET_KEY_FILE: &str = "secret-key";
-const VAULTS_DIR: &str = "vaults";
-const HEADER_FILE: &str = "header.json";
+pub(crate) const VAULTS_DIR: &str = "vaults";
+pub(crate) const HEADER_FILE: &str = "header.json";
 /// Master Key wrapped by a key that lives in the platform keystore behind biometrics.
 const BIOMETRIC_FILE: &str = "biometric";
 
@@ -50,6 +52,12 @@ pub enum Error {
     EmptyName,
     #[error("no such item")]
     NoSuchItem,
+    #[error("this Secret Key belongs to another library")]
+    WrongSecretKey,
+    #[error("not a Cozy Safe backup, or the file is damaged")]
+    BadBackup,
+    #[error("a library already exists here")]
+    LibraryExists,
     #[error("library data is damaged: {0}")]
     Corrupt(&'static str),
     #[error(transparent)]
@@ -70,6 +78,9 @@ struct LibraryHeader {
     format: u32,
     kdf: KdfJson,
     salt: String,
+    /// [`SecretKey::fingerprint`]; absent in libraries from the first previews.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    secret_key: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
@@ -121,14 +132,17 @@ impl Library {
             .unwrap_or(false)
     }
 
-    /// Open the library in `dir`, creating it (salt, Secret Key) with `params_if_new` if absent.
-    pub fn open_or_create(dir: &Path, params_if_new: KdfParams) -> Result<Library> {
+    /// Open the library in `dir` with the app's Secret Key, creating the library (salt,
+    /// fingerprint) with `params_if_new` if absent. A Secret Key from another library is
+    /// refused with [`Error::WrongSecretKey`] instead of failing every password.
+    pub fn open_or_create(
+        dir: &Path,
+        params_if_new: KdfParams,
+        secret_key: SecretKey,
+    ) -> Result<Library> {
         let header_path = dir.join(LIBRARY_FILE);
         if !header_path.exists() {
             fs::create_dir_all(dir.join(VAULTS_DIR))?;
-            let salt = cs_crypto::generate_salt();
-            let secret_key = SecretKey::generate();
-            write_private(&dir.join(SECRET_KEY_FILE), secret_key.as_bytes())?;
             let header = LibraryHeader {
                 format: FORMAT,
                 kdf: KdfJson {
@@ -136,7 +150,8 @@ impl Library {
                     t: params_if_new.t,
                     p: params_if_new.p,
                 },
-                salt: hex::encode(salt),
+                salt: hex::encode(cs_crypto::generate_salt()),
+                secret_key: Some(secret_key.fingerprint()),
             };
             write_atomic(
                 &header_path,
@@ -144,17 +159,20 @@ impl Library {
             )?;
         }
 
-        let header: LibraryHeader = serde_json::from_slice(&fs::read(&header_path)?)
-            .map_err(|_| Error::Corrupt("library.json"))?;
-        if header.format != FORMAT {
-            return Err(Error::Corrupt("unsupported library format"));
+        let mut header = read_library_header(dir)?;
+        match &header.secret_key {
+            Some(f) if *f != secret_key.fingerprint() => return Err(Error::WrongSecretKey),
+            Some(_) => {}
+            None => {
+                // Older library: record the fingerprint now.
+                header.secret_key = Some(secret_key.fingerprint());
+                write_atomic(
+                    &header_path,
+                    &serde_json::to_vec_pretty(&header).expect("serialisable"),
+                )?;
+            }
         }
         let salt = decode_array::<SALT_LEN>(&header.salt, "library salt")?;
-        let sk_bytes = Zeroizing::new(fs::read(dir.join(SECRET_KEY_FILE))?);
-        let sk: [u8; SECRET_KEY_LEN] = sk_bytes
-            .as_slice()
-            .try_into()
-            .map_err(|_| Error::Corrupt("secret key length"))?;
         Ok(Library {
             dir: dir.to_path_buf(),
             params: KdfParams {
@@ -163,8 +181,44 @@ impl Library {
                 p: header.kdf.p,
             },
             salt,
-            secret_key: SecretKey::from_bytes(sk),
+            secret_key,
         })
+    }
+
+    /// Whether `secret_key` belongs to the library in `dir` (true when the library
+    /// predates fingerprints and cannot tell).
+    pub fn secret_key_fits(dir: &Path, secret_key: &SecretKey) -> bool {
+        match read_library_header(dir) {
+            Ok(h) => h.secret_key.is_none_or(|f| f == secret_key.fingerprint()),
+            Err(_) => false,
+        }
+    }
+
+    /// The Secret Key from a first-preview `secret-key` file, if there is one.
+    pub fn legacy_secret_key(dir: &Path) -> Result<Option<SecretKey>> {
+        let bytes = match fs::read(dir.join(SECRET_KEY_FILE)) {
+            Ok(b) => Zeroizing::new(b),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(e) => return Err(e.into()),
+        };
+        let sk: [u8; SECRET_KEY_LEN] = bytes
+            .as_slice()
+            .try_into()
+            .map_err(|_| Error::Corrupt("secret key length"))?;
+        Ok(Some(SecretKey::from_bytes(sk)))
+    }
+
+    /// Overwrite and delete the `secret-key` file once the key is in the keystore.
+    pub fn forget_legacy_secret_key(dir: &Path) -> Result<()> {
+        let path = dir.join(SECRET_KEY_FILE);
+        if path.exists() {
+            let mut f = fs::OpenOptions::new().write(true).open(&path)?;
+            f.write_all(&[0u8; SECRET_KEY_LEN])?;
+            f.sync_all()?;
+            drop(f);
+            fs::remove_file(path)?;
+        }
+        Ok(())
     }
 
     /// Create a vault. Refuses weak passwords and passwords another vault already opens with.
@@ -338,6 +392,15 @@ impl OpenVault {
     }
 }
 
+fn read_library_header(dir: &Path) -> Result<LibraryHeader> {
+    let header: LibraryHeader = serde_json::from_slice(&fs::read(dir.join(LIBRARY_FILE))?)
+        .map_err(|_| Error::Corrupt("library.json"))?;
+    if header.format != FORMAT {
+        return Err(Error::Corrupt("unsupported library format"));
+    }
+    Ok(header)
+}
+
 fn read_header(vault_dir: &Path) -> Option<VaultHeader> {
     let bytes = fs::read(vault_dir.join(HEADER_FILE)).ok()?;
     let header: VaultHeader = serde_json::from_slice(&bytes).ok()?;
@@ -388,6 +451,7 @@ pub(crate) fn write_atomic(path: &Path, data: &[u8]) -> Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
 fn write_private(path: &Path, data: &[u8]) -> Result<()> {
     let mut opts = fs::OpenOptions::new();
     opts.write(true).create_new(true);
@@ -403,7 +467,7 @@ fn write_private(path: &Path, data: &[u8]) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     const FAST: KdfParams = KdfParams {
@@ -414,8 +478,12 @@ mod tests {
     const PW_A: &str = "mây tháng mười rơi trên phố cổ";
     const PW_B: &str = "orange kettle whispers at dawn 77";
 
+    pub(crate) fn sk() -> SecretKey {
+        SecretKey::from_bytes([7; SECRET_KEY_LEN])
+    }
+
     fn lib(dir: &Path) -> Library {
-        Library::open_or_create(dir, FAST).unwrap()
+        Library::open_or_create(dir, FAST, sk()).unwrap()
     }
 
     #[test]
@@ -523,16 +591,46 @@ mod tests {
     }
 
     #[test]
-    fn another_secret_key_cannot_open() {
+    fn another_secret_key_is_refused_up_front() {
         let tmp = tempfile::tempdir().unwrap();
         lib(tmp.path()).create_vault("A", PW_A).unwrap();
-        fs::remove_file(tmp.path().join(SECRET_KEY_FILE)).unwrap();
-        write_private(
-            &tmp.path().join(SECRET_KEY_FILE),
-            SecretKey::generate().as_bytes(),
+        let other = SecretKey::generate();
+        assert!(!Library::secret_key_fits(tmp.path(), &other));
+        assert!(Library::secret_key_fits(tmp.path(), &sk()));
+        assert!(matches!(
+            Library::open_or_create(tmp.path(), FAST, other),
+            Err(Error::WrongSecretKey)
+        ));
+    }
+
+    #[test]
+    fn legacy_secret_key_file_moves_out() {
+        let tmp = tempfile::tempdir().unwrap();
+        lib(tmp.path()).create_vault("A", PW_A).unwrap();
+        // A first-preview library: key in a file, no fingerprint in library.json.
+        write_private(&tmp.path().join(SECRET_KEY_FILE), sk().as_bytes()).unwrap();
+        let mut h = read_library_header(tmp.path()).unwrap();
+        h.secret_key = None;
+        fs::write(
+            tmp.path().join(LIBRARY_FILE),
+            serde_json::to_vec(&h).unwrap(),
         )
         .unwrap();
-        assert!(lib(tmp.path()).unlock(PW_A).unwrap().is_none());
+
+        let key = Library::legacy_secret_key(tmp.path()).unwrap().unwrap();
+        assert_eq!(key, sk());
+        Library::forget_legacy_secret_key(tmp.path()).unwrap();
+        assert!(Library::legacy_secret_key(tmp.path()).unwrap().is_none());
+        // Opening records the fingerprint; the vault still opens.
+        assert!(Library::open_or_create(tmp.path(), FAST, key)
+            .unwrap()
+            .unlock(PW_A)
+            .unwrap()
+            .is_some());
+        assert!(!Library::secret_key_fits(
+            tmp.path(),
+            &SecretKey::generate()
+        ));
     }
 
     #[test]

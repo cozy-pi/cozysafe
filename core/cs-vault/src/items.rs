@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn add_list_read_delete() {
         let tmp = tempfile::tempdir().unwrap();
-        let v = Library::open_or_create(tmp.path(), FAST)
+        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
             .create_vault("A", PW)
             .unwrap();
@@ -229,7 +229,7 @@ mod tests {
         let b = v.add_item(photo(b"second", 2)).unwrap();
 
         // After a restart the items are still there, newest first.
-        let v = Library::open_or_create(tmp.path(), FAST)
+        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
             .unlock(PW)
             .unwrap()
@@ -253,7 +253,7 @@ mod tests {
     #[test]
     fn nothing_readable_on_disk_and_no_cross_vault_reads() {
         let tmp = tempfile::tempdir().unwrap();
-        let lib = Library::open_or_create(tmp.path(), FAST).unwrap();
+        let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
         let a = lib.create_vault("A", PW).unwrap();
         let b = lib
             .create_vault("B", "mây tháng mười rơi trên phố cổ")
@@ -273,7 +273,7 @@ mod tests {
     #[test]
     fn rejects_path_like_ids() {
         let tmp = tempfile::tempdir().unwrap();
-        let v = Library::open_or_create(tmp.path(), FAST)
+        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
             .create_vault("A", PW)
             .unwrap();

@@ -6,12 +6,15 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use cs_crypto::kdf::KdfParams;
+use cs_crypto::{SecretKey, SECRET_KEY_LEN};
 use cs_vault::items::NewItem;
 use cs_vault::{ItemMeta, Library, OpenVault};
 use zeroize::Zeroizing;
 
 /// The vault currently open, if any. One at a time by design.
 static OPEN: Mutex<Option<OpenVault>> = Mutex::new(None);
+/// This device's Secret Key, handed over by Dart from the platform keystore at start.
+static SECRET: Mutex<Option<SecretKey>> = Mutex::new(None);
 
 pub struct VaultInfo {
     pub id: String,
@@ -25,6 +28,12 @@ pub enum VaultError {
     EmptyName,
     /// No vault is open (it locked while the screen was up).
     Locked,
+    /// The Secret Key does not belong to this library (Emergency Kit from another one).
+    WrongSecretKey,
+    /// The chosen file is not a Cozy Safe backup, or it is damaged.
+    BadBackup,
+    /// Restoring needs an empty library; this device already has vaults.
+    LibraryExists,
     Storage,
 }
 
@@ -34,6 +43,9 @@ impl From<cs_vault::Error> for VaultError {
             cs_vault::Error::WeakPassword => VaultError::WeakPassword,
             cs_vault::Error::PasswordInUse => VaultError::PasswordInUse,
             cs_vault::Error::EmptyName => VaultError::EmptyName,
+            cs_vault::Error::WrongSecretKey => VaultError::WrongSecretKey,
+            cs_vault::Error::BadBackup => VaultError::BadBackup,
+            cs_vault::Error::LibraryExists => VaultError::LibraryExists,
             _ => VaultError::Storage,
         }
     }
@@ -68,7 +80,7 @@ pub fn min_password_score() -> u8 {
 /// Create a vault and leave it open. Runs Argon2id: call it off the UI thread (async).
 pub fn create_vault(dir: String, name: String, password: String) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device())?;
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
     let vault = library.create_vault(&name, &password)?;
     Ok(set_open(vault))
 }
@@ -76,7 +88,7 @@ pub fn create_vault(dir: String, name: String, password: String) -> Result<Vault
 /// Open the vault this password belongs to; `None` when no vault matches.
 pub fn unlock(dir: String, password: String) -> Result<Option<VaultInfo>, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device())?;
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
     Ok(library.unlock(&password)?.map(set_open))
 }
 
@@ -117,6 +129,96 @@ pub fn biometric_enabled() -> bool {
         .unwrap_or_else(|p| p.into_inner())
         .as_ref()
         .is_some_and(|v| v.biometric_enabled())
+}
+
+fn secret() -> Result<SecretKey, VaultError> {
+    SECRET
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .clone()
+        .ok_or(VaultError::WrongSecretKey)
+}
+
+fn key16(bytes: &[u8]) -> Option<SecretKey> {
+    <[u8; SECRET_KEY_LEN]>::try_from(bytes)
+        .ok()
+        .map(SecretKey::from_bytes)
+}
+
+/// A new random Secret Key, for the first vault on a device.
+#[flutter_rust_bridge::frb(sync)]
+pub fn new_secret_key() -> Vec<u8> {
+    SecretKey::generate().as_bytes().to_vec()
+}
+
+/// Use this Secret Key from now on (read from the keystore at start). False if malformed.
+#[flutter_rust_bridge::frb(sync)]
+pub fn set_secret_key(key: Vec<u8>) -> bool {
+    let key = Zeroizing::new(key);
+    match key16(&key) {
+        Some(sk) => {
+            *SECRET.lock().unwrap_or_else(|p| p.into_inner()) = Some(sk);
+            true
+        }
+        None => false,
+    }
+}
+
+/// The Emergency Kit form: CS1-XXXX-…
+#[flutter_rust_bridge::frb(sync)]
+pub fn secret_key_text(key: Vec<u8>) -> String {
+    let key = Zeroizing::new(key);
+    key16(&key)
+        .map(|k| k.to_text().to_string())
+        .unwrap_or_default()
+}
+
+/// Read a Secret Key typed from an Emergency Kit; None when it has a typo.
+#[flutter_rust_bridge::frb(sync)]
+pub fn parse_secret_key(text: String) -> Option<Vec<u8>> {
+    let text = Zeroizing::new(text);
+    SecretKey::from_text(&text).map(|k| k.as_bytes().to_vec())
+}
+
+/// Whether this Secret Key belongs to the library in `dir`.
+#[flutter_rust_bridge::frb(sync)]
+pub fn secret_key_fits(dir: String, key: Vec<u8>) -> bool {
+    let key = Zeroizing::new(key);
+    key16(&key).is_some_and(|k| Library::secret_key_fits(Path::new(&dir), &k))
+}
+
+/// Secret Key from a first-preview install (a file), to move into the keystore.
+pub fn legacy_secret_key(dir: String) -> Result<Option<Vec<u8>>, VaultError> {
+    Ok(Library::legacy_secret_key(Path::new(&dir))?.map(|k| k.as_bytes().to_vec()))
+}
+
+/// Wipe the first-preview file once the keystore holds the key.
+pub fn forget_legacy_secret_key(dir: String) -> Result<(), VaultError> {
+    Ok(Library::forget_legacy_secret_key(Path::new(&dir))?)
+}
+
+/// Write a backup of the whole library to `path`. Returns the number of files.
+pub fn export_backup(dir: String, path: String) -> Result<u32, VaultError> {
+    let tmp = format!("{path}.part");
+    let result = std::fs::File::create(&tmp)
+        .map_err(cs_vault::Error::from)
+        .and_then(|f| cs_vault::backup::export(Path::new(&dir), f));
+    match result {
+        Ok(n) => {
+            std::fs::rename(&tmp, &path).map_err(|_| VaultError::Storage)?;
+            Ok(n)
+        }
+        Err(e) => {
+            let _ = std::fs::remove_file(&tmp);
+            Err(e.into())
+        }
+    }
+}
+
+/// Restore a backup file into `dir` (which must have no library yet).
+pub fn import_backup(path: String, dir: String) -> Result<u32, VaultError> {
+    let f = std::fs::File::open(&path).map_err(|_| VaultError::BadBackup)?;
+    Ok(cs_vault::backup::import(f, Path::new(&dir))?)
 }
 
 /// Close the open vault and wipe its keys.

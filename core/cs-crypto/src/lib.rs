@@ -8,6 +8,7 @@
 //! and every key type wipes itself on drop.
 
 pub mod kdf;
+mod secret_key_text;
 pub mod stream;
 pub mod wrap;
 
@@ -84,6 +85,17 @@ impl SecretKey {
 
     pub fn as_bytes(&self) -> &[u8; SECRET_KEY_LEN] {
         &self.0
+    }
+
+    /// A short public fingerprint stored beside the library, so a wrong Secret Key
+    /// (typed from an Emergency Kit, or a mix-up between libraries) is told apart from
+    /// a wrong password. 64 bits of a one-way function of a 128-bit random key.
+    pub fn fingerprint(&self) -> String {
+        let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, &self.0);
+        let mut out = [0u8; 8];
+        hk.expand(b"cozysafe/v1/secret-key-fingerprint", &mut out)
+            .expect("8 bytes is a valid HKDF output length");
+        out.iter().map(|b| format!("{b:02x}")).collect()
     }
 }
 

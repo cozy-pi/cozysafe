@@ -1,14 +1,19 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
+import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'camera.dart';
 import 'common.dart';
+import 'emergency_kit.dart';
 import 'unlock.dart';
 
 /// Inside an open vault. Locks the moment the app leaves the foreground.
@@ -41,6 +46,45 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     BiometricUnlock.available().then((k) {
       if (mounted) setState(() => _canBio = k != null);
     });
+  }
+
+  static final bool _desktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+
+  /// One encrypted file with the whole library. Desktop: save where the user picks.
+  /// Phone: write it to the app's temp folder and hand it to the share sheet (Files,
+  /// Drive, AirDrop…), then remove the temp copy.
+  Future<void> _backup() async {
+    final l = AppLocalizations.of(context);
+    final d = DateTime.now();
+    final name = 'CozySafe-${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}.cozysafe';
+    try {
+      if (_desktop) {
+        final loc = await getSaveLocation(suggestedName: name);
+        if (loc == null) return;
+        await rust.exportBackup(dir: widget.libraryDir, path: loc.path);
+        if (mounted) _snack(l.backupDone);
+        return;
+      }
+      final tmp = File('${(await getTemporaryDirectory()).path}${Platform.pathSeparator}$name');
+      await rust.exportBackup(dir: widget.libraryDir, path: tmp.path);
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(tmp.path, mimeType: 'application/octet-stream')],
+        sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      ));
+      if (tmp.existsSync()) tmp.deleteSync();
+    } catch (_) {
+      if (mounted) _snack(l.backupFailed);
+    }
+  }
+
+  Future<void> _showKit() async {
+    final key = await SecretKeyStore.read();
+    if (key == null || !mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => EmergencyKitScreen(keyText: rust.secretKeyText(key: key), confirm: false),
+    ));
   }
 
   Future<void> _toggleBiometric() async {
@@ -120,16 +164,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       appBar: AppBar(
         title: Text(widget.vault.name),
         actions: [
-          if (_canBio)
-            PopupMenuButton<void>(
-              itemBuilder: (context) => [
+          PopupMenuButton<void>(
+            itemBuilder: (context) => [
+              if (_canBio)
                 CheckedPopupMenuItem<void>(
                   checked: _bioOn,
                   onTap: _toggleBiometric,
                   child: Text(l.biometricSetting),
                 ),
-              ],
-            ),
+              PopupMenuItem<void>(onTap: _backup, child: Text(l.backup)),
+              PopupMenuItem<void>(onTap: _showKit, child: Text(l.showKit)),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: TextButton.icon(

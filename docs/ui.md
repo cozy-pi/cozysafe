@@ -19,6 +19,10 @@ marks or extra detail.
   pre-blurred image, not a live blur.
 - No motion on this screen. Floating/appearing items were tried and dropped as
   too playful for a vault.
+- The one exception is the moment it opens (approved 2026-10-19): a vault-green
+  overlay, the brand dial large in the centre turns half a turn (overshoots to
+  ~192°, settles at 180°) and scales out to reveal the vault, about 1.1 s.
+  With reduced motion: fade only.
 - Centre: a frosted card with the brand mark on its top edge, the title
   "Unlock", the password field, the Unlock button, then "Create a new vault".
   No subtitle and no item counts.

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
+import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'common.dart';
+import 'emergency_kit.dart';
+import 'restore.dart';
 import 'vault_home.dart';
 
 class CreateVaultScreen extends StatefulWidget {
@@ -70,6 +73,13 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
       _error = null;
     });
     try {
+      // The first vault on a device creates the Secret Key; it lives in the keystore.
+      var key = await SecretKeyStore.read();
+      if (key == null) {
+        key = rust.newSecretKey();
+        await SecretKeyStore.write(key);
+      }
+      rust.setSecretKey(key: key);
       final vault = await rust.createVault(
         dir: widget.libraryDir,
         name: _name.text,
@@ -82,9 +92,21 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
       if (!mounted) return;
       _password.clear();
       _confirm.clear();
+      final home = MaterialPageRoute<void>(
+        builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault),
+      );
+      if (!widget.first) {
+        await Navigator.of(context).pushAndRemoveUntil(home, (_) => false);
+        return;
+      }
+      // First vault: the Emergency Kit before anything goes in.
       await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(
-          builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault),
+          builder: (kitContext) => EmergencyKitScreen(
+            keyText: rust.secretKeyText(key: key!),
+            confirm: true,
+            onDone: () => Navigator.of(kitContext).pushAndRemoveUntil(home, (_) => false),
+          ),
         ),
         (_) => false,
       );
@@ -202,6 +224,17 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
             onPressed: _ready ? _create : null,
             child: BusyLabel(busy: _busy, idle: l.createButton, working: l.creating),
           ),
+          if (widget.first) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                        builder: (_) => RestoreScreen(libraryDir: widget.libraryDir, needFile: true),
+                      )),
+              child: Text(l.restoreFromBackup),
+            ),
+          ],
         ],
       ),
     );

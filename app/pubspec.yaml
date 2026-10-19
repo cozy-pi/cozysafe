@@ -14,9 +14,11 @@ dependencies:
   flutter_rust_bridge: 2.13.0
   intl: any
   camera: ^0.11.1
+  file_selector: ^1.0.3
   flutter_secure_storage: ^11.2.0
   local_auth: ^3.0.2
   path_provider: 2.1.6
+  share_plus: ^13.0.0
   rust_lib_cozysafe:
     path: rust_builder
 

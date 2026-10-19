@@ -1,0 +1,278 @@
+//! One-file backup of a whole library, and restoring it on a fresh install.
+//!
+//! Everything in a library is already encrypted or public (salts, parameters, the
+//! Secret Key fingerprint), so the backup is a plain container of those files. What a
+//! backup leaves out on purpose: anything tied to this device (biometric and PIN
+//! copies of vault keys, the first-preview `secret-key` file) and half-written temp
+//! files. Opening a restored library needs the Secret Key (Emergency Kit) and a password.
+//!
+//! Layout: `MAGIC`, then per file `u16 path length ‖ path (UTF-8, '/') ‖ u64 size ‖
+//! bytes`, ended by a zero path length and the number of files as `u32`. Files stream
+//! through a fixed buffer, so multi-gigabyte libraries need no extra memory.
+
+use std::fs;
+use std::io::{self, BufReader, BufWriter, Read, Write};
+use std::path::{Path, PathBuf};
+
+use crate::{Error, Result, HEADER_FILE, LIBRARY_FILE, VAULTS_DIR};
+
+const MAGIC: &[u8; 16] = b"COZYSAFE-BACKUP1";
+const ITEMS_DIR: &str = "items";
+const ITEM_EXTS: [&str; 3] = ["meta", "data", "thumb"];
+
+/// Write a backup of the library in `dir` to `out`. Returns the number of files.
+pub fn export<W: Write>(dir: &Path, out: W) -> Result<u32> {
+    let mut out = BufWriter::new(out);
+    out.write_all(MAGIC)?;
+    let mut count = 0u32;
+    for rel in files(dir)? {
+        let path = dir.join(&rel);
+        let size = fs::metadata(&path)?.len();
+        let name = rel.replace('\\', "/");
+        out.write_all(&(name.len() as u16).to_be_bytes())?;
+        out.write_all(name.as_bytes())?;
+        out.write_all(&size.to_be_bytes())?;
+        let copied = io::copy(&mut fs::File::open(&path)?.take(size), &mut out)?;
+        if copied != size {
+            return Err(Error::Corrupt("file changed during backup"));
+        }
+        count += 1;
+    }
+    out.write_all(&0u16.to_be_bytes())?;
+    out.write_all(&count.to_be_bytes())?;
+    out.flush()?;
+    Ok(count)
+}
+
+/// Restore a backup into `dir`, which must not hold a library yet. Writes into a
+/// staging directory first and moves it into place only once the whole file checked
+/// out, so a damaged or truncated backup leaves nothing behind.
+pub fn import<R: Read>(input: R, dir: &Path) -> Result<u32> {
+    if dir.join(LIBRARY_FILE).exists() {
+        return Err(Error::LibraryExists);
+    }
+    let staging = staging_dir(dir);
+    let _ = fs::remove_dir_all(&staging);
+    fs::create_dir_all(&staging)?;
+    match read_into(input, &staging) {
+        Ok(n) if staging.join(LIBRARY_FILE).is_file() => {
+            if dir.exists() {
+                fs::remove_dir_all(dir)?; // empty or leftover without a library
+            }
+            fs::rename(&staging, dir)?;
+            Ok(n)
+        }
+        Ok(_) => {
+            let _ = fs::remove_dir_all(&staging);
+            Err(Error::BadBackup)
+        }
+        Err(e) => {
+            let _ = fs::remove_dir_all(&staging);
+            Err(e)
+        }
+    }
+}
+
+fn staging_dir(dir: &Path) -> PathBuf {
+    let mut name = dir
+        .file_name()
+        .map(|n| n.to_os_string())
+        .unwrap_or_default();
+    name.push(".restoring");
+    dir.with_file_name(name)
+}
+
+fn read_into<R: Read>(input: R, dir: &Path) -> Result<u32> {
+    let mut input = BufReader::new(input);
+    let mut magic = [0u8; 16];
+    input.read_exact(&mut magic).map_err(|_| Error::BadBackup)?;
+    if &magic != MAGIC {
+        return Err(Error::BadBackup);
+    }
+    let mut count = 0u32;
+    loop {
+        let len = u16::from_be_bytes(read_n(&mut input)?) as usize;
+        if len == 0 {
+            let expected = u32::from_be_bytes(read_n(&mut input)?);
+            return if expected == count {
+                Ok(count)
+            } else {
+                Err(Error::BadBackup)
+            };
+        }
+        let mut name = vec![0u8; len];
+        input.read_exact(&mut name).map_err(|_| Error::BadBackup)?;
+        let name = String::from_utf8(name).map_err(|_| Error::BadBackup)?;
+        let rel = allowed(&name).ok_or(Error::BadBackup)?;
+        let size = u64::from_be_bytes(read_n(&mut input)?);
+        let path = dir.join(rel);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let mut f = fs::File::create(&path)?;
+        let copied = io::copy(&mut (&mut input).take(size), &mut f)?;
+        if copied != size {
+            return Err(Error::BadBackup);
+        }
+        f.sync_all()?;
+        count += 1;
+    }
+}
+
+fn read_n<const N: usize, R: Read>(r: &mut R) -> Result<[u8; N]> {
+    let mut b = [0u8; N];
+    r.read_exact(&mut b).map_err(|_| Error::BadBackup)?;
+    Ok(b)
+}
+
+/// The library files a backup carries, relative to `dir`, in a stable order.
+fn files(dir: &Path) -> Result<Vec<String>> {
+    let mut out = vec![LIBRARY_FILE.to_owned()];
+    let mut vaults: Vec<_> = match fs::read_dir(dir.join(VAULTS_DIR)) {
+        Ok(d) => d
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect(),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => return Err(e.into()),
+    };
+    vaults.sort();
+    for v in vaults {
+        if !is_hex_id(&v) || !dir.join(VAULTS_DIR).join(&v).join(HEADER_FILE).is_file() {
+            continue;
+        }
+        out.push(format!("{VAULTS_DIR}/{v}/{HEADER_FILE}"));
+        let items = dir.join(VAULTS_DIR).join(&v).join(ITEMS_DIR);
+        let mut names: Vec<_> = match fs::read_dir(&items) {
+            Ok(d) => d
+                .flatten()
+                .map(|e| e.file_name().to_string_lossy().into_owned())
+                .collect(),
+            Err(_) => Vec::new(),
+        };
+        names.sort();
+        for n in names {
+            let rel = format!("{VAULTS_DIR}/{v}/{ITEMS_DIR}/{n}");
+            if allowed(&rel).is_some() {
+                out.push(rel);
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// Only the exact shapes a library has; anything else (`..`, absolute paths, device
+/// files, temp files) is refused, so a crafted backup cannot write outside `dir`.
+fn allowed(name: &str) -> Option<PathBuf> {
+    let parts: Vec<&str> = name.split('/').collect();
+    let ok = match parts.as_slice() {
+        [f] => *f == LIBRARY_FILE,
+        [v, id, f] => *v == VAULTS_DIR && is_hex_id(id) && *f == HEADER_FILE,
+        [v, id, i, f] => {
+            *v == VAULTS_DIR
+                && is_hex_id(id)
+                && *i == ITEMS_DIR
+                && f.split_once('.')
+                    .is_some_and(|(item, ext)| is_hex_id(item) && ITEM_EXTS.contains(&ext))
+        }
+        _ => false,
+    };
+    ok.then(|| parts.iter().collect())
+}
+
+fn is_hex_id(s: &str) -> bool {
+    s.len() == 32 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::items::NewItem;
+    use crate::tests::sk;
+    use crate::Library;
+    use cs_crypto::kdf::KdfParams;
+
+    const FAST: KdfParams = KdfParams {
+        m_kib: 64,
+        t: 1,
+        p: 1,
+    };
+    const PW: &str = "orange kettle whispers at dawn 77";
+
+    #[test]
+    fn backup_restores_on_a_fresh_install() {
+        let a = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(a.path(), FAST, sk())
+            .unwrap()
+            .create_vault("A", PW)
+            .unwrap();
+        let big = vec![9u8; 300_000];
+        let item = v
+            .add_item(NewItem {
+                kind: "photo",
+                name: "x.jpg",
+                mime: "image/jpeg",
+                created_ms: 1,
+                content: &big[..],
+                thumbnail: Some(b"t"),
+            })
+            .unwrap();
+        v.enable_biometric().unwrap(); // device-only: must not travel
+
+        let mut file = Vec::new();
+        let n = export(a.path(), &mut file).unwrap();
+        assert_eq!(n, 5); // library.json, header, meta, data, thumb
+
+        let b = tempfile::tempdir().unwrap();
+        let target = b.path().join("library");
+        import(&file[..], &target).unwrap();
+        assert!(!Library::has_biometric(&target));
+        let v2 = Library::open_or_create(&target, FAST, sk())
+            .unwrap()
+            .unlock(PW)
+            .unwrap()
+            .unwrap();
+        let mut out = Vec::new();
+        v2.read_item(&item.id, &mut out).unwrap();
+        assert_eq!(out, big);
+        // Restoring over an existing library is refused.
+        assert!(matches!(
+            import(&file[..], &target),
+            Err(Error::LibraryExists)
+        ));
+    }
+
+    #[test]
+    fn damaged_or_crafted_backups_leave_nothing() {
+        let a = tempfile::tempdir().unwrap();
+        Library::open_or_create(a.path(), FAST, sk())
+            .unwrap()
+            .create_vault("A", PW)
+            .unwrap();
+        let mut file = Vec::new();
+        export(a.path(), &mut file).unwrap();
+
+        let b = tempfile::tempdir().unwrap();
+        let target = b.path().join("library");
+        // Truncated.
+        assert!(import(&file[..file.len() - 10], &target).is_err());
+        assert!(!target.exists() && !staging_dir(&target).exists());
+        // Not a backup.
+        assert!(matches!(
+            import(&b"hello"[..], &target),
+            Err(Error::BadBackup)
+        ));
+
+        // A path that tries to escape.
+        let mut evil = MAGIC.to_vec();
+        let name = b"../../evil";
+        evil.extend((name.len() as u16).to_be_bytes());
+        evil.extend(name);
+        evil.extend(1u64.to_be_bytes());
+        evil.push(b'x');
+        evil.extend(0u16.to_be_bytes());
+        evil.extend(1u32.to_be_bytes());
+        assert!(matches!(import(&evil[..], &target), Err(Error::BadBackup)));
+        assert!(!b.path().join("evil").exists() && !target.exists());
+    }
+}
