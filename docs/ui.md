@@ -87,3 +87,33 @@ Emergency Kit, and a three-column desktop layout, each in light and dark.
   Collections shows types (Photos, Documents, Notes, Recently deleted) and
   the user's folders.
 - Folder names are encrypted like everything else (never plain file names on disk).
+
+## First run and vault identity (approved 2026-10-19)
+
+Mockups: first run (internal mockup) ·
+flows (internal mockup)
+
+- **Fewest possible steps, one thing per step**, progress bar on top, back button.
+  Tapping a choice moves on (no "Next" on choice steps).
+  1. "Create your first vault": pick an icon (12, with names).
+  2. Pick a colour (12). The whole screen background takes the colour.
+  3. Set a PIN (4–10 digits). 4. Type it again (checks itself).
+  5. "Unlock with Face ID?" Turn on / Not now. Then the dial turns, into the vault.
+- **No vault names.** Icon + colour (144 combinations) identify a vault; the icon's
+  name is shown beside it, in the device language. A new vault gets a random
+  combination (avoiding the open vault's own when created from inside a vault).
+  Combinations are not checked against other vaults: the app cannot see them
+  while locked, and a readable list would show how many vaults exist.
+- **No password at the start.** Each vault opens with its own PIN on this device
+  (a PIN picks its vault, like the password does) and the default vault also
+  with Face ID. The **backup password** and the **Emergency Kit** are set later, on
+  one screen ("Suggest a password", type it again, then the kit with a QR code):
+  required before the first backup, gently suggested from inside the vault.
+- Wrong PINs: waits that grow (1, 5, 15, 60 min), never a lockout, since a vault
+  may have no password yet.
+- Splash: vault green with the dial where the lock screen has it.
+- Locking: by hand (animation), on leaving the app (immediately, 60 s grace when
+  the app itself opened the camera, a picker or the share sheet), after 2 minutes
+  without a touch. Face ID is not asked again right after locking by hand.
+- With a backup password, the lock screen asks for it once every 14 days instead
+  of Face ID, so it is not forgotten.
