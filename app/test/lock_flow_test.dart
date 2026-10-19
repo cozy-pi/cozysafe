@@ -1,6 +1,6 @@
 // Flows that can lock someone out of their vault if they break: PIN, wrong tries,
 // password fallback, type-to-unlock, an add action picked while locked, setting a PIN,
-// the Emergency Kit confirmation. The Rust core is replaced by a _fake with state.
+// the Emergency Kit confirmation. The Rust core is replaced by a fake with state.
 
 import 'dart:convert';
 import 'dart:typed_data';
