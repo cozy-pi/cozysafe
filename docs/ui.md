@@ -98,11 +98,12 @@ flows (internal mockup)
   1. "Create your first vault": pick an icon (11 common ones + a "⋯" tile that opens
      the full set of 35). **No text on icons or colours anywhere**: the picture is
      enough and nothing needs translating; names exist only for screen readers.
-  2. Pick a colour (11 + "⋯" for the full set of 35). The whole screen background
+  2. Pick a colour (11 + "⋯" for the full set of 20, hand-picked so no two look
+     alike; generated hue steps looked the same). The whole screen background
      takes the colour.
   3. Set a PIN (4–10 digits). 4. Type it again (checks itself).
   5. "Unlock with Face ID?" Turn on / Not now. Then the dial turns, into the vault.
-- **No vault names.** Icon + colour (35 × 35 ≈ 1,200 combinations) identify a vault;
+- **No vault names.** Icon + colour (35 × 20 = 700 combinations) identify a vault;
   inside the vault only the coloured icon is shown, no text. A new vault gets a random
   combination (avoiding the open vault's own when created from inside a vault).
   Combinations are not checked against other vaults: the app cannot see them
