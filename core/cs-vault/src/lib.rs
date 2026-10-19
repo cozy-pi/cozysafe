@@ -53,6 +53,8 @@ pub enum Error {
     EmptyName,
     #[error("a PIN is 4 to 10 digits")]
     BadPin,
+    #[error("another vault already opens with this PIN")]
+    PinInUse,
     #[error("no such item")]
     NoSuchItem,
     #[error("this Secret Key belongs to another library")]
@@ -94,16 +96,32 @@ struct KdfJson {
 }
 
 #[derive(Serialize, Deserialize)]
-struct VaultHeader {
+pub(crate) struct VaultHeader {
     format: u32,
     salt: String,
+    /// Master Key wrapped by the password path. Empty until a password is set: a vault
+    /// can start with only a PIN and biometrics on this device (docs/ui.md, first run).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     wrapped_master_key: String,
     meta: String,
 }
 
-#[derive(Serialize, Deserialize)]
+impl VaultHeader {
+    pub(crate) fn has_password(&self) -> bool {
+        !self.wrapped_master_key.is_empty()
+    }
+}
+
+/// Sealed with the Master Key: nothing on disk says what a vault is.
+#[derive(Serialize, Deserialize, Default)]
 struct VaultMeta {
+    #[serde(default)]
     name: String,
+    /// Vaults are told apart by an icon and a colour, chosen from the app's sets.
+    #[serde(default)]
+    icon: String,
+    #[serde(default)]
+    color: String,
 }
 
 /// The set of vaults in one directory, sharing a library salt and Secret Key.
@@ -118,6 +136,8 @@ pub struct Library {
 pub struct OpenVault {
     pub id: String,
     pub name: String,
+    pub icon: String,
+    pub color: String,
     dir: PathBuf,
     master_key: Key,
 }
@@ -249,6 +269,7 @@ impl Library {
         let master_key = Key::generate();
         let meta = serde_json::to_vec(&VaultMeta {
             name: name.to_owned(),
+            ..Default::default()
         })
         .expect("serialisable");
         let header = VaultHeader {
@@ -270,6 +291,8 @@ impl Library {
         Ok(OpenVault {
             id,
             name: name.to_owned(),
+            icon: String::new(),
+            color: String::new(),
             dir: vault_dir,
             master_key,
         })
@@ -299,6 +322,9 @@ impl Library {
             let Some(header) = read_header(&entry.path()) else {
                 continue;
             };
+            if !header.has_password() {
+                continue;
+            }
             let (Ok(salt), Ok(wrapped)) = (
                 decode_array::<SALT_LEN>(&header.salt, "vault salt"),
                 hex::decode(&header.wrapped_master_key),
@@ -366,7 +392,128 @@ impl Library {
     }
 }
 
+impl Library {
+    /// Create a vault that starts with only a PIN on this device (no password yet).
+    /// The PIN must not open another vault here: a PIN picks its vault.
+    pub fn create_vault_with_pin(
+        &self,
+        icon: &str,
+        color: &str,
+        pin: &str,
+        device_key: &SecretKey,
+        pin_params: KdfParams,
+    ) -> Result<OpenVault> {
+        if Library::pin_owner(&self.dir, pin, device_key)?.is_some() {
+            return Err(Error::PinInUse);
+        }
+        let id = hex::encode(cs_crypto::generate_salt());
+        let master_key = Key::generate();
+        let meta = VaultMeta {
+            icon: icon.to_owned(),
+            color: color.to_owned(),
+            ..Default::default()
+        };
+        let header = VaultHeader {
+            format: FORMAT,
+            salt: hex::encode(cs_crypto::generate_salt()),
+            wrapped_master_key: String::new(),
+            meta: hex::encode(wrap::seal(
+                &master_key,
+                &serde_json::to_vec(&meta).expect("serialisable"),
+                &aad(&id, "meta"),
+            )),
+        };
+        let vault_dir = self.dir.join(VAULTS_DIR).join(&id);
+        fs::create_dir_all(&vault_dir)?;
+        write_atomic(
+            &vault_dir.join(HEADER_FILE),
+            &serde_json::to_vec_pretty(&header).expect("serialisable"),
+        )?;
+        let vault = OpenVault {
+            id,
+            name: String::new(),
+            icon: meta.icon,
+            color: meta.color,
+            dir: vault_dir,
+            master_key,
+        };
+        if let Err(e) = vault.enable_pin(pin, device_key, pin_params) {
+            let _ = fs::remove_dir_all(&vault.dir);
+            return Err(e);
+        }
+        Ok(vault)
+    }
+
+    /// Whether any vault here can be opened with a password (shows "Use password").
+    pub fn any_password(dir: &Path) -> bool {
+        fs::read_dir(dir.join(VAULTS_DIR))
+            .map(|it| {
+                it.flatten()
+                    .any(|e| read_header(&e.path()).is_some_and(|h| h.has_password()))
+            })
+            .unwrap_or(false)
+    }
+
+    /// Set or change this vault's password: re-wraps the Master Key, nothing else is
+    /// re-encrypted, so it is instant whatever the vault's size. A password that already
+    /// opens another vault is refused (the password picks the vault).
+    pub fn set_password(&self, vault: &OpenVault, password: &str) -> Result<()> {
+        if password_score(password) < MIN_PASSWORD_SCORE {
+            return Err(Error::WeakPassword);
+        }
+        let root = kdf::derive_root(
+            password.as_bytes(),
+            &self.secret_key,
+            &self.salt,
+            self.params,
+        )?;
+        if let Some(other) = self.find_vault(&root)? {
+            if other.id != vault.id {
+                return Err(Error::PasswordInUse);
+            }
+        }
+        let mut header = read_header(&vault.dir).ok_or(Error::Corrupt("vault header"))?;
+        let salt = decode_array::<SALT_LEN>(&header.salt, "vault salt")?;
+        let kek = kdf::vault_kek(&root, &salt);
+        header.wrapped_master_key = hex::encode(wrap::wrap_key(
+            &kek,
+            &vault.master_key,
+            &aad(&vault.id, "master-key"),
+        ));
+        write_atomic(
+            &vault.dir.join(HEADER_FILE),
+            &serde_json::to_vec_pretty(&header).expect("serialisable"),
+        )
+    }
+}
+
 impl OpenVault {
+    pub fn has_password(&self) -> bool {
+        read_header(&self.dir).is_some_and(|h| h.has_password())
+    }
+
+    /// Change the icon and colour (sealed with the Master Key like the rest of the meta).
+    pub fn set_identity(&mut self, icon: &str, color: &str) -> Result<()> {
+        let mut header = read_header(&self.dir).ok_or(Error::Corrupt("vault header"))?;
+        let meta = VaultMeta {
+            name: self.name.clone(),
+            icon: icon.to_owned(),
+            color: color.to_owned(),
+        };
+        header.meta = hex::encode(wrap::seal(
+            &self.master_key,
+            &serde_json::to_vec(&meta).expect("serialisable"),
+            &aad(&self.id, "meta"),
+        ));
+        write_atomic(
+            &self.dir.join(HEADER_FILE),
+            &serde_json::to_vec_pretty(&header).expect("serialisable"),
+        )?;
+        self.icon = meta.icon;
+        self.color = meta.color;
+        Ok(())
+    }
+
     /// Turn on biometric unlock for this vault and off for every other one (one per
     /// device). Returns the key the caller must put in the biometric-gated keystore.
     pub fn enable_biometric(&self) -> Result<Key> {
@@ -423,6 +570,8 @@ pub(crate) fn open_with(
     Ok(OpenVault {
         id,
         name: meta.name,
+        icon: meta.icon,
+        color: meta.color,
         dir,
         master_key,
     })

@@ -141,6 +141,11 @@ fn files(dir: &Path) -> Result<Vec<String>> {
         if !is_hex_id(&v) || !dir.join(VAULTS_DIR).join(&v).join(HEADER_FILE).is_file() {
             continue;
         }
+        // A vault without a password opens only on this device (PIN, biometrics); in a
+        // backup it could never be opened, so it stays out.
+        if !crate::read_header(&dir.join(VAULTS_DIR).join(&v)).is_some_and(|h| h.has_password()) {
+            continue;
+        }
         out.push(format!("{VAULTS_DIR}/{v}/{HEADER_FILE}"));
         let items = dir.join(VAULTS_DIR).join(&v).join(ITEMS_DIR);
         let mut names: Vec<_> = match fs::read_dir(&items) {
