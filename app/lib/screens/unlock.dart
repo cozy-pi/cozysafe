@@ -227,7 +227,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
-          pageBuilder: (_, __, ___) =>
+          pageBuilder: (_, _, _) =>
               VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, initialAction: pending),
         ),
         (_) => false,

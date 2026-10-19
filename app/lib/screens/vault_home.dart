@@ -98,7 +98,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
-          pageBuilder: (_, __, ___) => UnlockScreen(libraryDir: widget.libraryDir),
+          pageBuilder: (_, _, _) => UnlockScreen(libraryDir: widget.libraryDir),
         ),
         (_) => false,
       );
@@ -208,8 +208,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         opaque: false,
         transitionDuration: const Duration(milliseconds: 220),
         reverseTransitionDuration: const Duration(milliseconds: 200),
-        pageBuilder: (_, __, ___) => PhotoViewerScreen(items: list, initial: list.indexOf(item)),
-        transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+        pageBuilder: (_, _, _) => PhotoViewerScreen(items: list, initial: list.indexOf(item)),
+        transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
       ),
     );
     if (!_locked && deleted != null) {

@@ -131,5 +131,6 @@
   "vaultMenu": "Tuỳ chọn két",
   "tabLibrary": "Thư viện",
   "tabCollections": "Bộ sưu tập",
-  "search": "Tìm"
+  "search": "Tìm",
+  "errorBadPin": "Mã PIN gồm 4 đến 10 chữ số."
 }
