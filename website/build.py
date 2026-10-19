@@ -36,7 +36,9 @@ LANGS = [
 ]
 IDS = [c for c, _ in LANGS]
 HTML_LANG = {'pt': 'pt-BR', 'zh': 'zh-CN'}  # hreflang / <html lang>
-PAGES = {'home': '', 'privacy': 'privacy.html'}
+# Public URL of each page. Cloudflare serves privacy.html at /privacy (it 307s the .html form),
+# so canonical, hreflang and the sitemap use the final address.
+PAGES = {'home': '', 'privacy': 'privacy'}
 
 
 def load():
@@ -217,7 +219,7 @@ def page(lang, texts, css):
     <span>{t['f_by']} <a href="{studio}">Cozy Pi</a></span>
     <a href="{REPO}">{t['f_src']}</a>
     <span>{t['f_lic']}</span>
-    <a href="privacy.html">{t['f_priv']}</a>
+    <a href="privacy">{t['f_priv']}</a>
     <a href="mailto:support@cozypi.com">support@cozypi.com</a>
   </div>
 </footer>
