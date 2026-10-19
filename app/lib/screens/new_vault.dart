@@ -122,6 +122,13 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         await SecretKeyStore.write(key);
       }
       rust.setSecretKey(key: key);
+      // "This PIN is taken" tells that some vault opens with it, so creating a vault
+      // shares the wrong-PIN waits: from the lock screen it is no faster than
+      // guessing on the PIN pad.
+      final until = await PinStore.waitUntil();
+      if (until != null && until.isAfter(DateTime.now())) {
+        throw _Wait(until.difference(DateTime.now()));
+      }
       final device = await PinStore.deviceKeyOrCreate(rust.newSecretKey);
       final vault = await rust.createVaultWithPin(
         dir: widget.libraryDir,
@@ -149,16 +156,16 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           (_) => false,
         ),
       );
+    } on _Wait catch (w) {
+      if (mounted) _back(l.pinWait(_minutes(w.left)));
     } on rust.VaultError catch (e) {
       if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _step = _Step.pin;
-        _first = null;
-        _pin = '';
-        _shake++;
-        _error = vaultErrorText(l, e);
-      });
+      if (e == rust.VaultError.pinInUse) {
+        final wait = await PinStore.addFail();
+        if (!mounted) return;
+        if (wait > Duration.zero) return _back(l.pinWait(_minutes(wait)));
+      }
+      _back(vaultErrorText(l, e));
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -168,6 +175,17 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       }
     }
   }
+
+  void _back(String error) => setState(() {
+        _busy = false;
+        _step = _Step.pin;
+        _first = null;
+        _pin = '';
+        _shake++;
+        _error = error;
+      });
+
+  static int _minutes(Duration d) => d.inSeconds <= 60 ? 1 : (d.inSeconds / 60).ceil();
 
   Future<bool?> _askBiometric(AppLocalizations l) => showModalBottomSheet<bool>(
         context: context,
@@ -462,4 +480,9 @@ class _ShakeState extends State<_Shake> with SingleTickerProviderStateMixin {
         },
         child: widget.child,
       );
+}
+
+class _Wait implements Exception {
+  const _Wait(this.left);
+  final Duration left;
 }

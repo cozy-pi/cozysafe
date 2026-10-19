@@ -9,11 +9,13 @@ Cozy Safe is an encrypted vault for notes, files and photos. It is a product of
 
 - **Encrypted on device.** Everything is encrypted before it touches disk, a
   cloud folder, a peer or a server. Sync transports only ever see ciphertext.
-- **Multiple vaults, one password each.** Every vault has its own password and
-  its own encryption keys. Knowing one password gives no access to another vault.
+- **Multiple vaults, separate keys.** Every vault has its own encryption keys and
+  its own PIN on the device; the backup password, once set, is per vault too.
+  Knowing one gives no access to another vault.
 - **No recovery.** There is no password reset, no recovery e-mail, no escrow.
-  Losing the password means losing the data. The app says this plainly when a
-  vault is created and makes backups easy.
+  A vault without a backup password lives only on this device behind its PIN:
+  forget the PIN or lose the phone and it is gone. The app says this where the PIN
+  is set and keeps nudging until a backup password exists, and makes backups easy.
 - **One codebase, five platforms.** Android, iOS, macOS, Windows, Linux.
 - **Open source, reproducible, audited.** GPL-3.0 with an app-store
   exception, reproducible builds, an independent security audit before 1.0.
@@ -35,11 +37,12 @@ not assume more protection than they have.
 | Adversary | Protected? | How |
 |---|---|---|
 | Someone who picks up the unlocked device | Partly | Auto-lock on inactivity and on backgrounding; screenshots and task-switcher previews blocked |
-| Someone who picks up the locked device | Yes | Vault keys are derived from the password (Argon2id) and never stored in plaintext |
+| Someone who picks up the locked device | Yes | Vault keys are wrapped by the password (Argon2id) or by the PIN plus a device key held in the platform keystore; never stored in plaintext |
+| Someone who guesses PINs on the device | Slowed | Growing waits after the 5th wrong PIN (1, 5, 15, 60 min), shared by every path that can tell whether a PIN exists (unlock, create a vault, change PIN). 4 digits is the minimum; the app suggests 6 or more |
 | Cloud provider / sync relay / self-hosted server operator | Yes | Sees only ciphertext and padded sizes; cannot guess the password without the Secret Key |
 | Attacker with a copy of the vault files | Yes | Password + 128-bit Secret Key, Argon2id + XChaCha20-Poly1305. See `adr/0001-encryption.md` |
 | Malware on the device | No | Out of scope |
-| Someone who coerces the user into unlocking | No | Out of scope; the app does not attempt deniability |
+| Someone who coerces the user into unlocking | Partly | Each vault opens only with its own PIN, so the user can open a harmless one. Not true deniability: the storage shows how many vault containers exist |
 
 A full threat model lives in `docs/threat-model.md` (to be written with the
 first code).
@@ -75,9 +78,19 @@ first code).
 - "I think it was exposed" offers **Rotate all keys**: new keys, everything
   re-encrypted in the background, resumable.
 - Delete a vault with a strong confirmation.
-- **v0.1 (single device), as built:** no storage-location choice yet (vaults live
-  in app storage); the backup file is the way to keep a copy elsewhere. Key sync
-  and "add a device" come with sync in v0.2.
+- **v0.1 (single device), as built (0.1.1):**
+  - No storage-location choice yet (vaults live in app storage); the backup file
+    is the way to keep a copy elsewhere. Key sync and "add a device" come with
+    sync in v0.2.
+  - Create a vault in steps: icon, colour, PIN, PIN again, Face ID (first vault).
+    No name and no password at creation (see `ui.md`, First run).
+  - The backup password and the Emergency Kit are set later on one screen:
+    required before the first backup, nudged from inside the vault, changeable
+    any time (re-wraps the vault key, instant).
+  - Each vault has its own PIN; a PIN already used by another vault is refused.
+  - **Still missing** (from the user review of 2026-10-19, `plan-v0.1.md`):
+    delete a vault; choose which vault Face ID opens; set a PIN after restoring
+    a backup on a new device.
 
 ### Content
 
@@ -149,8 +162,16 @@ One "Add" button (the + inside a vault) opens every source:
   lock screen shows; one vault per device. The biometric path only unwraps a copy
   of the vault key held behind the platform keystore; turning it off deletes that
   copy.
-- PIN unlock: 4 to 10 digits, this device only, off after 5 wrong tries (the
-  password always works). See `adr/0001-encryption.md`.
+- PIN unlock: at least 4 digits (no practical maximum), one per vault, this
+  device only. Wrong PINs make you wait longer each time (from the 5th: 1, 5, 15,
+  60 min) and never turn the PIN off, because a vault may have no password yet.
+  The dots show only the digits typed, never the length. See
+  `adr/0001-encryption.md`.
+- **v0.1 as built:** idle lock after 2 minutes without a touch or keystroke,
+  anywhere in the app (also on the note editor and viewers); leaving the app locks
+  at once, except 60 s when the app itself opened a picker or the share sheet.
+  Locking first saves any note being typed. A configurable timeout comes with
+  Settings.
 - Password unlock opens as soon as the typed password is right (tried quietly
   after a short pause), no Enter needed; Enter still reports a wrong password.
 - Adding while locked: the lock screen shows the same add dock. Until the
@@ -161,7 +182,11 @@ One "Add" button (the + inside a vault) opens every source:
 ### Leak prevention
 
 - Block screenshots and task-switcher previews (`FLAG_SECURE` on Android,
-  cover view on iOS, best-effort on desktop).
+  cover view on iOS, best-effort on desktop). **Not built yet; v0.1 must have it**:
+  today the app switcher shows what was on screen. iOS: add the cover in the
+  scene's `willResignActive` natively (a Flutter overlay arrives too late for the
+  snapshot). Android: `FLAG_SECURE` also blocks the user's own screenshots, so it
+  is a setting (on by default) that testers can turn off.
 - Clipboard: anything copied from the vault is marked sensitive (Android 13+
   `EXTRA_IS_SENSITIVE`, iOS `localOnly` + expiry, so no Universal Clipboard)
   and cleared after 60 s (configurable) and on lock.
@@ -211,7 +236,11 @@ easy but never silent.
   where the user picks, phones use the share sheet). Device-only unlock copies
   (biometrics, PIN) are not in the backup.
 - Export plaintext (notes as Markdown, files as-is) with a loud warning.
-- Reminder when the last backup is older than a configurable threshold.
+- Reminder when the last backup is older than a configurable threshold; the
+  menu shows "Last backup: 12 days ago".
+- Only vaults with a backup password are in the backup. The backup screen says
+  so every time, in the same words whatever vaults exist (it must not reveal how
+  many vaults there are).
 
 ### Sync (see `architecture.md`)
 

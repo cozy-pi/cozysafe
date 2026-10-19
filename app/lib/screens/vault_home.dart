@@ -3,12 +3,14 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
+import '../lock_guard.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -24,15 +26,6 @@ import 'new_vault.dart';
 import 'note.dart';
 import 'set_pin.dart';
 import 'unlock.dart';
-
-/// Lets the vault stay open for a short while when the app itself sends the person to
-/// another app (share sheet, file or photo picker): docs/ui.md, locking.
-abstract final class LockGuard {
-  static DateTime? _until;
-  static void allowAway() => _until = DateTime.now().add(const Duration(seconds: 60));
-  static bool get away => _until != null && DateTime.now().isBefore(_until!);
-  static void clear() => _until = null;
-}
 
 /// Inside an open vault: photos edge to edge, notes and files as a list, by date; the
 /// same add dock as the lock screen. Locks on leaving the app, after 2 minutes without a
@@ -74,6 +67,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     BiometricUnlock.available().then((k) {
       if (mounted) setState(() => _canBio = k != null);
     });
+    LockGuard.onActivity = _touch;
+    // Touches anywhere count, also on the note editor or viewer pushed above this screen.
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _touch();
     final first = widget.initialAction;
     if (first != null) WidgetsBinding.instance.addPostFrameCallback((_) => _onAction(first));
@@ -82,8 +78,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   @override
   void dispose() {
     _idleTimer?.cancel();
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
+    if (LockGuard.onActivity == _touch) LockGuard.onActivity = null;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _onPointer(PointerEvent e) {
+    if (e is PointerDownEvent) _touch();
   }
 
   void _touch() {
@@ -130,7 +132,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _locked = true;
     _idleTimer?.cancel();
     final nav = Navigator.of(context);
-    void go() {
+    void go() async {
+      // Unsaved note text is written before the key is dropped.
+      final save = LockGuard.beforeLock;
+      if (save != null) {
+        try {
+          await save();
+        } catch (_) {} // locking must not wait on a failed write
+      }
       rust.lock();
       _thumbs.clear();
       nav.pushAndRemoveUntil(
@@ -405,9 +414,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       );
     }
 
-    return Listener(
-      onPointerDown: (_) => _touch(),
-      child: Scaffold(
+    return Scaffold(
         body: Column(
           children: [
             Expanded(
@@ -472,7 +479,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             ),
           ],
         ),
-      ),
     );
   }
 }

@@ -24,6 +24,13 @@ Dates are UTC.
   sharing gives 60 seconds away from the app.
 - New lock symbol in the dock; Apple's Face ID symbol on Face ID devices.
 
+### Fixed
+- Creating a vault (or changing a PIN) could test whether a PIN belongs to another
+  vault without waiting; it now shares the wrong-PIN waits.
+- A note being typed is saved as you type and before the vault locks; touches and
+  typing on any screen keep the vault open.
+- More room between the PIN card and the keypad.
+
 ## 0.1.0 (2026-10-19)
 
 First build with a version name, on every platform at once.

@@ -17,20 +17,32 @@ elsewhere, and the Emergency Kit to open it.
   PIN wrappers, no Secret Key). Restore: pick the file, enter the Secret Key from
   the Emergency Kit, then unlock with the password.
 
-## Stage 2: approved UI (done 2026-10-19, waiting for device testing)
-- Lock screen B2 with PIN (4–10 digits, device-only, 5 tries) and biometrics.
+## Stage 2: approved UI (done 2026-10-19, 0.1.1)
+- Lock screen B2 with a PIN per vault (at least 4 digits, growing waits, no
+  lockout) and biometrics; splash screen.
+- First run in steps (icon, colour, PIN, PIN again, Face ID), no names; backup
+  password and Emergency Kit set later.
 - Vault screen: Library | Collections, edge-to-edge photo grid, list for
   documents and notes, viewer with swipe.
 - One shared add dock (lock screen and vault): mode strip + big button.
 
 ## Stage 3: content
-- Nested folders. Photos from the system picker, any file, notes, paste.
-- Open a file in another app (decrypted to a private temp file, removed after).
-- Desktop: drag and drop in.
+- Done in 0.1.1: notes (saved as you type), photos from the system picker, any
+  file, open a file in another app (temporary copy, removed after).
+- To do: nested folders, paste, desktop drag and drop in.
+
+## Stage 3b: from the user review (`ui.md`, User review 2026-10-19)
+Before calling it v0.1, in this order:
+- 0.1.2, no new screens: say what a forgotten PIN means (PIN step and vault
+  banner); cover the app switcher (iOS) and `FLAG_SECURE` (Android); clipboard
+  sensitive + cleared; backup says which vaults are left out; "Face ID opens this
+  vault"; set a PIN after a restore.
+- 0.1.3, mockups first: delete originals after import, Recently deleted, built-in
+  viewers (PDF, video), Settings, delete a vault, import progress, last backup.
 
 ## Stage 4: finish
-- Recently deleted (30 days), search by name, change password,
-  settings (language, theme, PIN, biometrics, auto-lock).
+- Search by name (and note text). Recently deleted and Settings moved up to
+  Stage 3b.
 
 ## Testing (before calling it v0.1)
 

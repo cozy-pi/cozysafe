@@ -9,7 +9,7 @@ import '../widgets/add_dock.dart';
 import '../widgets/brand.dart';
 import 'common.dart';
 
-/// Choose a PIN for this vault on this device: 4 to 10 digits, then the same again.
+/// Choose a PIN for this vault on this device: at least 4 digits, then the same again.
 /// Pops with `true` once it is set. `skippable` adds "Not now" (after the first vault).
 class SetPinScreen extends StatefulWidget {
   const SetPinScreen({super.key, this.skippable = false});
@@ -64,10 +64,25 @@ class _SetPinScreenState extends State<SetPinScreen> {
     }
     setState(() => _busy = true);
     try {
+      // Same waits as the PIN pad: "taken" would otherwise reveal another vault's PIN.
+      final until = await PinStore.waitUntil();
+      if (until != null && until.isAfter(DateTime.now())) {
+        final m = until.difference(DateTime.now()).inSeconds;
+        if (mounted) {
+          setState(() {
+            _busy = false;
+            _error = l.pinWait(m <= 60 ? 1 : (m / 60).ceil());
+            _first = null;
+            _pin = '';
+          });
+        }
+        return;
+      }
       final device = await PinStore.deviceKeyOrCreate(rust.newSecretKey);
       await rust.enablePin(pin: _pin, deviceKey: device);
       if (mounted) Navigator.of(context).pop(true);
     } on rust.VaultError catch (e) {
+      if (e == rust.VaultError.pinInUse) await PinStore.addFail();
       if (mounted) {
         setState(() {
           _busy = false;

@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_guard.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 
-/// A note: plain text, saved when you leave the screen. The list shows its first line.
-/// New notes start with the keyboard open. The text lives in memory only while open.
+/// A note: plain text, saved as you type (a moment after you stop), when you leave,
+/// and before the vault locks, so locking never loses what was typed. The list shows
+/// its first line. New notes start with the keyboard open.
 class NoteScreen extends StatefulWidget {
   const NoteScreen({super.key, this.item});
 
@@ -23,11 +26,20 @@ class _NoteScreenState extends State<NoteScreen> {
   String _loaded = '';
   bool _ready = false;
   bool _saving = false;
+  /// Set once a new note has been written the first time.
+  String? _id;
+  Timer? _autosave;
+  Future<void>? _writing;
+  /// Something was written: the vault list needs reloading.
+  bool _wrote = false;
 
   @override
   void initState() {
     super.initState();
+    LockGuard.beforeLock = _saveNow;
+    _text.addListener(_typed);
     final item = widget.item;
+    _id = item?.id;
     if (item == null) {
       _ready = true;
     } else {
@@ -50,6 +62,8 @@ class _NoteScreenState extends State<NoteScreen> {
 
   @override
   void dispose() {
+    _autosave?.cancel();
+    if (LockGuard.beforeLock == _saveNow) LockGuard.beforeLock = null;
     _text.dispose();
     super.dispose();
   }
@@ -59,24 +73,44 @@ class _NoteScreenState extends State<NoteScreen> {
     return first.length > 80 ? '${first.substring(0, 80)}…' : first;
   }
 
-  /// Save if anything changed; an empty new note is simply dropped.
+  void _typed() {
+    LockGuard.activity(); // typing on a phone is no touch, but it is activity
+    _autosave?.cancel();
+    _autosave = Timer(const Duration(milliseconds: 1200), () => _saveNow());
+  }
+
+  /// Write the text if it changed. One write at a time; an empty new note is not written.
+  Future<void> _saveNow() async {
+    _autosave?.cancel();
+    while (_writing != null) {
+      await _writing;
+    }
+    final text = _text.text;
+    if (!_ready || text == _loaded || (_id == null && text.trim().isEmpty)) return;
+    final done = Completer<void>();
+    _writing = done.future;
+    try {
+      final id = _id;
+      if (id == null) {
+        _id = (await rust.addNote(title: _title(text), text: text, createdMs: DateTime.now().millisecondsSinceEpoch)).id;
+      } else {
+        await rust.updateNote(id: id, title: _title(text), text: text);
+      }
+      _loaded = text;
+      _wrote = true;
+    } finally {
+      _writing = null;
+      done.complete();
+    }
+  }
+
   Future<void> _saveAndLeave() async {
     if (_saving) return;
-    final text = _text.text;
     final nav = Navigator.of(context);
-    if (!_ready || text == _loaded || (widget.item == null && text.trim().isEmpty)) {
-      nav.pop(false);
-      return;
-    }
     setState(() => _saving = true);
     try {
-      final item = widget.item;
-      if (item == null) {
-        await rust.addNote(title: _title(text), text: text, createdMs: DateTime.now().millisecondsSinceEpoch);
-      } else {
-        await rust.updateNote(id: item.id, title: _title(text), text: text);
-      }
-      nav.pop(true);
+      await _saveNow();
+      nav.pop(_wrote);
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);

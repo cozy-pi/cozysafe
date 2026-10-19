@@ -28,10 +28,13 @@ marks or extra detail.
 - Unlock order (approved 2026-10-19, mockup
   (internal mockup)): biometrics are asked for
   as soon as the screen shows; then the **PIN pad** if this device has a PIN
-  (dots = PIN length, digits only, no letters, checks itself on the last digit,
-  shakes on a wrong PIN, 5 wrong turns the PIN off); then the **password** (type
-  to unlock, no Enter needed). "Use password" / "Use PIN" switch between them;
-  "Create a new vault" sits under the password.
+  (a dot per digit typed, no empty placeholders, digits only, checks itself at
+  every PIN length in use, shakes on a wrong PIN, waits grow from the 5th wrong
+  one); then the **password** (type to unlock, no Enter needed), offered only when
+  some vault has one. "Use password" / "Use PIN" switch between them; "Create a
+  new vault" sits under them.
+- Spacing: at least 32 px between the card (with its "Use password" link) and the
+  top row of keys, so the link is never hit instead of 1·2·3 (user report on 0.1.0).
 - The **add dock** (below) fills the bottom, identical to the one inside a
   vault. Left slot: a closed lock (state, not a button). Right slot: Face ID or
   fingerprint. Picking an add action while locked unlocks first, then runs it.
@@ -46,7 +49,11 @@ marks or extra detail.
 Mockup: (internal mockup) (v3, learned from
 Apple Photos iOS 26, Google Photos, Files, Proton Drive, Ente Photos).
 
-- Title (vault name) and a menu (PIN, biometrics, back up, Emergency Kit).
+- Header: the vault's coloured icon (tap: change icon and colour), no text, and a
+  menu: icon and colour · backup password · change PIN · Face ID · back up ·
+  Emergency Kit · new vault. Settings and Delete vault join it (review below).
+- Without a backup password, a banner under the header says what is at stake
+  (review below) with "Set it".
 - **Library | Collections.** Library: everything by date (Today, Yesterday,
   This week, then months). Collections: Photos, Documents, Notes, Recently
   deleted, and the user's folders.
@@ -122,3 +129,51 @@ flows (internal mockup)
   without a touch. Face ID is not asked again right after locking by hand.
 - With a backup password, the lock screen asks for it once every 14 days instead
   of Face ID, so it is not forgotten.
+
+## User review, 2026-10-19 (what changes next)
+
+We used 0.1.1 as a careful user who knows 1Password and Proton Pass would.
+Fixed in 0.1.1 already: a vault could be created from the lock screen to test
+whether a PIN belongs to another vault without any wait; typing a note could be
+lost when the vault locked (idle or leaving the app); touches on the note editor
+and viewers did not count as activity; the PIN card sat too close to the keys.
+
+What a user stumbles on, in order of harm. Screens marked *mockup* are approved
+before they are built (the usual rule).
+
+1. **"Forget the PIN and it's gone" is never said.** The PIN step says it under the
+   dots ("Without a backup password, a forgotten PIN can't be recovered."), and the
+   banner in the vault says the stake, not the mechanism: "Only on this phone. Lose
+   it or forget the PIN and this vault is gone." with "Set backup password".
+2. **The app switcher shows the vault.** A plain vault-green cover with the dial (the
+   splash) whenever the app is not active. No setting on iOS.
+3. **Imported photos stay in Photos.** After importing from the library: "Delete the
+   originals from Photos?" through the system's own prompt; never automatic. Files
+   from a folder: same offer when the source allows deleting. *mockup*
+4. **Delete is forever.** Recently deleted for 30 days (already in Stage 4); the
+   viewer's Delete moves there and says "Moved to Recently deleted". *mockup*
+5. **Files only open in other apps.** Built-in viewers for PDF, images and video;
+   "Open in another app" stays as a secondary action with its warning. *mockup*
+6. **No Settings.** One screen from the vault menu: auto-lock (immediately, 1, 2, 5
+   min), Face ID for this vault, change PIN, backup password, Emergency Kit, last
+   backup date, storage used, block screenshots (Android), language, theme. *mockup*
+7. **Which vault does Face ID open?** The menu says "Face ID opens this vault";
+   turning it on here moves it from the other vault (one per device).
+8. **Backups leave some vaults out silently.** The backup step says, always in the
+   same words, that vaults without a backup password are not included.
+9. **No way to delete a vault.** Menu → Delete vault, confirmed by typing its PIN;
+   locks and returns to the lock screen.
+10. **After restoring on a new phone there is no PIN.** After the first password
+    unlock of a restored vault, offer "Set a PIN for this phone" (same pad).
+11. **Copied note text stays on the clipboard.** Marked sensitive (no Universal
+    Clipboard, hidden from Android's clipboard preview) and cleared after 60 s and
+    on lock.
+12. **Big imports show only "Encrypting…".** A progress bar with a count (3 of 12)
+    and Cancel; nothing half-imported appears.
+13. **Last backup is unknown.** Shown in the menu and Settings; a nudge after 30 days
+    with new items.
+
+Worth saying, not changing: photos taken with the in-app camera never touch the
+photo library (one line on the camera screen the first time); a second vault with
+its own PIN is a practical decoy (one line in the help, without promising
+deniability).
