@@ -150,3 +150,54 @@ format version bump.
 - Test vectors for every format version are committed and checked in CI on
   every platform.
 - The Emergency Kit and QR device-add flows are part of v0.1, not later.
+
+## As built for v0.1 (2026-10-19)
+
+v0.1 is single-device (no sync), which changes three things for now:
+
+- **Secret Key storage:** this device's keystore only (Keychain
+  `first_unlock_this_device`, not synchronizable; Android Keystore; Windows
+  credential store; libsecret; the legacy macOS keychain, which needs no
+  provisioning profile for Developer ID builds). **Key sync is deferred to
+  v0.2** with sync itself; until then the Emergency Kit is the only copy that
+  leaves the device. Rust never stores the key; the app hands it over at start.
+- **Text form** for the Emergency Kit: `CS1-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`,
+  26 Crockford base32 characters for 128 bits plus 2 check characters (10 bits of
+  SHA-256), case-insensitive, I/L read as 1 and O as 0. Kit is a screen with copy
+  and share, confirmed by typing the last 4 characters (PDF and periodic re-check
+  later).
+- **Fingerprint:** `library.json` stores 64 bits of HKDF(Secret Key) so a wrong
+  key is reported as such instead of failing every password. Not secret: it is a
+  one-way function of 128 random bits.
+- First-preview installs kept the key in a `secret-key` file; the app reads it
+  once, stores it in the keystore, reads it back, and only then overwrites and
+  deletes the file.
+
+### Biometric unlock (built)
+Rust wraps the vault's Master Key with a random key K (`vaults/<id>/biometric`).
+K lives in the keystore behind biometrics: Keychain with `biometryCurrentSet`
+(a changed enrolment invalidates it), Android Keystore with strong biometrics
+and a fresh check per read. Neither half opens the vault alone. One vault per
+device; on by default for the first vault. A lost K (biometrics changed) removes
+the wrapped copies and falls back to the PIN or password.
+
+### PIN unlock (built)
+4 to 10 digits, this device only. `vaults/<id>/pin` holds the Master Key wrapped
+by HKDF(Argon2id(PIN, device key, salt)), where the device key is 128 random bits
+in the keystore, replaced every time a PIN is set. Copying vault files elsewhere
+makes the PIN useless; the device key without the PIN is useless too. The app
+counts wrong tries in the keystore and forgets the PIN after 5. Weakness, accepted
+for a consumer app: the count is enforced by the app, not by secure hardware, so
+someone with the unlocked phone and a jailbreak could try all PINs on that phone
+(about 1–2 hours for 4 digits, days for 6, at ~0.5 s per Argon2id run). Users can
+turn the PIN off and use only the password and biometrics.
+
+### Backup file (built)
+One streaming file: `COZYSAFE-BACKUP1`, then per file a 16-bit path length, the
+path, a 64-bit size and the bytes, ended by a zero length and the file count.
+It carries `library.json`, vault headers and items (all already encrypted or
+public) and leaves out device-only data (biometric and PIN copies, the
+first-preview key file). Restore accepts only the exact path shapes a library
+has, writes into a staging folder, and moves it into place only when the whole
+file checked out.
+

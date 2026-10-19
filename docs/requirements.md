@@ -75,6 +75,9 @@ first code).
 - "I think it was exposed" offers **Rotate all keys**: new keys, everything
   re-encrypted in the background, resumable.
 - Delete a vault with a strong confirmation.
+- **v0.1 (single device), as built:** no storage-location choice yet (vaults live
+  in app storage); the backup file is the way to keep a copy elsewhere. Key sync
+  and "add a device" come with sync in v0.2.
 
 ### Content
 
@@ -140,10 +143,20 @@ One "Add" button (the + inside a vault) opens every source:
 
 - Auto-lock after a configurable idle timeout (default 1 minute) and
   immediately when the app goes to the background (configurable).
-- Manual lock button always visible inside a vault.
-- Optional biometric unlock. The vault key is derived from the password; the
-  biometric path only unwraps a copy held in Secure Enclave / StrongBox /
-  platform keystore. Turning biometrics off deletes that copy.
+- Manual lock button always visible inside a vault: in the add dock, bottom
+  left (thumb reach), not the top corner.
+- Biometric unlock: on by default for the first vault, asked for as soon as the
+  lock screen shows; one vault per device. The biometric path only unwraps a copy
+  of the vault key held behind the platform keystore; turning it off deletes that
+  copy.
+- PIN unlock: 4 to 10 digits, this device only, off after 5 wrong tries (the
+  password always works). See `adr/0001-encryption.md`.
+- Password unlock opens as soon as the typed password is right (tried quietly
+  after a short pause), no Enter needed; Enter still reports a wrong password.
+- Adding while locked: the lock screen shows the same add dock. Until the
+  share-inbox keys exist, picking an action unlocks first and then runs it;
+  with the inbox, photos and notes can be added without unlocking and without
+  showing anything already in the vault.
 
 ### Leak prevention
 
@@ -193,8 +206,10 @@ easy but never silent.
 
 ### Backup and export
 
-- Export a vault as a single encrypted file (same format as the vault itself),
-  importable on any platform.
+- Back up the whole library as a single encrypted file and restore it on a fresh
+  install with the Emergency Kit and the password (built for v0.1; desktop saves
+  where the user picks, phones use the share sheet). Device-only unlock copies
+  (biometrics, PIN) are not in the backup.
 - Export plaintext (notes as Markdown, files as-is) with a loud warning.
 - Reminder when the last backup is older than a configurable threshold.
 
@@ -242,13 +257,18 @@ easy but never silent.
 
 ### v0.1 — single device
 
-Android + macOS + Windows + Linux. Vaults, notes, files, photos, in-app
-camera (Android), auto-lock,
-leak prevention, encrypted backup/restore, change password, theming, vi/en.
+Usable on one device, no sync. Android, iOS (TestFlight), macOS, Windows,
+Linux. Vaults, biometric and PIN unlock, Emergency Kit, encrypted backup and
+restore, in-app camera, the approved lock screen and vault screen with the add
+dock, nested folders, photos from the library, any file, notes, paste,
+recently deleted, search, change password, settings, vi/en, light/dark.
+Stages and progress: `plan-v0.1.md`.
 
 ### v0.2 — sync
 
-Cloud-folder sync, LAN P2P sync, CRDT merge, biometric unlock, iOS.
+Cloud-folder sync, LAN P2P sync, CRDT merge, Secret Key sync through
+iCloud Keychain / Google Password Manager, add a device by QR code, adding while
+locked (share inbox), document scanning, key rotation.
 
 ### v1.0 — public release
 
