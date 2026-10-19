@@ -18,6 +18,8 @@ Dates are UTC.
   release has its own name. iPhone keeps three numbers, as Apple requires.
 
 ### Changed
+- The app no longer takes the vault's colour as its background; it keeps Cozy Safe's
+  green. The colour stays on the vault's icon and its card in Settings.
 - The mode strip fades out at both edges, so no half-cut label shows.
 - The mode strip is easier to hit: it is 48 points tall to touch, a tap in the gap
   between two labels picks the nearer one, and a sideways swipe anywhere on the dock

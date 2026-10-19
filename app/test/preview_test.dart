@@ -161,7 +161,8 @@ Future<void> _shot(WidgetTester t, String file, Widget home, {Brightness b = Bri
   await t.pumpWidget(MaterialApp(
     debugShowCheckedModeBanner: false,
     locale: const Locale('vi'),
-    theme: buildTheme(b, vault: vault),
+    // The app-wide vault colour is off (docs/ui.md); `vault` is kept for when it returns.
+    theme: buildTheme(b),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: home,

@@ -59,6 +59,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The dock's mode is also what the vault shows (docs/ui.md, vault content).
   late AddMode _mode = AddDock.startMode(availableAddModes());
   final _camera = GlobalKey<CameraViewState>();
+  static const _tintApp = false;
+
   /// The folder open in Files mode; null at the top level.
   String? _folder;
   /// Long-press selection: ids picked for Delete / Send.
@@ -83,9 +85,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (mounted) setState(() => _canBio = k != null);
     });
     LockGuard.onActivity = _touch;
-    // The whole app takes this vault's colour while it is open (design B). After the
-    // first frame: changing the app theme during a build is not allowed.
-    WidgetsBinding.instance.addPostFrameCallback((_) => vaultTint.value = _color);
+    // Design B (the whole app in the vault's colour) is off since 2026-10-20: it often
+    // looked wrong. The palette code stays in theme.dart; turn it back on here.
+    if (_tintApp) WidgetsBinding.instance.addPostFrameCallback((_) => vaultTint.value = _color);
     // Touches anywhere count, also on the note editor or viewer pushed above this screen.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _touch();
@@ -377,7 +379,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       final info = await rust.setIdentity(icon: vaultIcons[icon].id, color: vaultColors[color].id);
       if (mounted) {
         setState(() => _vault = info);
-        vaultTint.value = _color;
+        if (_tintApp) vaultTint.value = _color;
       }
     } on rust.VaultError catch (e) {
       if (mounted) _snack(vaultErrorText(AppLocalizations.of(context), e));

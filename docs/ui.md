@@ -187,6 +187,9 @@ deniability).
 - **Creating another vault needs the phone's owner**: Face ID, fingerprint or the
   phone's passcode (the system's own check), from the lock screen and from inside a
   vault. The first vault on a device does not ask.
+- **Turned off 2026-10-20** (the owner found it often looked wrong; the app keeps the
+  brand green/gold theme; the vault colour stays on its icon, the Settings card and the
+  opening animation). `VaultPalette` and `_tintApp` in `vault_home.dart` bring it back.
 - **Design B: the open vault's colour is the whole app's colour.** Light: the colour
   mixed pale with dark text; dark: the colour deepened with light text; the dock is
   the colour, darker. Rules that keep content readable:
