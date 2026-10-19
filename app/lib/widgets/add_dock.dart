@@ -164,218 +164,233 @@ class _AddDockState extends State<AddDock> {
             )..layout()).width +
             4,
     ];
+    // Each label owns its gap too (half each side), so a tap between two labels
+    // still lands on one of them.
+    double slot(int i) => widths[i] + _gap;
     double centerOf(int i) {
       var x = 0.0;
       for (var j = 0; j < i; j++) {
-        x += widths[j] + _gap;
+        x += slot(j);
       }
-      return x + widths[i] / 2;
+      return x + slot(i) / 2;
+    }
+
+    void dragUpdate(DragUpdateDetails d) {
+      // Switch as soon as another label crosses the middle, while the finger is
+      // still down (docs/ui.md, vault content).
+      final x = centerOf(_mode) - (_drag + d.delta.dx);
+      var best = _mode;
+      var bestD = double.infinity;
+      for (var i = 0; i < labels.length; i++) {
+        final dd = (centerOf(i) - x).abs();
+        if (dd < bestD) {
+          bestD = dd;
+          best = i;
+        }
+      }
+      setState(() {
+        _drag += d.delta.dx;
+        if (best != _mode) {
+          // Keep the strip where the finger has it: move the offset with the mode.
+          _drag += centerOf(best) - centerOf(_mode);
+          _mode = best;
+        }
+      });
+      if (best != widget.modes.indexOf(_current)) {
+        HapticFeedback.selectionClick();
+        _current = widget.modes[best];
+        _changed(best);
+      }
     }
 
     final mode = widget.modes.isEmpty
         ? null
         : widget.modes[_mode.clamp(0, widget.modes.length - 1)];
     final bottom = MediaQuery.paddingOf(context).bottom;
-    return Material(
-      color: CsColors.of(context).dock,
-      child: Padding(
-        padding: EdgeInsets.only(top: 12, bottom: 14 + bottom),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (widget.modes.length > 1)
-              SizedBox(
-                height: 32,
-                child: LayoutBuilder(
-                  builder: (context, box) => GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onHorizontalDragStart: (_) =>
-                        setState(() => _dragging = true),
-                    onHorizontalDragUpdate: (d) {
-                      // Switch as soon as another label crosses the middle, while the
-                      // finger is still down (docs/ui.md, vault content).
-                      final x = centerOf(_mode) - (_drag + d.delta.dx);
-                      var best = _mode;
-                      var bestD = double.infinity;
-                      for (var i = 0; i < labels.length; i++) {
-                        final dd = (centerOf(i) - x).abs();
-                        if (dd < bestD) {
-                          bestD = dd;
-                          best = i;
-                        }
-                      }
-                      setState(() {
-                        _drag += d.delta.dx;
-                        if (best != _mode) {
-                          // Keep the strip where the finger has it: move the offset with the mode.
-                          _drag += centerOf(best) - centerOf(_mode);
-                          _mode = best;
-                        }
-                      });
-                      if (best != widget.modes.indexOf(_current)) {
-                        HapticFeedback.selectionClick();
-                        _current = widget.modes[best];
-                        _changed(best);
-                      }
-                    },
-                    onHorizontalDragEnd: (_) => setState(() {
-                      _drag = 0;
-                      _dragging = false;
-                    }),
-                    // Labels fade out towards the edges, like the Camera app's mode dial,
-                    // so a half-cut word never shows.
-                    child: ShaderMask(
-                      blendMode: BlendMode.dstIn,
-                      shaderCallback: (r) => const LinearGradient(
-                        colors: [
-                          Color(0x00FFFFFF),
-                          Color(0xFFFFFFFF),
-                          Color(0xFFFFFFFF),
-                          Color(0x00FFFFFF),
-                        ],
-                        stops: [0, .22, .78, 1],
-                      ).createShader(r),
-                      child: ClipRect(
-                        child: Stack(
-                          children: [
-                            AnimatedPositioned(
-                              duration: _dragging
-                                  ? Duration.zero
-                                  : const Duration(milliseconds: 280),
-                              curve: Curves.easeOutCubic,
-                              left: box.maxWidth / 2 - centerOf(_mode) + _drag,
-                              top: 0,
-                              bottom: 0,
-                              child: Row(
-                                children: [
-                                  for (var i = 0; i < labels.length; i++) ...[
-                                    if (i > 0) const SizedBox(width: _gap),
-                                    Semantics(
-                                      button: true,
-                                      selected: i == _mode,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          if (i != _mode) {
-                                            HapticFeedback.selectionClick();
-                                          }
-                                          _current = widget.modes[i];
-                                          _select(i);
-                                        },
-                                        child: SizedBox(
-                                          width: widths[i],
-                                          child: Center(
-                                            child: Text(
-                                              labels[i],
-                                              style: _style.copyWith(
-                                                color: i == _mode
-                                                    ? Brand.gold
-                                                    : const Color(0x94E9ECEB),
+    // A sideways swipe anywhere on the dock moves the strip, not only on the thin
+    // line of labels: that is where the thumb rests. Taps still reach the buttons.
+    final draggable = widget.modes.length > 1;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragStart: draggable
+          ? (_) => setState(() => _dragging = true)
+          : null,
+      onHorizontalDragUpdate: draggable ? dragUpdate : null,
+      onHorizontalDragEnd: draggable
+          ? (_) => setState(() {
+              _drag = 0;
+              _dragging = false;
+            })
+          : null,
+      child: Material(
+        color: CsColors.of(context).dock,
+        child: Padding(
+          padding: EdgeInsets.only(top: 12, bottom: 14 + bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.modes.length > 1)
+                SizedBox(
+                  // 48 tall to touch, though the labels look like a thin line.
+                  height: 48,
+                  child: LayoutBuilder(
+                    builder: (context, box) => Builder(
+                      // Labels fade out towards the edges, like the Camera app's mode dial,
+                      // so a half-cut word never shows.
+                      builder: (context) => ShaderMask(
+                        blendMode: BlendMode.dstIn,
+                        shaderCallback: (r) => const LinearGradient(
+                          colors: [
+                            Color(0x00FFFFFF),
+                            Color(0xFFFFFFFF),
+                            Color(0xFFFFFFFF),
+                            Color(0x00FFFFFF),
+                          ],
+                          stops: [0, .22, .78, 1],
+                        ).createShader(r),
+                        child: ClipRect(
+                          child: Stack(
+                            children: [
+                              AnimatedPositioned(
+                                duration: _dragging
+                                    ? Duration.zero
+                                    : const Duration(milliseconds: 280),
+                                curve: Curves.easeOutCubic,
+                                left:
+                                    box.maxWidth / 2 - centerOf(_mode) + _drag,
+                                top: 0,
+                                bottom: 0,
+                                child: Row(
+                                  children: [
+                                    for (var i = 0; i < labels.length; i++) ...[
+                                      Semantics(
+                                        button: true,
+                                        selected: i == _mode,
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () {
+                                            if (i != _mode) {
+                                              HapticFeedback.selectionClick();
+                                            }
+                                            _current = widget.modes[i];
+                                            _select(i);
+                                          },
+                                          child: SizedBox(
+                                            width: slot(i),
+                                            child: Center(
+                                              child: Text(
+                                                labels[i],
+                                                style: _style.copyWith(
+                                                  color: i == _mode
+                                                      ? Brand.gold
+                                                      : const Color(0x94E9ECEB),
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 6, 28, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: widget.leading,
-                    ),
-                  ),
-                  if (mode == null)
-                    const SizedBox(width: 72, height: 72)
-                  else
-                    Semantics(
-                      button: true,
-                      label: _label(l, mode),
-                      child: GestureDetector(
-                        key: const ValueKey('add-dock-action'),
-                        onTap: () {
-                          HapticFeedback.mediumImpact();
-                          widget.onAction(mode);
-                        },
-                        // Only the camera is a round shutter; every other mode is a button
-                        // that says what it does, with that kind's symbol.
-                        child: mode == AddMode.camera
-                            ? Container(
-                                width: 72,
-                                height: 72,
-                                padding: const EdgeInsets.all(5),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 4,
-                                  ),
-                                ),
-                                child: const DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              )
-                            : SizedBox(
-                                height: 72,
-                                child: Center(
-                                  child: Container(
-                                    height: 52,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Brand.gold,
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          _actionIcon(mode),
-                                          color: Brand.goldInk,
-                                          size: 22,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _actionLabel(l, mode),
-                                          style: const TextStyle(
-                                            color: Brand.goldInk,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 6, 28, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: widget.leading,
                       ),
                     ),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: widget.trailing,
+                    if (mode == null)
+                      const SizedBox(width: 72, height: 72)
+                    else
+                      Semantics(
+                        button: true,
+                        label: _label(l, mode),
+                        child: GestureDetector(
+                          key: const ValueKey('add-dock-action'),
+                          onTap: () {
+                            HapticFeedback.mediumImpact();
+                            widget.onAction(mode);
+                          },
+                          // Only the camera is a round shutter; every other mode is a button
+                          // that says what it does, with that kind's symbol.
+                          child: mode == AddMode.camera
+                              ? Container(
+                                  width: 72,
+                                  height: 72,
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 4,
+                                    ),
+                                  ),
+                                  child: const DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : SizedBox(
+                                  height: 72,
+                                  child: Center(
+                                    child: Container(
+                                      height: 52,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Brand.gold,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            _actionIcon(mode),
+                                            color: Brand.goldInk,
+                                            size: 22,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _actionLabel(l, mode),
+                                            style: const TextStyle(
+                                              color: Brand.goldInk,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: widget.trailing,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

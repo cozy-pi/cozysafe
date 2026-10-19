@@ -19,6 +19,9 @@ Dates are UTC.
 
 ### Changed
 - The mode strip fades out at both edges, so no half-cut label shows.
+- The mode strip is easier to hit: it is 48 points tall to touch, a tap in the gap
+  between two labels picks the nearer one, and a sideways swipe anywhere on the dock
+  (also on the buttons) moves it.
 
 ## 0.1.3 (2026-10-20)
 
