@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Next
+
+### Changed
+- The dock's add button is a plain white button with a small icon that carries a +
+  (photo +, note +, file +); no ring around it.
+- The chosen mode in the dock is white and bold; no more yellow.
+
 ## 0.1.5 (2026-10-20)
 
 ### Added

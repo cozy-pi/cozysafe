@@ -76,6 +76,7 @@ class AddDock extends StatefulWidget {
   /// The strip moved to another mode: while dragging, as soon as a label crosses the
   /// middle, not on release. The vault shows that kind of content.
   final void Function(AddMode mode)? onModeChanged;
+
   /// A voice memo is being recorded: the mic button shows Stop.
   final bool recording;
 
@@ -137,9 +138,9 @@ class _AddDockState extends State<AddDock> {
   };
 
   IconData _actionIcon(AddMode m) => switch (m) {
-    AddMode.note => Icons.edit_outlined,
-    AddMode.library => Icons.add_photo_alternate_outlined,
-    AddMode.file => Icons.note_add_outlined,
+    AddMode.note => Icons.post_add_rounded, // a sheet with a +
+    AddMode.library => Icons.add_photo_alternate_outlined, // a photo with a +
+    AddMode.file => Icons.note_add_outlined, // a file with a +
     _ => _icon(m),
   };
 
@@ -287,10 +288,14 @@ class _AddDockState extends State<AddDock> {
                                             child: Center(
                                               child: Text(
                                                 labels[i],
+                                                // The chosen mode is white and bold; no yellow.
                                                 style: _style.copyWith(
                                                   color: i == _mode
-                                                      ? Brand.gold
-                                                      : const Color(0x94E9ECEB),
+                                                      ? Colors.white
+                                                      : const Color(0x80E9ECEB),
+                                                  fontWeight: i == _mode
+                                                      ? FontWeight.w800
+                                                      : FontWeight.w600,
                                                 ),
                                               ),
                                             ),
@@ -341,12 +346,23 @@ class _AddDockState extends State<AddDock> {
                                   padding: const EdgeInsets.all(5),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 4),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 4,
+                                    ),
                                   ),
                                   child: DecoratedBox(
-                                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFE5484D)),
-                                    child: Icon(widget.recording ? Icons.stop_rounded : Icons.mic,
-                                        color: Colors.white, size: widget.recording ? 30 : 28),
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Color(0xFFE5484D),
+                                    ),
+                                    child: Icon(
+                                      widget.recording
+                                          ? Icons.stop_rounded
+                                          : Icons.mic,
+                                      color: Colors.white,
+                                      size: widget.recording ? 30 : 28,
+                                    ),
                                   ),
                                 )
                               : mode == AddMode.camera
@@ -371,47 +387,34 @@ class _AddDockState extends State<AddDock> {
                               : SizedBox(
                                   height: 72,
                                   child: Center(
-                                    // Same make as the camera's shutter: a white
-                                    // ring around a white core.
+                                    // A plain white button, no ring around it.
                                     child: Container(
-                                      height: 64,
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 3,
-                                        ),
-                                        borderRadius: BorderRadius.circular(22),
+                                      height: 48,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 18,
                                       ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 18,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            16,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            _actionIcon(mode),
+                                            color: Brand.deep,
+                                            size: 18,
                                           ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              _actionIcon(mode),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            _actionLabel(l, mode),
+                                            style: const TextStyle(
                                               color: Brand.deep,
-                                              size: 22,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
                                             ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              _actionLabel(l, mode),
-                                              style: const TextStyle(
-                                                color: Brand.deep,
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
