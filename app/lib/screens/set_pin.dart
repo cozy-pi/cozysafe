@@ -12,9 +12,11 @@ import 'common.dart';
 /// Choose a PIN for this vault on this device: at least 4 digits, then the same again.
 /// Pops with `true` once it is set. `skippable` adds "Not now" (after the first vault).
 class SetPinScreen extends StatefulWidget {
-  const SetPinScreen({super.key, this.skippable = false});
+  const SetPinScreen({super.key, this.skippable = false, this.forThisPhone = false});
 
   final bool skippable;
+  /// After opening with the password on a phone that has no PIN for this vault yet.
+  final bool forThisPhone;
 
   @override
   State<SetPinScreen> createState() => _SetPinScreenState();
@@ -134,13 +136,13 @@ class _SetPinScreenState extends State<SetPinScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      confirming ? l.pinConfirmTitle : l.pinSetTitle,
+                      confirming ? l.pinConfirmTitle : (widget.forThisPhone ? l.pinThisPhoneTitle : l.pinSetTitle),
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      confirming ? l.pinConfirmLead : l.pinSetLead,
+                      confirming ? l.pinConfirmLead : (widget.forThisPhone ? l.pinThisPhoneLead : l.pinSetLead),
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Color(0xCCFFFFFF), height: 1.45),
                     ),

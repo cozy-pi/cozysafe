@@ -141,6 +141,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         } catch (_) {} // locking must not wait on a failed write
       }
       rust.lock();
+      LockGuard.clearCopied();
       _thumbs.clear();
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
@@ -235,6 +236,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _backup() async {
     final l = AppLocalizations.of(context);
     if (!await _ensurePassword() || !mounted) return;
+    if (await _confirmBackup(l) != true || !mounted) return;
     final d = DateTime.now();
     final name = 'CozySafe-${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}.cozysafe';
     LockGuard.allowAway();
@@ -243,6 +245,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         final loc = await getSaveLocation(suggestedName: name);
         if (loc == null) return;
         await rust.exportBackup(dir: widget.libraryDir, path: loc.path);
+        _backedUp();
         if (mounted) _snack(l.backupDone);
         return;
       }
@@ -250,17 +253,58 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       await rust.exportBackup(dir: widget.libraryDir, path: tmp.path);
       if (!mounted) return;
       final box = context.findRenderObject() as RenderBox?;
-      await SharePlus.instance.share(ShareParams(
+      final shared = await SharePlus.instance.share(ShareParams(
         files: [XFile(tmp.path, mimeType: 'application/octet-stream')],
         sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       ));
       if (tmp.existsSync()) tmp.deleteSync();
+      // Android reports "unavailable" for most targets; count it, only a cancel is not a backup.
+      if (shared.status != ShareResultStatus.dismissed) _backedUp();
     } catch (_) {
       if (mounted) _snack(l.backupFailed);
     } finally {
       LockGuard.clear();
     }
   }
+
+  static const _lastBackupKey = 'last-backup';
+
+  void _backedUp() {
+    Prefs.write(_lastBackupKey, '${DateTime.now().millisecondsSinceEpoch}');
+    if (mounted) setState(() {});
+  }
+
+  String _lastBackupText(AppLocalizations l) {
+    final ms = int.tryParse(Prefs.read(_lastBackupKey) ?? '');
+    if (ms == null) return l.lastBackupNever;
+    final days = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ms)).inDays;
+    return days == 0 ? l.lastBackupToday : l.lastBackupDays(days);
+  }
+
+  /// Always the same words, whatever vaults exist: the sheet must not reveal how many.
+  Future<bool?> _confirmBackup(AppLocalizations l) => showModalBottomSheet<bool>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(l.backup, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text(l.backupWhatsIn, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
+                const SizedBox(height: 6),
+                Text(l.backupNeeds, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
+                const SizedBox(height: 16),
+                FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.backupSave)),
+                const SizedBox(height: 6),
+                TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+              ],
+            ),
+          ),
+        ),
+      );
 
   Future<void> _showKit() async {
     final key = await SecretKeyStore.read();
@@ -439,8 +483,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                               PopupMenuItem<void>(onTap: _password, child: Text(_vault.hasPassword ? l.changePasswordTitle : l.backupPasswordTitle)),
                               PopupMenuItem<void>(onTap: _changePin, child: Text(l.changePin)),
                               if (_canBio)
-                                CheckedPopupMenuItem<void>(checked: _bioOn, onTap: _toggleBiometric, child: Text(l.biometricSetting)),
-                              PopupMenuItem<void>(onTap: _backup, child: Text(l.backup)),
+                                CheckedPopupMenuItem<void>(
+                                  checked: _bioOn,
+                                  onTap: _toggleBiometric,
+                                  child: _MenuText(l.biometricThisVault, _bioOn ? null : l.biometricThisVaultNote),
+                                ),
+                              PopupMenuItem<void>(onTap: _backup, child: _MenuText(l.backup, _lastBackupText(l))),
                               if (_vault.hasPassword) PopupMenuItem<void>(onTap: _showKit, child: Text(l.showKit)),
                               PopupMenuItem<void>(onTap: _newVault, child: Text(l.newVault)),
                             ],
@@ -451,15 +499,24 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                     if (!_vault.hasPassword)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                        // Says what is at stake, not how it works (docs/ui.md, review 1).
                         child: Material(
-                          color: c.soft,
+                          color: c.warnBg,
                           borderRadius: BorderRadius.circular(14),
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
-                            child: Row(
+                            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(child: Text(l.passwordNudge, style: TextStyle(color: c.muted, fontSize: 13.5))),
-                                TextButton(onPressed: _password, child: Text(l.passwordNudgeAction)),
+                                Text(l.passwordNudgeTitle,
+                                    style: TextStyle(color: c.warnInk, fontSize: 13.5, fontWeight: FontWeight.w700)),
+                                Text(l.passwordNudge, style: TextStyle(color: c.warnInk, fontSize: 13.5)),
+                                const SizedBox(height: 8),
+                                FilledButton(
+                                  onPressed: _password,
+                                  style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+                                  child: Text(l.backupPasswordTitle),
+                                ),
                               ],
                             ),
                           ),
@@ -726,4 +783,21 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
       ),
     );
   }
+}
+
+/// A menu line with an optional second line in muted text.
+class _MenuText extends StatelessWidget {
+  const _MenuText(this.title, this.sub);
+  final String title;
+  final String? sub;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title),
+          if (sub != null) Text(sub!, style: TextStyle(fontSize: 12, color: CsColors.of(context).muted)),
+        ],
+      );
 }

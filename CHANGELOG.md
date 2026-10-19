@@ -15,8 +15,18 @@ Dates are UTC.
 - Backup password set when it is needed (before the first backup), with the
   Emergency Kit, and changeable at any time. The app asks for it every 14 days.
 - Splash screen: vault green with the dial.
+- The app switcher shows the dial instead of the vault (iOS); on Android the vault
+  is hidden from recent apps and screenshots.
+- Text copied from a note is cleared from the clipboard after 60 seconds and when
+  the vault locks.
+- After opening a vault with its password on a phone with no PIN for it (a
+  restored backup), the app offers to set one.
+- The vault menu shows when the last backup was made and that Face ID opens this
+  vault; the backup step says which vaults it holds.
 
 ### Changed
+- Setting a PIN and the reminder in the vault say plainly what a forgotten PIN
+  means while the vault has no backup password.
 - Each vault has its own PIN (at least 4 digits, no practical upper limit). The
   dots show only the digits typed.
 - Wrong PINs make you wait longer each time instead of turning the PIN off.

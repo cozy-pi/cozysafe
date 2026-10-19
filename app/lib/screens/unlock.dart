@@ -14,6 +14,7 @@ import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'new_vault.dart';
+import 'set_pin.dart';
 import 'vault_home.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
@@ -277,6 +278,13 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     final l = AppLocalizations.of(context);
     if (offerBiometric && !rust.hasBiometricUnlock(dir: widget.libraryDir)) {
       await _maybeOfferBiometric(l);
+    }
+    // Opened with the password and no PIN for it here (e.g. restored on a new phone):
+    // offer one now, so next time is the PIN pad.
+    if (offerBiometric && !rust.pinEnabled() && mounted) {
+      await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => const SetPinScreen(skippable: true, forThisPhone: true)),
+      );
     }
     if (!mounted) return;
     final nav = Navigator.of(context);

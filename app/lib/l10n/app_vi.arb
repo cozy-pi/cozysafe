@@ -152,7 +152,7 @@
   "typeAgain": "Gõ lại lần nữa",
   "save": "Lưu",
   "saving": "Đang lưu…",
-  "passwordNudge": "Két chưa có mật khẩu sao lưu, nên chưa sao lưu được.",
+  "passwordNudge": "Mất máy hoặc quên PIN là mất két.",
   "passwordNudgeAction": "Đặt ngay",
   "passwordRemindTitle": "Còn nhớ mật khẩu sao lưu chứ?",
   "passwordRemindBody": "Gõ nó một lần để mở két, cho khỏi quên.",
@@ -167,5 +167,17 @@
   "deleteItem": "Xoá mục này?",
   "openWith": "Mở bằng app khác",
   "openWithNote": "Bản đã giải mã được giao cho app bạn chọn, rồi xoá khỏi máy ở đây.",
-  "errorPinInUse": "Mã PIN này đã dùng cho két khác. Chọn mã khác nhé."
+  "errorPinInUse": "Mã PIN này đã dùng cho két khác. Chọn mã khác nhé.",
+  "pinNoRecovery": "Quên mã PIN mà chưa có mật khẩu sao lưu thì không lấy lại được két.",
+  "passwordNudgeTitle": "Két này chỉ có trên máy này.",
+  "biometricThisVault": "Face ID mở két này",
+  "biometricThisVaultNote": "Bật ở đây thì két kia thôi dùng Face ID",
+  "lastBackupNever": "Chưa sao lưu lần nào",
+  "lastBackupToday": "Lần cuối: hôm nay",
+  "lastBackupDays": "{count, plural, =1{Lần cuối: hôm qua} other{Lần cuối: {count} ngày trước}}",
+  "backupWhatsIn": "Bản sao lưu gồm các két đã có mật khẩu sao lưu. Két chưa có mật khẩu sẽ không có trong đó.",
+  "backupNeeds": "Mở bản sao lưu trên máy mới cần cả Bộ khẩn cấp và mật khẩu sao lưu.",
+  "backupSave": "Lưu bản sao lưu",
+  "pinThisPhoneTitle": "Đặt mã PIN cho máy này",
+  "pinThisPhoneLead": "Lần sau mở két này bằng mã PIN, khỏi gõ mật khẩu."
 }

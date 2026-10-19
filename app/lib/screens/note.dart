@@ -118,6 +118,24 @@ class _NoteScreenState extends State<NoteScreen> {
     }
   }
 
+  /// The system menu, with Copy and Cut noting what left the vault so it can be
+  /// cleared from the clipboard later.
+  Widget _menu(BuildContext context, EditableTextState state) {
+    final sel = _text.selection;
+    final picked = sel.isValid && !sel.isCollapsed ? sel.textInside(_text.text) : null;
+    final items = [
+      for (final it in state.contextMenuButtonItems)
+        if ((it.type == ContextMenuButtonType.copy || it.type == ContextMenuButtonType.cut) && picked != null)
+          it.copyWith(onPressed: () {
+            it.onPressed?.call();
+            LockGuard.copied(picked);
+          })
+        else
+          it,
+    ];
+    return AdaptiveTextSelectionToolbar.buttonItems(anchors: state.contextMenuAnchors, buttonItems: items);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -142,6 +160,7 @@ class _NoteScreenState extends State<NoteScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: TextField(
                     controller: _text,
+                    contextMenuBuilder: _menu,
                     autofocus: widget.item == null,
                     maxLines: null,
                     expands: true,

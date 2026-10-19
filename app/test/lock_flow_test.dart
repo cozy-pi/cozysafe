@@ -42,7 +42,7 @@ class _Fake implements RustLibApi {
     if (name.contains('BiometricEnabled')) return false;
     if (name.contains('PinLengths')) return Uint32List.fromList(pinLength == 0 ? [] : [pinLength]);
     if (name.contains('AnyPassword')) return anyPassword;
-    if (name.contains('PinEnabled')) return enabledPin != null;
+    if (name.contains('PinEnabled')) return true; // the open vault has a PIN here
     if (name.contains('UnlockWithPin')) {
       final ok = _arg<String>(call, 'pin') == _pin;
       return Future<VaultInfo?>.value(ok ? vault : null);

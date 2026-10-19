@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:flutter/services.dart';
+
 /// What keeps an open vault open. The vault screen locks after 2 minutes with no
 /// activity; activity is any touch anywhere in the app (also on screens pushed above
 /// the vault) and typing, which on phones produces no pointer or key events.
@@ -17,4 +21,26 @@ abstract final class LockGuard {
   /// Set by a screen holding unsaved text (the note editor): the vault calls it
   /// before locking so nothing typed is lost.
   static Future<void> Function()? beforeLock;
+
+  /// Text copied out of the vault: cleared from the clipboard after 60 s and on lock,
+  /// unless something else has been copied since.
+  static String? _copied;
+  static Timer? _clipTimer;
+
+  static void copied(String text) {
+    _copied = text;
+    _clipTimer?.cancel();
+    _clipTimer = Timer(const Duration(seconds: 60), clearCopied);
+  }
+
+  static Future<void> clearCopied() async {
+    _clipTimer?.cancel();
+    final mine = _copied;
+    _copied = null;
+    if (mine == null) return;
+    try {
+      final now = await Clipboard.getData(Clipboard.kTextPlain);
+      if (now?.text == mine) await Clipboard.setData(const ClipboardData(text: ''));
+    } catch (_) {}
+  }
 }

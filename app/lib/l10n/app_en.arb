@@ -152,7 +152,7 @@
   "typeAgain": "Type it again",
   "save": "Save",
   "saving": "Saving…",
-  "passwordNudge": "No backup password yet. Without it this vault can't be backed up.",
+  "passwordNudge": "Lose the phone or forget the PIN and the vault is gone.",
   "passwordNudgeAction": "Set it",
   "passwordRemindTitle": "Still remember your backup password?",
   "passwordRemindBody": "Type it once to open the vault, so you don't forget it.",
@@ -181,5 +181,24 @@
       }
     }
   },
-  "errorPinInUse": "Another vault already uses this PIN. Pick a different one."
+  "errorPinInUse": "Another vault already uses this PIN. Pick a different one.",
+  "pinNoRecovery": "Forget this PIN before setting a backup password and the vault can't be recovered.",
+  "passwordNudgeTitle": "This vault is only on this phone.",
+  "biometricThisVault": "Face ID opens this vault",
+  "biometricThisVaultNote": "Turning it on here moves it from the other vault",
+  "lastBackupNever": "Never backed up",
+  "lastBackupToday": "Last backup: today",
+  "lastBackupDays": "{count, plural, =1{Last backup: yesterday} other{Last backup: {count} days ago}}",
+  "backupWhatsIn": "The backup holds the vaults that have a backup password. Vaults without one are not in it.",
+  "backupNeeds": "Opening it on a new phone takes the Emergency Kit and the backup password.",
+  "backupSave": "Save backup",
+  "pinThisPhoneTitle": "Set a PIN for this phone",
+  "pinThisPhoneLead": "Next time, open this vault with the PIN instead of the password.",
+  "@lastBackupDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

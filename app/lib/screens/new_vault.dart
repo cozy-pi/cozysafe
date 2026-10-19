@@ -366,6 +366,23 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                                     fontWeight: _error != null ? FontWeight.w600 : FontWeight.w400,
                                   ),
                                 ),
+                                if (_step == _Step.pin && _error == null) ...[
+                                  const SizedBox(height: 12),
+                                  // A new vault has no backup password yet: say what a
+                                  // forgotten PIN means, while the PIN is being chosen.
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Brand.gold.withValues(alpha: .16),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      l.pinNoRecovery,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(color: Brand.gold, fontSize: 13, height: 1.4),
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 20),
                                 body,
                                 const SizedBox(height: 16),
