@@ -31,6 +31,20 @@ marks or extra detail.
 
 ## Inside a vault
 
+### Add strip (approved 2026-10-19)
+
+Mockup: (internal mockup)
+
+- The bottom of the vault screen is a dark green dock, like the iPhone Camera
+  mode dial: a horizontal strip of modes (Note · Library · Take photo · Scan ·
+  File · Paste) that the thumb drags or taps; the selected mode is gold.
+- One big round action button under the strip, always in the same place; its
+  icon follows the mode. In Take photo it becomes a white shutter.
+- The last-used mode is remembered per device and selected on the next open.
+- Left of the button: a preview of the last item added. Right: one short line
+  saying what the mode does.
+- Everything you add with lives in the bottom third of the screen (one hand).
+
 Mockup v2 covers the vault home (quick add: camera, photos, files, note;
 recent items with thumbnails; photo and document grid; bottom navigation and a
 + button), the add sheet, note editor, file viewer, in-app camera, settings,
