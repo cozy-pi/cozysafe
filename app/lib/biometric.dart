@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'privacy.dart';
 import 'widgets/brand.dart';
 
 import 'src/rust/api/vault.dart' as rust;
@@ -68,7 +69,7 @@ class BiometricUnlock {
   /// Shows the system prompt. Null when the key is gone (biometrics changed, turned off).
   /// Throws when the user cancels or the check fails.
   Future<Uint8List?> read() async {
-    final v = await _storage.read(key: _key);
+    final v = await PrivacyCover.whileAsking(() => _storage.read(key: _key));
     return v == null ? null : base64Decode(v);
   }
 
