@@ -29,6 +29,7 @@ use zeroize::Zeroizing;
 
 pub mod backup;
 pub mod items;
+pub mod passphrase;
 pub mod pin;
 pub use items::ItemMeta;
 
@@ -51,7 +52,7 @@ pub enum Error {
     PasswordInUse,
     #[error("vault name is empty")]
     EmptyName,
-    #[error("a PIN is 4 to 10 digits")]
+    #[error("a PIN has at least 4 digits")]
     BadPin,
     #[error("another vault already opens with this PIN")]
     PinInUse,

@@ -110,6 +110,27 @@ impl OpenVault {
         Ok(meta(id, record))
     }
 
+    /// Replace an item's content and name (editing a note). Same item, same key; the
+    /// new content is encrypted with a fresh nonce prefix and swapped in atomically.
+    pub fn replace_item<R: Read>(&self, id: &str, name: &str, content: R) -> Result<ItemMeta> {
+        let (mut record, dek) = self.record_and_key(id)?;
+        let data_path = self.path(id, "data")?;
+        let tmp = data_path.with_extension("data.tmp");
+        let size = {
+            let mut f = fs::File::create(&tmp)?;
+            let n = stream::encrypt(&dek, &self.item_aad(id, "data"), content, &mut f)?;
+            f.sync_all()?;
+            n
+        };
+        fs::rename(&tmp, &data_path)?;
+        record.size = size;
+        record.name = name.to_owned();
+        let json = serde_json::to_vec(&record).expect("serialisable");
+        let sealed = wrap::seal(&self.master_key, &json, &self.item_aad(id, "meta"));
+        write_atomic(&self.path(id, "meta")?, &sealed)?;
+        Ok(meta(id.to_owned(), record))
+    }
+
     /// All items, newest first. Damaged entries are skipped, not fatal.
     pub fn items(&self) -> Result<Vec<ItemMeta>> {
         let dir = match fs::read_dir(self.items_dir()) {
@@ -268,6 +289,36 @@ mod tests {
         }
         // Vault B cannot open A's item even if pointed at it.
         assert!(b.read_item(&item.id, Vec::new()).is_err());
+    }
+
+    #[test]
+    fn notes_can_be_edited_in_place() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
+            .unwrap()
+            .create_vault("A", PW)
+            .unwrap();
+        let n = v
+            .add_item(NewItem {
+                kind: "note",
+                name: "Wifi",
+                mime: "text/plain",
+                created_ms: 1,
+                content: &b"first"[..],
+                thumbnail: None,
+            })
+            .unwrap();
+        let edited = v
+            .replace_item(&n.id, "Wifi home", &b"second version"[..])
+            .unwrap();
+        assert_eq!(
+            (edited.id.as_str(), edited.name.as_str(), edited.size),
+            (n.id.as_str(), "Wifi home", 14)
+        );
+        let mut out = Vec::new();
+        v.read_item(&n.id, &mut out).unwrap();
+        assert_eq!(out, b"second version");
+        assert_eq!(v.items().unwrap().len(), 1);
     }
 
     #[test]

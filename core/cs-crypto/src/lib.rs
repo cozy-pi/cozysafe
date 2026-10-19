@@ -105,6 +105,11 @@ impl std::fmt::Debug for SecretKey {
     }
 }
 
+/// A random u32 from the OS CSPRNG.
+pub fn rand_u32() -> u32 {
+    OsRng.next_u32()
+}
+
 /// A fresh random salt.
 pub fn generate_salt() -> [u8; SALT_LEN] {
     let mut s = [0u8; SALT_LEN];

@@ -24,7 +24,8 @@ use crate::{
 
 const PIN_FILE: &str = "pin";
 pub const MIN_PIN_LEN: usize = 4;
-pub const MAX_PIN_LEN: usize = 10;
+/// Not a limit people meet: only a sanity cap against garbage input.
+pub const MAX_PIN_LEN: usize = 256;
 
 #[derive(Serialize, Deserialize)]
 struct PinFile {
@@ -334,13 +335,13 @@ mod tests {
             .create_vault("A", PW)
             .unwrap();
         let d = SecretKey::generate();
-        for bad in ["123", "12345678901", "12a4", ""] {
+        for bad in ["123", &"1".repeat(257), "12a4", ""] {
             assert!(
                 matches!(v.enable_pin(bad, &d, FAST), Err(Error::BadPin)),
                 "{bad}"
             );
         }
-        v.enable_pin("1234567890", &d, FAST).unwrap();
-        assert_eq!(Library::pin_length(tmp.path()), Some(10));
+        v.enable_pin(&"7".repeat(30), &d, FAST).unwrap();
+        assert_eq!(Library::pin_length(tmp.path()), Some(30));
     }
 }
