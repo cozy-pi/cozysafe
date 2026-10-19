@@ -39,7 +39,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   List<rust.ItemInfo>? _items;
   /// Decrypted previews, in memory only, dropped with this screen.
   final Map<String, Future<Uint8List>> _thumbs = {};
-  bool _collections = false;
+  /// The Collections tab comes back once there is more than photos to collect.
+  final bool _collections = false;
   String? _collection;
   int _cols = 3;
   double _scaleStart = 1;
@@ -123,7 +124,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           _snack(l.cameraPhoneOnly);
         }
       case _:
-        _snack(l.comingSoon);
+        break; // not offered: availableAddModes() lists only what works
     }
   }
 
@@ -338,7 +339,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     final items = _items;
 
     Widget content;
@@ -402,33 +402,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       ],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-                    child: SegmentedButton<bool>(
-                      showSelectedIcon: false,
-                      segments: [
-                        ButtonSegment(value: false, label: Text(l.tabLibrary)),
-                        ButtonSegment(value: true, label: Text(l.tabCollections)),
-                      ],
-                      selected: {_collections},
-                      onSelectionChanged: (s) => setState(() {
-                        _collections = s.first;
-                        _collection = null;
-                      }),
-                      style: ButtonStyle(
-                        visualDensity: VisualDensity.compact,
-                        side: WidgetStatePropertyAll(BorderSide(color: c.border)),
-                      ),
-                    ),
-                  ),
                   Expanded(child: content),
                 ],
               ),
             ),
           ),
           AddDock(
+            modes: availableAddModes(),
             leading: DockSlot(icon: Icons.lock_outline, label: l.lockVault, onTap: _lock),
-            trailing: DockSlot(icon: Icons.search, label: l.search, onTap: () => _snack(l.comingSoon)),
+            // Search comes back here once it exists.
+            trailing: const SizedBox(width: 46),
             onAction: _onAction,
           ),
         ],

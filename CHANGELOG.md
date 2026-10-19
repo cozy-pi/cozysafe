@@ -6,6 +6,10 @@ Dates are UTC.
 
 ## Unreleased
 
+### Changed
+- Only what works is shown: the dock offers Photo (on phones), the Search button
+  and the Collections tab are hidden until they exist. Computers have no add button yet.
+
 ### Fixed
 - Locking by hand no longer reopens the vault with Face ID straight away. Face ID
   is asked for when the app opens or comes back from the background; after the

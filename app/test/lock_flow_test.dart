@@ -13,6 +13,7 @@ import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
+import 'package:cozysafe/widgets/add_dock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -91,6 +92,7 @@ void main() {
   setUpAll(() => RustLib.initMock(api: _fake = _Fake()));
 
   setUp(() {
+    debugAddModes = [AddMode.camera];
     _fake
       ..pinLength = 4
       ..pinForgotten = false

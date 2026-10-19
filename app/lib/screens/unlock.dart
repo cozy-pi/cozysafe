@@ -437,6 +437,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                   ),
                 ),
                 AddDock(
+                  modes: availableAddModes(),
                   leading: DockSlot(icon: Icons.lock_outline, label: l.lockedAddOnly, outlined: true),
                   trailing: bio == null
                       ? const SizedBox(width: 46)

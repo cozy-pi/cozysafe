@@ -9,6 +9,17 @@ import '../theme.dart';
 /// Ways to add something to a vault, in dock order.
 enum AddMode { note, library, camera, scan, file, paste }
 
+/// The modes this build can actually do on this device. Anything not built yet is
+/// left out of the dock entirely (no "coming soon"). Add a mode here when it works.
+List<AddMode> availableAddModes() =>
+    debugAddModes ??
+    [
+      if (Platform.isIOS || Platform.isAndroid) AddMode.camera,
+    ];
+
+/// For tests only: they run on a desktop OS and set the modes a phone would have.
+List<AddMode>? debugAddModes;
+
 /// Small per-device preferences (not secret), kept as files next to the library.
 abstract final class Prefs {
   static String dir = '';
@@ -32,7 +43,16 @@ abstract final class Prefs {
 /// the vault, so the two can never drift apart. A strip of modes the thumb drags like
 /// the iPhone Camera dial, one big button, and a round slot on each side.
 class AddDock extends StatefulWidget {
-  const AddDock({super.key, required this.leading, required this.trailing, required this.onAction});
+  const AddDock({
+    super.key,
+    required this.modes,
+    required this.leading,
+    required this.trailing,
+    required this.onAction,
+  });
+
+  /// Modes shown, in order. One mode: no strip, just the button. None: only the slots.
+  final List<AddMode> modes;
 
   final Widget leading;
   final Widget trailing;
@@ -55,8 +75,9 @@ class _AddDockState extends State<AddDock> {
   void initState() {
     super.initState();
     final saved = Prefs.read(_prefKey);
-    _mode = AddMode.values.indexWhere((m) => m.name == saved);
-    if (_mode < 0) _mode = AddMode.camera.index;
+    _mode = widget.modes.indexWhere((m) => m.name == saved);
+    if (_mode < 0) _mode = widget.modes.indexOf(AddMode.camera);
+    if (_mode < 0) _mode = 0;
   }
 
   String _label(AppLocalizations l, AddMode m) => switch (m) {
@@ -78,20 +99,20 @@ class _AddDockState extends State<AddDock> {
       };
 
   void _select(int i) {
-    final next = i.clamp(0, AddMode.values.length - 1);
+    final next = i.clamp(0, widget.modes.length - 1);
     if (next != _mode) HapticFeedback.selectionClick();
     setState(() {
       _mode = next;
       _drag = 0;
       _dragging = false;
     });
-    Prefs.write(_prefKey, AddMode.values[next].name);
+    Prefs.write(_prefKey, widget.modes[next].name);
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final labels = [for (final m in AddMode.values) _label(l, m).toUpperCase()];
+    final labels = [for (final m in widget.modes) _label(l, m).toUpperCase()];
     final widths = [
       for (final t in labels)
         (TextPainter(text: TextSpan(text: t, style: _style), textDirection: TextDirection.ltr, textScaler: MediaQuery.textScalerOf(context))..layout()).width + 4,
@@ -104,7 +125,7 @@ class _AddDockState extends State<AddDock> {
       return x + widths[i] / 2;
     }
 
-    final mode = AddMode.values[_mode];
+    final mode = widget.modes.isEmpty ? null : widget.modes[_mode.clamp(0, widget.modes.length - 1)];
     final bottom = MediaQuery.paddingOf(context).bottom;
     return Material(
       color: Brand.dock,
@@ -113,6 +134,7 @@ class _AddDockState extends State<AddDock> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (widget.modes.length > 1)
             SizedBox(
               height: 32,
               child: LayoutBuilder(
@@ -179,6 +201,9 @@ class _AddDockState extends State<AddDock> {
               child: Row(
                 children: [
                   Expanded(child: Align(alignment: Alignment.centerLeft, child: widget.leading)),
+                  if (mode == null)
+                    const SizedBox(width: 72, height: 72)
+                  else
                   Semantics(
                     button: true,
                     label: _label(l, mode),
