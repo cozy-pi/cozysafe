@@ -104,8 +104,9 @@ flows (internal mockup)
   3. Set a PIN (4–10 digits). 4. Type it again (checks itself).
   5. "Unlock with Face ID?" Turn on / Not now. Then the dial turns, into the vault.
 - **No vault names.** Icon + colour (35 × 20 = 700 combinations) identify a vault;
-  inside the vault only the coloured icon is shown, no text. A new vault gets a random
-  combination (avoiding the open vault's own when created from inside a vault).
+  inside the vault only the coloured icon is shown, no text. A new vault (the first one too) starts with a random
+  icon and colour from the 11 shown on each grid (grid order stays fixed, only the
+  preselection changes), avoiding the open vault's own when created from inside it.
   Combinations are not checked against other vaults: the app cannot see them
   while locked, and a readable list would show how many vaults exist.
 - **No password at the start.** Each vault opens with its own PIN on this device
