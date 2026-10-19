@@ -99,7 +99,7 @@ ThemeData buildTheme(Brightness brightness) {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      titleTextStyle: TextStyle(
+      titleTextStyle: ThemeData(brightness: brightness).textTheme.titleLarge!.copyWith(
         fontSize: 20,
         fontWeight: FontWeight.w700,
         color: ink,
