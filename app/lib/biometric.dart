@@ -3,7 +3,10 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
+
+import 'widgets/brand.dart';
 
 import 'src/rust/api/vault.dart' as rust;
 
@@ -123,4 +126,18 @@ Future<void> turnOffBiometric(BiometricUnlock store) async {
 /// Biometrics changed (or the key was removed): unlock with the password and turn it on again.
 class BiometricKeyGone implements Exception {
   const BiometricKeyGone();
+}
+
+/// The right symbol for the device: the Face ID glyph, or a fingerprint.
+class BiometricGlyph extends StatelessWidget {
+  const BiometricGlyph({super.key, required this.kind, this.size = 24, this.color});
+
+  final BiometricKind kind;
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => kind == BiometricKind.face
+      ? FaceIdGlyph(size: size, color: color)
+      : Icon(Icons.fingerprint, size: size, color: color);
 }

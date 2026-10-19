@@ -15,6 +15,7 @@ dependencies:
   intl: any
   camera: ^0.11.1
   file_selector: ^1.0.3
+  image_picker: ^1.1.2
   flutter_secure_storage: ^11.2.0
   local_auth: ^3.0.2
   path_provider: 2.1.6

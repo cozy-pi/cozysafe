@@ -3,9 +3,10 @@
 //   flutter test test/screenshots_test.dart --update-goldens --dart-define=SCREENSHOTS=true
 // Rust is replaced by a fake API, so no vault or password is involved.
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cozysafe/l10n/app_localizations.dart';
-import 'package:cozysafe/screens/create_vault.dart';
+import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/unlock.dart';
 import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
@@ -27,7 +28,8 @@ class _FakeRust implements RustLibApi {
     if (name.contains('HasVaults')) return true;
     if (name.contains('ListItems')) return Future<List<ItemInfo>>.value(const []);
     if (name.contains('HasBiometricUnlock')) return false;
-    if (name.contains('PinLength')) return 0;
+    if (name.contains('PinLengths')) return Uint32List.fromList([4]);
+    if (name.contains('AnyPassword')) return false;
     if (name.contains('PinEnabled')) return false;
     if (name.contains('Unlock')) return Future<VaultInfo?>.value(null);
     if (name.contains('BiometricEnabled')) return false;
@@ -84,7 +86,6 @@ void main() {
 
   for (final lang in ['vi', 'en']) {
     final locale = Locale(lang);
-    const pw = 'mây tháng mười rơi trên phố cổ';
 
     testWidgets('$lang create', skip: !_enabled, (tester) async {
       await _shoot(
@@ -92,13 +93,7 @@ void main() {
         file: '$lang-create',
         locale: locale,
         brightness: Brightness.light,
-        home: const CreateVaultScreen(libraryDir: '', first: true),
-        act: (t) async {
-          await t.enterText(find.byType(TextField).at(1), pw);
-          await t.enterText(find.byType(TextField).at(2), pw);
-          await t.tap(find.byType(Checkbox));
-          FocusManager.instance.primaryFocus?.unfocus();
-        },
+        home: const NewVaultScreen(libraryDir: '', first: true),
       );
     });
 
@@ -121,7 +116,7 @@ void main() {
         brightness: Brightness.dark,
         home: VaultHomeScreen(
           libraryDir: '',
-          vault: VaultInfo(id: 'preview', name: lang == 'vi' ? 'Cá nhân' : 'Personal'),
+          vault: VaultInfo(id: 'preview', name: '', icon: 'home', color: 'green', hasPassword: true),
         ),
       );
     });
@@ -145,13 +140,7 @@ void main() {
         locale: locale,
         brightness: Brightness.dark,
         size: const Size(1280, 800),
-        home: const CreateVaultScreen(libraryDir: '', first: true),
-        act: (t) async {
-          await t.enterText(find.byType(TextField).at(1), pw);
-          await t.enterText(find.byType(TextField).at(2), pw);
-          await t.tap(find.byType(Checkbox));
-          FocusManager.instance.primaryFocus?.unfocus();
-        },
+        home: const NewVaultScreen(libraryDir: '', first: true),
       );
     });
   }

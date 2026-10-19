@@ -11,8 +11,9 @@ import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/add_dock.dart';
 import '../widgets/brand.dart';
+import '../widgets/identity.dart';
 import 'common.dart';
-import 'create_vault.dart';
+import 'new_vault.dart';
 import 'vault_home.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
@@ -40,7 +41,12 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   final _focus = FocusNode();
   final _keys = FocusNode(skipTraversal: true);
   late _Mode _mode;
-  late int _pinLength;
+  /// PIN lengths in use here: the pad checks at each, wrong only at the longest.
+  late List<int> _lengths;
+  int get _maxLen => _lengths.isEmpty ? 0 : _lengths.last;
+  late bool _anyPassword;
+  DateTime? _waitUntil;
+  Timer? _waitTick;
   String _pin = '';
   bool _obscure = true;
   bool _busy = false;
@@ -78,8 +84,17 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     // Locked because the app went to the background: ask when it comes back.
     final life = WidgetsBinding.instance.lifecycleState;
     _wasHidden = life == AppLifecycleState.paused || life == AppLifecycleState.hidden;
-    _pinLength = rust.pinLength(dir: widget.libraryDir);
-    _mode = _pinLength > 0 ? _Mode.pin : _Mode.password;
+    _lengths = rust.pinLengths(dir: widget.libraryDir);
+    _anyPassword = rust.anyPassword(dir: widget.libraryDir);
+    _mode = _lengths.isNotEmpty ? _Mode.pin : _Mode.password;
+    // With a backup password, ask for it every 14 days so it is not forgotten.
+    final last = int.tryParse(Prefs.read(_passwordSeenKey) ?? '');
+    if (_anyPassword && last != null &&
+        DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(last)) > const Duration(days: 14)) {
+      _mode = _Mode.password;
+      _remind = true;
+    }
+    PinStore.waitUntil().then(_startWait);
     _bioOn = BiometricUnlock.platformSupported && rust.hasBiometricUnlock(dir: widget.libraryDir);
     if (_bioOn) {
       BiometricUnlock.available().then((kind) {
@@ -90,8 +105,37 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     }
   }
 
+  static const _passwordSeenKey = 'password-seen';
+  bool _remind = false;
+
+  void _startWait(DateTime? until) {
+    _waitTick?.cancel();
+    if (!mounted) return;
+    setState(() => _waitUntil = until);
+    if (until == null) return;
+    _waitTick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (DateTime.now().isAfter(until)) {
+        _waitTick?.cancel();
+        setState(() {
+          _waitUntil = null;
+          _error = null;
+        });
+      } else {
+        setState(() {});
+      }
+    });
+  }
+
+  String _waitText(AppLocalizations l) {
+    final left = _waitUntil!.difference(DateTime.now());
+    final m = (left.inSeconds / 60).ceil();
+    return l.pinWait(m < 1 ? 1 : m);
+  }
+
   @override
   void dispose() {
+    _waitTick?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _debounce?.cancel();
     _password.dispose();
@@ -127,12 +171,13 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   // ---------- PIN ----------
 
   void _digit(String d) {
-    if (_busy || _pin.length >= _pinLength) return;
+    if (_busy || _waitUntil != null || _pin.length >= _maxLen) return;
     setState(() {
       _pin += d;
       _error = null;
     });
-    if (_pin.length == _pinLength) _checkPin();
+    // Check at every length in use; only the longest one can be "wrong".
+    if (_lengths.contains(_pin.length)) _checkPin(last: _pin.length == _maxLen);
   }
 
   void _deleteDigit() {
@@ -140,47 +185,33 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     setState(() => _pin = _pin.substring(0, _pin.length - 1));
   }
 
-  Future<void> _checkPin() async {
+  Future<void> _checkPin({required bool last}) async {
     final l = AppLocalizations.of(context);
+    final tried = _pin;
     setState(() => _busy = true);
     try {
       final device = await PinStore.deviceKey();
       final vault = device == null
           ? null
-          : await rust.unlockWithPin(dir: widget.libraryDir, pin: _pin, deviceKey: device);
+          : await rust.unlockWithPin(dir: widget.libraryDir, pin: tried, deviceKey: device);
       if (vault != null) {
-        await PinStore.setFails(0);
+        await PinStore.resetFails();
         return await _open(vault);
       }
-      final fails = (await PinStore.fails()) + 1;
-      if (device == null || fails >= PinStore.maxTries) {
-        await rust.forgetPin(dir: widget.libraryDir);
-        await PinStore.clear();
-        if (!mounted) return;
-        setState(() {
-          _mode = _Mode.password;
-          _pinLength = 0;
-          _error = l.pinLocked;
-        });
-        return;
-      }
-      await PinStore.setFails(fails);
+      if (!last) return; // a longer PIN may still match
+      final wait = await PinStore.addFail();
       HapticFeedback.heavyImpact();
-      if (mounted) {
-        setState(() {
-          _shake++;
-          _error = l.pinWrong(PinStore.maxTries - fails);
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _shake++;
+        _pin = '';
+        _error = wait > Duration.zero ? null : l.pinWrongTry;
+      });
+      if (wait > Duration.zero) _startWait(DateTime.now().add(wait));
     } on rust.VaultError catch (e) {
       if (mounted) setState(() => _error = vaultErrorText(l, e));
     } finally {
-      if (mounted && !_leaving) {
-        setState(() {
-          _busy = false;
-          _pin = '';
-        });
-      }
+      if (mounted && !_leaving) setState(() => _busy = false);
     }
   }
 
@@ -214,7 +245,10 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       final vault = await rust.unlock(dir: widget.libraryDir, password: text);
       _tried = text;
       if (!mounted) return;
-      if (vault != null) return await _open(vault, offerBiometric: true);
+      if (vault != null) {
+        Prefs.write(_passwordSeenKey, '${DateTime.now().millisecondsSinceEpoch}');
+        return await _open(vault, offerBiometric: true);
+      }
       if (_password.text != text) {
         _checking = false;
         return await _attempt(quiet: !_busy);
@@ -247,7 +281,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     if (!mounted) return;
     final nav = Navigator.of(context);
     final pending = _pending;
-    await playVaultSpin(context, opening: true, onCovered: () {
+    await playVaultSpin(context, opening: true, color: colorById(vault.color).color, onCovered: () {
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
@@ -321,14 +355,22 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _mode == _Mode.pin ? l.pinEnter : l.unlockTitle,
+                    _mode == _Mode.pin ? l.pinEnter : (_remind ? l.passwordRemindTitle : l.unlockTitle),
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: ink, letterSpacing: -.3),
                   ),
                   const SizedBox(height: 14),
                   if (_mode == _Mode.pin)
-                    PinDots(length: _pinLength, filled: _pin.length, color: accent)
+                    PinDots(filled: _pin.length, color: accent)
                   else
                     _passwordField(l, ink),
+                  if (_mode == _Mode.password && _remind) ...[
+                    Text(l.passwordRemindBody, textAlign: TextAlign.center, style: TextStyle(color: ink.withValues(alpha: .7), fontSize: 13)),
+                    const SizedBox(height: 10),
+                  ],
+                  if (_mode == _Mode.pin && _waitUntil != null) ...[
+                    const SizedBox(height: 10),
+                    Text(_waitText(l), textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600, fontSize: 13)),
+                  ],
                   if (_error != null) ...[
                     const SizedBox(height: 10),
                     Text(
@@ -348,27 +390,26 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                     ),
                   ],
                   const SizedBox(height: 4),
-                  if (_mode == _Mode.pin)
-                    TextButton(
-                      onPressed: _busy ? null : () => setState(() => _mode = _Mode.password),
-                      child: Text(l.usePassword),
-                    )
-                  else
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      children: [
-                        if (_pinLength > 0)
-                          TextButton(onPressed: () => setState(() => _mode = _Mode.pin), child: Text(l.usePin)),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    children: [
+                      if (_mode == _Mode.pin && _anyPassword)
                         TextButton(
-                          onPressed: _busy
-                              ? null
-                              : () => Navigator.of(context).push(MaterialPageRoute<void>(
-                                    builder: (_) => CreateVaultScreen(libraryDir: widget.libraryDir, first: false),
-                                  )),
-                          child: Text(l.newVault),
+                          onPressed: _busy ? null : () => setState(() => _mode = _Mode.password),
+                          child: Text(l.usePassword),
                         ),
-                      ],
-                    ),
+                      if (_mode == _Mode.password && _lengths.isNotEmpty)
+                        TextButton(onPressed: () => setState(() => _mode = _Mode.pin), child: Text(l.usePin)),
+                      TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                                  builder: (_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false),
+                                )),
+                        child: Text(l.newVault),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -424,7 +465,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                                   const SizedBox(height: 12),
                                   card,
                                   if (_mode == _Mode.pin) ...[
-                                    PinPad(onDigit: _digit, onDelete: _deleteDigit, enabled: !_busy),
+                                    PinPad(onDigit: _digit, onDelete: _deleteDigit, enabled: !_busy && _waitUntil == null),
                                     const SizedBox(height: 12),
                                   ],
                                 ],
@@ -438,11 +479,11 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                 ),
                 AddDock(
                   modes: availableAddModes(),
-                  leading: DockSlot(icon: Icons.lock_outline, label: l.lockedAddOnly, outlined: true),
+                  leading: DockSlot(glyph: const LockGlyph(size: 24, color: Brand.gold), label: l.lockedAddOnly, outlined: true),
                   trailing: bio == null
                       ? const SizedBox(width: 46)
                       : DockSlot(
-                          icon: bio == BiometricKind.face ? Icons.face_outlined : Icons.fingerprint,
+                          glyph: BiometricGlyph(kind: bio, size: 24, color: Colors.white),
                           label: bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint,
                           onTap: _busy ? null : _unlockBiometric,
                         ),

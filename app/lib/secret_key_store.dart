@@ -47,13 +47,14 @@ class SecretKeyStore {
   }
 }
 
-/// The PIN's device half (ADR 0001): a random key that never leaves this device's
-/// keystore, plus the count of wrong PINs. 5 wrong in a row and the PIN is forgotten;
-/// the password still opens the vault.
+/// The PIN's device half (ADR 0001): one random key that never leaves this device's
+/// keystore, shared by every vault's PIN here, plus the count of wrong PINs. Wrong
+/// PINs make you wait longer and longer (1, 5, 15, 60 minutes) and never wipe
+/// anything: a vault may have no password to fall back on.
 class PinStore {
-  static const maxTries = 5;
   static const _key = 'pin-device-key';
   static const _fails = 'pin-fails';
+  static const _until = 'pin-wait-until';
 
   static const _storage = FlutterSecureStorage(
     iOptions: IOSOptions(
@@ -74,12 +75,14 @@ class PinStore {
     }
   }
 
-  /// A fresh device key each time a PIN is set (an old PIN file becomes useless).
-  static Future<Uint8List> newDeviceKey(Uint8List random16) async {
-    await _storage.write(key: _key, value: base64Encode(random16));
-    await _storage.write(key: _fails, value: '0');
+  /// The device key, made once (from `random16`) the first time a PIN is set.
+  static Future<Uint8List> deviceKeyOrCreate(Uint8List Function() random16) async {
+    final existing = await deviceKey();
+    if (existing != null) return existing;
+    final key = random16();
+    await _storage.write(key: _key, value: base64Encode(key));
     final back = await deviceKey();
-    if (back == null || !listEquals(back, random16)) {
+    if (back == null || !listEquals(back, key)) {
       throw StateError('The keystore did not keep the PIN key');
     }
     return back;
@@ -93,16 +96,44 @@ class PinStore {
     }
   }
 
-  static Future<void> setFails(int n) async {
+  /// When the pad opens again, or null when there is no wait.
+  static Future<DateTime?> waitUntil() async {
     try {
-      await _storage.write(key: _fails, value: '$n');
-    } catch (_) {}
+      final ms = int.tryParse(await _storage.read(key: _until) ?? '');
+      if (ms == null) return null;
+      final t = DateTime.fromMillisecondsSinceEpoch(ms);
+      return t.isAfter(DateTime.now()) ? t : null;
+    } catch (_) {
+      return null;
+    }
   }
 
-  static Future<void> clear() async {
+  /// Wait after this many wrong PINs in a row (4 free tries).
+  static Duration waitFor(int fails) => switch (fails) {
+        < 5 => Duration.zero,
+        5 => const Duration(minutes: 1),
+        6 => const Duration(minutes: 5),
+        7 => const Duration(minutes: 15),
+        _ => const Duration(hours: 1),
+      };
+
+  /// Record a wrong PIN; returns the wait it caused.
+  static Future<Duration> addFail() async {
+    final n = (await fails()) + 1;
+    final wait = waitFor(n);
     try {
-      await _storage.delete(key: _key);
-      await _storage.delete(key: _fails);
+      await _storage.write(key: _fails, value: '$n');
+      if (wait > Duration.zero) {
+        await _storage.write(key: _until, value: '${DateTime.now().add(wait).millisecondsSinceEpoch}');
+      }
+    } catch (_) {}
+    return wait;
+  }
+
+  static Future<void> resetFails() async {
+    try {
+      await _storage.write(key: _fails, value: '0');
+      await _storage.delete(key: _until);
     } catch (_) {}
   }
 }

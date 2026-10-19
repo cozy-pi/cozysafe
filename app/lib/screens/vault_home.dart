@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -13,15 +14,29 @@ import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/add_dock.dart';
 import '../widgets/brand.dart';
+import '../widgets/identity.dart';
+import 'backup_password.dart';
 import 'camera.dart';
 import 'common.dart';
 import 'emergency_kit.dart';
+import 'file_view.dart';
+import 'new_vault.dart';
+import 'note.dart';
 import 'set_pin.dart';
 import 'unlock.dart';
 
-/// Inside an open vault (mockup "Cozy Safe Add Strip", v3): Library by date or
-/// Collections by kind, photos edge to edge, documents and notes as a list, and the
-/// same add dock as the lock screen. Locks the moment the app leaves the foreground.
+/// Lets the vault stay open for a short while when the app itself sends the person to
+/// another app (share sheet, file or photo picker): docs/ui.md, locking.
+abstract final class LockGuard {
+  static DateTime? _until;
+  static void allowAway() => _until = DateTime.now().add(const Duration(seconds: 60));
+  static bool get away => _until != null && DateTime.now().isBefore(_until!);
+  static void clear() => _until = null;
+}
+
+/// Inside an open vault: photos edge to edge, notes and files as a list, by date; the
+/// same add dock as the lock screen. Locks on leaving the app, after 2 minutes without a
+/// touch, or with the Lock button.
 class VaultHomeScreen extends StatefulWidget {
   const VaultHomeScreen({super.key, required this.libraryDir, required this.vault, this.initialAction});
 
@@ -35,21 +50,21 @@ class VaultHomeScreen extends StatefulWidget {
 }
 
 class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingObserver {
+  late rust.VaultInfo _vault = widget.vault;
   bool _locked = false;
   List<rust.ItemInfo>? _items;
   /// Decrypted previews, in memory only, dropped with this screen.
   final Map<String, Future<Uint8List>> _thumbs = {};
-  /// The Collections tab comes back once there is more than photos to collect.
-  final bool _collections = false;
-  String? _collection;
   int _cols = 3;
   double _scaleStart = 1;
 
   static final bool _phone = Platform.isIOS || Platform.isAndroid;
   static final bool _desktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+  static const _idle = Duration(minutes: 2);
   bool _canBio = false;
   bool _bioOn = false;
-  bool _pinOn = false;
+  Timer? _idleTimer;
+  DateTime? _awayAt;
 
   @override
   void initState() {
@@ -57,23 +72,43 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     WidgetsBinding.instance.addObserver(this);
     _reload();
     _bioOn = rust.biometricEnabled();
-    _pinOn = rust.pinEnabled();
     BiometricUnlock.available().then((k) {
       if (mounted) setState(() => _canBio = k != null);
     });
+    _touch();
     final first = widget.initialAction;
     if (first != null) WidgetsBinding.instance.addPostFrameCallback((_) => _onAction(first));
   }
 
   @override
   void dispose() {
+    _idleTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
+  void _touch() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer(_idle, () {
+      if (mounted && !LockGuard.away) _lock();
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) _lock(animate: false);
+    if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
+      if (LockGuard.away) {
+        _awayAt ??= DateTime.now();
+      } else {
+        _lock(animate: false);
+      }
+    } else if (state == AppLifecycleState.resumed && _awayAt != null) {
+      final gone = DateTime.now().difference(_awayAt!);
+      _awayAt = null;
+      LockGuard.clear();
+      if (gone > const Duration(seconds: 60)) _lock(animate: false);
+      _touch();
+    }
   }
 
   Future<void> _reload() async {
@@ -88,10 +123,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
-  /// Lock from the dock plays the closing moment; leaving the app locks at once.
+  Color get _color => colorById(_vault.color).color;
+
+  /// Lock from the dock (or idle) plays the closing moment; leaving the app locks at once.
   void _lock({bool animate = true}) {
     if (_locked) return;
     _locked = true;
+    _idleTimer?.cancel();
     final nav = Navigator.of(context);
     void go() {
       rust.lock();
@@ -106,7 +144,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
 
     if (animate) {
-      playVaultSpin(context, opening: false, onCovered: go);
+      playVaultSpin(context, opening: false, onCovered: go, color: _color);
     } else {
       go();
     }
@@ -115,14 +153,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   // ---------- adding ----------
 
   void _onAction(AddMode mode) {
-    final l = AppLocalizations.of(context);
     switch (mode) {
       case AddMode.camera:
-        if (_phone) {
-          _openCamera();
-        } else {
-          _snack(l.cameraPhoneOnly);
-        }
+        _openCamera();
+      case AddMode.note:
+        _openNote(null);
+      case AddMode.library:
+        _import(photos: true);
+      case AddMode.file:
+        _import(photos: false);
       case _:
         break; // not offered: availableAddModes() lists only what works
     }
@@ -135,15 +174,62 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!_locked && (saved ?? 0) > 0) _reload();
   }
 
+  Future<void> _openNote(rust.ItemInfo? item) async {
+    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => NoteScreen(item: item)));
+    if (!_locked && changed == true) _reload();
+  }
+
+  Future<void> _import({required bool photos}) async {
+    final l = AppLocalizations.of(context);
+    LockGuard.allowAway();
+    try {
+      final files = photos ? await pickPhotos() : await pickFiles();
+      if (files.isEmpty || !mounted) return;
+      _snack(l.importing);
+      final n = await importFiles(files, photos: photos);
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _snack(l.imported(n));
+        _reload();
+      }
+    } on rust.VaultError catch (e) {
+      if (mounted) _snack(vaultErrorText(l, e));
+    } catch (_) {
+      if (mounted) _snack(l.errorStorage);
+    } finally {
+      LockGuard.clear();
+    }
+  }
+
   // ---------- menu ----------
 
-  /// One encrypted file with the whole library. Desktop: save where the user picks.
-  /// Phone: write it to the app's temp folder and hand it to the share sheet (Files,
-  /// Drive, AirDrop…), then remove the temp copy.
+  /// The backup password is needed before the first backup: set it (with the
+  /// Emergency Kit) right there, then carry on.
+  Future<bool> _ensurePassword() async {
+    if (_vault.hasPassword) return true;
+    final info = await Navigator.of(context).push<rust.VaultInfo>(
+      MaterialPageRoute(builder: (_) => BackupPasswordScreen(libraryDir: widget.libraryDir, change: false)),
+    );
+    if (info != null && mounted) setState(() => _vault = info);
+    return info != null;
+  }
+
+  Future<void> _password() async {
+    final info = await Navigator.of(context).push<rust.VaultInfo>(
+      MaterialPageRoute(builder: (_) => BackupPasswordScreen(libraryDir: widget.libraryDir, change: _vault.hasPassword)),
+    );
+    if (info != null && mounted) setState(() => _vault = info);
+  }
+
+  /// One encrypted file with the vaults that have a password. Desktop: save where the
+  /// user picks. Phone: hand it to the share sheet (Files, Drive, AirDrop…), then remove
+  /// the temp copy.
   Future<void> _backup() async {
     final l = AppLocalizations.of(context);
+    if (!await _ensurePassword() || !mounted) return;
     final d = DateTime.now();
     final name = 'CozySafe-${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}.cozysafe';
+    LockGuard.allowAway();
     try {
       if (_desktop) {
         final loc = await getSaveLocation(suggestedName: name);
@@ -163,6 +249,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (tmp.existsSync()) tmp.deleteSync();
     } catch (_) {
       if (mounted) _snack(l.backupFailed);
+    } finally {
+      LockGuard.clear();
     }
   }
 
@@ -185,16 +273,37 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (mounted) setState(() => _bioOn = rust.biometricEnabled());
   }
 
-  Future<void> _togglePin() async {
-    if (_pinOn) {
-      try {
-        await rust.disablePin();
-      } catch (_) {}
-      await PinStore.clear();
-    } else {
-      await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen()));
+  Future<void> _changePin() async {
+    await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen()));
+  }
+
+  Future<void> _changeIdentity() async {
+    var icon = vaultIcons.indexWhere((i) => i.id == _vault.icon);
+    var color = vaultColors.indexWhere((c) => c.id == _vault.color);
+    final i = await showAllIcons(context, icon < 0 ? 0 : icon);
+    if (i == null || !mounted) return;
+    icon = i;
+    final c = await showAllColors(context, color < 0 ? 0 : color);
+    if (c == null || !mounted) return;
+    color = c;
+    try {
+      final info = await rust.setIdentity(icon: vaultIcons[icon].id, color: vaultColors[color].id);
+      if (mounted) setState(() => _vault = info);
+    } on rust.VaultError catch (e) {
+      if (mounted) _snack(vaultErrorText(AppLocalizations.of(context), e));
     }
-    if (mounted) setState(() => _pinOn = rust.pinEnabled());
+  }
+
+  /// Creating another vault locks this one first (one open at a time).
+  void _newVault() {
+    final avoid = (_vault.icon, _vault.color);
+    _locked = true;
+    _idleTimer?.cancel();
+    rust.lock();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false, avoid: avoid)),
+      (_) => false,
+    );
   }
 
   void _snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -203,16 +312,24 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<Uint8List> _thumb(String id) => _thumbs[id] ??= rust.itemThumbnail(id: id);
 
-  Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> list) async {
-    final deleted = await Navigator.of(context).push<String>(
-      PageRouteBuilder(
-        opaque: false,
-        transitionDuration: const Duration(milliseconds: 220),
-        reverseTransitionDuration: const Duration(milliseconds: 200),
-        pageBuilder: (_, _, _) => PhotoViewerScreen(items: list, initial: list.indexOf(item)),
-        transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
-      ),
-    );
+  Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> photos) async {
+    if (item.kind == 'note') return _openNote(item);
+    final String? deleted;
+    if (item.kind == 'photo') {
+      deleted = await Navigator.of(context).push<String>(
+        PageRouteBuilder(
+          opaque: false,
+          transitionDuration: const Duration(milliseconds: 220),
+          reverseTransitionDuration: const Duration(milliseconds: 200),
+          pageBuilder: (_, _, _) => PhotoViewerScreen(items: photos, initial: photos.indexOf(item)),
+          transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
+        ),
+      );
+    } else {
+      LockGuard.allowAway();
+      deleted = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: item)));
+      LockGuard.clear();
+    }
     if (!_locked && deleted != null) {
       _thumbs.remove(deleted);
       _reload();
@@ -223,9 +340,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     final d = DateTime.fromMillisecondsSinceEpoch(ms);
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final day = DateTime(d.year, d.month, d.day);
-    final diff = today.difference(day).inDays;
+    final diff = DateTime(now.year, now.month, now.day).difference(DateTime(d.year, d.month, d.day)).inDays;
     if (diff <= 0) return l.today;
     if (diff == 1) return l.yesterday;
     if (diff < 7) return l.thisWeek;
@@ -242,11 +357,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       for (final e in groups.entries) ...[
         SliverToBoxAdapter(child: _SectionTitle(e.key)),
         SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: _cols,
-            mainAxisSpacing: 2,
-            crossAxisSpacing: 2,
-          ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: _cols, mainAxisSpacing: 2, crossAxisSpacing: 2),
           delegate: SliverChildBuilderDelegate(
             (context, i) {
               final it = e.value.where((x) => x.kind == 'photo').elementAt(i);
@@ -255,99 +366,26 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             childCount: e.value.where((x) => x.kind == 'photo').length,
           ),
         ),
-      ],
-    ];
-  }
-
-  Widget _collectionsView(BuildContext context, List<rust.ItemInfo> items) {
-    final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
-    final photos = items.where((i) => i.kind == 'photo').toList();
-    if (_collection != null) {
-      return CustomScrollView(slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 18, 6),
-            child: TextButton.icon(
-              onPressed: () => setState(() => _collection = null),
-              icon: const Icon(Icons.chevron_left),
-              label: Text(_collection!),
-            ),
-          ),
+        SliverList(
+          delegate: SliverChildListDelegate([
+            for (final it in e.value.where((x) => x.kind != 'photo')) _ItemRow(item: it, onTap: () => _openItem(it, photos)),
+          ]),
         ),
-        if (_collection == l.collPhotos)
-          SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: _cols, mainAxisSpacing: 2, crossAxisSpacing: 2),
-            delegate: SliverChildBuilderDelegate(
-              (context, i) => _PhotoTile(key: ValueKey(photos[i].id), thumb: _thumb(photos[i].id), onTap: () => _openItem(photos[i], photos)),
-              childCount: photos.length,
-            ),
-          )
-        else
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: Text(l.collectionEmpty, style: TextStyle(color: c.muted))),
-          ),
-      ]);
-    }
-    final tiles = [
-      (l.collPhotos, Icons.photo_outlined, photos),
-      (l.collDocuments, Icons.description_outlined, const <rust.ItemInfo>[]),
-      (l.collNotes, Icons.sticky_note_2_outlined, const <rust.ItemInfo>[]),
-      (l.collDeleted, Icons.delete_outline, const <rust.ItemInfo>[]),
-    ];
-    return GridView.count(
-      padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
-      crossAxisCount: 2,
-      mainAxisSpacing: 14,
-      crossAxisSpacing: 12,
-      childAspectRatio: .82,
-      children: [
-        for (final (name, icon, list) in tiles)
-          InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () => setState(() => _collection = name),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: ColoredBox(
-                      color: c.soft,
-                      child: list.isEmpty
-                          ? Center(child: Icon(icon, color: c.muted, size: 34))
-                          : GridView.count(
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 2,
-                              crossAxisSpacing: 2,
-                              children: [for (final it in list.take(4)) _PhotoTile(thumb: _thumb(it.id))],
-                            ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
       ],
-    );
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
     final items = _items;
 
     Widget content;
     if (items == null) {
       content = const Center(child: CircularProgressIndicator());
-    } else if (items.isEmpty && !_collections) {
-      content = _Empty(onCamera: _phone ? _openCamera : null);
-    } else if (_collections) {
-      content = _collectionsView(context, items);
+    } else if (items.isEmpty) {
+      content = const _Empty();
     } else {
       content = GestureDetector(
         // Pinch to fit more or fewer photos in a row, like Photos.
@@ -368,54 +406,103 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       );
     }
 
-    return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 8, 4, 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            widget.vault.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -.5),
+    return Listener(
+      onPointerDown: (_) => _touch(),
+      child: Scaffold(
+        body: Column(
+          children: [
+            Expanded(
+              child: SafeArea(
+                bottom: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 10, 4, 10),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: _changeIdentity,
+                            child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 44),
+                          ),
+                          const Spacer(),
+                          PopupMenuButton<void>(
+                            tooltip: l.vaultMenu,
+                            itemBuilder: (context) => [
+                              PopupMenuItem<void>(onTap: _changeIdentity, child: Text(l.changeIdentity)),
+                              PopupMenuItem<void>(onTap: _password, child: Text(_vault.hasPassword ? l.changePasswordTitle : l.backupPasswordTitle)),
+                              PopupMenuItem<void>(onTap: _changePin, child: Text(l.changePin)),
+                              if (_canBio)
+                                CheckedPopupMenuItem<void>(checked: _bioOn, onTap: _toggleBiometric, child: Text(l.biometricSetting)),
+                              PopupMenuItem<void>(onTap: _backup, child: Text(l.backup)),
+                              if (_vault.hasPassword) PopupMenuItem<void>(onTap: _showKit, child: Text(l.showKit)),
+                              PopupMenuItem<void>(onTap: _newVault, child: Text(l.newVault)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!_vault.hasPassword)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                        child: Material(
+                          color: c.soft,
+                          borderRadius: BorderRadius.circular(14),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+                            child: Row(
+                              children: [
+                                Expanded(child: Text(l.passwordNudge, style: TextStyle(color: c.muted, fontSize: 13.5))),
+                                TextButton(onPressed: _password, child: Text(l.passwordNudgeAction)),
+                              ],
+                            ),
                           ),
                         ),
-                        PopupMenuButton<void>(
-                          tooltip: l.vaultMenu,
-                          itemBuilder: (context) => [
-                            CheckedPopupMenuItem<void>(checked: _pinOn, onTap: _togglePin, child: Text(l.pinSetting)),
-                            if (_canBio)
-                              CheckedPopupMenuItem<void>(checked: _bioOn, onTap: _toggleBiometric, child: Text(l.biometricSetting)),
-                            PopupMenuItem<void>(onTap: _backup, child: Text(l.backup)),
-                            PopupMenuItem<void>(onTap: _showKit, child: Text(l.showKit)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(child: content),
-                ],
+                      ),
+                    Expanded(child: content),
+                  ],
+                ),
               ),
             ),
-          ),
-          AddDock(
-            modes: availableAddModes(),
-            leading: DockSlot(icon: Icons.lock_outline, label: l.lockVault, onTap: _lock),
-            // Search comes back here once it exists.
-            trailing: const SizedBox(width: 46),
-            onAction: _onAction,
-          ),
-        ],
+            AddDock(
+              modes: availableAddModes(),
+              leading: DockSlot(glyph: const LockGlyph(size: 24, color: Colors.white), label: l.lockVault, onTap: _lock),
+              // Search comes back here once it exists.
+              trailing: const SizedBox(width: 46),
+              onAction: _onAction,
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// A note or file in the list: icon, name, kind and date.
+class _ItemRow extends StatelessWidget {
+  const _ItemRow({required this.item, required this.onTap});
+  final rust.ItemInfo item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    final l = AppLocalizations.of(context);
+    final when = DateTime.fromMillisecondsSinceEpoch(item.createdMs);
+    final ml = MaterialLocalizations.of(context);
+    final sub = item.kind == 'note'
+        ? '${l.note} · ${ml.formatShortDate(when)}'
+        : '${fileSize(item.size)} · ${ml.formatShortDate(when)}';
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(10)),
+        child: Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary),
+      ),
+      title: Text(item.name.isEmpty ? l.untitledNote : item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
   }
 }
@@ -432,8 +519,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({this.onCamera});
-  final VoidCallback? onCamera;
+  const _Empty();
 
   @override
   Widget build(BuildContext context) {

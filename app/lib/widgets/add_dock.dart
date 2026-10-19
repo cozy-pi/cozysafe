@@ -14,7 +14,10 @@ enum AddMode { note, library, camera, scan, file, paste }
 List<AddMode> availableAddModes() =>
     debugAddModes ??
     [
+      AddMode.note,
+      AddMode.library,
       if (Platform.isIOS || Platform.isAndroid) AddMode.camera,
+      AddMode.file,
     ];
 
 /// For tests only: they run on a desktop OS and set the modes a phone would have.
@@ -241,9 +244,11 @@ class _AddDockState extends State<AddDock> {
 
 /// A 46 px round slot beside the big button (lock, search, biometrics…).
 class DockSlot extends StatelessWidget {
-  const DockSlot({super.key, required this.icon, required this.label, this.onTap, this.outlined = false});
+  const DockSlot({super.key, this.icon, this.glyph, required this.label, this.onTap, this.outlined = false});
 
-  final IconData icon;
+  final IconData? icon;
+  /// A drawn symbol instead of an icon (the Face ID glyph).
+  final Widget? glyph;
   final String label;
   final VoidCallback? onTap;
   /// A state indicator (the closed lock on the lock screen), not a button.
@@ -259,7 +264,7 @@ class DockSlot extends StatelessWidget {
         color: outlined ? Colors.transparent : const Color(0x24FFFFFF),
         border: outlined ? Border.all(color: const Color(0x47FFFFFF), width: 1.5) : null,
       ),
-      child: Icon(icon, size: 22, color: outlined ? Brand.gold : Colors.white),
+      child: Center(child: glyph ?? Icon(icon, size: 22, color: outlined ? Brand.gold : Colors.white)),
     );
     if (onTap == null) return Semantics(label: label, child: child);
     return Semantics(
@@ -342,31 +347,33 @@ class _Key extends StatelessWidget {
   }
 }
 
-/// Dots for the PIN entered so far, `length` of them.
+/// One dot per digit typed so far, nothing else: no empty placeholders and no count,
+/// so someone looking over a shoulder does not learn how long the PIN is.
 class PinDots extends StatelessWidget {
-  const PinDots({super.key, required this.length, required this.filled, required this.color});
+  const PinDots({super.key, required this.filled, required this.color});
 
-  final int length;
   final int filled;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < length; i++)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 7),
-            width: 14,
-            height: 14,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: i < filled ? color : Colors.transparent,
-              border: Border.all(color: color, width: 2),
+    final shown = filled.clamp(0, 20);
+    final dot = shown > 12 ? 9.0 : (shown > 8 ? 11.0 : 14.0);
+    final gap = shown > 12 ? 3.0 : (shown > 8 ? 5.0 : 7.0);
+    return SizedBox(
+      height: 16,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < shown; i++)
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: gap),
+              width: dot,
+              height: dot,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: color),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

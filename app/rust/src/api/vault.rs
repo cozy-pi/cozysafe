@@ -19,6 +19,10 @@ static SECRET: Mutex<Option<SecretKey>> = Mutex::new(None);
 pub struct VaultInfo {
     pub id: String,
     pub name: String,
+    /// Icon and colour ids from the app's sets (empty for vaults made before them).
+    pub icon: String,
+    pub color: String,
+    pub has_password: bool,
 }
 
 /// Errors Dart shows to the user; each maps to a translated message.
@@ -28,6 +32,8 @@ pub enum VaultError {
     EmptyName,
     /// A PIN is 4 to 10 digits.
     BadPin,
+    /// Another vault on this device already opens with this PIN.
+    PinInUse,
     /// No vault is open (it locked while the screen was up).
     Locked,
     /// The Secret Key does not belong to this library (Emergency Kit from another one).
@@ -46,6 +52,7 @@ impl From<cs_vault::Error> for VaultError {
             cs_vault::Error::PasswordInUse => VaultError::PasswordInUse,
             cs_vault::Error::EmptyName => VaultError::EmptyName,
             cs_vault::Error::BadPin => VaultError::BadPin,
+            cs_vault::Error::PinInUse => VaultError::PinInUse,
             cs_vault::Error::WrongSecretKey => VaultError::WrongSecretKey,
             cs_vault::Error::BadBackup => VaultError::BadBackup,
             cs_vault::Error::LibraryExists => VaultError::LibraryExists,
@@ -269,6 +276,67 @@ pub fn forget_pin(dir: String) -> Result<(), VaultError> {
     Ok(Library::forget_pin(Path::new(&dir))?)
 }
 
+/// Create a vault that starts with only a PIN on this device (no password yet) and
+/// leave it open. Runs Argon2id: call it off the UI thread.
+pub fn create_vault_with_pin(
+    dir: String,
+    icon: String,
+    color: String,
+    pin: String,
+    device_key: Vec<u8>,
+) -> Result<VaultInfo, VaultError> {
+    let pin = Zeroizing::new(pin);
+    let device_key = Zeroizing::new(device_key);
+    let dk = key16(&device_key).ok_or(VaultError::Storage)?;
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let vault =
+        library.create_vault_with_pin(&icon, &color, &pin, &dk, params_for_this_device())?;
+    Ok(set_open(vault))
+}
+
+/// Set or change the open vault's password (instant: re-wraps the vault key).
+pub fn set_password(dir: String, password: String) -> Result<VaultInfo, VaultError> {
+    let password = Zeroizing::new(password);
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let guard = OPEN.lock().unwrap_or_else(|p| p.into_inner());
+    let vault = guard.as_ref().ok_or(VaultError::Locked)?;
+    library.set_password(vault, &password)?;
+    Ok(info_of(vault))
+}
+
+/// Change the open vault's icon and colour.
+pub fn set_identity(icon: String, color: String) -> Result<VaultInfo, VaultError> {
+    let mut guard = OPEN.lock().unwrap_or_else(|p| p.into_inner());
+    let vault = guard.as_mut().ok_or(VaultError::Locked)?;
+    vault.set_identity(&icon, &color)?;
+    Ok(info_of(vault))
+}
+
+/// Whether any vault here opens with a password (show "Use password" on the lock screen).
+#[flutter_rust_bridge::frb(sync)]
+pub fn any_password(dir: String) -> bool {
+    Library::any_password(Path::new(&dir))
+}
+
+/// PIN lengths in use on this device, shortest first (the pad checks at each).
+#[flutter_rust_bridge::frb(sync)]
+pub fn pin_lengths(dir: String) -> Vec<u32> {
+    Library::pin_lengths(Path::new(&dir))
+        .into_iter()
+        .map(|n| n as u32)
+        .collect()
+}
+
+fn info_of(vault: &OpenVault) -> VaultInfo {
+    VaultInfo {
+        id: vault.id.clone(),
+        name: vault.name.clone(),
+        icon: vault.icon.clone(),
+        color: vault.color.clone(),
+        has_password: vault.has_password(),
+    }
+}
+
 /// Close the open vault and wipe its keys.
 #[flutter_rust_bridge::frb(sync)]
 pub fn lock() {
@@ -276,10 +344,7 @@ pub fn lock() {
 }
 
 fn set_open(vault: OpenVault) -> VaultInfo {
-    let info = VaultInfo {
-        id: vault.id.clone(),
-        name: vault.name.clone(),
-    };
+    let info = info_of(&vault);
     *OPEN.lock().unwrap_or_else(|p| p.into_inner()) = Some(vault);
     info
 }
@@ -287,8 +352,10 @@ fn set_open(vault: OpenVault) -> VaultInfo {
 /// An item as the vault grid shows it. Content and preview are fetched separately.
 pub struct ItemInfo {
     pub id: String,
+    /// "photo", "note" or "file".
     pub kind: String,
     pub name: String,
+    pub mime: String,
     pub created_ms: i64,
     pub size: u64,
 }
@@ -299,6 +366,7 @@ impl From<ItemMeta> for ItemInfo {
             id: m.id,
             kind: m.kind,
             name: m.name,
+            mime: m.mime,
             created_ms: m.created_ms,
             size: m.size,
         }
@@ -368,6 +436,76 @@ pub fn add_photo(frame: CameraFrame, created_ms: i64) -> Result<ItemInfo, VaultE
         })?
         .into())
     })
+}
+
+/// Encrypt a file from disk into the open vault, streaming (any size). `thumbnail` is a
+/// small JPEG/PNG preview made by the app for images, or None. The caller deletes its
+/// own temporary copies (picker caches) afterwards.
+pub fn add_file(
+    path: String,
+    kind: String,
+    name: String,
+    mime: String,
+    created_ms: i64,
+    thumbnail: Option<Vec<u8>>,
+) -> Result<ItemInfo, VaultError> {
+    let f = std::fs::File::open(&path).map_err(|_| VaultError::Storage)?;
+    let thumb = thumbnail.map(Zeroizing::new);
+    with_open(|v| {
+        Ok(v.add_item(NewItem {
+            kind: &kind,
+            name: &name,
+            mime: &mime,
+            created_ms,
+            content: std::io::BufReader::new(f),
+            thumbnail: thumb.as_deref().map(|t| t.as_slice()),
+        })?
+        .into())
+    })
+}
+
+/// A new note; `title` is what the list shows (the app passes the first line).
+pub fn add_note(title: String, text: String, created_ms: i64) -> Result<ItemInfo, VaultError> {
+    let text = Zeroizing::new(text);
+    with_open(|v| {
+        Ok(v.add_item(NewItem {
+            kind: "note",
+            name: &title,
+            mime: "text/plain",
+            created_ms,
+            content: text.as_bytes(),
+            thumbnail: None,
+        })?
+        .into())
+    })
+}
+
+/// Save an edited note in place.
+pub fn update_note(id: String, title: String, text: String) -> Result<ItemInfo, VaultError> {
+    let text = Zeroizing::new(text);
+    with_open(|v| Ok(v.replace_item(&id, &title, text.as_bytes())?.into()))
+}
+
+/// Decrypt an item to `path` (a private temporary file), to open it in another app.
+/// The caller deletes it afterwards.
+pub fn export_item(id: String, path: String) -> Result<(), VaultError> {
+    with_open(|v| {
+        let f = std::fs::File::create(&path).map_err(|_| VaultError::Storage)?;
+        let mut w = std::io::BufWriter::new(f);
+        let r = v.read_item(&id, &mut w);
+        if r.is_err() {
+            drop(w);
+            let _ = std::fs::remove_file(&path);
+        }
+        r?;
+        Ok(())
+    })
+}
+
+/// "Suggest a password": five random words (about 64 bits).
+#[flutter_rust_bridge::frb(sync)]
+pub fn suggest_passphrase() -> String {
+    cs_vault::passphrase::suggest(cs_vault::passphrase::SUGGESTED_WORDS)
 }
 
 /// Items in the open vault, newest first.

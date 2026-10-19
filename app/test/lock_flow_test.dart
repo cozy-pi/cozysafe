@@ -1,5 +1,5 @@
 // Flows that can lock someone out of their vault if they break: PIN, wrong tries,
-// password fallback, type-to-unlock, an add action picked while locked, setting a PIN,
+// waits after wrong tries, password fallback, type-to-unlock, an add action picked while locked, setting a PIN,
 // the Emergency Kit confirmation. The Rust core is replaced by a fake with state.
 
 import 'dart:convert';
@@ -7,6 +7,7 @@ import 'dart:typed_data';
 
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
+import 'package:cozysafe/secret_key_store.dart';
 import 'package:cozysafe/screens/set_pin.dart';
 import 'package:cozysafe/screens/unlock.dart';
 import 'package:cozysafe/screens/vault_home.dart';
@@ -23,7 +24,7 @@ const _password = 'orange kettle whispers at dawn';
 
 class _Fake implements RustLibApi {
   int pinLength = 4;
-  bool pinForgotten = false;
+  bool anyPassword = true;
   String? enabledPin;
   int unlockCalls = 0;
 
@@ -32,21 +33,18 @@ class _Fake implements RustLibApi {
   @override
   dynamic noSuchMethod(Invocation call) {
     final name = call.memberName.toString();
-    final vault = VaultInfo(id: 'v1', name: 'Personal');
+    final vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: anyPassword);
     if (name.contains('MinPasswordScore')) return 3;
     if (name.contains('PasswordScore')) return 4;
     if (name.contains('HasVaults')) return true;
     if (name.contains('ListItems')) return Future<List<ItemInfo>>.value(const []);
     if (name.contains('HasBiometricUnlock')) return false;
     if (name.contains('BiometricEnabled')) return false;
-    if (name.contains('PinLength')) return pinForgotten ? 0 : pinLength;
+    if (name.contains('PinLengths')) return Uint32List.fromList(pinLength == 0 ? [] : [pinLength]);
+    if (name.contains('AnyPassword')) return anyPassword;
     if (name.contains('PinEnabled')) return enabledPin != null;
-    if (name.contains('ForgetPin')) {
-      pinForgotten = true;
-      return Future<void>.value();
-    }
     if (name.contains('UnlockWithPin')) {
-      final ok = !pinForgotten && _arg<String>(call, 'pin') == _pin;
+      final ok = _arg<String>(call, 'pin') == _pin;
       return Future<VaultInfo?>.value(ok ? vault : null);
     }
     if (name.contains('EnablePin')) {
@@ -95,7 +93,7 @@ void main() {
     debugAddModes = [AddMode.camera];
     _fake
       ..pinLength = 4
-      ..pinForgotten = false
+      ..anyPassword = true
       ..enabledPin = null
       ..unlockCalls = 0;
     FlutterSecureStorage.setMockInitialValues({
@@ -113,33 +111,37 @@ void main() {
     expect(find.byType(VaultHomeScreen), findsOneWidget);
   });
 
-  testWidgets('wrong PIN says how many tries are left', (t) async {
+  testWidgets('wrong PIN says so and clears the dots', (t) async {
     await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     await _tapDigits(t, '1111');
     await _settle(t);
-    expect(find.text('Wrong PIN. 4 tries left.'), findsOneWidget);
+    expect(find.text('Wrong PIN. Try again.'), findsOneWidget);
     expect(find.byType(VaultHomeScreen), findsNothing);
-    await _tapDigits(t, '1112');
-    await _settle(t);
-    expect(find.text('Wrong PIN. 3 tries left.'), findsOneWidget);
   });
 
-  testWidgets('five wrong PINs turn the PIN off and show the password', (t) async {
+  testWidgets('the fifth wrong PIN makes you wait, and never locks the PIN out', (t) async {
     await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     for (var i = 0; i < 5; i++) {
       await _tapDigits(t, '9999');
       await _settle(t);
     }
-    expect(_fake.pinForgotten, isTrue);
-    expect(find.byType(TextField), findsOneWidget);
-    expect(find.textContaining('PIN turned off'), findsOneWidget);
-    // The password still opens the vault.
-    await t.enterText(find.byType(TextField), _password);
-    await t.testTextInput.receiveAction(TextInputAction.done);
+    expect(find.text('Too many tries. Wait 1 minute.'), findsOneWidget);
+    // While waiting, digits are ignored, even the right PIN.
+    await _tapDigits(t, _pin);
     await _settle(t);
-    expect(find.byType(VaultHomeScreen), findsOneWidget);
+    expect(find.byType(VaultHomeScreen), findsNothing);
+    expect(PinStore.waitFor(5), const Duration(minutes: 1));
+    expect(PinStore.waitFor(8) > PinStore.waitFor(6), isTrue);
+  });
+
+  testWidgets('without a backup password there is no password option', (t) async {
+    _fake.anyPassword = false;
+    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    expect(find.text('Use password'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
   });
 
   testWidgets('the right password opens without pressing Enter', (t) async {

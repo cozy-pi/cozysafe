@@ -7,6 +7,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/add_dock.dart';
 import '../widgets/brand.dart';
+import 'common.dart';
 
 /// Choose a PIN for this vault on this device: 4 to 10 digits, then the same again.
 /// Pops with `true` once it is set. `skippable` adds "Not now" (after the first vault).
@@ -20,7 +21,7 @@ class SetPinScreen extends StatefulWidget {
 }
 
 class _SetPinScreenState extends State<SetPinScreen> {
-  static const _max = 10, _min = 4;
+  static const _max = 256, _min = 4;
   String _pin = '';
   String? _first;
   String? _error;
@@ -63,9 +64,18 @@ class _SetPinScreenState extends State<SetPinScreen> {
     }
     setState(() => _busy = true);
     try {
-      final device = await PinStore.newDeviceKey(rust.newSecretKey());
+      final device = await PinStore.deviceKeyOrCreate(rust.newSecretKey);
       await rust.enablePin(pin: _pin, deviceKey: device);
       if (mounted) Navigator.of(context).pop(true);
+    } on rust.VaultError catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = vaultErrorText(l, e);
+          _first = null;
+          _pin = '';
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -122,9 +132,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
                     const SizedBox(height: 22),
                     SizedBox(
                       height: 20,
-                      child: PinDots(
-                        length: confirming ? _first!.length : (_pin.length < _min ? _min : _pin.length),
-                        filled: _pin.length,
+                      child: PinDots(filled: _pin.length,
                         color: Brand.gold,
                       ),
                     ),

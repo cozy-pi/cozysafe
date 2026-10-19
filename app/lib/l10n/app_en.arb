@@ -111,7 +111,7 @@
   "lockedAddOnly": "Vault locked",
   "notNow": "Not now",
   "pinSetTitle": "Set a PIN",
-  "pinSetLead": "4 to 10 digits, for this device only. Your password still works everywhere.",
+  "pinSetLead": "At least 4 digits. This PIN opens this vault only.",
   "pinConfirmTitle": "Enter it again",
   "pinConfirmLead": "To make sure it's the PIN you meant.",
   "pinShortNote": "Longer is safer: 6 digits or more is better.",
@@ -132,5 +132,53 @@
   "tabLibrary": "Library",
   "tabCollections": "Collections",
   "search": "Search",
-  "errorBadPin": "A PIN is 4 to 10 digits."
+  "errorBadPin": "A PIN has at least 4 digits.",
+  "firstVaultTitle": "Create your first vault",
+  "newVaultTitle": "New vault",
+  "pickColorTitle": "Pick a colour",
+  "pickIconHint": "Pick an icon",
+  "pickColorHint": "Pick a colour",
+  "moreIcons": "More icons",
+  "moreColors": "More colours",
+  "biometricAskTitle": "Open with Face ID or fingerprint?",
+  "biometricAskBody": "Next time, just look or touch to open this vault. Your PIN still works.",
+  "changeIdentity": "Change icon and colour",
+  "changePin": "Change PIN",
+  "changePasswordTitle": "Change backup password",
+  "backupPasswordTitle": "Set a backup password",
+  "backupPasswordLead": "Needed to restore a backup on a new phone, together with your Emergency Kit. Your PIN stays the way you open the vault every day.",
+  "suggestPassword": "Suggest a password",
+  "passwordStrongEnough": "Strong enough",
+  "typeAgain": "Type it again",
+  "save": "Save",
+  "saving": "Saving…",
+  "passwordNudge": "No backup password yet. Without it this vault can't be backed up.",
+  "passwordNudgeAction": "Set it",
+  "passwordRemindTitle": "Still remember your backup password?",
+  "passwordRemindBody": "Type it once to open the vault, so you don't forget it.",
+  "pinWait": "{count, plural, =1{Too many tries. Wait 1 minute.} other{Too many tries. Wait {count} minutes.}}",
+  "pinWrongTry": "Wrong PIN. Try again.",
+  "importing": "Encrypting…",
+  "imported": "{count, plural, =1{1 item added} other{{count} items added}}",
+  "note": "Note",
+  "untitledNote": "Untitled note",
+  "noteHint": "Write something…",
+  "done": "Done",
+  "deleteItem": "Delete this item?",
+  "openWith": "Open in another app",
+  "openWithNote": "A decrypted copy is handed to the app you pick, and removed here afterwards.",
+  "@pinWait": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@imported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

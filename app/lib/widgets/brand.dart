@@ -48,27 +48,31 @@ class _MarkPainter extends CustomPainter {
 /// a receipt, a document), tilted and blurred, under a vault-green veil. Never the
 /// user's data: this screen runs while every vault is locked.
 class VaultBackdrop extends StatelessWidget {
-  const VaultBackdrop({super.key});
+  const VaultBackdrop({super.key, this.tint = Brand.deep});
+
+  /// The base colour: vault green, or a vault's own colour while creating it.
+  final Color tint;
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        const ColoredBox(color: Brand.deep),
+        AnimatedContainer(duration: const Duration(milliseconds: 350), color: tint),
         RepaintBoundary(
           child: ImageFiltered(
             imageFilter: ui.ImageFilter.blur(sigmaX: 7, sigmaY: 7),
             child: Opacity(opacity: 0.5, child: CustomPaint(painter: _CollagePainter())),
           ),
         ),
-        const DecoratedBox(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 350),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xB80F3D33), Color(0xE60F3D33), Brand.deep],
-              stops: [0, .45, 1],
+              colors: [tint.withValues(alpha: .72), tint.withValues(alpha: .9), tint],
+              stops: const [0, .45, 1],
             ),
           ),
         ),
@@ -123,14 +127,19 @@ class _CollagePainter extends CustomPainter {
 /// The moment a vault opens (or closes): a green overlay, the brand mark large in the
 /// middle turns half a turn and scales out (opening) or in (closing). `onCovered` runs
 /// while the overlay hides everything, which is when the caller switches screens.
-Future<void> playVaultSpin(BuildContext context, {required bool opening, required VoidCallback onCovered}) async {
+Future<void> playVaultSpin(
+  BuildContext context, {
+  required bool opening,
+  required VoidCallback onCovered,
+  Color color = Brand.deep,
+}) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
   final controller = AnimationController(
     vsync: overlay,
     duration: Duration(milliseconds: opening ? 1150 : 1050),
   );
-  final entry = OverlayEntry(builder: (_) => _Spin(controller: controller, opening: opening, reduce: reduce));
+  final entry = OverlayEntry(builder: (_) => _Spin(controller: controller, opening: opening, reduce: reduce, color: color));
   overlay.insert(entry);
   var covered = false;
   void check() {
@@ -148,11 +157,12 @@ Future<void> playVaultSpin(BuildContext context, {required bool opening, require
 }
 
 class _Spin extends AnimatedWidget {
-  const _Spin({required AnimationController controller, required this.opening, required this.reduce})
+  const _Spin({required AnimationController controller, required this.opening, required this.reduce, required this.color})
       : super(listenable: controller);
 
   final bool opening;
   final bool reduce;
+  final Color color;
 
   double get t => (listenable as AnimationController).value;
 
@@ -181,7 +191,7 @@ class _Spin extends AnimatedWidget {
       child: Opacity(
         opacity: bg.clamp(0.0, 1.0),
         child: ColoredBox(
-          color: Brand.deep,
+          color: color,
           child: Center(
             child: Opacity(
               opacity: alpha.clamp(0.0, 1.0),
@@ -195,4 +205,110 @@ class _Spin extends AnimatedWidget {
       ),
     );
   }
+}
+
+/// The Face ID glyph as people know it from iPhone (four corner brackets, eyes, nose,
+/// smile), drawn here because Flutter cannot use SF Symbols. Fingerprint devices use
+/// [Icons.fingerprint] instead (see [BiometricGlyph]).
+class FaceIdGlyph extends StatelessWidget {
+  const FaceIdGlyph({super.key, this.size = 24, this.color});
+
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+        size: Size.square(size),
+        painter: _FaceIdPainter(color ?? IconTheme.of(context).color ?? Colors.white),
+      );
+}
+
+class _FaceIdPainter extends CustomPainter {
+  _FaceIdPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width / 24;
+    final p = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8 * s
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    Path corner(double x, double y, double dx, double dy) => Path()
+      ..moveTo(x, y + dy * 4 * s)
+      ..lineTo(x, y + dy * 1.6 * s)
+      ..quadraticBezierTo(x, y, x + dx * 1.6 * s, y)
+      ..lineTo(x + dx * 4 * s, y);
+    final a = 2.5 * s, b = 21.5 * s;
+    for (final c in [corner(a, a, 1, 1), corner(b, a, -1, 1), corner(a, b, 1, -1), corner(b, b, -1, -1)]) {
+      canvas.drawPath(c, p);
+    }
+    canvas.drawLine(Offset(8.5 * s, 8.6 * s), Offset(8.5 * s, 10.2 * s), p);
+    canvas.drawLine(Offset(15.5 * s, 8.6 * s), Offset(15.5 * s, 10.2 * s), p);
+    canvas.drawPath(
+      Path()
+        ..moveTo(12 * s, 8.6 * s)
+        ..lineTo(12 * s, 12.8 * s)
+        ..lineTo(11 * s, 12.8 * s),
+      p,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(8.6 * s, 15.6 * s)
+        ..quadraticBezierTo(12 * s, 18.2 * s, 15.4 * s, 15.6 * s),
+      p,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FaceIdPainter old) => old.color != color;
+}
+
+/// The lock in the dock (option B, chosen 19.10.2026): a soft square body with a
+/// keyhole cut through it, under a thick shackle. Drawn so it matches the dial.
+class LockGlyph extends StatelessWidget {
+  const LockGlyph({super.key, this.size = 24, this.color});
+
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+        size: Size.square(size),
+        painter: _LockPainter(color ?? IconTheme.of(context).color ?? Colors.white),
+      );
+}
+
+class _LockPainter extends CustomPainter {
+  _LockPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width / 24;
+    final shackle = Path()
+      ..moveTo(8 * s, 11 * s)
+      ..lineTo(8 * s, 8.2 * s)
+      ..arcToPoint(Offset(16 * s, 8.2 * s), radius: Radius.circular(4 * s))
+      ..lineTo(16 * s, 11 * s);
+    canvas.drawPath(
+      shackle,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4 * s
+        ..strokeCap = StrokeCap.round,
+    );
+    final body = Path()
+      ..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(4 * s, 10.5 * s, 16 * s, 11 * s), Radius.circular(2.5 * s)));
+    final hole = Path()
+      ..addOval(Rect.fromCircle(center: Offset(12 * s, 15.1 * s), radius: 1.7 * s))
+      ..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(11 * s, 15.5 * s, 2 * s, 2.5 * s), Radius.circular(.5 * s)));
+    canvas.drawPath(Path.combine(PathOperation.difference, body, hole), Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_LockPainter old) => old.color != color;
 }

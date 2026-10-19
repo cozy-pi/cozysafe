@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'l10n/app_localizations.dart';
-import 'screens/create_vault.dart';
+import 'screens/new_vault.dart';
 import 'screens/restore.dart';
 import 'screens/unlock.dart';
 import 'secret_key_store.dart';
@@ -59,7 +59,7 @@ class CozySafeApp extends StatelessWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: !rust.hasVaults(dir: libraryDir)
-          ? CreateVaultScreen(libraryDir: libraryDir, first: true)
+          ? NewVaultScreen(libraryDir: libraryDir, first: true)
           : hasSecretKey
               ? UnlockScreen(libraryDir: libraryDir)
               // Vaults are here but this device has no Secret Key (reinstall,
