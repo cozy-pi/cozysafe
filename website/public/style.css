@@ -27,10 +27,18 @@ header.top nav { margin-left: auto; display: flex; gap: 18px; font-size: 15px; }
 header.top nav a { color: var(--muted); text-decoration: none; }
 header.top nav a:hover { color: var(--ink); }
 
-.hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 48px; align-items: center; padding: 56px 0 72px; }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 48px; align-items: center; padding: 56px 0 72px; }
 .hero h1 { font-size: clamp(36px, 6vw, 60px); line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 20px; font-weight: 750; }
 .hero p.lead { font-size: 20px; color: var(--muted); margin: 0 0 28px; max-width: 34ch; }
-.dial { width: 100%; max-width: 360px; justify-self: center; color: var(--muted); }
+.hero-art { position: relative; width: 100%; max-width: 560px; justify-self: end; padding-bottom: 18%; }
+.hero-art .window { width: 100%; }
+.hero-art .phone { position: absolute; right: -4%; bottom: -2%; width: 34%; border-width: 6px; border-radius: 26px; }
+.platforms { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.platforms li { padding: 4px 12px; border-radius: 999px; background: var(--soft); font-size: 14px; font-weight: 600; }
+.platforms li.soon { color: var(--muted); background: transparent; border: 1px dashed var(--border); }
+.window.light { background: #f4f5f4; }
+.window.light .bar { background: #e9ecea; }
+.window.light .bar i { background: #c9cfcb; }
 .dial .mark { stroke: var(--accent); }
 .dial .face { fill: var(--surface); stroke: var(--border); }
 .dial .lock { stroke: var(--accent); }
@@ -68,7 +76,6 @@ footer { border-top: 1px solid var(--border); padding: 28px 0 48px; color: var(-
 
 @media (max-width: 760px) {
   .hero { grid-template-columns: 1fr; gap: 24px; padding: 24px 0 48px; }
-  .dial { max-width: 220px; grid-row: 1; }
   .cols, .limits { grid-template-columns: 1fr; gap: 24px; }
   header.top nav { gap: 14px; }
   table.dl, table.dl tbody, table.dl tr, table.dl td { display: block; width: 100%; }
@@ -77,8 +84,23 @@ footer { border-top: 1px solid var(--border); padding: 28px 0 48px; color: var(-
   table.dl td { border: 0; padding: 4px 16px; }
 }
 
-.shots { display: flex; gap: 28px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; }
-.shots figure { margin: 0; flex: 0 0 auto; scroll-snap-align: start; }
-.shots img { display: block; width: 260px; height: auto; border-radius: 28px; border: 1px solid var(--border); background: var(--surface); }
-.shots figcaption { margin-top: 10px; font-size: 15px; color: var(--muted); }
-@media (max-width: 760px) { .shots img { width: 220px; } }
+/* Screenshots: real renders of the app (app/test/screenshots_test.dart). */
+.phone { display: block; width: 260px; height: auto; border-radius: 34px; border: 8px solid #15181b;
+  box-shadow: 0 30px 60px rgba(10, 30, 25, .22), 0 2px 6px rgba(10, 30, 25, .12); background: #15181b; }
+
+.section-lead { margin: -12px 0 28px; color: var(--muted); max-width: 52ch; }
+.shots-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 40px; align-items: end; }
+.shots figure { margin: 0; }
+.shots figcaption { margin-top: 14px; font-size: 15px; color: var(--muted); max-width: 46ch; }
+.window { border-radius: 14px; overflow: hidden; border: 1px solid var(--border); background: #1b1e21;
+  box-shadow: 0 30px 60px rgba(10, 30, 25, .18); }
+.window .bar { height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #2b3034; }
+.window .bar i { width: 11px; height: 11px; border-radius: 50%; background: #4c5459; }
+.window img { display: block; width: 100%; height: auto; }
+
+@media (max-width: 760px) {
+  .hero-art { max-width: 100%; justify-self: stretch; }
+  .hero-art .phone { right: 0; width: 32%; border-width: 4px; border-radius: 18px; }
+  .shots-row { grid-template-columns: 1fr; gap: 32px; }
+  .shots-row .phone { width: 220px; margin: 0 auto; }
+}

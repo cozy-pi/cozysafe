@@ -22,8 +22,12 @@ TEXT = {
         btn='Download', btn_for='Download for {p}',
         also='Free and open source. For macOS, Windows, Linux and Android; iPhone is coming soon.',
         note='<strong>This is an early preview.</strong> You can create, unlock and lock vaults. Notes, files, photos and sync arrive in later releases, so don\'t keep the only copy of anything important here yet.',
-        h_shots='A look inside',
-        shots=[('create', 'Create a vault'), ('unlock', 'Unlock with your password'), ('home-dark', 'Dark mode follows your system')],
+        hero_alt='The Cozy Safe unlock screen on a phone',
+        h_shots='On your phone and your computer',
+        p_shots='The same app on every device, in light or dark to match your system.',
+        cap_phone='Creating a vault: the password must be strong before you can continue.',
+        cap_desk='The desktop app in dark mode.',
+        cap_desk2='On a computer: one password field, no list of vaults.',
         h_how='How Cozy Safe keeps you safe',
         c1h='Encrypted on your device', c1p='Data is encrypted before it reaches the disk or a cloud folder. Sync only ever sends encrypted data.',
         c2h='Password plus Secret Key', c2p='Your password is combined with a random 128-bit key kept on your device, so someone holding a copy of your vault still cannot guess the password.',
@@ -49,8 +53,12 @@ TEXT = {
         btn='Tải về', btn_for='Tải cho {p}',
         also='Miễn phí và mã nguồn mở. Có cho macOS, Windows, Linux và Android; iPhone sắp ra mắt.',
         note='<strong>Đây là bản thử nghiệm sớm.</strong> Bạn đã tạo két, mở và khoá két được. Ghi chú, file, ảnh và đồng bộ sẽ có ở các bản sau, nên tạm thời đừng cất bản duy nhất của thứ gì quan trọng vào đây.',
-        h_shots='Bên trong app',
-        shots=[('create', 'Tạo két'), ('unlock', 'Mở két bằng mật khẩu'), ('home-dark', 'Giao diện tối theo máy')],
+        hero_alt='Màn mở khoá của Cozy Safe trên điện thoại',
+        h_shots='Trên điện thoại và máy tính',
+        p_shots='Cùng một app trên mọi thiết bị, sáng hay tối theo máy của bạn.',
+        cap_phone='Tạo két: mật khẩu phải đủ mạnh thì mới đi tiếp được.',
+        cap_desk='Bản máy tính ở giao diện tối.',
+        cap_desk2='Trên máy tính: một ô mật khẩu, không có danh sách két.',
         h_how='Cozy Safe giữ an toàn cho bạn thế nào',
         c1h='Mã hoá ngay trên máy', c1p='Dữ liệu được mã hoá trước khi ghi xuống ổ đĩa hay thư mục cloud. Khi đồng bộ, thứ được gửi đi chỉ là dữ liệu đã mã hoá.',
         c2h='Mật khẩu cộng Secret Key', c2p='Mật khẩu được kết hợp với một khoá ngẫu nhiên 128 bit cất trên máy bạn, nên kẻ có bản sao két cũng không dò ra được mật khẩu.',
@@ -93,15 +101,27 @@ def dial():
             '<path d="M152 166v-14a18 18 0 0 1 36 0v14"/><path d="M170 182v14"/></g></svg>')
 
 
+BAR = '<div class="bar" aria-hidden="true"><i></i><i></i><i></i></div>'
+
+
+def img(root, lang, key, w, h, alt, cls='', eager=False):
+    """A screenshot rendered by app/test/screenshots_test.dart, 1x and 2x."""
+    base = f'{root}img/{lang}-{key}'
+    lazy = '' if eager else ' loading="lazy"'
+    return (f'<img class="{cls}" src="{base}-1x.webp" srcset="{base}-1x.webp 1x, {base}-2x.webp 2x" '
+            f'width="{w}" height="{h}" alt="{alt}"{lazy}>')
+
+
 def shots(t, lang, root):
-    """Screenshot strip; skipped until the images exist."""
-    if not os.path.exists(os.path.join(HERE, 'public', 'img', f'{lang}-create-1x.webp')):
-        return ''
-    figs = ''.join(
-        f'<figure><img src="{root}img/{lang}-{key}-1x.webp" srcset="{root}img/{lang}-{key}-1x.webp 1x, {root}img/{lang}-{key}-2x.webp 2x" '
-        f'width="260" height="563" alt="{cap}" loading="lazy"><figcaption>{cap}</figcaption></figure>'
-        for key, cap in t['shots'])
-    return f'<section aria-labelledby="shots"><h2 id="shots">{t["h_shots"]}</h2><div class="shots">{figs}</div></section>\n'
+    return f'''<section class="shots" aria-labelledby="shots">
+  <h2 id="shots">{t['h_shots']}</h2>
+  <p class="section-lead">{t['p_shots']}</p>
+  <div class="shots-row">
+    <figure class="phone-fig">{img(root, lang, 'create', 260, 563, t['cap_phone'], 'phone')}<figcaption>{t['cap_phone']}</figcaption></figure>
+    <figure class="desk-fig"><div class="window light">{BAR}{img(root, lang, 'desktop-unlock', 720, 450, t['cap_desk2'])}</div><figcaption>{t['cap_desk2']}</figcaption></figure>
+  </div>
+</section>
+'''
 
 
 def page(lang):
@@ -138,8 +158,12 @@ def page(lang):
     <p class="lead">{t['lead']}</p>
     <a class="btn" id="primary" href="#download">{t['btn']}</a>
     <p class="also">{t['also']}</p>
+    <ul class="platforms" aria-label="{t['nav_dl']}"><li>macOS</li><li>Windows</li><li>Linux</li><li>Android</li><li class="soon">iPhone</li></ul>
   </div>
-  {dial()}
+  <div class="hero-art">
+    <div class="window">{BAR}{img(root, lang, 'desktop-create-dark', 720, 450, t['cap_desk'], eager=True)}</div>
+    {img(root, lang, 'unlock', 260, 563, t['hero_alt'], 'phone', eager=True)}
+  </div>
 </div>
 <p class="note">{t['note']}</p>
 {shots(t, lang, root)}<section aria-labelledby="how"><h2 id="how">{t['h_how']}</h2>
