@@ -37,7 +37,7 @@ TEXT = {
         ios='Coming soon through TestFlight, Apple\'s app for testing new apps.',
         get='Download', soon='Coming soon',
         verify=f'To check a download, compare it with <a href="{BASE}SHA256SUMS.txt">SHA256SUMS.txt</a> or run <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Older versions are on the <a href="{REPO}/releases">releases page</a>.',
-        f_by='Made by', f_src='Source code', f_lic='GPL-3.0',
+        f_by='Made by', f_src='Source code', f_lic='GPL-3.0', f_priv='Privacy',
     ),
     'vi': dict(
         title='Cozy Safe: két mã hoá mã nguồn mở',
@@ -63,7 +63,7 @@ TEXT = {
         ios='Sắp có qua TestFlight, ứng dụng của Apple để dùng thử app mới.',
         get='Tải về', soon='Sắp có',
         verify=f'Muốn kiểm file tải về, so với <a href="{BASE}SHA256SUMS.txt">SHA256SUMS.txt</a> hoặc chạy <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Các phiên bản cũ ở <a href="{REPO}/releases">trang phát hành</a>.',
-        f_by='Làm bởi', f_src='Mã nguồn', f_lic='GPL-3.0',
+        f_by='Làm bởi', f_src='Mã nguồn', f_lic='GPL-3.0', f_priv='Quyền riêng tư',
     ),
 }
 
@@ -188,6 +188,7 @@ def page(lang):
     <span>{t['f_by']} <a href="{studio}">Cozy Pi</a></span>
     <a href="{REPO}">{t['f_src']}</a>
     <span>{t['f_lic']}</span>
+    <a href="privacy.html">{t['f_priv']}</a>
     <a href="mailto:support@cozypi.com">support@cozypi.com</a>
   </div>
 </footer>
