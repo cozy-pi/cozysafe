@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = ["core/cs-crypto"]
+# The Flutter app's FFI crate joins once the app scaffold exists (bootstrap workflow).
+exclude = ["app"]
+
+[workspace.package]
+edition = "2021"
+license = "GPL-3.0-only"
+repository = "https://github.com/itlboy/cozysafe"
+
+[profile.dev.package."*"]
+# Argon2 is unbearably slow unoptimised; dependencies build optimised even in debug.
+opt-level = 3
