@@ -157,13 +157,14 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-            decoration: BoxDecoration(
-              color: c.warnBg,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: DefaultTextStyle.merge(
+          // Material, not a decorated Container: the checkbox row paints its ink on
+          // the nearest Material, and a coloured box in between would hide it.
+          Material(
+            color: c.warnBg,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+              child: DefaultTextStyle.merge(
               style: TextStyle(color: c.warnInk, fontSize: 14, height: 1.45),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,6 +184,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           ),
           if (_error != null) ...[

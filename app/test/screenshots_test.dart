@@ -49,8 +49,9 @@ Future<void> _shoot(
   required Brightness brightness,
   required Widget home,
   Future<void> Function(WidgetTester)? act,
+  Size size = const Size(390, 844), // phone; desktop shots pass 1280 × 800
 }) async {
-  tester.view.physicalSize = const Size(780, 1688); // 390 × 844 pt at 2×
+  tester.view.physicalSize = size * 2; // rendered at 2×
   tester.view.devicePixelRatio = 2;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(MaterialApp(
@@ -117,6 +118,35 @@ void main() {
           libraryDir: '',
           vault: VaultInfo(id: 'preview', name: lang == 'vi' ? 'Cá nhân' : 'Personal'),
         ),
+      );
+    });
+
+    testWidgets('$lang desktop unlock', skip: !_enabled, (tester) async {
+      await _shoot(
+        tester,
+        file: '$lang-desktop-unlock',
+        locale: locale,
+        brightness: Brightness.light,
+        size: const Size(1280, 800),
+        home: const UnlockScreen(libraryDir: ''),
+        act: (t) async => FocusManager.instance.primaryFocus?.unfocus(),
+      );
+    });
+
+    testWidgets('$lang desktop create dark', skip: !_enabled, (tester) async {
+      await _shoot(
+        tester,
+        file: '$lang-desktop-create-dark',
+        locale: locale,
+        brightness: Brightness.dark,
+        size: const Size(1280, 800),
+        home: const CreateVaultScreen(libraryDir: '', first: true),
+        act: (t) async {
+          await t.enterText(find.byType(TextField).at(1), pw);
+          await t.enterText(find.byType(TextField).at(2), pw);
+          await t.tap(find.byType(Checkbox));
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
       );
     });
   }

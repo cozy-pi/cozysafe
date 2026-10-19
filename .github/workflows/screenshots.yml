@@ -21,8 +21,9 @@ jobs:
           mkdir -p out
           for f in app/test/screenshots/*.png; do
             n=$(basename "$f" .png)
-            cwebp -quiet -q 85 -resize 260 0 "$f" -o "out/$n-1x.webp"
-            cwebp -quiet -q 85 -resize 520 0 "$f" -o "out/$n-2x.webp"
+            w=260; case "$n" in *desktop*) w=720;; esac   # display width on the site
+            cwebp -quiet -q 85 -resize $w 0 "$f" -o "out/$n-1x.webp"
+            cwebp -quiet -q 85 -resize $((w * 2)) 0 "$f" -o "out/$n-2x.webp"
           done
           cp app/test/screenshots/*.png out/
           ls -l out
