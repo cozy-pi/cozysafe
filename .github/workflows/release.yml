@@ -86,7 +86,8 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.cozypi.cozysafe
           releaseFiles: CozySafe-android-play.aab
-          releaseName: ${{ needs.version.outputs.name }}
+          # Same as the app's Android version name: 0.1.4.1009.
+          releaseName: ${{ needs.version.outputs.name }}.${{ needs.version.outputs.build }}
           # Internal testing: no review, testers have it within minutes.
           track: internal
           status: completed

@@ -14,6 +14,8 @@ Dates are UTC.
   and are part of backups.
 - The bottom of Settings shows the version and build, e.g. "Cozy Safe 0.1.4 (1009)":
   the build is 1000 plus the GitHub release run number.
+- On Android the version name carries the build (0.1.4.1009), so every Play
+  release has its own name. iPhone keeps three numbers, as Apple requires.
 
 ### Changed
 - The mode strip fades out at both edges, so no half-cut label shows.

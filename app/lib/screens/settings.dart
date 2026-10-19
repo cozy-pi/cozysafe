@@ -329,7 +329,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: FutureBuilder<PackageInfo>(
               future: PackageInfo.fromPlatform(),
               builder: (context, snap) => Text(
-                snap.hasData ? l.settingsVersion(snap.data!.version, snap.data!.buildNumber) : l.settingsFooter,
+                snap.hasData
+                    // Android's version name already ends in the build (0.1.4.1009).
+                    ? (snap.data!.version.endsWith('.${snap.data!.buildNumber}')
+                        ? l.settingsVersionOnly(snap.data!.version)
+                        : l.settingsVersion(snap.data!.version, snap.data!.buildNumber))
+                    : l.settingsFooter,
                 style: TextStyle(color: c.muted, fontSize: 12),
               ),
             ),

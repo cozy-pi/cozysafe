@@ -275,5 +275,6 @@
   "folderEmpty": "Chưa có gì. Chọn tệp, hoặc chuyển mục vào đây.",
   "move": "Chuyển",
   "back": "Quay lại",
-  "settingsVersion": "Cozy Safe {version} ({build}) · mã nguồn mở"
+  "settingsVersion": "Cozy Safe {version} ({build}) · mã nguồn mở",
+  "settingsVersionOnly": "Cozy Safe {version} · mã nguồn mở"
 }
