@@ -4,7 +4,7 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## Unreleased
+## 0.1.1 (2026-10-19)
 
 ### Changed
 - Only what works is shown: the dock offers Photo (on phones), the Search button
