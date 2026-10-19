@@ -4,6 +4,26 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.1 (2026-10-19)
+
+### Added
+- Create a vault in short steps: icon, colour, PIN, PIN again, then Face ID. No
+  name to type: a vault is its icon and colour (35 icons, 20 colours).
+- "New vault" on the lock screen and in the vault menu.
+- Notes, photos from the library, and files. A file opens in another app through a
+  temporary decrypted copy that is removed afterwards.
+- Backup password set when it is needed (before the first backup), with the
+  Emergency Kit, and changeable at any time. The app asks for it every 14 days.
+- Splash screen: vault green with the dial.
+
+### Changed
+- Each vault has its own PIN (at least 4 digits, no practical upper limit). The
+  dots show only the digits typed.
+- Wrong PINs make you wait longer each time instead of turning the PIN off.
+- The vault locks after 2 minutes without a touch; picking photos or files or
+  sharing gives 60 seconds away from the app.
+- New lock symbol in the dock; Apple's Face ID symbol on Face ID devices.
+
 ## 0.1.0 (2026-10-19)
 
 First build with a version name, on every platform at once.
