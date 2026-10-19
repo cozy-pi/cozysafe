@@ -27,7 +27,7 @@ const _enabled = bool.fromEnvironment('PREVIEW');
 final _now = DateTime.now().millisecondsSinceEpoch;
 
 ItemInfo _item(String id, String kind, String name, int size, {int ago = 0, int? deleted, int? duration}) => ItemInfo(
-      id: id.padRight(32, '0'),
+      id: id.padRight(32, '_'),
       kind: kind,
       name: name,
       mime: kind == 'photo' ? 'image/jpeg' : (name.endsWith('.pdf') ? 'application/pdf' : 'text/plain'),
@@ -37,26 +37,45 @@ ItemInfo _item(String id, String kind, String name, int size, {int ago = 0, int?
       durationMs: duration,
     );
 
+const _day = 86400000;
+
+/// Realistic content: what people actually keep in a vault.
 final _items = [
-  for (var i = 0; i < 7; i++) _item('a$i', 'photo', 'IMG_$i.jpg', 2400000),
-  _item('v1', 'video', 'Sinh nhat be Na.mov', 38000000, duration: 42000),
-  _item('n1', 'note', 'Mã wifi nhà bà ngoại', 320),
-  _item('n2', 'note', 'Số tài khoản', 900, ago: 86400000),
-  _item('n3', 'note', 'Thuốc của mẹ', 600, ago: 3 * 86400000),
-  _item('n4', 'note', 'Hộ chiếu', 120, ago: 9 * 86400000),
-  _item('f1', 'file', 'Hop-dong-thue-nha.pdf', 1200000),
-  _item('f2', 'file', 'Chi-tieu-2026.xlsx', 86000, ago: 2 * 86400000),
-  _item('f3', 'file', 'Di-chuc-nhap.docx', 42000, ago: 11 * 86400000),
-  for (var i = 0; i < 9; i++) _item('b$i', 'photo', 'IMG_b$i.jpg', 1800000, ago: 86400000),
-  for (var i = 0; i < 6; i++) _item('c$i', 'photo', 'IMG_c$i.jpg', 1800000, ago: 40 * 86400000),
+  for (var i = 0; i < 5; i++) _item('p$i', 'photo', 'IMG_${4810 + i}.HEIC', 2400000 + i * 90000, ago: i * 600000),
+  _item('v1', 'video', 'Sinh nhật bé Na.MOV', 38400000, ago: 3600000, duration: 42000),
+  for (var i = 5; i < 9; i++) _item('p$i', 'photo', 'IMG_${4790 + i}.HEIC', 2100000, ago: _day + i * 300000),
+  _item('v2', 'video', 'Đi biển Quy Nhơn.MOV', 126000000, ago: _day * 2, duration: 3 * 60000 + 17000),
+  for (var i = 9; i < 16; i++) _item('p$i', 'photo', 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i)),
+  _item('n1', 'note', 'Wifi nhà bà ngoại', 120),
+  _item('n2', 'note', 'Tài khoản ngân hàng', 640, ago: _day),
+  _item('n3', 'note', 'Thuốc của mẹ', 420, ago: _day * 3),
+  _item('n4', 'note', 'Hộ chiếu và visa', 260, ago: _day * 9),
+  _item('n5', 'note', 'Mật khẩu router và camera an ninh', 300, ago: _day * 15),
+  _item('n6', 'note', 'Danh sách quà Tết', 90, ago: _day * 30),
+  _item('n7', 'note', 'Mã két sắt', 40, ago: _day * 60),
+  _item('n8', 'note', 'Thông tin bảo hiểm xe', 520, ago: _day * 75),
+  _item('f1', 'file', 'Hop-dong-thue-nha-2026.pdf', 1240000),
+  _item('f2', 'file', 'So-do-nha-scan.pdf', 4870000, ago: _day * 2),
+  _item('f3', 'file', 'Chi tieu gia dinh 2026.xlsx', 86000, ago: _day * 4),
+  _item('f4', 'file', 'Ket qua xet nghiem mau thang 9 - Benh vien Bach Mai.pdf', 732000, ago: _day * 11),
+  _item('f5', 'file', 'Di-chuc-nhap.docx', 42000, ago: _day * 20),
+  _item('f6', 'file', 'CCCD-mat-truoc.jpg', 1840000, ago: _day * 33),
+  _item('f7', 'file', 'Ho-so-xin-viec.zip', 15600000, ago: _day * 50),
+  _item('f8', 'file', 'Ghi-am-cuoc-hop.m4a', 9300000, ago: _day * 64),
 ];
 
 const _noteText = {
-  'n1': 'Mã wifi nhà bà ngoại\nTP-Link_5G · mật khẩu: hoaMai2024',
-  'n2': 'Số tài khoản\nVCB 0011 0023 4567 Nguyễn Văn A. Techcombank 1903 2211 4455 66, chi nhánh Hoàn Kiếm. Tài khoản phụ chỉ dùng nhận lương.',
-  'n3': 'Thuốc của mẹ\nSáng: Amlodipine 5mg. Tối: Metformin 500mg sau ăn. Tái khám ngày 3/11.',
-  'n4': 'Hộ chiếu\nC1234567, hết hạn 2031',
+  'n1': 'Wifi nhà bà ngoại\nTên mạng: TP-Link_5G_BaNgoai\nMật khẩu: hoaMai2024@',
+  'n2': 'Tài khoản ngân hàng\nVietcombank 0011 0023 4567 — Nguyễn Văn A, chi nhánh Hoàn Kiếm.\nTechcombank 1903 2211 4455 66 — tài khoản phụ, chỉ nhận lương.\nMB 0909 123 456 — tài khoản tiết kiệm của con.',
+  'n3': 'Thuốc của mẹ\nSáng: Amlodipine 5mg sau ăn.\nTối: Metformin 500mg sau ăn.\nTái khám ngày 3/11, mang sổ khám và kết quả xét nghiệm lần trước.',
+  'n4': 'Hộ chiếu và visa\nHộ chiếu C1234567, cấp 12/3/2021, hết hạn 12/3/2031.\nVisa Nhật Bản nhiều lần, hết hạn 5/2027.',
+  'n5': 'Mật khẩu router và camera an ninh\nRouter: admin / Zx9!kq2Lm\nCamera cổng: app EZVIZ, mã thiết bị F7K2Q9',
+  'n6': 'Danh sách quà Tết\nÔng bà nội: chè Thái, bánh. Bố mẹ vợ: rượu vang, hoa quả. Cô giáo của Na: hộp trà.',
+  'n7': 'Mã két sắt\n4 vòng trái dừng 27, 2 vòng phải dừng 9.',
+  'n8': 'Thông tin bảo hiểm xe\nBảo Việt, số hợp đồng BV-2026-118834, hết hạn 31/12/2026. Hotline giám định 1900 558 899.',
 };
+
+final Map<int, Uint8List> _photos = {};
 
 /// Small solid-colour PNGs stand in for photo thumbnails.
 final _thumbs = <int, Uint8List>{};
@@ -78,12 +97,15 @@ class _Fake implements RustLibApi {
     }
     if (n.contains('PurgeExpired')) return Future<int>.value(0);
     if (n.contains('ItemContent')) {
-      final id = (call.namedArguments[#id] as String).replaceAll(RegExp(r'0+$'), '');
+      final id = (call.namedArguments[#id] as String).replaceAll('_', '');
       return Future<Uint8List>.value(Uint8List.fromList(utf8.encode(_noteText[id] ?? '')));
     }
     if (n.contains('ItemThumbnail')) {
-      final id = (call.namedArguments[#id] as String).hashCode;
-      return Future<Uint8List>.value(_thumbs[id % 4]);
+      final id = call.namedArguments[#id] as String;
+      final it = _items.where((x) => x.id == id).firstOrNull;
+      if (it == null || (it.kind != 'photo' && it.kind != 'video')) return Future<Uint8List>.value(Uint8List(0));
+      final media = _items.where((x) => x.kind == 'photo' || x.kind == 'video').toList();
+      return Future<Uint8List>.value(_photos[media.indexOf(it) % _photos.length] ?? _thumbs[0]);
     }
     if (n.contains('PinLengths')) return Uint32List.fromList([4]);
     if (n.contains('AnyPassword')) return true;
@@ -151,7 +173,18 @@ void main() {
     await _loadFonts();
   });
 
-  setUp(() async => _thumbs.isEmpty ? await _thumbsReady() : null);
+  setUp(() async {
+    if (_thumbs.isEmpty) await _thumbsReady();
+    // Free sample photos (picsum.photos / Unsplash), kept out of git.
+    final dir = Directory('test/preview_assets');
+    if (_photos.isEmpty && dir.existsSync()) {
+      final files = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.jpg')).toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
+      for (final (i, f) in files.indexed) {
+        _photos[i] = f.readAsBytesSync();
+      }
+    }
+  });
 
   const vault = VaultInfo(id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true);
   Widget settings(VaultInfo v) => SettingsScreen(

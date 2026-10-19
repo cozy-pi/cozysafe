@@ -69,6 +69,7 @@ class AddDock extends StatefulWidget {
   final Widget leading;
   final Widget trailing;
   final void Function(AddMode mode) onAction;
+
   /// The strip moved to another mode: while dragging, as soon as a label crosses the
   /// middle, not on release. The vault shows that kind of content.
   final void Function(AddMode mode)? onModeChanged;
@@ -80,11 +81,18 @@ class AddDock extends StatefulWidget {
 class _AddDockState extends State<AddDock> {
   static const _prefKey = 'add-mode';
   static const _gap = 22.0;
-  static const _style = TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: .8);
+  static const _style = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    letterSpacing: .8,
+  );
 
   late int _mode;
+
   /// The mode last reported, so a drag reports each change once.
-  late AddMode _current = widget.modes.isEmpty ? AddMode.library : widget.modes[_mode];
+  late AddMode _current = widget.modes.isEmpty
+      ? AddMode.library
+      : widget.modes[_mode];
   double _drag = 0;
   bool _dragging = false;
 
@@ -96,37 +104,37 @@ class _AddDockState extends State<AddDock> {
   }
 
   String _label(AppLocalizations l, AddMode m) => switch (m) {
-        AddMode.note => l.modeNote,
-        AddMode.library => l.modeLibrary,
-        AddMode.camera => l.modeCamera,
-        AddMode.scan => l.modeScan,
-        AddMode.file => l.modeFile,
-        AddMode.paste => l.modePaste,
-      };
+    AddMode.note => l.modeNote,
+    AddMode.library => l.modeLibrary,
+    AddMode.camera => l.modeCamera,
+    AddMode.scan => l.modeScan,
+    AddMode.file => l.modeFile,
+    AddMode.paste => l.modePaste,
+  };
 
   IconData _icon(AddMode m) => switch (m) {
-        AddMode.note => Icons.sticky_note_2_outlined,
-        AddMode.library => Icons.photo_library_outlined,
-        AddMode.camera => Icons.photo_camera,
-        AddMode.scan => Icons.document_scanner_outlined,
-        AddMode.file => Icons.create_new_folder_outlined,
-        AddMode.paste => Icons.content_paste,
-      };
+    AddMode.note => Icons.sticky_note_2_outlined,
+    AddMode.library => Icons.photo_library_outlined,
+    AddMode.camera => Icons.photo_camera,
+    AddMode.scan => Icons.document_scanner_outlined,
+    AddMode.file => Icons.create_new_folder_outlined,
+    AddMode.paste => Icons.content_paste,
+  };
 
   /// The label to the button's action ("New note"), shown on the button itself.
   String _actionLabel(AppLocalizations l, AddMode m) => switch (m) {
-        AddMode.note => l.actionNewNote,
-        AddMode.library => l.actionPickPhotos,
-        AddMode.file => l.actionPickFiles,
-        _ => _label(l, m),
-      };
+    AddMode.note => l.actionNewNote,
+    AddMode.library => l.actionPickPhotos,
+    AddMode.file => l.actionPickFiles,
+    _ => _label(l, m),
+  };
 
   IconData _actionIcon(AddMode m) => switch (m) {
-        AddMode.note => Icons.edit_outlined,
-        AddMode.library => Icons.add_photo_alternate_outlined,
-        AddMode.file => Icons.note_add_outlined,
-        _ => _icon(m),
-      };
+    AddMode.note => Icons.edit_outlined,
+    AddMode.library => Icons.add_photo_alternate_outlined,
+    AddMode.file => Icons.note_add_outlined,
+    _ => _icon(m),
+  };
 
   void _select(int i) {
     final next = i.clamp(0, widget.modes.length - 1);
@@ -149,7 +157,12 @@ class _AddDockState extends State<AddDock> {
     final labels = [for (final m in widget.modes) _label(l, m).toUpperCase()];
     final widths = [
       for (final t in labels)
-        (TextPainter(text: TextSpan(text: t, style: _style), textDirection: TextDirection.ltr, textScaler: MediaQuery.textScalerOf(context))..layout()).width + 4,
+        (TextPainter(
+              text: TextSpan(text: t, style: _style),
+              textDirection: TextDirection.ltr,
+              textScaler: MediaQuery.textScalerOf(context),
+            )..layout()).width +
+            4,
     ];
     double centerOf(int i) {
       var x = 0.0;
@@ -159,7 +172,9 @@ class _AddDockState extends State<AddDock> {
       return x + widths[i] / 2;
     }
 
-    final mode = widget.modes.isEmpty ? null : widget.modes[_mode.clamp(0, widget.modes.length - 1)];
+    final mode = widget.modes.isEmpty
+        ? null
+        : widget.modes[_mode.clamp(0, widget.modes.length - 1)];
     final bottom = MediaQuery.paddingOf(context).bottom;
     return Material(
       color: CsColors.of(context).dock,
@@ -169,141 +184,194 @@ class _AddDockState extends State<AddDock> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (widget.modes.length > 1)
-            SizedBox(
-              height: 32,
-              child: LayoutBuilder(
-                builder: (context, box) => GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onHorizontalDragStart: (_) => setState(() => _dragging = true),
-                  onHorizontalDragUpdate: (d) {
-                    // Switch as soon as another label crosses the middle, while the
-                    // finger is still down (docs/ui.md, vault content).
-                    final x = centerOf(_mode) - (_drag + d.delta.dx);
-                    var best = _mode;
-                    var bestD = double.infinity;
-                    for (var i = 0; i < labels.length; i++) {
-                      final dd = (centerOf(i) - x).abs();
-                      if (dd < bestD) {
-                        bestD = dd;
-                        best = i;
+              SizedBox(
+                height: 32,
+                child: LayoutBuilder(
+                  builder: (context, box) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onHorizontalDragStart: (_) =>
+                        setState(() => _dragging = true),
+                    onHorizontalDragUpdate: (d) {
+                      // Switch as soon as another label crosses the middle, while the
+                      // finger is still down (docs/ui.md, vault content).
+                      final x = centerOf(_mode) - (_drag + d.delta.dx);
+                      var best = _mode;
+                      var bestD = double.infinity;
+                      for (var i = 0; i < labels.length; i++) {
+                        final dd = (centerOf(i) - x).abs();
+                        if (dd < bestD) {
+                          bestD = dd;
+                          best = i;
+                        }
                       }
-                    }
-                    setState(() {
-                      _drag += d.delta.dx;
-                      if (best != _mode) {
-                        // Keep the strip where the finger has it: move the offset with the mode.
-                        _drag += centerOf(best) - centerOf(_mode);
-                        _mode = best;
+                      setState(() {
+                        _drag += d.delta.dx;
+                        if (best != _mode) {
+                          // Keep the strip where the finger has it: move the offset with the mode.
+                          _drag += centerOf(best) - centerOf(_mode);
+                          _mode = best;
+                        }
+                      });
+                      if (best != widget.modes.indexOf(_current)) {
+                        HapticFeedback.selectionClick();
+                        _current = widget.modes[best];
+                        _changed(best);
                       }
-                    });
-                    if (best != widget.modes.indexOf(_current)) {
-                      HapticFeedback.selectionClick();
-                      _current = widget.modes[best];
-                      _changed(best);
-                    }
-                  },
-                  onHorizontalDragEnd: (_) => setState(() {
-                    _drag = 0;
-                    _dragging = false;
-                  }),
-                  child: ClipRect(
-                    child: Stack(
-                      children: [
-                        AnimatedPositioned(
-                          duration: _dragging ? Duration.zero : const Duration(milliseconds: 280),
-                          curve: Curves.easeOutCubic,
-                          left: box.maxWidth / 2 - centerOf(_mode) + _drag,
-                          top: 0,
-                          bottom: 0,
-                          child: Row(
-                            children: [
-                              for (var i = 0; i < labels.length; i++) ...[
-                                if (i > 0) const SizedBox(width: _gap),
-                                Semantics(
-                                  button: true,
-                                  selected: i == _mode,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (i != _mode) HapticFeedback.selectionClick();
-                                      _current = widget.modes[i];
-                                      _select(i);
-                                    },
-                                    child: SizedBox(
-                                      width: widths[i],
-                                      child: Center(
-                                        child: Text(
-                                          labels[i],
-                                          style: _style.copyWith(
-                                            color: i == _mode ? Brand.gold : const Color(0x94E9ECEB),
+                    },
+                    onHorizontalDragEnd: (_) => setState(() {
+                      _drag = 0;
+                      _dragging = false;
+                    }),
+                    // Labels fade out towards the edges, like the Camera app's mode dial,
+                    // so a half-cut word never shows.
+                    child: ShaderMask(
+                      blendMode: BlendMode.dstIn,
+                      shaderCallback: (r) => const LinearGradient(
+                        colors: [
+                          Color(0x00FFFFFF),
+                          Color(0xFFFFFFFF),
+                          Color(0xFFFFFFFF),
+                          Color(0x00FFFFFF),
+                        ],
+                        stops: [0, .22, .78, 1],
+                      ).createShader(r),
+                      child: ClipRect(
+                        child: Stack(
+                          children: [
+                            AnimatedPositioned(
+                              duration: _dragging
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 280),
+                              curve: Curves.easeOutCubic,
+                              left: box.maxWidth / 2 - centerOf(_mode) + _drag,
+                              top: 0,
+                              bottom: 0,
+                              child: Row(
+                                children: [
+                                  for (var i = 0; i < labels.length; i++) ...[
+                                    if (i > 0) const SizedBox(width: _gap),
+                                    Semantics(
+                                      button: true,
+                                      selected: i == _mode,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          if (i != _mode) {
+                                            HapticFeedback.selectionClick();
+                                          }
+                                          _current = widget.modes[i];
+                                          _select(i);
+                                        },
+                                        child: SizedBox(
+                                          width: widths[i],
+                                          child: Center(
+                                            child: Text(
+                                              labels[i],
+                                              style: _style.copyWith(
+                                                color: i == _mode
+                                                    ? Brand.gold
+                                                    : const Color(0x94E9ECEB),
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(28, 6, 28, 0),
               child: Row(
                 children: [
-                  Expanded(child: Align(alignment: Alignment.centerLeft, child: widget.leading)),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: widget.leading,
+                    ),
+                  ),
                   if (mode == null)
                     const SizedBox(width: 72, height: 72)
                   else
-                  Semantics(
-                    button: true,
-                    label: _label(l, mode),
-                    child: GestureDetector(
-                      key: const ValueKey('add-dock-action'),
-                      onTap: () {
-                        HapticFeedback.mediumImpact();
-                        widget.onAction(mode);
-                      },
-                      // Only the camera is a round shutter; every other mode is a button
-                      // that says what it does, with that kind's symbol.
-                      child: mode == AddMode.camera
-                          ? Container(
-                              width: 72,
-                              height: 72,
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4)),
-                              child: const DecoratedBox(
-                                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-                              ),
-                            )
-                          : SizedBox(
-                              height: 72,
-                              child: Center(
-                                child: Container(
-                                  height: 52,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                                  decoration: BoxDecoration(color: Brand.gold, borderRadius: BorderRadius.circular(16)),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(_actionIcon(mode), color: Brand.goldInk, size: 22),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        _actionLabel(l, mode),
-                                        style: const TextStyle(color: Brand.goldInk, fontSize: 15, fontWeight: FontWeight.w700),
-                                      ),
-                                    ],
+                    Semantics(
+                      button: true,
+                      label: _label(l, mode),
+                      child: GestureDetector(
+                        key: const ValueKey('add-dock-action'),
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          widget.onAction(mode);
+                        },
+                        // Only the camera is a round shutter; every other mode is a button
+                        // that says what it does, with that kind's symbol.
+                        child: mode == AddMode.camera
+                            ? Container(
+                                width: 72,
+                                height: 72,
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 4,
+                                  ),
+                                ),
+                                child: const DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : SizedBox(
+                                height: 72,
+                                child: Center(
+                                  child: Container(
+                                    height: 52,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Brand.gold,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _actionIcon(mode),
+                                          color: Brand.goldInk,
+                                          size: 22,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _actionLabel(l, mode),
+                                          style: const TextStyle(
+                                            color: Brand.goldInk,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
+                      ),
+                    ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: widget.trailing,
                     ),
                   ),
-                  Expanded(child: Align(alignment: Alignment.centerRight, child: widget.trailing)),
                 ],
               ),
             ),
@@ -316,13 +384,22 @@ class _AddDockState extends State<AddDock> {
 
 /// A 46 px round slot beside the big button (lock, search, biometrics…).
 class DockSlot extends StatelessWidget {
-  const DockSlot({super.key, this.icon, this.glyph, required this.label, this.onTap, this.outlined = false});
+  const DockSlot({
+    super.key,
+    this.icon,
+    this.glyph,
+    required this.label,
+    this.onTap,
+    this.outlined = false,
+  });
 
   final IconData? icon;
+
   /// A drawn symbol instead of an icon (the Face ID glyph).
   final Widget? glyph;
   final String label;
   final VoidCallback? onTap;
+
   /// A state indicator (the closed lock on the lock screen), not a button.
   final bool outlined;
 
@@ -334,22 +411,36 @@ class DockSlot extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: outlined ? Colors.transparent : const Color(0x24FFFFFF),
-        border: outlined ? Border.all(color: const Color(0x47FFFFFF), width: 1.5) : null,
+        border: outlined
+            ? Border.all(color: const Color(0x47FFFFFF), width: 1.5)
+            : null,
       ),
-      child: Center(child: glyph ?? Icon(icon, size: 22, color: outlined ? Brand.gold : Colors.white)),
+      child: Center(
+        child:
+            glyph ??
+            Icon(icon, size: 22, color: outlined ? Brand.gold : Colors.white),
+      ),
     );
     if (onTap == null) return Semantics(label: label, child: child);
     return Semantics(
       button: true,
       label: label,
-      child: Tooltip(message: label, child: InkResponse(onTap: onTap, radius: 30, child: child)),
+      child: Tooltip(
+        message: label,
+        child: InkResponse(onTap: onTap, radius: 30, child: child),
+      ),
     );
   }
 }
 
 /// Number pad for the PIN: digits only, no letters (they mean nothing for a PIN).
 class PinPad extends StatelessWidget {
-  const PinPad({super.key, required this.onDigit, required this.onDelete, this.enabled = true});
+  const PinPad({
+    super.key,
+    required this.onDigit,
+    required this.onDelete,
+    this.enabled = true,
+  });
 
   final void Function(String digit) onDigit;
   final VoidCallback onDelete;
@@ -359,15 +450,35 @@ class PinPad extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     Widget key(String d) => _Key(
-          onTap: enabled ? () => onDigit(d) : null,
-          child: Text(d, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500, color: Colors.white)),
-        );
+      onTap: enabled ? () => onDigit(d) : null,
+      child: Text(
+        d,
+        style: const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
+      ),
+    );
     const blank = SizedBox(width: 64, height: 64);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final row in const [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9']]) ...[
-          Row(mainAxisSize: MainAxisSize.min, children: [key(row[0]), const SizedBox(width: 30), key(row[1]), const SizedBox(width: 30), key(row[2])]),
+        for (final row in const [
+          ['1', '2', '3'],
+          ['4', '5', '6'],
+          ['7', '8', '9'],
+        ]) ...[
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              key(row[0]),
+              const SizedBox(width: 30),
+              key(row[1]),
+              const SizedBox(width: 30),
+              key(row[2]),
+            ],
+          ),
           const SizedBox(height: 10),
         ],
         Row(
@@ -383,7 +494,11 @@ class PinPad extends StatelessWidget {
               child: _Key(
                 ghost: true,
                 onTap: enabled ? onDelete : null,
-                child: const Icon(Icons.backspace_outlined, color: Colors.white, size: 26),
+                child: const Icon(
+                  Icons.backspace_outlined,
+                  color: Colors.white,
+                  size: 26,
+                ),
               ),
             ),
           ],
