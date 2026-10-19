@@ -1,0 +1,108 @@
+{
+ "lang_label": "Ngôn ngữ",
+ "home": {
+  "title": "Cozy Safe: két mã hoá mã nguồn mở",
+  "desc": "Cozy Safe giữ ghi chú, giấy tờ và ảnh của bạn được mã hoá ngay trên máy. Miễn phí, mã nguồn mở, có cho macOS, Windows, Linux và Android.",
+  "nav_how": "Cách hoạt động",
+  "nav_dl": "Tải về",
+  "nav_src": "Mã nguồn",
+  "h1": "Két riêng cho ghi chú, giấy tờ và ảnh của bạn.",
+  "lead": "Mọi thứ được mã hoá ngay trên máy trước khi lưu hay đồng bộ. Không có mật khẩu của bạn thì không ai mở được, kể cả chúng tôi.",
+  "btn": "Tải về",
+  "btn_for": "Tải cho {p}",
+  "btn_src": "Xem mã nguồn",
+  "unlock": "Mở két",
+  "unlock_bio": "Mở bằng Face ID",
+  "note": "<strong>Bản thử nghiệm sớm.</strong> Bạn đã tạo két, mở và khoá két được. Ghi chú, file, ảnh và đồng bộ sẽ có ở các bản sau, nên tạm thời đừng cất bản duy nhất của thứ gì quan trọng vào đây.",
+  "h_how": "Cozy Safe giữ an toàn cho bạn thế nào",
+  "p_how": "Dữ liệu không bao giờ rời máy ở dạng chưa mã hoá, và đoạn mã làm việc đó ai cũng đọc được.",
+  "c1h": "Mã hoá ngay trên máy",
+  "c1p": "Dữ liệu được mã hoá trước khi ghi xuống ổ đĩa hay thư mục cloud. Khi đồng bộ, thứ được gửi đi chỉ là dữ liệu đã mã hoá.",
+  "c2h": "Mật khẩu cộng Secret Key",
+  "c2p": "Mật khẩu được kết hợp với một khoá ngẫu nhiên 128 bit cất trên máy bạn, nên kẻ có bản sao két cũng không dò ra được mật khẩu.",
+  "c3h": "Mã nguồn công khai",
+  "c3p": "Ai cũng đọc và kiểm tra được mã nguồn (giấy phép GPL-3.0). Bản cài do GitHub build, có chứng thực nguồn gốc.",
+  "h_lim": "Những điều nên biết trước",
+  "l1h": "Không có cách khôi phục",
+  "l1": [
+   "Quên mật khẩu thì không ai mở lại được két, kể cả chúng tôi.",
+   "Hãy chọn mật khẩu bạn nhớ được, chẳng hạn một câu gồm vài từ."
+  ],
+  "l2h": "Những gì app không làm được",
+  "l2": [
+   "Không bảo vệ được máy đã nhiễm mã độc.",
+   "Người khác vẫn thấy máy bạn có cài Cozy Safe.",
+   "Ai biết mật khẩu thì mở được két."
+  ],
+  "h_dl": "Tải về",
+  "p_dl": "Miễn phí, không cần tài khoản.",
+  "mac": "Đã ký và được Apple kiểm duyệt. Mở file, kéo Cozy Safe vào thư mục Applications.",
+  "win": "Chưa ký: nếu SmartScreen cảnh báo, chọn \"Thông tin thêm\" rồi \"Vẫn chạy\".",
+  "lin": "Giải nén rồi chạy <code>./cozysafe</code>. Cần GTK 3.",
+  "andr": "Ký bằng khoá của Cozy Pi. Khi Android hỏi, cho phép trình duyệt cài ứng dụng.",
+  "ios": "Sắp có qua TestFlight, ứng dụng của Apple để dùng thử app mới.",
+  "get": "Tải về",
+  "soon": "Sắp có",
+  "verify": "Muốn kiểm file tải về, so với <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> hoặc chạy <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Các phiên bản cũ ở <a href=\"{REPO}/releases\">trang phát hành</a>.",
+  "f_by": "Làm bởi",
+  "f_src": "Mã nguồn",
+  "f_lic": "GPL-3.0",
+  "f_priv": "Quyền riêng tư"
+ },
+ "privacy": {
+  "title": "Chính sách quyền riêng tư · Cozy Safe",
+  "h1": "Chính sách quyền riêng tư",
+  "updated": "Cập nhật ngày {DATE}",
+  "back": "Cozy Safe",
+  "body": [
+   [
+    "Tóm tắt",
+    [
+     "Cozy Safe không thu thập, không gửi đi và không bán bất kỳ dữ liệu nào của bạn. App không có tài khoản, không có công cụ phân tích, không quảng cáo, không theo dõi.",
+     "Mọi thứ bạn cất vào két đều được mã hoá ngay trên máy. Chúng tôi không đọc được và không giữ bản sao nào."
+    ]
+   ],
+   [
+    "Những gì nằm trên máy bạn",
+    [
+     "Két, ghi chú, file và ảnh, luôn được mã hoá bằng khoá suy ra từ mật khẩu và Secret Key của bạn.",
+     "Cài đặt của app như ngôn ngữ, giao diện sáng hay tối."
+    ]
+   ],
+   [
+    "Dữ liệu chỉ đi ra ngoài khi bạn chọn",
+    [
+     "Đồng bộ và sao lưu dùng thư mục hoặc thiết bị do bạn chọn (ví dụ iCloud Drive, Google Drive, Dropbox, hay máy khác trong mạng nhà). Chỉ dữ liệu đã mã hoá được ghi ra đó; nhà cung cấp bạn chọn không đọc được.",
+     "Nếu bạn bật đồng bộ Secret Key, khoá được lưu trong kho mật khẩu mã hoá đầu-cuối của hệ điều hành (iCloud Keychain hoặc Google Password Manager), theo điều khoản riêng tư của nhà cung cấp đó.",
+     "Khi bạn chia sẻ, xuất hay mở một mục bằng app khác, app đó nhận bản không mã hoá và xử lý theo điều khoản của họ."
+    ]
+   ],
+   [
+    "Quyền truy cập",
+    [
+     "Camera: chỉ để chụp ảnh thẳng vào két, khi bạn mở camera. Ảnh không lưu vào thư viện ảnh của máy.",
+     "Sinh trắc học: chỉ khi bạn bật mở khoá bằng Face ID, Touch ID hoặc vân tay. Dữ liệu sinh trắc học không rời phần cứng bảo mật của máy và app không bao giờ truy cập được."
+    ]
+   ],
+   [
+    "Trang web này",
+    [
+     "safe.cozypi.com là các trang tĩnh do Cloudflare phục vụ, không đặt cookie, không chạy công cụ phân tích. Cloudflare có thể giữ nhật ký kỹ thuật thông thường (như địa chỉ IP) để bảo mật, theo chính sách riêng tư của họ. File tải về do GitHub phục vụ."
+    ]
+   ],
+   [
+    "Trẻ em",
+    [
+     "Cozy Safe không hướng tới trẻ em dưới 13 tuổi và không thu thập dữ liệu của bất kỳ ai."
+    ]
+   ],
+   [
+    "Thay đổi và liên hệ",
+    [
+     "Nếu chính sách thay đổi, bản mới sẽ đăng tại trang này kèm ngày cập nhật.",
+     "Thắc mắc: <a href=\"mailto:support@cozypi.com\">support@cozypi.com</a>. Cozy Safe do Cozy Pi, một studio độc lập, làm ra; mã nguồn công khai tại <a href=\"https://github.com/cozy-pi/cozysafe\">github.com/cozy-pi/cozysafe</a>."
+    ]
+   ]
+  ]
+ }
+}

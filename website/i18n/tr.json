@@ -1,0 +1,108 @@
+{
+ "lang_label": "Dil",
+ "home": {
+  "title": "Cozy Safe: açık kaynaklı şifreli kasa",
+  "desc": "Cozy Safe notlarınızı, belgelerinizi ve fotoğraflarınızı kendi cihazınızda şifreli tutar. Ücretsiz ve açık kaynak; macOS, Windows, Linux ve Android için.",
+  "nav_how": "Nasıl çalışır",
+  "nav_dl": "İndir",
+  "nav_src": "Kaynak kodu",
+  "h1": "Notlarınız, belgeleriniz ve fotoğraflarınız için özel bir kasa.",
+  "lead": "Her şey kaydedilmeden veya eşitlenmeden önce cihazınızda şifrelenir. Parolanız olmadan biz dahil kimse açamaz.",
+  "btn": "İndir",
+  "btn_for": "{p} için indir",
+  "btn_src": "Kaynak koduna bak",
+  "unlock": "Kilidi aç",
+  "unlock_bio": "Face ID ile kilidi aç",
+  "note": "<strong>Erken önizleme.</strong> Kasa oluşturabilir, kilidini açıp kilitleyebilirsiniz. Notlar, dosyalar, fotoğraflar ve eşitleme sonraki sürümlerde gelecek; bu yüzden önemli bir şeyin tek kopyasını şimdilik burada tutmayın.",
+  "h_how": "Cozy Safe sizi nasıl korur",
+  "p_how": "Verileriniz cihazınızdan asla şifresiz çıkmaz ve bunu yapan kod herkese açıktır.",
+  "c1h": "Cihazınızda şifrelenir",
+  "c1p": "Veriler diske veya bir bulut klasörüne ulaşmadan önce şifrelenir. Eşitleme yalnızca şifreli veri gönderir.",
+  "c2h": "Parola ve Secret Key",
+  "c2p": "Parolanız, cihazınızda tutulan rastgele 128 bitlik bir anahtarla birleştirilir. Böylece kasanızın bir kopyasını ele geçiren biri bile parolanızı tahmin edemez.",
+  "c3h": "Açık kaynak",
+  "c3p": "Kodu herkes okuyup denetleyebilir (GPL-3.0). Yükleyiciler GitHub tarafından, doğrulayabileceğiniz köken bilgisiyle derlenir.",
+  "h_lim": "Önce bilmeniz gerekenler",
+  "l1h": "Kurtarma yoktur",
+  "l1": [
+   "Parolanızı unutursanız biz dahil hiç kimse kasayı bir daha açamaz.",
+   "Hatırlayacağınız bir parola seçin; örneğin birkaç kelimeden oluşan bir ifade."
+  ],
+  "l2h": "Yapamadıkları",
+  "l2": [
+   "Zaten kötü amaçlı yazılım bulunan bir cihazı koruyamaz.",
+   "Başkaları Cozy Safe'in yüklü olduğunu yine de görebilir.",
+   "Parolayı bilen herkes kasayı açabilir."
+  ],
+  "h_dl": "İndir",
+  "p_dl": "Ücretsiz, hesap gerekmez.",
+  "mac": "Apple tarafından imzalanmış ve onaylanmıştır. Disk görüntüsünü açın ve Cozy Safe'i Uygulamalar klasörüne sürükleyin.",
+  "win": "Henüz imzalı değil: SmartScreen uyarı verirse \"Daha fazla bilgi\"yi, ardından \"Yine de çalıştır\"ı seçin.",
+  "lin": "Arşivi açın ve <code>./cozysafe</code> komutunu çalıştırın. GTK 3 gerekir.",
+  "andr": "Cozy Pi anahtarıyla imzalanmıştır. Android sorduğunda tarayıcınızın uygulama yüklemesine izin verin.",
+  "ios": "Yakında TestFlight üzerinden; TestFlight, Apple'ın yeni uygulamaları test etme uygulamasıdır.",
+  "get": "İndir",
+  "soon": "Yakında",
+  "verify": "İndirdiğiniz dosyayı kontrol etmek için <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> ile karşılaştırın veya <code>gh attestation verify &lt;dosya&gt; -R cozy-pi/cozysafe</code> komutunu çalıştırın. Eski sürümler <a href=\"{REPO}/releases\">sürümler sayfasında</a>.",
+  "f_by": "Yapımcı",
+  "f_src": "Kaynak kodu",
+  "f_lic": "GPL-3.0",
+  "f_priv": "Gizlilik"
+ },
+ "privacy": {
+  "title": "Gizlilik politikası · Cozy Safe",
+  "h1": "Gizlilik politikası",
+  "updated": "Son güncelleme: {DATE}",
+  "back": "Cozy Safe",
+  "body": [
+   [
+    "Kısaca",
+    [
+     "Cozy Safe verilerinizin hiçbirini toplamaz, göndermez veya satmaz. Uygulamada hesap, analiz, reklam ve takip yoktur.",
+     "Bir kasaya koyduğunuz her şey cihazınızda şifrelenir. Biz onu okuyamayız ve elimizde bir kopyası yoktur."
+    ]
+   ],
+   [
+    "Cihazınızda kalanlar",
+    [
+     "Kasalarınız, notlarınız, dosyalarınız ve fotoğraflarınız; her zaman parolanızdan ve Secret Key'inizden türetilen anahtarlarla şifrelenir.",
+     "Dil ve açık ya da koyu mod gibi uygulama ayarları."
+    ]
+   ],
+   [
+    "Verileriniz nereye gidebilir (yalnızca siz seçerseniz)",
+    [
+     "Eşitleme ve yedekleme, seçtiğiniz bir klasörü veya cihazı kullanır (örneğin iCloud Drive, Google Drive, Dropbox ya da ağınızdaki başka bir cihaz). Oraya yalnızca şifreli veri yazılır; seçtiğiniz sağlayıcı bu veriyi okuyamaz.",
+     "Secret Key eşitlemeyi açarsanız Secret Key, platformunuzun uçtan uca şifreli parola deposunda (iCloud Anahtar Zinciri veya Google Şifre Yöneticisi), o sağlayıcının gizlilik koşulları altında saklanır.",
+     "Bir öğeyi paylaştığınızda, dışa aktardığınızda veya başka bir uygulamada açtığınızda o uygulama şifresiz bir kopya alır ve bunu kendi koşullarına göre işler."
+    ]
+   ],
+   [
+    "İzinler",
+    [
+     "Kamera: yalnızca kamerayı siz açtığınızda, fotoğrafları doğrudan bir kasaya çekmek için. Fotoğraflar fotoğraf arşivinize kaydedilmez.",
+     "Biyometri: yalnızca Face ID, Touch ID veya parmak iziyle kilit açmayı etkinleştirirseniz. Biyometrik verileriniz cihazın güvenli donanımından asla çıkmaz ve uygulamanın erişimine hiçbir zaman açık değildir."
+    ]
+   ],
+   [
+    "Bu web sitesi",
+    [
+     "safe.cozypi.com, Cloudflare tarafından sunulan statik sayfalardan oluşur. Çerez kullanmaz ve analiz çalıştırmaz. Cloudflare, güvenlik amacıyla kendi gizlilik politikası kapsamında standart teknik kayıtlar (IP adresi gibi) tutabilir. İndirmeler GitHub tarafından sunulur."
+    ]
+   ],
+   [
+    "Çocuklar",
+    [
+     "Cozy Safe 13 yaşından küçük çocuklara yönelik değildir ve hiç kimseden veri toplamaz."
+    ]
+   ],
+   [
+    "Değişiklikler ve iletişim",
+    [
+     "Bu politika değişirse yeni sürüm, yeni bir tarihle bu sayfada yayımlanır.",
+     "Sorularınız için: <a href=\"mailto:support@cozypi.com\">support@cozypi.com</a>. Cozy Safe, bağımsız bir stüdyo olan Cozy Pi tarafından geliştirilir ve kaynak kodu <a href=\"https://github.com/cozy-pi/cozysafe\">github.com/cozy-pi/cozysafe</a> adresinde herkese açıktır."
+    ]
+   ]
+  ]
+ }
+}

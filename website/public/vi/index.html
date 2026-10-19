@@ -6,12 +6,31 @@
 <title>Cozy Safe: két mã hoá mã nguồn mở</title>
 <meta name="description" content="Cozy Safe giữ ghi chú, giấy tờ và ảnh của bạn được mã hoá ngay trên máy. Miễn phí, mã nguồn mở, có cho macOS, Windows, Linux và Android.">
 <meta name="theme-color" content="#0F3D33">
+<meta property="og:title" content="Cozy Safe: két mã hoá mã nguồn mở">
+<meta property="og:description" content="Cozy Safe giữ ghi chú, giấy tờ và ảnh của bạn được mã hoá ngay trên máy. Miễn phí, mã nguồn mở, có cho macOS, Windows, Linux và Android.">
+<meta property="og:url" content="https://safe.cozypi.com/vi/">
+<meta property="og:image" content="https://safe.cozypi.com/icon-512.png">
+<meta property="og:locale" content="vi">
 <link rel="canonical" href="https://safe.cozypi.com/vi/">
 <link rel="alternate" hreflang="en" href="https://safe.cozypi.com/">
+<link rel="alternate" hreflang="es" href="https://safe.cozypi.com/es/">
+<link rel="alternate" hreflang="pt-BR" href="https://safe.cozypi.com/pt/">
+<link rel="alternate" hreflang="fr" href="https://safe.cozypi.com/fr/">
+<link rel="alternate" hreflang="de" href="https://safe.cozypi.com/de/">
+<link rel="alternate" hreflang="it" href="https://safe.cozypi.com/it/">
+<link rel="alternate" hreflang="tr" href="https://safe.cozypi.com/tr/">
+<link rel="alternate" hreflang="ja" href="https://safe.cozypi.com/ja/">
+<link rel="alternate" hreflang="ko" href="https://safe.cozypi.com/ko/">
+<link rel="alternate" hreflang="zh-CN" href="https://safe.cozypi.com/zh/">
+<link rel="alternate" hreflang="zh-TW" href="https://safe.cozypi.com/zh-TW/">
+<link rel="alternate" hreflang="ru" href="https://safe.cozypi.com/ru/">
+<link rel="alternate" hreflang="id" href="https://safe.cozypi.com/id/">
+<link rel="alternate" hreflang="th" href="https://safe.cozypi.com/th/">
 <link rel="alternate" hreflang="vi" href="https://safe.cozypi.com/vi/">
+<link rel="alternate" hreflang="x-default" href="https://safe.cozypi.com/">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
-<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../style.css?v=aa0d4fc0">
 </head>
 <body>
 <header class="hero">
@@ -20,7 +39,7 @@
   <div class="wrap">
     <div class="top">
       <a class="brand" href="./"><img src="../icon-512.png" alt="" width="32" height="32">Cozy Safe</a>
-      <nav><a class="hide-sm" href="#how">Cách hoạt động</a><a href="#download">Tải về</a><a class="hide-sm" href="https://github.com/cozy-pi/cozysafe">Mã nguồn</a><a href="/" hreflang="en">English</a></nav>
+      <nav><a class="hide-sm" href="#how">Cách hoạt động</a><a href="#download">Tải về</a><a class="hide-sm" href="https://github.com/cozy-pi/cozysafe">Mã nguồn</a></nav><label class="lang"><span class="sr">Ngôn ngữ</span><select onchange="try{localStorage.setItem('cs.lang',this.options[this.selectedIndex].dataset.l)}catch(e){}location.href=this.value"><option value="/?lang=en" data-l="en">English</option><option value="/es/" data-l="es">Español</option><option value="/pt/" data-l="pt">Português (Brasil)</option><option value="/fr/" data-l="fr">Français</option><option value="/de/" data-l="de">Deutsch</option><option value="/it/" data-l="it">Italiano</option><option value="/tr/" data-l="tr">Türkçe</option><option value="/ja/" data-l="ja">日本語</option><option value="/ko/" data-l="ko">한국어</option><option value="/zh/" data-l="zh">简体中文</option><option value="/zh-TW/" data-l="zh-TW">繁體中文</option><option value="/ru/" data-l="ru">Русский</option><option value="/id/" data-l="id">Bahasa Indonesia</option><option value="/th/" data-l="th">ไทย</option><option value="/vi/" data-l="vi" selected>Tiếng Việt</option></select></label>
     </div>
     <div class="hero-grid">
       <div>
@@ -89,7 +108,7 @@
   if (!p) return;
   var b = document.getElementById('primary');
   b.href = 'https://github.com/cozy-pi/cozysafe/releases/latest/download/' + f;
-  b.querySelector('span').textContent = 'Tải cho {p}'.replace('{p}', p);
+  b.querySelector('span').textContent = "Tải cho {p}".replace('{p}', p);
 })();
 </script>
 </body>

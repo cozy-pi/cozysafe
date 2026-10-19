@@ -1,0 +1,108 @@
+{
+ "lang_label": "Sprache",
+ "home": {
+  "title": "Cozy Safe: ein verschlüsselter Open-Source-Tresor",
+  "desc": "Cozy Safe speichert Ihre Notizen, Dokumente und Fotos verschlüsselt auf Ihrem eigenen Gerät. Kostenlos und Open Source, für macOS, Windows, Linux und Android.",
+  "nav_how": "So funktioniert's",
+  "nav_dl": "Download",
+  "nav_src": "Quellcode",
+  "h1": "Ein privater Tresor für Ihre Notizen, Dokumente und Fotos.",
+  "lead": "Alles wird auf Ihrem Gerät verschlüsselt, bevor es gespeichert oder synchronisiert wird. Ohne Ihr Passwort kann es niemand öffnen, auch wir nicht.",
+  "btn": "Herunterladen",
+  "btn_for": "Für {p} herunterladen",
+  "btn_src": "Quellcode ansehen",
+  "unlock": "Entsperren",
+  "unlock_bio": "Mit Face ID entsperren",
+  "note": "<strong>Frühe Vorschau.</strong> Sie können Tresore erstellen, entsperren und sperren. Notizen, Dateien, Fotos und Synchronisierung folgen in späteren Versionen. Bewahren Sie hier also noch nicht die einzige Kopie von etwas Wichtigem auf.",
+  "h_how": "So schützt Sie Cozy Safe",
+  "p_how": "Ihre Daten verlassen Ihr Gerät nie unverschlüsselt, und der Code dafür ist öffentlich.",
+  "c1h": "Verschlüsselt auf Ihrem Gerät",
+  "c1p": "Daten werden verschlüsselt, bevor sie auf die Festplatte oder in einen Cloud-Ordner gelangen. Bei der Synchronisierung werden nur verschlüsselte Daten übertragen.",
+  "c2h": "Passwort plus Secret Key",
+  "c2p": "Ihr Passwort wird mit einem zufälligen 128-Bit-Schlüssel auf Ihrem Gerät kombiniert. Selbst wer eine Kopie Ihres Tresors hat, kann das Passwort nicht erraten.",
+  "c3h": "Open Source",
+  "c3p": "Jeder kann den Code lesen und prüfen (GPL-3.0). Die Installationsdateien werden von GitHub erstellt, mit überprüfbarer Herkunft.",
+  "h_lim": "Gut zu wissen",
+  "l1h": "Keine Wiederherstellung",
+  "l1": [
+   "Wenn Sie das Passwort vergessen, kann niemand den Tresor mehr öffnen, auch wir nicht.",
+   "Wählen Sie ein Passwort, das Sie sich merken können, etwa einen Satz aus mehreren Wörtern."
+  ],
+  "l2h": "Was es nicht kann",
+  "l2": [
+   "Es kann kein Gerät schützen, auf dem bereits Schadsoftware ist.",
+   "Andere können trotzdem sehen, dass Cozy Safe installiert ist.",
+   "Wer das Passwort kennt, kann den Tresor öffnen."
+  ],
+  "h_dl": "Download",
+  "p_dl": "Kostenlos, ohne Konto.",
+  "mac": "Von Apple signiert und notarisiert. Öffnen Sie das Disk-Image und ziehen Sie Cozy Safe in den Ordner „Programme“.",
+  "win": "Noch nicht signiert: Wenn SmartScreen warnt, wählen Sie \"Weitere Informationen\" und dann \"Trotzdem ausführen\".",
+  "lin": "Entpacken und <code>./cozysafe</code> ausführen. Benötigt GTK 3.",
+  "andr": "Mit dem Schlüssel von Cozy Pi signiert. Wenn Android nachfragt, erlauben Sie Ihrem Browser, Apps zu installieren.",
+  "ios": "Demnächst über TestFlight, die App von Apple zum Testen neuer Apps.",
+  "get": "Herunterladen",
+  "soon": "Demnächst",
+  "verify": "Um einen Download zu prüfen, vergleichen Sie ihn mit <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> oder führen Sie <code>gh attestation verify &lt;Datei&gt; -R cozy-pi/cozysafe</code> aus. Ältere Versionen finden Sie auf der <a href=\"{REPO}/releases\">Release-Seite</a>.",
+  "f_by": "Entwickelt von",
+  "f_src": "Quellcode",
+  "f_lic": "GPL-3.0",
+  "f_priv": "Datenschutz"
+ },
+ "privacy": {
+  "title": "Datenschutzerklärung · Cozy Safe",
+  "h1": "Datenschutzerklärung",
+  "updated": "Zuletzt aktualisiert: {DATE}",
+  "back": "Cozy Safe",
+  "body": [
+   [
+    "Kurz gesagt",
+    [
+     "Cozy Safe erfasst, sendet und verkauft keine Ihrer Daten. Die App hat kein Konto, keine Analyse, keine Werbung und kein Tracking.",
+     "Alles, was Sie in einem Tresor ablegen, wird auf Ihrem Gerät verschlüsselt. Wir können es nicht lesen und haben keine Kopie davon."
+    ]
+   ],
+   [
+    "Was auf Ihrem Gerät bleibt",
+    [
+     "Ihre Tresore, Notizen, Dateien und Fotos, immer verschlüsselt mit Schlüsseln, die aus Ihrem Passwort und Ihrem Secret Key abgeleitet werden.",
+     "App-Einstellungen wie Sprache sowie heller oder dunkler Modus."
+    ]
+   ],
+   [
+    "Wohin Ihre Daten gelangen können, nur wenn Sie es wählen",
+    [
+     "Synchronisierung und Backup nutzen einen Ordner oder ein Gerät Ihrer Wahl (zum Beispiel iCloud Drive, Google Drive, Dropbox oder ein anderes Gerät in Ihrem Netzwerk). Dort werden nur verschlüsselte Daten gespeichert; der gewählte Anbieter kann sie nicht lesen.",
+     "Wenn Sie die Synchronisierung des Secret Key aktivieren, wird der Secret Key im Ende-zu-Ende-verschlüsselten Passwortspeicher Ihrer Plattform (iCloud-Schlüsselbund oder Google Passwortmanager) gespeichert, gemäß den Datenschutzbestimmungen dieses Anbieters.",
+     "Wenn Sie ein Element teilen, exportieren oder in einer anderen App öffnen, erhält diese App eine unverschlüsselte Kopie und verarbeitet sie nach ihren eigenen Bestimmungen."
+    ]
+   ],
+   [
+    "Berechtigungen",
+    [
+     "Kamera: nur um Fotos direkt in einen Tresor aufzunehmen, wenn Sie die Kamera öffnen. Fotos werden nicht in Ihrer Fotomediathek gespeichert.",
+     "Biometrie: nur wenn Sie das Entsperren per Face ID, Touch ID oder Fingerabdruck aktivieren. Ihre biometrischen Daten verlassen nie die sichere Hardware des Geräts und sind für die App nie zugänglich."
+    ]
+   ],
+   [
+    "Diese Website",
+    [
+     "safe.cozypi.com besteht aus statischen Seiten, die von Cloudflare ausgeliefert werden. Sie setzt keine Cookies und verwendet keine Analysedienste. Cloudflare kann aus Sicherheitsgründen übliche technische Protokolle (etwa die IP-Adresse) speichern, gemäß seiner eigenen Datenschutzerklärung. Downloads werden von GitHub ausgeliefert."
+    ]
+   ],
+   [
+    "Kinder",
+    [
+     "Cozy Safe richtet sich nicht an Kinder unter 13 Jahren und erfasst von niemandem Daten."
+    ]
+   ],
+   [
+    "Änderungen und Kontakt",
+    [
+     "Wenn sich diese Erklärung ändert, wird die neue Fassung mit neuem Datum auf dieser Seite veröffentlicht.",
+     "Fragen: <a href=\"mailto:support@cozypi.com\">support@cozypi.com</a>. Cozy Safe wird von Cozy Pi entwickelt, einem unabhängigen Studio. Der Quellcode ist öffentlich unter <a href=\"https://github.com/cozy-pi/cozysafe\">github.com/cozy-pi/cozysafe</a>."
+    ]
+   ]
+  ]
+ }
+}

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cozy Safe: 오픈 소스 암호화 금고</title>
+<meta name="description" content="Cozy Safe는 메모, 문서, 사진을 내 기기에서 암호화해 보관합니다. 무료 오픈 소스이며 macOS, Windows, Linux, Android를 지원합니다.">
+<meta name="theme-color" content="#0F3D33">
+<meta property="og:title" content="Cozy Safe: 오픈 소스 암호화 금고">
+<meta property="og:description" content="Cozy Safe는 메모, 문서, 사진을 내 기기에서 암호화해 보관합니다. 무료 오픈 소스이며 macOS, Windows, Linux, Android를 지원합니다.">
+<meta property="og:url" content="https://safe.cozypi.com/ko/">
+<meta property="og:image" content="https://safe.cozypi.com/icon-512.png">
+<meta property="og:locale" content="ko">
+<link rel="canonical" href="https://safe.cozypi.com/ko/">
+<link rel="alternate" hreflang="en" href="https://safe.cozypi.com/">
+<link rel="alternate" hreflang="es" href="https://safe.cozypi.com/es/">
+<link rel="alternate" hreflang="pt-BR" href="https://safe.cozypi.com/pt/">
+<link rel="alternate" hreflang="fr" href="https://safe.cozypi.com/fr/">
+<link rel="alternate" hreflang="de" href="https://safe.cozypi.com/de/">
+<link rel="alternate" hreflang="it" href="https://safe.cozypi.com/it/">
+<link rel="alternate" hreflang="tr" href="https://safe.cozypi.com/tr/">
+<link rel="alternate" hreflang="ja" href="https://safe.cozypi.com/ja/">
+<link rel="alternate" hreflang="ko" href="https://safe.cozypi.com/ko/">
+<link rel="alternate" hreflang="zh-CN" href="https://safe.cozypi.com/zh/">
+<link rel="alternate" hreflang="zh-TW" href="https://safe.cozypi.com/zh-TW/">
+<link rel="alternate" hreflang="ru" href="https://safe.cozypi.com/ru/">
+<link rel="alternate" hreflang="id" href="https://safe.cozypi.com/id/">
+<link rel="alternate" hreflang="th" href="https://safe.cozypi.com/th/">
+<link rel="alternate" hreflang="vi" href="https://safe.cozypi.com/vi/">
+<link rel="alternate" hreflang="x-default" href="https://safe.cozypi.com/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" href="../style.css?v=aa0d4fc0">
+</head>
+<body>
+<header class="hero">
+  <div class="collage" aria-hidden="true"><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i></div>
+  <div class="veil"></div>
+  <div class="wrap">
+    <div class="top">
+      <a class="brand" href="./"><img src="../icon-512.png" alt="" width="32" height="32">Cozy Safe</a>
+      <nav><a class="hide-sm" href="#how">작동 방식</a><a href="#download">다운로드</a><a class="hide-sm" href="https://github.com/cozy-pi/cozysafe">소스 코드</a></nav><label class="lang"><span class="sr">언어</span><select onchange="try{localStorage.setItem('cs.lang',this.options[this.selectedIndex].dataset.l)}catch(e){}location.href=this.value"><option value="/?lang=en" data-l="en">English</option><option value="/es/" data-l="es">Español</option><option value="/pt/" data-l="pt">Português (Brasil)</option><option value="/fr/" data-l="fr">Français</option><option value="/de/" data-l="de">Deutsch</option><option value="/it/" data-l="it">Italiano</option><option value="/tr/" data-l="tr">Türkçe</option><option value="/ja/" data-l="ja">日本語</option><option value="/ko/" data-l="ko" selected>한국어</option><option value="/zh/" data-l="zh">简体中文</option><option value="/zh-TW/" data-l="zh-TW">繁體中文</option><option value="/ru/" data-l="ru">Русский</option><option value="/id/" data-l="id">Bahasa Indonesia</option><option value="/th/" data-l="th">ไทย</option><option value="/vi/" data-l="vi">Tiếng Việt</option></select></label>
+    </div>
+    <div class="hero-grid">
+      <div>
+        <h1>메모, 문서, 사진을 위한 나만의 금고.</h1>
+        <p class="lead">모든 데이터는 저장하거나 동기화하기 전에 기기에서 암호화됩니다. 비밀번호가 없으면 저희를 포함해 누구도 열 수 없습니다.</p>
+        <div class="cta">
+          <a class="btn btn-gold" id="primary" href="#download"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg><span>다운로드</span></a>
+          <a class="btn btn-ghost" href="https://github.com/cozy-pi/cozysafe"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg>소스 코드 보기</a>
+        </div>
+        <ul class="platforms"><li>macOS</li><li>Windows</li><li>Linux</li><li>Android</li><li class="soon">iPhone</li></ul>
+      </div>
+      <div class="unlock" role="img" aria-label="잠금 해제">
+        <div class="knob"><svg viewBox="0 0 1024 1024" aria-hidden="true"><circle class="ring" cx="512" cy="530" r="292" fill="none" stroke-width="60"/><circle class="core" cx="512" cy="530" r="112"/><rect x="488" y="168" width="48" height="150" rx="24" fill="#D9A53F"/></svg></div>
+        <strong>잠금 해제</strong>
+        <span class="field">••••••••••••</span>
+        <span class="go"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>잠금 해제</span>
+        <span class="bio"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 9v1M15 9v1M12 9v4h-1M9 15.5a4 4 0 0 0 6 0"/></svg>Face ID로 잠금 해제</span>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="block"><p class="note"><strong>초기 미리보기 버전입니다.</strong> 금고를 만들고, 잠금 해제하고, 잠글 수 있습니다. 메모, 파일, 사진, 동기화는 이후 버전에서 추가되니, 아직은 중요한 자료의 유일한 사본을 여기에 보관하지 마세요.</p></section>
+  <section class="block" id="how" aria-labelledby="h-how">
+    <h2 id="h-how">Cozy Safe가 나를 지키는 방법</h2>
+    <p class="section-lead">데이터는 절대 암호화되지 않은 상태로 기기를 벗어나지 않으며, 이를 처리하는 코드도 공개되어 있습니다.</p>
+    <div class="features">
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><h3>기기에서 암호화</h3><p>데이터는 디스크나 클라우드 폴더에 닿기 전에 암호화됩니다. 동기화할 때도 암호화된 데이터만 보냅니다.</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></div><h3>비밀번호와 Secret Key</h3><p>비밀번호는 기기에 보관된 무작위 128비트 키와 결합됩니다. 그래서 누군가 금고 사본을 가지고 있더라도 비밀번호를 알아낼 수 없습니다.</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg></div><h3>오픈 소스</h3><p>누구나 코드를 읽고 검토할 수 있습니다(GPL-3.0). 설치 파일은 GitHub에서 빌드되며, 출처를 직접 검증할 수 있습니다.</p></div>
+    </div>
+  </section>
+  <section class="block" aria-labelledby="h-lim">
+    <h2 id="h-lim">먼저 알아 두세요</h2>
+    <div class="limits" style="margin-top:24px">
+      <div class="limit"><h3>복구할 방법이 없습니다</h3><ul><li>비밀번호를 잊으면 저희를 포함해 누구도 금고를 다시 열 수 없습니다.</li><li>여러 단어로 된 문구처럼 기억할 수 있는 비밀번호를 정하세요.</li></ul></div>
+      <div class="limit"><h3>할 수 없는 일</h3><ul><li>이미 악성 코드가 있는 기기는 보호할 수 없습니다.</li><li>Cozy Safe가 설치되어 있다는 사실은 다른 사람도 알 수 있습니다.</li><li>비밀번호를 아는 사람은 누구나 금고를 열 수 있습니다.</li></ul></div>
+    </div>
+  </section>
+  <section class="block" id="download" aria-labelledby="h-dl">
+    <h2 id="h-dl">다운로드</h2>
+    <p class="section-lead">무료이며 계정이 필요 없습니다.</p>
+    <div class="downloads"><div class="dl"><div class="os"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3c-1.5.2-3 1.3-3.3 3 1.5.1 3-1 3.3-3zM12.5 7.5c-1 0-2-.7-3.2-.7C7 6.8 5 8.7 5 12c0 3.3 2.2 7.5 4 7.5 1 0 1.6-.6 3-.6s1.9.6 3 .6c1.6 0 3.3-3 3.9-5-1.9-.8-2.8-2.4-2.8-4.2 0-1.5.8-2.8 2-3.5-.8-1.2-2.1-1.8-3.3-1.8-1.3 0-2.2.8-3.3.8z"/></svg>macOS</div><p>Apple의 서명 및 공증을 받았습니다. 디스크 이미지를 열고 Cozy Safe를 응용 프로그램 폴더로 드래그하세요.</p><a class="get" href="https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-macos.dmg"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>다운로드</a><small title="CozySafe-macos.dmg">CozySafe-macos.dmg</small></div><div class="dl"><div class="os"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5l7.5-1v7H3zM12.5 4.2L21 3v8.5h-8.5zM3 12.5h7.5v7L3 18.5zM12.5 12.5H21V21l-8.5-1.2z"/></svg>Windows</div><p>아직 서명되지 않았습니다. SmartScreen 경고가 뜨면 [추가 정보]를 누른 다음 [실행]을 선택하세요.</p><a class="get" href="https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-windows-x64.zip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>다운로드</a><small title="CozySafe-windows-x64.zip">CozySafe-windows-x64.zip</small></div><div class="dl"><div class="os"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-2.5 0-3.5 2.5-3.5 5 0 1.5-1.5 3-2.5 5-1 2-1 4 .5 5s2.5 0 3.5 1c.7.6 1.3 1 2 1s1.3-.4 2-1c1-1 2-.1 3.5-1s1.5-3 .5-5-2.5-3.5-2.5-5c0-2.5-1-5-3.5-5z"/><path d="M10.5 8h.01M13.5 8h.01"/></svg>Linux</div><p>압축을 풀고 <code>./cozysafe</code>를 실행하세요. GTK 3이 필요합니다.</p><a class="get" href="https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-linux-x64.tar.gz"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>다운로드</a><small title="CozySafe-linux-x64.tar.gz">CozySafe-linux-x64.tar.gz</small></div><div class="dl"><div class="os"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10h14v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 10a4 4 0 0 1 8 0M8 5l1.5 2.5M16 5l-1.5 2.5M3 11v5M21 11v5"/></svg>Android</div><p>Cozy Pi 키로 서명되었습니다. Android가 물으면 브라우저의 앱 설치를 허용하세요.</p><a class="get" href="https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-android.apk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>다운로드</a><small title="CozySafe-android.apk">CozySafe-android.apk</small></div><div class="dl soon"><div class="os"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>iPhone</div><p>새 앱을 테스트하는 Apple 앱인 TestFlight로 곧 제공됩니다.</p><span class="get">출시 예정</span><small aria-hidden="true">&nbsp;</small></div></div>
+    <p class="verify">다운로드한 파일을 확인하려면 <a href="https://github.com/cozy-pi/cozysafe/releases/latest/download/SHA256SUMS.txt">SHA256SUMS.txt</a>와 비교하거나 <code>gh attestation verify &lt;파일&gt; -R cozy-pi/cozysafe</code>를 실행하세요. 이전 버전은 <a href="https://github.com/cozy-pi/cozysafe/releases">릴리스 페이지</a>에 있습니다.</p>
+  </section>
+</main>
+<footer>
+  <div class="wrap">
+    <a class="brand" href="./"><img src="../icon-512.png" alt="" width="28" height="28">Cozy Safe</a>
+    <span>제작: <a href="https://cozypi.com/ko/">Cozy Pi</a></span>
+    <a href="https://github.com/cozy-pi/cozysafe">소스 코드</a>
+    <span>GPL-3.0</span>
+    <a href="privacy.html">개인정보 처리방침</a>
+    <a href="mailto:support@cozypi.com">support@cozypi.com</a>
+  </div>
+</footer>
+<script>
+// Point the main button at the file for this device; without JS it jumps to the cards.
+(function () {
+  var ua = navigator.userAgent, p = null, f = null;
+  if (/Android/i.test(ua)) { p = 'Android'; f = 'CozySafe-android.apk'; }
+  else if (/iPhone|iPad|iPod/i.test(ua)) { return; }
+  else if (/Mac/i.test(ua)) { p = 'macOS'; f = 'CozySafe-macos.dmg'; }
+  else if (/Windows/i.test(ua)) { p = 'Windows'; f = 'CozySafe-windows-x64.zip'; }
+  else if (/Linux/i.test(ua)) { p = 'Linux'; f = 'CozySafe-linux-x64.tar.gz'; }
+  if (!p) return;
+  var b = document.getElementById('primary');
+  b.href = 'https://github.com/cozy-pi/cozysafe/releases/latest/download/' + f;
+  b.querySelector('span').textContent = "{p}용 다운로드".replace('{p}', p);
+})();
+</script>
+</body>
+</html>

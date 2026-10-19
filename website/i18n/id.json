@@ -1,0 +1,108 @@
+{
+ "lang_label": "Bahasa",
+ "home": {
+  "title": "Cozy Safe: brankas terenkripsi sumber terbuka",
+  "desc": "Cozy Safe mengenkripsi catatan, dokumen, dan foto Anda di perangkat Anda sendiri. Gratis dan sumber terbuka, untuk macOS, Windows, Linux, dan Android.",
+  "nav_how": "Cara kerjanya",
+  "nav_dl": "Unduh",
+  "nav_src": "Kode sumber",
+  "h1": "Brankas pribadi untuk catatan, dokumen, dan foto Anda.",
+  "lead": "Semuanya dienkripsi di perangkat Anda sebelum disimpan atau disinkronkan. Tanpa kata sandi Anda, tidak ada yang bisa membukanya, termasuk kami.",
+  "btn": "Unduh",
+  "btn_for": "Unduh untuk {p}",
+  "btn_src": "Lihat kode sumber",
+  "unlock": "Buka kunci",
+  "unlock_bio": "Buka kunci dengan Face ID",
+  "note": "<strong>Pratinjau awal.</strong> Anda sudah bisa membuat, membuka, dan mengunci brankas. Catatan, file, foto, dan sinkronisasi hadir di rilis berikutnya, jadi untuk sekarang jangan simpan satu-satunya salinan data penting di sini.",
+  "h_how": "Cara Cozy Safe melindungi Anda",
+  "p_how": "Data Anda tidak pernah meninggalkan perangkat dalam keadaan tidak terenkripsi, dan kode yang melakukannya terbuka untuk umum.",
+  "c1h": "Dienkripsi di perangkat Anda",
+  "c1p": "Data dienkripsi sebelum sampai ke disk atau folder cloud. Sinkronisasi hanya mengirim data terenkripsi.",
+  "c2h": "Kata sandi plus Secret Key",
+  "c2p": "Kata sandi Anda digabungkan dengan kunci acak 128-bit yang disimpan di perangkat Anda, sehingga orang yang memegang salinan brankas Anda tetap tidak bisa menebak kata sandinya.",
+  "c3h": "Sumber terbuka",
+  "c3p": "Siapa pun bisa membaca dan memeriksa kodenya (GPL-3.0). Penginstal dibuat oleh GitHub, dengan bukti asal-usul yang bisa Anda verifikasi.",
+  "h_lim": "Yang perlu diketahui dulu",
+  "l1h": "Tidak ada pemulihan",
+  "l1": [
+   "Jika Anda lupa kata sandi, tidak ada yang bisa membuka brankas itu lagi, termasuk kami.",
+   "Pilih kata sandi yang akan Anda ingat, misalnya frasa yang terdiri dari beberapa kata."
+  ],
+  "l2h": "Yang tidak bisa dilakukannya",
+  "l2": [
+   "Tidak bisa melindungi perangkat yang sudah terkena malware.",
+   "Orang lain tetap bisa melihat bahwa Cozy Safe terpasang.",
+   "Siapa pun yang tahu kata sandinya bisa membuka brankas."
+  ],
+  "h_dl": "Unduh",
+  "p_dl": "Gratis, tanpa perlu akun.",
+  "mac": "Ditandatangani dan dinotarisasi oleh Apple. Buka image disk, lalu seret Cozy Safe ke folder Aplikasi.",
+  "win": "Belum ditandatangani: jika SmartScreen memberi peringatan, pilih \"Info selengkapnya\", lalu \"Tetap jalankan\".",
+  "lin": "Ekstrak lalu jalankan <code>./cozysafe</code>. Memerlukan GTK 3.",
+  "andr": "Ditandatangani dengan kunci Cozy Pi. Saat Android meminta, izinkan browser Anda menginstal aplikasi.",
+  "ios": "Segera hadir melalui TestFlight, aplikasi Apple untuk menguji aplikasi baru.",
+  "get": "Unduh",
+  "soon": "Segera hadir",
+  "verify": "Untuk memeriksa unduhan, bandingkan dengan <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> atau jalankan <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Versi lama tersedia di <a href=\"{REPO}/releases\">halaman rilis</a>.",
+  "f_by": "Dibuat oleh",
+  "f_src": "Kode sumber",
+  "f_lic": "GPL-3.0",
+  "f_priv": "Privasi"
+ },
+ "privacy": {
+  "title": "Kebijakan privasi · Cozy Safe",
+  "h1": "Kebijakan privasi",
+  "updated": "Terakhir diperbarui {DATE}",
+  "back": "Cozy Safe",
+  "body": [
+   [
+    "Ringkasnya",
+    [
+     "Cozy Safe tidak mengumpulkan, mengirim, atau menjual data Anda sama sekali. Tidak ada akun, analitik, iklan, maupun pelacakan di aplikasi ini.",
+     "Semua yang Anda simpan di brankas dienkripsi di perangkat Anda. Kami tidak bisa membacanya dan tidak memiliki salinannya."
+    ]
+   ],
+   [
+    "Yang tetap ada di perangkat Anda",
+    [
+     "Brankas, catatan, file, dan foto Anda, yang selalu dienkripsi dengan kunci yang diturunkan dari kata sandi dan Secret Key Anda.",
+     "Pengaturan aplikasi seperti bahasa serta mode terang atau gelap."
+    ]
+   ],
+   [
+    "Ke mana data Anda bisa pergi, hanya jika Anda memilihnya",
+    [
+     "Sinkronisasi dan cadangan menggunakan folder atau perangkat yang Anda pilih (misalnya iCloud Drive, Google Drive, Dropbox, atau perangkat lain di jaringan Anda). Hanya data terenkripsi yang ditulis ke sana; penyedia yang Anda pilih tidak bisa membacanya.",
+     "Jika Anda mengaktifkan sinkronisasi Secret Key, Secret Key disimpan di penyimpanan kata sandi platform Anda yang terenkripsi end-to-end (Rantai Kunci iCloud atau Pengelola Sandi Google), sesuai ketentuan privasi penyedia tersebut.",
+     "Saat Anda membagikan, mengekspor, atau membuka item di aplikasi lain, aplikasi itu menerima salinan yang tidak terenkripsi dan menanganinya sesuai ketentuannya sendiri."
+    ]
+   ],
+   [
+    "Izin",
+    [
+     "Kamera: hanya untuk mengambil foto langsung ke dalam brankas, saat Anda membuka kamera. Foto tidak disimpan ke galeri foto Anda.",
+     "Biometrik: hanya jika Anda mengaktifkan buka kunci dengan Face ID, Touch ID, atau sidik jari. Data biometrik Anda tidak pernah meninggalkan perangkat keras aman di perangkat dan tidak pernah dapat diakses oleh aplikasi."
+    ]
+   ],
+   [
+    "Situs web ini",
+    [
+     "safe.cozypi.com adalah kumpulan halaman statis yang disajikan oleh Cloudflare. Situs ini tidak memasang cookie dan tidak menjalankan analitik. Cloudflare dapat menyimpan log teknis standar (seperti alamat IP) untuk keamanan, sesuai kebijakan privasinya sendiri. Unduhan disajikan oleh GitHub."
+    ]
+   ],
+   [
+    "Anak-anak",
+    [
+     "Cozy Safe tidak ditujukan untuk anak-anak di bawah 13 tahun dan tidak mengumpulkan data dari siapa pun."
+    ]
+   ],
+   [
+    "Perubahan dan kontak",
+    [
+     "Jika kebijakan ini berubah, versi barunya akan diterbitkan di halaman ini dengan tanggal baru.",
+     "Pertanyaan: <a href=\"mailto:support@cozypi.com\">support@cozypi.com</a>. Cozy Safe dibuat oleh Cozy Pi, sebuah studio independen, dan kode sumbernya terbuka untuk umum di <a href=\"https://github.com/cozy-pi/cozysafe\">github.com/cozy-pi/cozysafe</a>."
+    ]
+   ]
+  ]
+ }
+}

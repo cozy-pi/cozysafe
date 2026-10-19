@@ -1,0 +1,108 @@
+{
+ "lang_label": "Idioma",
+ "home": {
+  "title": "Cozy Safe: una caja fuerte cifrada de código abierto",
+  "desc": "Cozy Safe guarda tus notas, documentos y fotos cifrados en tu propio dispositivo. Gratis y de código abierto, para macOS, Windows, Linux y Android.",
+  "nav_how": "Cómo funciona",
+  "nav_dl": "Descargar",
+  "nav_src": "Código fuente",
+  "h1": "Una caja fuerte privada para tus notas, documentos y fotos.",
+  "lead": "Todo se cifra en tu dispositivo antes de guardarse o sincronizarse. Sin tu contraseña, nadie puede abrirlo, ni siquiera nosotros.",
+  "btn": "Descargar",
+  "btn_for": "Descargar para {p}",
+  "btn_src": "Ver el código",
+  "unlock": "Desbloquear",
+  "unlock_bio": "Desbloquear con Face ID",
+  "note": "<strong>Versión preliminar.</strong> Puedes crear, desbloquear y bloquear cajas fuertes. Las notas, los archivos, las fotos y la sincronización llegarán en próximas versiones, así que no guardes aquí todavía la única copia de nada importante.",
+  "h_how": "Cómo te protege Cozy Safe",
+  "p_how": "Tus datos nunca salen de tu dispositivo sin cifrar, y el código que lo hace es público.",
+  "c1h": "Cifrado en tu dispositivo",
+  "c1p": "Los datos se cifran antes de llegar al disco o a una carpeta en la nube. La sincronización solo envía datos cifrados.",
+  "c2h": "Contraseña más Secret Key",
+  "c2p": "Tu contraseña se combina con una clave aleatoria de 128 bits guardada en tu dispositivo, así que quien tenga una copia de tu caja fuerte no podrá adivinar la contraseña.",
+  "c3h": "Código abierto",
+  "c3p": "Cualquiera puede leer y revisar el código (GPL-3.0). Los instaladores los compila GitHub, con una procedencia que puedes verificar.",
+  "h_lim": "Conviene saber antes",
+  "l1h": "No hay recuperación",
+  "l1": [
+   "Si olvidas la contraseña, nadie podrá volver a abrir la caja fuerte, ni siquiera nosotros.",
+   "Elige una contraseña que vayas a recordar, como una frase de varias palabras."
+  ],
+  "l2h": "Lo que no puede hacer",
+  "l2": [
+   "No puede proteger un dispositivo que ya tenga malware.",
+   "Otras personas pueden ver que Cozy Safe está instalado.",
+   "Cualquiera que sepa la contraseña puede abrir la caja fuerte."
+  ],
+  "h_dl": "Descargar",
+  "p_dl": "Gratis, sin necesidad de cuenta.",
+  "mac": "Firmado y notarizado por Apple. Abre la imagen de disco y arrastra Cozy Safe a Aplicaciones.",
+  "win": "Aún sin firmar: si SmartScreen muestra un aviso, elige \"Más información\" y luego \"Ejecutar de todas formas\".",
+  "lin": "Descomprime y ejecuta <code>./cozysafe</code>. Requiere GTK 3.",
+  "andr": "Firmado con la clave de Cozy Pi. Cuando Android lo pida, permite que tu navegador instale aplicaciones.",
+  "ios": "Muy pronto a través de TestFlight, la app de Apple para probar apps nuevas.",
+  "get": "Descargar",
+  "soon": "Muy pronto",
+  "verify": "Para comprobar una descarga, compárala con <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> o ejecuta <code>gh attestation verify &lt;archivo&gt; -R cozy-pi/cozysafe</code>. Las versiones anteriores están en la <a href=\"{REPO}/releases\">página de versiones</a>.",
+  "f_by": "Creado por",
+  "f_src": "Código fuente",
+  "f_lic": "GPL-3.0",
+  "f_priv": "Privacidad"
+ },
+ "privacy": {
+  "title": "Política de privacidad · Cozy Safe",
+  "h1": "Política de privacidad",
+  "updated": "Última actualización: {DATE}",
+  "back": "Cozy Safe",
+  "body": [
+   [
+    "En resumen",
+    [
+     "Cozy Safe no recopila, envía ni vende ninguno de tus datos. La app no tiene cuentas, analíticas, publicidad ni seguimiento.",
+     "Todo lo que guardas en una caja fuerte se cifra en tu dispositivo. No podemos leerlo y no tenemos ninguna copia."
+    ]
+   ],
+   [
+    "Lo que se queda en tu dispositivo",
+    [
+     "Tus cajas fuertes, notas, archivos y fotos, siempre cifrados con claves derivadas de tu contraseña y tu Secret Key.",
+     "Los ajustes de la app, como el idioma y el modo claro u oscuro."
+    ]
+   ],
+   [
+    "Adónde pueden ir tus datos, solo si tú lo eliges",
+    [
+     "La sincronización y las copias de seguridad usan una carpeta o un dispositivo que tú eliges (por ejemplo, iCloud Drive, Google Drive, Dropbox u otro dispositivo de tu red). Allí solo se escriben datos cifrados; el proveedor que elijas no puede leerlos.",
+     "Si activas la sincronización de la Secret Key, la Secret Key se guarda en el almacén de contraseñas con cifrado de extremo a extremo de tu plataforma (Llavero de iCloud o Gestor de contraseñas de Google), según las condiciones de privacidad de ese proveedor.",
+     "Cuando compartes, exportas o abres un elemento en otra app, esa app recibe una copia sin cifrar y la trata según sus propias condiciones."
+    ]
+   ],
+   [
+    "Permisos",
+    [
+     "Cámara: solo para hacer fotos directamente en una caja fuerte, cuando abres la cámara. Las fotos no se guardan en tu fototeca.",
+     "Biometría: solo si activas el desbloqueo con Face ID, Touch ID o huella dactilar. Tus datos biométricos nunca salen del hardware seguro del dispositivo y la app nunca tiene acceso a ellos."
+    ]
+   ],
+   [
+    "Este sitio web",
+    [
+     "safe.cozypi.com es un conjunto de páginas estáticas servidas por Cloudflare. No usa cookies ni analíticas. Cloudflare puede conservar registros técnicos estándar (como la dirección IP) por motivos de seguridad, según su propia política de privacidad. Las descargas las sirve GitHub."
+    ]
+   ],
+   [
+    "Menores",
+    [
+     "Cozy Safe no está dirigido a menores de 13 años y no recopila datos de nadie."
+    ]
+   ],
+   [
+    "Cambios y contacto",
+    [
+     "Si esta política cambia, la nueva versión se publicará en esta página con una nueva fecha.",
+     "Preguntas: <a href=\"mailto:support@cozypi.com\">support@cozypi.com</a>. Cozy Safe es obra de Cozy Pi, un estudio independiente, y su código fuente es público en <a href=\"https://github.com/cozy-pi/cozysafe\">github.com/cozy-pi/cozysafe</a>."
+    ]
+   ]
+  ]
+ }
+}

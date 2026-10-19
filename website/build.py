@@ -1,71 +1,99 @@
 #!/usr/bin/env python3
-"""Build safe.cozypi.com: public/index.html (English) and public/vi/index.html.
+"""Build safe.cozypi.com in 15 languages, the same way as Flip Match's public pages.
+
+English lives at / and /privacy.html; every other language at /<code>/ and
+/<code>/privacy.html, so search engines can read each version. Each page lists
+all versions (hreflang + x-default), the sitemap lists them with alternates,
+and only the English pages redirect a visitor whose saved choice (localStorage
+`cs.lang`) or browser language is another one (?lang=en stops that).
+
+Copy is in i18n/<code>.json (en.json is the source). The build fails when a
+translation misses a key or a placeholder.
+
+The privacy page must match what the app and site actually do. If the app ever
+sends anything anywhere, update it (all languages, new UPDATED date) and the
+Google Play Data safety form.
 
 Style follows the app's unlock screen (docs/ui.md, design "B2"): vault green,
 blurred protected items behind, gold index. The unlock card in the hero is an
-HTML illustration of the design, not a screenshot. Edit the copy in TEXT, run
+HTML illustration of the design, not a screenshot. Edit the copy in i18n/, run
 `python3 website/build.py`, deploy with `npx wrangler deploy` from website/.
 """
-import os
+import hashlib, json, os, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = 'https://github.com/cozy-pi/cozysafe/releases/latest/download/'
 REPO = 'https://github.com/cozy-pi/cozysafe'
+SITE = 'https://safe.cozypi.com'
+UPDATED = '2026-10-19'  # privacy policy date
 
-TEXT = {
-    'en': dict(
-        title='Cozy Safe: an open-source encrypted vault',
-        desc='Cozy Safe keeps your notes, documents and photos encrypted on your own device. Free and open source, for macOS, Windows, Linux and Android.',
-        nav_how='How it works', nav_dl='Download', nav_src='Source code',
-        h1='A private vault for your notes, documents and photos.',
-        lead='Everything is encrypted on your device before it is saved or synced. Without your password, nobody can open it, including us.',
-        btn='Download', btn_for='Download for {p}', btn_src='View the source',
-        unlock='Unlock', unlock_bio='Unlock with Face ID',
-        note='<strong>Early preview.</strong> You can create, unlock and lock vaults. Notes, files, photos and sync arrive in later releases, so don\'t keep the only copy of anything important here yet.',
-        h_how='How Cozy Safe keeps you safe', p_how='Your data never leaves your device unencrypted, and the code that does it is public.',
-        c1h='Encrypted on your device', c1p='Data is encrypted before it reaches the disk or a cloud folder. Sync only ever sends encrypted data.',
-        c2h='Password plus Secret Key', c2p='Your password is combined with a random 128-bit key kept on your device, so someone holding a copy of your vault still cannot guess the password.',
-        c3h='Open source', c3p='Anyone can read and check the code (GPL-3.0). Installers are built by GitHub, with provenance you can verify.',
-        h_lim='Good to know first',
-        l1h='There is no recovery', l1=['If you forget the password, nobody can open the vault again, including us.', 'Choose a password you will remember, such as a phrase of several words.'],
-        l2h='What it cannot do', l2=['It cannot protect a device that already has malware.', 'Others can still see that Cozy Safe is installed.', 'Anyone who knows the password can open the vault.'],
-        h_dl='Download', p_dl='Free, no account needed.',
-        mac='Signed and notarized by Apple. Open the disk image and drag Cozy Safe into Applications.',
-        win='Not signed yet: if SmartScreen warns you, choose More info, then Run anyway.',
-        lin='Extract and run <code>./cozysafe</code>. Needs GTK 3.',
-        andr='Signed with the Cozy Pi key. When Android asks, allow your browser to install apps.',
-        ios='Coming soon through TestFlight, Apple\'s app for testing new apps.',
-        get='Download', soon='Coming soon',
-        verify=f'To check a download, compare it with <a href="{BASE}SHA256SUMS.txt">SHA256SUMS.txt</a> or run <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Older versions are on the <a href="{REPO}/releases">releases page</a>.',
-        f_by='Made by', f_src='Source code', f_lic='GPL-3.0', f_priv='Privacy',
-    ),
-    'vi': dict(
-        title='Cozy Safe: két mã hoá mã nguồn mở',
-        desc='Cozy Safe giữ ghi chú, giấy tờ và ảnh của bạn được mã hoá ngay trên máy. Miễn phí, mã nguồn mở, có cho macOS, Windows, Linux và Android.',
-        nav_how='Cách hoạt động', nav_dl='Tải về', nav_src='Mã nguồn',
-        h1='Két riêng cho ghi chú, giấy tờ và ảnh của bạn.',
-        lead='Mọi thứ được mã hoá ngay trên máy trước khi lưu hay đồng bộ. Không có mật khẩu của bạn thì không ai mở được, kể cả chúng tôi.',
-        btn='Tải về', btn_for='Tải cho {p}', btn_src='Xem mã nguồn',
-        unlock='Mở két', unlock_bio='Mở bằng Face ID',
-        note='<strong>Bản thử nghiệm sớm.</strong> Bạn đã tạo két, mở và khoá két được. Ghi chú, file, ảnh và đồng bộ sẽ có ở các bản sau, nên tạm thời đừng cất bản duy nhất của thứ gì quan trọng vào đây.',
-        h_how='Cozy Safe giữ an toàn cho bạn thế nào', p_how='Dữ liệu không bao giờ rời máy ở dạng chưa mã hoá, và đoạn mã làm việc đó ai cũng đọc được.',
-        c1h='Mã hoá ngay trên máy', c1p='Dữ liệu được mã hoá trước khi ghi xuống ổ đĩa hay thư mục cloud. Khi đồng bộ, thứ được gửi đi chỉ là dữ liệu đã mã hoá.',
-        c2h='Mật khẩu cộng Secret Key', c2p='Mật khẩu được kết hợp với một khoá ngẫu nhiên 128 bit cất trên máy bạn, nên kẻ có bản sao két cũng không dò ra được mật khẩu.',
-        c3h='Mã nguồn công khai', c3p='Ai cũng đọc và kiểm tra được mã nguồn (giấy phép GPL-3.0). Bản cài do GitHub build, có chứng thực nguồn gốc.',
-        h_lim='Những điều nên biết trước',
-        l1h='Không có cách khôi phục', l1=['Quên mật khẩu thì không ai mở lại được két, kể cả chúng tôi.', 'Hãy chọn mật khẩu bạn nhớ được, chẳng hạn một câu gồm vài từ.'],
-        l2h='Những gì app không làm được', l2=['Không bảo vệ được máy đã nhiễm mã độc.', 'Người khác vẫn thấy máy bạn có cài Cozy Safe.', 'Ai biết mật khẩu thì mở được két.'],
-        h_dl='Tải về', p_dl='Miễn phí, không cần tài khoản.',
-        mac='Đã ký và được Apple kiểm duyệt. Mở file, kéo Cozy Safe vào thư mục Applications.',
-        win='Chưa ký: nếu SmartScreen cảnh báo, chọn "Thông tin thêm" rồi "Vẫn chạy".',
-        lin='Giải nén rồi chạy <code>./cozysafe</code>. Cần GTK 3.',
-        andr='Ký bằng khoá của Cozy Pi. Khi Android hỏi, cho phép trình duyệt cài ứng dụng.',
-        ios='Sắp có qua TestFlight, ứng dụng của Apple để dùng thử app mới.',
-        get='Tải về', soon='Sắp có',
-        verify=f'Muốn kiểm file tải về, so với <a href="{BASE}SHA256SUMS.txt">SHA256SUMS.txt</a> hoặc chạy <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Các phiên bản cũ ở <a href="{REPO}/releases">trang phát hành</a>.',
-        f_by='Làm bởi', f_src='Mã nguồn', f_lic='GPL-3.0', f_priv='Quyền riêng tư',
-    ),
-}
+# Same list and order as Flip Match (lib/i18n.ts NGON_NGU); cozypi.com uses the same codes.
+LANGS = [
+    ('en', 'English'), ('es', 'Español'), ('pt', 'Português (Brasil)'), ('fr', 'Français'),
+    ('de', 'Deutsch'), ('it', 'Italiano'), ('tr', 'Türkçe'), ('ja', '日本語'), ('ko', '한국어'),
+    ('zh', '简体中文'), ('zh-TW', '繁體中文'), ('ru', 'Русский'),
+    ('id', 'Bahasa Indonesia'), ('th', 'ไทย'), ('vi', 'Tiếng Việt'),
+]
+IDS = [c for c, _ in LANGS]
+HTML_LANG = {'pt': 'pt-BR', 'zh': 'zh-CN'}  # hreflang / <html lang>
+PAGES = {'home': '', 'privacy': 'privacy.html'}
+
+
+def load():
+    def shape(x):
+        if isinstance(x, dict):
+            return {k: shape(v) for k, v in x.items()}
+        if isinstance(x, list):
+            return [shape(v) for v in x]
+        return sorted(set(re.findall(r'\{[A-Z]+\}|\{p\}|</?[a-z]+', x)))
+    texts = {c: json.load(open(os.path.join(HERE, 'i18n', f'{c}.json'), encoding='utf-8')) for c in IDS}
+    want = shape(texts['en'])
+    for c, t in texts.items():
+        if shape(t) != want:
+            raise SystemExit(f'i18n/{c}.json: keys, list lengths, placeholders or tags differ from en.json')
+    return texts
+
+
+def path(lang, page):
+    return ('/' if lang == 'en' else f'/{lang}/') + PAGES[page]
+
+
+def head_common(lang, page, css):
+    root = '' if lang == 'en' else '../'
+    alts = ''.join(f'<link rel="alternate" hreflang="{HTML_LANG.get(c, c)}" href="{SITE}{path(c, page)}">\n' for c in IDS)
+    alts += f'<link rel="alternate" hreflang="x-default" href="{SITE}{path("en", page)}">\n'
+    # English pages only: send the visitor to their language before anything paints.
+    redirect = '' if lang != 'en' else f'''<script>
+(function () {{
+  var ids = {json.dumps(IDS)}, q = new URLSearchParams(location.search).get('lang'), want = null;
+  try {{ if (q && ids.indexOf(q) >= 0) localStorage.setItem('cs.lang', q); want = localStorage.getItem('cs.lang'); }} catch (e) {{}}
+  if (q === 'en') return;
+  if (!want || ids.indexOf(want) < 0) {{
+    want = 'en';
+    var ls = navigator.languages || [navigator.language || 'en'];
+    for (var i = 0; i < ls.length; i++) {{
+      var tag = String(ls[i]).toLowerCase();
+      if (/^zh-(hant|tw|hk|mo)\\b/.test(tag)) {{ want = 'zh-TW'; break; }}
+      var c = tag.split('-')[0];
+      if (ids.indexOf(c) >= 0) {{ want = c; break; }}
+    }}
+  }}
+  if (want !== 'en') location.replace('/' + want + '/{PAGES[page]}' + location.hash);
+}})();
+</script>
+'''
+    return (f'<link rel="canonical" href="{SITE}{path(lang, page)}">\n{alts}{redirect}'
+            f'<link rel="icon" href="{root}favicon.svg" type="image/svg+xml">\n'
+            f'<link rel="apple-touch-icon" href="{root}apple-touch-icon.png">\n'
+            f'<link rel="stylesheet" href="{root}style.css?v={css}">')
+
+
+def lang_menu(lang, page, label):
+    opts = ''.join(f'<option value="{path(c, page)}{"?lang=en" if c == "en" else ""}" data-l="{c}"'
+                   f'{" selected" if c == lang else ""}>{n}</option>' for c, n in LANGS)
+    return (f'<label class="lang"><span class="sr">{label}</span><select onchange="'
+            f"try{{localStorage.setItem('cs.lang',this.options[this.selectedIndex].dataset.l)}}catch(e){{}}"
+            f'location.href=this.value">{opts}</select></label>')
 
 # Stroke icons (24×24)
 I = {
@@ -102,9 +130,10 @@ PLATFORMS = [
 ]
 
 
-def page(lang):
-    t = TEXT[lang]
-    root, other, other_label, other_lang = ('', '/vi/', 'Tiếng Việt', 'vi') if lang == 'en' else ('../', '/', 'English', 'en')
+def page(lang, texts, css):
+    t = {k: (v.replace('{BASE}', BASE).replace('{REPO}', REPO) if isinstance(v, str) else v)
+         for k, v in texts[lang]['home'].items()}
+    root = '' if lang == 'en' else '../'
     li = lambda items: ''.join(f'<li>{x}</li>' for x in items)
     cards = ''.join(
         f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t[key]}</p>'
@@ -112,21 +141,21 @@ def page(lang):
         for icon, name, f, key in PLATFORMS)
     cards += (f'<div class="dl soon"><div class="os">{ic("iphone", 30)}iPhone</div><p>{t["ios"]}</p>'
               f'<span class="get">{t["soon"]}</span><small aria-hidden="true">&nbsp;</small></div>')
-    studio = 'https://cozypi.com/' + ('' if lang == 'en' else 'vi/')
+    studio = 'https://cozypi.com/' + ('' if lang == 'en' else f'{lang}/')
     return f'''<!doctype html>
-<html lang="{lang}">
+<html lang="{HTML_LANG.get(lang, lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{t['title']}</title>
 <meta name="description" content="{t['desc']}">
 <meta name="theme-color" content="#0F3D33">
-<link rel="canonical" href="https://safe.cozypi.com/{'' if lang == 'en' else 'vi/'}">
-<link rel="alternate" hreflang="en" href="https://safe.cozypi.com/">
-<link rel="alternate" hreflang="vi" href="https://safe.cozypi.com/vi/">
-<link rel="icon" href="{root}favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="{root}apple-touch-icon.png">
-<link rel="stylesheet" href="{root}style.css">
+<meta property="og:title" content="{t['title']}">
+<meta property="og:description" content="{t['desc']}">
+<meta property="og:url" content="{SITE}{path(lang, 'home')}">
+<meta property="og:image" content="{SITE}/icon-512.png">
+<meta property="og:locale" content="{HTML_LANG.get(lang, lang).replace('-', '_')}">
+{head_common(lang, 'home', css)}
 </head>
 <body>
 <header class="hero">
@@ -135,7 +164,7 @@ def page(lang):
   <div class="wrap">
     <div class="top">
       <a class="brand" href="./"><img src="{root}icon-512.png" alt="" width="32" height="32">Cozy Safe</a>
-      <nav><a class="hide-sm" href="#how">{t['nav_how']}</a><a href="#download">{t['nav_dl']}</a><a class="hide-sm" href="{REPO}">{t['nav_src']}</a><a href="{other}" hreflang="{other_lang}">{other_label}</a></nav>
+      <nav><a class="hide-sm" href="#how">{t['nav_how']}</a><a href="#download">{t['nav_dl']}</a><a class="hide-sm" href="{REPO}">{t['nav_src']}</a></nav>{lang_menu(lang, 'home', texts[lang]['lang_label'])}
     </div>
     <div class="hero-grid">
       <div>
@@ -204,7 +233,7 @@ def page(lang):
   if (!p) return;
   var b = document.getElementById('primary');
   b.href = '{BASE}' + f;
-  b.querySelector('span').textContent = {t['btn_for']!r}.replace('{{p}}', p);
+  b.querySelector('span').textContent = {json.dumps(t['btn_for'], ensure_ascii=False)}.replace('{{p}}', p);
 }})();
 </script>
 </body>
@@ -212,10 +241,50 @@ def page(lang):
 '''
 
 
+def privacy(lang, texts, css):
+    t = texts[lang]['privacy']
+    root = '' if lang == 'en' else '../'
+    secs = ''.join(f'<h2>{h}</h2>' + ''.join(f'<p>{p}</p>' for p in ps) for h, ps in t['body'])
+    return f'''<!doctype html>
+<html lang="{HTML_LANG.get(lang, lang)}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{t['title']}</title>
+{head_common(lang, 'privacy', css)}
+<style>.doc{{max-width:720px;margin:0 auto;padding:40px 20px 80px}}.doc h1{{font-size:40px;letter-spacing:-.02em;margin:24px 0 4px;hyphens:auto;overflow-wrap:break-word}}.doc h2{{font-size:22px;margin:36px 0 8px}}.doc p{{margin:0 0 12px;color:var(--ink)}}.doc .meta{{color:var(--muted)}}.doc .bar{{display:flex;align-items:center;gap:12px}}.doc .home{{display:inline-flex;align-items:center;gap:8px;font-weight:700;text-decoration:none}}.doc .home img{{width:28px;height:28px;border-radius:8px}}</style>
+</head>
+<body>
+<main class="doc">
+<div class="bar"><a class="home" href="./"><img src="{root}icon-512.png" alt="" width="28" height="28">{t['back']}</a>{lang_menu(lang, 'privacy', texts[lang]['lang_label'])}</div>
+<h1>{t['h1']}</h1>
+<p class="meta">{t['updated'].replace('{DATE}', UPDATED)}</p>
+{secs}
+</main>
+</body>
+</html>
+'''
+
+
+def sitemap():
+    urls = ''
+    for pg in PAGES:
+        alts = ''.join(f'<xhtml:link rel="alternate" hreflang="{HTML_LANG.get(c, c)}" href="{SITE}{path(c, pg)}"/>' for c in IDS)
+        alts += f'<xhtml:link rel="alternate" hreflang="x-default" href="{SITE}{path("en", pg)}"/>'
+        urls += ''.join(f'<url><loc>{SITE}{path(c, pg)}</loc>{alts}</url>\n' for c in IDS)
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+            f'xmlns:xhtml="http://www.w3.org/1999/xhtml">\n{urls}</urlset>\n')
+
+
 if __name__ == '__main__':
-    os.makedirs(os.path.join(HERE, 'public', 'vi'), exist_ok=True)
-    with open(os.path.join(HERE, 'public', 'index.html'), 'w') as f:
-        f.write(page('en'))
-    with open(os.path.join(HERE, 'public', 'vi', 'index.html'), 'w') as f:
-        f.write(page('vi'))
-    print('built public/index.html and public/vi/index.html')
+    texts = load()
+    pub = os.path.join(HERE, 'public')
+    # Content hash in the CSS URL: cozypi.com makes browsers keep static files for hours.
+    css = hashlib.sha256(open(os.path.join(pub, 'style.css'), 'rb').read()).hexdigest()[:8]
+    for c in IDS:
+        d = pub if c == 'en' else os.path.join(pub, c)
+        os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, 'index.html'), 'w', encoding='utf-8').write(page(c, texts, css))
+        open(os.path.join(d, 'privacy.html'), 'w', encoding='utf-8').write(privacy(c, texts, css))
+    open(os.path.join(pub, 'sitemap.xml'), 'w').write(sitemap())
+    print(f'built {len(IDS)} languages x {len(PAGES)} pages + sitemap.xml')
