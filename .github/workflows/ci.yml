@@ -37,3 +37,6 @@ jobs:
       - name: Dart analysis
         working-directory: app
         run: flutter analyze
+      - name: Widget tests (lock screen, PIN, Emergency Kit)
+        working-directory: app
+        run: flutter test
