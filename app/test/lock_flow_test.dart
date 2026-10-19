@@ -1,6 +1,6 @@
 // Flows that can lock someone out of their vault if they break: PIN, wrong tries,
 // password fallback, type-to-unlock, an add action picked while locked, setting a PIN,
-// the Emergency Kit confirmation. The Rust core is replaced by a fake with state.
+// the Emergency Kit confirmation. The Rust core is replaced by a _fake with state.
 
 import 'dart:convert';
 import 'dart:typed_data';
@@ -62,7 +62,7 @@ class _Fake implements RustLibApi {
   }
 }
 
-late _Fake fake;
+late _Fake _fake;
 
 Widget _app(Widget home) => MaterialApp(
       theme: buildTheme(Brightness.light),
@@ -88,10 +88,10 @@ Future<void> _settle(WidgetTester t) async {
 }
 
 void main() {
-  setUpAll(() => RustLib.initMock(api: fake = _Fake()));
+  setUpAll(() => RustLib.initMock(api: _fake = _Fake()));
 
   setUp(() {
-    fake
+    _fake
       ..pinLength = 4
       ..pinForgotten = false
       ..enabledPin = null
@@ -130,7 +130,7 @@ void main() {
       await _tapDigits(t, '9999');
       await _settle(t);
     }
-    expect(fake.pinForgotten, isTrue);
+    expect(_fake.pinForgotten, isTrue);
     expect(find.byType(TextField), findsOneWidget);
     expect(find.textContaining('PIN turned off'), findsOneWidget);
     // The password still opens the vault.
@@ -141,7 +141,7 @@ void main() {
   });
 
   testWidgets('the right password opens without pressing Enter', (t) async {
-    fake.pinLength = 0;
+    _fake.pinLength = 0;
     await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     await t.enterText(find.byType(TextField), _password);
@@ -151,7 +151,7 @@ void main() {
   });
 
   testWidgets('a wrong password typed quietly says nothing; Enter says it is wrong', (t) async {
-    fake.pinLength = 0;
+    _fake.pinLength = 0;
     await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     await t.enterText(find.byType(TextField), 'not the password');
@@ -187,13 +187,13 @@ void main() {
     await _tapDigits(t, '1235');
     await t.pump();
     expect(find.text("The PINs didn't match. Start again."), findsOneWidget);
-    expect(fake.enabledPin, isNull);
+    expect(_fake.enabledPin, isNull);
     await _tapDigits(t, '1234');
     await t.tap(find.text('Next'));
     await t.pump();
     await _tapDigits(t, '1234');
     await _settle(t);
-    expect(fake.enabledPin, '1234');
+    expect(_fake.enabledPin, '1234');
   });
 
   testWidgets('a PIN shorter than 4 digits cannot go on', (t) async {
