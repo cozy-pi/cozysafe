@@ -8,7 +8,7 @@ import '../platform.dart';
 import '../theme.dart';
 
 /// Ways to add something to a vault, in dock order.
-enum AddMode { note, library, camera, scan, file, paste }
+enum AddMode { note, library, camera, audio, scan, file, paste }
 
 /// The modes this build can actually do on this device. Anything not built yet is
 /// left out of the dock entirely (no "coming soon"). Add a mode here when it works.
@@ -18,6 +18,7 @@ List<AddMode> availableAddModes() =>
       AddMode.note,
       AddMode.library,
       if (Device.iOS || Device.android) AddMode.camera,
+      if (Device.iOS || Device.android) AddMode.audio,
       AddMode.file,
     ];
 
@@ -54,6 +55,7 @@ class AddDock extends StatefulWidget {
     required this.trailing,
     required this.onAction,
     this.onModeChanged,
+    this.recording = false,
   });
 
   /// The mode the vault opens in: the last one used, except the camera, which never
@@ -74,6 +76,8 @@ class AddDock extends StatefulWidget {
   /// The strip moved to another mode: while dragging, as soon as a label crosses the
   /// middle, not on release. The vault shows that kind of content.
   final void Function(AddMode mode)? onModeChanged;
+  /// A voice memo is being recorded: the mic button shows Stop.
+  final bool recording;
 
   @override
   State<AddDock> createState() => _AddDockState();
@@ -108,6 +112,7 @@ class _AddDockState extends State<AddDock> {
     AddMode.note => l.modeNote,
     AddMode.library => l.modeLibrary,
     AddMode.camera => l.modeCamera,
+    AddMode.audio => l.modeAudio,
     AddMode.scan => l.modeScan,
     AddMode.file => l.modeFile,
     AddMode.paste => l.modePaste,
@@ -117,6 +122,7 @@ class _AddDockState extends State<AddDock> {
     AddMode.note => Icons.sticky_note_2_outlined,
     AddMode.library => Icons.photo_library_outlined,
     AddMode.camera => Icons.photo_camera,
+    AddMode.audio => Icons.mic,
     AddMode.scan => Icons.document_scanner_outlined,
     AddMode.file => Icons.create_new_folder_outlined,
     AddMode.paste => Icons.content_paste,
@@ -326,7 +332,24 @@ class _AddDockState extends State<AddDock> {
                           },
                           // Only the camera is a round shutter; every other mode is a button
                           // that says what it does, with that kind's symbol.
-                          child: mode == AddMode.camera
+                          child: mode == AddMode.audio
+                              // Voice memos: the same white ring, a red core and a
+                              // microphone; Stop while recording.
+                              ? Container(
+                                  width: 72,
+                                  height: 72,
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 4),
+                                  ),
+                                  child: DecoratedBox(
+                                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFE5484D)),
+                                    child: Icon(widget.recording ? Icons.stop_rounded : Icons.mic,
+                                        color: Colors.white, size: widget.recording ? 30 : 28),
+                                  ),
+                                )
+                              : mode == AddMode.camera
                               ? Container(
                                   width: 72,
                                   height: 72,

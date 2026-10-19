@@ -4,7 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## Next
+## 0.1.5 (2026-10-20)
+
+### Added
+- Voice memos: a Voice mode in the dock. The middle button is a microphone (Stop while
+  recording) with a live level meter and timer; the recording is encrypted into the
+  vault the moment it stops (and before the vault locks). Recordings play in place;
+  tap one to rename, send or delete it. iPhone and Android.
 
 ### Changed
 - The dock's add button (Pick photos, New note, Pick files) is white like the camera's

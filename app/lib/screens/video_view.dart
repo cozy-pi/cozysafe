@@ -34,6 +34,25 @@ const _playDir = 'play';
 Future<Directory> _playbackDir() async =>
     Directory('${(await getTemporaryDirectory()).path}${Platform.pathSeparator}$_playDir');
 
+/// Decrypt an item into the private playback folder for a player that needs a file.
+/// The caller deletes it when done; [clearPlaybackCopies] sweeps whatever is left.
+Future<File> playbackCopy(rust.ItemInfo item, {String fallbackExt = '.mp4'}) async {
+  final dir = await _playbackDir();
+  await dir.create(recursive: true);
+  final dot = item.name.lastIndexOf('.');
+  final ext = dot < 0 ? fallbackExt : item.name.substring(dot);
+  final copy = File('${dir.path}${Platform.pathSeparator}${item.id}$ext');
+  await rust.exportItem(id: item.id, path: copy.path);
+  return copy;
+}
+
+/// Recordings in progress live here until they are encrypted (then deleted).
+Future<Directory> recordingDir() async {
+  final d = Directory('${(await _playbackDir()).path}${Platform.pathSeparator}rec');
+  await d.create(recursive: true);
+  return d;
+}
+
 /// Remove every decrypted playback copy (app start, lock).
 Future<void> clearPlaybackCopies() async {
   try {

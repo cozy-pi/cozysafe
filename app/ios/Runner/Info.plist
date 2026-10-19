@@ -10,6 +10,8 @@
 	<string>Unlock your vault with Face ID.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Pick photos and videos to move into your encrypted vault.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Voice memos you record go straight into your encrypted vault.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Photos you take go straight into your encrypted vault.</string>
 	<key>CFBundleDevelopmentRegion</key>

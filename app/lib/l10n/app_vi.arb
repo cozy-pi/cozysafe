@@ -276,5 +276,12 @@
   "move": "Chuyển",
   "back": "Quay lại",
   "settingsVersion": "Cozy Safe {version} ({build}) · mã nguồn mở",
-  "settingsVersionOnly": "Cozy Safe {version} · mã nguồn mở"
+  "settingsVersionOnly": "Cozy Safe {version} · mã nguồn mở",
+  "modeAudio": "Ghi âm",
+  "micDenied": "Cho phép Cozy Safe dùng micro trong Cài đặt của máy để ghi âm.",
+  "recordFailed": "Không ghi âm được. Thử lại nhé.",
+  "recordingHint": "Đang ghi · bấm Dừng để lưu vào két",
+  "emptyAudioTitle": "Chưa có bản ghi nào",
+  "emptyAudioBody": "Bấm nút micro để ghi. Bản ghi được mã hoá vào két ngay khi dừng.",
+  "rename": "Đổi tên"
 }

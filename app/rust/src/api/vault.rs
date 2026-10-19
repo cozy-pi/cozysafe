@@ -576,6 +576,10 @@ pub fn delete_folder(id: String) -> Result<(), VaultError> {
     with_open(|v| Ok(v.delete_folder(&id)?))
 }
 
+pub fn rename_item(id: String, name: String) -> Result<ItemInfo, VaultError> {
+    with_open(|v| Ok(v.rename_item(&id, &name)?.into()))
+}
+
 pub fn set_item_duration(id: String, duration_ms: i64) -> Result<(), VaultError> {
     with_open(|v| Ok(v.set_duration(&id, duration_ms)?))
 }

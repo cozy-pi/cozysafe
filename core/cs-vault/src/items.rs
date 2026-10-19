@@ -245,6 +245,14 @@ impl OpenVault {
         Ok(r)
     }
 
+    /// Rename an item (a recording, a file); its content is untouched.
+    pub fn rename_item(&self, id: &str, name: &str) -> Result<ItemMeta> {
+        let mut record = self.record(id)?;
+        record.name = name.to_owned();
+        self.write_record(id, &record)?;
+        Ok(meta(id.to_owned(), record))
+    }
+
     /// Record a video's length (read by the app after importing it).
     pub fn set_duration(&self, id: &str, duration_ms: i64) -> Result<()> {
         let mut record = self.record(id)?;

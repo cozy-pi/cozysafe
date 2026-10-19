@@ -245,3 +245,12 @@ deniability).
   Deleting a folder moves what it holds up one level. A folder cannot go inside itself.
 - Long-press to select, then Move: the folder tree (indented), "Files (no folder)", or
   "New folder…". Library still shows every photo by date, whatever folder it is in.
+
+## Voice memos (approved 2026-10-20, 0.1.5)
+
+- A "Voice" mode in the dock strip (Notes · Library · Camera · Voice · Files), phones
+  only. The middle button: white ring, red core, white microphone; Stop while recording.
+- The list: name, date, length; ▶ plays in place with a progress bar; tapping a row
+  offers Rename, Send, Delete. Recording: level bars and a large timer.
+- The recorder writes to the app's private temp folder; the file is encrypted into the
+  vault and deleted as soon as recording stops, and before the vault locks.

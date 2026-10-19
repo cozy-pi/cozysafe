@@ -51,6 +51,9 @@ final _items = [
   for (var i = 5; i < 9; i++) _item('p$i', 'photo', 'IMG_${4790 + i}.HEIC', 2100000, ago: _day + i * 300000),
   _item('v2', 'video', 'Đi biển Quy Nhơn.MOV', 126000000, ago: _day * 2, duration: 3 * 60000 + 17000),
   for (var i = 9; i < 16; i++) _item('p$i', 'photo', 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i)),
+  _item('a1', 'audio', 'Cuộc họp với luật sư.m4a', 6100000, ago: 7200000, duration: 768000),
+  _item('a2', 'audio', 'Bác sĩ dặn về thuốc của mẹ.m4a', 1500000, ago: _day, duration: 185000),
+  _item('a3', 'audio', 'Thoả thuận đặt cọc nhà.m4a', 11600000, ago: _day * 8, duration: 1450000),
   _item('n1', 'note', 'Wifi nhà bà ngoại', 120),
   _item('n2', 'note', 'Tài khoản ngân hàng', 640, ago: _day),
   _item('n3', 'note', 'Thuốc của mẹ', 420, ago: _day * 3),
@@ -184,7 +187,7 @@ void main() {
   setUpAll(() async {
     RustLib.initMock(api: _Fake());
     FlutterSecureStorage.setMockInitialValues({});
-    debugAddModes = [AddMode.note, AddMode.library, AddMode.camera, AddMode.file];
+    debugAddModes = [AddMode.note, AddMode.library, AddMode.camera, AddMode.audio, AddMode.file];
     await _loadFonts();
   });
 
@@ -222,7 +225,7 @@ void main() {
     await _shot(t, 'lock-menu', const UnlockScreen(libraryDir: '', askBiometricNow: false),
         act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   });
-  for (final mode in ['library', 'note', 'file']) {
+  for (final mode in ['library', 'note', 'audio', 'file']) {
     testWidgets('mode $mode', skip: !_enabled, (t) async {
       Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
       Prefs.write('add-mode', mode);

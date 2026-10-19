@@ -26,6 +26,7 @@ import 'emergency_kit.dart';
 import 'file_view.dart';
 import 'new_vault.dart';
 import 'note.dart';
+import 'recorder.dart';
 import 'search.dart';
 import 'settings.dart';
 import 'trash.dart';
@@ -60,6 +61,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The dock's mode is also what the vault shows (docs/ui.md, vault content).
   late AddMode _mode = AddDock.startMode(availableAddModes());
   final _camera = GlobalKey<CameraViewState>();
+  final _recorder = GlobalKey<RecorderViewState>();
+  bool _recordingNow = false;
   static const _tintApp = false;
 
   /// The folder open in Files mode; null at the top level.
@@ -159,6 +162,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final nav = Navigator.of(context);
     void go() async {
       // Unsaved note text is written before the key is dropped.
+      // A recording in progress is saved before the key goes.
+      try {
+        await _recorder.currentState?.stopAndSave();
+      } catch (_) {}
       final save = LockGuard.beforeLock;
       if (save != null) {
         try {
@@ -191,6 +198,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     switch (mode) {
       case AddMode.camera:
         _camera.currentState?.shoot();
+      case AddMode.audio:
+        _recorder.currentState?.toggle();
       case AddMode.note:
         _openNote(null);
       case AddMode.library:
@@ -459,6 +468,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       });
     }
     if (item.kind == 'note') return _openNote(item);
+    if (item.kind == 'audio') return _audioActions(item);
     final String? deleted;
     if (item.kind == 'photo') {
       final photos = media.where((m) => m.kind == 'photo').toList();
@@ -484,6 +494,55 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!_locked && deleted != null) {
       _reload();
       _trashed([deleted]);
+    }
+  }
+
+  /// A recording: rename it, send it, or delete it (play is right in the list).
+  Future<void> _audioActions(rust.ItemInfo item) async {
+    final l = AppLocalizations.of(context);
+    final pick = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(leading: const Icon(Icons.edit_outlined), title: Text(l.rename), onTap: () => Navigator.pop(context, 0)),
+            ListTile(leading: const Icon(Icons.ios_share), title: Text(l.sendOut), onTap: () => Navigator.pop(context, 1)),
+            ListTile(leading: const Icon(Icons.delete_outline), title: Text(l.delete), onTap: () => Navigator.pop(context, 2)),
+          ],
+        ),
+      ),
+    );
+    if (pick == null || !mounted) return;
+    if (pick == 0) {
+      final text = TextEditingController(text: item.name.replaceAll(RegExp(r'\.m4a$'), ''));
+      final name = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l.rename),
+          content: TextField(controller: text, autofocus: true, textCapitalization: TextCapitalization.sentences),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
+            TextButton(onPressed: () => Navigator.pop(context, text.text.trim()), child: Text(l.save)),
+          ],
+        ),
+      );
+      text.dispose();
+      if (name != null && name.isNotEmpty) {
+        await rust.renameItem(id: item.id, name: '$name.m4a');
+        _reload();
+      }
+    } else if (pick == 1) {
+      setState(() => _selected
+        ..clear()
+        ..add(item.id));
+      await _sendSelected();
+      if (mounted) setState(_selected.clear);
+    } else {
+      await rust.trashItem(id: item.id, nowMs: nowMs());
+      _reload();
+      _trashed([item.id]);
     }
   }
 
@@ -1027,6 +1086,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     return switch (_mode) {
       AddMode.note => _list(context, items, notes: true),
       AddMode.file => _files(context, items),
+      AddMode.audio => RecorderView(
+          key: _recorder,
+          items: items,
+          onSaved: _reload,
+          onRecordingChanged: (v) => setState(() => _recordingNow = v),
+          onOpen: (it) => _openItem(it, const []),
+        ),
       _ => _library(context, items),
     };
   }
@@ -1117,6 +1183,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 leading: DockSlot(glyph: const LockGlyph(size: 24, color: Colors.white), label: l.lockVault, onTap: _lock),
                 trailing: DockSlot(icon: Icons.search, label: l.search, onTap: _openSearch),
                 onAction: _onAction,
+                recording: _recordingNow,
                 onModeChanged: (m) => setState(() {
                   _mode = m;
                   _selected.clear();

@@ -418,5 +418,12 @@
         "type": "String"
       }
     }
-  }
+  },
+  "modeAudio": "Voice",
+  "micDenied": "Allow microphone access for Cozy Safe in Settings to record.",
+  "recordFailed": "Couldn't record. Try again.",
+  "recordingHint": "Recording · tap Stop to save it to the vault",
+  "emptyAudioTitle": "No recordings yet",
+  "emptyAudioBody": "Tap the microphone to record. The recording is encrypted into the vault when you stop.",
+  "rename": "Rename"
 }
