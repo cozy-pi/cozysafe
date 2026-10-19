@@ -48,6 +48,8 @@ pub const MIN_PASSWORD_SCORE: u8 = 3;
 pub enum Error {
     #[error("password too weak")]
     WeakPassword,
+    #[error("a folder cannot go inside itself")]
+    FolderLoop,
     #[error("another vault already uses this password")]
     PasswordInUse,
     #[error("vault name is empty")]

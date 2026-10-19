@@ -4,6 +4,20 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.4 (2026-10-20)
+
+### Added
+- Folders, in Files: coloured folders that hold anything (photos, files, notes,
+  folders); open one to see what's in it, rename or recolour it, delete it (what's
+  inside moves up a level, nothing is lost). Select items and Move them to a folder.
+  Files picked inside a folder go into it. Folders are encrypted like everything else
+  and are part of backups.
+- The bottom of Settings shows the version and build, e.g. "Cozy Safe 0.1.4 (1009)":
+  the build is 1000 plus the GitHub release run number.
+
+### Changed
+- The mode strip fades out at both edges, so no half-cut label shows.
+
 ## 0.1.3 (2026-10-20)
 
 ### Added

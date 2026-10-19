@@ -34,7 +34,15 @@ pub struct ItemMeta {
     pub deleted_ms: Option<i64>,
     /// Length of a video, when known.
     pub duration_ms: Option<i64>,
+    /// The folder this item is in; `None` at the top level.
+    pub folder: Option<String>,
+    /// A folder's colour id (folders only).
+    pub color: Option<String>,
 }
+
+/// Kind of the items that are folders. A folder is an item with no content, so it is
+/// encrypted, backed up and restored like everything else.
+pub const FOLDER: &str = "folder";
 
 /// How long Recently deleted keeps an item.
 pub const TRASH_DAYS: i64 = 30;
@@ -53,6 +61,10 @@ struct ItemRecord {
     deleted_ms: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     duration_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    folder: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    color: Option<String>,
 }
 
 /// Content to store as a new item.
@@ -112,6 +124,8 @@ impl OpenVault {
             has_thumb: new.thumbnail.is_some(),
             deleted_ms: None,
             duration_ms: None,
+            folder: None,
+            color: None,
             wrapped_dek: hex::encode(wrap::wrap_key(
                 &self.master_key,
                 &dek,
@@ -154,6 +168,81 @@ impl OpenVault {
         let mut record = self.record(id)?;
         record.deleted_ms = Some(now_ms);
         self.write_record(id, &record)
+    }
+
+    /// A new, empty folder inside `parent` (or at the top level).
+    pub fn create_folder(
+        &self,
+        name: &str,
+        color: &str,
+        parent: Option<&str>,
+        created_ms: i64,
+    ) -> Result<ItemMeta> {
+        if let Some(p) = parent {
+            self.folder_record(p)?;
+        }
+        let m = self.add_item(NewItem {
+            kind: FOLDER,
+            name,
+            mime: "",
+            created_ms,
+            content: std::io::empty(),
+            thumbnail: None,
+        })?;
+        let mut record = self.record(&m.id)?;
+        record.folder = parent.map(str::to_owned);
+        record.color = Some(color.to_owned());
+        self.write_record(&m.id, &record)?;
+        Ok(meta(m.id, record))
+    }
+
+    /// Rename or recolour a folder.
+    pub fn update_folder(&self, id: &str, name: &str, color: &str) -> Result<ItemMeta> {
+        let mut record = self.folder_record(id)?;
+        record.name = name.to_owned();
+        record.color = Some(color.to_owned());
+        self.write_record(id, &record)?;
+        Ok(meta(id.to_owned(), record))
+    }
+
+    /// Put an item (or a folder) into `folder`, or back to the top level. A folder
+    /// cannot go inside itself or one of its own subfolders.
+    pub fn move_item(&self, id: &str, folder: Option<&str>) -> Result<()> {
+        if let Some(target) = folder {
+            // Walk up from the target: meeting `id` would make a loop.
+            let mut at = Some(target.to_owned());
+            while let Some(f) = at {
+                if f == id {
+                    return Err(Error::FolderLoop);
+                }
+                at = self.folder_record(&f)?.folder;
+            }
+        }
+        let mut record = self.record(id)?;
+        record.folder = folder.map(str::to_owned);
+        self.write_record(id, &record)
+    }
+
+    /// Remove a folder; what was in it moves up to the folder's own parent, so deleting
+    /// a folder never deletes anything else.
+    pub fn delete_folder(&self, id: &str) -> Result<()> {
+        let record = self.folder_record(id)?;
+        for m in self.all_items()? {
+            if m.folder.as_deref() == Some(id) {
+                let mut r = self.record(&m.id)?;
+                r.folder = record.folder.clone();
+                self.write_record(&m.id, &r)?;
+            }
+        }
+        self.delete_item(id)
+    }
+
+    fn folder_record(&self, id: &str) -> Result<ItemRecord> {
+        let r = self.record(id)?;
+        if r.kind != FOLDER {
+            return Err(Error::NoSuchItem);
+        }
+        Ok(r)
     }
 
     /// Record a video's length (read by the app after importing it).
@@ -287,6 +376,8 @@ fn meta(id: String, r: ItemRecord) -> ItemMeta {
         size: r.size,
         deleted_ms: r.deleted_ms,
         duration_ms: r.duration_ms,
+        folder: r.folder,
+        color: r.color,
     }
 }
 
@@ -435,5 +526,43 @@ mod tests {
         assert_eq!(v.purge_expired(1_000 + TRASH_DAYS * DAY_MS).unwrap(), 1);
         assert!(v.trashed().unwrap().is_empty());
         assert!(matches!(v.read_thumbnail(&a.id), Err(Error::NoSuchItem)));
+    }
+
+    #[test]
+    fn folders() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
+            .unwrap()
+            .create_vault("V", PW)
+            .unwrap();
+        let ids = v.create_folder("Giấy tờ", "amber", None, 1).unwrap();
+        let sub = v
+            .create_folder("Hộ chiếu", "blue", Some(&ids.id), 2)
+            .unwrap();
+        let photo = v.add_item(photo(b"p", 3)).unwrap();
+        v.move_item(&photo.id, Some(&sub.id)).unwrap();
+        let find = |id: &str| v.items().unwrap().into_iter().find(|m| m.id == id).unwrap();
+        assert_eq!(find(&photo.id).folder.as_deref(), Some(sub.id.as_str()));
+        assert_eq!(find(&sub.id).color.as_deref(), Some("blue"));
+        // No loops: a folder cannot go into its own subfolder or itself.
+        assert!(matches!(
+            v.move_item(&ids.id, Some(&sub.id)),
+            Err(Error::FolderLoop)
+        ));
+        assert!(matches!(
+            v.move_item(&ids.id, Some(&ids.id)),
+            Err(Error::FolderLoop)
+        ));
+        // Only folders can hold things.
+        assert!(matches!(
+            v.move_item(&sub.id, Some(&photo.id)),
+            Err(Error::NoSuchItem)
+        ));
+        v.update_folder(&sub.id, "Visa", "red").unwrap();
+        assert_eq!(find(&sub.id).name, "Visa");
+        // Deleting a folder moves its content up, never deletes it.
+        v.delete_folder(&sub.id).unwrap();
+        assert_eq!(find(&photo.id).folder.as_deref(), Some(ids.id.as_str()));
+        assert!(v.items().unwrap().iter().all(|m| m.id != sub.id));
     }
 }

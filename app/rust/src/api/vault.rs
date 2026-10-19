@@ -30,7 +30,7 @@ pub enum VaultError {
     WeakPassword,
     PasswordInUse,
     EmptyName,
-    /// A PIN is 4 to 10 digits.
+    /// A PIN has at least 4 digits.
     BadPin,
     /// Another vault on this device already opens with this PIN.
     PinInUse,
@@ -42,6 +42,8 @@ pub enum VaultError {
     BadBackup,
     /// Restoring needs an empty library; this device already has vaults.
     LibraryExists,
+    /// A folder cannot go inside itself or one of its subfolders.
+    FolderLoop,
     Storage,
 }
 
@@ -56,6 +58,7 @@ impl From<cs_vault::Error> for VaultError {
             cs_vault::Error::WrongSecretKey => VaultError::WrongSecretKey,
             cs_vault::Error::BadBackup => VaultError::BadBackup,
             cs_vault::Error::LibraryExists => VaultError::LibraryExists,
+            cs_vault::Error::FolderLoop => VaultError::FolderLoop,
             _ => VaultError::Storage,
         }
     }
@@ -362,6 +365,10 @@ pub struct ItemInfo {
     pub deleted_ms: Option<i64>,
     /// Length of a video, when known.
     pub duration_ms: Option<i64>,
+    /// The folder it is in; None at the top level.
+    pub folder: Option<String>,
+    /// A folder's colour id.
+    pub color: Option<String>,
 }
 
 impl From<ItemMeta> for ItemInfo {
@@ -375,6 +382,8 @@ impl From<ItemMeta> for ItemInfo {
             size: m.size,
             deleted_ms: m.deleted_ms,
             duration_ms: m.duration_ms,
+            folder: m.folder,
+            color: m.color,
         }
     }
 }
@@ -536,6 +545,35 @@ pub fn item_content(id: String) -> Result<Vec<u8>, VaultError> {
 /// Delete for good (from Recently deleted).
 pub fn delete_item(id: String) -> Result<(), VaultError> {
     with_open(|v| Ok(v.delete_item(&id)?))
+}
+
+/// A new folder (an item of kind "folder") inside `parent`, or at the top level.
+pub fn create_folder(
+    name: String,
+    color: String,
+    parent: Option<String>,
+    created_ms: i64,
+) -> Result<ItemInfo, VaultError> {
+    with_open(|v| Ok(v.create_folder(&name, &color, parent.as_deref(), created_ms)?.into()))
+}
+
+pub fn update_folder(id: String, name: String, color: String) -> Result<ItemInfo, VaultError> {
+    with_open(|v| Ok(v.update_folder(&id, &name, &color)?.into()))
+}
+
+/// Move items (and folders) into `folder`, or to the top level when None.
+pub fn move_items(ids: Vec<String>, folder: Option<String>) -> Result<(), VaultError> {
+    with_open(|v| {
+        for id in &ids {
+            v.move_item(id, folder.as_deref())?;
+        }
+        Ok(())
+    })
+}
+
+/// Delete a folder; what it holds moves up to its parent.
+pub fn delete_folder(id: String) -> Result<(), VaultError> {
+    with_open(|v| Ok(v.delete_folder(&id)?))
 }
 
 pub fn set_item_duration(id: String, duration_ms: i64) -> Result<(), VaultError> {

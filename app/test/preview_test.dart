@@ -26,7 +26,9 @@ import 'package:flutter_test/flutter_test.dart';
 const _enabled = bool.fromEnvironment('PREVIEW');
 final _now = DateTime.now().millisecondsSinceEpoch;
 
-ItemInfo _item(String id, String kind, String name, int size, {int ago = 0, int? deleted, int? duration}) => ItemInfo(
+ItemInfo _item(String id, String kind, String name, int size,
+        {int ago = 0, int? deleted, int? duration, String? folder, String? color}) =>
+    ItemInfo(
       id: id.padRight(32, '_'),
       kind: kind,
       name: name,
@@ -35,6 +37,8 @@ ItemInfo _item(String id, String kind, String name, int size, {int ago = 0, int?
       size: BigInt.from(size),
       deletedMs: deleted,
       durationMs: duration,
+      folder: folder?.padRight(32, '_'),
+      color: color,
     );
 
 const _day = 86400000;
@@ -49,17 +53,26 @@ final _items = [
   _item('n1', 'note', 'Wifi nhà bà ngoại', 120),
   _item('n2', 'note', 'Tài khoản ngân hàng', 640, ago: _day),
   _item('n3', 'note', 'Thuốc của mẹ', 420, ago: _day * 3),
-  _item('n4', 'note', 'Hộ chiếu và visa', 260, ago: _day * 9),
+  _item('n4', 'note', 'Hộ chiếu và visa', 260, ago: _day * 9, folder: 'd1'),
   _item('n5', 'note', 'Mật khẩu router và camera an ninh', 300, ago: _day * 15),
   _item('n6', 'note', 'Danh sách quà Tết', 90, ago: _day * 30),
   _item('n7', 'note', 'Mã két sắt', 40, ago: _day * 60),
   _item('n8', 'note', 'Thông tin bảo hiểm xe', 520, ago: _day * 75),
+  _item('d1', 'folder', 'Giấy tờ tùy thân', 0, color: 'amber'),
+  _item('d2', 'folder', 'Nhà cửa', 0, color: 'blue'),
+  _item('d3', 'folder', 'Sức khoẻ', 0, color: 'red'),
+  _item('d4', 'folder', 'Công việc', 0, color: 'violet'),
+  _item('d5', 'folder', 'Xe máy và ô tô', 0, color: 'leaf'),
+  _item('d6', 'folder', 'Hộ chiếu', 0, color: 'teal', folder: 'd1'),
+  _item('g1', 'file', 'Ho-chieu-scan.pdf', 2300000, ago: _day * 220, folder: 'd1'),
+  _item('g2', 'file', 'Giay-khai-sinh-Na.pdf', 640000, ago: _day * 290, folder: 'd1'),
+  _item('g3', 'file', 'Bang-lai-xe.pdf', 1100000, ago: _day * 72, folder: 'd1'),
   _item('f1', 'file', 'Hop-dong-thue-nha-2026.pdf', 1240000),
   _item('f2', 'file', 'So-do-nha-scan.pdf', 4870000, ago: _day * 2),
   _item('f3', 'file', 'Chi tieu gia dinh 2026.xlsx', 86000, ago: _day * 4),
   _item('f4', 'file', 'Ket qua xet nghiem mau thang 9 - Benh vien Bach Mai.pdf', 732000, ago: _day * 11),
   _item('f5', 'file', 'Di-chuc-nhap.docx', 42000, ago: _day * 20),
-  _item('f6', 'file', 'CCCD-mat-truoc.jpg', 1840000, ago: _day * 33),
+  _item('f6', 'file', 'CCCD-mat-truoc.jpg', 1840000, ago: _day * 33, folder: 'd1'),
   _item('f7', 'file', 'Ho-so-xin-viec.zip', 15600000, ago: _day * 50),
   _item('f8', 'file', 'Ghi-am-cuoc-hop.m4a', 9300000, ago: _day * 64),
 ];
@@ -214,6 +227,14 @@ void main() {
       await _shot(t, 'mode-$mode', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color);
     });
   }
+  testWidgets('folder', skip: !_enabled, (t) async {
+    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
+    Prefs.write('add-mode', 'file');
+    await _shot(t, 'folder', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color,
+        act: (t) async {
+      await t.tap(find.text('Giấy tờ tùy thân'));
+    });
+  });
   testWidgets('select', skip: !_enabled, (t) async {
     Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
     Prefs.write('add-mode', 'library');

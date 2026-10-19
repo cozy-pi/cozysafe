@@ -59,6 +59,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The dock's mode is also what the vault shows (docs/ui.md, vault content).
   late AddMode _mode = AddDock.startMode(availableAddModes());
   final _camera = GlobalKey<CameraViewState>();
+  /// The folder open in Files mode; null at the top level.
+  String? _folder;
   /// Long-press selection: ids picked for Delete / Send.
   final Set<String> _selected = {};
   /// Note previews (second line on), decrypted on demand, in memory only.
@@ -220,9 +222,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         enableDrag: false,
         builder: (context) => _ImportSheet(total: files.length, done: done, onCancel: () => cancel = true),
       );
-      final int n;
+      final List<rust.ItemInfo> added;
       try {
-        n = await importFiles(files, photos: photos, progress: (d, _) {
+        added = await importFiles(files, photos: photos, progress: (d, _) {
           done.value = d;
           LockGuard.activity(); // a long import is not idleness
         }, cancelled: () => cancel);
@@ -231,8 +233,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         await sheet;
         done.dispose();
       }
+      // Picked inside a folder: they go into that folder.
+      final into = _mode == AddMode.file ? _folder : null;
+      if (into != null && added.isNotEmpty) {
+        await rust.moveItems(ids: [for (final a in added) a.id], folder: into);
+      }
       if (mounted) {
-        _snack(l.imported(n));
+        _snack(l.imported(added.length));
         _reload();
       }
     } on rust.VaultError catch (e) {
@@ -436,6 +443,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
     if (_selected.isNotEmpty) return _toggle(item.id);
+    if (item.kind == 'folder') {
+      return setState(() {
+        _mode = AddMode.file;
+        _folder = item.id;
+      });
+    }
     if (item.kind == 'note') return _openNote(item);
     final String? deleted;
     if (item.kind == 'photo') {
@@ -494,8 +507,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<void> _deleteSelected() async {
-    final ids = _selected.toList();
+    final folders = {for (final i in _items ?? const <rust.ItemInfo>[]) if (i.kind == 'folder') i.id};
+    final ids = _selected.where((id) => !folders.contains(id)).toList();
     final now = DateTime.now().millisecondsSinceEpoch;
+    for (final id in _selected.where(folders.contains)) {
+      try {
+        await rust.deleteFolder(id: id); // what it holds moves up, nothing is deleted
+      } catch (_) {}
+    }
     for (final id in ids) {
       try {
         await rust.trashItem(id: id, nowMs: now);
@@ -503,14 +522,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
     setState(_selected.clear);
     _reload();
-    _trashed(ids);
+    if (ids.isNotEmpty) _trashed(ids);
   }
 
   /// Decrypted copies of the selection go to the share sheet, then the copies are wiped.
   Future<void> _sendSelected() async {
     final l = AppLocalizations.of(context);
     if (!await confirmShareOut(context, _vault.id) || !mounted) return;
-    final items = (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id)).toList();
+    final items =
+        (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id) && i.kind != 'folder').toList();
     final dir = await Directory((await getTemporaryDirectory()).path).createTemp('send');
     LockGuard.allowAway();
     try {
@@ -664,6 +684,327 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
+  // ---------- folders (Files mode) ----------
+
+  /// Folder colours: a short, distinct set of the vault colours.
+  static const _folderColors = ['amber', 'blue', 'red', 'violet', 'leaf', 'teal', 'pink', 'grey'];
+
+  Map<String, rust.ItemInfo> get _folders =>
+      {for (final i in _items ?? const <rust.ItemInfo>[]) if (i.kind == 'folder') i.id: i};
+
+  /// Where an item really sits: a folder that no longer exists counts as the top level.
+  String? _parentOf(rust.ItemInfo i, Map<String, rust.ItemInfo> folders) =>
+      i.folder != null && folders.containsKey(i.folder) ? i.folder : null;
+
+  void _upFolder() {
+    final f = _folders[_folder];
+    setState(() {
+      _folder = f == null ? null : _parentOf(f, _folders);
+      _selected.clear();
+    });
+  }
+
+  Future<(String, String)?> _askFolder({String name = '', String color = 'amber', required String title}) {
+    final l = AppLocalizations.of(context);
+    final text = TextEditingController(text: name);
+    var picked = color;
+    return showDialog<(String, String)>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, set) => AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: text,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(hintText: l.folderName),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final c in _folderColors)
+                    Semantics(
+                      button: true,
+                      selected: c == picked,
+                      label: colorById(c).label,
+                      child: GestureDetector(
+                        onTap: () => set(() => picked = c),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: colorById(c).color,
+                            shape: BoxShape.circle,
+                            border: c == picked ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3) : null,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
+            TextButton(
+              onPressed: () {
+                final n = text.text.trim();
+                if (n.isNotEmpty) Navigator.pop(context, (n, picked));
+              },
+              child: Text(l.save),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(text.dispose);
+  }
+
+  Future<rust.ItemInfo?> _newFolder({String? parent}) async {
+    final l = AppLocalizations.of(context);
+    final r = await _askFolder(title: l.newFolder);
+    if (r == null) return null;
+    try {
+      final f = await rust.createFolder(
+          name: r.$1, color: r.$2, parent: parent, createdMs: DateTime.now().millisecondsSinceEpoch);
+      await _reload();
+      return f;
+    } on rust.VaultError catch (e) {
+      if (mounted) _snack(vaultErrorText(l, e));
+      return null;
+    }
+  }
+
+  Future<void> _editFolder(rust.ItemInfo f) async {
+    final l = AppLocalizations.of(context);
+    final r = await _askFolder(title: l.renameFolder, name: f.name, color: f.color ?? 'amber');
+    if (r == null) return;
+    await rust.updateFolder(id: f.id, name: r.$1, color: r.$2);
+    _reload();
+  }
+
+  Future<void> _removeFolder(rust.ItemInfo f) async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.deleteFolderTitle(f.name)),
+        content: Text(l.deleteFolderBody),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(l.delete)),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final up = _parentOf(f, _folders);
+    await rust.deleteFolder(id: f.id);
+    setState(() => _folder = up);
+    _reload();
+  }
+
+  /// Move the selection: pick a folder (the tree, indented), the top level, or a new one.
+  Future<void> _moveSelected() async {
+    final l = AppLocalizations.of(context);
+    final folders = _folders;
+    // Folders being moved, and everything under them, can't be targets.
+    bool under(String? id, String root) {
+      for (var at = id; at != null; at = folders[at] == null ? null : _parentOf(folders[at]!, folders)) {
+        if (at == root) return true;
+      }
+      return false;
+    }
+
+    final moving = _selected.where(folders.containsKey).toList();
+    final rows = <(rust.ItemInfo, int)>[];
+    void walk(String? parent, int depth) {
+      final kids = folders.values.where((f) => _parentOf(f, folders) == parent).toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      for (final f in kids) {
+        if (moving.any((m) => under(f.id, m))) continue;
+        rows.add((f, depth));
+        walk(f.id, depth + 1);
+      }
+    }
+
+    walk(null, 0);
+    const top = '';
+    const create = '+';
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .7),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(l.moveTo(_selected.length), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_open_outlined),
+                title: Text(l.topLevel),
+                onTap: () => Navigator.pop(context, top),
+              ),
+              for (final (f, depth) in rows)
+                ListTile(
+                  contentPadding: EdgeInsets.only(left: 16.0 + depth * 22, right: 16),
+                  leading: Icon(Icons.folder, color: colorById(f.color ?? 'amber').color),
+                  title: Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  onTap: () => Navigator.pop(context, f.id),
+                ),
+              ListTile(
+                leading: const Icon(Icons.create_new_folder_outlined),
+                title: Text(l.newFolderEllipsis),
+                onTap: () => Navigator.pop(context, create),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    String? target = picked == top ? null : picked;
+    if (picked == create) {
+      final f = await _newFolder(parent: _mode == AddMode.file ? _folder : null);
+      if (f == null) return;
+      target = f.id;
+    }
+    try {
+      await rust.moveItems(ids: _selected.toList(), folder: target);
+      if (!mounted) return;
+      final name = target == null ? l.topLevel : (_folders[target]?.name ?? '');
+      setState(_selected.clear);
+      await _reload();
+      _snack(l.movedTo(name));
+    } on rust.VaultError catch (e) {
+      if (mounted) _snack(vaultErrorText(l, e));
+    }
+  }
+
+  /// Files mode: the folders here (tiles, then "New folder"), then what else is here.
+  /// At the top level that is the loose files; inside a folder, everything in it.
+  Widget _files(BuildContext context, List<rust.ItemInfo> items) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final folders = _folders;
+    final here = _folder != null && folders.containsKey(_folder) ? _folder : null;
+    final subfolders = items.where((i) => i.kind == 'folder' && _parentOf(i, folders) == here).toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final rest = items
+        .where((i) => i.kind != 'folder' && _parentOf(i, folders) == here && (here != null || i.kind == 'file'))
+        .toList();
+    int count(String id) => items.where((i) => i.folder == id).length;
+
+    // The path, top level first: Files › Papers › Passport.
+    final path = <rust.ItemInfo>[];
+    for (var at = here; at != null; at = _parentOf(folders[at]!, folders)) {
+      path.insert(0, folders[at]!);
+    }
+
+    return Scrollbar(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+        children: [
+          if (here != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  IconButton(tooltip: l.back, onPressed: _upFolder, icon: const Icon(Icons.arrow_back)),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(children: [
+                        TextSpan(text: '${l.modeFile} › ', style: TextStyle(color: c.muted)),
+                        for (final (i, f) in path.indexed)
+                          TextSpan(
+                            text: i == path.length - 1 ? f.name : '${f.name} › ',
+                            style: i == path.length - 1
+                                ? const TextStyle(fontWeight: FontWeight.w700, fontSize: 17)
+                                : TextStyle(color: c.muted),
+                          ),
+                      ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  PopupMenuButton<int>(
+                    tooltip: l.folderOptions,
+                    onSelected: (v) => v == 0 ? _editFolder(folders[here]!) : _removeFolder(folders[here]!),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(value: 0, child: Text(l.renameFolder)),
+                      PopupMenuItem(value: 1, child: Text(l.deleteFolder)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          if (subfolders.isNotEmpty || here == null || rest.isEmpty) ...[
+            if (here == null) _SectionTitle(l.folders),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 2.2,
+              children: [
+                for (final f in subfolders)
+                  _FolderTile(
+                    folder: f,
+                    count: count(f.id),
+                    selected: _selected.contains(f.id),
+                    onTap: () => _openItem(f, const []),
+                    onLongPress: () => _toggle(f.id),
+                  ),
+                _NewFolderTile(onTap: () => _newFolder(parent: here)),
+              ],
+            ),
+          ],
+          if (rest.isNotEmpty) ...[
+            if (here == null) _SectionTitle(l.modeFile) else const SizedBox(height: 12),
+            Material(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(14),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  for (final (i, it) in rest.indexed) ...[
+                    if (i > 0) Divider(height: 1, indent: 70, color: c.border.withValues(alpha: .6)),
+                    _FileRow(
+                      item: it,
+                      thumb: it.kind == 'photo' || it.kind == 'video' ? _thumb(it.id) : null,
+                      selected: _selected.contains(it.id),
+                      onTap: () => _openItem(it, rest.where(_isMedia).toList()),
+                      onLongPress: () => _toggle(it.id),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ] else if (here == null && subfolders.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: _Empty(icon: Icons.description_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody),
+            )
+          else if (here != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: Text(l.folderEmpty, textAlign: TextAlign.center, style: TextStyle(color: c.muted)),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _content(BuildContext context) {
     final items = _items;
     if (_mode == AddMode.camera) {
@@ -676,7 +1017,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (items == null) return const Center(child: CircularProgressIndicator());
     return switch (_mode) {
       AddMode.note => _list(context, items, notes: true),
-      AddMode.file => _list(context, items, notes: false),
+      AddMode.file => _files(context, items),
       _ => _library(context, items),
     };
   }
@@ -746,10 +1087,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           )
         : null;
 
+    final inFolder = _mode == AddMode.file && _folder != null;
     return PopScope(
-      canPop: !selecting,
+      canPop: !selecting && !inFolder,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && selecting) setState(_selected.clear);
+        if (didPop) return;
+        if (selecting) {
+          setState(_selected.clear);
+        } else if (inFolder) {
+          _upFolder();
+        }
       },
       child: Scaffold(
         body: Column(
@@ -772,7 +1119,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                     ),
             ),
             if (selecting)
-              _SelectionBar(onSend: _sendSelected, onDelete: _deleteSelected)
+              _SelectionBar(onSend: _sendSelected, onMove: _moveSelected, onDelete: _deleteSelected)
             else
               AddDock(
                 modes: availableAddModes(),
@@ -793,8 +1140,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
 /// While items are selected the dock gives way to what can be done with them.
 class _SelectionBar extends StatelessWidget {
-  const _SelectionBar({required this.onSend, required this.onDelete});
+  const _SelectionBar({required this.onSend, required this.onMove, required this.onDelete});
   final VoidCallback onSend;
+  final VoidCallback onMove;
   final VoidCallback onDelete;
 
   @override
@@ -824,6 +1172,7 @@ class _SelectionBar extends StatelessWidget {
         child: Row(
           children: [
             action(Icons.ios_share, l.sendOut, onSend),
+            action(Icons.drive_file_move_outline, l.move, onMove),
             action(Icons.delete_outline, l.delete, onDelete),
           ],
         ),
@@ -900,8 +1249,10 @@ class _NoteRow extends StatelessWidget {
 
 /// A file: its kind, name, size and date.
 class _FileRow extends StatelessWidget {
-  const _FileRow({required this.item, required this.selected, required this.onTap, required this.onLongPress});
+  const _FileRow({required this.item, this.thumb, required this.selected, required this.onTap, required this.onLongPress});
   final rust.ItemInfo item;
+  /// A photo's or video's preview, inside folders.
+  final Future<Uint8List>? thumb;
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -923,9 +1274,17 @@ class _FileRow extends StatelessWidget {
             Container(
               width: 42,
               height: 48,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(8)),
-              child: Center(
-                child: ext.isEmpty || ext.length > 4
+              child: thumb != null
+                  ? FutureBuilder<Uint8List>(
+                      future: thumb,
+                      builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
+                          ? Image.memory(snap.data!, fit: BoxFit.cover)
+                          : const SizedBox.expand(),
+                    )
+                  : Center(
+                child: item.kind == 'note' || ext.isEmpty || ext.length > 4
                     ? Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary)
                     : Text(ext,
                         style: TextStyle(
@@ -1269,4 +1628,116 @@ class _ImportSheetState extends State<_ImportSheet> {
       ),
     );
   }
+}
+
+/// A folder in Files mode: its colour, name and how many things are directly in it.
+class _FolderTile extends StatelessWidget {
+  const _FolderTile({
+    required this.folder,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+    required this.onLongPress,
+  });
+  final rust.ItemInfo folder;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    return Material(
+      color: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: .18) : Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          child: Row(
+            children: [
+              Icon(Icons.folder, size: 34, color: colorById(folder.color ?? 'amber').color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(folder.name,
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(l.itemsCount(count), style: TextStyle(color: c.muted, fontSize: 12)),
+                  ],
+                ),
+              ),
+              if (selected) Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NewFolderTile extends StatelessWidget {
+  const _NewFolderTile({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: DottedBox(
+        color: c.muted,
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.create_new_folder_outlined, color: c.muted),
+              const SizedBox(width: 8),
+              Text(l.newFolder, style: TextStyle(color: c.muted, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A rounded box with a dashed outline ("add one here").
+class DottedBox extends StatelessWidget {
+  const DottedBox({super.key, required this.color, required this.child});
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(painter: _Dashes(color.withValues(alpha: .6)), child: child);
+}
+
+class _Dashes extends CustomPainter {
+  _Dashes(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(14)).deflate(1);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    for (final m in (Path()..addRRect(rrect)).computeMetrics()) {
+      for (var d = 0.0; d < m.length; d += 10) {
+        canvas.drawPath(m.extractPath(d, d + 5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Dashes old) => old.color != color;
 }

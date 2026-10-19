@@ -101,14 +101,14 @@ Future<int?> videoLength(String path) async {
 
 /// Bring files from outside into the open vault. Copies that pickers left in this app's
 /// temp folder are deleted once encrypted; files picked in place (desktop) are left alone.
-Future<int> importFiles(
+Future<List<rust.ItemInfo>> importFiles(
   List<XFile> files, {
   required bool photos,
   void Function(int done, int total)? progress,
   bool Function()? cancelled,
 }) async {
   final tmp = (await getTemporaryDirectory()).path;
-  var n = 0;
+  final added = <rust.ItemInfo>[];
   for (final f in files) {
     // Cancel keeps what is finished; the current file is never half added.
     if (cancelled?.call() ?? false) {
@@ -136,15 +136,15 @@ Future<int> importFiles(
       final ms = await videoLength(f.path);
       if (ms != null) await rust.setItemDuration(id: item.id, durationMs: ms);
     }
-    n++;
-    progress?.call(n, files.length);
+    added.add(item);
+    progress?.call(added.length, files.length);
     if (f.path.startsWith(tmp)) {
       try {
         File(f.path).deleteSync();
       } catch (_) {}
     }
   }
-  return n;
+  return added;
 }
 
 Future<List<XFile>> pickPhotos() => ImagePicker().pickMultipleMedia(requestFullMetadata: false);

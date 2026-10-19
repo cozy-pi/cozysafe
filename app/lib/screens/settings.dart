@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
@@ -323,7 +324,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          Center(child: Text(l.settingsFooter, style: TextStyle(color: c.muted, fontSize: 12))),
+          // Version and build, to match a phone with its GitHub release run (build = 1000 + run).
+          Center(
+            child: FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snap) => Text(
+                snap.hasData ? l.settingsVersion(snap.data!.version, snap.data!.buildNumber) : l.settingsFooter,
+                style: TextStyle(color: c.muted, fontSize: 12),
+              ),
+            ),
+          ),
           if (dark) const SizedBox(height: 4),
         ],
       ),

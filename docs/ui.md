@@ -231,3 +231,14 @@ deniability).
   plays inside the app on iOS, Android and macOS; the player needs a file, so a copy is
   decrypted into the app's private temp folder and deleted on close, on lock and at
   every start. Elsewhere, videos open in another app with the warning.
+
+## Folders (approved 2026-10-20, 0.1.4)
+
+- Folders live in Files mode, like the Files app: coloured folder tiles first (name and
+  item count), a dashed "New folder" tile, then the loose files. Inside a folder: a back
+  arrow and the path (Files › Papers › Passport), its subfolders, then everything in it
+  (photos with their preview, notes, files). ⋯ renames, recolours or deletes it.
+- A folder is an encrypted item of kind "folder"; items record the folder they are in.
+  Deleting a folder moves what it holds up one level. A folder cannot go inside itself.
+- Long-press to select, then Move: the folder tree (indented), "Files (no folder)", or
+  "New folder…". Library still shows every photo by date, whatever folder it is in.

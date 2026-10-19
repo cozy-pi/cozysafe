@@ -25,6 +25,7 @@ dependencies:
   pdfrx: ^2.6.6
   video_player: ^2.14.1
   fc_native_video_thumbnail: ^4.0.0
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:
