@@ -67,7 +67,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
     setState(() => _busy = true);
     try {
       final vault = await _store(l).unlock(widget.libraryDir);
-      if (vault != null) return _open(vault);
+      if (vault != null) return await _open(vault);
     } on BiometricKeyGone {
       if (mounted) {
         setState(() {
@@ -110,11 +110,11 @@ class _UnlockScreenState extends State<UnlockScreen> {
       final vault = await rust.unlock(dir: widget.libraryDir, password: text);
       _tried = text;
       if (!mounted) return;
-      if (vault != null) return _open(vault, offerBiometric: true);
+      if (vault != null) return await _open(vault, offerBiometric: true);
       if (_password.text != text) {
         // Typing moved on while this ran: try the newer text next.
         _checking = false;
-        return _attempt(quiet: !_busy);
+        return await _attempt(quiet: !_busy);
       }
       if (_busy) setState(() => _error = l.wrongPassword);
     } on rust.VaultError catch (e) {
