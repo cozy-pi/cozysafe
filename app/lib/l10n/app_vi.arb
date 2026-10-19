@@ -87,5 +87,49 @@
   "backup": "Sao lưu ra file",
   "backupDone": "Đã lưu bản sao lưu",
   "backupFailed": "Không sao lưu được. Hãy kiểm tra dung lượng trống rồi thử lại.",
-  "showKit": "Bộ khẩn cấp"
+  "showKit": "Bộ khẩn cấp",
+  "modeNote": "Ghi chú",
+  "modeLibrary": "Thư viện",
+  "modeCamera": "Chụp",
+  "modeScan": "Quét",
+  "modeFile": "File",
+  "modePaste": "Dán",
+  "pinDelete": "Xoá",
+  "pinEnter": "Nhập mã PIN",
+  "pinWrong": "{count, plural, other{Sai mã PIN. Còn {count} lần thử.}}",
+  "@pinWrong": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pinLocked": "Mã PIN đã tắt sau quá nhiều lần sai. Mở bằng mật khẩu rồi đặt lại.",
+  "usePassword": "Dùng mật khẩu",
+  "usePin": "Dùng mã PIN",
+  "unlockToAdd": "Mở khoá trước, xong là mở ngay.",
+  "lockedAddOnly": "Két đang khoá",
+  "notNow": "Để sau",
+  "pinSetTitle": "Đặt mã PIN",
+  "pinSetLead": "4 đến 10 số, chỉ dùng trên máy này. Mật khẩu vẫn dùng được ở mọi nơi.",
+  "pinConfirmTitle": "Nhập lại lần nữa",
+  "pinConfirmLead": "Để chắc đúng mã bạn muốn.",
+  "pinShortNote": "Dài hơn thì an toàn hơn: nên từ 6 số.",
+  "pinMismatch": "Hai lần nhập không khớp. Làm lại nhé.",
+  "pinNext": "Tiếp",
+  "pinSetting": "Mở khoá bằng mã PIN",
+  "cameraPhoneOnly": "Camera dùng trên điện thoại. Trên máy tính, hãy thêm file.",
+  "comingSoon": "Có trong bản cập nhật tới.",
+  "today": "Hôm nay",
+  "yesterday": "Hôm qua",
+  "thisWeek": "Tuần này",
+  "collPhotos": "Ảnh",
+  "collDocuments": "Giấy tờ",
+  "collNotes": "Ghi chú",
+  "collDeleted": "Đã xoá gần đây",
+  "collectionEmpty": "Chưa có gì ở đây.",
+  "vaultMenu": "Tuỳ chọn két",
+  "tabLibrary": "Thư viện",
+  "tabCollections": "Bộ sưu tập",
+  "search": "Tìm"
 }

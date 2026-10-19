@@ -46,3 +46,63 @@ class SecretKeyStore {
     }
   }
 }
+
+/// The PIN's device half (ADR 0001): a random key that never leaves this device's
+/// keystore, plus the count of wrong PINs. 5 wrong in a row and the PIN is forgotten;
+/// the password still opens the vault.
+class PinStore {
+  static const maxTries = 5;
+  static const _key = 'pin-device-key';
+  static const _fails = 'pin-fails';
+
+  static const _storage = FlutterSecureStorage(
+    iOptions: IOSOptions(
+      accountName: 'cozysafe.pin',
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+      synchronizable: false,
+    ),
+    mOptions: MacOsOptions(accountName: 'cozysafe.pin', usesDataProtectionKeychain: false, synchronizable: false),
+    aOptions: AndroidOptions(storageNamespace: 'cozysafe_pin', resetOnError: false),
+  );
+
+  static Future<Uint8List?> deviceKey() async {
+    try {
+      final v = await _storage.read(key: _key);
+      return v == null ? null : base64Decode(v);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// A fresh device key each time a PIN is set (an old PIN file becomes useless).
+  static Future<Uint8List> newDeviceKey(Uint8List random16) async {
+    await _storage.write(key: _key, value: base64Encode(random16));
+    await _storage.write(key: _fails, value: '0');
+    final back = await deviceKey();
+    if (back == null || !listEquals(back, random16)) {
+      throw StateError('The keystore did not keep the PIN key');
+    }
+    return back;
+  }
+
+  static Future<int> fails() async {
+    try {
+      return int.tryParse(await _storage.read(key: _fails) ?? '') ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  static Future<void> setFails(int n) async {
+    try {
+      await _storage.write(key: _fails, value: '$n');
+    } catch (_) {}
+  }
+
+  static Future<void> clear() async {
+    try {
+      await _storage.delete(key: _key);
+      await _storage.delete(key: _fails);
+    } catch (_) {}
+  }
+}

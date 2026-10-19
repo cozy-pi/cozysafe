@@ -26,6 +26,8 @@ pub enum VaultError {
     WeakPassword,
     PasswordInUse,
     EmptyName,
+    /// A PIN is 4 to 10 digits.
+    BadPin,
     /// No vault is open (it locked while the screen was up).
     Locked,
     /// The Secret Key does not belong to this library (Emergency Kit from another one).
@@ -43,6 +45,7 @@ impl From<cs_vault::Error> for VaultError {
             cs_vault::Error::WeakPassword => VaultError::WeakPassword,
             cs_vault::Error::PasswordInUse => VaultError::PasswordInUse,
             cs_vault::Error::EmptyName => VaultError::EmptyName,
+            cs_vault::Error::BadPin => VaultError::BadPin,
             cs_vault::Error::WrongSecretKey => VaultError::WrongSecretKey,
             cs_vault::Error::BadBackup => VaultError::BadBackup,
             cs_vault::Error::LibraryExists => VaultError::LibraryExists,
@@ -219,6 +222,51 @@ pub fn export_backup(dir: String, path: String) -> Result<u32, VaultError> {
 pub fn import_backup(path: String, dir: String) -> Result<u32, VaultError> {
     let f = std::fs::File::open(&path).map_err(|_| VaultError::BadBackup)?;
     Ok(cs_vault::backup::import(f, Path::new(&dir))?)
+}
+
+/// Digits of the PIN set on this device (for the dots), 0 when there is none.
+#[flutter_rust_bridge::frb(sync)]
+pub fn pin_length(dir: String) -> u32 {
+    Library::pin_length(Path::new(&dir)).unwrap_or(0) as u32
+}
+
+/// Open the vault with the PIN; `None` for a wrong PIN. `device_key` comes from the keystore.
+pub fn unlock_with_pin(
+    dir: String,
+    pin: String,
+    device_key: Vec<u8>,
+) -> Result<Option<VaultInfo>, VaultError> {
+    let pin = Zeroizing::new(pin);
+    let device_key = Zeroizing::new(device_key);
+    let Some(dk) = key16(&device_key) else {
+        return Ok(None);
+    };
+    Ok(Library::unlock_pin(Path::new(&dir), &pin, &dk)?.map(set_open))
+}
+
+/// Set the PIN for the open vault (replaces any PIN on this device).
+pub fn enable_pin(pin: String, device_key: Vec<u8>) -> Result<(), VaultError> {
+    let pin = Zeroizing::new(pin);
+    let device_key = Zeroizing::new(device_key);
+    let dk = key16(&device_key).ok_or(VaultError::Storage)?;
+    with_open(|v| Ok(v.enable_pin(&pin, &dk, params_for_this_device())?))
+}
+
+pub fn disable_pin() -> Result<(), VaultError> {
+    with_open(|v| Ok(v.disable_pin()?))
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn pin_enabled() -> bool {
+    OPEN.lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .as_ref()
+        .is_some_and(|v| v.pin_enabled())
+}
+
+/// Remove the PIN on this device (too many wrong tries).
+pub fn forget_pin(dir: String) -> Result<(), VaultError> {
+    Ok(Library::forget_pin(Path::new(&dir))?)
 }
 
 /// Close the open vault and wipe its keys.

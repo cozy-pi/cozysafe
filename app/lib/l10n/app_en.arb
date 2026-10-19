@@ -87,5 +87,49 @@
   "backup": "Back up to a file",
   "backupDone": "Backup saved",
   "backupFailed": "Couldn't make the backup. Check free space and try again.",
-  "showKit": "Emergency Kit"
+  "showKit": "Emergency Kit",
+  "modeNote": "Note",
+  "modeLibrary": "Library",
+  "modeCamera": "Photo",
+  "modeScan": "Scan",
+  "modeFile": "File",
+  "modePaste": "Paste",
+  "pinDelete": "Delete",
+  "pinEnter": "Enter PIN",
+  "pinWrong": "{count, plural, =1{Wrong PIN. 1 try left.} other{Wrong PIN. {count} tries left.}}",
+  "@pinWrong": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pinLocked": "PIN turned off after too many wrong tries. Unlock with your password, then set it again.",
+  "usePassword": "Use password",
+  "usePin": "Use PIN",
+  "unlockToAdd": "Unlock first; it opens right after.",
+  "lockedAddOnly": "Vault locked",
+  "notNow": "Not now",
+  "pinSetTitle": "Set a PIN",
+  "pinSetLead": "4 to 10 digits, for this device only. Your password still works everywhere.",
+  "pinConfirmTitle": "Enter it again",
+  "pinConfirmLead": "To make sure it's the PIN you meant.",
+  "pinShortNote": "Longer is safer: 6 digits or more is better.",
+  "pinMismatch": "The PINs didn't match. Start again.",
+  "pinNext": "Next",
+  "pinSetting": "Unlock with PIN",
+  "cameraPhoneOnly": "The camera works on phones. On a computer, add files instead.",
+  "comingSoon": "Coming in the next update.",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "thisWeek": "This week",
+  "collPhotos": "Photos",
+  "collDocuments": "Documents",
+  "collNotes": "Notes",
+  "collDeleted": "Recently deleted",
+  "collectionEmpty": "Nothing here yet.",
+  "vaultMenu": "Vault options",
+  "tabLibrary": "Library",
+  "tabCollections": "Collections",
+  "search": "Search"
 }

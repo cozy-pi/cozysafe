@@ -8,6 +8,7 @@ import '../theme.dart';
 import 'common.dart';
 import 'emergency_kit.dart';
 import 'restore.dart';
+import 'set_pin.dart';
 import 'vault_home.dart';
 
 class CreateVaultScreen extends StatefulWidget {
@@ -105,7 +106,12 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
           builder: (kitContext) => EmergencyKitScreen(
             keyText: rust.secretKeyText(key: key!),
             confirm: true,
-            onDone: () => Navigator.of(kitContext).pushAndRemoveUntil(home, (_) => false),
+            onDone: () async {
+              // Then a PIN for everyday unlocking (can be skipped).
+              final nav = Navigator.of(kitContext);
+              await nav.push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen(skippable: true)));
+              await nav.pushAndRemoveUntil(home, (_) => false);
+            },
           ),
         ),
         (_) => false,

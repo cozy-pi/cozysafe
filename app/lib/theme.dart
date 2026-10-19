@@ -50,18 +50,30 @@ class CsColors extends ThemeExtension<CsColors> {
   }
 }
 
+/// Brand colours that stay the same in light and dark (design B2, docs/ui.md).
+abstract final class Brand {
+  static const green = Color(0xFF165B4C);
+  static const deep = Color(0xFF0F3D33);
+  static const night = Color(0xFF0B2B24);
+  static const gold = Color(0xFFF3D08E);
+  static const goldInk = Color(0xFF0F3D33);
+  /// The add dock, identical on the lock screen and inside the vault.
+  static const dock = Color(0xFF0A2A23);
+}
+
 ThemeData buildTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
-  final bg = dark ? const Color(0xFF1B1E21) : const Color(0xFFF4F5F4);
-  final surface = dark ? const Color(0xFF23272B) : const Color(0xFFFFFFFF);
+  final bg = dark ? Brand.night : const Color(0xFFF4F5F4);
+  final surface = dark ? const Color(0xFF12342C) : const Color(0xFFFFFFFF);
   final ink = dark ? const Color(0xFFE9ECEB) : const Color(0xFF1A1D1F);
-  final accent = dark ? const Color(0xFF7CC7AE) : const Color(0xFF165B4C);
-  final accentInk = dark ? const Color(0xFF0C2A22) : const Color(0xFFFFFFFF);
+  // B2: green actions on light, gold actions on dark.
+  final accent = dark ? Brand.gold : Brand.green;
+  final accentInk = dark ? Brand.goldInk : const Color(0xFFFFFFFF);
   final danger = dark ? const Color(0xFFF0A196) : const Color(0xFFB3261E);
   final colors = CsColors(
     muted: dark ? const Color(0xFFA2AAA6) : const Color(0xFF5C6369),
-    soft: dark ? const Color(0xFF2B3034) : const Color(0xFFE9ECEA),
-    border: dark ? const Color(0xFF343A3F) : const Color(0xFFDADFDC),
+    soft: dark ? const Color(0xFF184036) : const Color(0xFFE3E9E6),
+    border: dark ? const Color(0xFF2C5047) : const Color(0xFFD6DDD9),
     warnBg: dark ? const Color(0xFF3A2F17) : const Color(0xFFFBF0DC),
     warnInk: dark ? const Color(0xFFF1D294) : const Color(0xFF6B4300),
   );

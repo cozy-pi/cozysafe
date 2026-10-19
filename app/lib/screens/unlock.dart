@@ -1,18 +1,24 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
+import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/add_dock.dart';
+import '../widgets/brand.dart';
 import 'common.dart';
 import 'create_vault.dart';
 import 'vault_home.dart';
 
-/// One password field and no vault list: the password decides which vault opens.
+/// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
+/// PIN pad is the fallback; the password is the fallback of the fallback. The add dock
+/// at the bottom is the same as inside the vault: picking an action here unlocks first,
+/// then runs it.
 class UnlockScreen extends StatefulWidget {
   const UnlockScreen({super.key, required this.libraryDir});
 
@@ -22,15 +28,24 @@ class UnlockScreen extends StatefulWidget {
   State<UnlockScreen> createState() => _UnlockScreenState();
 }
 
+enum _Mode { pin, password }
+
 class _UnlockScreenState extends State<UnlockScreen> {
   final _password = TextEditingController();
+  final _focus = FocusNode();
+  final _keys = FocusNode(skipTraversal: true);
+  late _Mode _mode;
+  late int _pinLength;
+  String _pin = '';
   bool _obscure = true;
   bool _busy = false;
   bool _checking = false;
+  bool _leaving = false;
   String? _error;
+  int _shake = 0;
   BiometricKind? _bioKind;
   bool _bioOn = false;
-  bool _leaving = false;
+  AddMode? _pending;
 
   /// Stop typing this long and the password is tried without pressing Enter.
   static const _pause = Duration(milliseconds: 350);
@@ -40,12 +55,13 @@ class _UnlockScreenState extends State<UnlockScreen> {
   @override
   void initState() {
     super.initState();
+    _pinLength = rust.pinLength(dir: widget.libraryDir);
+    _mode = _pinLength > 0 ? _Mode.pin : _Mode.password;
     _bioOn = BiometricUnlock.platformSupported && rust.hasBiometricUnlock(dir: widget.libraryDir);
     if (_bioOn) {
       BiometricUnlock.available().then((kind) {
         if (!mounted || kind == null) return;
         setState(() => _bioKind = kind);
-        // Ask right away, like the lock screen: most opens need no typing at all.
         WidgetsBinding.instance.addPostFrameCallback((_) => _unlockBiometric());
       });
     }
@@ -55,10 +71,12 @@ class _UnlockScreenState extends State<UnlockScreen> {
   void dispose() {
     _debounce?.cancel();
     _password.dispose();
+    _focus.dispose();
+    _keys.dispose();
     super.dispose();
   }
 
-  BiometricUnlock _store(AppLocalizations l) =>
+  BiometricUnlock _bioStore(AppLocalizations l) =>
       BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel);
 
   Future<void> _unlockBiometric() async {
@@ -66,7 +84,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
     final l = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
-      final vault = await _store(l).unlock(widget.libraryDir);
+      final vault = await _bioStore(l).unlock(widget.libraryDir);
       if (vault != null) return await _open(vault);
     } on BiometricKeyGone {
       if (mounted) {
@@ -82,14 +100,76 @@ class _UnlockScreenState extends State<UnlockScreen> {
     }
   }
 
+  // ---------- PIN ----------
+
+  void _digit(String d) {
+    if (_busy || _pin.length >= _pinLength) return;
+    setState(() {
+      _pin += d;
+      _error = null;
+    });
+    if (_pin.length == _pinLength) _checkPin();
+  }
+
+  void _deleteDigit() {
+    if (_pin.isEmpty) return;
+    setState(() => _pin = _pin.substring(0, _pin.length - 1));
+  }
+
+  Future<void> _checkPin() async {
+    final l = AppLocalizations.of(context);
+    setState(() => _busy = true);
+    try {
+      final device = await PinStore.deviceKey();
+      final vault = device == null
+          ? null
+          : await rust.unlockWithPin(dir: widget.libraryDir, pin: _pin, deviceKey: device);
+      if (vault != null) {
+        await PinStore.setFails(0);
+        return await _open(vault);
+      }
+      final fails = (await PinStore.fails()) + 1;
+      if (device == null || fails >= PinStore.maxTries) {
+        await rust.forgetPin(dir: widget.libraryDir);
+        await PinStore.clear();
+        if (!mounted) return;
+        setState(() {
+          _mode = _Mode.password;
+          _pinLength = 0;
+          _error = l.pinLocked;
+        });
+        return;
+      }
+      await PinStore.setFails(fails);
+      HapticFeedback.heavyImpact();
+      if (mounted) {
+        setState(() {
+          _shake++;
+          _error = l.pinWrong(PinStore.maxTries - fails);
+        });
+      }
+    } on rust.VaultError catch (e) {
+      if (mounted) setState(() => _error = vaultErrorText(l, e));
+    } finally {
+      if (mounted && !_leaving) {
+        setState(() {
+          _busy = false;
+          _pin = '';
+        });
+      }
+    }
+  }
+
+  // ---------- password (type to unlock) ----------
+
   void _onChanged(String _) {
     if (_error != null) setState(() => _error = null);
     _debounce?.cancel();
     if (_password.text.length >= 4) _debounce = Timer(_pause, () => _attempt(quiet: true));
   }
 
-  /// Try the password. Quiet tries (while typing) never show "wrong password";
-  /// Enter or the button does. One Argon2 run at a time; a newer text is tried after.
+  /// Quiet tries (while typing) never say "wrong password"; Enter or the button does.
+  /// One Argon2 run at a time; newer text is tried after the current run.
   Future<void> _attempt({required bool quiet}) async {
     final text = _password.text;
     if (text.isEmpty || _leaving) return;
@@ -112,7 +192,6 @@ class _UnlockScreenState extends State<UnlockScreen> {
       if (!mounted) return;
       if (vault != null) return await _open(vault, offerBiometric: true);
       if (_password.text != text) {
-        // Typing moved on while this ran: try the newer text next.
         _checking = false;
         return await _attempt(quiet: !_busy);
       }
@@ -131,6 +210,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
     }
   }
 
+  // ---------- open ----------
+
   Future<void> _open(rust.VaultInfo vault, {bool offerBiometric = false}) async {
     _leaving = true;
     _debounce?.cancel();
@@ -140,12 +221,18 @@ class _UnlockScreenState extends State<UnlockScreen> {
       await _maybeOfferBiometric(l);
     }
     if (!mounted) return;
-    await Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault),
-      ),
-      (_) => false,
-    );
+    final nav = Navigator.of(context);
+    final pending = _pending;
+    await playVaultSpin(context, opening: true, onCovered: () {
+      nav.pushAndRemoveUntil(
+        PageRouteBuilder<void>(
+          transitionDuration: Duration.zero,
+          pageBuilder: (_, __, ___) =>
+              VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, initialAction: pending),
+        ),
+        (_) => false,
+      );
+    });
   }
 
   /// Once per device, for libraries made before biometric unlock existed.
@@ -164,162 +251,250 @@ class _UnlockScreenState extends State<UnlockScreen> {
         ],
       ),
     );
-    if (yes == true) await turnOnBiometric(_store(l));
+    if (yes == true) await turnOnBiometric(_bioStore(l));
   }
+
+  /// An add action picked while locked: unlock first, then the vault runs it.
+  void _onDockAction(AddMode mode) {
+    final l = AppLocalizations.of(context);
+    setState(() => _pending = mode);
+    if (_bioKind != null && _bioOn) {
+      _unlockBiometric();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.unlockToAdd)));
+      if (_mode == _Mode.password) _focus.requestFocus();
+    }
+  }
+
+  // ---------- UI ----------
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
-    final theme = Theme.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = dark ? const Color(0xF0103029) : const Color(0xF0FFFFFF);
+    final ink = dark ? const Color(0xFFE9ECEB) : const Color(0xFF1A1D1F);
+    final accent = dark ? Brand.gold : Brand.green;
     final bio = _bioOn ? _bioKind : null;
 
-    return Scaffold(
-      body: FormColumn(
-        children: [
-          const BrandHeader(center: true),
-          const SizedBox(height: 28),
-          const Center(child: SafeDial(size: 200)),
-          const SizedBox(height: 24),
-          Text(
-            l.unlockTitle,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(l.unlockLead, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15)),
-          const SizedBox(height: 28),
-          TextField(
-            controller: _password,
-            enabled: !_busy,
-            autofocus: bio == null,
-            obscureText: _obscure,
-            autocorrect: false,
-            enableSuggestions: false,
-            enableIMEPersonalizedLearning: false,
-            keyboardType: TextInputType.visiblePassword,
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              labelText: l.password,
-              errorText: _error,
-              helperText: _checking && !_busy ? l.checking : null,
-              suffixIcon: IconButton(
-                tooltip: _obscure ? l.showPassword : l.hidePassword,
-                icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                onPressed: () => setState(() => _obscure = !_obscure),
+    final card = _ShakeOnChange(
+      trigger: _shake,
+      child: Container(
+        margin: const EdgeInsets.only(top: 46),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: const [BoxShadow(color: Color(0x66041410), blurRadius: 50, offset: Offset(0, 24))],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 58),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _mode == _Mode.pin ? l.pinEnter : l.unlockTitle,
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: ink, letterSpacing: -.3),
+                  ),
+                  const SizedBox(height: 14),
+                  if (_mode == _Mode.pin)
+                    PinDots(length: _pinLength, filled: _pin.length, color: accent)
+                  else
+                    _passwordField(l, ink),
+                  if (_error != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ],
+                  if (_mode == _Mode.password) ...[
+                    const SizedBox(height: 12),
+                    ListenableBuilder(
+                      listenable: _password,
+                      builder: (context, _) => FilledButton(
+                        onPressed: _busy || _password.text.isEmpty ? null : () => _attempt(quiet: false),
+                        child: BusyLabel(busy: _busy, idle: l.unlockButton, working: l.unlocking),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  if (_mode == _Mode.pin)
+                    TextButton(
+                      onPressed: _busy ? null : () => setState(() => _mode = _Mode.password),
+                      child: Text(l.usePassword),
+                    )
+                  else
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      children: [
+                        if (_pinLength > 0)
+                          TextButton(onPressed: () => setState(() => _mode = _Mode.pin), child: Text(l.usePin)),
+                        TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                                    builder: (_) => CreateVaultScreen(libraryDir: widget.libraryDir, first: false),
+                                  )),
+                          child: Text(l.newVault),
+                        ),
+                      ],
+                    ),
+                ],
               ),
             ),
-            onChanged: _onChanged,
-            onSubmitted: (_) => _attempt(quiet: false),
-          ),
-          const SizedBox(height: 16),
-          ListenableBuilder(
-            listenable: _password,
-            builder: (context, _) => FilledButton(
-              onPressed: _busy || _password.text.isEmpty ? null : () => _attempt(quiet: false),
-              child: BusyLabel(busy: _busy, idle: l.unlockButton, working: l.unlocking),
-            ),
-          ),
-          if (bio != null) ...[
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _unlockBiometric,
-              icon: Icon(bio == BiometricKind.face ? Icons.face_outlined : Icons.fingerprint),
-              label: Text(bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint),
+            Positioned(
+              top: -46,
+              child: Container(
+                width: 92,
+                height: 92,
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: dark ? Brand.night : Colors.white,
+                  boxShadow: const [BoxShadow(color: Color(0x4D041410), blurRadius: 24, offset: Offset(0, 10))],
+                ),
+                child: BrandMark(size: 78, color: accent),
+              ),
             ),
           ],
-          const SizedBox(height: 24),
-          Center(
-            child: TextButton(
-              onPressed: _busy
-                  ? null
-                  : () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => CreateVaultScreen(libraryDir: widget.libraryDir, first: false),
+        ),
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: Brand.deep,
+      body: KeyboardListener(
+        focusNode: _keys,
+        autofocus: _mode == _Mode.pin,
+        onKeyEvent: (e) {
+          if (_mode != _Mode.pin || e is! KeyDownEvent) return;
+          final c = e.character;
+          if (c != null && RegExp(r'^\d$').hasMatch(c)) _digit(c);
+          if (e.logicalKey == LogicalKeyboardKey.backspace) _deleteDigit();
+        },
+        child: Stack(
+          children: [
+            const Positioned.fill(child: VaultBackdrop()),
+            Column(
+              children: [
+                Expanded(
+                  child: SafeArea(
+                    bottom: false,
+                    child: LayoutBuilder(
+                      builder: (context, box) => SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 22),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: box.maxHeight),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 400),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  const SizedBox(height: 12),
+                                  card,
+                                  if (_mode == _Mode.pin) ...[
+                                    PinPad(onDigit: _digit, onDelete: _deleteDigit, enabled: !_busy),
+                                    const SizedBox(height: 12),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-              child: Text(l.newVault),
+                    ),
+                  ),
+                ),
+                AddDock(
+                  leading: DockSlot(icon: Icons.lock_outline, label: l.lockedAddOnly, outlined: true),
+                  trailing: bio == null
+                      ? const SizedBox(width: 46)
+                      : DockSlot(
+                          icon: bio == BiometricKind.face ? Icons.face_outlined : Icons.fingerprint,
+                          label: bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint,
+                          onTap: _busy ? null : _unlockBiometric,
+                        ),
+                  onAction: _onDockAction,
+                ),
+              ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _passwordField(AppLocalizations l, Color ink) {
+    return TextField(
+      controller: _password,
+      focusNode: _focus,
+      enabled: !_busy,
+      autofocus: _bioKind == null,
+      obscureText: _obscure,
+      autocorrect: false,
+      enableSuggestions: false,
+      enableIMEPersonalizedLearning: false,
+      keyboardType: TextInputType.visiblePassword,
+      textInputAction: TextInputAction.done,
+      style: TextStyle(color: ink),
+      decoration: InputDecoration(
+        labelText: l.password,
+        helperText: _checking && !_busy ? l.checking : null,
+        suffixIcon: IconButton(
+          tooltip: _obscure ? l.showPassword : l.hidePassword,
+          icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+          onPressed: () => setState(() => _obscure = !_obscure),
+        ),
+      ),
+      onChanged: _onChanged,
+      onSubmitted: (_) => _attempt(quiet: false),
     );
   }
 }
 
-/// The safe's combination dial: the one memorable element of the design.
-class SafeDial extends StatelessWidget {
-  const SafeDial({super.key, required this.size});
+/// Shakes its child sideways whenever `trigger` changes (a wrong PIN).
+class _ShakeOnChange extends StatefulWidget {
+  const _ShakeOnChange({required this.trigger, required this.child});
 
-  final double size;
+  final int trigger;
+  final Widget child;
+
+  @override
+  State<_ShakeOnChange> createState() => _ShakeOnChangeState();
+}
+
+class _ShakeOnChangeState extends State<_ShakeOnChange> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+
+  @override
+  void didUpdateWidget(_ShakeOnChange old) {
+    super.didUpdateWidget(old);
+    if (old.trigger != widget.trigger) _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final c = CsColors.of(context);
-    final scheme = Theme.of(context).colorScheme;
-    return SizedBox.square(
-      dimension: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CustomPaint(
-            size: Size.square(size),
-            painter: _DialPainter(ticks: c.muted, mark: scheme.primary),
-          ),
-          Container(
-            width: size * 0.55,
-            height: size * 0.55,
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              shape: BoxShape.circle,
-              border: Border.all(color: c.border),
-            ),
-            child: Icon(Icons.lock_outline, size: size * 0.2, color: scheme.primary),
-          ),
-        ],
-      ),
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, child) {
+        final t = _c.value;
+        final dx = t == 0 || t == 1 ? 0.0 : 9 * (1 - t) * (((t * 8).floor().isEven) ? 1 : -1);
+        return Transform.translate(offset: Offset(dx, 0), child: child);
+      },
+      child: widget.child,
     );
   }
-}
-
-class _DialPainter extends CustomPainter {
-  _DialPainter({required this.ticks, required this.mark});
-
-  final Color ticks;
-  final Color mark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final outer = size.width / 2 - 2;
-    final paint = Paint()
-      ..color = ticks
-      ..strokeCap = StrokeCap.round;
-    for (var i = 0; i < 60; i++) {
-      final major = i % 5 == 0;
-      final a = i * 6 * math.pi / 180;
-      final dir = Offset(math.sin(a), -math.cos(a));
-      paint.strokeWidth = major ? 2 : 1;
-      canvas.drawLine(center + dir * (outer - (major ? 12 : 6)), center + dir * outer, paint);
-    }
-    canvas.drawCircle(
-      center,
-      outer * 0.76,
-      Paint()
-        ..color = ticks
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-    canvas.drawLine(
-      center + Offset(0, -outer - 2),
-      center + Offset(0, -outer + 12),
-      Paint()
-        ..color = mark
-        ..strokeWidth = 3
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_DialPainter old) => old.ticks != ticks || old.mark != mark;
 }

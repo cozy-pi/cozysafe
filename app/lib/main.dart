@@ -11,12 +11,14 @@ import 'secret_key_store.dart';
 import 'src/rust/api/vault.dart' as rust;
 import 'src/rust/frb_generated.dart';
 import 'theme.dart';
+import 'widgets/add_dock.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
   final support = await getApplicationSupportDirectory();
   final libraryDir = '${support.path}${Platform.pathSeparator}library';
+  Prefs.dir = support.path;
   final hasKey = await loadSecretKey(libraryDir);
   runApp(CozySafeApp(libraryDir: libraryDir, hasSecretKey: hasKey));
 }
