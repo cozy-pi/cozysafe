@@ -465,6 +465,9 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                                   const SizedBox(height: 12),
                                   card,
                                   if (_mode == _Mode.pin) ...[
+                                    // Breathing room so the "Use password" link and the
+                                    // top row of keys are not mistaken for each other.
+                                    const SizedBox(height: 32),
                                     PinPad(onDigit: _digit, onDelete: _deleteDigit, enabled: !_busy && _waitUntil == null),
                                     const SizedBox(height: 12),
                                   ],
