@@ -108,7 +108,7 @@ h2 { margin: 0 0 12px; font-size: clamp(28px, 3.6vw, 38px); line-height: 1.15; l
 .dl .get { margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border-radius: 12px; background: var(--green); color: #fff; font-weight: 700; text-decoration: none; }
 @media (prefers-color-scheme: dark) { .dl .get { background: var(--gold); color: var(--gold-ink); } }
 .dl.soon .get { background: transparent; color: var(--muted); border: 1.5px dashed var(--border); }
-.dl small { color: var(--muted); font-size: 13px; }
+.dl small { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* one line: keeps every button on the same row */
 .verify { margin: 18px 0 0; font-size: 15px; color: var(--muted); }
 code { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--soft); padding: 2px 6px; border-radius: 6px; overflow-wrap: anywhere; }
 

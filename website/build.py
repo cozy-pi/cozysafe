@@ -108,10 +108,10 @@ def page(lang):
     li = lambda items: ''.join(f'<li>{x}</li>' for x in items)
     cards = ''.join(
         f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t[key]}</p>'
-        f'<a class="get" href="{BASE}{f}">{ic("download", 18)}{t["get"]}</a><small>{f}</small></div>'
+        f'<a class="get" href="{BASE}{f}">{ic("download", 18)}{t["get"]}</a><small title="{f}">{f}</small></div>'
         for icon, name, f, key in PLATFORMS)
     cards += (f'<div class="dl soon"><div class="os">{ic("iphone", 30)}iPhone</div><p>{t["ios"]}</p>'
-              f'<span class="get">{t["soon"]}</span></div>')
+              f'<span class="get">{t["soon"]}</span><small aria-hidden="true">&nbsp;</small></div>')
     studio = 'https://cozypi.com/' + ('' if lang == 'en' else 'vi/')
     return f'''<!doctype html>
 <html lang="{lang}">
