@@ -70,8 +70,11 @@ flutter gen-l10n                       # translations (not committed)
 flutter run
 ```
 
-Release builds are made by GitHub Actions: `build.yml` (desktop, Android, GitHub
-release on `v*` tags) and `testflight.yml` (iPhone).
+Releases are one button: `gh workflow run release.yml -R cozy-pi/cozysafe` picks
+the next version name (0.1.0, 0.1.1, …; `-f bump=minor` for 0.2.0) and publishes it
+everywhere at once: TestFlight, the Google Play closed test, and a GitHub release
+with the desktop builds and the APK. Write the changes under that version in
+[CHANGELOG.md](CHANGELOG.md) first.
 
 ## Repository
 

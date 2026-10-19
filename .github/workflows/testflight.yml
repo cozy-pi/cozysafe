@@ -9,6 +9,14 @@ name: testflight
 
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: ""
+      build:
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -92,7 +100,7 @@ jobs:
           EOF
       - name: Build signed IPA
         working-directory: app
-        run: flutter build ipa --release --build-number ${{ github.run_number }} --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+        run: flutter build ipa --release --build-number ${{ inputs.build || github.run_number }} ${{ inputs.version && format('--build-name {0}', inputs.version) || '' }} --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
       - name: Upload to TestFlight
         env:
           KEY_ID: ${{ secrets.ASC_ADMIN_KEY_ID }}

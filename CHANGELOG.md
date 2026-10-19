@@ -1,8 +1,12 @@
 # Changelog
 
-Preview builds. Dates are UTC.
+Preview builds. Each release has one version name on every platform (iPhone,
+Android, macOS, Windows, Linux); the build number only matters to the stores.
+Dates are UTC.
 
-## Unreleased
+## 0.1.0 (2026-10-19)
+
+First build with a version name, on every platform at once.
 
 ### Added
 - Lock screen redesign: Face ID or fingerprint first, a PIN pad (4 to 10 digits,

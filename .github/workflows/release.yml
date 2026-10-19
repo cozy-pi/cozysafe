@@ -1,0 +1,91 @@
+# One button for a release: picks the next version name (0.1.0, 0.1.1, …), builds
+# every platform with it, and publishes everywhere at once:
+#   iPhone  → TestFlight (internal testers)
+#   Android → Google Play closed test (Alpha)
+#   desktop + Android APK → GitHub release vX.Y.Z (safe.cozypi.com links follow it)
+#
+# The version name is what people see and report ("0.1.7 crashes when…"); the build
+# number only has to keep growing for the stores (1000 + this workflow's run number,
+# above every build made before this workflow existed).
+#
+# Run: gh workflow run release.yml -R cozy-pi/cozysafe [-f bump=minor]
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "patch: 0.1.6 → 0.1.7 · minor: 0.1.6 → 0.2.0"
+        type: choice
+        options: [patch, minor]
+        default: patch
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.v.outputs.name }}
+      build: ${{ steps.v.outputs.build }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: v
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          # Base: the highest vX.Y.Z tag; first release starts from pubspec's X.Y.
+          last=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' | sort -V | tail -1)
+          # pubspec's X.Y is the line being worked on; a newer line starts at X.Y.0.
+          base=$(sed -n 's/^version: \([0-9]*\.[0-9]*\).*/\1/p' app/pubspec.yaml)
+          if [ -z "$last" ] || [ "$(printf '%s\n%s\n' "${last%.*}" "$base" | sort -V | tail -1)" != "${last%.*}" ]; then
+            name="$base.0"
+          else
+            IFS=. read -r ma mi pa <<< "$last"
+            if [ "$BUMP" = minor ]; then name="$ma.$((mi + 1)).0"; else name="$ma.$mi.$((pa + 1))"; fi
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "build=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_OUTPUT"
+          echo "### Cozy Safe $name (build $((1000 + GITHUB_RUN_NUMBER)))" >> "$GITHUB_STEP_SUMMARY"
+
+  ios:
+    needs: version
+    uses: ./.github/workflows/testflight.yml
+    with:
+      version: ${{ needs.version.outputs.name }}
+      build: ${{ needs.version.outputs.build }}
+    secrets: inherit
+
+  builds:
+    needs: version
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.version.outputs.name }}
+      build: ${{ needs.version.outputs.build }}
+      publish: true
+    secrets: inherit
+
+  play:
+    needs: [version, builds]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android
+      - uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.cozypi.cozysafe
+          releaseFiles: CozySafe-android-play.aab
+          releaseName: ${{ needs.version.outputs.name }}
+          track: alpha
+          status: completed
