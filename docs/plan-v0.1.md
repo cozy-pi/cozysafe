@@ -37,8 +37,22 @@ Before calling it v0.1, in this order:
   banner); cover the app switcher (iOS) and `FLAG_SECURE` (Android); clipboard
   sensitive + cleared; backup says which vaults are left out; "Face ID opens this
   vault"; set a PIN after a restore.
-- 0.1.3, mockups first: delete originals after import, Recently deleted, built-in
-  viewers (PDF, video), Settings, delete a vault, import progress, last backup.
+- 0.1.3, mockups first (approved 2026-10-19): delete originals after import,
+  Recently deleted, built-in viewers (PDF, video), Settings, delete a vault, import
+  progress, last backup.
+- Status 2026-10-19: everything in 0.1.2 is built; from 0.1.3, Recently deleted,
+  Settings, delete a vault, import progress, last backup and the share-out warning
+  are built. Still open:
+  - **Delete originals after import.** The system photo pickers hand the app copies,
+    not the library items, so it cannot ask the system to delete them. Needs a
+    picker that returns asset identifiers (iOS `PHPickerViewController` with the
+    shared library, Android picker URIs with `MediaStore.createDeleteRequest`), and
+    on iOS deleting asks for photo-library access. Decide before building.
+  - **PDF and video inside the app.** PDF: render from the decrypted bytes in
+    memory (candidate: `pdfrx`, PDFium on all five platforms). Video: needs
+    playback from decrypted chunks without a plaintext file (a local loopback
+    stream or a custom player source). Until then files open in another app,
+    with the warning.
 
 ## Stage 4: finish
 - Search by name (and note text). Recently deleted and Settings moved up to

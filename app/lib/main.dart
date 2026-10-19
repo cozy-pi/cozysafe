@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'l10n/app_localizations.dart';
 import 'screens/new_vault.dart';
+import 'screens/settings.dart';
 import 'screens/restore.dart';
 import 'screens/unlock.dart';
 import 'secret_key_store.dart';
@@ -19,6 +20,7 @@ Future<void> main() async {
   final support = await getApplicationSupportDirectory();
   final libraryDir = '${support.path}${Platform.pathSeparator}library';
   Prefs.dir = support.path;
+  Settings.apply(); // Android: honour "block screenshots" off
   final hasKey = await loadSecretKey(libraryDir);
   runApp(CozySafeApp(libraryDir: libraryDir, hasSecretKey: hasKey));
 }

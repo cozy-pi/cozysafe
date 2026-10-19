@@ -358,6 +358,8 @@ pub struct ItemInfo {
     pub mime: String,
     pub created_ms: i64,
     pub size: u64,
+    /// When it went to Recently deleted; None for items in the vault.
+    pub deleted_ms: Option<i64>,
 }
 
 impl From<ItemMeta> for ItemInfo {
@@ -369,6 +371,7 @@ impl From<ItemMeta> for ItemInfo {
             mime: m.mime,
             created_ms: m.created_ms,
             size: m.size,
+            deleted_ms: m.deleted_ms,
         }
     }
 }
@@ -527,8 +530,47 @@ pub fn item_content(id: String) -> Result<Vec<u8>, VaultError> {
     })
 }
 
+/// Delete for good (from Recently deleted).
 pub fn delete_item(id: String) -> Result<(), VaultError> {
     with_open(|v| Ok(v.delete_item(&id)?))
+}
+
+/// Move to Recently deleted (kept 30 days, still encrypted).
+pub fn trash_item(id: String, now_ms: i64) -> Result<(), VaultError> {
+    with_open(|v| Ok(v.trash_item(&id, now_ms)?))
+}
+
+pub fn restore_item(id: String) -> Result<(), VaultError> {
+    with_open(|v| Ok(v.restore_item(&id)?))
+}
+
+/// Recently deleted, most recently deleted first.
+pub fn list_trash() -> Result<Vec<ItemInfo>, VaultError> {
+    with_open(|v| Ok(v.trashed()?.into_iter().map(Into::into).collect()))
+}
+
+/// Delete for good what has been in Recently deleted for 30 days (run on opening).
+pub fn purge_expired(now_ms: i64) -> Result<u32, VaultError> {
+    with_open(|v| Ok(v.purge_expired(now_ms)? as u32))
+}
+
+/// Delete the open vault from this device, confirmed by its PIN: the PIN must open
+/// this very vault. Locks it. Returns false (nothing deleted) for any other PIN.
+pub fn delete_vault(dir: String, pin: String, device_key: Vec<u8>) -> Result<bool, VaultError> {
+    let pin = Zeroizing::new(pin);
+    let device_key = Zeroizing::new(device_key);
+    let Some(dk) = key16(&device_key) else {
+        return Ok(false);
+    };
+    let open_id = with_open(|v| Ok(v.id.clone()))?;
+    match Library::unlock_pin(Path::new(&dir), &pin, &dk)? {
+        Some(v) if v.id == open_id => {
+            *OPEN.lock().unwrap_or_else(|p| p.into_inner()) = None;
+            v.destroy()?;
+            Ok(true)
+        }
+        _ => Ok(false),
+    }
 }
 
 #[flutter_rust_bridge::frb(init)]

@@ -200,5 +200,89 @@
         "type": "int"
       }
     }
+  },
+  "movedToTrash": "Moved to Recently deleted",
+  "undo": "Undo",
+  "recentlyDeleted": "Recently deleted",
+  "settings": "Settings",
+  "trashNote": "Items here are deleted for good after 30 days. They stay encrypted like everything in the vault.",
+  "trashEmpty": "Nothing here.",
+  "daysLeft": "{count, plural, =0{Today} =1{1 day} other{{count} days}}",
+  "restore": "Restore",
+  "deleteNow": "Delete now",
+  "restoreAll": "Restore all",
+  "deleteAll": "Delete all",
+  "deleteForGoodOne": "Delete this item for good?",
+  "deleteForGoodAll": "{count, plural, =1{Delete 1 item for good?} other{Delete {count} items for good?}}",
+  "deleteForGoodBody": "This can't be undone.",
+  "deleteVaultTitle": "Delete this vault?",
+  "deleteVaultBody": "{size} are deleted from this phone for good. Earlier backups still open with the backup password.",
+  "deleteVaultPin": "Enter this vault's PIN to confirm.",
+  "deleteVaultAction": "Delete vault",
+  "vaultDeleted": "Vault deleted",
+  "storageUsed": "{size} · {count, plural, =1{1 item} other{{count} items}}",
+  "settingsLock": "Lock",
+  "autoLock": "Lock after no use",
+  "minutesShort": "{count} min",
+  "lastBackupLabel": "Last backup",
+  "settingsPrivacy": "Privacy",
+  "blockScreenshots": "Block screenshots",
+  "blockScreenshotsNote": "Also hides the vault in recent apps. Turn off to take a screenshot for a bug report.",
+  "settingsThisVault": "This vault",
+  "storage": "Storage",
+  "deleteVault": "Delete this vault",
+  "shareOutTitle": "Send an unencrypted copy?",
+  "shareOutBody": "The app you pick gets a plain copy of this file. That copy is no longer protected by Cozy Safe and the other app may keep it.",
+  "dontAskAgain": "Don't ask again for this vault",
+  "continueAction": "Continue",
+  "encryptingCount": "Encrypting {done} of {total}",
+  "importNote": "An item shows in the vault once it is fully encrypted. Cancel keeps what is done.",
+  "@daysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@deleteForGoodAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@deleteVaultBody": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "@storageUsed": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@minutesShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@encryptingCount": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   }
 }

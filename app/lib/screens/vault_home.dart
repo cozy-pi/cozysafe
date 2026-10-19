@@ -25,6 +25,8 @@ import 'file_view.dart';
 import 'new_vault.dart';
 import 'note.dart';
 import 'set_pin.dart';
+import 'settings.dart';
+import 'trash.dart';
 import 'unlock.dart';
 
 /// Inside an open vault: photos edge to edge, notes and files as a list, by date; the
@@ -52,7 +54,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   double _scaleStart = 1;
 
   static final bool _desktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-  static const _idle = Duration(minutes: 2);
   bool _canBio = false;
   bool _bioOn = false;
   Timer? _idleTimer;
@@ -62,7 +63,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _reload();
+    // What has been in Recently deleted for 30 days goes for good, then list.
+    rust.purgeExpired(nowMs: DateTime.now().millisecondsSinceEpoch).catchError((_) => 0).whenComplete(_reload);
     _bioOn = rust.biometricEnabled();
     BiometricUnlock.available().then((k) {
       if (mounted) setState(() => _canBio = k != null);
@@ -90,7 +92,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   void _touch() {
     _idleTimer?.cancel();
-    _idleTimer = Timer(_idle, () {
+    _idleTimer = Timer(Duration(minutes: Settings.autoLockMinutes), () {
       if (mounted && !LockGuard.away) _lock();
     });
   }
@@ -194,10 +196,27 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     try {
       final files = photos ? await pickPhotos() : await pickFiles();
       if (files.isEmpty || !mounted) return;
-      _snack(l.importing);
-      final n = await importFiles(files, photos: photos);
+      final done = ValueNotifier<int>(0);
+      var cancel = false;
+      final nav = Navigator.of(context);
+      final sheet = showModalBottomSheet<void>(
+        context: context,
+        isDismissible: false,
+        enableDrag: false,
+        builder: (context) => _ImportSheet(total: files.length, done: done, onCancel: () => cancel = true),
+      );
+      final int n;
+      try {
+        n = await importFiles(files, photos: photos, progress: (d, _) {
+          done.value = d;
+          LockGuard.activity(); // a long import is not idleness
+        }, cancelled: () => cancel);
+      } finally {
+        if (mounted) nav.pop();
+        await sheet;
+        done.dispose();
+      }
       if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         _snack(l.imported(n));
         _reload();
       }
@@ -346,6 +365,28 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
+  Future<void> _openTrash() async {
+    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TrashScreen()));
+    if (!_locked && changed == true) _reload();
+  }
+
+  Future<void> _openSettings() async {
+    final l = AppLocalizations.of(context);
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => SettingsScreen(
+        libraryDir: widget.libraryDir,
+        vault: _vault,
+        canBiometric: _canBio,
+        biometricOn: () => _bioOn,
+        onToggleBiometric: _toggleBiometric,
+        onPassword: _password,
+        onShowKit: _showKit,
+        lastBackup: _lastBackupText(l),
+      ),
+    ));
+    if (!_locked) _touch(); // the auto-lock time may have changed
+  }
+
   /// Creating another vault locks this one first (one open at a time).
   void _newVault() {
     final avoid = (_vault.icon, _vault.color);
@@ -379,13 +420,32 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       );
     } else {
       LockGuard.allowAway();
-      deleted = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: item)));
+      deleted = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: item, vaultId: _vault.id)));
       LockGuard.clear();
     }
     if (!_locked && deleted != null) {
-      _thumbs.remove(deleted);
       _reload();
+      _trashed(deleted);
     }
+  }
+
+  /// "Moved to Recently deleted · Undo".
+  void _trashed(String id) {
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(l.movedToTrash),
+        action: SnackBarAction(
+          label: l.undo,
+          onPressed: () async {
+            try {
+              await rust.restoreItem(id: id);
+            } catch (_) {}
+            if (!_locked) _reload();
+          },
+        ),
+      ));
   }
 
   String _dateGroup(BuildContext context, int ms) {
@@ -490,7 +550,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                                 ),
                               PopupMenuItem<void>(onTap: _backup, child: _MenuText(l.backup, _lastBackupText(l))),
                               if (_vault.hasPassword) PopupMenuItem<void>(onTap: _showKit, child: Text(l.showKit)),
+                              const PopupMenuDivider(),
+                              PopupMenuItem<void>(onTap: _openTrash, child: Text(l.recentlyDeleted)),
                               PopupMenuItem<void>(onTap: _newVault, child: Text(l.newVault)),
+                              PopupMenuItem<void>(onTap: _openSettings, child: Text(l.settings)),
                             ],
                           ),
                         ],
@@ -664,22 +727,11 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
     super.dispose();
   }
 
+  /// No question: it goes to Recently deleted and the vault offers Undo.
   Future<void> _delete() async {
     final l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.deletePhoto),
-        content: Text(l.deletePhotoBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(l.delete)),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
     try {
-      await rust.deleteItem(id: _item.id);
+      await rust.trashItem(id: _item.id, nowMs: DateTime.now().millisecondsSinceEpoch);
       if (mounted) Navigator.of(context).pop(_item.id);
     } on rust.VaultError catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(vaultErrorText(l, e))));
@@ -800,4 +852,58 @@ class _MenuText extends StatelessWidget {
           if (sub != null) Text(sub!, style: TextStyle(fontSize: 12, color: CsColors.of(context).muted)),
         ],
       );
+}
+
+/// "Encrypting 3 of 12", a bar and Cancel (docs/ui.md, review 12).
+class _ImportSheet extends StatefulWidget {
+  const _ImportSheet({required this.total, required this.done, required this.onCancel});
+  final int total;
+  final ValueNotifier<int> done;
+  final VoidCallback onCancel;
+
+  @override
+  State<_ImportSheet> createState() => _ImportSheetState();
+}
+
+class _ImportSheetState extends State<_ImportSheet> {
+  bool _cancelling = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return PopScope(
+      canPop: false,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 10, 22, 18),
+          child: ValueListenableBuilder<int>(
+            valueListenable: widget.done,
+            builder: (context, done, _) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(l.encryptingCount(done + (done < widget.total ? 1 : 0), widget.total),
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                LinearProgressIndicator(value: widget.total == 0 ? null : done / widget.total, minHeight: 6,
+                    borderRadius: BorderRadius.circular(3)),
+                const SizedBox(height: 12),
+                Text(l.importNote, style: TextStyle(color: CsColors.of(context).muted, fontSize: 13)),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: _cancelling
+                      ? null
+                      : () {
+                          setState(() => _cancelling = true);
+                          widget.onCancel();
+                        },
+                  child: Text(l.cancel),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -15,6 +15,13 @@ Dates are UTC.
 - Backup password set when it is needed (before the first backup), with the
   Emergency Kit, and changeable at any time. The app asks for it every 14 days.
 - Splash screen: vault green with the dial.
+- Recently deleted: deleting moves an item there for 30 days (Undo right away,
+  restore or delete for good later).
+- Settings: auto-lock time (1, 2, 5 or 10 minutes), Face ID for this vault, PIN,
+  backup, block screenshots (Android), storage used, delete this vault.
+- Delete a vault, confirmed with its PIN.
+- Importing several photos or files shows "Encrypting 3 of 12" with Cancel.
+- Sending a file to another app warns once per vault that the copy is not protected.
 - The app switcher shows the dial instead of the vault (iOS); on Android the vault
   is hidden from recent apps and screenshots.
 - Text copied from a note is cleared from the clipboard after 60 seconds and when

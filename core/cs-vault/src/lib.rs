@@ -538,6 +538,15 @@ impl OpenVault {
         remove_if_exists(&self.dir.join(BIOMETRIC_FILE))
     }
 
+    /// Delete this vault and everything in it from this device: items, its PIN and
+    /// biometric copies all live in its folder. The header goes first, so a crash
+    /// midway leaves a folder that no longer opens (and is cleaned up next time).
+    pub fn destroy(self) -> Result<()> {
+        fs::remove_file(self.dir.join(HEADER_FILE))?;
+        fs::remove_dir_all(&self.dir)?;
+        Ok(())
+    }
+
     pub fn biometric_enabled(&self) -> bool {
         self.dir.join(BIOMETRIC_FILE).is_file()
     }
@@ -811,5 +820,16 @@ pub(crate) mod tests {
         assert!(password_score("password1") < MIN_PASSWORD_SCORE);
         assert!(password_score(PW_A) >= MIN_PASSWORD_SCORE);
         assert!(password_score(PW_B) >= MIN_PASSWORD_SCORE);
+    }
+
+    #[test]
+    fn destroy_removes_the_vault() {
+        let tmp = tempfile::tempdir().unwrap();
+        let lib = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
+        let a = lib.create_vault("A", PW_A).unwrap();
+        lib.create_vault("B", PW_B).unwrap();
+        a.destroy().unwrap();
+        assert!(lib.unlock(PW_A).unwrap().is_none());
+        assert!(lib.unlock(PW_B).unwrap().is_some());
     }
 }

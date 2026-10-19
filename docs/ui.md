@@ -154,8 +154,8 @@ before they are built (the usual rule).
    viewer's Delete moves there and says "Moved to Recently deleted". *mockup*
 5. **Files only open in other apps.** Built-in viewers for PDF, images and video;
    "Open in another app" stays as a secondary action with its warning. *mockup*
-6. **No Settings.** One screen from the vault menu: auto-lock (immediately, 1, 2, 5
-   min), Face ID for this vault, change PIN, backup password, Emergency Kit, last
+6. **No Settings.** One screen from the vault menu: auto-lock (1, 2, 5, 10 min;
+   leaving the app always locks at once, so "immediately" would add nothing), Face ID for this vault, change PIN, backup password, Emergency Kit, last
    backup date, storage used, block screenshots (Android), language, theme. *mockup*
 7. **Which vault does Face ID open?** The menu says "Face ID opens this vault";
    turning it on here moves it from the other vault (one per device).

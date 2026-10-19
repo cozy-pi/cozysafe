@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/add_dock.dart';
 import 'common.dart';
 
 /// Icon for an item kind / type.
@@ -65,10 +66,24 @@ Future<Uint8List?> imageThumbnail(String path) async {
 
 /// Bring files from outside into the open vault. Copies that pickers left in this app's
 /// temp folder are deleted once encrypted; files picked in place (desktop) are left alone.
-Future<int> importFiles(List<XFile> files, {required bool photos}) async {
+Future<int> importFiles(
+  List<XFile> files, {
+  required bool photos,
+  void Function(int done, int total)? progress,
+  bool Function()? cancelled,
+}) async {
   final tmp = (await getTemporaryDirectory()).path;
   var n = 0;
   for (final f in files) {
+    // Cancel keeps what is finished; the current file is never half added.
+    if (cancelled?.call() ?? false) {
+      if (f.path.startsWith(tmp)) {
+        try {
+          File(f.path).deleteSync();
+        } catch (_) {}
+      }
+      continue;
+    }
     final name = f.name;
     final mime = (f.mimeType?.isNotEmpty ?? false) ? f.mimeType! : mimeOf(name);
     final isImage = mime.startsWith('image/');
@@ -82,6 +97,7 @@ Future<int> importFiles(List<XFile> files, {required bool photos}) async {
       thumbnail: thumb,
     );
     n++;
+    progress?.call(n, files.length);
     if (f.path.startsWith(tmp)) {
       try {
         File(f.path).deleteSync();
@@ -97,9 +113,11 @@ Future<List<XFile>> pickFiles() => openFiles();
 
 /// A file in the vault: what it is, open it in another app, delete it.
 class FileViewScreen extends StatefulWidget {
-  const FileViewScreen({super.key, required this.item});
+  const FileViewScreen({super.key, required this.item, required this.vaultId});
 
   final rust.ItemInfo item;
+  /// The first share out of each vault asks once (docs/ui.md, review 5).
+  final String vaultId;
 
   @override
   State<FileViewScreen> createState() => _FileViewScreenState();
@@ -112,6 +130,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
   /// delete the decrypted copy.
   Future<void> _open(BuildContext buttonContext) async {
     final l = AppLocalizations.of(context);
+    if (!await confirmShareOut(context, widget.vaultId) || !mounted) return;
     setState(() => _busy = true);
     final dir = await Directory((await getTemporaryDirectory()).path).createTemp('open');
     final path = '${dir.path}${Platform.pathSeparator}${widget.item.name.isEmpty ? 'file' : widget.item.name}';
@@ -133,21 +152,9 @@ class _FileViewScreenState extends State<FileViewScreen> {
     }
   }
 
+  /// No question: it goes to Recently deleted and the vault offers Undo.
   Future<void> _delete() async {
-    final l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.deleteItem),
-        content: Text(l.deletePhotoBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(l.delete)),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-    await rust.deleteItem(id: widget.item.id);
+    await rust.trashItem(id: widget.item.id, nowMs: DateTime.now().millisecondsSinceEpoch);
     if (mounted) Navigator.of(context).pop(widget.item.id);
   }
 
@@ -195,4 +202,43 @@ class _FileViewScreenState extends State<FileViewScreen> {
       ),
     );
   }
+}
+
+/// Before the first decrypted copy leaves a vault: say what that means, once per
+/// vault unless the person ticks "Don't ask again".
+Future<bool> confirmShareOut(BuildContext context, String vaultId) async {
+  final key = 'share-ok-$vaultId';
+  if (Prefs.read(key) == '1') return true;
+  final l = AppLocalizations.of(context);
+  var again = false;
+  final ok = await showModalBottomSheet<bool>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, set) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l.shareOutTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text(l.shareOutBody, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l.dontAskAgain),
+                value: again,
+                onChanged: (v) => set(() => again = v),
+              ),
+              FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.continueAction)),
+              const SizedBox(height: 6),
+              TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  if (ok == true && again) Prefs.write(key, '1');
+  return ok == true;
 }
