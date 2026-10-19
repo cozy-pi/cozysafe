@@ -13,10 +13,12 @@ import '../theme.dart';
 /// and before the vault locks, so locking never loses what was typed. The list shows
 /// its first line. New notes start with the keyboard open.
 class NoteScreen extends StatefulWidget {
-  const NoteScreen({super.key, this.item});
+  const NoteScreen({super.key, this.item, this.folder});
 
   /// null for a new note.
   final rust.ItemInfo? item;
+  /// Where a new note goes: the folder open in Notes.
+  final String? folder;
 
   @override
   State<NoteScreen> createState() => _NoteScreenState();
@@ -93,7 +95,10 @@ class _NoteScreenState extends State<NoteScreen> {
     try {
       final id = _id;
       if (id == null) {
-        _id = (await rust.addNote(title: _title(text), text: text, createdMs: nowMs())).id;
+        final id = (await rust.addNote(title: _title(text), text: text, createdMs: nowMs())).id;
+        _id = id;
+        final into = widget.folder;
+        if (into != null) await rust.moveItems(ids: [id], folder: into);
       } else {
         await rust.updateNote(id: id, title: _title(text), text: text);
       }

@@ -25,9 +25,15 @@ class RecorderView extends StatefulWidget {
     required this.onSaved,
     required this.onRecordingChanged,
     required this.onOpen,
+    this.folder,
+    this.bottomPad = 16,
   });
 
-  /// Everything in the vault; the recordings are picked out here.
+  /// New recordings go into this folder (the one open in Voice).
+  final String? folder;
+  final double bottomPad;
+
+  /// The recordings to list (those in the open folder).
   final List<rust.ItemInfo> items;
   final VoidCallback onSaved;
   final ValueChanged<bool> onRecordingChanged;
@@ -130,6 +136,8 @@ class RecorderViewState extends State<RecorderView> {
           thumbnail: null,
         );
         await rust.setItemDuration(id: item.id, durationMs: i64(length.inMilliseconds));
+        final into = widget.folder;
+        if (into != null) await rust.moveItems(ids: [item.id], folder: into);
         widget.onSaved();
       }
     } catch (_) {
@@ -258,7 +266,7 @@ class RecorderViewState extends State<RecorderView> {
       );
     }
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+      padding: EdgeInsets.fromLTRB(12, 4, 12, widget.bottomPad),
       children: [
         Material(
           color: Theme.of(context).cardColor,

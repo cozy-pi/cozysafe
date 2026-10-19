@@ -254,3 +254,29 @@ deniability).
   offers Rename, Send, Delete. Recording: level bars and a large timer.
 - The recorder writes to the app's private temp folder; the file is encrypted into the
   vault and deleted as soon as recording stops, and before the vault locks.
+
+## Vault bar (approved 2026-10-20, 0.1.6)
+
+Replaces the dock and the add strip.
+
+- Content runs edge to edge; it fades out under the floating controls, and every list
+  ends with room for them so the last row is never covered.
+- Top: the vault icon (tap: change icon), a large title (the kind, or the open folder's
+  name with Back and a ⋯ menu for Rename / Delete), then Search and Settings as glass
+  circles.
+- Under the title: the folders of the kind on show, as chips (colour, name, count), then
+  "New folder" ("New album" in the Library). Long press a chip to select it. Folder
+  creation stays here, not in the + button.
+- Bottom row, floating glass: the lock circle, then a capsule with Notes · Library ·
+  Voice (phones) · Files. Tap or slide to switch; the last kind is remembered.
+- The main action floats above the lock, for the left thumb:
+  Notes: pen in a square (new note) · Library: + with Add photos from device · Take
+  photo · Record video (desktop: + picks photos) · Voice: red button, white mic, Stop
+  while recording · Files: + opens the file picker.
+- The camera opens full screen from the Library with a Photo | Video switch, a shutter,
+  the last shot and flip. What it takes goes into the open album.
+- Glass: blur only behind the small controls (grouped backdrop); with Increase contrast
+  on it is a solid fill. A setting for left/right hand may come later.
+- Each kind has its own folder tree (`space` on the folder). Folders from before have
+  none and belong to Files. At a kind's top level it shows items not in one of its own
+  folders.

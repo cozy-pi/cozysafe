@@ -4,12 +4,26 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## Next
+## 0.1.6 (2026-10-20)
 
 ### Changed
-- The dock's add button is a plain white button with a small icon that carries a +
-  (photo +, note +, file +); no ring around it.
-- The chosen mode in the dock is white and bold; no more yellow.
+- The vault screen is redesigned: a large title, content edge to edge, and floating
+  frosted glass at the bottom: the lock, then Notes · Library · Voice · Files. Tap a
+  kind or slide along the bar to switch.
+- The main action floats above the lock (left thumb): a pen for a new note, a red mic
+  for recording (Stop while recording), + for files, and + for the library with a short
+  menu: add photos from the device, take a photo, record a video.
+- Search and Settings are round buttons at the top right; the vault icon stays at the
+  top left (tap it to change the icon).
+- Camera is no longer a mode: it opens from the Library's + menu, full screen, with a
+  Photo | Video switch.
+
+### Added
+- Every kind has its own folders (albums in the Library), shown as a row under the
+  title with "New folder" / "New album". New notes, recordings, photos and files go
+  into the folder that is open. Folders made before this release belong to Files.
+- Video recording in the vault camera. The clip is encrypted into the vault as soon as
+  recording stops (and before the vault locks), and the plain file is deleted.
 
 ## 0.1.5 (2026-10-20)
 

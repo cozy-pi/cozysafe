@@ -1,20 +1,180 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_guard.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'common.dart';
+import 'file_view.dart';
 
-/// The camera inside the vault: it takes the content area while the dock's mode is
-/// "Take photo", and the dock's round button shoots (docs/ui.md, vault content).
+/// The camera, opened from the Library's + menu (docs/ui.md, vault bar): Photo | Video,
+/// a shutter, the last shot, and flip. What it takes goes into the album open in the
+/// Library ([folder]).
+class CameraScreen extends StatefulWidget {
+  const CameraScreen({super.key, required this.video, this.folder, required this.onOpenLast});
+  final bool video;
+  final String? folder;
+  final void Function(rust.ItemInfo item) onOpenLast;
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  final _view = GlobalKey<CameraViewState>();
+  late bool _video = widget.video;
+  bool _recording = false;
+  DateTime? _since;
+  Timer? _tick;
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  void _recordingChanged(bool on) {
+    _tick?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _recording = on;
+      _since = on ? DateTime.now() : null;
+    });
+    if (on) _tick = Timer.periodic(const Duration(milliseconds: 500), (_) => setState(() {}));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final since = _since;
+    final d = since == null ? Duration.zero : DateTime.now().difference(since);
+    return PopScope(
+      canPop: !_recording,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Column(
+            children: [
+              SizedBox(
+                height: 52,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (!_recording)
+                      Positioned(
+                        left: 8,
+                        child: IconButton(
+                          tooltip: l.close,
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.close, color: Colors.white),
+                        ),
+                      ),
+                    if (_recording)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: const Color(0xFFE5484D), borderRadius: BorderRadius.circular(8)),
+                        child: Text(
+                          '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16,
+                              fontFeatures: [FontFeature.tabularFigures()]),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: CameraView(
+                  key: _view,
+                  video: _video,
+                  folder: widget.folder,
+                  onSaved: (_) {},
+                  onOpenLast: widget.onOpenLast,
+                  onRecordingChanged: _recordingChanged,
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (!_recording)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (final v in [false, true])
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setState(() => _video = v),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          child: Text(
+                            (v ? l.cameraVideo : l.photo).toUpperCase(),
+                            style: TextStyle(
+                              color: v == _video ? const Color(0xFFFFD60A) : Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              letterSpacing: .8,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              else
+                const SizedBox(height: 30),
+              const SizedBox(height: 10),
+              Semantics(
+                button: true,
+                label: _video ? (_recording ? l.stopRecording : l.recordVideo) : l.takePhoto,
+                child: GestureDetector(
+                  key: const ValueKey('shutter'),
+                  onTap: () => _view.currentState?.shoot(),
+                  child: Container(
+                    width: 74,
+                    height: 74,
+                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4)),
+                    padding: const EdgeInsets.all(5),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      margin: EdgeInsets.all(_recording ? 15 : 0),
+                      decoration: BoxDecoration(
+                        color: _video ? const Color(0xFFE5484D) : Colors.white,
+                        borderRadius: BorderRadius.circular(_recording ? 6 : 40),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The live preview and what it saves.
 ///
-/// Shots never touch a file in the clear: we take the next frame of the preview stream
+/// Photos never touch a file in the clear: we take the next frame of the preview stream
 /// (memory), and Rust encodes the JPEG and encrypts it into the open vault.
-/// `takePicture` is not used because it writes a cache file.
+/// `takePicture` is not used because it writes a cache file. Video has no such path: the
+/// plugin records to a file in the app's private cache, which is encrypted into the vault
+/// and deleted as soon as recording stops (and before the vault locks).
 class CameraView extends StatefulWidget {
-  const CameraView({super.key, required this.onSaved, required this.onOpenLast});
+  const CameraView({
+    super.key,
+    required this.onSaved,
+    required this.onOpenLast,
+    this.video = false,
+    this.folder,
+    this.onRecordingChanged,
+  });
+
+  final bool video;
+  final String? folder;
+  final ValueChanged<bool>? onRecordingChanged;
 
   /// A photo was encrypted into the vault.
   final void Function(rust.ItemInfo item) onSaved;
@@ -35,6 +195,7 @@ class CameraViewState extends State<CameraView> {
   bool _flash = false;
   rust.ItemInfo? _last;
   Uint8List? _lastThumb;
+  bool _recording = false;
 
   bool get ready => _controller != null && !_saving;
 
@@ -55,7 +216,7 @@ class CameraViewState extends State<CameraView> {
       final c = CameraController(
         _cameras[_camera],
         ResolutionPreset.veryHigh,
-        enableAudio: false,
+        enableAudio: widget.video,
         imageFormatGroup: Device.iOS ? ImageFormatGroup.bgra8888 : ImageFormatGroup.yuv420,
       );
       await c.initialize();
@@ -78,8 +239,22 @@ class CameraViewState extends State<CameraView> {
     await c.dispose();
   }
 
+  @override
+  void didUpdateWidget(CameraView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Video needs the microphone on the controller: start it again with audio.
+    if (oldWidget.video != widget.video && !_recording) _restart();
+  }
+
+  Future<void> _restart() async {
+    final old = _controller;
+    setState(() => _controller = null);
+    if (old != null) await _stop(old);
+    await _start();
+  }
+
   Future<void> _flip() async {
-    if (_cameras.length < 2 || _saving) return;
+    if (_cameras.length < 2 || _saving || _recording) return;
     final old = _controller;
     setState(() {
       _controller = null;
@@ -93,13 +268,22 @@ class CameraViewState extends State<CameraView> {
   void dispose() {
     final c = _controller;
     _controller = null;
-    if (c != null) _stop(c);
+    if (_recording && c != null) {
+      unawaited(_finishVideo(c).whenComplete(() => _stop(c)));
+    } else if (c != null) {
+      _stop(c);
+    }
+    if (LockGuard.beforeLock == _saveBeforeLock) LockGuard.beforeLock = null;
     SystemChrome.setPreferredOrientations([]);
     super.dispose();
   }
 
-  /// Called by the dock's shutter button.
+  /// The shutter: a photo, or start / stop a video.
   void shoot() {
+    if (widget.video) {
+      _recording ? _stopVideo() : _startVideo();
+      return;
+    }
     if (_saving || _controller == null) return;
     HapticFeedback.mediumImpact();
     setState(() {
@@ -110,6 +294,76 @@ class CameraViewState extends State<CameraView> {
     Future<void>.delayed(const Duration(milliseconds: 120), () {
       if (mounted) setState(() => _flash = false);
     });
+  }
+
+  Future<void> _saveBeforeLock() async {
+    final c = _controller;
+    if (_recording && c != null) await _finishVideo(c);
+  }
+
+  Future<void> _startVideo() async {
+    final c = _controller;
+    if (c == null || _saving) return;
+    final failed = AppLocalizations.of(context).videoSaveFailed;
+    try {
+      if (c.value.isStreamingImages) await c.stopImageStream();
+      await c.startVideoRecording();
+      HapticFeedback.mediumImpact();
+      LockGuard.beforeLock = _saveBeforeLock;
+      setState(() => _recording = true);
+      widget.onRecordingChanged?.call(true);
+    } catch (_) {
+      _snack(failed);
+    }
+  }
+
+  Future<void> _stopVideo() async {
+    final c = _controller;
+    if (c == null || !_recording) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _saving = true);
+    final item = await _finishVideo(c);
+    if (!mounted) return;
+    if (item != null) {
+      final thumb = await rust.itemThumbnail(id: item.id).catchError((_) => Uint8List(0));
+      if (!mounted) return;
+      setState(() {
+        _last = item;
+        _lastThumb = thumb.isEmpty ? null : thumb;
+      });
+      widget.onSaved(item);
+    } else {
+      _snack(AppLocalizations.of(context).videoSaveFailed);
+    }
+    setState(() => _saving = false);
+    try {
+      await c.startImageStream(_onFrame);
+    } catch (_) {}
+  }
+
+  /// Stop the recording, encrypt it into the vault, delete the plain file.
+  Future<rust.ItemInfo?> _finishVideo(CameraController c) async {
+    if (!_recording) return null;
+    _recording = false;
+    if (LockGuard.beforeLock == _saveBeforeLock) LockGuard.beforeLock = null;
+    widget.onRecordingChanged?.call(false);
+    XFile? file;
+    try {
+      file = await c.stopVideoRecording();
+      final named = XFile(file.path, name: 'VID_${DateTime.now().millisecondsSinceEpoch}.mp4', mimeType: 'video/mp4');
+      final added = await importFiles([named], photos: true);
+      final item = added.firstOrNull;
+      if (item != null && widget.folder != null) await rust.moveItems(ids: [item.id], folder: widget.folder);
+      return item;
+    } catch (_) {
+      return null;
+    } finally {
+      if (file != null) {
+        try {
+          File(file.path).deleteSync();
+        } catch (_) {}
+      }
+    }
   }
 
   Future<void> _onFrame(CameraImage image) async {
@@ -133,6 +387,7 @@ class CameraViewState extends State<CameraView> {
         rotation: _rotationFor(image),
       );
       final item = await rust.addPhoto(frame: frame, createdMs: nowMs());
+      if (widget.folder != null) await rust.moveItems(ids: [item.id], folder: widget.folder);
       final thumb = await rust.itemThumbnail(id: item.id);
       if (!mounted) return;
       setState(() {
@@ -231,7 +486,7 @@ class CameraViewState extends State<CameraView> {
                 shape: const CircleBorder(),
                 child: IconButton(
                   tooltip: l.flipCamera,
-                  onPressed: _saving ? null : _flip,
+                  onPressed: _saving || _recording ? null : _flip,
                   icon: const Icon(Icons.cameraswitch_outlined, color: Colors.white),
                 ),
               ),

@@ -283,5 +283,16 @@
   "recordingHint": "Đang ghi · bấm Dừng để lưu vào két",
   "emptyAudioTitle": "Chưa có bản ghi nào",
   "emptyAudioBody": "Bấm nút micro để ghi. Bản ghi được mã hoá vào két ngay khi dừng.",
-  "rename": "Đổi tên"
+  "rename": "Đổi tên",
+  "newAlbum": "Album mới",
+  "addFromDevice": "Thêm ảnh từ máy",
+  "recordVideo": "Quay video",
+  "cameraVideo": "Video",
+  "newNote": "Ghi chú mới",
+  "startRecording": "Ghi âm",
+  "stopRecording": "Dừng và lưu",
+  "addFiles": "Thêm tệp",
+  "addToLibrary": "Thêm vào thư viện",
+  "recordingVideo": "Đang quay",
+  "videoSaveFailed": "Không lưu được video. Thử lại."
 }

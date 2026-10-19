@@ -19,6 +19,7 @@ import '../theme.dart';
 import '../widgets/add_dock.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
+import '../widgets/vault_bar.dart';
 import 'backup_password.dart';
 import 'camera.dart';
 import 'common.dart';
@@ -33,9 +34,10 @@ import 'trash.dart';
 import 'unlock.dart';
 import 'video_view.dart';
 
-/// Inside an open vault: photos edge to edge, notes and files as a list, by date; the
-/// same add dock as the lock screen. Locks on leaving the app, after 2 minutes without a
-/// touch, or with the Lock button.
+/// Inside an open vault (docs/ui.md, vault bar): a large title, the folders of the kind
+/// on show as a row of chips, the content edge to edge, and floating glass at the bottom:
+/// the lock, the four kinds, and the main action above the lock. Locks on leaving the
+/// app, after 2 minutes without a touch, or with the lock button.
 class VaultHomeScreen extends StatefulWidget {
   const VaultHomeScreen({super.key, required this.libraryDir, required this.vault, this.initialAction});
 
@@ -58,15 +60,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   int _cols = 4;
   static const _colSteps = [3, 4, 5, 7];
   double _scaleStart = 1;
-  /// The dock's mode is also what the vault shows (docs/ui.md, vault content).
-  late AddMode _mode = AddDock.startMode(availableAddModes());
-  final _camera = GlobalKey<CameraViewState>();
+  /// What the vault shows, picked in the bottom capsule.
+  late VaultKind _kind = startKind();
+  final _actionKey = GlobalKey();
   final _recorder = GlobalKey<RecorderViewState>();
   bool _recordingNow = false;
   static const _tintApp = false;
 
-  /// The folder open in Files mode; null at the top level.
-  String? _folder;
+  /// The folder open in each kind; none means its top level.
+  final Map<VaultKind, String?> _openFolder = {};
+  String? get _folder => _openFolder[_kind];
   /// Long-press selection: ids picked for Delete / Send.
   final Set<String> _selected = {};
   /// Note previews (second line on), decrypted on demand, in memory only.
@@ -194,12 +197,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   // ---------- adding ----------
 
+  /// An add action picked on the lock screen.
   void _onAction(AddMode mode) {
     switch (mode) {
       case AddMode.camera:
-        _camera.currentState?.shoot();
+        _openCamera(video: false);
       case AddMode.audio:
-        _recorder.currentState?.toggle();
+        if (vaultKinds().contains(VaultKind.audio)) {
+          setState(() => _kind = VaultKind.audio);
+          WidgetsBinding.instance.addPostFrameCallback((_) => _recorder.currentState?.toggle());
+        }
       case AddMode.note:
         _openNote(null);
       case AddMode.library:
@@ -207,12 +214,68 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       case AddMode.file:
         _import(photos: false);
       case _:
-        break; // not offered: availableAddModes() lists only what works
+        break;
     }
   }
 
+  static bool get _hasCamera => Device.iOS || Device.android || debugCamera;
+
+  /// The button above the lock: compose, record, or a short menu of ways to add.
+  Future<void> _mainAction() async {
+    switch (_kind) {
+      case VaultKind.note:
+        return _openNote(null);
+      case VaultKind.audio:
+        return _recorder.currentState?.toggle();
+      case VaultKind.file:
+        return _import(photos: false);
+      case VaultKind.library:
+        if (!_hasCamera) return _import(photos: true);
+        final l = AppLocalizations.of(context);
+        final box = _actionKey.currentContext?.findRenderObject() as RenderBox?;
+        if (box == null) return;
+        final at = box.localToGlobal(Offset.zero);
+        final size = MediaQuery.sizeOf(context);
+        PopupMenuItem<int> item(int v, IconData icon, String text) => PopupMenuItem(
+              value: v,
+              height: 48,
+              child: Row(children: [
+                Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 12),
+                Text(text, style: const TextStyle(fontSize: 15)),
+              ]),
+            );
+        final v = await showMenu<int>(
+          context: context,
+          position: RelativeRect.fromLTRB(at.dx, at.dy - 172, size.width - at.dx - 240, size.height - at.dy + 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          items: [
+            item(0, Icons.add_photo_alternate_outlined, l.addFromDevice),
+            item(1, Icons.photo_camera_outlined, l.takePhoto),
+            item(2, Icons.videocam_outlined, l.recordVideo),
+          ],
+        );
+        if (v == 0) _import(photos: true);
+        if (v == 1) _openCamera(video: false);
+        if (v == 2) _openCamera(video: true);
+    }
+  }
+
+  Future<void> _openCamera({required bool video}) async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => CameraScreen(
+        video: video,
+        folder: _kind == VaultKind.library ? _folder : null,
+        onOpenLast: (item) => _openItem(item, [item]),
+      ),
+    ));
+    if (!_locked) _reload();
+  }
+
   Future<void> _openNote(rust.ItemInfo? item) async {
-    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => NoteScreen(item: item)));
+    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
+        builder: (_) => NoteScreen(item: item, folder: item == null && _kind == VaultKind.note ? _folder : null)));
     if (!_locked && changed == true) {
       _previews.clear();
       _reload();
@@ -246,7 +309,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         done.dispose();
       }
       // Picked inside a folder: they go into that folder.
-      final into = _mode == AddMode.file ? _folder : null;
+      final into = _folder;
       if (into != null && added.isNotEmpty) {
         await rust.moveItems(ids: [for (final a in added) a.id], folder: into);
       }
@@ -462,9 +525,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
     if (_selected.isNotEmpty) return _toggle(item.id);
     if (item.kind == 'folder') {
+      final kind = VaultKind.values.where((k) => k.name == _spaceOf(item)).firstOrNull ?? VaultKind.file;
       return setState(() {
-        _mode = AddMode.file;
-        _folder = item.id;
+        _kind = kind;
+        _openFolder[kind] = item.id;
       });
     }
     if (item.kind == 'note') return _openNote(item);
@@ -649,12 +713,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     return MaterialLocalizations.of(context).formatMonthYear(d);
   }
 
-  /// Library: photos and videos only, by date, small squares like Photos.
-  Widget _library(BuildContext context, List<rust.ItemInfo> items) {
+  /// Room under the content for the floating bar and the button above the lock, so
+  /// neither ever hides the last row.
+  double get _bottomRoom => MediaQuery.paddingOf(context).bottom + 150;
+
+  /// Library: photos and videos, by date, small squares like Photos.
+  Widget _library(BuildContext context, List<rust.ItemInfo> media) {
     final l = AppLocalizations.of(context);
-    final media = items.where(_isMedia).toList();
     if (media.isEmpty) {
-      return _Empty(icon: Icons.photo_library_outlined, title: l.emptyPhotosTitle, body: l.emptyPhotosBody);
+      return _folder != null
+          ? _FolderEmpty(text: l.folderEmpty)
+          : _Empty(icon: Icons.photo_library_outlined, title: l.emptyPhotosTitle, body: l.emptyPhotosBody);
     }
     final groups = <String, List<rust.ItemInfo>>{};
     for (final it in media) {
@@ -681,8 +750,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: _cols,
-                mainAxisSpacing: 1,
-                crossAxisSpacing: 1,
+                mainAxisSpacing: 1.5,
+                crossAxisSpacing: 1.5,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, i) {
@@ -701,25 +770,25 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
             ),
           ],
-          const SliverToBoxAdapter(child: SizedBox(height: 12)),
+          SliverToBoxAdapter(child: SizedBox(height: _bottomRoom)),
         ]),
       ),
     );
   }
 
-  /// Notes or files: one neutral card of equal-height rows (title, two lines, date).
-  Widget _list(BuildContext context, List<rust.ItemInfo> items, {required bool notes}) {
+  /// Notes or files: one neutral card of rows.
+  Widget _list(BuildContext context, List<rust.ItemInfo> list, {required bool notes}) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final list = items.where((i) => notes ? i.kind == 'note' : i.kind == 'file').toList();
     if (list.isEmpty) {
+      if (_folder != null) return _FolderEmpty(text: l.folderEmpty);
       return notes
           ? _Empty(icon: Icons.sticky_note_2_outlined, title: l.emptyNotesTitle, body: l.emptyNotesBody)
           : _Empty(icon: Icons.description_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody);
     }
     return Scrollbar(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+        padding: EdgeInsets.fromLTRB(12, 4, 12, _bottomRoom),
         children: [
           Material(
             color: Theme.of(context).cardColor,
@@ -739,8 +808,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                         )
                       : _FileRow(
                           item: it,
+                          thumb: _isMedia(it) ? _thumb(it.id) : null,
                           selected: _selected.contains(it.id),
-                          onTap: () => _openItem(it, const []),
+                          onTap: () => _openItem(it, list.where(_isMedia).toList()),
                           onLongPress: () => _toggle(it.id),
                         ),
                 ],
@@ -752,13 +822,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
-  // ---------- folders (Files mode) ----------
+  // ---------- folders (each kind has its own) ----------
 
   /// Folder colours: a short, distinct set of the vault colours.
   static const _folderColors = ['amber', 'blue', 'red', 'violet', 'leaf', 'teal', 'pink', 'grey'];
 
-  Map<String, rust.ItemInfo> get _folders =>
-      {for (final i in _items ?? const <rust.ItemInfo>[]) if (i.kind == 'folder') i.id: i};
+  /// Each kind has its own folders. Folders made before that belong to Files.
+  static String _spaceOf(rust.ItemInfo f) => f.space ?? VaultKind.file.name;
+
+  /// The folders of the kind on show.
+  Map<String, rust.ItemInfo> get _folders => {
+        for (final i in _items ?? const <rust.ItemInfo>[])
+          if (i.kind == 'folder' && _spaceOf(i) == _kind.name) i.id: i
+      };
 
   /// Where an item really sits: a folder that no longer exists counts as the top level.
   String? _parentOf(rust.ItemInfo i, Map<String, rust.ItemInfo> folders) =>
@@ -767,7 +843,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   void _upFolder() {
     final f = _folders[_folder];
     setState(() {
-      _folder = f == null ? null : _parentOf(f, _folders);
+      _openFolder[_kind] = f == null ? null : _parentOf(f, _folders);
       _selected.clear();
     });
   }
@@ -835,11 +911,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<rust.ItemInfo?> _newFolder({String? parent}) async {
     final l = AppLocalizations.of(context);
-    final r = await _askFolder(title: l.newFolder);
+    final r = await _askFolder(title: _kind == VaultKind.library ? l.newAlbum : l.newFolder);
     if (r == null) return null;
     try {
       final f = await rust.createFolder(
-          name: r.$1, color: r.$2, parent: parent, createdMs: nowMs());
+          name: r.$1, color: r.$2, space: _kind.name, parent: parent, createdMs: nowMs());
       await _reload();
       return f;
     } on rust.VaultError catch (e) {
@@ -872,7 +948,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (ok != true) return;
     final up = _parentOf(f, _folders);
     await rust.deleteFolder(id: f.id);
-    setState(() => _folder = up);
+    setState(() => _openFolder[_kind] = up);
     _reload();
   }
 
@@ -942,7 +1018,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (picked == null || !mounted) return;
     String? target = picked == top ? null : picked;
     if (picked == create) {
-      final f = await _newFolder(parent: _mode == AddMode.file ? _folder : null);
+      final f = await _newFolder(parent: _folder);
       if (f == null) return;
       target = f.id;
     }
@@ -958,151 +1034,166 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
-  /// Files mode: the folders here (tiles, then "New folder"), then what else is here.
-  /// At the top level that is the loose files; inside a folder, everything in it.
-  Widget _files(BuildContext context, List<rust.ItemInfo> items) {
-    final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
+  /// What the kind on show holds here: at the top level, its loose items (and those in
+  /// another kind's folder); inside a folder, what is in it. A Files folder may also hold
+  /// photos or notes filed there before each kind had its own folders.
+  List<rust.ItemInfo> _shown(List<rust.ItemInfo> items) {
     final folders = _folders;
-    final here = _folder != null && folders.containsKey(_folder) ? _folder : null;
-    final subfolders = items.where((i) => i.kind == 'folder' && _parentOf(i, folders) == here).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    final rest = items
-        .where((i) => i.kind != 'folder' && _parentOf(i, folders) == here && (here != null || i.kind == 'file'))
-        .toList();
-    int count(String id) => items.where((i) => i.folder == id).length;
+    final here = _folder;
+    bool mine(rust.ItemInfo i) => switch (_kind) {
+          VaultKind.note => i.kind == 'note',
+          VaultKind.library => _isMedia(i),
+          VaultKind.audio => i.kind == 'audio',
+          VaultKind.file => here == null ? i.kind == 'file' : i.kind != 'folder',
+        };
+    return items.where((i) => mine(i) && _parentOf(i, folders) == here).toList();
+  }
 
-    // The path, top level first: Files › Papers › Passport.
-    final path = <rust.ItemInfo>[];
-    for (var at = here; at != null; at = _parentOf(folders[at]!, folders)) {
-      path.insert(0, folders[at]!);
-    }
+  Widget _content(BuildContext context) {
+    final items = _items;
+    if (items == null) return const Center(child: CircularProgressIndicator());
+    final shown = _shown(items);
+    return switch (_kind) {
+      VaultKind.note => _list(context, shown, notes: true),
+      VaultKind.file => _list(context, shown, notes: false),
+      VaultKind.audio => RecorderView(
+          key: _recorder,
+          items: shown,
+          folder: _folder,
+          bottomPad: _bottomRoom,
+          onSaved: _reload,
+          onRecordingChanged: (v) => setState(() => _recordingNow = v),
+          onOpen: (it) => _openItem(it, const []),
+        ),
+      VaultKind.library => _library(context, shown),
+    };
+  }
 
-    return Scrollbar(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+  /// Large title; inside a folder, Back and the folder's name. Search and Settings
+  /// are glass circles on the right.
+  Widget _header(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final folders = _folders;
+    final open = _folder == null ? null : folders[_folder];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+      child: Row(
         children: [
-          if (here != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  IconButton(tooltip: l.back, onPressed: _upFolder, icon: const Icon(Icons.arrow_back)),
-                  Expanded(
-                    child: Text.rich(
-                      TextSpan(children: [
-                        TextSpan(text: '${l.modeFile} › ', style: TextStyle(color: c.muted)),
-                        for (final (i, f) in path.indexed)
-                          TextSpan(
-                            text: i == path.length - 1 ? f.name : '${f.name} › ',
-                            style: i == path.length - 1
-                                ? const TextStyle(fontWeight: FontWeight.w700, fontSize: 17)
-                                : TextStyle(color: c.muted),
-                          ),
-                      ]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  PopupMenuButton<int>(
-                    tooltip: l.folderOptions,
-                    onSelected: (v) => v == 0 ? _editFolder(folders[here]!) : _removeFolder(folders[here]!),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(value: 0, child: Text(l.renameFolder)),
-                      PopupMenuItem(value: 1, child: Text(l.deleteFolder)),
-                    ],
-                  ),
-                ],
+          if (open == null)
+            Semantics(
+              button: true,
+              label: l.changeIdentity,
+              child: GestureDetector(
+                onTap: _changeIdentity,
+                child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 34),
               ),
-            ),
-          if (subfolders.isNotEmpty || here == null || rest.isEmpty) ...[
-            if (here == null) _SectionTitle(l.folders),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 2.2,
-              children: [
-                for (final f in subfolders)
-                  _FolderTile(
-                    folder: f,
-                    count: count(f.id),
-                    selected: _selected.contains(f.id),
-                    onTap: () => _openItem(f, const []),
-                    onLongPress: () => _toggle(f.id),
-                  ),
-                _NewFolderTile(onTap: () => _newFolder(parent: here)),
-              ],
-            ),
-          ],
-          if (rest.isNotEmpty) ...[
-            if (here == null) _SectionTitle(l.modeFile) else const SizedBox(height: 12),
-            Material(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(14),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  for (final (i, it) in rest.indexed) ...[
-                    if (i > 0) Divider(height: 1, indent: 70, color: c.border.withValues(alpha: .6)),
-                    _FileRow(
-                      item: it,
-                      thumb: it.kind == 'photo' || it.kind == 'video' ? _thumb(it.id) : null,
-                      selected: _selected.contains(it.id),
-                      onTap: () => _openItem(it, rest.where(_isMedia).toList()),
-                      onLongPress: () => _toggle(it.id),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ] else if (here == null && subfolders.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 24),
-              child: _Empty(icon: Icons.description_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody),
             )
-          else if (here != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 24),
-              child: Text(l.folderEmpty, textAlign: TextAlign.center, style: TextStyle(color: c.muted)),
+          else
+            GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, size: 38, onTap: _upFolder),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              open?.name ?? kindLabel(l, _kind),
+              key: const ValueKey('vault-title'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -.5),
             ),
+          ),
+          if (open != null) ...[
+            PopupMenuButton<int>(
+              tooltip: l.folderOptions,
+              onSelected: (v) => v == 0 ? _editFolder(open) : _removeFolder(open),
+              itemBuilder: (context) => [
+                PopupMenuItem(value: 0, child: Text(l.renameFolder)),
+                PopupMenuItem(value: 1, child: Text(l.deleteFolder)),
+              ],
+              child: const IgnorePointer(child: GlassButton(icon: Icons.more_horiz, tooltip: '', size: 38, onTap: null)),
+            ),
+            const SizedBox(width: 8),
+          ],
+          GlassButton(icon: Icons.search, tooltip: l.search, size: 38, onTap: _openSearch),
+          const SizedBox(width: 8),
+          GlassButton(
+            key: const ValueKey('settings-button'),
+            icon: Icons.settings_outlined,
+            tooltip: l.settings,
+            size: 38,
+            onTap: _openSettings,
+          ),
         ],
       ),
     );
   }
 
-  Widget _content(BuildContext context) {
-    final items = _items;
-    if (_mode == AddMode.camera) {
-      return CameraView(
-        key: _camera,
-        onSaved: (_) => _reload(),
-        onOpenLast: (item) => _openItem(item, [item]),
-      );
-    }
-    if (items == null) return const Center(child: CircularProgressIndicator());
-    return switch (_mode) {
-      AddMode.note => _list(context, items, notes: true),
-      AddMode.file => _files(context, items),
-      AddMode.audio => RecorderView(
-          key: _recorder,
-          items: items,
-          onSaved: _reload,
-          onRecordingChanged: (v) => setState(() => _recordingNow = v),
-          onOpen: (it) => _openItem(it, const []),
-        ),
-      _ => _library(context, items),
+  /// The folders here, as chips, then "New folder" (or "New album").
+  Widget _folderChips(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final folders = _folders;
+    final items = _items ?? const <rust.ItemInfo>[];
+    final here = _folder;
+    final kids = folders.values.where((f) => _parentOf(f, folders) == here).toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final primary = Theme.of(context).colorScheme.primary;
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(14, 6, 14, 8),
+        children: [
+          for (final f in kids) ...[
+            _FolderChip(
+              folder: f,
+              count: items.where((i) => i.folder == f.id).length,
+              selected: _selected.contains(f.id),
+              onTap: () => _openItem(f, const []),
+              onLongPress: () => _toggle(f.id),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Semantics(
+            button: true,
+            child: InkWell(
+              key: const ValueKey('new-folder'),
+              borderRadius: BorderRadius.circular(13),
+              onTap: () => _newFolder(parent: here),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.create_new_folder_outlined, size: 19, color: primary),
+                    const SizedBox(width: 6),
+                    Text(_kind == VaultKind.library ? l.newAlbum : l.newFolder,
+                        style: TextStyle(color: primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final (icon, tip) = switch (_kind) {
+      VaultKind.note => (Icons.edit_square, l.newNote),
+      VaultKind.library => (Icons.add, l.addToLibrary),
+      VaultKind.audio => (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording),
+      VaultKind.file => (Icons.add, l.addFiles),
     };
+    return ActionButton(key: _actionKey, icon: icon, tooltip: tip, red: _kind == VaultKind.audio, onTap: _mainAction);
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final camera = _mode == AddMode.camera;
     final selecting = _selected.isNotEmpty;
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    final page = Theme.of(context).scaffoldBackgroundColor;
 
     final header = selecting
         ? Padding(
@@ -1115,25 +1206,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ],
             ),
           )
-        : Padding(
-            padding: const EdgeInsets.fromLTRB(18, 10, 4, 10),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: _changeIdentity,
-                  child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 44),
-                ),
-                const Spacer(),
-                // Everything else about the vault lives in Settings, one tap away.
-                IconButton(
-                  key: const ValueKey('settings-button'),
-                  tooltip: l.settings,
-                  onPressed: _openSettings,
-                  icon: const Icon(Icons.settings_outlined),
-                ),
-              ],
-            ),
-          );
+        : _header(context);
 
     final banner = !_vault.hasPassword && !selecting
         ? Padding(
@@ -1162,9 +1235,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           )
         : null;
 
-    final inFolder = _mode == AddMode.file && _folder != null;
+    final inFolder = _folder != null;
     return PopScope(
-      canPop: !selecting && !inFolder,
+      canPop: !selecting && !inFolder && !_recordingNow,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (selecting) {
@@ -1174,39 +1247,146 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         }
       },
       child: Scaffold(
-        // The dock is the Scaffold's bottom bar, so messages (Undo…) float above it
-        // instead of covering its buttons.
+        // While selecting, the bar gives way to what can be done with the selection
+        // (a real bottom bar, so messages float above it).
         bottomNavigationBar: selecting
             ? _SelectionBar(onSend: _sendSelected, onMove: _moveSelected, onDelete: _deleteSelected)
-            : AddDock(
-                modes: availableAddModes(),
-                leading: DockSlot(glyph: const LockGlyph(size: 24, color: Colors.white), label: l.lockVault, onTap: _lock),
-                trailing: DockSlot(icon: Icons.search, label: l.search, onTap: _openSearch),
-                onAction: _onAction,
-                recording: _recordingNow,
-                onModeChanged: (m) => setState(() {
-                  _mode = m;
-                  _selected.clear();
-                }),
+            : null,
+        body: Stack(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  header,
+                  if (!_recordingNow) _folderChips(context),
+                  ?banner,
+                  Expanded(child: MediaQuery.removePadding(context: context, removeBottom: true, child: _content(context))),
+                ],
               ),
-        body: camera
-                  // The camera takes the whole area above the dock; the header steps
-                  // aside so the frame is as large as it can be.
-                  ? ColoredBox(color: Colors.black, child: SafeArea(bottom: false, child: _content(context)))
-                  : SafeArea(
-                      bottom: false,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          header,
-                          ?banner,
-                          Expanded(child: _content(context)),
-                        ],
+            ),
+            if (!selecting) ...[
+              // The content fades out under the floating bar.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: bottom + 96,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [page.withValues(alpha: 0), page.withValues(alpha: .85)],
                       ),
                     ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 10,
+                right: 10,
+                bottom: bottom + 10,
+                child: VaultBar(
+                  kind: _kind,
+                  onKind: (k) {
+                    if (_recordingNow) return;
+                    setState(() {
+                      _kind = k;
+                      _selected.clear();
+                    });
+                  },
+                  lock: GlassButton(
+                    key: const ValueKey('lock-button'),
+                    tooltip: l.lockVault,
+                    size: 50,
+                    icon: null,
+                    onTap: _lock,
+                    child: LockGlyph(size: 22, color: Theme.of(context).colorScheme.onSurface),
+                  ),
+                ),
+              ),
+              Positioned(left: 7, bottom: bottom + 10 + 50 + 14, child: _actionButton(context)),
+            ],
+          ],
+        ),
       ),
     );
   }
+}
+
+/// A folder in the chip row: its colour, name and how much is in it.
+class _FolderChip extends StatelessWidget {
+  const _FolderChip({
+    required this.folder,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+    required this.onLongPress,
+  });
+  final rust.ItemInfo folder;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${folder.name}, $count',
+      child: Material(
+        color: selected ? primary.withValues(alpha: .14) : Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(13),
+        elevation: selected ? 0 : .5,
+        shadowColor: Colors.black26,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(13),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(selected ? Icons.check_circle : Icons.folder_rounded,
+                    size: 18, color: selected ? primary : colorById(folder.color ?? 'amber').color),
+                const SizedBox(width: 6),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 160),
+                  child: Text(folder.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                ),
+                if (count > 0) ...[
+                  const SizedBox(width: 6),
+                  Text('$count', style: TextStyle(color: c.muted, fontSize: 12.5)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// An open folder with nothing in it.
+class _FolderEmpty extends StatelessWidget {
+  const _FolderEmpty({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 48),
+        child: Text(text, textAlign: TextAlign.center, style: TextStyle(color: CsColors.of(context).muted)),
+      );
 }
 
 /// While items are selected the dock gives way to what can be done with them.
@@ -1699,116 +1879,4 @@ class _ImportSheetState extends State<_ImportSheet> {
       ),
     );
   }
-}
-
-/// A folder in Files mode: its colour, name and how many things are directly in it.
-class _FolderTile extends StatelessWidget {
-  const _FolderTile({
-    required this.folder,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-    required this.onLongPress,
-  });
-  final rust.ItemInfo folder;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
-    return Material(
-      color: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: .18) : Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(14),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-          child: Row(
-            children: [
-              Icon(Icons.folder, size: 34, color: colorById(folder.color ?? 'amber').color),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(folder.name,
-                        maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    Text(l.itemsCount(count), style: TextStyle(color: c.muted, fontSize: 12)),
-                  ],
-                ),
-              ),
-              if (selected) Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NewFolderTile extends StatelessWidget {
-  const _NewFolderTile({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: DottedBox(
-        color: c.muted,
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.create_new_folder_outlined, color: c.muted),
-              const SizedBox(width: 8),
-              Text(l.newFolder, style: TextStyle(color: c.muted, fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A rounded box with a dashed outline ("add one here").
-class DottedBox extends StatelessWidget {
-  const DottedBox({super.key, required this.color, required this.child});
-  final Color color;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _Dashes(color.withValues(alpha: .6)), child: child);
-}
-
-class _Dashes extends CustomPainter {
-  _Dashes(this.color);
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(14)).deflate(1);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    for (final m in (Path()..addRRect(rrect)).computeMetrics()) {
-      for (var d = 0.0; d < m.length; d += 10) {
-        canvas.drawPath(m.extractPath(d, d + 5), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_Dashes old) => old.color != color;
 }

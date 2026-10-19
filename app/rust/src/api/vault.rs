@@ -369,6 +369,8 @@ pub struct ItemInfo {
     pub folder: Option<String>,
     /// A folder's colour id.
     pub color: Option<String>,
+    /// What a folder holds: "note", "photo", "audio" or "file" (None: "file").
+    pub space: Option<String>,
 }
 
 impl From<ItemMeta> for ItemInfo {
@@ -384,6 +386,7 @@ impl From<ItemMeta> for ItemInfo {
             duration_ms: m.duration_ms,
             folder: m.folder,
             color: m.color,
+            space: m.space,
         }
     }
 }
@@ -551,10 +554,14 @@ pub fn delete_item(id: String) -> Result<(), VaultError> {
 pub fn create_folder(
     name: String,
     color: String,
+    space: String,
     parent: Option<String>,
     created_ms: i64,
 ) -> Result<ItemInfo, VaultError> {
-    with_open(|v| Ok(v.create_folder(&name, &color, parent.as_deref(), created_ms)?.into()))
+    with_open(|v| {
+        Ok(v.create_folder(&name, &color, &space, parent.as_deref(), created_ms)?
+            .into())
+    })
 }
 
 pub fn update_folder(id: String, name: String, color: String) -> Result<ItemInfo, VaultError> {

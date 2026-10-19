@@ -425,5 +425,16 @@
   "recordingHint": "Recording · tap Stop to save it to the vault",
   "emptyAudioTitle": "No recordings yet",
   "emptyAudioBody": "Tap the microphone to record. The recording is encrypted into the vault when you stop.",
-  "rename": "Rename"
+  "rename": "Rename",
+  "newAlbum": "New album",
+  "addFromDevice": "Add photos from device",
+  "recordVideo": "Record video",
+  "cameraVideo": "Video",
+  "newNote": "New note",
+  "startRecording": "Record",
+  "stopRecording": "Stop and save",
+  "addFiles": "Add files",
+  "addToLibrary": "Add to library",
+  "recordingVideo": "Recording",
+  "videoSaveFailed": "Couldn't save the video. Try again."
 }

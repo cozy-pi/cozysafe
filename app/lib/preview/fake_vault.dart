@@ -16,7 +16,7 @@ class FakeVault implements RustLibApi {
   FakeVault(this.photos) {
     final now = DateTime.now().millisecondsSinceEpoch;
     ItemInfo it(String id, String kind, String name, int size,
-            {int ago = 0, int? duration, String? folder, String? color, String mime = ''}) =>
+            {int ago = 0, int? duration, String? folder, String? color, String? space, String mime = ''}) =>
         ItemInfo(
           id: id,
           kind: kind,
@@ -36,13 +36,21 @@ class FakeVault implements RustLibApi {
           durationMs: duration == null ? null : i64(duration),
           folder: folder,
           color: color,
+          space: space,
         );
     _items.addAll([
       for (var i = 0; i < 5; i++) it('p$i', 'photo', 'IMG_${4810 + i}.HEIC', 2400000, ago: i * 600000),
       it('v1', 'video', 'Sinh nhật bé Na.MOV', 38400000, ago: 3600000, duration: 42000),
       for (var i = 5; i < 9; i++) it('p$i', 'photo', 'IMG_${4790 + i}.HEIC', 2100000, ago: _day + i * 300000),
       it('v2', 'video', 'Đi biển Quy Nhơn.MOV', 126000000, ago: _day * 2, duration: 197000),
-      for (var i = 9; i < 16; i++) it('p$i', 'photo', 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i)),
+      for (var i = 9; i < 16; i++)
+        it('p$i', 'photo', 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i), folder: i < 13 ? 'b3' : null),
+      it('b1', 'folder', 'Giấy tờ', 0, color: 'amber', space: 'library'),
+      it('b2', 'folder', 'Gia đình', 0, color: 'blue', space: 'library'),
+      it('b3', 'folder', 'Du lịch', 0, color: 'leaf', space: 'library'),
+      it('c1', 'folder', 'Mật khẩu', 0, color: 'amber', space: 'note'),
+      it('c2', 'folder', 'Sức khoẻ', 0, color: 'red', space: 'note'),
+      it('e1', 'folder', 'Cuộc họp', 0, color: 'violet', space: 'audio'),
       it('a1', 'audio', 'Cuộc họp với luật sư.m4a', 6100000, ago: 7200000, duration: 768000, mime: 'audio/mp4'),
       it('a2', 'audio', 'Bác sĩ dặn về thuốc của mẹ.m4a', 1500000, ago: _day, duration: 185000, mime: 'audio/mp4'),
       it('a3', 'audio', 'Thoả thuận đặt cọc nhà.m4a', 11600000, ago: _day * 8, duration: 1450000, mime: 'audio/mp4'),
@@ -50,7 +58,7 @@ class FakeVault implements RustLibApi {
       it('n2', 'note', 'Tài khoản ngân hàng', 640, ago: _day),
       it('n3', 'note', 'Thuốc của mẹ', 420, ago: _day * 3),
       it('n4', 'note', 'Hộ chiếu và visa', 260, ago: _day * 9, folder: 'd1'),
-      it('n5', 'note', 'Mật khẩu router và camera an ninh', 300, ago: _day * 15),
+      it('n5', 'note', 'Mật khẩu router và camera an ninh', 300, ago: _day * 15, folder: 'c1'),
       it('n6', 'note', 'Danh sách quà Tết', 90, ago: _day * 30),
       it('d1', 'folder', 'Giấy tờ tùy thân', 0, color: 'amber'),
       it('d2', 'folder', 'Nhà cửa', 0, color: 'blue'),
@@ -95,6 +103,7 @@ class FakeVault implements RustLibApi {
         durationMs: i.durationMs,
         folder: clearFolder ? null : (folder ?? i.folder),
         color: color ?? i.color,
+        space: i.space,
       );
 
   void _replace(String id, ItemInfo Function(ItemInfo) f) {
@@ -192,7 +201,7 @@ class FakeVault implements RustLibApi {
         final f = ItemInfo(
           id: 'd${_next++}', kind: 'folder', name: a<String>('name'), mime: '',
           createdMs: a<PlatformInt64>('createdMs'), size: BigInt.zero, deletedMs: null, durationMs: null,
-          folder: a<String?>('parent'), color: a<String>('color'),
+          folder: a<String?>('parent'), color: a<String>('color'), space: a<String>('space'),
         );
         _items.add(f);
         return _f(f);

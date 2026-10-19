@@ -19,6 +19,7 @@ import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/widgets/add_dock.dart';
 import 'package:cozysafe/widgets/identity.dart';
+import 'package:cozysafe/widgets/vault_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -28,7 +29,7 @@ const _enabled = bool.fromEnvironment('PREVIEW');
 final _now = DateTime.now().millisecondsSinceEpoch;
 
 ItemInfo _item(String id, String kind, String name, int size,
-        {int ago = 0, int? deleted, int? duration, String? folder, String? color}) =>
+        {int ago = 0, int? deleted, int? duration, String? folder, String? color, String? space}) =>
     ItemInfo(
       id: id.padRight(32, '_'),
       kind: kind,
@@ -40,6 +41,7 @@ ItemInfo _item(String id, String kind, String name, int size,
       durationMs: duration,
       folder: folder?.padRight(32, '_'),
       color: color,
+      space: space,
     );
 
 const _day = 86400000;
@@ -50,7 +52,14 @@ final _items = [
   _item('v1', 'video', 'Sinh nhật bé Na.MOV', 38400000, ago: 3600000, duration: 42000),
   for (var i = 5; i < 9; i++) _item('p$i', 'photo', 'IMG_${4790 + i}.HEIC', 2100000, ago: _day + i * 300000),
   _item('v2', 'video', 'Đi biển Quy Nhơn.MOV', 126000000, ago: _day * 2, duration: 3 * 60000 + 17000),
-  for (var i = 9; i < 16; i++) _item('p$i', 'photo', 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i)),
+  for (var i = 9; i < 16; i++)
+    _item('p$i', 'photo', 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i), folder: i < 13 ? 'b3' : null),
+  _item('b1', 'folder', 'Giấy tờ', 0, color: 'amber', space: 'library'),
+  _item('b2', 'folder', 'Gia đình', 0, color: 'blue', space: 'library'),
+  _item('b3', 'folder', 'Du lịch', 0, color: 'leaf', space: 'library'),
+  _item('c1', 'folder', 'Mật khẩu', 0, color: 'amber', space: 'note'),
+  _item('c2', 'folder', 'Sức khoẻ', 0, color: 'red', space: 'note'),
+  _item('e1', 'folder', 'Cuộc họp', 0, color: 'violet', space: 'audio'),
   _item('a1', 'audio', 'Cuộc họp với luật sư.m4a', 6100000, ago: 7200000, duration: 768000),
   _item('a2', 'audio', 'Bác sĩ dặn về thuốc của mẹ.m4a', 1500000, ago: _day, duration: 185000),
   _item('a3', 'audio', 'Thoả thuận đặt cọc nhà.m4a', 11600000, ago: _day * 8, duration: 1450000),
@@ -58,7 +67,7 @@ final _items = [
   _item('n2', 'note', 'Tài khoản ngân hàng', 640, ago: _day),
   _item('n3', 'note', 'Thuốc của mẹ', 420, ago: _day * 3),
   _item('n4', 'note', 'Hộ chiếu và visa', 260, ago: _day * 9, folder: 'd1'),
-  _item('n5', 'note', 'Mật khẩu router và camera an ninh', 300, ago: _day * 15),
+  _item('n5', 'note', 'Mật khẩu router và camera an ninh', 300, ago: _day * 15, folder: 'c1'),
   _item('n6', 'note', 'Danh sách quà Tết', 90, ago: _day * 30),
   _item('n7', 'note', 'Mã két sắt', 40, ago: _day * 60),
   _item('n8', 'note', 'Thông tin bảo hiểm xe', 520, ago: _day * 75),
@@ -188,6 +197,7 @@ void main() {
     RustLib.initMock(api: _Fake());
     FlutterSecureStorage.setMockInitialValues({});
     debugAddModes = [AddMode.note, AddMode.library, AddMode.camera, AddMode.audio, AddMode.file];
+    debugVoice = true;
     await _loadFonts();
   });
 
@@ -228,18 +238,39 @@ void main() {
   for (final mode in ['library', 'note', 'audio', 'file']) {
     testWidgets('mode $mode', skip: !_enabled, (t) async {
       Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-      Prefs.write('add-mode', mode);
+      Prefs.write('vault-kind', mode);
       await _shot(t, 'mode-$mode', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color);
     });
   }
   testWidgets('folder', skip: !_enabled, (t) async {
     Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-    Prefs.write('add-mode', 'file');
+    Prefs.write('vault-kind', 'file');
     await _shot(t, 'folder', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color,
         act: (t) async {
       await t.tap(find.text('Giấy tờ tùy thân'));
     });
   });
+  testWidgets('library menu', skip: !_enabled, (t) async {
+    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
+    Prefs.write('vault-kind', 'library');
+    debugCamera = true;
+    addTearDown(() => debugCamera = false);
+    await _shot(t, 'library-menu', VaultHomeScreen(libraryDir: '', vault: vault),
+        act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
+  });
+  testWidgets('album', skip: !_enabled, (t) async {
+    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
+    Prefs.write('vault-kind', 'library');
+    await _shot(t, 'album', VaultHomeScreen(libraryDir: '', vault: vault), b: Brightness.dark,
+        act: (t) => t.tap(find.text('Du lịch')));
+  });
+  for (final mode in ['note', 'audio']) {
+    testWidgets('dark $mode', skip: !_enabled, (t) async {
+      Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
+      Prefs.write('vault-kind', mode);
+      await _shot(t, 'dark-$mode', VaultHomeScreen(libraryDir: '', vault: vault), b: Brightness.dark);
+    });
+  }
   testWidgets('new vault', skip: !_enabled, (t) => _shot(t, 'new-vault', const NewVaultScreen(libraryDir: '', first: false)));
   testWidgets('new vault step 2', skip: !_enabled, (t) async {
     await _shot(t, 'new-vault-2', const NewVaultScreen(libraryDir: '', first: false), act: (t) async {
@@ -249,7 +280,7 @@ void main() {
   });
   testWidgets('message', skip: !_enabled, (t) async {
     Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-    Prefs.write('add-mode', 'library');
+    Prefs.write('vault-kind', 'library');
     await _shot(t, 'message', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color,
         act: (t) async {
       ScaffoldMessenger.of(t.element(find.byType(VaultHomeScreen)))
@@ -258,7 +289,7 @@ void main() {
   });
   testWidgets('select', skip: !_enabled, (t) async {
     Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-    Prefs.write('add-mode', 'library');
+    Prefs.write('vault-kind', 'library');
     await _shot(t, 'select', const VaultHomeScreen(libraryDir: '', vault: VaultInfo(id: 'v', name: '', icon: 'home', color: 'plum', hasPassword: true)),
         b: Brightness.dark, vault: colorById('plum').color, act: (t) async {
       await t.longPress(find.byType(Image).at(2));

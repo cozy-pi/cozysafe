@@ -38,6 +38,9 @@ pub struct ItemMeta {
     pub folder: Option<String>,
     /// A folder's colour id (folders only).
     pub color: Option<String>,
+    /// What a folder holds: "note", "photo" (photos and videos), "audio" or "file".
+    /// Folders made before this have none and count as "file".
+    pub space: Option<String>,
 }
 
 /// Kind of the items that are folders. A folder is an item with no content, so it is
@@ -65,6 +68,8 @@ struct ItemRecord {
     folder: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    space: Option<String>,
 }
 
 /// Content to store as a new item.
@@ -126,6 +131,7 @@ impl OpenVault {
             duration_ms: None,
             folder: None,
             color: None,
+            space: None,
             wrapped_dek: hex::encode(wrap::wrap_key(
                 &self.master_key,
                 &dek,
@@ -175,6 +181,7 @@ impl OpenVault {
         &self,
         name: &str,
         color: &str,
+        space: &str,
         parent: Option<&str>,
         created_ms: i64,
     ) -> Result<ItemMeta> {
@@ -192,6 +199,7 @@ impl OpenVault {
         let mut record = self.record(&m.id)?;
         record.folder = parent.map(str::to_owned);
         record.color = Some(color.to_owned());
+        record.space = Some(space.to_owned());
         self.write_record(&m.id, &record)?;
         Ok(meta(m.id, record))
     }
@@ -386,6 +394,7 @@ fn meta(id: String, r: ItemRecord) -> ItemMeta {
         duration_ms: r.duration_ms,
         folder: r.folder,
         color: r.color,
+        space: r.space,
     }
 }
 
@@ -543,9 +552,11 @@ mod tests {
             .unwrap()
             .create_vault("V", PW)
             .unwrap();
-        let ids = v.create_folder("Giấy tờ", "amber", None, 1).unwrap();
+        let ids = v
+            .create_folder("Giấy tờ", "amber", "file", None, 1)
+            .unwrap();
         let sub = v
-            .create_folder("Hộ chiếu", "blue", Some(&ids.id), 2)
+            .create_folder("Hộ chiếu", "blue", "file", Some(&ids.id), 2)
             .unwrap();
         let photo = v.add_item(photo(b"p", 3)).unwrap();
         v.move_item(&photo.id, Some(&sub.id)).unwrap();
