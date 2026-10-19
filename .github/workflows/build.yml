@@ -1,0 +1,90 @@
+# Installable builds for every desktop and Android. Runs on demand and on `v*` tags;
+# a tag also publishes a GitHub pre-release with all files attached.
+#
+# Not yet signed: macOS needs the Apple Developer ID (account pending), Windows a
+# code-signing certificate, Android uses Flutter's debug key. See the release notes.
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: ./.github/actions/flutter-setup
+      - working-directory: app
+        run: flutter build apk --release
+      - run: mv app/build/app/outputs/flutter-apk/app-release.apk CozySafe-${{ github.ref_name }}-android.apk
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android
+          path: CozySafe-*-android.apk
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+      - uses: ./.github/actions/flutter-setup
+      - working-directory: app
+        run: flutter build linux --release
+      - run: tar -C app/build/linux/x64/release/bundle -czf CozySafe-${{ github.ref_name }}-linux-x64.tar.gz .
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux
+          path: CozySafe-*-linux-x64.tar.gz
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/flutter-setup
+      - working-directory: app
+        run: flutter build windows --release
+      - shell: pwsh
+        run: Compress-Archive -Path app/build/windows/x64/runner/Release/* -DestinationPath CozySafe-${{ github.ref_name }}-windows-x64.zip
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows
+          path: CozySafe-*-windows-x64.zip
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/flutter-setup
+      - working-directory: app
+        run: flutter build macos --release
+      - run: hdiutil create -volname "Cozy Safe" -srcfolder "app/build/macos/Build/Products/Release/Cozy Safe.app" -ov -format UDZO "CozySafe-${{ github.ref_name }}-macos.dmg"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos
+          path: CozySafe-*-macos.dmg
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [android, linux, windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          merge-multiple: true
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" CozySafe-* --repo "$GITHUB_REPOSITORY" --prerelease \
+            --title "Cozy Safe $GITHUB_REF_NAME (preview)" \
+            --notes "Preview build for testing. Not signed yet: on macOS open System Settings → Privacy & Security → Open Anyway; on Windows choose More info → Run anyway; on Android allow installing from this source. The Secret Key is stored in a file in this preview, not yet in the system keystore."

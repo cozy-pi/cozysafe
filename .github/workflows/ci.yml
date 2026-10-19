@@ -22,3 +22,18 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked
+
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: app/rust
+      - uses: ./.github/actions/flutter-setup
+      - name: Rust side of the app
+        working-directory: app/rust
+        run: cargo clippy --locked -- -D warnings
+      - name: Dart analysis
+        working-directory: app
+        run: flutter analyze

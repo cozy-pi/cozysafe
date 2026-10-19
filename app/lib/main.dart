@@ -1,46 +1,41 @@
-// The original content is temporarily commented out to allow generating a self-contained demo - feel free to uncomment later.
-
-// import 'package:flutter/material.dart';
-//
-// void main() {
-//   runApp(const MainApp());
-// }
-//
-// class MainApp extends StatelessWidget {
-//   const MainApp({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return const MaterialApp(
-//       home: Scaffold(body: Center(child: Text('Hello World!'))),
-//     );
-//   }
-// }
-//
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:cozysafe/src/rust/api/simple.dart';
-import 'package:cozysafe/src/rust/frb_generated.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'l10n/app_localizations.dart';
+import 'screens/create_vault.dart';
+import 'screens/unlock.dart';
+import 'src/rust/api/vault.dart' as rust;
+import 'src/rust/frb_generated.dart';
+import 'theme.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
-  runApp(const MyApp());
+  final support = await getApplicationSupportDirectory();
+  final libraryDir = '${support.path}${Platform.pathSeparator}library';
+  runApp(CozySafeApp(libraryDir: libraryDir));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class CozySafeApp extends StatelessWidget {
+  const CozySafeApp({super.key, required this.libraryDir});
+
+  final String libraryDir;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('flutter_rust_bridge quickstart')),
-        body: Center(
-          child: Text(
-            'Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`',
-          ),
-        ),
-      ),
+      onGenerateTitle: (context) => AppLocalizations.of(context).appName,
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark),
+      themeMode: ThemeMode.system,
+      // Follow the system language; English when the device language is unsupported.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: rust.hasVaults(dir: libraryDir)
+          ? UnlockScreen(libraryDir: libraryDir)
+          : CreateVaultScreen(libraryDir: libraryDir, first: true),
     );
   }
 }

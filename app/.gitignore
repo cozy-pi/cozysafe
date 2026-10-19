@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Generated in CI by `flutter_rust_bridge_codegen generate` and `flutter gen-l10n`;
+# the maintainer's machine has no Flutter SDK, so these are never committed.
+/lib/src/rust/
+/rust/src/frb_generated.rs
+/lib/l10n/app_localizations*.dart

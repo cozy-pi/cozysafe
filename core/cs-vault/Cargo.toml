@@ -1,0 +1,19 @@
+[package]
+name = "cs-vault"
+version = "0.1.0"
+description = "Cozy Safe library and vault storage: create, unlock, lock"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+cs-crypto = { path = "../cs-crypto" }
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+zeroize = "1"
+zxcvbn = "3"
+
+[dev-dependencies]
+tempfile = "3"

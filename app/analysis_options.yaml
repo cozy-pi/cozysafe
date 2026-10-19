@@ -9,3 +9,5 @@ analyzer:
     - macos/**
     - linux/**
     - rust_builder/cargokit/**
+    - lib/src/rust/**
+    - lib/l10n/app_localizations*.dart

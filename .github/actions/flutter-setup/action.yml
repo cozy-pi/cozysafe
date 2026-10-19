@@ -1,0 +1,27 @@
+name: Flutter + codegen
+description: Install the pinned Flutter and flutter_rust_bridge_codegen, then generate Rust bindings and translations (never committed).
+runs:
+  using: composite
+  steps:
+    - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+      with:
+        channel: stable
+        flutter-version: 3.47.7
+        cache: true
+    - id: frb
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.cargo/bin/flutter_rust_bridge_codegen
+          ~/.cargo/bin/flutter_rust_bridge_codegen.exe
+        key: frb-codegen-2.13.0-${{ runner.os }}-${{ runner.arch }}
+    - if: steps.frb.outputs.cache-hit != 'true'
+      shell: bash
+      # Must match flutter_rust_bridge in app/pubspec.yaml and app/rust/Cargo.toml.
+      run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+    - shell: bash
+      working-directory: app
+      run: |
+        flutter pub get
+        flutter_rust_bridge_codegen generate
+        flutter gen-l10n
