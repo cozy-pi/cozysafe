@@ -166,5 +166,6 @@
   "done": "Xong",
   "deleteItem": "Xoá mục này?",
   "openWith": "Mở bằng app khác",
-  "openWithNote": "Bản đã giải mã được giao cho app bạn chọn, rồi xoá khỏi máy ở đây."
+  "openWithNote": "Bản đã giải mã được giao cho app bạn chọn, rồi xoá khỏi máy ở đây.",
+  "errorPinInUse": "Mã PIN này đã dùng cho két khác. Chọn mã khác nhé."
 }

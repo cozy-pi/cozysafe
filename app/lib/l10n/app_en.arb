@@ -180,5 +180,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "errorPinInUse": "Another vault already uses this PIN. Pick a different one."
 }

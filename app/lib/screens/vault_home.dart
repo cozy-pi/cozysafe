@@ -58,7 +58,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   int _cols = 3;
   double _scaleStart = 1;
 
-  static final bool _phone = Platform.isIOS || Platform.isAndroid;
   static final bool _desktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
   static const _idle = Duration(minutes: 2);
   bool _canBio = false;

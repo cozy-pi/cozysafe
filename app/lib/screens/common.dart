@@ -9,6 +9,7 @@ String vaultErrorText(AppLocalizations l, rust.VaultError e) => switch (e) {
       rust.VaultError.emptyName => l.errorEmptyName,
       rust.VaultError.locked => l.errorLocked,
       rust.VaultError.badPin => l.errorBadPin,
+      rust.VaultError.pinInUse => l.errorPinInUse,
       rust.VaultError.wrongSecretKey => l.errorWrongSecretKey,
       rust.VaultError.badBackup => l.errorBadBackup,
       rust.VaultError.libraryExists => l.errorLibraryExists,
