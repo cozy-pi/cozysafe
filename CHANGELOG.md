@@ -4,7 +4,10 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.1.1 (2026-10-19)
+## 0.1.0 (2026-10-19)
+
+First build with a version name, on every platform at once.
+
 
 ### Changed
 - Only what works is shown: the dock offers Photo (on phones), the Search button
@@ -14,10 +17,6 @@ Dates are UTC.
 - Locking by hand no longer reopens the vault with Face ID straight away. Face ID
   is asked for when the app opens or comes back from the background; after the
   Lock button, tap Face ID in the dock.
-
-## 0.1.0 (2026-10-19)
-
-First build with a version name, on every platform at once.
 
 ### Added
 - Lock screen redesign: Face ID or fingerprint first, a PIN pad (4 to 10 digits,
