@@ -164,18 +164,16 @@ void main() {
   });
 
   testWidgets('an add action picked while locked runs right after unlocking', (t) async {
-    final semantics = t.ensureSemantics();
     await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     // The big dock button (Photo mode by default).
-    await t.tap(find.bySemanticsLabel('Photo').last);
+    await t.tap(find.byKey(const ValueKey('add-dock-action')));
     await t.pump();
     expect(find.text('Unlock first; it opens right after.'), findsOneWidget);
     await _tapDigits(t, _pin);
     await _settle(t);
     final home = t.widget<VaultHomeScreen>(find.byType(VaultHomeScreen));
     expect(home.initialAction?.name, 'camera');
-    semantics.dispose();
   });
 
   testWidgets('setting a PIN needs the same digits twice', (t) async {
@@ -215,6 +213,8 @@ void main() {
     await t.pump();
     expect(button().onPressed, isNull);
     await t.enterText(find.byType(TextField), '2345');
+    await t.pump();
+    await t.ensureVisible(find.widgetWithText(FilledButton, "I've saved it"));
     await t.pump();
     await t.tap(find.widgetWithText(FilledButton, "I've saved it"));
     expect(done, isTrue);

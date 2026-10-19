@@ -183,6 +183,7 @@ class _AddDockState extends State<AddDock> {
                     button: true,
                     label: _label(l, mode),
                     child: GestureDetector(
+                      key: const ValueKey('add-dock-action'),
                       onTap: () {
                         HapticFeedback.mediumImpact();
                         widget.onAction(mode);
