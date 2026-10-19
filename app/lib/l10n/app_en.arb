@@ -51,5 +51,16 @@
   "deletePhoto": "Delete photo",
   "deletePhotoBody": "The photo is removed from this vault for good.",
   "cancel": "Cancel",
-  "delete": "Delete"
+  "delete": "Delete",
+  "unlockWithFace": "Unlock with Face ID",
+  "unlockWithFingerprint": "Unlock with fingerprint",
+  "biometricPrompt": "Unlock Cozy Safe",
+  "biometricSetting": "Unlock with Face ID or fingerprint",
+  "biometricOfferTitle": "Unlock faster next time?",
+  "biometricOfferBody": "Open this vault with Face ID or your fingerprint. Your password still works, and you need it if biometrics change.",
+  "biometricOfferYes": "Turn on",
+  "biometricOfferNo": "Not now",
+  "biometricFailed": "Couldn't turn on biometric unlock on this device.",
+  "biometricChanged": "Biometrics changed on this device. Unlock with your password, then turn it on again.",
+  "checking": "Checking…"
 }

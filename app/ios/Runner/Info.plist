@@ -6,6 +6,8 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Unlock your vault with Face ID.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Photos you take go straight into your encrypted vault.</string>
 	<key>CFBundleDevelopmentRegion</key>

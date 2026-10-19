@@ -80,6 +80,45 @@ pub fn unlock(dir: String, password: String) -> Result<Option<VaultInfo>, VaultE
     Ok(library.unlock(&password)?.map(set_open))
 }
 
+/// Whether a vault here has biometric unlock turned on (shows the button).
+#[flutter_rust_bridge::frb(sync)]
+pub fn has_biometric_unlock(dir: String) -> bool {
+    Library::has_biometric(Path::new(&dir))
+}
+
+/// Forget biometric unlock for every vault here (the keystore lost its key).
+pub fn forget_biometric_unlock(dir: String) -> Result<(), VaultError> {
+    Ok(Library::forget_biometric(Path::new(&dir))?)
+}
+
+/// Open the vault with the key the platform keystore released after Face ID / fingerprint.
+pub fn unlock_with_biometric(dir: String, key: Vec<u8>) -> Result<Option<VaultInfo>, VaultError> {
+    let key = Zeroizing::new(key);
+    let Ok(bytes) = <[u8; 32]>::try_from(key.as_slice()) else {
+        return Ok(None);
+    };
+    let key = cs_crypto::Key::from_bytes(bytes);
+    Ok(Library::unlock_biometric(Path::new(&dir), &key)?.map(set_open))
+}
+
+/// Turn on biometric unlock for the open vault (off for the others). Returns the key Dart
+/// stores behind biometrics; it is useless without this device's vault files.
+pub fn enable_biometric() -> Result<Vec<u8>, VaultError> {
+    with_open(|v| Ok(v.enable_biometric()?.as_bytes().to_vec()))
+}
+
+pub fn disable_biometric() -> Result<(), VaultError> {
+    with_open(|v| Ok(v.disable_biometric()?))
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn biometric_enabled() -> bool {
+    OPEN.lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .as_ref()
+        .is_some_and(|v| v.biometric_enabled())
+}
+
 /// Close the open vault and wipe its keys.
 #[flutter_rust_bridge::frb(sync)]
 pub fn lock() {

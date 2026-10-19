@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -23,42 +26,145 @@ class _UnlockScreenState extends State<UnlockScreen> {
   final _password = TextEditingController();
   bool _obscure = true;
   bool _busy = false;
+  bool _checking = false;
   String? _error;
+  BiometricKind? _bioKind;
+  bool _bioOn = false;
+  bool _leaving = false;
+
+  /// Stop typing this long and the password is tried without pressing Enter.
+  static const _pause = Duration(milliseconds: 350);
+  Timer? _debounce;
+  String? _tried;
+
+  @override
+  void initState() {
+    super.initState();
+    _bioOn = BiometricUnlock.platformSupported && rust.hasBiometricUnlock(dir: widget.libraryDir);
+    if (_bioOn) {
+      BiometricUnlock.available().then((kind) {
+        if (!mounted || kind == null) return;
+        setState(() => _bioKind = kind);
+        // Ask right away, like the lock screen: most opens need no typing at all.
+        WidgetsBinding.instance.addPostFrameCallback((_) => _unlockBiometric());
+      });
+    }
+  }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _password.dispose();
     super.dispose();
   }
 
-  Future<void> _unlock() async {
-    if (_password.text.isEmpty || _busy) return;
+  BiometricUnlock _store(AppLocalizations l) =>
+      BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel);
+
+  Future<void> _unlockBiometric() async {
+    if (_busy || _leaving) return;
     final l = AppLocalizations.of(context);
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
+    setState(() => _busy = true);
     try {
-      final vault = await rust.unlock(dir: widget.libraryDir, password: _password.text);
-      if (!mounted) return;
-      if (vault == null) {
-        setState(() => _error = l.wrongPassword);
-        return;
+      final vault = await _store(l).unlock(widget.libraryDir);
+      if (vault != null) return _open(vault);
+    } on BiometricKeyGone {
+      if (mounted) {
+        setState(() {
+          _bioOn = false;
+          _error = l.biometricChanged;
+        });
       }
-      _password.clear();
-      await Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(
-          builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault),
-        ),
-        (_) => false,
-      );
     } on rust.VaultError catch (e) {
       if (mounted) setState(() => _error = vaultErrorText(l, e));
-    } catch (_) {
-      if (mounted) setState(() => _error = l.errorStorage);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && !_leaving) setState(() => _busy = false);
     }
+  }
+
+  void _onChanged(String _) {
+    if (_error != null) setState(() => _error = null);
+    _debounce?.cancel();
+    if (_password.text.length >= 4) _debounce = Timer(_pause, () => _attempt(quiet: true));
+  }
+
+  /// Try the password. Quiet tries (while typing) never show "wrong password";
+  /// Enter or the button does. One Argon2 run at a time; a newer text is tried after.
+  Future<void> _attempt({required bool quiet}) async {
+    final text = _password.text;
+    if (text.isEmpty || _leaving) return;
+    if (_checking) {
+      if (!quiet) setState(() => _busy = true);
+      return;
+    }
+    if (quiet && text == _tried) return;
+    final l = AppLocalizations.of(context);
+    setState(() {
+      _checking = true;
+      if (!quiet) {
+        _busy = true;
+        _error = null;
+      }
+    });
+    try {
+      final vault = await rust.unlock(dir: widget.libraryDir, password: text);
+      _tried = text;
+      if (!mounted) return;
+      if (vault != null) return _open(vault, offerBiometric: true);
+      if (_password.text != text) {
+        // Typing moved on while this ran: try the newer text next.
+        _checking = false;
+        return _attempt(quiet: !_busy);
+      }
+      if (_busy) setState(() => _error = l.wrongPassword);
+    } on rust.VaultError catch (e) {
+      if (mounted && _busy) setState(() => _error = vaultErrorText(l, e));
+    } catch (_) {
+      if (mounted && _busy) setState(() => _error = l.errorStorage);
+    } finally {
+      if (mounted && !_leaving) {
+        setState(() {
+          _checking = false;
+          _busy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _open(rust.VaultInfo vault, {bool offerBiometric = false}) async {
+    _leaving = true;
+    _debounce?.cancel();
+    _password.clear();
+    final l = AppLocalizations.of(context);
+    if (offerBiometric && !rust.hasBiometricUnlock(dir: widget.libraryDir)) {
+      await _maybeOfferBiometric(l);
+    }
+    if (!mounted) return;
+    await Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault),
+      ),
+      (_) => false,
+    );
+  }
+
+  /// Once per device, for libraries made before biometric unlock existed.
+  Future<void> _maybeOfferBiometric(AppLocalizations l) async {
+    final marker = File('${widget.libraryDir}/.biometric-offered');
+    if (marker.existsSync() || await BiometricUnlock.available() == null || !mounted) return;
+    marker.writeAsStringSync('1');
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.biometricOfferTitle),
+        content: Text(l.biometricOfferBody),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.biometricOfferNo)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.biometricOfferYes)),
+        ],
+      ),
+    );
+    if (yes == true) await turnOnBiometric(_store(l));
   }
 
   @override
@@ -66,6 +172,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final theme = Theme.of(context);
+    final bio = _bioOn ? _bioKind : null;
 
     return Scaffold(
       body: FormColumn(
@@ -85,7 +192,7 @@ class _UnlockScreenState extends State<UnlockScreen> {
           TextField(
             controller: _password,
             enabled: !_busy,
-            autofocus: true,
+            autofocus: bio == null,
             obscureText: _obscure,
             autocorrect: false,
             enableSuggestions: false,
@@ -95,25 +202,32 @@ class _UnlockScreenState extends State<UnlockScreen> {
             decoration: InputDecoration(
               labelText: l.password,
               errorText: _error,
+              helperText: _checking && !_busy ? l.checking : null,
               suffixIcon: IconButton(
                 tooltip: _obscure ? l.showPassword : l.hidePassword,
                 icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
-            onChanged: (_) {
-              if (_error != null) setState(() => _error = null);
-            },
-            onSubmitted: (_) => _unlock(),
+            onChanged: _onChanged,
+            onSubmitted: (_) => _attempt(quiet: false),
           ),
           const SizedBox(height: 16),
           ListenableBuilder(
             listenable: _password,
             builder: (context, _) => FilledButton(
-              onPressed: _busy || _password.text.isEmpty ? null : _unlock,
+              onPressed: _busy || _password.text.isEmpty ? null : () => _attempt(quiet: false),
               child: BusyLabel(busy: _busy, idle: l.unlockButton, working: l.unlocking),
             ),
           ),
+          if (bio != null) ...[
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _unlockBiometric,
+              icon: Icon(bio == BiometricKind.face ? Icons.face_outlined : Icons.fingerprint),
+              label: Text(bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint),
+            ),
+          ],
           const SizedBox(height: 24),
           Center(
             child: TextButton(

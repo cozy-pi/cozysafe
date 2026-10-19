@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -74,6 +75,10 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
         name: _name.text,
         password: _password.text,
       );
+      // The first vault opens with Face ID / fingerprint by default; others use their password.
+      if (widget.first && await BiometricUnlock.available() != null) {
+        await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
+      }
       if (!mounted) return;
       _password.clear();
       _confirm.clear();

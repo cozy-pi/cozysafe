@@ -34,6 +34,8 @@ const LIBRARY_FILE: &str = "library.json";
 const SECRET_KEY_FILE: &str = "secret-key";
 const VAULTS_DIR: &str = "vaults";
 const HEADER_FILE: &str = "header.json";
+/// Master Key wrapped by a key that lives in the platform keystore behind biometrics.
+const BIOMETRIC_FILE: &str = "biometric";
 
 /// Minimum zxcvbn score (0–4) for a vault password.
 pub const MIN_PASSWORD_SCORE: u8 = 3;
@@ -236,16 +238,10 @@ impl Library {
         for entry in dir {
             let entry = entry?;
             let id = entry.file_name().to_string_lossy().into_owned();
-            let Ok(bytes) = fs::read(entry.path().join(HEADER_FILE)) else {
-                continue;
-            };
             // A damaged header must not stop the other vaults from opening.
-            let Ok(header) = serde_json::from_slice::<VaultHeader>(&bytes) else {
+            let Some(header) = read_header(&entry.path()) else {
                 continue;
             };
-            if header.format != FORMAT {
-                continue;
-            }
             let (Ok(salt), Ok(wrapped)) = (
                 decode_array::<SALT_LEN>(&header.salt, "vault salt"),
                 hex::decode(&header.wrapped_master_key),
@@ -256,19 +252,115 @@ impl Library {
             let Ok(master_key) = wrap::unwrap_key(&kek, &wrapped, &aad(&id, "master-key")) else {
                 continue;
             };
-
-            let meta_bytes = hex::decode(&header.meta).map_err(|_| Error::Corrupt("vault meta"))?;
-            let meta_json = wrap::open(&master_key, &meta_bytes, &aad(&id, "meta"))?;
-            let meta: VaultMeta =
-                serde_json::from_slice(&meta_json).map_err(|_| Error::Corrupt("vault meta"))?;
-            return Ok(Some(OpenVault {
-                id,
-                name: meta.name,
-                dir: entry.path(),
-                master_key,
-            }));
+            return open_with(id, entry.path(), &header, master_key).map(Some);
         }
         Ok(None)
+    }
+
+    /// Whether some vault in `dir` can be opened with biometrics on this device.
+    pub fn has_biometric(dir: &Path) -> bool {
+        fs::read_dir(dir.join(VAULTS_DIR))
+            .map(|mut it| {
+                it.any(|e| {
+                    e.map(|e| e.path().join(BIOMETRIC_FILE).is_file())
+                        .unwrap_or(false)
+                })
+            })
+            .unwrap_or(false)
+    }
+
+    /// Drop every biometric copy, e.g. after the keystore invalidated its key because
+    /// the enrolled fingerprints or face changed.
+    pub fn forget_biometric(dir: &Path) -> Result<()> {
+        if let Ok(entries) = fs::read_dir(dir.join(VAULTS_DIR)) {
+            for entry in entries.flatten() {
+                remove_if_exists(&entry.path().join(BIOMETRIC_FILE))?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Open the vault whose biometric copy `key` unwraps. Needs neither the password nor
+    /// the Secret Key: `key` comes out of the platform keystore only after a biometric check.
+    pub fn unlock_biometric(dir: &Path, key: &Key) -> Result<Option<OpenVault>> {
+        let entries = match fs::read_dir(dir.join(VAULTS_DIR)) {
+            Ok(d) => d,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(e) => return Err(e.into()),
+        };
+        for entry in entries {
+            let path = entry?.path();
+            let Ok(wrapped) = fs::read_to_string(path.join(BIOMETRIC_FILE)) else {
+                continue;
+            };
+            let (Some(header), Some(id)) = (read_header(&path), path.file_name()) else {
+                continue;
+            };
+            let id = id.to_string_lossy().into_owned();
+            let Ok(wrapped) = hex::decode(wrapped.trim()) else {
+                continue;
+            };
+            let Ok(master_key) = wrap::unwrap_key(key, &wrapped, &aad(&id, "biometric")) else {
+                continue;
+            };
+            return open_with(id, path, &header, master_key).map(Some);
+        }
+        Ok(None)
+    }
+}
+
+impl OpenVault {
+    /// Turn on biometric unlock for this vault and off for every other one (one per
+    /// device). Returns the key the caller must put in the biometric-gated keystore.
+    pub fn enable_biometric(&self) -> Result<Key> {
+        if let Some(vaults) = self.dir.parent() {
+            for entry in fs::read_dir(vaults)?.flatten() {
+                if entry.path() != self.dir {
+                    remove_if_exists(&entry.path().join(BIOMETRIC_FILE))?;
+                }
+            }
+        }
+        let key = Key::generate();
+        let wrapped = wrap::wrap_key(&key, &self.master_key, &aad(&self.id, "biometric"));
+        write_atomic(
+            &self.dir.join(BIOMETRIC_FILE),
+            hex::encode(wrapped).as_bytes(),
+        )?;
+        Ok(key)
+    }
+
+    pub fn disable_biometric(&self) -> Result<()> {
+        remove_if_exists(&self.dir.join(BIOMETRIC_FILE))
+    }
+
+    pub fn biometric_enabled(&self) -> bool {
+        self.dir.join(BIOMETRIC_FILE).is_file()
+    }
+}
+
+fn read_header(vault_dir: &Path) -> Option<VaultHeader> {
+    let bytes = fs::read(vault_dir.join(HEADER_FILE)).ok()?;
+    let header: VaultHeader = serde_json::from_slice(&bytes).ok()?;
+    (header.format == FORMAT).then_some(header)
+}
+
+fn open_with(id: String, dir: PathBuf, header: &VaultHeader, master_key: Key) -> Result<OpenVault> {
+    let meta_bytes = hex::decode(&header.meta).map_err(|_| Error::Corrupt("vault meta"))?;
+    let meta_json = wrap::open(&master_key, &meta_bytes, &aad(&id, "meta"))?;
+    let meta: VaultMeta =
+        serde_json::from_slice(&meta_json).map_err(|_| Error::Corrupt("vault meta"))?;
+    Ok(OpenVault {
+        id,
+        name: meta.name,
+        dir,
+        master_key,
+    })
+}
+
+fn remove_if_exists(path: &Path) -> Result<()> {
+    match fs::remove_file(path) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.into()),
+        _ => Ok(()),
     }
 }
 
@@ -351,6 +443,49 @@ mod tests {
         let b = l.create_vault("B", PW_B).unwrap();
         assert_eq!(l.unlock(PW_A).unwrap().unwrap().id, a.id);
         assert_eq!(l.unlock(PW_B).unwrap().unwrap().id, b.id);
+    }
+
+    #[test]
+    fn biometric_copy_opens_only_its_vault_and_moves_on_enable() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = lib(tmp.path());
+        let a = l.create_vault("A", PW_A).unwrap();
+        let b = l.create_vault("B", PW_B).unwrap();
+        assert!(!Library::has_biometric(tmp.path()));
+
+        let ka = a.enable_biometric().unwrap();
+        assert!(Library::has_biometric(tmp.path()));
+        let opened = Library::unlock_biometric(tmp.path(), &ka).unwrap().unwrap();
+        assert_eq!(
+            (opened.id.as_str(), opened.name.as_str()),
+            (a.id.as_str(), "A")
+        );
+        assert!(Library::unlock_biometric(tmp.path(), &Key::generate())
+            .unwrap()
+            .is_none());
+
+        // Enabling on B turns A off: A's key no longer opens anything.
+        let kb = b.enable_biometric().unwrap();
+        assert!(!a.biometric_enabled());
+        assert!(Library::unlock_biometric(tmp.path(), &ka)
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            Library::unlock_biometric(tmp.path(), &kb)
+                .unwrap()
+                .unwrap()
+                .id,
+            b.id
+        );
+
+        Library::forget_biometric(tmp.path()).unwrap();
+        assert!(!Library::has_biometric(tmp.path()));
+        let kb = b.enable_biometric().unwrap();
+        b.disable_biometric().unwrap();
+        assert!(!Library::has_biometric(tmp.path()));
+        assert!(Library::unlock_biometric(tmp.path(), &kb)
+            .unwrap()
+            .is_none());
     }
 
     #[test]

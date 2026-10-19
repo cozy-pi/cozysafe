@@ -51,5 +51,16 @@
   "deletePhoto": "Xoá ảnh",
   "deletePhotoBody": "Ảnh sẽ bị xoá hẳn khỏi két này.",
   "cancel": "Huỷ",
-  "delete": "Xoá"
+  "delete": "Xoá",
+  "unlockWithFace": "Mở khoá bằng Face ID",
+  "unlockWithFingerprint": "Mở khoá bằng vân tay",
+  "biometricPrompt": "Mở khoá Cozy Safe",
+  "biometricSetting": "Mở khoá bằng Face ID hoặc vân tay",
+  "biometricOfferTitle": "Lần sau mở nhanh hơn?",
+  "biometricOfferBody": "Mở két này bằng Face ID hoặc vân tay. Mật khẩu vẫn dùng được, và bạn sẽ cần nó nếu sinh trắc học trên máy thay đổi.",
+  "biometricOfferYes": "Bật",
+  "biometricOfferNo": "Để sau",
+  "biometricFailed": "Không bật được mở khoá sinh trắc học trên máy này.",
+  "biometricChanged": "Sinh trắc học trên máy đã thay đổi. Hãy mở bằng mật khẩu rồi bật lại.",
+  "checking": "Đang kiểm tra…"
 }

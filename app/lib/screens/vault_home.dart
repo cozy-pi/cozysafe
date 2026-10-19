@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -28,12 +29,29 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   final Map<String, Future<Uint8List>> _thumbs = {};
 
   static final bool _hasCamera = Platform.isIOS || Platform.isAndroid;
+  bool _canBio = false;
+  bool _bioOn = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _reload();
+    _bioOn = rust.biometricEnabled();
+    BiometricUnlock.available().then((k) {
+      if (mounted) setState(() => _canBio = k != null);
+    });
+  }
+
+  Future<void> _toggleBiometric() async {
+    final l = AppLocalizations.of(context);
+    final store = BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel);
+    if (_bioOn) {
+      await turnOffBiometric(store);
+    } else if (!await turnOnBiometric(store)) {
+      if (mounted) _snack(l.biometricFailed);
+    }
+    if (mounted) setState(() => _bioOn = rust.biometricEnabled());
   }
 
   @override
@@ -102,6 +120,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       appBar: AppBar(
         title: Text(widget.vault.name),
         actions: [
+          if (_canBio)
+            PopupMenuButton<void>(
+              itemBuilder: (context) => [
+                CheckedPopupMenuItem<void>(
+                  checked: _bioOn,
+                  onTap: _toggleBiometric,
+                  child: Text(l.biometricSetting),
+                ),
+              ],
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: TextButton.icon(

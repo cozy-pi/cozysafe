@@ -27,6 +27,8 @@ class _FakeRust implements RustLibApi {
     if (name.contains('HasVaults')) return true;
     if (name.contains('Unlock')) return Future<VaultInfo?>.value(null);
     if (name.contains('ListItems')) return Future<List<ItemInfo>>.value(const []);
+    if (name.contains('HasBiometricUnlock')) return false;
+    if (name.contains('BiometricEnabled')) return false;
     return null;
   }
 }
