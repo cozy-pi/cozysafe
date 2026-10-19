@@ -55,6 +55,9 @@ add_subdirectory("runner")
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
+# local_auth_windows still uses MSVC's old experimental coroutines, which newer
+# Visual Studio rejects unless this is defined (error STL1011).
+add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
 include(flutter/generated_plugins.cmake)
 
 
