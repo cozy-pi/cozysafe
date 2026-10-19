@@ -1,0 +1,32 @@
+# Render the app's screens to images for safe.cozypi.com (and later the stores).
+# Download the `screenshots` artifact and copy its webp files to website/public/img/.
+name: screenshots
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/flutter-setup
+      - working-directory: app
+        run: flutter test test/screenshots_test.dart --update-goldens --dart-define=SCREENSHOTS=true
+      - name: Convert to 1× / 2× WebP for the website
+        run: |
+          sudo apt-get install -y webp >/dev/null
+          mkdir -p out
+          for f in app/test/screenshots/*.png; do
+            n=$(basename "$f" .png)
+            cwebp -quiet -q 85 -resize 260 0 "$f" -o "out/$n-1x.webp"
+            cwebp -quiet -q 85 -resize 520 0 "$f" -o "out/$n-2x.webp"
+          done
+          cp app/test/screenshots/*.png out/
+          ls -l out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshots
+          path: out/

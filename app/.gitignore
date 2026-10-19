@@ -52,3 +52,6 @@ app.*.map.json
 /lib/src/rust/
 /rust/src/frb_generated.rs
 /lib/l10n/app_localizations*.dart
+
+# Rendered by the screenshots workflow, not committed.
+/test/screenshots/
