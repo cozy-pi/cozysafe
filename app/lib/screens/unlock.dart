@@ -366,7 +366,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                     // One fixed slot for "wrong PIN", the wait and "unlock first": the
                     // card never grows, so the keypad never slides under the dock.
                     SizedBox(
-                      height: 40,
+                      height: 30,
                       child: Center(
                         child: Text(
                           _waitUntil != null ? _waitText(l) : (_error ?? ''),
@@ -503,6 +503,13 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     );
   }
 
+  /// The thumb menu is white in light and dark alike, so its text is always dark.
+  static final _menuItem = MenuItemButton.styleFrom(
+    foregroundColor: const Color(0xFF1A1D1F),
+    iconColor: const Color(0xFF165B4C),
+    minimumSize: const Size(220, 48),
+  );
+
   /// "Use password" / "Use PIN", "Create a new vault" (owner check first), "Restore".
   Widget _moreMenu(AppLocalizations l) => MenuAnchor(
         alignmentOffset: const Offset(0, -8),
@@ -517,22 +524,26 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
         menuChildren: [
           if (_mode == _Mode.pin && _anyPassword)
             MenuItemButton(
+              style: _menuItem,
               leadingIcon: const Icon(Icons.key_outlined),
               onPressed: () => setState(() => _mode = _Mode.password),
               child: Text(l.usePassword),
             ),
           if (_mode == _Mode.password && _lengths.isNotEmpty)
             MenuItemButton(
+              style: _menuItem,
               leadingIcon: const Icon(Icons.dialpad),
               onPressed: () => setState(() => _mode = _Mode.pin),
               child: Text(l.usePin),
             ),
           MenuItemButton(
+            style: _menuItem,
             leadingIcon: const Icon(Icons.add),
             onPressed: _busy ? null : _newVault,
             child: Text(l.newVault),
           ),
           MenuItemButton(
+            style: _menuItem,
             leadingIcon: const Icon(Icons.settings_backup_restore),
             onPressed: _busy
                 ? null

@@ -352,5 +352,7 @@
         "type": "int"
       }
     }
-  }
+  },
+  "settingsVaults": "Vaults",
+  "newVaultNote": "Another vault with its own PIN"
 }

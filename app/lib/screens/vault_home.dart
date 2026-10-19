@@ -397,6 +397,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         onShowKit: _showKit,
         onBackup: _backup,
         lastBackup: () => _lastBackupText(l),
+        onChangeIdentity: _changeIdentity,
+        onOpenTrash: _openTrash,
+        onNewVault: _newVault,
       ),
     ));
     if (!_locked) _touch(); // the auto-lock time may have changed
@@ -705,16 +708,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 44),
                 ),
                 const Spacer(),
-                PopupMenuButton<void>(
-                  tooltip: l.vaultMenu,
-                  itemBuilder: (context) => [
-                    PopupMenuItem<void>(onTap: _openSettings, child: Text(l.settings)),
-                    PopupMenuItem<void>(onTap: _openTrash, child: Text(l.recentlyDeleted)),
-                    PopupMenuItem<void>(onTap: _backup, child: _MenuText(l.backup, _lastBackupText(l))),
-                    PopupMenuItem<void>(onTap: _changeIdentity, child: Text(l.changeIdentity)),
-                    const PopupMenuDivider(),
-                    PopupMenuItem<void>(onTap: _newVault, child: Text(l.newVault)),
-                  ],
+                // Everything else about the vault lives in Settings, one tap away.
+                IconButton(
+                  key: const ValueKey('settings-button'),
+                  tooltip: l.settings,
+                  onPressed: _openSettings,
+                  icon: const Icon(Icons.settings_outlined),
                 ),
               ],
             ),
@@ -1216,23 +1215,6 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
       ),
     );
   }
-}
-
-/// A menu line with an optional second line in muted text.
-class _MenuText extends StatelessWidget {
-  const _MenuText(this.title, this.sub);
-  final String title;
-  final String? sub;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title),
-          if (sub != null) Text(sub!, style: TextStyle(fontSize: 12, color: CsColors.of(context).muted)),
-        ],
-      );
 }
 
 /// "Encrypting 3 of 12", a bar and Cancel (docs/ui.md, review 12).

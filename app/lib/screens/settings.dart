@@ -60,6 +60,9 @@ class SettingsScreen extends StatefulWidget {
     required this.onShowKit,
     required this.onBackup,
     required this.lastBackup,
+    required this.onChangeIdentity,
+    required this.onOpenTrash,
+    required this.onNewVault,
   });
 
   final String libraryDir;
@@ -72,6 +75,9 @@ class SettingsScreen extends StatefulWidget {
   final Future<void> Function() onShowKit;
   final Future<void> Function() onBackup;
   final String Function() lastBackup;
+  final Future<void> Function() onChangeIdentity;
+  final Future<void> Function() onOpenTrash;
+  final Future<void> Function() onNewVault;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -197,6 +203,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
           _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), byKind: _byKind),
+          _Group(title: l.settingsThisVault, rows: [
+            _Row(
+              icon: Icons.palette_outlined,
+              tint: const Color(0xFFFF6482),
+              title: l.changeIdentity,
+              onTap: () => _then(widget.onChangeIdentity),
+            ),
+            _Row(
+              icon: Icons.delete_sweep_outlined,
+              tint: const Color(0xFF8E8E93),
+              title: l.recentlyDeleted,
+              onTap: () => _then(widget.onOpenTrash),
+            ),
+          ]),
           _Group(title: l.settingsLock, rows: [
             if (widget.canBiometric)
               _Row(
@@ -277,6 +297,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
               ),
+          ]),
+          _Group(title: l.settingsVaults, rows: [
+            _Row(
+              icon: Icons.add,
+              tint: const Color(0xFF30B0C7),
+              title: l.newVault,
+              subtitle: l.newVaultNote,
+              onTap: widget.onNewVault,
+            ),
           ]),
           const SizedBox(height: 22),
           Material(

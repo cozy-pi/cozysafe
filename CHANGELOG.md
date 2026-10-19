@@ -4,6 +4,16 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.4 (2026-10-20)
+
+### Changed
+- The vault's top-right button is now Settings (a gear) and opens it directly. Change
+  icon and colour, Recently deleted and New vault moved into Settings.
+- The PIN card on the lock screen is shorter.
+
+### Fixed
+- The lock screen's ⋯ menu was almost unreadable in dark mode (light text on white).
+
 ## 0.1.3 (2026-10-20)
 
 ### Added

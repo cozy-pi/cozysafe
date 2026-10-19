@@ -255,5 +255,7 @@
   "movedToTrashCount": "{count, plural, other{Đã chuyển {count} mục vào Đã xoá gần đây}}",
   "videoFailed": "Không phát được video này ở đây.",
   "play": "Phát",
-  "pause": "Tạm dừng"
+  "pause": "Tạm dừng",
+  "settingsVaults": "Két",
+  "newVaultNote": "Một két khác, có mã PIN riêng"
 }

@@ -119,7 +119,7 @@ Future<void> _thumbsReady() async {
 
 Future<void> _shot(WidgetTester t, String file, Widget home, {Brightness b = Brightness.light, Color? vault,
     Future<void> Function(WidgetTester)? act}) async {
-  t.view.physicalSize = const Size(390, 844) * 2;
+  t.view.physicalSize = const Size(430, 932) * 2; // iPhone 15 Pro Max, the owner's phone
   t.view.devicePixelRatio = 2;
   addTearDown(t.view.reset);
   await t.pumpWidget(MaterialApp(
@@ -164,6 +164,9 @@ void main() {
         onShowKit: () async {},
         onBackup: () async {},
         lastBackup: () => 'Lần cuối: 12 ngày trước',
+        onChangeIdentity: () async {},
+        onOpenTrash: () async {},
+        onNewVault: () async {},
       );
 
   testWidgets('lock', skip: !_enabled, (t) => _shot(t, 'lock', const UnlockScreen(libraryDir: '', askBiometricNow: false)));
