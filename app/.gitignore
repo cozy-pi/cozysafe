@@ -55,3 +55,4 @@ app.*.map.json
 
 # Rendered by the screenshots workflow, not committed.
 /test/screenshots/
+test/preview/

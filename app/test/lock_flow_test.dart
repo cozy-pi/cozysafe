@@ -177,24 +177,6 @@ void main() {
     expect(find.text('No vault opens with this password.'), findsOneWidget);
   });
 
-  testWidgets('an add action picked while locked runs right after unlocking', (t) async {
-    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
-    await t.pump();
-    // The big dock button (Photo mode by default).
-    await t.tap(find.byKey(const ValueKey('add-dock-action')));
-    await t.pump();
-    expect(find.text('Unlock first; it opens right after.'), findsOneWidget);
-    await _tapDigits(t, _pin);
-    // Not pumpAndSettle: the camera screen keeps animating, and settling would run the
-    // clock past the 2-minute idle lock.
-    for (var i = 0; i < 10; i++) {
-      await t.pump(const Duration(milliseconds: 300));
-    }
-    // The action already opened (the camera covers the vault), so look offstage too.
-    final home = t.widget<VaultHomeScreen>(find.byType(VaultHomeScreen, skipOffstage: false));
-    expect(home.initialAction?.name, 'camera');
-  });
-
   testWidgets('locking by hand does not ask for Face ID again at once', (t) async {
     await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();

@@ -14,6 +14,7 @@ import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'new_vault.dart';
+import 'restore.dart';
 import 'set_pin.dart';
 import 'vault_home.dart';
 
@@ -57,9 +58,6 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   int _shake = 0;
   BiometricKind? _bioKind;
   bool _bioOn = false;
-  AddMode? _pending;
-  /// A neutral line in the PIN card's message slot ("Unlock first; it opens right after.").
-  String? _note;
 
   /// Stop typing this long and the password is tried without pressing Enter.
   static const _pause = Duration(milliseconds: 350);
@@ -290,13 +288,12 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     }
     if (!mounted) return;
     final nav = Navigator.of(context);
-    final pending = _pending;
     await playVaultSpin(context, opening: true, color: colorById(vault.color).color, onCovered: () {
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
           pageBuilder: (_, _, _) =>
-              VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, initialAction: pending),
+              VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault),
         ),
         (_) => false,
       );
@@ -320,23 +317,6 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       ),
     );
     if (yes == true) await turnOnBiometric(_bioStore(l));
-  }
-
-  /// An add action picked while locked: unlock first, then the vault runs it.
-  void _onDockAction(AddMode mode) {
-    final l = AppLocalizations.of(context);
-    setState(() => _pending = mode);
-    if (_bioKind != null && _bioOn) {
-      _unlockBiometric();
-    } else {
-      // In the card, not a snack bar: one at the bottom would cover the keypad.
-      if (_mode == _Mode.pin) {
-        setState(() => _note = l.unlockToAdd);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.unlockToAdd)));
-        _focus.requestFocus();
-      }
-    }
   }
 
   // ---------- UI ----------
@@ -389,7 +369,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                       height: 40,
                       child: Center(
                         child: Text(
-                          _waitUntil != null ? _waitText(l) : (_error ?? _note ?? ''),
+                          _waitUntil != null ? _waitText(l) : (_error ?? ''),
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -420,27 +400,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                       ),
                     ),
                   ],
-                  const SizedBox(height: 4),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    children: [
-                      if (_mode == _Mode.pin && _anyPassword)
-                        TextButton(
-                          onPressed: _busy ? null : () => setState(() => _mode = _Mode.password),
-                          child: Text(l.usePassword),
-                        ),
-                      if (_mode == _Mode.password && _lengths.isNotEmpty)
-                        TextButton(onPressed: () => setState(() => _mode = _Mode.pin), child: Text(l.usePin)),
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => Navigator.of(context).push(MaterialPageRoute<void>(
-                                  builder: (_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false),
-                                )),
-                        child: Text(l.newVault),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(height: 6),
                 ],
               ),
             ),
@@ -511,17 +471,29 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                     ),
                   ),
                 ),
-                AddDock(
-                  modes: availableAddModes(),
-                  leading: DockSlot(glyph: const LockGlyph(size: 24, color: Brand.gold), label: l.lockedAddOnly, outlined: true),
-                  trailing: bio == null
-                      ? const SizedBox(width: 46)
-                      : DockSlot(
-                          glyph: BiometricGlyph(kind: bio, size: 24, color: Colors.white),
-                          label: bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint,
-                          onTap: _busy ? null : _unlockBiometric,
+                // The lock screen only opens vaults (adding while locked is gone):
+                // ⋯ for everything else under the left thumb, biometrics in the middle.
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 8, 28, 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Align(alignment: Alignment.centerLeft, child: _moreMenu(l)),
                         ),
-                  onAction: _onDockAction,
+                        if (bio != null)
+                          _RoundButton(
+                            key: const ValueKey('biometric-button'),
+                            size: 60,
+                            tooltip: bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint,
+                            onTap: _busy ? null : _unlockBiometric,
+                            child: BiometricGlyph(kind: bio, size: 28, color: Colors.white),
+                          ),
+                        const Expanded(child: SizedBox()),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -529,6 +501,64 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
         ),
       ),
     );
+  }
+
+  /// "Use password" / "Use PIN", "Create a new vault" (owner check first), "Restore".
+  Widget _moreMenu(AppLocalizations l) => MenuAnchor(
+        alignmentOffset: const Offset(0, -8),
+        style: MenuStyle(
+          backgroundColor: const WidgetStatePropertyAll(Colors.white),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(10),
+          shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+          side: const WidgetStatePropertyAll(BorderSide.none),
+          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 6)),
+        ),
+        menuChildren: [
+          if (_mode == _Mode.pin && _anyPassword)
+            MenuItemButton(
+              leadingIcon: const Icon(Icons.key_outlined),
+              onPressed: () => setState(() => _mode = _Mode.password),
+              child: Text(l.usePassword),
+            ),
+          if (_mode == _Mode.password && _lengths.isNotEmpty)
+            MenuItemButton(
+              leadingIcon: const Icon(Icons.dialpad),
+              onPressed: () => setState(() => _mode = _Mode.pin),
+              child: Text(l.usePin),
+            ),
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.add),
+            onPressed: _busy ? null : _newVault,
+            child: Text(l.newVault),
+          ),
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.settings_backup_restore),
+            onPressed: _busy
+                ? null
+                : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) => RestoreScreen(libraryDir: widget.libraryDir, needFile: true),
+                    )),
+            child: Text(l.restoreFromBackup),
+          ),
+        ],
+        builder: (context, controller, _) => _RoundButton(
+          key: const ValueKey('more-button'),
+          size: 50,
+          tooltip: l.more,
+          onTap: () => controller.isOpen ? controller.close() : controller.open(),
+          child: const Icon(Icons.more_horiz, color: Colors.white, size: 26),
+        ),
+      );
+
+  /// Only the owner of the phone makes vaults here (Face ID, fingerprint or the
+  /// phone's passcode), so nobody holding it can add vaults or probe PINs.
+  Future<void> _newVault() async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmOwner(l.ownerCheckReason) || !mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false),
+    ));
   }
 
   Widget _passwordField(AppLocalizations l, Color ink) {
@@ -597,4 +627,27 @@ class _ShakeOnChangeState extends State<_ShakeOnChange> with SingleTickerProvide
       child: widget.child,
     );
   }
+}
+
+/// A round, translucent button for the bottom of the lock screen.
+class _RoundButton extends StatelessWidget {
+  const _RoundButton({super.key, required this.size, required this.tooltip, required this.onTap, required this.child});
+  final double size;
+  final String tooltip;
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: Material(
+          color: const Color(0x24FFFFFF),
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onTap,
+            child: SizedBox.square(dimension: size, child: Center(child: child)),
+          ),
+        ),
+      );
 }

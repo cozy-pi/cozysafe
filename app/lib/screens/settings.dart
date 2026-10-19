@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/add_dock.dart';
+import '../widgets/identity.dart';
 import 'delete_vault.dart';
 import 'file_view.dart';
 import 'set_pin.dart';
@@ -44,7 +45,9 @@ abstract final class Settings {
   }
 }
 
-/// Everything about the open vault in one place (docs/ui.md, review 6).
+/// Everything about the open vault in one place, laid out like the system's own
+/// Settings: the vault's card on top, grouped rows with a coloured symbol each, and
+/// Delete on its own at the end (docs/ui.md, review 6; approved mockup).
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
     super.key,
@@ -55,17 +58,20 @@ class SettingsScreen extends StatefulWidget {
     required this.onToggleBiometric,
     required this.onPassword,
     required this.onShowKit,
+    required this.onBackup,
     required this.lastBackup,
   });
 
   final String libraryDir;
-  final rust.VaultInfo vault;
+  /// Read again after each action: the password may have just been set.
+  final rust.VaultInfo Function() vault;
   final bool canBiometric;
   final bool Function() biometricOn;
   final Future<void> Function() onToggleBiometric;
   final Future<void> Function() onPassword;
   final Future<void> Function() onShowKit;
-  final String lastBackup;
+  final Future<void> Function() onBackup;
+  final String Function() lastBackup;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -74,8 +80,10 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   int _minutes = Settings.autoLockMinutes;
   bool _secure = Settings.blockScreenshots;
-  BigInt _bytes = BigInt.zero;
+  final Map<String, BigInt> _byKind = {};
   int _count = 0;
+
+  BigInt get _bytes => _byKind.values.fold(BigInt.zero, (a, b) => a + b);
 
   @override
   void initState() {
@@ -89,12 +97,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() {
         _count = all.length;
-        _bytes = all.fold(BigInt.zero, (a, i) => a + i.size);
+        _byKind.clear();
+        for (final i in all) {
+          _byKind[i.kind] = (_byKind[i.kind] ?? BigInt.zero) + i.size;
+        }
       });
     } catch (_) {}
   }
 
   String get _sizeText => AppLocalizations.of(context).storageUsed(fileSize(_bytes), _count);
+
+  Future<void> _then(Future<void> Function() action) async {
+    await action();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _pickAutoLock() async {
+    final l = AppLocalizations.of(context);
+    final picked = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(l.autoLock, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              ),
+              for (final m in Settings.autoLockChoices)
+                ListTile(
+                  title: Text(l.minutesLong(m)),
+                  trailing: m == _minutes ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
+                  onTap: () => Navigator.pop(context, m),
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Text(l.autoLockNote, style: TextStyle(color: CsColors.of(context).muted, fontSize: 13)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked == null) return;
+    setState(() => _minutes = picked);
+    Settings.autoLockMinutes = picked;
+  }
+
+  Future<void> _showSecurity() {
+    final l = AppLocalizations.of(context);
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.securityTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              Text(l.securityBody, style: TextStyle(color: CsColors.of(context).muted, height: 1.5)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _deleteVault() async {
     // The PIN confirms it; a vault opened with its password on this phone gets one first.
@@ -105,7 +179,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (set != true || !mounted) return;
     }
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => DeleteVaultScreen(libraryDir: widget.libraryDir, vault: widget.vault, sizeText: _sizeText),
+      builder: (_) => DeleteVaultScreen(libraryDir: widget.libraryDir, vault: widget.vault(), sizeText: _sizeText),
     ));
   }
 
@@ -113,94 +187,332 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
+    final vault = widget.vault();
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final danger = Theme.of(context).colorScheme.error;
-    Widget group(String title, List<Widget> rows) => Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 6),
-                child: Text(title, style: TextStyle(color: c.muted, fontSize: 12.5, fontWeight: FontWeight.w600)),
-              ),
-              Material(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(14),
-                clipBehavior: Clip.antiAlias,
-                child: Column(children: ListTile.divideTiles(context: context, tiles: rows).toList()),
-              ),
-            ],
-          ),
-        );
+
     return Scaffold(
       appBar: AppBar(title: Text(l.settings)),
       body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
-          group(l.settingsLock, [
-            ListTile(
-              title: Text(l.autoLock),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: SegmentedButton<int>(
-                  showSelectedIcon: false,
-                  segments: [
-                    for (final m in Settings.autoLockChoices) ButtonSegment(value: m, label: Text(l.minutesShort(m))),
-                  ],
-                  selected: {_minutes},
-                  onSelectionChanged: (v) {
-                    setState(() => _minutes = v.first);
-                    Settings.autoLockMinutes = v.first;
+          _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), byKind: _byKind),
+          _Group(title: l.settingsLock, rows: [
+            if (widget.canBiometric)
+              _Row(
+                icon: Icons.face_retouching_natural,
+                tint: const Color(0xFF34C759),
+                title: l.biometricThisVault,
+                trailing: _Switch(
+                  value: widget.biometricOn(),
+                  onChanged: (_) => _then(widget.onToggleBiometric),
+                ),
+              ),
+            _Row(
+              icon: Icons.dialpad,
+              tint: const Color(0xFF5E5CE6),
+              title: l.pinTitle,
+              value: l.change,
+              onTap: () => Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen())),
+            ),
+            _Row(
+              icon: Icons.timer_outlined,
+              tint: const Color(0xFFFF9F0A),
+              title: l.autoLock,
+              value: l.afterMinutes(_minutes),
+              onTap: _pickAutoLock,
+            ),
+          ]),
+          _Group(title: l.backup, rows: [
+            _Row(
+              icon: Icons.cloud_upload_outlined,
+              tint: const Color(0xFF0A84FF),
+              title: l.backupShort,
+              subtitle: widget.lastBackup(),
+              trailing: FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  shape: const StadiumBorder(),
+                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                onPressed: () => _then(widget.onBackup),
+                child: Text(l.backupNow),
+              ),
+            ),
+            _Row(
+              icon: Icons.key_outlined,
+              tint: const Color(0xFFBF5AF2),
+              title: l.backupPasswordLabel,
+              value: vault.hasPassword ? l.isSet : l.notSet,
+              onTap: () => _then(widget.onPassword),
+            ),
+            if (vault.hasPassword)
+              _Row(
+                icon: Icons.medical_services_outlined,
+                tint: const Color(0xFFFF375F),
+                title: l.showKit,
+                onTap: widget.onShowKit,
+              ),
+          ]),
+          _Group(title: l.settingsSecurity, rows: [
+            _Row(
+              icon: Icons.verified_user_outlined,
+              tint: const Color(0xFF30B0A0),
+              title: l.securityTitle,
+              subtitle: l.securityShort,
+              onTap: _showSecurity,
+            ),
+            if (Platform.isAndroid)
+              _Row(
+                icon: Icons.visibility_off_outlined,
+                tint: const Color(0xFF8E8E93),
+                title: l.blockScreenshots,
+                subtitle: l.blockScreenshotsNote,
+                trailing: _Switch(
+                  value: _secure,
+                  onChanged: (v) {
+                    setState(() => _secure = v);
+                    Settings.setBlockScreenshots(v);
                   },
                 ),
               ),
-            ),
-            if (widget.canBiometric)
-              SwitchListTile(
-                title: Text(l.biometricThisVault),
-                value: widget.biometricOn(),
-                onChanged: (_) async {
-                  await widget.onToggleBiometric();
-                  if (mounted) setState(() {});
-                },
-              ),
-            ListTile(
-              title: Text(l.changePin),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen())),
-            ),
           ]),
-          group(l.backup, [
-            ListTile(title: Text(l.lastBackupLabel), trailing: Text(widget.lastBackup, style: TextStyle(color: c.muted))),
-            ListTile(
-              title: Text(widget.vault.hasPassword ? l.changePasswordTitle : l.backupPasswordTitle),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: widget.onPassword,
-            ),
-            if (widget.vault.hasPassword)
-              ListTile(title: Text(l.showKit), trailing: const Icon(Icons.chevron_right), onTap: widget.onShowKit),
-          ]),
-          if (Platform.isAndroid)
-            group(l.settingsPrivacy, [
-              SwitchListTile(
-                title: Text(l.blockScreenshots),
-                subtitle: Text(l.blockScreenshotsNote),
-                value: _secure,
-                onChanged: (v) {
-                  setState(() => _secure = v);
-                  Settings.setBlockScreenshots(v);
-                },
-              ),
-            ]),
-          group(l.settingsThisVault, [
-            ListTile(title: Text(l.storage), trailing: Text(_sizeText, style: TextStyle(color: c.muted))),
-            ListTile(
-              title: Text(l.deleteVault, style: TextStyle(color: danger)),
+          const SizedBox(height: 22),
+          Material(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(14),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
               onTap: _deleteVault,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Center(
+                  child: Text(l.deleteVault, style: TextStyle(color: danger, fontWeight: FontWeight.w600, fontSize: 15)),
+                ),
+              ),
             ),
-          ]),
-          const SizedBox(height: 24),
+          ),
+          const SizedBox(height: 18),
+          Center(child: Text(l.settingsFooter, style: TextStyle(color: c.muted, fontSize: 12))),
+          if (dark) const SizedBox(height: 4),
         ],
       ),
     );
   }
+}
+
+/// The vault itself: its icon, how much it holds (a bar split by kind) and the last
+/// backup, on the vault's colour.
+class _VaultCard extends StatelessWidget {
+  const _VaultCard({required this.vault, required this.sizeText, required this.lastBackup, required this.byKind});
+
+  final rust.VaultInfo vault;
+  final String sizeText;
+  final String lastBackup;
+  final Map<String, BigInt> byKind;
+
+  static const _kinds = [
+    ('photo', Color(0xFFFFD88A)),
+    ('file', Color(0xFF9FD8FF)),
+    ('note', Color(0xFFC8F0C0)),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final base = colorById(vault.color).color;
+    final bg = dark ? Color.lerp(deepForWhite(base), Colors.black, .25)! : deepForWhite(base);
+    final total = byKind.values.fold(BigInt.zero, (a, b) => a + b);
+    final names = {'photo': l.kindPhotos, 'file': l.kindFiles, 'note': l.kindNotes};
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0x2EFFFFFF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0x59FFFFFF), width: 1.5),
+                ),
+                child: Icon(iconById(vault.icon).icon, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(sizeText, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(lastBackup, style: const TextStyle(color: Color(0xD9FFFFFF), fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 8,
+              width: double.infinity,
+              child: total == BigInt.zero
+                  ? const ColoredBox(color: Color(0x33FFFFFF), child: SizedBox.expand())
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final (k, col) in _kinds)
+                          if ((byKind[k] ?? BigInt.zero) > BigInt.zero)
+                            Expanded(
+                              flex: ((byKind[k]! * BigInt.from(1000)) ~/ total).toInt().clamp(1, 1000),
+                              child: ColoredBox(color: col),
+                            ),
+                      ],
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 14,
+            children: [
+              for (final (k, col) in _kinds)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(width: 8, height: 8, decoration: BoxDecoration(color: col, shape: BoxShape.circle)),
+                    const SizedBox(width: 5),
+                    Text(names[k]!, style: const TextStyle(color: Color(0xE6FFFFFF), fontSize: 12)),
+                  ],
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Group extends StatelessWidget {
+  const _Group({required this.title, required this.rows});
+  final String title;
+  final List<Widget> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    if (rows.isEmpty) return const SizedBox.shrink();
+    final c = CsColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 7),
+            child: Text(title, style: TextStyle(color: c.muted, fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+          Material(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(14),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (var i = 0; i < rows.length; i++) ...[
+                  if (i > 0) Divider(height: 1, thickness: 1, indent: 56, color: c.border.withValues(alpha: .6)),
+                  rows[i],
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One setting: a white symbol on its own colour, the title (and a second line), then
+/// a value with a chevron, a switch, or a button.
+class _Row extends StatelessWidget {
+  const _Row({
+    required this.icon,
+    required this.tint,
+    required this.title,
+    this.subtitle,
+    this.value,
+    this.trailing,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final Color tint;
+  final String title;
+  final String? subtitle;
+  final String? value;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 52),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+          child: Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(8)),
+                child: Icon(icon, color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontSize: 15.5)),
+                    if (subtitle != null)
+                      Text(subtitle!, style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.3)),
+                  ],
+                ),
+              ),
+              if (value != null) ...[
+                const SizedBox(width: 8),
+                Text(value!, style: TextStyle(color: c.muted, fontSize: 14)),
+              ],
+              if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+              if (onTap != null && trailing == null) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right, color: c.muted, size: 20),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The system-green switch, the same in every vault colour.
+class _Switch extends StatelessWidget {
+  const _Switch({required this.value, required this.onChanged});
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Switch.adaptive(
+        value: value,
+        onChanged: onChanged,
+        activeTrackColor: const Color(0xFF34C759),
+        activeThumbColor: Colors.white,
+      );
 }

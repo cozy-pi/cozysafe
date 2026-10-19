@@ -52,10 +52,13 @@ class CozySafeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    // The open vault's colour themes every screen above it (design B).
+    return ValueListenableBuilder<Color?>(
+      valueListenable: vaultTint,
+      builder: (context, tint, _) => MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
-      theme: buildTheme(Brightness.light),
-      darkTheme: buildTheme(Brightness.dark),
+      theme: buildTheme(Brightness.light, vault: tint),
+      darkTheme: buildTheme(Brightness.dark, vault: tint),
       themeMode: ThemeMode.system,
       // Follow the system language; English when the device language is unsupported.
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -67,6 +70,7 @@ class CozySafeApp extends StatelessWidget {
               // Vaults are here but this device has no Secret Key (reinstall,
               // restored phone): ask for the Emergency Kit.
               : RestoreScreen(libraryDir: libraryDir, needFile: false),
+      ),
     );
   }
 }

@@ -131,7 +131,7 @@ class _AddDockState extends State<AddDock> {
     final mode = widget.modes.isEmpty ? null : widget.modes[_mode.clamp(0, widget.modes.length - 1)];
     final bottom = MediaQuery.paddingOf(context).bottom;
     return Material(
-      color: Brand.dock,
+      color: CsColors.of(context).dock,
       child: Padding(
         padding: EdgeInsets.only(top: 12, bottom: 14 + bottom),
         child: Column(

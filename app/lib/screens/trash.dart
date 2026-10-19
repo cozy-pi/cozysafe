@@ -156,18 +156,29 @@ class _TrashScreenState extends State<TrashScreen> {
                       childCount: photos.length,
                     ),
                   ),
-                  SliverList(
-                    delegate: SliverChildListDelegate([
-                      for (final it in others)
-                        ListTile(
-                          onTap: () => _actions(it),
-                          leading: Icon(fileIcon(it), color: Theme.of(context).colorScheme.primary),
-                          title: Text(it.name.isEmpty ? l.untitledNote : it.name,
-                              maxLines: 1, overflow: TextOverflow.ellipsis),
-                          subtitle: Text(l.daysLeft(_daysLeft(it))),
+                  if (others.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                        child: Material(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(14),
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            children: [
+                              for (final it in others)
+                                ListTile(
+                                  onTap: () => _actions(it),
+                                  leading: Icon(fileIcon(it), color: Theme.of(context).colorScheme.primary),
+                                  title: Text(it.name.isEmpty ? l.untitledNote : it.name,
+                                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  subtitle: Text(l.daysLeft(_daysLeft(it))),
+                                ),
+                            ],
+                          ),
                         ),
-                    ]),
-                  ),
+                      ),
+                    ),
                 ],
               ),
         bottomNavigationBar: (items == null || items.isEmpty)
@@ -178,14 +189,21 @@ class _TrashScreenState extends State<TrashScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(onPressed: () => _restore(items), child: Text(l.restoreAll)),
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Theme.of(context).cardColor,
+                            foregroundColor: Theme.of(context).colorScheme.primary,
+                          ),
+                          onPressed: () => _restore(items),
+                          child: Text(l.restoreAll),
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: FilledButton(
                           style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                            foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+                            backgroundColor: Theme.of(context).cardColor,
+                            foregroundColor: Theme.of(context).colorScheme.error,
                           ),
                           onPressed: () => _deleteForGood(items),
                           child: Text(l.deleteAll),

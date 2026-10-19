@@ -177,3 +177,31 @@ Worth saying, not changing: photos taken with the in-app camera never touch the
 photo library (one line on the camera screen the first time); a second vault with
 its own PIN is a practical decoy (one line in the help, without promising
 deniability).
+
+## Lock screen, vault colour, Settings (approved 2026-10-20, 0.1.2)
+
+- **The lock screen only opens vaults.** No add dock there any more. The bottom row
+  has a ⋯ button under the left thumb (Use password / Use PIN, Create a new vault,
+  Restore from a backup) and Face ID or fingerprint in the middle. Nothing under the
+  PIN card.
+- **Creating another vault needs the phone's owner**: Face ID, fingerprint or the
+  phone's passcode (the system's own check), from the lock screen and from inside a
+  vault. The first vault on a device does not ask.
+- **Design B: the open vault's colour is the whole app's colour.** Light: the colour
+  mixed pale with dark text; dark: the colour deepened with light text; the dock is
+  the colour, darker. Rules that keep content readable:
+  1. Notes, files and Settings rows sit on neutral cards; the photo viewer is black.
+  2. Every text colour is computed per vault colour to reach 4.5:1 on what it sits on
+     (`VaultPalette` in `app/lib/theme.dart`; `test/theme_test.dart` checks all 20
+     colours in light and dark).
+  3. Red and warning colours only ever sit on neutral cards.
+  The lock screen keeps the brand green, so it never shows which vault colours exist.
+- **Settings** looks like the system's own: the vault card on top (its icon on its
+  colour, size split by photos / files / notes, last backup), then grouped rows with a
+  white symbol on its own colour: Unlock (Face ID for this vault, PIN, auto-lock as a
+  pick list), Backup (Back up now, backup password, Emergency Kit), Security (how the
+  vault is protected, block screenshots on Android), and Delete this vault alone at the
+  end.
+- **Checking the build against the mockups**: `flutter test test/preview_test.dart
+  --update-goldens --dart-define=PREVIEW=true` renders the real screens (fake vault
+  data) to `app/test/preview/*.png` in a few seconds.

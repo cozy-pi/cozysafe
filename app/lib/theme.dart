@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Colours that Material's ColorScheme has no slot for. Values match the
@@ -10,6 +12,7 @@ class CsColors extends ThemeExtension<CsColors> {
     required this.border,
     required this.warnBg,
     required this.warnInk,
+    required this.dock,
   });
 
   final Color muted;
@@ -17,6 +20,8 @@ class CsColors extends ThemeExtension<CsColors> {
   final Color border;
   final Color warnBg;
   final Color warnInk;
+  /// The add dock at the bottom of a vault: the vault's colour, deepened.
+  final Color dock;
 
   static CsColors of(BuildContext context) =>
       Theme.of(context).extension<CsColors>()!;
@@ -28,6 +33,7 @@ class CsColors extends ThemeExtension<CsColors> {
     Color? border,
     Color? warnBg,
     Color? warnInk,
+    Color? dock,
   }) =>
       CsColors(
         muted: muted ?? this.muted,
@@ -35,6 +41,7 @@ class CsColors extends ThemeExtension<CsColors> {
         border: border ?? this.border,
         warnBg: warnBg ?? this.warnBg,
         warnInk: warnInk ?? this.warnInk,
+        dock: dock ?? this.dock,
       );
 
   @override
@@ -46,6 +53,7 @@ class CsColors extends ThemeExtension<CsColors> {
       border: Color.lerp(border, other.border, t)!,
       warnBg: Color.lerp(warnBg, other.warnBg, t)!,
       warnInk: Color.lerp(warnInk, other.warnInk, t)!,
+      dock: Color.lerp(dock, other.dock, t)!,
     );
   }
 }
@@ -61,19 +69,78 @@ abstract final class Brand {
   static const dock = Color(0xFF0A2A23);
 }
 
-ThemeData buildTheme(Brightness brightness) {
+/// The open vault's colour, or null while locked. The whole app takes it (design B,
+/// docs/ui.md): set by the vault screen, cleared when it goes.
+final vaultTint = ValueNotifier<Color?>(null);
+
+/// WCAG contrast ratio between two colours (1 to 21).
+double contrast(Color a, Color b) {
+  final x = a.computeLuminance(), y = b.computeLuminance();
+  return (math.max(x, y) + .05) / (math.min(x, y) + .05);
+}
+
+Color _mix(Color c, double amount, Color base) => Color.lerp(base, c, amount)!;
+
+/// Move [c] toward [to] until it reads at [ratio] on every one of [bgs].
+Color _readable(Color c, Color to, List<Color> bgs, double ratio) {
+  var x = c;
+  for (var i = 0; i < 40 && bgs.any((b) => contrast(x, b) < ratio); i++) {
+    x = Color.lerp(x, to, .1)!;
+  }
+  return x;
+}
+
+/// [c] darkened just enough for white text on it (the Settings vault card).
+Color deepForWhite(Color c) => _readable(c, const Color(0xFF000000), [const Color(0xFFFFFFFF)], 4.5);
+
+/// Design B: the whole screen in the vault's colour, content on neutral cards. Light:
+/// the colour mixed pale, dark text. Dark: the colour deepened, light text. Every
+/// text colour is checked for 4.5:1 against what it sits on (test/theme_test.dart).
+class VaultPalette {
+  VaultPalette(Color c, Brightness brightness) : dark = brightness == Brightness.dark {
+    const white = Color(0xFFFFFFFF), black = Color(0xFF000000), night = Color(0xFF141817);
+    if (dark) {
+      bg = _mix(c, .62, black);
+      surface = _mix(c, .14, night);
+      ink = const Color(0xFFEEF0EF);
+      muted = _readable(const Color(0xFFA3ABA7), white, [surface, bg], 4.5);
+      accent = _readable(_mix(c, .6, white), white, [surface], 4.5);
+      onAccent = const Color(0xFF0B0E0D);
+      dock = _mix(c, .42, black);
+      soft = _mix(c, .26, night);
+      border = _mix(c, .34, night);
+    } else {
+      bg = _mix(c, .30, white);
+      surface = white;
+      ink = const Color(0xFF16191B);
+      muted = _readable(const Color(0xFF5C6369), black, [bg, surface], 4.5);
+      accent = _readable(c, black, [white], 4.5);
+      onAccent = white;
+      dock = _mix(c, .82, black);
+      soft = _mix(c, .14, white);
+      border = _mix(c, .32, white);
+    }
+  }
+
+  final bool dark;
+  late final Color bg, surface, ink, muted, accent, onAccent, dock, soft, border;
+}
+
+ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   final dark = brightness == Brightness.dark;
-  final bg = dark ? Brand.night : const Color(0xFFF4F5F4);
-  final surface = dark ? const Color(0xFF12342C) : const Color(0xFFFFFFFF);
-  final ink = dark ? const Color(0xFFE9ECEB) : const Color(0xFF1A1D1F);
-  // B2: green actions on light, gold actions on dark.
-  final accent = dark ? Brand.gold : Brand.green;
-  final accentInk = dark ? Brand.goldInk : const Color(0xFFFFFFFF);
+  final p = vault == null ? null : VaultPalette(vault, brightness);
+  final bg = p?.bg ?? (dark ? Brand.night : const Color(0xFFF4F5F4));
+  final surface = p?.surface ?? (dark ? const Color(0xFF12342C) : const Color(0xFFFFFFFF));
+  final ink = p?.ink ?? (dark ? const Color(0xFFE9ECEB) : const Color(0xFF1A1D1F));
+  // B2: green actions on light, gold actions on dark; inside a vault, its colour.
+  final accent = p?.accent ?? (dark ? Brand.gold : Brand.green);
+  final accentInk = p?.onAccent ?? (dark ? Brand.goldInk : const Color(0xFFFFFFFF));
   final danger = dark ? const Color(0xFFF0A196) : const Color(0xFFB3261E);
   final colors = CsColors(
-    muted: dark ? const Color(0xFFA2AAA6) : const Color(0xFF5C6369),
-    soft: dark ? const Color(0xFF184036) : const Color(0xFFE3E9E6),
-    border: dark ? const Color(0xFF2C5047) : const Color(0xFFD6DDD9),
+    muted: p?.muted ?? (dark ? const Color(0xFFA2AAA6) : const Color(0xFF5C6369)),
+    soft: p?.soft ?? (dark ? const Color(0xFF184036) : const Color(0xFFE3E9E6)),
+    border: p?.border ?? (dark ? const Color(0xFF2C5047) : const Color(0xFFD6DDD9)),
+    dock: p?.dock ?? Brand.dock,
     warnBg: dark ? const Color(0xFF3A2F17) : const Color(0xFFFBF0DC),
     warnInk: dark ? const Color(0xFFF1D294) : const Color(0xFF6B4300),
   );
@@ -104,6 +171,7 @@ ThemeData buildTheme(Brightness brightness) {
   return ThemeData(
     colorScheme: scheme,
     scaffoldBackgroundColor: bg,
+    cardColor: surface,
     extensions: [colors],
     appBarTheme: AppBarTheme(
       backgroundColor: bg,

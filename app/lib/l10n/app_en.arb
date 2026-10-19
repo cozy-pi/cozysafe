@@ -284,5 +284,39 @@
         "type": "int"
       }
     }
-  }
+  },
+  "more": "More",
+  "ownerCheckReason": "Confirm it's you to create a new vault",
+  "minutesLong": "{count, plural, =1{1 minute} other{{count} minutes}}",
+  "afterMinutes": "{count, plural, =1{After 1 minute} other{After {count} minutes}}",
+  "autoLockNote": "Leaving the app locks the vault right away, whatever you pick.",
+  "securityTitle": "How this vault is protected",
+  "securityShort": "XChaCha20-Poly1305 · Argon2id",
+  "securityBody": "Every photo, note and file has its own key and is encrypted with XChaCha20-Poly1305 before it is written. Those keys are locked by the vault's key, which only your PIN on this phone, Face ID, or the backup password together with your Secret Key can open (Argon2id). Nothing leaves this phone unencrypted unless you send it.",
+  "settingsSecurity": "Security",
+  "pinTitle": "PIN",
+  "change": "Change",
+  "backupNow": "Back up now",
+  "backupPasswordLabel": "Backup password",
+  "isSet": "Set",
+  "notSet": "Not set",
+  "settingsFooter": "Cozy Safe · open source",
+  "kindPhotos": "Photos",
+  "kindFiles": "Files",
+  "kindNotes": "Notes",
+  "@minutesLong": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@afterMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupShort": "Back up"
 }

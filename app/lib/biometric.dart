@@ -100,6 +100,19 @@ class BiometricUnlock {
   }
 }
 
+/// Ask the phone's owner to confirm with Face ID, a fingerprint or the phone's
+/// passcode (the system decides). Used before making another vault. True where the
+/// device has no such check at all (some computers): there is nothing to ask.
+Future<bool> confirmOwner(String reason) async {
+  try {
+    final auth = LocalAuthentication();
+    if (!await auth.isDeviceSupported()) return true;
+    return await PrivacyCover.whileAsking(() => auth.authenticate(localizedReason: reason));
+  } catch (_) {
+    return false;
+  }
+}
+
 /// Turn biometric unlock on for the open vault: Rust makes the wrapped copy, the key goes
 /// into the gated store (Android asks for a fingerprint here). Rolls back on failure.
 Future<bool> turnOnBiometric(BiometricUnlock store) async {

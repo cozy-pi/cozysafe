@@ -70,6 +70,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (mounted) setState(() => _canBio = k != null);
     });
     LockGuard.onActivity = _touch;
+    // The whole app takes this vault's colour while it is open (design B). After the
+    // first frame: changing the app theme during a build is not allowed.
+    WidgetsBinding.instance.addPostFrameCallback((_) => vaultTint.value = _color);
     // Touches anywhere count, also on the note editor or viewer pushed above this screen.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _touch();
@@ -82,6 +85,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _idleTimer?.cancel();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
     if (LockGuard.onActivity == _touch) LockGuard.onActivity = null;
+    final mine = _color;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (vaultTint.value == mine) vaultTint.value = null;
+    });
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -359,7 +366,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     color = c;
     try {
       final info = await rust.setIdentity(icon: vaultIcons[icon].id, color: vaultColors[color].id);
-      if (mounted) setState(() => _vault = info);
+      if (mounted) {
+        setState(() => _vault = info);
+        vaultTint.value = _color;
+      }
     } on rust.VaultError catch (e) {
       if (mounted) _snack(vaultErrorText(AppLocalizations.of(context), e));
     }
@@ -375,20 +385,23 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => SettingsScreen(
         libraryDir: widget.libraryDir,
-        vault: _vault,
+        vault: () => _vault,
         canBiometric: _canBio,
         biometricOn: () => _bioOn,
         onToggleBiometric: _toggleBiometric,
         onPassword: _password,
         onShowKit: _showKit,
-        lastBackup: _lastBackupText(l),
+        onBackup: _backup,
+        lastBackup: () => _lastBackupText(l),
       ),
     ));
     if (!_locked) _touch(); // the auto-lock time may have changed
   }
 
-  /// Creating another vault locks this one first (one open at a time).
-  void _newVault() {
+  /// Creating another vault locks this one first (one open at a time). Only the phone's
+  /// owner may: knowing this vault's PIN is not enough.
+  Future<void> _newVault() async {
+    if (!await confirmOwner(AppLocalizations.of(context).ownerCheckReason) || !mounted) return;
     final avoid = (_vault.icon, _vault.color);
     _locked = true;
     _idleTimer?.cancel();
@@ -478,11 +491,26 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             childCount: e.value.where((x) => x.kind == 'photo').length,
           ),
         ),
-        SliverList(
-          delegate: SliverChildListDelegate([
-            for (final it in e.value.where((x) => x.kind != 'photo')) _ItemRow(item: it, onTap: () => _openItem(it, photos)),
-          ]),
-        ),
+        // Notes and files sit on a neutral card, never straight on the vault colour.
+        if (e.value.any((x) => x.kind != 'photo'))
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+              child: Material(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(14),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    for (final (i, it) in e.value.where((x) => x.kind != 'photo').indexed) ...[
+                      if (i > 0) Divider(height: 1, indent: 72, color: CsColors.of(context).border.withValues(alpha: .6)),
+                      _ItemRow(item: it, onTap: () => _openItem(it, photos)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     ];
   }

@@ -4,6 +4,21 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.2 (2026-10-20)
+
+### Changed
+- The whole app takes the open vault's colour, light or dark with the phone. Notes,
+  files and settings sit on plain cards so text always reads well.
+- The lock screen only unlocks: adding photos or notes from it is gone. "Use password",
+  "Create a new vault" and "Restore" moved into a ⋯ button under the left thumb.
+- Creating another vault asks for Face ID, a fingerprint or the phone's passcode.
+- Settings redone: the vault's card with its size and last backup on top, grouped
+  rows, Back up now, and a page on how the vault is protected.
+
+### Fixed
+- Opening with Face ID shows the vault opening again (the app switcher cover hid it).
+- Notes and files in Recently deleted sit on a card; its buttons are calmer.
+
 ## 0.1.1 (2026-10-19)
 
 ### Added
