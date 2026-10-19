@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'file_view.dart';
@@ -139,7 +140,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               subtitle: Text(
                                 _snippet(it.id, q) ??
                                     MaterialLocalizations.of(context)
-                                        .formatShortDate(DateTime.fromMillisecondsSinceEpoch(it.createdMs)),
+                                        .formatShortDate(dateOf(it.createdMs)),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),

@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'common.dart';
 
@@ -57,7 +56,7 @@ class CameraViewState extends State<CameraView> {
         _cameras[_camera],
         ResolutionPreset.veryHigh,
         enableAudio: false,
-        imageFormatGroup: Platform.isIOS ? ImageFormatGroup.bgra8888 : ImageFormatGroup.yuv420,
+        imageFormatGroup: Device.iOS ? ImageFormatGroup.bgra8888 : ImageFormatGroup.yuv420,
       );
       await c.initialize();
       await c.lockCaptureOrientation(DeviceOrientation.portraitUp);
@@ -121,7 +120,7 @@ class CameraViewState extends State<CameraView> {
       final frame = rust.CameraFrame(
         width: image.width,
         height: image.height,
-        format: Platform.isIOS ? rust.FrameFormat.bgra8888 : rust.FrameFormat.yuv420,
+        format: Device.iOS ? rust.FrameFormat.bgra8888 : rust.FrameFormat.yuv420,
         // Copy now: the plugin reuses these buffers for the next frame.
         planes: [
           for (final p in image.planes)
@@ -133,7 +132,7 @@ class CameraViewState extends State<CameraView> {
         ],
         rotation: _rotationFor(image),
       );
-      final item = await rust.addPhoto(frame: frame, createdMs: DateTime.now().millisecondsSinceEpoch);
+      final item = await rust.addPhoto(frame: frame, createdMs: nowMs());
       final thumb = await rust.itemThumbnail(id: item.id);
       if (!mounted) return;
       setState(() {
@@ -154,7 +153,7 @@ class CameraViewState extends State<CameraView> {
   /// needs turning: by the sensor's mounting angle on Android, a quarter turn on iOS.
   int _rotationFor(CameraImage image) {
     if (image.width <= image.height) return 0;
-    if (Platform.isIOS) return 90;
+    if (Device.iOS) return 90;
     return _controller?.description.sensorOrientation ?? 90;
   }
 

@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/add_dock.dart';
@@ -39,7 +38,7 @@ abstract final class Settings {
 
   /// Called at start-up: the window starts protected, this turns it off if asked.
   static Future<void> apply() async {
-    if (!Platform.isAndroid) return;
+    if (!Device.android) return;
     try {
       await _privacy.invokeMethod<void>('setSecure', blockScreenshots);
     } catch (_) {}
@@ -284,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: l.securityShort,
               onTap: _showSecurity,
             ),
-            if (Platform.isAndroid)
+            if (Device.android)
               _Row(
                 icon: Icons.visibility_off_outlined,
                 tint: const Color(0xFF8E8E93),

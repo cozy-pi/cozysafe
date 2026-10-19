@@ -38,7 +38,7 @@ class _TrashScreenState extends State<TrashScreen> {
   }
 
   int _daysLeft(rust.ItemInfo it) {
-    final gone = DateTime.fromMillisecondsSinceEpoch(it.deletedMs ?? 0).add(const Duration(days: _days));
+    final gone = DateTime.fromMillisecondsSinceEpoch(it.deletedMs?.toInt() ?? 0).add(const Duration(days: _days));
     final left = gone.difference(DateTime.now()).inHours / 24;
     return left.ceil().clamp(0, _days);
   }

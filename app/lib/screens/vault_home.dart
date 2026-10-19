@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../platform.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -68,7 +69,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// Note previews (second line on), decrypted on demand, in memory only.
   final Map<String, Future<String>> _previews = {};
 
-  static final bool _desktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+  static final bool _desktop = Device.macOS || Device.windows || Device.linux;
   bool _canBio = false;
   bool _bioOn = false;
   Timer? _idleTimer;
@@ -79,7 +80,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // What has been in Recently deleted for 30 days goes for good, then list.
-    rust.purgeExpired(nowMs: DateTime.now().millisecondsSinceEpoch).catchError((_) => 0).whenComplete(_reload);
+    rust.purgeExpired(nowMs: nowMs()).catchError((_) => 0).whenComplete(_reload);
     _bioOn = rust.biometricEnabled();
     BiometricUnlock.available().then((k) {
       if (mounted) setState(() => _canBio = k != null);
@@ -517,7 +518,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _deleteSelected() async {
     final folders = {for (final i in _items ?? const <rust.ItemInfo>[]) if (i.kind == 'folder') i.id};
     final ids = _selected.where((id) => !folders.contains(id)).toList();
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final now = nowMs();
     for (final id in _selected.where(folders.contains)) {
       try {
         await rust.deleteFolder(id: id); // what it holds moves up, nothing is deleted
@@ -598,7 +599,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
     final groups = <String, List<rust.ItemInfo>>{};
     for (final it in media) {
-      groups.putIfAbsent(_dateGroup(context, it.createdMs), () => []).add(it);
+      groups.putIfAbsent(_dateGroup(context, it.createdMs.toInt()), () => []).add(it);
     }
     return GestureDetector(
       // Pinch to fit more or fewer per row: 3, 4, 5 or 7.
@@ -779,7 +780,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (r == null) return null;
     try {
       final f = await rust.createFolder(
-          name: r.$1, color: r.$2, parent: parent, createdMs: DateTime.now().millisecondsSinceEpoch);
+          name: r.$1, color: r.$2, parent: parent, createdMs: nowMs());
       await _reload();
       return f;
     } on rust.VaultError catch (e) {
@@ -1203,7 +1204,7 @@ class _NoteRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final when = MaterialLocalizations.of(context).formatShortDate(DateTime.fromMillisecondsSinceEpoch(item.createdMs));
+    final when = MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs));
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -1263,7 +1264,7 @@ class _FileRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = CsColors.of(context);
-    final when = MaterialLocalizations.of(context).formatShortDate(DateTime.fromMillisecondsSinceEpoch(item.createdMs));
+    final when = MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs));
     final dot = item.name.lastIndexOf('.');
     final ext = dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     return InkWell(
@@ -1414,7 +1415,7 @@ class _MediaTile extends StatelessWidget {
                     const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 15, shadows: [Shadow(blurRadius: 4)]),
                     if (duration != null)
                       Text(
-                        _length(duration),
+                        _length(duration.toInt()),
                         style: const TextStyle(
                             color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600, shadows: [Shadow(blurRadius: 4)]),
                       ),
@@ -1473,7 +1474,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
   Future<void> _delete() async {
     final l = AppLocalizations.of(context);
     try {
-      await rust.trashItem(id: _item.id, nowMs: DateTime.now().millisecondsSinceEpoch);
+      await rust.trashItem(id: _item.id, nowMs: nowMs());
       if (mounted) Navigator.of(context).pop(_item.id);
     } on rust.VaultError catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(vaultErrorText(l, e))));
@@ -1483,7 +1484,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final when = DateTime.fromMillisecondsSinceEpoch(_item.createdMs);
+    final when = dateOf(_item.createdMs);
     final ml = MaterialLocalizations.of(context);
     final fade = (1 - (_drag.abs() / 400)).clamp(0.0, 1.0);
     return Scaffold(

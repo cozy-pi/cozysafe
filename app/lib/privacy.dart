@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/services.dart';
+import 'platform.dart';
 
 /// The iOS cover that hides the vault from the app switcher (AppDelegate.swift) goes up
 /// whenever the app stops being active, and the Face ID prompt makes it inactive too.
@@ -19,7 +18,7 @@ abstract final class PrivacyCover {
   }
 
   static Future<void> _set(bool suspended) async {
-    if (!Platform.isIOS) return;
+    if (!Device.iOS) return;
     try {
       await _channel.invokeMethod<void>('suspendCover', suspended);
     } catch (_) {}

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform.dart';
 import '../theme.dart';
 
 /// Ways to add something to a vault, in dock order.
@@ -16,7 +17,7 @@ List<AddMode> availableAddModes() =>
     [
       AddMode.note,
       AddMode.library,
-      if (Platform.isIOS || Platform.isAndroid) AddMode.camera,
+      if (Device.iOS || Device.android) AddMode.camera,
       AddMode.file,
     ];
 

@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'file_view.dart';
 
@@ -22,7 +23,7 @@ class VideoViewScreen extends StatefulWidget {
   final String vaultId;
 
   /// The platforms with a video player; elsewhere videos open in another app.
-  static bool get supported => Platform.isIOS || Platform.isAndroid || Platform.isMacOS;
+  static bool get supported => Device.iOS || Device.android || Device.macOS;
 
   @override
   State<VideoViewScreen> createState() => _VideoViewScreenState();
@@ -91,7 +92,7 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
   }
 
   Future<void> _delete() async {
-    await rust.trashItem(id: widget.item.id, nowMs: DateTime.now().millisecondsSinceEpoch);
+    await rust.trashItem(id: widget.item.id, nowMs: nowMs());
     if (mounted) Navigator.of(context).pop(widget.item.id);
   }
 

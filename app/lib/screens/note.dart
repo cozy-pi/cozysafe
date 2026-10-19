@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 
@@ -92,7 +93,7 @@ class _NoteScreenState extends State<NoteScreen> {
     try {
       final id = _id;
       if (id == null) {
-        _id = (await rust.addNote(title: _title(text), text: text, createdMs: DateTime.now().millisecondsSinceEpoch)).id;
+        _id = (await rust.addNote(title: _title(text), text: text, createdMs: nowMs())).id;
       } else {
         await rust.updateNote(id: id, title: _title(text), text: text);
       }

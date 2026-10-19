@@ -47,10 +47,12 @@ Future<bool> loadSecretKey(String libraryDir) async {
 }
 
 class CozySafeApp extends StatelessWidget {
-  const CozySafeApp({super.key, required this.libraryDir, required this.hasSecretKey});
+  const CozySafeApp({super.key, required this.libraryDir, required this.hasSecretKey, this.locale});
 
   final String libraryDir;
   final bool hasSecretKey;
+  /// Null follows the system language (the browser preview pins Vietnamese).
+  final Locale? locale;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,7 @@ class CozySafeApp extends StatelessWidget {
       valueListenable: vaultTint,
       builder: (context, tint, _) => MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
+      locale: locale,
       theme: buildTheme(Brightness.light, vault: tint),
       darkTheme: buildTheme(Brightness.dark, vault: tint),
       themeMode: ThemeMode.system,

@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/add_dock.dart';
@@ -87,7 +88,7 @@ Future<Uint8List?> videoThumbnail(String path) async {
 
 /// A video's length in milliseconds, read by the platform player.
 Future<int?> videoLength(String path) async {
-  if (!(Platform.isIOS || Platform.isAndroid || Platform.isMacOS)) return null;
+  if (!(Device.iOS || Device.android || Device.macOS)) return null;
   final p = VideoPlayerController.file(File(path));
   try {
     await p.initialize();
@@ -129,12 +130,12 @@ Future<List<rust.ItemInfo>> importFiles(
       kind: isVideo ? 'video' : (isImage && (photos || thumb != null) ? 'photo' : 'file'),
       name: name,
       mime: mime,
-      createdMs: DateTime.now().millisecondsSinceEpoch,
+      createdMs: nowMs(),
       thumbnail: thumb,
     );
     if (isVideo) {
       final ms = await videoLength(f.path);
-      if (ms != null) await rust.setItemDuration(id: item.id, durationMs: ms);
+      if (ms != null) await rust.setItemDuration(id: item.id, durationMs: i64(ms));
     }
     added.add(item);
     progress?.call(added.length, files.length);
@@ -194,7 +195,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
 
   /// No question: it goes to Recently deleted and the vault offers Undo.
   Future<void> _delete() async {
-    await rust.trashItem(id: widget.item.id, nowMs: DateTime.now().millisecondsSinceEpoch);
+    await rust.trashItem(id: widget.item.id, nowMs: nowMs());
     if (mounted) Navigator.of(context).pop(widget.item.id);
   }
 
@@ -234,7 +235,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
     final l = AppLocalizations.of(context);
     if (_pdf) return _pdfView(l);
     final c = CsColors.of(context);
-    final when = DateTime.fromMillisecondsSinceEpoch(widget.item.createdMs);
+    final when = dateOf(widget.item.createdMs);
     return Scaffold(
       appBar: AppBar(actions: [
         IconButton(onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline), tooltip: l.delete),

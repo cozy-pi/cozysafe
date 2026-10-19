@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'platform.dart';
 import 'privacy.dart';
 import 'widgets/brand.dart';
 
@@ -26,7 +26,7 @@ class BiometricUnlock {
   final String promptCancel;
 
   static const _key = 'vault-unlock-key';
-  static bool get platformSupported => Platform.isIOS || Platform.isAndroid;
+  static bool get platformSupported => Device.iOS || Device.android;
 
   FlutterSecureStorage get _storage => FlutterSecureStorage(
         iOptions: const IOSOptions(
