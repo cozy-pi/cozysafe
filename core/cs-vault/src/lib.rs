@@ -29,6 +29,7 @@ use zeroize::Zeroizing;
 
 pub mod backup;
 pub mod items;
+pub mod pin;
 pub use items::ItemMeta;
 
 const FORMAT: u32 = 1;
@@ -50,6 +51,8 @@ pub enum Error {
     PasswordInUse,
     #[error("vault name is empty")]
     EmptyName,
+    #[error("a PIN is 4 to 10 digits")]
+    BadPin,
     #[error("no such item")]
     NoSuchItem,
     #[error("this Secret Key belongs to another library")]
@@ -401,13 +404,18 @@ fn read_library_header(dir: &Path) -> Result<LibraryHeader> {
     Ok(header)
 }
 
-fn read_header(vault_dir: &Path) -> Option<VaultHeader> {
+pub(crate) fn read_header(vault_dir: &Path) -> Option<VaultHeader> {
     let bytes = fs::read(vault_dir.join(HEADER_FILE)).ok()?;
     let header: VaultHeader = serde_json::from_slice(&bytes).ok()?;
     (header.format == FORMAT).then_some(header)
 }
 
-fn open_with(id: String, dir: PathBuf, header: &VaultHeader, master_key: Key) -> Result<OpenVault> {
+pub(crate) fn open_with(
+    id: String,
+    dir: PathBuf,
+    header: &VaultHeader,
+    master_key: Key,
+) -> Result<OpenVault> {
     let meta_bytes = hex::decode(&header.meta).map_err(|_| Error::Corrupt("vault meta"))?;
     let meta_json = wrap::open(&master_key, &meta_bytes, &aad(&id, "meta"))?;
     let meta: VaultMeta =
@@ -420,7 +428,7 @@ fn open_with(id: String, dir: PathBuf, header: &VaultHeader, master_key: Key) ->
     })
 }
 
-fn remove_if_exists(path: &Path) -> Result<()> {
+pub(crate) fn remove_if_exists(path: &Path) -> Result<()> {
     match fs::remove_file(path) {
         Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.into()),
         _ => Ok(()),
@@ -432,7 +440,7 @@ pub(crate) fn aad(vault_id: &str, role: &str) -> Vec<u8> {
     format!("cozysafe/v1/vault/{vault_id}/{role}").into_bytes()
 }
 
-fn decode_array<const N: usize>(s: &str, what: &'static str) -> Result<[u8; N]> {
+pub(crate) fn decode_array<const N: usize>(s: &str, what: &'static str) -> Result<[u8; N]> {
     hex::decode(s)
         .ok()
         .and_then(|v| v.try_into().ok())
