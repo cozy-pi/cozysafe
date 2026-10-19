@@ -58,6 +58,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   BiometricKind? _bioKind;
   bool _bioOn = false;
   AddMode? _pending;
+  /// A neutral line in the PIN card's message slot ("Unlock first; it opens right after.").
+  String? _note;
 
   /// Stop typing this long and the password is tried without pressing Enter.
   static const _pause = Duration(milliseconds: 350);
@@ -327,8 +329,13 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     if (_bioKind != null && _bioOn) {
       _unlockBiometric();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.unlockToAdd)));
-      if (_mode == _Mode.password) _focus.requestFocus();
+      // In the card, not a snack bar: one at the bottom would cover the keypad.
+      if (_mode == _Mode.pin) {
+        setState(() => _note = l.unlockToAdd);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.unlockToAdd)));
+        _focus.requestFocus();
+      }
     }
   }
 
@@ -375,11 +382,27 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                     Text(l.passwordRemindBody, textAlign: TextAlign.center, style: TextStyle(color: ink.withValues(alpha: .7), fontSize: 13)),
                     const SizedBox(height: 10),
                   ],
-                  if (_mode == _Mode.pin && _waitUntil != null) ...[
-                    const SizedBox(height: 10),
-                    Text(_waitText(l), textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600, fontSize: 13)),
-                  ],
-                  if (_error != null) ...[
+                  if (_mode == _Mode.pin)
+                    // One fixed slot for "wrong PIN", the wait and "unlock first": the
+                    // card never grows, so the keypad never slides under the dock.
+                    SizedBox(
+                      height: 40,
+                      child: Center(
+                        child: Text(
+                          _waitUntil != null ? _waitText(l) : (_error ?? _note ?? ''),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _waitUntil == null && _error == null ? accent : Theme.of(context).colorScheme.error,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (_error != null) ...[
                     const SizedBox(height: 10),
                     Text(
                       _error!,
@@ -475,7 +498,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                                   if (_mode == _Mode.pin) ...[
                                     // Breathing room so the "Use password" link and the
                                     // top row of keys are not mistaken for each other.
-                                    const SizedBox(height: 32),
+                                    const SizedBox(height: 24),
                                     PinPad(onDigit: _digit, onDelete: _deleteDigit, enabled: !_busy && _waitUntil == null),
                                     const SizedBox(height: 12),
                                   ],
