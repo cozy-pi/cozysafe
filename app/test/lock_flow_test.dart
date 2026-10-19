@@ -186,7 +186,8 @@ void main() {
     expect(find.text('Unlock first; it opens right after.'), findsOneWidget);
     await _tapDigits(t, _pin);
     await _settle(t);
-    final home = t.widget<VaultHomeScreen>(find.byType(VaultHomeScreen));
+    // The action already opened (the camera covers the vault), so look offstage too.
+    final home = t.widget<VaultHomeScreen>(find.byType(VaultHomeScreen, skipOffstage: false));
     expect(home.initialAction?.name, 'camera');
   });
 
