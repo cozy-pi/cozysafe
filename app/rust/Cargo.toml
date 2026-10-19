@@ -11,6 +11,7 @@ crate-type = ["cdylib", "staticlib"]
 flutter_rust_bridge = "=2.13.0"
 cs-crypto = { path = "../../core/cs-crypto" }
 cs-vault = { path = "../../core/cs-vault" }
+cs-photo = { path = "../../core/cs-photo" }
 zeroize = "1"
 
 [lints.rust]

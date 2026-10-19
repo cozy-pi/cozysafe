@@ -6,7 +6,8 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use cs_crypto::kdf::KdfParams;
-use cs_vault::{Library, OpenVault};
+use cs_vault::items::NewItem;
+use cs_vault::{ItemMeta, Library, OpenVault};
 use zeroize::Zeroizing;
 
 /// The vault currently open, if any. One at a time by design.
@@ -22,6 +23,8 @@ pub enum VaultError {
     WeakPassword,
     PasswordInUse,
     EmptyName,
+    /// No vault is open (it locked while the screen was up).
+    Locked,
     Storage,
 }
 
@@ -84,9 +87,121 @@ pub fn lock() {
 }
 
 fn set_open(vault: OpenVault) -> VaultInfo {
-    let info = VaultInfo { id: vault.id.clone(), name: vault.name.clone() };
+    let info = VaultInfo {
+        id: vault.id.clone(),
+        name: vault.name.clone(),
+    };
     *OPEN.lock().unwrap_or_else(|p| p.into_inner()) = Some(vault);
     info
+}
+
+/// An item as the vault grid shows it. Content and preview are fetched separately.
+pub struct ItemInfo {
+    pub id: String,
+    pub kind: String,
+    pub name: String,
+    pub created_ms: i64,
+    pub size: u64,
+}
+
+impl From<ItemMeta> for ItemInfo {
+    fn from(m: ItemMeta) -> Self {
+        ItemInfo {
+            id: m.id,
+            kind: m.kind,
+            name: m.name,
+            created_ms: m.created_ms,
+            size: m.size,
+        }
+    }
+}
+
+pub enum FrameFormat {
+    Bgra8888,
+    Yuv420,
+}
+
+pub struct FramePlane {
+    pub bytes: Vec<u8>,
+    pub bytes_per_row: u32,
+    pub bytes_per_pixel: u32,
+}
+
+/// A raw frame from the camera preview stream, still in memory.
+pub struct CameraFrame {
+    pub width: u32,
+    pub height: u32,
+    pub format: FrameFormat,
+    pub planes: Vec<FramePlane>,
+    /// Clockwise degrees that turn the frame upright.
+    pub rotation: u32,
+}
+
+fn with_open<T>(f: impl FnOnce(&OpenVault) -> Result<T, VaultError>) -> Result<T, VaultError> {
+    let guard = OPEN.lock().unwrap_or_else(|p| p.into_inner());
+    let vault = guard.as_ref().ok_or(VaultError::Locked)?;
+    f(vault)
+}
+
+/// Encode a camera frame to JPEG in memory and store it encrypted. No file ever holds the
+/// plaintext image. Runs off the UI thread.
+pub fn add_photo(frame: CameraFrame, created_ms: i64) -> Result<ItemInfo, VaultError> {
+    let planes = frame
+        .planes
+        .iter()
+        .map(|p| cs_photo::Plane {
+            bytes: &p.bytes,
+            bytes_per_row: p.bytes_per_row as usize,
+            bytes_per_pixel: p.bytes_per_pixel as usize,
+        })
+        .collect();
+    let photo = cs_photo::encode(&cs_photo::Frame {
+        width: frame.width as usize,
+        height: frame.height as usize,
+        format: match frame.format {
+            FrameFormat::Bgra8888 => cs_photo::Format::Bgra8888,
+            FrameFormat::Yuv420 => cs_photo::Format::Yuv420,
+        },
+        planes,
+        rotation: frame.rotation,
+    })
+    .map_err(|_| VaultError::Storage)?;
+    let jpeg = Zeroizing::new(photo.jpeg);
+    let thumb = Zeroizing::new(photo.thumbnail);
+    with_open(|v| {
+        Ok(v.add_item(NewItem {
+            kind: "photo",
+            name: "Photo.jpg",
+            mime: "image/jpeg",
+            created_ms,
+            content: jpeg.as_slice(),
+            thumbnail: Some(&thumb),
+        })?
+        .into())
+    })
+}
+
+/// Items in the open vault, newest first.
+pub fn list_items() -> Result<Vec<ItemInfo>, VaultError> {
+    with_open(|v| Ok(v.items()?.into_iter().map(Into::into).collect()))
+}
+
+/// Decrypted preview (JPEG), empty when the item has none.
+pub fn item_thumbnail(id: String) -> Result<Vec<u8>, VaultError> {
+    with_open(|v| Ok(v.read_thumbnail(&id)?.unwrap_or_default()))
+}
+
+/// Decrypted content. Kept in memory only; Dart shows it and drops it.
+pub fn item_content(id: String) -> Result<Vec<u8>, VaultError> {
+    with_open(|v| {
+        let mut out = Vec::new();
+        v.read_item(&id, &mut out)?;
+        Ok(out)
+    })
+}
+
+pub fn delete_item(id: String) -> Result<(), VaultError> {
+    with_open(|v| Ok(v.delete_item(&id)?))
 }
 
 #[flutter_rust_bridge::frb(init)]

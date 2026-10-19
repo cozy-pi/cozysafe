@@ -6,6 +6,7 @@
 //! library.json            format, Argon2id parameters, library salt (not secret)
 //! secret-key              the 128-bit Secret Key            ← M0 only, see below
 //! vaults/<id>/header.json vault salt, wrapped Master Key, sealed metadata (name)
+//! vaults/<id>/items/      one encrypted object per item, see [`items`]
 //! ```
 //!
 //! Unlocking derives the root key once and then tries every vault header; the
@@ -25,6 +26,9 @@ use cs_crypto::{wrap, Key, SecretKey, SALT_LEN, SECRET_KEY_LEN};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
+pub mod items;
+pub use items::ItemMeta;
+
 const FORMAT: u32 = 1;
 const LIBRARY_FILE: &str = "library.json";
 const SECRET_KEY_FILE: &str = "secret-key";
@@ -42,6 +46,8 @@ pub enum Error {
     PasswordInUse,
     #[error("vault name is empty")]
     EmptyName,
+    #[error("no such item")]
+    NoSuchItem,
     #[error("library data is damaged: {0}")]
     Corrupt(&'static str),
     #[error(transparent)]
@@ -96,7 +102,7 @@ pub struct Library {
 pub struct OpenVault {
     pub id: String,
     pub name: String,
-    #[allow(dead_code)] // used by content storage in the next milestone
+    dir: PathBuf,
     master_key: Key,
 }
 
@@ -205,6 +211,7 @@ impl Library {
         Ok(OpenVault {
             id,
             name: name.to_owned(),
+            dir: vault_dir,
             master_key,
         })
     }
@@ -257,6 +264,7 @@ impl Library {
             return Ok(Some(OpenVault {
                 id,
                 name: meta.name,
+                dir: entry.path(),
                 master_key,
             }));
         }
@@ -265,7 +273,7 @@ impl Library {
 }
 
 /// Associated data binding a sealed value to its vault and role.
-fn aad(vault_id: &str, role: &str) -> Vec<u8> {
+pub(crate) fn aad(vault_id: &str, role: &str) -> Vec<u8> {
     format!("cozysafe/v1/vault/{vault_id}/{role}").into_bytes()
 }
 
@@ -277,7 +285,7 @@ fn decode_array<const N: usize>(s: &str, what: &'static str) -> Result<[u8; N]> 
 }
 
 /// Write via a temporary file and rename, so a crash never leaves a half-written header.
-fn write_atomic(path: &Path, data: &[u8]) -> Result<()> {
+pub(crate) fn write_atomic(path: &Path, data: &[u8]) -> Result<()> {
     let tmp = path.with_extension("tmp");
     {
         let mut f = fs::File::create(&tmp)?;

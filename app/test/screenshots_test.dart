@@ -26,6 +26,7 @@ class _FakeRust implements RustLibApi {
     if (name.contains('PasswordScore')) return 4;
     if (name.contains('HasVaults')) return true;
     if (name.contains('Unlock')) return Future<VaultInfo?>.value(null);
+    if (name.contains('ListItems')) return Future<List<ItemInfo>>.value(const []);
     return null;
   }
 }

@@ -114,8 +114,11 @@ One "Add" button (the + inside a vault) opens every source:
 - Photos go straight into the open vault: the frame is captured to memory
   and encrypted while it streams to storage. It never reaches the system
   gallery, a shared folder or a plaintext temporary file. (Flutter's
-  `camera` plugin writes `takePicture` output to a cache file, so capture
-  needs our own thin native layer: AVFoundation on iOS, CameraX on Android.)
+  `camera` plugin writes `takePicture` output to a cache file, so we never call
+  it: the shot is the next frame of the preview stream, which stays in memory,
+  and `core/cs-photo` encodes it to JPEG in Rust before it is encrypted. Frames
+  are 1080p (`ResolutionPreset.veryHigh`); full sensor resolution needs our own
+  native capture layer later.)
 - Only the camera permission is requested; no photo-library permission.
 - Location is stripped from photos by default (EXIF GPS); a per-vault setting
   keeps it.

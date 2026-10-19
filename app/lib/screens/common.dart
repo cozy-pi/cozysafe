@@ -7,6 +7,7 @@ String vaultErrorText(AppLocalizations l, rust.VaultError e) => switch (e) {
       rust.VaultError.weakPassword => l.errorWeakPassword,
       rust.VaultError.passwordInUse => l.errorPasswordInUse,
       rust.VaultError.emptyName => l.errorEmptyName,
+      rust.VaultError.locked => l.errorLocked,
       rust.VaultError.storage => l.errorStorage,
     };
 

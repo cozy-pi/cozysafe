@@ -32,5 +32,24 @@
   "newVault": "Tạo két mới",
   "lockVault": "Khoá",
   "emptyVaultTitle": "Két còn trống",
-  "emptyVaultBody": "Ghi chú, file và ảnh bạn thêm vào đều được mã hoá ngay trên máy này."
+  "emptyVaultBody": "Ghi chú, file và ảnh bạn thêm vào đều được mã hoá ngay trên máy này.",
+  "errorLocked": "Két đã khoá. Mở khoá lại để tiếp tục.",
+  "takePhoto": "Chụp ảnh",
+  "shutter": "Chụp",
+  "close": "Đóng",
+  "cameraUnavailable": "Không dùng được camera. Hãy cho phép Cozy Safe dùng camera trong Cài đặt.",
+  "photosSaved": "{count, plural, other{Đã lưu {count} ảnh}}",
+  "@photosSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "photoSaveFailed": "Không lưu được ảnh. Hãy thử lại.",
+  "photo": "Ảnh",
+  "deletePhoto": "Xoá ảnh",
+  "deletePhotoBody": "Ảnh sẽ bị xoá hẳn khỏi két này.",
+  "cancel": "Huỷ",
+  "delete": "Xoá"
 }

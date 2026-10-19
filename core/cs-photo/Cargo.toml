@@ -1,0 +1,11 @@
+[package]
+name = "cs-photo"
+version = "0.1.0"
+description = "Cozy Safe: camera frames to JPEG in memory (no temporary files, no EXIF)"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+thiserror = "2"

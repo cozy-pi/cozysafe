@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core/cs-crypto", "core/cs-vault"]
+members = ["core/cs-crypto", "core/cs-vault", "core/cs-photo"]
 # The Flutter app's FFI crate joins once the app scaffold exists (bootstrap workflow).
 exclude = ["app"]
 

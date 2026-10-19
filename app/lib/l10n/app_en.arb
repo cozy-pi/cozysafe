@@ -32,5 +32,24 @@
   "newVault": "Create a new vault",
   "lockVault": "Lock",
   "emptyVaultTitle": "This vault is empty",
-  "emptyVaultBody": "Notes, files and photos you add are encrypted on this device."
+  "emptyVaultBody": "Notes, files and photos you add are encrypted on this device.",
+  "errorLocked": "The vault locked. Unlock it again to continue.",
+  "takePhoto": "Take photo",
+  "shutter": "Take photo",
+  "close": "Close",
+  "cameraUnavailable": "The camera isn't available. Allow camera access for Cozy Safe in Settings.",
+  "photosSaved": "{count, plural, =1{1 photo saved} other{{count} photos saved}}",
+  "@photosSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "photoSaveFailed": "Couldn't save the photo. Try again.",
+  "photo": "Photo",
+  "deletePhoto": "Delete photo",
+  "deletePhotoBody": "The photo is removed from this vault for good.",
+  "cancel": "Cancel",
+  "delete": "Delete"
 }
