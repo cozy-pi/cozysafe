@@ -160,7 +160,11 @@ impl OpenVault {
 
     /// Items in Recently deleted, most recently deleted first.
     pub fn trashed(&self) -> Result<Vec<ItemMeta>> {
-        let mut out: Vec<_> = self.all_items()?.into_iter().filter(|m| m.deleted_ms.is_some()).collect();
+        let mut out: Vec<_> = self
+            .all_items()?
+            .into_iter()
+            .filter(|m| m.deleted_ms.is_some())
+            .collect();
         out.sort_by(|a, b| b.deleted_ms.cmp(&a.deleted_ms).then(a.id.cmp(&b.id)));
         Ok(out)
     }
@@ -169,7 +173,9 @@ impl OpenVault {
     pub fn purge_expired(&self, now_ms: i64) -> Result<usize> {
         let mut n = 0;
         for m in self.trashed()? {
-            if m.deleted_ms.is_some_and(|d| now_ms - d >= TRASH_DAYS * DAY_MS) {
+            if m.deleted_ms
+                .is_some_and(|d| now_ms - d >= TRASH_DAYS * DAY_MS)
+            {
                 self.delete_item(&m.id)?;
                 n += 1;
             }
@@ -179,7 +185,11 @@ impl OpenVault {
 
     /// Items in the vault (not in Recently deleted), newest first.
     pub fn items(&self) -> Result<Vec<ItemMeta>> {
-        Ok(self.all_items()?.into_iter().filter(|m| m.deleted_ms.is_none()).collect())
+        Ok(self
+            .all_items()?
+            .into_iter()
+            .filter(|m| m.deleted_ms.is_none())
+            .collect())
     }
 
     /// Every item, including Recently deleted, newest first. Damaged entries are
@@ -396,13 +406,19 @@ mod tests {
         let a = v.add_item(photo(b"a", 1)).unwrap();
         let b = v.add_item(photo(b"b", 2)).unwrap();
         v.trash_item(&a.id, 1_000).unwrap();
-        assert_eq!(v.items().unwrap().iter().map(|m| &m.id).collect::<Vec<_>>(), vec![&b.id]);
+        assert_eq!(
+            v.items().unwrap().iter().map(|m| &m.id).collect::<Vec<_>>(),
+            vec![&b.id]
+        );
         assert_eq!(v.trashed().unwrap()[0].deleted_ms, Some(1_000));
         v.restore_item(&a.id).unwrap();
         assert_eq!(v.items().unwrap().len(), 2);
         v.trash_item(&a.id, 1_000).unwrap();
         // Not yet 30 days: kept. After: gone for good.
-        assert_eq!(v.purge_expired(1_000 + (TRASH_DAYS * DAY_MS) - 1).unwrap(), 0);
+        assert_eq!(
+            v.purge_expired(1_000 + (TRASH_DAYS * DAY_MS) - 1).unwrap(),
+            0
+        );
         assert_eq!(v.purge_expired(1_000 + TRASH_DAYS * DAY_MS).unwrap(), 1);
         assert!(v.trashed().unwrap().is_empty());
         assert!(matches!(v.read_thumbnail(&a.id), Err(Error::NoSuchItem)));
