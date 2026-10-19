@@ -172,7 +172,23 @@ jobs:
           hdiutil create -volname "Cozy Safe" -srcfolder "app/build/macos/Build/Products/Release/Cozy Safe.app" -ov -format UDZO "$DMG"
           codesign --force --timestamp --sign "$IDENTITY" "$DMG"
           echo "$ASC_KEY_P8_B64" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
-          xcrun notarytool submit "$DMG" --key "$RUNNER_TEMP/AuthKey.p8" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" --wait --timeout 3h
+          AUTH=(--key "$RUNNER_TEMP/AuthKey.p8" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID")
+          # Submit, then poll ourselves: `--wait` dies on the first network blip
+          # (seen: "The Internet connection appears to be offline" after an hour).
+          SUB=$(xcrun notarytool submit "$DMG" "${AUTH[@]}" --output-format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+          echo "Submission $SUB"
+          STATUS=""
+          for i in $(seq 1 360); do   # 360 × 30 s = 3 h
+            STATUS=$(xcrun notarytool info "$SUB" "${AUTH[@]}" --output-format json 2>/dev/null |
+              python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])' 2>/dev/null || echo "unreachable")
+            echo "$(date -u +%H:%M:%S) $STATUS"
+            case "$STATUS" in Accepted|Invalid|Rejected) break ;; esac
+            sleep 30
+          done
+          if [ "$STATUS" != "Accepted" ]; then
+            xcrun notarytool log "$SUB" "${AUTH[@]}" || true
+            exit 1
+          fi
           rm "$RUNNER_TEMP/AuthKey.p8"
           xcrun stapler staple "$DMG"
           spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
