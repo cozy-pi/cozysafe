@@ -96,7 +96,7 @@ flows (internal mockup)
 - **Fewest possible steps, one thing per step**, progress bar on top, back button.
   Tapping a choice moves on (no "Next" on choice steps).
   1. "Create your first vault": pick an icon (12, with names).
-  2. Pick a colour (12). The whole screen background takes the colour.
+  2. Pick a colour (12, swatches only, no colour names on screen; names only for screen readers). The whole screen background takes the colour.
   3. Set a PIN (4–10 digits). 4. Type it again (checks itself).
   5. "Unlock with Face ID?" Turn on / Not now. Then the dial turns, into the vault.
 - **No vault names.** Icon + colour (144 combinations) identify a vault; the icon's
