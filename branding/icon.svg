@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Cozy Safe app icon: the combination dial. Flat shapes only (rendered by ImageMagick). Full-bleed; the OS applies its mask. -->
+  <rect width="1024" height="1024" fill="#165b4c"/>
+  <circle cx="512" cy="530" r="322" fill="#ffffff"/><circle cx="512" cy="530" r="262" fill="#165b4c"/><circle cx="512" cy="530" r="112" fill="#ffffff"/><rect x="488" y="168" width="48" height="150" rx="24" fill="#f3d08e"/>
+</svg>

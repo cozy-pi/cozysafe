@@ -70,6 +70,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
     return Scaffold(
       body: FormColumn(
         children: [
+          const BrandHeader(center: true),
+          const SizedBox(height: 28),
           const Center(child: SafeDial(size: 200)),
           const SizedBox(height: 24),
           Text(

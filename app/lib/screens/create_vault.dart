@@ -103,6 +103,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
       appBar: widget.first ? null : AppBar(),
       body: FormColumn(
         children: [
+          if (widget.first) ...[const BrandHeader(), const SizedBox(height: 28)],
           Text(
             widget.first ? l.createFirstTitle : l.createTitle,
             style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),

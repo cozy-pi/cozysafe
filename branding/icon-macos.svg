@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- macOS: same mark on Apple's rounded-square grid (824 px body, 100 px margin). -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#165b4c"/>
+  <g transform="translate(102.4 102.4) scale(0.8)"><circle cx="512" cy="530" r="322" fill="#ffffff"/><circle cx="512" cy="530" r="262" fill="#165b4c"/><circle cx="512" cy="530" r="112" fill="#ffffff"/><rect x="488" y="168" width="48" height="150" rx="24" fill="#f3d08e"/></g>
+</svg>

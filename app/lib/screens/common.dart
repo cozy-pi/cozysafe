@@ -60,3 +60,28 @@ class BusyLabel extends StatelessWidget {
     );
   }
 }
+
+/// App icon + name, at the top of the screens shown before a vault is open.
+class BrandHeader extends StatelessWidget {
+  const BrandHeader({super.key, this.center = false});
+
+  final bool center;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: center ? MainAxisAlignment.center : MainAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9),
+          child: Image.asset('assets/icon.png', width: 36, height: 36, filterQuality: FilterQuality.medium),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          'Cozy Safe',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.2),
+        ),
+      ],
+    );
+  }
+}
