@@ -98,7 +98,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
-          pageBuilder: (_, _, _) => UnlockScreen(libraryDir: widget.libraryDir),
+          pageBuilder: (_, _, _) => UnlockScreen(libraryDir: widget.libraryDir, askBiometricNow: false),
         ),
         (_) => false,
       );

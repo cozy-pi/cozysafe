@@ -20,9 +20,14 @@ import 'vault_home.dart';
 /// at the bottom is the same as inside the vault: picking an action here unlocks first,
 /// then runs it.
 class UnlockScreen extends StatefulWidget {
-  const UnlockScreen({super.key, required this.libraryDir});
+  const UnlockScreen({super.key, required this.libraryDir, this.askBiometricNow = true});
 
   final String libraryDir;
+
+  /// Ask for Face ID / fingerprint as soon as the screen shows. True when the app
+  /// starts; false after locking (the person is still looking at the phone, so it
+  /// would open again at once). Coming back from the background always asks.
+  final bool askBiometricNow;
 
   @override
   State<UnlockScreen> createState() => _UnlockScreenState();
@@ -30,7 +35,7 @@ class UnlockScreen extends StatefulWidget {
 
 enum _Mode { pin, password }
 
-class _UnlockScreenState extends State<UnlockScreen> {
+class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver {
   final _password = TextEditingController();
   final _focus = FocusNode();
   final _keys = FocusNode(skipTraversal: true);
@@ -52,9 +57,27 @@ class _UnlockScreenState extends State<UnlockScreen> {
   Timer? _debounce;
   String? _tried;
 
+  /// Set when the app really went to the background. The biometric prompt itself makes
+  /// the app inactive and active again; that must not count, or it would ask forever.
+  bool _wasHidden = false;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
+      _wasHidden = true;
+    } else if (state == AppLifecycleState.resumed && _wasHidden) {
+      _wasHidden = false;
+      if (_bioOn && _bioKind != null) _unlockBiometric();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Locked because the app went to the background: ask when it comes back.
+    final life = WidgetsBinding.instance.lifecycleState;
+    _wasHidden = life == AppLifecycleState.paused || life == AppLifecycleState.hidden;
     _pinLength = rust.pinLength(dir: widget.libraryDir);
     _mode = _pinLength > 0 ? _Mode.pin : _Mode.password;
     _bioOn = BiometricUnlock.platformSupported && rust.hasBiometricUnlock(dir: widget.libraryDir);
@@ -62,13 +85,14 @@ class _UnlockScreenState extends State<UnlockScreen> {
       BiometricUnlock.available().then((kind) {
         if (!mounted || kind == null) return;
         setState(() => _bioKind = kind);
-        WidgetsBinding.instance.addPostFrameCallback((_) => _unlockBiometric());
+        if (widget.askBiometricNow) WidgetsBinding.instance.addPostFrameCallback((_) => _unlockBiometric());
       });
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _debounce?.cancel();
     _password.dispose();
     _focus.dispose();

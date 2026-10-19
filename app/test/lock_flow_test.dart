@@ -176,6 +176,18 @@ void main() {
     expect(home.initialAction?.name, 'camera');
   });
 
+  testWidgets('locking by hand does not ask for Face ID again at once', (t) async {
+    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    await _tapDigits(t, _pin);
+    await _settle(t);
+    expect(find.byType(VaultHomeScreen), findsOneWidget);
+    await t.tap(find.byTooltip('Lock'));
+    await _settle(t);
+    final lock = t.widget<UnlockScreen>(find.byType(UnlockScreen));
+    expect(lock.askBiometricNow, isFalse);
+  });
+
   testWidgets('setting a PIN needs the same digits twice', (t) async {
     await t.pumpWidget(_app(const SetPinScreen()));
     await t.pump();
