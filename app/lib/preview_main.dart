@@ -4,21 +4,37 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import 'main.dart';
 import 'preview/fake_vault.dart';
-import 'preview/photos.g.dart';
 import 'secret_key_store.dart';
 import 'src/rust/frb_generated.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  RustLib.initMock(api: FakeVault(previewPhotos()));
+  RustLib.initMock(api: FakeVault(await _photos()));
   // The PIN pad needs this device's PIN key; the pretend vault accepts any.
   try {
     await PinStore.deviceKeyOrCreate(() => Uint8List.fromList(List.filled(16, 7)));
   } catch (_) {}
   runApp(const _Phone(child: CozySafeApp(libraryDir: '', hasSecretKey: true, locale: Locale('vi'))));
+}
+
+/// Sample photos served next to the page (web/preview/photo1.jpg …, copied there by
+/// tool/preview_web.sh, not in git). None is fine: squares stay plain.
+Future<List<Uint8List>> _photos() async {
+  final out = <Uint8List>[];
+  for (var i = 1; i <= 40; i++) {
+    try {
+      final r = await http.get(Uri.base.resolve('preview/photo$i.jpg'));
+      if (r.statusCode != 200 || r.bodyBytes.isEmpty) break;
+      out.add(r.bodyBytes);
+    } catch (_) {
+      break;
+    }
+  }
+  return out;
 }
 
 /// An iPhone 15 Pro Max sized screen (430 × 932) with its notch and home bar areas.
