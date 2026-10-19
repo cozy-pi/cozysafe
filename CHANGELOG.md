@@ -13,6 +13,12 @@ Dates are UTC.
 
 ### Fixed
 - The lock screen's ⋯ menu was almost unreadable in dark mode (light text on white).
+- 0.1.3 did not build for iPhone, Mac and Linux. Video previews need iOS 16 and
+  macOS 13, now the minimum versions.
+
+### Changed (release)
+- Android builds go to internal testing first (no review, minutes) and to closed
+  testing at the same time (after Google's review).
 
 ## 0.1.3 (2026-10-20)
 
