@@ -15,7 +15,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.cozypi.cozysafe"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -29,11 +28,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // Release key comes from CI secrets (ANDROID_KEYSTORE_*); without them (local
+    // `flutter run --release`) the build falls back to the debug key.
+    val releaseKeystore = System.getenv("CS_ANDROID_KEYSTORE")
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storeType = "pkcs12"
+                storePassword = System.getenv("CS_ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = "cozysafe"
+                keyPassword = System.getenv("CS_ANDROID_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
         }
     }
 }
