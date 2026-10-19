@@ -1,0 +1,10 @@
+{
+  // safe.cozypi.com — the Cozy Safe public site. Static files only, no Worker code
+  // (static requests are free). Deploy: `npx wrangler deploy` from this folder.
+  // The custom domain overrides the *.cozypi.com wildcard for this one host only;
+  // removing it sends the host back to the wildcard.
+  "name": "cozysafe-site",
+  "compatibility_date": "2025-06-01",
+  "assets": { "directory": "./public" },
+  "routes": [{ "pattern": "safe.cozypi.com", "custom_domain": true }]
+}

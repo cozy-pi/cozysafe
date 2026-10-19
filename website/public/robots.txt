@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://safe.cozypi.com/sitemap.xml

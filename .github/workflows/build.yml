@@ -1,5 +1,7 @@
 # Installable builds for every desktop and Android. Runs on demand and on `v*` tags;
-# a tag also publishes a GitHub pre-release with all files attached.
+# a tag also publishes a GitHub release with all files attached. File names carry
+# no version, so https://github.com/itlboy/cozysafe/releases/latest/download/<file>
+# (used by safe.cozypi.com) always serves the newest release.
 #
 # Signing: macOS with Developer ID + notarization, Android with the release key.
 # Windows is not signed yet (needs a paid code-signing certificate). Every file gets
@@ -36,15 +38,15 @@ jobs:
         env:
           CS_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: flutter build apk --release
-      - run: mv app/build/app/outputs/flutter-apk/app-release.apk CozySafe-${{ github.ref_name }}-android.apk
+      - run: mv app/build/app/outputs/flutter-apk/app-release.apk CozySafe-android.apk
       - name: Check the APK carries the release key
         run: |
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
-          "$APKSIGNER" verify --print-certs CozySafe-*-android.apk | tee /dev/stderr | grep -q "CN=Cozy Pi"
+          "$APKSIGNER" verify --print-certs CozySafe-android.apk | tee /dev/stderr | grep -q "CN=Cozy Pi"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android
-          path: CozySafe-*-android.apk
+          path: CozySafe-android.apk
 
   linux:
     runs-on: ubuntu-latest
@@ -54,11 +56,11 @@ jobs:
       - uses: ./.github/actions/flutter-setup
       - working-directory: app
         run: flutter build linux --release
-      - run: tar -C app/build/linux/x64/release/bundle -czf CozySafe-${{ github.ref_name }}-linux-x64.tar.gz .
+      - run: tar -C app/build/linux/x64/release/bundle -czf CozySafe-linux-x64.tar.gz .
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux
-          path: CozySafe-*-linux-x64.tar.gz
+          path: CozySafe-linux-x64.tar.gz
 
   windows:
     runs-on: windows-latest
@@ -68,11 +70,11 @@ jobs:
       - working-directory: app
         run: flutter build windows --release
       - shell: pwsh
-        run: Compress-Archive -Path app/build/windows/x64/runner/Release/* -DestinationPath CozySafe-${{ github.ref_name }}-windows-x64.zip
+        run: Compress-Archive -Path app/build/windows/x64/runner/Release/* -DestinationPath CozySafe-windows-x64.zip
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows
-          path: CozySafe-*-windows-x64.zip
+          path: CozySafe-windows-x64.zip
 
   macos:
     runs-on: macos-latest
@@ -115,7 +117,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8_B64: ${{ secrets.ASC_KEY_P8_BASE64 }}
         run: |
-          DMG="CozySafe-${{ github.ref_name }}-macos.dmg"
+          DMG="CozySafe-macos.dmg"
           hdiutil create -volname "Cozy Safe" -srcfolder "app/build/macos/Build/Products/Release/Cozy Safe.app" -ov -format UDZO "$DMG"
           codesign --force --timestamp --sign "$IDENTITY" "$DMG"
           echo "$ASC_KEY_P8_B64" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
@@ -126,7 +128,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos
-          path: CozySafe-*-macos.dmg
+          path: CozySafe-macos.dmg
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
@@ -147,6 +149,6 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" CozySafe-* SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --prerelease \
+          gh release create "$GITHUB_REF_NAME" CozySafe-* SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" \
             --title "Cozy Safe $GITHUB_REF_NAME (preview)" \
             --notes "Preview build for testing. macOS: signed with Developer ID and notarized by Apple. Android: signed with the Cozy Pi release key (SHA-256 D0:82:E9:7B:D2:93:E3:CB:69:4D:66:69:A2:82:AD:E1:1E:6F:1C:1E:04:B8:4C:48:AA:07:BA:32:AF:C2:9D:A4); allow installing from this source. Windows: not signed yet, choose More info → Run anyway. Every file has a build-provenance attestation: gh attestation verify <file> -R itlboy/cozysafe. The Secret Key is stored in a file in this preview, not yet in the system keystore."
