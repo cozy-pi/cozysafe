@@ -73,6 +73,14 @@ Widget _app(Widget home) => MaterialApp(
       home: home,
     );
 
+/// A phone-sized screen (iPhone 14), not the 800 × 600 test default.
+Future<void> _pump(WidgetTester t, Widget app) async {
+  t.view.physicalSize = const Size(390, 844) * 3;
+  t.view.devicePixelRatio = 3;
+  addTearDown(t.view.reset);
+  await t.pumpWidget(app);
+}
+
 Future<void> _tapDigits(WidgetTester t, String digits) async {
   for (final d in digits.split('')) {
     await t.tap(find.text(d).last);
@@ -105,7 +113,7 @@ void main() {
   });
 
   testWidgets('right PIN opens the vault', (t) async {
-    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     expect(find.text('Enter PIN'), findsOneWidget);
     await _tapDigits(t, _pin);
@@ -114,7 +122,7 @@ void main() {
   });
 
   testWidgets('wrong PIN says so and clears the dots', (t) async {
-    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     await _tapDigits(t, '1111');
     await _settle(t);
@@ -123,7 +131,7 @@ void main() {
   });
 
   testWidgets('the fifth wrong PIN makes you wait, and never locks the PIN out', (t) async {
-    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     for (var i = 0; i < 5; i++) {
       await _tapDigits(t, '9999');
@@ -140,7 +148,7 @@ void main() {
 
   testWidgets('without a backup password there is no password option', (t) async {
     _fake.anyPassword = false;
-    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     expect(find.text('Use password'), findsNothing);
     expect(find.byType(TextField), findsNothing);
@@ -148,7 +156,7 @@ void main() {
 
   testWidgets('the right password opens without pressing Enter', (t) async {
     _fake.pinLength = 0;
-    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     await t.enterText(find.byType(TextField), _password);
     await t.pump(const Duration(milliseconds: 400)); // past the typing pause
@@ -158,7 +166,7 @@ void main() {
 
   testWidgets('a wrong password typed quietly says nothing; Enter says it is wrong', (t) async {
     _fake.pinLength = 0;
-    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     await t.enterText(find.byType(TextField), 'not the password');
     await t.pump(const Duration(milliseconds: 400));
@@ -170,7 +178,7 @@ void main() {
   });
 
   testWidgets('an add action picked while locked runs right after unlocking', (t) async {
-    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     // The big dock button (Photo mode by default).
     await t.tap(find.byKey(const ValueKey('add-dock-action')));
@@ -183,7 +191,7 @@ void main() {
   });
 
   testWidgets('locking by hand does not ask for Face ID again at once', (t) async {
-    await t.pumpWidget(_app(const UnlockScreen(libraryDir: 'lib')));
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();
     await _tapDigits(t, _pin);
     await _settle(t);
@@ -195,7 +203,7 @@ void main() {
   });
 
   testWidgets('setting a PIN needs the same digits twice', (t) async {
-    await t.pumpWidget(_app(const SetPinScreen()));
+    await _pump(t, _app(const SetPinScreen()));
     await t.pump();
     await _tapDigits(t, '1234');
     await t.tap(find.text('Next'));
@@ -213,7 +221,7 @@ void main() {
   });
 
   testWidgets('a PIN shorter than 4 digits cannot go on', (t) async {
-    await t.pumpWidget(_app(const SetPinScreen()));
+    await _pump(t, _app(const SetPinScreen()));
     await t.pump();
     await _tapDigits(t, '123');
     final next = t.widget<FilledButton>(find.widgetWithText(FilledButton, 'Next'));
@@ -223,7 +231,7 @@ void main() {
   testWidgets('Emergency Kit goes on only with the last 4 characters', (t) async {
     var done = false;
     const key = 'CS1-ABCD-EFGH-JKMN-PQRS-TVWX-YZ01-2345';
-    await t.pumpWidget(_app(EmergencyKitScreen(keyText: key, confirm: true, onDone: () => done = true)));
+    await _pump(t, _app(EmergencyKitScreen(keyText: key, confirm: true, onDone: () => done = true)));
     await t.pump();
     FilledButton button() => t.widget<FilledButton>(find.widgetWithText(FilledButton, "I've saved it"));
     expect(button().onPressed, isNull);
