@@ -2,11 +2,13 @@
 // without a phone. Off by default:
 //   flutter test test/preview_test.dart --update-goldens --dart-define=PREVIEW=true
 // Output: test/preview/*.png (not committed). Rust is a fake with sample items.
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show PictureRecorder, ImageByteFormat;
 
 import 'package:cozysafe/l10n/app_localizations.dart';
+import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/trash.dart';
 import 'package:cozysafe/screens/unlock.dart';
@@ -24,7 +26,7 @@ import 'package:flutter_test/flutter_test.dart';
 const _enabled = bool.fromEnvironment('PREVIEW');
 final _now = DateTime.now().millisecondsSinceEpoch;
 
-ItemInfo _item(String id, String kind, String name, int size, {int ago = 0, int? deleted}) => ItemInfo(
+ItemInfo _item(String id, String kind, String name, int size, {int ago = 0, int? deleted, int? duration}) => ItemInfo(
       id: id.padRight(32, '0'),
       kind: kind,
       name: name,
@@ -32,14 +34,29 @@ ItemInfo _item(String id, String kind, String name, int size, {int ago = 0, int?
       createdMs: _now - ago,
       size: BigInt.from(size),
       deletedMs: deleted,
+      durationMs: duration,
     );
 
 final _items = [
   for (var i = 0; i < 7; i++) _item('a$i', 'photo', 'IMG_$i.jpg', 2400000),
+  _item('v1', 'video', 'Sinh nhat be Na.mov', 38000000, duration: 42000),
   _item('n1', 'note', 'Mã wifi nhà bà ngoại', 320),
+  _item('n2', 'note', 'Số tài khoản', 900, ago: 86400000),
+  _item('n3', 'note', 'Thuốc của mẹ', 600, ago: 3 * 86400000),
+  _item('n4', 'note', 'Hộ chiếu', 120, ago: 9 * 86400000),
   _item('f1', 'file', 'Hop-dong-thue-nha.pdf', 1200000),
-  for (var i = 0; i < 4; i++) _item('b$i', 'photo', 'IMG_b$i.jpg', 1800000, ago: 86400000),
+  _item('f2', 'file', 'Chi-tieu-2026.xlsx', 86000, ago: 2 * 86400000),
+  _item('f3', 'file', 'Di-chuc-nhap.docx', 42000, ago: 11 * 86400000),
+  for (var i = 0; i < 9; i++) _item('b$i', 'photo', 'IMG_b$i.jpg', 1800000, ago: 86400000),
+  for (var i = 0; i < 6; i++) _item('c$i', 'photo', 'IMG_c$i.jpg', 1800000, ago: 40 * 86400000),
 ];
+
+const _noteText = {
+  'n1': 'Mã wifi nhà bà ngoại\nTP-Link_5G · mật khẩu: hoaMai2024',
+  'n2': 'Số tài khoản\nVCB 0011 0023 4567 Nguyễn Văn A. Techcombank 1903 2211 4455 66, chi nhánh Hoàn Kiếm. Tài khoản phụ chỉ dùng nhận lương.',
+  'n3': 'Thuốc của mẹ\nSáng: Amlodipine 5mg. Tối: Metformin 500mg sau ăn. Tái khám ngày 3/11.',
+  'n4': 'Hộ chiếu\nC1234567, hết hạn 2031',
+};
 
 /// Small solid-colour PNGs stand in for photo thumbnails.
 final _thumbs = <int, Uint8List>{};
@@ -60,6 +77,10 @@ class _Fake implements RustLibApi {
       ]);
     }
     if (n.contains('PurgeExpired')) return Future<int>.value(0);
+    if (n.contains('ItemContent')) {
+      final id = (call.namedArguments[#id] as String).replaceAll(RegExp(r'0+$'), '');
+      return Future<Uint8List>.value(Uint8List.fromList(utf8.encode(_noteText[id] ?? '')));
+    }
     if (n.contains('ItemThumbnail')) {
       final id = (call.namedArguments[#id] as String).hashCode;
       return Future<Uint8List>.value(_thumbs[id % 4]);
@@ -149,6 +170,30 @@ void main() {
   testWidgets('lock menu', skip: !_enabled, (t) async {
     await _shot(t, 'lock-menu', const UnlockScreen(libraryDir: '', askBiometricNow: false),
         act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
+  });
+  for (final mode in ['library', 'note', 'file']) {
+    testWidgets('mode $mode', skip: !_enabled, (t) async {
+      Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
+      Prefs.write('add-mode', mode);
+      await _shot(t, 'mode-$mode', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color);
+    });
+  }
+  testWidgets('select', skip: !_enabled, (t) async {
+    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
+    Prefs.write('add-mode', 'library');
+    await _shot(t, 'select', const VaultHomeScreen(libraryDir: '', vault: VaultInfo(id: 'v', name: '', icon: 'home', color: 'plum', hasPassword: true)),
+        b: Brightness.dark, vault: colorById('plum').color, act: (t) async {
+      await t.longPress(find.byType(Image).at(2));
+      await t.pump();
+      await t.tap(find.byType(Image).at(4));
+    });
+  });
+  testWidgets('search', skip: !_enabled, (t) async {
+    await _shot(t, 'search', SearchScreen(items: _items, thumb: (id) async => _thumbs[0]!), vault: colorById('green').color,
+        act: (t) async {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
+      await t.enterText(find.byType(TextField), 'thuoc');
+    });
   });
   for (final (color, b) in [('green', Brightness.light), ('plum', Brightness.dark), ('amber', Brightness.light), ('amber', Brightness.dark)]) {
     final v = VaultInfo(id: 'v', name: '', icon: 'home', color: color, hasPassword: false);

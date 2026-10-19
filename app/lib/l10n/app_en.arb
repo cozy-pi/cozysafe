@@ -88,11 +88,11 @@
   "backupDone": "Backup saved",
   "backupFailed": "Couldn't make the backup. Check free space and try again.",
   "showKit": "Emergency Kit",
-  "modeNote": "Note",
+  "modeNote": "Notes",
   "modeLibrary": "Library",
-  "modeCamera": "Photo",
+  "modeCamera": "Camera",
   "modeScan": "Scan",
-  "modeFile": "File",
+  "modeFile": "Files",
   "modePaste": "Paste",
   "pinDelete": "Delete",
   "pinEnter": "Enter PIN",
@@ -318,5 +318,39 @@
       }
     }
   },
-  "backupShort": "Back up"
+  "backupShort": "Back up",
+  "actionNewNote": "New note",
+  "actionPickPhotos": "Pick photos",
+  "actionPickFiles": "Pick files",
+  "openLastShot": "Open the last photo",
+  "flipCamera": "Switch camera",
+  "searchHint": "Search names and notes",
+  "searchNoResults": "Nothing matches.",
+  "clear": "Clear",
+  "emptyPhotosTitle": "No photos yet",
+  "emptyPhotosBody": "Pick photos and videos from your library, or swipe to Take photo.",
+  "emptyNotesTitle": "No notes yet",
+  "emptyNotesBody": "Tap New note to write one. It is saved as you type.",
+  "emptyFilesTitle": "No files yet",
+  "emptyFilesBody": "Tap Pick files to bring in PDFs, documents or anything else.",
+  "selectedCount": "{count, plural, =1{1 selected} other{{count} selected}}",
+  "sendOut": "Send",
+  "movedToTrashCount": "{count, plural, =1{1 item moved to Recently deleted} other{{count} items moved to Recently deleted}}",
+  "videoFailed": "This video can't be played here.",
+  "play": "Play",
+  "pause": "Pause",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@movedToTrashCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

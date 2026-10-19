@@ -4,6 +4,24 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.3 (2026-10-20)
+
+### Added
+- The dock's strip now picks what the vault shows: Notes, Library, Camera or Files.
+  It switches while you drag, without waiting for you to let go.
+- The camera works inside the vault, under the same header and dock.
+- Search by name and inside notes, accents ignored.
+- Long-press to select several items, then send or delete them together.
+- PDFs open inside the app; videos play inside the app (iPhone, Android, Mac).
+- Videos from the library keep their length, shown on their square.
+
+### Changed
+- Photos are smaller, 4 per row like Photos (pinch for 3, 5 or 7).
+- Notes are a list of equal rows: title, two lines, date.
+- The middle button says what it does (Pick photos, New note, Pick files); only the
+  camera keeps the round shutter.
+- The vault never opens on the camera.
+
 ## 0.1.2 (2026-10-20)
 
 ### Changed

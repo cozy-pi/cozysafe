@@ -2,11 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:video_player/video_player.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
@@ -17,6 +20,7 @@ import 'common.dart';
 /// Icon for an item kind / type.
 IconData fileIcon(rust.ItemInfo item) {
   if (item.kind == 'note') return Icons.sticky_note_2_outlined;
+  if (item.kind == 'video') return Icons.movie_outlined;
   final m = item.mime;
   if (m == 'application/pdf') return Icons.picture_as_pdf_outlined;
   if (m.startsWith('image/')) return Icons.image_outlined;
@@ -37,6 +41,7 @@ String fileSize(BigInt bytes) {
 const _mimeByExt = {
   'pdf': 'application/pdf', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'heic': 'image/heic',
   'heif': 'image/heif', 'webp': 'image/webp', 'gif': 'image/gif', 'mp4': 'video/mp4', 'mov': 'video/quicktime',
+  'm4v': 'video/mp4', 'avi': 'video/x-msvideo', 'mkv': 'video/x-matroska', '3gp': 'video/3gpp',
   'mp3': 'audio/mpeg', 'm4a': 'audio/mp4', 'txt': 'text/plain', 'zip': 'application/zip',
   'doc': 'application/msword', 'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'xls': 'application/vnd.ms-excel', 'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -64,6 +69,36 @@ Future<Uint8List?> imageThumbnail(String path) async {
   }
 }
 
+/// A still from a video for the library square, made by the platform. Null when the
+/// platform can't (some desktops): the square then shows a plain dark tile.
+Future<Uint8List?> videoThumbnail(String path) async {
+  try {
+    return await FcNativeVideoThumbnail().saveThumbnailToBytes(
+      srcFile: path,
+      width: 320,
+      height: 320,
+      format: 'jpeg',
+      quality: 80,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+/// A video's length in milliseconds, read by the platform player.
+Future<int?> videoLength(String path) async {
+  if (!(Platform.isIOS || Platform.isAndroid || Platform.isMacOS)) return null;
+  final p = VideoPlayerController.file(File(path));
+  try {
+    await p.initialize();
+    return p.value.duration.inMilliseconds;
+  } catch (_) {
+    return null;
+  } finally {
+    await p.dispose();
+  }
+}
+
 /// Bring files from outside into the open vault. Copies that pickers left in this app's
 /// temp folder are deleted once encrypted; files picked in place (desktop) are left alone.
 Future<int> importFiles(
@@ -87,15 +122,20 @@ Future<int> importFiles(
     final name = f.name;
     final mime = (f.mimeType?.isNotEmpty ?? false) ? f.mimeType! : mimeOf(name);
     final isImage = mime.startsWith('image/');
-    final thumb = isImage ? await imageThumbnail(f.path) : null;
-    await rust.addFile(
+    final isVideo = mime.startsWith('video/');
+    final thumb = isImage ? await imageThumbnail(f.path) : (isVideo ? await videoThumbnail(f.path) : null);
+    final item = await rust.addFile(
       path: f.path,
-      kind: photos || (isImage && thumb != null) ? 'photo' : 'file',
+      kind: isVideo ? 'video' : (isImage && (photos || thumb != null) ? 'photo' : 'file'),
       name: name,
       mime: mime,
       createdMs: DateTime.now().millisecondsSinceEpoch,
       thumbnail: thumb,
     );
+    if (isVideo) {
+      final ms = await videoLength(f.path);
+      if (ms != null) await rust.setItemDuration(id: item.id, durationMs: ms);
+    }
     n++;
     progress?.call(n, files.length);
     if (f.path.startsWith(tmp)) {
@@ -158,9 +198,41 @@ class _FileViewScreenState extends State<FileViewScreen> {
     if (mounted) Navigator.of(context).pop(widget.item.id);
   }
 
+  bool get _pdf => widget.item.mime == 'application/pdf';
+
+  /// PDFs are shown inside the app from the decrypted bytes in memory; no file is
+  /// written. "Send out" stays available as the secondary action.
+  Widget _pdfView(AppLocalizations l) => Scaffold(
+        appBar: AppBar(
+          title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          actions: [
+            Builder(
+              builder: (b) => IconButton(
+                tooltip: l.sendOut,
+                onPressed: _busy ? null : () => _open(b),
+                icon: const Icon(Icons.ios_share),
+              ),
+            ),
+            IconButton(tooltip: l.delete, onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline)),
+          ],
+        ),
+        body: FutureBuilder<Uint8List>(
+          future: _bytes ??= rust.itemContent(id: widget.item.id),
+          builder: (context, snap) {
+            if (snap.hasError) return Center(child: Text(l.errorStorage));
+            final data = snap.data;
+            if (data == null) return const Center(child: CircularProgressIndicator());
+            return PdfViewer.data(data, sourceName: widget.item.id);
+          },
+        ),
+      );
+
+  Future<Uint8List>? _bytes;
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    if (_pdf) return _pdfView(l);
     final c = CsColors.of(context);
     final when = DateTime.fromMillisecondsSinceEpoch(widget.item.createdMs);
     return Scaffold(

@@ -360,6 +360,8 @@ pub struct ItemInfo {
     pub size: u64,
     /// When it went to Recently deleted; None for items in the vault.
     pub deleted_ms: Option<i64>,
+    /// Length of a video, when known.
+    pub duration_ms: Option<i64>,
 }
 
 impl From<ItemMeta> for ItemInfo {
@@ -372,6 +374,7 @@ impl From<ItemMeta> for ItemInfo {
             created_ms: m.created_ms,
             size: m.size,
             deleted_ms: m.deleted_ms,
+            duration_ms: m.duration_ms,
         }
     }
 }
@@ -533,6 +536,10 @@ pub fn item_content(id: String) -> Result<Vec<u8>, VaultError> {
 /// Delete for good (from Recently deleted).
 pub fn delete_item(id: String) -> Result<(), VaultError> {
     with_open(|v| Ok(v.delete_item(&id)?))
+}
+
+pub fn set_item_duration(id: String, duration_ms: i64) -> Result<(), VaultError> {
+    with_open(|v| Ok(v.set_duration(&id, duration_ms)?))
 }
 
 /// Move to Recently deleted (kept 30 days, still encrypted).

@@ -100,7 +100,7 @@ void main() {
   setUpAll(() => RustLib.initMock(api: _fake = _Fake()));
 
   setUp(() {
-    debugAddModes = [AddMode.camera];
+    debugAddModes = [AddMode.note, AddMode.library, AddMode.camera, AddMode.file];
     _fake
       ..pinLength = 4
       ..anyPassword = true

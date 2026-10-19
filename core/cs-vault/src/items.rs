@@ -32,6 +32,8 @@ pub struct ItemMeta {
     pub size: u64,
     /// When it was moved to Recently deleted; `None` for items in the vault.
     pub deleted_ms: Option<i64>,
+    /// Length of a video, when known.
+    pub duration_ms: Option<i64>,
 }
 
 /// How long Recently deleted keeps an item.
@@ -49,6 +51,8 @@ struct ItemRecord {
     wrapped_dek: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     deleted_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    duration_ms: Option<i64>,
 }
 
 /// Content to store as a new item.
@@ -107,6 +111,7 @@ impl OpenVault {
             size,
             has_thumb: new.thumbnail.is_some(),
             deleted_ms: None,
+            duration_ms: None,
             wrapped_dek: hex::encode(wrap::wrap_key(
                 &self.master_key,
                 &dek,
@@ -148,6 +153,13 @@ impl OpenVault {
     pub fn trash_item(&self, id: &str, now_ms: i64) -> Result<()> {
         let mut record = self.record(id)?;
         record.deleted_ms = Some(now_ms);
+        self.write_record(id, &record)
+    }
+
+    /// Record a video's length (read by the app after importing it).
+    pub fn set_duration(&self, id: &str, duration_ms: i64) -> Result<()> {
+        let mut record = self.record(id)?;
+        record.duration_ms = Some(duration_ms);
         self.write_record(id, &record)
     }
 
@@ -274,6 +286,7 @@ fn meta(id: String, r: ItemRecord) -> ItemMeta {
         created_ms: r.created_ms,
         size: r.size,
         deleted_ms: r.deleted_ms,
+        duration_ms: r.duration_ms,
     }
 }
 

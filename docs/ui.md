@@ -205,3 +205,29 @@ deniability).
 - **Checking the build against the mockups**: `flutter test test/preview_test.dart
   --update-goldens --dart-define=PREVIEW=true` renders the real screens (fake vault
   data) to `app/test/preview/*.png` in a few seconds.
+
+## Vault content (approved 2026-10-20, 0.1.3)
+
+- **The dock's mode strip is the content filter.** Notes · Library · Camera · Files.
+  Dragging switches the moment a label crosses the middle (a light tick each time),
+  not on release; tapping a label switches too. No tabs at the top.
+  - Library: photos and videos only, by date, 4 per row with 1 px gaps (pinch for
+    3 / 5 / 7). Videos show a play mark and their length.
+  - Notes: one card of equal-height rows: title, two lines of what follows, date.
+  - Files: one card of rows: the file type, name, size, date.
+  - Camera: the preview takes the whole area above the dock (the header steps
+    aside); the dock's round button shoots; the last shot sits bottom left, switch
+    camera bottom right.
+- **The middle button follows the mode.** Only Camera is a round shutter. The others
+  are a gold button that says what it does: Pick photos, New note, Pick files.
+- The vault opens in the mode used last, **never in Camera** (that opens Library).
+- Every mode has an empty state that says how to add the first item.
+- **Search** (dock, right): names of everything plus the text of notes, ignoring case
+  and Vietnamese accents ("thuoc" finds "Thuốc"). Note text is decrypted in memory for
+  the search screen only.
+- **Select several**: long-press any square or row; tap to add more; the dock becomes
+  Send · Delete; the header shows the count and Cancel.
+- **PDF** opens inside the app from the decrypted bytes in memory (pdfrx). **Video**
+  plays inside the app on iOS, Android and macOS; the player needs a file, so a copy is
+  decrypted into the app's private temp folder and deleted on close, on lock and at
+  every start. Elsewhere, videos open in another app with the warning.

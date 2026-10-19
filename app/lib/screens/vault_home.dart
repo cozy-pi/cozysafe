@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -24,10 +25,11 @@ import 'emergency_kit.dart';
 import 'file_view.dart';
 import 'new_vault.dart';
 import 'note.dart';
-import 'set_pin.dart';
+import 'search.dart';
 import 'settings.dart';
 import 'trash.dart';
 import 'unlock.dart';
+import 'video_view.dart';
 
 /// Inside an open vault: photos edge to edge, notes and files as a list, by date; the
 /// same add dock as the lock screen. Locks on leaving the app, after 2 minutes without a
@@ -50,8 +52,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   List<rust.ItemInfo>? _items;
   /// Decrypted previews, in memory only, dropped with this screen.
   final Map<String, Future<Uint8List>> _thumbs = {};
-  int _cols = 3;
+  /// Photos per row; pinch to change, like Photos.
+  int _cols = 4;
+  static const _colSteps = [3, 4, 5, 7];
   double _scaleStart = 1;
+  /// The dock's mode is also what the vault shows (docs/ui.md, vault content).
+  late AddMode _mode = AddDock.startMode(availableAddModes());
+  final _camera = GlobalKey<CameraViewState>();
+  /// Long-press selection: ids picked for Delete / Send.
+  final Set<String> _selected = {};
+  /// Note previews (second line on), decrypted on demand, in memory only.
+  final Map<String, Future<String>> _previews = {};
 
   static final bool _desktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
   bool _canBio = false;
@@ -151,6 +162,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       }
       rust.lock();
       LockGuard.clearCopied();
+      clearPlaybackCopies();
       _thumbs.clear();
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
@@ -173,7 +185,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   void _onAction(AddMode mode) {
     switch (mode) {
       case AddMode.camera:
-        _openCamera();
+        _camera.currentState?.shoot();
       case AddMode.note:
         _openNote(null);
       case AddMode.library:
@@ -185,16 +197,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
-  Future<void> _openCamera() async {
-    final saved = await Navigator.of(context).push<int>(
-      MaterialPageRoute(builder: (_) => const CameraScreen(), fullscreenDialog: true),
-    );
-    if (!_locked && (saved ?? 0) > 0) _reload();
-  }
-
   Future<void> _openNote(rust.ItemInfo? item) async {
     final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => NoteScreen(item: item)));
-    if (!_locked && changed == true) _reload();
+    if (!_locked && changed == true) {
+      _previews.clear();
+      _reload();
+    }
   }
 
   Future<void> _import({required bool photos}) async {
@@ -351,10 +359,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (mounted) setState(() => _bioOn = rust.biometricEnabled());
   }
 
-  Future<void> _changePin() async {
-    await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen()));
-  }
-
   Future<void> _changeIdentity() async {
     var icon = vaultIcons.indexWhere((i) => i.id == _vault.icon);
     var color = vaultColors.indexWhere((c) => c.id == _vault.color);
@@ -418,10 +422,21 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<Uint8List> _thumb(String id) => _thumbs[id] ??= rust.itemThumbnail(id: id);
 
-  Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> photos) async {
+  /// The note's text after its first line (the title), for the list's two-line preview.
+  Future<String> _preview(String id) => _previews[id] ??= rust.itemContent(id: id).then((bytes) {
+        final text = utf8.decode(bytes, allowMalformed: true).trimLeft();
+        final nl = text.indexOf('\n');
+        return (nl < 0 ? '' : text.substring(nl + 1)).trim().replaceAll(RegExp(r'\s+'), ' ');
+      });
+
+  bool _isMedia(rust.ItemInfo i) => i.kind == 'photo' || i.kind == 'video';
+
+  Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
+    if (_selected.isNotEmpty) return _toggle(item.id);
     if (item.kind == 'note') return _openNote(item);
     final String? deleted;
     if (item.kind == 'photo') {
+      final photos = media.where((m) => m.kind == 'photo').toList();
       deleted = await Navigator.of(context).push<String>(
         PageRouteBuilder(
           opaque: false,
@@ -431,34 +446,105 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
         ),
       );
+    } else if (item.kind == 'video' && VideoViewScreen.supported) {
+      deleted = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => VideoViewScreen(item: item, vaultId: _vault.id)),
+      );
     } else {
       LockGuard.allowAway();
-      deleted = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: item, vaultId: _vault.id)));
+      deleted = await Navigator.of(context)
+          .push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: item, vaultId: _vault.id)));
       LockGuard.clear();
     }
     if (!_locked && deleted != null) {
       _reload();
-      _trashed(deleted);
+      _trashed([deleted]);
     }
   }
 
   /// "Moved to Recently deleted · Undo".
-  void _trashed(String id) {
+  void _trashed(List<String> ids) {
     final l = AppLocalizations.of(context);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
-        content: Text(l.movedToTrash),
+        content: Text(ids.length == 1 ? l.movedToTrash : l.movedToTrashCount(ids.length)),
         action: SnackBarAction(
           label: l.undo,
           onPressed: () async {
-            try {
-              await rust.restoreItem(id: id);
-            } catch (_) {}
+            for (final id in ids) {
+              try {
+                await rust.restoreItem(id: id);
+              } catch (_) {}
+            }
             if (!_locked) _reload();
           },
         ),
       ));
+  }
+
+  // ---------- selection ----------
+
+  void _toggle(String id) {
+    HapticFeedback.selectionClick();
+    setState(() => _selected.contains(id) ? _selected.remove(id) : _selected.add(id));
+  }
+
+  Future<void> _deleteSelected() async {
+    final ids = _selected.toList();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (final id in ids) {
+      try {
+        await rust.trashItem(id: id, nowMs: now);
+      } catch (_) {}
+    }
+    setState(_selected.clear);
+    _reload();
+    _trashed(ids);
+  }
+
+  /// Decrypted copies of the selection go to the share sheet, then the copies are wiped.
+  Future<void> _sendSelected() async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmShareOut(context, _vault.id) || !mounted) return;
+    final items = (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id)).toList();
+    final dir = await Directory((await getTemporaryDirectory()).path).createTemp('send');
+    LockGuard.allowAway();
+    try {
+      final files = <XFile>[];
+      for (final (n, it) in items.indexed) {
+        var name = it.name.isEmpty ? 'item-$n' : it.name.replaceAll(RegExp(r'[/\\:]'), '-');
+        if (it.kind == 'note' && !name.endsWith('.txt')) name = '$name.txt';
+        final path = '${dir.path}${Platform.pathSeparator}$name';
+        await rust.exportItem(id: it.id, path: path);
+        files.add(XFile(path, mimeType: it.kind == 'note' ? 'text/plain' : it.mime));
+      }
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(ShareParams(
+        files: files,
+        sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      ));
+      if (mounted) setState(_selected.clear);
+    } catch (_) {
+      if (mounted) _snack(l.errorStorage);
+    } finally {
+      LockGuard.clear();
+      try {
+        dir.deleteSync(recursive: true);
+      } catch (_) {}
+    }
+  }
+
+  // ---------- search ----------
+
+  Future<void> _openSearch() async {
+    final items = _items;
+    if (items == null) return;
+    final picked = await Navigator.of(context).push<rust.ItemInfo>(
+      MaterialPageRoute(builder: (_) => SearchScreen(items: items, thumb: _thumb)),
+    );
+    if (picked != null && mounted && !_locked) _openItem(picked, items.where(_isMedia).toList());
   }
 
   String _dateGroup(BuildContext context, int ms) {
@@ -472,190 +558,396 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     return MaterialLocalizations.of(context).formatMonthYear(d);
   }
 
-  List<Widget> _sections(BuildContext context, List<rust.ItemInfo> items) {
-    final photos = items.where((i) => i.kind == 'photo').toList();
+  /// Library: photos and videos only, by date, small squares like Photos.
+  Widget _library(BuildContext context, List<rust.ItemInfo> items) {
+    final l = AppLocalizations.of(context);
+    final media = items.where(_isMedia).toList();
+    if (media.isEmpty) {
+      return _Empty(icon: Icons.photo_library_outlined, title: l.emptyPhotosTitle, body: l.emptyPhotosBody);
+    }
     final groups = <String, List<rust.ItemInfo>>{};
-    for (final it in items) {
+    for (final it in media) {
       groups.putIfAbsent(_dateGroup(context, it.createdMs), () => []).add(it);
     }
-    return [
-      for (final e in groups.entries) ...[
-        SliverToBoxAdapter(child: _SectionTitle(e.key)),
-        SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: _cols, mainAxisSpacing: 2, crossAxisSpacing: 2),
-          delegate: SliverChildBuilderDelegate(
-            (context, i) {
-              final it = e.value.where((x) => x.kind == 'photo').elementAt(i);
-              return _PhotoTile(key: ValueKey(it.id), thumb: _thumb(it.id), onTap: () => _openItem(it, photos));
-            },
-            childCount: e.value.where((x) => x.kind == 'photo').length,
-          ),
-        ),
-        // Notes and files sit on a neutral card, never straight on the vault colour.
-        if (e.value.any((x) => x.kind != 'photo'))
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-              child: Material(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(14),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    for (final (i, it) in e.value.where((x) => x.kind != 'photo').indexed) ...[
-                      if (i > 0) Divider(height: 1, indent: 72, color: CsColors.of(context).border.withValues(alpha: .6)),
-                      _ItemRow(item: it, onTap: () => _openItem(it, photos)),
-                    ],
-                  ],
-                ),
+    return GestureDetector(
+      // Pinch to fit more or fewer per row: 3, 4, 5 or 7.
+      onScaleStart: (_) => _scaleStart = 1,
+      onScaleUpdate: (d) {
+        if (d.pointerCount < 2) return;
+        final at = _colSteps.indexOf(_cols);
+        if (d.scale < _scaleStart * .8 && at < _colSteps.length - 1) {
+          setState(() => _cols = _colSteps[at + 1]);
+          _scaleStart = d.scale;
+        } else if (d.scale > _scaleStart * 1.25 && at > 0) {
+          setState(() => _cols = _colSteps[at - 1]);
+          _scaleStart = d.scale;
+        }
+      },
+      child: Scrollbar(
+        child: CustomScrollView(slivers: [
+          for (final e in groups.entries) ...[
+            SliverToBoxAdapter(child: _SectionTitle(e.key)),
+            SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: _cols,
+                mainAxisSpacing: 1,
+                crossAxisSpacing: 1,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, i) {
+                  final it = e.value[i];
+                  return _MediaTile(
+                    key: ValueKey(it.id),
+                    item: it,
+                    thumb: _thumb(it.id),
+                    selected: _selected.contains(it.id),
+                    selecting: _selected.isNotEmpty,
+                    onTap: () => _openItem(it, media),
+                    onLongPress: () => _toggle(it.id),
+                  );
+                },
+                childCount: e.value.length,
               ),
             ),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 12)),
+        ]),
+      ),
+    );
+  }
+
+  /// Notes or files: one neutral card of equal-height rows (title, two lines, date).
+  Widget _list(BuildContext context, List<rust.ItemInfo> items, {required bool notes}) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final list = items.where((i) => notes ? i.kind == 'note' : i.kind == 'file').toList();
+    if (list.isEmpty) {
+      return notes
+          ? _Empty(icon: Icons.sticky_note_2_outlined, title: l.emptyNotesTitle, body: l.emptyNotesBody)
+          : _Empty(icon: Icons.description_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody);
+    }
+    return Scrollbar(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+        children: [
+          Material(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(14),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (final (i, it) in list.indexed) ...[
+                  if (i > 0) Divider(height: 1, indent: notes ? 16 : 70, color: c.border.withValues(alpha: .6)),
+                  notes
+                      ? _NoteRow(
+                          item: it,
+                          preview: _preview(it.id),
+                          selected: _selected.contains(it.id),
+                          onTap: () => _openItem(it, const []),
+                          onLongPress: () => _toggle(it.id),
+                        )
+                      : _FileRow(
+                          item: it,
+                          selected: _selected.contains(it.id),
+                          onTap: () => _openItem(it, const []),
+                          onLongPress: () => _toggle(it.id),
+                        ),
+                ],
+              ],
+            ),
           ),
-      ],
-    ];
+        ],
+      ),
+    );
+  }
+
+  Widget _content(BuildContext context) {
+    final items = _items;
+    if (_mode == AddMode.camera) {
+      return CameraView(
+        key: _camera,
+        onSaved: (_) => _reload(),
+        onOpenLast: (item) => _openItem(item, [item]),
+      );
+    }
+    if (items == null) return const Center(child: CircularProgressIndicator());
+    return switch (_mode) {
+      AddMode.note => _list(context, items, notes: true),
+      AddMode.file => _list(context, items, notes: false),
+      _ => _library(context, items),
+    };
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final items = _items;
+    final camera = _mode == AddMode.camera;
+    final selecting = _selected.isNotEmpty;
 
-    Widget content;
-    if (items == null) {
-      content = const Center(child: CircularProgressIndicator());
-    } else if (items.isEmpty) {
-      content = const _Empty();
-    } else {
-      content = GestureDetector(
-        // Pinch to fit more or fewer photos in a row, like Photos.
-        onScaleStart: (_) => _scaleStart = 1,
-        onScaleUpdate: (d) {
-          if (d.pointerCount < 2) return;
-          if (d.scale < _scaleStart * .8 && _cols < 5) {
-            setState(() => _cols = 5);
-            _scaleStart = d.scale;
-          } else if (d.scale > _scaleStart * 1.25 && _cols > 3) {
-            setState(() => _cols = 3);
-            _scaleStart = d.scale;
-          }
-        },
-        child: Scrollbar(
-          child: CustomScrollView(slivers: [..._sections(context, items), const SliverToBoxAdapter(child: SizedBox(height: 12))]),
-        ),
-      );
-    }
+    final header = selecting
+        ? Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 8, 10),
+            child: Row(
+              children: [
+                Text(l.selectedCount(_selected.length), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                const Spacer(),
+                TextButton(onPressed: () => setState(_selected.clear), child: Text(l.cancel)),
+              ],
+            ),
+          )
+        : Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 4, 10),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: _changeIdentity,
+                  child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 44),
+                ),
+                const Spacer(),
+                PopupMenuButton<void>(
+                  tooltip: l.vaultMenu,
+                  itemBuilder: (context) => [
+                    PopupMenuItem<void>(onTap: _openSettings, child: Text(l.settings)),
+                    PopupMenuItem<void>(onTap: _openTrash, child: Text(l.recentlyDeleted)),
+                    PopupMenuItem<void>(onTap: _backup, child: _MenuText(l.backup, _lastBackupText(l))),
+                    PopupMenuItem<void>(onTap: _changeIdentity, child: Text(l.changeIdentity)),
+                    const PopupMenuDivider(),
+                    PopupMenuItem<void>(onTap: _newVault, child: Text(l.newVault)),
+                  ],
+                ),
+              ],
+            ),
+          );
 
-    return Scaffold(
-        body: Column(
-          children: [
-            Expanded(
-              child: SafeArea(
-                bottom: false,
+    final banner = !_vault.hasPassword && !selecting
+        ? Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+            // Says what is at stake, not how it works (docs/ui.md, review 1).
+            child: Material(
+              color: c.warnBg,
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 10, 4, 10),
-                      child: Row(
-                        children: [
-                          GestureDetector(
-                            onTap: _changeIdentity,
-                            child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 44),
-                          ),
-                          const Spacer(),
-                          PopupMenuButton<void>(
-                            tooltip: l.vaultMenu,
-                            itemBuilder: (context) => [
-                              PopupMenuItem<void>(onTap: _changeIdentity, child: Text(l.changeIdentity)),
-                              PopupMenuItem<void>(onTap: _password, child: Text(_vault.hasPassword ? l.changePasswordTitle : l.backupPasswordTitle)),
-                              PopupMenuItem<void>(onTap: _changePin, child: Text(l.changePin)),
-                              if (_canBio)
-                                CheckedPopupMenuItem<void>(
-                                  checked: _bioOn,
-                                  onTap: _toggleBiometric,
-                                  child: _MenuText(l.biometricThisVault, _bioOn ? null : l.biometricThisVaultNote),
-                                ),
-                              PopupMenuItem<void>(onTap: _backup, child: _MenuText(l.backup, _lastBackupText(l))),
-                              if (_vault.hasPassword) PopupMenuItem<void>(onTap: _showKit, child: Text(l.showKit)),
-                              const PopupMenuDivider(),
-                              PopupMenuItem<void>(onTap: _openTrash, child: Text(l.recentlyDeleted)),
-                              PopupMenuItem<void>(onTap: _newVault, child: Text(l.newVault)),
-                              PopupMenuItem<void>(onTap: _openSettings, child: Text(l.settings)),
-                            ],
-                          ),
-                        ],
-                      ),
+                    Text(l.passwordNudgeTitle, style: TextStyle(color: c.warnInk, fontSize: 13.5, fontWeight: FontWeight.w700)),
+                    Text(l.passwordNudge, style: TextStyle(color: c.warnInk, fontSize: 13.5)),
+                    const SizedBox(height: 8),
+                    FilledButton(
+                      onPressed: _password,
+                      style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+                      child: Text(l.backupPasswordTitle),
                     ),
-                    if (!_vault.hasPassword)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-                        // Says what is at stake, not how it works (docs/ui.md, review 1).
-                        child: Material(
-                          color: c.warnBg,
-                          borderRadius: BorderRadius.circular(14),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(l.passwordNudgeTitle,
-                                    style: TextStyle(color: c.warnInk, fontSize: 13.5, fontWeight: FontWeight.w700)),
-                                Text(l.passwordNudge, style: TextStyle(color: c.warnInk, fontSize: 13.5)),
-                                const SizedBox(height: 8),
-                                FilledButton(
-                                  onPressed: _password,
-                                  style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
-                                  child: Text(l.backupPasswordTitle),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    Expanded(child: content),
                   ],
                 ),
               ),
             ),
-            AddDock(
-              modes: availableAddModes(),
-              leading: DockSlot(glyph: const LockGlyph(size: 24, color: Colors.white), label: l.lockVault, onTap: _lock),
-              // Search comes back here once it exists.
-              trailing: const SizedBox(width: 46),
-              onAction: _onAction,
+          )
+        : null;
+
+    return PopScope(
+      canPop: !selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && selecting) setState(_selected.clear);
+      },
+      child: Scaffold(
+        body: Column(
+          children: [
+            Expanded(
+              child: camera
+                  // The camera takes the whole area above the dock; the header steps
+                  // aside so the frame is as large as it can be.
+                  ? ColoredBox(color: Colors.black, child: SafeArea(bottom: false, child: _content(context)))
+                  : SafeArea(
+                      bottom: false,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          header,
+                          ?banner,
+                          Expanded(child: _content(context)),
+                        ],
+                      ),
+                    ),
             ),
+            if (selecting)
+              _SelectionBar(onSend: _sendSelected, onDelete: _deleteSelected)
+            else
+              AddDock(
+                modes: availableAddModes(),
+                leading: DockSlot(glyph: const LockGlyph(size: 24, color: Colors.white), label: l.lockVault, onTap: _lock),
+                trailing: DockSlot(icon: Icons.search, label: l.search, onTap: _openSearch),
+                onAction: _onAction,
+                onModeChanged: (m) => setState(() {
+                  _mode = m;
+                  _selected.clear();
+                }),
+              ),
           ],
         ),
+      ),
     );
   }
 }
 
-/// A note or file in the list: icon, name, kind and date.
-class _ItemRow extends StatelessWidget {
-  const _ItemRow({required this.item, required this.onTap});
+/// While items are selected the dock gives way to what can be done with them.
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({required this.onSend, required this.onDelete});
+  final VoidCallback onSend;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    Widget action(IconData icon, String label, VoidCallback onTap) => Expanded(
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: Colors.white),
+                  const SizedBox(height: 4),
+                  Text(label, style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        );
+    return Material(
+      color: CsColors.of(context).dock,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 6, 16, 10 + bottom),
+        child: Row(
+          children: [
+            action(Icons.ios_share, l.sendOut, onSend),
+            action(Icons.delete_outline, l.delete, onDelete),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A note: title, two lines of what follows, and the date. Every row the same height.
+class _NoteRow extends StatelessWidget {
+  const _NoteRow({
+    required this.item,
+    required this.preview,
+    required this.selected,
+    required this.onTap,
+    required this.onLongPress,
+  });
   final rust.ItemInfo item;
+  final Future<String> preview;
+  final bool selected;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final when = MaterialLocalizations.of(context).formatShortDate(DateTime.fromMillisecondsSinceEpoch(item.createdMs));
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Container(
+        color: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: .12) : null,
+        padding: const EdgeInsets.fromLTRB(16, 11, 12, 11),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name.isEmpty ? l.untitledNote : item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  SizedBox(
+                    height: 38,
+                    child: FutureBuilder<String>(
+                      future: preview,
+                      builder: (context, snap) => Text(
+                        snap.data ?? '',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.4),
+                      ),
+                    ),
+                  ),
+                  Text(when, style: TextStyle(color: c.muted, fontSize: 12)),
+                ],
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 8),
+              Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A file: its kind, name, size and date.
+class _FileRow extends StatelessWidget {
+  const _FileRow({required this.item, required this.selected, required this.onTap, required this.onLongPress});
+  final rust.ItemInfo item;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final c = CsColors.of(context);
-    final l = AppLocalizations.of(context);
-    final when = DateTime.fromMillisecondsSinceEpoch(item.createdMs);
-    final ml = MaterialLocalizations.of(context);
-    final sub = item.kind == 'note'
-        ? '${l.note} · ${ml.formatShortDate(when)}'
-        : '${fileSize(item.size)} · ${ml.formatShortDate(when)}';
-    return ListTile(
+    final when = MaterialLocalizations.of(context).formatShortDate(DateTime.fromMillisecondsSinceEpoch(item.createdMs));
+    final dot = item.name.lastIndexOf('.');
+    final ext = dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
+    return InkWell(
       onTap: onTap,
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(10)),
-        child: Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary),
+      onLongPress: onLongPress,
+      child: Container(
+        color: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: .12) : null,
+        padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 48,
+              decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(8)),
+              child: Center(
+                child: ext.isEmpty || ext.length > 4
+                    ? Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary)
+                    : Text(ext,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary, fontSize: 11, fontWeight: FontWeight.w800)),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text('${fileSize(item.size)} · $when', style: TextStyle(color: c.muted, fontSize: 12.5)),
+                ],
+              ),
+            ),
+            if (selected) Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
+          ],
+        ),
       ),
-      title: Text(item.name.isEmpty ? l.untitledNote : item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
   }
 }
@@ -666,31 +958,34 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
         child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
       );
 }
 
+/// What a mode looks like before it holds anything, and how to add the first one.
 class _Empty extends StatelessWidget {
-  const _Empty();
+  const _Empty({required this.icon, required this.title, required this.body});
+  final IconData icon;
+  final String title;
+  final String body;
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
+        constraints: const BoxConstraints(maxWidth: 340),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.inventory_2_outlined, size: 48, color: c.muted),
-              const SizedBox(height: 16),
-              Text(l.emptyVaultTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Icon(icon, size: 48, color: c.muted),
+              const SizedBox(height: 14),
+              Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
-              Text(l.emptyVaultBody, textAlign: TextAlign.center, style: TextStyle(color: c.muted, height: 1.5)),
+              Text(body, textAlign: TextAlign.center, style: TextStyle(color: c.muted, height: 1.5)),
             ],
           ),
         ),
@@ -699,27 +994,85 @@ class _Empty extends StatelessWidget {
   }
 }
 
-/// A photo square: no corner radius and a 2 px gap, like Photos.
-class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({super.key, required this.thumb, this.onTap});
+/// A square in the library: no corner radius, 1 px apart, like Photos. Videos show
+/// their length; selected ones a tick.
+class _MediaTile extends StatelessWidget {
+  const _MediaTile({
+    super.key,
+    required this.item,
+    required this.thumb,
+    required this.selected,
+    required this.selecting,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
+  final rust.ItemInfo item;
   final Future<Uint8List> thumb;
-  final VoidCallback? onTap;
+  final bool selected;
+  final bool selecting;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  static String _length(int ms) {
+    final s = (ms / 1000).round();
+    return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = CsColors.of(context);
+    final duration = item.durationMs;
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: ColoredBox(
         color: c.soft,
-        child: FutureBuilder<Uint8List>(
-          future: thumb,
-          builder: (context, snap) {
-            final bytes = snap.data;
-            if (bytes == null || bytes.isEmpty) return const SizedBox.expand();
-            return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true, width: double.infinity, height: double.infinity);
-          },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            FutureBuilder<Uint8List>(
+              future: thumb,
+              builder: (context, snap) {
+                final bytes = snap.data;
+                if (bytes == null || bytes.isEmpty) {
+                  return item.kind == 'video'
+                      ? const ColoredBox(color: Color(0xFF2A3133))
+                      : const SizedBox.expand();
+                }
+                return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
+              },
+            ),
+            if (item.kind == 'video')
+              Positioned(
+                right: 5,
+                bottom: 4,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 15, shadows: [Shadow(blurRadius: 4)]),
+                    if (duration != null)
+                      Text(
+                        _length(duration),
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600, shadows: [Shadow(blurRadius: 4)]),
+                      ),
+                  ],
+                ),
+              ),
+            if (selecting)
+              Positioned(
+                right: 5,
+                top: 5,
+                child: Icon(
+                  selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: Colors.white,
+                  size: 22,
+                  shadows: const [Shadow(blurRadius: 4)],
+                ),
+              ),
+            if (selected) const ColoredBox(color: Color(0x33FFFFFF)),
+          ],
         ),
       ),
     );

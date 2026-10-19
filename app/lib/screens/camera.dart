@@ -8,26 +8,36 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'common.dart';
 
-/// In-app camera. Shots never touch a file in the clear: we take the next frame of the
-/// preview stream (memory), and Rust encodes the JPEG and encrypts it into the open
-/// vault. `takePicture` is not used because it writes a cache file.
+/// The camera inside the vault: it takes the content area while the dock's mode is
+/// "Take photo", and the dock's round button shoots (docs/ui.md, vault content).
 ///
-/// Pops with the number of photos saved.
-class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+/// Shots never touch a file in the clear: we take the next frame of the preview stream
+/// (memory), and Rust encodes the JPEG and encrypts it into the open vault.
+/// `takePicture` is not used because it writes a cache file.
+class CameraView extends StatefulWidget {
+  const CameraView({super.key, required this.onSaved, required this.onOpenLast});
+
+  /// A photo was encrypted into the vault.
+  final void Function(rust.ItemInfo item) onSaved;
+  /// The last shot's thumbnail was tapped.
+  final void Function(rust.ItemInfo item) onOpenLast;
 
   @override
-  State<CameraScreen> createState() => _CameraScreenState();
+  State<CameraView> createState() => CameraViewState();
 }
 
-class _CameraScreenState extends State<CameraScreen> {
+class CameraViewState extends State<CameraView> {
   CameraController? _controller;
+  List<CameraDescription> _cameras = const [];
+  int _camera = 0;
   bool _failed = false;
   bool _wantShot = false;
   bool _saving = false;
   bool _flash = false;
-  int _saved = 0;
+  rust.ItemInfo? _last;
   Uint8List? _lastThumb;
+
+  bool get ready => _controller != null && !_saving;
 
   @override
   void initState() {
@@ -38,13 +48,13 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _start() async {
     try {
-      final cameras = await availableCameras();
-      final back = cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.back,
-        orElse: () => cameras.first,
-      );
+      if (_cameras.isEmpty) {
+        _cameras = await availableCameras();
+        final back = _cameras.indexWhere((c) => c.lensDirection == CameraLensDirection.back);
+        _camera = back < 0 ? 0 : back;
+      }
       final c = CameraController(
-        back,
+        _cameras[_camera],
         ResolutionPreset.veryHigh,
         enableAudio: false,
         imageFormatGroup: Platform.isIOS ? ImageFormatGroup.bgra8888 : ImageFormatGroup.yuv420,
@@ -53,7 +63,7 @@ class _CameraScreenState extends State<CameraScreen> {
       await c.lockCaptureOrientation(DeviceOrientation.portraitUp);
       await c.startImageStream(_onFrame);
       if (!mounted) {
-        await c.dispose();
+        await _stop(c);
         return;
       }
       setState(() => _controller = c);
@@ -62,20 +72,35 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  static Future<void> _stop(CameraController c) async {
+    try {
+      if (c.value.isStreamingImages) await c.stopImageStream();
+    } catch (_) {}
+    await c.dispose();
+  }
+
+  Future<void> _flip() async {
+    if (_cameras.length < 2 || _saving) return;
+    final old = _controller;
+    setState(() {
+      _controller = null;
+      _camera = (_camera + 1) % _cameras.length;
+    });
+    if (old != null) await _stop(old);
+    await _start();
+  }
+
   @override
   void dispose() {
     final c = _controller;
     _controller = null;
-    if (c != null) {
-      // Stop the stream before disposing; both are best effort while leaving.
-      (c.value.isStreamingImages ? c.stopImageStream() : Future<void>.value())
-          .whenComplete(c.dispose);
-    }
+    if (c != null) _stop(c);
     SystemChrome.setPreferredOrientations([]);
     super.dispose();
   }
 
-  void _shoot() {
+  /// Called by the dock's shutter button.
+  void shoot() {
     if (_saving || _controller == null) return;
     HapticFeedback.mediumImpact();
     setState(() {
@@ -108,16 +133,14 @@ class _CameraScreenState extends State<CameraScreen> {
         ],
         rotation: _rotationFor(image),
       );
-      final item = await rust.addPhoto(
-        frame: frame,
-        createdMs: DateTime.now().millisecondsSinceEpoch,
-      );
+      final item = await rust.addPhoto(frame: frame, createdMs: DateTime.now().millisecondsSinceEpoch);
       final thumb = await rust.itemThumbnail(id: item.id);
       if (!mounted) return;
       setState(() {
-        _saved++;
+        _last = item;
         _lastThumb = thumb;
       });
+      widget.onSaved(item);
     } on rust.VaultError catch (e) {
       _snack(vaultErrorText(l, e));
     } catch (_) {
@@ -144,109 +167,78 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = _controller;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: IconButton(
-                onPressed: () => Navigator.of(context).pop(_saved),
-                icon: const Icon(Icons.close, color: Colors.white),
-                tooltip: l.close,
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: _failed
-                    ? Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Text(
-                          l.cameraUnavailable,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white, height: 1.5),
-                        ),
-                      )
-                    : c == null
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              CameraPreview(c),
-                              IgnorePointer(
-                                child: AnimatedOpacity(
-                                  opacity: _flash ? 0.7 : 0,
-                                  duration: const Duration(milliseconds: 90),
-                                  child: Container(color: Colors.white),
-                                ),
-                              ),
-                            ],
-                          ),
-              ),
-            ),
-            SizedBox(
-              height: 112,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: _lastThumb == null
-                          ? const SizedBox.shrink()
-                          : _LastShot(thumb: _lastThumb!, label: l.photosSaved(_saved)),
+    return ColoredBox(
+      color: Colors.black,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Center(
+            child: _failed
+                ? Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Text(
+                      l.cameraUnavailable,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, height: 1.5),
                     ),
-                  ),
-                  Semantics(
-                    button: true,
-                    label: l.shutter,
-                    child: GestureDetector(
-                      onTap: _failed ? null : _shoot,
-                      child: Container(
-                        width: 76,
-                        height: 76,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                        ),
-                        padding: const EdgeInsets.all(5),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _saving ? Colors.white54 : Colors.white,
+                  )
+                : c == null
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : ClipRect(
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: c.value.previewSize?.height ?? 1080,
+                            height: c.value.previewSize?.width ?? 1920,
+                            child: CameraPreview(c),
                           ),
                         ),
                       ),
+          ),
+          IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: _flash ? 0.7 : 0,
+              duration: const Duration(milliseconds: 90),
+              child: const ColoredBox(color: Colors.white),
+            ),
+          ),
+          if (_lastThumb != null && _last != null)
+            Positioned(
+              left: 14,
+              bottom: 14,
+              child: Semantics(
+                button: true,
+                label: l.openLastShot,
+                child: GestureDetector(
+                  onTap: () => widget.onOpenLast(_last!),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: Colors.white, width: 2),
+                      image: DecorationImage(image: MemoryImage(_lastThumb!), fit: BoxFit.cover),
                     ),
                   ),
-                  const Expanded(child: SizedBox.shrink()),
-                ],
+                ),
               ),
             ),
-          ],
-        ),
+          if (_cameras.length > 1)
+            Positioned(
+              right: 14,
+              bottom: 14,
+              child: Material(
+                color: const Color(0x73000000),
+                shape: const CircleBorder(),
+                child: IconButton(
+                  tooltip: l.flipCamera,
+                  onPressed: _saving ? null : _flip,
+                  icon: const Icon(Icons.cameraswitch_outlined, color: Colors.white),
+                ),
+              ),
+            ),
+        ],
       ),
-    );
-  }
-}
-
-class _LastShot extends StatelessWidget {
-  const _LastShot({required this.thumb, required this.label});
-
-  final Uint8List thumb;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.memory(thumb, width: 48, height: 48, fit: BoxFit.cover, gaplessPlayback: true),
-        ),
-        const SizedBox(height: 6),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-      ],
     );
   }
 }

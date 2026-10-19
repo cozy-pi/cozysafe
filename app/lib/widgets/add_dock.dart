@@ -52,7 +52,16 @@ class AddDock extends StatefulWidget {
     required this.leading,
     required this.trailing,
     required this.onAction,
+    this.onModeChanged,
   });
+
+  /// The mode the vault opens in: the last one used, except the camera, which never
+  /// starts by itself (it opens the library instead).
+  static AddMode startMode(List<AddMode> modes) {
+    final saved = Prefs.read(_AddDockState._prefKey);
+    final m = modes.where((x) => x.name == saved).firstOrNull;
+    return m == null || m == AddMode.camera ? AddMode.library : m;
+  }
 
   /// Modes shown, in order. One mode: no strip, just the button. None: only the slots.
   final List<AddMode> modes;
@@ -60,6 +69,9 @@ class AddDock extends StatefulWidget {
   final Widget leading;
   final Widget trailing;
   final void Function(AddMode mode) onAction;
+  /// The strip moved to another mode: while dragging, as soon as a label crosses the
+  /// middle, not on release. The vault shows that kind of content.
+  final void Function(AddMode mode)? onModeChanged;
 
   @override
   State<AddDock> createState() => _AddDockState();
@@ -71,15 +83,15 @@ class _AddDockState extends State<AddDock> {
   static const _style = TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: .8);
 
   late int _mode;
+  /// The mode last reported, so a drag reports each change once.
+  late AddMode _current = widget.modes.isEmpty ? AddMode.library : widget.modes[_mode];
   double _drag = 0;
   bool _dragging = false;
 
   @override
   void initState() {
     super.initState();
-    final saved = Prefs.read(_prefKey);
-    _mode = widget.modes.indexWhere((m) => m.name == saved);
-    if (_mode < 0) _mode = widget.modes.indexOf(AddMode.camera);
+    _mode = widget.modes.indexOf(AddDock.startMode(widget.modes));
     if (_mode < 0) _mode = 0;
   }
 
@@ -101,15 +113,34 @@ class _AddDockState extends State<AddDock> {
         AddMode.paste => Icons.content_paste,
       };
 
+  /// The label to the button's action ("New note"), shown on the button itself.
+  String _actionLabel(AppLocalizations l, AddMode m) => switch (m) {
+        AddMode.note => l.actionNewNote,
+        AddMode.library => l.actionPickPhotos,
+        AddMode.file => l.actionPickFiles,
+        _ => _label(l, m),
+      };
+
+  IconData _actionIcon(AddMode m) => switch (m) {
+        AddMode.note => Icons.edit_outlined,
+        AddMode.library => Icons.add_photo_alternate_outlined,
+        AddMode.file => Icons.note_add_outlined,
+        _ => _icon(m),
+      };
+
   void _select(int i) {
     final next = i.clamp(0, widget.modes.length - 1);
-    if (next != _mode) HapticFeedback.selectionClick();
     setState(() {
       _mode = next;
       _drag = 0;
       _dragging = false;
     });
-    Prefs.write(_prefKey, widget.modes[next].name);
+    _changed(next);
+  }
+
+  void _changed(int i) {
+    Prefs.write(_prefKey, widget.modes[i].name);
+    widget.onModeChanged?.call(widget.modes[i]);
   }
 
   @override
@@ -144,20 +175,37 @@ class _AddDockState extends State<AddDock> {
                 builder: (context, box) => GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onHorizontalDragStart: (_) => setState(() => _dragging = true),
-                  onHorizontalDragUpdate: (d) => setState(() => _drag += d.delta.dx),
-                  onHorizontalDragEnd: (_) {
-                    final x = centerOf(_mode) - _drag;
+                  onHorizontalDragUpdate: (d) {
+                    // Switch as soon as another label crosses the middle, while the
+                    // finger is still down (docs/ui.md, vault content).
+                    final x = centerOf(_mode) - (_drag + d.delta.dx);
                     var best = _mode;
                     var bestD = double.infinity;
                     for (var i = 0; i < labels.length; i++) {
-                      final d = (centerOf(i) - x).abs();
-                      if (d < bestD) {
-                        bestD = d;
+                      final dd = (centerOf(i) - x).abs();
+                      if (dd < bestD) {
+                        bestD = dd;
                         best = i;
                       }
                     }
-                    _select(best);
+                    setState(() {
+                      _drag += d.delta.dx;
+                      if (best != _mode) {
+                        // Keep the strip where the finger has it: move the offset with the mode.
+                        _drag += centerOf(best) - centerOf(_mode);
+                        _mode = best;
+                      }
+                    });
+                    if (best != widget.modes.indexOf(_current)) {
+                      HapticFeedback.selectionClick();
+                      _current = widget.modes[best];
+                      _changed(best);
+                    }
                   },
+                  onHorizontalDragEnd: (_) => setState(() {
+                    _drag = 0;
+                    _dragging = false;
+                  }),
                   child: ClipRect(
                     child: Stack(
                       children: [
@@ -175,7 +223,11 @@ class _AddDockState extends State<AddDock> {
                                   button: true,
                                   selected: i == _mode,
                                   child: GestureDetector(
-                                    onTap: () => _select(i),
+                                    onTap: () {
+                                      if (i != _mode) HapticFeedback.selectionClick();
+                                      _current = widget.modes[i];
+                                      _select(i);
+                                    },
                                     child: SizedBox(
                                       width: widths[i],
                                       child: Center(
@@ -216,19 +268,39 @@ class _AddDockState extends State<AddDock> {
                         HapticFeedback.mediumImpact();
                         widget.onAction(mode);
                       },
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4)),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: mode == AddMode.camera ? Colors.white : Brand.gold,
-                          ),
-                          child: mode == AddMode.camera ? null : Icon(_icon(mode), color: Brand.goldInk, size: 28),
-                        ),
-                      ),
+                      // Only the camera is a round shutter; every other mode is a button
+                      // that says what it does, with that kind's symbol.
+                      child: mode == AddMode.camera
+                          ? Container(
+                              width: 72,
+                              height: 72,
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4)),
+                              child: const DecoratedBox(
+                                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                              ),
+                            )
+                          : SizedBox(
+                              height: 72,
+                              child: Center(
+                                child: Container(
+                                  height: 52,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  decoration: BoxDecoration(color: Brand.gold, borderRadius: BorderRadius.circular(16)),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(_actionIcon(mode), color: Brand.goldInk, size: 22),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _actionLabel(l, mode),
+                                        style: const TextStyle(color: Brand.goldInk, fontSize: 15, fontWeight: FontWeight.w700),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                   Expanded(child: Align(alignment: Alignment.centerRight, child: widget.trailing)),
