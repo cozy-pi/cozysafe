@@ -294,7 +294,13 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         ),
     };
 
-    return Scaffold(
+    return PopScope(
+      // The system back gesture steps back too; on the first step it leaves.
+      canPop: _step.index == 0 && !widget.first,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _step.index > 0 && !_busy) _back();
+      },
+      child: Scaffold(
       backgroundColor: tint,
       body: Stack(
         children: [
@@ -303,19 +309,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 24, 0),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: 40,
-                        child: (_step.index > 0 || !widget.first)
-                            ? IconButton(
-                                onPressed: _busy ? null : _back,
-                                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                                icon: const Icon(Icons.chevron_left, color: Colors.white),
-                              )
-                            : null,
-                      ),
                       for (var i = 0; i < 3; i++) ...[
                         if (i > 0) const SizedBox(width: 6),
                         Expanded(
@@ -402,11 +398,35 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                     )),
                     child: Text(l.restoreFromBackup),
                   ),
+                // Back and Cancel under the thumbs, large, instead of a small arrow in
+                // the top corner. The very first vault has nothing to cancel back to.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                  child: Row(
+                    children: [
+                      if (_step.index > 0)
+                        _BottomButton(
+                          key: const ValueKey('new-vault-back'),
+                          icon: Icons.arrow_back,
+                          label: l.back,
+                          onTap: _busy ? null : _back,
+                        ),
+                      const Spacer(),
+                      if (!widget.first)
+                        _BottomButton(
+                          key: const ValueKey('new-vault-cancel'),
+                          label: l.cancel,
+                          onTap: _busy ? null : () => Navigator.of(context).maybePop(),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -502,4 +522,32 @@ class _ShakeState extends State<_Shake> with SingleTickerProviderStateMixin {
 class _Wait implements Exception {
   const _Wait(this.left);
   final Duration left;
+}
+
+/// A large, thumb-height text button for the bottom of the steps.
+class _BottomButton extends StatelessWidget {
+  const _BottomButton({super.key, this.icon, required this.label, required this.onTap});
+  final IconData? icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          foregroundColor: Colors.white,
+          minimumSize: const Size(96, 52),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          backgroundColor: const Color(0x1FFFFFFF),
+          shape: const StadiumBorder(),
+          textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
+            Text(label),
+          ],
+        ),
+      );
 }

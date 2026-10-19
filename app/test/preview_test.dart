@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'dart:ui' show PictureRecorder, ImageByteFormat;
 
 import 'package:cozysafe/l10n/app_localizations.dart';
+import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/trash.dart';
@@ -233,6 +234,22 @@ void main() {
     await _shot(t, 'folder', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color,
         act: (t) async {
       await t.tap(find.text('Giấy tờ tùy thân'));
+    });
+  });
+  testWidgets('new vault', skip: !_enabled, (t) => _shot(t, 'new-vault', const NewVaultScreen(libraryDir: '', first: false)));
+  testWidgets('new vault step 2', skip: !_enabled, (t) async {
+    await _shot(t, 'new-vault-2', const NewVaultScreen(libraryDir: '', first: false), act: (t) async {
+      await t.tap(find.byType(GestureDetector).at(3));
+      await t.pump(const Duration(milliseconds: 400));
+    });
+  });
+  testWidgets('message', skip: !_enabled, (t) async {
+    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
+    Prefs.write('add-mode', 'library');
+    await _shot(t, 'message', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color,
+        act: (t) async {
+      ScaffoldMessenger.of(t.element(find.byType(VaultHomeScreen)))
+          .showSnackBar(SnackBar(content: const Text('Đã chuyển vào Đã xoá gần đây'), action: SnackBarAction(label: 'Hoàn tác', onPressed: () {})));
     });
   });
   testWidgets('select', skip: !_enabled, (t) async {

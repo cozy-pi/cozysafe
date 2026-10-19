@@ -238,10 +238,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (into != null && added.isNotEmpty) {
         await rust.moveItems(ids: [for (final a in added) a.id], folder: into);
       }
-      if (mounted) {
-        _snack(l.imported(added.length));
-        _reload();
-      }
+      // No "N added" message: the items appear at once, and the bar showed progress.
+      if (mounted) _reload();
     } on rust.VaultError catch (e) {
       if (mounted) _snack(vaultErrorText(l, e));
     } catch (_) {
@@ -420,10 +418,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _locked = true;
     _idleTimer?.cancel();
     rust.lock();
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false, avoid: avoid)),
+    // Under it, the lock screen: Cancel on the new vault goes back there.
+    final nav = Navigator.of(context);
+    nav.pushAndRemoveUntil(
+      PageRouteBuilder<void>(
+        transitionDuration: Duration.zero,
+        pageBuilder: (_, _, _) => UnlockScreen(libraryDir: widget.libraryDir, askBiometricNow: false),
+      ),
       (_) => false,
     );
+    nav.push(MaterialPageRoute<void>(
+      builder: (_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false, avoid: avoid),
+    ));
   }
 
   void _snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -1099,10 +1105,21 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         }
       },
       child: Scaffold(
-        body: Column(
-          children: [
-            Expanded(
-              child: camera
+        // The dock is the Scaffold's bottom bar, so messages (Undo…) float above it
+        // instead of covering its buttons.
+        bottomNavigationBar: selecting
+            ? _SelectionBar(onSend: _sendSelected, onMove: _moveSelected, onDelete: _deleteSelected)
+            : AddDock(
+                modes: availableAddModes(),
+                leading: DockSlot(glyph: const LockGlyph(size: 24, color: Colors.white), label: l.lockVault, onTap: _lock),
+                trailing: DockSlot(icon: Icons.search, label: l.search, onTap: _openSearch),
+                onAction: _onAction,
+                onModeChanged: (m) => setState(() {
+                  _mode = m;
+                  _selected.clear();
+                }),
+              ),
+        body: camera
                   // The camera takes the whole area above the dock; the header steps
                   // aside so the frame is as large as it can be.
                   ? ColoredBox(color: Colors.black, child: SafeArea(bottom: false, child: _content(context)))
@@ -1117,22 +1134,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                         ],
                       ),
                     ),
-            ),
-            if (selecting)
-              _SelectionBar(onSend: _sendSelected, onMove: _moveSelected, onDelete: _deleteSelected)
-            else
-              AddDock(
-                modes: availableAddModes(),
-                leading: DockSlot(glyph: const LockGlyph(size: 24, color: Colors.white), label: l.lockVault, onTap: _lock),
-                trailing: DockSlot(icon: Icons.search, label: l.search, onTap: _openSearch),
-                onAction: _onAction,
-                onModeChanged: (m) => setState(() {
-                  _mode = m;
-                  _selected.clear();
-                }),
-              ),
-          ],
-        ),
       ),
     );
   }

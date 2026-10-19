@@ -201,6 +201,11 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
         textStyle: label.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
       ),
     ),
+    // Messages float with a margin, rounded, never flush against the bottom bar.
+    snackBarTheme: const SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      insetPadding: EdgeInsets.fromLTRB(12, 0, 12, 10),
+    ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: accent,

@@ -22,6 +22,10 @@ Dates are UTC.
 - The mode strip is easier to hit: it is 48 points tall to touch, a tap in the gap
   between two labels picks the nearer one, and a sideways swipe anywhere on the dock
   (also on the buttons) moves it.
+- Messages (Undo…) float above the dock instead of covering its buttons; the
+  "N items added" message is gone (the items simply appear).
+- Creating a vault has large Back and Cancel buttons at the bottom, within thumb
+  reach; Cancel returns to the lock screen, also when started from inside a vault.
 
 ## 0.1.3 (2026-10-20)
 
