@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Next
+
+### Changed
+- The dock's add button (Pick photos, New note, Pick files) is white like the camera's
+  shutter, with the same ring around it.
+
 ## 0.1.4 (2026-10-20)
 
 ### Added

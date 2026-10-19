@@ -348,33 +348,47 @@ class _AddDockState extends State<AddDock> {
                               : SizedBox(
                                   height: 72,
                                   child: Center(
+                                    // Same make as the camera's shutter: a white
+                                    // ring around a white core.
                                     child: Container(
-                                      height: 52,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                      ),
+                                      height: 64,
+                                      padding: const EdgeInsets.all(4),
                                       decoration: BoxDecoration(
-                                        color: Brand.gold,
-                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 3,
+                                        ),
+                                        borderRadius: BorderRadius.circular(22),
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            _actionIcon(mode),
-                                            color: Brand.goldInk,
-                                            size: 22,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 18,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            16,
                                           ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            _actionLabel(l, mode),
-                                            style: const TextStyle(
-                                              color: Brand.goldInk,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              _actionIcon(mode),
+                                              color: Brand.deep,
+                                              size: 22,
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              _actionLabel(l, mode),
+                                              style: const TextStyle(
+                                                color: Brand.deep,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
