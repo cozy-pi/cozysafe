@@ -1,11 +1,11 @@
 # Installable builds for every desktop and Android. Runs on demand and on `v*` tags;
 # a tag also publishes a GitHub release with all files attached. File names carry
-# no version, so https://github.com/itlboy/cozysafe/releases/latest/download/<file>
+# no version, so https://github.com/cozy-pi/cozysafe/releases/latest/download/<file>
 # (used by safe.cozypi.com) always serves the newest release.
 #
 # Signing: macOS with Developer ID + notarization, Android with the release key.
 # Windows is not signed yet (needs a paid code-signing certificate). Every file gets
-# a GitHub build-provenance attestation (`gh attestation verify <file> -R itlboy/cozysafe`).
+# a GitHub build-provenance attestation (`gh attestation verify <file> -R cozy-pi/cozysafe`).
 name: build
 
 on:
@@ -193,4 +193,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" CozySafe-* SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" \
             --title "Cozy Safe $GITHUB_REF_NAME (preview)" \
-            --notes "Preview build for testing. macOS: signed with Developer ID and notarized by Apple. Android: signed with the Cozy Pi release key (SHA-256 D0:82:E9:7B:D2:93:E3:CB:69:4D:66:69:A2:82:AD:E1:1E:6F:1C:1E:04:B8:4C:48:AA:07:BA:32:AF:C2:9D:A4); allow installing from this source. Windows: not signed yet, choose More info → Run anyway. Every file has a build-provenance attestation: gh attestation verify <file> -R itlboy/cozysafe. The Secret Key is stored in a file in this preview, not yet in the system keystore."
+            --notes "Preview build for testing. macOS: signed with Developer ID and notarized by Apple. Android: signed with the Cozy Pi release key (SHA-256 D0:82:E9:7B:D2:93:E3:CB:69:4D:66:69:A2:82:AD:E1:1E:6F:1C:1E:04:B8:4C:48:AA:07:BA:32:AF:C2:9D:A4); allow installing from this source. Windows: not signed yet, choose More info → Run anyway. Every file has a build-provenance attestation: gh attestation verify <file> -R cozy-pi/cozysafe. The Secret Key is stored in a file in this preview, not yet in the system keystore."

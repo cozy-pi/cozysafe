@@ -9,8 +9,8 @@ import math
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BASE = 'https://github.com/itlboy/cozysafe/releases/latest/download/'
-REPO = 'https://github.com/itlboy/cozysafe'
+BASE = 'https://github.com/cozy-pi/cozysafe/releases/latest/download/'
+REPO = 'https://github.com/cozy-pi/cozysafe'
 
 TEXT = {
     'en': dict(
@@ -41,7 +41,7 @@ TEXT = {
         lin_h='Extract it and run <code>./cozysafe</code>. Needs GTK 3.',
         and_h='Signed with the Cozy Pi release key. When Android asks, allow your browser to install apps.',
         ios_f='Coming soon', ios_h='Through TestFlight, Apple\'s app for testing new apps.',
-        verify=f'To check a download, compare it with <a href="{BASE}SHA256SUMS.txt">SHA256SUMS.txt</a> or run <code>gh attestation verify &lt;file&gt; -R itlboy/cozysafe</code>. Older versions are on the <a href="{REPO}/releases">releases page</a>.',
+        verify=f'To check a download, compare it with <a href="{BASE}SHA256SUMS.txt">SHA256SUMS.txt</a> or run <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Older versions are on the <a href="{REPO}/releases">releases page</a>.',
         f_by='Made by', f_src='Source code', f_lic='GPL-3.0',
     ),
     'vi': dict(
@@ -72,7 +72,7 @@ TEXT = {
         lin_h='Giải nén rồi chạy <code>./cozysafe</code>. Cần GTK 3.',
         and_h='Ký bằng khoá phát hành của Cozy Pi. Khi Android hỏi, cho phép trình duyệt cài ứng dụng.',
         ios_f='Sắp có', ios_h='Qua TestFlight, ứng dụng của Apple để dùng thử app mới.',
-        verify=f'Muốn kiểm file tải về, so với <a href="{BASE}SHA256SUMS.txt">SHA256SUMS.txt</a> hoặc chạy <code>gh attestation verify &lt;file&gt; -R itlboy/cozysafe</code>. Các phiên bản cũ ở <a href="{REPO}/releases">trang phát hành</a>.',
+        verify=f'Muốn kiểm file tải về, so với <a href="{BASE}SHA256SUMS.txt">SHA256SUMS.txt</a> hoặc chạy <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Các phiên bản cũ ở <a href="{REPO}/releases">trang phát hành</a>.',
         f_by='Làm bởi', f_src='Mã nguồn', f_lic='GPL-3.0',
     ),
 }

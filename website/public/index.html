@@ -15,7 +15,7 @@
 <div class="wrap">
 <header class="top">
   <a class="brand" href="./"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3.2"/></svg>Cozy Safe</a>
-  <nav><a href="#download">Download</a><a href="https://github.com/itlboy/cozysafe">Source code</a><a href="/vi/" hreflang="vi">Tiếng Việt</a></nav>
+  <nav><a href="#download">Download</a><a href="https://github.com/cozy-pi/cozysafe">Source code</a><a href="/vi/" hreflang="vi">Tiếng Việt</a></nav>
 </header>
 <main>
 <div class="hero">
@@ -53,11 +53,11 @@
 </div></section>
 <section id="download" aria-labelledby="dl"><h2 id="dl">Download</h2>
 <table class="dl"><thead><tr><th>Platform</th><th>File</th><th>How to install</th></tr></thead>
-<tbody><tr><td>macOS</td><td><a class="get" href="https://github.com/itlboy/cozysafe/releases/latest/download/CozySafe-macos.dmg">CozySafe-macos.dmg</a></td><td class="how">Signed and notarized by Apple. Open the disk image and drag Cozy Safe into Applications.</td></tr><tr><td>Windows</td><td><a class="get" href="https://github.com/itlboy/cozysafe/releases/latest/download/CozySafe-windows-x64.zip">CozySafe-windows-x64.zip</a></td><td class="how">Not signed yet. Unzip it and run <code>cozysafe.exe</code>. If SmartScreen warns you, choose More info, then Run anyway.</td></tr><tr><td>Linux</td><td><a class="get" href="https://github.com/itlboy/cozysafe/releases/latest/download/CozySafe-linux-x64.tar.gz">CozySafe-linux-x64.tar.gz</a></td><td class="how">Extract it and run <code>./cozysafe</code>. Needs GTK 3.</td></tr><tr><td>Android</td><td><a class="get" href="https://github.com/itlboy/cozysafe/releases/latest/download/CozySafe-android.apk">CozySafe-android.apk</a></td><td class="how">Signed with the Cozy Pi release key. When Android asks, allow your browser to install apps.</td></tr><tr><td>iPhone</td><td>Coming soon</td><td class="how">Through TestFlight, Apple's app for testing new apps.</td></tr></tbody></table>
-<p class="verify">To check a download, compare it with <a href="https://github.com/itlboy/cozysafe/releases/latest/download/SHA256SUMS.txt">SHA256SUMS.txt</a> or run <code>gh attestation verify &lt;file&gt; -R itlboy/cozysafe</code>. Older versions are on the <a href="https://github.com/itlboy/cozysafe/releases">releases page</a>.</p>
+<tbody><tr><td>macOS</td><td><a class="get" href="https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-macos.dmg">CozySafe-macos.dmg</a></td><td class="how">Signed and notarized by Apple. Open the disk image and drag Cozy Safe into Applications.</td></tr><tr><td>Windows</td><td><a class="get" href="https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-windows-x64.zip">CozySafe-windows-x64.zip</a></td><td class="how">Not signed yet. Unzip it and run <code>cozysafe.exe</code>. If SmartScreen warns you, choose More info, then Run anyway.</td></tr><tr><td>Linux</td><td><a class="get" href="https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-linux-x64.tar.gz">CozySafe-linux-x64.tar.gz</a></td><td class="how">Extract it and run <code>./cozysafe</code>. Needs GTK 3.</td></tr><tr><td>Android</td><td><a class="get" href="https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-android.apk">CozySafe-android.apk</a></td><td class="how">Signed with the Cozy Pi release key. When Android asks, allow your browser to install apps.</td></tr><tr><td>iPhone</td><td>Coming soon</td><td class="how">Through TestFlight, Apple's app for testing new apps.</td></tr></tbody></table>
+<p class="verify">To check a download, compare it with <a href="https://github.com/cozy-pi/cozysafe/releases/latest/download/SHA256SUMS.txt">SHA256SUMS.txt</a> or run <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Older versions are on the <a href="https://github.com/cozy-pi/cozysafe/releases">releases page</a>.</p>
 </section>
 </main>
-<footer><span>Made by <a href="https://cozypi.com/">Cozy Pi</a></span><a href="https://github.com/itlboy/cozysafe">Source code</a><span>GPL-3.0</span><a href="mailto:support@cozypi.com">support@cozypi.com</a></footer>
+<footer><span>Made by <a href="https://cozypi.com/">Cozy Pi</a></span><a href="https://github.com/cozy-pi/cozysafe">Source code</a><span>GPL-3.0</span><a href="mailto:support@cozypi.com">support@cozypi.com</a></footer>
 </div>
 <script>
 // Point the main button at the file for this device; without JS it jumps to the table.
@@ -70,7 +70,7 @@
   else if (/Linux/i.test(ua)) { p = 'Linux'; f = 'CozySafe-linux-x64.tar.gz'; }
   if (!p) return;
   var b = document.getElementById('primary');
-  b.href = 'https://github.com/itlboy/cozysafe/releases/latest/download/' + f;
+  b.href = 'https://github.com/cozy-pi/cozysafe/releases/latest/download/' + f;
   b.textContent = 'Download for {p}'.replace('{p}', p);
 })();
 </script>
