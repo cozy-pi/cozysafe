@@ -49,3 +49,13 @@ Mockup v2 covers the vault home (quick add: camera, photos, files, note;
 recent items with thumbnails; photo and document grid; bottom navigation and a
 + button), the add sheet, note editor, file viewer, in-app camera, settings,
 Emergency Kit, and a three-column desktop layout, each in light and dark.
+
+### Folders (decided 2026-10-19)
+
+- Nested folders, like Files or a desktop: a folder holds items and folders,
+  and every item lives in exactly one place. Move by drag and drop or "Move to".
+- Importing a whole folder from the computer keeps its structure.
+- The Library tab still shows every photo by date regardless of folder;
+  Collections shows types (Photos, Documents, Notes, Recently deleted) and
+  the user's folders.
+- Folder names are encrypted like everything else (never plain file names on disk).
