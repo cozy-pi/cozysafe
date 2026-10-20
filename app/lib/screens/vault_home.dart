@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -105,10 +106,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (VaultHomeScreen.debugReveal) _reveal.forward();
   }
 
-  /// Which vault just opened: its icon in the middle as the unlock effect fades out, held a
-  /// moment, then fading away (docs/ui.md, Black and white). Vaults have no name.
+  /// Which vault just opened: on the plain page, its icon comes in as the unlock effect
+  /// ends, holds, fades; only then does the content show (docs/ui.md). Vaults have no name.
   late final AnimationController _reveal =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1900));
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 2000));
 
   @override
   void dispose() {
@@ -476,7 +477,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         onNewVault: _newVault,
       ),
     ));
-    if (!_locked) _touch(); // the auto-lock time may have changed
+    if (!_locked) {
+      _touch(); // the auto-lock time may have changed
+      setState(() {}); // and the side of the main action
+    }
   }
 
   /// Creating another vault locks this one first (one open at a time). Only the phone's
@@ -1125,21 +1129,35 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   /// After the unlock spin (it ends ~0.45 s after this screen appears): fade in, hold,
   /// fade out. Taps go through; nothing waits for it.
-  Widget _revealOverlay() => IgnorePointer(
+  Widget _revealOverlay() => Positioned.fill(
         child: AnimatedBuilder(
           animation: _reveal,
           builder: (context, _) {
+            // Off for still shots, and gone once it has played.
+            if (!VaultHomeScreen.debugReveal || _reveal.isCompleted) return const SizedBox.shrink();
             final t = _reveal.value;
-            if (t == 0 || t == 1) return const SizedBox.shrink();
             double seg(double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
-            final opacity = t < .34 ? Curves.easeOut.transform(seg(.24, .34)) : 1 - Curves.easeIn.transform(seg(.72, 1));
-            final scale = .9 + .1 * Curves.easeOut.transform(seg(.24, .4));
-            return Center(
+            // The vault's content stays hidden under the page colour until the icon has come
+            // and gone: icon in, hold, icon out, then the content shows (docs/ui.md).
+            final icon = t < .4 ? Curves.easeOut.transform(seg(.22, .32)) : 1 - Curves.easeIn.transform(seg(.58, .74));
+            final cover = 1 - Curves.easeOut.transform(seg(.76, 1));
+            final scale = .9 + .1 * Curves.easeOut.transform(seg(.22, .38));
+            // Nothing under the cover can be tapped while it is up.
+            return AbsorbPointer(
+              absorbing: cover > .5,
               child: Opacity(
-                opacity: opacity,
-                child: Transform.scale(
-                  scale: scale,
-                  child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 112, ring: true),
+                opacity: cover,
+                child: ColoredBox(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  child: Center(
+                    child: Opacity(
+                      opacity: icon,
+                      child: Transform.scale(
+                        scale: scale,
+                        child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 112, ring: true),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             );
@@ -1235,7 +1253,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   header,
                   if (!_recordingNow) _tagChips(context),
                   ?banner,
-                  Expanded(child: MediaQuery.removePadding(context: context, removeBottom: true, child: _content(context))),
+                  Expanded(
+                    child: MediaQuery.removePadding(
+                      context: context,
+                      removeBottom: true,
+                      // A short fade when the section or the open group changes.
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 150),
+                        child: KeyedSubtree(key: ValueKey('${_section.name}/$_tagId'), child: _content(context)),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1281,7 +1309,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   ),
                 ),
               ),
-              Positioned(left: 7, bottom: bottom + 10 + 50 + 14, child: _actionButton(context)),
+              // Above the lock (left thumb), or on the right if chosen in Settings.
+              Positioned(
+                left: actionOnRight() ? null : 7,
+                right: actionOnRight() ? 7 : null,
+                bottom: bottom + 10 + 50 + 14,
+                child: _actionButton(context),
+              ),
             ],
             _revealOverlay(),
           ],
@@ -1488,7 +1522,17 @@ class _SelectionBar extends StatelessWidget {
   }
 }
 
-/// A note: title, two lines of what follows, and the date. Every row the same height.
+/// When a note was made, short: the time today, the weekday this week, else the date.
+String _shortWhen(BuildContext context, DateTime d) {
+  final ml = MaterialLocalizations.of(context);
+  final now = DateTime.now();
+  final days = DateTime(now.year, now.month, now.day).difference(DateTime(d.year, d.month, d.day)).inDays;
+  if (days <= 0) return ml.formatTimeOfDay(TimeOfDay.fromDateTime(d), alwaysUse24HourFormat: true);
+  if (days < 7) return DateFormat.EEEE(Localizations.localeOf(context).toLanguageTag()).format(d);
+  return ml.formatShortDate(d);
+}
+
+/// A note: title, then the date and the first words on one line.
 class _NoteRow extends StatelessWidget {
   const _NoteRow({
     required this.item,
@@ -1507,7 +1551,7 @@ class _NoteRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final when = MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs));
+    final when = _shortWhen(context, dateOf(item.createdMs));
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -1526,20 +1570,24 @@ class _NoteRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 2),
-                  SizedBox(
-                    height: 38,
-                    child: FutureBuilder<String>(
-                      future: preview,
-                      builder: (context, snap) => Text(
-                        snap.data ?? '',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.4),
-                      ),
+                  const SizedBox(height: 3),
+                  // One line, as in iPhone Notes: when, then the first words. Every row
+                  // the same height, with no gap under a short note.
+                  FutureBuilder<String>(
+                    future: preview,
+                    builder: (context, snap) => Text.rich(
+                      TextSpan(children: [
+                        TextSpan(
+                          text: when,
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .75)),
+                        ),
+                        if ((snap.data ?? '').isNotEmpty) TextSpan(text: '   ${snap.data}'),
+                      ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: c.muted, fontSize: 13.5),
                     ),
                   ),
-                  Text(when, style: TextStyle(color: c.muted, fontSize: 12)),
                 ],
               ),
             ),

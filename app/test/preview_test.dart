@@ -294,7 +294,7 @@ void main() {
     });
   }
   // After the unlock spin: the vault's icon in the middle, then it fades (docs/ui.md).
-  for (final (ms, what) in [(900, 'biểu tượng két hiện'), (1600, 'mờ dần')]) {
+  for (final (ms, what) in [(900, 'nền trơn, biểu tượng két'), (1350, 'biểu tượng mờ dần'), (1800, 'dữ liệu hiện ra')]) {
     _screen('reveal-$ms', 'Vừa mở · $ms ms · $what', home, section: 'library', after: 0,
         setup: () => VaultHomeScreen.debugReveal = true, act: (t) async {
       await t.pump(Duration(milliseconds: ms - 800));

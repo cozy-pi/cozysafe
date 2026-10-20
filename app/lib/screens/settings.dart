@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../item_kind.dart';
 import '../prefs.dart';
 import '../widgets/identity.dart';
+import '../widgets/vault_bar.dart';
 import 'delete_vault.dart';
 import 'file_view.dart';
 import 'set_pin.dart';
@@ -136,6 +137,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() {});
   }
 
+  /// The main action floats on the left (under the left thumb) or the right.
+  Future<void> _pickActionSide() async {
+    final l = AppLocalizations.of(context);
+    final right = actionOnRight();
+    final picked = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (r, label) in [(false, l.sideLeft), (true, l.sideRight)])
+              ListTile(
+                title: Text(label),
+                trailing: r == right ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
+                onTap: () => Navigator.pop(context, r),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    Prefs.write(actionSidePref, picked ? 'right' : 'left');
+    setState(() {});
+  }
+
   Future<void> _pickAutoLock() async {
     final l = AppLocalizations.of(context);
     final picked = await showModalBottomSheet<int>(
@@ -242,7 +269,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: _Mau.xanhLa,
                 // The device's own symbol: the Face ID glyph, or a fingerprint (biometric.dart).
                 glyph: BiometricGlyph(kind: _bioKind, size: 19, color: Colors.white),
-                title: l.biometricThisVault,
+                title: _bioKind == BiometricKind.face ? l.biometricThisVault : l.fingerprintThisVault,
                 trailing: _Switch(
                   value: widget.biometricOn(),
                   onChanged: (_) => _then(widget.onToggleBiometric),
@@ -294,6 +321,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l.showKit,
                 onTap: widget.onShowKit,
               ),
+          ]),
+          _Group(title: l.settingsDisplay, rows: [
+            _Row(
+              icon: Icons.back_hand_outlined,
+              color: _Mau.cam,
+              title: l.actionSide,
+              value: actionOnRight() ? l.sideRight : l.sideLeft,
+              onTap: _pickActionSide,
+            ),
           ]),
           _Group(title: l.settingsSecurity, rows: [
             _Row(

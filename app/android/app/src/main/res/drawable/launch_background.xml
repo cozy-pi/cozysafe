@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Splash: vault green with the dial, the same as the lock screen. -->
+<!-- Splash: the page colour with the dial in ink, light or dark, as in the app. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/splash_background" />
     <item android:width="120dp" android:height="120dp" android:gravity="center">

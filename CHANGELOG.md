@@ -4,6 +4,22 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.9 (2026-10-20)
+
+### Changed
+- Unlocking: after the dial, the vault's icon shows alone on a plain screen and fades,
+  and only then does the vault's content appear.
+- The launch screen is black and white too (white or black, following the phone).
+- Recording and video are red again, as on any phone; Settings icons have colours; the
+  biometrics row shows the real Face ID symbol (or a fingerprint, with matching words).
+- Messages ("Moved to Recently deleted · Undo") float as glass beside the main button,
+  never over the bottom bar.
+- Notes list: one line with when the note was made and its first words, like iPhone Notes.
+- A short fade when switching sections or groups; softer shadows.
+
+### Added
+- Settings → Display → Add button: put the main button on the left (default) or right.
+
 ## 0.1.8 (2026-10-20)
 
 ### Changed

@@ -8,7 +8,7 @@ import 'vault_bar.dart';
 /// Inside a vault the bottom row is our own floating glass (the lock and the sections),
 /// not a real bottom bar, so a SnackBar does not know to keep clear of it and lands on top
 /// of it (reported 2026-10-20). There, pass [besideAction]: the message sits on the row of
-/// the main action button, to its right, above the bar.
+/// the main action button, beside it (on the side away from the screen edge), above the bar.
 void showToast(
   BuildContext context,
   String text, {
@@ -24,9 +24,13 @@ void showToast(
     backgroundColor: Colors.transparent,
     elevation: 0,
     padding: EdgeInsets.zero,
-    // Beside the action button (56 wide at left 7, its bottom 10 + 50 + 14 above the
-    // safe area): start after it, sit on its row, centred on its height.
-    margin: besideAction ? const EdgeInsets.fromLTRB(7 + 56 + 10, 0, 10, 10 + 50 + 14 + 2) : const EdgeInsets.fromLTRB(12, 0, 12, 10),
+    // Beside the action button (56 wide, 7 from the edge it is on, its bottom 10 + 50 + 14
+    // above the safe area): on the other side of it, on its row, centred on its height.
+    margin: !besideAction
+        ? const EdgeInsets.fromLTRB(12, 0, 12, 10)
+        : actionOnRight()
+            ? const EdgeInsets.fromLTRB(10, 0, 7 + 56 + 10, 10 + 50 + 14 + 2)
+            : const EdgeInsets.fromLTRB(7 + 56 + 10, 0, 10, 10 + 50 + 14 + 2),
     duration: Duration(seconds: actionLabel == null ? 3 : 5),
     content: _Toast(
       text: text,

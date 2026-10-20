@@ -295,5 +295,10 @@
   "captureAudio": "Ghi âm {when}",
   "secretShow": "Xem",
   "secretHide": "Ẩn",
-  "ownerCheckSettings": "Xác nhận là bạn để đổi cài đặt bảo mật"
+  "ownerCheckSettings": "Xác nhận là bạn để đổi cài đặt bảo mật",
+  "settingsDisplay": "Hiển thị",
+  "actionSide": "Nút thêm",
+  "sideLeft": "Bên trái",
+  "sideRight": "Bên phải",
+  "fingerprintThisVault": "Vân tay mở két này"
 }

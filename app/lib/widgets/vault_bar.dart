@@ -28,6 +28,10 @@ bool debugCamera = false;
 
 const _sectionPref = 'vault-section';
 
+/// Which side the main action floats on: left (default, under the left thumb) or right.
+const actionSidePref = 'action-side';
+bool actionOnRight() => Prefs.read(actionSidePref) == 'right';
+
 /// The section the vault opens on: the last one used (0.1.6 kept it as `vault-kind`).
 VaultSection startSection() {
   final saved = Prefs.read(_sectionPref) ?? Prefs.read('vault-kind');
@@ -61,7 +65,7 @@ class Glass extends StatelessWidget {
         color: plain ? Color.alphaBlend(ink.withValues(alpha: dark ? .12 : .04), page) : fill,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: ink.withValues(alpha: dark ? .14 : .08)),
-        boxShadow: const [BoxShadow(color: Color(0x1F000000), blurRadius: 18, offset: Offset(0, 6))],
+        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 4))],
       ),
       child: child,
     );
@@ -203,8 +207,8 @@ class ActionButton extends StatelessWidget {
       child: Material(
         color: c,
         shape: const CircleBorder(),
-        elevation: 4,
-        shadowColor: c.withValues(alpha: .35),
+        elevation: 2,
+        shadowColor: c.withValues(alpha: .25),
         child: InkWell(
           key: const ValueKey('vault-action'),
           customBorder: const CircleBorder(),

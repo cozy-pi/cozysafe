@@ -4,7 +4,8 @@ import UIKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   /// Covers the window while the app is not active, so the app switcher snapshot
-  /// shows the dial on vault green instead of what was on screen.
+  /// shows the dial on the page colour (white or black, as the phone is set) instead of
+  /// what was on screen.
   private var covers: [ObjectIdentifier: UIView] = [:]
   /// Set by Dart while the Face ID prompt is up: the prompt makes the app inactive, and a
   /// cover then would hide the vault opening (lib/privacy.dart).
@@ -54,7 +55,7 @@ import UIKit
           covers[ObjectIdentifier(scene)] == nil else { return }
     let cover = UIView(frame: window.bounds)
     cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-    cover.backgroundColor = UIColor(red: 0x0F / 255, green: 0x3D / 255, blue: 0x33 / 255, alpha: 1)
+    cover.backgroundColor = .systemBackground // white, or black in dark mode, like the app
     let dial = UIImageView(image: UIImage(named: "LaunchImage"))
     dial.center = CGPoint(x: cover.bounds.midX, y: cover.bounds.midY)
     dial.autoresizingMask = [.flexibleLeftMargin, .flexibleRightMargin, .flexibleTopMargin, .flexibleBottomMargin]

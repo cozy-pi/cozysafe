@@ -343,9 +343,13 @@ name) are kept.
   everything else is that ink at an opacity: cards, chips, glass, muted text, the
   selection bar (ink, with page-coloured words). Light and dark follow the system.
 - The one colour left: **a vault's own icon and colour** (`VaultBadge`), so you know
-  which vault is open. Shown big in the middle right after unlocking (after the dial
-  effect, which keeps its motion in ink), then it fades; in Settings; when creating a
-  vault (the colour step stays). No vault icon in the vault's header any more.
+  which vault is open; in Settings; when creating a vault (the colour step stays). No vault
+  icon in the vault's header any more.
+- **Unlocking, in order** (owner 2026-10-20): the dial effect (its motion, in ink) → on the
+  plain page colour, the vault's icon comes in, holds, fades → only then does the content
+  show. Nothing of the vault is visible or tappable before the icon has gone.
+- **Splash** (Android, iOS) and the app-switcher cover (iOS): the page colour with the dial
+  in ink, white/black following the phone's light or dark mode.
 - Users' photos and videos keep their colours, of course.
 - **Recording is red** (owner 2026-10-20, replaces "recording and video are not red"): the
   voice button (white mic on red), the video shutter, the running timers and the level meter
@@ -355,7 +359,11 @@ name) are kept.
 - **Settings tiles have colour** (owner 2026-10-20): each row's symbol is white on its own iOS
   system colour. Biometrics show the device's real symbol (Face ID glyph, or a fingerprint).
 - Messages float as a glass capsule (`showToast`, widgets/toast.dart); in a vault they sit on
-  the row of the main action, to its right, never over the bottom bar.
+  the row of the main action, beside it, never over the bottom bar.
+- **Main action on the left or right** (Settings → Display → Add button; left by default,
+  under the left thumb). Messages move to the other side of it.
+- Notes list: title, then one line "when · first words" (time today, weekday this week,
+  else the date), as in iPhone Notes. Sections and groups change with a short fade.
 - Deleting a vault uses the opposite brightness (light when the app is dark, and the
   reverse) instead of red, so it is never taken for the lock screen.
 - Security rules (owner check, hidden secrets): `docs/security.md`.

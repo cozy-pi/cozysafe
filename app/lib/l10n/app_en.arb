@@ -451,5 +451,10 @@
   },
   "secretShow": "Show",
   "secretHide": "Hide",
-  "ownerCheckSettings": "Confirm it's you to change security settings"
+  "ownerCheckSettings": "Confirm it's you to change security settings",
+  "settingsDisplay": "Display",
+  "actionSide": "Add button",
+  "sideLeft": "Left",
+  "sideRight": "Right",
+  "fingerprintThisVault": "Fingerprint opens this vault"
 }
