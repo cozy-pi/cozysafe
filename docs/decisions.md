@@ -6,6 +6,17 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-20
 
+**0.1.9: exceptions to black and white, and unlocking in order.** Owner: recording and video
+controls stay red, Settings icons keep colours, the biometrics row shows the real Face ID
+symbol (wording follows Face ID or fingerprint). Unlocking: dial, then the vault's icon alone
+on a plain screen, it fades, then the content. Launch screen black and white. Main action on
+the left or right (Settings → Display). Removing originals from the phone's photo library
+after adding them: wanted, always with the user's confirmation (open: see below).
+
+**Commit messages may name the assistant.** Two commits were pushed with an assistant
+trailer; the owner chose not to rewrite history ("cứ để Claude cũng được"). Personal names
+and emails stay out of the repository.
+
 **Releases: each platform ships as soon as it is built, and store keys stay out of build
 jobs.** Owner: Android and iOS wait for nobody; after weighing the risk (a hijacked build
 package could read a key in the same job), uploads go in separate jobs. Play: a `play` job
