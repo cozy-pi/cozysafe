@@ -336,3 +336,19 @@ bare number): the kind and the moment, `áº¢nh 20-10-2026 21.40.12.jpg`, `Video â
 as a file name when sent out. Names a person or camera gave (`IMG_4810.HEIC`, a PDF's
 name) are kept.
 
+
+## Black and white (approved 2026-10-20)
+
+- One ink (white in dark mode, black in light) on the page colour (black / white);
+  everything else is that ink at an opacity: cards, chips, glass, muted text, the
+  selection bar (ink, with page-coloured words). Light and dark follow the system.
+- The one colour left: **a vault's own icon and colour** (`VaultBadge`), so you know
+  which vault is open. Shown big in the middle right after unlocking (after the dial
+  effect, which keeps its motion in ink), then it fades; in Settings; when creating a
+  vault (the colour step stays). No vault icon in the vault's header any more.
+- Users' photos and videos keep their colours, of course.
+- Recording and video are not red: the mic button is ink; the video shutter is a smaller
+  disc than the photo one and turns into a square while recording.
+- Deleting a vault uses the opposite brightness (light when the app is dark, and the
+  reverse) instead of red, so it is never taken for the lock screen.
+- Security rules (owner check, hidden secrets): `docs/security.md`.

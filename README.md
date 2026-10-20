@@ -116,6 +116,7 @@ with the desktop builds and the APK. Write the changes under that version in
 | [Plan for v0.1](docs/plan-v0.1.md) | Stages and progress |
 | [Decisions](docs/decisions.md) | What was decided, when, and what is still open |
 | [Supply chain](docs/supply-chain.md) | How no library can send data out, and the limits |
+| [Security rules](docs/security.md) | Owner check on security settings; secrets hidden on screen |
 | [UI](docs/ui.md) | Approved designs, and how mockups are made |
 | [Naming](docs/naming.md) | One name per concept; how stored names may change |
 | [Decision records](docs/adr/) | Why each technical choice was made |

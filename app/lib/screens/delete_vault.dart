@@ -5,14 +5,15 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../theme.dart';
 import '../widgets/pin_pad.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'new_vault.dart';
 import 'unlock.dart';
 
-/// Delete the open vault, confirmed with its own PIN. Red, so it is never taken for the
-/// lock screen. Wrong PINs count towards the same waits as the PIN pad.
+/// Delete the open vault, confirmed with its own PIN. In the opposite brightness (light when the app is dark, and the reverse), so it is
+/// never taken for the lock screen. Wrong PINs count towards the same waits as the PIN pad.
 class DeleteVaultScreen extends StatefulWidget {
   const DeleteVaultScreen({
     super.key,
@@ -31,8 +32,6 @@ class DeleteVaultScreen extends StatefulWidget {
 }
 
 class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
-  static const _bg = Color(0xFF3A1210);
-  static const _ink = Color(0xFFFFB4AB);
   String _pin = '';
   String? _error;
   bool _busy = false;
@@ -79,6 +78,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
         return;
       }
       await PinStore.resetFails();
+      if (!mounted) return;
       await LockGuard.clearCopied();
       if (!mounted) return;
       final any = rust.hasVaults(dir: widget.libraryDir);
@@ -104,10 +104,15 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final inverted = Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark;
+    return Theme(data: buildTheme(inverted), child: Builder(builder: _page));
+  }
+
+  Widget _page(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final ink = Theme.of(context).colorScheme.onSurface;
     return Scaffold(
-      backgroundColor: _bg,
-      appBar: AppBar(backgroundColor: Colors.transparent, foregroundColor: Colors.white),
+      appBar: AppBar(backgroundColor: Colors.transparent, foregroundColor: ink),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -120,35 +125,35 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
                   const SizedBox(height: 14),
                   Text(l.deleteVaultTitle,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                      style: TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
                   Text(
                     l.deleteVaultBody(widget.sizeText),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xD9FFFFFF), height: 1.45),
+                    style: TextStyle(color: ink.withValues(alpha: .85), height: 1.45),
                   ),
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: _ink.withValues(alpha: .14),
+                      color: ink.withValues(alpha: .08),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(_error ?? l.deleteVaultPin,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            color: _error != null ? _ink : const Color(0xFFFFD9D4),
+                            color: ink,
                             fontWeight: _error != null ? FontWeight.w600 : FontWeight.w400)),
                   ),
                   const SizedBox(height: 16),
-                  SizedBox(height: 20, child: PinDots(filled: _pin.length, color: _ink)),
+                  SizedBox(height: 20, child: PinDots(filled: _pin.length, color: ink)),
                   const SizedBox(height: 16),
                   PinPad(onDigit: _digit, onDelete: _back, enabled: !_busy),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: 240,
                     child: FilledButton(
-                      style: FilledButton.styleFrom(backgroundColor: _ink, foregroundColor: _bg),
+                      style: FilledButton.styleFrom(),
                       onPressed: _pin.length >= 4 && !_busy ? _confirm : null,
                       child: Text(l.deleteVaultAction),
                     ),

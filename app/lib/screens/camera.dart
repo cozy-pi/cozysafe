@@ -90,10 +90,10 @@ class _CameraScreenState extends State<CameraScreen> {
                     if (_recording)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(color: const Color(0xFFE5484D), borderRadius: BorderRadius.circular(10)),
+                        decoration: BoxDecoration(color: ink, borderRadius: BorderRadius.circular(10)),
                         child: Text(
                           '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15,
+                          style: TextStyle(color: Theme.of(context).scaffoldBackgroundColor, fontWeight: FontWeight.w700, fontSize: 15,
                               fontFeatures: [FontFeature.tabularFigures()]),
                         ),
                       ),
@@ -210,9 +210,10 @@ class _CameraScreenState extends State<CameraScreen> {
                           padding: const EdgeInsets.all(5),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 180),
-                            margin: EdgeInsets.all(_recording ? 16 : 0),
+                            // Photo: a full disc. Video: a smaller disc. Recording: a square.
+                            margin: EdgeInsets.all(_recording ? 16 : (_video ? 9 : 0)),
                             decoration: BoxDecoration(
-                              color: _video ? const Color(0xFFE5484D) : ink,
+                              color: ink,
                               borderRadius: BorderRadius.circular(_recording ? 6 : 40),
                             ),
                           ),

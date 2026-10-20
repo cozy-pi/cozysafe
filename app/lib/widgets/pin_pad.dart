@@ -19,14 +19,15 @@ class PinPad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final ink = Theme.of(context).colorScheme.onSurface;
     Widget key(String d) => _Key(
       onTap: enabled ? () => onDigit(d) : null,
       child: Text(
         d,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.w500,
-          color: Colors.white,
+          color: ink,
         ),
       ),
     );
@@ -64,9 +65,9 @@ class PinPad extends StatelessWidget {
               child: _Key(
                 ghost: true,
                 onTap: enabled ? onDelete : null,
-                child: const Icon(
+                child: Icon(
                   Icons.backspace_outlined,
-                  color: Colors.white,
+                  color: ink,
                   size: 26,
                 ),
               ),
@@ -88,7 +89,7 @@ class _Key extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: ghost ? Colors.transparent : const Color(0x29FFFFFF),
+      color: ghost ? Colors.transparent : Theme.of(context).colorScheme.onSurface.withValues(alpha: .1),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

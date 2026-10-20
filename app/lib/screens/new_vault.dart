@@ -147,7 +147,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       await playVaultSpin(
         context,
         opening: true,
-        color: vaultColors[_color].color,
         onCovered: () => nav.pushAndRemoveUntil(
           PageRouteBuilder<void>(
             transitionDuration: Duration.zero,
@@ -219,7 +218,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final tint = backdropTint(vaultColors[_color].color);
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    final ink = Theme.of(context).colorScheme.onSurface;
     final progress = _step == _Step.confirm ? 2 : _step.index;
     final title = switch (_step) {
       _Step.icon => widget.first ? l.firstVaultTitle : l.newVaultTitle,
@@ -239,7 +239,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           count: gridCount,
           selected: _icon < gridCount ? _icon : -1,
           moreSelected: _icon >= gridCount,
-          tile: (i) => Icon(vaultIcons[i].icon, color: Colors.white, size: 34),
+          tile: (i) => Icon(vaultIcons[i].icon, color: ink, size: 34),
           label: (i) => vaultIcons[i].label,
           onTap: _pickIcon,
           onMore: () async {
@@ -267,9 +267,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           children: [
             _Shake(
               trigger: _shake,
-              child: PinDots(filled: _pin.length,
-                color: Brand.gold,
-              ),
+              child: PinDots(filled: _pin.length, color: ink),
             ),
             const SizedBox(height: 22),
             PinPad(onDigit: _digit, onDelete: _delete, enabled: !_busy),
@@ -278,16 +276,12 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
               height: 46,
               child: _step == _Step.pin
                   ? FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Brand.gold,
-                        foregroundColor: Brand.goldInk,
-                        minimumSize: const Size(180, 46),
-                      ),
+                      style: FilledButton.styleFrom(minimumSize: const Size(180, 46)),
                       onPressed: _pin.length >= 4 ? _next : null,
                       child: Text(l.pinNext),
                     )
                   : _busy
-                      ? const Center(child: SizedBox.square(dimension: 24, child: CircularProgressIndicator(color: Colors.white)))
+                      ? Center(child: SizedBox.square(dimension: 24, child: CircularProgressIndicator(color: ink)))
                       : null,
             ),
           ],
@@ -301,10 +295,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         if (!didPop && _step.index > 0 && !_busy) _back();
       },
       child: Scaffold(
-      backgroundColor: tint,
+      backgroundColor: page,
       body: Stack(
         children: [
-          Positioned.fill(child: VaultBackdrop(tint: tint)),
+          const Positioned.fill(child: VaultBackdrop()),
           SafeArea(
             child: Column(
               children: [
@@ -319,7 +313,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                             duration: const Duration(milliseconds: 200),
                             height: 4,
                             decoration: BoxDecoration(
-                              color: i <= progress ? Brand.gold : const Color(0x38FFFFFF),
+                              color: i <= progress ? ink : ink.withValues(alpha: .22),
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -351,14 +345,14 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                                 Text(
                                   title,
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w700),
+                                  style: TextStyle(color: ink, fontSize: 23, fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   hint,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: _error != null && _step.index >= 2 ? const Color(0xFFFFB4AB) : const Color(0xC7FFFFFF),
+                                    color: _error != null && _step.index >= 2 ? ink : ink.withValues(alpha: .78),
                                     fontWeight: _error != null ? FontWeight.w600 : FontWeight.w400,
                                   ),
                                 ),
@@ -369,13 +363,13 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: Brand.gold.withValues(alpha: .16),
+                                      color: ink.withValues(alpha: .08),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
                                       l.pinNoRecovery,
                                       textAlign: TextAlign.center,
-                                      style: const TextStyle(color: Brand.gold, fontSize: 13, height: 1.4),
+                                      style: TextStyle(color: ink, fontSize: 13, height: 1.4),
                                     ),
                                   ),
                                 ],
@@ -392,7 +386,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                 ),
                 if (widget.first && _step == _Step.icon)
                   TextButton(
-                    style: TextButton.styleFrom(foregroundColor: const Color(0xD9FFFFFF)),
+                    style: TextButton.styleFrom(foregroundColor: ink.withValues(alpha: .85)),
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
                       builder: (_) => RestoreScreen(libraryDir: widget.libraryDir, needFile: true),
                     )),
@@ -442,6 +436,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     required String moreLabel,
     Color Function(int)? tileColor,
   }) {
+    final ink = Theme.of(context).colorScheme.onSurface;
     Widget cell({required bool on, required VoidCallback tap, required String semantics, required Widget child, Color? bg}) {
       return Semantics(
         button: true,
@@ -452,9 +447,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             decoration: BoxDecoration(
-              color: bg ?? const Color(0x1AFFFFFF),
+              color: bg ?? ink.withValues(alpha: .08),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: on ? Brand.gold : Colors.transparent, width: 3),
+              border: Border.all(color: on ? ink : Colors.transparent, width: 3),
             ),
             child: Center(child: child),
           ),
@@ -476,7 +471,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           on: moreSelected,
           tap: onMore,
           semantics: moreLabel,
-          child: const Icon(Icons.more_horiz, color: Colors.white, size: 30),
+          child: Icon(Icons.more_horiz, color: ink, size: 30),
         ),
       ],
     );
@@ -535,10 +530,10 @@ class _BottomButton extends StatelessWidget {
   Widget build(BuildContext context) => TextButton(
         onPressed: onTap,
         style: TextButton.styleFrom(
-          foregroundColor: Colors.white,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
           minimumSize: const Size(96, 52),
           padding: const EdgeInsets.symmetric(horizontal: 18),
-          backgroundColor: const Color(0x1FFFFFFF),
+          backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: .1),
           shape: const StadiumBorder(),
           textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
         ),

@@ -292,5 +292,8 @@
   "tagEmpty": "Nhóm này chưa có gì ở mục này.",
   "capturePhoto": "Ảnh {when}",
   "captureVideo": "Video {when}",
-  "captureAudio": "Ghi âm {when}"
+  "captureAudio": "Ghi âm {when}",
+  "secretShow": "Xem",
+  "secretHide": "Ẩn",
+  "ownerCheckSettings": "Xác nhận là bạn để đổi cài đặt bảo mật"
 }

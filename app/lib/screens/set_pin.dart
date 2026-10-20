@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
-import '../theme.dart';
 import '../widgets/pin_pad.dart';
 import '../widgets/brand.dart';
 import 'common.dart';
@@ -109,17 +108,17 @@ class _SetPinScreenState extends State<SetPinScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final confirming = _first != null;
+    final ink = Theme.of(context).colorScheme.onSurface;
     return Scaffold(
-      backgroundColor: Brand.deep,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: ink,
         automaticallyImplyLeading: !widget.skippable,
         actions: [
           if (widget.skippable)
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              style: TextButton.styleFrom(foregroundColor: ink),
               child: Text(l.notNow),
             ),
         ],
@@ -138,19 +137,19 @@ class _SetPinScreenState extends State<SetPinScreen> {
                     Text(
                       confirming ? l.pinConfirmTitle : (widget.forThisPhone ? l.pinThisPhoneTitle : l.pinSetTitle),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700),
+                      style: TextStyle(color: ink, fontSize: 24, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       confirming ? l.pinConfirmLead : (widget.forThisPhone ? l.pinThisPhoneLead : l.pinSetLead),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Color(0xCCFFFFFF), height: 1.45),
+                      style: TextStyle(color: ink.withValues(alpha: .8), height: 1.45),
                     ),
                     const SizedBox(height: 22),
                     SizedBox(
                       height: 20,
                       child: PinDots(filled: _pin.length,
-                        color: Brand.gold,
+                        color: ink,
                       ),
                     ),
                     SizedBox(
@@ -160,7 +159,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
                           _error ?? (!confirming && _pin.length < 6 && _pin.length >= _min ? l.pinShortNote : ''),
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: _error != null ? const Color(0xFFFFB4AB) : const Color(0xB3FFFFFF),
+                            color: _error != null ? ink : ink.withValues(alpha: .7),
                             fontSize: 13,
                             fontWeight: _error != null ? FontWeight.w600 : FontWeight.w400,
                           ),
@@ -173,7 +172,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
                       SizedBox(
                         width: 220,
                         child: FilledButton(
-                          style: FilledButton.styleFrom(backgroundColor: Brand.gold, foregroundColor: Brand.goldInk),
+                          style: FilledButton.styleFrom(),
                           onPressed: _pin.length >= _min ? _next : null,
                           child: Text(l.pinNext),
                         ),

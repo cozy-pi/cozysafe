@@ -129,20 +129,24 @@ class VaultPalette {
 ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   final dark = brightness == Brightness.dark;
   final p = vault == null ? null : VaultPalette(vault, brightness);
-  final bg = p?.bg ?? (dark ? Brand.night : const Color(0xFFF4F5F4));
-  final surface = p?.surface ?? (dark ? const Color(0xFF12342C) : const Color(0xFFFFFFFF));
-  final ink = p?.ink ?? (dark ? const Color(0xFFE9ECEB) : const Color(0xFF1A1D1F));
-  // B2: green actions on light, gold actions on dark; inside a vault, its colour.
-  final accent = p?.accent ?? (dark ? Brand.gold : Brand.green);
-  final accentInk = p?.onAccent ?? (dark ? Brand.goldInk : const Color(0xFFFFFFFF));
-  final danger = dark ? const Color(0xFFF0A196) : const Color(0xFFB3261E);
+  // Black and white (docs/ui.md, Black and white): one ink, black or white, and the page
+  // the other way round; everything else is that ink at an opacity. No other colour.
+  final page = dark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
+  final pen = dark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+  Color tone(double alpha) => Color.alphaBlend(pen.withValues(alpha: alpha), page);
+  final bg = p?.bg ?? page;
+  final surface = p?.surface ?? tone(dark ? .09 : .045);
+  final ink = p?.ink ?? pen;
+  final accent = p?.accent ?? pen;
+  final accentInk = p?.onAccent ?? page;
+  final danger = pen;
   final colors = CsColors(
-    muted: p?.muted ?? (dark ? const Color(0xFFA2AAA6) : const Color(0xFF5C6369)),
-    soft: p?.soft ?? (dark ? const Color(0xFF184036) : const Color(0xFFE3E9E6)),
-    border: p?.border ?? (dark ? const Color(0xFF2C5047) : const Color(0xFFD6DDD9)),
-    dock: p?.dock ?? Brand.dock,
-    warnBg: dark ? const Color(0xFF3A2F17) : const Color(0xFFFBF0DC),
-    warnInk: dark ? const Color(0xFFF1D294) : const Color(0xFF6B4300),
+    muted: p?.muted ?? tone(.6),
+    soft: p?.soft ?? tone(dark ? .14 : .08),
+    border: p?.border ?? tone(dark ? .18 : .12),
+    dock: p?.dock ?? pen,
+    warnBg: tone(dark ? .12 : .06),
+    warnInk: pen,
   );
 
   final scheme = ColorScheme(
@@ -152,7 +156,7 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
     secondary: accent,
     onSecondary: accentInk,
     error: danger,
-    onError: dark ? const Color(0xFF3A0D08) : const Color(0xFFFFFFFF),
+    onError: page,
     surface: surface,
     onSurface: ink,
     outline: colors.border,

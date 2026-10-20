@@ -4,6 +4,24 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.8 (2026-10-20)
+
+### Changed
+- Black and white: the whole app is one ink on the page colour, light or dark, following
+  the phone. The one colour left is your vault's own icon.
+- After unlocking, the vault's icon shows in the middle for a moment, so you know which
+  vault opened. The icon is no longer in the corner of the vault.
+- Recording and video are no longer red; deleting a vault uses the opposite brightness
+  instead of red.
+
+### Security
+- Every security setting asks for Face ID, fingerprint or the phone's passcode first:
+  biometrics on/off, PIN, auto-lock, blocked screenshots, backup, backup password,
+  Emergency Kit, delete vault.
+- Passwords and the Secret Key are hidden until you tap Show (the Secret Key hides again
+  after 30 seconds or when you leave the app), so nobody nearby, and no camera, sees them
+  by chance. Copying the Secret Key now clears the clipboard after 60 seconds.
+
 ## 0.1.7 (2026-10-20)
 
 ### Changed

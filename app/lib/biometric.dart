@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'lock_guard.dart';
 import 'platform.dart';
 import 'privacy.dart';
 import 'widgets/brand.dart';
@@ -110,6 +111,18 @@ Future<bool> confirmOwner(String reason) async {
     return await PrivacyCover.whileAsking(() => auth.authenticate(localizedReason: reason));
   } catch (_) {
     return false;
+  }
+}
+
+/// Every security setting asks who is holding the phone first (docs/security.md,
+/// security settings): Face ID, fingerprint, or the phone's passcode. The vault stays
+/// open while the system prompt is up.
+Future<bool> confirmOwnerForSetting(String reason) async {
+  LockGuard.allowAway();
+  try {
+    return await confirmOwner(reason);
+  } finally {
+    LockGuard.clear();
   }
 }
 

@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_guard.dart';
 import '../theme.dart';
+import '../widgets/secret.dart';
 import 'common.dart';
 
 /// The Secret Key, written for people. Shown once after the first vault (and later from
@@ -35,6 +37,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
   Future<void> _copy() async {
     final l = AppLocalizations.of(context);
     await Clipboard.setData(ClipboardData(text: widget.keyText));
+    LockGuard.copied(widget.keyText); // wiped from the clipboard after 60 s and on lock
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.kitCopied)));
   }
 
@@ -68,9 +71,8 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: c.border),
             ),
-            child: SelectableText(
-              widget.keyText,
-              textAlign: TextAlign.center,
+            child: SecretText(
+              text: widget.keyText,
               style: const TextStyle(
                 fontFamily: 'monospace',
                 fontFamilyFallback: ['Menlo', 'Consolas', 'Roboto Mono'],

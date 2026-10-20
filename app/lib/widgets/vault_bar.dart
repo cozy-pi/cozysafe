@@ -52,12 +52,15 @@ class Glass extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final plain = MediaQuery.highContrastOf(context);
-    final fill = dark ? const Color(0xC71C2422) : const Color(0xB8FFFFFF);
+    // Neutral glass: the page colour, translucent, with a hairline of ink.
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    final fill = Color.alphaBlend(ink.withValues(alpha: dark ? .12 : .04), page).withValues(alpha: dark ? .78 : .72);
     final box = DecoratedBox(
       decoration: BoxDecoration(
-        color: plain ? (dark ? const Color(0xFF1C2422) : Colors.white) : fill,
+        color: plain ? Color.alphaBlend(ink.withValues(alpha: dark ? .12 : .04), page) : fill,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: dark ? const Color(0x1FFFFFFF) : const Color(0xB3FFFFFF)),
+        border: Border.all(color: ink.withValues(alpha: dark ? .14 : .08)),
         boxShadow: const [BoxShadow(color: Color(0x1F000000), blurRadius: 18, offset: Offset(0, 6))],
       ),
       child: child,
@@ -185,15 +188,14 @@ class VaultBar extends StatelessWidget {
 /// The main action, floating above the lock (left thumb): one tap for notes and voice,
 /// a small menu for the library and files.
 class ActionButton extends StatelessWidget {
-  const ActionButton({super.key, required this.icon, required this.tooltip, required this.onTap, this.red = false});
+  const ActionButton({super.key, required this.icon, required this.tooltip, required this.onTap});
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
-  final bool red;
 
   @override
   Widget build(BuildContext context) {
-    final c = red ? const Color(0xFFE5484D) : Theme.of(context).colorScheme.primary;
+    final c = Theme.of(context).colorScheme.primary;
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -210,7 +212,7 @@ class ActionButton extends StatelessWidget {
           },
           child: SizedBox.square(
             dimension: 56,
-            child: Icon(icon, color: red ? Colors.white : Theme.of(context).colorScheme.onPrimary, size: 26),
+            child: Icon(icon, color: Theme.of(context).colorScheme.onPrimary, size: 26),
           ),
         ),
       ),

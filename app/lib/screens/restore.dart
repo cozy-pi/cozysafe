@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/secret.dart';
 import 'common.dart';
 import 'unlock.dart';
 
@@ -107,14 +108,12 @@ class _RestoreScreenState extends State<RestoreScreen> {
               label: BusyLabel(busy: _busy, idle: l.restorePick, working: l.restoring),
             )
           else ...[
-            TextField(
+            SecretField(
               controller: _key,
               enabled: !_busy,
-              autocorrect: false,
-              enableSuggestions: false,
-              enableIMEPersonalizedLearning: false,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(labelText: l.secretKeyLabel, hintText: 'CS1-XXXX-XXXX-…'),
+              capitalization: TextCapitalization.characters,
+              label: l.secretKeyLabel,
+              hint: 'CS1-XXXX-XXXX-…',
               onChanged: (_) => setState(() => _error = null),
               onSubmitted: (_) => _useKey(),
             ),

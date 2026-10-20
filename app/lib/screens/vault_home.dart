@@ -41,6 +41,9 @@ import '../item_kind.dart';
 /// sections, and the main action above the lock. Locks on leaving the
 /// app, after 2 minutes without a touch, or with the lock button.
 class VaultHomeScreen extends StatefulWidget {
+  /// For the mockup renders: the vault's icon shows after opening (off for still shots).
+  static bool debugReveal = true;
+
   const VaultHomeScreen({super.key, required this.libraryDir, required this.vault});
 
   final String libraryDir;
@@ -50,7 +53,7 @@ class VaultHomeScreen extends StatefulWidget {
   State<VaultHomeScreen> createState() => _VaultHomeScreenState();
 }
 
-class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingObserver {
+class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late rust.VaultInfo _vault = widget.vault;
   bool _locked = false;
   List<rust.ItemInfo>? _items;
@@ -98,10 +101,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // Touches anywhere count, also on the note editor or viewer pushed above this screen.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _touch();
+    if (VaultHomeScreen.debugReveal) _reveal.forward();
   }
+
+  /// Which vault just opened: its icon in the middle as the unlock effect fades out, held a
+  /// moment, then fading away (docs/ui.md, Black and white). Vaults have no name.
+  late final AnimationController _reveal =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1900));
 
   @override
   void dispose() {
+    _reveal.dispose();
     _idleTimer?.cancel();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
     if (LockGuard.onActivity == _touch) LockGuard.onActivity = null;
@@ -187,7 +197,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
 
     if (animate) {
-      playVaultSpin(context, opening: false, onCovered: go, color: _color);
+      playVaultSpin(context, opening: false, onCovered: go);
     } else {
       go();
     }
@@ -314,7 +324,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     return info != null;
   }
 
+  // Security settings (password, backup, Emergency Kit, biometrics) ask for the owner
+  // first, wherever they are opened from (docs/security.md, security settings).
   Future<void> _password() async {
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     final info = await Navigator.of(context).push<rust.VaultInfo>(
       MaterialPageRoute(builder: (_) => BackupPasswordScreen(libraryDir: widget.libraryDir, change: _vault.hasPassword)),
     );
@@ -326,6 +339,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// the temp copy.
   Future<void> _backup() async {
     final l = AppLocalizations.of(context);
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     if (!await _ensurePassword() || !mounted) return;
     if (await _confirmBackup(l) != true || !mounted) return;
     final d = DateTime.now();
@@ -398,6 +412,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       );
 
   Future<void> _showKit() async {
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     final key = await SecretKeyStore.read();
     if (key == null || !mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(
@@ -406,6 +421,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<void> _toggleBiometric() async {
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     final l = AppLocalizations.of(context);
     final store = BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel);
     if (_bioOn) {
@@ -984,18 +1000,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
       child: Row(
         children: [
-          if (open == null)
-            Semantics(
-              button: true,
-              label: l.changeIdentity,
-              child: GestureDetector(
-                onTap: _changeIdentity,
-                child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 34),
-              ),
-            )
-          else
+          // No vault icon here: it shows once when the vault opens; change it in Settings.
+          if (open != null) ...[
             GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, size: 38, onTap: () => setState(() => _tagId = null)),
-          const SizedBox(width: 10),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             child: Text(
               open?.name ?? sectionLabel(l, _section),
@@ -1114,6 +1123,30 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
+  /// After the unlock spin (it ends ~0.45 s after this screen appears): fade in, hold,
+  /// fade out. Taps go through; nothing waits for it.
+  Widget _revealOverlay() => IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _reveal,
+          builder: (context, _) {
+            final t = _reveal.value;
+            if (t == 0 || t == 1) return const SizedBox.shrink();
+            double seg(double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
+            final opacity = t < .34 ? Curves.easeOut.transform(seg(.24, .34)) : 1 - Curves.easeIn.transform(seg(.72, 1));
+            final scale = .9 + .1 * Curves.easeOut.transform(seg(.24, .4));
+            return Center(
+              child: Opacity(
+                opacity: opacity,
+                child: Transform.scale(
+                  scale: scale,
+                  child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 112, ring: true),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+
   Widget _actionButton(BuildContext context) {
     final l = AppLocalizations.of(context);
     final (icon, tip) = switch (_section) {
@@ -1122,7 +1155,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       VaultSection.audio => (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording),
       VaultSection.file => (Icons.add, l.addFiles),
     };
-    return ActionButton(key: _actionKey, icon: icon, tooltip: tip, red: _section == VaultSection.audio, onTap: _mainAction);
+    return ActionButton(key: _actionKey, icon: icon, tooltip: tip, onTap: _mainAction);
   }
 
   @override
@@ -1248,6 +1281,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
               Positioned(left: 7, bottom: bottom + 10 + 50 + 14, child: _actionButton(context)),
             ],
+            _revealOverlay(),
           ],
         ),
       ),
@@ -1418,6 +1452,8 @@ class _SelectionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final bottom = MediaQuery.paddingOf(context).bottom;
+    // The bar is ink; its icons and words are the page colour.
+    final page = Theme.of(context).scaffoldBackgroundColor;
     Widget action(IconData icon, String label, VoidCallback onTap) => Expanded(
           child: InkWell(
             onTap: onTap,
@@ -1426,9 +1462,9 @@ class _SelectionBar extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, color: Colors.white),
+                  Icon(icon, color: page),
                   const SizedBox(height: 4),
-                  Text(label, style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                  Text(label, style: TextStyle(color: page, fontSize: 12.5, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),

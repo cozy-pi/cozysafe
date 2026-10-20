@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
@@ -115,6 +116,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String get _sizeText => AppLocalizations.of(context).storageUsed(fileSize(_bytes), _count);
 
+  /// Security settings changed here ask for the owner first (docs/security.md); the ones
+  /// that live in the vault screen (password, backup, kit, biometrics) ask there.
+  Future<void> _guarded(Future<void> Function() action) async {
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
+    await action();
+  }
+
   Future<void> _then(Future<void> Function() action) async {
     await action();
     if (mounted) setState(() {});
@@ -208,13 +216,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Group(title: l.settingsThisVault, rows: [
             _Row(
               icon: Icons.palette_outlined,
-              tint: const Color(0xFFFF6482),
               title: l.changeIdentity,
               onTap: () => _then(widget.onChangeIdentity),
             ),
             _Row(
               icon: Icons.delete_sweep_outlined,
-              tint: const Color(0xFF8E8E93),
               title: l.recentlyDeleted,
               onTap: () => _then(widget.onOpenTrash),
             ),
@@ -223,7 +229,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (widget.canBiometric)
               _Row(
                 icon: Icons.face_retouching_natural,
-                tint: const Color(0xFF34C759),
                 title: l.biometricThisVault,
                 trailing: _Switch(
                   value: widget.biometricOn(),
@@ -232,23 +237,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             _Row(
               icon: Icons.dialpad,
-              tint: const Color(0xFF5E5CE6),
               title: l.pinTitle,
               value: l.change,
-              onTap: () => Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen())),
+              onTap: () => _guarded(() => Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen()))),
             ),
             _Row(
               icon: Icons.timer_outlined,
-              tint: const Color(0xFFFF9F0A),
               title: l.autoLock,
               value: l.afterMinutes(_minutes),
-              onTap: _pickAutoLock,
+              onTap: () => _guarded(_pickAutoLock),
             ),
           ]),
           _Group(title: l.backup, rows: [
             _Row(
               icon: Icons.cloud_upload_outlined,
-              tint: const Color(0xFF0A84FF),
               title: l.backupShort,
               subtitle: widget.lastBackup(),
               trailing: FilledButton(
@@ -264,7 +266,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _Row(
               icon: Icons.key_outlined,
-              tint: const Color(0xFFBF5AF2),
               title: l.backupPasswordLabel,
               value: vault.hasPassword ? l.isSet : l.notSet,
               onTap: () => _then(widget.onPassword),
@@ -272,7 +273,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (vault.hasPassword)
               _Row(
                 icon: Icons.medical_services_outlined,
-                tint: const Color(0xFFFF375F),
                 title: l.showKit,
                 onTap: widget.onShowKit,
               ),
@@ -280,7 +280,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Group(title: l.settingsSecurity, rows: [
             _Row(
               icon: Icons.verified_user_outlined,
-              tint: const Color(0xFF30B0A0),
               title: l.securityTitle,
               subtitle: l.securityShort,
               onTap: _showSecurity,
@@ -288,22 +287,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (Device.android)
               _Row(
                 icon: Icons.visibility_off_outlined,
-                tint: const Color(0xFF8E8E93),
                 title: l.blockScreenshots,
                 subtitle: l.blockScreenshotsNote,
                 trailing: _Switch(
                   value: _secure,
-                  onChanged: (v) {
+                  onChanged: (v) => _guarded(() async {
                     setState(() => _secure = v);
                     Settings.setBlockScreenshots(v);
-                  },
+                  }),
                 ),
               ),
           ]),
           _Group(title: l.settingsVaults, rows: [
             _Row(
               icon: Icons.add,
-              tint: const Color(0xFF30B0C7),
               title: l.newVault,
               subtitle: l.newVaultNote,
               onTap: widget.onNewVault,
@@ -315,7 +312,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             borderRadius: BorderRadius.circular(14),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
-              onTap: _deleteVault,
+              onTap: () => _guarded(_deleteVault),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Center(
@@ -357,18 +354,15 @@ class _VaultCard extends StatelessWidget {
   final String lastBackup;
   final Map<String, BigInt> byKind;
 
-  static const _kinds = [
-    (ItemKind.photo, Color(0xFFFFD88A)),
-    (ItemKind.file, Color(0xFF9FD8FF)),
-    (ItemKind.note, Color(0xFFC8F0C0)),
-  ];
+  /// Kinds in the storage bar, told apart by how strong the page colour is on the ink.
+  static const _kinds = [(ItemKind.photo, 1.0), (ItemKind.file, .62), (ItemKind.note, .34)];
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final base = colorById(vault.color).color;
-    final bg = dark ? Color.lerp(deepForWhite(base), Colors.black, .25)! : deepForWhite(base);
+    // Black and white: the card in ink, its text in the page colour.
+    final bg = Theme.of(context).colorScheme.onSurface;
+    final fg = Theme.of(context).scaffoldBackgroundColor;
     final total = byKind.values.fold(BigInt.zero, (a, b) => a + b);
     final names = {ItemKind.photo: l.kindPhotos, ItemKind.file: l.kindFiles, ItemKind.note: l.kindNotes};
     return Container(
@@ -379,24 +373,15 @@ class _VaultCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: const Color(0x2EFFFFFF),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x59FFFFFF), width: 1.5),
-                ),
-                child: Icon(iconById(vault.icon).icon, color: Colors.white, size: 28),
-              ),
+              VaultBadge(icon: vault.icon, color: vault.color, size: 56),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(sizeText, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+                    Text(sizeText, style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 2),
-                    Text(lastBackup, style: const TextStyle(color: Color(0xD9FFFFFF), fontSize: 13)),
+                    Text(lastBackup, style: TextStyle(color: fg.withValues(alpha: .85), fontSize: 13)),
                   ],
                 ),
               ),
@@ -409,15 +394,15 @@ class _VaultCard extends StatelessWidget {
               height: 8,
               width: double.infinity,
               child: total == BigInt.zero
-                  ? const ColoredBox(color: Color(0x33FFFFFF), child: SizedBox.expand())
+                  ? ColoredBox(color: fg.withValues(alpha: .2), child: const SizedBox.expand())
                   : Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        for (final (k, col) in _kinds)
+                        for (final (k, strength) in _kinds)
                           if ((byKind[k] ?? BigInt.zero) > BigInt.zero)
                             Expanded(
                               flex: ((byKind[k]! * BigInt.from(1000)) ~/ total).toInt().clamp(1, 1000),
-                              child: ColoredBox(color: col),
+                              child: ColoredBox(color: fg.withValues(alpha: strength)),
                             ),
                       ],
                     ),
@@ -427,13 +412,16 @@ class _VaultCard extends StatelessWidget {
           Wrap(
             spacing: 14,
             children: [
-              for (final (k, col) in _kinds)
+              for (final (k, strength) in _kinds)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(width: 8, height: 8, decoration: BoxDecoration(color: col, shape: BoxShape.circle)),
+                    Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(color: fg.withValues(alpha: strength), shape: BoxShape.circle)),
                     const SizedBox(width: 5),
-                    Text(names[k]!, style: const TextStyle(color: Color(0xE6FFFFFF), fontSize: 12)),
+                    Text(names[k]!, style: TextStyle(color: fg.withValues(alpha: .9), fontSize: 12)),
                   ],
                 ),
             ],
@@ -486,7 +474,6 @@ class _Group extends StatelessWidget {
 class _Row extends StatelessWidget {
   const _Row({
     required this.icon,
-    required this.tint,
     required this.title,
     this.subtitle,
     this.value,
@@ -495,7 +482,6 @@ class _Row extends StatelessWidget {
   });
 
   final IconData icon;
-  final Color tint;
   final String title;
   final String? subtitle;
   final String? value;
@@ -516,8 +502,9 @@ class _Row extends StatelessWidget {
               Container(
                 width: 30,
                 height: 30,
-                decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(8)),
-                child: Icon(icon, color: Colors.white, size: 18),
+                decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.onSurface, borderRadius: BorderRadius.circular(8)),
+                child: Icon(icon, color: Theme.of(context).scaffoldBackgroundColor, size: 18),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -547,7 +534,7 @@ class _Row extends StatelessWidget {
   }
 }
 
-/// The system-green switch, the same in every vault colour.
+/// A switch in ink: on is solid ink with a page-coloured thumb.
 class _Switch extends StatelessWidget {
   const _Switch({required this.value, required this.onChanged});
   final bool value;
@@ -557,7 +544,7 @@ class _Switch extends StatelessWidget {
   Widget build(BuildContext context) => Switch.adaptive(
         value: value,
         onChanged: onChanged,
-        activeTrackColor: const Color(0xFF34C759),
-        activeThumbColor: Colors.white,
+        activeTrackColor: Theme.of(context).colorScheme.onSurface,
+        activeThumbColor: Theme.of(context).scaffoldBackgroundColor,
       );
 }

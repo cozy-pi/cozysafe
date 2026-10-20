@@ -8,11 +8,9 @@ import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
-import '../theme.dart';
 import '../prefs.dart';
 import '../widgets/pin_pad.dart';
 import '../widgets/brand.dart';
-import '../widgets/identity.dart';
 import 'common.dart';
 import 'new_vault.dart';
 import 'restore.dart';
@@ -289,7 +287,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     }
     if (!mounted) return;
     final nav = Navigator.of(context);
-    await playVaultSpin(context, opening: true, color: colorById(vault.color).color, onCovered: () {
+    await playVaultSpin(context, opening: true, onCovered: () {
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
@@ -325,10 +323,10 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = dark ? const Color(0xF0103029) : const Color(0xF0FFFFFF);
-    final ink = dark ? const Color(0xFFE9ECEB) : const Color(0xFF1A1D1F);
-    final accent = dark ? Brand.gold : Brand.green;
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardColor.withValues(alpha: .94);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final accent = ink;
     final bio = _bioOn ? _bioKind : null;
 
     final card = _ShakeOnChange(
@@ -413,7 +411,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: dark ? Brand.night : Colors.white,
+                  color: page,
                   boxShadow: const [BoxShadow(color: Color(0x4D041410), blurRadius: 24, offset: Offset(0, 10))],
                 ),
                 child: BrandMark(size: 78, color: accent),
@@ -425,7 +423,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     );
 
     return Scaffold(
-      backgroundColor: Brand.deep,
+      backgroundColor: page,
       body: KeyboardListener(
         focusNode: _keys,
         autofocus: _mode == _Mode.pin,
@@ -489,7 +487,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                             size: 60,
                             tooltip: bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint,
                             onTap: _busy ? null : _unlockBiometric,
-                            child: BiometricGlyph(kind: bio, size: 28, color: Colors.white),
+                            child: BiometricGlyph(kind: bio, size: 28, color: ink),
                           ),
                         const Expanded(child: SizedBox()),
                       ],
@@ -507,7 +505,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   /// The thumb menu is white in light and dark alike, so its text is always dark.
   static final _menuItem = MenuItemButton.styleFrom(
     foregroundColor: const Color(0xFF1A1D1F),
-    iconColor: const Color(0xFF165B4C),
+    iconColor: const Color(0xFF1A1D1F),
     minimumSize: const Size(220, 48),
   );
 
@@ -559,7 +557,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
           size: 50,
           tooltip: l.more,
           onTap: () => controller.isOpen ? controller.close() : controller.open(),
-          child: const Icon(Icons.more_horiz, color: Colors.white, size: 26),
+          child: Icon(Icons.more_horiz, color: Theme.of(context).colorScheme.onSurface, size: 26),
         ),
       );
 
@@ -653,7 +651,7 @@ class _RoundButton extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
         message: tooltip,
         child: Material(
-          color: const Color(0x24FFFFFF),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .12),
           shape: const CircleBorder(),
           child: InkWell(
             customBorder: const CircleBorder(),

@@ -12,6 +12,8 @@ import 'dart:ui' show PictureRecorder, ImageByteFormat;
 import 'package:cozysafe/item_kind.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/screens/camera.dart';
+import 'package:cozysafe/screens/backup_password.dart';
+import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/settings.dart';
@@ -23,11 +25,11 @@ import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/widgets/brand.dart';
-import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _enabled = bool.fromEnvironment('PREVIEW');
@@ -220,6 +222,7 @@ void _screen(String name, String caption, Widget Function() home,
       if (section != null) Prefs.write('vault-section', section);
       debugCamera = false;
       CameraView.debugPreview = null;
+      VaultHomeScreen.debugReveal = false;
       setup?.call();
       // Real shadows: tests otherwise draw every elevation as a solid black outline.
       debugDisableShadows = false;
@@ -237,6 +240,8 @@ void main() {
   setUpAll(() async {
     RustLib.initMock(api: _Fake());
     FlutterSecureStorage.setMockInitialValues({});
+    PackageInfo.setMockInitialValues(
+        appName: 'Cozy Safe', packageName: 'com.cozypi.cozysafe', version: '0.1.8', buildNumber: '1100', buildSignature: '');
     debugVoice = true;
     await _loadFonts();
   });
@@ -282,9 +287,16 @@ void main() {
   // The unlock animation (playVaultSpin), frozen at three moments of its 1.15 s.
   for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay'), (950, 'phóng to và tan')]) {
     _screen('unlock-$ms', 'Mở khoá · $ms ms · $what', lock, after: 0, act: (t) async {
-      playVaultSpin(t.element(find.byType(UnlockScreen)), opening: true, color: colorById(vault.color).color, onCovered: () {});
+      playVaultSpin(t.element(find.byType(UnlockScreen)), opening: true, onCovered: () {});
       await t.pump();
       await t.pump(Duration(milliseconds: ms));
+    });
+  }
+  // After the unlock spin: the vault's icon in the middle, then it fades (docs/ui.md).
+  for (final (ms, what) in [(900, 'biểu tượng két hiện'), (1600, 'mờ dần')]) {
+    _screen('reveal-$ms', 'Vừa mở · $ms ms · $what', home, section: 'library', after: 0,
+        setup: () => VaultHomeScreen.debugReveal = true, act: (t) async {
+      await t.pump(Duration(milliseconds: ms - 800));
     });
   }
   _screen('library', 'Thư viện', home, section: 'library');
@@ -328,6 +340,15 @@ void main() {
   });
   _screen('settings', 'Cài đặt', () => settings(vault));
   _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
+  _screen('kit', 'Bộ khẩn cấp: khoá bí mật che sẵn', () => const EmergencyKitScreen(
+      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false));
+  _screen('kit-shown', 'Bộ khẩn cấp: sau khi bấm Xem', () => const EmergencyKitScreen(
+      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
+      act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
+  _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', () => const BackupPasswordScreen(libraryDir: '', change: false),
+      act: (t) async {
+    await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
+  });
   _screen('new-vault', 'Tạo két · bước 1', () => const NewVaultScreen(libraryDir: '', first: false));
   _screen('new-vault-2', 'Tạo két · bước 2', () => const NewVaultScreen(libraryDir: '', first: false), act: (t) async {
     await t.tap(find.byType(GestureDetector).at(3));

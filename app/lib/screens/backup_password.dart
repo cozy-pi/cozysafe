@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/secret.dart';
 import 'common.dart';
 import 'emergency_kit.dart';
 
@@ -101,13 +102,10 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          TextField(
+          SecretField(
             controller: _pw,
             enabled: !_busy,
-            autocorrect: false,
-            enableSuggestions: false,
-            enableIMEPersonalizedLearning: false,
-            decoration: InputDecoration(labelText: l.password),
+            label: l.password,
             onChanged: (_) => _changed(),
           ),
           const SizedBox(height: 6),
@@ -117,16 +115,11 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> {
               style: TextStyle(color: strong ? theme.colorScheme.primary : c.warnInk, fontSize: 13, fontWeight: FontWeight.w600),
             ),
           const SizedBox(height: 12),
-          TextField(
+          SecretField(
             controller: _again,
             enabled: !_busy,
-            autocorrect: false,
-            enableSuggestions: false,
-            enableIMEPersonalizedLearning: false,
-            decoration: InputDecoration(
-              labelText: l.typeAgain,
-              errorText: _again.text.isNotEmpty && _again.text != _pw.text ? l.passwordsDiffer : null,
-            ),
+            label: l.typeAgain,
+            errorText: _again.text.isNotEmpty && _again.text != _pw.text ? l.passwordsDiffer : null,
             onChanged: (_) => setState(() {}),
           ),
           if (_error != null) ...[

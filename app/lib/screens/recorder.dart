@@ -233,7 +233,8 @@ class RecorderViewState extends State<RecorderView> {
                       width: 4,
                       height: 8 + v * 104,
                       margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                      decoration: BoxDecoration(color: const Color(0xFFE5484D), borderRadius: BorderRadius.circular(2)),
+                      decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.onSurface, borderRadius: BorderRadius.circular(2)),
                     ),
                 ],
               ),

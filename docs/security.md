@@ -1,0 +1,41 @@
+# Security rules for the app
+
+Rules every screen follows, so that someone who picks up an unlocked phone, or a person
+or camera looking over a shoulder, gets as little as possible. Check this page when
+adding a screen, a setting or anything that shows a secret. Encryption itself is in
+[ADR 0001](adr/0001-encryption.md); libraries and the network in
+[supply-chain.md](supply-chain.md).
+
+## Security settings ask for the owner
+
+Anything that weakens or reveals the vault's protection asks for Face ID, fingerprint or
+the phone's passcode first (`confirmOwnerForSetting` in `app/lib/biometric.dart`), every
+time, wherever it is opened from:
+
+| Setting | Where the check is |
+|---|---|
+| Face ID / fingerprint on or off | `vault_home.dart` `_toggleBiometric` |
+| Change PIN | `settings.dart` (`_guarded`) |
+| Auto-lock time | `settings.dart` (`_guarded`) |
+| Block screenshots | `settings.dart` (`_guarded`) |
+| Back up to a file | `vault_home.dart` `_backup` |
+| Backup password (set or change) | `vault_home.dart` `_password` (also the reminder banner) |
+| Emergency Kit (shows the Secret Key) | `vault_home.dart` `_showKit` |
+| Delete this vault | `settings.dart` (`_guarded`), then the vault's PIN |
+| New vault | `confirmOwner` (lock screen and vault) |
+
+A new security setting gets the same check in the same commit, and a row in this table.
+Limit: on a device with no biometrics and no passcode support (`local_auth` reports it
+unsupported, e.g. Linux), the system check cannot run and is skipped.
+
+## Secrets on screen
+
+- **Never shown by default.** The Secret Key (Emergency Kit) is masked (`SecretText`):
+  dots in the same layout, a Show button, hidden again after 30 seconds and whenever the
+  app leaves the foreground.
+- **Password and key fields are hidden while typed** (`SecretField`), with an eye to
+  show them; this includes a suggested passphrase, which appears hidden.
+- PINs show as dots only, one per digit, no count of the remaining digits.
+- **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
+  the clipboard after 60 seconds and when the vault locks.
+- `test/secret_test.dart` checks the hiding.

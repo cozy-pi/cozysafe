@@ -3,9 +3,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import '../theme.dart';
 
-/// The brand mark: one thick ring, a solid knob, the gold index (docs/ui.md).
+/// The brand mark: one thick ring, a solid knob, the index (docs/ui.md). One ink; the
+/// index is the same ink, lighter.
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key, required this.size, required this.color});
 
@@ -36,7 +36,7 @@ class _MarkPainter extends CustomPainter {
     canvas.drawCircle(c, 12 * s, Paint()..color = color);
     canvas.drawRRect(
       RRect.fromRectAndRadius(Rect.fromLTWH(46 * s, 4 * s, 8 * s, 18 * s), Radius.circular(4 * s)),
-      Paint()..color = Brand.gold,
+      Paint()..color = color.withValues(alpha: .55),
     );
   }
 
@@ -45,16 +45,14 @@ class _MarkPainter extends CustomPainter {
 }
 
 /// Lock-screen background: a fixed illustration of protected items (photos, an ID,
-/// a receipt, a document), tilted and blurred, under a vault-green veil. Never the
-/// user's data: this screen runs while every vault is locked.
+/// a receipt, a document) in greys, tilted and blurred, under a veil of the page colour.
+/// Never the user's data: this screen runs while every vault is locked.
 class VaultBackdrop extends StatelessWidget {
-  const VaultBackdrop({super.key, this.tint = Brand.deep});
-
-  /// The base colour: vault green, or a vault's own colour while creating it.
-  final Color tint;
+  const VaultBackdrop({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final tint = Theme.of(context).scaffoldBackgroundColor;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -84,10 +82,10 @@ class VaultBackdrop extends StatelessWidget {
 class _CollagePainter extends CustomPainter {
   static const _fills = [
     [Color(0xFFFFFFFF)],
-    [Color(0xFFCFE0EA), Color(0xFF7FA79A)],
-    [Color(0xFFDCE6F2)],
-    [Color(0xFFF1E6D6)],
-    [Color(0xFFCFE0EA), Color(0xFF4E7F70)],
+    [Color(0xFFDADADA), Color(0xFF8C8C8C)],
+    [Color(0xFFE6E6E6)],
+    [Color(0xFFEFEFEF)],
+    [Color(0xFFDADADA), Color(0xFF6E6E6E)],
   ];
 
   @override
@@ -124,22 +122,24 @@ class _CollagePainter extends CustomPainter {
   bool shouldRepaint(_CollagePainter old) => false;
 }
 
-/// The moment a vault opens (or closes): a green overlay, the brand mark large in the
+/// The moment a vault opens (or closes): an overlay in the page colour, the brand mark large in the
 /// middle turns half a turn and scales out (opening) or in (closing). `onCovered` runs
 /// while the overlay hides everything, which is when the caller switches screens.
 Future<void> playVaultSpin(
   BuildContext context, {
   required bool opening,
   required VoidCallback onCovered,
-  Color color = Brand.deep,
 }) async {
+  // The page colour with the mark in ink: black and white, light or dark.
+  final color = Theme.of(context).scaffoldBackgroundColor;
+  final ink = Theme.of(context).colorScheme.onSurface;
   final overlay = Overlay.of(context, rootOverlay: true);
   final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
   final controller = AnimationController(
     vsync: overlay,
     duration: Duration(milliseconds: opening ? 1150 : 1050),
   );
-  final entry = OverlayEntry(builder: (_) => _Spin(controller: controller, opening: opening, reduce: reduce, color: color));
+  final entry = OverlayEntry(builder: (_) => _Spin(controller: controller, opening: opening, reduce: reduce, color: color, ink: ink));
   overlay.insert(entry);
   var covered = false;
   void check() {
@@ -157,12 +157,18 @@ Future<void> playVaultSpin(
 }
 
 class _Spin extends AnimatedWidget {
-  const _Spin({required AnimationController controller, required this.opening, required this.reduce, required this.color})
-      : super(listenable: controller);
+  const _Spin({
+    required AnimationController controller,
+    required this.opening,
+    required this.reduce,
+    required this.color,
+    required this.ink,
+  }) : super(listenable: controller);
 
   final bool opening;
   final bool reduce;
   final Color color;
+  final Color ink;
 
   double get t => (listenable as AnimationController).value;
 
@@ -197,7 +203,7 @@ class _Spin extends AnimatedWidget {
               opacity: alpha.clamp(0.0, 1.0),
               child: Transform.rotate(
                 angle: turn * math.pi / 180,
-                child: Transform.scale(scale: scale, child: const BrandMark(size: 190, color: Colors.white)),
+                child: Transform.scale(scale: scale, child: BrandMark(size: 190, color: ink)),
               ),
             ),
           ),

@@ -111,6 +111,8 @@ class VaultBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The one place colour stays in the black-and-white app: a vault's own icon and
+    // colour, so you know at a glance which vault it is (docs/ui.md, Black and white).
     final i = iconById(icon);
     final c = colorById(color);
     return Semantics(

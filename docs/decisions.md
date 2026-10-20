@@ -6,6 +6,21 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-20
 
+**Security settings ask for the owner; secrets are hidden until asked for.** Owner,
+after finding loose settings: every security setting needs Face ID, fingerprint or the
+passcode; passwords and the Secret Key never appear on screen by default (a person or a
+camera could see them), only with a Show button. Rules and the list of settings:
+`docs/security.md`. Also fixed: copying the Secret Key now wipes the clipboard after 60 s.
+
+**Black and white look (approved for building).** Everything in ink and page colour,
+except the vault's own icon, which keeps its colour (shown big after unlocking, in
+Settings, when creating a vault). The delete screen uses the opposite brightness instead
+of red.
+
+**Deleting forgotten vaults: deferred** by the owner. The work (Settings → Vaults on this
+device, delete with the open vault's PIN) is kept on a local branch; open question when it
+returns: who may see the list (decoy vaults).
+
 **0.1.7 released** (TestFlight, Play internal + Alpha, GitHub). After it: cackle's
 config is complete and its CI job now blocks (no crate may use the network; ~20 crates
 lost permissions they did not need); the core crates forbid unsafe Rust. A repo file
@@ -45,13 +60,13 @@ bump + alias + test). Applied together with groups.
 hand-drawn mockup showed a lock screen, an unlock dial and a vault name the app does not
 have.
 
-**Black and white look (proposal, not approved).** Main UI in black and white with
+**Black and white look (first proposal, superseded below).** Main UI in black and white with
 opacity only, light and dark (system setting). Unlock keeps the current effect
 (`playVaultSpin`: dial grows, turns 192° back to 180°, zooms out) in black/white; then the
 vault's icon shows in the middle and fades, so you know which vault opened. Next step:
 build it locally and render with `mockup.sh`.
 
-**Forgotten vaults (proposal, not approved).** Settings → Vaults on this device: every
+**Forgotten vaults (first proposal, deferred above).** Settings → Vaults on this device: every
 vault container with created date and size (the count is already visible from storage);
 the open one shows its icon; others can be deleted without their PIN after confirming with
 the open vault (biometrics/PIN) and typing a word. Whether a "last opened" date can be

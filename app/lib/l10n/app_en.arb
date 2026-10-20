@@ -448,5 +448,8 @@
         "type": "String"
       }
     }
-  }
+  },
+  "secretShow": "Show",
+  "secretHide": "Hide",
+  "ownerCheckSettings": "Confirm it's you to change security settings"
 }
