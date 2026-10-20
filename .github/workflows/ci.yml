@@ -68,11 +68,9 @@ jobs:
           command-arguments: advisories sources bans
 
   # cackle: no crate in the app's Rust library may use the network API (app/rust/cackle.toml).
-  # continue-on-error until the job has run green once: the config could not be
-  # tried outside Linux. On failure it uploads the config cackle suggests.
+  # Blocking. On failure it uploads the config cackle suggests (still failing on any net grant).
   cackle:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2

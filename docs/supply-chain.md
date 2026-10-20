@@ -42,10 +42,10 @@ so an import there means something really calls it. No symbol needs allowing tod
 **cackle** (`cargo acl`) builds the app's Rust library and attributes every API use
 to the crate it comes from. The policy forbids the `net` API to every crate; the
 config records which crates may use `unsafe`, the file system, or start processes
-(build scripts). Linux only. The CI job is marked `continue-on-error` until it has
-run green once (the config was written from a source scan, not from a cackle run);
-when it fails it uploads the config cackle suggests, and still fails outright if
-that config would hand `net` to any crate.
+(build scripts). Linux only. The CI job blocks; when it fails it uploads the config
+cackle suggests, and still fails outright if that config would hand `net` to any crate.
+The core crates (`cs-vault`, `cs-crypto`, `cs-photo`) also carry
+`#![forbid(unsafe_code)]`: the compiler refuses unsafe Rust there.
 
 **cargo-deny** checks both lockfiles (the core workspace and `app/rust`) against the
 RustSec advisory database, accepts crates only from crates.io, and bans well-known
