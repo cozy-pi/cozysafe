@@ -7,6 +7,9 @@
 //! This crate does no I/O of its own beyond the `Read`/`Write` it is handed,
 //! and every key type wipes itself on drop.
 
+// No unsafe Rust in the core: the compiler refuses it (docs/supply-chain.md).
+#![forbid(unsafe_code)]
+
 pub mod kdf;
 mod secret_key_text;
 pub mod stream;

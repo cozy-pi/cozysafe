@@ -6,6 +6,9 @@
 //! produce (`docs/requirements.md`, In-app camera). The JPEG we encode carries no
 //! EXIF at all, so no location either.
 
+// No unsafe Rust in the core: the compiler refuses it (docs/supply-chain.md).
+#![forbid(unsafe_code)]
+
 use image::codecs::jpeg::JpegEncoder;
 use image::{imageops, ExtendedColorType, RgbImage};
 

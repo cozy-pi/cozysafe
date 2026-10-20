@@ -18,6 +18,9 @@
 //! it in a `secret-key` file; [`Library::legacy_secret_key`] reads that once for the
 //! move, [`Library::forget_legacy_secret_key`] wipes it afterwards.
 
+// No unsafe Rust in the core: the compiler refuses it (docs/supply-chain.md).
+#![forbid(unsafe_code)]
+
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};

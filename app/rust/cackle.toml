@@ -43,15 +43,12 @@ kind = "Disabled"
 
 [pkg.addr2line]
 allow_unsafe = true
-allow_apis = ["fs", "process"]
 
 [pkg.adler2]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg."aho-corasick"]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg."allo-isolate"]
 allow_unsafe = true
@@ -72,7 +69,6 @@ from.build.allow_apis = ["fs", "process"]
 
 [pkg.backtrace]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg.base64ct]
 allow_unsafe = true
@@ -111,12 +107,14 @@ allow_unsafe = true
 [pkg.cpufeatures]
 allow_unsafe = true
 
+# Our core has no unsafe code (#![forbid(unsafe_code)] in lib.rs). cackle flags it
+# because the EFF word list it embeds contains the word "unsafe".
 [pkg."cs-vault"]
 allow_apis = ["fs"]
+allow_unsafe = true
 
 [pkg.darling_core]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg.darling_macro]
 allow_proc_macro = true
@@ -137,18 +135,16 @@ allow_proc_macro = true
 allow_unsafe = true
 
 [pkg.derive_builder_core]
-allow_apis = ["fs"]
 
 [pkg.derive_builder_macro]
 allow_proc_macro = true
 
 [pkg.either]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg."find-msvc-tools"]
 allow_unsafe = true
-from.build.allow_apis = ["fs", "process"]
+from.build.allow_apis = ["fs"]
 
 [pkg.flutter_rust_bridge]
 allow_unsafe = true
@@ -186,18 +182,15 @@ allow_unsafe = true
 
 [pkg.gimli]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg.image]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg.inout]
 allow_unsafe = true
 
 [pkg.itertools]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg.itoa]
 allow_unsafe = true
@@ -223,7 +216,6 @@ allow_unsafe = true
 
 [pkg.moxcms]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg."num-traits"]
 allow_unsafe = true
@@ -234,7 +226,6 @@ allow_apis = ["fs"]
 
 [pkg.object]
 allow_unsafe = true
-allow_apis = ["fs"]
 build.allow_apis = ["process"]
 
 [pkg."pin-project-lite"]
@@ -269,7 +260,6 @@ allow_unsafe = true
 
 [pkg."regex-automata"]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg.rust_lib_cozysafe]
 allow_unsafe = true
@@ -290,11 +280,9 @@ build.allow_apis = ["fs", "process"]
 
 [pkg.serde_derive]
 allow_proc_macro = true
-allow_apis = ["fs"]
 
 [pkg.serde_json]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg.sha2]
 allow_unsafe = true
@@ -310,7 +298,6 @@ allow_unsafe = true
 
 [pkg.syn]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg.thiserror]
 allow_apis = ["fs"]
@@ -328,7 +315,6 @@ allow_unsafe = true
 
 [pkg.tokio]
 allow_unsafe = true
-allow_apis = ["fs", "process"]
 
 [pkg."unicode-ident"]
 allow_unsafe = true
@@ -337,7 +323,7 @@ allow_unsafe = true
 allow_unsafe = true
 
 [pkg.version_check]
-from.build.allow_apis = ["fs", "process"]
+from.build.allow_apis = [ "process"]
 
 [pkg.zeroize]
 allow_unsafe = true
@@ -354,7 +340,6 @@ allow_unsafe = true
 
 [pkg."zune-jpeg"]
 allow_unsafe = true
-allow_apis = ["fs"]
 
 [pkg.zxcvbn]
 allow_unsafe = true
@@ -374,3 +359,7 @@ allow_proc_macro = true
 # Microsoft's windows-rs COM helpers (Windows only); code generation only.
 [pkg."windows-interface"]
 allow_proc_macro = true
+
+# Regex engine used by zxcvbn (password strength); unsafe for speed, no I/O.
+[pkg.fancy-regex]
+allow_unsafe = true
