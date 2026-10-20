@@ -6,6 +6,13 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-20
 
+**0.1.7 released** (TestFlight, Play internal + Alpha, GitHub). Open after release:
+cackle still reports `unsafe`/file-system grants to add for about 23 crates (no crate
+needs the network: the auto-accepted run passed the net check); its job stays
+non-blocking until the config is complete. A repo file meant for the maintainer's tools
+was public and is now removed from the tree; whether to rewrite the published history
+(force-push) is the owner's call.
+
 **Camera keeps the app frame; readable media names.** Owner feedback on 0.1.6: the
 full-screen black camera looked out of place, and photo/video names were odd
 ("Photo.jpg", "VID_1792…", picker names). Camera: app header, rounded viewfinder, glass
