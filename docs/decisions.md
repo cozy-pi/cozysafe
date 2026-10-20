@@ -21,8 +21,10 @@ and emails stay out of the repository.
 jobs.** Owner: Android and iOS wait for nobody; after weighing the risk (a hijacked build
 package could read a key in the same job), uploads go in separate jobs. Play: a `play` job
 that needs only `android`. Build jobs only read the repository; attesting and publishing
-happen in the release job. Planned the same way: TestFlight upload apart from the iOS
-build, macOS notarization apart from the build, Android signing apart from the build.
+happen in the release job. Done 2026-10-21 for every platform (`docs/supply-chain.md`,
+"Signing and store keys"): Android signed in its own job, macOS signed and notarized in two
+jobs of their own, TestFlight upload apart from the iOS build; all tried end to end (Apple
+validation, notarization, release-key fingerprint) before merging.
 
 **Security settings ask for the owner; secrets are hidden until asked for.** Owner,
 after finding loose settings: every security setting needs Face ID, fingerprint or the

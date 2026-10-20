@@ -68,6 +68,25 @@ included, for network APIs. A package with hits must be listed in
 `tools/allow/network-ok.txt` with the reason it is acceptable (web-only code, a
 feature the app does not call, build-time only).
 
+## Signing and store keys stay out of build jobs
+
+The machines that build the apps run thousands of lines of other people's code (Gradle,
+Flutter plugins, CocoaPods, package build scripts) with network access. A hijacked package
+there could read any key in the same job. So keys live in jobs that run only the
+platforms' own tools, and each platform still ships as soon as it is ready:
+
+| Platform | Build job (no keys) | Key jobs |
+|---|---|---|
+| Android | `android`: built with the debug key | `android-sign` (release key; `apksigner`, `jarsigner`, checks the signer is Cozy Pi) → `play` (Play key) |
+| macOS | `macos`: built ad-hoc signed | `macos-sign` (Developer ID; `codesign`, `hdiutil`) → `macos-notarize` (App Store Connect key; `notarytool`, `stapler`) |
+| iOS | `ios` (testflight.yml): distribution certificate, needed by Xcode to export | `upload` (App Store Connect key; `altool`) |
+
+Build jobs only read the repository; attestations and the GitHub release come from the
+`release` job. The iOS distribution certificate stays in its build job: re-signing an iOS
+app outside the export is fragile, the certificate can be revoked, and without the App
+Store Connect key nothing can be uploaded with it. Run by hand, `testflight.yml` can
+validate a build with Apple instead of uploading it (`upload: false`).
+
 ## Limits
 
 - **iOS, Windows and Linux have no OS switch** that takes the network away from one
