@@ -359,3 +359,18 @@ allow_apis = ["fs"]
 [pkg.zxcvbn]
 allow_unsafe = true
 
+# Compile-time Rust version checks (dtolnay); no I/O.
+[pkg.rustversion]
+allow_proc_macro = true
+
+# #[wasm_bindgen] for the web build; generates bindings, no I/O.
+[pkg."wasm-bindgen-macro"]
+allow_proc_macro = true
+
+# Microsoft's windows-rs COM helpers (Windows only); code generation only.
+[pkg."windows-implement"]
+allow_proc_macro = true
+
+# Microsoft's windows-rs COM helpers (Windows only); code generation only.
+[pkg."windows-interface"]
+allow_proc_macro = true
