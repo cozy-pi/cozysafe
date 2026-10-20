@@ -26,6 +26,7 @@ import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/widgets/brand.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
+import 'package:cozysafe/widgets/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -331,8 +332,8 @@ void main() {
     await t.tap(find.text('Nhóm'));
   });
   _screen('message', 'Thông báo nổi', home, section: 'library', act: (t) async {
-    ScaffoldMessenger.of(t.element(find.byType(VaultHomeScreen))).showSnackBar(SnackBar(
-        content: const Text('Đã chuyển vào Đã xoá gần đây'), action: SnackBarAction(label: 'Hoàn tác', onPressed: () {})));
+    showToast(t.element(find.byType(VaultHomeScreen)), 'Đã chuyển vào Đã xoá gần đây',
+        icon: Icons.delete_outline_rounded, actionLabel: 'Hoàn tác', besideAction: true, onAction: () {});
   });
   _screen('search', 'Tìm kiếm', () => SearchScreen(items: _items, thumbnail: (id) async => _thumbnails[0]!), act: (t) async {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));

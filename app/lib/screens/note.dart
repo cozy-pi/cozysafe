@@ -8,6 +8,7 @@ import '../lock_guard.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/toast.dart';
 
 /// A note: plain text, saved as you type (a moment after you stop), when you leave,
 /// and before the vault locks, so locking never loses what was typed. The list shows
@@ -120,7 +121,7 @@ class _NoteScreenState extends State<NoteScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).errorStorage)));
+      showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
     }
   }
 

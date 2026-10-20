@@ -7,6 +7,7 @@ import '../lock_guard.dart';
 import '../theme.dart';
 import '../widgets/secret.dart';
 import 'common.dart';
+import '../widgets/toast.dart';
 
 /// The Secret Key, written for people. Shown once after the first vault (and later from
 /// the vault menu). With `confirm`, the user must type its last 4 characters to go on,
@@ -38,7 +39,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
     final l = AppLocalizations.of(context);
     await Clipboard.setData(ClipboardData(text: widget.keyText));
     LockGuard.copied(widget.keyText); // wiped from the clipboard after 60 s and on lock
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.kitCopied)));
+    if (mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
   }
 
   Future<void> _share(BuildContext buttonContext) async {

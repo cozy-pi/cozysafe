@@ -19,6 +19,7 @@ import '../prefs.dart';
 import 'common.dart';
 import '../capture_name.dart';
 import '../item_kind.dart';
+import '../widgets/toast.dart';
 
 /// Icon for an item kind / type.
 IconData fileIcon(rust.ItemInfo item) {
@@ -191,7 +192,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
         sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       ));
     } on rust.VaultError catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(vaultErrorText(l, e))));
+      if (mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
     } finally {
       try {
         dir.deleteSync(recursive: true);

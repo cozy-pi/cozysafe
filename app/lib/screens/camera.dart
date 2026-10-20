@@ -14,6 +14,7 @@ import '../widgets/vault_bar.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'common.dart';
 import 'file_view.dart';
+import '../widgets/toast.dart';
 
 /// The camera, opened from the Library's + menu (docs/ui.md, vault bar): Photo | Video,
 /// a shutter, the last shot, and flip. What it takes carries the tag open in the vault
@@ -523,7 +524,7 @@ class CameraViewState extends State<CameraView> {
 
   void _snack(String text) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    showToast(context, text);
   }
 
   @override

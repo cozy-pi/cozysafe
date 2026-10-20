@@ -11,6 +11,7 @@ import '../widgets/identity.dart';
 import 'common.dart';
 import 'new_vault.dart';
 import 'unlock.dart';
+import '../widgets/toast.dart';
 
 /// Delete the open vault, confirmed with its own PIN. In the opposite brightness (light when the app is dark, and the reverse), so it is
 /// never taken for the lock screen. Wrong PINs count towards the same waits as the PIN pad.
@@ -90,7 +91,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
         ),
         (_) => false,
       );
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.vaultDeleted)));
+      showToast(context, l.vaultDeleted, icon: Icons.check_rounded);
     } on rust.VaultError catch (e) {
       if (mounted) {
         setState(() {

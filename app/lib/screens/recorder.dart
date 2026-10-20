@@ -14,6 +14,7 @@ import '../theme.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
 import '../item_kind.dart';
+import '../widgets/toast.dart';
 
 /// Voice memos (docs/ui.md, voice memos): the list of recordings, each playable in
 /// place, or, while recording, a live level meter and a timer. The red mic button
@@ -207,7 +208,7 @@ class RecorderViewState extends State<RecorderView> {
     }
   }
 
-  void _snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  void _snack(String text) => showToast(context, text);
 
   static String _clock(Duration d) =>
       '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';

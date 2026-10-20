@@ -35,6 +35,7 @@ import 'unlock.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
 import '../item_kind.dart';
+import '../widgets/toast.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -500,7 +501,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     ));
   }
 
-  void _snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  void _snack(String text) => showToast(context, text, besideAction: _selected.isEmpty);
 
   // ---------- content ----------
 
@@ -600,22 +601,21 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// "Moved to Recently deleted · Undo".
   void _trashed(List<String> ids) {
     final l = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(ids.length == 1 ? l.movedToTrash : l.movedToTrashCount(ids.length)),
-        action: SnackBarAction(
-          label: l.undo,
-          onPressed: () async {
-            for (final id in ids) {
-              try {
-                await rust.restoreItem(id: id);
-              } catch (_) {}
-            }
-            if (!_locked) _reload();
-          },
-        ),
-      ));
+    showToast(
+      context,
+      ids.length == 1 ? l.movedToTrash : l.movedToTrashCount(ids.length),
+      icon: Icons.delete_outline_rounded,
+      actionLabel: l.undo,
+      besideAction: _selected.isEmpty,
+      onAction: () async {
+        for (final id in ids) {
+          try {
+            await rust.restoreItem(id: id);
+          } catch (_) {}
+        }
+        if (!_locked) _reload();
+      },
+    );
   }
 
   // ---------- selection ----------
@@ -1778,7 +1778,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
       await rust.trashItem(id: _item.id, nowMs: nowMs());
       if (mounted) Navigator.of(context).pop(_item.id);
     } on rust.VaultError catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(vaultErrorText(l, e))));
+      if (mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
     }
   }
 
