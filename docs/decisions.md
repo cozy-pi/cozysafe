@@ -6,11 +6,12 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-20
 
-**Releases: each platform ships as soon as it is built.** Owner: Android and iOS wait for
-nobody. The Google Play upload now runs at the end of the Android build job (after its
-checks), like TestFlight in the iOS job. Trade-off accepted by the owner: the store keys
-sit in the same job as the build tools and packages (a separate upload job would keep them
-apart).
+**Releases: each platform ships as soon as it is built, and store keys stay out of build
+jobs.** Owner: Android and iOS wait for nobody; after weighing the risk (a hijacked build
+package could read a key in the same job), uploads go in separate jobs. Play: a `play` job
+that needs only `android`. Build jobs only read the repository; attesting and publishing
+happen in the release job. Planned the same way: TestFlight upload apart from the iOS
+build, macOS notarization apart from the build, Android signing apart from the build.
 
 **Security settings ask for the owner; secrets are hidden until asked for.** Owner,
 after finding loose settings: every security setting needs Face ID, fingerprint or the
