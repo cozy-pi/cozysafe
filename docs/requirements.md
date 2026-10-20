@@ -227,7 +227,7 @@ easy but never silent.
 - **Per-vault policy "Keep data inside"**: disables drag-out, share-out and
   copy for that vault.
 - Implementation note: evaluate `super_drag_and_drop` / `super_clipboard`
-  under the supply-chain policy; share extensions are native code.
+  under the supply-chain policy (`supply-chain.md`); share extensions are native code.
 
 ### Backup and export
 

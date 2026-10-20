@@ -6,7 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
-import '../widgets/add_dock.dart';
+import '../widgets/pin_pad.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';

@@ -1,0 +1,361 @@
+# cackle (cargo-acl) policy for the app's Rust library and everything it links:
+# the core crates (core/*), flutter_rust_bridge and their dependencies.
+#   cd app/rust && cargo acl --no-ui
+# Linux only. See docs/supply-chain.md.
+#
+# The point is the `net` API: no crate may use it. Never add "net" or
+# "unix_sockets" to any allow_apis below; replace the crate instead.
+#
+# The fs / process / unsafe grants were first written from a scan of each crate's
+# sources (generous on purpose). cackle warns about a grant a crate does not use;
+# trim those from its output.
+
+[common]
+version = 2
+import_std = ["fs", "net", "unix_sockets", "process"]
+
+# The same socket calls reached through libc directly instead of std::net.
+[api.net]
+include = [
+    "libc::socket",
+    "libc::socketpair",
+    "libc::connect",
+    "libc::bind",
+    "libc::listen",
+    "libc::accept",
+    "libc::accept4",
+    "libc::send",
+    "libc::sendto",
+    "libc::sendmsg",
+    "libc::recv",
+    "libc::recvfrom",
+    "libc::recvmsg",
+    "libc::getaddrinfo",
+    "libc::getnameinfo",
+    "tokio::net",
+]
+
+# Build scripts and proc macros run as in any cargo build: cackle checks what they
+# use but does not sandbox them (Bubblewrap needs unprivileged user namespaces,
+# which GitHub's Ubuntu runners restrict).
+[sandbox]
+kind = "Disabled"
+
+[pkg.addr2line]
+allow_unsafe = true
+allow_apis = ["fs", "process"]
+
+[pkg.adler2]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg."aho-corasick"]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg."allo-isolate"]
+allow_unsafe = true
+
+[pkg.anyhow]
+allow_unsafe = true
+allow_apis = ["fs"]
+build.allow_apis = ["fs", "process"]
+
+[pkg.argon2]
+allow_unsafe = true
+
+[pkg.atomic]
+allow_unsafe = true
+
+[pkg.autocfg]
+from.build.allow_apis = ["fs", "process"]
+
+[pkg.backtrace]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.base64ct]
+allow_unsafe = true
+
+[pkg."bit-set"]
+allow_unsafe = true
+
+[pkg."bit-vec"]
+allow_unsafe = true
+
+[pkg.blake2]
+allow_unsafe = true
+
+[pkg."block-buffer"]
+allow_unsafe = true
+
+[pkg.bytemuck]
+allow_unsafe = true
+
+[pkg.byteorder]
+allow_unsafe = true
+
+[pkg."byteorder-lite"]
+allow_unsafe = true
+
+[pkg.cc]
+allow_unsafe = true
+from.build.allow_apis = ["fs", "process"]
+
+[pkg.chacha20]
+allow_unsafe = true
+
+[pkg.cipher]
+allow_unsafe = true
+
+[pkg.cpufeatures]
+allow_unsafe = true
+
+[pkg."cs-vault"]
+allow_apis = ["fs"]
+
+[pkg.darling_core]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.darling_macro]
+allow_proc_macro = true
+
+[pkg."dart-sys"]
+allow_unsafe = true
+build.allow_apis = ["fs"]
+# Compiles the Dart API shim (C, via cc) and links it statically.
+build.allow_build_instructions = [
+    "cargo:rustc-link-lib=static=dart_api_dl",
+    "cargo:rustc-link-search=native=*",
+]
+
+[pkg."delegate-attr"]
+allow_proc_macro = true
+
+[pkg.deranged]
+allow_unsafe = true
+
+[pkg.derive_builder_core]
+allow_apis = ["fs"]
+
+[pkg.derive_builder_macro]
+allow_proc_macro = true
+
+[pkg.either]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg."find-msvc-tools"]
+allow_unsafe = true
+from.build.allow_apis = ["fs", "process"]
+
+[pkg.flutter_rust_bridge]
+allow_unsafe = true
+
+[pkg.flutter_rust_bridge_macros]
+allow_proc_macro = true
+
+[pkg."futures-channel"]
+allow_unsafe = true
+
+[pkg."futures-core"]
+allow_unsafe = true
+
+[pkg."futures-executor"]
+allow_unsafe = true
+
+[pkg."futures-macro"]
+allow_unsafe = true
+allow_proc_macro = true
+
+[pkg."futures-sink"]
+allow_unsafe = true
+
+[pkg."futures-task"]
+allow_unsafe = true
+
+[pkg."futures-util"]
+allow_unsafe = true
+
+[pkg."generic-array"]
+allow_unsafe = true
+
+[pkg.getrandom]
+allow_unsafe = true
+
+[pkg.gimli]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.image]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.inout]
+allow_unsafe = true
+
+[pkg.itertools]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.itoa]
+allow_unsafe = true
+
+[pkg.lazy_static]
+allow_unsafe = true
+
+[pkg.libc]
+allow_unsafe = true
+build.allow_apis = ["process"]
+
+[pkg.log]
+allow_unsafe = true
+
+[pkg."md-5"]
+allow_unsafe = true
+
+[pkg.memchr]
+allow_unsafe = true
+
+[pkg.miniz_oxide]
+allow_unsafe = true
+
+[pkg.moxcms]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg."num-traits"]
+allow_unsafe = true
+
+[pkg.num_cpus]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.object]
+allow_unsafe = true
+allow_apis = ["fs"]
+build.allow_apis = ["process"]
+
+[pkg."pin-project-lite"]
+allow_unsafe = true
+
+[pkg.poly1305]
+allow_unsafe = true
+
+[pkg."portable-atomic"]
+allow_unsafe = true
+allow_apis = ["process"]
+
+[pkg.powerfmt]
+allow_unsafe = true
+
+[pkg."proc-macro2"]
+allow_unsafe = true
+allow_apis = ["fs"]
+build.allow_apis = ["fs", "process"]
+
+[pkg.pxfm]
+allow_unsafe = true
+
+[pkg.quote]
+build.allow_apis = ["process"]
+
+[pkg.rand_core]
+allow_unsafe = true
+
+[pkg.regex]
+allow_unsafe = true
+
+[pkg."regex-automata"]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.rust_lib_cozysafe]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg."rustc-demangle"]
+allow_unsafe = true
+
+[pkg.serde]
+allow_unsafe = true
+allow_apis = ["fs"]
+build.allow_apis = ["fs", "process"]
+
+[pkg.serde_core]
+allow_unsafe = true
+allow_apis = ["fs"]
+build.allow_apis = ["fs", "process"]
+
+[pkg.serde_derive]
+allow_proc_macro = true
+allow_apis = ["fs"]
+
+[pkg.serde_json]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.sha2]
+allow_unsafe = true
+
+[pkg.shlex]
+allow_unsafe = true
+
+[pkg.slab]
+allow_unsafe = true
+
+[pkg.subtle]
+allow_unsafe = true
+
+[pkg.syn]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.thiserror]
+allow_apis = ["fs"]
+build.allow_apis = ["fs", "process"]
+
+[pkg."thiserror-impl"]
+allow_unsafe = true
+allow_proc_macro = true
+
+[pkg.threadpool]
+allow_unsafe = true
+
+[pkg.time]
+allow_unsafe = true
+
+[pkg.tokio]
+allow_unsafe = true
+allow_apis = ["fs", "process"]
+
+[pkg."unicode-ident"]
+allow_unsafe = true
+
+[pkg."universal-hash"]
+allow_unsafe = true
+
+[pkg.version_check]
+from.build.allow_apis = ["fs", "process"]
+
+[pkg.zeroize]
+allow_unsafe = true
+
+[pkg.zeroize_derive]
+allow_proc_macro = true
+
+[pkg.zmij]
+allow_unsafe = true
+build.allow_apis = ["process"]
+
+[pkg."zune-core"]
+allow_unsafe = true
+
+[pkg."zune-jpeg"]
+allow_unsafe = true
+allow_apis = ["fs"]
+
+[pkg.zxcvbn]
+allow_unsafe = true
+

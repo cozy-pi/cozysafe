@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'file_view.dart';
+import '../item_kind.dart';
 
 /// Recently deleted: items stay here, still encrypted, for 30 days, then go for good.
 /// Tap an item to restore it or delete it now. Pops `true` when something changed.
@@ -19,7 +20,7 @@ class TrashScreen extends StatefulWidget {
 class _TrashScreenState extends State<TrashScreen> {
   static const _days = 30;
   List<rust.ItemInfo>? _items;
-  final Map<String, Future<Uint8List>> _thumbs = {};
+  final Map<String, Future<Uint8List>> _thumbnails = {};
   bool _changed = false;
 
   @override
@@ -71,7 +72,7 @@ class _TrashScreenState extends State<TrashScreen> {
     if (ok != true) return;
     for (final it in items) {
       await rust.deleteItem(id: it.id);
-      _thumbs.remove(it.id);
+      _thumbnails.remove(it.id);
     }
     await _load();
   }
@@ -107,8 +108,8 @@ class _TrashScreenState extends State<TrashScreen> {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final items = _items;
-    final photos = items?.where((i) => i.kind == 'photo').toList() ?? const [];
-    final others = items?.where((i) => i.kind != 'photo').toList() ?? const [];
+    final photos = items?.where((i) => i.kind == ItemKind.photo).toList() ?? const [];
+    final others = items?.where((i) => i.kind != ItemKind.photo).toList() ?? const [];
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -143,7 +144,7 @@ class _TrashScreenState extends State<TrashScreen> {
                             fit: StackFit.expand,
                             children: [
                               FutureBuilder<Uint8List>(
-                                future: _thumbs[it.id] ??= rust.itemThumbnail(id: it.id),
+                                future: _thumbnails[it.id] ??= rust.itemThumbnail(id: it.id),
                                 builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
                                     ? Image.memory(snap.data!, fit: BoxFit.cover, gaplessPlayback: true)
                                     : ColoredBox(color: c.soft),

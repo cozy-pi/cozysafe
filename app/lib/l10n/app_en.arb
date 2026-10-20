@@ -355,45 +355,9 @@
   },
   "settingsVaults": "Vaults",
   "newVaultNote": "Another vault with its own PIN",
-  "errorFolderLoop": "A folder can't go inside itself.",
-  "newFolder": "New folder",
-  "folderName": "Folder name",
-  "renameFolder": "Rename and colour",
-  "deleteFolderTitle": "Delete “{name}”?",
-  "deleteFolderBody": "What's inside moves up one level. Nothing else is deleted.",
-  "deleteFolder": "Delete folder",
-  "folderOptions": "Folder options",
-  "moveTo": "{count, plural, =1{Move 1 item to…} other{Move {count} items to…}}",
-  "topLevel": "Files (no folder)",
-  "newFolderEllipsis": "New folder…",
-  "movedTo": "Moved to {name}",
-  "folders": "Folders",
   "itemsCount": "{count, plural, =0{Empty} =1{1 item} other{{count} items}}",
-  "folderEmpty": "Nothing here yet. Pick files, or move items here.",
-  "move": "Move",
   "back": "Back",
   "settingsVersion": "Cozy Safe {version} ({build}) · open source",
-  "@deleteFolderTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "@moveTo": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "@movedTo": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "@itemsCount": {
     "placeholders": {
       "count": {
@@ -426,7 +390,6 @@
   "emptyAudioTitle": "No recordings yet",
   "emptyAudioBody": "Tap the microphone to record. The recording is encrypted into the vault when you stop.",
   "rename": "Rename",
-  "newAlbum": "New album",
   "addFromDevice": "Add photos from device",
   "recordVideo": "Record video",
   "cameraVideo": "Video",
@@ -436,5 +399,54 @@
   "addFiles": "Add files",
   "addToLibrary": "Add to library",
   "recordingVideo": "Recording",
-  "videoSaveFailed": "Couldn't save the video. Try again."
+  "videoSaveFailed": "Couldn't save the video. Try again.",
+  "newTag": "New group",
+  "tagName": "Group name",
+  "renameTag": "Rename group",
+  "deleteTag": "Delete group",
+  "deleteTagTitle": "Delete group “{name}”?",
+  "deleteTagBody": "The items stay; only the group goes.",
+  "tagOptions": "Group options",
+  "allTags": "All groups",
+  "tagAction": "Group",
+  "tagSelected": "{count, plural, =1{Groups for 1 item} other{Groups for {count} items}}",
+  "tagEmpty": "Nothing from this group here yet.",
+  "@deleteTagTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@tagSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "capturePhoto": "Photo {when}",
+  "captureVideo": "Video {when}",
+  "captureAudio": "Recording {when}",
+  "@capturePhoto": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "@captureVideo": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "@captureAudio": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  }
 }

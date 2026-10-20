@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Fail if the app's compiled Rust library imports socket / name-lookup functions.
+#   tools/check-rust-symbols path/to/librust_lib_cozysafe.so   (Linux, CI)
+#   tools/check-rust-symbols path/to/librust_lib_cozysafe.dylib (macOS)
+#   NM=llvm-nm tools/check-rust-symbols lib/arm64-v8a/librust_lib_cozysafe.so (from the APK)
+#
+# Checks the linked shared library (cdylib), not the .a: the linker keeps only code
+# that is reachable, so a socket import here means some crate really calls it. A
+# staticlib bundles whole object files of std and every crate, used or not, so it
+# can list imports of code that never runs.
+#
+# Nothing needs allowing today. If a symbol ever must be allowed, add it to ALLOW
+# with the reason next to it.
+set -euo pipefail
+lib="$1"
+
+NET="socket socketpair connect bind listen accept accept4 send sendto sendmsg sendmmsg
+recv recvfrom recvmsg recvmmsg getaddrinfo freeaddrinfo gai_strerror getnameinfo
+gethostbyname gethostbyname2 gethostbyaddr getsockopt setsockopt getpeername
+getsockname shutdown"
+ALLOW=""
+
+case "$lib" in
+  # ELF (Linux, Android). NM can point at the NDK's llvm-nm for Android libraries.
+  *.so) imports=$("${NM:-nm}" -D --undefined-only "$lib" | awk '{print $NF}' | sed 's/@.*//') ;;
+  *.dylib) imports=$("${NM:-nm}" -u "$lib" | sed 's/^_//') ;;
+  *) echo "error: expected a .so or .dylib" >&2; exit 2 ;;
+esac
+test -n "$imports" || { echo "error: no imports read from $lib" >&2; exit 2; }
+
+found=""
+for s in $NET; do
+  if grep -qx "$s" <<<"$imports" && ! grep -qw "$s" <<<"$ALLOW"; then
+    found="$found $s"
+  fi
+done
+if [ -n "$found" ]; then
+  echo "error: $lib imports network functions:$found" >&2
+  echo "Find the crate that calls them (cargo tree, cackle) before allowing anything." >&2
+  exit 1
+fi
+echo "OK: $lib imports $(wc -l <<<"$imports" | tr -d ' ') symbols, none for networking"

@@ -16,7 +16,7 @@ import '../platform.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
-import '../widgets/add_dock.dart';
+import '../prefs.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
@@ -33,18 +33,18 @@ import 'settings.dart';
 import 'trash.dart';
 import 'unlock.dart';
 import 'video_view.dart';
+import '../capture_name.dart';
+import '../item_kind.dart';
 
-/// Inside an open vault (docs/ui.md, vault bar): a large title, the folders of the kind
-/// on show as a row of chips, the content edge to edge, and floating glass at the bottom:
-/// the lock, the four kinds, and the main action above the lock. Locks on leaving the
+/// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
+/// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
+/// sections, and the main action above the lock. Locks on leaving the
 /// app, after 2 minutes without a touch, or with the lock button.
 class VaultHomeScreen extends StatefulWidget {
-  const VaultHomeScreen({super.key, required this.libraryDir, required this.vault, this.initialAction});
+  const VaultHomeScreen({super.key, required this.libraryDir, required this.vault});
 
   final String libraryDir;
   final rust.VaultInfo vault;
-  /// An add action picked on the lock screen, run once the vault is open.
-  final AddMode? initialAction;
 
   @override
   State<VaultHomeScreen> createState() => _VaultHomeScreenState();
@@ -55,21 +55,21 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   bool _locked = false;
   List<rust.ItemInfo>? _items;
   /// Decrypted previews, in memory only, dropped with this screen.
-  final Map<String, Future<Uint8List>> _thumbs = {};
+  final Map<String, Future<Uint8List>> _thumbnails = {};
   /// Photos per row; pinch to change, like Photos.
   int _cols = 4;
   static const _colSteps = [3, 4, 5, 7];
   double _scaleStart = 1;
   /// What the vault shows, picked in the bottom capsule.
-  late VaultKind _kind = startKind();
+  late VaultSection _section = startSection();
   final _actionKey = GlobalKey();
   final _recorder = GlobalKey<RecorderViewState>();
   bool _recordingNow = false;
   static const _tintApp = false;
 
-  /// The folder open in each kind; none means its top level.
-  final Map<VaultKind, String?> _openFolder = {};
-  String? get _folder => _openFolder[_kind];
+  /// The tag open on top of the sections ("Hộ chiếu"): every section then shows only
+  /// what carries it. None: everything.
+  String? _tagId;
   /// Long-press selection: ids picked for Delete / Send.
   final Set<String> _selected = {};
   /// Note previews (second line on), decrypted on demand, in memory only.
@@ -98,8 +98,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // Touches anywhere count, also on the note editor or viewer pushed above this screen.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _touch();
-    final first = widget.initialAction;
-    if (first != null) WidgetsBinding.instance.addPostFrameCallback((_) => _onAction(first));
   }
 
   @override
@@ -178,7 +176,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       rust.lock();
       LockGuard.clearCopied();
       clearPlaybackCopies();
-      _thumbs.clear();
+      _thumbnails.clear();
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
@@ -197,39 +195,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   // ---------- adding ----------
 
-  /// An add action picked on the lock screen.
-  void _onAction(AddMode mode) {
-    switch (mode) {
-      case AddMode.camera:
-        _openCamera(video: false);
-      case AddMode.audio:
-        if (vaultKinds().contains(VaultKind.audio)) {
-          setState(() => _kind = VaultKind.audio);
-          WidgetsBinding.instance.addPostFrameCallback((_) => _recorder.currentState?.toggle());
-        }
-      case AddMode.note:
-        _openNote(null);
-      case AddMode.library:
-        _import(photos: true);
-      case AddMode.file:
-        _import(photos: false);
-      case _:
-        break;
-    }
-  }
-
   static bool get _hasCamera => Device.iOS || Device.android || debugCamera;
 
   /// The button above the lock: compose, record, or a short menu of ways to add.
   Future<void> _mainAction() async {
-    switch (_kind) {
-      case VaultKind.note:
+    switch (_section) {
+      case VaultSection.note:
         return _openNote(null);
-      case VaultKind.audio:
+      case VaultSection.audio:
         return _recorder.currentState?.toggle();
-      case VaultKind.file:
+      case VaultSection.file:
         return _import(photos: false);
-      case VaultKind.library:
+      case VaultSection.library:
         if (!_hasCamera) return _import(photos: true);
         final l = AppLocalizations.of(context);
         final box = _actionKey.currentContext?.findRenderObject() as RenderBox?;
@@ -266,7 +243,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       fullscreenDialog: true,
       builder: (_) => CameraScreen(
         video: video,
-        folder: _kind == VaultKind.library ? _folder : null,
+        tagId: _tagId,
         onOpenLast: (item) => _openItem(item, [item]),
       ),
     ));
@@ -275,7 +252,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<void> _openNote(rust.ItemInfo? item) async {
     final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
-        builder: (_) => NoteScreen(item: item, folder: item == null && _kind == VaultKind.note ? _folder : null)));
+        builder: (_) => NoteScreen(item: item, tagId: item == null ? _tagId : null)));
     if (!_locked && changed == true) {
       _previews.clear();
       _reload();
@@ -302,16 +279,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         added = await importFiles(files, photos: photos, progress: (d, _) {
           done.value = d;
           LockGuard.activity(); // a long import is not idleness
-        }, cancelled: () => cancel);
+        }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(l, kind, DateTime.now(), ext));
       } finally {
         if (mounted) nav.pop();
         await sheet;
         done.dispose();
       }
-      // Picked inside a folder: they go into that folder.
-      final into = _folder;
-      if (into != null && added.isNotEmpty) {
-        await rust.moveItems(ids: [for (final a in added) a.id], folder: into);
+      // Added while a tag is open: they carry it.
+      final tagId = _tagId;
+      if (tagId != null && added.isNotEmpty) {
+        await rust.setTag(itemIds: [for (final a in added) a.id], tagId: tagId, tagged: true);
       }
       // No "N added" message: the items appear at once, and the bar showed progress.
       if (mounted) _reload();
@@ -511,7 +488,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   // ---------- content ----------
 
-  Future<Uint8List> _thumb(String id) => _thumbs[id] ??= rust.itemThumbnail(id: id);
+  Future<Uint8List> _thumbnail(String id) => _thumbnails[id] ??= rust.itemThumbnail(id: id);
 
   /// The note's text after its first line (the title), for the list's two-line preview.
   Future<String> _preview(String id) => _previews[id] ??= rust.itemContent(id: id).then((bytes) {
@@ -520,22 +497,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         return (nl < 0 ? '' : text.substring(nl + 1)).trim().replaceAll(RegExp(r'\s+'), ' ');
       });
 
-  bool _isMedia(rust.ItemInfo i) => i.kind == 'photo' || i.kind == 'video';
+  bool _isMedia(rust.ItemInfo i) => i.kind == ItemKind.photo || i.kind == ItemKind.video;
 
   Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
     if (_selected.isNotEmpty) return _toggle(item.id);
-    if (item.kind == 'folder') {
-      final kind = VaultKind.values.where((k) => k.name == _spaceOf(item)).firstOrNull ?? VaultKind.file;
-      return setState(() {
-        _kind = kind;
-        _openFolder[kind] = item.id;
-      });
-    }
-    if (item.kind == 'note') return _openNote(item);
-    if (item.kind == 'audio') return _audioActions(item);
+    if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
+    if (item.kind == ItemKind.note) return _openNote(item);
+    if (item.kind == ItemKind.audio) return _audioActions(item);
     final String? deleted;
-    if (item.kind == 'photo') {
-      final photos = media.where((m) => m.kind == 'photo').toList();
+    if (item.kind == ItemKind.photo) {
+      final photos = media.where((m) => m.kind == ItemKind.photo).toList();
       deleted = await Navigator.of(context).push<String>(
         PageRouteBuilder(
           opaque: false,
@@ -545,7 +516,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
         ),
       );
-    } else if (item.kind == 'video' && VideoViewScreen.supported) {
+    } else if (item.kind == ItemKind.video && VideoViewScreen.supported) {
       deleted = await Navigator.of(context).push<String>(
         MaterialPageRoute(builder: (_) => VideoViewScreen(item: item, vaultId: _vault.id)),
       );
@@ -639,14 +610,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<void> _deleteSelected() async {
-    final folders = {for (final i in _items ?? const <rust.ItemInfo>[]) if (i.kind == 'folder') i.id};
-    final ids = _selected.where((id) => !folders.contains(id)).toList();
+    final ids = _selected.toList();
     final now = nowMs();
-    for (final id in _selected.where(folders.contains)) {
-      try {
-        await rust.deleteFolder(id: id); // what it holds moves up, nothing is deleted
-      } catch (_) {}
-    }
     for (final id in ids) {
       try {
         await rust.trashItem(id: id, nowMs: now);
@@ -662,17 +627,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     if (!await confirmShareOut(context, _vault.id) || !mounted) return;
     final items =
-        (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id) && i.kind != 'folder').toList();
+        (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id) && i.kind != ItemKind.tag).toList();
     final dir = await Directory((await getTemporaryDirectory()).path).createTemp('send');
     LockGuard.allowAway();
     try {
       final files = <XFile>[];
       for (final (n, it) in items.indexed) {
         var name = it.name.isEmpty ? 'item-$n' : it.name.replaceAll(RegExp(r'[/\\:]'), '-');
-        if (it.kind == 'note' && !name.endsWith('.txt')) name = '$name.txt';
+        if (it.kind == ItemKind.note && !name.endsWith('.txt')) name = '$name.txt';
         final path = '${dir.path}${Platform.pathSeparator}$name';
         await rust.exportItem(id: it.id, path: path);
-        files.add(XFile(path, mimeType: it.kind == 'note' ? 'text/plain' : it.mime));
+        files.add(XFile(path, mimeType: it.kind == ItemKind.note ? 'text/plain' : it.mime));
       }
       if (!mounted) return;
       final box = context.findRenderObject() as RenderBox?;
@@ -697,7 +662,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final items = _items;
     if (items == null) return;
     final picked = await Navigator.of(context).push<rust.ItemInfo>(
-      MaterialPageRoute(builder: (_) => SearchScreen(items: items, thumb: _thumb)),
+      MaterialPageRoute(
+          builder: (_) => SearchScreen(items: items.where((i) => i.kind != ItemKind.tag).toList(), thumbnail: _thumbnail)),
     );
     if (picked != null && mounted && !_locked) _openItem(picked, items.where(_isMedia).toList());
   }
@@ -721,8 +687,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Widget _library(BuildContext context, List<rust.ItemInfo> media) {
     final l = AppLocalizations.of(context);
     if (media.isEmpty) {
-      return _folder != null
-          ? _FolderEmpty(text: l.folderEmpty)
+      return _tagId != null
+          ? _TagEmpty(text: l.tagEmpty)
           : _Empty(icon: Icons.photo_library_outlined, title: l.emptyPhotosTitle, body: l.emptyPhotosBody);
     }
     final groups = <String, List<rust.ItemInfo>>{};
@@ -759,7 +725,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   return _MediaTile(
                     key: ValueKey(it.id),
                     item: it,
-                    thumb: _thumb(it.id),
+                    thumbnail: _thumbnail(it.id),
                     selected: _selected.contains(it.id),
                     selecting: _selected.isNotEmpty,
                     onTap: () => _openItem(it, media),
@@ -781,7 +747,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     if (list.isEmpty) {
-      if (_folder != null) return _FolderEmpty(text: l.folderEmpty);
+      if (_tagId != null) return _TagEmpty(text: l.tagEmpty);
       return notes
           ? _Empty(icon: Icons.sticky_note_2_outlined, title: l.emptyNotesTitle, body: l.emptyNotesBody)
           : _Empty(icon: Icons.description_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody);
@@ -808,7 +774,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                         )
                       : _FileRow(
                           item: it,
-                          thumb: _isMedia(it) ? _thumb(it.id) : null,
+                          thumbnail: _isMedia(it) ? _thumbnail(it.id) : null,
                           selected: _selected.contains(it.id),
                           onTap: () => _openItem(it, list.where(_isMedia).toList()),
                           onLongPress: () => _toggle(it.id),
@@ -822,123 +788,84 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
-  // ---------- folders (each kind has its own) ----------
+  // ---------- tags ("nhóm", docs/naming.md) ----------
 
-  /// Folder colours: a short, distinct set of the vault colours.
-  static const _folderColors = ['amber', 'blue', 'red', 'violet', 'leaf', 'teal', 'pink', 'grey'];
+  /// Every tag, by id.
+  Map<String, rust.ItemInfo> get _tags =>
+      {for (final i in _items ?? const <rust.ItemInfo>[]) if (i.kind == ItemKind.tag) i.id: i};
 
-  /// Each kind has its own folders. Folders made before that belong to Files.
-  static String _spaceOf(rust.ItemInfo f) => f.space ?? VaultKind.file.name;
+  rust.ItemInfo? get _openTag => _tagId == null ? null : _tags[_tagId];
 
-  /// The folders of the kind on show.
-  Map<String, rust.ItemInfo> get _folders => {
-        for (final i in _items ?? const <rust.ItemInfo>[])
-          if (i.kind == 'folder' && _spaceOf(i) == _kind.name) i.id: i
+  /// Item kinds each section shows.
+  static bool _inSection(VaultSection s, rust.ItemInfo i) => switch (s) {
+        VaultSection.note => i.kind == ItemKind.note,
+        VaultSection.library => i.kind == ItemKind.photo || i.kind == ItemKind.video,
+        VaultSection.audio => i.kind == ItemKind.audio,
+        VaultSection.file => i.kind == ItemKind.file,
       };
 
-  /// Where an item really sits: a folder that no longer exists counts as the top level.
-  String? _parentOf(rust.ItemInfo i, Map<String, rust.ItemInfo> folders) =>
-      i.folder != null && folders.containsKey(i.folder) ? i.folder : null;
+  /// What the section on show holds, narrowed to the open tag.
+  List<rust.ItemInfo> _shown(List<rust.ItemInfo> items) => items
+      .where((i) => _inSection(_section, i) && (_tagId == null || i.tagIds.contains(_tagId)))
+      .toList();
 
-  void _upFolder() {
-    final f = _folders[_folder];
-    setState(() {
-      _openFolder[_kind] = f == null ? null : _parentOf(f, _folders);
-      _selected.clear();
-    });
-  }
-
-  Future<(String, String)?> _askFolder({String name = '', String color = 'amber', required String title}) {
+  Future<String?> _askTagName({required String title, String name = ''}) {
     final l = AppLocalizations.of(context);
     final text = TextEditingController(text: name);
-    var picked = color;
-    return showDialog<(String, String)>(
+    return showDialog<String>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, set) => AlertDialog(
-          title: Text(title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: text,
-                autofocus: true,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(hintText: l.folderName),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final c in _folderColors)
-                    Semantics(
-                      button: true,
-                      selected: c == picked,
-                      label: colorById(c).label,
-                      child: GestureDetector(
-                        onTap: () => set(() => picked = c),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: colorById(c).color,
-                            shape: BoxShape.circle,
-                            border: c == picked ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3) : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
-            TextButton(
-              onPressed: () {
-                final n = text.text.trim();
-                if (n.isNotEmpty) Navigator.pop(context, (n, picked));
-              },
-              child: Text(l.save),
-            ),
-          ],
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: text,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(hintText: l.tagName),
+          onSubmitted: (v) => v.trim().isEmpty ? null : Navigator.pop(context, v.trim()),
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
+          TextButton(
+            onPressed: () {
+              final n = text.text.trim();
+              if (n.isNotEmpty) Navigator.pop(context, n);
+            },
+            child: Text(l.save),
+          ),
+        ],
       ),
     ).whenComplete(text.dispose);
   }
 
-  Future<rust.ItemInfo?> _newFolder({String? parent}) async {
+  Future<rust.ItemInfo?> _newTag() async {
     final l = AppLocalizations.of(context);
-    final r = await _askFolder(title: _kind == VaultKind.library ? l.newAlbum : l.newFolder);
-    if (r == null) return null;
+    final name = await _askTagName(title: l.newTag);
+    if (name == null) return null;
     try {
-      final f = await rust.createFolder(
-          name: r.$1, color: r.$2, space: _kind.name, parent: parent, createdMs: nowMs());
+      final tag = await rust.createTag(name: name, createdMs: nowMs());
       await _reload();
-      return f;
+      return tag;
     } on rust.VaultError catch (e) {
       if (mounted) _snack(vaultErrorText(l, e));
       return null;
     }
   }
 
-  Future<void> _editFolder(rust.ItemInfo f) async {
+  Future<void> _renameTag(rust.ItemInfo tag) async {
     final l = AppLocalizations.of(context);
-    final r = await _askFolder(title: l.renameFolder, name: f.name, color: f.color ?? 'amber');
-    if (r == null) return;
-    await rust.updateFolder(id: f.id, name: r.$1, color: r.$2);
+    final name = await _askTagName(title: l.renameTag, name: tag.name);
+    if (name == null) return;
+    await rust.renameTag(tagId: tag.id, name: name);
     _reload();
   }
 
-  Future<void> _removeFolder(rust.ItemInfo f) async {
+  Future<void> _deleteTag(rust.ItemInfo tag) async {
     final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l.deleteFolderTitle(f.name)),
-        content: Text(l.deleteFolderBody),
+        title: Text(l.deleteTagTitle(tag.name)),
+        content: Text(l.deleteTagBody),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
           TextButton(onPressed: () => Navigator.pop(context, true), child: Text(l.delete)),
@@ -946,38 +873,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       ),
     );
     if (ok != true) return;
-    final up = _parentOf(f, _folders);
-    await rust.deleteFolder(id: f.id);
-    setState(() => _openFolder[_kind] = up);
+    await rust.deleteTag(tagId: tag.id);
+    setState(() => _tagId = null);
     _reload();
   }
 
-  /// Move the selection: pick a folder (the tree, indented), the top level, or a new one.
-  Future<void> _moveSelected() async {
+  /// Every tag in a sheet: open one, or make a new one.
+  Future<void> _allTags() async {
     final l = AppLocalizations.of(context);
-    final folders = _folders;
-    // Folders being moved, and everything under them, can't be targets.
-    bool under(String? id, String root) {
-      for (var at = id; at != null; at = folders[at] == null ? null : _parentOf(folders[at]!, folders)) {
-        if (at == root) return true;
-      }
-      return false;
-    }
-
-    final moving = _selected.where(folders.containsKey).toList();
-    final rows = <(rust.ItemInfo, int)>[];
-    void walk(String? parent, int depth) {
-      final kids = folders.values.where((f) => _parentOf(f, folders) == parent).toList()
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-      for (final f in kids) {
-        if (moving.any((m) => under(f.id, m))) continue;
-        rows.add((f, depth));
-        walk(f.id, depth + 1);
-      }
-    }
-
-    walk(null, 0);
-    const top = '';
+    final items = _items ?? const <rust.ItemInfo>[];
+    final tags = _tags.values.toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     const create = '+';
     final picked = await showModalBottomSheet<String>(
       context: context,
@@ -991,23 +896,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text(l.moveTo(_selected.length), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                child: Text(l.allTags, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
               ),
-              ListTile(
-                leading: const Icon(Icons.folder_open_outlined),
-                title: Text(l.topLevel),
-                onTap: () => Navigator.pop(context, top),
-              ),
-              for (final (f, depth) in rows)
+              for (final t in tags)
                 ListTile(
-                  contentPadding: EdgeInsets.only(left: 16.0 + depth * 22, right: 16),
-                  leading: Icon(Icons.folder, color: colorById(f.color ?? 'amber').color),
-                  title: Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  onTap: () => Navigator.pop(context, f.id),
+                  leading: const Icon(Icons.sell_outlined),
+                  title: Text(t.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  trailing: Text('${items.where((i) => i.tagIds.contains(t.id)).length}'),
+                  onTap: () => Navigator.pop(context, t.id),
                 ),
               ListTile(
-                leading: const Icon(Icons.create_new_folder_outlined),
-                title: Text(l.newFolderEllipsis),
+                leading: const Icon(Icons.add),
+                title: Text(l.newTag),
                 onTap: () => Navigator.pop(context, create),
               ),
             ],
@@ -1016,65 +916,70 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       ),
     );
     if (picked == null || !mounted) return;
-    String? target = picked == top ? null : picked;
     if (picked == create) {
-      final f = await _newFolder(parent: _folder);
-      if (f == null) return;
-      target = f.id;
-    }
-    try {
-      await rust.moveItems(ids: _selected.toList(), folder: target);
-      if (!mounted) return;
-      final name = target == null ? l.topLevel : (_folders[target]?.name ?? '');
-      setState(_selected.clear);
-      await _reload();
-      _snack(l.movedTo(name));
-    } on rust.VaultError catch (e) {
-      if (mounted) _snack(vaultErrorText(l, e));
+      final t = await _newTag();
+      if (t != null) setState(() => _tagId = t.id);
+    } else {
+      setState(() => _tagId = picked);
     }
   }
 
-  /// What the kind on show holds here: at the top level, its loose items (and those in
-  /// another kind's folder); inside a folder, what is in it. A Files folder may also hold
-  /// photos or notes filed there before each kind had its own folders.
-  List<rust.ItemInfo> _shown(List<rust.ItemInfo> items) {
-    final folders = _folders;
-    final here = _folder;
-    bool mine(rust.ItemInfo i) => switch (_kind) {
-          VaultKind.note => i.kind == 'note',
-          VaultKind.library => _isMedia(i),
-          VaultKind.audio => i.kind == 'audio',
-          VaultKind.file => here == null ? i.kind == 'file' : i.kind != 'folder',
-        };
-    return items.where((i) => mine(i) && _parentOf(i, folders) == here).toList();
+  /// Put the selection into tags, or take it out: one switch per tag, on when every
+  /// selected item carries it.
+  Future<void> _tagSelected() async {
+    final l = AppLocalizations.of(context);
+    final items = {for (final i in _items ?? const <rust.ItemInfo>[]) i.id: i};
+    final ids = _selected.toList();
+    final count = ids.length;
+    final result = await showModalBottomSheet<Map<String, bool>>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => _TagSheet(
+        title: l.tagSelected(count),
+        tags: _tags.values.toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+        carried: (tagId) => ids.where((id) => items[id]?.tagIds.contains(tagId) ?? false).length,
+        total: count,
+        onNewTag: _newTag,
+      ),
+    );
+    if (result == null || result.isEmpty || !mounted) return;
+    try {
+      for (final e in result.entries) {
+        await rust.setTag(itemIds: ids, tagId: e.key, tagged: e.value);
+      }
+      setState(_selected.clear);
+      await _reload();
+    } on rust.VaultError catch (e) {
+      if (mounted) _snack(vaultErrorText(l, e));
+    }
   }
 
   Widget _content(BuildContext context) {
     final items = _items;
     if (items == null) return const Center(child: CircularProgressIndicator());
     final shown = _shown(items);
-    return switch (_kind) {
-      VaultKind.note => _list(context, shown, notes: true),
-      VaultKind.file => _list(context, shown, notes: false),
-      VaultKind.audio => RecorderView(
+    return switch (_section) {
+      VaultSection.note => _list(context, shown, notes: true),
+      VaultSection.file => _list(context, shown, notes: false),
+      VaultSection.audio => RecorderView(
           key: _recorder,
           items: shown,
-          folder: _folder,
+          tagId: _tagId,
           bottomPad: _bottomRoom,
           onSaved: _reload,
           onRecordingChanged: (v) => setState(() => _recordingNow = v),
           onOpen: (it) => _openItem(it, const []),
         ),
-      VaultKind.library => _library(context, shown),
+      VaultSection.library => _library(context, shown),
     };
   }
 
-  /// Large title; inside a folder, Back and the folder's name. Search and Settings
-  /// are glass circles on the right.
+  /// Large title (the section, or the open tag with Back and a ⋯ menu); Search and
+  /// Settings are glass circles on the right.
   Widget _header(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final folders = _folders;
-    final open = _folder == null ? null : folders[_folder];
+    final open = _openTag;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
       child: Row(
@@ -1089,11 +994,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
             )
           else
-            GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, size: 38, onTap: _upFolder),
+            GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, size: 38, onTap: () => setState(() => _tagId = null)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              open?.name ?? kindLabel(l, _kind),
+              open?.name ?? sectionLabel(l, _section),
               key: const ValueKey('vault-title'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1102,11 +1007,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ),
           if (open != null) ...[
             PopupMenuButton<int>(
-              tooltip: l.folderOptions,
-              onSelected: (v) => v == 0 ? _editFolder(open) : _removeFolder(open),
+              tooltip: l.tagOptions,
+              onSelected: (v) => v == 0 ? _renameTag(open) : _deleteTag(open),
               itemBuilder: (context) => [
-                PopupMenuItem(value: 0, child: Text(l.renameFolder)),
-                PopupMenuItem(value: 1, child: Text(l.deleteFolder)),
+                PopupMenuItem(value: 0, child: Text(l.renameTag)),
+                PopupMenuItem(value: 1, child: Text(l.deleteTag)),
               ],
               child: const IgnorePointer(child: GlassButton(icon: Icons.more_horiz, tooltip: '', size: 38, onTap: null)),
             ),
@@ -1126,51 +1031,84 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
-  /// The folders here, as chips, then "New folder" (or "New album").
-  Widget _folderChips(BuildContext context) {
+  /// A button for every group, then the tags with something in this section as chips
+  /// (the open one first and marked), then "New group".
+  Widget _tagChips(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final folders = _folders;
     final items = _items ?? const <rust.ItemInfo>[];
-    final here = _folder;
-    final kids = folders.values.where((f) => _parentOf(f, folders) == here).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    int count(String tagId) => items.where((i) => _inSection(_section, i) && i.tagIds.contains(tagId)).length;
+    final all = _tags.values.toList();
+    // The open tag first, then the others by name.
+    final here = all.where((t) => t.id == _tagId || count(t.id) > 0).toList()
+      ..sort((a, b) => a.id == _tagId
+          ? -1
+          : b.id == _tagId
+              ? 1
+              : a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     final primary = Theme.of(context).colorScheme.primary;
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(14, 6, 14, 8),
-        children: [
-          for (final f in kids) ...[
-            _FolderChip(
-              folder: f,
-              count: items.where((i) => i.folder == f.id).length,
-              selected: _selected.contains(f.id),
-              onTap: () => _openItem(f, const []),
-              onLongPress: () => _toggle(f.id),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Semantics(
-            button: true,
-            child: InkWell(
-              key: const ValueKey('new-folder'),
-              borderRadius: BorderRadius.circular(13),
-              onTap: () => _newFolder(parent: here),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.create_new_folder_outlined, size: 19, color: primary),
-                    const SizedBox(width: 6),
-                    Text(_kind == VaultKind.library ? l.newAlbum : l.newFolder,
-                        style: TextStyle(color: primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
-                  ],
-                ),
+    Widget link(Key key, IconData icon, String text, VoidCallback onTap) => Semantics(
+          button: true,
+          child: InkWell(
+            key: key,
+            borderRadius: BorderRadius.circular(13),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 19, color: primary),
+                  const SizedBox(width: 6),
+                  Text(text, style: TextStyle(color: primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                ],
               ),
             ),
           ),
+        );
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        // A new list per open tag: the row starts at the beginning again.
+        key: ValueKey('tags-$_tagId'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(14, 6, 14, 8),
+        children: [
+          // Every group, always in reach at the start of the row (the sheet also makes new ones).
+          if (all.isNotEmpty) ...[
+            Tooltip(
+              message: l.allTags,
+              child: Semantics(
+                button: true,
+                label: l.allTags,
+                child: Material(
+                  key: const ValueKey('all-tags'),
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(13),
+                  elevation: .5,
+                  shadowColor: Colors.black26,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(13),
+                    onTap: _allTags,
+                    child: SizedBox(width: 40, child: Icon(Icons.sell_outlined, size: 18, color: primary)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          for (final t in here) ...[
+            _TagChip(
+              tag: t,
+              count: count(t.id),
+              open: t.id == _tagId,
+              onTap: () => setState(() => _tagId = t.id == _tagId ? null : t.id),
+            ),
+            const SizedBox(width: 8),
+          ],
+          link(const ValueKey('new-tag'), Icons.add, l.newTag, () async {
+            final t = await _newTag();
+            if (t != null && mounted) setState(() => _tagId = t.id);
+          }),
         ],
       ),
     );
@@ -1178,13 +1116,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Widget _actionButton(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final (icon, tip) = switch (_kind) {
-      VaultKind.note => (Icons.edit_square, l.newNote),
-      VaultKind.library => (Icons.add, l.addToLibrary),
-      VaultKind.audio => (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording),
-      VaultKind.file => (Icons.add, l.addFiles),
+    final (icon, tip) = switch (_section) {
+      VaultSection.note => (Icons.edit_square, l.newNote),
+      VaultSection.library => (Icons.add, l.addToLibrary),
+      VaultSection.audio => (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording),
+      VaultSection.file => (Icons.add, l.addFiles),
     };
-    return ActionButton(key: _actionKey, icon: icon, tooltip: tip, red: _kind == VaultKind.audio, onTap: _mainAction);
+    return ActionButton(key: _actionKey, icon: icon, tooltip: tip, red: _section == VaultSection.audio, onTap: _mainAction);
   }
 
   @override
@@ -1235,22 +1173,22 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           )
         : null;
 
-    final inFolder = _folder != null;
+    final inTag = _tagId != null;
     return PopScope(
-      canPop: !selecting && !inFolder && !_recordingNow,
+      canPop: !selecting && !inTag && !_recordingNow,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (selecting) {
           setState(_selected.clear);
-        } else if (inFolder) {
-          _upFolder();
+        } else if (inTag) {
+          setState(() => _tagId = null);
         }
       },
       child: Scaffold(
         // While selecting, the bar gives way to what can be done with the selection
         // (a real bottom bar, so messages float above it).
         bottomNavigationBar: selecting
-            ? _SelectionBar(onSend: _sendSelected, onMove: _moveSelected, onDelete: _deleteSelected)
+            ? _SelectionBar(onSend: _sendSelected, onTag: _tagSelected, onDelete: _deleteSelected)
             : null,
         body: Stack(
           children: [
@@ -1260,7 +1198,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   header,
-                  if (!_recordingNow) _folderChips(context),
+                  if (!_recordingNow) _tagChips(context),
                   ?banner,
                   Expanded(child: MediaQuery.removePadding(context: context, removeBottom: true, child: _content(context))),
                 ],
@@ -1290,11 +1228,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 right: 10,
                 bottom: bottom + 10,
                 child: VaultBar(
-                  kind: _kind,
-                  onKind: (k) {
+                  section: _section,
+                  onSection: (k) {
                     if (_recordingNow) return;
                     setState(() {
-                      _kind = k;
+                      _section = k;
                       _selected.clear();
                     });
                   },
@@ -1317,20 +1255,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 }
 
-/// A folder in the chip row: its colour, name and how much is in it.
-class _FolderChip extends StatelessWidget {
-  const _FolderChip({
-    required this.folder,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-    required this.onLongPress,
-  });
-  final rust.ItemInfo folder;
+/// A tag in the chip row: its name and how much of this section carries it.
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.tag, required this.count, required this.open, required this.onTap});
+  final rust.ItemInfo tag;
   final int count;
-  final bool selected;
+  final bool open;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -1338,31 +1269,29 @@ class _FolderChip extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     return Semantics(
       button: true,
-      selected: selected,
-      label: '${folder.name}, $count',
+      selected: open,
+      label: '${tag.name}, $count',
       child: Material(
-        color: selected ? primary.withValues(alpha: .14) : Theme.of(context).cardColor,
+        color: open ? primary.withValues(alpha: .14) : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(13),
-        elevation: selected ? 0 : .5,
+        elevation: open ? 0 : .5,
         shadowColor: Colors.black26,
         child: InkWell(
           borderRadius: BorderRadius.circular(13),
           onTap: onTap,
-          onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 11),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(selected ? Icons.check_circle : Icons.folder_rounded,
-                    size: 18, color: selected ? primary : colorById(folder.color ?? 'amber').color),
+                Icon(Icons.sell_outlined, size: 17, color: open ? primary : c.muted),
                 const SizedBox(width: 6),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 160),
-                  child: Text(folder.name,
+                  child: Text(tag.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5, color: open ? primary : null)),
                 ),
                 if (count > 0) ...[
                   const SizedBox(width: 6),
@@ -1377,23 +1306,112 @@ class _FolderChip extends StatelessWidget {
   }
 }
 
-/// An open folder with nothing in it.
-class _FolderEmpty extends StatelessWidget {
-  const _FolderEmpty({required this.text});
+/// A tag with nothing in this section.
+class _TagEmpty extends StatelessWidget {
+  const _TagEmpty({required this.text});
   final String text;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 48),
+        padding: const EdgeInsets.only(top: 48, left: 24, right: 24),
         child: Text(text, textAlign: TextAlign.center, style: TextStyle(color: CsColors.of(context).muted)),
       );
 }
 
+/// Tags for the selection: a switch per tag (on, off, or "some" when only part of the
+/// selection carries it), and "New group". Returns the switches that changed.
+class _TagSheet extends StatefulWidget {
+  const _TagSheet({
+    required this.title,
+    required this.tags,
+    required this.carried,
+    required this.total,
+    required this.onNewTag,
+  });
+  final String title;
+  final List<rust.ItemInfo> tags;
+  final int Function(String tagId) carried;
+  final int total;
+  final Future<rust.ItemInfo?> Function() onNewTag;
+
+  @override
+  State<_TagSheet> createState() => _TagSheetState();
+}
+
+class _TagSheetState extends State<_TagSheet> {
+  late final List<rust.ItemInfo> _tags = [...widget.tags];
+  final Map<String, bool> _changed = {};
+
+  bool? _state(String tagId) {
+    final set = _changed[tagId];
+    if (set != null) return set;
+    final n = widget.carried(tagId);
+    return n == 0 ? false : (n == widget.total ? true : null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .75),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(widget.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final t in _tags)
+                    CheckboxListTile(
+                      tristate: true,
+                      value: _state(t.id),
+                      title: Text(t.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      secondary: const Icon(Icons.sell_outlined),
+                      // From "some", a tap puts it on all of them.
+                      onChanged: (_) => setState(() => _changed[t.id] = _state(t.id) != true),
+                    ),
+                  ListTile(
+                    key: const ValueKey('sheet-new-tag'),
+                    leading: const Icon(Icons.add),
+                    title: Text(l.newTag),
+                    onTap: () async {
+                      final t = await widget.onNewTag();
+                      if (t == null || !mounted) return;
+                      setState(() {
+                        _tags.add(t);
+                        _changed[t.id] = true;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: FilledButton(
+                key: const ValueKey('sheet-done'),
+                onPressed: () => Navigator.pop(context, _changed),
+                child: Text(l.done),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// While items are selected the dock gives way to what can be done with them.
 class _SelectionBar extends StatelessWidget {
-  const _SelectionBar({required this.onSend, required this.onMove, required this.onDelete});
+  const _SelectionBar({required this.onSend, required this.onTag, required this.onDelete});
   final VoidCallback onSend;
-  final VoidCallback onMove;
+  final VoidCallback onTag;
   final VoidCallback onDelete;
 
   @override
@@ -1423,7 +1441,7 @@ class _SelectionBar extends StatelessWidget {
         child: Row(
           children: [
             action(Icons.ios_share, l.sendOut, onSend),
-            action(Icons.drive_file_move_outline, l.move, onMove),
+            action(Icons.sell_outlined, l.tagAction, onTag),
             action(Icons.delete_outline, l.delete, onDelete),
           ],
         ),
@@ -1500,10 +1518,10 @@ class _NoteRow extends StatelessWidget {
 
 /// A file: its kind, name, size and date.
 class _FileRow extends StatelessWidget {
-  const _FileRow({required this.item, this.thumb, required this.selected, required this.onTap, required this.onLongPress});
+  const _FileRow({required this.item, this.thumbnail, required this.selected, required this.onTap, required this.onLongPress});
   final rust.ItemInfo item;
-  /// A photo's or video's preview, inside folders.
-  final Future<Uint8List>? thumb;
+  /// A photo's or video's preview, when one shows up among files.
+  final Future<Uint8List>? thumbnail;
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -1527,15 +1545,15 @@ class _FileRow extends StatelessWidget {
               height: 48,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(8)),
-              child: thumb != null
+              child: thumbnail != null
                   ? FutureBuilder<Uint8List>(
-                      future: thumb,
+                      future: thumbnail,
                       builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
                           ? Image.memory(snap.data!, fit: BoxFit.cover)
                           : const SizedBox.expand(),
                     )
                   : Center(
-                child: item.kind == 'note' || ext.isEmpty || ext.length > 4
+                child: item.kind == ItemKind.note || ext.isEmpty || ext.length > 4
                     ? Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary)
                     : Text(ext,
                         style: TextStyle(
@@ -1549,7 +1567,7 @@ class _FileRow extends StatelessWidget {
                 children: [
                   Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15)),
                   const SizedBox(height: 2),
-                  Text('${fileSize(item.size)} · $when', style: TextStyle(color: c.muted, fontSize: 12.5)),
+                  Text('${fileSize(item.sizeBytes)} · $when', style: TextStyle(color: c.muted, fontSize: 12.5)),
                 ],
               ),
             ),
@@ -1609,7 +1627,7 @@ class _MediaTile extends StatelessWidget {
   const _MediaTile({
     super.key,
     required this.item,
-    required this.thumb,
+    required this.thumbnail,
     required this.selected,
     required this.selecting,
     required this.onTap,
@@ -1617,7 +1635,7 @@ class _MediaTile extends StatelessWidget {
   });
 
   final rust.ItemInfo item;
-  final Future<Uint8List> thumb;
+  final Future<Uint8List> thumbnail;
   final bool selected;
   final bool selecting;
   final VoidCallback onTap;
@@ -1641,18 +1659,18 @@ class _MediaTile extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             FutureBuilder<Uint8List>(
-              future: thumb,
+              future: thumbnail,
               builder: (context, snap) {
                 final bytes = snap.data;
                 if (bytes == null || bytes.isEmpty) {
-                  return item.kind == 'video'
+                  return item.kind == ItemKind.video
                       ? const ColoredBox(color: Color(0xFF2A3133))
                       : const SizedBox.expand();
                 }
                 return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
               },
             ),
-            if (item.kind == 'video')
+            if (item.kind == ItemKind.video)
               Positioned(
                 right: 5,
                 bottom: 4,

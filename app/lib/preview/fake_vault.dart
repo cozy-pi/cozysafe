@@ -8,6 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart' show
 import '../platform.dart';
 import '../src/rust/api/vault.dart';
 import '../src/rust/frb_generated.dart';
+import '../item_kind.dart';
 
 const previewPin = '1234';
 const _day = 86400000;
@@ -15,64 +16,61 @@ const _day = 86400000;
 class FakeVault implements RustLibApi {
   FakeVault(this.photos) {
     final now = DateTime.now().millisecondsSinceEpoch;
-    ItemInfo it(String id, String kind, String name, int size,
-            {int ago = 0, int? duration, String? folder, String? color, String? space, String mime = ''}) =>
+    ItemInfo it(String id, String kind, String name, int sizeBytes,
+            {int ago = 0, int? duration, List<String> tags = const [], String mime = ''}) =>
         ItemInfo(
           id: id,
           kind: kind,
           name: name,
           mime: mime.isNotEmpty
               ? mime
-              : kind == 'photo'
+              : kind == ItemKind.photo
                   ? 'image/jpeg'
-                  : kind == 'video'
+                  : kind == ItemKind.video
                       ? 'video/quicktime'
                       : name.endsWith('.pdf')
                           ? 'application/pdf'
                           : 'application/octet-stream',
           createdMs: i64(now - ago),
-          size: BigInt.from(size),
+          sizeBytes: BigInt.from(sizeBytes),
           deletedMs: null,
           durationMs: duration == null ? null : i64(duration),
-          folder: folder,
-          color: color,
-          space: space,
+          tagIds: tags,
         );
     _items.addAll([
-      for (var i = 0; i < 5; i++) it('p$i', 'photo', 'IMG_${4810 + i}.HEIC', 2400000, ago: i * 600000),
-      it('v1', 'video', 'Sinh nhật bé Na.MOV', 38400000, ago: 3600000, duration: 42000),
-      for (var i = 5; i < 9; i++) it('p$i', 'photo', 'IMG_${4790 + i}.HEIC', 2100000, ago: _day + i * 300000),
-      it('v2', 'video', 'Đi biển Quy Nhơn.MOV', 126000000, ago: _day * 2, duration: 197000),
+      it('t1', ItemKind.tag, 'Giấy tờ tùy thân', 0),
+      it('t2', ItemKind.tag, 'Hộ chiếu', 0),
+      it('t3', ItemKind.tag, 'Du lịch', 0),
+      it('t4', ItemKind.tag, 'Gia đình', 0),
+      it('t5', ItemKind.tag, 'Sức khoẻ', 0),
+      it('t6', ItemKind.tag, 'Nhà cửa', 0),
+      it('t7', ItemKind.tag, 'Mật khẩu', 0),
+      it('t8', ItemKind.tag, 'Công việc', 0),
+      for (var i = 0; i < 5; i++)
+        it('p$i', ItemKind.photo, 'IMG_${4810 + i}.HEIC', 2400000, ago: i * 600000,
+            tags: i == 2 ? ['t1', 't2'] : (i < 2 ? ['t4'] : [])),
+      it('v1', ItemKind.video, 'Sinh nhật bé Na.MOV', 38400000, ago: 3600000, duration: 42000, tags: ['t4']),
+      for (var i = 5; i < 9; i++) it('p$i', ItemKind.photo, 'IMG_${4790 + i}.HEIC', 2100000, ago: _day + i * 300000),
+      it('v2', ItemKind.video, 'Đi biển Quy Nhơn.MOV', 126000000, ago: _day * 2, duration: 197000, tags: ['t3', 't4']),
       for (var i = 9; i < 16; i++)
-        it('p$i', 'photo', 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i), folder: i < 13 ? 'b3' : null),
-      it('b1', 'folder', 'Giấy tờ', 0, color: 'amber', space: 'library'),
-      it('b2', 'folder', 'Gia đình', 0, color: 'blue', space: 'library'),
-      it('b3', 'folder', 'Du lịch', 0, color: 'leaf', space: 'library'),
-      it('c1', 'folder', 'Mật khẩu', 0, color: 'amber', space: 'note'),
-      it('c2', 'folder', 'Sức khoẻ', 0, color: 'red', space: 'note'),
-      it('e1', 'folder', 'Cuộc họp', 0, color: 'violet', space: 'audio'),
-      it('a1', 'audio', 'Cuộc họp với luật sư.m4a', 6100000, ago: 7200000, duration: 768000, mime: 'audio/mp4'),
-      it('a2', 'audio', 'Bác sĩ dặn về thuốc của mẹ.m4a', 1500000, ago: _day, duration: 185000, mime: 'audio/mp4'),
-      it('a3', 'audio', 'Thoả thuận đặt cọc nhà.m4a', 11600000, ago: _day * 8, duration: 1450000, mime: 'audio/mp4'),
-      it('n1', 'note', 'Wifi nhà bà ngoại', 120),
-      it('n2', 'note', 'Tài khoản ngân hàng', 640, ago: _day),
-      it('n3', 'note', 'Thuốc của mẹ', 420, ago: _day * 3),
-      it('n4', 'note', 'Hộ chiếu và visa', 260, ago: _day * 9, folder: 'd1'),
-      it('n5', 'note', 'Mật khẩu router và camera an ninh', 300, ago: _day * 15, folder: 'c1'),
-      it('n6', 'note', 'Danh sách quà Tết', 90, ago: _day * 30),
-      it('d1', 'folder', 'Giấy tờ tùy thân', 0, color: 'amber'),
-      it('d2', 'folder', 'Nhà cửa', 0, color: 'blue'),
-      it('d3', 'folder', 'Sức khoẻ', 0, color: 'red'),
-      it('d4', 'folder', 'Công việc', 0, color: 'violet'),
-      it('d6', 'folder', 'Hộ chiếu', 0, color: 'teal', folder: 'd1'),
-      it('g1', 'file', 'Ho-chieu-scan.pdf', 2300000, ago: _day * 220, folder: 'd1'),
-      it('g2', 'file', 'Giay-khai-sinh-Na.pdf', 640000, ago: _day * 290, folder: 'd1'),
-      it('g3', 'file', 'So-do-nha-scan.pdf', 4870000, ago: _day * 2, folder: 'd2'),
-      it('f1', 'file', 'Hop-dong-thue-nha-2026.pdf', 1240000),
-      it('f3', 'file', 'Chi tieu gia dinh 2026.xlsx', 86000, ago: _day * 4),
-      it('f4', 'file', 'Ket qua xet nghiem mau thang 9 - Benh vien Bach Mai.pdf', 732000, ago: _day * 11, folder: 'd3'),
-      it('f5', 'file', 'Di-chuc-nhap.docx', 42000, ago: _day * 20),
-      it('f7', 'file', 'Ho-so-xin-viec.zip', 15600000, ago: _day * 50, folder: 'd4'),
+        it('p$i', ItemKind.photo, 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i), tags: i < 13 ? ['t3'] : []),
+      it('a1', ItemKind.audio, 'Cuộc họp với luật sư.m4a', 6100000, ago: 7200000, duration: 768000, mime: 'audio/mp4', tags: ['t8']),
+      it('a2', ItemKind.audio, 'Bác sĩ dặn về thuốc của mẹ.m4a', 1500000, ago: _day, duration: 185000, mime: 'audio/mp4', tags: ['t5']),
+      it('a3', ItemKind.audio, 'Thoả thuận đặt cọc nhà.m4a', 11600000, ago: _day * 8, duration: 1450000, mime: 'audio/mp4', tags: ['t6']),
+      it('n1', ItemKind.note, 'Wifi nhà bà ngoại', 120, tags: ['t7']),
+      it('n2', ItemKind.note, 'Tài khoản ngân hàng', 640, ago: _day),
+      it('n3', ItemKind.note, 'Thuốc của mẹ', 420, ago: _day * 3, tags: ['t5']),
+      it('n4', ItemKind.note, 'Hộ chiếu và visa', 260, ago: _day * 9, tags: ['t1', 't2', 't3']),
+      it('n5', ItemKind.note, 'Mật khẩu router và camera an ninh', 300, ago: _day * 15, tags: ['t7', 't6']),
+      it('n6', ItemKind.note, 'Danh sách quà Tết', 90, ago: _day * 30, tags: ['t4']),
+      it('g1', ItemKind.file, 'Ho-chieu-scan.pdf', 2300000, ago: _day * 220, tags: ['t1', 't2']),
+      it('g2', ItemKind.file, 'Giay-khai-sinh-Na.pdf', 640000, ago: _day * 290, tags: ['t1', 't4']),
+      it('g3', ItemKind.file, 'So-do-nha-scan.pdf', 4870000, ago: _day * 2, tags: ['t6']),
+      it('f1', ItemKind.file, 'Hop-dong-thue-nha-2026.pdf', 1240000, tags: ['t6']),
+      it('f3', ItemKind.file, 'Chi tieu gia dinh 2026.xlsx', 86000, ago: _day * 4, tags: ['t4']),
+      it('f4', ItemKind.file, 'Ket qua xet nghiem mau thang 9 - Benh vien Bach Mai.pdf', 732000, ago: _day * 11, tags: ['t5']),
+      it('f5', ItemKind.file, 'Di-chuc-nhap.docx', 42000, ago: _day * 20),
+      it('f7', ItemKind.file, 'Ho-so-xin-viec.zip', 15600000, ago: _day * 50, tags: ['t8']),
     ]);
   }
 
@@ -91,19 +89,17 @@ class FakeVault implements RustLibApi {
     'n6': 'Danh sách quà Tết\nÔng bà nội: chè Thái, bánh. Bố mẹ vợ: rượu vang, hoa quả.',
   };
 
-  ItemInfo _copy(ItemInfo i, {String? name, String? folder, bool clearFolder = false, String? color, PlatformInt64? deleted, bool restore = false}) =>
+  ItemInfo _copy(ItemInfo i, {String? name, List<String>? tagIds, PlatformInt64? deleted, bool restore = false}) =>
       ItemInfo(
         id: i.id,
         kind: i.kind,
         name: name ?? i.name,
         mime: i.mime,
         createdMs: i.createdMs,
-        size: i.size,
+        sizeBytes: i.sizeBytes,
         deletedMs: restore ? null : (deleted ?? i.deletedMs),
         durationMs: i.durationMs,
-        folder: clearFolder ? null : (folder ?? i.folder),
-        color: color ?? i.color,
-        space: i.space,
+        tagIds: tagIds ?? i.tagIds,
       );
 
   void _replace(String id, ItemInfo Function(ItemInfo) f) {
@@ -164,22 +160,22 @@ class FakeVault implements RustLibApi {
         return _f(0);
       case 'ItemThumbnail':
         final id = a<String>('id');
-        final media = _items.where((x) => x.kind == 'photo' || x.kind == 'video').toList();
+        final media = _items.where((x) => x.kind == ItemKind.photo || x.kind == ItemKind.video).toList();
         final at = media.indexWhere((x) => x.id == id);
         return _f(at < 0 || photos.isEmpty ? Uint8List(0) : photos[at % photos.length]);
       case 'ItemContent':
         final id = a<String>('id');
         final item = _items.where((x) => x.id == id).firstOrNull;
-        if (item?.kind == 'photo') return _f(photos.isEmpty ? Uint8List(0) : photos[_items.indexOf(item!) % photos.length]);
+        if (item?.kind == ItemKind.photo) return _f(photos.isEmpty ? Uint8List(0) : photos[_items.indexOf(item!) % photos.length]);
         return _f(Uint8List.fromList(utf8.encode(_text[id] ?? '')));
       case 'AddNote':
         final id = 'n${_next++}';
         final text = a<String>('text');
         _text[id] = text;
         final item = ItemInfo(
-          id: id, kind: 'note', name: a<String>('title'), mime: 'text/plain',
-          createdMs: a<PlatformInt64>('createdMs'), size: BigInt.from(text.length),
-          deletedMs: null, durationMs: null, folder: null, color: null,
+          id: id, kind: ItemKind.note, name: a<String>('title'), mime: 'text/plain',
+          createdMs: a<PlatformInt64>('createdMs'), sizeBytes: BigInt.from(text.length),
+          deletedMs: null, durationMs: null, tagIds: const [],
         );
         _items.add(item);
         return _f(item);
@@ -197,30 +193,30 @@ class FakeVault implements RustLibApi {
       case 'DeleteItem':
         _items.removeWhere((x) => x.id == a<String>('id'));
         return _f<void>(null);
-      case 'CreateFolder':
-        final f = ItemInfo(
-          id: 'd${_next++}', kind: 'folder', name: a<String>('name'), mime: '',
-          createdMs: a<PlatformInt64>('createdMs'), size: BigInt.zero, deletedMs: null, durationMs: null,
-          folder: a<String?>('parent'), color: a<String>('color'), space: a<String>('space'),
+      case 'CreateTag':
+        final t = ItemInfo(
+          id: 't${_next++}', kind: ItemKind.tag, name: a<String>('name'), mime: '',
+          createdMs: a<PlatformInt64>('createdMs'), sizeBytes: BigInt.zero, deletedMs: null, durationMs: null,
+          tagIds: const [],
         );
-        _items.add(f);
-        return _f(f);
-      case 'UpdateFolder':
-        _replace(a<String>('id'), (i) => _copy(i, name: a<String>('name'), color: a<String>('color')));
-        return _f(_items.firstWhere((x) => x.id == a<String>('id')));
-      case 'MoveItems':
-        final to = a<String?>('folder');
-        for (final id in a<List<String>>('ids')) {
-          _replace(id, (i) => _copy(i, folder: to, clearFolder: to == null));
+        _items.add(t);
+        return _f(t);
+      case 'RenameTag':
+        _replace(a<String>('tagId'), (i) => _copy(i, name: a<String>('name')));
+        return _f(_items.firstWhere((x) => x.id == a<String>('tagId')));
+      case 'SetTag':
+        final tagId = a<String>('tagId');
+        final tagged = a<bool>('tagged');
+        for (final id in a<List<String>>('itemIds')) {
+          _replace(id, (i) => _copy(i, tagIds: [...i.tagIds.where((t) => t != tagId), if (tagged) tagId]));
         }
         return _f<void>(null);
-      case 'DeleteFolder':
-        final id = a<String>('id');
-        final up = _items.firstWhere((x) => x.id == id).folder;
+      case 'DeleteTag':
+        final tagId = a<String>('tagId');
         for (final i in [..._items]) {
-          if (i.folder == id) _replace(i.id, (x) => _copy(x, folder: up, clearFolder: up == null));
+          if (i.tagIds.contains(tagId)) _replace(i.id, (x) => _copy(x, tagIds: [...x.tagIds.where((t) => t != tagId)]));
         }
-        _items.removeWhere((x) => x.id == id);
+        _items.removeWhere((x) => x.id == tagId);
         return _f<void>(null);
       case 'SetIdentity':
         _vault = VaultInfo(id: _vault.id, name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: _vault.hasPassword);

@@ -74,6 +74,16 @@ jobs:
         run: |
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
           "$APKSIGNER" verify --print-certs CozySafe-android.apk | tee /dev/stderr | grep -q "CN=Cozy Pi"
+      # Offline by construction (docs/supply-chain.md): no INTERNET permission after
+      # every plugin's manifest is merged, and the shipped Rust library imports no
+      # socket functions.
+      - name: Check the APK and bundle have no INTERNET permission
+        run: tools/check-apk-permissions CozySafe-android.apk CozySafe-android-play.aab
+      - name: Check the shipped Rust library imports no network functions
+        run: |
+          unzip -p CozySafe-android.apk lib/arm64-v8a/librust_lib_cozysafe.so > "$RUNNER_TEMP/librust_lib_cozysafe.so"
+          NM=$(ls "$ANDROID_HOME"/ndk/*/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm 2>/dev/null | sort -V | tail -1 || true)
+          NM="${NM:-nm}" tools/check-rust-symbols "$RUNNER_TEMP/librust_lib_cozysafe.so"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android
@@ -144,6 +154,8 @@ jobs:
           key: cargokit-macos-${{ hashFiles('app/rust/Cargo.lock', 'core/**/*.rs', 'app/rust/src/**/*.rs') }}
           restore-keys: cargokit-macos-
       - uses: ./.github/actions/flutter-setup
+      - name: Release entitlements keep the sandbox and grant no network access
+        run: tools/check-entitlements
       - name: Import Developer ID certificate into a throwaway keychain
         env:
           P12_B64: ${{ secrets.MACOS_DEVID_P12_BASE64 }}

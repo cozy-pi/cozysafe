@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""Dependency allowlists and a network-code scan of the Dart packages that ship.
+
+  tools/check-deps            check (CI); needs `flutter pub get` in app/ for the scan
+  tools/check-deps --update   rewrite tools/allow/dart.txt and rust.txt from the lockfiles
+
+1. Every package in app/pubspec.lock, Cargo.lock and app/rust/Cargo.lock (direct and
+   transitive) must be listed in tools/allow/dart.txt or tools/allow/rust.txt. A new
+   package fails the check until someone reviews it and adds it to the list.
+2. Dart packages must come from pub.dev (or the Flutter SDK, or a path in this repo).
+3. The sources of every pub package that ends up in the app (dependency graph from
+   app/pubspec.yaml without dev_dependencies), including the native android/, ios/,
+   macos/, linux/ and windows/ code of plugins, are scanned for network APIs. A hit
+   in a package not listed in tools/allow/network-ok.txt (each line needs a reason)
+   fails the check.
+
+The scan is a tripwire, not a proof: it reads source text, so code that reaches the
+network some other way (FFI into a system library, reflection, a downloaded binary)
+is not caught. See docs/supply-chain.md for the other layers.
+"""
+
+import json
+import os
+import re
+import sys
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+
+ROOT = Path(__file__).resolve().parent.parent
+APP = ROOT / "app"
+ALLOW = ROOT / "tools" / "allow"
+CARGO_LOCKS = [ROOT / "Cargo.lock", APP / "rust" / "Cargo.lock"]
+
+# Directories inside a package that never ship in the app.
+SKIP_DIRS = {"test", "tests", "example", "examples", "tool", "benchmark", "integration_test",
+             "doc", "docs", ".dart_tool", "build", ".git"}
+
+DART = [
+    r"\bHttpClient\b", r"\bSocket\.(connect|startConnect)\b", r"\bRawSocket\b",
+    r"\bRawDatagramSocket\b", r"\bServerSocket\b", r"\bWebSocket\b",
+    r"package:http/", r"package:dio/", r"package:web_socket_channel/",
+]
+JVM = [
+    r"\bHttpURLConnection\b", r"\bHttpsURLConnection\b", r"\bokhttp3?\b", r"\bOkHttp",
+    r"\bjava\.net\.(Socket|ServerSocket|DatagramSocket|URL)\b", r"\.openConnection\(",
+    r"\bretrofit2?\b", r"\bcom\.android\.volley\b", r"HttpDataSource\b",
+]
+APPLE = [
+    r"\bURLSession\b", r"\bNSURLSession\b", r"\bNSURLConnection\b", r"\bimport\s+Network\b",
+    r"<Network/Network\.h>", r"\bNWConnection\b", r"\bnw_connection_", r"\bCFStreamCreatePairWithSocket",
+]
+NATIVE = [
+    r"\bgetaddrinfo\b", r"\bWinHttp\w*\(", r"\bInternetOpen\w*\(", r"\bcurl_easy_\w+\(",
+    r"\bWSAStartup\b", r"\blibsoup\b", r"\bsoup_session_",
+]
+PATTERNS = {
+    ".dart": DART,
+    ".kt": JVM, ".java": JVM,
+    ".swift": APPLE, ".m": APPLE, ".mm": APPLE, ".h": APPLE + NATIVE,
+    ".c": NATIVE, ".cc": NATIVE, ".cpp": NATIVE, ".hpp": NATIVE,
+}
+COMPILED = {ext: re.compile("|".join(p)) for ext, p in PATTERNS.items()}
+
+
+def fail(msg):
+    print(f"error: {msg}", file=sys.stderr)
+
+
+def read_list(path):
+    """Names from an allowlist: one per line, `#` starts a comment."""
+    out = {}
+    for n, line in enumerate(path.read_text().splitlines(), 1):
+        body, _, comment = line.partition("#")
+        name = body.strip()
+        if name:
+            out[name] = (comment.strip(), n)
+    return out
+
+
+def dart_lock():
+    """{name: (source, url)} from app/pubspec.lock (simple fixed-format parse)."""
+    pkgs, name = {}, None
+    for line in (APP / "pubspec.lock").read_text().splitlines():
+        if m := re.match(r"^  ([A-Za-z0-9_]+):$", line):
+            name = m.group(1)
+            pkgs[name] = ["", ""]
+        elif name and (m := re.match(r"^    source: (\S+)", line)):
+            pkgs[name][0] = m.group(1)
+        elif name and (m := re.match(r'^      url: "([^"]*)"', line)):
+            pkgs[name][1] = m.group(1)
+        elif line and not line.startswith(" "):
+            name = None if line != "packages:" else name
+    return {k: tuple(v) for k, v in pkgs.items()}
+
+
+def cargo_locks():
+    """{name: source} over all Cargo.lock files ('' for crates in this repo)."""
+    out = {}
+    for lock in CARGO_LOCKS:
+        name = None
+        for line in lock.read_text().splitlines():
+            if m := re.match(r'^name = "([^"]+)"', line):
+                name = m.group(1)
+                out.setdefault(name, "")
+            elif name and (m := re.match(r'^source = "([^"]+)"', line)):
+                out[name] = m.group(1)
+    return out
+
+
+def compare(kind, found, allow_file):
+    allowed = read_list(allow_file)
+    ok = True
+    for name in sorted(set(found) - set(allowed)):
+        fail(f"{kind} package '{name}' is not in {allow_file.relative_to(ROOT)}. Review it "
+             f"(what it does, who publishes it, whether it can reach the network), then add it.")
+        ok = False
+    for name in sorted(set(allowed) - set(found)):
+        print(f"note: '{name}' in {allow_file.relative_to(ROOT)} is no longer used; remove it.")
+    return ok
+
+
+def pubspec_deps(pubspec):
+    """Names under the top-level `dependencies:` of a pubspec.yaml (not dev_dependencies)."""
+    out, inside = [], False
+    for line in pubspec.read_text().splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line.startswith(" "):
+            inside = line.rstrip() == "dependencies:"
+            continue
+        if inside and (m := re.match(r"^  ([A-Za-z0-9_]+):", line)):
+            out.append(m.group(1))
+    return out
+
+
+def shipped_packages(config):
+    """Package name → root dir, for the app's dependency graph without dev dependencies."""
+    roots = {}
+    for p in config["packages"]:
+        uri = p["rootUri"]
+        path = (APP / ".dart_tool" / uri) if not uri.startswith("file:") else Path(unquote(urlparse(uri).path))
+        roots[p["name"]] = path.resolve()
+    seen, todo = set(), pubspec_deps(APP / "pubspec.yaml")
+    while todo:
+        name = todo.pop()
+        if name in seen or name not in roots:
+            continue
+        seen.add(name)
+        spec = roots[name] / "pubspec.yaml"
+        if spec.exists():
+            todo.extend(pubspec_deps(spec))
+    return {n: roots[n] for n in seen}
+
+
+def scan(root):
+    """[(relative path, line number, matched text)] for network API uses under root."""
+    hits = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for f in filenames:
+            rx = COMPILED.get(os.path.splitext(f)[1])
+            if not rx:
+                continue
+            path = Path(dirpath) / f
+            try:
+                text = path.read_text(errors="replace")
+            except OSError:
+                continue
+            for n, line in enumerate(text.splitlines(), 1):
+                stripped = line.strip()
+                if stripped.startswith(("//", "///", "*", "/*")):
+                    continue  # comments and doc comments
+                if m := rx.search(line):
+                    hits.append((path.relative_to(root), n, m.group(0)))
+    return hits
+
+
+def network_scan():
+    config_path = APP / ".dart_tool" / "package_config.json"
+    if not config_path.exists():
+        fail("app/.dart_tool/package_config.json is missing: run `flutter pub get` in app/ first.")
+        return False
+    config = json.loads(config_path.read_text())
+    flutter_root = Path(unquote(urlparse(config.get("flutterRoot", "file:///nonexistent")).path)).resolve()
+    allowed = read_list(ALLOW / "network-ok.txt")
+    ok = True
+    for name, (reason, line) in allowed.items():
+        if not reason:
+            fail(f"tools/allow/network-ok.txt:{line}: '{name}' needs a reason (# …).")
+            ok = False
+    flagged = set()
+    for name, root in sorted(shipped_packages(config).items()):
+        # The Flutter SDK comes with the toolchain; path packages are this repo's own code.
+        if root.is_relative_to(flutter_root) or root.is_relative_to(ROOT):
+            continue
+        hits = scan(root)
+        if not hits:
+            continue
+        flagged.add(name)
+        if name in allowed:
+            continue
+        ok = False
+        fail(f"Dart package '{name}' contains network code and is not in tools/allow/network-ok.txt:")
+        for path, n, text in hits[:20]:
+            print(f"    {name}/{path}:{n}: {text}", file=sys.stderr)
+        if len(hits) > 20:
+            print(f"    … and {len(hits) - 20} more", file=sys.stderr)
+    for name in sorted(set(allowed) - flagged):
+        print(f"note: '{name}' in tools/allow/network-ok.txt no longer has network code (or no longer ships); remove it.")
+    print(f"network scan: {len(flagged)} shipped package(s) contain network APIs, all reviewed" if ok else
+          "network scan: FAILED")
+    return ok
+
+
+def write_list(path, names, header):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(header + "".join(f"{n}\n" for n in sorted(names)))
+
+
+def main():
+    dart, rust = dart_lock(), cargo_locks()
+    if "--update" in sys.argv[1:]:
+        write_list(ALLOW / "dart.txt", dart, "# Reviewed Dart packages (app/pubspec.lock, direct and transitive).\n"
+                   "# New entries: review the package first. Regenerate: tools/check-deps --update\n")
+        write_list(ALLOW / "rust.txt", rust, "# Reviewed Rust crates (Cargo.lock + app/rust/Cargo.lock).\n"
+                   "# New entries: review the crate first. Regenerate: tools/check-deps --update\n")
+        print(f"wrote {len(dart)} Dart and {len(rust)} Rust names")
+        return 0
+
+    ok = True
+    for name, (source, url) in sorted(dart.items()):
+        if source == "hosted" and url != "https://pub.dev":
+            fail(f"Dart package '{name}' comes from {url}; only pub.dev is allowed.")
+            ok = False
+        elif source not in ("hosted", "sdk", "path"):
+            fail(f"Dart package '{name}' has source '{source}'; only pub.dev, the SDK or a path in this repo.")
+            ok = False
+    ok &= compare("Dart", dart, ALLOW / "dart.txt")
+    ok &= compare("Rust", rust, ALLOW / "rust.txt")
+    print(f"allowlists: {len(dart)} Dart packages, {len(rust)} Rust crates")
+    if "--no-scan" not in sys.argv[1:]:
+        ok &= network_scan()
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

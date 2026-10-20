@@ -5,20 +5,23 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../capture_name.dart';
+import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../platform.dart';
+import '../widgets/vault_bar.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'common.dart';
 import 'file_view.dart';
 
 /// The camera, opened from the Library's + menu (docs/ui.md, vault bar): Photo | Video,
-/// a shutter, the last shot, and flip. What it takes goes into the album open in the
-/// Library ([folder]).
+/// a shutter, the last shot, and flip. What it takes carries the tag open in the vault
+/// ([tagId]), if any.
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key, required this.video, this.folder, required this.onOpenLast});
+  const CameraScreen({super.key, required this.video, this.tagId, required this.onOpenLast});
   final bool video;
-  final String? folder;
+  final String? tagId;
   final void Function(rust.ItemInfo item) onOpenLast;
 
   @override
@@ -53,100 +56,186 @@ class _CameraScreenState extends State<CameraScreen> {
     final l = AppLocalizations.of(context);
     final since = _since;
     final d = since == null ? Duration.zero : DateTime.now().difference(since);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final view = _view.currentState;
+    final last = view?.lastShot;
+    final lastThumbnail = view?.lastThumbnail;
     return PopScope(
       canPop: !_recording,
       child: Scaffold(
-        backgroundColor: Colors.black,
         body: SafeArea(
           child: Column(
             children: [
-              SizedBox(
-                height: 52,
-                child: Stack(
-                  alignment: Alignment.center,
+              // The vault's own header: close, title, and the timer while recording.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                child: Row(
                   children: [
-                    if (!_recording)
-                      Positioned(
-                        left: 8,
-                        child: IconButton(
-                          tooltip: l.close,
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: const Icon(Icons.close, color: Colors.white),
-                        ),
+                    GlassButton(
+                      key: const ValueKey('camera-close'),
+                      icon: Icons.close,
+                      tooltip: l.close,
+                      size: 38,
+                      onTap: _recording ? null : () => Navigator.of(context).maybePop(),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _video ? l.recordVideo : l.takePhoto,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -.5),
                       ),
+                    ),
                     if (_recording)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: const Color(0xFFE5484D), borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: const Color(0xFFE5484D), borderRadius: BorderRadius.circular(10)),
                         child: Text(
                           '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15,
                               fontFeatures: [FontFeature.tabularFigures()]),
                         ),
                       ),
                   ],
                 ),
               ),
+              // The viewfinder, a rounded card inside the page.
               Expanded(
-                child: CameraView(
-                  key: _view,
-                  video: _video,
-                  folder: widget.folder,
-                  onSaved: (_) {},
-                  onOpenLast: widget.onOpenLast,
-                  onRecordingChanged: _recordingChanged,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: CameraView(
+                      key: _view,
+                      video: _video,
+                      tagId: widget.tagId,
+                      onSaved: (_) {},
+                      onChanged: () {
+                        if (mounted) setState(() {});
+                      },
+                      onRecordingChanged: _recordingChanged,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
-              if (!_recording)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (final v in [false, true])
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => setState(() => _video = v),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          child: Text(
-                            (v ? l.cameraVideo : l.photo).toUpperCase(),
-                            style: TextStyle(
-                              color: v == _video ? const Color(0xFFFFD60A) : Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              letterSpacing: .8,
-                            ),
-                          ),
+              // Photo | Video, in the same glass capsule as the vault's sections.
+              AnimatedOpacity(
+                opacity: _recording ? 0 : 1,
+                duration: const Duration(milliseconds: 150),
+                child: IgnorePointer(
+                  ignoring: _recording,
+                  child: SizedBox(
+                    width: 220,
+                    child: Glass(
+                      radius: 22,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Row(
+                          children: [
+                            for (final v in [false, true])
+                              Expanded(
+                                child: Semantics(
+                                  button: true,
+                                  selected: v == _video,
+                                  child: GestureDetector(
+                                    key: ValueKey(v ? 'camera-video' : 'camera-photo'),
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () => setState(() => _video = v),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 160),
+                                      height: 36,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: v == _video
+                                            ? Theme.of(context).colorScheme.primary.withValues(alpha: .14)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                      child: Text(
+                                        v ? l.cameraVideo : l.photo,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: v == _video ? FontWeight.w700 : FontWeight.w600,
+                                          color: v == _video
+                                              ? Theme.of(context).colorScheme.primary
+                                              : ink.withValues(alpha: .75),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
-                  ],
-                )
-              else
-                const SizedBox(height: 30),
-              const SizedBox(height: 10),
-              Semantics(
-                button: true,
-                label: _video ? (_recording ? l.stopRecording : l.recordVideo) : l.takePhoto,
-                child: GestureDetector(
-                  key: const ValueKey('shutter'),
-                  onTap: () => _view.currentState?.shoot(),
-                  child: Container(
-                    width: 74,
-                    height: 74,
-                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4)),
-                    padding: const EdgeInsets.all(5),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      margin: EdgeInsets.all(_recording ? 15 : 0),
-                      decoration: BoxDecoration(
-                        color: _video ? const Color(0xFFE5484D) : Colors.white,
-                        borderRadius: BorderRadius.circular(_recording ? 6 : 40),
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
+              // Last shot · shutter · flip.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 0, 28, 16),
+                child: Row(
+                  children: [
+                    SizedBox.square(
+                      dimension: 52,
+                      child: last != null && lastThumbnail != null && !_recording
+                          ? Semantics(
+                              button: true,
+                              label: l.openLastShot,
+                              child: GestureDetector(
+                                onTap: () => widget.onOpenLast(last),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.memory(lastThumbnail, fit: BoxFit.cover),
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    const Spacer(),
+                    Semantics(
+                      button: true,
+                      label: _video ? (_recording ? l.stopRecording : l.recordVideo) : l.takePhoto,
+                      child: GestureDetector(
+                        key: const ValueKey('shutter'),
+                        onTap: () => _view.currentState?.shoot(),
+                        child: Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: ink, width: 4)),
+                          padding: const EdgeInsets.all(5),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            margin: EdgeInsets.all(_recording ? 16 : 0),
+                            decoration: BoxDecoration(
+                              color: _video ? const Color(0xFFE5484D) : ink,
+                              borderRadius: BorderRadius.circular(_recording ? 6 : 40),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    SizedBox.square(
+                      dimension: 52,
+                      child: (view?.canFlip ?? false) && !_recording
+                          ? Center(
+                              child: GlassButton(
+                                icon: Icons.cameraswitch_outlined,
+                                tooltip: l.flipCamera,
+                                size: 46,
+                                onTap: () => _view.currentState?.flip(),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -166,21 +255,23 @@ class CameraView extends StatefulWidget {
   const CameraView({
     super.key,
     required this.onSaved,
-    required this.onOpenLast,
     this.video = false,
-    this.folder,
+    this.tagId,
     this.onRecordingChanged,
+    this.onChanged,
   });
 
+  /// For the mockup renders (tool/mockup.sh): a still image instead of the camera.
+  static Widget? debugPreview;
+
   final bool video;
-  final String? folder;
+  final String? tagId;
   final ValueChanged<bool>? onRecordingChanged;
+  /// The last shot or the cameras changed: the screen redraws its controls.
+  final VoidCallback? onChanged;
 
   /// A photo was encrypted into the vault.
   final void Function(rust.ItemInfo item) onSaved;
-  /// The last shot's thumbnail was tapped.
-  final void Function(rust.ItemInfo item) onOpenLast;
-
   @override
   State<CameraView> createState() => CameraViewState();
 }
@@ -194,19 +285,27 @@ class CameraViewState extends State<CameraView> {
   bool _saving = false;
   bool _flash = false;
   rust.ItemInfo? _last;
-  Uint8List? _lastThumb;
+  Uint8List? _lastThumbnail;
   bool _recording = false;
+  /// Set when recording starts (the context may be gone when it is saved on lock).
+  String? _videoName;
 
   bool get ready => _controller != null && !_saving;
+  rust.ItemInfo? get lastShot => _last;
+  Uint8List? get lastThumbnail => _lastThumbnail;
+  bool get canFlip => _cameras.length > 1 || CameraView.debugPreview != null;
 
   @override
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _start();
+    // The screen draws flip / last shot from this state: tell it once it exists.
+    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged?.call());
   }
 
   Future<void> _start() async {
+    if (CameraView.debugPreview != null) return;
     try {
       if (_cameras.isEmpty) {
         _cameras = await availableCameras();
@@ -227,6 +326,7 @@ class CameraViewState extends State<CameraView> {
         return;
       }
       setState(() => _controller = c);
+      widget.onChanged?.call();
     } catch (_) {
       if (mounted) setState(() => _failed = true);
     }
@@ -253,7 +353,8 @@ class CameraViewState extends State<CameraView> {
     await _start();
   }
 
-  Future<void> _flip() async {
+  /// Switch between the back and front camera.
+  Future<void> flip() async {
     if (_cameras.length < 2 || _saving || _recording) return;
     final old = _controller;
     setState(() {
@@ -304,10 +405,12 @@ class CameraViewState extends State<CameraView> {
   Future<void> _startVideo() async {
     final c = _controller;
     if (c == null || _saving) return;
-    final failed = AppLocalizations.of(context).videoSaveFailed;
+    final l = AppLocalizations.of(context);
+    final failed = l.videoSaveFailed;
     try {
       if (c.value.isStreamingImages) await c.stopImageStream();
       await c.startVideoRecording();
+      _videoName = captureName(l, ItemKind.video, DateTime.now(), '.mp4');
       HapticFeedback.mediumImpact();
       LockGuard.beforeLock = _saveBeforeLock;
       setState(() => _recording = true);
@@ -325,12 +428,13 @@ class CameraViewState extends State<CameraView> {
     final item = await _finishVideo(c);
     if (!mounted) return;
     if (item != null) {
-      final thumb = await rust.itemThumbnail(id: item.id).catchError((_) => Uint8List(0));
+      final thumbnail = await rust.itemThumbnail(id: item.id).catchError((_) => Uint8List(0));
       if (!mounted) return;
       setState(() {
         _last = item;
-        _lastThumb = thumb.isEmpty ? null : thumb;
+        _lastThumbnail = thumbnail.isEmpty ? null : thumbnail;
       });
+      widget.onChanged?.call();
       widget.onSaved(item);
     } else {
       _snack(AppLocalizations.of(context).videoSaveFailed);
@@ -350,10 +454,11 @@ class CameraViewState extends State<CameraView> {
     XFile? file;
     try {
       file = await c.stopVideoRecording();
-      final named = XFile(file.path, name: 'VID_${DateTime.now().millisecondsSinceEpoch}.mp4', mimeType: 'video/mp4');
+      final named = XFile(file.path, name: _videoName ?? 'Video.mp4', mimeType: 'video/mp4');
       final added = await importFiles([named], photos: true);
       final item = added.firstOrNull;
-      if (item != null && widget.folder != null) await rust.moveItems(ids: [item.id], folder: widget.folder);
+      final tagId = widget.tagId;
+      if (item != null && tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
       return item;
     } catch (_) {
       return null;
@@ -386,14 +491,17 @@ class CameraViewState extends State<CameraView> {
         ],
         rotation: _rotationFor(image),
       );
-      final item = await rust.addPhoto(frame: frame, createdMs: nowMs());
-      if (widget.folder != null) await rust.moveItems(ids: [item.id], folder: widget.folder);
-      final thumb = await rust.itemThumbnail(id: item.id);
+      final item = await rust.addPhoto(
+          frame: frame, name: captureName(l, ItemKind.photo, DateTime.now(), '.jpg'), createdMs: nowMs());
+      final tagId = widget.tagId;
+      if (tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
+      final thumbnail = await rust.itemThumbnail(id: item.id);
       if (!mounted) return;
       setState(() {
         _last = item;
-        _lastThumb = thumb;
+        _lastThumbnail = thumbnail;
       });
+      widget.onChanged?.call();
       widget.onSaved(item);
     } on rust.VaultError catch (e) {
       _snack(vaultErrorText(l, e));
@@ -421,34 +529,38 @@ class CameraViewState extends State<CameraView> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = _controller;
+    final still = CameraView.debugPreview;
     return ColoredBox(
       color: Colors.black,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Center(
-            child: _failed
-                ? Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                      l.cameraUnavailable,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, height: 1.5),
-                    ),
-                  )
-                : c == null
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : ClipRect(
-                        child: FittedBox(
-                          fit: BoxFit.cover,
-                          child: SizedBox(
-                            width: c.value.previewSize?.height ?? 1080,
-                            height: c.value.previewSize?.width ?? 1920,
-                            child: CameraPreview(c),
+          if (still != null)
+            still
+          else
+            Center(
+              child: _failed
+                  ? Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        l.cameraUnavailable,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, height: 1.5),
+                      ),
+                    )
+                  : c == null
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : ClipRect(
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: c.value.previewSize?.height ?? 1080,
+                              height: c.value.previewSize?.width ?? 1920,
+                              child: CameraPreview(c),
+                            ),
                           ),
                         ),
-                      ),
-          ),
+            ),
           IgnorePointer(
             child: AnimatedOpacity(
               opacity: _flash ? 0.7 : 0,
@@ -456,41 +568,6 @@ class CameraViewState extends State<CameraView> {
               child: const ColoredBox(color: Colors.white),
             ),
           ),
-          if (_lastThumb != null && _last != null)
-            Positioned(
-              left: 14,
-              bottom: 14,
-              child: Semantics(
-                button: true,
-                label: l.openLastShot,
-                child: GestureDetector(
-                  onTap: () => widget.onOpenLast(_last!),
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(9),
-                      border: Border.all(color: Colors.white, width: 2),
-                      image: DecorationImage(image: MemoryImage(_lastThumb!), fit: BoxFit.cover),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          if (_cameras.length > 1)
-            Positioned(
-              right: 14,
-              bottom: 14,
-              child: Material(
-                color: const Color(0x73000000),
-                shape: const CircleBorder(),
-                child: IconButton(
-                  tooltip: l.flipCamera,
-                  onPressed: _saving || _recording ? null : _flip,
-                  icon: const Icon(Icons.cameraswitch_outlined, color: Colors.white),
-                ),
-              ),
-            ),
         ],
       ),
     );

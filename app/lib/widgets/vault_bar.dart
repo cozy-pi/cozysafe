@@ -5,17 +5,19 @@ import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
-import 'add_dock.dart';
+import '../prefs.dart';
 
-/// What the vault shows, picked in the bottom capsule (docs/ui.md, vault bar).
-enum VaultKind { note, library, audio, file }
+/// The four sections of a vault, picked in the bottom capsule (docs/ui.md, vault bar;
+/// docs/naming.md). A section shows items of some kinds: Library shows photos and
+/// videos, the others one kind each.
+enum VaultSection { note, library, audio, file }
 
-/// The kinds this device offers: voice memos need a phone's microphone.
-List<VaultKind> vaultKinds() => [
-      VaultKind.note,
-      VaultKind.library,
-      if (Device.iOS || Device.android || debugVoice) VaultKind.audio,
-      VaultKind.file,
+/// The sections this device offers: voice memos need a phone's microphone.
+List<VaultSection> vaultSections() => [
+      VaultSection.note,
+      VaultSection.library,
+      if (Device.iOS || Device.android || debugVoice) VaultSection.audio,
+      VaultSection.file,
     ];
 
 /// For tests and the browser preview: offer voice memos on any platform.
@@ -24,19 +26,19 @@ bool debugVoice = false;
 /// For tests and the browser preview: offer the camera in the Library's + menu.
 bool debugCamera = false;
 
-const _kindPref = 'vault-kind';
+const _sectionPref = 'vault-section';
 
-/// The kind the vault opens on: the last one used.
-VaultKind startKind() {
-  final saved = Prefs.read(_kindPref);
-  return vaultKinds().where((k) => k.name == saved).firstOrNull ?? VaultKind.library;
+/// The section the vault opens on: the last one used (0.1.6 kept it as `vault-kind`).
+VaultSection startSection() {
+  final saved = Prefs.read(_sectionPref) ?? Prefs.read('vault-kind');
+  return vaultSections().where((k) => k.name == saved).firstOrNull ?? VaultSection.library;
 }
 
-String kindLabel(AppLocalizations l, VaultKind k) => switch (k) {
-      VaultKind.note => l.modeNote,
-      VaultKind.library => l.modeLibrary,
-      VaultKind.audio => l.modeAudio,
-      VaultKind.file => l.modeFile,
+String sectionLabel(AppLocalizations l, VaultSection k) => switch (k) {
+      VaultSection.note => l.modeNote,
+      VaultSection.library => l.modeLibrary,
+      VaultSection.audio => l.modeAudio,
+      VaultSection.file => l.modeFile,
     };
 
 /// Frosted glass, as in the system's own bars: a light blur of what scrolls under it.
@@ -97,26 +99,26 @@ class GlassButton extends StatelessWidget {
       );
 }
 
-/// The bottom row: the lock on the left, then the kinds in a capsule. Tapping a kind
+/// The bottom row: the lock on the left, then the sections in a capsule. Tapping a section
 /// switches; dragging along the capsule switches as the finger passes each one.
 class VaultBar extends StatelessWidget {
-  const VaultBar({super.key, required this.kind, required this.onKind, required this.lock});
+  const VaultBar({super.key, required this.section, required this.onSection, required this.lock});
 
-  final VaultKind kind;
-  final ValueChanged<VaultKind> onKind;
+  final VaultSection section;
+  final ValueChanged<VaultSection> onSection;
   final Widget lock;
 
-  void _pick(VaultKind k) {
-    if (k == kind) return;
+  void _pick(VaultSection s) {
+    if (s == section) return;
     HapticFeedback.selectionClick();
-    Prefs.write(_kindPref, k.name);
-    onKind(k);
+    Prefs.write(_sectionPref, s.name);
+    onSection(s);
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final kinds = vaultKinds();
+    final sections = vaultSections();
     final primary = Theme.of(context).colorScheme.primary;
     final ink = Theme.of(context).colorScheme.onSurface;
     return Row(
@@ -128,7 +130,7 @@ class VaultBar extends StatelessWidget {
             radius: 25,
             child: LayoutBuilder(
               builder: (context, box) {
-                VaultKind at(double x) => kinds[(x / (box.maxWidth / kinds.length)).floor().clamp(0, kinds.length - 1)];
+                VaultSection at(double x) => sections[(x / (box.maxWidth / sections.length)).floor().clamp(0, sections.length - 1)];
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTapUp: (d) => _pick(at(d.localPosition.dx)),
@@ -139,28 +141,28 @@ class VaultBar extends StatelessWidget {
                       padding: const EdgeInsets.all(4),
                       child: Row(
                         children: [
-                          for (final k in kinds)
+                          for (final s in sections)
                             Expanded(
                               child: Semantics(
                                 button: true,
-                                selected: k == kind,
-                                label: kindLabel(l, k),
+                                selected: s == section,
+                                label: sectionLabel(l, s),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 160),
                                   decoration: BoxDecoration(
-                                    color: k == kind ? primary.withValues(alpha: .14) : Colors.transparent,
+                                    color: s == section ? primary.withValues(alpha: .14) : Colors.transparent,
                                     borderRadius: BorderRadius.circular(21),
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
-                                    kindLabel(l, k),
+                                    sectionLabel(l, s),
                                     maxLines: 1,
                                     overflow: TextOverflow.fade,
                                     softWrap: false,
                                     style: TextStyle(
                                       fontSize: 13,
-                                      fontWeight: k == kind ? FontWeight.w700 : FontWeight.w600,
-                                      color: k == kind ? primary : ink.withValues(alpha: .75),
+                                      fontWeight: s == section ? FontWeight.w700 : FontWeight.w600,
+                                      color: s == section ? primary : ink.withValues(alpha: .75),
                                     ),
                                   ),
                                 ),

@@ -8,6 +8,20 @@ The brand mark is the combination dial reduced to three shapes: one thick ring,
 a solid knob, the gold index (`branding/icon.svg`). Use it at every size; no tick
 marks or extra detail.
 
+## Mockups (rule, 2026-10-20)
+
+Mockups are the app's own screens, never redrawn by hand: a hand-drawn page drifted
+from the app (lock screen, unlock animation, date formats, menus, sizes) and from itself.
+
+1. Change the code on a local branch; do not push before the proposal is approved.
+2. Run `app/tool/mockup.sh "Title"`: it renders every screen listed in
+   `app/test/preview_test.dart` at 430×932 (iPhone 15 Pro Max) in dark and light,
+   and builds `app/test/preview/index.html` (each screen dark | light, with its caption).
+3. Publish that page with the PNGs next to it, and list what changed.
+4. A new screen or state is added to the list in `preview_test.dart` (`_screen(...)`),
+   so every later mockup shows it too. Animations are captured by freezing the real
+   animation at fixed moments (see the unlock frames), not imitated.
+
 ## Unlock screen (chosen 2026-10-19: "B2")
 
 - Background: a collage of protected items (photos, ID card, receipt, PDF,
@@ -65,6 +79,8 @@ Apple Photos iOS 26, Google Photos, Files, Proton Drive, Ente Photos).
 
 ### Add strip (approved 2026-10-19)
 
+> Replaced by the vault bar (0.1.6).
+
 Mockup: (internal mockup)
 
 - The bottom of the vault screen is a dark green dock, like the iPhone Camera
@@ -86,6 +102,8 @@ recent items with thumbnails; photo and document grid; bottom navigation and a
 Emergency Kit, and a three-column desktop layout, each in light and dark.
 
 ### Folders (decided 2026-10-19)
+
+> Replaced by groups (0.1.7, below).
 
 - Nested folders, like Files or a desktop: a folder holds items and folders,
   and every item lives in exactly one place. Move by drag and drop or "Move to".
@@ -237,6 +255,8 @@ deniability).
 
 ## Folders (approved 2026-10-20, 0.1.4)
 
+> Replaced by groups (0.1.7, below).
+
 - Folders live in Files mode, like the Files app: coloured folder tiles first (name and
   item count), a dashed "New folder" tile, then the loose files. Inside a folder: a back
   arrow and the path (Files › Papers › Passport), its subfolders, then everything in it
@@ -280,3 +300,39 @@ Replaces the dock and the add strip.
 - Each kind has its own folder tree (`space` on the folder). Folders from before have
   none and belong to Files. At a kind's top level it shows items not in one of its own
   folders.
+
+## Groups (approved 2026-10-20, 0.1.7)
+
+Groups ("nhóm"; tags in the code, `docs/naming.md`) replace folders.
+
+- One set of groups for the whole vault. An item can be in several groups ("Passport":
+  the photo, the PDF scan and the note). A group has a name only, no colour.
+- The chip row under the title: first a group button (always visible) that opens
+  **All groups** (every group with its count, and New group); then the groups that have
+  something in this section, with the count for this section; last **New group**.
+- Tapping a chip opens the group: the title becomes its name with Back and ⋯ (Rename,
+  Delete group). The group stays open while switching sections, so you see its notes,
+  photos, recordings and files in turn. Its chip moves to the front of the row.
+- Deleting a group never deletes items.
+- Anything added while a group is open (note, photo, video, recording, file) is put in it.
+- Selecting items: the bar offers Send · Group · Delete. **Group** opens a sheet with a
+  checkbox per group: on, off, or a dash when only part of the selection is in it; and
+  New group.
+- Old folders become groups of the same name; nested folders become separate groups.
+
+## Camera (approved 2026-10-20, 0.1.7)
+
+Opened from the Library's + menu (Take photo / Record video). It keeps the app's frame:
+the page background, a glass close button and the large title ("Take photo" / "Record
+video", with a red timer while recording), the viewfinder as a rounded card, then the
+Photo | Video switch in a glass capsule, and last shot · shutter · flip. The shutter is
+the ink colour for photos and red for video; it turns into a square while recording.
+
+## Names of photos, videos and recordings (0.1.7)
+
+Made in the vault, or picked with a name the picker made up (`image_picker_…`, a UUID, a
+bare number): the kind and the moment, `Ảnh 20-10-2026 21.40.12.jpg`, `Video …mp4`,
+`Ghi âm …m4a` (English: Photo / Video / Recording). No `/` or `:`, so the name also works
+as a file name when sent out. Names a person or camera gave (`IMG_4810.HEIC`, a PDF's
+name) are kept.
+

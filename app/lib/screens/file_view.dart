@@ -15,13 +15,15 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
-import '../widgets/add_dock.dart';
+import '../prefs.dart';
 import 'common.dart';
+import '../capture_name.dart';
+import '../item_kind.dart';
 
 /// Icon for an item kind / type.
 IconData fileIcon(rust.ItemInfo item) {
-  if (item.kind == 'note') return Icons.sticky_note_2_outlined;
-  if (item.kind == 'video') return Icons.movie_outlined;
+  if (item.kind == ItemKind.note) return Icons.sticky_note_2_outlined;
+  if (item.kind == ItemKind.video) return Icons.movie_outlined;
   final m = item.mime;
   if (m == 'application/pdf') return Icons.picture_as_pdf_outlined;
   if (m.startsWith('image/')) return Icons.image_outlined;
@@ -107,6 +109,8 @@ Future<List<rust.ItemInfo>> importFiles(
   required bool photos,
   void Function(int done, int total)? progress,
   bool Function()? cancelled,
+  /// Name for a photo or video whose picked name is made up ([isMadeUpName]).
+  String Function(String kind, String extension)? mediaName,
 }) async {
   final tmp = (await getTemporaryDirectory()).path;
   final added = <rust.ItemInfo>[];
@@ -120,18 +124,21 @@ Future<List<rust.ItemInfo>> importFiles(
       }
       continue;
     }
-    final name = f.name;
-    final mime = (f.mimeType?.isNotEmpty ?? false) ? f.mimeType! : mimeOf(name);
+    final mime = (f.mimeType?.isNotEmpty ?? false) ? f.mimeType! : mimeOf(f.name);
     final isImage = mime.startsWith('image/');
     final isVideo = mime.startsWith('video/');
-    final thumb = isImage ? await imageThumbnail(f.path) : (isVideo ? await videoThumbnail(f.path) : null);
+    final dot = f.name.lastIndexOf('.');
+    final name = (isImage || isVideo) && mediaName != null && isMadeUpName(f.name)
+        ? mediaName(isVideo ? ItemKind.video : ItemKind.photo, dot < 0 ? '' : f.name.substring(dot).toLowerCase())
+        : f.name;
+    final thumbnail = isImage ? await imageThumbnail(f.path) : (isVideo ? await videoThumbnail(f.path) : null);
     final item = await rust.addFile(
       path: f.path,
-      kind: isVideo ? 'video' : (isImage && (photos || thumb != null) ? 'photo' : 'file'),
+      kind: isVideo ? ItemKind.video : (isImage && (photos || thumbnail != null) ? ItemKind.photo : ItemKind.file),
       name: name,
       mime: mime,
       createdMs: nowMs(),
-      thumbnail: thumb,
+      thumbnail: thumbnail,
     );
     if (isVideo) {
       final ms = await videoLength(f.path);
@@ -256,7 +263,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 const SizedBox(height: 16),
                 Text(widget.item.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text('${fileSize(widget.item.size)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
+                Text('${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
                     style: TextStyle(color: c.muted)),
                 const SizedBox(height: 24),
                 Builder(

@@ -18,8 +18,8 @@ use cs_crypto::{generate_salt, wrap, SecretKey, SALT_LEN};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    aad, decode_array, open_with, read_header, remove_if_exists, write_atomic, Error, Library,
-    OpenVault, Result, VAULTS_DIR,
+    aad, decode_array, open_with, read_header, remove_if_exists, write_atomic, Error, KdfJson,
+    Library, OpenVault, Result, VAULTS_DIR,
 };
 
 const PIN_FILE: &str = "pin";
@@ -27,15 +27,35 @@ pub const MIN_PIN_LEN: usize = 4;
 /// Not a limit people meet: only a sanity cap against garbage input.
 pub const MAX_PIN_LEN: usize = 256;
 
+/// Format 2 keeps the Argon2 cost in `kdf`, like the library header. Format 1
+/// (0.1.0–0.1.6) had `m_kib`, `t`, `p` at the top level; it is still read.
 #[derive(Serialize, Deserialize)]
 struct PinFile {
     format: u32,
     salt: String,
+    /// Number of digits, so unlocking only tries PINs of the typed length.
     length: u8,
-    m_kib: u32,
-    t: u32,
-    p: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    kdf: Option<KdfJson>,
+    #[serde(default, rename = "m_kib", skip_serializing)]
+    legacy_m_kib: Option<u32>,
+    #[serde(default, rename = "t", skip_serializing)]
+    legacy_t: Option<u32>,
+    #[serde(default, rename = "p", skip_serializing)]
+    legacy_p: Option<u32>,
     wrapped_master_key: String,
+}
+
+const PIN_FORMAT: u32 = 2;
+
+impl PinFile {
+    fn kdf_params(&self) -> Option<KdfParams> {
+        match (self.kdf, self.legacy_m_kib, self.legacy_t, self.legacy_p) {
+            (Some(k), ..) => Some(k.into()),
+            (None, Some(m_kib), Some(t), Some(p)) => Some(KdfParams { m_kib, t, p }),
+            _ => None,
+        }
+    }
 }
 
 fn valid(pin: &str) -> bool {
@@ -58,12 +78,13 @@ impl OpenVault {
         let root = kdf::derive_root(pin.as_bytes(), device_key, &salt, params)?;
         let kek = kdf::vault_kek(&root, &salt);
         let file = PinFile {
-            format: 1,
+            format: PIN_FORMAT,
             salt: hex::encode(salt),
             length: pin.len() as u8,
-            m_kib: params.m_kib,
-            t: params.t,
-            p: params.p,
+            kdf: Some(params.into()),
+            legacy_m_kib: None,
+            legacy_t: None,
+            legacy_p: None,
             wrapped_master_key: hex::encode(wrap::wrap_key(
                 &kek,
                 &self.master_key,
@@ -122,10 +143,8 @@ impl Library {
                 continue;
             };
             let salt = decode_array::<SALT_LEN>(&file.salt, "pin salt")?;
-            let params = KdfParams {
-                m_kib: file.m_kib,
-                t: file.t,
-                p: file.p,
+            let Some(params) = file.kdf_params() else {
+                continue;
             };
             let root = kdf::derive_root(pin.as_bytes(), device_key, &salt, params)?;
             let kek = kdf::vault_kek(&root, &salt);
@@ -157,10 +176,8 @@ impl Library {
                 continue;
             };
             let salt = decode_array::<SALT_LEN>(&file.salt, "pin salt")?;
-            let params = KdfParams {
-                m_kib: file.m_kib,
-                t: file.t,
-                p: file.p,
+            let Some(params) = file.kdf_params() else {
+                continue;
             };
             let root = kdf::derive_root(pin.as_bytes(), device_key, &salt, params)?;
             let kek = kdf::vault_kek(&root, &salt);
@@ -193,7 +210,7 @@ fn pin_files(dir: &Path) -> Vec<(std::path::PathBuf, PinFile)> {
         .filter_map(|e| {
             let bytes = fs::read(e.path().join(PIN_FILE)).ok()?;
             let f: PinFile = serde_json::from_slice(&bytes).ok()?;
-            (f.format == 1).then(|| (e.path(), f))
+            (f.format == 1 || f.format == PIN_FORMAT).then(|| (e.path(), f))
         })
         .collect()
 }
@@ -238,6 +255,33 @@ mod tests {
         assert!(Library::unlock_pin(tmp.path(), "2468", &device)
             .unwrap()
             .is_none());
+    }
+
+    /// A PIN file from 0.1.0–0.1.6 (format 1, cost at the top level) still unlocks,
+    /// and new ones are written in format 2.
+    #[test]
+    fn reads_format_1_pin_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
+        let v = l.create_vault("A", PW).unwrap();
+        let device = SecretKey::generate();
+        v.enable_pin("2468", &device, FAST).unwrap();
+        let path = tmp.path().join(VAULTS_DIR).join(&v.id).join(PIN_FILE);
+        let mut json: serde_json::Value =
+            serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        assert_eq!(json["format"], 2);
+        let kdf = json["kdf"].take();
+        let o = json.as_object_mut().unwrap();
+        o.remove("kdf");
+        o.insert("format".into(), 1.into());
+        for k in ["m_kib", "t", "p"] {
+            o.insert(k.into(), kdf[k].clone());
+        }
+        fs::write(&path, serde_json::to_vec(&json).unwrap()).unwrap();
+        let opened = Library::unlock_pin(tmp.path(), "2468", &device)
+            .unwrap()
+            .unwrap();
+        assert_eq!(opened.id, v.id);
     }
 
     #[test]

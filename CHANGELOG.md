@@ -4,6 +4,28 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.7 (2026-10-20)
+
+### Changed
+- Groups replace folders: an item can be in several groups, and a group shows its notes,
+  photos, recordings and files in every section. Old folders become groups of the same
+  name. Selecting items now offers Group (tick the groups) instead of Move.
+- The camera keeps the app's frame: title, close button, a rounded viewfinder, the
+  Photo | Video switch, shutter, last shot and flip.
+- Photos, videos and recordings get readable names from when they were made
+  ("Ảnh 20-10-2026 21.40.12.jpg") instead of "Photo.jpg", numbers or picker names.
+
+### Security
+- No library can send data out: the Android app has no internet permission (checked on
+  the built APK), macOS runs sandboxed without network access, Dart's HTTP client and
+  sockets are switched off at start, the compiled Rust core may not import network
+  functions, and every Dart and Rust package is on a reviewed list with its sources
+  scanned (docs/supply-chain.md).
+
+### Internal
+- Stored names cleaned up (docs/naming.md): item records and PIN files are now format 2;
+  older records still read.
+
 ## 0.1.6 (2026-10-20)
 
 ### Changed

@@ -4,6 +4,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+// A dev dependency on purpose: this preview is never part of an app build.
+// ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
 
 import 'main.dart';

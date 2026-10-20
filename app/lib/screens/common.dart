@@ -13,7 +13,6 @@ String vaultErrorText(AppLocalizations l, rust.VaultError e) => switch (e) {
       rust.VaultError.wrongSecretKey => l.errorWrongSecretKey,
       rust.VaultError.badBackup => l.errorBadBackup,
       rust.VaultError.libraryExists => l.errorLibraryExists,
-      rust.VaultError.folderLoop => l.errorFolderLoop,
       rust.VaultError.storage => l.errorStorage,
     };
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'l10n/app_localizations.dart';
+import 'offline.dart';
 import 'screens/new_vault.dart';
 import 'screens/settings.dart';
 import 'screens/video_view.dart';
@@ -13,9 +14,10 @@ import 'secret_key_store.dart';
 import 'src/rust/api/vault.dart' as rust;
 import 'src/rust/frb_generated.dart';
 import 'theme.dart';
-import 'widgets/add_dock.dart';
+import 'prefs.dart';
 
 Future<void> main() async {
+  installNetworkGuard(); // before any plugin or library code runs
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
   final support = await getApplicationSupportDirectory();

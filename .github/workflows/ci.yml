@@ -31,12 +31,86 @@ jobs:
         with:
           workspaces: app/rust
       - uses: ./.github/actions/flutter-setup
+      # Supply chain (docs/supply-chain.md): every package reviewed, no network code
+      # in what ships, macOS sandbox without network.
+      - name: Dependency allowlists + network-code scan of pub packages
+        run: tools/check-deps
+      - name: macOS release entitlements have no network access
+        run: tools/check-entitlements
       - name: Rust side of the app
         working-directory: app/rust
         run: cargo clippy --locked -- -D warnings
+      - name: Compiled Rust library imports no network functions
+        working-directory: app/rust
+        run: |
+          cargo build --release --locked
+          ../../tools/check-rust-symbols target/release/librust_lib_cozysafe.so
       - name: Dart analysis
         working-directory: app
         run: flutter analyze
-      - name: Widget tests (lock screen, PIN, Emergency Kit)
+      - name: Widget tests (lock screen, PIN, Emergency Kit, network guard)
         working-directory: app
         run: flutter test
+
+  # Known vulnerabilities, yanked crates, crates.io as the only source, banned
+  # network crates (deny.toml).
+  cargo-deny:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        manifest: [Cargo.toml, app/rust/Cargo.toml]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1 (cargo-deny 0.20.2)
+        with:
+          manifest-path: ${{ matrix.manifest }}
+          command: check
+          command-arguments: advisories sources bans
+
+  # cackle: no crate in the app's Rust library may use the network API (app/rust/cackle.toml).
+  # continue-on-error until the job has run green once: the config could not be
+  # tried outside Linux. On failure it uploads the config cackle suggests.
+  cackle:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: app/rust
+          key: cackle
+      - uses: ./.github/actions/flutter-setup # generates app/rust/src/frb_generated.rs
+      - id: tool
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/cargo-acl
+          key: cargo-acl-0.9.0-${{ runner.os }}-${{ runner.arch }}
+      - if: steps.tool.outputs.cache-hit != 'true'
+        run: cargo install --locked cargo-acl@0.9.0
+      - name: cargo acl
+        working-directory: app/rust
+        run: cargo acl --no-ui
+      - name: Suggested config (every fix auto-accepted; still fails on any net grant)
+        if: failure()
+        working-directory: app/rust
+        run: |
+          cargo acl --no-ui --auto-accept-fixes || true
+          python3 - <<'EOF'
+          import sys, tomllib
+          bad = []
+          def walk(node, where):
+              if isinstance(node, dict):
+                  for k, v in node.items():
+                      if k == "allow_apis" and {"net", "unix_sockets"} & set(v):
+                          bad.append(where)
+                      walk(v, f"{where}.{k}")
+          walk(tomllib.load(open("cackle.toml", "rb")).get("pkg", {}), "pkg")
+          for b in bad:
+              print(f"error: {b} would need the net API", file=sys.stderr)
+          sys.exit(1 if bad else 0)
+          EOF
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cackle-suggested
+          path: app/rust/cackle.toml

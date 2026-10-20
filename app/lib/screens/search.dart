@@ -8,15 +8,16 @@ import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'file_view.dart';
+import '../item_kind.dart';
 
 /// Search the open vault by name, and inside notes. Note text is decrypted into memory
 /// for this screen only and dropped when it closes. Typing "hoa" finds "Hoá đơn":
 /// accents and case are ignored. Pops with the item to open.
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, required this.items, required this.thumb});
+  const SearchScreen({super.key, required this.items, required this.thumbnail});
 
   final List<rust.ItemInfo> items;
-  final Future<Uint8List> Function(String id) thumb;
+  final Future<Uint8List> Function(String id) thumbnail;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -35,7 +36,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _loadNotes() async {
-    for (final it in widget.items.where((i) => i.kind == 'note')) {
+    for (final it in widget.items.where((i) => i.kind == ItemKind.note)) {
       try {
         final text = utf8.decode(await rust.itemContent(id: it.id), allowMalformed: true);
         _noteRaw[it.id] = text;
@@ -120,11 +121,11 @@ class _SearchScreenState extends State<SearchScreen> {
                               onTap: () => Navigator.of(context).pop(it),
                               leading: SizedBox.square(
                                 dimension: 44,
-                                child: it.kind == 'photo' || it.kind == 'video'
+                                child: it.kind == ItemKind.photo || it.kind == ItemKind.video
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
                                         child: FutureBuilder<Uint8List>(
-                                          future: widget.thumb(it.id),
+                                          future: widget.thumbnail(it.id),
                                           builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
                                               ? Image.memory(snap.data!, fit: BoxFit.cover)
                                               : ColoredBox(color: c.soft),

@@ -42,8 +42,6 @@ pub enum VaultError {
     BadBackup,
     /// Restoring needs an empty library; this device already has vaults.
     LibraryExists,
-    /// A folder cannot go inside itself or one of its subfolders.
-    FolderLoop,
     Storage,
 }
 
@@ -58,7 +56,6 @@ impl From<cs_vault::Error> for VaultError {
             cs_vault::Error::WrongSecretKey => VaultError::WrongSecretKey,
             cs_vault::Error::BadBackup => VaultError::BadBackup,
             cs_vault::Error::LibraryExists => VaultError::LibraryExists,
-            cs_vault::Error::FolderLoop => VaultError::FolderLoop,
             _ => VaultError::Storage,
         }
     }
@@ -352,25 +349,23 @@ fn set_open(vault: OpenVault) -> VaultInfo {
     info
 }
 
-/// An item as the vault grid shows it. Content and preview are fetched separately.
+/// An item as the vault shows it. Content and preview are fetched separately.
+/// Names follow docs/naming.md.
 pub struct ItemInfo {
     pub id: String,
-    /// "photo", "note" or "file".
+    /// "photo", "video", "note", "audio", "file" or "tag" (cs_vault::items::kind).
     pub kind: String,
     pub name: String,
     pub mime: String,
     pub created_ms: i64,
-    pub size: u64,
+    /// Content size in bytes.
+    pub size_bytes: u64,
     /// When it went to Recently deleted; None for items in the vault.
     pub deleted_ms: Option<i64>,
-    /// Length of a video, when known.
+    /// Length of a video or a recording, when known.
     pub duration_ms: Option<i64>,
-    /// The folder it is in; None at the top level.
-    pub folder: Option<String>,
-    /// A folder's colour id.
-    pub color: Option<String>,
-    /// What a folder holds: "note", "photo", "audio" or "file" (None: "file").
-    pub space: Option<String>,
+    /// Ids of the tags it carries; empty for tags.
+    pub tag_ids: Vec<String>,
 }
 
 impl From<ItemMeta> for ItemInfo {
@@ -381,12 +376,10 @@ impl From<ItemMeta> for ItemInfo {
             name: m.name,
             mime: m.mime,
             created_ms: m.created_ms,
-            size: m.size,
+            size_bytes: m.size_bytes,
             deleted_ms: m.deleted_ms,
             duration_ms: m.duration_ms,
-            folder: m.folder,
-            color: m.color,
-            space: m.space,
+            tag_ids: m.tag_ids,
         }
     }
 }
@@ -420,7 +413,7 @@ fn with_open<T>(f: impl FnOnce(&OpenVault) -> Result<T, VaultError>) -> Result<T
 
 /// Encode a camera frame to JPEG in memory and store it encrypted. No file ever holds the
 /// plaintext image. Runs off the UI thread.
-pub fn add_photo(frame: CameraFrame, created_ms: i64) -> Result<ItemInfo, VaultError> {
+pub fn add_photo(frame: CameraFrame, name: String, created_ms: i64) -> Result<ItemInfo, VaultError> {
     let planes = frame
         .planes
         .iter()
@@ -445,8 +438,8 @@ pub fn add_photo(frame: CameraFrame, created_ms: i64) -> Result<ItemInfo, VaultE
     let thumb = Zeroizing::new(photo.thumbnail);
     with_open(|v| {
         Ok(v.add_item(NewItem {
-            kind: "photo",
-            name: "Photo.jpg",
+            kind: cs_vault::items::kind::PHOTO,
+            name: &name,
             mime: "image/jpeg",
             created_ms,
             content: jpeg.as_slice(),
@@ -487,7 +480,7 @@ pub fn add_note(title: String, text: String, created_ms: i64) -> Result<ItemInfo
     let text = Zeroizing::new(text);
     with_open(|v| {
         Ok(v.add_item(NewItem {
-            kind: "note",
+            kind: cs_vault::items::kind::NOTE,
             name: &title,
             mime: "text/plain",
             created_ms,
@@ -550,37 +543,28 @@ pub fn delete_item(id: String) -> Result<(), VaultError> {
     with_open(|v| Ok(v.delete_item(&id)?))
 }
 
-/// A new folder (an item of kind "folder") inside `parent`, or at the top level.
-pub fn create_folder(
-    name: String,
-    color: String,
-    space: String,
-    parent: Option<String>,
-    created_ms: i64,
-) -> Result<ItemInfo, VaultError> {
-    with_open(|v| {
-        Ok(v.create_folder(&name, &color, &space, parent.as_deref(), created_ms)?
-            .into())
-    })
+/// A new tag (an item of kind "tag").
+pub fn create_tag(name: String, created_ms: i64) -> Result<ItemInfo, VaultError> {
+    with_open(|v| Ok(v.create_tag(&name, created_ms)?.into()))
 }
 
-pub fn update_folder(id: String, name: String, color: String) -> Result<ItemInfo, VaultError> {
-    with_open(|v| Ok(v.update_folder(&id, &name, &color)?.into()))
+pub fn rename_tag(tag_id: String, name: String) -> Result<ItemInfo, VaultError> {
+    with_open(|v| Ok(v.rename_tag(&tag_id, &name)?.into()))
 }
 
-/// Move items (and folders) into `folder`, or to the top level when None.
-pub fn move_items(ids: Vec<String>, folder: Option<String>) -> Result<(), VaultError> {
+/// Put a tag on items (`tagged`) or take it off them.
+pub fn set_tag(item_ids: Vec<String>, tag_id: String, tagged: bool) -> Result<(), VaultError> {
     with_open(|v| {
-        for id in &ids {
-            v.move_item(id, folder.as_deref())?;
+        for id in &item_ids {
+            v.set_tag(id, &tag_id, tagged)?;
         }
         Ok(())
     })
 }
 
-/// Delete a folder; what it holds moves up to its parent.
-pub fn delete_folder(id: String) -> Result<(), VaultError> {
-    with_open(|v| Ok(v.delete_folder(&id)?))
+/// Delete a tag; it comes off every item and no item is deleted.
+pub fn delete_tag(tag_id: String) -> Result<(), VaultError> {
+    with_open(|v| Ok(v.delete_tag(&tag_id)?))
 }
 
 pub fn rename_item(id: String, name: String) -> Result<ItemInfo, VaultError> {

@@ -12,11 +12,13 @@ import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'video_view.dart';
+import '../capture_name.dart';
+import '../item_kind.dart';
 
 /// Voice memos (docs/ui.md, voice memos): the list of recordings, each playable in
-/// place, or, while recording, a live level meter and a timer. The dock's mic button
-/// starts and stops ([toggle]). The sound goes to a file in the app's private temp
-/// folder while recording and is encrypted into the vault and deleted as soon as it
+/// place, or, while recording, a live level meter and a timer. The red mic button
+/// above the lock starts and stops ([toggle]). The sound goes to a file in the app's
+/// private temp directory while recording and is encrypted into the vault and deleted as soon as it
 /// stops.
 class RecorderView extends StatefulWidget {
   const RecorderView({
@@ -25,15 +27,15 @@ class RecorderView extends StatefulWidget {
     required this.onSaved,
     required this.onRecordingChanged,
     required this.onOpen,
-    this.folder,
+    this.tagId,
     this.bottomPad = 16,
   });
 
-  /// New recordings go into this folder (the one open in Voice).
-  final String? folder;
+  /// New recordings carry this tag (the one open in the vault).
+  final String? tagId;
   final double bottomPad;
 
-  /// The recordings to list (those in the open folder).
+  /// The recordings to list (narrowed to the open tag, if any).
   final List<rust.ItemInfo> items;
   final VoidCallback onSaved;
   final ValueChanged<bool> onRecordingChanged;
@@ -55,6 +57,8 @@ class RecorderViewState extends State<RecorderView> {
   DateTime? _started;
   Timer? _tick;
   String? _path;
+  /// Set when recording starts (the context may be gone when it is saved on lock).
+  String? _name;
   bool _saving = false;
 
   // In-place playback of one recording.
@@ -92,6 +96,7 @@ class RecorderViewState extends State<RecorderView> {
       await _rec.start(const RecordConfig(encoder: AudioEncoder.aacLc, numChannels: 1), path: path);
       HapticFeedback.mediumImpact();
       _path = path;
+      _name = captureName(l, ItemKind.audio, DateTime.now(), '.m4a');
       _bars.clear();
       _levels = _rec.onAmplitudeChanged(const Duration(milliseconds: 90)).listen((a) {
         // dBFS (about -60 quiet … 0 loud) to 0..1.
@@ -126,18 +131,17 @@ class RecorderViewState extends State<RecorderView> {
       path = await _rec.stop() ?? _path;
       if (path != null && File(path).existsSync()) {
         final when = started;
-        final name = '${_twoDigits(when.day)}/${_twoDigits(when.month)} ${_twoDigits(when.hour)}:${_twoDigits(when.minute)}.m4a';
         final item = await rust.addFile(
           path: path,
-          kind: 'audio',
-          name: name,
+          kind: ItemKind.audio,
+          name: _name ?? 'Recording.m4a',
           mime: 'audio/mp4',
           createdMs: i64(when.millisecondsSinceEpoch),
           thumbnail: null,
         );
         await rust.setItemDuration(id: item.id, durationMs: i64(length.inMilliseconds));
-        final into = widget.folder;
-        if (into != null) await rust.moveItems(ids: [item.id], folder: into);
+        final tagId = widget.tagId;
+        if (tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
         widget.onSaved();
       }
     } catch (_) {
@@ -151,8 +155,6 @@ class RecorderViewState extends State<RecorderView> {
       _saving = false;
     }
   }
-
-  static String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
   Future<void> _togglePlay(rust.ItemInfo item) async {
     if (_playingId == item.id) {
@@ -247,7 +249,7 @@ class RecorderViewState extends State<RecorderView> {
         ),
       );
     }
-    final list = widget.items.where((i) => i.kind == 'audio').toList();
+    final list = widget.items.where((i) => i.kind == ItemKind.audio).toList();
     if (list.isEmpty) {
       return Center(
         child: Padding(

@@ -1,0 +1,13 @@
+# Shipped Dart packages whose sources mention a network API (tools/check-deps scan),
+# reviewed one by one. Every line needs a reason. At run time the Dart guard
+# (app/lib/offline.dart) makes HttpClient/Socket fail anyway; on Android the APK has
+# no INTERNET permission and on macOS the sandbox has no network entitlement.
+
+http                             # HTTP client; the app never imports it (only the browser preview, a dev dependency). Pulled in transitively by the packages below
+image_picker_platform_interface  # imports package:http only in the web implementation of PickedFile (html.dart); not compiled into native builds
+package_config                   # resolves package configs, with an http(s) branch for remote URIs; reached only via jni's build tooling, not from app code
+package_info_plus                # imports package:http only in its web implementation (fetches version.json); not compiled into native builds
+pdfium_dart                      # build hook downloads the PDFium binary at BUILD time (proxy_http_client.dart); no run-time network use
+pdfrx_engine                     # can open PDFs from a URL (PdfDocument.openUri, file cache); the app only calls PdfViewer.data with decrypted bytes
+video_player_android             # HttpVideoAsset streams network URLs via media3 DefaultHttpDataSource; the app only uses VideoPlayerController.file
+web                              # JS interop bindings for the browser DOM (WebSocket type); web-only, not compiled into native builds

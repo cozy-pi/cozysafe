@@ -1,0 +1,61 @@
+# cargo-deny policy for the Rust core (this workspace) and the app's FFI crate
+# (app/rust, checked with `--config deny.toml`). See docs/supply-chain.md.
+#   cargo deny check advisories sources bans
+# Licenses are not checked here.
+
+[graph]
+# Every platform the app ships on, so a target-specific dependency is not missed.
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "aarch64-apple-ios",
+    "aarch64-linux-android",
+    "armv7-linux-androideabi",
+    "x86_64-linux-android",
+    "x86_64-pc-windows-msvc",
+]
+all-features = true
+
+[advisories]
+# RustSec database: known vulnerabilities, yanked versions and unsound crates fail.
+# Unmaintained crates are reported for direct dependencies only (a transitive one
+# has to be replaced upstream first).
+yanked = "deny"
+unmaintained = "workspace"
+unsound = "all"
+ignore = []
+
+[sources]
+# Only crates.io. A git dependency or another registry is a new supply channel and
+# must be reviewed (then listed here) before it can be used.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[bans]
+multiple-versions = "allow"
+# Versions are pinned by the committed Cargo.lock (CI builds with --locked); the
+# in-repo crates depend on each other by path, which cargo-deny counts as a wildcard.
+wildcards = "allow"
+deny = [
+    # HTTP / networking stacks: the app never talks to the network.
+    { name = "reqwest", reason = "the app is offline" },
+    { name = "hyper", reason = "the app is offline" },
+    { name = "ureq", reason = "the app is offline" },
+    { name = "curl", reason = "the app is offline" },
+    { name = "curl-sys", reason = "the app is offline" },
+    { name = "isahc", reason = "the app is offline" },
+    { name = "surf", reason = "the app is offline" },
+    { name = "attohttpc", reason = "the app is offline" },
+    { name = "tungstenite", reason = "the app is offline" },
+    { name = "tokio-tungstenite", reason = "the app is offline" },
+    { name = "quinn", reason = "the app is offline" },
+    { name = "socket2", reason = "the app is offline" },
+    { name = "mio", reason = "the app is offline (tokio is used without its net/io features)" },
+    { name = "rustls", reason = "TLS means network; the app is offline" },
+    { name = "native-tls", reason = "TLS means network; the app is offline" },
+    { name = "openssl", reason = "TLS means network; the app is offline" },
+    { name = "openssl-sys", reason = "TLS means network; the app is offline" },
+]

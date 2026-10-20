@@ -4,26 +4,47 @@ An open-source, cross-platform encrypted vault for photos, documents, files and
 notes. Everything is encrypted on your device before it is saved.
 
 > **Status: preview.** It works on one device; sync between devices is not built
-> yet. Don't keep your only copy of something important in it until v0.1, and use
-> **Back up to a file** often. Progress: [`docs/plan-v0.1.md`](docs/plan-v0.1.md).
+> yet. Don't keep your only copy of something important in it yet, and use
+> **Back up to a file** often. Decisions and what is next: [`docs/decisions.md`](docs/decisions.md).
 
 Website and downloads: <https://safe.cozypi.com>
 
+## No library can send your data out
+
+Cozy Safe works fully offline and does not need the network for anything. A vault app
+is only as safe as every library inside it, and libraries do get hijacked, so this is
+checked on every build, in layers (details and limits: [supply chain](docs/supply-chain.md)):
+
+- **Android:** the app has no internet permission at all; CI reads the built APK and
+  fails if one sneaks back in. Android then refuses every connection, native code included.
+- **macOS:** the app runs in Apple's sandbox with no network permission.
+- **Inside the app:** Dart's HTTP client and sockets are switched off when the app
+  starts, and the compiled Rust core must not import any network function.
+- **Every library is reviewed before it gets in.** CI keeps a list of every Dart and Rust
+  package, direct or indirect; a new one fails the build until someone reviews it. The
+  sources of every package are scanned for network code, and each exception is written
+  down with its reason. Rust crates are also checked by cackle and cargo-deny.
+- **Honest limits:** iPhone, Windows and Linux have no system switch that takes the
+  network away from one app, so there the protection is the checks above, not the OS.
+  The PDF engine (PDFium) is a prebuilt binary downloaded at build time.
+
 ## What works today
 
-- Several vaults, each opened by its own password (the password decides which vault opens).
-- Unlock with Face ID or fingerprint (on by default for the first vault), a PIN of
-  4 to 10 digits for this device, or the password. Typing the right password opens
-  the vault without pressing Enter.
-- Take photos inside the app on iPhone and Android. They go straight into the vault:
-  never the photo library, never a plaintext temporary file, no location data.
-- Browse photos by date, view them full screen, delete them.
-- Emergency Kit: your Secret Key, written so you can copy it on paper.
-- Back up the whole library to one encrypted file and restore it on a new install.
+- **Several vaults on one device**, each with its own PIN. A vault is told apart by its
+  icon and colour; nothing on disk says what is inside or how it is used.
+- Unlock with Face ID or fingerprint, the vault's PIN, or its password. Wrong PINs
+  make you wait longer each time.
+- **Photos and videos:** take them inside the app (never in the photo library, no
+  location data) or add them from the device. **Notes**, **voice memos** and **any
+  file**, with a PDF viewer inside the app.
+- **Groups:** put anything in one or more groups ("Passport": the photo, the scan and the
+  note) and open a group from any section.
+- Search, Recently deleted (30 days), auto-lock, blocked screenshots.
+- **Back up to one encrypted file** and restore it on a new device with the Emergency
+  Kit (your Secret Key on paper).
 - English and Vietnamese, light and dark.
 
-Coming for v0.1: folders, photos from the library, any file, notes, paste, recently
-deleted, search, change password. See [the plan](docs/plan-v0.1.md).
+Not yet: sync between devices. Until then, use **Back up to a file** often.
 
 ## Install
 
@@ -49,8 +70,8 @@ Every file has a GitHub build-provenance attestation:
   multi-gigabyte files need little memory. Each item has its own random key.
 - **Face ID, fingerprint and PIN** only unwrap a copy of the vault key held for this
   device. The PIN is combined with a random key in the device keystore, so vault
-  files copied elsewhere can't be brute-forced with the PIN. Five wrong PINs and
-  the PIN is turned off.
+  files copied elsewhere can't be brute-forced with the PIN. From the fifth wrong PIN
+  you wait longer each time (1, 5, 15, then 60 minutes); nothing is wiped.
 - **No recovery.** Lose the password, or both the device and the Emergency Kit, and
   the data is gone. Nobody, including us, can open it.
 
@@ -93,7 +114,10 @@ with the desktop builds and the APK. Write the changes under that version in
 |---|---|
 | [Requirements](docs/requirements.md) | What Cozy Safe must do, and why |
 | [Plan for v0.1](docs/plan-v0.1.md) | Stages and progress |
-| [UI](docs/ui.md) | Approved designs: lock screen, add dock, folders |
+| [Decisions](docs/decisions.md) | What was decided, when, and what is still open |
+| [Supply chain](docs/supply-chain.md) | How no library can send data out, and the limits |
+| [UI](docs/ui.md) | Approved designs, and how mockups are made |
+| [Naming](docs/naming.md) | One name per concept; how stored names may change |
 | [Decision records](docs/adr/) | Why each technical choice was made |
 | [Changelog](CHANGELOG.md) | What changed in each build |
 

@@ -1,4 +1,9 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Cozy Safe never uses the network. Strip INTERNET even if a plugin's manifest
+         asks for it (debug/profile manifests keep it for Flutter tooling). CI fails
+         the release build if the permission is in the APK. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application

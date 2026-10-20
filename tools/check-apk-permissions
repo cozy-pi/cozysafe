@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Fail if a built APK or app bundle asks for the INTERNET permission.
+#   tools/check-apk-permissions CozySafe-android.apk [CozySafe-android-play.aab]
+# The main AndroidManifest.xml removes INTERNET with tools:node="remove", which also
+# strips it from every plugin's manifest; this checks the merged result in the real
+# files. Without INTERNET, Android denies sockets to the whole app process, native
+# code included. APKs need aapt2 from the Android SDK build-tools ($ANDROID_HOME).
+set -euo pipefail
+status=0
+for f in "$@"; do
+  case "$f" in
+    *.apk)
+      aapt2=$(ls "${ANDROID_HOME:?ANDROID_HOME not set}"/build-tools/*/aapt2 | sort -V | tail -1)
+      perms=$("$aapt2" dump permissions "$f")
+      ;;
+    *.aab)
+      # The bundle's manifest is protobuf; permission names are stored as plain strings.
+      perms=$(unzip -p "$f" base/manifest/AndroidManifest.xml | LC_ALL=C grep -ao 'android\.permission\.[A-Z_]*' | sort -u)
+      ;;
+    *) echo "error: $f is not an .apk or .aab" >&2; exit 2 ;;
+  esac
+  echo "== $f"
+  echo "$perms"
+  if grep -q "android.permission.INTERNET" <<<"$perms"; then
+    echo "error: $f requests android.permission.INTERNET; the app must stay offline" >&2
+    status=1
+  fi
+done
+exit $status

@@ -48,8 +48,6 @@ pub const MIN_PASSWORD_SCORE: u8 = 3;
 pub enum Error {
     #[error("password too weak")]
     WeakPassword,
-    #[error("a folder cannot go inside itself")]
-    FolderLoop,
     #[error("another vault already uses this password")]
     PasswordInUse,
     #[error("vault name is empty")]
@@ -91,11 +89,32 @@ struct LibraryHeader {
     secret_key: Option<String>,
 }
 
+/// Argon2id cost, named as in RFC 9106: memory in KiB, passes (t), lanes (p).
 #[derive(Serialize, Deserialize, Clone, Copy)]
-struct KdfJson {
-    m_kib: u32,
-    t: u32,
-    p: u32,
+pub(crate) struct KdfJson {
+    pub(crate) m_kib: u32,
+    pub(crate) t: u32,
+    pub(crate) p: u32,
+}
+
+impl From<KdfParams> for KdfJson {
+    fn from(k: KdfParams) -> Self {
+        Self {
+            m_kib: k.m_kib,
+            t: k.t,
+            p: k.p,
+        }
+    }
+}
+
+impl From<KdfJson> for KdfParams {
+    fn from(k: KdfJson) -> Self {
+        Self {
+            m_kib: k.m_kib,
+            t: k.t,
+            p: k.p,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]

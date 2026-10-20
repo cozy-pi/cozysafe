@@ -6,7 +6,8 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
-import '../widgets/add_dock.dart';
+import '../item_kind.dart';
+import '../prefs.dart';
 import '../widgets/identity.dart';
 import 'delete_vault.dart';
 import 'file_view.dart';
@@ -99,13 +100,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _measure() async {
     try {
-      final all = [...await rust.listItems(), ...await rust.listTrash()];
+      // Tags are names only: not counted as things kept.
+      final all = [...await rust.listItems(), ...await rust.listTrash()].where((i) => i.kind != ItemKind.tag);
       if (!mounted) return;
       setState(() {
         _count = all.length;
         _byKind.clear();
         for (final i in all) {
-          _byKind[i.kind] = (_byKind[i.kind] ?? BigInt.zero) + i.size;
+          _byKind[i.kind] = (_byKind[i.kind] ?? BigInt.zero) + i.sizeBytes;
         }
       });
     } catch (_) {}
@@ -356,9 +358,9 @@ class _VaultCard extends StatelessWidget {
   final Map<String, BigInt> byKind;
 
   static const _kinds = [
-    ('photo', Color(0xFFFFD88A)),
-    ('file', Color(0xFF9FD8FF)),
-    ('note', Color(0xFFC8F0C0)),
+    (ItemKind.photo, Color(0xFFFFD88A)),
+    (ItemKind.file, Color(0xFF9FD8FF)),
+    (ItemKind.note, Color(0xFFC8F0C0)),
   ];
 
   @override
@@ -368,7 +370,7 @@ class _VaultCard extends StatelessWidget {
     final base = colorById(vault.color).color;
     final bg = dark ? Color.lerp(deepForWhite(base), Colors.black, .25)! : deepForWhite(base);
     final total = byKind.values.fold(BigInt.zero, (a, b) => a + b);
-    final names = {'photo': l.kindPhotos, 'file': l.kindFiles, 'note': l.kindNotes};
+    final names = {ItemKind.photo: l.kindPhotos, ItemKind.file: l.kindFiles, ItemKind.note: l.kindNotes};
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),

@@ -1,4 +1,4 @@
-//! Items inside an open vault (photos now; notes and files use the same layout).
+//! Items inside an open vault: photos, videos, notes, recordings, files and tags.
 //!
 //! ```text
 //! items/<item>.meta   ItemRecord sealed with the Master Key (kind, name, size, wrapped DEK)
@@ -21,55 +21,98 @@ use crate::{write_atomic, Error, OpenVault, Result};
 
 const ITEMS_DIR: &str = "items";
 
-/// What Dart sees about an item. No key material.
+/// What Dart sees about an item. No key material. Names follow docs/naming.md.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ItemMeta {
     pub id: String,
+    /// One of [`kind`]: photo, video, note, audio, file, tag.
     pub kind: String,
     pub name: String,
     pub mime: String,
     pub created_ms: i64,
-    pub size: u64,
+    /// Size of the content in bytes (the encrypted file is a little larger).
+    pub size_bytes: u64,
     /// When it was moved to Recently deleted; `None` for items in the vault.
     pub deleted_ms: Option<i64>,
-    /// Length of a video, when known.
+    /// Length of a video or a recording, when known.
     pub duration_ms: Option<i64>,
-    /// The folder this item is in; `None` at the top level.
-    pub folder: Option<String>,
-    /// A folder's colour id (folders only).
-    pub color: Option<String>,
-    /// What a folder holds: "note", "photo" (photos and videos), "audio" or "file".
-    /// Folders made before this have none and count as "file".
-    pub space: Option<String>,
+    /// The tags (ids of items of kind `tag`) this item carries; empty for tags.
+    pub tag_ids: Vec<String>,
 }
 
-/// Kind of the items that are folders. A folder is an item with no content, so it is
-/// encrypted, backed up and restored like everything else.
-pub const FOLDER: &str = "folder";
+/// The item kinds. Use these, never the string literals.
+pub mod kind {
+    pub const PHOTO: &str = "photo";
+    pub const VIDEO: &str = "video";
+    pub const NOTE: &str = "note";
+    pub const AUDIO: &str = "audio";
+    pub const FILE: &str = "file";
+    /// A tag ("group" in the app): an item with a name and no content, so it is
+    /// encrypted, backed up and restored like everything else.
+    pub const TAG: &str = "tag";
+    /// Format 1 only: folders, read back as tags (see `ItemRecord`).
+    pub(crate) const LEGACY_FOLDER: &str = "folder";
+}
 
 /// How long Recently deleted keeps an item.
 pub const TRASH_DAYS: i64 = 30;
 const DAY_MS: i64 = 24 * 60 * 60 * 1000;
 
+/// Current layout of `ItemRecord`.
+const RECORD_FORMAT: u32 = 2;
+
+fn format_1() -> u32 {
+    1
+}
+
+/// One item's metadata, sealed in `<item>.meta`.
+///
+/// Format 1 (0.1.0–0.1.6) wrote `size`, `has_thumb`, and folders: items of kind
+/// `folder` with `color`/`space`, and `folder` on what was inside. Format 2 reads all
+/// of that: the old names are aliases, a folder becomes a tag and an item in it carries
+/// that tag (nested folders become separate tags). Records are rewritten in format 2
+/// the next time they change; nothing is converted in bulk.
 #[derive(Serialize, Deserialize)]
 struct ItemRecord {
+    #[serde(default = "format_1")]
+    format: u32,
     kind: String,
     name: String,
     mime: String,
     created_ms: i64,
-    size: u64,
-    has_thumb: bool,
+    #[serde(alias = "size")]
+    size_bytes: u64,
+    #[serde(alias = "has_thumb")]
+    has_thumbnail: bool,
     wrapped_dek: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     deleted_ms: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     duration_ms: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    folder: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    color: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    space: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    tag_ids: Vec<String>,
+    /// Format 1: the folder the item was in. Read, never written.
+    #[serde(default, rename = "folder", skip_serializing)]
+    legacy_folder_id: Option<String>,
+}
+
+impl ItemRecord {
+    /// Bring a format-1 record up to date in memory.
+    fn upgraded(mut self) -> Self {
+        if self.kind == kind::LEGACY_FOLDER {
+            self.kind = kind::TAG.to_owned();
+        } else if let Some(f) = self.legacy_folder_id.take() {
+            if !self.tag_ids.contains(&f) {
+                self.tag_ids.push(f);
+            }
+        }
+        if self.kind == kind::TAG {
+            self.tag_ids.clear();
+        }
+        self.legacy_folder_id = None;
+        self.format = RECORD_FORMAT;
+        self
+    }
 }
 
 /// Content to store as a new item.
@@ -107,7 +150,7 @@ impl OpenVault {
 
         let data_path = self.path(&id, "data")?;
         let tmp = data_path.with_extension("data.tmp");
-        let size = {
+        let size_bytes = {
             let mut f = fs::File::create(&tmp)?;
             let n = stream::encrypt(&dek, &self.item_aad(&id, "data"), new.content, &mut f)?;
             f.sync_all()?;
@@ -115,23 +158,23 @@ impl OpenVault {
         };
         fs::rename(&tmp, &data_path)?;
 
-        if let Some(thumb) = new.thumbnail {
-            let sealed = wrap::seal(&dek, thumb, &self.item_aad(&id, "thumb"));
+        if let Some(thumbnail) = new.thumbnail {
+            let sealed = wrap::seal(&dek, thumbnail, &self.item_aad(&id, "thumb"));
             write_atomic(&self.path(&id, "thumb")?, &sealed)?;
         }
 
         let record = ItemRecord {
+            format: RECORD_FORMAT,
             kind: new.kind.to_owned(),
             name: new.name.to_owned(),
             mime: new.mime.to_owned(),
             created_ms: new.created_ms,
-            size,
-            has_thumb: new.thumbnail.is_some(),
+            size_bytes,
+            has_thumbnail: new.thumbnail.is_some(),
             deleted_ms: None,
             duration_ms: None,
-            folder: None,
-            color: None,
-            space: None,
+            tag_ids: Vec::new(),
+            legacy_folder_id: None,
             wrapped_dek: hex::encode(wrap::wrap_key(
                 &self.master_key,
                 &dek,
@@ -150,14 +193,14 @@ impl OpenVault {
         let (mut record, dek) = self.record_and_key(id)?;
         let data_path = self.path(id, "data")?;
         let tmp = data_path.with_extension("data.tmp");
-        let size = {
+        let size_bytes = {
             let mut f = fs::File::create(&tmp)?;
             let n = stream::encrypt(&dek, &self.item_aad(id, "data"), content, &mut f)?;
             f.sync_all()?;
             n
         };
         fs::rename(&tmp, &data_path)?;
-        record.size = size;
+        record.size_bytes = size_bytes;
         record.name = name.to_owned();
         self.write_record(id, &record)?;
         Ok(meta(id.to_owned(), record))
@@ -176,78 +219,60 @@ impl OpenVault {
         self.write_record(id, &record)
     }
 
-    /// A new, empty folder inside `parent` (or at the top level).
-    pub fn create_folder(
-        &self,
-        name: &str,
-        color: &str,
-        space: &str,
-        parent: Option<&str>,
-        created_ms: i64,
-    ) -> Result<ItemMeta> {
-        if let Some(p) = parent {
-            self.folder_record(p)?;
-        }
-        let m = self.add_item(NewItem {
-            kind: FOLDER,
+    /// A new tag with no items yet.
+    pub fn create_tag(&self, name: &str, created_ms: i64) -> Result<ItemMeta> {
+        self.add_item(NewItem {
+            kind: kind::TAG,
             name,
             mime: "",
             created_ms,
             content: std::io::empty(),
             thumbnail: None,
-        })?;
-        let mut record = self.record(&m.id)?;
-        record.folder = parent.map(str::to_owned);
-        record.color = Some(color.to_owned());
-        record.space = Some(space.to_owned());
-        self.write_record(&m.id, &record)?;
-        Ok(meta(m.id, record))
+        })
     }
 
-    /// Rename or recolour a folder.
-    pub fn update_folder(&self, id: &str, name: &str, color: &str) -> Result<ItemMeta> {
-        let mut record = self.folder_record(id)?;
+    /// Rename a tag.
+    pub fn rename_tag(&self, tag_id: &str, name: &str) -> Result<ItemMeta> {
+        let mut record = self.tag_record(tag_id)?;
         record.name = name.to_owned();
-        record.color = Some(color.to_owned());
-        self.write_record(id, &record)?;
-        Ok(meta(id.to_owned(), record))
+        self.write_record(tag_id, &record)?;
+        Ok(meta(tag_id.to_owned(), record))
     }
 
-    /// Put an item (or a folder) into `folder`, or back to the top level. A folder
-    /// cannot go inside itself or one of its own subfolders.
-    pub fn move_item(&self, id: &str, folder: Option<&str>) -> Result<()> {
-        if let Some(target) = folder {
-            // Walk up from the target: meeting `id` would make a loop.
-            let mut at = Some(target.to_owned());
-            while let Some(f) = at {
-                if f == id {
-                    return Err(Error::FolderLoop);
-                }
-                at = self.folder_record(&f)?.folder;
-            }
+    /// Put `tag_id` on an item (`tagged`) or take it off. Tags cannot carry tags.
+    pub fn set_tag(&self, item_id: &str, tag_id: &str, tagged: bool) -> Result<()> {
+        self.tag_record(tag_id)?;
+        let mut record = self.record(item_id)?;
+        if record.kind == kind::TAG {
+            return Err(Error::NoSuchItem);
         }
-        let mut record = self.record(id)?;
-        record.folder = folder.map(str::to_owned);
-        self.write_record(id, &record)
+        if record.tag_ids.iter().any(|t| t == tag_id) == tagged {
+            return Ok(());
+        }
+        if tagged {
+            record.tag_ids.push(tag_id.to_owned());
+        } else {
+            record.tag_ids.retain(|t| t != tag_id);
+        }
+        self.write_record(item_id, &record)
     }
 
-    /// Remove a folder; what was in it moves up to the folder's own parent, so deleting
-    /// a folder never deletes anything else.
-    pub fn delete_folder(&self, id: &str) -> Result<()> {
-        let record = self.folder_record(id)?;
+    /// Delete a tag. It comes off every item; no item is deleted.
+    pub fn delete_tag(&self, tag_id: &str) -> Result<()> {
+        self.tag_record(tag_id)?;
         for m in self.all_items()? {
-            if m.folder.as_deref() == Some(id) {
+            if m.tag_ids.iter().any(|t| t == tag_id) {
                 let mut r = self.record(&m.id)?;
-                r.folder = record.folder.clone();
+                r.tag_ids.retain(|t| t != tag_id);
                 self.write_record(&m.id, &r)?;
             }
         }
-        self.delete_item(id)
+        self.delete_item(tag_id)
     }
 
-    fn folder_record(&self, id: &str) -> Result<ItemRecord> {
-        let r = self.record(id)?;
-        if r.kind != FOLDER {
+    fn tag_record(&self, tag_id: &str) -> Result<ItemRecord> {
+        let r = self.record(tag_id)?;
+        if r.kind != kind::TAG {
             return Err(Error::NoSuchItem);
         }
         Ok(r)
@@ -261,7 +286,7 @@ impl OpenVault {
         Ok(meta(id.to_owned(), record))
     }
 
-    /// Record a video's length (read by the app after importing it).
+    /// Record a video's or a recording's length (measured by the app).
     pub fn set_duration(&self, id: &str, duration_ms: i64) -> Result<()> {
         let mut record = self.record(id)?;
         record.duration_ms = Some(duration_ms);
@@ -341,7 +366,7 @@ impl OpenVault {
     /// The decrypted preview, if the item has one.
     pub fn read_thumbnail(&self, id: &str) -> Result<Option<Vec<u8>>> {
         let (record, dek) = self.record_and_key(id)?;
-        if !record.has_thumb {
+        if !record.has_thumbnail {
             return Ok(None);
         }
         let sealed = fs::read(self.path(id, "thumb")?)?;
@@ -371,7 +396,9 @@ impl OpenVault {
             r => r?,
         };
         let json = wrap::open(&self.master_key, &sealed, &self.item_aad(id, "meta"))?;
-        serde_json::from_slice(&json).map_err(|_| Error::Corrupt("item meta"))
+        serde_json::from_slice::<ItemRecord>(&json)
+            .map(ItemRecord::upgraded)
+            .map_err(|_| Error::Corrupt("item meta"))
     }
 
     fn record_and_key(&self, id: &str) -> Result<(ItemRecord, Key)> {
@@ -389,12 +416,10 @@ fn meta(id: String, r: ItemRecord) -> ItemMeta {
         name: r.name,
         mime: r.mime,
         created_ms: r.created_ms,
-        size: r.size,
+        size_bytes: r.size_bytes,
         deleted_ms: r.deleted_ms,
         duration_ms: r.duration_ms,
-        folder: r.folder,
-        color: r.color,
-        space: r.space,
+        tag_ids: r.tag_ids,
     }
 }
 
@@ -413,7 +438,7 @@ mod tests {
 
     fn photo<'a>(content: &'a [u8], created_ms: i64) -> NewItem<'a, &'a [u8]> {
         NewItem {
-            kind: "photo",
+            kind: kind::PHOTO,
             name: "IMG.jpg",
             mime: "image/jpeg",
             created_ms,
@@ -484,7 +509,7 @@ mod tests {
             .unwrap();
         let n = v
             .add_item(NewItem {
-                kind: "note",
+                kind: kind::NOTE,
                 name: "Wifi",
                 mime: "text/plain",
                 created_ms: 1,
@@ -496,7 +521,7 @@ mod tests {
             .replace_item(&n.id, "Wifi home", &b"second version"[..])
             .unwrap();
         assert_eq!(
-            (edited.id.as_str(), edited.name.as_str(), edited.size),
+            (edited.id.as_str(), edited.name.as_str(), edited.size_bytes),
             (n.id.as_str(), "Wifi home", 14)
         );
         let mut out = Vec::new();
@@ -546,42 +571,94 @@ mod tests {
     }
 
     #[test]
-    fn folders() {
+    fn tags() {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
             .create_vault("V", PW)
             .unwrap();
-        let ids = v
-            .create_folder("Giấy tờ", "amber", "file", None, 1)
-            .unwrap();
-        let sub = v
-            .create_folder("Hộ chiếu", "blue", "file", Some(&ids.id), 2)
-            .unwrap();
-        let photo = v.add_item(photo(b"p", 3)).unwrap();
-        v.move_item(&photo.id, Some(&sub.id)).unwrap();
+        let papers = v.create_tag("Giấy tờ", 1).unwrap();
+        let passport = v.create_tag("Hộ chiếu", 2).unwrap();
+        let p = v.add_item(photo(b"p", 3)).unwrap();
+        v.set_tag(&p.id, &papers.id, true).unwrap();
+        v.set_tag(&p.id, &passport.id, true).unwrap();
+        v.set_tag(&p.id, &passport.id, true).unwrap(); // twice is once
         let find = |id: &str| v.items().unwrap().into_iter().find(|m| m.id == id).unwrap();
-        assert_eq!(find(&photo.id).folder.as_deref(), Some(sub.id.as_str()));
-        assert_eq!(find(&sub.id).color.as_deref(), Some("blue"));
-        // No loops: a folder cannot go into its own subfolder or itself.
+        assert_eq!(
+            find(&p.id).tag_ids,
+            vec![papers.id.clone(), passport.id.clone()]
+        );
+        assert_eq!(find(&papers.id).kind, kind::TAG);
+        // Only tags can be put on items, and tags carry none.
         assert!(matches!(
-            v.move_item(&ids.id, Some(&sub.id)),
-            Err(Error::FolderLoop)
-        ));
-        assert!(matches!(
-            v.move_item(&ids.id, Some(&ids.id)),
-            Err(Error::FolderLoop)
-        ));
-        // Only folders can hold things.
-        assert!(matches!(
-            v.move_item(&sub.id, Some(&photo.id)),
+            v.set_tag(&p.id, &p.id, true),
             Err(Error::NoSuchItem)
         ));
-        v.update_folder(&sub.id, "Visa", "red").unwrap();
-        assert_eq!(find(&sub.id).name, "Visa");
-        // Deleting a folder moves its content up, never deletes it.
-        v.delete_folder(&sub.id).unwrap();
-        assert_eq!(find(&photo.id).folder.as_deref(), Some(ids.id.as_str()));
-        assert!(v.items().unwrap().iter().all(|m| m.id != sub.id));
+        assert!(matches!(
+            v.set_tag(&papers.id, &passport.id, true),
+            Err(Error::NoSuchItem)
+        ));
+        v.rename_tag(&passport.id, "Visa").unwrap();
+        assert_eq!(find(&passport.id).name, "Visa");
+        v.set_tag(&p.id, &papers.id, false).unwrap();
+        assert_eq!(find(&p.id).tag_ids, vec![passport.id.clone()]);
+        // Deleting a tag never deletes what carried it.
+        v.delete_tag(&passport.id).unwrap();
+        assert!(find(&p.id).tag_ids.is_empty());
+        assert!(v.items().unwrap().iter().all(|m| m.id != passport.id));
+    }
+
+    /// Records written by 0.1.0–0.1.6 (format 1) still read: folders become tags.
+    #[test]
+    fn reads_format_1_records() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
+            .unwrap()
+            .create_vault("V", PW)
+            .unwrap();
+        // A real item, so its key unwraps; its record is then overwritten in format 1.
+        let real = v.add_item(photo(b"p", 3)).unwrap();
+        let wrapped = v.record(&real.id).unwrap().wrapped_dek;
+        let write_v1 = |id: &str, json: &str| {
+            let sealed = wrap::seal(&v.master_key, json.as_bytes(), &v.item_aad(id, "meta"));
+            write_atomic(&v.path(id, "meta").unwrap(), &sealed).unwrap();
+        };
+        let folder = "a".repeat(32);
+        let sub = "b".repeat(32);
+        write_v1(
+            &folder,
+            r#"{"kind":"folder","name":"Giấy tờ","mime":"","created_ms":1,"size":0,"has_thumb":false,"wrapped_dek":"00","color":"amber","space":"file"}"#,
+        );
+        write_v1(
+            &sub,
+            &format!(
+                r#"{{"kind":"folder","name":"Hộ chiếu","mime":"","created_ms":2,"size":0,"has_thumb":false,"wrapped_dek":"00","folder":"{folder}","color":"blue"}}"#
+            ),
+        );
+        write_v1(
+            &real.id,
+            &format!(
+                r#"{{"kind":"photo","name":"IMG.jpg","mime":"image/jpeg","created_ms":3,"size":42,"has_thumb":true,"wrapped_dek":"{wrapped}","folder":"{sub}","duration_ms":5}}"#
+            ),
+        );
+        let items = v.items().unwrap();
+        let get = |id: &str| items.iter().find(|m| m.id == id).unwrap();
+        assert_eq!(get(&folder).kind, kind::TAG);
+        assert!(get(&folder).tag_ids.is_empty());
+        assert_eq!(get(&sub).kind, kind::TAG); // a nested folder is a tag of its own
+        assert_eq!(get(&real.id).tag_ids, vec![sub.clone()]);
+        assert_eq!(
+            (get(&real.id).size_bytes, get(&real.id).duration_ms),
+            (42, Some(5))
+        );
+        assert_eq!(v.read_thumbnail(&real.id).unwrap().unwrap(), b"thumb");
+        // Rewritten in format 2 when it changes.
+        v.rename_item(&real.id, "IMG2.jpg").unwrap();
+        let sealed = fs::read(v.path(&real.id, "meta").unwrap()).unwrap();
+        let json = wrap::open(&v.master_key, &sealed, &v.item_aad(&real.id, "meta")).unwrap();
+        let text = String::from_utf8(json.to_vec()).unwrap();
+        assert!(text.contains(r#""format":2"#));
+        assert!(text.contains(r#""size_bytes":42"#) && text.contains(r#""has_thumbnail":true"#));
+        assert!(text.contains(r#""tag_ids""#) && !text.contains(r#""folder""#));
     }
 }

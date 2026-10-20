@@ -1,5 +1,7 @@
-// Renders the real screens to PNG so they can be checked against the approved mockups
-// without a phone. Off by default:
+// Renders the real screens to PNG, every one in dark and light. This is also how UI
+// mockups are made (docs/ui.md, mockups): change the code, then run tool/mockup.sh,
+// which runs this file and builds test/preview/index.html from manifest.json.
+// Off by default:
 //   flutter test test/preview_test.dart --update-goldens --dart-define=PREVIEW=true
 // Output: test/preview/*.png (not committed). Rust is a fake with sample items.
 import 'dart:convert';
@@ -7,7 +9,9 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show PictureRecorder, ImageByteFormat;
 
+import 'package:cozysafe/item_kind.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
+import 'package:cozysafe/screens/camera.dart';
 import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/settings.dart';
@@ -17,7 +21,8 @@ import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
-import 'package:cozysafe/widgets/add_dock.dart';
+import 'package:cozysafe/prefs.dart';
+import 'package:cozysafe/widgets/brand.dart';
 import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
 import 'package:flutter/material.dart';
@@ -28,66 +33,63 @@ import 'package:flutter_test/flutter_test.dart';
 const _enabled = bool.fromEnvironment('PREVIEW');
 final _now = DateTime.now().millisecondsSinceEpoch;
 
-ItemInfo _item(String id, String kind, String name, int size,
-        {int ago = 0, int? deleted, int? duration, String? folder, String? color, String? space}) =>
+ItemInfo _item(String id, String kind, String name, int sizeBytes,
+        {int ago = 0, int? deleted, int? duration, List<String> tags = const []}) =>
     ItemInfo(
       id: id.padRight(32, '_'),
       kind: kind,
       name: name,
-      mime: kind == 'photo' ? 'image/jpeg' : (name.endsWith('.pdf') ? 'application/pdf' : 'text/plain'),
+      mime: kind == ItemKind.photo ? 'image/jpeg' : (name.endsWith('.pdf') ? 'application/pdf' : 'text/plain'),
       createdMs: _now - ago,
-      size: BigInt.from(size),
+      sizeBytes: BigInt.from(sizeBytes),
       deletedMs: deleted,
       durationMs: duration,
-      folder: folder?.padRight(32, '_'),
-      color: color,
-      space: space,
+      tagIds: [for (final t in tags) t.padRight(32, '_')],
     );
 
 const _day = 86400000;
 
-/// Realistic content: what people actually keep in a vault.
+/// Realistic content: what people actually keep in a vault, in groups that cross
+/// sections ("Hộ chiếu": a photo, a scan, a note).
 final _items = [
-  for (var i = 0; i < 5; i++) _item('p$i', 'photo', 'IMG_${4810 + i}.HEIC', 2400000 + i * 90000, ago: i * 600000),
-  _item('v1', 'video', 'Sinh nhật bé Na.MOV', 38400000, ago: 3600000, duration: 42000),
-  for (var i = 5; i < 9; i++) _item('p$i', 'photo', 'IMG_${4790 + i}.HEIC', 2100000, ago: _day + i * 300000),
-  _item('v2', 'video', 'Đi biển Quy Nhơn.MOV', 126000000, ago: _day * 2, duration: 3 * 60000 + 17000),
+  _item('t1', ItemKind.tag, 'Giấy tờ tùy thân', 0),
+  _item('t2', ItemKind.tag, 'Hộ chiếu', 0),
+  _item('t3', ItemKind.tag, 'Du lịch', 0),
+  _item('t4', ItemKind.tag, 'Gia đình', 0),
+  _item('t5', ItemKind.tag, 'Sức khoẻ', 0),
+  _item('t6', ItemKind.tag, 'Nhà cửa', 0),
+  _item('t7', ItemKind.tag, 'Mật khẩu', 0),
+  _item('t8', ItemKind.tag, 'Công việc', 0),
+  for (var i = 0; i < 5; i++)
+    _item('p$i', ItemKind.photo, 'IMG_${4810 + i}.HEIC', 2400000 + i * 90000, ago: i * 600000,
+        tags: i == 2 ? ['t1', 't2'] : (i < 2 ? ['t4'] : [])),
+  _item('v1', ItemKind.video, 'Sinh nhật bé Na.MOV', 38400000, ago: 3600000, duration: 42000, tags: ['t4']),
+  for (var i = 5; i < 9; i++) _item('p$i', ItemKind.photo, 'IMG_${4790 + i}.HEIC', 2100000, ago: _day + i * 300000),
+  _item('v2', ItemKind.video, 'Đi biển Quy Nhơn.MOV', 126000000, ago: _day * 2, duration: 3 * 60000 + 17000, tags: ['t3', 't4']),
   for (var i = 9; i < 16; i++)
-    _item('p$i', 'photo', 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i), folder: i < 13 ? 'b3' : null),
-  _item('b1', 'folder', 'Giấy tờ', 0, color: 'amber', space: 'library'),
-  _item('b2', 'folder', 'Gia đình', 0, color: 'blue', space: 'library'),
-  _item('b3', 'folder', 'Du lịch', 0, color: 'leaf', space: 'library'),
-  _item('c1', 'folder', 'Mật khẩu', 0, color: 'amber', space: 'note'),
-  _item('c2', 'folder', 'Sức khoẻ', 0, color: 'red', space: 'note'),
-  _item('e1', 'folder', 'Cuộc họp', 0, color: 'violet', space: 'audio'),
-  _item('a1', 'audio', 'Cuộc họp với luật sư.m4a', 6100000, ago: 7200000, duration: 768000),
-  _item('a2', 'audio', 'Bác sĩ dặn về thuốc của mẹ.m4a', 1500000, ago: _day, duration: 185000),
-  _item('a3', 'audio', 'Thoả thuận đặt cọc nhà.m4a', 11600000, ago: _day * 8, duration: 1450000),
-  _item('n1', 'note', 'Wifi nhà bà ngoại', 120),
-  _item('n2', 'note', 'Tài khoản ngân hàng', 640, ago: _day),
-  _item('n3', 'note', 'Thuốc của mẹ', 420, ago: _day * 3),
-  _item('n4', 'note', 'Hộ chiếu và visa', 260, ago: _day * 9, folder: 'd1'),
-  _item('n5', 'note', 'Mật khẩu router và camera an ninh', 300, ago: _day * 15, folder: 'c1'),
-  _item('n6', 'note', 'Danh sách quà Tết', 90, ago: _day * 30),
-  _item('n7', 'note', 'Mã két sắt', 40, ago: _day * 60),
-  _item('n8', 'note', 'Thông tin bảo hiểm xe', 520, ago: _day * 75),
-  _item('d1', 'folder', 'Giấy tờ tùy thân', 0, color: 'amber'),
-  _item('d2', 'folder', 'Nhà cửa', 0, color: 'blue'),
-  _item('d3', 'folder', 'Sức khoẻ', 0, color: 'red'),
-  _item('d4', 'folder', 'Công việc', 0, color: 'violet'),
-  _item('d5', 'folder', 'Xe máy và ô tô', 0, color: 'leaf'),
-  _item('d6', 'folder', 'Hộ chiếu', 0, color: 'teal', folder: 'd1'),
-  _item('g1', 'file', 'Ho-chieu-scan.pdf', 2300000, ago: _day * 220, folder: 'd1'),
-  _item('g2', 'file', 'Giay-khai-sinh-Na.pdf', 640000, ago: _day * 290, folder: 'd1'),
-  _item('g3', 'file', 'Bang-lai-xe.pdf', 1100000, ago: _day * 72, folder: 'd1'),
-  _item('f1', 'file', 'Hop-dong-thue-nha-2026.pdf', 1240000),
-  _item('f2', 'file', 'So-do-nha-scan.pdf', 4870000, ago: _day * 2),
-  _item('f3', 'file', 'Chi tieu gia dinh 2026.xlsx', 86000, ago: _day * 4),
-  _item('f4', 'file', 'Ket qua xet nghiem mau thang 9 - Benh vien Bach Mai.pdf', 732000, ago: _day * 11),
-  _item('f5', 'file', 'Di-chuc-nhap.docx', 42000, ago: _day * 20),
-  _item('f6', 'file', 'CCCD-mat-truoc.jpg', 1840000, ago: _day * 33, folder: 'd1'),
-  _item('f7', 'file', 'Ho-so-xin-viec.zip', 15600000, ago: _day * 50),
-  _item('f8', 'file', 'Ghi-am-cuoc-hop.m4a', 9300000, ago: _day * 64),
+    _item('p$i', ItemKind.photo, 'IMG_${4700 + i}.HEIC', 1900000, ago: _day * (20 + i), tags: i < 13 ? ['t3'] : []),
+  _item('a1', ItemKind.audio, 'Cuộc họp với luật sư.m4a', 6100000, ago: 7200000, duration: 768000, tags: ['t8']),
+  _item('a2', ItemKind.audio, 'Bác sĩ dặn về thuốc của mẹ.m4a', 1500000, ago: _day, duration: 185000, tags: ['t5']),
+  _item('a3', ItemKind.audio, 'Thoả thuận đặt cọc nhà.m4a', 11600000, ago: _day * 8, duration: 1450000, tags: ['t6']),
+  _item('n1', ItemKind.note, 'Wifi nhà bà ngoại', 120, tags: ['t7']),
+  _item('n2', ItemKind.note, 'Tài khoản ngân hàng', 640, ago: _day),
+  _item('n3', ItemKind.note, 'Thuốc của mẹ', 420, ago: _day * 3, tags: ['t5']),
+  _item('n4', ItemKind.note, 'Hộ chiếu và visa', 260, ago: _day * 9, tags: ['t1', 't2', 't3']),
+  _item('n5', ItemKind.note, 'Mật khẩu router và camera an ninh', 300, ago: _day * 15, tags: ['t7', 't6']),
+  _item('n6', ItemKind.note, 'Danh sách quà Tết', 90, ago: _day * 30, tags: ['t4']),
+  _item('n7', ItemKind.note, 'Mã két sắt', 40, ago: _day * 60, tags: ['t7', 't6']),
+  _item('n8', ItemKind.note, 'Thông tin bảo hiểm xe', 520, ago: _day * 75),
+  _item('g1', ItemKind.file, 'Ho-chieu-scan.pdf', 2300000, ago: _day * 220, tags: ['t1', 't2']),
+  _item('g2', ItemKind.file, 'Giay-khai-sinh-Na.pdf', 640000, ago: _day * 290, tags: ['t1', 't4']),
+  _item('g3', ItemKind.file, 'Bang-lai-xe.pdf', 1100000, ago: _day * 72, tags: ['t1']),
+  _item('f1', ItemKind.file, 'Hop-dong-thue-nha-2026.pdf', 1240000, tags: ['t6']),
+  _item('f2', ItemKind.file, 'So-do-nha-scan.pdf', 4870000, ago: _day * 2, tags: ['t6']),
+  _item('f3', ItemKind.file, 'Chi tieu gia dinh 2026.xlsx', 86000, ago: _day * 4, tags: ['t4']),
+  _item('f4', ItemKind.file, 'Ket qua xet nghiem mau thang 9 - Benh vien Bach Mai.pdf', 732000, ago: _day * 11, tags: ['t5']),
+  _item('f5', ItemKind.file, 'Di-chuc-nhap.docx', 42000, ago: _day * 20),
+  _item('f6', ItemKind.file, 'CCCD-mat-truoc.jpg', 1840000, ago: _day * 33, tags: ['t1']),
+  _item('f7', ItemKind.file, 'Ho-so-xin-viec.zip', 15600000, ago: _day * 50, tags: ['t8']),
+  _item('f8', ItemKind.file, 'Ghi-am-cuoc-hop.m4a', 9300000, ago: _day * 64, tags: ['t8']),
 ];
 
 const _noteText = {
@@ -104,7 +106,7 @@ const _noteText = {
 final Map<int, Uint8List> _photos = {};
 
 /// Small solid-colour PNGs stand in for photo thumbnails.
-final _thumbs = <int, Uint8List>{};
+final _thumbnails = <int, Uint8List>{};
 
 class _Fake implements RustLibApi {
   @override
@@ -131,7 +133,7 @@ class _Fake implements RustLibApi {
       final it = _items.where((x) => x.id == id).firstOrNull;
       if (it == null || (it.kind != 'photo' && it.kind != 'video')) return Future<Uint8List>.value(Uint8List(0));
       final media = _items.where((x) => x.kind == 'photo' || x.kind == 'video').toList();
-      return Future<Uint8List>.value(_photos[media.indexOf(it) % _photos.length] ?? _thumbs[0]);
+      return Future<Uint8List>.value(_photos[media.indexOf(it) % _photos.length] ?? _thumbnails[0]);
     }
     if (n.contains('PinLengths')) return Uint32List.fromList([4]);
     if (n.contains('AnyPassword')) return true;
@@ -155,20 +157,24 @@ Future<void> _loadFonts() async {
   await (FontLoader('MaterialIcons')..addFont(bytes(File('${dir.path}/MaterialIcons-Regular.otf')))).load();
 }
 
-Future<void> _thumbsReady() async {
+Future<void> _thumbnailsReady() async {
   const colors = [Color(0xFF7FA79A), Color(0xFFD9A07A), Color(0xFF9CC4DE), Color(0xFFA77FB0)];
   for (var i = 0; i < colors.length; i++) {
     final rec = PictureRecorder();
     Canvas(rec).drawRect(const Rect.fromLTWH(0, 0, 32, 32), Paint()..color = colors[i]);
     final img = await rec.endRecording().toImage(32, 32);
-    _thumbs[i] = (await img.toByteData(format: ImageByteFormat.png))!.buffer.asUint8List();
+    _thumbnails[i] = (await img.toByteData(format: ImageByteFormat.png))!.buffer.asUint8List();
   }
 }
 
-Future<void> _shot(WidgetTester t, String file, Widget home, {Brightness b = Brightness.light, Color? vault,
-    Future<void> Function(WidgetTester)? act}) async {
+Future<void> _shot(WidgetTester t, String file, Widget home, {Brightness b = Brightness.light,
+    Future<void> Function(WidgetTester)? act, int after = 6}) async {
   t.view.physicalSize = const Size(430, 932) * 2; // iPhone 15 Pro Max, the owner's phone
   t.view.devicePixelRatio = 2;
+  // The phone's safe areas (status bar with the Dynamic Island, home indicator), so
+  // content sits where it does on the device; the mockup page draws the frame on top.
+  t.view.padding = const FakeViewPadding(top: 59 * 2, bottom: 34 * 2);
+  t.view.viewPadding = const FakeViewPadding(top: 59 * 2, bottom: 34 * 2);
   addTearDown(t.view.reset);
   await t.pumpWidget(MaterialApp(
     debugShowCheckedModeBanner: false,
@@ -185,24 +191,58 @@ Future<void> _shot(WidgetTester t, String file, Widget home, {Brightness b = Bri
   }
   if (act != null) {
     await act(t);
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < after; i++) {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20))); // decode new images
       await t.pump(const Duration(milliseconds: 100));
     }
   }
   await expectLater(find.byType(MaterialApp), matchesGoldenFile('preview/$file.png'));
 }
 
+/// Tap a chip in the horizontal row, scrolling it into view first.
+Future<void> _tapChip(WidgetTester t, String label) async {
+  final row = find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.right).first;
+  await t.scrollUntilVisible(find.text(label), 120, scrollable: row);
+  await t.pump();
+  await t.tap(find.text(label).first);
+}
+
+/// The screens, in the order the mockup page shows them: (file name, caption).
+final _manifest = <Map<String, String>>[];
+
+/// One screen, rendered dark and light (`<name>-dark.png`, `<name>-light.png`).
+void _screen(String name, String caption, Widget Function() home,
+    {String? section, Future<void> Function(WidgetTester)? act, int after = 6, void Function()? setup}) {
+  _manifest.add({'name': name, 'caption': caption});
+  for (final b in [Brightness.dark, Brightness.light]) {
+    testWidgets('$name ${b.name}', skip: !_enabled, (t) async {
+      Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
+      if (section != null) Prefs.write('vault-section', section);
+      debugCamera = false;
+      CameraView.debugPreview = null;
+      setup?.call();
+      // Real shadows: tests otherwise draw every elevation as a solid black outline.
+      debugDisableShadows = false;
+      try {
+        await _shot(t, '$name-${b.name}', home(), b: b, act: act, after: after);
+        await t.pump(const Duration(seconds: 2)); // let an animation started by `act` end
+      } finally {
+        debugDisableShadows = true;
+      }
+    });
+  }
+}
+
 void main() {
   setUpAll(() async {
     RustLib.initMock(api: _Fake());
     FlutterSecureStorage.setMockInitialValues({});
-    debugAddModes = [AddMode.note, AddMode.library, AddMode.camera, AddMode.audio, AddMode.file];
     debugVoice = true;
     await _loadFonts();
   });
 
   setUp(() async {
-    if (_thumbs.isEmpty) await _thumbsReady();
+    if (_thumbnails.isEmpty) await _thumbnailsReady();
     // Free sample photos (picsum.photos / Unsplash), kept out of git.
     final dir = Directory('test/preview_assets');
     if (_photos.isEmpty && dir.existsSync()) {
@@ -212,6 +252,11 @@ void main() {
         _photos[i] = f.readAsBytesSync();
       }
     }
+  });
+
+  tearDownAll(() {
+    if (!_enabled) return;
+    File('test/preview/manifest.json').writeAsStringSync(const JsonEncoder.withIndent('  ').convert(_manifest));
   });
 
   const vault = VaultInfo(id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true);
@@ -229,89 +274,63 @@ void main() {
         onOpenTrash: () async {},
         onNewVault: () async {},
       );
+  Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
+  Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  testWidgets('lock', skip: !_enabled, (t) => _shot(t, 'lock', const UnlockScreen(libraryDir: '', askBiometricNow: false)));
-  testWidgets('lock menu', skip: !_enabled, (t) async {
-    await _shot(t, 'lock-menu', const UnlockScreen(libraryDir: '', askBiometricNow: false),
-        act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
-  });
-  for (final mode in ['library', 'note', 'audio', 'file']) {
-    testWidgets('mode $mode', skip: !_enabled, (t) async {
-      Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-      Prefs.write('vault-kind', mode);
-      await _shot(t, 'mode-$mode', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color);
-    });
-  }
-  testWidgets('folder', skip: !_enabled, (t) async {
-    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-    Prefs.write('vault-kind', 'file');
-    await _shot(t, 'folder', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color,
-        act: (t) async {
-      await t.tap(find.text('Giấy tờ tùy thân'));
-    });
-  });
-  testWidgets('library menu', skip: !_enabled, (t) async {
-    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-    Prefs.write('vault-kind', 'library');
-    debugCamera = true;
-    addTearDown(() => debugCamera = false);
-    await _shot(t, 'library-menu', VaultHomeScreen(libraryDir: '', vault: vault),
-        act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
-  });
-  testWidgets('album', skip: !_enabled, (t) async {
-    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-    Prefs.write('vault-kind', 'library');
-    await _shot(t, 'album', VaultHomeScreen(libraryDir: '', vault: vault), b: Brightness.dark,
-        act: (t) => t.tap(find.text('Du lịch')));
-  });
-  for (final mode in ['note', 'audio']) {
-    testWidgets('dark $mode', skip: !_enabled, (t) async {
-      Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-      Prefs.write('vault-kind', mode);
-      await _shot(t, 'dark-$mode', VaultHomeScreen(libraryDir: '', vault: vault), b: Brightness.dark);
-    });
-  }
-  testWidgets('new vault', skip: !_enabled, (t) => _shot(t, 'new-vault', const NewVaultScreen(libraryDir: '', first: false)));
-  testWidgets('new vault step 2', skip: !_enabled, (t) async {
-    await _shot(t, 'new-vault-2', const NewVaultScreen(libraryDir: '', first: false), act: (t) async {
-      await t.tap(find.byType(GestureDetector).at(3));
-      await t.pump(const Duration(milliseconds: 400));
-    });
-  });
-  testWidgets('message', skip: !_enabled, (t) async {
-    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-    Prefs.write('vault-kind', 'library');
-    await _shot(t, 'message', VaultHomeScreen(libraryDir: '', vault: vault), vault: colorById('green').color,
-        act: (t) async {
-      ScaffoldMessenger.of(t.element(find.byType(VaultHomeScreen)))
-          .showSnackBar(SnackBar(content: const Text('Đã chuyển vào Đã xoá gần đây'), action: SnackBarAction(label: 'Hoàn tác', onPressed: () {})));
-    });
-  });
-  testWidgets('select', skip: !_enabled, (t) async {
-    Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-    Prefs.write('vault-kind', 'library');
-    await _shot(t, 'select', const VaultHomeScreen(libraryDir: '', vault: VaultInfo(id: 'v', name: '', icon: 'home', color: 'plum', hasPassword: true)),
-        b: Brightness.dark, vault: colorById('plum').color, act: (t) async {
-      await t.longPress(find.byType(Image).at(2));
+  _screen('lock', 'Màn khoá', lock);
+  _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
+  // The unlock animation (playVaultSpin), frozen at three moments of its 1.15 s.
+  for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay'), (950, 'phóng to và tan')]) {
+    _screen('unlock-$ms', 'Mở khoá · $ms ms · $what', lock, after: 0, act: (t) async {
+      playVaultSpin(t.element(find.byType(UnlockScreen)), opening: true, color: colorById(vault.color).color, onCovered: () {});
       await t.pump();
-      await t.tap(find.byType(Image).at(4));
+      await t.pump(Duration(milliseconds: ms));
     });
-  });
-  testWidgets('search', skip: !_enabled, (t) async {
-    await _shot(t, 'search', SearchScreen(items: _items, thumb: (id) async => _thumbs[0]!), vault: colorById('green').color,
-        act: (t) async {
-      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
-      await t.enterText(find.byType(TextField), 'thuoc');
-    });
-  });
-  for (final (color, b) in [('green', Brightness.light), ('plum', Brightness.dark), ('amber', Brightness.light), ('amber', Brightness.dark)]) {
-    final v = VaultInfo(id: 'v', name: '', icon: 'home', color: color, hasPassword: false);
-    final tint = colorById(color).color;
-    testWidgets('home $color ${b.name}', skip: !_enabled,
-        (t) => _shot(t, 'home-$color-${b.name}', VaultHomeScreen(libraryDir: '', vault: v), b: b, vault: tint));
-    testWidgets('settings $color ${b.name}', skip: !_enabled,
-        (t) => _shot(t, 'settings-$color-${b.name}', settings(v), b: b, vault: tint));
   }
-  testWidgets('trash', skip: !_enabled,
-      (t) => _shot(t, 'trash', const TrashScreen(), vault: colorById(vault.color).color));
+  _screen('library', 'Thư viện', home, section: 'library');
+  _screen('library-menu', 'Thư viện · bấm +', home, section: 'library', setup: () => debugCamera = true,
+      act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
+  _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
+  Widget camera({required bool video}) => CameraScreen(video: video, onOpenLast: (_) {});
+  void still() => CameraView.debugPreview =
+      _photos.isEmpty ? const ColoredBox(color: Colors.black) : Image.memory(_photos[3]!, fit: BoxFit.cover);
+  _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
+  _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
+  _screen('notes', 'Ghi chú', home, section: 'note');
+  _screen('audio', 'Ghi âm', home, section: 'audio');
+  _screen('files', 'Tệp', home, section: 'file');
+  _screen('tag-files', 'Tệp · trong nhóm "Hộ chiếu"', home, section: 'file', act: (t) => _tapChip(t, 'Hộ chiếu'));
+  _screen('tag-notes', 'Ghi chú · cùng nhóm "Hộ chiếu"', home, section: 'file', act: (t) async {
+    await _tapChip(t, 'Hộ chiếu');
+    await t.pump();
+    await t.tap(find.text('Ghi chú'));
+  });
+  _screen('all-tags', 'Tất cả nhóm', home, section: 'audio', act: (t) => t.tap(find.byKey(const ValueKey('all-tags'))));
+  _screen('select', 'Đang chọn', home, section: 'library', act: (t) async {
+    await t.longPress(find.byType(Image).at(2));
+    await t.pump();
+    await t.tap(find.byType(Image).at(4));
+  });
+  _screen('tag-sheet', 'Chọn 2 ảnh → Nhóm', home, section: 'library', act: (t) async {
+    await t.longPress(find.byType(Image).at(1));
+    await t.pump();
+    await t.tap(find.byType(Image).at(2));
+    await t.pump();
+    await t.tap(find.text('Nhóm'));
+  });
+  _screen('message', 'Thông báo nổi', home, section: 'library', act: (t) async {
+    ScaffoldMessenger.of(t.element(find.byType(VaultHomeScreen))).showSnackBar(SnackBar(
+        content: const Text('Đã chuyển vào Đã xoá gần đây'), action: SnackBarAction(label: 'Hoàn tác', onPressed: () {})));
+  });
+  _screen('search', 'Tìm kiếm', () => SearchScreen(items: _items, thumbnail: (id) async => _thumbnails[0]!), act: (t) async {
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
+    await t.enterText(find.byType(TextField), 'thuoc');
+  });
+  _screen('settings', 'Cài đặt', () => settings(vault));
+  _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
+  _screen('new-vault', 'Tạo két · bước 1', () => const NewVaultScreen(libraryDir: '', first: false));
+  _screen('new-vault-2', 'Tạo két · bước 2', () => const NewVaultScreen(libraryDir: '', first: false), act: (t) async {
+    await t.tap(find.byType(GestureDetector).at(3));
+    await t.pump(const Duration(milliseconds: 400));
+  });
 }

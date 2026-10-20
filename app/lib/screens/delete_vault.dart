@@ -5,7 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
-import '../widgets/add_dock.dart';
+import '../widgets/pin_pad.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'new_vault.dart';

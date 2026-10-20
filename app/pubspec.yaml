@@ -27,12 +27,14 @@ dependencies:
   fc_native_video_thumbnail: ^4.0.0
   package_info_plus: ^10.2.2
   record: ^7.1.2
-  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Only the browser preview (lib/preview_main.dart) fetches sample photos with it;
+  # the app itself never uses the network (docs/supply-chain.md).
+  http: ^1.6.0
   integration_test:
     sdk: flutter
 
