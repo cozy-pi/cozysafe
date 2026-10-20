@@ -11,7 +11,11 @@ controls stay red, Settings icons keep colours, the biometrics row shows the rea
 symbol (wording follows Face ID or fingerprint). Unlocking: dial, then the vault's icon alone
 on a plain screen, it fades, then the content. Launch screen black and white. Main action on
 the left or right (Settings → Display). Removing originals from the phone's photo library
-after adding them: wanted, always with the user's confirmation (open: see below).
+after adding them: wanted, always with the user's confirmation. Open: iOS can do it with
+the system's own confirmation (a picker that returns photo-library ids); Android's photo
+picker cannot delete what it returns, so it would need the broad "read all photos and
+videos" permission and a Google Play declaration. Recommended: iPhone only, and on Android
+a hint to delete the originals in the Photos app.
 
 **Commit messages may name the assistant.** Two commits were pushed with an assistant
 trailer; the owner chose not to rewrite history ("cứ để Claude cũng được"). Personal names
