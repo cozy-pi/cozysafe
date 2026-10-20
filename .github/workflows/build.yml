@@ -90,6 +90,27 @@ jobs:
           path: |
             CozySafe-android.apk
             CozySafe-android-play.aab
+      # Released: straight to Google Play once this build passes the checks above, without
+      # waiting for the other platforms (as TestFlight does for iOS).
+      - name: Google Play, internal testing (no review, testers have it within minutes)
+        if: inputs.publish
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.cozypi.cozysafe
+          releaseFiles: CozySafe-android-play.aab
+          # Same as the app's Android version name: 0.1.4.1009.
+          releaseName: ${{ inputs.version }}.${{ inputs.build }}
+          track: internal
+          status: completed
+      - name: Google Play, the same build into closed testing (alpha, reviewed by Google)
+        if: inputs.publish
+        env:
+          SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          node tools/play-track.mjs "$RUNNER_TEMP/sa.json" "${{ inputs.build }}" alpha
+          rm -f "$RUNNER_TEMP/sa.json"
 
   linux:
     runs-on: ubuntu-latest

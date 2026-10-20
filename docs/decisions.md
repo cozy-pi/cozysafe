@@ -6,6 +6,12 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-20
 
+**Releases: each platform ships as soon as it is built.** Owner: Android and iOS wait for
+nobody. The Google Play upload now runs at the end of the Android build job (after its
+checks), like TestFlight in the iOS job. Trade-off accepted by the owner: the store keys
+sit in the same job as the build tools and packages (a separate upload job would keep them
+apart).
+
 **Security settings ask for the owner; secrets are hidden until asked for.** Owner,
 after finding loose settings: every security setting needs Face ID, fingerprint or the
 passcode; passwords and the Secret Key never appear on screen by default (a person or a
