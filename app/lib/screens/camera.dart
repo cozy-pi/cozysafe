@@ -15,6 +15,7 @@ import '../src/rust/api/vault.dart' as rust;
 import 'common.dart';
 import 'file_view.dart';
 import '../widgets/toast.dart';
+import '../theme.dart';
 
 /// The camera, opened from the Library's + menu (docs/ui.md, vault bar): Photo | Video,
 /// a shutter, the last shot, and flip. What it takes carries the tag open in the vault
@@ -91,10 +92,10 @@ class _CameraScreenState extends State<CameraScreen> {
                     if (_recording)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(color: ink, borderRadius: BorderRadius.circular(10)),
+                        decoration: BoxDecoration(color: recordRed(context), borderRadius: BorderRadius.circular(10)),
                         child: Text(
                           '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}',
-                          style: TextStyle(color: Theme.of(context).scaffoldBackgroundColor, fontWeight: FontWeight.w700, fontSize: 15,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15,
                               fontFeatures: [FontFeature.tabularFigures()]),
                         ),
                       ),
@@ -214,7 +215,8 @@ class _CameraScreenState extends State<CameraScreen> {
                             // Photo: a full disc. Video: a smaller disc. Recording: a square.
                             margin: EdgeInsets.all(_recording ? 16 : (_video ? 9 : 0)),
                             decoration: BoxDecoration(
-                              color: ink,
+                              // Video (and recording) red, photo ink — as in the phone's camera.
+                              color: _video ? recordRed(context) : ink,
                               borderRadius: BorderRadius.circular(_recording ? 6 : 40),
                             ),
                           ),

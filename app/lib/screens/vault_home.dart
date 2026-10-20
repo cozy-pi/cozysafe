@@ -1155,7 +1155,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       VaultSection.audio => (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording),
       VaultSection.file => (Icons.add, l.addFiles),
     };
-    return ActionButton(key: _actionKey, icon: icon, tooltip: tip, onTap: _mainAction);
+    return ActionButton(
+        key: _actionKey, icon: icon, tooltip: tip, onTap: _mainAction,
+        color: _section == VaultSection.audio ? recordRed(context) : null);
   }
 
   @override

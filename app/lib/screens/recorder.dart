@@ -235,7 +235,7 @@ class RecorderViewState extends State<RecorderView> {
                       height: 8 + v * 104,
                       margin: const EdgeInsets.symmetric(horizontal: 1.5),
                       decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.onSurface, borderRadius: BorderRadius.circular(2)),
+                          color: recordRed(context), borderRadius: BorderRadius.circular(2)),
                     ),
                 ],
               ),
@@ -243,7 +243,7 @@ class RecorderViewState extends State<RecorderView> {
             const SizedBox(height: 14),
             Text(
               '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}',
-              style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w300, fontFeatures: [FontFeature.tabularFigures()]),
+              style: TextStyle(color: recordRed(context), fontSize: 44, fontWeight: FontWeight.w300, fontFeatures: const [FontFeature.tabularFigures()]),
             ),
             const SizedBox(height: 4),
             Text(l.recordingHint, style: TextStyle(color: c.muted)),

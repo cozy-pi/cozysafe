@@ -97,7 +97,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _measure();
+    if (widget.canBiometric) {
+      BiometricUnlock.available().then((k) {
+        if (mounted && k != null) setState(() => _bioKind = k);
+      });
+    }
   }
+
+  /// Which biometric symbol to show: iPhones have Face ID, until the device says otherwise.
+  BiometricKind _bioKind = Device.iOS ? BiometricKind.face : BiometricKind.fingerprint;
 
   Future<void> _measure() async {
     try {
@@ -216,11 +224,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Group(title: l.settingsThisVault, rows: [
             _Row(
               icon: Icons.palette_outlined,
+              color: _Mau.tim,
               title: l.changeIdentity,
               onTap: () => _then(widget.onChangeIdentity),
             ),
             _Row(
               icon: Icons.delete_sweep_outlined,
+              color: _Mau.xam,
               title: l.recentlyDeleted,
               onTap: () => _then(widget.onOpenTrash),
             ),
@@ -229,6 +239,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (widget.canBiometric)
               _Row(
                 icon: Icons.face_retouching_natural,
+                color: _Mau.xanhLa,
+                // The device's own symbol: the Face ID glyph, or a fingerprint (biometric.dart).
+                glyph: BiometricGlyph(kind: _bioKind, size: 19, color: Colors.white),
                 title: l.biometricThisVault,
                 trailing: _Switch(
                   value: widget.biometricOn(),
@@ -237,12 +250,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             _Row(
               icon: Icons.dialpad,
+              color: _Mau.cham,
               title: l.pinTitle,
               value: l.change,
               onTap: () => _guarded(() => Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen()))),
             ),
             _Row(
               icon: Icons.timer_outlined,
+              color: _Mau.cam,
               title: l.autoLock,
               value: l.afterMinutes(_minutes),
               onTap: () => _guarded(_pickAutoLock),
@@ -251,6 +266,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Group(title: l.backup, rows: [
             _Row(
               icon: Icons.cloud_upload_outlined,
+              color: _Mau.xanh,
               title: l.backupShort,
               subtitle: widget.lastBackup(),
               trailing: FilledButton(
@@ -266,6 +282,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _Row(
               icon: Icons.key_outlined,
+              color: _Mau.nau,
               title: l.backupPasswordLabel,
               value: vault.hasPassword ? l.isSet : l.notSet,
               onTap: () => _then(widget.onPassword),
@@ -273,6 +290,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (vault.hasPassword)
               _Row(
                 icon: Icons.medical_services_outlined,
+              color: _Mau.doTuoi,
                 title: l.showKit,
                 onTap: widget.onShowKit,
               ),
@@ -280,6 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Group(title: l.settingsSecurity, rows: [
             _Row(
               icon: Icons.verified_user_outlined,
+              color: _Mau.ngoc,
               title: l.securityTitle,
               subtitle: l.securityShort,
               onTap: _showSecurity,
@@ -287,6 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (Device.android)
               _Row(
                 icon: Icons.visibility_off_outlined,
+              color: _Mau.hong,
                 title: l.blockScreenshots,
                 subtitle: l.blockScreenshotsNote,
                 trailing: _Switch(
@@ -301,6 +321,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Group(title: l.settingsVaults, rows: [
             _Row(
               icon: Icons.add,
+              color: _Mau.troi,
               title: l.newVault,
               subtitle: l.newVaultNote,
               onTap: widget.onNewVault,
@@ -469,11 +490,21 @@ class _Group extends StatelessWidget {
   }
 }
 
-/// One setting: a white symbol on its own colour, the title (and a second line), then
-/// a value with a chevron, a switch, or a button.
+/// One setting: a white symbol on its own colour (iOS Settings palette — owner 2026-10-20:
+/// "the icons inside Settings may have colour", an exception to black and white), the title
+/// (and a second line), then a value with a chevron, a switch, or a button.
+/// iOS system colours for the setting tiles.
+abstract final class _Mau {
+  static const tim = Color(0xFFAF52DE), xam = Color(0xFF8E8E93), xanhLa = Color(0xFF34C759),
+      cham = Color(0xFF5856D6), cam = Color(0xFFFF9500), xanh = Color(0xFF007AFF), nau = Color(0xFFA2845E),
+      doTuoi = Color(0xFFFF3B30), ngoc = Color(0xFF30B0C7), hong = Color(0xFFFF2D55), troi = Color(0xFF32ADE6);
+}
+
 class _Row extends StatelessWidget {
   const _Row({
     required this.icon,
+    required this.color,
+    this.glyph,
     required this.title,
     this.subtitle,
     this.value,
@@ -482,6 +513,10 @@ class _Row extends StatelessWidget {
   });
 
   final IconData icon;
+  /// The tile's colour (white symbol on it).
+  final Color color;
+  /// A drawn symbol instead of [icon] (the real Face ID glyph).
+  final Widget? glyph;
   final String title;
   final String? subtitle;
   final String? value;
@@ -502,9 +537,8 @@ class _Row extends StatelessWidget {
               Container(
                 width: 30,
                 height: 30,
-                decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface, borderRadius: BorderRadius.circular(8)),
-                child: Icon(icon, color: Theme.of(context).scaffoldBackgroundColor, size: 18),
+                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+                child: Center(child: glyph ?? Icon(icon, color: Colors.white, size: 18)),
               ),
               const SizedBox(width: 12),
               Expanded(

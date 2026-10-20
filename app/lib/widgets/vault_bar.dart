@@ -188,14 +188,16 @@ class VaultBar extends StatelessWidget {
 /// The main action, floating above the lock (left thumb): one tap for notes and voice,
 /// a small menu for the library and files.
 class ActionButton extends StatelessWidget {
-  const ActionButton({super.key, required this.icon, required this.tooltip, required this.onTap});
+  const ActionButton({super.key, required this.icon, required this.tooltip, required this.onTap, this.color});
   final IconData icon;
+  /// Voice: the record red with a white mic (theme.dart `recordRed`); otherwise ink.
+  final Color? color;
   final String tooltip;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme.primary;
+    final c = color ?? Theme.of(context).colorScheme.primary;
     return Tooltip(
       message: tooltip,
       child: Material(
@@ -212,7 +214,7 @@ class ActionButton extends StatelessWidget {
           },
           child: SizedBox.square(
             dimension: 56,
-            child: Icon(icon, color: Theme.of(context).colorScheme.onPrimary, size: 26),
+            child: Icon(icon, color: color != null ? Colors.white : Theme.of(context).colorScheme.onPrimary, size: 26),
           ),
         ),
       ),

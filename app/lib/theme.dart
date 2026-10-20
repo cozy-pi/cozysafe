@@ -4,6 +4,13 @@ import 'package:flutter/material.dart';
 
 /// Colours that Material's ColorScheme has no slot for. Values match the
 /// approved mockup (one design, light and dark only).
+/// RED FOR RECORDING (owner 2026-10-20, replaces "recording is not red"): the voice button,
+/// the video shutter and the running timers are the system red people know from every
+/// phone, so it is obvious what records. Taking a photo stays ink (white/black), as in the
+/// phone's own camera. iOS system red; a touch lighter in dark mode.
+Color recordRed(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
+
 @immutable
 class CsColors extends ThemeExtension<CsColors> {
   const CsColors({

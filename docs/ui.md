@@ -347,8 +347,15 @@ name) are kept.
   effect, which keeps its motion in ink), then it fades; in Settings; when creating a
   vault (the colour step stays). No vault icon in the vault's header any more.
 - Users' photos and videos keep their colours, of course.
-- Recording and video are not red: the mic button is ink; the video shutter is a smaller
-  disc than the photo one and turns into a square while recording.
+- **Recording is red** (owner 2026-10-20, replaces "recording and video are not red"): the
+  voice button (white mic on red), the video shutter, the running timers and the level meter
+  use the system red (`recordRed`, theme.dart), as on every phone. Taking a photo stays ink.
+  The video shutter is still a smaller disc than the photo one and turns into a square while
+  recording.
+- **Settings tiles have colour** (owner 2026-10-20): each row's symbol is white on its own iOS
+  system colour. Biometrics show the device's real symbol (Face ID glyph, or a fingerprint).
+- Messages float as a glass capsule (`showToast`, widgets/toast.dart); in a vault they sit on
+  the row of the main action, to its right, never over the bottom bar.
 - Deleting a vault uses the opposite brightness (light when the app is dark, and the
   reverse) instead of red, so it is never taken for the lock screen.
 - Security rules (owner check, hidden secrets): `docs/security.md`.
