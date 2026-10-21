@@ -222,7 +222,7 @@ class FakeVault implements RustLibApi {
         _vault = VaultInfo(id: _vault.id, name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: _vault.hasPassword);
         return _f(_vault);
       case 'SecretKeyText':
-        return 'CS1-PREV-IEW0-0000-0000-0000-0000-0000';
+        return 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
       case 'SecretKeyFits':
         return true;
       case 'NewSecretKey':

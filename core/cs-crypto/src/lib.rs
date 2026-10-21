@@ -21,8 +21,10 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Length of every symmetric key, in bytes.
 pub const KEY_LEN: usize = 32;
-/// Length of the Secret Key, in bytes (128 bits).
-pub const SECRET_KEY_LEN: usize = 16;
+/// Length of a new Secret Key, in bytes (256 bits, shown as 24 BIP39 words).
+pub const SECRET_KEY_LEN: usize = 32;
+/// Secret Keys made before 2026-10-21 (128 bits, the `CS1-` text). Still opened.
+pub const LEGACY_SECRET_KEY_LEN: usize = 16;
 /// Length of every salt, in bytes.
 pub const SALT_LEN: usize = 16;
 
@@ -71,30 +73,50 @@ impl std::fmt::Debug for Key {
     }
 }
 
-/// The 128-bit Secret Key mixed into every unlock. Never printed, wiped on drop.
+/// The Secret Key mixed into every unlock (people see it as the Recovery Key): 256 bits
+/// for new libraries, 128 bits for earlier ones. Never printed, wiped on drop.
 #[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-pub struct SecretKey([u8; SECRET_KEY_LEN]);
+pub struct SecretKey {
+    bytes: [u8; SECRET_KEY_LEN],
+    len: u8,
+}
 
 impl SecretKey {
+    /// A fresh 256-bit key.
     pub fn generate() -> Self {
-        let mut k = [0u8; SECRET_KEY_LEN];
-        OsRng.fill_bytes(&mut k);
-        SecretKey(k)
+        let mut bytes = [0u8; SECRET_KEY_LEN];
+        OsRng.fill_bytes(&mut bytes);
+        SecretKey { bytes, len: SECRET_KEY_LEN as u8 }
     }
 
     pub fn from_bytes(bytes: [u8; SECRET_KEY_LEN]) -> Self {
-        SecretKey(bytes)
+        SecretKey { bytes, len: SECRET_KEY_LEN as u8 }
     }
 
-    pub fn as_bytes(&self) -> &[u8; SECRET_KEY_LEN] {
-        &self.0
+    /// A key read back from storage: 32 bytes, or 16 for an earlier library.
+    pub fn from_slice(b: &[u8]) -> Option<Self> {
+        if b.len() != SECRET_KEY_LEN && b.len() != LEGACY_SECRET_KEY_LEN {
+            return None;
+        }
+        let mut bytes = [0u8; SECRET_KEY_LEN];
+        bytes[..b.len()].copy_from_slice(b);
+        Some(SecretKey { bytes, len: b.len() as u8 })
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.bytes[..self.len as usize]
+    }
+
+    /// A 128-bit key from before the move to 24 words.
+    pub fn is_legacy(&self) -> bool {
+        self.len as usize == LEGACY_SECRET_KEY_LEN
     }
 
     /// A short public fingerprint stored beside the library, so a wrong Secret Key
     /// (typed from an Emergency Kit, or a mix-up between libraries) is told apart from
-    /// a wrong password. 64 bits of a one-way function of a 128-bit random key.
+    /// a wrong password. 64 bits of a one-way function of the random key.
     pub fn fingerprint(&self) -> String {
-        let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, &self.0);
+        let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, self.as_bytes());
         let mut out = [0u8; 8];
         hk.expand(b"cozysafe/v1/secret-key-fingerprint", &mut out)
             .expect("8 bytes is a valid HKDF output length");

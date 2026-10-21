@@ -4,6 +4,29 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.25 (2026-10-21)
+
+### Added
+- Recovery Key: 24 words (the BIP39 list, as hardware wallets use), 256 bits. New vaults
+  get one; you confirm a word picked at random. Older vaults keep their key and still open.
+- iPhone with iOS 26: the bottom bar is the iPhone's own, with Liquid Glass. It can be
+  turned off in Debug to compare.
+- Settings → Display → "Hold + to lock": no lock button; hold the + to lock the vault.
+
+### Changed
+- New names: "Recovery Key" (was Emergency Kit) and "Vault password" (was backup password).
+- Settings: one Security group (Face ID, PIN, auto-lock, Recovery Key, vault password,
+  how the vault is protected); "Block screenshots" moved next to the blur switches in
+  Display; the notes under each setting are gone.
+- "How the vault is protected": simpler, five parts, each picture under its title; the
+  technical details are shown open.
+- The + button is glass like the other round buttons, and as big as the lock button.
+- "Delete this vault" is red.
+
+### Fixed
+- Tapping a recording on the home page or in search plays it right there, in a card,
+  instead of jumping to Voice.
+
 ## 0.1.24 (2026-10-21)
 
 ### Added

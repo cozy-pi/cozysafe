@@ -9,9 +9,12 @@ import '../theme.dart';
 /// after 30 seconds or when the app goes to the background, so a person or a camera
 /// nearby does not catch it by chance (docs/security.md, secrets on screen).
 class SecretText extends StatefulWidget {
-  const SecretText({super.key, required this.text, required this.style});
+  const SecretText({super.key, required this.text, required this.style, this.builder});
   final String text;
   final TextStyle style;
+  /// Draws the secret itself, shown or masked (the Recovery Key's numbered words);
+  /// without it, the text or a fixed row of dots.
+  final Widget Function(BuildContext context, bool shown)? builder;
 
   @override
   State<SecretText> createState() => _SecretTextState();
@@ -55,9 +58,12 @@ class _SecretTextState extends State<SecretText> with WidgetsBindingObserver {
     const masked = '••••-••••-••••-••••';
     return Column(
       children: [
-        _shown
-            ? SelectableText(widget.text, textAlign: TextAlign.center, style: widget.style)
-            : Text(masked, textAlign: TextAlign.center, style: widget.style.copyWith(color: c.muted)),
+        if (widget.builder != null)
+          widget.builder!(context, _shown)
+        else if (_shown)
+          SelectableText(widget.text, textAlign: TextAlign.center, style: widget.style)
+        else
+          Text(masked, textAlign: TextAlign.center, style: widget.style.copyWith(color: c.muted)),
         const SizedBox(height: 8),
         TextButton.icon(
           key: const ValueKey('secret-show'),
@@ -82,7 +88,11 @@ class SecretField extends StatefulWidget {
     this.capitalization = TextCapitalization.none,
     this.onChanged,
     this.onSubmitted,
+    this.multiline = false,
   });
+
+  /// Long secrets (24 words): once shown, the field grows to several lines.
+  final bool multiline;
 
   final TextEditingController controller;
   final String label;
@@ -107,6 +117,8 @@ class _SecretFieldState extends State<SecretField> {
       controller: widget.controller,
       enabled: widget.enabled,
       obscureText: _obscure,
+      minLines: 1,
+      maxLines: _obscure || !widget.multiline ? 1 : 5,
       autocorrect: false,
       enableSuggestions: false,
       enableIMEPersonalizedLearning: false,

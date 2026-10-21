@@ -17,6 +17,7 @@ import 'src/rust/api/vault.dart' as rust;
 import 'src/rust/frb_generated.dart';
 import 'theme.dart';
 import 'widgets/brand.dart';
+import 'widgets/native_bar.dart';
 import 'prefs.dart';
 import 'privacy.dart';
 
@@ -32,6 +33,7 @@ Future<void> main() async {
   clearPlaybackCopies(); // a decrypted video copy left by a crash or a kill
   final hasKey = await loadSecretKey(libraryDir);
   await AppLanguage.load();
+  await NativeBar.probe(); // iOS 26: the system's own bottom bar
   Appearance.load();
   runApp(CozySafeApp(libraryDir: libraryDir, hasSecretKey: hasKey));
 }

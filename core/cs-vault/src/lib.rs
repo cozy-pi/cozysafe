@@ -249,11 +249,7 @@ impl Library {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(e) => return Err(e.into()),
         };
-        let sk: [u8; SECRET_KEY_LEN] = bytes
-            .as_slice()
-            .try_into()
-            .map_err(|_| Error::Corrupt("secret key length"))?;
-        Ok(Some(SecretKey::from_bytes(sk)))
+        Ok(Some(SecretKey::from_slice(&bytes).ok_or(Error::Corrupt("secret key length"))?))
     }
 
     /// Overwrite and delete the `secret-key` file once the key is in the keystore.
@@ -261,7 +257,7 @@ impl Library {
         let path = dir.join(SECRET_KEY_FILE);
         if path.exists() {
             let mut f = fs::OpenOptions::new().write(true).open(&path)?;
-            f.write_all(&[0u8; SECRET_KEY_LEN])?;
+            f.write_all(&[0u8; SECRET_KEY_LEN])?; // at least as long as the file
             f.sync_all()?;
             drop(f);
             fs::remove_file(path)?;

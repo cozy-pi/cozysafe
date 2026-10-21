@@ -11,6 +11,7 @@ import '../platform.dart';
 import '../prefs.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/native_bar.dart';
 import '../widgets/toast.dart';
 import 'file_view.dart';
 import 'settings.dart';
@@ -177,6 +178,16 @@ class _DebugScreenState extends State<DebugScreen> {
                   ),
                 ],
               ),
+            ),
+          ]),
+          // To compare the two bottom bars on a real phone (owner 2026-10-21).
+          group(l.debugTry, [
+            SwitchListTile.adaptive(
+              key: const ValueKey('debug-native-bar'),
+              title: Text(l.debugNativeBar, style: const TextStyle(fontSize: 15.5)),
+              subtitle: NativeBar.available ? null : Text(l.debugNativeBarNone, style: TextStyle(color: c.muted)),
+              value: nativeBarOn(),
+              onChanged: NativeBar.available ? (v) => setState(() => Prefs.write(nativeBarPref, v ? '1' : '0')) : null,
             ),
           ]),
           const SizedBox(height: 24),

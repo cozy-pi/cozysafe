@@ -63,3 +63,58 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
   the clipboard after 60 seconds and when the vault locks.
 - `test/secret_test.dart` checks the hiding.
+
+## How strong is it? Compared with a Bitcoin wallet
+
+What an attacker needs, as the code stands (2026-10-21). "Recovery Key" is the Secret
+Key as people see it (it was the Emergency Kit); "vault password" was the backup password.
+
+| | Bitcoin, 12 words | Bitcoin, 24 words | Cozy Safe |
+|---|---|---|---|
+| Random key | 128 bits | 256 bits | 256 bits as 24 BIP39 words (libraries before 21 Oct 2026: 128 bits) |
+| Opens with | the words alone | the words alone | Recovery Key **and** vault password **and** the files |
+| Cost per guess | low (PBKDF2, 2048 rounds) | low | Argon2id, 128 MiB × 3 passes on phones (512 MiB on computers) |
+| Extra password | optional ("25th word") | optional | mandatory, zxcvbn score ≥ 3 |
+
+By case:
+
+- **Nothing in hand:** both out of reach (2¹²⁸ or more).
+- **The words / the Recovery Key leak** (someone reads the paper): a Bitcoin wallet is
+  emptied at once; a Cozy Safe vault still needs the vault password, each guess costing
+  an Argon2id run.
+- **A backup file leaks** (from a cloud folder): without the Recovery Key it cannot be
+  attacked at all (2¹²⁸).
+- **Recovery Key and backup both leak:** only the password remains; a password at the
+  minimum score is our estimate of weeks to years for one machine (not measured).
+- **The real weak spot today is the PIN on the phone**, not the Recovery Key: wrong-PIN
+  waits exist only in the app, the PIN copy is not removed after many tries (`forget_pin`
+  exists but the app never calls it), and the device key is not bound to the secure
+  hardware. An attacker who extracts the keychain/keystore could try all PINs offline.
+  Planned: remove the PIN copy after 10 wrong tries; bind the device key to the Secure
+  Enclave / StrongBox.
+
+Compared with a hardware wallet (Ledger, Trezor): the same 24 BIP39 words once the
+Recovery Key is 256-bit. A hardware wallet keeps its key inside a secure chip that never
+lets it out, which a phone app cannot match; but its 24 words alone empty the wallet,
+while the Recovery Key alone opens nothing without the vault password.
+
+In short: the key alone is as strong as a 12-word wallet (24-word after the move); the whole scheme is harder to
+break than a Bitcoin wallet, because two independent secrets are needed and guessing the
+password is deliberately expensive.
+
+## Quantum computers
+
+- Shor's algorithm breaks public-key cryptography (RSA, elliptic curves: signatures, key
+  exchange). **Cozy Safe uses none**: no server, no sync, no key exchange. (Bitcoin signs
+  with elliptic curves, so exposed public keys are at risk; Cozy Safe has no such part.)
+- Grover's algorithm halves the strength of symmetric keys. Everything here is symmetric:
+  XChaCha20-Poly1305, HKDF-SHA256, Argon2id.
+  - Master Keys and item keys are 256-bit: about 128-bit against a quantum attacker. Safe.
+  - The Recovery Key is 256-bit (24 BIP39 words) since 2026-10-21: about 128-bit against
+    Grover. Libraries made before keep a 128-bit key (about 64-bit against Grover in
+    theory); there are no users yet, so the owner's test libraries are the only ones.
+  - Password guessing goes through Argon2id (128 MiB per try); running that inside a
+    quantum computer is not realistic.
+- **When sync between devices comes (v0.2 cloud folder needs no key exchange; v0.3 server
+  or P2P may):** any key exchange must be post-quantum (ML-KEM, possibly hybrid with
+  X25519), never classical alone.
