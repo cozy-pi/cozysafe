@@ -4,6 +4,16 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.20 (2026-10-21)
+
+### Changed
+- "Show note text" is now "Hide note text", on by default. Your choice is kept; turning
+  it off still asks for Face ID, fingerprint or the phone's passcode.
+
+### Fixed
+- Swipe back works wherever there is a Back button: the note editor, Recently deleted,
+  the steps of a new vault and an open group. A note swiped away is still saved.
+
 ## 0.1.19 (2026-10-21)
 
 ### Changed
