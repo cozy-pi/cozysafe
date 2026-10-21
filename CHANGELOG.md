@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.19 (2026-10-21)
+
+### Changed
+- Thumbnails are blurred by default (Settings → Display → Blur thumbnails). If you had
+  turned it off, it stays off.
+
 ## 0.1.18 (2026-10-21)
 
 ### Added

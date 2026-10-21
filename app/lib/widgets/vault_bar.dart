@@ -47,7 +47,8 @@ bool notePreviews() => Prefs.read(notePreviewsPref) == '1';
 /// Thumbnails blurred in lists, for crowded places (Settings → Display; persona review
 /// 2026-10-21). Opening an item still shows it clearly.
 const blurThumbsPref = 'blur-thumbnails';
-bool blurThumbnails() => Prefs.read(blurThumbsPref) == '1';
+/// On unless turned off (owner 2026-10-21: blurred by default).
+bool blurThumbnails() => Prefs.read(blurThumbsPref) != '0';
 
 /// A thumbnail, blurred when [blurThumbnails] is on.
 Widget privateThumb(Widget image) => blurThumbnails()
