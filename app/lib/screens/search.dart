@@ -9,6 +9,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/vault_bar.dart';
 import 'file_view.dart';
+import 'overview.dart';
 import '../item_kind.dart';
 
 /// Search the open vault by name, and inside notes. Note text is decrypted into memory
@@ -24,29 +25,6 @@ class SearchScreen extends StatefulWidget {
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
-
-/// The colour of each section, the same as the storage bar in Settings.
-Color searchKindColor(VaultSection s) => switch (s) {
-      VaultSection.note => const Color(0xFFFFB300),
-      VaultSection.library => const Color(0xFF0A84FF),
-      VaultSection.audio => const Color(0xFFFF9F0A),
-      VaultSection.file => const Color(0xFF30D158),
-    };
-
-IconData searchKindIcon(VaultSection s) => switch (s) {
-      VaultSection.note => Icons.sticky_note_2_outlined,
-      VaultSection.library => Icons.photo_library_outlined,
-      VaultSection.audio => Icons.mic_none_rounded,
-      VaultSection.file => Icons.description_outlined,
-    };
-
-VaultSection? sectionOf(rust.ItemInfo i) => switch (i.kind) {
-      ItemKind.note => VaultSection.note,
-      ItemKind.photo || ItemKind.video => VaultSection.library,
-      ItemKind.audio => VaultSection.audio,
-      ItemKind.file => VaultSection.file,
-      _ => null,
-    };
 
 class _SearchScreenState extends State<SearchScreen> {
   final _query = TextEditingController();
@@ -184,60 +162,14 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  /// Nothing typed: the sections as big tiles with their counts, the groups, and what
-  /// was added last — something to tap instead of an empty page.
-  Widget _browse(BuildContext context, AppLocalizations l) {
-    final c = CsColors.of(context);
-    final sections = [
-      for (final s in VaultSection.values)
-        if (_things.any((i) => sectionOf(i) == s)) s,
-    ];
-    final recent = [..._things]..sort((a, b) => b.createdMs.compareTo(a.createdMs));
-    final groups = _groups.where((g) => _count(g) > 0).toList();
-    Widget title(String t) => Padding(
-          padding: const EdgeInsets.fromLTRB(6, 18, 6, 10),
-          child: Text(t, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: c.muted)),
-        );
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-      children: [
-        if (sections.isNotEmpty) ...[
-          title(l.searchKinds),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 2.3,
-            children: [
-              for (final s in sections)
-                _KindTile(
-                  key: ValueKey('search-kind-${s.name}'),
-                  section: s,
-                  label: sectionLabel(l, s),
-                  count: _things.where((i) => sectionOf(i) == s).length,
-                  onTap: () => setState(() => _kind = s),
-                ),
-            ],
-          ),
-        ],
-        if (groups.isNotEmpty) ...[
-          title(l.searchGroups),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [for (final g in groups) _GroupChip(name: g.name, count: _count(g), onTap: () => Navigator.of(context).pop(g))],
-          ),
-        ],
-        if (recent.isNotEmpty) ...[
-          title(l.searchRecent),
-          _card(context, [for (final it in recent.take(5)) _row(context, l, it, '')]),
-        ],
-      ],
-    );
-  }
+  /// Nothing typed: the vault's overview (the same as the home tab), tap to narrow.
+  Widget _browse(BuildContext context, AppLocalizations l) => VaultOverview(
+        items: widget.items,
+        thumbnail: widget.thumbnail,
+        onKind: (s) => setState(() => _kind = s),
+        onGroup: (g) => Navigator.of(context).pop(g),
+        onOpen: (it) => Navigator.of(context).pop(it),
+      );
 
   Widget _chips(BuildContext context, AppLocalizations l, int all, Map<VaultSection, int> counts) {
     Widget chip(String label, int? n, bool on, VoidCallback tap, {Key? key}) {
@@ -316,7 +248,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [for (final g in groups) _GroupChip(name: g.name, count: _count(g), query: q, onTap: () => Navigator.of(context).pop(g))],
+            children: [for (final g in groups) GroupChip(name: g.name, count: _count(g), query: q, onTap: () => Navigator.of(context).pop(g))],
           ),
           const SizedBox(height: 6),
         ],
@@ -411,11 +343,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Plain weight while searching so the matched words stand out in bold.
-                  _Marked(_shownName(l, it), q,
+                  MarkedText(_shownName(l, it), q,
                       maxLines: 1, style: TextStyle(fontSize: 15.5, fontWeight: q.isEmpty ? FontWeight.w600 : FontWeight.w400)),
                   const SizedBox(height: 3),
                   if (under != null && notePreviews())
-                    _Marked(under, q, maxLines: 2, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.3))
+                    MarkedText(under, q, maxLines: 2, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.3))
                   else
                     Text(under ?? date, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: 13.5)),
                 ],
@@ -429,8 +361,8 @@ class _SearchScreenState extends State<SearchScreen> {
 }
 
 /// Text with every match of [q] (already folded) in bold, in the ink colour.
-class _Marked extends StatelessWidget {
-  const _Marked(this.text, this.q, {required this.style, this.maxLines = 1});
+class MarkedText extends StatelessWidget {
+  const MarkedText(this.text, this.q, {super.key, required this.style, this.maxLines = 1});
   final String text;
   final String q;
   final TextStyle style;
@@ -455,89 +387,6 @@ class _Marked extends StatelessWidget {
     }
     if (at < text.length) spans.add(TextSpan(text: text.substring(at)));
     return Text.rich(TextSpan(children: spans), maxLines: maxLines, overflow: TextOverflow.ellipsis, style: style);
-  }
-}
-
-/// A section on the empty search screen: its colour, symbol, name and how many.
-class _KindTile extends StatelessWidget {
-  const _KindTile({super.key, required this.section, required this.label, required this.count, required this.onTap});
-  final VaultSection section;
-  final String label;
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = searchKindColor(section);
-    final c = CsColors.of(context);
-    return Material(
-      color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(Ui.radius),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(12)),
-                child: Icon(searchKindIcon(section), color: color, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
-                    Text('$count', style: TextStyle(color: c.muted, fontSize: 13.5)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A group: tap opens it in the vault.
-class _GroupChip extends StatelessWidget {
-  const _GroupChip({required this.name, required this.count, required this.onTap, this.query = ''});
-  final String name;
-  final int count;
-  final String query;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = CsColors.of(context);
-    return Material(
-      color: Theme.of(context).cardColor,
-      shape: const StadiumBorder(),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: onTap,
-        child: Container(
-          height: Ui.chip,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.sell_outlined, size: 18, color: c.muted),
-              const SizedBox(width: 8),
-              _Marked(name, query, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 6),
-              Text('$count', style: TextStyle(color: c.muted, fontSize: 13.5)),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 

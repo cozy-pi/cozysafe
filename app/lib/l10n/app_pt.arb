@@ -381,5 +381,6 @@
   "searchRecent": "Adicionados recentemente",
   "searchAll": "Tudo",
   "searchNothingFor": "Nenhum resultado para “{query}”",
-  "searchNothingHint": "Tente uma palavra mais curta. A busca inclui nomes e o texto das notas, sem importar acentos."
+  "searchNothingHint": "Tente uma palavra mais curta. A busca inclui nomes e o texto das notas, sem importar acentos.",
+  "modeHome": "Visão geral"
 }

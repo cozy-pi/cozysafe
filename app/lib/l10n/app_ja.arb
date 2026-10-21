@@ -381,5 +381,6 @@
   "searchRecent": "最近追加した項目",
   "searchAll": "すべて",
   "searchNothingFor": "「{query}」に一致する項目はありません",
-  "searchNothingHint": "短い言葉で試してください。名前とメモの本文を検索します。アクセントは区別しません。"
+  "searchNothingHint": "短い言葉で試してください。名前とメモの本文を検索します。アクセントは区別しません。",
+  "modeHome": "概要"
 }

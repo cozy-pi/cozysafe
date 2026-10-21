@@ -381,5 +381,6 @@
   "searchRecent": "Zuletzt hinzugefügt",
   "searchAll": "Alle",
   "searchNothingFor": "Keine Ergebnisse für „{query}“",
-  "searchNothingHint": "Versuchen Sie ein kürzeres Wort. Gesucht wird in Namen und im Text von Notizen, Akzente spielen keine Rolle."
+  "searchNothingHint": "Versuchen Sie ein kürzeres Wort. Gesucht wird in Namen und im Text von Notizen, Akzente spielen keine Rolle.",
+  "modeHome": "Übersicht"
 }

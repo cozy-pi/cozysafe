@@ -381,5 +381,6 @@
   "searchRecent": "Son eklenenler",
   "searchAll": "Tümü",
   "searchNothingFor": "“{query}” için sonuç yok",
-  "searchNothingHint": "Daha kısa bir kelime deneyin. Adlarda ve not metinlerinde aranır, aksanlar önemli değildir."
+  "searchNothingHint": "Daha kısa bir kelime deneyin. Adlarda ve not metinlerinde aranır, aksanlar önemli değildir.",
+  "modeHome": "Genel bakış"
 }

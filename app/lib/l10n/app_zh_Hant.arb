@@ -381,5 +381,6 @@
   "searchRecent": "最近加入",
   "searchAll": "全部",
   "searchNothingFor": "找不到與「{query}」相關的結果",
-  "searchNothingHint": "試試更短的字詞。會搜尋名稱和筆記內容，不區分聲調符號。"
+  "searchNothingHint": "試試更短的字詞。會搜尋名稱和筆記內容，不區分聲調符號。",
+  "modeHome": "總覽"
 }

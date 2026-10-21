@@ -381,5 +381,6 @@
   "searchRecent": "最近添加",
   "searchAll": "全部",
   "searchNothingFor": "没有与“{query}”相关的结果",
-  "searchNothingHint": "试试更短的词。会搜索名称和笔记内容，不区分声调符号。"
+  "searchNothingHint": "试试更短的词。会搜索名称和笔记内容，不区分声调符号。",
+  "modeHome": "概览"
 }

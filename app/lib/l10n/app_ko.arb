@@ -381,5 +381,6 @@
   "searchRecent": "최근 추가",
   "searchAll": "전체",
   "searchNothingFor": "“{query}”에 대한 결과가 없습니다",
-  "searchNothingHint": "더 짧은 단어로 검색해 보세요. 이름과 메모 내용을 검색하며 악센트는 구분하지 않습니다."
+  "searchNothingHint": "더 짧은 단어로 검색해 보세요. 이름과 메모 내용을 검색하며 악센트는 구분하지 않습니다.",
+  "modeHome": "개요"
 }

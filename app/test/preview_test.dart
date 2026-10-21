@@ -325,9 +325,7 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock,
-      change: 'Hình nền vẽ lại nhiều chi tiết hơn (ảnh, căn cước, hoá đơn, ghi chú, PDF, hộ chiếu), theo tông màu từng chế độ: chế độ tối hết mảng trắng sáng',
-      marks: [() => find.byType(VaultBackdrop)]);
+  _screen('lock', 'Màn khoá', lock);
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
@@ -405,6 +403,19 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
+  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home',
+      change: 'MỚI: tab đầu tiên, biểu tượng là chính huy hiệu của két. Ô tìm kiếm, dung lượng, 4 ô theo loại (chạm là sang tab đó), các nhóm (chạm là mở nhóm) và 6 mục mới thêm. Mở két lần đầu vào đây',
+      marks: [() => find.byKey(const ValueKey('home-tab')), () => find.byKey(const ValueKey('home-search'))]);
+  _screen('home-scrolled', 'Trang chủ · kéo xuống', home, section: 'home', act: (t) async {
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
+    await t.pumpAndSettle();
+  });
+  _screen('home-add', 'Trang chủ · bấm +', home, section: 'home',
+      change: 'Ở trang chủ, nút + bày đủ mọi loại theo thứ tự cố định',
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  });
   _screen('notes', 'Ghi chú', home, section: 'note');
   _screen('notes-select', 'Ghi chú · bấm giữ một dòng', home, section: 'note',
       act: (t) async {
@@ -475,21 +486,16 @@ void main() {
     await t.enterText(find.byType(TextField), text);
     await t.pump();
   }
-  _screen('search-empty', 'Tìm kiếm · chưa gõ gì', search,
-      change: 'MỚI: chưa gõ thì không còn trang trắng: ô theo loại (màu như thanh dung lượng, kèm số lượng), các nhóm, và 5 mục mới thêm',
-      marks: [() => find.byKey(const ValueKey('search-kind-note'))]);
+  _screen('search-empty', 'Tìm kiếm · chưa gõ gì', search);
   _screen('search', 'Tìm kiếm · gõ “thuoc”', search,
-      change: 'Kết quả chia theo loại, có số đếm; chữ khớp in đậm; ghi âm có biểu tượng micro (trước là biểu tượng tệp và còn đuôi .m4a); hàng chip để lọc',
       act: (t) => typeSearch(t, 'thuoc'));
   _screen('search-kind', 'Tìm kiếm · chạm ô Thư viện', search,
-      change: 'Chạm một loại là xem cả loại đó, gõ để lọc trong đó; ảnh hiện thành lưới',
       act: (t) async {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
     await t.tap(find.byKey(const ValueKey('search-kind-library')));
     await t.pump();
   });
   _screen('search-none', 'Tìm kiếm · không có kết quả', search,
-      change: 'Không thấy gì: nói rõ từ đã tìm và gợi ý cách tìm',
       act: (t) => typeSearch(t, 'xyzw'));
   _screen('text-json', 'Tệp · mở wifi-config.json', () => FileViewScreen(item: _item('j1', ItemKind.file, 'wifi-config.json', 180), vaultId: 'v'));
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
@@ -507,7 +513,6 @@ void main() {
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
       act: toDisplay);
   _screen('settings-appearance', 'Cài đặt · Giao diện', () => settings(vault),
-      change: 'MỚI: Giao diện Tự động · Sáng · Tối, menu ngay tại dòng (mặc định Tự động, theo máy)',
       act: (t) async {
     await toDisplay(t);
     await t.drag(find.byType(Scrollable).first, const Offset(0, 160));

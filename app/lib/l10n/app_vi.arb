@@ -395,5 +395,6 @@
   "searchRecent": "Mới thêm",
   "searchAll": "Tất cả",
   "searchNothingFor": "Không tìm thấy “{query}”",
-  "searchNothingHint": "Thử từ ngắn hơn. App tìm trong tên và nội dung ghi chú, không cần gõ dấu."
+  "searchNothingHint": "Thử từ ngắn hơn. App tìm trong tên và nội dung ghi chú, không cần gõ dấu.",
+  "modeHome": "Tổng quan"
 }

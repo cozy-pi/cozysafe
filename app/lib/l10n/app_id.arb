@@ -381,5 +381,6 @@
   "searchRecent": "Baru ditambahkan",
   "searchAll": "Semua",
   "searchNothingFor": "Tidak ada hasil untuk “{query}”",
-  "searchNothingHint": "Coba kata yang lebih pendek. Pencarian mencakup nama dan isi catatan, tanda aksen tidak berpengaruh."
+  "searchNothingHint": "Coba kata yang lebih pendek. Pencarian mencakup nama dan isi catatan, tanda aksen tidak berpengaruh.",
+  "modeHome": "Ringkasan"
 }
