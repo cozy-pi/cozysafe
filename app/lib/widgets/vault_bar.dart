@@ -622,3 +622,14 @@ class _LoopMark extends StatelessWidget {
     );
   }
 }
+
+/// Reading, or choosing among many, opens a page: the content sits at eye level, not
+/// at the bottom edge (owner 2026-10-21; docs/ui.md: read → page, a few choices → a menu
+/// at the row, actions → a bottom sheet).
+Future<T?> pushPage<T>(BuildContext context, {required String title, required WidgetBuilder builder}) =>
+    Navigator.of(context).push<T>(MaterialPageRoute(
+      builder: (context) => Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: SafeArea(top: false, child: builder(context)),
+      ),
+    ));

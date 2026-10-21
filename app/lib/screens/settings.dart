@@ -166,60 +166,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 
 
+  /// A few choices: a menu right at the row, next to the value (no sheet at the bottom).
+  final _autoLockKey = GlobalKey();
   Future<void> _pickAutoLock() async {
     final l = AppLocalizations.of(context);
-    final picked = await showModalBottomSheet<int>(
+    final box = _autoLockKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final at = box.localToGlobal(Offset.zero) & box.size;
+    final size = MediaQuery.sizeOf(context);
+    final picked = await showMenu<int>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text(l.autoLock, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              ),
-              for (final m in Settings.autoLockChoices)
-                ListTile(
-                  title: Text(l.minutesLong(m)),
-                  trailing: m == _minutes ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
-                  onTap: () => Navigator.pop(context, m),
-                ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Text(l.autoLockNote, style: TextStyle(color: CsColors.of(context).muted, fontSize: 13)),
-              ),
-            ],
+      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
+      items: [
+        for (final m in Settings.autoLockChoices)
+          PopupMenuItem(
+            value: m,
+            height: Ui.circle,
+            child: Row(children: [
+              SizedBox(width: 26, child: m == _minutes ? const Icon(Icons.check_rounded, size: 20) : null),
+              Text(l.minutesLong(m), style: TextStyle(fontWeight: m == _minutes ? FontWeight.w700 : FontWeight.w500)),
+            ]),
+          ),
+        PopupMenuItem(
+          enabled: false,
+          child: SizedBox(
+            width: 200,
+            child: Text(l.autoLockNote, style: TextStyle(color: CsColors.of(context).muted, fontSize: 12.5)),
           ),
         ),
-      ),
+      ],
     );
     if (picked == null) return;
     setState(() => _minutes = picked);
     Settings.autoLockMinutes = picked;
   }
 
+  /// Something to read: its own page, at eye level.
   Future<void> _showSecurity() {
     final l = AppLocalizations.of(context);
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l.securityTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 10),
-              Text(l.securityBody, style: TextStyle(color: CsColors.of(context).muted, height: 1.5)),
-            ],
-          ),
-        ),
+    return pushPage<void>(
+      context,
+      title: l.securityTitle,
+      builder: (context) => ListView(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        children: [Text(l.securityBody, style: const TextStyle(fontSize: 17, height: 1.6))],
       ),
     );
   }
@@ -296,6 +287,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => _guarded(() => Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen()))),
             ),
             _Row(
+              key: _autoLockKey,
               icon: Icons.timer_outlined,
               color: _Mau.cam,
               title: l.autoLock,

@@ -282,6 +282,7 @@ void main() {
         appName: 'Cozy Safe', packageName: 'com.cozypi.cozysafe', version: '0.1.8', buildNumber: '1100', buildSignature: '');
     debugVoice = true;
     BiometricUnlock.debugKind = BiometricKind.face; // the owner's iPhone
+    debugOwnerConfirmed = true; // Face ID prompts pass in the renders (debug builds only)
     await _loadFonts();
   });
 
@@ -433,13 +434,15 @@ void main() {
     await t.pump();
     await t.tap(find.text('Ghi chú'));
   });
-  _screen('all-tags', 'Tất cả nhóm', home, section: 'audio', act: (t) => t.tap(find.byKey(const ValueKey('all-tags'))));
+  _screen('all-tags', 'Tất cả nhóm', home, section: 'audio', act: (t) => t.tap(find.byKey(const ValueKey('all-tags'))),
+      change: 'Mở thành trang riêng (trước là bảng bật từ dưới): danh sách ngay tầm mắt');
   _screen('select', 'Đang chọn', home, section: 'library', act: (t) async {
     await t.longPress(find.byType(Image).at(2));
     await t.pump();
     await t.tap(find.byType(Image).at(4));
   });
-  _screen('tag-sheet', 'Chọn 2 ảnh → Nhóm', home, section: 'library', act: (t) async {
+  _screen('tag-sheet', 'Chọn 2 ảnh → Nhóm', home, section: 'library',
+      change: 'Trang riêng thay bảng từ dưới; nút Xong ở đáy', act: (t) async {
     await t.longPress(find.byType(Image).at(1));
     await t.pump();
     await t.tap(find.byType(Image).at(2));
@@ -494,6 +497,17 @@ void main() {
   _screen('debug', 'Trang gỡ lỗi', () => const DebugScreen(), setup: () => DebugScreen.debugNetworkBlocked = true,
       change: 'MỚI: chỉ thông tin kỹ thuật (bản dựng, máy, sinh trắc, chặn mạng, số mục, bản tạm) + Xoá bản tạm + Tắt gỡ lỗi; không bao giờ hiện khoá hay nội dung két',
       marks: [() => find.byKey(const ValueKey('debug-network'))]);
+  Future<void> toRow(WidgetTester t, String text) async {
+    await t.scrollUntilVisible(find.text(text), 200, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+  }
+  _screen('security-page', 'Cài đặt · Cách két được bảo vệ', () => settings(vault), act: (t) async {
+    await toRow(t, 'Cách két được bảo vệ');
+    await t.tap(find.text('Cách két được bảo vệ'));
+  }, change: 'Nội dung để ĐỌC mở thành trang riêng, chữ ngay tầm mắt (trước là bảng bật từ dưới)');
+  _screen('autolock-menu', 'Cài đặt · Tự khoá', () => settings(vault), act: (t) async {
+    await t.tap(find.text('Tự khoá khi không dùng'));
+  }, change: 'Chọn vài giá trị: menu bật ra ngay tại dòng, cạnh giá trị đang chọn (trước là bảng từ dưới)');
   _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
   _screen('trash-select', 'Đã xoá · chạm chọn 1 ảnh', () => const TrashScreen(),
       act: (t) => t.tap(find.byType(Image).first));

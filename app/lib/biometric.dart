@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -108,7 +109,13 @@ class BiometricUnlock {
 /// Ask the phone's owner to confirm with Face ID, a fingerprint or the phone's
 /// passcode (the system decides). Used before making another vault. True where the
 /// device has no such check at all (some computers): there is nothing to ask.
+/// For tests and mockup renders in debug builds only; see [confirmOwner].
+bool debugOwnerConfirmed = false;
+
 Future<bool> confirmOwner(String reason) async {
+  // Mockup renders only: a debug build can act as if the owner confirmed. Release builds
+  // compile this away (kDebugMode is a constant false there), so it is never a bypass.
+  if (kDebugMode && debugOwnerConfirmed) return true;
   try {
     final auth = LocalAuthentication();
     if (!await auth.isDeviceSupported()) return true;

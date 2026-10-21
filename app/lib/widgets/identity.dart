@@ -2,6 +2,9 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+import 'vault_bar.dart' show pushPage;
+
 
 /// A vault is recognised by an icon and a colour, never a typed name (docs/ui.md).
 /// Ids are stored (sealed) in the vault; the lists only grow, never reorder, so
@@ -140,16 +143,13 @@ class VaultBadge extends StatelessWidget {
   }
 }
 
-/// All icons (or colours) in a bottom sheet, for the "⋯" tile and the vault menu.
-Future<int?> showAllIcons(BuildContext context, int selected) => showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+/// All icons (or colours) on a page, for the "⋯" tile and the vault menu.
+Future<int?> showAllIcons(BuildContext context, int selected) => pushPage<int>(
+      context,
+      title: AppLocalizations.of(context).pickIconHint,
+      builder: (context) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: GridView.count(
-            shrinkWrap: true,
             crossAxisCount: 6,
             mainAxisSpacing: 8,
             crossAxisSpacing: 8,
@@ -176,17 +176,14 @@ Future<int?> showAllIcons(BuildContext context, int selected) => showModalBottom
             ],
           ),
         ),
-      ),
     );
 
-Future<int?> showAllColors(BuildContext context, int selected) => showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+Future<int?> showAllColors(BuildContext context, int selected) => pushPage<int>(
+      context,
+      title: AppLocalizations.of(context).pickColorTitle,
+      builder: (context) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
           child: GridView.count(
-            shrinkWrap: true,
             crossAxisCount: 5,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
@@ -210,5 +207,4 @@ Future<int?> showAllColors(BuildContext context, int selected) => showModalBotto
             ],
           ),
         ),
-      ),
     );

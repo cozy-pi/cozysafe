@@ -985,20 +985,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final items = _items ?? const <rust.ItemInfo>[];
     final tags = _tags.values.toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     const create = '+';
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .7),
-          child: ListView(
-            shrinkWrap: true,
+    final picked = await pushPage<String>(
+      context,
+      title: l.allTags,
+      builder: (context) => ListView(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text(l.allTags, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              ),
               for (final t in tags)
                 ListTile(
                   leading: const Icon(Icons.sell_outlined),
@@ -1013,8 +1004,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
             ],
           ),
-        ),
-      ),
     );
     if (picked == null || !mounted) return;
     if (picked == create) {
@@ -1032,12 +1021,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final items = {for (final i in _items ?? const <rust.ItemInfo>[]) i.id: i};
     final ids = _selected.toList();
     final count = ids.length;
-    final result = await showModalBottomSheet<Map<String, bool>>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    final result = await pushPage<Map<String, bool>>(
+      context,
+      title: l.tagSelected(count),
       builder: (context) => _TagSheet(
-        title: l.tagSelected(count),
         tags: _tags.values.toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
         carried: (tagId) => ids.where((id) => items[id]?.tagIds.contains(tagId) ?? false).length,
         total: count,
@@ -1562,13 +1549,11 @@ class _TagChip extends StatelessWidget {
 /// selection carries it), and "New group". Returns the switches that changed.
 class _TagSheet extends StatefulWidget {
   const _TagSheet({
-    required this.title,
     required this.tags,
     required this.carried,
     required this.total,
     required this.onNewTag,
   });
-  final String title;
   final List<rust.ItemInfo> tags;
   final int Function(String tagId) carried;
   final int total;
@@ -1592,20 +1577,12 @@ class _TagSheetState extends State<_TagSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .75),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    // A page now (its title in the app bar): the list, and Done at the bottom.
+    return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(widget.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-            ),
-            Flexible(
+            Expanded(
               child: ListView(
-                shrinkWrap: true,
                 children: [
                   for (final t in _tags)
                     CheckboxListTile(
@@ -1641,9 +1618,7 @@ class _TagSheetState extends State<_TagSheet> {
               ),
             ),
           ],
-        ),
-      ),
-    );
+        );
   }
 }
 

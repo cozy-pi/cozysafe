@@ -16,6 +16,10 @@ Dates are UTC.
   right on the row.
 
 ### Changed
+- Reading text looks like a page;### Changed
+- Things to read or long lists open as a page, not a sheet at the bottom of the screen
+  (how the vault is protected, all groups, groups for a selection, icons and colours);
+  auto-lock is a menu right at its row.
 - Reading text looks like a page; a note's first line (its title) is large and bold.
 - An open group is clearly marked (filled chip with ✓ and ×, "Group · section" above its
   name); when it has nothing in this section, buttons lead to where it does.

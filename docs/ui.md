@@ -433,6 +433,10 @@ everywhere, easy to hit with a thumb.
   under a light dim and blur; videos play in the card (tap to pause, a line shows where).
   Under it: Close bottom left (as in the camera), Full screen, then Send (videos) and
   Delete in red. Full screen is the old black viewer; its corner button returns to the card.
+- **Where content appears** (owner 2026-10-21, "too far from the eye"): reading, or choosing
+  among many → a page (`pushPage`: security, all groups, groups for a selection, icons,
+  colours); a few choices → a menu at the row (auto-lock); actions with a thumb button →
+  a bottom sheet (share out, backup confirm, import progress). New UI follows this.
 - **Every opened item can be sent** (owner 2026-10-21): one `shareItem` for all kinds.
 - **Reading text** (0.1.14): book-like body (17.5, line height 1.6); Markdown drawn by the
   app (`MarkdownLite`, no library); JSON and code in a soft card, JSON keys strong; a
