@@ -168,3 +168,15 @@ owner says to push or release.
 **0.1.6 released:** glass layout (large title, lock + four sections at the bottom, main
 action above the lock), per-section folders (superseded by groups above), camera with
 video from the Library.
+
+## 2026-10-21 — "Nothing goes to the internet" on the security page
+
+The security info page (`SecurityInfoScreen`, strings `sec4Title`/`sec4Body`) states
+that this version never connects to the network: no account, ads, analytics or crash
+reports; on Android and macOS the OS grants no network permission (no INTERNET
+permission, sandbox without network entitlements, both checked in CI); on iOS,
+Windows and Linux the app blocks connections itself (`lib/offline.dart`) and CI scans
+dependencies. **When sync ships (v0.2), rewrite this section in every language**: LAN
+sync needs the Android INTERNET permission back, and server/P2P sync (v0.3) uses the
+network. Sync must be a switch the person turns on, and the page must then say that
+only encrypted data leaves the device.

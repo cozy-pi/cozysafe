@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.17 (2026-10-21)
+
+### Changed
+- "How the vault is protected" is now a full page: six short sections, each with a
+  picture, saying what protects the vault and what the limits are; technical details
+  fold away at the end. It now says plainly that nothing goes to the internet.
+
 ## 0.1.16 (2026-10-21)
 
 ### Fixed
