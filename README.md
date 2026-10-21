@@ -40,6 +40,11 @@ checked on every build, in layers (details and limits: [supply chain](docs/suppl
 - **Groups:** put anything in one or more groups ("Passport": the photo, the scan and the
   note) and open a group from any section.
 - Search, Recently deleted (30 days), auto-lock, blocked screenshots.
+- **Private on screen:** note lists and search show titles only, the Secret Key and
+  passwords stay masked until you tap Show, and every security setting asks for Face ID,
+  fingerprint or the phone's passcode first ([security rules](docs/security.md)).
+- **Simple to start:** an empty vault offers big tiles to add the first thing; only the
+  sections you use appear at the bottom; buttons are large enough for any thumb.
 - **Back up to one encrypted file** and restore it on a new device with the Emergency
   Kit (your Secret Key on paper).
 - English and Vietnamese, light and dark.
@@ -53,7 +58,7 @@ Not yet: sync between devices. Until then, use **Back up to a file** often.
 | macOS | [CozySafe-macos.dmg](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-macos.dmg), signed and notarized |
 | Windows | [CozySafe-windows-x64.zip](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-windows-x64.zip), not signed yet (SmartScreen: More info → Run anyway) |
 | Linux | [CozySafe-linux-x64.tar.gz](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-linux-x64.tar.gz), needs GTK 3 and libsecret |
-| Android | [CozySafe-android.apk](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-android.apk), or the Google Play closed test |
+| Android | [CozySafe-android.apk](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-android.apk), or Google Play testing (internal and Alpha) |
 | iPhone | TestFlight (invite only for now) |
 
 Every file has a GitHub build-provenance attestation:
@@ -93,9 +98,14 @@ flutter run
 
 Releases are one button: `gh workflow run release.yml -R cozy-pi/cozysafe` picks
 the next version name (0.1.0, 0.1.1, …; `-f bump=minor` for 0.2.0) and publishes it
-everywhere at once: TestFlight, the Google Play closed test, and a GitHub release
-with the desktop builds and the APK. Write the changes under that version in
-[CHANGELOG.md](CHANGELOG.md) first.
+everywhere at once: TestFlight, Google Play (internal and Alpha), and a GitHub release
+with the desktop builds and the APK. Each platform ships as soon as its build is done;
+signing and store keys never reach the build jobs ([supply chain](docs/supply-chain.md)).
+Write the changes under that version in [CHANGELOG.md](CHANGELOG.md) first.
+
+UI changes start as a mockup made from the app itself: `app/tool/mockup.sh` renders every
+screen in dark and light inside an iPhone frame, with the changed parts outlined
+([UI](docs/ui.md), mockups). Nothing ships before the mockup is approved.
 
 ## Repository
 
@@ -116,8 +126,8 @@ with the desktop builds and the APK. Write the changes under that version in
 | [Plan for v0.1](docs/plan-v0.1.md) | Stages and progress |
 | [Decisions](docs/decisions.md) | What was decided, when, and what is still open |
 | [Supply chain](docs/supply-chain.md) | How no library can send data out, and the limits |
-| [Security rules](docs/security.md) | Owner check on security settings; secrets hidden on screen |
-| [UI](docs/ui.md) | Approved designs, and how mockups are made |
+| [Security rules](docs/security.md) | Owner check on security settings; secrets and note text hidden on screen |
+| [UI](docs/ui.md) | Design language (sizes, colours, layout), approved designs, how mockups are made |
 | [Naming](docs/naming.md) | One name per concept; how stored names may change |
 | [Decision records](docs/adr/) | Why each technical choice was made |
 | [Changelog](CHANGELOG.md) | What changed in each build |

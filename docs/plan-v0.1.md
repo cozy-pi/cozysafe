@@ -29,7 +29,9 @@ elsewhere, and the Emergency Kit to open it.
 ## Stage 3: content
 - Done in 0.1.1: notes (saved as you type), photos from the system picker, any
   file, open a file in another app (temporary copy, removed after).
-- To do: nested folders, paste, desktop drag and drop in.
+- Since: voice memos (0.1.5), camera in the app (0.1.7), groups instead of folders
+  (0.1.7; nested folders dropped).
+- To do: paste, desktop drag and drop in.
 
 ## Stage 3b: from the user review (`ui.md`, User review 2026-10-19)
 Before calling it v0.1, in this order:
@@ -48,15 +50,20 @@ Before calling it v0.1, in this order:
     picker that returns asset identifiers (iOS `PHPickerViewController` with the
     shared library, Android picker URIs with `MediaStore.createDeleteRequest`), and
     on iOS deleting asks for photo-library access. Decide before building.
-  - **PDF and video inside the app.** PDF: render from the decrypted bytes in
-    memory (candidate: `pdfrx`, PDFium on all five platforms). Video: needs
-    playback from decrypted chunks without a plaintext file (a local loopback
-    stream or a custom player source). Until then files open in another app,
-    with the warning.
+    Status 2026-10-21: iOS can do it with the system's confirmation; Android needs the
+    broad photo permission and a Play declaration. Waiting for the owner
+    (`decisions.md`).
+  - ~~PDF and video inside the app.~~ Done: PDF renders in memory (`pdfrx`); video
+    plays from a copy in the app's private temp folder, deleted on close, on lock and
+    at every start (`video_view.dart`). Playing from encrypted chunks without that
+    copy is still a later improvement.
 
 ## Stage 4: finish
-- Search by name (and note text). Recently deleted and Settings moved up to
-  Stage 3b.
+- Done: search by name and note text; Recently deleted and Settings (Stage 3b).
+- Done 0.1.8–0.1.10: black and white design with a few agreed colours, one design
+  language (`ui.md`), security settings behind an owner check and secrets hidden on
+  screen (`security.md`), library checks against data leaving the device
+  (`supply-chain.md`), store keys kept out of build jobs.
 
 ## Testing (before calling it v0.1)
 
@@ -65,8 +72,8 @@ biometric copies, backup and restore, camera frames) run in CI; Dart analysis;
 screenshot tests of the main screens.
 
 Still to do, before v0.1:
-- Widget tests for the lock screen flows (PIN tries, PIN locked, password fallback,
-  pending dock action) with the bridge mocked.
+- ~~Widget tests for the lock screen flows~~ done (`test/lock_flow_test.dart`), plus
+  `test/secret_test.dart` for hidden secrets.
 - Integration tests on a real device or emulator in CI: create vault, Emergency
   Kit, set PIN, lock, unlock with PIN, take a photo, back up, restore on a clean
   install.

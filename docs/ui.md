@@ -17,7 +17,16 @@ from the app (lock screen, unlock animation, date formats, menus, sizes) and fro
 2. Run `app/tool/mockup.sh "Title"`: it renders every screen listed in
    `app/test/preview_test.dart` at 430×932 (iPhone 15 Pro Max) in dark and light,
    and builds `app/test/preview/index.html` (each screen dark | light, with its caption).
-3. Publish that page with the PNGs next to it, and list what changed.
+3. Publish that page with the PNGs next to it, and list what changed. Mark it in the
+   harness too (`change:` and `marks:` on `_screen`): the page lists the changed screens
+   first and outlines the changed parts.
+5. The renders must look like the owner's iPhone, or reviewers chase ghosts: Face ID (not
+   a fingerprint), every font the app uses loaded (the Secret Key's mono font), real states
+   (biometrics on, thumbnails in Recently deleted), sample data of the right kind.
+6. Optional persona review before showing the owner: reviewers each play one user (an
+   older person, a privacy-minded one, a first-time user) and walk the shots through real
+   tasks. Every finding is checked against the code before it counts; findings that go
+   against an approved decision go to the owner, not straight into the code.
 4. A new screen or state is added to the list in `preview_test.dart` (`_screen(...)`),
    so every later mockup shows it too. Animations are captured by freezing the real
    animation at fixed moments (see the unlock frames), not imitated.
@@ -280,7 +289,9 @@ deniability).
 
 ## Vault bar (approved 2026-10-20, 0.1.6)
 
-Replaces the dock and the add strip.
+Replaces the dock and the add strip. **Partly superseded** by the design language (0.1.10):
+no vault icon in the header, folders became groups, only sections with items are offered,
+and the main action works as described there.
 
 - Content runs edge to edge; it fades out under the floating controls, and every list
   ends with room for them so the last row is never covered.
@@ -325,7 +336,8 @@ Groups ("nhóm"; tags in the code, `docs/naming.md`) replace folders.
 
 ## Camera (approved 2026-10-20, 0.1.7)
 
-Opened from the Library's + menu (Take photo / Record video). It keeps the app's frame:
+**Since 0.1.10** close sits in the bottom row (swipe down closes too) and the last shot is
+in the viewfinder's corner; see the design language. Opened from the Library's + menu (Take photo / Record video). It keeps the app's frame:
 the page background, a glass close button and the large title ("Take photo" / "Record
 video", with a red timer while recording), the viewfinder as a rounded card, then the
 Photo | Video switch in a glass capsule, and last shot · shutter · flip. The shutter is
@@ -343,8 +355,8 @@ name) are kept.
 ## Black and white (approved 2026-10-20)
 
 - One ink (white in dark mode, black in light) on the page colour (black / white);
-  everything else is that ink at an opacity: cards, chips, glass, muted text, the
-  selection bar (ink, with page-coloured words). Light and dark follow the system.
+  everything else is that ink at an opacity: cards, chips, glass, muted text. The
+  selection bar is glass like the bottom bar (since 0.1.10). Light and dark follow the system.
 - The one colour left: **a vault's own icon and colour** (`VaultBadge`), so you know
   which vault is open; in Settings; when creating a vault (the colour step stays). No vault
   icon in the vault's header any more.
@@ -365,13 +377,16 @@ name) are kept.
   the row of the main action, beside it, never over the bottom bar.
 - **Main action on the left or right** (Settings → Display → Add button; left by default,
   under the left thumb). Messages move to the other side of it.
-- Notes list: title, then one line "when · first words" (time today, weekday this week,
-  else the date), as in iPhone Notes. Sections and groups change with a short fade.
+- Notes list: title, then when it was made (time today, weekday this week, else the
+  date). The first words show only with Settings → Display → Show note text (0.1.10;
+  `docs/security.md`). Sections and groups change with a short fade.
+- **Destructive actions are red** (owner 2026-10-21): Delete in the selection bar and
+  "Delete all" in Recently deleted use the system red, apart from the safe choice.
 - Deleting a vault uses the opposite brightness (light when the app is dark, and the
   reverse) instead of red, so it is never taken for the lock screen.
 - Security rules (owner check, hidden secrets): `docs/security.md`.
 
-## Design language (proposed 2026-10-21, mockup awaiting approval)
+## Design language (approved 2026-10-21, 0.1.10)
 
 One set of sizes for every screen, in `Ui` (`app/lib/theme.dart`); a new control takes
 its size from there, never a number of its own. The owner asked for bigger buttons
@@ -408,4 +423,9 @@ everywhere, easy to hit with a thumb.
   and flip; swiping down closes too; the last shot is a small thumbnail in the
   viewfinder's corner.
 - **Editors use the same header**: a round glass back on the left, Done as the one filled
-  button on the right, both `Ui.circle` tall.
+  button on the right, both `Ui.circle` tall. A new note's hint says the first line is its
+  title. Search uses the same back and a rounded field with a magnifier.
+- **Select** is a glass pill at the top of any section with items (long press still works);
+  inside a group the header drops Settings to make room.
+- **Recently deleted** says that tapping an item restores or deletes it.
+- Persona review that led to these (2026-10-21) and what is left: `docs/decisions.md`.
