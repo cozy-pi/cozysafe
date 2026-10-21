@@ -9,13 +9,17 @@ import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/toast.dart';
+import '../widgets/text_styles.dart';
+import 'file_view.dart' show shareById;
 import '../widgets/vault_bar.dart';
 
 /// A note: plain text, saved as you type (a moment after you stop), when you leave,
 /// and before the vault locks, so locking never loses what was typed. The list shows
 /// its first line. New notes start with the keyboard open.
 class NoteScreen extends StatefulWidget {
-  const NoteScreen({super.key, this.item, this.tagId});
+  const NoteScreen({super.key, this.item, this.tagId, this.vaultId = ''});
+  /// For Send (the first share out of each vault asks once).
+  final String vaultId;
 
   /// null for a new note.
   final rust.ItemInfo? item;
@@ -27,7 +31,7 @@ class NoteScreen extends StatefulWidget {
 }
 
 class _NoteScreenState extends State<NoteScreen> {
-  final _text = TextEditingController();
+  final _text = NoteTextController();
   String _loaded = '';
   bool _ready = false;
   bool _saving = false;
@@ -112,6 +116,14 @@ class _NoteScreenState extends State<NoteScreen> {
     }
   }
 
+  Future<void> _send() async {
+    await _saveNow();
+    final id = _id;
+    if (id == null || !mounted) return;
+    final title = _title(_text.text);
+    await shareById(context, id, 'text/plain', '${title.isEmpty ? 'note' : title}.txt', widget.vaultId);
+  }
+
   Future<void> _saveAndLeave() async {
     if (_saving) return;
     final nav = Navigator.of(context);
@@ -165,6 +177,14 @@ class _NoteScreenState extends State<NoteScreen> {
                   children: [
                     GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: _saving ? null : _saveAndLeave),
                     const Spacer(),
+                    // Send the note as a text file ("Title.txt"); saved first.
+                    GlassButton(
+                      key: const ValueKey('note-send'),
+                      icon: Icons.ios_share,
+                      tooltip: l.sendOut,
+                      onTap: _saving ? null : _send,
+                    ),
+                    const SizedBox(width: 8),
                     SizedBox(
                       height: Ui.circle,
                       child: FilledButton(
@@ -185,7 +205,7 @@ class _NoteScreenState extends State<NoteScreen> {
                 child: !_ready
               ? const Center(child: CircularProgressIndicator())
               : Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 4, 22, 12),
+                  padding: const EdgeInsets.fromLTRB(24, 6, 24, 12),
                   child: TextField(
                     controller: _text,
                     contextMenuBuilder: _menu,
@@ -194,7 +214,7 @@ class _NoteScreenState extends State<NoteScreen> {
                     expands: true,
                     keyboardType: TextInputType.multiline,
                     textAlignVertical: TextAlignVertical.top,
-                    style: const TextStyle(fontSize: 18, height: 1.5),
+                    style: NoteTextController.body,
                     decoration: InputDecoration(
                       hintText: l.noteHint,
                       hintStyle: TextStyle(color: c.muted),

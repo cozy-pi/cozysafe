@@ -57,6 +57,21 @@ Future<Directory> recordingDir() async {
   return d;
 }
 
+/// How many bytes of decrypted playback copies are on disk now (Debug).
+Future<int> playbackBytes() async {
+  try {
+    final d = await _playbackDir();
+    if (!d.existsSync()) return 0;
+    var n = 0;
+    for (final f in d.listSync(recursive: true).whereType<File>()) {
+      n += f.lengthSync();
+    }
+    return n;
+  } catch (_) {
+    return 0;
+  }
+}
+
 /// Remove every decrypted playback copy (app start, lock).
 Future<void> clearPlaybackCopies() async {
   try {

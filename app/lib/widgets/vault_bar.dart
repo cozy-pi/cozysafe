@@ -34,6 +34,10 @@ const _sectionPref = 'vault-section';
 const actionSidePref = 'action-side';
 bool actionOnRight() => Prefs.read(actionSidePref) == 'right';
 
+/// Show the vault's icon on a plain page after unlocking (on by default; Settings).
+const revealIconPref = 'reveal-icon';
+bool revealIconOn() => Prefs.read(revealIconPref) != '0';
+
 /// Notes list and search show only titles unless this is on: someone beside you should
 /// not read a password off the list (docs/security.md, secrets on screen).
 const notePreviewsPref = 'note-previews';
@@ -338,7 +342,18 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
     vsync: this,
     duration: const Duration(milliseconds: 420),
     reverseDuration: const Duration(milliseconds: 220),
-  )..forward();
+  )..forward().whenComplete(_nudge);
+
+  /// The first few openings, the column dips a little and springs back: it can be dragged.
+  static const _hintPref = 'add-column-hint';
+  Future<void> _nudge() async {
+    final shown = int.tryParse(Prefs.read(_hintPref) ?? '') ?? 0;
+    if (shown >= 3 || !mounted || !widget.scroll.hasClients) return;
+    Prefs.write(_hintPref, '${shown + 1}');
+    await widget.scroll.animateTo(AddColumn.row * .7, duration: const Duration(milliseconds: 360), curve: Curves.easeOut);
+    if (!mounted || !widget.scroll.hasClients) return;
+    await widget.scroll.animateTo(0, duration: const Duration(milliseconds: 420), curve: Curves.easeOutBack);
+  }
 
   @override
   void didUpdateWidget(AddColumn old) {
@@ -382,8 +397,10 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
               shaderCallback: (r) => LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: const [Colors.white, Colors.white, Colors.transparent],
-                stops: [0, 1 - _fade / r.height, 1],
+                // Fading at the top says there is more above; at the bottom, ways slip
+                // away under the button.
+                colors: const [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
+                stops: [0, 28 / r.height, 1 - _fade / r.height, 1],
               ).createShader(r),
               // A loop: rolling down never ends, the ways come round again (owner
               // 2026-10-21), like the iPhone's time picker.
@@ -398,7 +415,8 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
                 itemExtent: AddColumn.row,
                 itemBuilder: (context, i) {
                   final (what, icon, label) = w.ways[i % n];
-                  return _Pop(
+                  final round = i ~/ n;
+                  final pop = _Pop(
                       animation: CurvedAnimation(
                         parent: _c,
                         curve: Interval((i * .07).clamp(0, .45), (i * .07 + .55).clamp(0, 1), curve: Curves.easeOutBack),
@@ -420,6 +438,24 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
                         ),
                       ),
                     );
+                  if (round == 0) return pop;
+                  // From the second round on: dimmer, and a ↻ line where it starts again, so
+                  // nobody takes the repeats for more ways (owner 2026-10-21).
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Opacity(opacity: .55, child: pop),
+                      if (i % n == 0)
+                        Positioned(
+                          left: w.right ? null : 0,
+                          right: w.right ? 0 : null,
+                          // Under the first way of the new round: between it and the last
+                          // way of the round before.
+                          bottom: -9,
+                          child: _LoopMark(key: const ValueKey('add-loop'), right: w.right),
+                        ),
+                    ],
+                  );
                 },
               ),
             ),
@@ -566,3 +602,34 @@ class AddTiles extends StatelessWidget {
     );
   }
 }
+
+/// Where the add column starts its loop again: a short faint line with ↻.
+class _LoopMark extends StatelessWidget {
+  const _LoopMark({super.key, required this.right});
+  final bool right;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = Theme.of(context).colorScheme.onSurface.withValues(alpha: .35);
+    final line = Container(width: 70, height: 1.5, color: ink);
+    final mark = Icon(Icons.replay_rounded, size: 14, color: ink);
+    return Padding(
+      padding: EdgeInsets.only(left: right ? 0 : (Ui.primary - Ui.bar) / 2 + 8, right: right ? (Ui.primary - Ui.bar) / 2 + 8 : 0),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: right ? [line, const SizedBox(width: 6), mark] : [mark, const SizedBox(width: 6), line],
+      ),
+    );
+  }
+}
+
+/// Reading, or choosing among many, opens a page: the content sits at eye level, not
+/// at the bottom edge (owner 2026-10-21; docs/ui.md: read → page, a few choices → a menu
+/// at the row, actions → a bottom sheet).
+Future<T?> pushPage<T>(BuildContext context, {required String title, required WidgetBuilder builder}) =>
+    Navigator.of(context).push<T>(MaterialPageRoute(
+      builder: (context) => Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: SafeArea(top: false, child: builder(context)),
+      ),
+    ));

@@ -4,6 +4,33 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.14 (2026-10-21)
+
+### Added
+- Settings → About: version, build date and source commit. Seven taps on the version turn
+  on a hidden debug page (after Face ID): technical facts only, never keys or vault content.
+- Every opened item can be sent: photos (card and full screen) and notes (as a .txt file).
+- Many more files read as text inside the app (Markdown drawn, JSON highlighted, keys and
+  certificates, code); any other file can be viewed as text.
+- Settings: switch off the vault's icon after unlocking; add button position Left | Right
+  right on the row.
+
+### Changed
+- Reading text looks like a page;### Changed
+- Things to read or long lists open as a page, not a sheet at the bottom of the screen
+  (how the vault is protected, all groups, groups for a selection, icons and colours);
+  auto-lock is a menu right at its row.
+- Reading text looks like a page; a note's first line (its title) is large and bold.
+- An open group is clearly marked (filled chip with ✓ and ×, "Group · section" above its
+  name); when it has nothing in this section, buttons lead to where it does.
+- The add column shows where its loop starts (↻) and dims the repeats; the first few times
+  it nudges to show it can be dragged.
+
+### Fixed
+- Large files no longer have to fit in memory to be viewed: text decrypts only its first
+  1 MB, photos decode at screen size, big PDFs open from a private temporary copy.
+- Sending a file kept the vault open only for some items; now for all.
+
 ## 0.1.13 (2026-10-21)
 
 ### Changed

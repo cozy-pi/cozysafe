@@ -538,6 +538,38 @@ pub fn item_content(id: String) -> Result<Vec<u8>, VaultError> {
     })
 }
 
+/// At most the first `max` bytes of an item, decrypting only as far as needed, so a
+/// text preview of a huge file never holds the whole file in memory.
+pub fn item_content_head(id: String, max: u32) -> Result<Vec<u8>, VaultError> {
+    /// Collects up to `max` bytes, then stops the decryption by refusing more.
+    struct Head {
+        buf: Vec<u8>,
+        max: usize,
+    }
+    impl std::io::Write for Head {
+        fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
+            let room = self.max - self.buf.len();
+            self.buf.extend_from_slice(&b[..b.len().min(room)]);
+            if self.buf.len() >= self.max {
+                return Err(std::io::Error::other("enough"));
+            }
+            Ok(b.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    with_open(|v| {
+        let mut head = Head { buf: Vec::new(), max: max as usize };
+        match v.read_item(&id, &mut head) {
+            Ok(_) => Ok(head.buf),
+            // Stopped on purpose once full: every chunk read so far was authenticated.
+            Err(_) if head.buf.len() >= head.max => Ok(head.buf),
+            Err(e) => Err(e.into()),
+        }
+    })
+}
+
 /// Delete for good (from Recently deleted).
 pub fn delete_item(id: String) -> Result<(), VaultError> {
     with_open(|v| Ok(v.delete_item(&id)?))

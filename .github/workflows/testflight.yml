@@ -116,7 +116,7 @@ jobs:
           EOF
       - name: Build signed IPA
         working-directory: app
-        run: flutter build ipa --release --build-number ${{ inputs.build || github.run_number }} ${{ inputs.version && format('--build-name {0}', inputs.version) || '' }} --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+        run: flutter build ipa --release --build-number ${{ inputs.build || github.run_number }} ${{ inputs.version && format('--build-name {0}', inputs.version) || '' }} --dart-define=BUILD_DATE=${{ env.BUILD_DATE }} --dart-define=BUILD_COMMIT=${{ github.sha }} --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
       - name: Remove the keychain
         if: always()
         run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true

@@ -7,6 +7,9 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import 'debug.dart';
+import '../widgets/toast.dart';
+import '../build_info.dart';
 import '../item_kind.dart';
 import '../prefs.dart';
 import '../widgets/identity.dart';
@@ -132,91 +135,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await action();
   }
 
+  // Seven taps on the version turn on debug mode, after the owner check (docs/security.md).
+  int _taps = 0;
+  DateTime _tapAt = DateTime(0);
+
+  Future<void> _versionTap() async {
+    final l = AppLocalizations.of(context);
+    final now = DateTime.now();
+    _taps = now.difference(_tapAt) < const Duration(seconds: 2) ? _taps + 1 : 1;
+    _tapAt = now;
+    if (debugModeOn()) {
+      if (_taps >= 3) showToast(context, l.debugAlready);
+      return;
+    }
+    if (_taps >= 3 && _taps < 7) showToast(context, l.debugTapsLeft(7 - _taps));
+    if (_taps < 7) return;
+    _taps = 0;
+    await _guarded(() async {
+      Prefs.write(debugPref, '1');
+      if (!mounted) return;
+      setState(() {});
+      showToast(context, l.debugOn, icon: Icons.bug_report_outlined);
+    });
+  }
+
   Future<void> _then(Future<void> Function() action) async {
     await action();
     if (mounted) setState(() {});
   }
 
-  /// The main action floats on the left (under the left thumb) or the right.
-  Future<void> _pickActionSide() async {
-    final l = AppLocalizations.of(context);
-    final right = actionOnRight();
-    final picked = await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final (r, label) in [(false, l.sideLeft), (true, l.sideRight)])
-              ListTile(
-                title: Text(label),
-                trailing: r == right ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
-                onTap: () => Navigator.pop(context, r),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (picked == null || !mounted) return;
-    Prefs.write(actionSidePref, picked ? 'right' : 'left');
-    setState(() {});
-  }
 
+
+  /// A few choices: a menu right at the row, next to the value (no sheet at the bottom).
+  final _autoLockKey = GlobalKey();
   Future<void> _pickAutoLock() async {
     final l = AppLocalizations.of(context);
-    final picked = await showModalBottomSheet<int>(
+    final box = _autoLockKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final at = box.localToGlobal(Offset.zero) & box.size;
+    final size = MediaQuery.sizeOf(context);
+    final picked = await showMenu<int>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text(l.autoLock, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              ),
-              for (final m in Settings.autoLockChoices)
-                ListTile(
-                  title: Text(l.minutesLong(m)),
-                  trailing: m == _minutes ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
-                  onTap: () => Navigator.pop(context, m),
-                ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Text(l.autoLockNote, style: TextStyle(color: CsColors.of(context).muted, fontSize: 13)),
-              ),
-            ],
+      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
+      items: [
+        for (final m in Settings.autoLockChoices)
+          PopupMenuItem(
+            value: m,
+            height: Ui.circle,
+            child: Row(children: [
+              SizedBox(width: 26, child: m == _minutes ? const Icon(Icons.check_rounded, size: 20) : null),
+              Text(l.minutesLong(m), style: TextStyle(fontWeight: m == _minutes ? FontWeight.w700 : FontWeight.w500)),
+            ]),
+          ),
+        PopupMenuItem(
+          enabled: false,
+          child: SizedBox(
+            width: 200,
+            child: Text(l.autoLockNote, style: TextStyle(color: CsColors.of(context).muted, fontSize: 12.5)),
           ),
         ),
-      ),
+      ],
     );
     if (picked == null) return;
     setState(() => _minutes = picked);
     Settings.autoLockMinutes = picked;
   }
 
+  /// Something to read: its own page, at eye level.
   Future<void> _showSecurity() {
     final l = AppLocalizations.of(context);
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l.securityTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 10),
-              Text(l.securityBody, style: TextStyle(color: CsColors.of(context).muted, height: 1.5)),
-            ],
-          ),
-        ),
+    return pushPage<void>(
+      context,
+      title: l.securityTitle,
+      builder: (context) => ListView(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        children: [Text(l.securityBody, style: const TextStyle(fontSize: 17, height: 1.6))],
       ),
     );
   }
@@ -237,7 +231,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     final vault = widget.vault();
     final dark = Theme.of(context).brightness == Brightness.dark;
     final danger = Theme.of(context).colorScheme.error;
@@ -254,6 +247,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: _Mau.tim,
               title: l.changeIdentity,
               onTap: () => _then(widget.onChangeIdentity),
+            ),
+            // The icon on a plain page after unlocking; only a look, so no owner check.
+            _Row(
+              key: const ValueKey('reveal-row'),
+              icon: Icons.auto_awesome_outlined,
+              color: _Mau.cham,
+              title: l.revealIcon,
+              trailing: _Switch(
+                value: revealIconOn(),
+                onChanged: (v) => setState(() => Prefs.write(revealIconPref, v ? '1' : '0')),
+              ),
             ),
             _Row(
               icon: Icons.delete_sweep_outlined,
@@ -283,6 +287,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => _guarded(() => Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen()))),
             ),
             _Row(
+              key: _autoLockKey,
               icon: Icons.timer_outlined,
               color: _Mau.cam,
               title: l.autoLock,
@@ -327,12 +332,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
           ]),
           _Group(title: l.settingsDisplay, rows: [
+            // Left or right right on the row: no sheet to open (owner 2026-10-21).
             _Row(
+              key: const ValueKey('side-row'),
               icon: Icons.back_hand_outlined,
               color: _Mau.cam,
               title: l.actionSide,
-              value: actionOnRight() ? l.sideRight : l.sideLeft,
-              onTap: _pickActionSide,
+              trailing: _SideSwitch(
+                right: actionOnRight(),
+                left: l.sideLeftShort,
+                rightLabel: l.sideRightShort,
+                onChanged: (r) => setState(() => Prefs.write(actionSidePref, r ? 'right' : 'left')),
+              ),
             ),
             _Row(
               icon: Icons.notes_rounded,
@@ -395,22 +406,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 18),
-          // Version and build, to match a phone with its GitHub release run (build = 1000 + run).
-          Center(
-            child: FutureBuilder<PackageInfo>(
-              future: PackageInfo.fromPlatform(),
-              builder: (context, snap) => Text(
-                snap.hasData
-                    // Android's version name already ends in the build (0.1.4.1009).
-                    ? (snap.data!.version.endsWith('.${snap.data!.buildNumber}')
-                        ? l.settingsVersionOnly(snap.data!.version)
-                        : l.settingsVersion(snap.data!.version, snap.data!.buildNumber))
-                    : l.settingsFooter,
-                style: TextStyle(color: c.muted, fontSize: 12),
-              ),
-            ),
+          // About: version and build (to match a phone with its release run, build =
+          // 1000 + run), when and from which commit it was built, the licence.
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snap) {
+              final p = snap.data;
+              // Android's version name already ends in the build (0.1.4.1009).
+              final version = p == null
+                  ? '…'
+                  : p.version.endsWith('.${p.buildNumber}')
+                      ? p.version
+                      : '${p.version} (${p.buildNumber})';
+              DateTime? built = DateTime.tryParse(buildDate);
+              final ml = MaterialLocalizations.of(context);
+              return _Group(title: l.settingsAbout, rows: [
+                _Row(
+                  key: const ValueKey('about-version'),
+                  icon: Icons.info_outline_rounded,
+                  color: _Mau.xam,
+                  title: l.aboutVersion,
+                  value: version,
+                  onTap: _versionTap,
+                  chevron: false,
+                ),
+                _Row(
+                  icon: Icons.schedule_rounded,
+                  color: _Mau.xam,
+                  title: l.aboutBuilt,
+                  value: built == null
+                      ? l.aboutLocal
+                      : '${ml.formatShortDate(built.toLocal())} ${ml.formatTimeOfDay(TimeOfDay.fromDateTime(built.toLocal()))}',
+                ),
+                _Row(
+                  icon: Icons.code_rounded,
+                  color: _Mau.xam,
+                  title: l.aboutCommit,
+                  subtitle: l.aboutSourceNote,
+                  value: buildCommit.isEmpty ? l.aboutLocal : buildCommitShort,
+                ),
+                _Row(icon: Icons.gavel_rounded, color: _Mau.xam, title: l.aboutLicense, value: 'GPL-3.0'),
+                if (debugModeOn())
+                  _Row(
+                    key: const ValueKey('debug-row'),
+                    icon: Icons.bug_report_outlined,
+                    color: _Mau.doTuoi,
+                    title: l.debugMode,
+                    onTap: () async {
+                      await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const DebugScreen()));
+                      if (mounted) setState(() {});
+                    },
+                  ),
+              ]);
+            },
           ),
+          const SizedBox(height: 12),
           if (dark) const SizedBox(height: 4),
         ],
       ),
@@ -575,6 +625,7 @@ abstract final class _Mau {
 
 class _Row extends StatelessWidget {
   const _Row({
+    super.key,
     required this.icon,
     required this.color,
     this.glyph,
@@ -583,7 +634,11 @@ class _Row extends StatelessWidget {
     this.value,
     this.trailing,
     this.onTap,
+    this.chevron = true,
   });
+
+  /// False for a tap nobody should notice (the version's hidden debug taps).
+  final bool chevron;
 
   final IconData icon;
   /// The tile's colour (white symbol on it).
@@ -629,7 +684,7 @@ class _Row extends StatelessWidget {
                 Text(value!, style: TextStyle(color: c.muted, fontSize: 14)),
               ],
               if (trailing != null) ...[const SizedBox(width: 8), trailing!],
-              if (onTap != null && trailing == null) ...[
+              if (onTap != null && trailing == null && chevron) ...[
                 const SizedBox(width: 4),
                 Icon(Icons.chevron_right, color: c.muted, size: 20),
               ],
@@ -656,4 +711,38 @@ class _Switch extends StatelessWidget {
         activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : _Mau.xanhLa,
         activeThumbColor: Colors.white,
       );
+}
+
+/// Two choices side by side in a soft capsule (Trái | Phải); the chosen one is filled.
+class _SideSwitch extends StatelessWidget {
+  const _SideSwitch({required this.right, required this.left, required this.rightLabel, required this.onChanged});
+  final bool right;
+  final String left;
+  final String rightLabel;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    Widget part(String text, bool on, bool value) => GestureDetector(
+          key: ValueKey('side-${value ? 'right' : 'left'}'),
+          onTap: () => onChanged(value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: on ? (dark ? ink.withValues(alpha: .28) : Colors.white) : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: on && !dark ? const [BoxShadow(color: Color(0x22000000), blurRadius: 4, offset: Offset(0, 1))] : null,
+            ),
+            child: Text(text, style: TextStyle(fontSize: 14, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
+          ),
+        );
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(19)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [part(left, !right, false), part(rightLabel, right, true)]),
+    );
+  }
 }

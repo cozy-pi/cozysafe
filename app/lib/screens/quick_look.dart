@@ -3,12 +3,10 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
-import '../lock_guard.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -114,7 +112,7 @@ class _QuickLookState extends State<QuickLook> {
       final i = widget.photos.indexWhere((p) => p.id == widget.item.id);
       deleted = await Navigator.of(context).push<String>(PageRouteBuilder(
         opaque: false,
-        pageBuilder: (_, _, _) => PhotoViewerScreen(items: widget.photos, initial: i < 0 ? 0 : i),
+        pageBuilder: (_, _, _) => PhotoViewerScreen(items: widget.photos, initial: i < 0 ? 0 : i, vaultId: widget.vaultId),
         transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
       ));
     }
@@ -126,16 +124,7 @@ class _QuickLookState extends State<QuickLook> {
     if (mounted) Navigator.of(context).pop(widget.item.id);
   }
 
-  Future<void> _send() async {
-    final copy = _copy;
-    if (copy == null || !await confirmShareOut(context, widget.vaultId) || !mounted) return;
-    LockGuard.allowAway();
-    try {
-      await SharePlus.instance.share(ShareParams(files: [XFile(copy.path, mimeType: widget.item.mime, name: widget.item.name)]));
-    } finally {
-      LockGuard.clear();
-    }
-  }
+  Future<void> _send() => shareItem(context, widget.item, widget.vaultId);
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +142,11 @@ class _QuickLookState extends State<QuickLook> {
       media = FutureBuilder<Uint8List>(
         future: _bytes,
         builder: (context, snap) => snap.hasData
-            ? Image.memory(snap.data!, fit: BoxFit.contain, gaplessPlayback: true)
+            // Decoded at the card's size, not the photo's (a 48 MP photo would take ~190 MB).
+            ? Image.memory(snap.data!,
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+                cacheWidth: (box.maxWidth * MediaQuery.devicePixelRatioOf(context)).round())
             : const SizedBox(width: 220, height: 220, child: Center(child: CircularProgressIndicator())),
       );
     } else if (_failed) {
@@ -253,15 +246,14 @@ class _QuickLookState extends State<QuickLook> {
                       onTap: _full,
                     ),
                     const Spacer(),
-                    if (_video) ...[
-                      GlassButton(
-                        icon: Icons.ios_share,
-                        tooltip: l.sendOut,
-                        size: Ui.bar,
-                        onTap: _copy == null ? null : _send,
-                      ),
-                      const SizedBox(width: 8),
-                    ],
+                    GlassButton(
+                      key: const ValueKey('quick-send'),
+                      icon: Icons.ios_share,
+                      tooltip: l.sendOut,
+                      size: Ui.bar,
+                      onTap: _send,
+                    ),
+                    const SizedBox(width: 8),
                     GlassButton(
                       key: const ValueKey('quick-delete'),
                       tooltip: l.delete,

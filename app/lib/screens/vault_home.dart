@@ -71,6 +71,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// A section opened from the add sheet stays offered while empty (a voice memo
   /// being recorded, a note being written), until another is picked.
   bool _keepSection = false;
+  /// The vault's icon after unlocking: on unless turned off in Settings.
+  late final bool _revealOn = VaultHomeScreen.debugReveal && revealIconOn();
   /// The + column is open; [_hover] is the way under a finger sliding up from +.
   bool _adding = false;
   /// The column stays on screen while it closes.
@@ -114,7 +116,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // Touches anywhere count, also on the note editor or viewer pushed above this screen.
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _touch();
-    if (VaultHomeScreen.debugReveal) _reveal.forward();
+    if (_revealOn) _reveal.forward();
   }
 
   /// Which vault just opened: on the plain page, its icon comes in as the unlock effect
@@ -324,7 +326,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<void> _openNote(rust.ItemInfo? item) async {
     final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
-        builder: (_) => NoteScreen(item: item, tagId: item == null ? _tagId : null)));
+        builder: (_) => NoteScreen(item: item, tagId: item == null ? _tagId : null, vaultId: _vault.id)));
     if (!_locked && changed == true) {
       _previews.clear();
       _reload();
@@ -748,7 +750,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     if (media.isEmpty) {
       return _tagId != null
-          ? _TagEmpty(text: l.tagEmpty)
+          ? _tagEmpty(context)
           : _Empty(icon: Icons.photo_library_outlined, title: l.emptyPhotosTitle, body: l.emptyPhotosBody);
     }
     final groups = <String, List<rust.ItemInfo>>{};
@@ -802,12 +804,51 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
+  /// The open group has nothing in this section: say so, and offer the sections where
+  /// it does have something, with their counts, one tap away.
+  Widget _tagEmpty(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final items = _items ?? const <rust.ItemInfo>[];
+    final elsewhere = [
+      for (final s in vaultSections())
+        if (s != _section) (s, items.where((i) => _inSection(s, i) && i.tagIds.contains(_tagId)).length),
+    ].where((e) => e.$2 > 0).toList();
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
+      children: [
+        Icon(Icons.sell_outlined, size: 44, color: c.muted),
+        const SizedBox(height: 12),
+        Text(l.tagEmpty, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 16)),
+        const SizedBox(height: 18),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final (s, n) in elsewhere)
+              ActionChip(
+                key: ValueKey('tag-goto-${s.name}'),
+                label: Text('${sectionLabel(l, s)} · $n', style: const TextStyle(fontWeight: FontWeight.w600)),
+                avatar: const Icon(Icons.arrow_forward_rounded, size: 18),
+                shape: const StadiumBorder(),
+                onPressed: () => setState(() {
+                  _section = s;
+                  _keepSection = false;
+                }),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
   /// Notes or files: one neutral card of rows.
   Widget _list(BuildContext context, List<rust.ItemInfo> list, {required bool notes}) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     if (list.isEmpty) {
-      if (_tagId != null) return _TagEmpty(text: l.tagEmpty);
+      if (_tagId != null) return _tagEmpty(context);
       return notes
           ? _Empty(icon: Icons.sticky_note_2_outlined, title: l.emptyNotesTitle, body: l.emptyNotesBody)
           : _Empty(icon: Icons.description_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody);
@@ -944,20 +985,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final items = _items ?? const <rust.ItemInfo>[];
     final tags = _tags.values.toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     const create = '+';
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .7),
-          child: ListView(
-            shrinkWrap: true,
+    final picked = await pushPage<String>(
+      context,
+      title: l.allTags,
+      builder: (context) => ListView(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text(l.allTags, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              ),
               for (final t in tags)
                 ListTile(
                   leading: const Icon(Icons.sell_outlined),
@@ -972,8 +1004,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
             ],
           ),
-        ),
-      ),
     );
     if (picked == null || !mounted) return;
     if (picked == create) {
@@ -991,12 +1021,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final items = {for (final i in _items ?? const <rust.ItemInfo>[]) i.id: i};
     final ids = _selected.toList();
     final count = ids.length;
-    final result = await showModalBottomSheet<Map<String, bool>>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    final result = await pushPage<Map<String, bool>>(
+      context,
+      title: l.tagSelected(count),
       builder: (context) => _TagSheet(
-        title: l.tagSelected(count),
         tags: _tags.values.toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
         carried: (tagId) => ids.where((id) => items[id]?.tagIds.contains(tagId) ?? false).length,
         total: count,
@@ -1029,6 +1057,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     return switch (_section) {
       VaultSection.note => _list(context, shown, notes: true),
       VaultSection.file => _list(context, shown, notes: false),
+      VaultSection.audio when _tagId != null && shown.isEmpty && !_recordingNow => _tagEmpty(context),
       VaultSection.audio => RecorderView(
           key: _recorder,
           items: shown,
@@ -1057,12 +1086,23 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             const SizedBox(width: 10),
           ],
           Expanded(
-            child: Text(
-              open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
-              key: const ValueKey('vault-title'),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -.5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Inside a group, say so above its name: the page is narrowed to it.
+                if (open != null)
+                  Text('${l.tagAction} · ${sectionLabel(l, _section)}',
+                      key: const ValueKey('group-label'),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
+                Text(
+                  open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
+                  key: const ValueKey('vault-title'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: open != null ? 26 : 28, fontWeight: FontWeight.w800, letterSpacing: -.5),
+                ),
+              ],
             ),
           ),
           if (open != null) ...[
@@ -1203,7 +1243,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           animation: _reveal,
           builder: (context, _) {
             // Off for still shots, and gone once it has played.
-            if (!VaultHomeScreen.debugReveal || _reveal.isCompleted) return const SizedBox.shrink();
+            if (!_revealOn || _reveal.isCompleted) return const SizedBox.shrink();
             final t = _reveal.value;
             double seg(double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
             // The vault's content stays hidden under the page colour until the icon has come
@@ -1454,13 +1494,20 @@ class _TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = CsColors.of(context);
-    final primary = Theme.of(context).colorScheme.primary;
+    // The open group stands out: filled (ink in light mode, a soft grey in dark mode,
+    // never a white slab), a check before its name and × to leave it.
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    final fill = dark ? Color.alphaBlend(Colors.white.withValues(alpha: .3), page) : ink;
+    final onFill = dark ? Colors.white : page;
+    final primary = open ? onFill : Theme.of(context).colorScheme.primary;
     return Semantics(
       button: true,
       selected: open,
       label: '${tag.name}, $count',
       child: Material(
-        color: open ? primary.withValues(alpha: .14) : Theme.of(context).cardColor,
+        color: open ? fill : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(13),
         elevation: open ? 0 : .5,
         shadowColor: Colors.black26,
@@ -1472,7 +1519,7 @@ class _TagChip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.sell_outlined, size: 17, color: open ? primary : c.muted),
+                Icon(open ? Icons.check_rounded : Icons.sell_outlined, size: 17, color: open ? primary : c.muted),
                 const SizedBox(width: 6),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 160),
@@ -1483,7 +1530,11 @@ class _TagChip extends StatelessWidget {
                 ),
                 if (count > 0) ...[
                   const SizedBox(width: 6),
-                  Text('$count', style: TextStyle(color: c.muted, fontSize: 12.5)),
+                  Text('$count', style: TextStyle(color: open ? onFill.withValues(alpha: .75) : c.muted, fontSize: 12.5)),
+                ],
+                if (open) ...[
+                  const SizedBox(width: 6),
+                  Icon(Icons.close_rounded, size: 16, color: onFill.withValues(alpha: .85)),
                 ],
               ],
             ),
@@ -1494,29 +1545,15 @@ class _TagChip extends StatelessWidget {
   }
 }
 
-/// A tag with nothing in this section.
-class _TagEmpty extends StatelessWidget {
-  const _TagEmpty({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 48, left: 24, right: 24),
-        child: Text(text, textAlign: TextAlign.center, style: TextStyle(color: CsColors.of(context).muted)),
-      );
-}
-
 /// Tags for the selection: a switch per tag (on, off, or "some" when only part of the
 /// selection carries it), and "New group". Returns the switches that changed.
 class _TagSheet extends StatefulWidget {
   const _TagSheet({
-    required this.title,
     required this.tags,
     required this.carried,
     required this.total,
     required this.onNewTag,
   });
-  final String title;
   final List<rust.ItemInfo> tags;
   final int Function(String tagId) carried;
   final int total;
@@ -1540,20 +1577,12 @@ class _TagSheetState extends State<_TagSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .75),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    // A page now (its title in the app bar): the list, and Done at the bottom.
+    return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(widget.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-            ),
-            Flexible(
+            Expanded(
               child: ListView(
-                shrinkWrap: true,
                 children: [
                   for (final t in _tags)
                     CheckboxListTile(
@@ -1589,9 +1618,7 @@ class _TagSheetState extends State<_TagSheet> {
               ),
             ),
           ],
-        ),
-      ),
-    );
+        );
   }
 }
 
@@ -1919,7 +1946,8 @@ class _MediaTile extends StatelessWidget {
 /// Photos full screen, decrypted into memory only while shown. Swipe sideways for the
 /// next one, swipe down to close, tap to hide the bars. Pops with the id of a deleted photo.
 class PhotoViewerScreen extends StatefulWidget {
-  const PhotoViewerScreen({super.key, required this.items, required this.initial});
+  const PhotoViewerScreen({super.key, required this.items, required this.initial, required this.vaultId});
+  final String vaultId;
 
   final List<rust.ItemInfo> items;
   final int initial;
@@ -1968,7 +1996,10 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
             }
             final bytes = snap.data;
             if (bytes == null) return const Center(child: CircularProgressIndicator(color: Colors.white));
-            return InteractiveViewer(maxScale: 6, child: Center(child: Image.memory(bytes, gaplessPlayback: true)));
+            // Decoded at 1.5× the screen's width (at most 3000 px, ~20 MB as a bitmap): sharp
+            // enough to zoom, without a very large photo's full-size bitmap in memory.
+            final w = (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context) * 1.5).round().clamp(1, 3000);
+            return InteractiveViewer(maxScale: 6, child: Center(child: Image.memory(bytes, gaplessPlayback: true, cacheWidth: w)));
           },
         ),
       );
@@ -2042,6 +2073,14 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          TextButton.icon(
+                            key: const ValueKey('photo-send'),
+                            onPressed: () => shareItem(context, _item, widget.vaultId),
+                            style: TextButton.styleFrom(foregroundColor: Colors.white),
+                            icon: const Icon(Icons.ios_share),
+                            label: Text(l.sendOut),
+                          ),
+                          const SizedBox(width: 24),
                           TextButton.icon(
                             onPressed: _delete,
                             style: TextButton.styleFrom(foregroundColor: Colors.white),
