@@ -367,7 +367,9 @@ final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
   private let lock = UIButton(type: .system)
   private let channel: FlutterMethodChannel
   private var showLock = true
+  private var holdHome = false
   private var itemsKey = ""
+  private var reportedHeight: CGFloat = 0
 
   init(frame: CGRect, id: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
     root = TabBarRoot(frame: frame)
@@ -376,6 +378,16 @@ final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
     root.backgroundColor = .clear
     bar.delegate = self
     bar.tintColor = .label
+    // Icon above its word, as on every iPhone. A platform view does not always get the
+    // phone's size classes, and the tab bar then laid icon and word side by side, the
+    // word over the next icon (0.1.25 on a real iPhone).
+    if #available(iOS 17.0, *) {
+      root.traitOverrides.horizontalSizeClass = .compact
+      root.traitOverrides.verticalSizeClass = .regular
+    }
+    let hold = UILongPressGestureRecognizer(target: self, action: #selector(held(_:)))
+    hold.cancelsTouchesInView = false
+    bar.addGestureRecognizer(hold)
     lock.addTarget(self, action: #selector(lockTapped), for: .touchUpInside)
     let symbol = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
     if #available(iOS 26.0, *) {
@@ -406,7 +418,23 @@ final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
     lock.isHidden = !showLock
     lock.frame = CGRect(x: 0, y: (b.height - side) / 2, width: side, height: side)
     let x = showLock ? side + 6 : 0
-    bar.frame = CGRect(x: x, y: 0, width: max(0, b.width - x), height: b.height)
+    let width = max(0, b.width - x)
+    // As tall as the system wants it; Dart resizes the view to match.
+    let need = ceil(bar.sizeThatFits(CGSize(width: width, height: 200)).height)
+    bar.frame = CGRect(x: x, y: max(0, (b.height - need) / 2), width: width, height: min(need, b.height))
+    if need > 0, abs(need - reportedHeight) > 0.5 {
+      reportedHeight = need
+      channel.invokeMethod("height", arguments: Double(need))
+    }
+  }
+
+  /// Holding the home tab (the first) locks, as the lock button would.
+  @objc private func held(_ g: UILongPressGestureRecognizer) {
+    guard g.state == .began, holdHome, let count = bar.items?.count, count > 0 else { return }
+    let x = g.location(in: bar).x
+    if Int(x / (bar.bounds.width / CGFloat(count))) == 0 {
+      channel.invokeMethod("holdHome", arguments: nil)
+    }
   }
 
   private func apply(_ args: [String: Any]) {
@@ -426,6 +454,7 @@ final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
       bar.selectedItem = all[selected]
     }
     showLock = args["lock"] as? Bool ?? true
+    holdHome = args["holdHome"] as? Bool ?? false
     lock.accessibilityLabel = args["lockLabel"] as? String
     root.overrideUserInterfaceStyle = (args["dark"] as? Bool ?? false) ? .dark : .light
     root.setNeedsLayout()

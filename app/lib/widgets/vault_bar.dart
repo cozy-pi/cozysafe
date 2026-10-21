@@ -37,10 +37,11 @@ const _sectionPref = 'vault-section';
 const actionSidePref = 'action-side';
 bool actionOnRight() => Prefs.read(actionSidePref) == 'right';
 
-/// No lock button in the bar, which then runs the full width: holding + locks instead
-/// (Settings; owner 2026-10-21). Off by default: the lock button is easier to find.
-const lockOnPlusPref = 'lock-on-plus';
-bool lockOnPlus() => Prefs.read(lockOnPlusPref) == '1';
+/// No lock button in the bar: holding the home tab locks (owner 2026-10-22: on by
+/// default). Settings can bring the lock button back. Where the bar has no home tab
+/// (one kind of item, an empty vault) the lock button stays.
+const holdHomePref = 'hold-home-lock';
+bool holdHomeLocks() => Prefs.read(holdHomePref) != '0';
 
 /// How far the main action sits from the screen edge: lined up with the lock button.
 const double actionSide = 10;
@@ -151,6 +152,7 @@ class VaultBar extends StatelessWidget {
     required this.onSection,
     this.lock,
     this.home,
+    this.onHoldHome,
   });
 
   final VaultSection section;
@@ -158,8 +160,10 @@ class VaultBar extends StatelessWidget {
   final Widget? home;
   final List<VaultSection> sections;
   final ValueChanged<VaultSection> onSection;
-  /// None when "hold + to lock" is on: the sections take the whole row.
+  /// None when holding the home tab locks: the sections take the whole row.
   final Widget? lock;
+  /// Holding the home tab locks the vault.
+  final VoidCallback? onHoldHome;
 
   void _pick(VaultSection s) {
     if (s == section) return;
@@ -178,7 +182,7 @@ class VaultBar extends StatelessWidget {
               height: Ui.bar,
               child: Padding(
                 padding: const EdgeInsets.all(4),
-                child: _Tabs(section: section, sections: sections, home: home, onPick: _pick),
+                child: _Tabs(section: section, sections: sections, home: home, onPick: _pick, onHoldHome: onHoldHome),
               ),
             ),
           ),
@@ -194,7 +198,8 @@ class VaultBar extends StatelessWidget {
 /// the rest equally when their words fit, and scroll sideways (no loop) when they do not
 /// — long labels ("Bibliothèque", "Медиатека") or a small phone (owner 2026-10-21).
 class _Tabs extends StatefulWidget {
-  const _Tabs({required this.section, required this.sections, required this.home, required this.onPick});
+  const _Tabs({required this.section, required this.sections, required this.home, required this.onPick, this.onHoldHome});
+  final VoidCallback? onHoldHome;
   final VaultSection section;
   final List<VaultSection> sections;
   final Widget? home;
@@ -244,14 +249,22 @@ class _TabsState extends State<_Tabs> {
 
     Widget tab(VaultSection s, {double? width}) {
       final on = s == widget.section;
+      final hold = s == VaultSection.home ? widget.onHoldHome : null;
       return Semantics(
         button: true,
         selected: on,
         label: sectionLabel(l, s),
+        hint: hold == null ? null : l.holdToLock,
         child: GestureDetector(
           key: _keys.putIfAbsent(s, GlobalKey.new),
           behavior: HitTestBehavior.opaque,
           onTap: () => widget.onPick(s),
+          onLongPress: hold == null
+              ? null
+              : () {
+                  HapticFeedback.heavyImpact();
+                  hold();
+                },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             width: width,
@@ -336,8 +349,7 @@ class _TabsState extends State<_Tabs> {
 /// The main action, floating above the lock (left thumb): one tap for notes and voice,
 /// a small menu for the library and files.
 class ActionButton extends StatelessWidget {
-  const ActionButton(
-      {super.key, required this.icon, required this.tooltip, required this.onTap, this.onLongPress, this.color, this.turns = 0});
+  const ActionButton({super.key, required this.icon, required this.tooltip, required this.onTap, this.color, this.turns = 0});
   final IconData icon;
   /// The + turns into × by rotating an eighth of a turn, smoothly.
   final double turns;
@@ -346,8 +358,6 @@ class ActionButton extends StatelessWidget {
   final Color? color;
   final String tooltip;
   final VoidCallback onTap;
-  /// Holding + locks the vault (when the lock button is turned off).
-  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -358,12 +368,6 @@ class ActionButton extends StatelessWidget {
         HapticFeedback.mediumImpact();
         onTap();
       },
-      onLongPress: onLongPress == null
-          ? null
-          : () {
-              HapticFeedback.heavyImpact();
-              onLongPress!();
-            },
       child: SizedBox.square(
         dimension: Ui.primary,
         child: AnimatedRotation(
@@ -376,8 +380,6 @@ class ActionButton extends StatelessWidget {
     );
     return Tooltip(
       message: tooltip,
-      // Holding is the lock: the tooltip must not take the long press.
-      triggerMode: onLongPress != null ? TooltipTriggerMode.manual : null,
       child: color != null
           ? Material(color: color, shape: const CircleBorder(), elevation: 2, shadowColor: color!.withValues(alpha: .25), child: ink)
           : Glass(radius: Ui.primary / 2, child: Material(type: MaterialType.transparency, child: ink)),

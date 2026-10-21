@@ -16,8 +16,8 @@ void main() {
         // The photo grid draws its own circle on the picture (_MediaTile).
         final before = src.substring(0, m.start);
         if (before.substring(before.lastIndexOf('\nclass ')).startsWith('\nclass _MediaTile')) continue;
-        // Holding + locks the vault: a button, not a list row.
-        if (before.substring(before.lastIndexOf('\nclass ')).startsWith('\nclass ActionButton')) continue;
+        // Holding the home tab locks the vault: a tab, not a list row.
+        if (before.substring(before.lastIndexOf('\nclass ')).startsWith('\nclass _TabsState')) continue;
         offenders.add('${f.path}: ${m[0]!.split('\n').first.trim()}');
       }
     }

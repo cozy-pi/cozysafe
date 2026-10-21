@@ -379,7 +379,7 @@
   "secKeepTitle": "Simpan baik-baik: tidak ada yang bisa memulihkannya untuk Anda",
   "secKeepBody": "Kami tidak menyimpan salinan apa pun. Simpan Kunci Pemulihan Anda di tempat aman, terpisah dari ponsel, dan ingat kata sandi brankas Anda. Jika ponsel dan Kunci Pemulihan sama-sama hilang, atau kata sandi terlupa, data tidak dapat dipulihkan.",
   "secNewPhone": "Ponsel baru",
-  "lockOnPlusTitle": "Tahan + untuk mengunci",
+  "holdHomeTitle": "Tahan Beranda untuk mengunci",
   "holdToLock": "tahan untuk mengunci",
   "debugTry": "Uji coba",
   "debugNativeBar": "Bilah bawah bawaan iPhone",

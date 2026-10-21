@@ -393,7 +393,7 @@
   "secKeepTitle": "Cất kỹ: không ai khôi phục giúp được",
   "secKeepBody": "Chúng tôi không giữ bản sao nào. Hãy cất khoá khôi phục ở nơi an toàn, tách khỏi điện thoại, và nhớ mật khẩu két. Mất cả máy lẫn khoá khôi phục, hoặc quên mật khẩu, thì không lấy lại được dữ liệu.",
   "secNewPhone": "Máy mới",
-  "lockOnPlusTitle": "Giữ + để khoá",
+  "holdHomeTitle": "Giữ nút trang chủ để khoá",
   "holdToLock": "giữ để khoá",
   "debugTry": "Thử nghiệm",
   "debugNativeBar": "Thanh dưới của iPhone",

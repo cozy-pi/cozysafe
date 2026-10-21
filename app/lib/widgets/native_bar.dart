@@ -29,9 +29,10 @@ abstract final class NativeBar {
   }
 }
 
-/// Debug → "iPhone's own bottom bar": on unless turned off, where iOS has it.
+/// Debug → "iPhone's own bottom bar": off unless turned on (owner 2026-10-22: the app's
+/// own bar by default, the system's one to try).
 const nativeBarPref = 'native-tab-bar';
-bool nativeBarOn() => NativeBar.available && Prefs.read(nativeBarPref) != '0';
+bool nativeBarOn() => NativeBar.available && Prefs.read(nativeBarPref) == '1';
 
 /// SF Symbols for the sections, the closest to the app's own icons.
 String _symbol(VaultSection s) => switch (s) {
@@ -50,6 +51,7 @@ class NativeVaultBar extends StatefulWidget {
     required this.onSection,
     required this.onLock,
     required this.showLock,
+    this.onHoldHome,
   });
 
   final VaultSection section;
@@ -58,8 +60,10 @@ class NativeVaultBar extends StatefulWidget {
   final VoidCallback onLock;
   /// Off with "hold + to lock": the tab bar runs the full width.
   final bool showLock;
+  /// Holding the home tab locks.
+  final VoidCallback? onHoldHome;
 
-  /// The platform view's height: the system bar sits in it with its own margins.
+  /// The platform view's height until the system bar says what it needs ("height").
   static const double height = Ui.bar + 8;
 
   @override
@@ -68,6 +72,7 @@ class NativeVaultBar extends StatefulWidget {
 
 class _NativeVaultBarState extends State<NativeVaultBar> {
   MethodChannel? _channel;
+  double _height = NativeVaultBar.height;
 
   Map<String, Object?> _params(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -78,6 +83,7 @@ class _NativeVaultBarState extends State<NativeVaultBar> {
       ],
       'selected': shown.indexOf(widget.section),
       'lock': widget.showLock,
+      'holdHome': widget.onHoldHome != null && shown.isNotEmpty && shown.first == VaultSection.home,
       'lockLabel': l.lockVault,
       'dark': Theme.of(context).brightness == Brightness.dark,
     };
@@ -95,6 +101,12 @@ class _NativeVaultBarState extends State<NativeVaultBar> {
         }
       } else if (call.method == 'lock') {
         widget.onLock();
+      } else if (call.method == 'holdHome') {
+        HapticFeedback.heavyImpact();
+        widget.onHoldHome?.call();
+      } else if (call.method == 'height') {
+        final h = (call.arguments as num).toDouble();
+        if (mounted && (h - _height).abs() > .5 && h >= Ui.bar && h <= 120) setState(() => _height = h);
       }
     });
     _channel = channel;
@@ -121,7 +133,7 @@ class _NativeVaultBarState extends State<NativeVaultBar> {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        height: NativeVaultBar.height,
+        height: _height,
         child: UiKitView(
           viewType: 'cozysafe/tabbar',
           creationParams: _params(context),

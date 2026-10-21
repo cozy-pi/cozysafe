@@ -437,9 +437,9 @@ everywhere, easy to hit with a thumb.
 - **Only what the vault holds.** The bottom capsule offers the home tab and the sections
   that have items, in the fixed order Overview · Notes · Library · Voice · Files. An empty
   vault shows its icon, one line, and big add tiles.
-- **iOS 26 bottom bar is the system's** (owner 2026-10-21): `NativeVaultBar` (UIKit tab
-  bar + glass lock, Liquid Glass); the app's `VaultBar` everywhere else and when Debug
-  turns it off. Change one, change the other.
+- **Bottom bar: the app's own by default**; on iOS 26 Debug can switch to the system's
+  (`NativeVaultBar`, UIKit tab bar + glass lock). Change one, change the other.
+- **Hold the home tab to lock** (owner 2026-10-22), no lock button by default.
 - **Settings rows: a name, no note** (owner 2026-10-21). Pick a name that says enough.
 - **A tap never changes tab by itself**: a recording opened from home or search plays in
   a card over the page you are on.

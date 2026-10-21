@@ -379,7 +379,7 @@
   "secKeepTitle": "Gut aufbewahren: Niemand kann sie für Sie wiederherstellen",
   "secKeepBody": "Wir haben von nichts eine Kopie. Bewahren Sie Ihren Wiederherstellungsschlüssel an einem sicheren Ort auf, getrennt von Ihrem Telefon, und merken Sie sich Ihr Tresor-Passwort. Verlieren Sie Telefon und Wiederherstellungsschlüssel oder vergessen Sie das Passwort, lassen sich die Daten nicht wiederherstellen.",
   "secNewPhone": "Neues Telefon",
-  "lockOnPlusTitle": "+ halten zum Sperren",
+  "holdHomeTitle": "Start halten zum Sperren",
   "holdToLock": "gedrückt halten zum Sperren",
   "debugTry": "Ausprobieren",
   "debugNativeBar": "Eigene Leiste des iPhone",

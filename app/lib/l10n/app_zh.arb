@@ -379,7 +379,7 @@
   "secKeepTitle": "妥善保管：没有人能替你找回",
   "secKeepBody": "我们不保留任何副本。请把恢复密钥存放在远离手机的安全地方，并记住保险箱密码。如果手机和恢复密钥都丢了，或忘记了密码，数据将无法恢复。",
   "secNewPhone": "新手机",
-  "lockOnPlusTitle": "长按 + 锁定",
+  "holdHomeTitle": "长按主页锁定",
   "holdToLock": "长按锁定",
   "debugTry": "试用",
   "debugNativeBar": "iPhone 自带的底部栏",

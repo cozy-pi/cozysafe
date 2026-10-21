@@ -557,7 +557,7 @@
   "secKeepBody": "We don't have a copy of anything. Keep your Recovery Key somewhere safe, away from your phone, and remember your vault password. Lose both your phone and the Recovery Key, or forget the password, and the data can't be recovered.",
   "secNewPhone": "New phone",
   "@kitConfirmWord": {"placeholders": {"n": {"type": "int"}}},
-  "lockOnPlusTitle": "Hold + to Lock",
+  "holdHomeTitle": "Hold Home to Lock",
   "holdToLock": "hold to lock",
   "debugTry": "Try out",
   "debugNativeBar": "iPhone's own bottom bar",
