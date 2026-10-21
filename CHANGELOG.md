@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.16 (2026-10-21)
+
+### Fixed
+- iPhone: 0.1.15 did not build (a comment cut a line of the photo picker short), so it
+  never reached TestFlight. Same features as 0.1.15.
+
 ## 0.1.15 (2026-10-21)
 
 ### Added
