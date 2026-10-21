@@ -20,6 +20,7 @@ import 'package:cozysafe/screens/file_view.dart';
 import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/search.dart';
+import 'package:cozysafe/screens/security_info.dart';
 import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/trash.dart';
 import 'package:cozysafe/screens/unlock.dart';
@@ -485,15 +486,6 @@ void main() {
   });
   _screen('settings-debug-on', 'Cài đặt · đã bật gỡ lỗi', () => settings(vault), setup: () => Prefs.write('debug-mode', '1'), act: toAbout);
   _screen('debug', 'Trang gỡ lỗi', () => const DebugScreen(), setup: () => DebugScreen.debugNetworkBlocked = true);
-  Future<void> toRow(WidgetTester t, String text) async {
-    await t.scrollUntilVisible(find.text(text), 200, scrollable: find.byType(Scrollable).first);
-    await t.pump();
-  }
-  _screen('security-page', 'Cài đặt · Cách két được bảo vệ', () => settings(vault),
-      change: 'Nội dung ngắn để đọc: HỘP NỔI giữa màn hình (không còn trang trống trải), chạm ra ngoài là đóng', act: (t) async {
-    await toRow(t, 'Cách két được bảo vệ');
-    await t.tap(find.text('Cách két được bảo vệ'));
-  });
   _screen('autolock-menu', 'Cài đặt · Tự khoá', () => settings(vault), act: (t) async {
     await t.tap(find.text('Tự khoá khi không dùng'));
   });
@@ -509,6 +501,18 @@ void main() {
       section: 'file', change: 'Tệp cũng vậy: xoá bản gốc ở chỗ cũ (Tệp/iCloud Drive, bộ nhớ máy)');
   _screen('blur', 'Thư viện · bật làm mờ ảnh thu nhỏ', home, section: 'library', setup: () => Prefs.write('blur-thumbnails', '1'),
       change: 'MỚI: Cài đặt → Hiển thị → Làm mờ ảnh thu nhỏ: người bên cạnh không nhìn rõ; chạm vào vẫn xem rõ. Tắt phải qua Face ID');
+  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen(),
+      change: 'Trang viết lại nghiêm túc: mở đầu ngắn, 6 phần mỗi phần một hình minh hoạ + giải thích dễ hiểu, chi tiết kỹ thuật gập ở cuối');
+  _screen('security-info-2', 'Cách két được bảo vệ · giữa trang', () => const SecurityInfoScreen(), act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('sec-4')), 300, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+  });
+  _screen('security-info-3', 'Cách két được bảo vệ · cuối trang, mở chi tiết', () => const SecurityInfoScreen(), act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('sec-tech')), 300, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.byKey(const ValueKey('sec-tech')));
+    await t.pump(const Duration(milliseconds: 400));
+    await t.scrollUntilVisible(find.textContaining('kiểm toán'), 300, scrollable: find.byType(Scrollable).first);
+  });
   _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
   _screen('trash-select', 'Đã xoá · chạm chọn 1 ảnh', () => const TrashScreen(),
       act: (t) => t.tap(find.byType(Image).first));

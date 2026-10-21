@@ -18,7 +18,7 @@ Cozy Safe does about it; the details are in the linked documents.
 |---|---|
 | **someone copies your files or your backup** | encrypts everything on the device before it is written, with a key that needs both your password and a Secret Key kept in the device's keystore ([how](#how-your-data-is-protected)) |
 | **someone picks up your phone while a vault is open** | locks the vault as soon as the app leaves the screen (60 seconds of grace only when the app itself opened the share sheet or a picker), and after a few minutes without a touch (2 by default) |
-| **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Secret Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher (iPhone) and blocks screenshots and screen recording (Android) |
+| **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Secret Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher and while the screen is being recorded, and warns after a screenshot (iPhone); blocks screenshots and screen recording (Android) |
 | **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing the PIN or auto-lock, backups, the Emergency Kit, showing note text, deleting a vault ([rules](docs/security.md)) |
 | **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; each vault has its own PIN and only its icon and colour tell it apart |
 | **something is left behind on the device** | encodes camera photos in memory (never the photo library, no location data); videos, voice memos and files being played or sent exist only as copies in the app's private temporary folder, deleted when done, on lock and at every start |
@@ -68,7 +68,8 @@ support@cozypi.com.
 
 ## No library can send your data out
 
-Cozy Safe works fully offline and does not need the network for anything. A vault app
+Cozy Safe works fully offline and does not need the network for anything: no account, no
+ads, no analytics, no crash reports. A vault app
 is only as safe as every library inside it, and libraries do get hijacked, so this is
 checked on every build, in layers (details and limits: [supply chain](docs/supply-chain.md)):
 
@@ -84,6 +85,9 @@ checked on every build, in layers (details and limits: [supply chain](docs/suppl
 - **Honest limits:** iPhone, Windows and Linux have no system switch that takes the
   network away from one app, so there the protection is the checks above, not the OS.
   The PDF engine (PDFium) is a prebuilt binary downloaded at build time.
+- **When sync arrives (v0.2)** this section changes: syncing over the local network needs
+  the Android internet permission back. Sync will be a switch you turn on, and only
+  encrypted data will leave the device ([decision](docs/decisions.md)).
 
 ## What works today
 
@@ -96,7 +100,14 @@ checked on every build, in layers (details and limits: [supply chain](docs/suppl
   file**, with a PDF viewer inside the app.
 - **Groups:** put anything in one or more groups ("Passport": the photo, the scan and the
   note) and open a group from any section.
+- **Quick look:** tap a photo or video to play it in a frame over the vault; full screen
+  only if you ask. **Share** any item (a temporary copy, deleted right after).
+- **Text files open as text:** Markdown, JSON and code files are shown formatted.
+- **Remove the originals:** after adding photos or files from the device, the app offers
+  to delete the unencrypted originals (the system asks first).
 - Search, Recently deleted (30 days), auto-lock, blocked screenshots.
+- **How the vault is protected:** a page in Settings explains the protection in plain
+  words, with pictures, and the technical details folded at the end.
 - **Private on screen:** note lists and search show titles only, the Secret Key and
   passwords stay masked until you tap Show, and every security setting asks for Face ID,
   fingerprint or the phone's passcode first ([security rules](docs/security.md)).

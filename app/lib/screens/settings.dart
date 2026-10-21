@@ -8,6 +8,7 @@ import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'debug.dart';
+import 'security_info.dart';
 import '../widgets/toast.dart';
 import '../build_info.dart';
 import '../item_kind.dart';
@@ -202,18 +203,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Settings.autoLockMinutes = picked;
   }
 
-  /// A few lines to read: a card in the middle, at eye level.
-  Future<void> _showSecurity() {
-    final l = AppLocalizations.of(context);
-    return showCard<void>(
-      context,
-      title: l.securityTitle,
-      builder: (context) => SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(22, 4, 22, 24),
-        child: Text(l.securityBody, style: const TextStyle(fontSize: 16.5, height: 1.6)),
-      ),
-    );
-  }
+  /// What protects the vault, explained with drawings: its own page (long content).
+  Future<void> _showSecurity() =>
+      Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => const SecurityInfoScreen()));
 
   Future<void> _deleteVault() async {
     // The PIN confirms it; a vault opened with its password on this phone gets one first.
