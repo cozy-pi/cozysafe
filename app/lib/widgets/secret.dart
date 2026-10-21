@@ -51,7 +51,8 @@ class _SecretTextState extends State<SecretText> with WidgetsBindingObserver {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     // Same length and dashes, so the layout does not jump; every other character hidden.
-    final masked = widget.text.replaceAll(RegExp(r'[^-\s]'), '•');
+    // Always the same dots, so the mask does not tell the key's length.
+    const masked = '••••-••••-••••-••••';
     return Column(
       children: [
         _shown

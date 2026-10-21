@@ -9,6 +9,7 @@ import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/toast.dart';
+import '../widgets/vault_bar.dart';
 
 /// A note: plain text, saved as you type (a moment after you stop), when you leave,
 /// and before the vault locks, so locking never loses what was typed. The list shows
@@ -153,18 +154,38 @@ class _NoteScreenState extends State<NoteScreen> {
         if (!didPop) _saveAndLeave();
       },
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(icon: const Icon(Icons.chevron_left), tooltip: l.done, onPressed: _saveAndLeave),
-          actions: [
-            TextButton(onPressed: _saving ? null : _saveAndLeave, child: Text(l.done)),
-            const SizedBox(width: 8),
-          ],
-        ),
         body: SafeArea(
-          child: !_ready
+          child: Column(
+            children: [
+              // The vault's header language: a round glass back, and Done as the one filled
+              // button, both Ui.circle tall (docs/ui.md, design language).
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
+                child: Row(
+                  children: [
+                    GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: _saving ? null : _saveAndLeave),
+                    const Spacer(),
+                    SizedBox(
+                      height: Ui.circle,
+                      child: FilledButton(
+                        key: const ValueKey('note-done'),
+                        onPressed: _saving ? null : _saveAndLeave,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, Ui.circle),
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          shape: const StadiumBorder(),
+                        ),
+                        child: Text(l.done, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: !_ready
               ? const Center(child: CircularProgressIndicator())
               : Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(22, 4, 22, 12),
                   child: TextField(
                     controller: _text,
                     contextMenuBuilder: _menu,
@@ -173,7 +194,7 @@ class _NoteScreenState extends State<NoteScreen> {
                     expands: true,
                     keyboardType: TextInputType.multiline,
                     textAlignVertical: TextAlignVertical.top,
-                    style: const TextStyle(fontSize: 17, height: 1.5),
+                    style: const TextStyle(fontSize: 18, height: 1.5),
                     decoration: InputDecoration(
                       hintText: l.noteHint,
                       hintStyle: TextStyle(color: c.muted),
@@ -184,6 +205,9 @@ class _NoteScreenState extends State<NoteScreen> {
                     ),
                   ),
                 ),
+              ),
+            ],
+          ),
         ),
       ),
     );

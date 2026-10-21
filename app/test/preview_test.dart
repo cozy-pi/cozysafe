@@ -9,12 +9,14 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show PictureRecorder, ImageByteFormat;
 
+import 'package:cozysafe/biometric.dart';
 import 'package:cozysafe/item_kind.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/screens/camera.dart';
 import 'package:cozysafe/screens/backup_password.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/screens/new_vault.dart';
+import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/trash.dart';
@@ -54,6 +56,9 @@ const _day = 86400000;
 
 /// Realistic content: what people actually keep in a vault, in groups that cross
 /// sections ("Hộ chiếu": a photo, a scan, a note).
+/// What the vault holds in this shot (null: [_items]).
+List<ItemInfo>? _itemsNow;
+
 final _items = [
   _item('t1', ItemKind.tag, 'Giấy tờ tùy thân', 0),
   _item('t2', ItemKind.tag, 'Hộ chiếu', 0),
@@ -118,7 +123,7 @@ class _Fake implements RustLibApi {
     if (n.contains('MinPasswordScore')) return 3;
     if (n.contains('PasswordScore')) return 4;
     if (n.contains('HasVaults')) return true;
-    if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_items);
+    if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_itemsNow ?? _items);
     if (n.contains('ListTrash')) {
       return Future<List<ItemInfo>>.value([
         _item('t1', 'photo', 'a.jpg', 900000, deleted: _now - 86400000),
@@ -133,6 +138,8 @@ class _Fake implements RustLibApi {
     }
     if (n.contains('ItemThumbnail')) {
       final id = call.namedArguments[#id] as String;
+      final bare = id.replaceAll('_', '');
+      if (bare == 't1' || bare == 't2') return Future<Uint8List>.value(_photos[bare == 't1' ? 5 : 7] ?? _thumbnails[1]);
       final it = _items.where((x) => x.id == id).firstOrNull;
       if (it == null || (it.kind != 'photo' && it.kind != 'video')) return Future<Uint8List>.value(Uint8List(0));
       final media = _items.where((x) => x.kind == 'photo' || x.kind == 'video').toList();
@@ -140,7 +147,7 @@ class _Fake implements RustLibApi {
     }
     if (n.contains('PinLengths')) return Uint32List.fromList([4]);
     if (n.contains('AnyPassword')) return true;
-    if (n.contains('HasBiometricUnlock')) return false;
+    if (n.contains('HasBiometricUnlock')) return true;
     if (n.contains('BiometricEnabled')) return true;
     if (n.contains('PinEnabled')) return true;
     if (n.contains('Unlock')) return Future<VaultInfo?>.value(null);
@@ -158,6 +165,9 @@ Future<void> _loadFonts() async {
   }
   await roboto.load();
   await (FontLoader('MaterialIcons')..addFont(bytes(File('${dir.path}/MaterialIcons-Regular.otf')))).load();
+  // `monospace` (the Secret Key): the Mac's SF Mono stands in for the phone's.
+  final mono = File('/System/Library/Fonts/SFNSMono.ttf');
+  if (mono.existsSync()) await (FontLoader('monospace')..addFont(bytes(mono))).load();
 }
 
 Future<void> _thumbnailsReady() async {
@@ -170,8 +180,8 @@ Future<void> _thumbnailsReady() async {
   }
 }
 
-Future<void> _shot(WidgetTester t, String file, Widget home, {Brightness b = Brightness.light,
-    Future<void> Function(WidgetTester)? act, int after = 6}) async {
+Future<List<List<double>>> _shot(WidgetTester t, String file, Widget home, {Brightness b = Brightness.light,
+    Future<void> Function(WidgetTester)? act, int after = 6, List<Finder Function()> marks = const []}) async {
   t.view.physicalSize = const Size(430, 932) * 2; // iPhone 15 Pro Max, the owner's phone
   t.view.devicePixelRatio = 2;
   // The phone's safe areas (status bar with the Dynamic Island, home indicator), so
@@ -199,7 +209,15 @@ Future<void> _shot(WidgetTester t, String file, Widget home, {Brightness b = Bri
       await t.pump(const Duration(milliseconds: 100));
     }
   }
+  // Where the changed parts are, in points, for the page to outline (docs/ui.md, mockups).
+  final rects = [
+    for (final m in marks)
+      for (final e in m().evaluate())
+        if (e.renderObject case final RenderBox box when box.hasSize)
+          [for (final v in [box.localToGlobal(Offset.zero).dx, box.localToGlobal(Offset.zero).dy, box.size.width, box.size.height]) v],
+  ];
   await expectLater(find.byType(MaterialApp), matchesGoldenFile('preview/$file.png'));
+  return rects;
 }
 
 /// Tap a chip in the horizontal row, scrolling it into view first.
@@ -211,24 +229,30 @@ Future<void> _tapChip(WidgetTester t, String label) async {
 }
 
 /// The screens, in the order the mockup page shows them: (file name, caption).
-final _manifest = <Map<String, String>>[];
+final _manifest = <Map<String, Object>>[];
 
 /// One screen, rendered dark and light (`<name>-dark.png`, `<name>-light.png`).
+/// [change] says what is new on this screen, [marks] finds the parts to outline.
 void _screen(String name, String caption, Widget Function() home,
-    {String? section, Future<void> Function(WidgetTester)? act, int after = 6, void Function()? setup}) {
-  _manifest.add({'name': name, 'caption': caption});
+    {String? section, Future<void> Function(WidgetTester)? act, int after = 6, void Function()? setup,
+    String? change, List<Finder Function()> marks = const []}) {
+  final entry = <String, Object>{'name': name, 'caption': caption, 'change': ?change};
+  _manifest.add(entry);
   for (final b in [Brightness.dark, Brightness.light]) {
     testWidgets('$name ${b.name}', skip: !_enabled, (t) async {
       Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
       if (section != null) Prefs.write('vault-section', section);
       debugCamera = false;
       CameraView.debugPreview = null;
+      CameraView.debugLast = null;
+      _itemsNow = null;
       VaultHomeScreen.debugReveal = false;
       setup?.call();
       // Real shadows: tests otherwise draw every elevation as a solid black outline.
       debugDisableShadows = false;
       try {
-        await _shot(t, '$name-${b.name}', home(), b: b, act: act, after: after);
+        final rects = await _shot(t, '$name-${b.name}', home(), b: b, act: act, after: after, marks: marks);
+        if (rects.isNotEmpty) entry['marks'] = rects;
         await t.pump(const Duration(seconds: 2)); // let an animation started by `act` end
       } finally {
         debugDisableShadows = true;
@@ -244,6 +268,7 @@ void main() {
     PackageInfo.setMockInitialValues(
         appName: 'Cozy Safe', packageName: 'com.cozypi.cozysafe', version: '0.1.8', buildNumber: '1100', buildSignature: '');
     debugVoice = true;
+    BiometricUnlock.debugKind = BiometricKind.face; // the owner's iPhone
     await _loadFonts();
   });
 
@@ -283,7 +308,9 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock);
+  _screen('lock', 'Màn khoá', lock,
+      change: 'Ảnh nay chụp như iPhone: có nút Face ID (app thật vốn có, ảnh cũ thiếu)',
+      marks: [() => find.byKey(const ValueKey('biometric-button'))]);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   // The unlock animation (playVaultSpin), frozen at three moments of its 1.15 s.
   for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay'), (950, 'phóng to và tan')]) {
@@ -296,20 +323,48 @@ void main() {
   // After the unlock spin: the vault's icon in the middle, then it fades (docs/ui.md).
   for (final (ms, what) in [(900, 'nền trơn, biểu tượng két'), (1350, 'biểu tượng mờ dần'), (1800, 'dữ liệu hiện ra')]) {
     _screen('reveal-$ms', 'Vừa mở · $ms ms · $what', home, section: 'library', after: 0,
+        change: ms == 900 ? 'Biểu tượng két hình tròn (B), không viền trắng' : null,
         setup: () => VaultHomeScreen.debugReveal = true, act: (t) async {
       await t.pump(Duration(milliseconds: ms - 800));
     });
   }
-  _screen('library', 'Thư viện', home, section: 'library');
-  _screen('library-menu', 'Thư viện · bấm +', home, section: 'library', setup: () => debugCamera = true,
+  _screen('library', 'Thư viện', home, section: 'library',
+      change: 'Nút Chọn (trước phải giữ lâu) · nút khoá chỉ còn ổ khoá to (bỏ biểu tượng két) · nút chính to 64 · “Tháng 9” viết hoa',
+      marks: [() => find.byKey(const ValueKey('select-button')), () => find.byKey(const ValueKey('lock-button')), () => find.byKey(const ValueKey('vault-action')), () => find.textContaining('Tháng 9')]);
+  _screen('add-sheet', 'Bấm + · mọi kiểu dữ liệu', home, section: 'library', setup: () => debugCamera = true,
+      change: 'MỚI: bảng “Thêm vào két”, 6 ô lớn',
       act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
-  _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
+  _screen('empty', 'Két trống · thêm bằng ô lớn', home, section: 'library', change: 'MỚI: két trống có biểu tượng két và 6 ô thêm', setup: () {
+    debugCamera = true;
+    _itemsNow = const [];
+  });
+  _screen('one-type', 'Chỉ có ghi chú · không thanh chọn mục', home, section: 'note',
+      change: 'MỚI: chỉ có một loại thì không hiện thanh chọn mục; chưa có Thư viện thì + ra bảng thêm',
+      setup: () => _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList());
+  _screen('one-type-add', 'Chỉ có ghi chú · bấm + ra bảng thêm', home, section: 'note',
+      setup: () {
+        debugCamera = true;
+        _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList();
+      }, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
+  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
+      change: 'Nút quay lại tròn 48 và nút Xong to, tô đen', marks: [() => find.byKey(const ValueKey('note-done'))]);
+  _screen('note-new', 'Ghi chú mới', () => const NoteScreen(),
+      change: 'Chữ gợi ý nói dòng đầu là tên ghi chú', marks: [() => find.textContaining('Dòng đầu')]);
+  _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'),
+      change: 'Trong nhóm bỏ nút Cài đặt cho đầu trang đỡ chật (bấm ← là về)');
   Widget camera({required bool video}) => CameraScreen(video: video, onOpenLast: (_) {});
-  void still() => CameraView.debugPreview =
-      _photos.isEmpty ? const ColoredBox(color: Colors.black) : Image.memory(_photos[3]!, fit: BoxFit.cover);
-  _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
+  void still() {
+    CameraView.debugPreview =
+        _photos.isEmpty ? const ColoredBox(color: Colors.black) : Image.memory(_photos[3]!, fit: BoxFit.cover);
+    CameraView.debugLast = (_items.firstWhere((i) => i.kind == ItemKind.photo), _photos[0] ?? _thumbnails[0]!);
+  }
+  _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still,
+      change: 'Nút đóng xuống hàng dưới (vuốt xuống cũng đóng) · ảnh vừa chụp ở góc khung ngắm',
+      marks: [() => find.byKey(const ValueKey('camera-close'))]);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
-  _screen('notes', 'Ghi chú', home, section: 'note');
+  _screen('notes', 'Ghi chú', home, section: 'note',
+      change: 'Danh sách chỉ hiện tiêu đề và ngày, KHÔNG hiện nội dung (bật lại trong Cài đặt) · nút chính = viết ngay',
+      marks: [() => find.ancestor(of: find.text('Wifi nhà bà ngoại'), matching: find.byType(InkWell)).first, () => find.byKey(const ValueKey('vault-action'))]);
   _screen('audio', 'Ghi âm', home, section: 'audio');
   _screen('files', 'Tệp', home, section: 'file');
   _screen('tag-files', 'Tệp · trong nhóm "Hộ chiếu"', home, section: 'file', act: (t) => _tapChip(t, 'Hộ chiếu'));
@@ -319,7 +374,9 @@ void main() {
     await t.tap(find.text('Ghi chú'));
   });
   _screen('all-tags', 'Tất cả nhóm', home, section: 'audio', act: (t) => t.tap(find.byKey(const ValueKey('all-tags'))));
-  _screen('select', 'Đang chọn', home, section: 'library', act: (t) async {
+  _screen('select', 'Đang chọn', home, section: 'library',
+      change: 'Thanh Gửi/Nhóm/Xoá thành kính mờ như thanh dưới (hết khối trắng chói ở chế độ tối) · Xoá màu đỏ',
+      marks: [() => find.text('Xoá').last], act: (t) async {
     await t.longPress(find.byType(Image).at(2));
     await t.pump();
     await t.tap(find.byType(Image).at(4));
@@ -335,15 +392,29 @@ void main() {
     showToast(t.element(find.byType(VaultHomeScreen)), 'Đã chuyển vào Đã xoá gần đây',
         icon: Icons.delete_outline_rounded, actionLabel: 'Hoàn tác', besideAction: true, onAction: () {});
   });
-  _screen('search', 'Tìm kiếm', () => SearchScreen(items: _items, thumbnail: (id) async => _thumbnails[0]!), act: (t) async {
+  _screen('search', 'Tìm kiếm', () => SearchScreen(items: _items, thumbnail: (id) async => _thumbnails[0]!),
+      change: 'Ô tìm kiếm bo tròn có kính lúp · kết quả ghi “Có trong nội dung” thay vì in nội dung',
+      marks: [() => find.byKey(const ValueKey('search-field')), () => find.text('Có trong nội dung')], act: (t) async {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
     await t.enterText(find.byType(TextField), 'thuoc');
   });
-  _screen('settings', 'Cài đặt', () => settings(vault));
-  _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
+  _screen('settings', 'Cài đặt', () => settings(vault),
+      change: 'Ảnh nay chụp như iPhone: dòng Face ID (ảnh cũ ghi nhầm “Vân tay”)');
+  _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
+      change: 'MỚI: công tắc “Hiện nội dung ghi chú”, mặc định tắt; bật phải qua Face ID',
+      marks: [() => find.ancestor(of: find.text('Hiện nội dung ghi chú'), matching: find.byType(InkWell)).first],
+      act: (t) async {
+    await t.scrollUntilVisible(find.text('Hiện nội dung ghi chú'), 200, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+  });
+  _screen('trash', 'Đã xoá gần đây', () => const TrashScreen(),
+      change: 'Dòng “Chạm vào một mục để khôi phục…” · “Xoá hẳn tất cả” màu đỏ, tách xa nút khôi phục',
+      marks: [() => find.textContaining('Chạm vào một mục'), () => find.byKey(const ValueKey('delete-all'))]);
   _screen('kit', 'Bộ khẩn cấp: khoá bí mật che sẵn', () => const EmergencyKitScreen(
-      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false));
-  _screen('kit-shown', 'Bộ khẩn cấp: sau khi bấm Xem', () => const EmergencyKitScreen(
+      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
+      change: 'Lớp che luôn 16 chấm (không lộ độ dài khoá) · dòng nhắc bản sao tự xoá sau 60 giây, đừng gửi qua tin nhắn',
+      marks: [() => find.text('••••-••••-••••-••••'), () => find.textContaining('60 giây')]);
+  _screen('kit-shown', 'Bộ khẩn cấp: sau khi bấm Xem', change: 'Ảnh nay có font đơn cách: khoá đọc được (ảnh cũ ra ô vuông)', () => const EmergencyKitScreen(
       keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
   _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', () => const BackupPasswordScreen(libraryDir: '', change: false),

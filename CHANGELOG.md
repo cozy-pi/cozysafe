@@ -4,6 +4,35 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.10 (2026-10-21)
+
+### Changed
+- Bigger buttons everywhere, from one shared set of sizes: round buttons 48, bottom bar
+  and lock 56, main button 64.
+- The vault icon is a round badge with its colour, shown when the vault opens, on the
+  empty vault and in Settings. The lock button is just a big lock.
+- Only the sections that hold something are offered at the bottom; an empty vault shows
+  big tiles to add a note, photo, video, photos from the phone, voice memo or file.
+- The main button: in Notes it writes a new note, in Files it picks files, in Voice it
+  records; in the Library (or before there is one) it opens "Add to vault".
+- Camera: Close is in the bottom row next to the shutter, swiping down closes, the last
+  shot sits in the corner of the viewfinder.
+- Note editor: a round Back and a big Done; the hint says the first line is the title.
+- Search: a rounded field with a magnifier.
+- Selecting: a Select button at the top; the Send · Group · Delete bar is frosted glass,
+  Delete in red.
+
+### Privacy
+- The notes list and search show titles only, so people nearby cannot read your notes;
+  Settings → Display can show the text (asks for Face ID to turn on).
+- The Emergency Kit's mask no longer shows how long the key is, and says that a copy is
+  cleared from the clipboard after 60 seconds.
+
+### Fixed
+- Recently deleted says that tapping an item restores or deletes it; "Delete all" is red
+  and away from "Restore all".
+- Grey text is easier to read; month headings start with a capital letter.
+
 ## 0.1.9 (2026-10-20)
 
 ### Changed

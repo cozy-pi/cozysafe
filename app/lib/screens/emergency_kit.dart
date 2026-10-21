@@ -102,6 +102,8 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Text(l.kitCopyNote, style: TextStyle(color: c.muted, fontSize: 13.5)),
           const SizedBox(height: 16),
           Material(
             color: c.warnBg,

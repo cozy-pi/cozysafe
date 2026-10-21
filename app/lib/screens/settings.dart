@@ -330,6 +330,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: actionOnRight() ? l.sideRight : l.sideLeft,
               onTap: _pickActionSide,
             ),
+            _Row(
+              icon: Icons.notes_rounded,
+              color: _Mau.nau,
+              title: l.notePreviews,
+              subtitle: l.notePreviewsNote,
+              trailing: _Switch(
+                value: notePreviews(),
+                // Showing more is weaker: on asks for the owner, off never does.
+                onChanged: (v) => v
+                    ? _guarded(() async => setState(() => Prefs.write(notePreviewsPref, '1')))
+                    : setState(() => Prefs.write(notePreviewsPref, '0')),
+              ),
+            ),
           ]),
           _Group(title: l.settingsSecurity, rows: [
             _Row(

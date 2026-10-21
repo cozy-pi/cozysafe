@@ -27,7 +27,10 @@ class BiometricUnlock {
   final String promptCancel;
 
   static const _key = 'vault-unlock-key';
-  static bool get platformSupported => Device.iOS || Device.android;
+  static bool get platformSupported => debugKind != null || Device.iOS || Device.android;
+
+  /// For the mockup renders: act as a phone with this biometric (an iPhone: face).
+  static BiometricKind? debugKind;
 
   FlutterSecureStorage get _storage => FlutterSecureStorage(
         iOptions: const IOSOptions(
@@ -50,6 +53,7 @@ class BiometricUnlock {
 
   /// The kind of biometrics enrolled, or null when there is none to use.
   static Future<BiometricKind?> available() async {
+    if (debugKind != null) return debugKind;
     if (!platformSupported) return null;
     try {
       final auth = LocalAuthentication();

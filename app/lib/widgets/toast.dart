@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme.dart';
 import 'vault_bar.dart';
 
 /// Short messages ("Moved to Recently deleted · Undo", "Copied", errors): a glass capsule in
@@ -24,13 +25,13 @@ void showToast(
     backgroundColor: Colors.transparent,
     elevation: 0,
     padding: EdgeInsets.zero,
-    // Beside the action button (56 wide, 7 from the edge it is on, its bottom 10 + 50 + 14
-    // above the safe area): on the other side of it, on its row, centred on its height.
+    // Beside the action button (Ui.primary wide, 7 from the edge it is on, its bottom
+    // Ui.edge + Ui.bar + 14 above the safe area): on the other side of it, on its row.
     margin: !besideAction
         ? const EdgeInsets.fromLTRB(12, 0, 12, 10)
         : actionOnRight()
-            ? const EdgeInsets.fromLTRB(10, 0, 7 + 56 + 10, 10 + 50 + 14 + 2)
-            : const EdgeInsets.fromLTRB(7 + 56 + 10, 0, 10, 10 + 50 + 14 + 2),
+            ? const EdgeInsets.fromLTRB(10, 0, 7 + Ui.primary + 10, Ui.edge + Ui.bar + 14 + 6)
+            : const EdgeInsets.fromLTRB(7 + Ui.primary + 10, 0, 10, Ui.edge + Ui.bar + 14 + 6),
     duration: Duration(seconds: actionLabel == null ? 3 : 5),
     content: _Toast(
       text: text,

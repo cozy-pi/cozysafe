@@ -124,7 +124,7 @@ class _TrashScreenState extends State<TrashScreen> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                      child: Text(l.trashNote, style: TextStyle(color: c.muted, fontSize: 13.5)),
+                      child: Text('${l.trashNote} ${l.trashTapHint}', style: TextStyle(color: c.muted, fontSize: 14.5)),
                     ),
                   ),
                   if (items.isEmpty)
@@ -199,16 +199,18 @@ class _TrashScreenState extends State<TrashScreen> {
                           child: Text(l.restoreAll),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(context).cardColor,
-                            foregroundColor: Theme.of(context).colorScheme.error,
-                          ),
-                          onPressed: () => _deleteForGood(items),
-                          child: Text(l.deleteAll),
+                      // Apart from Restore, and red: it cannot be undone.
+                      const SizedBox(width: 28),
+                      TextButton(
+                        key: const ValueKey('delete-all'),
+                        style: TextButton.styleFrom(
+                          // The system's destructive red (an exception to black and white,
+                          // proposed 2026-10-21 after user testing).
+                          foregroundColor: recordRed(context),
+                          minimumSize: const Size(0, Ui.circle),
                         ),
+                        onPressed: () => _deleteForGood(items),
+                        child: Text(l.deleteAll, style: const TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ],
                   ),

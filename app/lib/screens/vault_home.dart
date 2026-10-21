@@ -67,6 +67,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   double _scaleStart = 1;
   /// What the vault shows, picked in the bottom capsule.
   late VaultSection _section = startSection();
+  /// A section opened from the add sheet stays offered while empty (a voice memo
+  /// being recorded, a note being written), until another is picked.
+  bool _keepSection = false;
   final _actionKey = GlobalKey();
   final _recorder = GlobalKey<RecorderViewState>();
   bool _recordingNow = false;
@@ -209,45 +212,93 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   static bool get _hasCamera => Device.iOS || Device.android || debugCamera;
 
-  /// The button above the lock: compose, record, or a short menu of ways to add.
+  /// The sections that hold something, in a fixed order (docs/ui.md, design language).
+  List<VaultSection> get _sections {
+    final items = _items ?? const <rust.ItemInfo>[];
+    return [
+      for (final s in vaultSections())
+        if ((s == _section && _keepSection) || items.any((i) => _inSection(s, i))) s,
+    ];
+  }
+
+  /// The Library is offered, so its + (the add sheet) is one tap away.
+  bool get _hasLibrary => _sections.contains(VaultSection.library);
+
+  /// Nothing in the vault yet (tags alone do not count): the welcome with the add tiles.
+  bool get _empty => _items != null && _sections.isEmpty;
+
+  /// The button above the lock: in Notes a new note, in Files the file picker, in Voice
+  /// it records; in the Library (and an empty vault) the add sheet with every kind.
   Future<void> _mainAction() async {
     switch (_section) {
-      case VaultSection.note:
-        return _openNote(null);
       case VaultSection.audio:
         return _recorder.currentState?.toggle();
+      case _ when !_hasLibrary:
+        break; // no Library yet: the sheet is the only way to the other kinds
+      case VaultSection.note:
+        return _add(AddWhat.note);
       case VaultSection.file:
-        return _import(photos: false);
+        return _add(AddWhat.file);
       case VaultSection.library:
-        if (!_hasCamera) return _import(photos: true);
-        final l = AppLocalizations.of(context);
-        final box = _actionKey.currentContext?.findRenderObject() as RenderBox?;
-        if (box == null) return;
-        final at = box.localToGlobal(Offset.zero);
-        final size = MediaQuery.sizeOf(context);
-        PopupMenuItem<int> item(int v, IconData icon, String text) => PopupMenuItem(
-              value: v,
-              height: 48,
-              child: Row(children: [
-                Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 12),
-                Text(text, style: const TextStyle(fontSize: 15)),
-              ]),
-            );
-        final v = await showMenu<int>(
-          context: context,
-          position: RelativeRect.fromLTRB(at.dx, at.dy - 172, size.width - at.dx - 240, size.height - at.dy + 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          items: [
-            item(0, Icons.add_photo_alternate_outlined, l.addFromDevice),
-            item(1, Icons.photo_camera_outlined, l.takePhoto),
-            item(2, Icons.videocam_outlined, l.recordVideo),
-          ],
-        );
-        if (v == 0) _import(photos: true);
-        if (v == 1) _openCamera(video: false);
-        if (v == 2) _openCamera(video: true);
+        break;
     }
+    final pick = await showModalBottomSheet<AddWhat>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
+                child: Text(AppLocalizations.of(context).addToVault,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+              ),
+              AddTiles(camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio),
+                  onPick: (w) => Navigator.of(context).pop(w)),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (pick != null) await _add(pick);
+  }
+
+  /// One way of adding, from the sheet or the empty vault's tiles. The section it fills
+  /// opens, and stays offered until something lands in it or another is picked.
+  Future<void> _add(AddWhat what) async {
+    final target = switch (what) {
+      AddWhat.note => VaultSection.note,
+      AddWhat.photo || AddWhat.video || AddWhat.photos => VaultSection.library,
+      AddWhat.voice => VaultSection.audio,
+      AddWhat.file => VaultSection.file,
+    };
+    setState(() {
+      _section = target;
+      _keepSection = true;
+      _selected.clear();
+    });
+    switch (what) {
+      case AddWhat.note:
+        await _openNote(null);
+      case AddWhat.photo:
+        await _openCamera(video: false);
+      case AddWhat.video:
+        await _openCamera(video: true);
+      case AddWhat.photos:
+        await _import(photos: true);
+      case AddWhat.file:
+        await _import(photos: false);
+      case AddWhat.voice:
+        WidgetsBinding.instance.addPostFrameCallback((_) => _recorder.currentState?.toggle());
+        return; // stays open while recording; picking another section lets it go
+    }
+    if (_locked || !mounted) return;
+    await _reload();
+    if (mounted) setState(() => _keepSection = false);
   }
 
   Future<void> _openCamera({required bool video}) async {
@@ -696,7 +747,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (diff <= 0) return l.today;
     if (diff == 1) return l.yesterday;
     if (diff < 7) return l.thisWeek;
-    return MaterialLocalizations.of(context).formatMonthYear(d);
+    final m = MaterialLocalizations.of(context).formatMonthYear(d);
+    return m.isEmpty ? m : m[0].toUpperCase() + m.substring(1); // "tháng 9" → "Tháng 9"
   }
 
   /// Room under the content for the floating bar and the button above the lock, so
@@ -787,7 +839,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   notes
                       ? _NoteRow(
                           item: it,
-                          preview: _preview(it.id),
+                          preview: notePreviews() ? _preview(it.id) : null,
                           selected: _selected.contains(it.id),
                           onTap: () => _openItem(it, const []),
                           onLongPress: () => _toggle(it.id),
@@ -978,6 +1030,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Widget _content(BuildContext context) {
     final items = _items;
     if (items == null) return const Center(child: CircularProgressIndicator());
+    if (_empty) {
+      return _Welcome(
+        vault: _vault,
+        bottomPad: _bottomRoom,
+        tiles: AddTiles(camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio), onPick: _add),
+      );
+    }
     final shown = _shown(items);
     return switch (_section) {
       VaultSection.note => _list(context, shown, notes: true),
@@ -1006,12 +1065,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         children: [
           // No vault icon here: it shows once when the vault opens; change it in Settings.
           if (open != null) ...[
-            GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, size: 38, onTap: () => setState(() => _tagId = null)),
+            GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, size: Ui.circle, onTap: () => setState(() => _tagId = null)),
             const SizedBox(width: 10),
           ],
           Expanded(
             child: Text(
-              open?.name ?? sectionLabel(l, _section),
+              open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
               key: const ValueKey('vault-title'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1026,19 +1085,41 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 PopupMenuItem(value: 0, child: Text(l.renameTag)),
                 PopupMenuItem(value: 1, child: Text(l.deleteTag)),
               ],
-              child: const IgnorePointer(child: GlassButton(icon: Icons.more_horiz, tooltip: '', size: 38, onTap: null)),
+              child: const IgnorePointer(child: GlassButton(icon: Icons.more_horiz, tooltip: '', size: Ui.circle, onTap: null)),
             ),
             const SizedBox(width: 8),
           ],
-          GlassButton(icon: Icons.search, tooltip: l.search, size: 38, onTap: _openSearch),
-          const SizedBox(width: 8),
-          GlassButton(
-            key: const ValueKey('settings-button'),
-            icon: Icons.settings_outlined,
-            tooltip: l.settings,
-            size: 38,
-            onTap: _openSettings,
-          ),
+          // Select, as in Photos: long press still works, but nobody has to know it.
+          if (_items != null && !_empty && _shown(_items!).isNotEmpty) ...[
+            SizedBox(
+              height: Ui.circle,
+              child: Glass(
+                radius: Ui.circle / 2,
+                child: InkWell(
+                  key: const ValueKey('select-button'),
+                  customBorder: const StadiumBorder(),
+                  onTap: () => setState(() => _selected.add(_shown(_items!).first.id)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Center(child: Text(l.select, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          GlassButton(icon: Icons.search, tooltip: l.search, size: Ui.circle, onTap: _openSearch),
+          // Inside a group the header is crowded; Settings is one Back away.
+          if (open == null) ...[
+            const SizedBox(width: 8),
+            GlassButton(
+              key: const ValueKey('settings-button'),
+              icon: Icons.settings_outlined,
+              tooltip: l.settings,
+              size: Ui.circle,
+              onTap: _openSettings,
+            ),
+          ],
         ],
       ),
     );
@@ -1079,7 +1160,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ),
         );
     return SizedBox(
-      height: 48,
+      height: Ui.chip + 14,
       child: ListView(
         // A new list per open tag: the row starts at the beginning again.
         key: ValueKey('tags-$_tagId'),
@@ -1102,7 +1183,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   child: InkWell(
                     borderRadius: BorderRadius.circular(13),
                     onTap: _allTags,
-                    child: SizedBox(width: 40, child: Icon(Icons.sell_outlined, size: 18, color: primary)),
+                    child: SizedBox(width: Ui.chip + 8, child: Icon(Icons.sell_outlined, size: 20, color: primary)),
                   ),
                 ),
               ),
@@ -1154,7 +1235,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       opacity: icon,
                       child: Transform.scale(
                         scale: scale,
-                        child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 112, ring: true),
+                        child: VaultBadge(icon: _vault.icon, color: _vault.color, size: 120),
                       ),
                     ),
                   ),
@@ -1168,9 +1249,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Widget _actionButton(BuildContext context) {
     final l = AppLocalizations.of(context);
     final (icon, tip) = switch (_section) {
-      VaultSection.note => (Icons.edit_square, l.newNote),
-      VaultSection.library => (Icons.add, l.addToLibrary),
       VaultSection.audio => (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording),
+      _ when !_hasLibrary => (Icons.add, l.addToVault),
+      VaultSection.note => (Icons.edit_square, l.newNote),
+      VaultSection.library => (Icons.add, l.addToVault),
       VaultSection.file => (Icons.add, l.addFiles),
     };
     return ActionButton(
@@ -1185,6 +1267,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final selecting = _selected.isNotEmpty;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final page = Theme.of(context).scaffoldBackgroundColor;
+    // The section on show is always one that is offered (it may have just emptied).
+    final sections = _sections;
+    if (sections.isNotEmpty && !sections.contains(_section)) _section = sections.first;
+    final empty = _empty;
 
     final header = selecting
         ? Padding(
@@ -1251,7 +1337,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   header,
-                  if (!_recordingNow) _tagChips(context),
+                  if (!_recordingNow && !empty) _tagChips(context),
                   ?banner,
                   Expanded(
                     child: MediaQuery.removePadding(
@@ -1289,31 +1375,36 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               Positioned(
                 left: 10,
                 right: 10,
-                bottom: bottom + 10,
+                bottom: bottom + Ui.edge,
                 child: VaultBar(
                   section: _section,
+                  sections: sections,
                   onSection: (k) {
                     if (_recordingNow) return;
                     setState(() {
                       _section = k;
+                      _keepSection = false;
                       _selected.clear();
                     });
                   },
+                  // Just the lock, big: no vault icon, which would hint that the phone
+                  // holds other vaults (owner 2026-10-21, after user testing).
                   lock: GlassButton(
                     key: const ValueKey('lock-button'),
                     tooltip: l.lockVault,
-                    size: 50,
+                    size: Ui.bar,
                     icon: null,
                     onTap: _lock,
-                    child: LockGlyph(size: 22, color: Theme.of(context).colorScheme.onSurface),
+                    child: LockGlyph(size: 26, color: Theme.of(context).colorScheme.onSurface),
                   ),
                 ),
               ),
-              // Above the lock (left thumb), or on the right if chosen in Settings.
-              Positioned(
+              // Above the lock (left thumb), or on the right if chosen in Settings. An
+              // empty vault has the add tiles on screen instead.
+              if (!empty) Positioned(
                 left: actionOnRight() ? null : 7,
                 right: actionOnRight() ? 7 : null,
-                bottom: bottom + 10 + 50 + 14,
+                bottom: bottom + Ui.edge + Ui.bar + 14,
                 child: _actionButton(context),
               ),
             ],
@@ -1488,34 +1579,39 @@ class _SelectionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final bottom = MediaQuery.paddingOf(context).bottom;
-    // The bar is ink; its icons and words are the page colour.
-    final page = Theme.of(context).scaffoldBackgroundColor;
-    Widget action(IconData icon, String label, VoidCallback onTap) => Expanded(
+    // Frosted glass like the bottom bar, so no bright slab lights up a dark room; Delete
+    // in the system's destructive red (owner 2026-10-21).
+    final ink = Theme.of(context).colorScheme.onSurface;
+    Widget action(IconData icon, String label, VoidCallback onTap, {Color? color}) => Expanded(
           child: InkWell(
             onTap: onTap,
+            customBorder: const StadiumBorder(),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, color: page),
-                  const SizedBox(height: 4),
-                  Text(label, style: TextStyle(color: page, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                  Icon(icon, color: color ?? ink),
+                  const SizedBox(height: 3),
+                  Text(label, style: TextStyle(color: color ?? ink, fontSize: 13, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
           ),
         );
-    return Material(
-      color: CsColors.of(context).dock,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 6, 16, 10 + bottom),
-        child: Row(
-          children: [
-            action(Icons.ios_share, l.sendOut, onSend),
-            action(Icons.sell_outlined, l.tagAction, onTag),
-            action(Icons.delete_outline, l.delete, onDelete),
-          ],
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10, 0, 10, Ui.edge + bottom),
+      child: Glass(
+        radius: Ui.bar / 2 + 6,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          child: Row(
+            children: [
+              action(Icons.ios_share, l.sendOut, onSend),
+              action(Icons.sell_outlined, l.tagAction, onTag),
+              action(Icons.delete_outline, l.delete, onDelete, color: recordRed(context)),
+            ],
+          ),
         ),
       ),
     );
@@ -1542,7 +1638,8 @@ class _NoteRow extends StatelessWidget {
     required this.onLongPress,
   });
   final rust.ItemInfo item;
-  final Future<String> preview;
+  /// null: the text stays hidden (Settings → Display).
+  final Future<String>? preview;
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -1981,6 +2078,37 @@ class _ImportSheetState extends State<_ImportSheet> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// An empty vault: its badge, a line on what happens to what is added, and the ways to
+/// add as big tiles (docs/ui.md, design language).
+class _Welcome extends StatelessWidget {
+  const _Welcome({required this.vault, required this.bottomPad, required this.tiles});
+  final rust.VaultInfo vault;
+  final double bottomPad;
+  final Widget tiles;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    return ListView(
+      padding: EdgeInsets.fromLTRB(16, 24, 16, bottomPad - 60),
+      children: [
+        Center(child: VaultBadge(icon: vault.icon, color: vault.color, size: 84)),
+        const SizedBox(height: 18),
+        Text(l.emptyVaultTitle, textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(l.emptyVaultBody, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: c.muted, height: 1.35)),
+        ),
+        const SizedBox(height: 28),
+        tiles,
+      ],
     );
   }
 }

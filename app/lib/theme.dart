@@ -148,7 +148,7 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   final accentInk = p?.onAccent ?? page;
   final danger = pen;
   final colors = CsColors(
-    muted: p?.muted ?? tone(.6),
+    muted: p?.muted ?? tone(.68), // .6 was hard to read for older eyes (user testing)
     soft: p?.soft ?? tone(dark ? .14 : .08),
     border: p?.border ?? tone(dark ? .18 : .12),
     dock: p?.dock ?? pen,
@@ -225,4 +225,25 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
       ),
     ),
   );
+}
+
+/// The design language's sizes, shared by every screen (docs/ui.md, design language).
+/// Nothing a finger has to hit is smaller than [tap]; Apple's minimum is 44 points.
+abstract final class Ui {
+  /// Smallest touch target.
+  static const double tap = 48;
+  /// Round glass buttons (back, search, settings, close, flip).
+  static const double circle = 48;
+  /// The main action (+, record), always within the thumb's reach.
+  static const double primary = 64;
+  /// The bottom glass bar: lock and sections.
+  static const double bar = 56;
+  /// Chips (groups) and segmented switches.
+  static const double chip = 40;
+  /// Large add tiles (the add sheet, an empty vault).
+  static const double tile = 96;
+  /// Corner radius of cards and tiles; buttons are round or stadium-shaped.
+  static const double radius = 18;
+  /// Space between the bottom bar, the main action and the screen edge.
+  static const double edge = 10;
 }
