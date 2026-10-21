@@ -418,7 +418,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                   color: page,
                   boxShadow: const [BoxShadow(color: Color(0x4D041410), blurRadius: 24, offset: Offset(0, 10))],
                 ),
-                child: BrandMark(size: 78, color: accent),
+                // The launch hand-over flies the splash dial onto this one.
+                child: BrandMark(key: LaunchHandoff.running ? LaunchHandoff.target : null, size: 78, color: accent),
               ),
             ),
           ],

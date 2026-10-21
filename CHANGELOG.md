@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.23 (2026-10-21)
+
+### Changed
+- Opening the app: the lock appears without a jump. The dial from the launch screen
+  glides onto the lock screen's dial while the background and the PIN pad fade in.
+
 ## 0.1.22 (2026-10-21)
 
 ### Changed

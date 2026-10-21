@@ -91,29 +91,90 @@ def phone(name, b, cap, marks=()):
     )
 
 
-rows, changed = [], []
+# Screens are grouped by topic, from their name: each group is a line in the table of
+# contents and a section that folds open and shut, in the order of TOPICS.
+TOPICS = [
+    ("Mở app & mở khoá", ("lock", "launch", "unlock", "reveal")),
+    ("Trang chủ & thanh dưới", ("home", "tabs")),
+    ("Thêm mới", ("add", "empty", "one-type", "camera", "originals")),
+    ("Thư viện & ảnh", ("library", "select", "quick", "blur", "message")),
+    ("Ghi chú", ("note",)),
+    ("Ghi âm", ("audio",)),
+    ("Tệp", ("files", "file-", "text-")),
+    ("Nhóm", ("tag", "all-tags")),
+    ("Tìm kiếm", ("search",)),
+    ("Cài đặt & bảo mật", ("settings", "identity", "debug", "autolock", "security", "kit", "backup", "trash")),
+    ("Tạo két", ("new-vault",)),
+]
+
+
+def topic(name):
+    for title, starts in TOPICS:
+        if any(name == x or name.startswith(x + "-") or (x.endswith("-") and name.startswith(x)) or name.startswith(x) for x in starts):
+            return title
+    return "Khác"
+
+
+groups = {}
 for s in screens:
-    name, cap = s["name"], html.escape(s["caption"])
-    marks = s.get("marks", [])
-    imgs = "".join(phone(name, b, cap, marks) for b in ("dark", "light") if os.path.exists(os.path.join(d, f"{name}-{b}.png")))
-    change = s.get("change")
-    note = f'<p class="change"><b>Đổi</b> {html.escape(change)}</p>' if change else ""
-    rows.append(f'<section id="{name}"{' class="new"' if change else ''}><h2>{cap}</h2>{note}<div class="pair">{imgs}</div></section>')
-    if change:
-        changed.append(f'<li><a href="#{name}">{cap}</a> — {html.escape(change)}</li>')
+    groups.setdefault(topic(s["name"]), []).append(s)
+order = [t for t, _ in TOPICS] + ["Khác"]
+groups = sorted(groups.items(), key=lambda g: order.index(g[0]))
+
+blocks, changed, toc = [], [], []
+for gi, (key, items) in enumerate(groups):
+    rows, n_new = [], 0
+    for s in items:
+        name, cap = s["name"], html.escape(s["caption"])
+        marks = s.get("marks", [])
+        imgs = "".join(phone(name, b, cap, marks) for b in ("dark", "light") if os.path.exists(os.path.join(d, f"{name}-{b}.png")))
+        change = s.get("change")
+        note = f'<p class="change"><b>Đổi</b> {html.escape(change)}</p>' if change else ""
+        rows.append(f'<section id="{name}"{' class="new"' if change else ''}><h3>{cap}</h3>{note}<div class="pair">{imgs}</div></section>')
+        if change:
+            n_new += 1
+            changed.append(f'<li><a href="#{name}">{cap}</a> — {html.escape(change)}</li>')
+    gid = f"g{gi}"
+    badge = f'<span class="badge">{n_new} đổi</span>' if n_new else ""
+    toc.append(f'<li><a href="#{gid}">{html.escape(key)}</a> <span class="n">{len(items)}</span>{badge}</li>')
+    # Groups with changes open by default; the rest stay folded to keep the page short.
+    blocks.append(f'<details class="group" id="{gid}"{" open" if n_new else ""}><summary><span class="gt">{html.escape(key)}</span>'
+                  f' <span class="n">{len(items)} màn</span>{badge}</summary><div class="grid">{"".join(rows)}</div></details>')
 summary = f'<nav class="changes"><h2>Thay đổi lần này ({len(changed)} màn)</h2><ul>{"".join(changed)}</ul></nav>' if changed else ""
+contents = (f'<nav class="toc"><div class="toc-head"><h2>Mục lục</h2><span class="tools"><button type="button" data-all="open">Mở hết</button>'
+            f'<button type="button" data-all="close">Đóng hết</button></span></div><ol>{"".join(toc)}</ol></nav>')
 
 page = f"""<title>{html.escape(title)}</title>
 <style>
-:root {{ --bg:#ececec; --fg:#111; --muted:#5b5b5b; --hl:#e8590c; --hl-bg:#fff1e6; }}
-@media (prefers-color-scheme: dark) {{ :root:not([data-theme="light"]) {{ --bg:#141414; --fg:#eee; --muted:#a3a3a3; --hl:#ff922b; --hl-bg:#2b1d10; color-scheme:dark; }} }}
-:root[data-theme="dark"] {{ --bg:#141414; --fg:#eee; --muted:#a3a3a3; --hl:#ff922b; --hl-bg:#2b1d10; color-scheme:dark; }}
+:root {{ --bg:#ececec; --fg:#111; --muted:#5b5b5b; --hl:#e8590c; --hl-bg:#fff1e6; --card:#f7f7f7; --line:#c9c9c9; }}
+@media (prefers-color-scheme: dark) {{ :root:not([data-theme="light"]) {{ --bg:#141414; --fg:#eee; --muted:#a3a3a3; --hl:#ff922b; --hl-bg:#2b1d10; --card:#1e1e1e; --line:#3a3a3a; color-scheme:dark; }} }}
+:root[data-theme="dark"] {{ --bg:#141414; --fg:#eee; --muted:#a3a3a3; --hl:#ff922b; --hl-bg:#2b1d10; --card:#1e1e1e; --line:#3a3a3a; color-scheme:dark; }}
 body {{ background:var(--bg); color:var(--fg); font:15px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;
   padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px)); padding-block:24px 48px; }}
 main {{ max-width:1500px; margin:0 auto; display:grid; gap:28px; }}
 h1 {{ margin:0; font-size:24px; }} .meta {{ margin:0; color:var(--muted); }}
 .grid {{ display:flex; flex-wrap:wrap; gap:28px 36px; }}
-section {{ display:grid; gap:8px; }} h2 {{ margin:0; font-size:15px; }}
+section {{ display:grid; gap:8px; }} h2 {{ margin:0; font-size:15px; }} h3 {{ margin:0; font-size:15px; }}
+.toc {{ background:var(--card); border-radius:12px; padding:12px 16px; }}
+.toc-head {{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }}
+.toc ol {{ margin:8px 0 0; padding-left:22px; columns:3 220px; column-gap:28px; }}
+.toc li {{ break-inside:avoid; padding:2px 0; }} .toc a {{ color:var(--fg); font-weight:600; text-decoration:none; }}
+.toc a:hover {{ text-decoration:underline; }}
+.n {{ color:var(--muted); font-size:13px; }}
+.badge {{ margin-left:6px; font-size:12px; font-weight:700; color:var(--hl); background:var(--hl-bg); border:1px solid var(--hl); border-radius:999px; padding:0 7px; }}
+.tools {{ display:flex; gap:8px; }}
+button {{ font:inherit; font-size:13.5px; font-weight:600; color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:999px; padding:5px 12px; cursor:pointer; }}
+button:focus-visible, summary:focus-visible, .top:focus-visible {{ outline:2px solid var(--hl); outline-offset:2px; }}
+details.group {{ background:var(--card); border-radius:14px; padding:4px 16px; }}
+details.group[open] {{ padding-bottom:18px; }}
+summary {{ cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; padding:12px 0; font-size:17px; font-weight:700; }}
+summary::-webkit-details-marker {{ display:none; }}
+summary::before {{ content:""; width:8px; height:8px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; rotate:-45deg; transition:rotate .15s; margin-right:4px; }}
+details[open] > summary::before {{ rotate:45deg; }}
+.top {{ position:fixed; right:max(16px,env(safe-area-inset-right,0px)); bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  width:48px; height:48px; border-radius:50%; display:grid; place-items:center; background:var(--fg); color:var(--bg);
+  text-decoration:none; font-size:22px; box-shadow:0 6px 18px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .2s; }}
+.top.show {{ opacity:1; pointer-events:auto; }}
 .pair {{ display:flex; gap:12px; flex-wrap:wrap; }}
 .phone {{ position:relative; width:{W}px; aspect-ratio:430/932; padding:{px(9)}; box-sizing:content-box; border-radius:{px(64)};
   background:#1b1b1d; box-shadow:inset 0 0 0 {px(2.5)} #4a4a4f, 0 10px 28px rgba(0,0,0,.28); }}
@@ -138,6 +199,25 @@ section.new {{ background:var(--hl-bg); border-left:4px solid var(--hl); padding
 <main><header><h1>{html.escape(title)}</h1>
 <p class="meta">Rendered from the app's code ({html.escape(source)}), 430×932 (iPhone 15 Pro Max, safe areas 59/34 pt). Each screen: dark, then light.</p></header>
 {summary}
-<div class="grid">{''.join(rows)}</div></main>
+{contents}
+{''.join(blocks)}</main>
+<a class="top" href="#" aria-label="Lên đầu trang">↑</a>
+<script>
+// Folding: a link to a screen or a group opens its group first; "open/close all".
+const openFor = (id) => {{ const el = id && document.getElementById(id); if (!el) return;
+  const g = el.closest('details') || (el.tagName === 'DETAILS' ? el : null); if (g) g.open = true;
+  el.scrollIntoView({{ block: 'start' }}); }};
+document.addEventListener('click', (e) => {{
+  const a = e.target.closest('a[href^="#"]');
+  if (a && a.getAttribute('href').length > 1) {{ e.preventDefault(); openFor(a.getAttribute('href').slice(1)); }}
+  if (a && a.classList.contains('top')) {{ e.preventDefault(); window.scrollTo({{ top: 0, behavior: 'smooth' }}); }}
+  const b = e.target.closest('button[data-all]');
+  if (b) document.querySelectorAll('details.group').forEach((g) => (g.open = b.dataset.all === 'open'));
+}});
+if (location.hash) openFor(location.hash.slice(1));
+// "Back to top" shows once the page has scrolled past the first screen.
+const top = document.querySelector('.top');
+addEventListener('scroll', () => top.classList.toggle('show', scrollY > innerHeight * .8), {{ passive: true }});
+</script>
 """
 open(os.path.join(d, "index.html"), "w", encoding="utf-8").write(page)

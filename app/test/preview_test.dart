@@ -326,6 +326,23 @@ void main() {
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
   _screen('lock', 'Màn khoá', lock);
+  // Cold start: the first frames hand over from the system launch screen (dial alone).
+  for (final (ms, what) in [(0, 'khung đầu, y như màn khởi động của máy'), (220, 'mặt khoá thu nhỏ, mờ dần'), (420, 'màn khoá hiện ra')]) {
+    _screen('launch-$ms', 'Mở app · $ms ms · $what', () => LaunchHandoff(child: lock()), after: 0,
+        setup: () {
+          LaunchHandoff.debugReset();
+          LaunchHandoff.debugHold = true;
+        },
+        change: ms == 0
+            ? 'MỚI: màn khởi động không còn nhảy cụt sang màn khoá: khung đầu giống hệt (nền trơn, mặt khoá giữa), rồi mặt khoá thu nhỏ, mờ đi trong lúc hình nền và thẻ PIN hiện ra (0,56 giây)'
+            : null,
+        act: (t) async {
+      LaunchHandoff.debugGo();
+      await t.pump();
+      if (ms > 0) await t.pump(Duration(milliseconds: ms));
+      LaunchHandoff.debugHold = false;
+    });
+  }
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
@@ -357,8 +374,7 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true,
-      change: 'Sửa vạch tối cắt ngang dòng ở mép trên: dòng không còn vẽ tràn lên trên khung, chỉ mờ dần', act: (t) async {
+  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     for (var i = 0; i < 6; i++) {
       await t.pump(const Duration(milliseconds: 100));
@@ -407,11 +423,9 @@ void main() {
   _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
   Widget homeIn(String code) => Builder(
       builder: (context) => Localizations.override(context: context, locale: Locale(code), child: home()));
-  _screen('tabs-fr', 'Thanh dưới · tiếng Pháp (chữ dài)', () => homeIn('fr'), section: 'note',
-      change: 'Nút Tổng quan cố định bên trái; các tab khác rộng theo chữ, không bị cắt. Không đủ chỗ thì kéo ngang (không xoay vòng), mép phải mờ dần báo còn nữa');
+  _screen('tabs-fr', 'Thanh dưới · tiếng Pháp (chữ dài)', () => homeIn('fr'), section: 'note');
   _screen('tabs-fr-file', 'Thanh dưới · tiếng Pháp · đang ở Fichiers', () => homeIn('fr'), section: 'file');
-  _screen('tabs-vi', 'Thanh dưới · tiếng Việt', home, section: 'note',
-      change: 'Chữ vừa thì các tab chia theo độ dài chữ, không phải kéo');
+  _screen('tabs-vi', 'Thanh dưới · tiếng Việt', home, section: 'note');
   _screen('home-scrolled', 'Trang chủ · kéo xuống', home, section: 'home', act: (t) async {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
     await t.pumpAndSettle();
@@ -447,11 +461,8 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   });
-  _screen('audio', 'Ghi âm', home, section: 'audio',
-      change: 'Nút chính ở Ghi âm cũng là dấu + như mọi trang (trước là micro đỏ ghi ngay)',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('audio', 'Ghi âm', home, section: 'audio');
   _screen('audio-add', 'Ghi âm · bấm +', home, section: 'audio',
-      change: '“Ghi âm” nằm gần ngón cái nhất; đang ghi thì nút thành nút dừng đỏ',
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
