@@ -105,7 +105,10 @@ checked on every build, in layers (details and limits: [supply chain](docs/suppl
 - **Text files open as text:** Markdown, JSON and code files are shown formatted.
 - **Remove the originals:** after adding photos or files from the device, the app offers
   to delete the unencrypted originals (the system asks first).
-- Search, Recently deleted (30 days), auto-lock, blocked screenshots.
+- **Overview:** the first tab shows the whole vault at a glance: each section with its
+  count, the groups, what was added last, and search.
+- Search (names and note text, grouped by kind), Recently deleted (30 days), auto-lock,
+  blocked screenshots, light / dark / automatic appearance.
 - **How the vault is protected:** a page in Settings explains the protection in plain
   words, with pictures, and the technical details folded at the end.
 - **Private on screen:** note lists and search show titles only, the Secret Key and
