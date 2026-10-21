@@ -38,10 +38,33 @@ How it stays that way:
 - **Open source** ([GPL-3.0](LICENSE)): anyone can read the code and verify a download with
   `gh attestation verify <file> -R cozy-pi/cozysafe`.
 
+### How the code is kept secure
+
+- **No home-made cryptography.** Only well-known, widely used Rust crates do the work:
+  `chacha20poly1305` (XChaCha20-Poly1305), `argon2` (Argon2id), `hkdf` and `sha2`. Keys and
+  nonces come from the operating system's secure random generator. The design and why is
+  written down before the code ([ADR 0001](docs/adr/0001-encryption.md)).
+- **Memory-safe languages.** The encryption, vault and photo code is Rust with
+  `#![forbid(unsafe_code)]`: the compiler refuses unsafe code in those crates. The app is
+  Dart. Key material is wiped from memory when it is dropped (`zeroize`).
+- **Tests that attack the format.** Besides round trips, the Rust tests check that a
+  flipped bit, a wrong key, a truncated file or reordered chunks are all rejected, that a
+  copied vault cannot be opened with the PIN on another device, and that a damaged or
+  crafted backup is refused and leaves nothing behind.
+- **Strict checks on every push** ([CI](.github/workflows/ci.yml)): formatting, Clippy with
+  warnings as errors, all Rust and Flutter tests, Flutter's analyzer, cargo-deny against
+  the RustSec advisory database, cackle, and the library and network checks. Exact tool
+  versions are pinned (Rust 1.99.1, Flutter 3.47.7) and lockfiles are enforced
+  (`--locked`), so a build uses exactly the code that was reviewed.
+- **Least privilege in CI.** Build jobs can only read the repository; only the release job
+  can publish, and only the key jobs see a key.
+
 Honest limits: there is **no recovery** if you lose your password, or both the device and
 the Emergency Kit. iPhone, Windows and Linux cannot take the network away from one app,
 so there the offline guarantee rests on the app's own checks. iPhone does not let apps
-block screenshots. The code has not had an independent security audit yet.
+block screenshots. The code has not had an independent security audit yet, there is no
+fuzzing yet, and one maintainer reviews the changes; reports are welcome at
+support@cozypi.com.
 
 ## No library can send your data out
 
