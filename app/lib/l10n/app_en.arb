@@ -544,5 +544,8 @@
   "secAutoLock": "Auto-lock",
   "secHidden": "Hidden",
   "secClipboard": "Clipboard wiped",
-  "secNoCapture": "No capture"
+  "secNoCapture": "No capture",
+  "language": "Language",
+  "languageSystem": "Same as device",
+  "languageSystemNote": "Uses the language your device is set to."
 }

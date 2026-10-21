@@ -412,6 +412,12 @@ everywhere, easy to hit with a thumb.
 - **The lock button is just a big lock** on glass. A vault icon there (tried 2026-10-21)
   confused testers and would hint that the phone holds other vaults; the vault shows once
   when it opens, and in Settings.
+- **One way to select, in every list** (owner 2026-10-21): the photo grid, notes, files,
+  recordings and any kind added later. A long press selects, the "Select" button in the
+  header starts selecting, and while anything is selected every item shows a circle
+  (empty ring, or filled with a tick), so a tap visibly selects. Lists build their rows
+  on `SelectableRow` (`lib/widgets/selectable_row.dart`), never their own `InkWell`;
+  `test/selection_test.dart` fails on a list row that handles a long press itself.
 - **Selection bar**: frosted glass like the bottom bar (no bright slab in dark mode); Delete
   in the system's destructive red, like "Delete all" in Recently deleted (exception to
   black and white, owner 2026-10-21).

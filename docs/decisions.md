@@ -180,3 +180,14 @@ dependencies. **When sync ships (v0.2), rewrite this section in every language**
 sync needs the Android INTERNET permission back, and server/P2P sync (v0.3) uses the
 network. Sync must be a switch the person turns on, and the page must then say that
 only encrypted data leaves the device.
+
+## 2026-10-21 — 15 languages, one setting shared with the system
+
+The app now has the website's 15 languages. Settings → Language offers "Same as device"
+and each language in its own name. On iPhone and Android 13+ the choice is the system's
+per-app language (iOS `AppleLanguages` for the app, Android `LocaleManager`), so changing
+it in either place changes both; on computers and older Android it is a pref. iOS applies
+the system value from the next start, so the app switches the running session itself.
+Translations were made from the English strings, reusing the website's terms; they have
+not been reviewed by native speakers yet.
+

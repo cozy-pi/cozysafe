@@ -4,6 +4,22 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.18 (2026-10-21)
+
+### Added
+- 15 languages (English, Spanish, Portuguese, French, German, Italian, Turkish, Russian,
+  Indonesian, Thai, Japanese, Korean, Simplified and Traditional Chinese, Vietnamese).
+  Settings → Language, or the system's language setting for the app on iPhone and
+  Android 13+; both stay the same.
+
+### Changed
+- One way to select in every list: long press (or Select), and every row shows a circle
+  while selecting. Voice recordings can now be selected too.
+- Unlock: the Face ID / fingerprint button now says what it does, so it is not mistaken
+  for the system's own prompt.
+- Full-screen photos and videos: every control sits on dark glass and is larger, so it
+  stays readable on bright pictures.
+
 ## 0.1.17 (2026-10-21)
 
 ### Changed

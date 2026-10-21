@@ -9,6 +9,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show PictureRecorder, ImageByteFormat;
 
+import 'package:cozysafe/widgets/selectable_row.dart';
 import 'package:cozysafe/biometric.dart';
 import 'package:cozysafe/item_kind.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
@@ -324,13 +325,18 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock);
+  _screen('lock', 'Màn khoá', lock,
+      change: 'Nút vân tay / Face ID thành nút có chữ, nền xanh nhạt: trước chỉ là biểu tượng trơn, trông giống lời nhắc vân tay của hệ điều hành',
+      marks: [() => find.byKey(const ValueKey('biometric-button'))]);
+  _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
+      setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint,
+      change: 'Máy có vân tay: “Mở khoá bằng vân tay”',
+      marks: [() => find.byKey(const ValueKey('biometric-button'))]);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   // The unlock animation (playVaultSpin), frozen at four moments of its 1.15 s: the vault's
   // icon behind the dial, blurred at first, sharp when the dial has gone.
   for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay, màu két hắt quanh mép'), (950, 'cửa két mở vụt qua, biểu tượng hiện'), (1100, 'biểu tượng nét')]) {
     _screen('unlock-$ms', 'Mở khoá · $ms ms · $what', lock, after: 0,
-        change: ms == 520 ? 'Mở két kiểu “cửa két”: mặt khoá đặc xoay, màu của két hắt sáng quanh mép; xong thì mặt khoá phóng vụt qua như cửa mở, biểu tượng két từ nhỏ và nhoè thành nét' : null,
         act: (t) async {
       playVaultSpin(t.element(find.byType(UnlockScreen)), opening: true, onCovered: () {},
           behind: const VaultBadge(icon: 'home', color: 'green', size: 120), glow: colorById('green').color);
@@ -355,9 +361,7 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true,
-      change: 'Bỏ ↻ và bỏ làm mờ các mục lặp; chỉ còn một vạch mảnh có khoảng trống rộng trên dưới ở chỗ bắt đầu lặp',
-      marks: [() => find.byKey(const ValueKey('add-loop'))], act: (t) async {
+  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     for (var i = 0; i < 6; i++) {
       await t.pump(const Duration(milliseconds: 100));
@@ -389,8 +393,7 @@ void main() {
       }, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
   _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
-  _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'),
-      change: 'Số trên viên nhóm là TỔNG cả nhóm, giống nhau ở mọi mục và ở Tất cả nhóm');
+  _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
   _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'file', act: (t) async {
     await _tapChip(t, 'Hộ chiếu');
     await t.pump();
@@ -405,6 +408,12 @@ void main() {
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
   _screen('notes', 'Ghi chú', home, section: 'note');
+  _screen('notes-select', 'Ghi chú · bấm giữ một dòng', home, section: 'note',
+      change: 'Cùng một cách chọn ở mọi danh sách: bấm giữ, rồi mọi dòng hiện vòng tròn như ảnh',
+      act: (t) async {
+    await t.longPress(find.byType(SelectableRow).first);
+    await t.pumpAndSettle();
+  });
   Future<void> tapThumb(WidgetTester t, int n) async {
     await t.tap(find.byType(Image).at(n));
     for (var i = 0; i < 6; i++) {
@@ -417,7 +426,9 @@ void main() {
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
       act: (t) => tapThumb(t, 5));
-  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
+  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library',
+      change: 'Mọi nút trên ảnh có nền kính tối riêng, biểu tượng to hơn: ảnh sáng không làm mất chữ Gửi / Xoá / ngày giờ nữa',
+      marks: [() => find.byKey(const ValueKey('photo-send'))], act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
     for (var i = 0; i < 6; i++) {
@@ -426,9 +437,21 @@ void main() {
     }
   });
   _screen('audio', 'Ghi âm', home, section: 'audio');
+  _screen('audio-select', 'Ghi âm · bấm giữ một bản ghi', home, section: 'audio',
+      change: 'Bấm giữ một bản ghi là chọn (trước không có gì xảy ra); mọi dòng hiện vòng tròn như ảnh, chạm để chọn thêm',
+      act: (t) async {
+    await t.longPress(find.text('Cuộc họp với luật sư'));
+    await t.pumpAndSettle();
+  });
   _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
       act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
   _screen('files', 'Tệp', home, section: 'file');
+  _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
+      change: 'Cùng một cách chọn ở mọi danh sách: bấm giữ, rồi mọi dòng hiện vòng tròn như ảnh',
+      act: (t) async {
+    await t.longPress(find.byType(SelectableRow).first);
+    await t.pumpAndSettle();
+  });
   _screen('tag-files', 'Tệp · trong nhóm "Hộ chiếu"', home, section: 'file', act: (t) => _tapChip(t, 'Hộ chiếu'));
   _screen('tag-notes', 'Ghi chú · cùng nhóm "Hộ chiếu"', home, section: 'file', act: (t) async {
     await _tapChip(t, 'Hộ chiếu');
@@ -465,12 +488,23 @@ void main() {
   _screen('identity-card', 'Cài đặt · Đổi biểu tượng và màu', () => Builder(builder: (context) {
         WidgetsBinding.instance.addPostFrameCallback((_) => showIdentityCard(context, icon: 0, color: 3));
         return settings(vault);
-      }),
-      change: 'Một hộp nổi: biểu tượng xem trước ở trên đổi theo lựa chọn, lưới biểu tượng, hàng màu, nút Lưu (trước là hai trang liên tiếp)');
-  _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
-      act: (t) async {
+      }));
+  Future<void> toDisplay(WidgetTester t) async {
     await t.scrollUntilVisible(find.text('Hiện nội dung ghi chú'), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
+  }
+  _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
+      change: 'MỚI: dòng Ngôn ngữ (15 ngôn ngữ). Trên iPhone và Android 13+ nó chính là ngôn ngữ riêng của app trong Cài đặt máy: đổi ở đâu thì chỗ kia đổi theo',
+      marks: [() => find.byKey(const ValueKey('language-row'))],
+      act: toDisplay);
+  _screen('settings-language', 'Cài đặt · Ngôn ngữ', () => settings(vault),
+      change: 'Trang chọn: “Theo máy” trước, rồi mỗi ngôn ngữ viết bằng chính nó. (Ô vuông ở cuối là chữ Thái/Nhật/Hàn/Trung: máy chụp ảnh thử thiếu font, điện thoại hiện bình thường)',
+      act: (t) async {
+    await toDisplay(t);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 160));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('language-row')));
+    await t.pumpAndSettle();
   });
   Future<void> toAbout(WidgetTester t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('about-version')), 300, scrollable: find.byType(Scrollable).first);
@@ -494,15 +528,11 @@ void main() {
         return home();
       });
   _screen('originals-photos', 'Vừa cất 5 ảnh vào két', () => sheetOver(const DeleteOriginalsSheet(count: 5, photos: true)),
-      section: 'library',
-      change: 'MỚI: sau khi cất ảnh/video vào két, hỏi xoá bản gốc trong app Ảnh; bấm Xoá thì iPhone/Android hỏi thêm một lần rồi đưa vào Đã xoá gần đây',
-      marks: [() => find.byKey(const ValueKey('originals-delete'))]);
+      section: 'library');
   _screen('originals-files', 'Vừa cất 2 tệp vào két', () => sheetOver(const DeleteOriginalsSheet(count: 2, photos: false)),
-      section: 'file', change: 'Tệp cũng vậy: xoá bản gốc ở chỗ cũ (Tệp/iCloud Drive, bộ nhớ máy)');
-  _screen('blur', 'Thư viện · bật làm mờ ảnh thu nhỏ', home, section: 'library', setup: () => Prefs.write('blur-thumbnails', '1'),
-      change: 'MỚI: Cài đặt → Hiển thị → Làm mờ ảnh thu nhỏ: người bên cạnh không nhìn rõ; chạm vào vẫn xem rõ. Tắt phải qua Face ID');
-  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen(),
-      change: 'Trang viết lại nghiêm túc: mở đầu ngắn, 6 phần mỗi phần một hình minh hoạ + giải thích dễ hiểu, chi tiết kỹ thuật gập ở cuối');
+      section: 'file');
+  _screen('blur', 'Thư viện · bật làm mờ ảnh thu nhỏ', home, section: 'library', setup: () => Prefs.write('blur-thumbnails', '1'));
+  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen());
   _screen('security-info-2', 'Cách két được bảo vệ · giữa trang', () => const SecurityInfoScreen(), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-4')), 300, scrollable: find.byType(Scrollable).first);
     await t.pump();
@@ -517,8 +547,7 @@ void main() {
   _screen('trash-select', 'Đã xoá · chạm chọn 1 ảnh', () => const TrashScreen(),
       act: (t) => t.tap(find.byType(Image).first));
   _screen('kit', 'Bộ khẩn cấp: khoá bí mật che sẵn', () => const EmergencyKitScreen(
-      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
-      change: 'Một tên duy nhất “Secret Key” (trước có chỗ ghi “Mã bí mật”); khác hẳn mật khẩu sao lưu và mã PIN');
+      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false));
   _screen('kit-shown', 'Bộ khẩn cấp: sau khi bấm Xem', () => const EmergencyKitScreen(
       keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));

@@ -480,20 +480,22 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                   top: false,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(28, 8, 28, 16),
-                    child: Row(
+                    // A labelled button, not a bare glyph: a lone fingerprint looked like
+                    // the system's own sensor prompt (owner 2026-10-21).
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Expanded(
-                          child: Align(alignment: Alignment.centerLeft, child: _moreMenu(l)),
-                        ),
+                        Align(alignment: Alignment.centerLeft, child: _moreMenu(l)),
                         if (bio != null)
-                          _RoundButton(
-                            key: const ValueKey('biometric-button'),
-                            size: 60,
-                            tooltip: bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint,
-                            onTap: _busy ? null : _unlockBiometric,
-                            child: BiometricGlyph(kind: bio, size: 28, color: ink),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 60),
+                            child: _BiometricButton(
+                              key: const ValueKey('biometric-button'),
+                              kind: bio,
+                              label: bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint,
+                              onTap: _busy ? null : _unlockBiometric,
+                            ),
                           ),
-                        const Expanded(child: SizedBox()),
                       ],
                     ),
                   ),
@@ -664,4 +666,43 @@ class _RoundButton extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// "Unlock with Face ID / fingerprint": a soft blue pill with the symbol and the words.
+class _BiometricButton extends StatelessWidget {
+  const _BiometricButton({super.key, required this.kind, required this.label, required this.onTap});
+  final BiometricKind kind;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ink = dark ? const Color(0xFF7CC0FF) : const Color(0xFF0A6FD8);
+    return Material(
+      color: ink.withValues(alpha: dark ? .18 : .12),
+      shape: const StadiumBorder(),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  BiometricGlyph(kind: kind, size: 24, color: ink),
+                  const SizedBox(width: 10),
+                  Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ink)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

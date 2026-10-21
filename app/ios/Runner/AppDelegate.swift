@@ -54,6 +54,25 @@ import UniformTypeIdentifiers
         default: result(FlutterMethodNotImplemented)
         }
       }
+      // The app's own language, the same value as Settings → Cozy Safe → Language
+      // (lib/language.dart). iOS applies it from the next start.
+      let language = FlutterMethodChannel(name: "cozysafe/language", binaryMessenger: registrar.messenger())
+      language.setMethodCallHandler { call, result in
+        let defaults = UserDefaults.standard
+        let own = defaults.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "")?["AppleLanguages"] as? [String]
+        switch call.method {
+        case "get": result(own?.first)
+        case "set":
+          let tag = (call.arguments as? [String: Any])?["tag"] as? String ?? ""
+          if tag.isEmpty {
+            defaults.removeObject(forKey: "AppleLanguages")
+          } else {
+            defaults.set([tag], forKey: "AppleLanguages")
+          }
+          result(defaults.stringArray(forKey: "AppleLanguages")?.first)
+        default: result(FlutterMethodNotImplemented)
+        }
+      }
       channel.setMethodCallHandler { [weak self] call, result in
         if call.method == "suspendCover" {
           self?.coverSuspended = (call.arguments as? Bool) ?? false

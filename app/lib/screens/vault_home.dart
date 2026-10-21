@@ -28,6 +28,7 @@ import 'camera.dart';
 import 'common.dart';
 import 'emergency_kit.dart';
 import 'file_view.dart';
+import 'glass.dart';
 import 'new_vault.dart';
 import 'quick_look.dart';
 import 'note.dart';
@@ -39,6 +40,7 @@ import 'unlock.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
 import '../item_kind.dart';
+import '../widgets/selectable_row.dart';
 import '../widgets/toast.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
@@ -907,6 +909,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                           item: it,
                           preview: notePreviews() ? _preview(it.id) : null,
                           selected: _selected.contains(it.id),
+                          selecting: _selected.isNotEmpty,
                           onTap: () => _openItem(it, const []),
                           onLongPress: () => _toggle(it.id),
                         )
@@ -914,6 +917,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                           item: it,
                           thumbnail: _isMedia(it) ? _thumbnail(it.id) : null,
                           selected: _selected.contains(it.id),
+                          selecting: _selected.isNotEmpty,
                           onTap: () => _openItem(it, list.where(_isMedia).toList()),
                           onLongPress: () => _toggle(it.id),
                         ),
@@ -1103,6 +1107,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           onSaved: _reload,
           onRecordingChanged: (v) => setState(() => _recordingNow = v),
           onOpen: _audioActions,
+          selected: _selected,
+          onToggleSelect: _toggle,
         ),
       VaultSection.library => _library(context, shown),
     };
@@ -1730,6 +1736,7 @@ class _NoteRow extends StatelessWidget {
     required this.item,
     required this.preview,
     required this.selected,
+    required this.selecting,
     required this.onTap,
     required this.onLongPress,
   });
@@ -1737,6 +1744,7 @@ class _NoteRow extends StatelessWidget {
   /// null: the text stays hidden (Settings → Display).
   final Future<String>? preview;
   final bool selected;
+  final bool selecting;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -1745,12 +1753,12 @@ class _NoteRow extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final when = _shortWhen(context, dateOf(item.createdMs));
-    return InkWell(
+    return SelectableRow(
+      selected: selected,
+      selecting: selecting,
       onTap: onTap,
       onLongPress: onLongPress,
-      child: Container(
-        color: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: .12) : null,
-        padding: const EdgeInsets.fromLTRB(16, 11, 12, 11),
+      padding: const EdgeInsets.fromLTRB(16, 11, 12, 11),
         child: Row(
           children: [
             Expanded(
@@ -1784,24 +1792,27 @@ class _NoteRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (selected) ...[
-              const SizedBox(width: 8),
-              Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
-            ],
           ],
         ),
-      ),
     );
   }
 }
 
 /// A file: its kind, name, size and date.
 class _FileRow extends StatelessWidget {
-  const _FileRow({required this.item, this.thumbnail, required this.selected, required this.onTap, required this.onLongPress});
+  const _FileRow({
+    required this.item,
+    this.thumbnail,
+    required this.selected,
+    required this.selecting,
+    required this.onTap,
+    required this.onLongPress,
+  });
   final rust.ItemInfo item;
   /// A photo's or video's preview, when one shows up among files.
   final Future<Uint8List>? thumbnail;
   final bool selected;
+  final bool selecting;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -1811,12 +1822,11 @@ class _FileRow extends StatelessWidget {
     final when = MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs));
     final dot = item.name.lastIndexOf('.');
     final ext = dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
-    return InkWell(
+    return SelectableRow(
+      selected: selected,
+      selecting: selecting,
       onTap: onTap,
       onLongPress: onLongPress,
-      child: Container(
-        color: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: .12) : null,
-        padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
         child: Row(
           children: [
             Container(
@@ -1850,10 +1860,8 @@ class _FileRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (selected) Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
           ],
         ),
-      ),
     );
   }
 }
@@ -2088,22 +2096,31 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                     bottom: false,
                     child: Row(
                       children: [
-                        IconButton(
-                          key: const ValueKey('media-exit-full'),
-                          // Back to the quick look this full screen was opened from.
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 28),
-                          tooltip: l.exitFullScreen,
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(ml.formatMediumDate(when), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                              Text(ml.formatTimeOfDay(TimeOfDay.fromDateTime(when)), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                            ],
+                        const SizedBox(width: 8),
+                        // Every control sits on dark glass: white on a bright photo vanished.
+                        GlassPill(
+                          child: IconButton(
+                            key: const ValueKey('media-exit-full'),
+                            // Back to the quick look this full screen was opened from.
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 26),
+                            tooltip: l.exitFullScreen,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        GlassPill(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(ml.formatMediumDate(when), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                                Text(ml.formatTimeOfDay(TimeOfDay.fromDateTime(when)), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
                       ],
                     ),
                   ),
@@ -2115,19 +2132,23 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          TextButton.icon(
-                            key: const ValueKey('photo-send'),
-                            onPressed: () => shareItem(context, _item, widget.vaultId),
-                            style: TextButton.styleFrom(foregroundColor: Colors.white),
-                            icon: const Icon(Icons.ios_share),
-                            label: Text(l.sendOut),
+                          GlassPill(
+                            child: TextButton.icon(
+                              key: const ValueKey('photo-send'),
+                              onPressed: () => shareItem(context, _item, widget.vaultId),
+                              style: glassButton,
+                              icon: const Icon(Icons.ios_share),
+                              label: glassLabel(l.sendOut),
+                            ),
                           ),
-                          const SizedBox(width: 24),
-                          TextButton.icon(
-                            onPressed: _delete,
-                            style: TextButton.styleFrom(foregroundColor: Colors.white),
-                            icon: const Icon(Icons.delete_outline),
-                            label: Text(l.delete),
+                          const SizedBox(width: 16),
+                          GlassPill(
+                            child: TextButton.icon(
+                              onPressed: _delete,
+                              style: glassButton,
+                              icon: const Icon(Icons.delete_outline),
+                              label: glassLabel(l.delete),
+                            ),
                           ),
                         ],
                       ),

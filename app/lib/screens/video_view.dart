@@ -11,6 +11,7 @@ import '../lock_guard.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'file_view.dart';
+import 'glass.dart';
 
 /// A video, played inside the app. The player needs a file, so the video is decrypted
 /// into the app's own temporary folder (never shared storage) and that copy is deleted
@@ -21,6 +22,7 @@ class VideoViewScreen extends StatefulWidget {
 
   final rust.ItemInfo item;
   final String vaultId;
+
   /// Full screen from the quick look: its player (and decrypted copy) carry on here and
   /// stay the quick look's to dispose; the corner button goes back to it.
   final VideoPlayerController? player;
@@ -155,17 +157,18 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
     final box = buttonContext.findRenderObject() as RenderBox?;
     LockGuard.allowAway();
     try {
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(copy.path, mimeType: widget.item.mime, name: widget.item.name)],
-        sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-      ));
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(copy.path, mimeType: widget.item.mime, name: widget.item.name)],
+          sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
     } finally {
       LockGuard.clear();
     }
   }
 
-  static String _time(Duration d) =>
-      '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
+  static String _time(Duration d) => '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -184,11 +187,15 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
               child: _failed
                   ? Padding(
                       padding: const EdgeInsets.all(32),
-                      child: Text(l.videoFailed, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
+                      child: Text(
+                        l.videoFailed,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     )
                   : p == null || v == null || !v.isInitialized
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : AspectRatio(aspectRatio: v.aspectRatio, child: VideoPlayer(p)),
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : AspectRatio(aspectRatio: v.aspectRatio, child: VideoPlayer(p)),
             ),
             AnimatedOpacity(
               opacity: _bars ? 1 : 0,
@@ -200,17 +207,32 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                     children: [
                       Row(
                         children: [
-                          IconButton(
-                            key: const ValueKey('media-exit-full'),
-                            tooltip: widget.player != null ? l.exitFullScreen : l.close,
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: Icon(widget.player != null ? Icons.fullscreen_exit_rounded : Icons.close, color: Colors.white),
+                          const SizedBox(width: 8),
+                          GlassPill(
+                            child: IconButton(
+                              key: const ValueKey('media-exit-full'),
+                              tooltip: widget.player != null ? l.exitFullScreen : l.close,
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: Icon(
+                                widget.player != null ? Icons.fullscreen_exit_rounded : Icons.close,
+                                color: Colors.white,
+                                size: 26,
+                              ),
+                            ),
                           ),
-                          Expanded(
-                            child: Text(widget.item.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: GlassPill(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                                child: Text(
+                                  widget.item.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 12),
                         ],
@@ -219,42 +241,56 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                       if (p != null && v != null && v.isInitialized)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
-                            children: [
-                              IconButton(
-                                tooltip: v.isPlaying ? l.pause : l.play,
-                                onPressed: () => v.isPlaying ? p.pause() : p.play(),
-                                icon: Icon(v.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white),
+                          child: GlassPill(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 16),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    tooltip: v.isPlaying ? l.pause : l.play,
+                                    onPressed: () => v.isPlaying ? p.pause() : p.play(),
+                                    icon: Icon(
+                                      v.isPlaying ? Icons.pause : Icons.play_arrow,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  ),
+                                  Text(_time(v.position), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      child: VideoProgressIndicator(p, allowScrubbing: true),
+                                    ),
+                                  ),
+                                  Text(_time(v.duration), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                ],
                               ),
-                              Text(_time(v.position), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: VideoProgressIndicator(p, allowScrubbing: true),
-                                ),
-                              ),
-                              Text(_time(v.duration), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                            ],
+                            ),
                           ),
                         ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Builder(
-                              builder: (b) => TextButton.icon(
-                                onPressed: _copy == null ? null : () => _send(b),
-                                style: TextButton.styleFrom(foregroundColor: Colors.white),
-                                icon: const Icon(Icons.ios_share),
-                                label: Text(l.sendOut),
+                              builder: (b) => GlassPill(
+                                child: TextButton.icon(
+                                  onPressed: _copy == null ? null : () => _send(b),
+                                  style: glassButton,
+                                  icon: const Icon(Icons.ios_share),
+                                  label: glassLabel(l.sendOut),
+                                ),
                               ),
                             ),
-                            TextButton.icon(
-                              onPressed: _delete,
-                              style: TextButton.styleFrom(foregroundColor: Colors.white),
-                              icon: const Icon(Icons.delete_outline),
-                              label: Text(l.delete),
+                            const SizedBox(width: 16),
+                            GlassPill(
+                              child: TextButton.icon(
+                                onPressed: _delete,
+                                style: glassButton,
+                                icon: const Icon(Icons.delete_outline),
+                                label: glassLabel(l.delete),
+                              ),
                             ),
                           ],
                         ),
