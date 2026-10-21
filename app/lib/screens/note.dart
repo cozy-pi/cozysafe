@@ -18,6 +18,9 @@ import '../widgets/vault_bar.dart';
 /// its first line. New notes start with the keyboard open.
 class NoteScreen extends StatefulWidget {
   const NoteScreen({super.key, this.item, this.tagId, this.vaultId = ''});
+
+  /// The write started by a swipe back (null when the back button already saved).
+  static Future<void>? lastSave;
   /// For Send (the first share out of each vault asks once).
   final String vaultId;
 
@@ -91,10 +94,11 @@ class _NoteScreenState extends State<NoteScreen> {
   /// Write the text if it changed. One write at a time; an empty new note is not written.
   Future<void> _saveNow() async {
     _autosave?.cancel();
+    // Read before waiting: a swipe back saves after the screen (and its controller) is gone.
+    final text = _text.text;
     while (_writing != null) {
       await _writing;
     }
-    final text = _text.text;
     if (!_ready || text == _loaded || (_id == null && text.trim().isEmpty)) return;
     final done = Completer<void>();
     _writing = done.future;
@@ -160,10 +164,12 @@ class _NoteScreenState extends State<NoteScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
+    // Swipe back must work like the back button (owner 2026-10-21): blocking the pop to
+    // save first also switched off the iOS edge swipe. The pop goes through and the
+    // last words are written behind it; the list waits for [lastSave] before reloading.
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _saveAndLeave();
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop && result == null) NoteScreen.lastSave = _saveNow();
       },
       child: Scaffold(
         body: SafeArea(

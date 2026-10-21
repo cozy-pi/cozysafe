@@ -378,7 +378,7 @@ name) are kept.
 - **Main action on the left or right** (Settings → Display → Add button; left by default,
   under the left thumb). Messages move to the other side of it.
 - Notes list: title, then when it was made (time today, weekday this week, else the
-  date). The first words show only with Settings → Display → Show note text (0.1.10;
+  date). The first words show only with Settings → Display → Hide note text turned off (0.1.10;
   `docs/security.md`). Sections and groups change with a short fade.
 - **Settings may use colour, softly** (owner 2026-10-21): the storage bar in one colour per
   kind (photos blue, videos purple, notes yellow, voice orange, files green), the storage
@@ -412,6 +412,11 @@ everywhere, easy to hit with a thumb.
 - **The lock button is just a big lock** on glass. A vault icon there (tried 2026-10-21)
   confused testers and would hint that the phone holds other vaults; the vault shows once
   when it opens, and in Settings.
+- **Back button and swipe back go together** (owner 2026-10-21): every page with a back
+  button can also be swiped back (iOS edge swipe, Android back gesture). Never block the pop
+  (`canPop: false`) to save or to return a result: that switches the swipe off. Save behind
+  the pop instead (the note editor writes its last words after the swipe, `NoteScreen.lastSave`)
+  and let the caller reload on a null result. `test/swipe_back_test.dart` checks.
 - **One way to select, in every list** (owner 2026-10-21): the photo grid, notes, files,
   recordings and any kind added later. A long press selects, the "Select" button in the
   header starts selecting, and while anything is selected every item shows a circle

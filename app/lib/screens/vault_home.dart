@@ -334,9 +334,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<void> _openNote(rust.ItemInfo? item) async {
+    NoteScreen.lastSave = null;
     final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
         builder: (_) => NoteScreen(item: item, tagId: item == null ? _tagId : null, vaultId: _vault.id)));
-    if (!_locked && changed == true) {
+    // A swipe back pops null and saves behind the pop: wait for it, then reload.
+    final pending = NoteScreen.lastSave;
+    if (pending != null) {
+      try {
+        await pending;
+      } catch (_) {
+        if (mounted) showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+      }
+    }
+    if (!_locked && changed != false) {
       _previews.clear();
       _reload();
     }
@@ -557,7 +567,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<void> _openTrash() async {
     final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TrashScreen()));
-    if (!_locked && changed == true) _reload();
+    // A swipe back returns null: reload then too.
+    if (!_locked && changed != false) _reload();
   }
 
   Future<void> _openSettings() async {

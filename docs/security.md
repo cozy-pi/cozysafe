@@ -18,7 +18,7 @@ time, wherever it is opened from:
 | Change PIN | `settings.dart` (`_guarded`) |
 | Auto-lock time | `settings.dart` (`_guarded`) |
 | Block screenshots | `settings.dart` (`_guarded`) |
-| Show note text in lists and search (on only) | `settings.dart` (`_guarded`) |
+| Hide note text: turning it off (lists and search would show it) | `settings.dart` (`_guarded`) |
 | Back up to a file | `vault_home.dart` `_backup` |
 | Backup password (set or change) | `vault_home.dart` `_password` (also the reminder banner) |
 | Emergency Kit (shows the Secret Key) | `vault_home.dart` `_showKit` |

@@ -364,14 +364,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _Row(
               icon: Icons.notes_rounded,
               color: _Mau.bacHa,
-              title: l.notePreviews,
-              subtitle: l.notePreviewsNote,
+              // "Hide", on by default (owner 2026-10-21): the safe state is the on state,
+              // like "Blur thumbnails". The pref keeps its old meaning (1 = show text).
+              key: const ValueKey('hide-note-text-row'),
+              title: l.hideNoteText,
+              subtitle: l.hideNoteTextNote,
               trailing: _Switch(
-                value: notePreviews(),
-                // Showing more is weaker: on asks for the owner, off never does.
-                onChanged: (v) => v
-                    ? _guarded(() async => setState(() => Prefs.write(notePreviewsPref, '1')))
-                    : setState(() => Prefs.write(notePreviewsPref, '0')),
+                value: !notePreviews(),
+                // Showing more is weaker: turning "hide" off asks for the owner.
+                onChanged: (hide) => hide
+                    ? setState(() => Prefs.write(notePreviewsPref, '0'))
+                    : _guarded(() async => setState(() => Prefs.write(notePreviewsPref, '1'))),
               ),
             ),
             _Row(
