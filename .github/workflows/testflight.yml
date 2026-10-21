@@ -24,6 +24,9 @@ on:
         default: ""
   workflow_call:
     inputs:
+      upload:
+        type: boolean
+        default: true
       version:
         type: string
         default: ""
@@ -137,7 +140,9 @@ jobs:
           KEY_ID: ${{ secrets.ASC_ADMIN_KEY_ID }}
           ISSUER: ${{ secrets.ASC_ISSUER_ID }}
           KEY_B64: ${{ secrets.ASC_ADMIN_KEY_P8_BASE64 }}
-          ACTION: ${{ (github.event_name == 'workflow_dispatch' && !inputs.upload) && '--validate-app' || '--upload-app' }}
+          # Only an explicit upload=false validates. (Checking the event name was wrong: a
+          # release is itself started by hand, so 0.1.10 was only validated, not uploaded.)
+          ACTION: ${{ inputs.upload == false && '--validate-app' || '--upload-app' }}
         run: |
           # altool finds the key as ~/.appstoreconnect/private_keys/AuthKey_<id>.p8.
           mkdir -p ~/.appstoreconnect/private_keys
