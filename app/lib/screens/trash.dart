@@ -11,7 +11,7 @@ import '../item_kind.dart';
 
 /// Recently deleted: items stay here, still encrypted, for 30 days, then go for good.
 /// Tap items to select them, then Restore or Delete for good in the bottom bar (with
-/// nothing selected, the bar acts on everything). Pops `true` when something changed.
+/// nothing selected, the bar acts on everything). The vault reloads when it closes.
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
 
@@ -23,7 +23,6 @@ class _TrashScreenState extends State<TrashScreen> {
   static const _days = 30;
   List<rust.ItemInfo>? _items;
   final Map<String, Future<Uint8List>> _thumbnails = {};
-  bool _changed = false;
   final Set<String> _picked = {};
 
   @override
@@ -51,7 +50,6 @@ class _TrashScreenState extends State<TrashScreen> {
     for (final it in items) {
       await rust.restoreItem(id: it.id);
     }
-    _changed = true;
     _picked.clear();
     await _load();
   }
@@ -91,11 +89,9 @@ class _TrashScreenState extends State<TrashScreen> {
     final items = _items;
     final photos = items?.where((i) => i.kind == ItemKind.photo).toList() ?? const [];
     final others = items?.where((i) => i.kind != ItemKind.photo).toList() ?? const [];
+    // No canPop: false here: it would switch off the iOS swipe back. A swipe pops null
+    // and the vault reloads anyway.
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) Navigator.of(context).pop(_changed);
-      },
       child: Scaffold(
         appBar: AppBar(
           title: Text(_picked.isEmpty ? l.recentlyDeleted : l.selectedCount(_picked.length)),

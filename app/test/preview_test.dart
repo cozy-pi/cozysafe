@@ -325,13 +325,9 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock,
-      change: 'Nút vân tay / Face ID thành nút có chữ, nền xanh nhạt: trước chỉ là biểu tượng trơn, trông giống lời nhắc vân tay của hệ điều hành',
-      marks: [() => find.byKey(const ValueKey('biometric-button'))]);
+  _screen('lock', 'Màn khoá', lock);
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
-      setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint,
-      change: 'Máy có vân tay: “Mở khoá bằng vân tay”',
-      marks: [() => find.byKey(const ValueKey('biometric-button'))]);
+      setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   // The unlock animation (playVaultSpin), frozen at four moments of its 1.15 s: the vault's
   // icon behind the dial, blurred at first, sharp when the dial has gone.
@@ -409,7 +405,6 @@ void main() {
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
   _screen('notes', 'Ghi chú', home, section: 'note');
   _screen('notes-select', 'Ghi chú · bấm giữ một dòng', home, section: 'note',
-      change: 'Cùng một cách chọn ở mọi danh sách: bấm giữ, rồi mọi dòng hiện vòng tròn như ảnh',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
     await t.pumpAndSettle();
@@ -426,9 +421,7 @@ void main() {
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
       act: (t) => tapThumb(t, 5));
-  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library',
-      change: 'Mọi nút trên ảnh có nền kính tối riêng, biểu tượng to hơn: ảnh sáng không làm mất chữ Gửi / Xoá / ngày giờ nữa',
-      marks: [() => find.byKey(const ValueKey('photo-send'))], act: (t) async {
+  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
     for (var i = 0; i < 6; i++) {
@@ -438,7 +431,6 @@ void main() {
   });
   _screen('audio', 'Ghi âm', home, section: 'audio');
   _screen('audio-select', 'Ghi âm · bấm giữ một bản ghi', home, section: 'audio',
-      change: 'Bấm giữ một bản ghi là chọn (trước không có gì xảy ra); mọi dòng hiện vòng tròn như ảnh, chạm để chọn thêm',
       act: (t) async {
     await t.longPress(find.text('Cuộc họp với luật sư'));
     await t.pumpAndSettle();
@@ -447,7 +439,6 @@ void main() {
       act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
   _screen('files', 'Tệp', home, section: 'file');
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
-      change: 'Cùng một cách chọn ở mọi danh sách: bấm giữ, rồi mọi dòng hiện vòng tròn như ảnh',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
     await t.pumpAndSettle();
@@ -490,15 +481,14 @@ void main() {
         return settings(vault);
       }));
   Future<void> toDisplay(WidgetTester t) async {
-    await t.scrollUntilVisible(find.text('Hiện nội dung ghi chú'), 200, scrollable: find.byType(Scrollable).first);
+    await t.scrollUntilVisible(find.text('Ẩn nội dung ghi chú'), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
   }
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
-      change: 'MỚI: dòng Ngôn ngữ (15 ngôn ngữ). Trên iPhone và Android 13+ nó chính là ngôn ngữ riêng của app trong Cài đặt máy: đổi ở đâu thì chỗ kia đổi theo',
-      marks: [() => find.byKey(const ValueKey('language-row'))],
+      change: '“Hiện nội dung ghi chú” (tắt sẵn) thành “Ẩn nội dung ghi chú” (BẬT sẵn), giống “Làm mờ ảnh thu nhỏ”: bật là an toàn. Tắt phải qua Face ID',
+      marks: [() => find.byKey(const ValueKey('hide-note-text-row'))],
       act: toDisplay);
   _screen('settings-language', 'Cài đặt · Ngôn ngữ', () => settings(vault),
-      change: 'Trang chọn: “Theo máy” trước, rồi mỗi ngôn ngữ viết bằng chính nó. (Ô vuông ở cuối là chữ Thái/Nhật/Hàn/Trung: máy chụp ảnh thử thiếu font, điện thoại hiện bình thường)',
       act: (t) async {
     await toDisplay(t);
     await t.drag(find.byType(Scrollable).first, const Offset(0, 160));
@@ -531,8 +521,7 @@ void main() {
       section: 'library');
   _screen('originals-files', 'Vừa cất 2 tệp vào két', () => sheetOver(const DeleteOriginalsSheet(count: 2, photos: false)),
       section: 'file');
-  _screen('blur', 'Thư viện · làm mờ ảnh thu nhỏ (mặc định)', home, section: 'library',
-      change: 'Làm mờ ảnh thu nhỏ BẬT sẵn cho mọi người; tắt trong Cài đặt → Hiển thị (phải qua Face ID)');
+  _screen('blur', 'Thư viện · làm mờ ảnh thu nhỏ (mặc định)', home, section: 'library');
   _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen());
   _screen('security-info-2', 'Cách két được bảo vệ · giữa trang', () => const SecurityInfoScreen(), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-4')), 300, scrollable: find.byType(Scrollable).first);

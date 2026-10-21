@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/edge_swipe_back.dart';
 import '../widgets/pin_pad.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
@@ -294,6 +295,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _step.index > 0 && !_busy) _back();
       },
+      // Steps live in one page, so the system swipe has nothing to pop: swipe = Back.
+      child: EdgeSwipeBack(
+      enabled: _step.index > 0 && !_busy,
+      onBack: _back,
       child: Scaffold(
       backgroundColor: page,
       body: Stack(
@@ -420,6 +425,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           ),
         ],
       ),
+    ),
     ),
     );
   }
