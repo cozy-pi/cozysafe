@@ -191,3 +191,8 @@ the system value from the next start, so the app switches the running session it
 Translations were made from the English strings, reusing the website's terms; they have
 not been reviewed by native speakers yet.
 
+## 2026-10-21 — Thumbnails blurred by default
+
+"Blur thumbnails" (Settings → Display) is on unless the person turns it off; turning it
+off asks for the owner check, as before. A pref already set to off stays off.
+

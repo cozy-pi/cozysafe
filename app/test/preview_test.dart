@@ -531,7 +531,8 @@ void main() {
       section: 'library');
   _screen('originals-files', 'Vừa cất 2 tệp vào két', () => sheetOver(const DeleteOriginalsSheet(count: 2, photos: false)),
       section: 'file');
-  _screen('blur', 'Thư viện · bật làm mờ ảnh thu nhỏ', home, section: 'library', setup: () => Prefs.write('blur-thumbnails', '1'));
+  _screen('blur', 'Thư viện · làm mờ ảnh thu nhỏ (mặc định)', home, section: 'library',
+      change: 'Làm mờ ảnh thu nhỏ BẬT sẵn cho mọi người; tắt trong Cài đặt → Hiển thị (phải qua Face ID)');
   _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen());
   _screen('security-info-2', 'Cách két được bảo vệ · giữa trang', () => const SecurityInfoScreen(), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-4')), 300, scrollable: find.byType(Scrollable).first);
