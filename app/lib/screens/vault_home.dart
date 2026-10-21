@@ -18,6 +18,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../prefs.dart';
+import '../privacy.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
@@ -110,6 +111,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (mounted) setState(() => _canBio = k != null);
     });
     LockGuard.onActivity = _touch;
+    // A screenshot of an open vault lands in Photos, unencrypted: say so (iOS can't stop it).
+    PrivacyCover.onScreenshot = () {
+      if (mounted) showToast(context, AppLocalizations.of(context).screenshotWarning, icon: Icons.warning_amber_rounded);
+    };
     // Design B (the whole app in the vault's colour) is off since 2026-10-20: it often
     // looked wrong. The palette code stays in theme.dart; turn it back on here.
     if (_tintApp) WidgetsBinding.instance.addPostFrameCallback((_) => vaultTint.value = _color);
@@ -126,6 +131,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   @override
   void dispose() {
+    PrivacyCover.onScreenshot = null;
     _addScroll.dispose();
     _reveal.dispose();
     _idleTimer?.cancel();
@@ -1153,12 +1159,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
-  /// A button for every group, then the tags with something in this section as chips
-  /// (the open one first and marked), then "New group".
+  /// A button for every group, then the groups that hold anything as chips (with their
+  /// whole count; the open one first and marked), then "New group".
   Widget _tagChips(BuildContext context) {
     final l = AppLocalizations.of(context);
     final items = _items ?? const <rust.ItemInfo>[];
-    int count(String tagId) => items.where((i) => _inSection(_section, i) && i.tagIds.contains(tagId)).length;
+    // The whole group's count, the same in every section and in All groups (owner
+    // 2026-10-21); a group with nothing in this section still shows, and opening it
+    // offers the sections where it has something.
+    int count(String tagId) => items.where((i) => i.kind != ItemKind.tag && i.tagIds.contains(tagId)).length;
     final all = _tags.values.toList();
     // The open tag first, then the others by name.
     final here = all.where((t) => t.id == _tagId || count(t.id) > 0).toList()
@@ -1786,7 +1795,7 @@ class _FileRow extends StatelessWidget {
                   ? FutureBuilder<Uint8List>(
                       future: thumbnail,
                       builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                          ? Image.memory(snap.data!, fit: BoxFit.cover)
+                          ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover))
                           : const SizedBox.expand(),
                     )
                   : Center(
@@ -1904,7 +1913,7 @@ class _MediaTile extends StatelessWidget {
                       ? const ColoredBox(color: Color(0xFF2A3133))
                       : const SizedBox.expand();
                 }
-                return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
+                return privateThumb(Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true));
               },
             ),
             if (item.kind == ItemKind.video)

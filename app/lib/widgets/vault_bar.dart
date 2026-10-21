@@ -43,6 +43,16 @@ bool revealIconOn() => Prefs.read(revealIconPref) != '0';
 const notePreviewsPref = 'note-previews';
 bool notePreviews() => Prefs.read(notePreviewsPref) == '1';
 
+/// Thumbnails blurred in lists, for crowded places (Settings → Display; persona review
+/// 2026-10-21). Opening an item still shows it clearly.
+const blurThumbsPref = 'blur-thumbnails';
+bool blurThumbnails() => Prefs.read(blurThumbsPref) == '1';
+
+/// A thumbnail, blurred when [blurThumbnails] is on.
+Widget privateThumb(Widget image) => blurThumbnails()
+    ? ClipRect(child: ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12), child: image))
+    : image;
+
 /// The section the vault opens on: the last one used (0.1.6 kept it as `vault-kind`).
 VaultSection startSection() {
   final saved = Prefs.read(_sectionPref) ?? Prefs.read('vault-kind');

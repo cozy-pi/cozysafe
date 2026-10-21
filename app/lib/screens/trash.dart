@@ -135,7 +135,7 @@ class _TrashScreenState extends State<TrashScreen> {
                               FutureBuilder<Uint8List>(
                                 future: _thumbnails[it.id] ??= rust.itemThumbnail(id: it.id),
                                 builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                                    ? Image.memory(snap.data!, fit: BoxFit.cover, gaplessPlayback: true)
+                                    ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover, gaplessPlayback: true))
                                     : ColoredBox(color: c.soft),
                               ),
                               Positioned(left: 4, bottom: 4, child: _DaysLeft(l.daysLeft(_daysLeft(it)))),

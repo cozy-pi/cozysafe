@@ -153,7 +153,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                         child: FutureBuilder<Uint8List>(
                                           future: widget.thumbnail(it.id),
                                           builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                                              ? Image.memory(snap.data!, fit: BoxFit.cover)
+                                              ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover))
                                               : ColoredBox(color: c.soft),
                                         ),
                                       )

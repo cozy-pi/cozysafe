@@ -358,6 +358,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : setState(() => Prefs.write(notePreviewsPref, '0')),
               ),
             ),
+            _Row(
+              key: const ValueKey('blur-row'),
+              icon: Icons.blur_on_rounded,
+              color: _Mau.ngoc,
+              title: l.blurThumbs,
+              subtitle: l.blurThumbsNote,
+              trailing: _Switch(
+                value: blurThumbnails(),
+                // Turning it on protects more; turning it off asks for the owner.
+                onChanged: (v) => v
+                    ? setState(() => Prefs.write(blurThumbsPref, '1'))
+                    : _guarded(() async => setState(() => Prefs.write(blurThumbsPref, '0'))),
+              ),
+            ),
           ]),
           _Group(title: l.settingsSecurity, rows: [
             _Row(

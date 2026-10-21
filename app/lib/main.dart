@@ -15,6 +15,7 @@ import 'src/rust/api/vault.dart' as rust;
 import 'src/rust/frb_generated.dart';
 import 'theme.dart';
 import 'prefs.dart';
+import 'privacy.dart';
 
 Future<void> main() async {
   installNetworkGuard(); // before any plugin or library code runs
@@ -24,6 +25,7 @@ Future<void> main() async {
   final libraryDir = '${support.path}${Platform.pathSeparator}library';
   Prefs.dir = support.path;
   Settings.apply(); // Android: honour "block screenshots" off
+  PrivacyCover.listen(); // iOS: screenshots taken (they cannot be stopped there)
   clearPlaybackCopies(); // a decrypted video copy left by a crash or a kill
   final hasKey = await loadSecretKey(libraryDir);
   runApp(CozySafeApp(libraryDir: libraryDir, hasSecretKey: hasKey));

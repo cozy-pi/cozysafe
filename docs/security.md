@@ -22,6 +22,7 @@ time, wherever it is opened from:
 | Back up to a file | `vault_home.dart` `_backup` |
 | Backup password (set or change) | `vault_home.dart` `_password` (also the reminder banner) |
 | Emergency Kit (shows the Secret Key) | `vault_home.dart` `_showKit` |
+| Blur thumbnails (off only) | `settings.dart` (`_guarded`) |
 | Delete this vault | `settings.dart` (`_guarded`), then the vault's PIN |
 | New vault | `confirmOwner` (lock screen and vault) |
 
@@ -49,6 +50,12 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
 - **Big files are not loaded whole.** Text previews decrypt only their first 1 MB
   (`item_content_head`); photos decode at screen size; PDFs over 40 MB open from a private
   temporary copy deleted on close, on lock and at start.
+- **Thumbnails can be blurred** in lists for crowded places (Settings → Display); opening
+  an item shows it clearly. Turning it off asks for the owner.
+- **Screen capture.** Android: screenshots and recordings show black (FLAG_SECURE, on by
+  default). iOS cannot block them: while the screen is recorded or mirrored the app is
+  covered (page colour and dial), and after a screenshot the app warns that it is in
+  Photos, unencrypted.
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
   the clipboard after 60 seconds and when the vault locks.
