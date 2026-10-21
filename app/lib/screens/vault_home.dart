@@ -128,7 +128,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// Which vault just opened: on the plain page, its icon comes in as the unlock effect
   /// ends, holds, fades; only then does the content show (docs/ui.md). Vaults have no name.
   late final AnimationController _reveal =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 2000));
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
 
   @override
   void dispose() {
@@ -1290,8 +1290,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             // and gone: icon in, hold, icon out, then the content shows (docs/ui.md).
             // The icon arrives sharp from the unlock (the dial left it there): hold it,
             // fade it, then the content.
-            final icon = 1 - Curves.easeIn.transform(seg(.40, .62));
-            final cover = 1 - Curves.easeOut.transform(seg(.64, 1));
+            final icon = 1 - Curves.easeIn.transform(seg(.22, .55));
+            final cover = 1 - Curves.easeOut.transform(seg(.5, 1));
             const scale = 1.0;
             // Nothing under the cover can be tapped while it is up.
             return AbsorbPointer(

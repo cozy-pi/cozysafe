@@ -327,18 +327,18 @@ void main() {
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   // The unlock animation (playVaultSpin), frozen at four moments of its 1.15 s: the vault's
   // icon behind the dial, blurred at first, sharp when the dial has gone.
-  for (final (ms, what) in [(250, 'két bắt đầu mở, biểu tượng két mờ phía sau'), (520, 'đang xoay, biểu tượng rõ dần'), (700, 'gần mở hết, biểu tượng gần nét'), (880, 'két mở hết, biểu tượng nét hẳn')]) {
+  for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay, màu két hắt quanh mép'), (950, 'cửa két mở vụt qua, biểu tượng hiện'), (1100, 'biểu tượng nét')]) {
     _screen('unlock-$ms', 'Mở khoá · $ms ms · $what', lock, after: 0,
-        change: ms == 250 ? 'Hiệu ứng mở két mới: biểu tượng két hiện MỜ phía sau mặt khoá, rõ dần theo độ xoay, NÉT HẲN khi két mở hết' : null,
+        change: ms == 520 ? 'Mở két kiểu “cửa két”: mặt khoá đặc xoay, màu của két hắt sáng quanh mép; xong thì mặt khoá phóng vụt qua như cửa mở, biểu tượng két từ nhỏ và nhoè thành nét' : null,
         act: (t) async {
       playVaultSpin(t.element(find.byType(UnlockScreen)), opening: true, onCovered: () {},
-          behind: const VaultBadge(icon: 'home', color: 'green', size: 120));
+          behind: const VaultBadge(icon: 'home', color: 'green', size: 120), glow: colorById('green').color);
       await t.pump();
       await t.pump(Duration(milliseconds: ms));
     });
   }
   // After the spin: the same icon, already sharp, holds, fades, then the content.
-  for (final (ms, what) in [(200, 'biểu tượng nét, nối tiếp từ mặt khoá'), (1000, 'biểu tượng mờ dần'), (1700, 'nội dung hiện ra')]) {
+  for (final (ms, what) in [(100, 'biểu tượng nét, nối tiếp từ cửa két'), (500, 'biểu tượng mờ dần'), (1000, 'nội dung hiện ra')]) {
     _screen('reveal-$ms', 'Vừa mở · $ms ms · $what', home, section: 'library', after: 0,
         setup: () => VaultHomeScreen.debugReveal = true, act: (t) async {
       await t.pump(Duration(milliseconds: ms));
@@ -514,7 +514,7 @@ void main() {
       act: (t) => t.tap(find.byType(Image).first));
   _screen('kit', 'Bộ khẩn cấp: khoá bí mật che sẵn', () => const EmergencyKitScreen(
       keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
-      change: '“Secret Key” và “Mã bí mật” thống nhất thành “Khoá bí mật” ở mọi chỗ tiếng Việt');
+      change: 'Một tên duy nhất “Secret Key” (trước có chỗ ghi “Mã bí mật”); khác hẳn mật khẩu sao lưu và mã PIN');
   _screen('kit-shown', 'Bộ khẩn cấp: sau khi bấm Xem', () => const EmergencyKitScreen(
       keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));

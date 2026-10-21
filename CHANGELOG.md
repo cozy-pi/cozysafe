@@ -4,6 +4,25 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.15 (2026-10-21)
+
+### Added
+- After putting photos, videos or files in the vault, you can remove the originals from
+  the phone (asked first, then the phone asks again; photos go to Recently Deleted).
+- Blur thumbnails in lists for crowded places (Settings → Display).
+- iPhone: the screen is covered while it is being recorded or mirrored, and a screenshot
+  brings a reminder that it is in Photos, unencrypted (iOS cannot block either).
+
+### Changed
+- Unlocking: the dial turns with the vault's colour glowing around it, then swings open
+  like a safe's door onto the vault's icon; a little quicker than before.
+- Short things to read or pick open in a card in the middle of the screen; changing the
+  vault's icon and colour is one card with a live preview.
+- Group chips count everything in the group, the same in every section.
+- The add column marks where its loop starts with a plain line only.
+- Vietnamese: the Secret Key is called "Secret Key" everywhere (it was also called
+  "Mã bí mật" in one place).
+
 ## 0.1.14 (2026-10-21)
 
 ### Added

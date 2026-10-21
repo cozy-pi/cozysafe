@@ -14,7 +14,7 @@ wrong, change it here first and then in the code, in the same commit.
 | A group of items | `tag`; on an item `tag_ids` / `tagIds` | nhóm | A tag is an item of kind `tag` (encrypted like the rest). An item can carry several |
 | The four tabs at the bottom | `section`: `note`, `library`, `audio`, `file` (Dart `VaultSection`) | Ghi chú · Thư viện · Ghi âm · Tệp | A section shows items of some kinds; it is not a kind |
 | Small preview image | `thumbnail` | | Not `thumb`. The on-disk role tag `thumb` (file `<item>.thumb`, AAD `item/<id>/thumb`) stays: it is part of the encryption format |
-| The second secret, kept in the device's keystore | `secret key` (`SecretKeyStore`) | Khoá bí mật (en: Secret Key) | Owner 2026-10-21; not "Mã bí mật", not English in Vietnamese text |
+| The second secret, kept in the device's keystore | `secret key` (`SecretKeyStore`) | Secret Key (in Vietnamese too, like 1Password) | Owner 2026-10-21; never "Mã bí mật" or "Khoá bí mật". Distinct from the backup password (mật khẩu sao lưu) and the PIN |
 
 ## Rules
 
