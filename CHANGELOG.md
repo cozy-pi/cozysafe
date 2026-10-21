@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.26 (2026-10-22)
+
+### Changed
+- No lock button by default: hold the home tab to lock the vault. Settings → Display →
+  "Hold Home to Lock" brings the lock button back.
+- The bottom bar is the app's own again. The iPhone's own bar (iOS 26) is in Debug, to
+  try; it now stacks each icon above its word.
+- The ⋯ menu on the lock screen takes the page's colour instead of a white box.
+
 ## 0.1.25 (2026-10-21)
 
 ### Added

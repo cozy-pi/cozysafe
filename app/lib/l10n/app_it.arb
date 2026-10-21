@@ -379,7 +379,7 @@
   "secKeepTitle": "Conservale bene: nessuno può recuperarle al posto tuo",
   "secKeepBody": "Non abbiamo copia di nulla. Conserva la Chiave di recupero in un posto sicuro, lontano dal telefono, e ricorda la password della cassaforte. Se perdi sia il telefono sia la Chiave di recupero, o dimentichi la password, i dati non si possono recuperare.",
   "secNewPhone": "Nuovo telefono",
-  "lockOnPlusTitle": "Tieni premuto + per bloccare",
+  "holdHomeTitle": "Tieni premuto Home per bloccare",
   "holdToLock": "tieni premuto per bloccare",
   "debugTry": "Prove",
   "debugNativeBar": "Barra inferiore di iPhone",

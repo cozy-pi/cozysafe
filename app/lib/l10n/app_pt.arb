@@ -379,7 +379,7 @@
   "secKeepTitle": "Guarde bem: ninguém pode recuperá-las por você",
   "secKeepBody": "Não temos cópia de nada. Guarde a sua Chave de recuperação em um lugar seguro, longe do celular, e lembre a senha do cofre. Se perder o celular e a Chave de recuperação, ou esquecer a senha, os dados não podem ser recuperados.",
   "secNewPhone": "Celular novo",
-  "lockOnPlusTitle": "Segure + para bloquear",
+  "holdHomeTitle": "Segure Início para bloquear",
   "holdToLock": "segure para bloquear",
   "debugTry": "Testes",
   "debugNativeBar": "Barra inferior do próprio iPhone",

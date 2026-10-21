@@ -379,7 +379,7 @@
   "secKeepTitle": "Gardez-les en lieu sûr : personne ne peut les récupérer pour vous",
   "secKeepBody": "Nous n'avons copie de rien. Gardez votre clé de récupération en lieu sûr, loin de votre téléphone, et retenez le mot de passe du coffre. Si vous perdez à la fois votre téléphone et la clé de récupération, ou oubliez le mot de passe, les données sont irrécupérables.",
   "secNewPhone": "Nouveau téléphone",
-  "lockOnPlusTitle": "Maintenir + pour verrouiller",
+  "holdHomeTitle": "Maintenir Accueil pour verrouiller",
   "holdToLock": "maintenir pour verrouiller",
   "debugTry": "Essais",
   "debugNativeBar": "Barre du bas de l’iPhone",

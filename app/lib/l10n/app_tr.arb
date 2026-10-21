@@ -379,7 +379,7 @@
   "secKeepTitle": "İyi saklayın: kimse onları sizin için kurtaramaz",
   "secKeepBody": "Hiçbir şeyin kopyası bizde yok. Kurtarma Anahtarınızı telefonunuzdan ayrı, güvenli bir yerde saklayın ve kasa parolanızı unutmayın. Hem telefonu hem Kurtarma Anahtarını kaybederseniz ya da parolayı unutursanız veriler kurtarılamaz.",
   "secNewPhone": "Yeni telefon",
-  "lockOnPlusTitle": "Kilitlemek için + basılı tut",
+  "holdHomeTitle": "Kilitlemek için Ana sayfayı basılı tut",
   "holdToLock": "kilitlemek için basılı tutun",
   "debugTry": "Deneme",
   "debugNativeBar": "iPhone’un kendi alt çubuğu",

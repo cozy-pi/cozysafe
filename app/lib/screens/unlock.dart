@@ -510,21 +510,30 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   }
 
   /// The thumb menu is white in light and dark alike, so its text is always dark.
-  static final _menuItem = MenuItemButton.styleFrom(
-    foregroundColor: const Color(0xFF1A1D1F),
-    iconColor: const Color(0xFF1A1D1F),
-    minimumSize: const Size(220, 48),
-  );
+  ButtonStyle get _menuItem {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    return MenuItemButton.styleFrom(foregroundColor: ink, iconColor: ink, minimumSize: const Size(220, 48));
+  }
 
   /// "Use password" / "Use PIN", "Create a new vault" (owner check first), "Restore".
+  /// The menu in the page's own colour, a shade lighter (dark) or darker (light), never
+  /// a white slab over the dark lock (owner 2026-10-22: "too bright").
+  Color get _menuFill {
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Color.alphaBlend(ink.withValues(alpha: dark ? .10 : .05), page);
+  }
+
   Widget _moreMenu(AppLocalizations l) => MenuAnchor(
         alignmentOffset: const Offset(0, -8),
         style: MenuStyle(
-          backgroundColor: const WidgetStatePropertyAll(Colors.white),
+          backgroundColor: WidgetStatePropertyAll(_menuFill),
           surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
           elevation: const WidgetStatePropertyAll(10),
           shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-          side: const WidgetStatePropertyAll(BorderSide.none),
+          side: WidgetStatePropertyAll(
+              BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .10))),
           padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 6)),
         ),
         menuChildren: [

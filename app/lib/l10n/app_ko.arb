@@ -379,7 +379,7 @@
   "secKeepTitle": "안전하게 보관하세요: 누구도 대신 복구해 줄 수 없습니다",
   "secKeepBody": "저희는 어떤 사본도 갖고 있지 않습니다. 복구 키는 휴대폰과 떨어진 안전한 곳에 보관하고, 금고 비밀번호를 기억해 두세요. 휴대폰과 복구 키를 모두 잃거나 비밀번호를 잊으면 데이터를 복구할 수 없습니다.",
   "secNewPhone": "새 휴대폰",
-  "lockOnPlusTitle": "+를 길게 눌러 잠그기",
+  "holdHomeTitle": "홈을 길게 눌러 잠그기",
   "holdToLock": "길게 눌러 잠그기",
   "debugTry": "실험",
   "debugNativeBar": "iPhone 기본 하단 바",

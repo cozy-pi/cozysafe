@@ -241,3 +241,12 @@ before relying on it.
 - Settings rows carry a name only, no note under it; Security holds everything about
   opening the vault; "Block screenshots" sits with the blur switches in Display.
 - A recording tapped outside Voice plays in a card where you are; no tab change.
+
+## 2026-10-22 — Hold home to lock; system bar only in Debug
+
+- Holding the home tab locks; no lock button by default (Settings brings it back). Where
+  the bar has no home tab (one kind of item, an empty vault) the lock button stays.
+  Replaces "hold + to lock".
+- The iOS 26 system bar is off by default (Debug turns it on): on a real iPhone the
+  standalone UITabBar laid icon and word side by side and overlapped. Fixed by forcing
+  compact size classes and letting the bar report its height; to be checked again.

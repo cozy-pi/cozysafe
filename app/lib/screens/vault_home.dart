@@ -1421,20 +1421,23 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     });
   }
 
-  /// "Hold + to lock" is on (Settings): no lock button; the + is there even in an empty
-  /// vault, as the way to lock.
-  bool get _noLockButton => lockOnPlus();
+  /// Holding the home tab locks (on by default, Settings): no lock button, as long as
+  /// the bar has a home tab to hold.
+  bool _noLockButton(List<VaultSection> sections) =>
+      holdHomeLocks() && sections.length >= 2 && sections.contains(VaultSection.home);
+  void _holdHome() {
+    if (_recordingNow) return;
+    _lock();
+  }
 
   Widget _actionButton(BuildContext context) {
     final l = AppLocalizations.of(context);
     final (icon, tip) = _recordingNow ? (Icons.stop_rounded, l.stopRecording) : (Icons.add, _adding ? l.close : l.addToVault);
-    final holdLocks = lockOnPlus() && !_recordingNow && !_adding;
     return ActionButton(
         key: _actionKey,
         icon: icon,
-        tooltip: holdLocks ? '$tip · ${l.holdToLock}' : tip,
+        tooltip: tip,
         onTap: _mainAction,
-        onLongPress: holdLocks ? _lock : null,
         turns: _adding ? .125 : 0,
         color: _recordingNow ? recordRed(context) : null);
   }
@@ -1565,13 +1568,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 Positioned(
                   left: 10,
                   right: 10,
-                  bottom: bottom + Ui.edge - (NativeVaultBar.height - Ui.bar) / 2,
+                  bottom: bottom + Ui.edge - 4,
                   child: NativeVaultBar(
                     section: _section,
                     sections: sections,
                     onSection: _pickSection,
                     onLock: _lock,
-                    showLock: !_noLockButton,
+                    showLock: !_noLockButton(sections),
+                    onHoldHome: _noLockButton(sections) ? _holdHome : null,
                   ),
                 )
               else
@@ -1586,9 +1590,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   onSection: _pickSection,
                   // Just the lock, big: no vault icon, which would hint that the phone
                   // holds other vaults (owner 2026-10-21, after user testing).
-                  // With "hold + to lock" there is no lock button: the sections run the
-                  // full width and the + stays where it is (owner 2026-10-21).
-                  lock: _noLockButton
+                  // Holding the home tab locks: no lock button, the sections run the
+                  // full width (owner 2026-10-22).
+                  onHoldHome: _noLockButton(sections) ? _holdHome : null,
+                  lock: _noLockButton(sections)
                       ? null
                       : GlassButton(
                           key: const ValueKey('lock-button'),
@@ -1618,8 +1623,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   ),
                 ),
               // Above the lock (left thumb), or on the right if chosen in Settings. An
-              // empty vault has the add tiles on screen instead, unless + is also the lock.
-              if (!empty || _noLockButton) Positioned(
+              // empty vault has the add tiles on screen instead.
+              if (!empty) Positioned(
                 // Keyed: the column appearing above must not rebuild the button mid-slide
                 // (it would drop the finger's gesture).
                 key: const ValueKey('action-slot'),

@@ -432,13 +432,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             _Row(
-              key: const ValueKey('lock-on-plus-row'),
+              key: const ValueKey('hold-home-row'),
               icon: Icons.lock_outline_rounded,
               color: _Mau.tim,
-              title: l.lockOnPlusTitle,
+              title: l.holdHomeTitle,
               trailing: _Switch(
-                value: lockOnPlus(),
-                onChanged: (on) => setState(() => Prefs.write(lockOnPlusPref, on ? '1' : '0')),
+                value: holdHomeLocks(),
+                onChanged: (on) => setState(() => Prefs.write(holdHomePref, on ? '1' : '0')),
               ),
             ),
             _Row(

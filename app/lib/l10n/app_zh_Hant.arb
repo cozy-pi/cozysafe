@@ -379,7 +379,7 @@
   "secKeepTitle": "妥善保管：沒有人能替你找回",
   "secKeepBody": "我們不保留任何副本。請把復原金鑰存放在遠離手機的安全地方，並記住保險箱密碼。如果手機和復原金鑰都遺失了，或忘記了密碼，資料將無法復原。",
   "secNewPhone": "新手機",
-  "lockOnPlusTitle": "長按 + 鎖定",
+  "holdHomeTitle": "長按主頁鎖定",
   "holdToLock": "長按鎖定",
   "debugTry": "試用",
   "debugNativeBar": "iPhone 內建的底部列",

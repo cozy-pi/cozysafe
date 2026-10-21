@@ -347,7 +347,8 @@ void main() {
   }
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
-  _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
+  _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))),
+      change: 'Menu ⋯ cùng màu nền (nhạt hơn ở chế độ tối, đậm hơn ở chế độ sáng), không còn ô trắng chói');
   // The unlock animation (playVaultSpin), frozen at four moments of its 1.15 s: the vault's
   // icon behind the dial, blurred at first, sharp when the dial has gone.
   for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay, màu két hắt quanh mép'), (950, 'cửa két mở vụt qua, biểu tượng hiện'), (1100, 'biểu tượng nét')]) {
@@ -367,18 +368,10 @@ void main() {
     });
   }
   _screen('library', 'Thư viện', home, section: 'library',
-      change: 'Nút + cùng kiểu kính mờ với nút khoá và các nút tròn khác, cỡ bằng nút khoá',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
-  _screen('lock-on-plus', 'Thư viện · bật “Giữ + để khoá”', home, section: 'library',
-      setup: () => Prefs.write('lock-on-plus', '1'),
-      change: 'Bật “Giữ + để khoá”: không còn nút khoá, thanh mục dài ra hết hàng; nút + vẫn ở chỗ cũ, giữ nó để khoá két',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
-  _screen('lock-on-plus-add', 'Bật “Giữ + để khoá” · bấm +', home, section: 'library',
-      setup: () {
-        debugCamera = true;
-        Prefs.write('lock-on-plus', '1');
-      },
-      act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
+      change: 'Mặc định không còn nút khoá: giữ nút trang chủ (biểu tượng két) để khoá; thanh mục dài ra hết hàng',
+      marks: [() => find.byKey(const ValueKey('home-tab'))]);
+  _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
+      setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · bấm +', home, section: 'library', setup: () => debugCamera = true, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
   for (final (ms, what) in [(90, 'mục gần nhất vừa bật ra'), (200, 'các mục lần lượt nảy lên'), (320, 'gần xong, + đã xoay thành ×')]) {
     _screen('add-pop-$ms', 'Bấm + · $ms ms · $what', home, section: 'library', setup: () => debugCamera = true, after: 0,
@@ -448,9 +441,7 @@ void main() {
         await t.pump();
         await t.tap(row);
         await t.pump(const Duration(milliseconds: 400));
-      },
-      change: 'SỬA LỖI: chạm bản ghi âm ở trang chủ / tìm kiếm thì phát ngay trong một thẻ trên trang đang đứng, không nhảy sang mục Ghi âm',
-      marks: [() => find.byKey(const ValueKey('card'))]);
+      });
   Widget homeIn(String code) => Builder(
       builder: (context) => Localizations.override(context: context, locale: Locale(code), child: home()));
   _screen('tabs-fr', 'Thanh dưới · tiếng Pháp (chữ dài)', () => homeIn('fr'), section: 'note');
@@ -555,9 +546,7 @@ void main() {
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
-  _screen('settings', 'Cài đặt', () => settings(vault),
-      change: 'Gom lại: nhóm Bảo mật có Face ID, Mã PIN, Tự khoá, Khoá khôi phục, Mật khẩu két, Cách két được bảo vệ. Chặn chụp màn hình sang nhóm Hiển thị, cạnh Làm mờ. Bỏ hết chú thích dưới tên',
-      marks: [() => find.byKey(const ValueKey('kit-row'))]);
+  _screen('settings', 'Cài đặt', () => settings(vault));
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('kit-row')), 200, scrollable: find.byType(Scrollable).first);
@@ -579,12 +568,10 @@ void main() {
   }
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
       act: (t) async {
-        await t.scrollUntilVisible(find.byKey(const ValueKey('lock-on-plus-row')), 200, scrollable: find.byType(Scrollable).first);
+        await t.scrollUntilVisible(find.byKey(const ValueKey('hold-home-row')), 200, scrollable: find.byType(Scrollable).first);
         await t.drag(find.byType(Scrollable).first, const Offset(0, 500));
         await t.pump();
-      },
-      change: 'Bỏ mọi chú thích dưới tên; công tắc đổi tên thành “Giữ + để khoá”; Chặn chụp màn hình đứng cạnh Làm mờ ảnh thu nhỏ',
-      marks: [() => find.byKey(const ValueKey('lock-on-plus-row'))]);
+      });
   _screen('settings-appearance', 'Cài đặt · Giao diện', () => settings(vault),
       act: (t) async {
     await toDisplay(t);
@@ -627,8 +614,7 @@ void main() {
   _screen('originals-files', 'Vừa cất 2 tệp vào két', () => sheetOver(const DeleteOriginalsSheet(count: 2, photos: false)),
       section: 'file');
   _screen('blur', 'Thư viện · làm mờ ảnh thu nhỏ (mặc định)', home, section: 'library');
-  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen(),
-      change: 'Hình minh hoạ nằm DƯỚI tiêu đề mỗi phần (trước nằm trên)');
+  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen());
   _screen('security-info-2', 'Cách két được bảo vệ · giữa trang', () => const SecurityInfoScreen(), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-4')), 300, scrollable: find.byType(Scrollable).first);
     await t.pump();
@@ -636,8 +622,7 @@ void main() {
   _screen('security-info-3', 'Cách két được bảo vệ · cuối trang', () => const SecurityInfoScreen(), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-tech')), 300, scrollable: find.byType(Scrollable).first);
     await t.scrollUntilVisible(find.textContaining('kiểm toán'), 300, scrollable: find.byType(Scrollable).first);
-  },
-      change: 'Chi tiết kỹ thuật mở sẵn, không phải bấm');
+  });
   _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
   _screen('trash-select', 'Đã xoá · chạm chọn 1 ảnh', () => const TrashScreen(),
       act: (t) => t.tap(find.byType(Image).first));
