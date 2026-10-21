@@ -8,6 +8,24 @@
 	<false/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock your vault with Face ID.</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+		<string>pt-BR</string>
+		<string>fr</string>
+		<string>de</string>
+		<string>it</string>
+		<string>tr</string>
+		<string>ru</string>
+		<string>id</string>
+		<string>th</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>zh-Hans</string>
+		<string>zh-Hant</string>
+		<string>vi</string>
+	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Move photos and videos into your encrypted vault, and remove the originals from Photos when you ask.</string>
 	<key>NSMicrophoneUsageDescription</key>

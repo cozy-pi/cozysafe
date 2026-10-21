@@ -382,5 +382,8 @@
   "secAutoLock": "Tự khoá",
   "secHidden": "Che sẵn",
   "secClipboard": "Xoá chữ chép",
-  "secNoCapture": "Chặn chụp"
+  "secNoCapture": "Chặn chụp",
+  "language": "Ngôn ngữ",
+  "languageSystem": "Theo máy",
+  "languageSystemNote": "Dùng ngôn ngữ đang cài trên máy."
 }

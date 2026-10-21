@@ -65,3 +65,12 @@ Cozy Safe is a global product: everything in this repository is written in Engli
 including commit and merge messages, docs, the changelog, code comments and release notes
 (owner, 2026-10-21). Text people see in the app goes through the translations
 (`app/lib/l10n`), never hard-coded in one language.
+
+The app speaks 15 languages (2026-10-21), the same as the website: en, es, pt (Brazil),
+fr, de, it, tr, ru, id, th, ja, ko, zh (Simplified), zh_Hant (Traditional), vi. The list
+lives in `app/lib/language.dart`; each language has `app/lib/l10n/app_<code>.arb`, a tag
+in `ios/Runner/Info.plist` (`CFBundleLocalizations`) and in
+`android/app/src/main/res/xml/locales_config.xml` — `test/language_test.dart` checks all
+four agree and that every file has every key with the same placeholders. "Secret Key"
+stays in English in every language. Adding a language: translate `app_en.arb` (reuse the
+website's terms in `website/i18n/<code>.json`), then add it to those three lists.

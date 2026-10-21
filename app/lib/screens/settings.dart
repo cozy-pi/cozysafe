@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
+import '../language.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -220,6 +221,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ));
   }
 
+  Future<void> _pickLanguage() async {
+    final l = AppLocalizations.of(context);
+    final picked = await pushPage<String>(
+      context,
+      title: l.language,
+      builder: (context) => _LanguageList(chosen: AppLanguage.chosen, system: l.languageSystem, systemNote: l.languageSystemNote),
+    );
+    if (picked == null || !mounted) return;
+    await AppLanguage.choose(picked.isEmpty ? null : picked);
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -324,6 +337,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
           ]),
           _Group(title: l.settingsDisplay, rows: [
+            // Same list as Settings → Cozy Safe → Language on iPhone and Android 13+.
+            _Row(
+              key: const ValueKey('language-row'),
+              icon: Icons.translate_rounded,
+              color: _Mau.xanh,
+              title: l.language,
+              value: AppLanguage.chosen == null
+                  ? l.languageSystem
+                  : languages.firstWhere((x) => x.code == AppLanguage.chosen).name,
+              onTap: _pickLanguage,
+            ),
             // Left or right right on the row: no sheet to open (owner 2026-10-21).
             _Row(
               key: const ValueKey('side-row'),
@@ -749,6 +773,38 @@ class _SideSwitch extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(19)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [part(left, !right, false), part(rightLabel, right, true)]),
+    );
+  }
+}
+
+/// "Same as device", then every language in its own name; a tick on the current one.
+/// Pops the code ('' for the device's).
+class _LanguageList extends StatelessWidget {
+  const _LanguageList({required this.chosen, required this.system, required this.systemNote});
+  final String? chosen;
+  final String system;
+  final String systemNote;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    Widget row(String code, String name, {String? note}) => ListTile(
+          key: ValueKey('language-$code'),
+          minTileHeight: 52,
+          title: Text(name, style: const TextStyle(fontSize: 16)),
+          subtitle: note == null ? null : Text(note, style: TextStyle(color: c.muted)),
+          trailing: (code.isEmpty ? chosen == null : chosen == code)
+              ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
+              : null,
+          onTap: () => Navigator.of(context).pop(code),
+        );
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        row('', system, note: systemNote),
+        const Divider(indent: 16, endIndent: 16),
+        for (final x in languages) row(x.code, x.name),
+      ],
     );
   }
 }

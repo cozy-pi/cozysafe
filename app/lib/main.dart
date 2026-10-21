@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'l10n/app_localizations.dart';
+import 'language.dart';
 import 'offline.dart';
 import 'screens/new_vault.dart';
 import 'screens/settings.dart';
@@ -28,6 +29,7 @@ Future<void> main() async {
   PrivacyCover.listen(); // iOS: screenshots taken (they cannot be stopped there)
   clearPlaybackCopies(); // a decrypted video copy left by a crash or a kill
   final hasKey = await loadSecretKey(libraryDir);
+  await AppLanguage.load();
   runApp(CozySafeApp(libraryDir: libraryDir, hasSecretKey: hasKey));
 }
 
@@ -61,13 +63,15 @@ class CozySafeApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // The open vault's colour themes every screen above it (design B).
-    return ValueListenableBuilder<Color?>(
-      valueListenable: vaultTint,
-      builder: (context, tint, _) => MaterialApp(
+    return ListenableBuilder(
+      listenable: Listenable.merge([vaultTint, AppLanguage.current]),
+      builder: (context, _) => MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
-      locale: locale,
-      theme: buildTheme(Brightness.light, vault: tint),
-      darkTheme: buildTheme(Brightness.dark, vault: tint),
+      // Settings → Language (or the system's per-app language), else the device's.
+      locale: locale ?? AppLanguage.current.value,
+      localeResolutionCallback: (device, supported) => resolveLocale(device, supported),
+      theme: buildTheme(Brightness.light, vault: vaultTint.value),
+      darkTheme: buildTheme(Brightness.dark, vault: vaultTint.value),
       themeMode: ThemeMode.system,
       // Follow the system language; English when the device language is unsupported.
       localizationsDelegates: AppLocalizations.localizationsDelegates,

@@ -115,7 +115,8 @@ checked on every build, in layers (details and limits: [supply chain](docs/suppl
   sections you use appear at the bottom; buttons are large enough for any thumb.
 - **Back up to one encrypted file** and restore it on a new device with the Emergency
   Kit (your Secret Key on paper).
-- English and Vietnamese, light and dark.
+- **15 languages**, light and dark. Pick one in Settings → Language, or in the
+  system's settings for the app (iPhone, Android 13+); the two stay the same.
 
 Not yet: sync between devices. Until then, use **Back up to a file** often.
 

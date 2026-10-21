@@ -10,6 +10,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../widgets/selectable_row.dart';
 import '../theme.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
@@ -28,6 +29,8 @@ class RecorderView extends StatefulWidget {
     required this.onSaved,
     required this.onRecordingChanged,
     required this.onOpen,
+    this.selected = const {},
+    this.onToggleSelect,
     this.tagId,
     this.bottomPad = 16,
   });
@@ -42,6 +45,10 @@ class RecorderView extends StatefulWidget {
   final ValueChanged<bool> onRecordingChanged;
   /// One of the open row's buttons: 0 rename, 1 send, 2 delete.
   final void Function(rust.ItemInfo item, int action) onOpen;
+  /// Selected recordings (long press, like photos and files); while any is selected a
+  /// tap selects too instead of opening the row.
+  final Set<String> selected;
+  final ValueChanged<String>? onToggleSelect;
 
   static bool get supported => Device.iOS || Device.android;
 
@@ -302,7 +309,9 @@ class RecorderViewState extends State<RecorderView> {
     final total = Duration(milliseconds: it.durationMs?.toInt() ?? 0);
     final pos = p?.value.position ?? Duration.zero;
     final primary = Theme.of(context).colorScheme.primary;
-    final open = _openId == it.id;
+    final selecting = widget.selected.isNotEmpty;
+    final chosen = widget.selected.contains(it.id);
+    final open = _openId == it.id && !selecting;
     final ink = Theme.of(context).colorScheme.onSurface;
     Widget act(IconData icon, String label, int action, {Color? color}) => Expanded(
           child: TextButton.icon(
@@ -314,15 +323,25 @@ class RecorderViewState extends State<RecorderView> {
           ),
         );
     // Tapping a row opens it in place, with its buttons right under it; no sheet.
-    return InkWell(
-      onTap: () => setState(() => _openId = open ? null : it.id),
+    final select = widget.onToggleSelect;
+    return SelectableRow(
+      selected: chosen,
+      selecting: selecting,
+      highlight: playing || open ? primary.withValues(alpha: .08) : null,
+      padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+      onTap: selecting && select != null
+          ? () => select(it.id)
+          : () => setState(() => _openId = open ? null : it.id),
+      onLongPress: select == null
+          ? null
+          : () {
+              setState(() => _openId = null);
+              select(it.id);
+            },
       child: AnimatedSize(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
         alignment: Alignment.topCenter,
-        child: Container(
-        color: playing || open ? primary.withValues(alpha: .08) : null,
-        padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
         child: Column(
           children: [
           Row(
@@ -356,6 +375,7 @@ class RecorderViewState extends State<RecorderView> {
               playing ? '${_clock(pos)} / ${_clock(total)}' : _clock(total),
               style: TextStyle(color: c.muted, fontSize: 12.5, fontFeatures: const [FontFeature.tabularFigures()]),
             ),
+
           ],
         ),
           if (open)
@@ -370,7 +390,6 @@ class RecorderViewState extends State<RecorderView> {
               ),
             ),
           ],
-        ),
         ),
       ),
     );

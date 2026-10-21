@@ -1,9 +1,11 @@
 package com.cozypi.cozysafe
 
+import android.app.LocaleManager
 import android.content.ContentUris
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.LocaleList
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.OpenableColumns
@@ -61,6 +63,22 @@ class MainActivity : FlutterFragmentActivity() {
                 result.success(null)
             } else {
                 result.notImplemented()
+            }
+        }
+        // The app's own language (lib/language.dart), the same value as Settings → Apps →
+        // Cozy Safe → Language. Android 13+ only; null tells Dart to keep its own pref.
+        MethodChannel(messenger, "cozysafe/language").setMethodCallHandler { call, result ->
+            if (Build.VERSION.SDK_INT < 33) return@setMethodCallHandler result.success(null)
+            val manager = getSystemService(LocaleManager::class.java)
+            when (call.method) {
+                "get" -> result.success(manager.applicationLocales.takeIf { !it.isEmpty }?.toLanguageTags())
+                "set" -> {
+                    val tag = call.argument<String>("tag") ?: ""
+                    // Applied at once: the activity handles locale changes itself.
+                    manager.applicationLocales = LocaleList.forLanguageTags(tag)
+                    result.success(true)
+                }
+                else -> result.notImplemented()
             }
         }
         MethodChannel(messenger, "cozysafe/originals").setMethodCallHandler { call, result ->
