@@ -132,6 +132,7 @@
   "email_p": "Schreiben Sie uns in jeder Sprache.",
   "copy": "Adresse kopieren",
   "copied": "Kopiert",
+  "write": "E-Mail schreiben",
   "gh_h": "Fehler auf GitHub melden",
   "gh_p": "Mit einem GitHub-Konto können Sie ein öffentliches Issue eröffnen.",
   "gh_link": "Issue eröffnen",
@@ -142,9 +143,16 @@
    "Ein Bildschirmfoto ohne Privates."
   ],
   "shot_h": "Ein Bildschirmfoto machen",
-  "shot_p": "Cozy Safe blockiert Bildschirmfotos standardmäßig. Öffnen Sie dafür Ihren Tresor, gehen Sie zu Einstellungen → Sicherheit und schalten Sie „Screenshots blockieren“ aus (Face ID, Fingerabdruck oder Gerätecode wird abgefragt).",
+  "shot_steps": [
+   "Öffnen Sie Ihren Tresor.",
+   "Gehen Sie zu Einstellungen → Sicherheit.",
+   "Schalten Sie „Screenshots blockieren“ aus (Face ID, Fingerabdruck oder Gerätecode wird abgefragt).",
+   "Machen Sie das Bildschirmfoto.",
+   "Schalten Sie „Screenshots blockieren“ wieder ein."
+  ],
   "shot_after": "Schalten Sie es danach wieder ein und prüfen Sie, dass das Bild nichts Privates zeigt.",
   "never": "Senden Sie nie Ihr Passwort, Ihren Secret Key oder Inhalte aus dem Tresor: Wir brauchen sie nie.",
-  "back": "Cozy Safe"
+  "back": "Cozy Safe",
+  "switch": "Screenshots blockieren"
  }
 }

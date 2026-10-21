@@ -132,6 +132,7 @@
   "email_p": "Write to us in any language.",
   "copy": "Copy address",
   "copied": "Copied",
+  "write": "Write an email",
   "gh_h": "Report a bug on GitHub",
   "gh_p": "If you have a GitHub account, you can open a public issue.",
   "gh_link": "Open an issue",
@@ -142,9 +143,16 @@
    "A screenshot without anything private in it."
   ],
   "shot_h": "Taking a screenshot",
-  "shot_p": "Cozy Safe blocks screenshots by default. To take one, open your vault, go to Settings → Security and turn off “Block screenshots” (it asks for Face ID, fingerprint or the phone's passcode).",
+  "shot_steps": [
+   "Open your vault.",
+   "Go to Settings → Security.",
+   "Turn off “Block screenshots” (it asks for Face ID, fingerprint or the phone's passcode).",
+   "Take your screenshot.",
+   "Turn “Block screenshots” back on."
+  ],
   "shot_after": "Turn it back on when you are done, and check the screenshot shows nothing private.",
   "never": "Never send your password, your Secret Key or anything from inside your vault: we never need them.",
-  "back": "Cozy Safe"
+  "back": "Cozy Safe",
+  "switch": "Block screenshots"
  }
 }

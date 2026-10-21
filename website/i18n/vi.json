@@ -132,6 +132,7 @@
   "email_p": "Viết cho chúng tôi bằng ngôn ngữ nào cũng được.",
   "copy": "Sao chép địa chỉ",
   "copied": "Đã sao chép",
+  "write": "Viết email",
   "gh_h": "Báo lỗi trên GitHub",
   "gh_p": "Nếu có tài khoản GitHub, bạn có thể mở một báo lỗi công khai.",
   "gh_link": "Mở báo lỗi",
@@ -142,9 +143,16 @@
    "Ảnh chụp màn hình không có thông tin riêng tư."
   ],
   "shot_h": "Chụp màn hình",
-  "shot_p": "Cozy Safe chặn chụp màn hình theo mặc định. Muốn chụp, hãy mở két, vào Cài đặt → Bảo mật và tắt “Chặn chụp màn hình” (app sẽ hỏi Face ID, vân tay hoặc mật mã máy).",
+  "shot_steps": [
+   "Mở két.",
+   "Vào Cài đặt → Bảo mật.",
+   "Tắt “Chặn chụp màn hình” (app sẽ hỏi Face ID, vân tay hoặc mật mã máy).",
+   "Chụp màn hình.",
+   "Bật lại “Chặn chụp màn hình”."
+  ],
   "shot_after": "Chụp xong nhớ bật lại, và xem kỹ ảnh không có thông tin riêng tư.",
   "never": "Đừng bao giờ gửi mật khẩu, Secret Key hay bất cứ thứ gì trong két: chúng tôi không bao giờ cần chúng.",
-  "back": "Cozy Safe"
+  "back": "Cozy Safe",
+  "switch": "Chặn chụp màn hình"
  }
 }

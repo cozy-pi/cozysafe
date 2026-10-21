@@ -132,6 +132,7 @@
   "email_p": "Bize istediğiniz dilde yazın.",
   "copy": "Adresi kopyala",
   "copied": "Kopyalandı",
+  "write": "E-posta yaz",
   "gh_h": "GitHub'da hata bildir",
   "gh_p": "GitHub hesabınız varsa herkese açık bir kayıt açabilirsiniz.",
   "gh_link": "Kayıt aç",
@@ -142,9 +143,16 @@
    "Özel bilgi içermeyen bir ekran görüntüsü."
   ],
   "shot_h": "Ekran görüntüsü almak",
-  "shot_p": "Cozy Safe ekran görüntülerini varsayılan olarak engeller. Görüntü almak için kasanızı açın, Ayarlar → Güvenlik bölümüne gidin ve “Ekran görüntülerini engelle” seçeneğini kapatın (Face ID, parmak izi veya cihaz şifresi sorulur).",
+  "shot_steps": [
+   "Kasanızı açın.",
+   "Ayarlar → Güvenlik bölümüne gidin.",
+   "“Ekran görüntülerini engelle” seçeneğini kapatın (Face ID, parmak izi veya cihaz şifresi sorulur).",
+   "Ekran görüntüsünü alın.",
+   "“Ekran görüntülerini engelle” seçeneğini yeniden açın."
+  ],
   "shot_after": "İşiniz bitince yeniden açın ve görüntüde özel bir şey olmadığından emin olun.",
   "never": "Parolanızı, Secret Key'inizi veya kasanızdaki hiçbir şeyi asla göndermeyin: onlara hiç ihtiyacımız yok.",
-  "back": "Cozy Safe"
+  "back": "Cozy Safe",
+  "switch": "Ekran görüntülerini engelle"
  }
 }

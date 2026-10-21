@@ -132,6 +132,7 @@
   "email_p": "Écrivez-nous dans n'importe quelle langue.",
   "copy": "Copier l'adresse",
   "copied": "Copié",
+  "write": "Écrire un e-mail",
   "gh_h": "Signaler un bug sur GitHub",
   "gh_p": "Si vous avez un compte GitHub, vous pouvez ouvrir un ticket public.",
   "gh_link": "Ouvrir un ticket",
@@ -142,9 +143,16 @@
    "Une capture d'écran sans rien de privé."
   ],
   "shot_h": "Faire une capture d'écran",
-  "shot_p": "Cozy Safe bloque les captures d'écran par défaut. Pour en faire une, ouvrez votre coffre, allez dans Réglages → Sécurité et désactivez « Bloquer les captures d'écran » (Face ID, empreinte ou code de l'appareil vous sera demandé).",
+  "shot_steps": [
+   "Ouvrez votre coffre.",
+   "Allez dans Réglages → Sécurité.",
+   "Désactivez « Bloquer les captures d'écran » (Face ID, empreinte ou code de l'appareil demandé).",
+   "Faites la capture.",
+   "Réactivez « Bloquer les captures d'écran »."
+  ],
   "shot_after": "Réactivez-le ensuite, et vérifiez que la capture ne montre rien de privé.",
   "never": "N'envoyez jamais votre mot de passe, votre Secret Key ni rien de votre coffre : nous n'en avons jamais besoin.",
-  "back": "Cozy Safe"
+  "back": "Cozy Safe",
+  "switch": "Bloquer les captures d'écran"
  }
 }

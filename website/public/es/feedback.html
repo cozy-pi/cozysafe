@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Comentarios · Cozy Safe</title>
+<meta name="description" content="Ideas, problemas, algo que te confundió: leemos todos los mensajes.">
 <link rel="canonical" href="https://safe.cozypi.com/es/feedback">
 <link rel="alternate" hreflang="en" href="https://safe.cozypi.com/feedback">
 <link rel="alternate" hreflang="es" href="https://safe.cozypi.com/es/feedback">
@@ -23,26 +24,87 @@
 <link rel="alternate" hreflang="x-default" href="https://safe.cozypi.com/feedback">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
-<link rel="stylesheet" href="../style.css?v=847eaa8e">
-<style>.doc{max-width:720px;margin:0 auto;padding:40px 20px 80px}.doc h1{font-size:40px;letter-spacing:-.02em;margin:24px 0 8px;hyphens:auto;overflow-wrap:break-word}.doc h2{font-size:20px;margin:0 0 6px}.doc p{margin:0 0 10px;color:var(--ink)}.doc .lead{color:var(--muted);font-size:18px;margin-bottom:24px}.doc .bar{display:flex;align-items:center;gap:12px}.doc .home{display:inline-flex;align-items:center;gap:8px;font-weight:700;text-decoration:none}.doc .home img{width:28px;height:28px;border-radius:8px}.way{border:1px solid var(--line,rgba(127,127,127,.3));border-radius:16px;padding:18px 20px;margin:14px 0}.addr{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}.addr code{font-size:17px;font-weight:700;user-select:all}.addr button,.way .go{font:inherit;font-weight:700;border-radius:999px;padding:8px 16px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;text-decoration:none;display:inline-block}.doc ul{margin:6px 0 0;padding-left:20px}.doc li{margin:4px 0}.warn{font-weight:600}</style>
+<link rel="stylesheet" href="../style.css?v=cd910bef">
 </head>
-<body>
-<main class="doc">
-<div class="bar"><a class="home" href="./"><img src="../icon-512.png" alt="" width="28" height="28">Cozy Safe</a><label class="lang"><span class="sr">Idioma</span><select onchange="try{localStorage.setItem('cs.lang',this.options[this.selectedIndex].dataset.l)}catch(e){}location.href=this.value"><option value="/feedback?lang=en" data-l="en">English</option><option value="/es/feedback" data-l="es" selected>Español</option><option value="/pt/feedback" data-l="pt">Português (Brasil)</option><option value="/fr/feedback" data-l="fr">Français</option><option value="/de/feedback" data-l="de">Deutsch</option><option value="/it/feedback" data-l="it">Italiano</option><option value="/tr/feedback" data-l="tr">Türkçe</option><option value="/ja/feedback" data-l="ja">日本語</option><option value="/ko/feedback" data-l="ko">한국어</option><option value="/zh/feedback" data-l="zh">简体中文</option><option value="/zh-TW/feedback" data-l="zh-TW">繁體中文</option><option value="/ru/feedback" data-l="ru">Русский</option><option value="/id/feedback" data-l="id">Bahasa Indonesia</option><option value="/th/feedback" data-l="th">ไทย</option><option value="/vi/feedback" data-l="vi">Tiếng Việt</option></select></label></div>
-<h1>Enviar comentarios</h1>
-<p class="lead">Ideas, problemas, algo que te confundió: leemos todos los mensajes.</p>
-<section class="way"><h2>Por correo</h2><p>Escríbenos en cualquier idioma.</p>
-<div class="addr"><code id="mail">support@cozypi.com</code><button type="button" id="copy" data-done="Copiado">Copiar dirección</button></div></section>
-<section class="way"><h2>Informar de un error en GitHub</h2><p>Si tienes una cuenta de GitHub, puedes abrir una incidencia pública.</p><a class="go" href="https://github.com/cozy-pi/cozysafe/issues/new" rel="noopener">Abrir una incidencia</a></section>
-<section class="way"><h2>Hacer una captura de pantalla</h2><p>Cozy Safe bloquea las capturas de pantalla por defecto. Para hacer una, abre tu caja fuerte, ve a Ajustes → Seguridad y desactiva «Bloquear capturas de pantalla» (pide Face ID, huella o el código del teléfono).</p><p>Vuelve a activarlo al terminar y comprueba que la captura no muestre nada privado.</p></section>
-<section class="way"><h2>Lo que nos ayuda</h2><ul><li>La versión de la app (Ajustes → Información) y tu dispositivo.</li><li>Qué hiciste, qué esperabas y qué pasó.</li><li>Una captura de pantalla sin nada privado.</li></ul></section>
-<p class="warn">Nunca envíes tu contraseña, tu Secret Key ni nada de tu caja fuerte: nunca los necesitamos.</p>
+<body class="fb">
+<header class="hero">
+  <div class="collage" aria-hidden="true"><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i><i class="ph"></i><i class="doc"></i><i class="id"></i><i class="rc"></i><i class="doc"></i><i class="ph"></i><i class="id"></i><i class="doc"></i><i class="rc"></i></div>
+  <div class="veil"></div>
+  <div class="wrap">
+    <div class="top">
+      <a class="brand" href="./"><img src="../icon-512.png" alt="" width="32" height="32">Cozy Safe</a>
+      <label class="lang"><span class="sr">Idioma</span><select onchange="try{localStorage.setItem('cs.lang',this.options[this.selectedIndex].dataset.l)}catch(e){}location.href=this.value"><option value="/feedback?lang=en" data-l="en">English</option><option value="/es/feedback" data-l="es" selected>Español</option><option value="/pt/feedback" data-l="pt">Português (Brasil)</option><option value="/fr/feedback" data-l="fr">Français</option><option value="/de/feedback" data-l="de">Deutsch</option><option value="/it/feedback" data-l="it">Italiano</option><option value="/tr/feedback" data-l="tr">Türkçe</option><option value="/ja/feedback" data-l="ja">日本語</option><option value="/ko/feedback" data-l="ko">한국어</option><option value="/zh/feedback" data-l="zh">简体中文</option><option value="/zh-TW/feedback" data-l="zh-TW">繁體中文</option><option value="/ru/feedback" data-l="ru">Русский</option><option value="/id/feedback" data-l="id">Bahasa Indonesia</option><option value="/th/feedback" data-l="th">ไทย</option><option value="/vi/feedback" data-l="vi">Tiếng Việt</option></select></label>
+    </div>
+    <div class="hero-grid">
+      <div>
+        <h1>Enviar comentarios</h1>
+        <p class="lead">Ideas, problemas, algo que te confundió: leemos todos los mensajes.</p>
+        <div class="cta">
+          <a class="btn btn-gold" href="mailto:support@cozypi.com?subject=Cozy%20Safe"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/></svg>Escribir un correo</a>
+          <a class="btn btn-ghost" href="https://github.com/cozy-pi/cozysafe/issues/new" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 9a3.5 3.5 0 0 1 7 0v5a3.5 3.5 0 0 1-7 0z"/><path d="M12 11v7M4 11h4.5M15.5 11H20M4.5 17h4M15.5 17h4M9.5 5l1.2 1.6M14.5 5l-1.2 1.6"/></svg>Abrir una incidencia</a>
+        </div>
+      </div>
+      <div class="unlock letter" role="img" aria-label="Por correo">
+        <div class="knob"><span class="mk"><svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/></svg></span></div>
+        <strong>Enviar comentarios</strong>
+        <span class="field">support@cozypi.com</span>
+        <span class="lines"><i></i><i></i><i class="short"></i></span>
+        <span class="go"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Escribir un correo</span>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="block ways">
+    <article class="way main">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/></svg></div>
+      <h2>Por correo</h2>
+      <p>Escríbenos en cualquier idioma.</p>
+      <div class="addr"><code>support@cozypi.com</code>
+        <button type="button" id="copy" data-done="Copiado"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span>Copiar dirección</span></button></div>
+      <a class="get" href="mailto:support@cozypi.com?subject=Cozy%20Safe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/></svg>Escribir un correo</a>
+    </article>
+    <article class="way">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 9a3.5 3.5 0 0 1 7 0v5a3.5 3.5 0 0 1-7 0z"/><path d="M12 11v7M4 11h4.5M15.5 11H20M4.5 17h4M15.5 17h4M9.5 5l1.2 1.6M14.5 5l-1.2 1.6"/></svg></div>
+      <h2>Informar de un error en GitHub</h2>
+      <p>Si tienes una cuenta de GitHub, puedes abrir una incidencia pública.</p>
+      <a class="get alt" href="https://github.com/cozy-pi/cozysafe/issues/new" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 9a3.5 3.5 0 0 1 7 0v5a3.5 3.5 0 0 1-7 0z"/><path d="M12 11v7M4 11h4.5M15.5 11H20M4.5 17h4M15.5 17h4M9.5 5l1.2 1.6M14.5 5l-1.2 1.6"/></svg>Abrir una incidencia</a>
+    </article>
+  </section>
+  <section class="block">
+    <h2>Hacer una captura de pantalla</h2>
+    <div class="shot-how">
+      <ol class="steps"><li><span class="num">1</span><span>Abre tu caja fuerte.</span></li><li><span class="num">2</span><span>Ve a Ajustes → Seguridad.</span></li><li><span class="num">3</span><span>Desactiva «Bloquear capturas de pantalla» (pide Face ID, huella o el código del teléfono).</span></li><li><span class="num">4</span><span>Haz la captura.</span></li><li><span class="num">5</span><span>Vuelve a activar «Bloquear capturas de pantalla».</span></li></ol>
+      <div class="switch-demo" aria-hidden="true">
+        <div class="row"><span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></span><span class="name">Bloquear capturas de pantalla</span><span class="tog"><i></i></span></div>
+        <span class="hint"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <div class="row off"><span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></span><span class="name">Bloquear capturas de pantalla</span><span class="tog"><i></i></span></div>
+      </div>
+    </div>
+    <p class="note">Vuelve a activarlo al terminar y comprueba que la captura no muestre nada privado.</p>
+  </section>
+  <section class="block">
+    <h2>Lo que nos ayuda</h2>
+    <div class="features"><div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div><p>La versión de la app (Ajustes → Información) y tu dispositivo.</p></div><div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg></div><p>Qué hiciste, qué esperabas y qué pasó.</p></div><div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8.5 9"/></svg></div><p>Una captura de pantalla sin nada privado.</p></div></div>
+    <p class="never">Nunca envíes tu contraseña, tu Secret Key ni nada de tu caja fuerte: nunca los necesitamos.</p>
+  </section>
 </main>
+<footer>
+  <div class="wrap">
+    <a class="brand" href="./"><img src="../icon-512.png" alt="" width="28" height="28">Cozy Safe</a>
+    <span>Creado por <a href="https://cozypi.com/es/">Cozy Pi</a></span>
+    <a href="https://github.com/cozy-pi/cozysafe">Código fuente</a>
+    <span>GPL-3.0</span>
+    <a href="privacy">Privacidad</a>
+    <a href="mailto:support@cozypi.com">support@cozypi.com</a>
+  </div>
+</footer>
 <script>
 (function () {
-  var b = document.getElementById('copy');
+  var b = document.getElementById('copy'), label = b.querySelector('span');
   b.addEventListener('click', function () {
-    var done = function () { var old = b.textContent; b.textContent = b.dataset.done; setTimeout(function () { b.textContent = old; }, 1500); };
+    var done = function () { var old = label.textContent; label.textContent = b.dataset.done; b.classList.add('ok');
+      setTimeout(function () { label.textContent = old; b.classList.remove('ok'); }, 1600); };
     if (navigator.clipboard) navigator.clipboard.writeText('support@cozypi.com').then(done, function () {});
   });
 })();

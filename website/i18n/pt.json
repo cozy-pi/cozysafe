@@ -132,6 +132,7 @@
   "email_p": "Escreva para nós em qualquer idioma.",
   "copy": "Copiar endereço",
   "copied": "Copiado",
+  "write": "Escrever um e-mail",
   "gh_h": "Relatar um bug no GitHub",
   "gh_p": "Se você tem conta no GitHub, pode abrir uma issue pública.",
   "gh_link": "Abrir uma issue",
@@ -142,9 +143,16 @@
    "Uma captura de tela sem nada privado."
   ],
   "shot_h": "Tirar uma captura de tela",
-  "shot_p": "O Cozy Safe bloqueia capturas de tela por padrão. Para tirar uma, abra seu cofre, vá em Ajustes → Segurança e desative “Bloquear capturas de tela” (ele pede Face ID, digital ou o código do aparelho).",
+  "shot_steps": [
+   "Abra seu cofre.",
+   "Vá em Ajustes → Segurança.",
+   "Desative “Bloquear capturas de tela” (ele pede Face ID, digital ou o código do aparelho).",
+   "Tire a captura.",
+   "Ative “Bloquear capturas de tela” de novo."
+  ],
   "shot_after": "Ative de novo quando terminar e confira se a captura não mostra nada privado.",
   "never": "Nunca envie sua senha, sua Secret Key ou nada do seu cofre: nunca precisamos deles.",
-  "back": "Cozy Safe"
+  "back": "Cozy Safe",
+  "switch": "Bloquear capturas de tela"
  }
 }

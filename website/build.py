@@ -112,6 +112,12 @@ I = {
     'eye': '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/>',
     'backup': '<path d="M12 3v10M8 9l4 4 4-4"/><rect x="4" y="15" width="16" height="6" rx="2"/><path d="M8 18h.01"/>',
     'download': '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
+    'mail': '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/>',
+    'bug': '<path d="M8.5 9a3.5 3.5 0 0 1 7 0v5a3.5 3.5 0 0 1-7 0z"/><path d="M12 11v7M4 11h4.5M15.5 11H20M4.5 17h4M15.5 17h4M9.5 5l1.2 1.6M14.5 5l-1.2 1.6"/>',
+    'copy': '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+    'list': '<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+    'image': '<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8.5 9"/>',
+    'arrow': '<path d="M5 12h14M13 6l6 6-6 6"/>',
 }
 
 
@@ -313,44 +319,112 @@ def privacy(lang, texts, css):
 
 def feedback(lang, texts, css):
     """Where people send feedback. The app links here and does nothing else (owner
-    2026-10-21): the ways to reach us can change without an app release."""
+    2026-10-21): the ways to reach us can change without an app release. Same look as
+    the home page: the green hero with the blurred collage, cards below, the footer."""
     t = texts[lang]['feedback']
+    h = texts[lang]['home']
     root = '' if lang == 'en' else '../'
+    studio = 'https://cozypi.com/' + ('' if lang == 'en' else f'{lang}/')
     issue = f'{REPO}/issues/new'
-    tips = ''.join(f'<li>{x}</li>' for x in t['tips'])
-    return f'''<!doctype html>
+    mail = 'support@cozypi.com'
+    steps = ''.join(f'<li><span class="num">{n}</span><span>{x}</span></li>' for n, x in enumerate(t['shot_steps'], 1))
+    tips = ''.join(f'<div class="feat"><div class="ic">{ic(k)}</div><p>{x}</p></div>'
+                   for k, x in zip(('iphone', 'list', 'image'), t['tips']))
+    return f"""<!doctype html>
 <html lang="{HTML_LANG.get(lang, lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{t['title']}</title>
+<meta name="description" content="{t['intro']}">
 {head_common(lang, 'feedback', css)}
-<style>.doc{{max-width:720px;margin:0 auto;padding:40px 20px 80px}}.doc h1{{font-size:40px;letter-spacing:-.02em;margin:24px 0 8px;hyphens:auto;overflow-wrap:break-word}}.doc h2{{font-size:20px;margin:0 0 6px}}.doc p{{margin:0 0 10px;color:var(--ink)}}.doc .lead{{color:var(--muted);font-size:18px;margin-bottom:24px}}.doc .bar{{display:flex;align-items:center;gap:12px}}.doc .home{{display:inline-flex;align-items:center;gap:8px;font-weight:700;text-decoration:none}}.doc .home img{{width:28px;height:28px;border-radius:8px}}.way{{border:1px solid var(--line,rgba(127,127,127,.3));border-radius:16px;padding:18px 20px;margin:14px 0}}.addr{{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}}.addr code{{font-size:17px;font-weight:700;user-select:all}}.addr button,.way .go{{font:inherit;font-weight:700;border-radius:999px;padding:8px 16px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;text-decoration:none;display:inline-block}}.doc ul{{margin:6px 0 0;padding-left:20px}}.doc li{{margin:4px 0}}.warn{{font-weight:600}}</style>
 </head>
-<body>
-<main class="doc">
-<div class="bar"><a class="home" href="./"><img src="{root}icon-512.png" alt="" width="28" height="28">{t['back']}</a>{lang_menu(lang, 'feedback', texts[lang]['lang_label'])}</div>
-<h1>{t['h1']}</h1>
-<p class="lead">{t['intro']}</p>
-<section class="way"><h2>{t['email_h']}</h2><p>{t['email_p']}</p>
-<div class="addr"><code id="mail">support@cozypi.com</code><button type="button" id="copy" data-done="{t['copied']}">{t['copy']}</button></div></section>
-<section class="way"><h2>{t['gh_h']}</h2><p>{t['gh_p']}</p><a class="go" href="{issue}" rel="noopener">{t['gh_link']}</a></section>
-<section class="way"><h2>{t['shot_h']}</h2><p>{t['shot_p']}</p><p>{t['shot_after']}</p></section>
-<section class="way"><h2>{t['tips_h']}</h2><ul>{tips}</ul></section>
-<p class="warn">{t['never']}</p>
+<body class="fb">
+<header class="hero">
+  {COLLAGE}
+  <div class="veil"></div>
+  <div class="wrap">
+    <div class="top">
+      <a class="brand" href="./"><img src="{root}icon-512.png" alt="" width="32" height="32">Cozy Safe</a>
+      {lang_menu(lang, 'feedback', texts[lang]['lang_label'])}
+    </div>
+    <div class="hero-grid">
+      <div>
+        <h1>{t['h1']}</h1>
+        <p class="lead">{t['intro']}</p>
+        <div class="cta">
+          <a class="btn btn-gold" href="mailto:{mail}?subject=Cozy%20Safe">{ic('mail', 20)}{t['write']}</a>
+          <a class="btn btn-ghost" href="{issue}" rel="noopener">{ic('bug', 20)}{t['gh_link']}</a>
+        </div>
+      </div>
+      <div class="unlock letter" role="img" aria-label="{t['email_h']}">
+        <div class="knob"><span class="mk">{ic('mail', 50, 1.8)}</span></div>
+        <strong>{t['h1']}</strong>
+        <span class="field">{mail}</span>
+        <span class="lines"><i></i><i></i><i class="short"></i></span>
+        <span class="go">{ic('arrow', 18)}{t['write']}</span>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="block ways">
+    <article class="way main">
+      <div class="ic">{ic('mail', 26)}</div>
+      <h2>{t['email_h']}</h2>
+      <p>{t['email_p']}</p>
+      <div class="addr"><code>{mail}</code>
+        <button type="button" id="copy" data-done="{t['copied']}">{ic('copy', 18)}<span>{t['copy']}</span></button></div>
+      <a class="get" href="mailto:{mail}?subject=Cozy%20Safe">{ic('mail', 18)}{t['write']}</a>
+    </article>
+    <article class="way">
+      <div class="ic">{ic('bug', 26)}</div>
+      <h2>{t['gh_h']}</h2>
+      <p>{t['gh_p']}</p>
+      <a class="get alt" href="{issue}" rel="noopener">{ic('bug', 18)}{t['gh_link']}</a>
+    </article>
+  </section>
+  <section class="block">
+    <h2>{t['shot_h']}</h2>
+    <div class="shot-how">
+      <ol class="steps">{steps}</ol>
+      <div class="switch-demo" aria-hidden="true">
+        <div class="row"><span class="tile">{ic('eye', 20)}</span><span class="name">{t['switch']}</span><span class="tog"><i></i></span></div>
+        <span class="hint">{ic('arrow', 16)}</span>
+        <div class="row off"><span class="tile">{ic('eye', 20)}</span><span class="name">{t['switch']}</span><span class="tog"><i></i></span></div>
+      </div>
+    </div>
+    <p class="note">{t['shot_after']}</p>
+  </section>
+  <section class="block">
+    <h2>{t['tips_h']}</h2>
+    <div class="features">{tips}</div>
+    <p class="never">{t['never']}</p>
+  </section>
 </main>
+<footer>
+  <div class="wrap">
+    <a class="brand" href="./"><img src="{root}icon-512.png" alt="" width="28" height="28">Cozy Safe</a>
+    <span>{h['f_by']} <a href="{studio}">Cozy Pi</a></span>
+    <a href="{REPO}">{h['f_src']}</a>
+    <span>{h['f_lic']}</span>
+    <a href="privacy">{h['f_priv']}</a>
+    <a href="mailto:{mail}">{mail}</a>
+  </div>
+</footer>
 <script>
 (function () {{
-  var b = document.getElementById('copy');
+  var b = document.getElementById('copy'), label = b.querySelector('span');
   b.addEventListener('click', function () {{
-    var done = function () {{ var old = b.textContent; b.textContent = b.dataset.done; setTimeout(function () {{ b.textContent = old; }}, 1500); }};
-    if (navigator.clipboard) navigator.clipboard.writeText('support@cozypi.com').then(done, function () {{}});
+    var done = function () {{ var old = label.textContent; label.textContent = b.dataset.done; b.classList.add('ok');
+      setTimeout(function () {{ label.textContent = old; b.classList.remove('ok'); }}, 1600); }};
+    if (navigator.clipboard) navigator.clipboard.writeText('{mail}').then(done, function () {{}});
   }});
 }})();
 </script>
 </body>
 </html>
-'''
+"""
 
 
 def sitemap():

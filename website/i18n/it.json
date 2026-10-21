@@ -132,6 +132,7 @@
   "email_p": "Scrivici in qualsiasi lingua.",
   "copy": "Copia indirizzo",
   "copied": "Copiato",
+  "write": "Scrivi un'email",
   "gh_h": "Segnala un bug su GitHub",
   "gh_p": "Se hai un account GitHub, puoi aprire una segnalazione pubblica.",
   "gh_link": "Apri una segnalazione",
@@ -142,9 +143,16 @@
    "Uno screenshot senza nulla di privato."
   ],
   "shot_h": "Fare uno screenshot",
-  "shot_p": "Cozy Safe blocca gli screenshot per impostazione predefinita. Per farne uno, apri la cassaforte, vai in Impostazioni → Sicurezza e disattiva «Blocca screenshot» (ti chiede Face ID, impronta o il codice del telefono).",
+  "shot_steps": [
+   "Apri la cassaforte.",
+   "Vai in Impostazioni → Sicurezza.",
+   "Disattiva «Blocca screenshot» (ti chiede Face ID, impronta o il codice del telefono).",
+   "Fai lo screenshot.",
+   "Riattiva «Blocca screenshot»."
+  ],
   "shot_after": "Riattivalo quando hai finito e controlla che lo screenshot non mostri nulla di privato.",
   "never": "Non inviare mai la password, la Secret Key o qualcosa dalla cassaforte: non ci servono mai.",
-  "back": "Cozy Safe"
+  "back": "Cozy Safe",
+  "switch": "Blocca screenshot"
  }
 }

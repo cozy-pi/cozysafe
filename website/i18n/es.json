@@ -132,6 +132,7 @@
   "email_p": "Escríbenos en cualquier idioma.",
   "copy": "Copiar dirección",
   "copied": "Copiado",
+  "write": "Escribir un correo",
   "gh_h": "Informar de un error en GitHub",
   "gh_p": "Si tienes una cuenta de GitHub, puedes abrir una incidencia pública.",
   "gh_link": "Abrir una incidencia",
@@ -142,9 +143,16 @@
    "Una captura de pantalla sin nada privado."
   ],
   "shot_h": "Hacer una captura de pantalla",
-  "shot_p": "Cozy Safe bloquea las capturas de pantalla por defecto. Para hacer una, abre tu caja fuerte, ve a Ajustes → Seguridad y desactiva «Bloquear capturas de pantalla» (pide Face ID, huella o el código del teléfono).",
+  "shot_steps": [
+   "Abre tu caja fuerte.",
+   "Ve a Ajustes → Seguridad.",
+   "Desactiva «Bloquear capturas de pantalla» (pide Face ID, huella o el código del teléfono).",
+   "Haz la captura.",
+   "Vuelve a activar «Bloquear capturas de pantalla»."
+  ],
   "shot_after": "Vuelve a activarlo al terminar y comprueba que la captura no muestre nada privado.",
   "never": "Nunca envíes tu contraseña, tu Secret Key ni nada de tu caja fuerte: nunca los necesitamos.",
-  "back": "Cozy Safe"
+  "back": "Cozy Safe",
+  "switch": "Bloquear capturas de pantalla"
  }
 }

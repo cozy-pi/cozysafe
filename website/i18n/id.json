@@ -132,6 +132,7 @@
   "email_p": "Tulis kepada kami dalam bahasa apa pun.",
   "copy": "Salin alamat",
   "copied": "Tersalin",
+  "write": "Tulis email",
   "gh_h": "Laporkan bug di GitHub",
   "gh_p": "Jika punya akun GitHub, Anda bisa membuka laporan publik.",
   "gh_link": "Buka laporan",
@@ -142,9 +143,16 @@
    "Tangkapan layar tanpa hal pribadi."
   ],
   "shot_h": "Mengambil tangkapan layar",
-  "shot_p": "Cozy Safe memblokir tangkapan layar secara bawaan. Untuk mengambilnya, buka brankas, masuk ke Pengaturan → Keamanan, lalu matikan “Blokir tangkapan layar” (akan diminta Face ID, sidik jari, atau kode perangkat).",
+  "shot_steps": [
+   "Buka brankas Anda.",
+   "Masuk ke Pengaturan → Keamanan.",
+   "Matikan “Blokir tangkapan layar” (akan diminta Face ID, sidik jari, atau kode perangkat).",
+   "Ambil tangkapan layar.",
+   "Nyalakan lagi “Blokir tangkapan layar”."
+  ],
   "shot_after": "Nyalakan lagi setelah selesai, dan pastikan tangkapan layar tidak memuat hal pribadi.",
   "never": "Jangan pernah mengirim kata sandi, Secret Key, atau isi brankas Anda: kami tidak pernah membutuhkannya.",
-  "back": "Cozy Safe"
+  "back": "Cozy Safe",
+  "switch": "Blokir tangkapan layar"
  }
 }
