@@ -203,7 +203,9 @@ section.new {{ background:var(--hl-bg); border-left:4px solid var(--hl); padding
 {''.join(blocks)}</main>
 <a class="top" href="#" aria-label="Lên đầu trang">↑</a>
 <script>
+(() => {{
 // Folding: a link to a screen or a group opens its group first; "open/close all".
+// (No global named `top`: that is window.top, and redeclaring it stops the script.)
 const openFor = (id) => {{ const el = id && document.getElementById(id); if (!el) return;
   const g = el.closest('details') || (el.tagName === 'DETAILS' ? el : null); if (g) g.open = true;
   el.scrollIntoView({{ block: 'start' }}); }};
@@ -216,8 +218,9 @@ document.addEventListener('click', (e) => {{
 }});
 if (location.hash) openFor(location.hash.slice(1));
 // "Back to top" shows once the page has scrolled past the first screen.
-const top = document.querySelector('.top');
-addEventListener('scroll', () => top.classList.toggle('show', scrollY > innerHeight * .8), {{ passive: true }});
+const toTop = document.querySelector('.top');
+addEventListener('scroll', () => toTop.classList.toggle('show', scrollY > innerHeight * .8), {{ passive: true }});
+}})();
 </script>
 """
 open(os.path.join(d, "index.html"), "w", encoding="utf-8").write(page)
