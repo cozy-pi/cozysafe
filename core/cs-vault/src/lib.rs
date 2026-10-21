@@ -249,7 +249,9 @@ impl Library {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(e) => return Err(e.into()),
         };
-        Ok(Some(SecretKey::from_slice(&bytes).ok_or(Error::Corrupt("secret key length"))?))
+        Ok(Some(
+            SecretKey::from_slice(&bytes).ok_or(Error::Corrupt("secret key length"))?,
+        ))
     }
 
     /// Overwrite and delete the `secret-key` file once the key is in the keystore.

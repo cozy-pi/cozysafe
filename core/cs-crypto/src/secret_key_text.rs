@@ -44,7 +44,9 @@ impl SecretKey {
 
     /// Either form back to the key; `None` for a typo (checksum) or an unknown word.
     pub fn from_text(text: &str) -> Option<SecretKey> {
-        if text.chars().any(|c| c.is_ascii_lowercase() || c.is_ascii_uppercase())
+        if text
+            .chars()
+            .any(|c| c.is_ascii_lowercase() || c.is_ascii_uppercase())
             && text.split_whitespace().count() >= 12
         {
             return from_bip39(text);
@@ -104,23 +106,28 @@ fn bip39_words(entropy: &[u8]) -> Zeroizing<String> {
 /// BIP39 word is known by its first four letters, so those are enough.
 fn from_bip39(text: &str) -> Option<SecretKey> {
     let list = words();
-    let typed: Vec<String> = text.split_whitespace().map(|w| w.to_ascii_lowercase()).collect();
+    let typed: Vec<String> = text
+        .split_whitespace()
+        .map(|w| w.to_ascii_lowercase())
+        .collect();
     if typed.len() != 24 {
         return None;
     }
     let mut bits = Zeroizing::new(Vec::with_capacity(264));
     for w in &typed {
-        let idx = list
-            .iter()
-            .position(|x| x == w)
-            .or_else(|| list.iter().position(|x| w.len() >= 4 && x.starts_with(w.as_str())))?;
+        let idx = list.iter().position(|x| x == w).or_else(|| {
+            list.iter()
+                .position(|x| w.len() >= 4 && x.starts_with(w.as_str()))
+        })?;
         for i in (0..11).rev() {
             bits.push(((idx >> i) & 1) as u8);
         }
     }
     let mut entropy = Zeroizing::new([0u8; SECRET_KEY_LEN]);
     for (i, byte) in entropy.iter_mut().enumerate() {
-        *byte = bits[i * 8..i * 8 + 8].iter().fold(0u8, |a, &b| (a << 1) | b);
+        *byte = bits[i * 8..i * 8 + 8]
+            .iter()
+            .fold(0u8, |a, &b| (a << 1) | b);
     }
     let sum = bits[256..264].iter().fold(0u8, |a, &b| (a << 1) | b);
     (Sha256::digest(&entropy[..])[0] == sum).then(|| SecretKey::from_bytes(*entropy))

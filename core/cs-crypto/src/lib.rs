@@ -86,11 +86,17 @@ impl SecretKey {
     pub fn generate() -> Self {
         let mut bytes = [0u8; SECRET_KEY_LEN];
         OsRng.fill_bytes(&mut bytes);
-        SecretKey { bytes, len: SECRET_KEY_LEN as u8 }
+        SecretKey {
+            bytes,
+            len: SECRET_KEY_LEN as u8,
+        }
     }
 
     pub fn from_bytes(bytes: [u8; SECRET_KEY_LEN]) -> Self {
-        SecretKey { bytes, len: SECRET_KEY_LEN as u8 }
+        SecretKey {
+            bytes,
+            len: SECRET_KEY_LEN as u8,
+        }
     }
 
     /// A key read back from storage: 32 bytes, or 16 for an earlier library.
@@ -100,7 +106,10 @@ impl SecretKey {
         }
         let mut bytes = [0u8; SECRET_KEY_LEN];
         bytes[..b.len()].copy_from_slice(b);
-        Some(SecretKey { bytes, len: b.len() as u8 })
+        Some(SecretKey {
+            bytes,
+            len: b.len() as u8,
+        })
     }
 
     pub fn as_bytes(&self) -> &[u8] {
