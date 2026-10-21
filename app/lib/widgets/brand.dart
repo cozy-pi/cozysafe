@@ -17,6 +17,128 @@ class BrandMark extends StatelessWidget {
       CustomPaint(size: Size.square(size), painter: _MarkPainter(color));
 }
 
+/// The hand-over from the system's launch screen (the page colour and the dial in the
+/// middle, 120 pt: ios/Runner LaunchScreen, android launch_background / splash_icon) to
+/// the first screen: the first frame looks exactly like the launch screen, then the dial
+/// shrinks and fades while the page under it shows through (owner 2026-10-21: the jump
+/// from the plain splash to the detailed lock screen felt abrupt). Cold start only.
+class LaunchHandoff extends StatefulWidget {
+  const LaunchHandoff({super.key, required this.child});
+  final Widget child;
+
+  static bool _played = false;
+  @visibleForTesting
+  static void debugReset() {
+    _played = false;
+    _running = false;
+  }
+
+  /// Mockups: hold the first frame until [debugGo], so a shot can freeze a moment.
+  @visibleForTesting
+  static bool debugHold = false;
+  static final _go = ChangeNotifier();
+  @visibleForTesting
+  // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+  static void debugGo() => _go.notifyListeners();
+
+  /// Where the system launch screen's dial sits, in logical pixels.
+  static const dial = 120.0;
+
+  /// The first screen's own dial, if it has one (the lock screen): the splash dial flies
+  /// onto it and becomes it; otherwise it shrinks away.
+  static final target = GlobalKey(debugLabel: 'launch-target');
+
+  /// True only while the hand-over plays: screens put [target] on their dial then, never
+  /// later, so two screens can never hold the one key.
+  static bool get running => _running;
+  static bool _running = false;
+
+  @override
+  State<LaunchHandoff> createState() => _LaunchHandoffState();
+}
+
+class _LaunchHandoffState extends State<LaunchHandoff> with SingleTickerProviderStateMixin {
+  AnimationController? _c;
+
+  void _start() => _c?.forward();
+
+  @override
+  void initState() {
+    super.initState();
+    // Decide before marking it played: only the very first screen gets the hand-over.
+    if (!LaunchHandoff._played) {
+      _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 560));
+      LaunchHandoff._running = true;
+    }
+    LaunchHandoff._played = true;
+    if (LaunchHandoff.debugHold) {
+      LaunchHandoff._go.addListener(_start);
+    } else {
+      _start();
+    }
+    _c?.addStatusListener((s) {
+      if (s == AnimationStatus.completed) {
+        LaunchHandoff._running = false;
+        if (mounted) setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    LaunchHandoff._go.removeListener(_start);
+    if (_c != null) LaunchHandoff._running = false;
+    _c?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _c;
+    if (c == null || c.isCompleted) return widget.child;
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final veil = CurvedAnimation(parent: c, curve: const Interval(.15, .85, curve: Curves.easeOut));
+    final fly = CurvedAnimation(parent: c, curve: const Interval(0, .85, curve: Curves.easeInOutCubic));
+    return Stack(
+      children: [
+        widget.child,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: LayoutBuilder(
+              builder: (context, box) => AnimatedBuilder(
+                animation: c,
+                builder: (context, _) {
+                  final start = Rect.fromCenter(center: box.biggest.center(Offset.zero), width: LaunchHandoff.dial, height: LaunchHandoff.dial);
+                  // The target's place, in this overlay's coordinates.
+                  final here = context.findRenderObject() as RenderBox?;
+                  final t = LaunchHandoff.target.currentContext?.findRenderObject() as RenderBox?;
+                  final end = (t != null && here != null && t.attached && here.attached)
+                      ? here.globalToLocal(t.localToGlobal(Offset.zero)) & t.size
+                      : null;
+                  final at = end == null ? start : Rect.lerp(start, end, fly.value)!;
+                  // With a target the dial lands and hands over; without, it fades.
+                  final markOpacity = end == null ? 1 - fly.value : (c.value < .85 ? 1.0 : (1 - (c.value - .85) / .15));
+                  return Stack(children: [
+                    Positioned.fill(child: ColoredBox(color: page.withValues(alpha: 1 - veil.value))),
+                    Positioned.fromRect(
+                      rect: at,
+                      child: Opacity(
+                        opacity: markOpacity.clamp(0, 1),
+                        child: BrandMark(size: at.width, color: ink),
+                      ),
+                    ),
+                  ]);
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _MarkPainter extends CustomPainter {
   _MarkPainter(this.color);
   final Color color;

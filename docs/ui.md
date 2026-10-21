@@ -36,6 +36,12 @@ in `test/preview_test.dart`; the page lists them at the top and outlines the mar
 
 ## Unlock screen (chosen 2026-10-19: "B2")
 
+- **Launch** (2026-10-21): the system launch screen stays the page colour with the dial in
+  the middle (120 pt; Android 12+ draws its own icon splash). The app's first frame looks
+  the same, then the dial flies onto the lock screen's dial while the background and the
+  PIN card show through (`LaunchHandoff`, 0.56 s, cold start only). Other first screens
+  (new vault, restore): the dial shrinks away.
+
 - Background: a collage of protected items (photo, ID card, receipt, note, PDF,
   passport) tilted about −8°, **always blurred** so nothing is readable, drawn in the
   theme's own greys (2026-10-21: light shapes on the dark theme showed as bright

@@ -16,6 +16,7 @@ import 'secret_key_store.dart';
 import 'src/rust/api/vault.dart' as rust;
 import 'src/rust/frb_generated.dart';
 import 'theme.dart';
+import 'widgets/brand.dart';
 import 'prefs.dart';
 import 'privacy.dart';
 
@@ -69,6 +70,8 @@ class CozySafeApp extends StatelessWidget {
       listenable: Listenable.merge([vaultTint, AppLanguage.current, Appearance.mode]),
       builder: (context, _) => MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
+      // From the system launch screen to the first screen without a jump.
+      builder: (context, child) => LaunchHandoff(child: child ?? const SizedBox.shrink()),
       // Settings → Language (or the system's per-app language), else the device's.
       locale: locale ?? AppLanguage.current.value,
       localeResolutionCallback: (device, supported) => resolveLocale(device, supported),
