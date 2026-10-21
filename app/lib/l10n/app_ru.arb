@@ -371,5 +371,15 @@
   "secNoCapture": "Без записи экрана",
   "language": "Язык",
   "languageSystem": "Как на устройстве",
-  "languageSystemNote": "Используется язык, установленный на устройстве."
+  "languageSystemNote": "Используется язык, установленный на устройстве.",
+  "appearance": "Оформление",
+  "appearanceAuto": "Автоматически",
+  "appearanceLight": "Светлое",
+  "appearanceDark": "Тёмное",
+  "searchKinds": "Обзор",
+  "searchGroups": "Группы",
+  "searchRecent": "Недавно добавленные",
+  "searchAll": "Все",
+  "searchNothingFor": "Ничего не найдено по запросу «{query}»",
+  "searchNothingHint": "Попробуйте слово короче. Поиск идёт по названиям и тексту заметок, диакритика не важна."
 }

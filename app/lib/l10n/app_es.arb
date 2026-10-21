@@ -371,5 +371,15 @@
   "secNoCapture": "Sin capturas",
   "language": "Idioma",
   "languageSystem": "Igual que el dispositivo",
-  "languageSystemNote": "Usa el idioma configurado en tu dispositivo."
+  "languageSystemNote": "Usa el idioma configurado en tu dispositivo.",
+  "appearance": "Apariencia",
+  "appearanceAuto": "Automático",
+  "appearanceLight": "Claro",
+  "appearanceDark": "Oscuro",
+  "searchKinds": "Explorar",
+  "searchGroups": "Grupos",
+  "searchRecent": "Añadido recientemente",
+  "searchAll": "Todo",
+  "searchNothingFor": "Sin resultados para “{query}”",
+  "searchNothingHint": "Prueba con una palabra más corta. Se buscan los nombres y el texto de las notas, sin importar los acentos."
 }

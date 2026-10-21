@@ -371,5 +371,15 @@
   "secNoCapture": "Ekran kaydı yok",
   "language": "Dil",
   "languageSystem": "Cihazla aynı",
-  "languageSystemNote": "Cihazınızın ayarlı olduğu dili kullanır."
+  "languageSystemNote": "Cihazınızın ayarlı olduğu dili kullanır.",
+  "appearance": "Görünüm",
+  "appearanceAuto": "Otomatik",
+  "appearanceLight": "Açık",
+  "appearanceDark": "Koyu",
+  "searchKinds": "Göz at",
+  "searchGroups": "Gruplar",
+  "searchRecent": "Son eklenenler",
+  "searchAll": "Tümü",
+  "searchNothingFor": "“{query}” için sonuç yok",
+  "searchNothingHint": "Daha kısa bir kelime deneyin. Adlarda ve not metinlerinde aranır, aksanlar önemli değildir."
 }

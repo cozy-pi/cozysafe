@@ -775,9 +775,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (items == null) return;
     final picked = await Navigator.of(context).push<rust.ItemInfo>(
       MaterialPageRoute(
-          builder: (_) => SearchScreen(items: items.where((i) => i.kind != ItemKind.tag).toList(), thumbnail: _thumbnail)),
+          builder: (_) => SearchScreen(items: items, thumbnail: _thumbnail)),
     );
-    if (picked != null && mounted && !_locked) _openItem(picked, items.where(_isMedia).toList());
+    if (picked == null || !mounted || _locked) return;
+    // A group found by its name opens like a chip in the vault.
+    if (picked.kind == ItemKind.tag) return setState(() => _tagId = picked.id);
+    _openItem(picked, items.where(_isMedia).toList());
   }
 
   String _dateGroup(BuildContext context, int ms) {

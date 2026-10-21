@@ -371,5 +371,15 @@
   "secNoCapture": "禁止截屏",
   "language": "语言",
   "languageSystem": "跟随设备",
-  "languageSystemNote": "使用设备当前设置的语言。"
+  "languageSystemNote": "使用设备当前设置的语言。",
+  "appearance": "外观",
+  "appearanceAuto": "自动",
+  "appearanceLight": "浅色",
+  "appearanceDark": "深色",
+  "searchKinds": "按类型浏览",
+  "searchGroups": "分组",
+  "searchRecent": "最近添加",
+  "searchAll": "全部",
+  "searchNothingFor": "没有与“{query}”相关的结果",
+  "searchNothingHint": "试试更短的词。会搜索名称和笔记内容，不区分声调符号。"
 }

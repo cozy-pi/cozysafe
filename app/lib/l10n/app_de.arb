@@ -371,5 +371,15 @@
   "secNoCapture": "Keine Aufnahme",
   "language": "Sprache",
   "languageSystem": "Wie Gerät",
-  "languageSystemNote": "Verwendet die auf Ihrem Gerät eingestellte Sprache."
+  "languageSystemNote": "Verwendet die auf Ihrem Gerät eingestellte Sprache.",
+  "appearance": "Erscheinungsbild",
+  "appearanceAuto": "Automatisch",
+  "appearanceLight": "Hell",
+  "appearanceDark": "Dunkel",
+  "searchKinds": "Durchsuchen",
+  "searchGroups": "Gruppen",
+  "searchRecent": "Zuletzt hinzugefügt",
+  "searchAll": "Alle",
+  "searchNothingFor": "Keine Ergebnisse für „{query}“",
+  "searchNothingHint": "Versuchen Sie ein kürzeres Wort. Gesucht wird in Namen und im Text von Notizen, Akzente spielen keine Rolle."
 }
