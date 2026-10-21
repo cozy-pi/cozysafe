@@ -308,9 +308,7 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock,
-      change: 'Ảnh nay chụp như iPhone: có nút Face ID (app thật vốn có, ảnh cũ thiếu)',
-      marks: [() => find.byKey(const ValueKey('biometric-button'))]);
+  _screen('lock', 'Màn khoá', lock);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   // The unlock animation (playVaultSpin), frozen at three moments of its 1.15 s.
   for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay'), (950, 'phóng to và tan')]) {
@@ -323,49 +321,57 @@ void main() {
   // After the unlock spin: the vault's icon in the middle, then it fades (docs/ui.md).
   for (final (ms, what) in [(900, 'nền trơn, biểu tượng két'), (1350, 'biểu tượng mờ dần'), (1800, 'dữ liệu hiện ra')]) {
     _screen('reveal-$ms', 'Vừa mở · $ms ms · $what', home, section: 'library', after: 0,
-        change: ms == 900 ? 'Biểu tượng két hình tròn (B), không viền trắng' : null,
         setup: () => VaultHomeScreen.debugReveal = true, act: (t) async {
       await t.pump(Duration(milliseconds: ms - 800));
     });
   }
-  _screen('library', 'Thư viện', home, section: 'library',
-      change: 'Nút Chọn (trước phải giữ lâu) · nút khoá chỉ còn ổ khoá to (bỏ biểu tượng két) · nút chính to 64 · “Tháng 9” viết hoa',
-      marks: [() => find.byKey(const ValueKey('select-button')), () => find.byKey(const ValueKey('lock-button')), () => find.byKey(const ValueKey('vault-action')), () => find.textContaining('Tháng 9')]);
-  _screen('add-sheet', 'Bấm + · mọi kiểu dữ liệu', home, section: 'library', setup: () => debugCamera = true,
-      change: 'MỚI: bảng “Thêm vào két”, 6 ô lớn',
-      act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
-  _screen('empty', 'Két trống · thêm bằng ô lớn', home, section: 'library', change: 'MỚI: két trống có biểu tượng két và 6 ô thêm', setup: () {
+  _screen('library', 'Thư viện', home, section: 'library');
+  _screen('add-library', 'Thư viện · bấm +', home, section: 'library', setup: () => debugCamera = true,
+      change: 'MỚI: bấm + mọc cột thêm xếp dọc; 3 cách thêm ảnh/video (tô đậm) nằm sát nút nhất',
+      marks: [() => find.byKey(const ValueKey('add-column'))], act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
+  _screen('add-slide', 'Thư viện · giữ + rồi vuốt lên “Chụp ảnh”', home, section: 'library', setup: () => debugCamera = true,
+      change: 'MỘT TAY: đặt ngón lên +, vuốt lên tới mục cần (mục to lên, máy rung nhẹ), nhấc tay là chọn',
+      marks: [() => find.byKey(const ValueKey('add-photo'))], act: (t) async {
+    final g = await t.startGesture(t.getCenter(find.byKey(const ValueKey('vault-action'))));
+    await g.moveBy(const Offset(0, -30));
+    await t.pump(const Duration(milliseconds: 250));
+    await g.moveTo(t.getCenter(find.byKey(const ValueKey('add-photo'))));
+    await t.pump(const Duration(milliseconds: 200));
+  });
+  _screen('add-notes', 'Ghi chú · bấm +', home, section: 'note', setup: () => debugCamera = true,
+      change: 'Cùng cột đó; ở Ghi chú thì “Ghi chú mới” nằm sát nút', marks: [() => find.byKey(const ValueKey('add-column'))], act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
+  _screen('add-files', 'Tệp · bấm +', home, section: 'file', setup: () => debugCamera = true,
+      change: 'Ở Tệp thì “Thêm tệp” nằm sát nút', marks: [() => find.byKey(const ValueKey('add-column'))], act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
+  _screen('empty', 'Két trống · thêm bằng ô lớn', home, section: 'library', setup: () {
     debugCamera = true;
     _itemsNow = const [];
   });
   _screen('one-type', 'Chỉ có ghi chú · không thanh chọn mục', home, section: 'note',
-      change: 'MỚI: chỉ có một loại thì không hiện thanh chọn mục; chưa có Thư viện thì + ra bảng thêm',
       setup: () => _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList());
-  _screen('one-type-add', 'Chỉ có ghi chú · bấm + ra bảng thêm', home, section: 'note',
+  _screen('one-type-add', 'Chỉ có ghi chú · bấm +', home, section: 'note',
+      change: 'Két chỉ có ghi chú vẫn thêm được mọi loại từ cột này',
       setup: () {
         debugCamera = true;
         _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList();
       }, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
-  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
-      change: 'Nút quay lại tròn 48 và nút Xong to, tô đen', marks: [() => find.byKey(const ValueKey('note-done'))]);
-  _screen('note-new', 'Ghi chú mới', () => const NoteScreen(),
-      change: 'Chữ gợi ý nói dòng đầu là tên ghi chú', marks: [() => find.textContaining('Dòng đầu')]);
-  _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'),
-      change: 'Trong nhóm bỏ nút Cài đặt cho đầu trang đỡ chật (bấm ← là về)');
+  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
+  _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
+  _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
   Widget camera({required bool video}) => CameraScreen(video: video, onOpenLast: (_) {});
   void still() {
     CameraView.debugPreview =
         _photos.isEmpty ? const ColoredBox(color: Colors.black) : Image.memory(_photos[3]!, fit: BoxFit.cover);
     CameraView.debugLast = (_items.firstWhere((i) => i.kind == ItemKind.photo), _photos[0] ?? _thumbnails[0]!);
   }
-  _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still,
-      change: 'Nút đóng xuống hàng dưới (vuốt xuống cũng đóng) · ảnh vừa chụp ở góc khung ngắm',
-      marks: [() => find.byKey(const ValueKey('camera-close'))]);
+  _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
   _screen('notes', 'Ghi chú', home, section: 'note',
-      change: 'Danh sách chỉ hiện tiêu đề và ngày, KHÔNG hiện nội dung (bật lại trong Cài đặt) · nút chính = viết ngay',
-      marks: [() => find.ancestor(of: find.text('Wifi nhà bà ngoại'), matching: find.byType(InkWell)).first, () => find.byKey(const ValueKey('vault-action'))]);
+      change: 'Nút chính là + như mọi mục (trước là cây bút)', marks: [() => find.byKey(const ValueKey('vault-action'))]);
   _screen('audio', 'Ghi âm', home, section: 'audio');
+  _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
+      change: 'Chạm bản ghi là mở rộng tại chỗ: Gửi · Đổi tên · Xoá ngay dưới nó (trước bật bảng từ dưới lên)',
+      marks: [() => find.byKey(const ValueKey('audio-send')), () => find.byKey(const ValueKey('audio-rename')), () => find.byKey(const ValueKey('audio-delete'))],
+      act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
   _screen('files', 'Tệp', home, section: 'file');
   _screen('tag-files', 'Tệp · trong nhóm "Hộ chiếu"', home, section: 'file', act: (t) => _tapChip(t, 'Hộ chiếu'));
   _screen('tag-notes', 'Ghi chú · cùng nhóm "Hộ chiếu"', home, section: 'file', act: (t) async {
@@ -374,9 +380,7 @@ void main() {
     await t.tap(find.text('Ghi chú'));
   });
   _screen('all-tags', 'Tất cả nhóm', home, section: 'audio', act: (t) => t.tap(find.byKey(const ValueKey('all-tags'))));
-  _screen('select', 'Đang chọn', home, section: 'library',
-      change: 'Thanh Gửi/Nhóm/Xoá thành kính mờ như thanh dưới (hết khối trắng chói ở chế độ tối) · Xoá màu đỏ',
-      marks: [() => find.text('Xoá').last], act: (t) async {
+  _screen('select', 'Đang chọn', home, section: 'library', act: (t) async {
     await t.longPress(find.byType(Image).at(2));
     await t.pump();
     await t.tap(find.byType(Image).at(4));
@@ -392,29 +396,26 @@ void main() {
     showToast(t.element(find.byType(VaultHomeScreen)), 'Đã chuyển vào Đã xoá gần đây',
         icon: Icons.delete_outline_rounded, actionLabel: 'Hoàn tác', besideAction: true, onAction: () {});
   });
-  _screen('search', 'Tìm kiếm', () => SearchScreen(items: _items, thumbnail: (id) async => _thumbnails[0]!),
-      change: 'Ô tìm kiếm bo tròn có kính lúp · kết quả ghi “Có trong nội dung” thay vì in nội dung',
-      marks: [() => find.byKey(const ValueKey('search-field')), () => find.text('Có trong nội dung')], act: (t) async {
+  _screen('search', 'Tìm kiếm', () => SearchScreen(items: _items, thumbnail: (id) async => _thumbnails[0]!), act: (t) async {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
     await t.enterText(find.byType(TextField), 'thuoc');
   });
-  _screen('settings', 'Cài đặt', () => settings(vault),
-      change: 'Ảnh nay chụp như iPhone: dòng Face ID (ảnh cũ ghi nhầm “Vân tay”)');
+  _screen('settings', 'Cài đặt', () => settings(vault));
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
-      change: 'MỚI: công tắc “Hiện nội dung ghi chú”, mặc định tắt; bật phải qua Face ID',
-      marks: [() => find.ancestor(of: find.text('Hiện nội dung ghi chú'), matching: find.byType(InkWell)).first],
       act: (t) async {
     await t.scrollUntilVisible(find.text('Hiện nội dung ghi chú'), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
   });
   _screen('trash', 'Đã xoá gần đây', () => const TrashScreen(),
-      change: 'Dòng “Chạm vào một mục để khôi phục…” · “Xoá hẳn tất cả” màu đỏ, tách xa nút khôi phục',
-      marks: [() => find.textContaining('Chạm vào một mục'), () => find.byKey(const ValueKey('delete-all'))]);
+      change: 'Thanh kính dưới đáy giống thanh chọn ở Thư viện; chưa chọn gì thì áp cho tất cả',
+      marks: [() => find.byKey(const ValueKey('restore')), () => find.byKey(const ValueKey('delete-all'))]);
+  _screen('trash-select', 'Đã xoá · chạm chọn 1 ảnh', () => const TrashScreen(),
+      change: 'Chạm là chọn (dấu tick), thanh dưới thành Khôi phục · Xoá hẳn cho mục đã chọn',
+      marks: [() => find.byIcon(Icons.check_circle), () => find.byKey(const ValueKey('restore')), () => find.byKey(const ValueKey('delete-all'))],
+      act: (t) => t.tap(find.byType(Image).first));
   _screen('kit', 'Bộ khẩn cấp: khoá bí mật che sẵn', () => const EmergencyKitScreen(
-      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
-      change: 'Lớp che luôn 16 chấm (không lộ độ dài khoá) · dòng nhắc bản sao tự xoá sau 60 giây, đừng gửi qua tin nhắn',
-      marks: [() => find.text('••••-••••-••••-••••'), () => find.textContaining('60 giây')]);
-  _screen('kit-shown', 'Bộ khẩn cấp: sau khi bấm Xem', change: 'Ảnh nay có font đơn cách: khoá đọc được (ảnh cũ ra ô vuông)', () => const EmergencyKitScreen(
+      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false));
+  _screen('kit-shown', 'Bộ khẩn cấp: sau khi bấm Xem', () => const EmergencyKitScreen(
       keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
   _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', () => const BackupPasswordScreen(libraryDir: '', change: false),

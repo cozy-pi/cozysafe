@@ -413,12 +413,16 @@ everywhere, easy to hit with a thumb.
 - **Only what the vault holds.** The bottom capsule offers just the sections that have
   items, in the fixed order Notes · Library · Voice · Files; with one, no capsule. An empty
   vault shows its icon, one line, and big add tiles.
-- **The main action, mixed** (owner 2026-10-21): in Notes it opens a new note, in Files
-  the file picker, in Voice the red mic records (one tap, as before); in the Library it
-  opens "Add to vault", big tiles for new note, take photo, record video, photos from
-  device, voice, file. The section a tile fills opens.
-  While the vault has no Library yet (only notes, say), + opens that sheet in every
-  section except Voice: otherwise there would be no way to add the other kinds.
+- **The main action: + opens the add column** (owner's design, 2026-10-21, 0.1.11). Every
+  way to add stacks above the button (note, photos from device, take photo, record video,
+  voice, file); the current section's ways sit nearest the thumb and are filled, the rest
+  follow in a fixed order. The page dims and + turns into ×. One hand: put the finger on
+  +, slide up to a way (it grows and gets a backdrop, a light tick on each) and let go.
+  Voice keeps its red mic, which records at once. The section a way fills opens.
+- **Tapping an item does it, in place; no sheets popping up from the bottom.** Sheets are
+  only for making or choosing something (groups, settings values). A voice memo opens in
+  its row with Send · Rename · Delete; Recently deleted selects on tap, with Restore and
+  Delete for good (red) in a glass bar, acting on everything when nothing is selected.
 - **Close where the thumb is.** The camera's close sits in the bottom row with the shutter
   and flip; swiping down closes too; the last shot is a small thumbnail in the
   viewfinder's corner.

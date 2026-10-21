@@ -6,10 +6,12 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'file_view.dart';
+import '../widgets/vault_bar.dart';
 import '../item_kind.dart';
 
 /// Recently deleted: items stay here, still encrypted, for 30 days, then go for good.
-/// Tap an item to restore it or delete it now. Pops `true` when something changed.
+/// Tap items to select them, then Restore or Delete for good in the bottom bar (with
+/// nothing selected, the bar acts on everything). Pops `true` when something changed.
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
 
@@ -22,6 +24,7 @@ class _TrashScreenState extends State<TrashScreen> {
   List<rust.ItemInfo>? _items;
   final Map<String, Future<Uint8List>> _thumbnails = {};
   bool _changed = false;
+  final Set<String> _picked = {};
 
   @override
   void initState() {
@@ -49,6 +52,7 @@ class _TrashScreenState extends State<TrashScreen> {
       await rust.restoreItem(id: it.id);
     }
     _changed = true;
+    _picked.clear();
     await _load();
   }
 
@@ -77,31 +81,8 @@ class _TrashScreenState extends State<TrashScreen> {
     await _load();
   }
 
-  Future<void> _actions(rust.ItemInfo it) async {
-    final l = AppLocalizations.of(context);
-    final pick = await showModalBottomSheet<int>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.restore),
-              title: Text(l.restore),
-              onTap: () => Navigator.pop(context, 1),
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_forever_outlined, color: Theme.of(context).colorScheme.error),
-              title: Text(l.deleteNow, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              onTap: () => Navigator.pop(context, 2),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (pick == 1) await _restore([it]);
-    if (pick == 2) await _deleteForGood([it]);
-  }
+  /// Tap selects, as in the Library; what to do sits in the bar at the bottom.
+  void _toggle(rust.ItemInfo it) => setState(() => _picked.contains(it.id) ? _picked.remove(it.id) : _picked.add(it.id));
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +97,13 @@ class _TrashScreenState extends State<TrashScreen> {
         if (!didPop) Navigator.of(context).pop(_changed);
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(l.recentlyDeleted)),
+        appBar: AppBar(
+          title: Text(_picked.isEmpty ? l.recentlyDeleted : l.selectedCount(_picked.length)),
+          actions: [
+            if (_picked.isNotEmpty) TextButton(onPressed: () => setState(_picked.clear), child: Text(l.cancel)),
+            const SizedBox(width: 8),
+          ],
+        ),
         body: items == null
             ? const Center(child: CircularProgressIndicator())
             : CustomScrollView(
@@ -138,8 +125,10 @@ class _TrashScreenState extends State<TrashScreen> {
                     delegate: SliverChildBuilderDelegate(
                       (context, i) {
                         final it = photos[i];
+                        final on = _picked.contains(it.id);
                         return GestureDetector(
-                          onTap: () => _actions(it),
+                          key: ValueKey('trash-${it.id}'),
+                          onTap: () => _toggle(it),
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
@@ -150,6 +139,13 @@ class _TrashScreenState extends State<TrashScreen> {
                                     : ColoredBox(color: c.soft),
                               ),
                               Positioned(left: 4, bottom: 4, child: _DaysLeft(l.daysLeft(_daysLeft(it)))),
+                              if (on) ColoredBox(color: Colors.white.withValues(alpha: .25)),
+                              Positioned(
+                                top: 6,
+                                right: 6,
+                                child: Icon(on ? Icons.check_circle : Icons.radio_button_unchecked,
+                                    color: Colors.white, shadows: const [Shadow(color: Color(0x88000000), blurRadius: 6)]),
+                              ),
                             ],
                           ),
                         );
@@ -169,7 +165,9 @@ class _TrashScreenState extends State<TrashScreen> {
                             children: [
                               for (final it in others)
                                 ListTile(
-                                  onTap: () => _actions(it),
+                                  onTap: () => _toggle(it),
+                                  trailing: Icon(_picked.contains(it.id) ? Icons.check_circle : Icons.radio_button_unchecked,
+                                      color: Theme.of(context).colorScheme.onSurface),
                                   leading: Icon(fileIcon(it), color: Theme.of(context).colorScheme.primary),
                                   title: Text(it.name.isEmpty ? l.untitledNote : it.name,
                                       maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -182,37 +180,38 @@ class _TrashScreenState extends State<TrashScreen> {
                     ),
                 ],
               ),
+        // Glass like the vault's selection bar: Restore, and Delete for good in red, apart.
+        // Nothing selected: they act on everything.
         bottomNavigationBar: (items == null || items.isEmpty)
             ? null
-            : SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(context).cardColor,
-                            foregroundColor: Theme.of(context).colorScheme.primary,
+            : Padding(
+                padding: EdgeInsets.fromLTRB(10, 0, 10, Ui.edge + MediaQuery.paddingOf(context).bottom),
+                child: Glass(
+                  radius: Ui.bar / 2,
+                  child: SizedBox(
+                    height: Ui.bar,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            key: const ValueKey('restore'),
+                            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
+                            onPressed: () => _restore(_picked.isEmpty ? items : items.where((i) => _picked.contains(i.id)).toList()),
+                            child: Text(_picked.isEmpty ? l.restoreAll : l.restore,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                           ),
-                          onPressed: () => _restore(items),
-                          child: Text(l.restoreAll),
                         ),
-                      ),
-                      // Apart from Restore, and red: it cannot be undone.
-                      const SizedBox(width: 28),
-                      TextButton(
-                        key: const ValueKey('delete-all'),
-                        style: TextButton.styleFrom(
-                          // The system's destructive red (an exception to black and white,
-                          // proposed 2026-10-21 after user testing).
-                          foregroundColor: recordRed(context),
-                          minimumSize: const Size(0, Ui.circle),
+                        Expanded(
+                          child: TextButton(
+                            key: const ValueKey('delete-all'),
+                            style: TextButton.styleFrom(foregroundColor: recordRed(context)),
+                            onPressed: () => _deleteForGood(_picked.isEmpty ? items : items.where((i) => _picked.contains(i.id)).toList()),
+                            child: Text(_picked.isEmpty ? l.deleteAll : l.deleteForGoodShort,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          ),
                         ),
-                        onPressed: () => _deleteForGood(items),
-                        child: Text(l.deleteAll, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

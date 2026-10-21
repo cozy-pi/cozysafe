@@ -70,6 +70,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// A section opened from the add sheet stays offered while empty (a voice memo
   /// being recorded, a note being written), until another is picked.
   bool _keepSection = false;
+  /// The + column is open; [_hover] is the way under a finger sliding up from +.
+  bool _adding = false;
+  AddWhat? _hover;
+  final _addKeys = {for (final w in AddWhat.values) w: GlobalKey()};
   final _actionKey = GlobalKey();
   final _recorder = GlobalKey<RecorderViewState>();
   bool _recordingNow = false;
@@ -221,53 +225,45 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     ];
   }
 
-  /// The Library is offered, so its + (the add sheet) is one tap away.
-  bool get _hasLibrary => _sections.contains(VaultSection.library);
-
   /// Nothing in the vault yet (tags alone do not count): the welcome with the add tiles.
   bool get _empty => _items != null && _sections.isEmpty;
 
-  /// The button above the lock: in Notes a new note, in Files the file picker, in Voice
-  /// it records; in the Library (and an empty vault) the add sheet with every kind.
+  /// The button above the lock: in Voice it records; everywhere else + opens the add
+  /// column, this section's ways nearest the thumb (docs/ui.md, design language).
   Future<void> _mainAction() async {
-    switch (_section) {
-      case VaultSection.audio:
-        return _recorder.currentState?.toggle();
-      case _ when !_hasLibrary:
-        break; // no Library yet: the sheet is the only way to the other kinds
-      case VaultSection.note:
-        return _add(AddWhat.note);
-      case VaultSection.file:
-        return _add(AddWhat.file);
-      case VaultSection.library:
-        break;
-    }
-    final pick = await showModalBottomSheet<AddWhat>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
-                child: Text(AppLocalizations.of(context).addToVault,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -.3)),
-              ),
-              AddTiles(camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio),
-                  onPick: (w) => Navigator.of(context).pop(w)),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (pick != null) await _add(pick);
+    if (_section == VaultSection.audio) return _recorder.currentState?.toggle();
+    setState(() {
+      _adding = !_adding;
+      _hover = null;
+    });
   }
 
-  /// One way of adding, from the sheet or the empty vault's tiles. The section it fills
+  void _closeAdd() => setState(() {
+        _adding = false;
+        _hover = null;
+      });
+
+  void _pickAdd(AddWhat what) {
+    _closeAdd();
+    _add(what);
+  }
+
+  /// One hand: keep the finger down from + and slide; the row level with it lights up.
+  void _hoverAt(Offset at) {
+    AddWhat? found;
+    for (final MapEntry(:key, :value) in _addKeys.entries) {
+      final box = value.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) continue;
+      final top = box.localToGlobal(Offset.zero).dy;
+      if (at.dy >= top && at.dy < top + box.size.height) found = key;
+    }
+    if (found != _hover) {
+      if (found != null) HapticFeedback.selectionClick();
+      setState(() => _hover = found);
+    }
+  }
+
+  /// One way of adding, from the add column or the empty vault's tiles. The section it fills
   /// opens, and stays offered until something lands in it or another is picked.
   Future<void> _add(AddWhat what) async {
     final target = switch (what) {
@@ -575,7 +571,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (_selected.isNotEmpty) return _toggle(item.id);
     if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
     if (item.kind == ItemKind.note) return _openNote(item);
-    if (item.kind == ItemKind.audio) return _audioActions(item);
+    if (item.kind == ItemKind.audio) {
+      // A recording opens in place in Voice.
+      setState(() => _section = VaultSection.audio);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _recorder.currentState?.openRow(item.id));
+      return;
+    }
     final String? deleted;
     if (item.kind == ItemKind.photo) {
       final photos = media.where((m) => m.kind == ItemKind.photo).toList();
@@ -604,24 +605,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
-  /// A recording: rename it, send it, or delete it (play is right in the list).
-  Future<void> _audioActions(rust.ItemInfo item) async {
+  /// A recording's buttons, from its open row: 0 rename, 1 send, 2 delete.
+  Future<void> _audioActions(rust.ItemInfo item, int pick) async {
     final l = AppLocalizations.of(context);
-    final pick = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(leading: const Icon(Icons.edit_outlined), title: Text(l.rename), onTap: () => Navigator.pop(context, 0)),
-            ListTile(leading: const Icon(Icons.ios_share), title: Text(l.sendOut), onTap: () => Navigator.pop(context, 1)),
-            ListTile(leading: const Icon(Icons.delete_outline), title: Text(l.delete), onTap: () => Navigator.pop(context, 2)),
-          ],
-        ),
-      ),
-    );
-    if (pick == null || !mounted) return;
     if (pick == 0) {
       final text = TextEditingController(text: item.name.replaceAll(RegExp(r'\.m4a$'), ''));
       final name = await showDialog<String>(
@@ -1048,7 +1034,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           bottomPad: _bottomRoom,
           onSaved: _reload,
           onRecordingChanged: (v) => setState(() => _recordingNow = v),
-          onOpen: (it) => _openItem(it, const []),
+          onOpen: _audioActions,
         ),
       VaultSection.library => _library(context, shown),
     };
@@ -1248,13 +1234,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Widget _actionButton(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final (icon, tip) = switch (_section) {
-      VaultSection.audio => (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording),
-      _ when !_hasLibrary => (Icons.add, l.addToVault),
-      VaultSection.note => (Icons.edit_square, l.newNote),
-      VaultSection.library => (Icons.add, l.addToVault),
-      VaultSection.file => (Icons.add, l.addFiles),
-    };
+    final (icon, tip) = _section == VaultSection.audio
+        ? (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording)
+        : (_adding ? Icons.close : Icons.add, _adding ? l.close : l.addToVault);
     return ActionButton(
         key: _actionKey, icon: icon, tooltip: tip, onTap: _mainAction,
         color: _section == VaultSection.audio ? recordRed(context) : null);
@@ -1314,10 +1296,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
     final inTag = _tagId != null;
     return PopScope(
-      canPop: !selecting && !inTag && !_recordingNow,
+      canPop: !selecting && !inTag && !_recordingNow && !_adding,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        if (selecting) {
+        if (_adding) {
+          _closeAdd();
+        } else if (selecting) {
           setState(_selected.clear);
         } else if (inTag) {
           setState(() => _tagId = null);
@@ -1399,13 +1383,48 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   ),
                 ),
               ),
+              if (_adding)
+                Positioned.fill(
+                  child: AddColumn(
+                    ways: addColumnOrder(l, _section, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                    mine: addWaysOf(_section),
+                    keys: _addKeys,
+                    right: actionOnRight(),
+                    side: 7,
+                    bottom: bottom + Ui.edge + Ui.bar + 14 + Ui.primary + 4,
+                    hovered: _hover,
+                    onPick: _pickAdd,
+                    onClose: _closeAdd,
+                  ),
+                ),
               // Above the lock (left thumb), or on the right if chosen in Settings. An
               // empty vault has the add tiles on screen instead.
               if (!empty) Positioned(
+                // Keyed: the column appearing above must not rebuild the button mid-slide
+                // (it would drop the finger's gesture).
+                key: const ValueKey('action-slot'),
                 left: actionOnRight() ? null : 7,
                 right: actionOnRight() ? 7 : null,
                 bottom: bottom + Ui.edge + Ui.bar + 14,
-                child: _actionButton(context),
+                // Tap: open or close the column. Finger down and slide up: pick on release.
+                child: GestureDetector(
+                  onPanStart: _section == VaultSection.audio
+                      ? null
+                      : (_) {
+                          if (!_adding) {
+                            HapticFeedback.mediumImpact();
+                            setState(() => _adding = true);
+                          }
+                        },
+                  onPanUpdate: _section == VaultSection.audio ? null : (d) => _hoverAt(d.globalPosition),
+                  onPanEnd: _section == VaultSection.audio
+                      ? null
+                      : (_) {
+                          final h = _hover;
+                          if (h != null) _pickAdd(h);
+                        },
+                  child: _actionButton(context),
+                ),
               ),
             ],
             _revealOverlay(),

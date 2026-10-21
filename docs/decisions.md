@@ -6,6 +6,12 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-21
 
+**0.1.11: the add column, and no bottom sheets on tap.** Owner found + inconsistent
+(Library offered every kind, other sections one) and proposed the column: + opens every
+way to add stacked above it, the current section's ways nearest; then asked for press and
+slide with one hand. Tapping a voice memo opens it in place; Recently deleted selects
+like the Library. Approved from the mockup.
+
 **Pipeline: green means delivered.** 0.1.10 went green but never reached TestFlight: the
 upload job read "started by hand" as "validate only", and a release is started by hand.
 Now a release passes `upload: true`, only an explicit `upload=false` validates, the job

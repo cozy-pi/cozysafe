@@ -4,6 +4,16 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.11 (2026-10-21)
+
+### Changed
+- The + button works the same everywhere: it opens a column of every way to add (note,
+  photos from the phone, photo, video, voice memo, file), with the ones for the section
+  you are in closest to your thumb. One hand: hold +, slide up to what you want, let go.
+- Voice memos: tapping one opens it right in the list, with Send, Rename and Delete.
+- Recently deleted: tap to select, then Restore or Delete for good in the bar at the
+  bottom (with nothing selected they apply to everything).
+
 ## 0.1.10 (2026-10-21)
 
 ### Changed

@@ -239,6 +239,170 @@ class ActionButton extends StatelessWidget {
 /// The ways to add something to a vault.
 enum AddWhat { note, photo, video, photos, voice, file }
 
+/// Every way to add, in the fixed order (camera and voice only where the device has them).
+List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
+      (AddWhat.note, Icons.edit_note_rounded, l.newNote),
+      (AddWhat.photos, Icons.photo_library_outlined, l.addFromDevice),
+      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
+      if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
+      if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
+      (AddWhat.file, Icons.description_outlined, l.addFiles),
+    ];
+
+/// The ways that fill [section], nearest the + button in the add column.
+Set<AddWhat> addWaysOf(VaultSection section) => switch (section) {
+      VaultSection.note => {AddWhat.note},
+      VaultSection.library => {AddWhat.photos, AddWhat.photo, AddWhat.video},
+      VaultSection.audio => {AddWhat.voice},
+      VaultSection.file => {AddWhat.file},
+    };
+
+/// Every way to add, nearest the + button first: [section]'s own ways, then the rest
+/// in the fixed order (owner's design, 2026-10-21).
+List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSection section,
+    {required bool camera, required bool voice}) {
+  final mine = addWaysOf(section);
+  final all = addWays(l, camera: camera, voice: voice);
+  return [...all.where((w) => mine.contains(w.$1)), ...all.where((w) => !mine.contains(w.$1))];
+}
+
+/// The + button's column: the page dims and the ways to add stack above the button,
+/// nearest first. Tap one, or keep the finger down from + and slide to one and let go
+/// ([hovered] is the one under the finger). [keys] let the screen find each row.
+class AddColumn extends StatelessWidget {
+  const AddColumn({
+    super.key,
+    required this.ways,
+    required this.mine,
+    required this.keys,
+    required this.right,
+    required this.side,
+    required this.bottom,
+    required this.hovered,
+    required this.onPick,
+    required this.onClose,
+  });
+  final List<(AddWhat, IconData, String)> ways;
+  final Set<AddWhat> mine;
+  final Map<AddWhat, GlobalKey> keys;
+  final bool right;
+  final double side;
+  final double bottom;
+  final AddWhat? hovered;
+  final ValueChanged<AddWhat> onPick;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, _) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(onTap: onClose, child: ColoredBox(color: page.withValues(alpha: .82 * v))),
+          ),
+          Positioned(
+            left: right ? null : side,
+            right: right ? side : null,
+            bottom: bottom,
+            child: Opacity(
+              opacity: v,
+              child: Transform.translate(
+                offset: Offset(0, 24 * (1 - v)),
+                child: Column(
+                  key: const ValueKey('add-column'),
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: right ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  children: [
+                    // Built top-down, so the nearest way is last.
+                    for (final (what, icon, label) in ways.reversed)
+                      Padding(
+                        key: keys[what],
+                        padding: const EdgeInsets.only(top: 10),
+                        child: _AddWay(
+                          key: ValueKey('add-${what.name}'),
+                          icon: icon,
+                          label: label,
+                          near: mine.contains(what),
+                          hovered: hovered == what,
+                          right: right,
+                          onTap: () => onPick(what),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddWay extends StatelessWidget {
+  const _AddWay({super.key, required this.icon, required this.label, required this.near, required this.hovered, required this.right, required this.onTap});
+  final IconData icon;
+  final String label;
+  /// One of the current section's ways: filled, the others glass.
+  final bool near;
+  /// Under the finger while sliding from +: grows a little.
+  final bool hovered;
+  final bool right;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    final circle = Container(
+      width: Ui.bar,
+      height: Ui.bar,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: near ? ink : Color.alphaBlend(ink.withValues(alpha: .08), page),
+        boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
+      ),
+      child: Icon(icon, size: 26, color: near ? page : ink),
+    );
+    final text = Text(label, style: TextStyle(fontSize: 16.5, fontWeight: near ? FontWeight.w700 : FontWeight.w600));
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedScale(
+          scale: hovered ? 1.12 : 1,
+          duration: const Duration(milliseconds: 120),
+          alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+          child: Padding(
+          padding: EdgeInsets.only(left: right ? 0 : (Ui.primary - Ui.bar) / 2, right: right ? (Ui.primary - Ui.bar) / 2 : 0),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            padding: EdgeInsets.only(left: right ? 18 : 0, right: right ? 0 : 18),
+            decoration: BoxDecoration(
+              color: hovered ? ink.withValues(alpha: .12) : Colors.transparent,
+              borderRadius: BorderRadius.circular(Ui.bar / 2),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: right
+                  ? [text, const SizedBox(width: 12), circle]
+                  : [circle, const SizedBox(width: 12), text],
+            ),
+          ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The ways to add, as big tiles: the add sheet and the empty vault (docs/ui.md,
 /// design language). Camera and voice only where the device has them.
 class AddTiles extends StatelessWidget {
@@ -249,16 +413,8 @@ class AddTiles extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     final ink = Theme.of(context).colorScheme.onSurface;
-    final tiles = [
-      (AddWhat.note, Icons.edit_note_rounded, l.newNote),
-      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
-      if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
-      (AddWhat.photos, Icons.photo_library_outlined, l.addFromDevice),
-      if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
-      (AddWhat.file, Icons.description_outlined, l.addFiles),
-    ];
+    final tiles = addWays(AppLocalizations.of(context), camera: camera, voice: voice);
     final cols = tiles.length == 4 ? 2 : 3;
     return GridView.count(
       crossAxisCount: cols,

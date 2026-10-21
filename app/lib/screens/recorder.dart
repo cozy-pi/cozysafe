@@ -40,8 +40,8 @@ class RecorderView extends StatefulWidget {
   final List<rust.ItemInfo> items;
   final VoidCallback onSaved;
   final ValueChanged<bool> onRecordingChanged;
-  /// A recording's row was tapped (rename, send, delete).
-  final void Function(rust.ItemInfo item) onOpen;
+  /// One of the open row's buttons: 0 rename, 1 send, 2 delete.
+  final void Function(rust.ItemInfo item, int action) onOpen;
 
   static bool get supported => Device.iOS || Device.android;
 
@@ -64,6 +64,11 @@ class RecorderViewState extends State<RecorderView> {
 
   // In-place playback of one recording.
   String? _playingId;
+  /// The row open in place (like Voice Memos): its buttons show under it.
+  String? _openId;
+
+  /// Open [id]'s row, e.g. when a search result is a recording.
+  void openRow(String id) => setState(() => _openId = id);
   VideoPlayerController? _player;
   File? _copy;
 
@@ -297,12 +302,30 @@ class RecorderViewState extends State<RecorderView> {
     final total = Duration(milliseconds: it.durationMs?.toInt() ?? 0);
     final pos = p?.value.position ?? Duration.zero;
     final primary = Theme.of(context).colorScheme.primary;
+    final open = _openId == it.id;
+    final ink = Theme.of(context).colorScheme.onSurface;
+    Widget act(IconData icon, String label, int action, {Color? color}) => Expanded(
+          child: TextButton.icon(
+            key: ValueKey('audio-${['rename', 'send', 'delete'][action]}'),
+            onPressed: () => widget.onOpen(it, action),
+            style: TextButton.styleFrom(foregroundColor: color ?? ink, minimumSize: const Size(0, Ui.circle)),
+            icon: Icon(icon, size: 22),
+            label: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          ),
+        );
+    // Tapping a row opens it in place, with its buttons right under it; no sheet.
     return InkWell(
-      onTap: () => widget.onOpen(it),
-      child: Container(
-        color: playing ? primary.withValues(alpha: .08) : null,
+      onTap: () => setState(() => _openId = open ? null : it.id),
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topCenter,
+        child: Container(
+        color: playing || open ? primary.withValues(alpha: .08) : null,
         padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
-        child: Row(
+        child: Column(
+          children: [
+          Row(
           children: [
             IconButton.filledTonal(
               tooltip: playing && (p?.value.isPlaying ?? false) ? l.pause : l.play,
@@ -334,6 +357,20 @@ class RecorderViewState extends State<RecorderView> {
               style: TextStyle(color: c.muted, fontSize: 12.5, fontFeatures: const [FontFeature.tabularFigures()]),
             ),
           ],
+        ),
+          if (open)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  act(Icons.ios_share, l.sendOut, 1),
+                  act(Icons.edit_outlined, l.rename, 0),
+                  act(Icons.delete_outline, l.delete, 2, color: recordRed(context)),
+                ],
+              ),
+            ),
+          ],
+        ),
         ),
       ),
     );
