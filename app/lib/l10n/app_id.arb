@@ -344,7 +344,7 @@
   "sec1Title": "Dienkripsi di ponsel",
   "sec1Body": "Setiap foto, catatan, dan file memiliki kuncinya sendiri dan dienkripsi sebelum ditulis. File besar dienkripsi dalam potongan kecil; jika satu potongan saja diubah atau dipotong, aplikasi akan mengetahuinya dan menolak membukanya.",
   "sec2Title": "Dua hal untuk membuka brankas",
-  "sec2Body": "Anda memilih kata sandi cadangan. Secret Key adalah rangkaian acak yang dibuat aplikasi dan disimpan di penyimpanan aman ponsel. Orang yang memegang salinan brankas tanpa Secret Key bahkan tidak bisa mulai menebak kata sandinya, dan setiap tebakan memakan banyak memori dan lebih dari satu detik.",
+  "sec2Body": "Kata sandi cadangan Anda yang tentukan. Secret Key adalah rangkaian acak yang dibuat aplikasi dan disimpan di penyimpanan aman perangkat. Orang yang punya salinan brankas tanpa Secret Key bahkan tidak bisa mulai menebak kata sandi. Meski punya Secret Key, setiap kata sandi yang dicoba butuh banyak memori dan waktu komputasi, jadi menebak banyak sekaligus lambat dan mahal.",
   "sec3Title": "Cepat dibuka di ponsel ini",
   "sec3Body": "PIN dan Face ID Anda hanya membuka salinan kunci brankas yang disimpan untuk ponsel ini. Jika brankas disalin ke perangkat lain, PIN tidak berguna. Mulai PIN salah kelima, Anda harus menunggu 1, 5, 15, lalu 60 menit; aplikasi tidak pernah menghapus data Anda.",
   "sec4Title": "Tidak ada yang dikirim ke internet",

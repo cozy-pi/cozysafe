@@ -357,7 +357,8 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true, act: (t) async {
+  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true,
+      change: 'Sửa vạch tối cắt ngang dòng ở mép trên: dòng không còn vẽ tràn lên trên khung, chỉ mờ dần', act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     for (var i = 0; i < 6; i++) {
       await t.pump(const Duration(milliseconds: 100));
@@ -403,15 +404,19 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
-  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home',
-      change: 'MỚI: tab đầu tiên, biểu tượng là chính huy hiệu của két. Ô tìm kiếm, dung lượng, 4 ô theo loại (chạm là sang tab đó), các nhóm (chạm là mở nhóm) và 6 mục mới thêm. Mở két lần đầu vào đây',
-      marks: [() => find.byKey(const ValueKey('home-tab')), () => find.byKey(const ValueKey('home-search'))]);
+  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
+  Widget homeIn(String code) => Builder(
+      builder: (context) => Localizations.override(context: context, locale: Locale(code), child: home()));
+  _screen('tabs-fr', 'Thanh dưới · tiếng Pháp (chữ dài)', () => homeIn('fr'), section: 'note',
+      change: 'Nút Tổng quan cố định bên trái; các tab khác rộng theo chữ, không bị cắt. Không đủ chỗ thì kéo ngang (không xoay vòng), mép phải mờ dần báo còn nữa');
+  _screen('tabs-fr-file', 'Thanh dưới · tiếng Pháp · đang ở Fichiers', () => homeIn('fr'), section: 'file');
+  _screen('tabs-vi', 'Thanh dưới · tiếng Việt', home, section: 'note',
+      change: 'Chữ vừa thì các tab chia theo độ dài chữ, không phải kéo');
   _screen('home-scrolled', 'Trang chủ · kéo xuống', home, section: 'home', act: (t) async {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
     await t.pumpAndSettle();
   });
   _screen('home-add', 'Trang chủ · bấm +', home, section: 'home',
-      change: 'Ở trang chủ, nút + bày đủ mọi loại theo thứ tự cố định',
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
@@ -442,7 +447,15 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   });
-  _screen('audio', 'Ghi âm', home, section: 'audio');
+  _screen('audio', 'Ghi âm', home, section: 'audio',
+      change: 'Nút chính ở Ghi âm cũng là dấu + như mọi trang (trước là micro đỏ ghi ngay)',
+      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('audio-add', 'Ghi âm · bấm +', home, section: 'audio',
+      change: '“Ghi âm” nằm gần ngón cái nhất; đang ghi thì nút thành nút dừng đỏ',
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  });
   _screen('audio-select', 'Ghi âm · bấm giữ một bản ghi', home, section: 'audio',
       act: (t) async {
     await t.longPress(find.text('Cuộc họp với luật sư'));

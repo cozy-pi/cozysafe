@@ -520,7 +520,7 @@
   "sec1Title": "Encrypted on the phone",
   "sec1Body": "Every photo, note and file has its own key and is encrypted before it is written. Big files are encrypted in small chunks; change or cut a single chunk and the app notices and refuses to open it.",
   "sec2Title": "Two things open a vault",
-  "sec2Body": "You choose the backup password. The Secret Key is a random string the app makes and keeps in the phone's secure storage. Someone with a copy of the vault but not the Secret Key cannot even start guessing the password, and every guess costs a lot of memory and over a second.",
+  "sec2Body": "You choose the backup password. The Secret Key is a random string the app makes and keeps in the device's secure storage. Someone with a copy of the vault but no Secret Key cannot even start guessing the password. Even with the Secret Key, every password tried takes a lot of memory and computing time, so guessing many is slow and costly.",
   "sec3Title": "Quick to open on this phone",
   "sec3Body": "Your PIN and Face ID only unlock a copy of the vault key kept for this phone. Copy the vault to another device and the PIN is useless. From the fifth wrong PIN you wait 1, 5, 15, then 60 minutes; the app never wipes your data.",
   "sec4Title": "Nothing goes to the internet",

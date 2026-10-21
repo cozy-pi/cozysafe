@@ -161,9 +161,6 @@ class VaultBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final primary = Theme.of(context).colorScheme.primary;
-    final ink = Theme.of(context).colorScheme.onSurface;
     if (sections.length < 2) return Row(children: [lock]);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -173,59 +170,160 @@ class VaultBar extends StatelessWidget {
         Expanded(
           child: Glass(
             radius: Ui.bar / 2,
-            child: LayoutBuilder(
-              builder: (context, box) {
-                VaultSection at(double x) => sections[(x / (box.maxWidth / sections.length)).floor().clamp(0, sections.length - 1)];
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTapUp: (d) => _pick(at(d.localPosition.dx)),
-                  onHorizontalDragUpdate: (d) => _pick(at(d.localPosition.dx)),
-                  child: SizedBox(
-                    height: Ui.bar,
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Row(
-                        children: [
-                          for (final s in sections)
-                            Expanded(
-                              child: Semantics(
-                                button: true,
-                                selected: s == section,
-                                label: sectionLabel(l, s),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 160),
-                                  decoration: BoxDecoration(
-                                    color: s == section ? primary.withValues(alpha: .14) : Colors.transparent,
-                                    borderRadius: BorderRadius.circular((Ui.bar - 8) / 2),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: s == VaultSection.home && home != null
-                                      ? KeyedSubtree(key: const ValueKey('home-tab'), child: home!)
-                                      : Text(
-                                    sectionLabel(l, s),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.fade,
-                                    softWrap: false,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: s == section ? FontWeight.w700 : FontWeight.w600,
-                                      color: s == section ? primary : ink.withValues(alpha: .75),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
+            child: SizedBox(
+              height: Ui.bar,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: _Tabs(section: section, sections: sections, home: home, onPick: _pick),
+              ),
             ),
           ),
         ),
       ],
     );
+  }
+}
+
+/// The tabs inside the capsule. The home tab stays put on the left; the others share
+/// the rest equally when their words fit, and scroll sideways (no loop) when they do not
+/// — long labels ("Bibliothèque", "Медиатека") or a small phone (owner 2026-10-21).
+class _Tabs extends StatefulWidget {
+  const _Tabs({required this.section, required this.sections, required this.home, required this.onPick});
+  final VaultSection section;
+  final List<VaultSection> sections;
+  final Widget? home;
+  final ValueChanged<VaultSection> onPick;
+
+  @override
+  State<_Tabs> createState() => _TabsState();
+}
+
+class _TabsState extends State<_Tabs> {
+  final _keys = <VaultSection, GlobalKey>{};
+
+  @override
+  void didUpdateWidget(_Tabs old) {
+    super.didUpdateWidget(old);
+    if (old.section != widget.section) _reveal();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _reveal();
+  }
+
+  /// Bring the chosen tab into view when the row scrolls.
+  void _reveal() => WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _keys[widget.section]?.currentContext;
+        if (ctx != null && mounted) {
+          Scrollable.maybeOf(ctx)?.position.ensureVisible(ctx.findRenderObject()!,
+              alignment: .5, duration: const Duration(milliseconds: 220), curve: Curves.easeOutCubic);
+        }
+      });
+
+  static const _style = TextStyle(fontSize: 14, fontWeight: FontWeight.w700);
+  static const _pad = 11.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final homeOn = widget.sections.contains(VaultSection.home) && widget.home != null;
+    final rest = widget.sections.where((s) => !(homeOn && s == VaultSection.home)).toList();
+    final scale = MediaQuery.textScalerOf(context);
+    // Measure in the font the tabs are drawn in.
+    final base = DefaultTextStyle.of(context).style;
+
+    Widget tab(VaultSection s, {double? width}) {
+      final on = s == widget.section;
+      return Semantics(
+        button: true,
+        selected: on,
+        label: sectionLabel(l, s),
+        child: GestureDetector(
+          key: _keys.putIfAbsent(s, GlobalKey.new),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => widget.onPick(s),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: width,
+            padding: width == null ? const EdgeInsets.symmetric(horizontal: _pad) : EdgeInsets.zero,
+            decoration: BoxDecoration(
+              color: on ? primary.withValues(alpha: .14) : Colors.transparent,
+              borderRadius: BorderRadius.circular((Ui.bar - 8) / 2),
+            ),
+            alignment: Alignment.center,
+            child: s == VaultSection.home && widget.home != null
+                ? KeyedSubtree(key: const ValueKey('home-tab'), child: widget.home!)
+                : Text(
+                    sectionLabel(l, s),
+                    maxLines: 1,
+                    softWrap: false,
+                    style: _style.copyWith(
+                      fontWeight: on ? FontWeight.w700 : FontWeight.w600,
+                      color: on ? primary : ink.withValues(alpha: .75),
+                    ),
+                  ),
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(builder: (context, box) {
+      final homeW = homeOn ? Ui.bar : 0.0;
+      final room = box.maxWidth - homeW;
+      final need = [
+        for (final s in rest)
+          (TextPainter(text: TextSpan(text: sectionLabel(l, s), style: base.merge(_style)), textDirection: TextDirection.ltr, textScaler: scale)
+                    ..layout())
+                  .width +
+              _pad * 2,
+      ];
+      final total = need.fold<double>(0, (a, w) => a + w);
+      final fits = total <= room;
+      return Row(
+        children: [
+          if (homeOn) tab(VaultSection.home, width: homeW),
+          Expanded(
+            child: fits
+                // Everything fits: each tab gets room in proportion to its word, and a
+                // finger sliding along picks as before.
+                ? LayoutBuilder(builder: (context, b) {
+                    VaultSection at(double x) {
+                      var edge = 0.0;
+                      for (final (i, w) in need.indexed) {
+                        edge += w / total * b.maxWidth;
+                        if (x < edge) return rest[i];
+                      }
+                      return rest.last;
+                    }
+                    return GestureDetector(
+                      onHorizontalDragUpdate: (d) => widget.onPick(at(d.localPosition.dx)),
+                      child: Row(children: [
+                        for (final (i, s) in rest.indexed) Expanded(flex: (need[i] * 10).round(), child: tab(s)),
+                      ]),
+                    );
+                  })
+                // Too long: each tab as wide as its word, the row scrolls (no loop).
+                : ShaderMask(
+                    shaderCallback: (r) => const LinearGradient(
+                      colors: [Colors.white, Colors.white, Colors.transparent],
+                      stops: [0, .9, 1],
+                    ).createShader(r),
+                    blendMode: BlendMode.dstIn,
+                    child: ListView(
+                      key: const ValueKey('tab-scroll'),
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(right: 12),
+                      children: [for (final s in rest) tab(s)],
+                    ),
+                  ),
+          ),
+        ],
+      );
+    });
   }
 }
 
@@ -423,7 +521,12 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
             key: w.columnKey,
             width: MediaQuery.sizeOf(context).width - w.side * 2,
             height: AddColumn.row * n + _fade,
-            child: ShaderMask(
+            // Rows may spill sideways and below (the pop from +), never above: a row half
+            // past the top drew sharp outside the fade and cut by it inside, a dark band
+            // across it (owner 2026-10-21).
+            child: ClipRect(
+              clipper: const _NoSpillAbove(),
+              child: ShaderMask(
               blendMode: BlendMode.dstIn,
               shaderCallback: (r) => LinearGradient(
                 begin: Alignment.topCenter,
@@ -479,11 +582,21 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
                 },
               ),
             ),
+            ),
           ),
         ),
       ],
     );
   }
+}
+
+/// Clips only at the top edge.
+class _NoSpillAbove extends CustomClipper<Rect> {
+  const _NoSpillAbove();
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(-size.width, 0, size.width * 2, size.height * 4);
+  @override
+  bool shouldReclip(_NoSpillAbove old) => false;
 }
 
 /// One way popping out of the + button: up from it, growing, fading in.

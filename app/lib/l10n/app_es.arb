@@ -344,7 +344,7 @@
   "sec1Title": "Cifrado en el teléfono",
   "sec1Body": "Cada foto, nota y archivo tiene su propia clave y se cifra antes de escribirse. Los archivos grandes se cifran en pequeños bloques; si se modifica o se corta un solo bloque, la app lo detecta y se niega a abrirlo.",
   "sec2Title": "Dos cosas abren una caja fuerte",
-  "sec2Body": "Tú eliges la contraseña de copia de seguridad. La Secret Key es una cadena aleatoria que crea la app y guarda en el almacenamiento seguro del teléfono. Quien tenga una copia de la caja fuerte pero no la Secret Key ni siquiera puede empezar a adivinar la contraseña, y cada intento cuesta mucha memoria y más de un segundo.",
+  "sec2Body": "La contraseña de copia la eliges tú. La Secret Key es una cadena aleatoria que crea la app y guarda en el almacenamiento seguro del dispositivo. Quien tenga una copia de la caja fuerte sin la Secret Key ni siquiera puede empezar a adivinar la contraseña. Aun con la Secret Key, cada contraseña probada exige mucha memoria y tiempo de cálculo, así que probar muchas es lento y costoso.",
   "sec3Title": "Rápida de abrir en este teléfono",
   "sec3Body": "Tu PIN y Face ID solo desbloquean una copia de la clave de la caja fuerte guardada para este teléfono. Si copias la caja fuerte a otro dispositivo, el PIN no sirve. A partir del quinto PIN incorrecto esperas 1, 5, 15 y luego 60 minutos; la app nunca borra tus datos.",
   "sec4Title": "Nada va a internet",

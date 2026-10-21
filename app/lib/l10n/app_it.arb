@@ -344,7 +344,7 @@
   "sec1Title": "Cifrato sul telefono",
   "sec1Body": "Ogni foto, nota e file ha la propria chiave ed è cifrato prima di essere scritto. I file grandi sono cifrati in piccoli blocchi; se anche un solo blocco viene modificato o tagliato, l'app se ne accorge e si rifiuta di aprirlo.",
   "sec2Title": "Due cose aprono una cassaforte",
-  "sec2Body": "La password di backup la scegli tu. La Secret Key è una stringa casuale che l'app crea e conserva nell'archivio sicuro del telefono. Chi ha una copia della cassaforte ma non la Secret Key non può nemmeno iniziare a indovinare la password, e ogni tentativo costa molta memoria e più di un secondo.",
+  "sec2Body": "La password del backup la scegli tu. La Secret Key è una sequenza casuale creata dall'app e custodita nell'archivio sicuro del dispositivo. Chi ha una copia della cassaforte senza la Secret Key non può nemmeno iniziare a indovinare la password. Anche con la Secret Key, ogni tentativo richiede molta memoria e tempo di calcolo, quindi provarne tante è lento e costoso.",
   "sec3Title": "Apertura rapida su questo telefono",
   "sec3Body": "Il PIN e Face ID sbloccano solo una copia della chiave della cassaforte conservata per questo telefono. Se copi la cassaforte su un altro dispositivo, il PIN non serve a nulla. Dal quinto PIN errato attendi 1, 5, 15, poi 60 minuti; l'app non cancella mai i tuoi dati.",
   "sec4Title": "Niente va su internet",

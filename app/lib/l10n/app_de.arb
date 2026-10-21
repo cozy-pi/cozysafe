@@ -344,7 +344,7 @@
   "sec1Title": "Auf dem Telefon verschlüsselt",
   "sec1Body": "Jedes Foto, jede Notiz und jede Datei hat einen eigenen Schlüssel und wird verschlüsselt, bevor sie geschrieben wird. Große Dateien werden in kleinen Blöcken verschlüsselt; wird auch nur ein Block verändert oder abgeschnitten, bemerkt die App das und verweigert das Öffnen.",
   "sec2Title": "Zwei Dinge öffnen einen Tresor",
-  "sec2Body": "Das Backup-Passwort wählen Sie selbst. Der Secret Key ist eine zufällige Zeichenfolge, die die App erzeugt und im sicheren Speicher des Telefons aufbewahrt. Wer eine Kopie des Tresors hat, aber nicht den Secret Key, kann nicht einmal anfangen, das Passwort zu erraten, und jeder Rateversuch kostet viel Arbeitsspeicher und über eine Sekunde.",
+  "sec2Body": "Das Backup-Passwort wählen Sie selbst. Der Secret Key ist eine zufällige Zeichenfolge, die die App erzeugt und im sicheren Speicher des Geräts ablegt. Wer eine Kopie des Tresors, aber keinen Secret Key hat, kann nicht einmal mit dem Raten beginnen. Selbst mit Secret Key kostet jeder Versuch viel Speicher und Rechenzeit, Massenraten ist also langsam und teuer.",
   "sec3Title": "Schnell zu öffnen auf diesem Telefon",
   "sec3Body": "Ihre PIN und Face ID entsperren nur eine Kopie des Tresorschlüssels, die für dieses Telefon aufbewahrt wird. Wird der Tresor auf ein anderes Gerät kopiert, ist die PIN dort nutzlos. Ab der fünften falschen PIN warten Sie 1, 5, 15, dann 60 Minuten; die App löscht Ihre Daten nie.",
   "sec4Title": "Nichts geht ins Internet",
