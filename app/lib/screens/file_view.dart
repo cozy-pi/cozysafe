@@ -14,6 +14,9 @@ import 'package:video_player/video_player.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../widgets/vault_bar.dart';
+import 'video_view.dart';
+import '../widgets/text_styles.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -53,17 +56,60 @@ const _mimeByExt = {
   'xls': 'application/vnd.ms-excel', 'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 };
 
-/// The extensions read as text inside the app; null when [name] is not one of them.
-String? textExtension(String name) {
+/// How a text file is shown in the app (docs/ui.md, design language).
+enum TextKind { prose, markdown, json, code }
+
+/// Text files the app reads itself, by extension (reviewed 2026-10-21). Keys and
+/// certificates (pem, key, pub, crt, asc) are here on purpose: people keep them in a
+/// vault, and they are plain text. Binary look-alikes (rtf, docx, plist) are not.
+const _textKinds = <String, TextKind>{
+  // Prose: like a page.
+  'txt': TextKind.prose, 'text': TextKind.prose, 'log': TextKind.prose, 'nfo': TextKind.prose,
+  'srt': TextKind.prose, 'vtt': TextKind.prose, 'rst': TextKind.prose, 'adoc': TextKind.prose,
+  'org': TextKind.prose, 'tex': TextKind.prose, 'eml': TextKind.prose,
+  // Markdown: drawn.
+  'md': TextKind.markdown, 'markdown': TextKind.markdown,
+  // JSON: laid out and highlighted.
+  'json': TextKind.json, 'geojson': TextKind.json, 'webmanifest': TextKind.json,
+  // Data, config, keys and code: fixed width in a card.
+  'jsonl': TextKind.code, 'ndjson': TextKind.code, 'csv': TextKind.code, 'tsv': TextKind.code,
+  'xml': TextKind.code, 'svg': TextKind.code, 'yaml': TextKind.code, 'yml': TextKind.code,
+  'toml': TextKind.code, 'ini': TextKind.code, 'conf': TextKind.code, 'cfg': TextKind.code,
+  'env': TextKind.code, 'properties': TextKind.code, 'gitignore': TextKind.code, 'editorconfig': TextKind.code,
+  'ics': TextKind.code, 'vcf': TextKind.code, 'diff': TextKind.code, 'patch': TextKind.code,
+  'pem': TextKind.code, 'key': TextKind.code, 'pub': TextKind.code, 'crt': TextKind.code,
+  'cer': TextKind.code, 'csr': TextKind.code, 'asc': TextKind.code, 'gpg': TextKind.code,
+  'html': TextKind.code, 'htm': TextKind.code, 'xhtml': TextKind.code, 'css': TextKind.code,
+  'scss': TextKind.code, 'less': TextKind.code, 'js': TextKind.code, 'mjs': TextKind.code,
+  'cjs': TextKind.code, 'jsx': TextKind.code, 'ts': TextKind.code, 'tsx': TextKind.code,
+  'vue': TextKind.code, 'svelte': TextKind.code, 'py': TextKind.code, 'rb': TextKind.code,
+  'php': TextKind.code, 'pl': TextKind.code, 'lua': TextKind.code, 'r': TextKind.code,
+  'sh': TextKind.code, 'bash': TextKind.code, 'zsh': TextKind.code, 'fish': TextKind.code,
+  'bat': TextKind.code, 'ps1': TextKind.code, 'sql': TextKind.code, 'graphql': TextKind.code,
+  'proto': TextKind.code, 'dart': TextKind.code, 'rs': TextKind.code, 'go': TextKind.code,
+  'java': TextKind.code, 'kt': TextKind.code, 'kts': TextKind.code, 'gradle': TextKind.code,
+  'scala': TextKind.code, 'swift': TextKind.code, 'm': TextKind.code, 'mm': TextKind.code,
+  'c': TextKind.code, 'h': TextKind.code, 'cc': TextKind.code, 'cpp': TextKind.code,
+  'hpp': TextKind.code, 'cs': TextKind.code,
+};
+
+/// Files with no extension that are text by name.
+const _textNames = {'readme', 'license', 'licence', 'changelog', 'makefile', 'dockerfile', 'authors', 'notice'};
+
+/// How [name] is read as text inside the app; null when it is not a text file the app
+/// knows (it can still be opened as text by choice, see [FileViewScreen]).
+TextKind? textKindOf(String name) {
+  final base = name.toLowerCase();
+  final dot = base.lastIndexOf('.');
+  if (dot < 0) return _textNames.contains(base) ? TextKind.prose : null;
+  // ".gitignore", ".env": the part after the dot is the name.
+  return _textKinds[base.substring(dot + 1)];
+}
+
+/// The extension in upper case for the header ("JSON"), or "TXT" for a name without one.
+String textLabelOf(String name) {
   final dot = name.lastIndexOf('.');
-  if (dot < 0) return null;
-  final ext = name.substring(dot + 1).toLowerCase();
-  return const {
-    'txt', 'md', 'markdown', 'log', 'csv', 'tsv', 'srt', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'conf', 'cfg',
-    'env', 'html', 'htm', 'css', 'js', 'ts', 'py', 'sh', 'sql', 'dart', 'rs', 'go', 'java', 'kt', 'swift', 'c', 'h', 'cpp',
-  }.contains(ext)
-      ? ext
-      : null;
+  return dot < 0 ? 'TXT' : name.substring(dot + 1).toUpperCase();
 }
 
 String mimeOf(String name) {
@@ -193,27 +239,9 @@ class _FileViewScreenState extends State<FileViewScreen> {
   /// Decrypt to a private temp file, hand it to the system (open with / save to), then
   /// delete the decrypted copy.
   Future<void> _open(BuildContext buttonContext) async {
-    final l = AppLocalizations.of(context);
-    if (!await confirmShareOut(context, widget.vaultId) || !mounted) return;
     setState(() => _busy = true);
-    final dir = await Directory((await getTemporaryDirectory()).path).createTemp('open');
-    final path = '${dir.path}${Platform.pathSeparator}${widget.item.name.isEmpty ? 'file' : widget.item.name}';
-    try {
-      await rust.exportItem(id: widget.item.id, path: path);
-      if (!buttonContext.mounted) return;
-      final box = buttonContext.findRenderObject() as RenderBox?;
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(path, mimeType: widget.item.mime)],
-        sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-      ));
-    } on rust.VaultError catch (e) {
-      if (mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
-    } finally {
-      try {
-        dir.deleteSync(recursive: true);
-      } catch (_) {}
-      if (mounted) setState(() => _busy = false);
-    }
+    await shareItem(context, widget.item, widget.vaultId, from: buttonContext);
+    if (mounted) setState(() => _busy = false);
   }
 
   /// No question: it goes to Recently deleted and the vault offers Undo.
@@ -224,77 +252,114 @@ class _FileViewScreenState extends State<FileViewScreen> {
 
   bool get _pdf => widget.item.mime == 'application/pdf';
 
+  /// "Open as text" on a file the app does not know: only the first part is decrypted.
+  bool _asText = false;
+
   /// Shown at most this much; the rest goes out with Send.
   static const _textLimit = 1 << 20;
 
   /// Text files are read inside the app from the decrypted bytes in memory, like PDFs:
-  /// no file is written. JSON is laid out; data and code use a fixed-width font.
+  /// no file is written. Markdown is drawn, JSON laid out and highlighted, code in a card,
+  /// plain text like a page (docs/ui.md, design language).
   Widget _textView(AppLocalizations l) {
-    final ext = textExtension(widget.item.name);
-    final mono = ext != null && !const {'txt', 'md', 'markdown', 'srt', 'log'}.contains(ext);
+    final kind = textKindOf(widget.item.name) ?? TextKind.prose;
+    final c = CsColors.of(context);
+    final when = dateOf(widget.item.createdMs);
+    final label = textLabelOf(widget.item.name);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-        actions: [
-          Builder(
-            builder: (b) => IconButton(
-              tooltip: l.sendOut,
-              onPressed: _busy ? null : () => _open(b),
-              icon: const Icon(Icons.ios_share),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 10, 24, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.item.name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+                  const SizedBox(height: 2),
+                  Text('$label · ${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
+                      style: TextStyle(color: c.muted, fontSize: 13.5)),
+                ],
+              ),
             ),
-          ),
-          IconButton(tooltip: l.delete, onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline)),
-        ],
-      ),
-      body: FutureBuilder<Uint8List>(
-        future: _bytes ??= rust.itemContent(id: widget.item.id),
-        builder: (context, snap) {
-          if (snap.hasError) return Center(child: Text(l.errorStorage));
-          final data = snap.data;
-          if (data == null) return const Center(child: CircularProgressIndicator());
-          final cut = data.length > _textLimit;
-          var text = utf8.decode(cut ? data.sublist(0, _textLimit) : data, allowMalformed: true);
-          if (ext == 'json' && !cut) {
-            try {
-              text = const JsonEncoder.withIndent('  ').convert(jsonDecode(text));
-            } catch (_) {} // not valid JSON: shown as it is
-          }
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
-            children: [
-              if (cut)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(l.textTruncated, style: TextStyle(color: CsColors.of(context).muted, fontSize: 13)),
-                ),
-              SelectableText(
-                text,
-                key: const ValueKey('text-view'),
-                // Copy notes what left the vault, so it is wiped from the clipboard later.
-                contextMenuBuilder: (context, state) {
-                  final sel = state.textEditingValue.selection;
-                  final picked = sel.isValid && !sel.isCollapsed ? sel.textInside(state.textEditingValue.text) : null;
-                  return AdaptiveTextSelectionToolbar.buttonItems(
-                    anchors: state.contextMenuAnchors,
-                    buttonItems: [
-                      for (final it in state.contextMenuButtonItems)
-                        if (it.type == ContextMenuButtonType.copy && picked != null)
-                          it.copyWith(onPressed: () {
-                            it.onPressed?.call();
-                            LockGuard.copied(picked);
-                          })
-                        else
-                          it,
+            Expanded(
+              child: FutureBuilder<Uint8List>(
+                // Only the first part is decrypted: a 1 GB log never sits in memory.
+                future: _bytes ??= rust.itemContentHead(id: widget.item.id, max: _textLimit + 1),
+                builder: (context, snap) {
+                  if (snap.hasError) return Center(child: Text(l.errorStorage));
+                  final data = snap.data;
+                  if (data == null) return const Center(child: CircularProgressIndicator());
+                  final cut = data.length > _textLimit;
+                  var text = utf8.decode(cut ? data.sublist(0, _textLimit) : data, allowMalformed: true);
+                  if (kind == TextKind.json && !cut) {
+                    try {
+                      text = const JsonEncoder.withIndent('  ').convert(jsonDecode(text));
+                    } catch (_) {} // not valid JSON: shown as it is
+                  }
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+                    children: [
+                      if (cut)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(l.textTruncated, style: TextStyle(color: c.muted, fontSize: 13)),
+                        ),
+                      switch (kind) {
+                        TextKind.markdown => MarkdownLite(text: text),
+                        TextKind.prose => ProseText(text: text),
+                        TextKind.json => CodeCard(text: text, json: true),
+                        TextKind.code => CodeCard(text: text),
+                      },
                     ],
                   );
                 },
-                style: mono
-                    ? const TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Roboto Mono'], fontSize: 13.5, height: 1.45)
-                    : const TextStyle(fontSize: 16, height: 1.5),
               ),
-            ],
-          );
-        },
+            ),
+            // Close where the camera's is, then the actions in glass.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, Ui.edge),
+              child: Row(
+                children: [
+                  GlassButton(icon: Icons.close, tooltip: l.close, size: Ui.bar, onTap: () => Navigator.of(context).maybePop()),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Glass(
+                      radius: Ui.bar / 2,
+                      child: SizedBox(
+                        height: Ui.bar,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Builder(
+                                builder: (b) => TextButton.icon(
+                                  onPressed: _busy ? null : () => _open(b),
+                                  style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
+                                  icon: const Icon(Icons.ios_share, size: 22),
+                                  label: Text(l.sendOut, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: TextButton.icon(
+                                onPressed: _busy ? null : _delete,
+                                style: TextButton.styleFrom(foregroundColor: recordRed(context)),
+                                icon: const Icon(Icons.delete_outline, size: 22),
+                                label: Text(l.delete, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -315,24 +380,50 @@ class _FileViewScreenState extends State<FileViewScreen> {
             IconButton(tooltip: l.delete, onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline)),
           ],
         ),
-        body: FutureBuilder<Uint8List>(
-          future: _bytes ??= rust.itemContent(id: widget.item.id),
-          builder: (context, snap) {
-            if (snap.hasError) return Center(child: Text(l.errorStorage));
-            final data = snap.data;
-            if (data == null) return const Center(child: CircularProgressIndicator());
-            return PdfViewer.data(data, sourceName: widget.item.id);
-          },
-        ),
+        // Up to [_pdfInMemory] the PDF is decrypted into memory only. A bigger one would not
+        // fit on a small phone, so it is decrypted (in 64 KB chunks) to the app's private
+        // playback folder, read from there, and deleted when this screen closes, on lock
+        // and at every start, like videos.
+        body: widget.item.sizeBytes > BigInt.from(_pdfInMemory)
+            ? FutureBuilder<File>(
+                future: _pdfCopy ??= playbackCopy(widget.item, fallbackExt: '.pdf'),
+                builder: (context, snap) {
+                  if (snap.hasError) return Center(child: Text(l.errorStorage));
+                  final f = snap.data;
+                  if (f == null) return const Center(child: CircularProgressIndicator());
+                  return PdfViewer.file(f.path);
+                },
+              )
+            : FutureBuilder<Uint8List>(
+                future: _bytes ??= rust.itemContent(id: widget.item.id),
+                builder: (context, snap) {
+                  if (snap.hasError) return Center(child: Text(l.errorStorage));
+                  final data = snap.data;
+                  if (data == null) return const Center(child: CircularProgressIndicator());
+                  return PdfViewer.data(data, sourceName: widget.item.id);
+                },
+              ),
       );
 
   Future<Uint8List>? _bytes;
+  Future<File>? _pdfCopy;
+  static const _pdfInMemory = 40 << 20;
+
+  @override
+  void dispose() {
+    _pdfCopy?.then((f) {
+      try {
+        f.deleteSync();
+      } catch (_) {}
+    });
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     if (_pdf) return _pdfView(l);
-    if (textExtension(widget.item.name) != null || widget.item.mime.startsWith('text/')) return _textView(l);
+    if (_asText || textKindOf(widget.item.name) != null || widget.item.mime.startsWith('text/')) return _textView(l);
     final c = CsColors.of(context);
     final when = dateOf(widget.item.createdMs);
     return Scaffold(
@@ -367,12 +458,52 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(l.openWithNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 13)),
+                const SizedBox(height: 12),
+                // Any file can be looked at as text inside the app, without leaving it.
+                TextButton.icon(
+                  key: const ValueKey('open-as-text'),
+                  onPressed: () => setState(() => _asText = true),
+                  icon: const Icon(Icons.notes_rounded),
+                  label: Text(l.openAsText),
+                ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+/// Send any item out (owner 2026-10-21: every opened item can be shared): ask once per
+/// vault (confirmShareOut), decrypt a copy into a private temporary folder in 64 KB
+/// chunks, hand it to the share sheet, then delete the copy. The vault stays open while
+/// the person is in the share sheet. [name] overrides the file name (a note: "Title.txt").
+Future<void> shareItem(BuildContext context, rust.ItemInfo item, String vaultId, {String? name, BuildContext? from}) =>
+    shareById(context, item.id, item.mime, name ?? item.name, vaultId, from: from);
+
+/// [shareItem] by id, for an item whose details are not at hand (a note just saved).
+Future<void> shareById(BuildContext context, String id, String mime, String name, String vaultId, {BuildContext? from}) async {
+  final l = AppLocalizations.of(context);
+  if (!await confirmShareOut(context, vaultId) || !context.mounted) return;
+  final dir = await Directory((await getTemporaryDirectory()).path).createTemp('send');
+  final file = name.replaceAll(RegExp(r'[/\\:]'), '-');
+  final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
+  LockGuard.allowAway();
+  try {
+    await rust.exportItem(id: id, path: path);
+    final box = (from ?? context).findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(path, mimeType: mime, name: file)],
+      sharePositionOrigin: box == null || !box.hasSize ? null : box.localToGlobal(Offset.zero) & box.size,
+    ));
+  } on rust.VaultError catch (e) {
+    if (context.mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
+  } finally {
+    LockGuard.clear();
+    try {
+      dir.deleteSync(recursive: true);
+    } catch (_) {}
   }
 }
 

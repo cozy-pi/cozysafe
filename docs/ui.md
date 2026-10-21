@@ -433,6 +433,14 @@ everywhere, easy to hit with a thumb.
   under a light dim and blur; videos play in the card (tap to pause, a line shows where).
   Under it: Close bottom left (as in the camera), Full screen, then Send (videos) and
   Delete in red. Full screen is the old black viewer; its corner button returns to the card.
+- **Every opened item can be sent** (owner 2026-10-21): one `shareItem` for all kinds.
+- **Reading text** (0.1.14): book-like body (17.5, line height 1.6); Markdown drawn by the
+  app (`MarkdownLite`, no library); JSON and code in a soft card, JSON keys strong; a
+  note's first line large and bold as it is typed (`NoteTextController`).
+- **Open group**: filled chip with ✓ and ×, "Group · section" above the title; empty in
+  this section → buttons to the sections where it has something.
+- **Settings**: About group (version, build date, commit, licence); hidden debug (seven
+  taps on the version, owner check); add button position as an inline Left | Right.
 - **Tapping an item does it, in place; no sheets popping up from the bottom.** Sheets are
   only for making or choosing something (groups, settings values). A voice memo opens in
   its row with Send · Rename · Delete; Recently deleted selects on tap, with Restore and

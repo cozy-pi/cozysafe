@@ -42,6 +42,13 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
 - **Text files are read in memory.** txt, md, json and other text files open inside the
   app from decrypted bytes, never written to a file; copying from them is wiped like
   any copy (`file_view.dart`, `_textView`).
+- **Debug mode is hidden and harmless.** Seven taps on the version in Settings → About,
+  then the owner check. It shows technical facts (build, device, biometrics, whether the
+  network guard is on, item counts, temporary copies) and can clear temporary copies; it
+  never shows keys, PINs, passwords or vault content, and changes no protection.
+- **Big files are not loaded whole.** Text previews decrypt only their first 1 MB
+  (`item_content_head`); photos decode at screen size; PDFs over 40 MB open from a private
+  temporary copy deleted on close, on lock and at start.
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
   the clipboard after 60 seconds and when the vault locks.

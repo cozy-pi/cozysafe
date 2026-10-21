@@ -19,6 +19,9 @@ runs:
       shell: bash
       # Must match flutter_rust_bridge in app/pubspec.yaml and app/rust/Cargo.toml.
       run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+    # When this build was made, for Settings → About (lib/build_info.dart).
+    - shell: bash
+      run: echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%MZ)" >> "$GITHUB_ENV"
     - shell: bash
       working-directory: app
       run: |

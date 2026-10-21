@@ -15,6 +15,7 @@ import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/screens/camera.dart';
 import 'package:cozysafe/screens/backup_password.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
+import 'package:cozysafe/screens/debug.dart';
 import 'package:cozysafe/screens/file_view.dart';
 import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/note.dart';
@@ -104,7 +105,8 @@ final _items = [
 
 const _noteText = {
   'j1': '{"router":{"ssid":"TP-Link_5G_BaNgoai","password":"hoaMai2024@","channel":36},"camera":{"app":"EZVIZ","device":"F7K2Q9","admin":true}}',
-  'm1': '# Giấy tờ cần mang khi gia hạn hộ chiếu\n\n- Hộ chiếu cũ (bản gốc)\n- Căn cước công dân\n- 2 ảnh 4x6 nền trắng\n- Tờ khai TK01 (điền sẵn)\n\n## Lệ phí\n\n200.000 đ, nộp tiền mặt tại quầy.\n\n> Hẹn lấy sau 8 ngày làm việc.',
+  'm1': '# Gia hạn hộ chiếu\n\nMang theo **bản gốc** và nộp ở *Phòng Quản lý xuất nhập cảnh*.\n\n## Giấy tờ\n\n- Hộ chiếu cũ\n- Căn cước công dân\n- 2 ảnh 4x6 nền trắng\n- Tờ khai `TK01` điền sẵn\n\n## Lệ phí\n\n1. Nộp 200.000 đ tại quầy\n2. Giữ biên lai để nhận hộ chiếu\n\n> Hẹn lấy sau 8 ngày làm việc.\n\n```\nSĐT tổng đài: 1900 1234\nMã hồ sơ: HC-2026-55821\n```',
+  'tx1': 'Wifi nhà ngoại đổi mật khẩu ngày 12/10.\n\nMạng 5G: TP-Link_5G_BaNgoai\nMật khẩu mới: hoaMai2024@\n\nNếu camera cổng mất kết nối thì rút điện 10 giây rồi cắm lại, đợi đèn xanh.',
   'n1': 'Wifi nhà bà ngoại\nTên mạng: TP-Link_5G_BaNgoai\nMật khẩu: hoaMai2024@',
   'n2': 'Tài khoản ngân hàng\nVietcombank 0011 0023 4567 — Nguyễn Văn A, chi nhánh Hoàn Kiếm.\nTechcombank 1903 2211 4455 66 — tài khoản phụ, chỉ nhận lương.\nMB 0909 123 456 — tài khoản tiết kiệm của con.',
   'n3': 'Thuốc của mẹ\nSáng: Amlodipine 5mg sau ăn.\nTối: Metformin 500mg sau ăn.\nTái khám ngày 3/11, mang sổ khám và kết quả xét nghiệm lần trước.',
@@ -250,10 +252,12 @@ void _screen(String name, String caption, Widget Function() home,
     testWidgets('$name ${b.name}', skip: !_enabled, (t) async {
       Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
       if (section != null) Prefs.write('vault-section', section);
+      Prefs.write('add-column-hint', '3'); // the drag hint has been seen; no mid-nudge shots
       debugCamera = false;
       CameraView.debugPreview = null;
       CameraView.debugLast = null;
       QuickLook.debugVideo = null;
+      DebugScreen.debugNetworkBlocked = null;
       _itemsNow = null;
       VaultHomeScreen.debugReveal = false;
       setup?.call();
@@ -344,7 +348,9 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true, act: (t) async {
+  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true,
+      change: 'Chỗ cột bắt đầu lặp có vạch ↻, các mục lặp lại mờ hơn (không ai tưởng là thêm mục); mép trên mờ dần; vài lần mở đầu cột tự nhích xuống rồi bật lại',
+      marks: [() => find.byKey(const ValueKey('add-loop'))], act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     for (var i = 0; i < 6; i++) {
       await t.pump(const Duration(milliseconds: 100));
@@ -375,9 +381,17 @@ void main() {
         _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList();
       }, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
   _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
-      change: 'Nút “Xong” ở giao diện tối cũng thành xám tối', marks: [() => find.byKey(const ValueKey('note-done'))]);
+      change: 'Dòng đầu (tên ghi chú) tự to và đậm ngay khi gõ; thân bài giãn dòng dễ đọc; thêm nút Gửi (gửi ghi chú thành tệp .txt)',
+      marks: [() => find.byKey(const ValueKey('note-send'))]);
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
-  _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
+  _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'),
+      change: 'Nhóm đang chọn rõ hơn: viên tô đậm có ✓ và × để thoát; dòng nhỏ “Nhóm · Thư viện” trên tên nhóm',
+      marks: [() => find.byKey(const ValueKey('group-label'))]);
+  _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'file', act: (t) async {
+    await _tapChip(t, 'Hộ chiếu');
+    await t.pump();
+    await t.tap(find.text('Ghi âm').last);
+  }, change: 'Nhóm trống ở mục này: nói rõ và đưa nút tới chỗ nhóm có nội dung', marks: [() => find.byType(ActionChip)]);
   Widget camera({required bool video}) => CameraScreen(video: video, onOpenLast: (_) {});
   void still() {
     CameraView.debugPreview =
@@ -395,11 +409,13 @@ void main() {
     }
   }
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
+      change: 'Ảnh cũng có nút Gửi (trước chỉ video có)', marks: [() => find.byKey(const ValueKey('quick-send'))],
       act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
       act: (t) => tapThumb(t, 5));
-  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
+  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library',
+      change: 'Toàn màn hình cũng có Gửi cạnh Xoá', marks: [() => find.byKey(const ValueKey('photo-send'))], act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
     for (var i = 0; i < 6; i++) {
@@ -439,18 +455,45 @@ void main() {
     await t.enterText(find.byType(TextField), 'thuoc');
   });
   _screen('text-json', 'Tệp · mở wifi-config.json', () => FileViewScreen(item: _item('j1', ItemKind.file, 'wifi-config.json', 180), vaultId: 'v'),
-      change: 'MỚI: tệp văn bản mở ngay trong app (giải mã trong bộ nhớ, không ghi ra file); JSON tự dàn dòng, font đều nét',
+      change: 'JSON trong khung bo góc nền nhạt: khoá đậm, giá trị nhạt hơn; tên tệp + loại · dung lượng · ngày ở đầu; × góc trái, Gửi · Xoá ở thanh kính',
       marks: [() => find.byKey(const ValueKey('text-view'))]);
-  _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 320), vaultId: 'v'),
-      change: 'Markdown tạm hiện chữ thô (hiển thị đẹp cần thêm thư viện, phải duyệt chuỗi cung ứng)',
+  _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'),
+      change: 'Markdown hiện đẹp do app tự vẽ (không thêm thư viện): tiêu đề, danh sách, đánh số, trích dẫn, khối code, đậm/nghiêng/code',
       marks: [() => find.byKey(const ValueKey('text-view'))]);
+  _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'),
+      change: 'Tệp app chưa biết: thêm nút “Xem như văn bản” (chỉ giải mã 1 MB đầu) bên cạnh “Mở bằng app khác”',
+      marks: [() => find.byKey(const ValueKey('open-as-text'))]);
+  _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'),
+      change: 'Văn bản thường như trang sách: chữ 17,5, giãn dòng rộng, lề thoáng');
   _screen('settings', 'Cài đặt', () => settings(vault),
-      change: 'Thanh dung lượng: mỗi loại một màu (Ảnh xanh dương, Video tím, Ghi chú vàng, Ghi âm cam, Tệp xanh lá), kèm dung lượng từng loại; trước đây bỏ sót video và ghi âm. Khung thống kê nền như các nhóm; nút “Sao lưu ngay” xanh dương nhạt; công tắc bật màu xanh lá như iPhone — không còn khối đen (sáng) hay trắng (tối)');
+      change: 'Thêm công tắc “Hiện biểu tượng khi mở két” trong nhóm Két này (tắt thì mở két vào thẳng nội dung)',
+      marks: [() => find.byKey(const ValueKey('reveal-row'))]);
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
+      change: '“Nút thêm” → “Vị trí nút thêm”, chọn Trái | Phải ngay trên dòng, không phải mở bảng chọn',
+      marks: [() => find.byKey(const ValueKey('side-row'))],
       act: (t) async {
     await t.scrollUntilVisible(find.text('Hiện nội dung ghi chú'), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
   });
+  Future<void> toAbout(WidgetTester t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('about-version')), 300, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+  }
+  _screen('settings-about', 'Cài đặt · Thông tin', () => settings(vault), act: toAbout,
+      change: 'MỚI: nhóm Thông tin — phiên bản (build), ngày dựng, mã commit, giấy phép. Ảnh này là bản tự dựng nên ghi “Bản tự dựng”; bản CI ghi ngày giờ và mã commit thật',
+      marks: [() => find.byKey(const ValueKey('about-version'))]);
+  _screen('settings-debug-taps', 'Cài đặt · chạm 5 lần vào Phiên bản', () => settings(vault), act: (t) async {
+    await toAbout(t);
+    for (var i = 0; i < 5; i++) {
+      await t.tap(find.byKey(const ValueKey('about-version')));
+      await t.pump(const Duration(milliseconds: 120));
+    }
+  }, change: 'Chạm 7 lần vào Phiên bản để bật gỡ lỗi (như Lật Thẻ); từ lần thứ 3 có đếm ngược; bật phải qua Face ID');
+  _screen('settings-debug-on', 'Cài đặt · đã bật gỡ lỗi', () => settings(vault), setup: () => Prefs.write('debug-mode', '1'), act: toAbout,
+      change: 'Gỡ lỗi bật thì có dòng “Gỡ lỗi” cuối nhóm Thông tin', marks: [() => find.byKey(const ValueKey('debug-row'))]);
+  _screen('debug', 'Trang gỡ lỗi', () => const DebugScreen(), setup: () => DebugScreen.debugNetworkBlocked = true,
+      change: 'MỚI: chỉ thông tin kỹ thuật (bản dựng, máy, sinh trắc, chặn mạng, số mục, bản tạm) + Xoá bản tạm + Tắt gỡ lỗi; không bao giờ hiện khoá hay nội dung két',
+      marks: [() => find.byKey(const ValueKey('debug-network'))]);
   _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
   _screen('trash-select', 'Đã xoá · chạm chọn 1 ảnh', () => const TrashScreen(),
       act: (t) => t.tap(find.byType(Image).first));

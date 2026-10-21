@@ -6,6 +6,12 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-21
 
+**0.1.14: about and hidden debug, share everywhere, safer big files, clearer groups.**
+Owner asked for build info and a hidden debug mode like Flip Match, Send on every item,
+nicer reading, a reviewed list of text types, and no memory blow-up on heavy files.
+Proposed next (owner agreed in principle): reading opens a page, few choices a menu at the
+row, actions a bottom sheet.
+
 **0.1.13: softer settings, colours per kind, text files in the app.** Owner: the white card
 and buttons glared in dark mode and black ones were too strong in light mode; Settings may
 use colour. Text-like files open in the app (Markdown as plain text for now; rendering it
