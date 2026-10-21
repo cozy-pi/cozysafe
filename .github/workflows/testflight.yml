@@ -127,7 +127,7 @@ jobs:
           path: CozySafe.ipa
 
   # The App Store Connect key in a job of its own, never next to the build: only Apple's
-  # upload tool runs here. From a release it uploads; run by hand, it can validate only.
+  # upload tool runs here. It uploads unless run by hand with upload=false (validate only).
   upload:
     needs: ios
     runs-on: macos-26
@@ -144,8 +144,18 @@ jobs:
           # release is itself started by hand, so 0.1.10 was only validated, not uploaded.)
           ACTION: ${{ inputs.upload == false && '--validate-app' || '--upload-app' }}
         run: |
+          set -o pipefail # tee must not hide a failure
           # altool finds the key as ~/.appstoreconnect/private_keys/AuthKey_<id>.p8.
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$KEY_B64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
-          xcrun altool $ACTION --type ios --file CozySafe.ipa --apiKey "$KEY_ID" --apiIssuer "$ISSUER"
-          rm -f ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8
+          trap 'rm -f ~/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8' EXIT
+          xcrun altool $ACTION --type ios --file CozySafe.ipa --apiKey "$KEY_ID" --apiIssuer "$ISSUER" 2>&1 | tee altool.log
+          # A green job must mean the build reached Apple: 0.1.10 went green while only
+          # validated. Uploading without altool's success line fails the job, and the run
+          # summary says plainly which of the two happened.
+          if [ "$ACTION" = --upload-app ]; then
+            grep -qE 'UPLOAD SUCCEEDED|No errors uploading' altool.log || { echo "::error::Not uploaded to TestFlight"; exit 1; }
+            echo "### TestFlight: uploaded $(ls CozySafe.ipa) — appears in TestFlight after Apple's processing" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### TestFlight: validated only, NOT uploaded (upload=false)" >> "$GITHUB_STEP_SUMMARY"
+          fi

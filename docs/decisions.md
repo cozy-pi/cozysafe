@@ -6,6 +6,13 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-21
 
+**Pipeline: green means delivered.** 0.1.10 went green but never reached TestFlight: the
+upload job read "started by hand" as "validate only", and a release is started by hand.
+Now a release passes `upload: true`, only an explicit `upload=false` validates, the job
+fails unless Apple's tool reports the upload, and both the TestFlight and Google Play
+steps write where the build went into the run summary. 0.1.10 was uploaded again as
+build 1019.
+
 **After user testing (persona agents, skill `nguoi-dung-thu`), in the same mockup:** owner
 chose round vault icons; the lock button is just a big lock (a vault icon there confused
 testers and hinted at other vaults); main action mixed (Notes: new note, Files: picker,

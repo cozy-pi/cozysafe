@@ -62,6 +62,7 @@ jobs:
     needs: version
     uses: ./.github/workflows/testflight.yml
     with:
+      upload: true # a release always uploads; never rely on a default here
       version: ${{ needs.version.outputs.name }}
       build: ${{ needs.version.outputs.build }}
     secrets: inherit
