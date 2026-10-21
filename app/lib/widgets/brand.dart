@@ -44,23 +44,26 @@ class _MarkPainter extends CustomPainter {
   bool shouldRepaint(_MarkPainter old) => old.color != color;
 }
 
-/// Lock-screen background: a fixed illustration of protected items (photos, an ID,
-/// a receipt, a document) in greys, tilted and blurred, under a veil of the page colour.
-/// Never the user's data: this screen runs while every vault is locked.
+/// Lock-screen background: a fixed illustration of the things a vault keeps (photos, an
+/// ID card, a receipt, notes, a PDF, a passport), tilted and softly blurred under a veil
+/// of the page colour. Drawn in the theme's own greys (2026-10-21: light shapes on the
+/// dark theme showed as bright patches). Never the user's data: this screen runs while
+/// every vault is locked.
 class VaultBackdrop extends StatelessWidget {
   const VaultBackdrop({super.key});
 
   @override
   Widget build(BuildContext context) {
     final tint = Theme.of(context).scaffoldBackgroundColor;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       fit: StackFit.expand,
       children: [
         AnimatedContainer(duration: const Duration(milliseconds: 350), color: tint),
         RepaintBoundary(
           child: ImageFiltered(
-            imageFilter: ui.ImageFilter.blur(sigmaX: 7, sigmaY: 7),
-            child: Opacity(opacity: 0.5, child: CustomPaint(painter: _CollagePainter())),
+            imageFilter: ui.ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
+            child: Opacity(opacity: dark ? .85 : .6, child: CustomPaint(painter: _CollagePainter(dark: dark))),
           ),
         ),
         AnimatedContainer(
@@ -69,8 +72,10 @@ class VaultBackdrop extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [tint.withValues(alpha: .72), tint.withValues(alpha: .9), tint],
-              stops: const [0, .45, 1],
+              // An even veil top to bottom: the picture shows on the whole page (owner
+              // 2026-10-21), a little deeper behind the keys.
+              colors: [tint.withValues(alpha: .6), tint.withValues(alpha: .72), tint.withValues(alpha: .76)],
+              stops: const [0, .5, 1],
             ),
           ),
         ),
@@ -79,47 +84,136 @@ class VaultBackdrop extends StatelessWidget {
   }
 }
 
+/// Columns of cards of different kinds and heights, like a pinboard.
 class _CollagePainter extends CustomPainter {
-  static const _fills = [
-    [Color(0xFFFFFFFF)],
-    [Color(0xFFDADADA), Color(0xFF8C8C8C)],
-    [Color(0xFFE6E6E6)],
-    [Color(0xFFEFEFEF)],
-    [Color(0xFFDADADA), Color(0xFF6E6E6E)],
-  ];
+  _CollagePainter({required this.dark});
+  final bool dark;
+
+  // The theme's greys: card, line, accent, deep.
+  Color get _card => dark ? const Color(0xFF2B2D31) : const Color(0xFFFFFFFF);
+  Color get _line => dark ? const Color(0xFF4A4D54) : const Color(0xFFC9CDD3);
+  Color get _soft => dark ? const Color(0xFF383B41) : const Color(0xFFE6E8EC);
+  Color get _deep => dark ? const Color(0xFF55585F) : const Color(0xFF8E939B);
+
+  static const _kinds = ['photo', 'id', 'receipt', 'note', 'pdf', 'photo', 'passport', 'note', 'receipt', 'id', 'pdf', 'photo'];
+  static const _heights = {'photo': 104.0, 'id': 78.0, 'receipt': 168.0, 'note': 128.0, 'pdf': 150.0, 'passport': 140.0};
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.translate(size.width / 2, size.height / 2);
     canvas.rotate(-8 * math.pi / 180);
-    const w = 120.0, h = 130.0, gap = 12.0;
-    final cols = (size.width / (w + gap)).ceil() + 3;
-    final rows = (size.height / (h + gap)).ceil() + 3;
+    const w = 118.0, gap = 12.0;
+    final half = math.max(size.width, size.height) * .8;
+    final cols = (half * 2 / (w + gap)).ceil();
     var n = 0;
-    for (var r = -rows ~/ 2; r <= rows ~/ 2; r++) {
-      for (var c = -cols ~/ 2; c <= cols ~/ 2; c++) {
-        final rect = Rect.fromLTWH(c * (w + gap), r * (h + gap), w, h);
-        final f = _fills[n++ % _fills.length];
-        final paint = Paint();
-        if (f.length == 1) {
-          paint.color = f[0];
-        } else {
-          paint.shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [f[0], f[0], f[1]],
-            stops: const [0, .55, .55],
-          ).createShader(rect);
-        }
-        canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(14)), paint);
+    for (var c = 0; c < cols; c++) {
+      final x = -half + c * (w + gap);
+      // Each column starts at its own height, so rows do not line up.
+      var y = -half - (c * 47 % 130);
+      while (y < half) {
+        final kind = _kinds[(n++ * 7 + c) % _kinds.length];
+        final h = _heights[kind]!;
+        _draw(canvas, kind, Rect.fromLTWH(x, y, w, h));
+        y += h + gap;
       }
     }
     canvas.restore();
   }
 
+  void _draw(Canvas canvas, String kind, Rect r) {
+    final fill = Paint()..color = _card;
+    final line = Paint()..color = _line;
+    final soft = Paint()..color = _soft;
+    final deep = Paint()..color = _deep;
+    RRect round(Rect x, double rad) => RRect.fromRectAndRadius(x, Radius.circular(rad));
+    void bar(double dx, double dy, double len, {Paint? p, double t = 6}) =>
+        canvas.drawRRect(round(Rect.fromLTWH(r.left + dx, r.top + dy, len, t), t / 2), p ?? line);
+
+    switch (kind) {
+      case 'photo':
+        canvas.drawRRect(round(r, 12), soft);
+        canvas.save();
+        canvas.clipRRect(round(r, 12));
+        canvas.drawCircle(Offset(r.right - 28, r.top + 26), 12, fill);
+        final hills = Path()
+          ..moveTo(r.left, r.bottom)
+          ..lineTo(r.left + r.width * .38, r.top + r.height * .45)
+          ..lineTo(r.left + r.width * .62, r.top + r.height * .72)
+          ..lineTo(r.left + r.width * .78, r.top + r.height * .55)
+          ..lineTo(r.right, r.bottom)
+          ..close();
+        canvas.drawPath(hills, deep);
+        canvas.restore();
+      case 'id':
+        canvas.drawRRect(round(r, 10), fill);
+        canvas.drawRRect(round(Rect.fromLTWH(r.left + 10, r.top + 12, 34, 44), 6), soft);
+        canvas.drawCircle(Offset(r.left + 27, r.top + 28), 8, deep);
+        canvas.drawRRect(round(Rect.fromLTWH(r.left + 15, r.top + 40, 24, 14), 7), deep);
+        bar(52, 16, 54);
+        bar(52, 30, 40, p: soft);
+        bar(52, 44, 48, p: soft);
+        bar(10, 64, 98, p: soft, t: 5);
+      case 'receipt':
+        final body = Path()..moveTo(r.left, r.top);
+        body.lineTo(r.right, r.top);
+        body.lineTo(r.right, r.bottom - 6);
+        for (var x = r.right; x > r.left; x -= 12) {
+          body.lineTo(x - 6, r.bottom);
+          body.lineTo(x - 12, r.bottom - 6);
+        }
+        body.close();
+        canvas.drawPath(body, fill);
+        bar(30, 14, 58, p: deep, t: 7);
+        for (var i = 0; i < 6; i++) {
+          bar(12, 36.0 + i * 16, 50, p: soft, t: 5);
+          bar(84, 36.0 + i * 16, 22, t: 5);
+        }
+        bar(12, 138, 94, p: deep, t: 7);
+      case 'note':
+        canvas.drawRRect(round(r, 12), fill);
+        bar(12, 14, 70, p: deep, t: 8);
+        for (var i = 0; i < 6; i++) {
+          bar(12, 36.0 + i * 14, i == 5 ? 46 : 94, p: soft, t: 5);
+        }
+      case 'pdf':
+        final fold = Path()
+          ..moveTo(r.left + 12, r.top)
+          ..lineTo(r.right - 26, r.top)
+          ..lineTo(r.right, r.top + 26)
+          ..lineTo(r.right, r.bottom - 12)
+          ..arcToPoint(Offset(r.right - 12, r.bottom), radius: const Radius.circular(12))
+          ..lineTo(r.left + 12, r.bottom)
+          ..arcToPoint(Offset(r.left, r.bottom - 12), radius: const Radius.circular(12))
+          ..lineTo(r.left, r.top + 12)
+          ..arcToPoint(Offset(r.left + 12, r.top), radius: const Radius.circular(12))
+          ..close();
+        canvas.drawPath(fold, fill);
+        canvas.drawPath(
+            Path()
+              ..moveTo(r.right - 26, r.top)
+              ..lineTo(r.right - 26, r.top + 26)
+              ..lineTo(r.right, r.top + 26)
+              ..close(),
+            soft);
+        canvas.drawRRect(round(Rect.fromLTWH(r.left + 12, r.top + 14, 34, 16), 4), deep);
+        for (var i = 0; i < 6; i++) {
+          bar(12, 42.0 + i * 15, i.isOdd ? 80 : 94, p: soft, t: 5);
+        }
+      case 'passport':
+        canvas.drawRRect(round(r, 10), deep);
+        canvas.drawCircle(Offset(r.center.dx, r.top + 54), 22, Paint()
+          ..color = _soft
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4);
+        canvas.drawCircle(Offset(r.center.dx, r.top + 54), 9, soft);
+        bar(28, 94, 62, p: soft, t: 6);
+        bar(38, 108, 42, p: soft, t: 5);
+    }
+  }
+
   @override
-  bool shouldRepaint(_CollagePainter old) => false;
+  bool shouldRepaint(_CollagePainter old) => old.dark != dark;
 }
 
 /// The moment a vault opens (or closes): an overlay in the page colour, the brand mark large in the

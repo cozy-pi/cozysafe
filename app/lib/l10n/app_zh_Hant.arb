@@ -371,5 +371,16 @@
   "secNoCapture": "禁止截圖",
   "language": "語言",
   "languageSystem": "跟隨裝置",
-  "languageSystemNote": "使用裝置目前設定的語言。"
+  "languageSystemNote": "使用裝置目前設定的語言。",
+  "appearance": "外觀",
+  "appearanceAuto": "自動",
+  "appearanceLight": "淺色",
+  "appearanceDark": "深色",
+  "searchKinds": "依類型瀏覽",
+  "searchGroups": "群組",
+  "searchRecent": "最近加入",
+  "searchAll": "全部",
+  "searchNothingFor": "找不到與「{query}」相關的結果",
+  "searchNothingHint": "試試更短的字詞。會搜尋名稱和筆記內容，不區分聲調符號。",
+  "modeHome": "總覽"
 }

@@ -371,5 +371,16 @@
   "secNoCapture": "Tanpa tangkapan layar",
   "language": "Bahasa",
   "languageSystem": "Sama dengan perangkat",
-  "languageSystemNote": "Menggunakan bahasa yang diatur di perangkat Anda."
+  "languageSystemNote": "Menggunakan bahasa yang diatur di perangkat Anda.",
+  "appearance": "Tampilan",
+  "appearanceAuto": "Otomatis",
+  "appearanceLight": "Terang",
+  "appearanceDark": "Gelap",
+  "searchKinds": "Jelajahi",
+  "searchGroups": "Grup",
+  "searchRecent": "Baru ditambahkan",
+  "searchAll": "Semua",
+  "searchNothingFor": "Tidak ada hasil untuk “{query}”",
+  "searchNothingHint": "Coba kata yang lebih pendek. Pencarian mencakup nama dan isi catatan, tanda aksen tidak berpengaruh.",
+  "modeHome": "Ringkasan"
 }

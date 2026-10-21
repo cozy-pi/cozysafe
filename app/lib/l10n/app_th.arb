@@ -371,5 +371,16 @@
   "secNoCapture": "ห้ามจับภาพหน้าจอ",
   "language": "ภาษา",
   "languageSystem": "ตามอุปกรณ์",
-  "languageSystemNote": "ใช้ภาษาที่ตั้งไว้ในอุปกรณ์ของคุณ"
+  "languageSystemNote": "ใช้ภาษาที่ตั้งไว้ในอุปกรณ์ของคุณ",
+  "appearance": "รูปลักษณ์",
+  "appearanceAuto": "อัตโนมัติ",
+  "appearanceLight": "สว่าง",
+  "appearanceDark": "มืด",
+  "searchKinds": "เลือกดู",
+  "searchGroups": "กลุ่ม",
+  "searchRecent": "เพิ่มล่าสุด",
+  "searchAll": "ทั้งหมด",
+  "searchNothingFor": "ไม่พบผลลัพธ์สำหรับ “{query}”",
+  "searchNothingHint": "ลองใช้คำที่สั้นลง ระบบค้นหาจากชื่อและข้อความในโน้ต",
+  "modeHome": "ภาพรวม"
 }

@@ -36,10 +36,10 @@ in `test/preview_test.dart`; the page lists them at the top and outlines the mar
 
 ## Unlock screen (chosen 2026-10-19: "B2")
 
-- Background: a collage of protected items (photos, ID card, receipt, PDF,
-  notes) tilted about −8°, **always blurred** so nothing is readable, under a
-  vault-green veil: deep green at the top fading to pale mint (light) or to
-  night green (dark).
+- Background: a collage of protected items (photo, ID card, receipt, note, PDF,
+  passport) tilted about −8°, **always blurred** so nothing is readable, drawn in the
+  theme's own greys (2026-10-21: light shapes on the dark theme showed as bright
+  patches) under an even veil, so it shows over the whole page.
 - The collage is a **fixed illustration bundled with the app**, never thumbnails
   of the user's data: the screen runs while every vault is locked. Ship it as a
   pre-blurred image, not a live blur.
@@ -428,9 +428,18 @@ everywhere, easy to hit with a thumb.
 - **Selection bar**: frosted glass like the bottom bar (no bright slab in dark mode); Delete
   in the system's destructive red, like "Delete all" in Recently deleted (exception to
   black and white, owner 2026-10-21).
-- **Only what the vault holds.** The bottom capsule offers just the sections that have
-  items, in the fixed order Notes · Library · Voice · Files; with one, no capsule. An empty
+- **Only what the vault holds.** The bottom capsule offers the home tab and the sections
+  that have items, in the fixed order Overview · Notes · Library · Voice · Files. An empty
   vault shows its icon, one line, and big add tiles.
+- **Home tab (Overview)** (owner 2026-10-21): first in the capsule, drawn as the vault's own
+  badge. A search field, the storage line, the sections as tiles with counts (tap: that
+  tab), the groups (tap: open it) and the last six items. The vault opens on it unless
+  another section was used last; + there offers every way in the fixed order.
+  `VaultOverview` (screens/overview.dart) is the same block search shows before typing.
+- **Search** (2026-10-21): results grouped by section with filter chips and counts, matched
+  words in bold, photos as a grid, a group found by name opens in the vault. Note text in
+  results follows "Hide note text". No search history is kept.
+- **Appearance**: Settings → Display → Automatic / Light / Dark (pref `appearance`).
 - **The main action: + opens the add column** (owner's design, 2026-10-21, 0.1.11). Every
   way to add stacks above the button (note, photos from device, take photo, record video,
   voice, file); the current section's ways sit nearest the thumb and are filled, the rest

@@ -371,5 +371,16 @@
   "secNoCapture": "撮影ブロック",
   "language": "言語",
   "languageSystem": "デバイスと同じ",
-  "languageSystemNote": "デバイスで設定されている言語を使います。"
+  "languageSystemNote": "デバイスで設定されている言語を使います。",
+  "appearance": "外観",
+  "appearanceAuto": "自動",
+  "appearanceLight": "ライト",
+  "appearanceDark": "ダーク",
+  "searchKinds": "種類から探す",
+  "searchGroups": "グループ",
+  "searchRecent": "最近追加した項目",
+  "searchAll": "すべて",
+  "searchNothingFor": "「{query}」に一致する項目はありません",
+  "searchNothingHint": "短い言葉で試してください。名前とメモの本文を検索します。アクセントは区別しません。",
+  "modeHome": "概要"
 }

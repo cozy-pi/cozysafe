@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
+import '../appearance.dart';
 import '../language.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
@@ -167,6 +168,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
 
+
+  String _appearanceName(AppLocalizations l, ThemeMode m) => switch (m) {
+        ThemeMode.light => l.appearanceLight,
+        ThemeMode.dark => l.appearanceDark,
+        ThemeMode.system => l.appearanceAuto,
+      };
+
+  /// Automatic · Light · Dark: a menu at the row, like auto-lock.
+  final _appearanceKey = GlobalKey();
+  Future<void> _pickAppearance() async {
+    final l = AppLocalizations.of(context);
+    final box = _appearanceKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final at = box.localToGlobal(Offset.zero) & box.size;
+    final size = MediaQuery.sizeOf(context);
+    final now = Appearance.mode.value;
+    final picked = await showMenu<ThemeMode>(
+      context: context,
+      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
+      items: [
+        for (final m in Appearance.choices)
+          PopupMenuItem(
+            key: ValueKey('appearance-${m.name}'),
+            value: m,
+            height: Ui.circle,
+            child: Row(children: [
+              SizedBox(width: 26, child: m == now ? const Icon(Icons.check_rounded, size: 20) : null),
+              Icon(
+                switch (m) {
+                  ThemeMode.light => Icons.light_mode_outlined,
+                  ThemeMode.dark => Icons.dark_mode_outlined,
+                  ThemeMode.system => Icons.brightness_auto_outlined,
+                },
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Text(_appearanceName(l, m), style: TextStyle(fontWeight: m == now ? FontWeight.w700 : FontWeight.w500)),
+            ]),
+          ),
+      ],
+    );
+    if (picked == null || !mounted) return;
+    Appearance.choose(picked);
+    setState(() {});
+  }
 
   /// A few choices: a menu right at the row, next to the value (no sheet at the bottom).
   final _autoLockKey = GlobalKey();
@@ -337,6 +384,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
           ]),
           _Group(title: l.settingsDisplay, rows: [
+            _Row(
+              key: _appearanceKey,
+              icon: Icons.contrast_rounded,
+              color: _Mau.cham,
+              title: l.appearance,
+              value: _appearanceName(l, Appearance.mode.value),
+              onTap: _pickAppearance,
+            ),
             // Same list as Settings → Cozy Safe → Language on iPhone and Android 13+.
             _Row(
               key: const ValueKey('language-row'),

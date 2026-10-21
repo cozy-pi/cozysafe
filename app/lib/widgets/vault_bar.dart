@@ -13,10 +13,12 @@ import '../prefs.dart';
 /// The four sections of a vault, picked in the bottom capsule (docs/ui.md, vault bar;
 /// docs/naming.md). A section shows items of some kinds: Library shows photos and
 /// videos, the others one kind each.
-enum VaultSection { note, library, audio, file }
+/// [home] is the overview of everything (owner 2026-10-21); it holds no items itself.
+enum VaultSection { home, note, library, audio, file }
 
 /// The sections this device offers: voice memos need a phone's microphone.
 List<VaultSection> vaultSections() => [
+      VaultSection.home,
       VaultSection.note,
       VaultSection.library,
       if (Device.iOS || Device.android || debugVoice) VaultSection.audio,
@@ -58,10 +60,11 @@ Widget privateThumb(Widget image) => blurThumbnails()
 /// The section the vault opens on: the last one used (0.1.6 kept it as `vault-kind`).
 VaultSection startSection() {
   final saved = Prefs.read(_sectionPref) ?? Prefs.read('vault-kind');
-  return vaultSections().where((k) => k.name == saved).firstOrNull ?? VaultSection.library;
+  return vaultSections().where((k) => k.name == saved).firstOrNull ?? VaultSection.home;
 }
 
 String sectionLabel(AppLocalizations l, VaultSection k) => switch (k) {
+      VaultSection.home => l.modeHome,
       VaultSection.note => l.modeNote,
       VaultSection.library => l.modeLibrary,
       VaultSection.audio => l.modeAudio,
@@ -133,9 +136,18 @@ class GlassButton extends StatelessWidget {
 /// switches; dragging along the capsule switches as the finger passes each one.
 /// Only [sections] that hold something are offered; with one or none, no capsule.
 class VaultBar extends StatelessWidget {
-  const VaultBar({super.key, required this.section, required this.sections, required this.onSection, required this.lock});
+  const VaultBar({
+    super.key,
+    required this.section,
+    required this.sections,
+    required this.onSection,
+    required this.lock,
+    this.home,
+  });
 
   final VaultSection section;
+  /// What the home tab shows instead of a word: the vault's own badge.
+  final Widget? home;
   final List<VaultSection> sections;
   final ValueChanged<VaultSection> onSection;
   final Widget lock;
@@ -187,7 +199,9 @@ class VaultBar extends StatelessWidget {
                                     borderRadius: BorderRadius.circular((Ui.bar - 8) / 2),
                                   ),
                                   alignment: Alignment.center,
-                                  child: Text(
+                                  child: s == VaultSection.home && home != null
+                                      ? KeyedSubtree(key: const ValueKey('home-tab'), child: home!)
+                                      : Text(
                                     sectionLabel(l, s),
                                     maxLines: 1,
                                     overflow: TextOverflow.fade,
@@ -274,6 +288,7 @@ List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool cam
 
 /// The ways that fill [section], nearest the + button in the add column.
 Set<AddWhat> addWaysOf(VaultSection section) => switch (section) {
+      VaultSection.home => {},
       VaultSection.note => {AddWhat.note},
       VaultSection.library => {AddWhat.photos, AddWhat.photo, AddWhat.video},
       VaultSection.audio => {AddWhat.voice},

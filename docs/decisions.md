@@ -196,3 +196,11 @@ not been reviewed by native speakers yet.
 "Blur thumbnails" (Settings → Display) is on unless the person turns it off; turning it
 off asks for the owner check, as before. A pref already set to off stays off.
 
+## 2026-10-21 — Overview tab, search, appearance
+
+An Overview tab comes first (the vault's badge in the bottom bar), even though the lock
+button dropped the vault icon earlier: the owner chose it knowing that trade-off. Search
+was rebuilt around the same overview. Appearance (automatic / light / dark) is a pref.
+The lock-screen collage stays (owner wants it, even more detailed) but is drawn in the
+theme's greys.
+

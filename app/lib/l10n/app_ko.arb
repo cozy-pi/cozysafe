@@ -371,5 +371,16 @@
   "secNoCapture": "캡처 차단",
   "language": "언어",
   "languageSystem": "기기 설정과 동일",
-  "languageSystemNote": "기기에 설정된 언어를 사용합니다."
+  "languageSystemNote": "기기에 설정된 언어를 사용합니다.",
+  "appearance": "화면 모드",
+  "appearanceAuto": "자동",
+  "appearanceLight": "라이트",
+  "appearanceDark": "다크",
+  "searchKinds": "종류별 보기",
+  "searchGroups": "그룹",
+  "searchRecent": "최근 추가",
+  "searchAll": "전체",
+  "searchNothingFor": "“{query}”에 대한 결과가 없습니다",
+  "searchNothingHint": "더 짧은 단어로 검색해 보세요. 이름과 메모 내용을 검색하며 악센트는 구분하지 않습니다.",
+  "modeHome": "개요"
 }

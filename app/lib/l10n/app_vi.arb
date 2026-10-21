@@ -385,5 +385,16 @@
   "secNoCapture": "Chặn chụp",
   "language": "Ngôn ngữ",
   "languageSystem": "Theo máy",
-  "languageSystemNote": "Dùng ngôn ngữ đang cài trên máy."
+  "languageSystemNote": "Dùng ngôn ngữ đang cài trên máy.",
+  "appearance": "Giao diện",
+  "appearanceAuto": "Tự động",
+  "appearanceLight": "Sáng",
+  "appearanceDark": "Tối",
+  "searchKinds": "Xem theo loại",
+  "searchGroups": "Nhóm",
+  "searchRecent": "Mới thêm",
+  "searchAll": "Tất cả",
+  "searchNothingFor": "Không tìm thấy “{query}”",
+  "searchNothingHint": "Thử từ ngắn hơn. App tìm trong tên và nội dung ghi chú, không cần gõ dấu.",
+  "modeHome": "Tổng quan"
 }

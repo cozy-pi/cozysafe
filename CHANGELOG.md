@@ -4,6 +4,19 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.21 (2026-10-21)
+
+### Added
+- Overview: a first tab, drawn as your vault's badge, with search, how much the vault
+  holds, each section with its count, your groups and what was added last.
+- Settings → Display → Appearance: Automatic, Light or Dark.
+
+### Changed
+- Search shows the vault at a glance before you type; results are grouped by kind with
+  filters, matched words in bold and photos as a grid. Groups can be found by name.
+- The lock screen background is more detailed and follows the theme: no more bright
+  patches in dark mode, and it shows over the whole page.
+
 ## 0.1.20 (2026-10-21)
 
 ### Changed

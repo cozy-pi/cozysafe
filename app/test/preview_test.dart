@@ -403,6 +403,19 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
+  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home',
+      change: 'MỚI: tab đầu tiên, biểu tượng là chính huy hiệu của két. Ô tìm kiếm, dung lượng, 4 ô theo loại (chạm là sang tab đó), các nhóm (chạm là mở nhóm) và 6 mục mới thêm. Mở két lần đầu vào đây',
+      marks: [() => find.byKey(const ValueKey('home-tab')), () => find.byKey(const ValueKey('home-search'))]);
+  _screen('home-scrolled', 'Trang chủ · kéo xuống', home, section: 'home', act: (t) async {
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
+    await t.pumpAndSettle();
+  });
+  _screen('home-add', 'Trang chủ · bấm +', home, section: 'home',
+      change: 'Ở trang chủ, nút + bày đủ mọi loại theo thứ tự cố định',
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  });
   _screen('notes', 'Ghi chú', home, section: 'note');
   _screen('notes-select', 'Ghi chú · bấm giữ một dòng', home, section: 'note',
       act: (t) async {
@@ -467,10 +480,23 @@ void main() {
     showToast(t.element(find.byType(VaultHomeScreen)), 'Đã chuyển vào Đã xoá gần đây',
         icon: Icons.delete_outline_rounded, actionLabel: 'Hoàn tác', besideAction: true, onAction: () {});
   });
-  _screen('search', 'Tìm kiếm', () => SearchScreen(items: _items, thumbnail: (id) async => _thumbnails[0]!), act: (t) async {
+  Widget search() => SearchScreen(items: _items, thumbnail: (id) async => _photos.isEmpty ? _thumbnails[0]! : _photos.values.elementAt(id.hashCode % _photos.length));
+  Future<void> typeSearch(WidgetTester t, String text) async {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
-    await t.enterText(find.byType(TextField), 'thuoc');
+    await t.enterText(find.byType(TextField), text);
+    await t.pump();
+  }
+  _screen('search-empty', 'Tìm kiếm · chưa gõ gì', search);
+  _screen('search', 'Tìm kiếm · gõ “thuoc”', search,
+      act: (t) => typeSearch(t, 'thuoc'));
+  _screen('search-kind', 'Tìm kiếm · chạm ô Thư viện', search,
+      act: (t) async {
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
+    await t.tap(find.byKey(const ValueKey('search-kind-library')));
+    await t.pump();
   });
+  _screen('search-none', 'Tìm kiếm · không có kết quả', search,
+      act: (t) => typeSearch(t, 'xyzw'));
   _screen('text-json', 'Tệp · mở wifi-config.json', () => FileViewScreen(item: _item('j1', ItemKind.file, 'wifi-config.json', 180), vaultId: 'v'));
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
@@ -485,9 +511,15 @@ void main() {
     await t.pump();
   }
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
-      change: '“Hiện nội dung ghi chú” (tắt sẵn) thành “Ẩn nội dung ghi chú” (BẬT sẵn), giống “Làm mờ ảnh thu nhỏ”: bật là an toàn. Tắt phải qua Face ID',
-      marks: [() => find.byKey(const ValueKey('hide-note-text-row'))],
       act: toDisplay);
+  _screen('settings-appearance', 'Cài đặt · Giao diện', () => settings(vault),
+      act: (t) async {
+    await toDisplay(t);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 160));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Giao diện'));
+    await t.pumpAndSettle();
+  });
   _screen('settings-language', 'Cài đặt · Ngôn ngữ', () => settings(vault),
       act: (t) async {
     await toDisplay(t);

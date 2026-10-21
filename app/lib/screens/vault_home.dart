@@ -33,6 +33,7 @@ import 'new_vault.dart';
 import 'quick_look.dart';
 import 'note.dart';
 import 'recorder.dart';
+import 'overview.dart';
 import 'search.dart';
 import 'settings.dart';
 import 'trash.dart';
@@ -236,10 +237,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The sections that hold something, in a fixed order (docs/ui.md, design language).
   List<VaultSection> get _sections {
     final items = _items ?? const <rust.ItemInfo>[];
-    return [
+    final kinds = [
       for (final s in vaultSections())
-        if ((s == _section && _keepSection) || items.any((i) => _inSection(s, i))) s,
+        if (s != VaultSection.home && ((s == _section && _keepSection) || items.any((i) => _inSection(s, i)))) s,
     ];
+    // The overview comes first whenever the vault holds anything.
+    return kinds.isEmpty ? kinds : [VaultSection.home, ...kinds];
   }
 
   /// Nothing in the vault yet (tags alone do not count): the welcome with the add tiles.
@@ -775,9 +778,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (items == null) return;
     final picked = await Navigator.of(context).push<rust.ItemInfo>(
       MaterialPageRoute(
-          builder: (_) => SearchScreen(items: items.where((i) => i.kind != ItemKind.tag).toList(), thumbnail: _thumbnail)),
+          builder: (_) => SearchScreen(items: items, thumbnail: _thumbnail)),
     );
-    if (picked != null && mounted && !_locked) _openItem(picked, items.where(_isMedia).toList());
+    if (picked == null || !mounted || _locked) return;
+    // A group found by its name opens like a chip in the vault.
+    if (picked.kind == ItemKind.tag) return setState(() => _tagId = picked.id);
+    _openItem(picked, items.where(_isMedia).toList());
   }
 
   String _dateGroup(BuildContext context, int ms) {
@@ -952,6 +958,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   /// Item kinds each section shows.
   static bool _inSection(VaultSection s, rust.ItemInfo i) => switch (s) {
+        VaultSection.home => false,
         VaultSection.note => i.kind == ItemKind.note,
         VaultSection.library => i.kind == ItemKind.photo || i.kind == ItemKind.video,
         VaultSection.audio => i.kind == ItemKind.audio,
@@ -1108,6 +1115,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
     final shown = _shown(items);
     return switch (_section) {
+      VaultSection.home => _home(context, items),
       VaultSection.note => _list(context, shown, notes: true),
       VaultSection.file => _list(context, shown, notes: false),
       VaultSection.audio when _tagId != null && shown.isEmpty && !_recordingNow => _tagEmpty(context),
@@ -1124,6 +1132,67 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         ),
       VaultSection.library => _library(context, shown),
     };
+  }
+
+  /// The home tab: a search field, how much the vault holds, then the overview (the
+  /// sections, the groups, what was added last), each a tap away.
+  Widget _home(BuildContext context, List<rust.ItemInfo> items) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final things = items.where((i) => i.kind != ItemKind.tag).toList();
+    final bytes = things.fold<BigInt>(BigInt.zero, (a, i) => a + i.sizeBytes);
+    return VaultOverview(
+      items: items,
+      thumbnail: _thumbnail,
+      bottomPad: _bottomRoom,
+      recentCount: 6,
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 4),
+          Material(
+            key: const ValueKey('home-search'),
+            color: ink.withValues(alpha: .07),
+            shape: const StadiumBorder(),
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: _openSearch,
+              child: SizedBox(
+                height: Ui.circle,
+                child: Row(children: [
+                  const SizedBox(width: 14),
+                  Icon(Icons.search, color: ink.withValues(alpha: .6)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(l.searchHint,
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, color: ink.withValues(alpha: .5))),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 12, 6, 0),
+            child: Text(l.storageUsed(fileSize(bytes), things.length), style: TextStyle(color: c.muted, fontSize: 13.5)),
+          ),
+        ],
+      ),
+      onKind: (s) => setState(() {
+        _section = s;
+        _keepSection = false;
+        Prefs.write('vault-section', s.name);
+      }),
+      onGroup: (g) => setState(() {
+        _tagId = g.id;
+        // A group opens on the first section where it has something.
+        _section = vaultSections().firstWhere(
+          (s) => s != VaultSection.home && things.any((i) => _inSection(s, i) && i.tagIds.contains(g.id)),
+          orElse: () => VaultSection.library,
+        );
+      }),
+      onOpen: (it) => _openItem(it, things.where(_isMedia).toList()),
+    );
   }
 
   /// Large title (the section, or the open tag with Back and a ⋯ menu); Search and
@@ -1191,7 +1260,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             ),
             const SizedBox(width: 8),
           ],
-          GlassButton(icon: Icons.search, tooltip: l.search, size: Ui.circle, onTap: _openSearch),
+          // The home tab has its own search field.
+          if (_section != VaultSection.home || _tagId != null)
+            GlassButton(icon: Icons.search, tooltip: l.search, size: Ui.circle, onTap: _openSearch),
           // Inside a group the header is crowded; Settings is one Back away.
           if (open == null) ...[
             const SizedBox(width: 8),
@@ -1429,7 +1500,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   header,
-                  if (!_recordingNow && !empty) _tagChips(context),
+                  // The home tab lists the groups itself.
+                  if (!_recordingNow && !empty && (_section != VaultSection.home || _tagId != null)) _tagChips(context),
                   ?banner,
                   Expanded(
                     child: MediaQuery.removePadding(
@@ -1471,6 +1543,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 child: VaultBar(
                   section: _section,
                   sections: sections,
+                  home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
                   onSection: (k) {
                     if (_recordingNow) return;
                     setState(() {

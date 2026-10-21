@@ -547,5 +547,17 @@
   "secNoCapture": "No capture",
   "language": "Language",
   "languageSystem": "Same as device",
-  "languageSystemNote": "Uses the language your device is set to."
+  "languageSystemNote": "Uses the language your device is set to.",
+  "appearance": "Appearance",
+  "appearanceAuto": "Automatic",
+  "appearanceLight": "Light",
+  "appearanceDark": "Dark",
+  "searchKinds": "Browse",
+  "searchGroups": "Groups",
+  "searchRecent": "Recently added",
+  "searchAll": "All",
+  "searchNothingFor": "No results for “{query}”",
+  "searchNothingHint": "Try a shorter word. Names and the text of notes are searched, accents don't matter.",
+  "@searchNothingFor": {"placeholders": {"query": {"type": "String"}}},
+  "modeHome": "Overview"
 }
