@@ -344,7 +344,7 @@
   "sec1Title": "Telefonda şifrelenir",
   "sec1Body": "Her fotoğrafın, notun ve dosyanın kendi anahtarı vardır ve yazılmadan önce şifrelenir. Büyük dosyalar küçük parçalar halinde şifrelenir; tek bir parça değiştirilir veya kesilirse uygulama bunu fark eder ve açmayı reddeder.",
   "sec2Title": "Bir kasayı iki şey açar",
-  "sec2Body": "Yedek parolasını siz seçersiniz. Secret Key, uygulamanın oluşturduğu ve telefonun güvenli depolamasında tuttuğu rastgele bir dizedir. Kasanın bir kopyası olup Secret Key'i olmayan biri parolayı tahmin etmeye başlayamaz bile; üstelik her tahmin çok fazla bellek ve bir saniyeden uzun süre gerektirir.",
+  "sec2Body": "Yedek parolasını siz belirlersiniz. Secret Key, uygulamanın oluşturup cihazın güvenli alanında sakladığı rastgele bir dizidir. Kasanın bir kopyasını ele geçiren biri Secret Key olmadan parolayı tahmin etmeye başlayamaz bile. Secret Key olsa bile her parola denemesi çok bellek ve işlem süresi ister; toplu tahmin yavaş ve pahalıdır.",
   "sec3Title": "Bu telefonda hızlı açılır",
   "sec3Body": "PIN'iniz ve Face ID yalnızca bu telefon için tutulan kasa anahtarı kopyasının kilidini açar. Kasayı başka bir cihaza kopyalarsanız PIN işe yaramaz. Beşinci yanlış PIN'den itibaren 1, 5, 15, ardından 60 dakika beklersiniz; uygulama verilerinizi asla silmez.",
   "sec4Title": "İnternete hiçbir şey gitmez",

@@ -431,6 +431,10 @@ everywhere, easy to hit with a thumb.
 - **Only what the vault holds.** The bottom capsule offers the home tab and the sections
   that have items, in the fixed order Overview · Notes · Library · Voice · Files. An empty
   vault shows its icon, one line, and big add tiles.
+- **Bottom bar words are never cut** (owner 2026-10-21): the home tab stays put on the
+  left; the other tabs get room in proportion to their words when they all fit, and
+  otherwise scroll sideways (no loop) with a fade at the right edge, the chosen tab
+  scrolled into view. `test/tabs_fit_test.dart` checks every language at 360 and 430 pt.
 - **Home tab (Overview)** (owner 2026-10-21): first in the capsule, drawn as the vault's own
   badge. A search field, the storage line, the sections as tiles with counts (tap: that
   tab), the groups (tap: open it) and the last six items. The vault opens on it unless
@@ -445,7 +449,8 @@ everywhere, easy to hit with a thumb.
   voice, file); the current section's ways sit nearest the thumb and are filled, the rest
   follow in a fixed order. The page dims and + turns into ×. One hand: put the finger on
   +, slide up to a way (it grows and gets a backdrop, a light tick on each) and let go.
-  Voice keeps its red mic, which records at once. The section a way fills opens.
+  Voice has the same + (Record nearest the thumb, 2026-10-21: one structure everywhere);
+  while recording the button is the red stop. The section a way fills opens.
 - **The add column moves and loops** (0.1.12): ways pop out of + one after another with
   a small overshoot, + turns into ×, closing plays it backwards. Dragging the column down
   rolls it in a loop, so any way comes to the thumb. + sits `Ui.actionLift` above the

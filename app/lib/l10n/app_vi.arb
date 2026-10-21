@@ -358,7 +358,7 @@
   "sec1Title": "Mã hoá ngay trên máy",
   "sec1Body": "Mỗi ảnh, ghi chú, tệp có một khoá riêng và được mã hoá trước khi ghi xuống máy. Tệp lớn được mã hoá từng khúc nhỏ; chỉ cần sửa hay cắt bớt một khúc là app nhận ra và từ chối mở.",
   "sec2Title": "Hai thứ cùng mở két",
-  "sec2Body": "Mật khẩu sao lưu do bạn đặt. Secret Key là một chuỗi ngẫu nhiên app tạo ra và cất trong vùng an toàn của máy. Ai lấy được bản sao két mà không có Secret Key thì không thể bắt đầu đoán mật khẩu; và mỗi lần đoán đều tốn nhiều bộ nhớ, hơn một giây.",
+  "sec2Body": "Mật khẩu sao lưu do bạn đặt. Secret Key là một chuỗi ngẫu nhiên app tạo ra và cất trong vùng an toàn của máy. Ai lấy được bản sao két mà không có Secret Key thì không thể bắt đầu đoán mật khẩu. Kể cả có Secret Key, mỗi lần thử một mật khẩu cũng bắt máy dùng nhiều bộ nhớ và tính toán lâu, nên đoán thử hàng loạt rất chậm và tốn kém.",
   "sec3Title": "Mở nhanh trên máy này",
   "sec3Body": "Mã PIN và Face ID chỉ mở một bản sao chìa khoá được cất riêng cho máy này. Chép két sang máy khác thì mã PIN vô dụng. Từ lần nhập sai PIN thứ năm phải chờ 1, 5, 15 rồi 60 phút; app không bao giờ tự xoá dữ liệu.",
   "sec4Title": "Không gửi gì ra internet",

@@ -344,7 +344,7 @@
   "sec1Title": "Chiffré sur le téléphone",
   "sec1Body": "Chaque photo, note et fichier a sa propre clé et est chiffré avant d'être écrit. Les gros fichiers sont chiffrés par petits blocs ; si un seul bloc est modifié ou tronqué, l'app le détecte et refuse de l'ouvrir.",
   "sec2Title": "Deux éléments ouvrent un coffre",
-  "sec2Body": "Vous choisissez le mot de passe de sauvegarde. La Secret Key est une chaîne aléatoire créée par l'app et conservée dans le stockage sécurisé du téléphone. Sans la Secret Key, une copie du coffre ne permet même pas de commencer à deviner le mot de passe, et chaque tentative coûte beaucoup de mémoire et plus d'une seconde.",
+  "sec2Body": "Vous choisissez le mot de passe de sauvegarde. La Secret Key est une suite aléatoire créée par l'app et gardée dans le stockage sécurisé de l'appareil. Sans la Secret Key, une copie du coffre ne permet même pas de commencer à deviner le mot de passe. Même avec la Secret Key, chaque essai demande beaucoup de mémoire et de calcul : en essayer beaucoup est lent et coûteux.",
   "sec3Title": "Rapide à ouvrir sur ce téléphone",
   "sec3Body": "Votre code PIN et Face ID ne déverrouillent qu'une copie de la clé du coffre conservée pour ce téléphone. Copiez le coffre sur un autre appareil, et le code PIN ne sert à rien. À partir du cinquième code PIN erroné, vous patientez 1, 5, 15, puis 60 minutes ; l'app n'efface jamais vos données.",
   "sec4Title": "Rien ne part sur Internet",

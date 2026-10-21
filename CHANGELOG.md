@@ -4,6 +4,18 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.22 (2026-10-21)
+
+### Changed
+- The bottom bar never cuts a word: Overview stays on the left and the other tabs scroll
+  sideways when the words are long (French, German, Russian…) or the phone is small.
+- Voice has the same + as every other section, Record nearest your thumb; while
+  recording the button is the red stop.
+- "How the vault is protected": clearer words on why guessing the password is slow.
+
+### Fixed
+- The add column no longer shows a dark band across a row at its top edge.
+
 ## 0.1.21 (2026-10-21)
 
 ### Added

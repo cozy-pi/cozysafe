@@ -344,7 +344,7 @@
   "sec1Title": "Criptografado no celular",
   "sec1Body": "Cada foto, nota e arquivo tem a própria chave e é criptografado antes de ser gravado. Arquivos grandes são criptografados em pequenos blocos; se um único bloco for alterado ou cortado, o app percebe e se recusa a abri-lo.",
   "sec2Title": "Duas coisas abrem um cofre",
-  "sec2Body": "Você escolhe a senha de backup. A Secret Key é uma sequência aleatória que o app cria e guarda no armazenamento seguro do celular. Quem tiver uma cópia do cofre mas não a Secret Key não consegue nem começar a adivinhar a senha, e cada tentativa custa muita memória e mais de um segundo.",
+  "sec2Body": "Você escolhe a senha do backup. A Secret Key é uma sequência aleatória que o app cria e guarda no armazenamento seguro do dispositivo. Quem tiver uma cópia do cofre sem a Secret Key não consegue nem começar a adivinhar a senha. Mesmo com a Secret Key, cada senha testada exige muita memória e tempo de cálculo, então testar muitas é lento e caro.",
   "sec3Title": "Rápido de abrir neste celular",
   "sec3Body": "Seu PIN e o Face ID só desbloqueiam uma cópia da chave do cofre guardada para este celular. Copie o cofre para outro dispositivo e o PIN não serve. A partir do quinto PIN errado, você espera 1, 5, 15 e depois 60 minutos; o app nunca apaga seus dados.",
   "sec4Title": "Nada vai para a internet",

@@ -248,10 +248,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// Nothing in the vault yet (tags alone do not count): the welcome with the add tiles.
   bool get _empty => _items != null && _sections.isEmpty;
 
-  /// The button above the lock: in Voice it records; everywhere else + opens the add
-  /// column, this section's ways nearest the thumb (docs/ui.md, design language).
+  /// The button above the lock: + opens the add column everywhere, this section's ways
+  /// nearest the thumb (Voice too: "Record" is its nearest way, owner 2026-10-21); while
+  /// recording it is the red stop (docs/ui.md, design language).
   Future<void> _mainAction() async {
-    if (_section == VaultSection.audio) return _recorder.currentState?.toggle();
+    if (_recordingNow) return _recorder.currentState?.toggle();
     setState(() {
       _adding = !_adding;
       if (_adding) _openAdd();
@@ -1407,12 +1408,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Widget _actionButton(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final (icon, tip) = _section == VaultSection.audio
-        ? (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording)
-        : (Icons.add, _adding ? l.close : l.addToVault);
+    final (icon, tip) = _recordingNow ? (Icons.stop_rounded, l.stopRecording) : (Icons.add, _adding ? l.close : l.addToVault);
     return ActionButton(
         key: _actionKey, icon: icon, tooltip: tip, onTap: _mainAction, turns: _adding ? .125 : 0,
-        color: _section == VaultSection.audio ? recordRed(context) : null);
+        color: _recordingNow ? recordRed(context) : null);
   }
 
   @override
@@ -1592,7 +1591,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 bottom: bottom + Ui.actionLift,
                 // Tap: open or close the column. Finger down and slide up: pick on release.
                 child: GestureDetector(
-                  onPanStart: _section == VaultSection.audio
+                  onPanStart: _recordingNow
                       ? null
                       : (_) {
                           if (!_adding) {
@@ -1603,8 +1602,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                             });
                           }
                         },
-                  onPanUpdate: _section == VaultSection.audio ? null : (d) => _hoverAt(d.globalPosition),
-                  onPanEnd: _section == VaultSection.audio
+                  onPanUpdate: _recordingNow ? null : (d) => _hoverAt(d.globalPosition),
+                  onPanEnd: _recordingNow
                       ? null
                       : (_) {
                           final h = _hover;
