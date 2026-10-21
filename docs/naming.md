@@ -57,3 +57,10 @@ Preference keys follow the same idea: read the old key when the new one is missi
   `has_thumbnail`, folders (`folder`, `color`, `space`) → tags (`tag_ids`), PIN cost
   grouped in `kdf`. Dart: `VaultKind`/`space`/`AddMode` → `VaultSection`; string kinds →
   `ItemKind`.
+
+## Language
+
+Cozy Safe is a global product: everything in this repository is written in English,
+including commit and merge messages, docs, the changelog, code comments and release notes
+(owner, 2026-10-21). Text people see in the app goes through the translations
+(`app/lib/l10n`), never hard-coded in one language.
