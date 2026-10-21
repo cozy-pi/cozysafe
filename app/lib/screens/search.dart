@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/vault_bar.dart';
 import 'file_view.dart';
 import '../item_kind.dart';
 
@@ -77,30 +78,55 @@ class _SearchScreenState extends State<SearchScreen> {
         : widget.items
             .where((i) => fold(i.name).contains(q) || (_noteText[i.id]?.contains(q) ?? false))
             .toList();
+    final ink = Theme.of(context).colorScheme.onSurface;
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: TextField(
-          controller: _query,
-          autofocus: true,
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(
-            hintText: l.searchHint,
-            filled: false,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-          ),
-          onChanged: (_) => setState(() {}),
-        ),
-        actions: [
-          if (_query.text.isNotEmpty)
-            IconButton(
-              tooltip: l.clear,
-              onPressed: () => setState(_query.clear),
-              icon: const Icon(Icons.close),
+      // The vault's header language: a round glass back, then a rounded field with a
+      // magnifier (docs/ui.md, design language).
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(Ui.circle + 16),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+            child: Row(
+              children: [
+                GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: () => Navigator.of(context).maybePop()),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: Ui.circle,
+                    child: TextField(
+                      key: const ValueKey('search-field'),
+                      controller: _query,
+                      autofocus: true,
+                      textInputAction: TextInputAction.search,
+                      style: const TextStyle(fontSize: 17),
+                      textAlignVertical: TextAlignVertical.center,
+                      decoration: InputDecoration(
+                        hintText: l.searchHint,
+                        filled: true,
+                        fillColor: ink.withValues(alpha: .07),
+                        contentPadding: EdgeInsets.zero,
+                        prefixIcon: Icon(Icons.search, color: ink.withValues(alpha: .6)),
+                        suffixIcon: _query.text.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: l.clear,
+                                onPressed: () => setState(_query.clear),
+                                icon: Icon(Icons.cancel, color: ink.withValues(alpha: .45)),
+                              ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(Ui.circle / 2), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Ui.circle / 2), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Ui.circle / 2), borderSide: BorderSide.none),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
       body: q.isEmpty
           ? const SizedBox.shrink()
@@ -138,8 +164,10 @@ class _SearchScreenState extends State<SearchScreen> {
                               ),
                               title: Text(it.name.isEmpty ? l.untitledNote : it.name,
                                   maxLines: 1, overflow: TextOverflow.ellipsis),
+                              // The words around the match only when note text may show
+                              // (Settings → Display); otherwise just that it matched inside.
                               subtitle: Text(
-                                _snippet(it.id, q) ??
+                                (notePreviews() ? _snippet(it.id, q) : (_snippet(it.id, q) == null ? null : l.foundInText)) ??
                                     MaterialLocalizations.of(context)
                                         .formatShortDate(dateOf(it.createdMs)),
                                 maxLines: 2,

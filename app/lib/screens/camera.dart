@@ -68,19 +68,18 @@ class _CameraScreenState extends State<CameraScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              // The vault's own header: close, title, and the timer while recording.
+              // A grabber (swipe down closes), the title, and the timer while recording.
+              // Close itself is in the bottom row, in thumb reach (docs/ui.md, camera).
+              Container(
+                width: 38,
+                height: 5,
+                margin: const EdgeInsets.only(top: 6),
+                decoration: BoxDecoration(color: ink.withValues(alpha: .22), borderRadius: BorderRadius.circular(3)),
+              ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
                 child: Row(
                   children: [
-                    GlassButton(
-                      key: const ValueKey('camera-close'),
-                      icon: Icons.close,
-                      tooltip: l.close,
-                      size: 38,
-                      onTap: _recording ? null : () => Navigator.of(context).maybePop(),
-                    ),
-                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         _video ? l.recordVideo : l.takePhoto,
@@ -102,21 +101,57 @@ class _CameraScreenState extends State<CameraScreen> {
                   ],
                 ),
               ),
-              // The viewfinder, a rounded card inside the page.
+              // The viewfinder, a rounded card inside the page; swipe down on it closes.
+              // The last shot sits in its corner, small, until tapped.
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
-                    child: CameraView(
-                      key: _view,
-                      video: _video,
-                      tagId: widget.tagId,
-                      onSaved: (_) {},
-                      onChanged: () {
-                        if (mounted) setState(() {});
-                      },
-                      onRecordingChanged: _recordingChanged,
+                child: GestureDetector(
+                  onVerticalDragEnd: (e) {
+                    if (!_recording && (e.primaryVelocity ?? 0) > 600) Navigator.of(context).maybePop();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: CameraView(
+                            key: _view,
+                            video: _video,
+                            tagId: widget.tagId,
+                            onSaved: (_) {},
+                            onChanged: () {
+                              if (mounted) setState(() {});
+                            },
+                            onRecordingChanged: _recordingChanged,
+                          ),
+                        ),
+                        if (last != null && lastThumbnail != null && !_recording)
+                          Positioned(
+                            left: 14,
+                            bottom: 14,
+                            child: Semantics(
+                              button: true,
+                              label: l.openLastShot,
+                              child: GestureDetector(
+                                onTap: () => widget.onOpenLast(last),
+                                child: Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 10)],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.memory(lastThumbnail, fit: BoxFit.cover),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -129,9 +164,9 @@ class _CameraScreenState extends State<CameraScreen> {
                 child: IgnorePointer(
                   ignoring: _recording,
                   child: SizedBox(
-                    width: 220,
+                    width: 240,
                     child: Glass(
-                      radius: 22,
+                      radius: Ui.chip / 2 + 4,
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: Row(
@@ -147,18 +182,18 @@ class _CameraScreenState extends State<CameraScreen> {
                                     onTap: () => setState(() => _video = v),
                                     child: AnimatedContainer(
                                       duration: const Duration(milliseconds: 160),
-                                      height: 36,
+                                      height: Ui.chip,
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
                                         color: v == _video
                                             ? Theme.of(context).colorScheme.primary.withValues(alpha: .14)
                                             : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(18),
+                                        borderRadius: BorderRadius.circular(Ui.chip / 2),
                                       ),
                                       child: Text(
                                         v ? l.cameraVideo : l.photo,
                                         style: TextStyle(
-                                          fontSize: 13.5,
+                                          fontSize: 15,
                                           fontWeight: v == _video ? FontWeight.w700 : FontWeight.w600,
                                           color: v == _video
                                               ? Theme.of(context).colorScheme.primary
@@ -177,26 +212,22 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              // Last shot · shutter · flip.
+              // Close · shutter · flip, all in thumb reach.
               Padding(
                 padding: const EdgeInsets.fromLTRB(28, 0, 28, 16),
                 child: Row(
                   children: [
                     SizedBox.square(
-                      dimension: 52,
-                      child: last != null && lastThumbnail != null && !_recording
-                          ? Semantics(
-                              button: true,
-                              label: l.openLastShot,
-                              child: GestureDetector(
-                                onTap: () => widget.onOpenLast(last),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.memory(lastThumbnail, fit: BoxFit.cover),
-                                ),
-                              ),
-                            )
-                          : null,
+                      dimension: Ui.bar,
+                      child: _recording
+                          ? null
+                          : GlassButton(
+                              key: const ValueKey('camera-close'),
+                              icon: Icons.close,
+                              tooltip: l.close,
+                              size: Ui.bar,
+                              onTap: () => Navigator.of(context).maybePop(),
+                            ),
                     ),
                     const Spacer(),
                     Semantics(
@@ -206,8 +237,8 @@ class _CameraScreenState extends State<CameraScreen> {
                         key: const ValueKey('shutter'),
                         onTap: () => _view.currentState?.shoot(),
                         child: Container(
-                          width: 76,
-                          height: 76,
+                          width: 80,
+                          height: 80,
                           decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: ink, width: 4)),
                           padding: const EdgeInsets.all(5),
                           child: AnimatedContainer(
@@ -225,13 +256,13 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                     const Spacer(),
                     SizedBox.square(
-                      dimension: 52,
+                      dimension: Ui.bar,
                       child: (view?.canFlip ?? false) && !_recording
                           ? Center(
                               child: GlassButton(
                                 icon: Icons.cameraswitch_outlined,
                                 tooltip: l.flipCamera,
-                                size: 46,
+                                size: Ui.bar,
                                 onTap: () => _view.currentState?.flip(),
                               ),
                             )
@@ -267,6 +298,8 @@ class CameraView extends StatefulWidget {
 
   /// For the mockup renders (tool/mockup.sh): a still image instead of the camera.
   static Widget? debugPreview;
+  /// For the mockup renders: a last shot to show in the corner.
+  static (rust.ItemInfo, Uint8List)? debugLast;
 
   final bool video;
   final String? tagId;
@@ -309,7 +342,11 @@ class CameraViewState extends State<CameraView> {
   }
 
   Future<void> _start() async {
-    if (CameraView.debugPreview != null) return;
+    if (CameraView.debugPreview != null) {
+      _last = CameraView.debugLast?.$1;
+      _lastThumbnail = CameraView.debugLast?.$2;
+      return;
+    }
     try {
       if (_cameras.isEmpty) {
         _cameras = await availableCameras();

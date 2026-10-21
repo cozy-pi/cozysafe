@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme.dart';
+
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
@@ -31,6 +33,11 @@ const _sectionPref = 'vault-section';
 /// Which side the main action floats on: left (default, under the left thumb) or right.
 const actionSidePref = 'action-side';
 bool actionOnRight() => Prefs.read(actionSidePref) == 'right';
+
+/// Notes list and search show only titles unless this is on: someone beside you should
+/// not read a password off the list (docs/security.md, secrets on screen).
+const notePreviewsPref = 'note-previews';
+bool notePreviews() => Prefs.read(notePreviewsPref) == '1';
 
 /// The section the vault opens on: the last one used (0.1.6 kept it as `vault-kind`).
 VaultSection startSection() {
@@ -79,7 +86,7 @@ class Glass extends StatelessWidget {
 
 /// A round glass button (lock, search, settings).
 class GlassButton extends StatelessWidget {
-  const GlassButton({super.key, required this.icon, required this.tooltip, required this.onTap, this.size = 46, this.child});
+  const GlassButton({super.key, required this.icon, required this.tooltip, required this.onTap, this.size = Ui.circle, this.child});
   final IconData? icon;
   final Widget? child;
   final String tooltip;
@@ -108,10 +115,12 @@ class GlassButton extends StatelessWidget {
 
 /// The bottom row: the lock on the left, then the sections in a capsule. Tapping a section
 /// switches; dragging along the capsule switches as the finger passes each one.
+/// Only [sections] that hold something are offered; with one or none, no capsule.
 class VaultBar extends StatelessWidget {
-  const VaultBar({super.key, required this.section, required this.onSection, required this.lock});
+  const VaultBar({super.key, required this.section, required this.sections, required this.onSection, required this.lock});
 
   final VaultSection section;
+  final List<VaultSection> sections;
   final ValueChanged<VaultSection> onSection;
   final Widget lock;
 
@@ -125,16 +134,17 @@ class VaultBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final sections = vaultSections();
     final primary = Theme.of(context).colorScheme.primary;
     final ink = Theme.of(context).colorScheme.onSurface;
+    if (sections.length < 2) return Row(children: [lock]);
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         lock,
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
         Expanded(
           child: Glass(
-            radius: 25,
+            radius: Ui.bar / 2,
             child: LayoutBuilder(
               builder: (context, box) {
                 VaultSection at(double x) => sections[(x / (box.maxWidth / sections.length)).floor().clamp(0, sections.length - 1)];
@@ -143,7 +153,7 @@ class VaultBar extends StatelessWidget {
                   onTapUp: (d) => _pick(at(d.localPosition.dx)),
                   onHorizontalDragUpdate: (d) => _pick(at(d.localPosition.dx)),
                   child: SizedBox(
-                    height: 50,
+                    height: Ui.bar,
                     child: Padding(
                       padding: const EdgeInsets.all(4),
                       child: Row(
@@ -158,7 +168,7 @@ class VaultBar extends StatelessWidget {
                                   duration: const Duration(milliseconds: 160),
                                   decoration: BoxDecoration(
                                     color: s == section ? primary.withValues(alpha: .14) : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(21),
+                                    borderRadius: BorderRadius.circular((Ui.bar - 8) / 2),
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
@@ -167,7 +177,7 @@ class VaultBar extends StatelessWidget {
                                     overflow: TextOverflow.fade,
                                     softWrap: false,
                                     style: TextStyle(
-                                      fontSize: 13,
+                                      fontSize: 14,
                                       fontWeight: s == section ? FontWeight.w700 : FontWeight.w600,
                                       color: s == section ? primary : ink.withValues(alpha: .75),
                                     ),
@@ -217,11 +227,71 @@ class ActionButton extends StatelessWidget {
             onTap();
           },
           child: SizedBox.square(
-            dimension: 56,
-            child: Icon(icon, color: color != null ? Colors.white : Theme.of(context).colorScheme.onPrimary, size: 26),
+            dimension: Ui.primary,
+            child: Icon(icon, color: color != null ? Colors.white : Theme.of(context).colorScheme.onPrimary, size: 30),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The ways to add something to a vault.
+enum AddWhat { note, photo, video, photos, voice, file }
+
+/// The ways to add, as big tiles: the add sheet and the empty vault (docs/ui.md,
+/// design language). Camera and voice only where the device has them.
+class AddTiles extends StatelessWidget {
+  const AddTiles({super.key, required this.camera, required this.voice, required this.onPick});
+  final bool camera;
+  final bool voice;
+  final ValueChanged<AddWhat> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final tiles = [
+      (AddWhat.note, Icons.edit_note_rounded, l.newNote),
+      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
+      if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
+      (AddWhat.photos, Icons.photo_library_outlined, l.addFromDevice),
+      if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
+      (AddWhat.file, Icons.description_outlined, l.addFiles),
+    ];
+    final cols = tiles.length == 4 ? 2 : 3;
+    return GridView.count(
+      crossAxisCount: cols,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: cols == 3 ? 1 : 1.5,
+      children: [
+        for (final (what, icon, label) in tiles)
+          Material(
+            key: ValueKey('add-${what.name}'),
+            color: ink.withValues(alpha: .06),
+            shape: RoundedSuperellipseBorder(borderRadius: BorderRadius.circular(Ui.radius)),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => onPick(what),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 32, color: ink),
+                    const SizedBox(height: 8),
+                    Text(label, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.2)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

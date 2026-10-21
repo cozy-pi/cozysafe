@@ -78,26 +78,36 @@ BAR = (
 )
 
 
-def phone(name, b, cap):
+def phone(name, b, cap, marks=()):
     ink = "on-dark" if top_is_dark(os.path.join(d, f"{name}-{b}.png")) else "on-light"
+    # Outlines over what changed: the harness gives each in points on the 430×932 screen.
+    boxes = "".join(
+        f'<span class="mark" style="left:{x / 4.30:.2f}%;top:{y / 9.32:.2f}%;width:{w / 4.30:.2f}%;height:{h / 9.32:.2f}%"></span>'
+        for x, y, w, h in marks)
     return (
-        f'<div class="phone {ink}"><img src="preview/{name}-{b}.png" alt="{cap}, {b}" loading="lazy">'
+        f'<div class="phone {ink}"><div class="scr"><img src="preview/{name}-{b}.png" alt="{cap}, {b}" loading="lazy">{boxes}</div>'
         f'<span class="island"></span><span class="time">9:41</span><span class="icons">{BAR}</span>'
         f'<span class="home"></span></div>'
     )
 
 
-rows = []
+rows, changed = [], []
 for s in screens:
     name, cap = s["name"], html.escape(s["caption"])
-    imgs = "".join(phone(name, b, cap) for b in ("dark", "light") if os.path.exists(os.path.join(d, f"{name}-{b}.png")))
-    rows.append(f'<section><h2>{cap}</h2><div class="pair">{imgs}</div></section>')
+    marks = s.get("marks", [])
+    imgs = "".join(phone(name, b, cap, marks) for b in ("dark", "light") if os.path.exists(os.path.join(d, f"{name}-{b}.png")))
+    change = s.get("change")
+    note = f'<p class="change"><b>Đổi</b> {html.escape(change)}</p>' if change else ""
+    rows.append(f'<section id="{name}"{' class="new"' if change else ''}><h2>{cap}</h2>{note}<div class="pair">{imgs}</div></section>')
+    if change:
+        changed.append(f'<li><a href="#{name}">{cap}</a> — {html.escape(change)}</li>')
+summary = f'<nav class="changes"><h2>Thay đổi lần này ({len(changed)} màn)</h2><ul>{"".join(changed)}</ul></nav>' if changed else ""
 
 page = f"""<title>{html.escape(title)}</title>
 <style>
-:root {{ --bg:#ececec; --fg:#111; --muted:#5b5b5b; }}
-@media (prefers-color-scheme: dark) {{ :root:not([data-theme="light"]) {{ --bg:#141414; --fg:#eee; --muted:#a3a3a3; color-scheme:dark; }} }}
-:root[data-theme="dark"] {{ --bg:#141414; --fg:#eee; --muted:#a3a3a3; color-scheme:dark; }}
+:root {{ --bg:#ececec; --fg:#111; --muted:#5b5b5b; --hl:#e8590c; --hl-bg:#fff1e6; }}
+@media (prefers-color-scheme: dark) {{ :root:not([data-theme="light"]) {{ --bg:#141414; --fg:#eee; --muted:#a3a3a3; --hl:#ff922b; --hl-bg:#2b1d10; color-scheme:dark; }} }}
+:root[data-theme="dark"] {{ --bg:#141414; --fg:#eee; --muted:#a3a3a3; --hl:#ff922b; --hl-bg:#2b1d10; color-scheme:dark; }}
 body {{ background:var(--bg); color:var(--fg); font:15px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;
   padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px)); padding-block:24px 48px; }}
 main {{ max-width:1500px; margin:0 auto; display:grid; gap:28px; }}
@@ -107,7 +117,14 @@ section {{ display:grid; gap:8px; }} h2 {{ margin:0; font-size:15px; }}
 .pair {{ display:flex; gap:12px; flex-wrap:wrap; }}
 .phone {{ position:relative; width:{W}px; aspect-ratio:430/932; padding:{px(9)}; box-sizing:content-box; border-radius:{px(64)};
   background:#1b1b1d; box-shadow:inset 0 0 0 {px(2.5)} #4a4a4f, 0 10px 28px rgba(0,0,0,.28); }}
-.phone img {{ display:block; width:100%; height:100%; border-radius:{px(55)}; }}
+.scr {{ position:relative; width:100%; height:100%; border-radius:{px(55)}; overflow:hidden; }}
+.phone img {{ display:block; width:100%; height:100%; }}
+.mark {{ position:absolute; box-sizing:border-box; border:2.5px solid var(--hl); border-radius:10px;
+  box-shadow:0 0 0 2px rgba(0,0,0,.25), 0 0 14px var(--hl); pointer-events:none; }}
+section.new {{ background:var(--hl-bg); border-left:4px solid var(--hl); padding:10px 12px; border-radius:12px; }}
+.change {{ margin:0; max-width:{2 * W + 40}px; font-size:13.5px; }} .change b {{ color:var(--hl); margin-right:4px; }}
+.changes {{ background:var(--hl-bg); border-left:4px solid var(--hl); padding:12px 16px; border-radius:12px; }}
+.changes h2 {{ font-size:16px; }} .changes ul {{ margin:6px 0 0; padding-left:20px; }} .changes a {{ color:var(--fg); font-weight:600; }}
 .island {{ position:absolute; left:50%; top:{px(9 + 11)}; width:{px(126)}; height:{px(37)}; translate:-50% 0; border-radius:{px(19)}; background:#000; }}
 .time {{ position:absolute; top:{px(9 + 17)}; left:{px(9 + 52)}; font:600 {px(17)}/1 -apple-system,"SF Pro Text","Segoe UI",sans-serif; letter-spacing:-.01em; }}
 .icons {{ position:absolute; top:{px(9 + 20)}; right:{px(9 + 34)}; display:flex; align-items:center; gap:{px(6)}; }}
@@ -120,6 +137,7 @@ section {{ display:grid; gap:8px; }} h2 {{ margin:0; font-size:15px; }}
 </style>
 <main><header><h1>{html.escape(title)}</h1>
 <p class="meta">Rendered from the app's code ({html.escape(source)}), 430×932 (iPhone 15 Pro Max, safe areas 59/34 pt). Each screen: dark, then light.</p></header>
+{summary}
 <div class="grid">{''.join(rows)}</div></main>
 """
 open(os.path.join(d, "index.html"), "w", encoding="utf-8").write(page)

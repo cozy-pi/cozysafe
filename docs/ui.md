@@ -22,6 +22,9 @@ from the app (lock screen, unlock animation, date formats, menus, sizes) and fro
    so every later mockup shows it too. Animations are captured by freezing the real
    animation at fixed moments (see the unlock frames), not imitated.
 
+Changed screens are marked for review: `_screen(..., change: 'what changed', marks: [finders])`
+in `test/preview_test.dart`; the page lists them at the top and outlines the marked parts.
+
 ## Unlock screen (chosen 2026-10-19: "B2")
 
 - Background: a collage of protected items (photos, ID card, receipt, PDF,
@@ -367,3 +370,42 @@ name) are kept.
 - Deleting a vault uses the opposite brightness (light when the app is dark, and the
   reverse) instead of red, so it is never taken for the lock screen.
 - Security rules (owner check, hidden secrets): `docs/security.md`.
+
+## Design language (proposed 2026-10-21, mockup awaiting approval)
+
+One set of sizes for every screen, in `Ui` (`app/lib/theme.dart`); a new control takes
+its size from there, never a number of its own. The owner asked for bigger buttons
+everywhere, easy to hit with a thumb.
+
+| Token | Size | Used for |
+|---|---|---|
+| `Ui.circle` | 48 | round glass buttons (back, search, settings, close in sheets) |
+| `Ui.bar` | 56 | bottom bar height, lock, camera close and flip |
+| `Ui.primary` | 64 | the one main action on a screen (+, record) |
+| `Ui.chip` | 40 | group chips, Photo / Video switch |
+| `Ui.tile` / `Ui.radius` | 96 / 18 | add tiles, cards |
+| `Ui.edge` | 10 | gap from the screen's edge to floating controls |
+
+- **Vault icon: a circle** in the vault's colour (owner chose round over a squircle,
+  2026-10-21), a little light from above and a soft coloured shadow when large; no white
+  ring. Same shape at every size (unlock reveal 120, welcome 84, Settings 56).
+- **The lock button is just a big lock** on glass. A vault icon there (tried 2026-10-21)
+  confused testers and would hint that the phone holds other vaults; the vault shows once
+  when it opens, and in Settings.
+- **Selection bar**: frosted glass like the bottom bar (no bright slab in dark mode); Delete
+  in the system's destructive red, like "Delete all" in Recently deleted (exception to
+  black and white, owner 2026-10-21).
+- **Only what the vault holds.** The bottom capsule offers just the sections that have
+  items, in the fixed order Notes · Library · Voice · Files; with one, no capsule. An empty
+  vault shows its icon, one line, and big add tiles.
+- **The main action, mixed** (owner 2026-10-21): in Notes it opens a new note, in Files
+  the file picker, in Voice the red mic records (one tap, as before); in the Library it
+  opens "Add to vault", big tiles for new note, take photo, record video, photos from
+  device, voice, file. The section a tile fills opens.
+  While the vault has no Library yet (only notes, say), + opens that sheet in every
+  section except Voice: otherwise there would be no way to add the other kinds.
+- **Close where the thumb is.** The camera's close sits in the bottom row with the shutter
+  and flip; swiping down closes too; the last shot is a small thumbnail in the
+  viewfinder's corner.
+- **Editors use the same header**: a round glass back on the left, Done as the one filled
+  button on the right, both `Ui.circle` tall.

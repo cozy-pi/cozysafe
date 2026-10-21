@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+
 /// A vault is recognised by an icon and a colour, never a typed name (docs/ui.md).
 /// Ids are stored (sealed) in the vault; the lists only grow, never reorder, so
 /// stored ids keep meaning the same thing.
@@ -100,33 +101,40 @@ VaultColor colorById(String id) => vaultColors.firstWhere((c) => c.id == id, orE
 /// The screen background for a vault colour: darker, so white text stays readable.
 Color backdropTint(Color c) => Color.lerp(c, Colors.black, .28)!;
 
-/// The vault's identity: its icon, white, on its colour.
+/// The vault's identity: its icon, white, on its colour (docs/ui.md, design language).
+/// A circle with a little light from above and, when large, a soft shadow in its colour
+/// (owner chose round over a squircle, 2026-10-21).
 class VaultBadge extends StatelessWidget {
   const VaultBadge({super.key, required this.icon, required this.color, this.size = 44, this.ring = false});
 
   final String icon;
   final String color;
   final double size;
+  /// Kept for callers; the badge no longer draws a ring.
   final bool ring;
 
   @override
   Widget build(BuildContext context) {
-    // The one place colour stays in the black-and-white app: a vault's own icon and
-    // colour, so you know at a glance which vault it is (docs/ui.md, Black and white).
     final i = iconById(icon);
     final c = colorById(color);
+    final lift = size >= 64; // big badges stand out with depth; small ones stay flat
     return Semantics(
       label: '${i.label}, ${c.label}',
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          color: c.color,
-          borderRadius: BorderRadius.circular(size * .24),
-          border: ring ? Border.all(color: const Color(0xD9FFFFFF), width: 3) : null,
-          boxShadow: ring ? const [BoxShadow(color: Color(0x40000000), blurRadius: 24, offset: Offset(0, 10))] : null,
+        decoration: ShapeDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color.lerp(c.color, Colors.white, .16)!, c.color, Color.lerp(c.color, Colors.black, .14)!],
+          ),
+          shape: const CircleBorder(),
+          shadows: lift
+              ? [BoxShadow(color: c.color.withValues(alpha: .38), blurRadius: size * .22, offset: Offset(0, size * .09))]
+              : null,
         ),
-        child: Icon(i.icon, color: Colors.white, size: size * .5),
+        child: Icon(i.icon, color: Colors.white, size: size * .52),
       ),
     );
   }

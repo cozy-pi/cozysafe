@@ -4,6 +4,28 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-21
+
+**After user testing (persona agents, skill `nguoi-dung-thu`), in the same mockup:** owner
+chose round vault icons; the lock button is just a big lock (a vault icon there confused
+testers and hinted at other vaults); main action mixed (Notes: new note, Files: picker,
+Voice: record, Library or no Library yet: add sheet). Fixes: note text hidden from lists and
+search by default (Settings → Display, owner check to turn on), rounded search field, Select
+button, Recently deleted hint + red "Delete all", glass selection bar with red Delete (red
+for destructive actions is a new exception to black and white), fixed-length Secret Key
+mask, clipboard note in the Emergency Kit, no Settings inside a group, first-line hint in
+new notes, stronger grey text. Preview now renders as an iPhone (Face ID, mono font).
+Not done: blurred thumbnails mode, "Secret Key" wording in Vietnamese, chip counts.
+
+**Proposed, mockup awaiting approval: one design language.** Owner reported: the camera's
+close was out of reach at the top, the vault icon after unlocking looked plain, the note
+editor's buttons were small (bigger buttons everywhere), and every section showed even when
+empty. Proposal (docs/ui.md, design language): shared sizes (`Ui` in theme.dart), vault icon
+as an app-icon squircle everywhere (round variant drawn for comparison), only sections with
+items, an empty vault with big add tiles, one + opening an add sheet, camera close in the
+bottom row plus swipe down, editors with a glass back and a filled Done. Branch `ux-round2`,
+not pushed.
+
 ## 2026-10-20
 
 **0.1.9: exceptions to black and white, and unlocking in order.** Owner: recording and video

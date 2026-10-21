@@ -18,6 +18,7 @@ time, wherever it is opened from:
 | Change PIN | `settings.dart` (`_guarded`) |
 | Auto-lock time | `settings.dart` (`_guarded`) |
 | Block screenshots | `settings.dart` (`_guarded`) |
+| Show note text in lists and search (on only) | `settings.dart` (`_guarded`) |
 | Back up to a file | `vault_home.dart` `_backup` |
 | Backup password (set or change) | `vault_home.dart` `_password` (also the reminder banner) |
 | Emergency Kit (shows the Secret Key) | `vault_home.dart` `_showKit` |
@@ -31,10 +32,13 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
 ## Secrets on screen
 
 - **Never shown by default.** The Secret Key (Emergency Kit) is masked (`SecretText`):
-  dots in the same layout, a Show button, hidden again after 30 seconds and whenever the
+  always the same 16 dots (the mask does not tell the key's length), a Show button, hidden again after 30 seconds and whenever the
   app leaves the foreground.
 - **Password and key fields are hidden while typed** (`SecretField`), with an eye to
   show them; this includes a suggested passphrase, which appears hidden.
+- **Note text stays out of lists.** The notes list and search show titles and dates only;
+  search says "Found in the text" instead of quoting it. Settings → Display can show it
+  (owner check to turn on).
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
   the clipboard after 60 seconds and when the vault locks.

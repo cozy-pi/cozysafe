@@ -17,7 +17,7 @@ void main() {
   testWidgets('the Secret Key is hidden until Show, and hides again after 30 s', (t) async {
     await t.pumpWidget(app(const SecretText(text: key, style: TextStyle())));
     expect(find.text(key), findsNothing);
-    expect(find.text('•••-••••-••••-••••'), findsOneWidget);
+    expect(find.text('••••-••••-••••-••••'), findsOneWidget); // fixed: the mask never tells the length
     await t.tap(find.byKey(const ValueKey('secret-show')));
     await t.pump();
     expect(find.text(key), findsOneWidget);
