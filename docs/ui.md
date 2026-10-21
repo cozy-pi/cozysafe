@@ -440,6 +440,9 @@ everywhere, easy to hit with a thumb.
 - **Bottom bar: the app's own by default**; on iOS 26 Debug can switch to the system's
   (`NativeVaultBar`, UIKit tab bar + glass lock). Change one, change the other.
 - **Hold the home tab to lock** (owner 2026-10-22), no lock button by default.
+- **Photo/video preview** (owner 2026-10-22): big (width less 16 a side, up to 62% of the
+  height), the page dark and blurred behind, name + date under it, one glass bar of four
+  icons; swipe down closes.
 - **Settings rows: a name, no note** (owner 2026-10-21). Pick a name that says enough.
 - **A tap never changes tab by itself**: a recording opened from home or search plays in
   a card over the page you are on.

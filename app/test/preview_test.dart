@@ -347,8 +347,7 @@ void main() {
   }
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
-  _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))),
-      change: 'Menu ⋯ cùng màu nền (nhạt hơn ở chế độ tối, đậm hơn ở chế độ sáng), không còn ô trắng chói');
+  _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   // The unlock animation (playVaultSpin), frozen at four moments of its 1.15 s: the vault's
   // icon behind the dial, blurred at first, sharp when the dial has gone.
   for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay, màu két hắt quanh mép'), (950, 'cửa két mở vụt qua, biểu tượng hiện'), (1100, 'biểu tượng nét')]) {
@@ -367,9 +366,7 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện', home, section: 'library',
-      change: 'Mặc định không còn nút khoá: giữ nút trang chủ (biểu tượng két) để khoá; thanh mục dài ra hết hàng',
-      marks: [() => find.byKey(const ValueKey('home-tab'))]);
+  _screen('library', 'Thư viện', home, section: 'library');
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · bấm +', home, section: 'library', setup: () => debugCamera = true, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
@@ -470,10 +467,14 @@ void main() {
     }
   }
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
-      act: (t) => tapThumb(t, 2));
+      act: (t) => tapThumb(t, 2),
+      change: 'Làm lại: ảnh to gần hết bề ngang, nền sau tối và mờ hẳn, tên + ngày dưới ảnh, bốn nút gom trong một thanh kính nhỏ; vuốt xuống để đóng',
+      marks: [() => find.byKey(const ValueKey('quick-look'))]);
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
-      act: (t) => tapThumb(t, 5));
+      act: (t) => tapThumb(t, 5),
+      change: 'Video cùng kiểu mới với ảnh',
+      marks: [() => find.byKey(const ValueKey('quick-look'))]);
   _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
