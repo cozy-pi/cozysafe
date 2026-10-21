@@ -90,12 +90,52 @@ h1, h2, h3 { hyphens: auto; overflow-wrap: break-word; }
 }
 
 /* ---------- Sections ---------- */
+/* Screenshots: real app renders (shots.sh) in drawn device frames. */
+.frame { position: relative; background: #0d0f10; box-shadow: 0 18px 40px rgba(4,20,16,.18), 0 2px 6px rgba(4,20,16,.12); }
+.frame img { display: block; width: 100%; height: auto; }
+.frame.phone, .frame.android { padding: 7px; border-radius: 38px; }
+.frame.phone img, .frame.android img { border-radius: 31px; }
+.frame.phone::before { content: ""; position: absolute; top: 15px; left: 50%; width: 30%; height: 17px; margin-left: -15%; border-radius: 10px; background: #0d0f10; }
+.frame.android { border-radius: 30px; }
+.frame.android img { border-radius: 24px; }
+.frame.android::before { content: ""; position: absolute; top: 11px; left: 50%; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: #0d0f10; }
+.frame.ipad { padding: 12px; border-radius: 26px; }
+.frame.ipad img { border-radius: 14px; }
+.frame.mac { padding: 30px 0 0; border-radius: 12px; overflow: hidden; background: #e6e8e7; border: 1px solid var(--border); }
+.frame.mac .lights, .frame.mac .lights::before, .frame.mac .lights::after { position: absolute; top: 10px; width: 11px; height: 11px; border-radius: 50%; }
+.frame.mac .lights { left: 12px; background: #ff5f57; }
+.frame.mac .lights::before { content: ""; top: 0; left: 18px; background: #febc2e; }
+.frame.mac .lights::after { content: ""; top: 0; left: 36px; background: #28c840; }
+@media (prefers-color-scheme: dark) {
+  .frame { background: #000; box-shadow: 0 0 0 1px #30363b, 0 18px 40px rgba(0,0,0,.4); }
+  .frame.phone::before, .frame.android::before { background: #000; }
+  .frame.mac { background: #2a2e31; border-color: #30363b; }
+}
+figure { margin: 0; }
+figcaption { margin-top: 14px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+figcaption strong { color: var(--ink); }
+.shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 48px 36px; }
+.shot .frame { width: 254px; max-width: 100%; }
+h3.sub { margin: 72px 0 24px; font-size: 22px; }
+.devices { display: grid; grid-template-columns: minmax(0, 760fr) minmax(0, 330fr) minmax(0, 190fr); gap: 32px; align-items: end; }
+.dev .frame { width: 100%; }
+@media (max-width: 860px) {
+  /* Phones: one swipeable row, the next shot peeking in so it reads as scrollable. */
+  .shots { display: flex; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -20px; padding: 4px 20px 24px; scrollbar-width: none; }
+  .shots::-webkit-scrollbar { display: none; }
+  .shot { flex: 0 0 62%; max-width: 240px; scroll-snap-align: center; }
+  .shot .frame { width: 100%; }
+  .devices { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 32px 20px; }
+  .dev-mac { grid-column: 1 / -1; }
+  h3.sub { margin-top: 48px; }
+}
+
 section.block { padding: 88px 0 0; }
 h2 { margin: 0 0 12px; font-size: clamp(28px, 3.6vw, 38px); line-height: 1.15; letter-spacing: -.02em; }
 .section-lead { margin: 0 0 36px; color: var(--muted); max-width: 54ch; font-size: 18px; }
 .note { margin: 0; padding: 14px 18px; border-radius: 14px; background: var(--warn-bg); color: var(--warn-ink); font-size: 15px; }
 
-.features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px; }
+.features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px 36px; }
 .feat .ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--mint); color: var(--green); margin-bottom: 16px; }
 @media (prefers-color-scheme: dark) { .feat .ic { color: #7cc7ae; } }
 .feat h3 { margin: 0 0 6px; font-size: 19px; }

@@ -108,6 +108,9 @@ I = {
     'linux': '<path d="M12 3c-2.5 0-3.5 2.5-3.5 5 0 1.5-1.5 3-2.5 5-1 2-1 4 .5 5s2.5 0 3.5 1c.7.6 1.3 1 2 1s1.3-.4 2-1c1-1 2-.1 3.5-1s1.5-3 .5-5-2.5-3.5-2.5-5c0-2.5-1-5-3.5-5z"/><path d="M10.5 8h.01M13.5 8h.01"/>',
     'android': '<path d="M5 10h14v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 10a4 4 0 0 1 8 0M8 5l1.5 2.5M16 5l-1.5 2.5M3 11v5M21 11v5"/>',
     'iphone': '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+    'offline': '<path d="M2 8.8a15 15 0 0 1 4.2-2.6M9.3 5.2A15 15 0 0 1 22 8.8M5 12.5a10 10 0 0 1 3.4-2M15.6 10.5A10 10 0 0 1 19 12.5M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/>',
+    'eye': '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/>',
+    'backup': '<path d="M12 3v10M8 9l4 4 4-4"/><rect x="4" y="15" width="16" height="6" rx="2"/><path d="M8 18h.01"/>',
     'download': '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
 }
 
@@ -124,6 +127,26 @@ DIAL = ('<svg viewBox="0 0 1024 1024" aria-hidden="true"><circle class="ring" cx
 COLLAGE = '<div class="collage" aria-hidden="true">' + ''.join(
     f'<i class="{k}"></i>' for k in (['ph', 'doc', 'id', 'rc', 'doc', 'ph', 'id', 'doc', 'rc'] * 5)) + '</div>'
 
+# Screenshots (website/shots.sh renders and converts them): device, screen, display width
+# in CSS px. Sizes are the device's window in points (app/test/website_shots_test.dart).
+SHOTS = [
+    ('iphone', 'lock', 240), ('iphone', 'library', 240), ('iphone', 'notes', 240),
+    ('iphone', 'voice', 240), ('iphone', 'group', 240), ('iphone', 'settings', 240),
+    ('mac', 'library', 760), ('ipad', 'notes', 360), ('android', 'voice', 200),
+]
+DEVICE_SIZE = {'iphone': (390, 844), 'android': (412, 915), 'ipad': (820, 1180), 'mac': (1200, 760)}
+
+
+def shot(device, screen, lang, alt, width):
+    """A screenshot in the page's light or dark mode, 1x and 2x."""
+    lg = 'vi' if lang == 'vi' else 'en'  # the app speaks English and Vietnamese
+    w, h = DEVICE_SIZE[device]
+    f = lambda mode, r: f'/img/s/{device}-{screen}-{lg}-{mode}-{r}.webp'
+    return (f'<picture><source media="(prefers-color-scheme: dark)" srcset="{f("dark", "1x")} 1x, {f("dark", "2x")} 2x">'
+            f'<img src="{f("light", "1x")}" srcset="{f("light", "1x")} 1x, {f("light", "2x")} 2x" '
+            f'width="{width}" height="{round(width * h / w)}" alt="{alt}" loading="lazy" decoding="async"></picture>')
+
+
 PLATFORMS = [
     ('apple', 'macOS', 'CozySafe-macos.dmg', 'mac'),
     ('windows', 'Windows', 'CozySafe-windows-x64.zip', 'win'),
@@ -136,6 +159,15 @@ def page(lang, texts, css):
     t = {k: (v.replace('{BASE}', BASE).replace('{REPO}', REPO) if isinstance(v, str) else v)
          for k, v in texts[lang]['home'].items()}
     root = '' if lang == 'en' else '../'
+    plain = lambda x: re.sub(r'<[^>]+>', '', x).replace('"', '&quot;')
+    phones = ''.join(
+        f'<figure class="shot"><div class="frame phone">{shot("iphone", s, lang, plain(t["s_" + s]), 240)}</div>'
+        f'<figcaption>{t["s_" + s]}</figcaption></figure>'
+        for d, s, _ in SHOTS if d == 'iphone')
+    devices = ''.join(
+        f'<figure class="dev dev-{d}"><div class="frame {d}">{"<i class=lights></i>" if d == "mac" else ""}'
+        f'{shot(d, s, lang, plain(t["d_" + d]), w)}</div><figcaption>{t["d_" + d]}</figcaption></figure>'
+        for d, s, w in SHOTS if d != 'iphone')
     li = lambda items: ''.join(f'<li>{x}</li>' for x in items)
     cards = ''.join(
         f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t[key]}</p>'
@@ -190,12 +222,22 @@ def page(lang, texts, css):
 </header>
 <main class="wrap">
   <section class="block"><p class="note">{t['note']}</p></section>
+  <section class="block" id="tour" aria-labelledby="h-see">
+    <h2 id="h-see">{t['h_see']}</h2>
+    <p class="section-lead">{t['p_see']}</p>
+    <div class="shots">{phones}</div>
+    <h3 class="sub">{t['h_dev']}</h3>
+    <div class="devices">{devices}</div>
+  </section>
   <section class="block" id="how" aria-labelledby="h-how">
     <h2 id="h-how">{t['h_how']}</h2>
     <p class="section-lead">{t['p_how']}</p>
     <div class="features">
       <div class="feat"><div class="ic">{ic('lock', 24)}</div><h3>{t['c1h']}</h3><p>{t['c1p']}</p></div>
       <div class="feat"><div class="ic">{ic('key', 24)}</div><h3>{t['c2h']}</h3><p>{t['c2p']}</p></div>
+      <div class="feat"><div class="ic">{ic('offline', 24)}</div><h3>{t['c4h']}</h3><p>{t['c4p']}</p></div>
+      <div class="feat"><div class="ic">{ic('eye', 24)}</div><h3>{t['c5h']}</h3><p>{t['c5p']}</p></div>
+      <div class="feat"><div class="ic">{ic('backup', 24)}</div><h3>{t['c6h']}</h3><p>{t['c6p']}</p></div>
       <div class="feat"><div class="ic">{ic('code', 24)}</div><h3>{t['c3h']}</h3><p>{t['c3p']}</p></div>
     </div>
   </section>
