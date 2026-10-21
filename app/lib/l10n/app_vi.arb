@@ -283,6 +283,8 @@
   "trashTapHint": "Chạm để chọn, rồi khôi phục hoặc xoá hẳn ở thanh dưới.",
   "deleteForGoodShort": "Xoá hẳn",
   "kitCopyNote": "Bản sao tự xoá khỏi bộ nhớ tạm sau 60 giây. Đừng gửi mã này qua tin nhắn.",
+  "fullScreen": "Toàn màn hình",
+  "exitFullScreen": "Thu nhỏ",
   "addToVault": "Thêm vào két",
   "addToLibrary": "Thêm vào thư viện",
   "recordingVideo": "Đang quay",

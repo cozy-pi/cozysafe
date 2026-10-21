@@ -309,7 +309,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _Row(
               icon: Icons.key_outlined,
-              color: _Mau.nau,
+              color: _Mau.vang,
               title: l.backupPasswordLabel,
               value: vault.hasPassword ? l.isSet : l.notSet,
               onTap: () => _then(widget.onPassword),
@@ -332,7 +332,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _Row(
               icon: Icons.notes_rounded,
-              color: _Mau.nau,
+              color: _Mau.bacHa,
               title: l.notePreviews,
               subtitle: l.notePreviewsNote,
               trailing: _Switch(
@@ -545,8 +545,9 @@ class _Group extends StatelessWidget {
 /// iOS system colours for the setting tiles.
 abstract final class _Mau {
   static const tim = Color(0xFFAF52DE), xam = Color(0xFF8E8E93), xanhLa = Color(0xFF34C759),
-      cham = Color(0xFF5856D6), cam = Color(0xFFFF9500), xanh = Color(0xFF007AFF), nau = Color(0xFFA2845E),
-      doTuoi = Color(0xFFFF3B30), ngoc = Color(0xFF30B0C7), hong = Color(0xFFFF2D55), troi = Color(0xFF32ADE6);
+      cham = Color(0xFF5856D6), cam = Color(0xFFFF9500), xanh = Color(0xFF007AFF),
+      doTuoi = Color(0xFFFF3B30), ngoc = Color(0xFF30B0C7), hong = Color(0xFFFF2D55), troi = Color(0xFF32ADE6),
+      vang = Color(0xFFFFB300), bacHa = Color(0xFF00C7BE); // brown (nau) dropped: owner found it ugly
 }
 
 class _Row extends StatelessWidget {

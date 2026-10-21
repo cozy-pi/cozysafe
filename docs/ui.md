@@ -419,6 +419,15 @@ everywhere, easy to hit with a thumb.
   follow in a fixed order. The page dims and + turns into ×. One hand: put the finger on
   +, slide up to a way (it grows and gets a backdrop, a light tick on each) and let go.
   Voice keeps its red mic, which records at once. The section a way fills opens.
+- **The add column moves and loops** (0.1.12): ways pop out of + one after another with
+  a small overshoot, + turns into ×, closing plays it backwards. Dragging the column down
+  rolls it in a loop, so any way comes to the thumb. + sits `Ui.actionLift` above the
+  safe area (30 clear of the bottom bar) so a big thumb does not hit the lock.
+- **Quick look, not full screen** (owner 2026-10-21, 0.1.12): a tapped photo or video
+  opens as a card a little bigger than its thumbnail, over the vault, which stays visible
+  under a light dim and blur; videos play in the card (tap to pause, a line shows where).
+  Under it: Close bottom left (as in the camera), Full screen, then Send (videos) and
+  Delete in red. Full screen is the old black viewer; its corner button returns to the card.
 - **Tapping an item does it, in place; no sheets popping up from the bottom.** Sheets are
   only for making or choosing something (groups, settings values). A voice memo opens in
   its row with Send · Rename · Delete; Recently deleted selects on tap, with Restore and

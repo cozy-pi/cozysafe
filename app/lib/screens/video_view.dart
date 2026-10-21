@@ -17,10 +17,14 @@ import 'file_view.dart';
 /// when the screen closes, when the vault locks, and at every app start
 /// ([clearPlaybackCopies]). Pops with the id when the video was deleted.
 class VideoViewScreen extends StatefulWidget {
-  const VideoViewScreen({super.key, required this.item, required this.vaultId});
+  const VideoViewScreen({super.key, required this.item, required this.vaultId, this.player, this.copy});
 
   final rust.ItemInfo item;
   final String vaultId;
+  /// Full screen from the quick look: its player (and decrypted copy) carry on here and
+  /// stay the quick look's to dispose; the corner button goes back to it.
+  final VideoPlayerController? player;
+  final File? copy;
 
   /// The platforms with a video player; elsewhere videos open in another app.
   static bool get supported => Device.iOS || Device.android || Device.macOS;
@@ -70,7 +74,18 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
   @override
   void initState() {
     super.initState();
-    _open();
+    final shared = widget.player;
+    if (shared == null) {
+      _open();
+      return;
+    }
+    _player = shared;
+    _copy = widget.copy;
+    shared.addListener(_tick);
+  }
+
+  void _tick() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _open() async {
@@ -100,6 +115,10 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
 
   @override
   void dispose() {
+    if (widget.player != null) {
+      widget.player!.removeListener(_tick);
+      return super.dispose();
+    }
     _player?.dispose();
     final copy = _copy;
     if (copy != null) {
@@ -167,9 +186,10 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                       Row(
                         children: [
                           IconButton(
-                            tooltip: l.close,
+                            key: const ValueKey('media-exit-full'),
+                            tooltip: widget.player != null ? l.exitFullScreen : l.close,
                             onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.close, color: Colors.white),
+                            icon: Icon(widget.player != null ? Icons.fullscreen_exit_rounded : Icons.close, color: Colors.white),
                           ),
                           Expanded(
                             child: Text(widget.item.name,

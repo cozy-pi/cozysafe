@@ -4,6 +4,17 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.12 (2026-10-21)
+
+### Changed
+- Tapping a photo or video opens it as a card a little bigger than its thumbnail, with the
+  vault still visible behind; videos play right in the card. Close sits bottom left as in
+  the camera, Full screen next to it; full screen goes back to the card.
+- The add column pops out of the + one way after another, + turns into ×, and the column
+  scrolls in a loop: drag it down to bring any way to your thumb.
+- The + button sits higher above the lock, so a thumb does not hit the wrong one.
+- Settings: no more brown tiles (backup password amber, note text mint).
+
 ## 0.1.11 (2026-10-21)
 
 ### Changed

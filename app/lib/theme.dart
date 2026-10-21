@@ -246,4 +246,7 @@ abstract final class Ui {
   static const double radius = 18;
   /// Space between the bottom bar, the main action and the screen edge.
   static const double edge = 10;
+  /// The main action's bottom above the safe area: clear of the bottom bar by 30, so a
+  /// big thumb does not hit the lock instead (owner 2026-10-21).
+  static const double actionLift = edge + bar + 30;
 }
