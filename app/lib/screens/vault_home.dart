@@ -40,6 +40,7 @@ import 'unlock.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
 import '../item_kind.dart';
+import '../widgets/edge_swipe_back.dart';
 import '../widgets/selectable_row.dart';
 import '../widgets/toast.dart';
 
@@ -1408,6 +1409,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           setState(() => _tagId = null);
         }
       },
+      // Inside a group the header's Back has no route to pop: a swipe from the left edge
+      // does the same (docs/ui.md). The bottom of the edge stays free for the add column.
+      child: EdgeSwipeBack(
+      enabled: inTag && !selecting && !_adding && !_recordingNow,
+      bottomGap: 220,
+      onBack: () => setState(() => _tagId = null),
       child: Scaffold(
         // While selecting, the bar gives way to what can be done with the selection
         // (a real bottom bar, so messages float above it).
@@ -1537,6 +1544,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             _revealOverlay(),
           ],
         ),
+      ),
       ),
     );
   }

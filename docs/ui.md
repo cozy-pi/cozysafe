@@ -416,7 +416,9 @@ everywhere, easy to hit with a thumb.
   button can also be swiped back (iOS edge swipe, Android back gesture). Never block the pop
   (`canPop: false`) to save or to return a result: that switches the swipe off. Save behind
   the pop instead (the note editor writes its last words after the swipe, `NoteScreen.lastSave`)
-  and let the caller reload on a null result. `test/swipe_back_test.dart` checks.
+  and let the caller reload on a null result. `test/swipe_back_test.dart` checks. Steps inside
+  one page (new vault steps, an open group) have no route for the system swipe: wrap them in
+  `EdgeSwipeBack`, which runs the same Back from a left-edge swipe.
 - **One way to select, in every list** (owner 2026-10-21): the photo grid, notes, files,
   recordings and any kind added later. A long press selects, the "Select" button in the
   header starts selecting, and while anything is selected every item shows a circle
