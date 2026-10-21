@@ -46,6 +46,7 @@ import UniformTypeIdentifiers
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "CozyPrivacy") {
+      registrar.register(TabBarFactory(messenger: registrar.messenger()), withId: "cozysafe/tabbar")
       let channel = FlutterMethodChannel(name: "cozysafe/privacy", binaryMessenger: registrar.messenger())
       privacyChannel = channel
       let originals = FlutterMethodChannel(name: "cozysafe/originals", binaryMessenger: registrar.messenger())
@@ -88,6 +89,9 @@ import UniformTypeIdentifiers
           guard let text = call.arguments as? String, let url = URL(string: text),
                 url.scheme == "https", url.host == "safe.cozypi.com" else { return result(false) }
           UIApplication.shared.open(url) { ok in result(ok) }
+        } else if call.method == "liquidGlass" {
+          // The system's own bottom bar has Liquid Glass from iOS 26 (lib/widgets/native_bar.dart).
+          if #available(iOS 26.0, *) { result(true) } else { result(false) }
         } else if call.method == "setSecure" {
           self?.secureOn = (call.arguments as? Bool) ?? true
           self?.applySecure()
@@ -327,5 +331,112 @@ extension AppDelegate: UIDocumentPickerDelegate {
   func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
     pickResult?([])
     pickResult = nil
+  }
+}
+
+/// The vault's bottom bar drawn by UIKit (lib/widgets/native_bar.dart): a glass lock
+/// button and a tab bar, both Apple's own Liquid Glass on iOS 26. Dart sends the items,
+/// the selected one and the theme ("update"); taps come back as "select" and "lock".
+final class TabBarFactory: NSObject, FlutterPlatformViewFactory {
+  private let messenger: FlutterBinaryMessenger
+  init(messenger: FlutterBinaryMessenger) {
+    self.messenger = messenger
+    super.init()
+  }
+
+  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
+    FlutterStandardMessageCodec.sharedInstance()
+  }
+
+  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> FlutterPlatformView {
+    TabBarView(frame: frame, id: viewId, args: args as? [String: Any] ?? [:], messenger: messenger)
+  }
+}
+
+private final class TabBarRoot: UIView {
+  var onLayout: (() -> Void)?
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    onLayout?()
+  }
+}
+
+final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
+  private let root: TabBarRoot
+  private let bar = UITabBar()
+  private let lock = UIButton(type: .system)
+  private let channel: FlutterMethodChannel
+  private var showLock = true
+  private var itemsKey = ""
+
+  init(frame: CGRect, id: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
+    root = TabBarRoot(frame: frame)
+    channel = FlutterMethodChannel(name: "cozysafe/tabbar/\(id)", binaryMessenger: messenger)
+    super.init()
+    root.backgroundColor = .clear
+    bar.delegate = self
+    bar.tintColor = .label
+    lock.addTarget(self, action: #selector(lockTapped), for: .touchUpInside)
+    let symbol = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
+    if #available(iOS 26.0, *) {
+      var config = UIButton.Configuration.glass()
+      config.image = UIImage(systemName: "lock.fill", withConfiguration: symbol)
+      config.cornerStyle = .capsule
+      config.baseForegroundColor = .label
+      lock.configuration = config
+    } else {
+      lock.setImage(UIImage(systemName: "lock.fill", withConfiguration: symbol), for: .normal)
+      lock.tintColor = .label
+    }
+    root.addSubview(lock)
+    root.addSubview(bar)
+    root.onLayout = { [weak self] in self?.layout() }
+    apply(args)
+    channel.setMethodCallHandler { [weak self] call, result in
+      if call.method == "update" { self?.apply(call.arguments as? [String: Any] ?? [:]) }
+      result(nil)
+    }
+  }
+
+  func view() -> UIView { root }
+
+  private func layout() {
+    let b = root.bounds
+    let side = showLock ? min(b.height, 56) : 0
+    lock.isHidden = !showLock
+    lock.frame = CGRect(x: 0, y: (b.height - side) / 2, width: side, height: side)
+    let x = showLock ? side + 6 : 0
+    bar.frame = CGRect(x: x, y: 0, width: max(0, b.width - x), height: b.height)
+  }
+
+  private func apply(_ args: [String: Any]) {
+    let items = args["items"] as? [[String: Any]] ?? []
+    // Same items: keep them, so the selection moves with the system's own animation.
+    let key = items.map { "\($0["title"] ?? "")|\($0["symbol"] ?? "")" }.joined(separator: ";")
+    if key != itemsKey {
+      itemsKey = key
+      bar.items = items.enumerated().map { i, item in
+        UITabBarItem(title: item["title"] as? String,
+                     image: UIImage(systemName: item["symbol"] as? String ?? "circle"), tag: i)
+      }
+    }
+    bar.isHidden = items.isEmpty
+    let selected = args["selected"] as? Int ?? 0
+    if let all = bar.items, selected >= 0, selected < all.count, bar.selectedItem !== all[selected] {
+      bar.selectedItem = all[selected]
+    }
+    showLock = args["lock"] as? Bool ?? true
+    lock.accessibilityLabel = args["lockLabel"] as? String
+    root.overrideUserInterfaceStyle = (args["dark"] as? Bool ?? false) ? .dark : .light
+    root.setNeedsLayout()
+  }
+
+  func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+    channel.invokeMethod("select", arguments: item.tag)
+  }
+
+  @objc private func lockTapped() {
+    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    channel.invokeMethod("lock", arguments: nil)
   }
 }

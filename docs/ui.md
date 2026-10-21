@@ -82,9 +82,9 @@ Mockup: (internal mockup) (v3, learned from
 Apple Photos iOS 26, Google Photos, Files, Proton Drive, Ente Photos).
 
 - Header: the vault's coloured icon (tap: change icon and colour), no text, and a
-  menu: icon and colour · backup password · change PIN · Face ID · back up ·
-  Emergency Kit · new vault. Settings and Delete vault join it (review below).
-- Without a backup password, a banner under the header says what is at stake
+  menu: icon and colour · vault password · change PIN · Face ID · back up ·
+  Recovery Key · new vault. Settings and Delete vault join it (review below).
+- Without a vault password, a banner under the header says what is at stake
   (review below) with "Set it".
 - **Library | Collections.** Library: everything by date (Today, Yesterday,
   This week, then months). Collections: Photos, Documents, Notes, Recently
@@ -117,7 +117,7 @@ Mockup: (internal mockup)
 Mockup v2 covers the vault home (quick add: camera, photos, files, note;
 recent items with thumbnails; photo and document grid; bottom navigation and a
 + button), the add sheet, note editor, file viewer, in-app camera, settings,
-Emergency Kit, and a three-column desktop layout, each in light and dark.
+Recovery Key, and a three-column desktop layout, each in light and dark.
 
 ### Folders (decided 2026-10-19)
 
@@ -154,7 +154,7 @@ flows (internal mockup)
   while locked, and a readable list would show how many vaults exist.
 - **No password at the start.** Each vault opens with its own PIN on this device
   (a PIN picks its vault, like the password does) and the default vault also
-  with Face ID. The **backup password** and the **Emergency Kit** are set later, on
+  with Face ID. The **vault password** and the **Recovery Key** are set later, on
   one screen ("Suggest a password", type it again, then the kit with a QR code):
   required before the first backup, gently suggested from inside the vault.
 - Wrong PINs: waits that grow (1, 5, 15, 60 min), never a lockout, since a vault
@@ -163,7 +163,7 @@ flows (internal mockup)
 - Locking: by hand (animation), on leaving the app (immediately, 60 s grace when
   the app itself opened the camera, a picker or the share sheet), after 2 minutes
   without a touch. Face ID is not asked again right after locking by hand.
-- With a backup password, the lock screen asks for it once every 14 days instead
+- With a vault password, the lock screen asks for it once every 14 days instead
   of Face ID, so it is not forgotten.
 
 ## User review, 2026-10-19 (what changes next)
@@ -178,9 +178,9 @@ What a user stumbles on, in order of harm. Screens marked *mockup* are approved
 before they are built (the usual rule).
 
 1. **"Forget the PIN and it's gone" is never said.** The PIN step says it under the
-   dots ("Without a backup password, a forgotten PIN can't be recovered."), and the
+   dots ("Without a vault password, a forgotten PIN can't be recovered."), and the
    banner in the vault says the stake, not the mechanism: "Only on this phone. Lose
-   it or forget the PIN and this vault is gone." with "Set backup password".
+   it or forget the PIN and this vault is gone." with "Set vault password".
 2. **The app switcher shows the vault.** A plain vault-green cover with the dial (the
    splash) whenever the app is not active. No setting on iOS.
 3. **Imported photos stay in Photos.** After importing from the library: "Delete the
@@ -191,12 +191,12 @@ before they are built (the usual rule).
 5. **Files only open in other apps.** Built-in viewers for PDF, images and video;
    "Open in another app" stays as a secondary action with its warning. *mockup*
 6. **No Settings.** One screen from the vault menu: auto-lock (1, 2, 5, 10 min;
-   leaving the app always locks at once, so "immediately" would add nothing), Face ID for this vault, change PIN, backup password, Emergency Kit, last
+   leaving the app always locks at once, so "immediately" would add nothing), Face ID for this vault, change PIN, vault password, Recovery Key, last
    backup date, storage used, block screenshots (Android), language, theme. *mockup*
 7. **Which vault does Face ID open?** The menu says "Face ID opens this vault";
    turning it on here moves it from the other vault (one per device).
 8. **Backups leave some vaults out silently.** The backup step says, always in the
-   same words, that vaults without a backup password are not included.
+   same words, that vaults without a vault password are not included.
 9. **No way to delete a vault.** Menu → Delete vault, confirmed by typing its PIN;
    locks and returns to the lock screen.
 10. **After restoring on a new phone there is no PIN.** After the first password
@@ -238,7 +238,7 @@ deniability).
 - **Settings** looks like the system's own: the vault card on top (its icon on its
   colour, size split by photos / files / notes, last backup), then grouped rows with a
   white symbol on its own colour: Unlock (Face ID for this vault, PIN, auto-lock as a
-  pick list), Backup (Back up now, backup password, Emergency Kit), Security (how the
+  pick list), Backup (Back up now only; the sheet names what opens a backup), Security (how the
   vault is protected, block screenshots on Android), and Delete this vault alone at the
   end.
 - **Checking the build against the mockups**: `flutter test test/preview_test.dart
@@ -437,6 +437,12 @@ everywhere, easy to hit with a thumb.
 - **Only what the vault holds.** The bottom capsule offers the home tab and the sections
   that have items, in the fixed order Overview · Notes · Library · Voice · Files. An empty
   vault shows its icon, one line, and big add tiles.
+- **iOS 26 bottom bar is the system's** (owner 2026-10-21): `NativeVaultBar` (UIKit tab
+  bar + glass lock, Liquid Glass); the app's `VaultBar` everywhere else and when Debug
+  turns it off. Change one, change the other.
+- **Settings rows: a name, no note** (owner 2026-10-21). Pick a name that says enough.
+- **A tap never changes tab by itself**: a recording opened from home or search plays in
+  a card over the page you are on.
 - **Bottom bar words are never cut** (owner 2026-10-21): the home tab stays put on the
   left; the other tabs get room in proportion to their words when they all fit, and
   otherwise scroll sideways (no loop) with a fade at the right edge, the chosen tab

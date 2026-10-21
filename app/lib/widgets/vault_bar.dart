@@ -37,6 +37,14 @@ const _sectionPref = 'vault-section';
 const actionSidePref = 'action-side';
 bool actionOnRight() => Prefs.read(actionSidePref) == 'right';
 
+/// No lock button in the bar, which then runs the full width: holding + locks instead
+/// (Settings; owner 2026-10-21). Off by default: the lock button is easier to find.
+const lockOnPlusPref = 'lock-on-plus';
+bool lockOnPlus() => Prefs.read(lockOnPlusPref) == '1';
+
+/// How far the main action sits from the screen edge: lined up with the lock button.
+const double actionSide = 10;
+
 /// Show the vault's icon on a plain page after unlocking (on by default; Settings).
 const revealIconPref = 'reveal-icon';
 bool revealIconOn() => Prefs.read(revealIconPref) != '0';
@@ -141,7 +149,7 @@ class VaultBar extends StatelessWidget {
     required this.section,
     required this.sections,
     required this.onSection,
-    required this.lock,
+    this.lock,
     this.home,
   });
 
@@ -150,7 +158,8 @@ class VaultBar extends StatelessWidget {
   final Widget? home;
   final List<VaultSection> sections;
   final ValueChanged<VaultSection> onSection;
-  final Widget lock;
+  /// None when "hold + to lock" is on: the sections take the whole row.
+  final Widget? lock;
 
   void _pick(VaultSection s) {
     if (s == section) return;
@@ -161,13 +170,8 @@ class VaultBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (sections.length < 2) return Row(children: [lock]);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        lock,
-        const SizedBox(width: 4),
-        Expanded(
+    if (sections.length < 2) return Row(children: [?lock]);
+    final capsule = Expanded(
           child: Glass(
             radius: Ui.bar / 2,
             child: SizedBox(
@@ -178,8 +182,10 @@ class VaultBar extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ],
+        );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [if (lock case final lock?) ...[lock, const SizedBox(width: 4)], capsule],
     );
   }
 }
@@ -330,43 +336,51 @@ class _TabsState extends State<_Tabs> {
 /// The main action, floating above the lock (left thumb): one tap for notes and voice,
 /// a small menu for the library and files.
 class ActionButton extends StatelessWidget {
-  const ActionButton({super.key, required this.icon, required this.tooltip, required this.onTap, this.color, this.turns = 0});
+  const ActionButton(
+      {super.key, required this.icon, required this.tooltip, required this.onTap, this.onLongPress, this.color, this.turns = 0});
   final IconData icon;
   /// The + turns into × by rotating an eighth of a turn, smoothly.
   final double turns;
-  /// Voice: the record red with a white mic (theme.dart `recordRed`); otherwise ink.
+  /// Voice: the record red with a white mic (theme.dart `recordRed`); otherwise glass,
+  /// like the other round buttons (owner 2026-10-21), so the content shows through.
   final Color? color;
   final String tooltip;
   final VoidCallback onTap;
+  /// Holding + locks the vault (when the lock button is turned off).
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.primary;
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: c,
-        shape: const CircleBorder(),
-        elevation: 2,
-        shadowColor: c.withValues(alpha: .25),
-        child: InkWell(
-          key: const ValueKey('vault-action'),
-          customBorder: const CircleBorder(),
-          onTap: () {
-            HapticFeedback.mediumImpact();
-            onTap();
-          },
-          child: SizedBox.square(
-            dimension: Ui.primary,
-            child: AnimatedRotation(
-              turns: turns,
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutBack,
-              child: Icon(icon, color: color != null ? Colors.white : Theme.of(context).colorScheme.onPrimary, size: 30),
-            ),
-          ),
+    final ink = InkWell(
+      key: const ValueKey('vault-action'),
+      customBorder: const CircleBorder(),
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
+      onLongPress: onLongPress == null
+          ? null
+          : () {
+              HapticFeedback.heavyImpact();
+              onLongPress!();
+            },
+      child: SizedBox.square(
+        dimension: Ui.primary,
+        child: AnimatedRotation(
+          turns: turns,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutBack,
+          child: Icon(icon, color: color != null ? Colors.white : Theme.of(context).colorScheme.onSurface, size: 28),
         ),
       ),
+    );
+    return Tooltip(
+      message: tooltip,
+      // Holding is the lock: the tooltip must not take the long press.
+      triggerMode: onLongPress != null ? TooltipTriggerMode.manual : null,
+      child: color != null
+          ? Material(color: color, shape: const CircleBorder(), elevation: 2, shadowColor: color!.withValues(alpha: .25), child: ink)
+          : Glass(radius: Ui.primary / 2, child: Material(type: MaterialType.transparency, child: ink)),
     );
   }
 }

@@ -111,9 +111,10 @@ class _RestoreScreenState extends State<RestoreScreen> {
             SecretField(
               controller: _key,
               enabled: !_busy,
-              capitalization: TextCapitalization.characters,
+              capitalization: TextCapitalization.none,
+              multiline: true,
               label: l.secretKeyLabel,
-              hint: 'CS1-XXXX-XXXX-…',
+              hint: l.recoveryWordsHint,
               onChanged: (_) => setState(() => _error = null),
               onSubmitted: (_) => _useKey(),
             ),

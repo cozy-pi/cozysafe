@@ -120,7 +120,7 @@ mod tests {
     };
 
     fn sk(b: u8) -> SecretKey {
-        SecretKey::from_bytes([b; 16])
+        SecretKey::from_slice(&[b; 16]).unwrap() // a 128-bit (earlier) key: their roots must not change
     }
 
     #[test]

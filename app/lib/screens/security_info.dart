@@ -6,7 +6,7 @@ import '../widgets/brand.dart';
 
 /// "How this vault is protected" (owner 2026-10-21: serious, so people understand). Six
 /// short sections, each with a small drawing made of the app's own symbols; technical
-/// details folded at the end. Every claim is what the app does today (docs/security.md,
+/// details open at the end. Every claim is what the app does today (docs/security.md,
 /// ADR 0001): nothing planned is described as done.
 class SecurityInfoScreen extends StatelessWidget {
   const SecurityInfoScreen({super.key});
@@ -20,50 +20,56 @@ class SecurityInfoScreen extends StatelessWidget {
           padding: const EdgeInsets.only(top: 26),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            // Title, then its drawing, then the words (owner 2026-10-21).
             children: [
+              Text(title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+              const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 12),
                 decoration: BoxDecoration(color: tint.withValues(alpha: .12), borderRadius: BorderRadius.circular(Ui.radius + 4)),
                 child: drawing,
               ),
-              const SizedBox(height: 14),
-              Text(title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, letterSpacing: -.3)),
-              const SizedBox(height: 6),
+              const SizedBox(height: 12),
               Text(body, style: TextStyle(fontSize: 16.5, height: 1.55, color: c.muted.withValues(alpha: 1))),
             ],
           ),
         );
     const green = Color(0xFF30D158), blue = Color(0xFF0A84FF), purple = Color(0xFFBF5AF2);
-    const orange = Color(0xFFFF9F0A), red = Color(0xFFFF453A), teal = Color(0xFF40C8E0);
+    const orange = Color(0xFFFF9F0A), red = Color(0xFFFF453A);
     return Scaffold(
       appBar: AppBar(title: Text(l.securityTitle)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
         children: [
           Text(l.secIntro, style: const TextStyle(fontSize: 18, height: 1.5, fontWeight: FontWeight.w600)),
+          // Plain words first (owner 2026-10-21: "clear and simple"); the technical
+          // details stay folded at the end.
           section(1, l.sec1Title, l.sec1Body,
-              _Flow([_Node(Icons.photo_outlined, l.secItem, blue), _Node(Icons.lock_rounded, l.secOwnKey, blue), _Node(Icons.grid_view_rounded, l.secEncrypted, blue)]),
-              blue),
-          section(2, l.sec2Title, l.sec2Body,
               _Flow([
-                _Node(Icons.password_rounded, l.secPassword, purple),
-                const _Plus(),
-                _Node(Icons.key_rounded, l.secKey, purple),
-                _Node(Icons.vpn_key_rounded, l.secVaultKey, purple, strong: true),
+                _Node(Icons.folder_outlined, l.secItem, blue),
+                _Node(Icons.lock_rounded, l.secOwnKey, blue),
+                _Node(Icons.wifi_off_rounded, l.secNoNetwork, blue, strong: true),
               ]),
-              purple),
-          section(3, l.sec3Title, l.sec3Body,
+              blue),
+          section(2, l.secDailyTitle, l.secDailyBody,
               _Flow([
                 _Node(Icons.dialpad_rounded, 'PIN', green),
                 const _Or(),
                 _NodeWidget(const FaceIdGlyph(size: 26, color: Colors.white), 'Face ID', green),
-                _Node(Icons.memory_rounded, l.secThisPhone, green, strong: true),
+                _Node(Icons.smartphone_rounded, l.secThisPhone, green, strong: true),
               ]),
               green),
-          section(4, l.sec4Title, l.sec4Body,
-              _Flow([_Node(Icons.wifi_off_rounded, l.secNoNetwork, red), _Node(Icons.cloud_off_rounded, l.secNoServer, red)], arrows: false),
-              red),
-          section(5, l.sec5Title, l.sec5Body,
+          section(3, l.secRecoverTitle, l.secRecoverBody,
+              _Flow([
+                _Node(Icons.insert_drive_file_outlined, l.secBackupFile, purple),
+                const _Plus(),
+                _Node(Icons.key_rounded, l.secKit, purple),
+                const _Plus(),
+                _Node(Icons.password_rounded, l.secPassword, purple),
+                _Node(Icons.phonelink_setup_rounded, l.secNewPhone, purple, strong: true),
+              ]),
+              purple),
+          section(4, l.sec5Title, l.sec5Body,
               _Flow([
                 _NodeWidget(const LockGlyph(size: 24, color: Colors.white), l.secAutoLock, orange),
                 _Node(Icons.visibility_off_rounded, l.secHidden, orange),
@@ -71,28 +77,15 @@ class SecurityInfoScreen extends StatelessWidget {
                 _Node(Icons.screenshot_monitor_rounded, l.secNoCapture, orange),
               ], arrows: false),
               orange),
-          section(6, l.sec6Title, l.sec6Body,
-              _Flow([
-                _Node(Icons.insert_drive_file_outlined, l.secBackupFile, teal),
-                _Node(Icons.password_rounded, l.secPassword, teal),
-                const _Plus(),
-                _Node(Icons.key_rounded, l.secKey, teal),
-              ]),
-              teal),
+          section(5, l.secKeepTitle, l.secKeepBody,
+              _Flow([_Node(Icons.cloud_off_rounded, l.secNoServer, red), _Node(Icons.key_rounded, l.secKit, red)], arrows: false),
+              red),
           const SizedBox(height: 22),
-          Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              key: const ValueKey('sec-tech'),
-              tilePadding: EdgeInsets.zero,
-              childrenPadding: const EdgeInsets.only(bottom: 8),
-              title: Text(l.secTech, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              children: [
-                SelectableText(l.secTechBody,
-                    style: TextStyle(fontSize: 14.5, height: 1.6, color: c.muted, fontFeatures: const [FontFeature.tabularFigures()])),
-              ],
-            ),
-          ),
+          // Open, not folded (owner 2026-10-21): the details are for whoever reads this far.
+          Text(l.secTech, key: const ValueKey('sec-tech'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          SelectableText(l.secTechBody,
+              style: TextStyle(fontSize: 14.5, height: 1.6, color: c.muted, fontFeatures: const [FontFeature.tabularFigures()])),
         ],
       ),
     );

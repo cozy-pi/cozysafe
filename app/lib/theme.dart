@@ -238,8 +238,9 @@ abstract final class Ui {
   static const double tap = 48;
   /// Round glass buttons (back, search, settings, close, flip).
   static const double circle = 48;
-  /// The main action (+, record), always within the thumb's reach.
-  static const double primary = 64;
+  /// The main action (+, record), always within the thumb's reach: as big as the lock
+  /// button (owner 2026-10-21: smaller, so it hides less of the content).
+  static const double primary = bar;
   /// The bottom glass bar: lock and sections.
   static const double bar = 56;
   /// Chips (groups) and segmented switches.

@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use cs_crypto::kdf::KdfParams;
-use cs_crypto::{SecretKey, SECRET_KEY_LEN};
+use cs_crypto::SecretKey;
 use cs_vault::items::NewItem;
 use cs_vault::{ItemMeta, Library, OpenVault};
 use zeroize::Zeroizing;
@@ -149,10 +149,9 @@ fn secret() -> Result<SecretKey, VaultError> {
         .ok_or(VaultError::WrongSecretKey)
 }
 
-fn key16(bytes: &[u8]) -> Option<SecretKey> {
-    <[u8; SECRET_KEY_LEN]>::try_from(bytes)
-        .ok()
-        .map(SecretKey::from_bytes)
+/// A key from the keystore: 32 bytes, or 16 for one made before 2026-10-21.
+fn key_from(bytes: &[u8]) -> Option<SecretKey> {
+    SecretKey::from_slice(bytes)
 }
 
 /// A new random Secret Key, for the first vault on a device.
@@ -165,7 +164,7 @@ pub fn new_secret_key() -> Vec<u8> {
 #[flutter_rust_bridge::frb(sync)]
 pub fn set_secret_key(key: Vec<u8>) -> bool {
     let key = Zeroizing::new(key);
-    match key16(&key) {
+    match key_from(&key) {
         Some(sk) => {
             *SECRET.lock().unwrap_or_else(|p| p.into_inner()) = Some(sk);
             true
@@ -178,7 +177,7 @@ pub fn set_secret_key(key: Vec<u8>) -> bool {
 #[flutter_rust_bridge::frb(sync)]
 pub fn secret_key_text(key: Vec<u8>) -> String {
     let key = Zeroizing::new(key);
-    key16(&key)
+    key_from(&key)
         .map(|k| k.to_text().to_string())
         .unwrap_or_default()
 }
@@ -194,7 +193,7 @@ pub fn parse_secret_key(text: String) -> Option<Vec<u8>> {
 #[flutter_rust_bridge::frb(sync)]
 pub fn secret_key_fits(dir: String, key: Vec<u8>) -> bool {
     let key = Zeroizing::new(key);
-    key16(&key).is_some_and(|k| Library::secret_key_fits(Path::new(&dir), &k))
+    key_from(&key).is_some_and(|k| Library::secret_key_fits(Path::new(&dir), &k))
 }
 
 /// Secret Key from a first-preview install (a file), to move into the keystore.
@@ -245,7 +244,7 @@ pub fn unlock_with_pin(
 ) -> Result<Option<VaultInfo>, VaultError> {
     let pin = Zeroizing::new(pin);
     let device_key = Zeroizing::new(device_key);
-    let Some(dk) = key16(&device_key) else {
+    let Some(dk) = key_from(&device_key) else {
         return Ok(None);
     };
     Ok(Library::unlock_pin(Path::new(&dir), &pin, &dk)?.map(set_open))
@@ -255,7 +254,7 @@ pub fn unlock_with_pin(
 pub fn enable_pin(pin: String, device_key: Vec<u8>) -> Result<(), VaultError> {
     let pin = Zeroizing::new(pin);
     let device_key = Zeroizing::new(device_key);
-    let dk = key16(&device_key).ok_or(VaultError::Storage)?;
+    let dk = key_from(&device_key).ok_or(VaultError::Storage)?;
     with_open(|v| Ok(v.enable_pin(&pin, &dk, params_for_this_device())?))
 }
 
@@ -287,7 +286,7 @@ pub fn create_vault_with_pin(
 ) -> Result<VaultInfo, VaultError> {
     let pin = Zeroizing::new(pin);
     let device_key = Zeroizing::new(device_key);
-    let dk = key16(&device_key).ok_or(VaultError::Storage)?;
+    let dk = key_from(&device_key).ok_or(VaultError::Storage)?;
     let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
     let vault =
         library.create_vault_with_pin(&icon, &color, &pin, &dk, params_for_this_device())?;
@@ -631,7 +630,7 @@ pub fn purge_expired(now_ms: i64) -> Result<u32, VaultError> {
 pub fn delete_vault(dir: String, pin: String, device_key: Vec<u8>) -> Result<bool, VaultError> {
     let pin = Zeroizing::new(pin);
     let device_key = Zeroizing::new(device_key);
-    let Some(dk) = key16(&device_key) else {
+    let Some(dk) = key_from(&device_key) else {
         return Ok(false);
     };
     let open_id = with_open(|v| Ok(v.id.clone()))?;

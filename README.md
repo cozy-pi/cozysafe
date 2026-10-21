@@ -16,10 +16,10 @@ Cozy Safe does about it; the details are in the linked documents.
 
 | If… | Cozy Safe… |
 |---|---|
-| **someone copies your files or your backup** | encrypts everything on the device before it is written, with a key that needs both your password and a Secret Key kept in the device's keystore ([how](#how-your-data-is-protected)) |
+| **someone copies your files or your backup** | encrypts everything on the device before it is written, with a key that needs both your vault password and your Recovery Key (24 words) kept in the device's keystore ([how](#how-your-data-is-protected)) |
 | **someone picks up your phone while a vault is open** | locks the vault as soon as the app leaves the screen (60 seconds of grace only when the app itself opened the share sheet or a picker), and after a few minutes without a touch (2 by default) |
-| **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Secret Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher and while the screen is being recorded, and warns after a screenshot (iPhone); blocks screenshots and screen recording (Android, and iPhone through a secure layer) |
-| **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing the PIN or auto-lock, backups, the Emergency Kit, showing note text, deleting a vault ([rules](docs/security.md)) |
+| **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Recovery Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher and while the screen is being recorded, and warns after a screenshot (iPhone); blocks screenshots and screen recording (Android, and iPhone through a secure layer) |
+| **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing the PIN or auto-lock, backups, the Recovery Key, showing note text, deleting a vault ([rules](docs/security.md)) |
 | **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; each vault has its own PIN and only its icon and colour tell it apart |
 | **something is left behind on the device** | encodes camera photos in memory (never the photo library, no location data); videos, voice memos and files being played or sent exist only as copies in the app's private temporary folder, deleted when done, on lock and at every start |
 | **a library tries to send data out** | runs fully offline: no internet permission on Android, a sandbox with no network on macOS, network calls switched off inside the app, and every library reviewed before it gets in ([below](#no-library-can-send-your-data-out)) |
@@ -60,7 +60,7 @@ How it stays that way:
   can publish, and only the key jobs see a key.
 
 Honest limits: there is **no recovery** if you lose your password, or both the device and
-the Emergency Kit. iPhone, Windows and Linux cannot take the network away from one app,
+the Recovery Key. iPhone, Windows and Linux cannot take the network away from one app,
 so there the offline guarantee rests on the app's own checks. On iPhone, blocking
 screenshots relies on an unofficial iOS technique (a secure text field's layer) that
 Apple could change. The code has not had an independent security audit yet, there is no
@@ -112,13 +112,13 @@ checked on every build, in layers (details and limits: [supply chain](docs/suppl
   blocked screenshots, light / dark / automatic appearance.
 - **How the vault is protected:** a page in Settings explains the protection in plain
   words, with pictures, and the technical details folded at the end.
-- **Private on screen:** note lists and search show titles only, the Secret Key and
+- **Private on screen:** note lists and search show titles only, the Recovery Key and
   passwords stay masked until you tap Show, and every security setting asks for Face ID,
   fingerprint or the phone's passcode first ([security rules](docs/security.md)).
 - **Simple to start:** an empty vault offers big tiles to add the first thing; only the
   sections you use appear at the bottom; buttons are large enough for any thumb.
-- **Back up to one encrypted file** and restore it on a new device with the Emergency
-  Kit (your Secret Key on paper).
+- **Back up to one encrypted file** (every vault with a vault password) and restore it
+  on a new device with your **Recovery Key** (24 words) and the **vault password**.
 - **15 languages**, light and dark. Pick one in Settings → Language, or in the
   system's settings for the app (iPhone, Android 13+); the two stay the same.
 
@@ -139,10 +139,15 @@ Every file has a GitHub build-provenance attestation:
 
 ## How your data is protected
 
-- **Two secrets open a vault:** your password and a 128-bit **Secret Key** made on
-  your device and kept in its keystore (Keychain, Android Keystore, Windows
-  credential store, libsecret). Someone with your backup file but not your Secret
-  Key cannot even start guessing your password.
+- **Two kinds of key.** Every day: PIN or Face ID, on this device only. On a new or
+  lost device: the **Recovery Key** plus the **vault password**, both needed.
+- **The Recovery Key** is a 256-bit secret made on your device, shown as 24 BIP39
+  words like a hardware wallet's, and kept in its keystore (Keychain, Android Keystore,
+  Windows credential store, libsecret). Someone with your backup file but not the
+  Recovery Key cannot even start guessing your password. (Libraries made before
+  21 October 2026 have a 128-bit key in the earlier `CS1-` form; it still works.)
+  How this compares with a Bitcoin wallet, and why it resists quantum computers:
+  [security](docs/security.md#how-strong-is-it-compared-with-a-bitcoin-wallet).
 - **Argon2id** stretches the password (128 MiB on phones, 512 MiB on computers);
   **XChaCha20-Poly1305** encrypts everything, file content in 64 KiB chunks so
   multi-gigabyte files need little memory. Each item has its own random key.
@@ -150,7 +155,7 @@ Every file has a GitHub build-provenance attestation:
   device. The PIN is combined with a random key in the device keystore, so vault
   files copied elsewhere can't be brute-forced with the PIN. From the fifth wrong PIN
   you wait longer each time (1, 5, 15, then 60 minutes); nothing is wiped.
-- **No recovery.** Lose the password, or both the device and the Emergency Kit, and
+- **No recovery.** Lose the vault password, or both the device and the Recovery Key, and
   the data is gone. Nobody, including us, can open it.
 
 Details: [ADR 0001: encryption](docs/adr/0001-encryption.md).
@@ -184,7 +189,7 @@ screen in dark and light inside an iPhone frame, with the changed parts outlined
 
 | Path | What |
 |---|---|
-| `core/cs-crypto` | Key derivation, key wrapping, streaming encryption, Secret Key text form |
+| `core/cs-crypto` | Key derivation, key wrapping, streaming encryption, Recovery Key words (BIP39) |
 | `core/cs-vault` | Library and vaults on disk: items, biometric and PIN copies, backup |
 | `core/cs-photo` | Camera frames to JPEG in memory (no temp files, no EXIF) |
 | `app/` | Flutter app; `app/rust` is the bridge crate |

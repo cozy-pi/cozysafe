@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -26,8 +28,23 @@ class EmergencyKitScreen extends StatefulWidget {
 class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
   final _last = TextEditingController();
 
+  /// 24 words for keys made since 2026-10-21; earlier keys are `CS1-XXXX-…`.
+  late final List<String> _words = widget.keyText.contains(' ') ? widget.keyText.split(' ') : const [];
+  bool get _isWords => _words.length == 24;
+  /// To go on, one word the person must have written down (a random one, not always
+  /// the last), or the last 4 characters of an earlier key.
+  late final int _ask = Random.secure().nextInt(24);
   String get _tail => widget.keyText.replaceAll('-', '').substring(widget.keyText.replaceAll('-', '').length - 4);
-  bool get _ok => !widget.confirm || _last.text.trim().toUpperCase() == _tail;
+  bool get _ok {
+    if (!widget.confirm) return true;
+    final typed = _last.text.trim().toLowerCase();
+    if (!_isWords) return typed.toUpperCase() == _tail;
+    final want = _words[_ask];
+    return typed == want || (typed.length >= 4 && want.startsWith(typed));
+  }
+
+  /// For copying and saving: one numbered word per line.
+  String get _plain => _isWords ? [for (final (i, w) in _words.indexed) '${i + 1}. $w'].join('\n') : widget.keyText;
 
   @override
   void dispose() {
@@ -47,7 +64,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
     final box = buttonContext.findRenderObject() as RenderBox?;
     await SharePlus.instance.share(ShareParams(
       subject: l.kitTitle,
-      text: '${l.kitTitle}\n\n${widget.keyText}\n\n${l.kitShareNote}',
+      text: '${l.kitTitle}\n\n$_plain\n\n${l.kitShareNote}',
       sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
     ));
   }
@@ -74,6 +91,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
             ),
             child: SecretText(
               text: widget.keyText,
+              builder: _isWords ? (context, shown) => _WordGrid(words: _words, shown: shown) : null,
               style: const TextStyle(
                 fontFamily: 'monospace',
                 fontFamilyFallback: ['Menlo', 'Consolas', 'Roboto Mono'],
@@ -117,11 +135,15 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
             const SizedBox(height: 20),
             TextField(
               controller: _last,
-              maxLength: 4,
+              key: const ValueKey('kit-confirm'),
+              maxLength: _isWords ? 8 : 4,
               autocorrect: false,
               enableSuggestions: false,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(labelText: l.kitConfirmLabel, counterText: ''),
+              textCapitalization: _isWords ? TextCapitalization.none : TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: _isWords ? l.kitConfirmWord(_ask + 1) : l.kitConfirmLabel,
+                counterText: '',
+              ),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
@@ -129,6 +151,48 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// The 24 words, numbered, three to a row like a hardware wallet's card; dots while
+/// hidden (always the same, so the mask tells nothing).
+class _WordGrid extends StatelessWidget {
+  const _WordGrid({required this.words, required this.shown});
+  final List<String> words;
+  final bool shown;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    return GridView.count(
+      key: const ValueKey('recovery-words'),
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 2.9,
+      mainAxisSpacing: 6,
+      crossAxisSpacing: 6,
+      children: [
+        for (final (i, w) in words.indexed)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(9)),
+            child: Row(children: [
+              SizedBox(
+                width: 22,
+                child: Text('${i + 1}', style: TextStyle(color: c.muted, fontSize: 12.5, fontFeatures: const [FontFeature.tabularFigures()])),
+              ),
+              Expanded(
+                child: Text(shown ? w : '•••••',
+                    maxLines: 1,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: shown ? null : c.muted)),
+              ),
+            ]),
+          ),
+      ],
     );
   }
 }

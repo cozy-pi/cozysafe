@@ -230,4 +230,23 @@ void main() {
     await t.tap(find.widgetWithText(FilledButton, "I've saved it"));
     expect(done, isTrue);
   });
+
+  testWidgets('Recovery Key (24 words) goes on only with the asked word', (t) async {
+    var done = false;
+    const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
+    await _pump(t, _app(EmergencyKitScreen(keyText: words, confirm: true, onDone: () => done = true)));
+    await t.pump();
+    final label = t.widget<TextField>(find.byType(TextField)).decoration!.labelText!;
+    final n = int.parse(RegExp(r'\d+').firstMatch(label)!.group(0)!);
+    final want = words.split(' ')[n - 1];
+    FilledButton button() => t.widget<FilledButton>(find.widgetWithText(FilledButton, "I've saved it"));
+    await t.enterText(find.byType(TextField), want == 'zoo' ? 'abandon' : 'zoo');
+    await t.pump();
+    expect(button().onPressed, isNull);
+    await t.enterText(find.byType(TextField), want.toUpperCase());
+    await t.pump();
+    await t.ensureVisible(find.widgetWithText(FilledButton, "I've saved it"));
+    await t.tap(find.widgetWithText(FilledButton, "I've saved it"));
+    expect(done, isTrue);
+  });
 }

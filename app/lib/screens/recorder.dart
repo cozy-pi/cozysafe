@@ -16,6 +16,7 @@ import 'video_view.dart';
 import '../capture_name.dart';
 import '../item_kind.dart';
 import '../widgets/toast.dart';
+import '../widgets/vault_bar.dart';
 
 /// Voice memos (docs/ui.md, voice memos): the list of recordings, each playable in
 /// place, or, while recording, a live level meter and a timer. The red mic button
@@ -391,6 +392,149 @@ class RecorderViewState extends State<RecorderView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// For the screenshots: the card without a player (tests have none).
+bool debugRecordingStill = false;
+
+/// A recording opened from anywhere but Voice (home, search): it plays in a card over
+/// the page you are on, so a tap never moves you to another tab (owner 2026-10-21).
+/// Returns the action picked (0 rename, 1 send, 2 delete), as the Voice rows do.
+Future<int?> showRecording(BuildContext context, rust.ItemInfo item) => showCard<int>(
+      context,
+      title: item.name.replaceAll(RegExp(r'\.m4a$'), ''),
+      builder: (_) => _RecordingCard(item: item),
+    );
+
+class _RecordingCard extends StatefulWidget {
+  const _RecordingCard({required this.item});
+  final rust.ItemInfo item;
+
+  @override
+  State<_RecordingCard> createState() => _RecordingCardState();
+}
+
+class _RecordingCardState extends State<_RecordingCard> {
+  VideoPlayerController? _player;
+  File? _copy;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!debugRecordingStill) _start();
+  }
+
+  Future<void> _start() async {
+    try {
+      final copy = await playbackCopy(widget.item, fallbackExt: '.m4a');
+      _copy = copy;
+      final p = VideoPlayerController.file(copy);
+      await p.initialize();
+      if (!mounted) {
+        await p.dispose();
+        return _drop();
+      }
+      p.addListener(() {
+        if (mounted) setState(() {});
+      });
+      setState(() => _player = p);
+      await p.play();
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    }
+  }
+
+  void _drop() {
+    try {
+      _copy?.deleteSync();
+    } catch (_) {}
+    _copy = null;
+  }
+
+  @override
+  void dispose() {
+    _player?.dispose();
+    _drop();
+    super.dispose();
+  }
+
+  Future<void> _toggle() async {
+    final p = _player;
+    if (p == null) return;
+    if (p.value.isPlaying) return p.pause();
+    if (p.value.position >= p.value.duration) await p.seekTo(Duration.zero);
+    await p.play();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final primary = Theme.of(context).colorScheme.primary;
+    final p = _player;
+    final ready = p != null && p.value.isInitialized;
+    final total = ready ? p.value.duration : Duration(milliseconds: widget.item.durationMs?.toInt() ?? 0);
+    final pos = ready ? p.value.position : Duration.zero;
+    final playing = ready && p.value.isPlaying;
+    Widget act(IconData icon, String label, int action, {Color? color}) => Expanded(
+          child: TextButton.icon(
+            key: ValueKey('card-audio-${['rename', 'send', 'delete'][action]}'),
+            onPressed: () => Navigator.of(context).pop(action),
+            style: TextButton.styleFrom(foregroundColor: color ?? ink, minimumSize: const Size(0, Ui.circle)),
+            icon: Icon(icon, size: 22),
+            label: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 6, 18, 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              IconButton.filled(
+                key: const ValueKey('card-play'),
+                iconSize: 30,
+                style: IconButton.styleFrom(minimumSize: const Size.square(Ui.bar)),
+                tooltip: playing ? l.pause : l.play,
+                onPressed: _failed ? null : _toggle,
+                icon: Icon(playing ? Icons.pause : Icons.play_arrow),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (ready)
+                      VideoProgressIndicator(p, allowScrubbing: true,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          colors: VideoProgressColors(playedColor: primary, backgroundColor: c.soft))
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: LinearProgressIndicator(value: 0, minHeight: 4, color: primary, backgroundColor: c.soft),
+                      ),
+                    Text(_failed ? l.videoFailed : '${RecorderViewState._clock(pos)} / ${RecorderViewState._clock(total)}',
+                        style: TextStyle(color: c.muted, fontSize: 13, fontFeatures: const [FontFeature.tabularFigures()])),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              act(Icons.ios_share, l.sendOut, 1),
+              act(Icons.edit_outlined, l.rename, 0),
+              act(Icons.delete_outline, l.delete, 2, color: recordRed(context)),
+            ],
+          ),
+        ],
       ),
     );
   }

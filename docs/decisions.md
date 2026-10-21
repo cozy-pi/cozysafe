@@ -214,3 +214,30 @@ by Apple: if a future iOS breaks it, or App Review objects, remove `applySecure`
 the capture cover and the screenshot warning. Tested on a real iPhone via TestFlight
 before relying on it.
 
+## 2026-10-21 — Names, two kinds of key, 256-bit Recovery Key
+
+- Emergency Kit → **Recovery Key** ("Khoá khôi phục"); backup password → **vault
+  password** ("Mật khẩu két": it opens the vault without PIN/Face ID and opens backups).
+  "Secret Key" leaves the user-facing text (technical details only).
+- Explain the vault as two kinds of key: everyday (PIN / Face ID, this phone) and
+  recovery (Recovery Key + vault password + the backup file).
+- Settings: Backup holds only the backup; the Recovery Key and the vault password sit
+  under Security. The backup sheet reminds what opens it.
+- Recovery Key moves to 256 bits shown as 24 words (own round, with migration).
+- Option to keep the Recovery Key in iCloud Keychain / Google Password Manager (opt-in),
+  so a new phone needs only the vault password. Passkey PRF considered for later.
+- docs/security.md compares the strength with a Bitcoin wallet and covers quantum.
+
+
+## 2026-10-21 — iPhone's own bottom bar, Settings without notes
+
+- On iOS 26 the vault's bottom bar (lock + sections) is a UIKit tab bar and a glass
+  button in a platform view (`TabBarView` in AppDelegate, `lib/widgets/native_bar.dart`),
+  so it is Apple's own Liquid Glass. Written in the app, no package
+  (`liquid_glass_renderer` rejected: experimental, needs a preview GPU flag, eight
+  dependencies). Older iOS and Android keep the app's bar. A Debug switch turns it off
+  to compare. Not visible in the mockups (UIKit draws it): checked on TestFlight.
+- "Hold + to lock" (Settings, off by default): no lock button, the sections take the row.
+- Settings rows carry a name only, no note under it; Security holds everything about
+  opening the vault; "Block screenshots" sits with the blur switches in Display.
+- A recording tapped outside Voice plays in a card where you are; no tab change.

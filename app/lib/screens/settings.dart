@@ -290,7 +290,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l = AppLocalizations.of(context);
     final vault = widget.vault();
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final danger = Theme.of(context).colorScheme.error;
 
     return Scaffold(
       appBar: AppBar(title: Text(l.settings)),
@@ -323,7 +322,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => _then(widget.onOpenTrash),
             ),
           ]),
-          _Group(title: l.settingsLock, rows: [
+          // One Security group (owner 2026-10-21): how it opens every day, how it opens on
+          // a new phone, and what keeps it private while open.
+          _Group(title: l.settingsSecurity, rows: [
             if (widget.canBiometric)
               _Row(
                 icon: Icons.face_retouching_natural,
@@ -351,13 +352,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: l.afterMinutes(_minutes),
               onTap: () => _guarded(_pickAutoLock),
             ),
+
+            if (vault.hasPassword)
+              _Row(
+                key: const ValueKey('kit-row'),
+                icon: Icons.medical_services_outlined,
+                color: _Mau.doTuoi,
+                title: l.showKit,
+                onTap: widget.onShowKit,
+              ),
+            _Row(
+              icon: Icons.key_outlined,
+              color: _Mau.vang,
+              title: l.backupPasswordLabel,
+              value: vault.hasPassword ? l.isSet : l.notSet,
+              onTap: () => _then(widget.onPassword),
+            ),
+            _Row(
+              icon: Icons.verified_user_outlined,
+              color: _Mau.ngoc,
+              title: l.securityTitle,
+              onTap: _showSecurity,
+            ),
           ]),
-          _Group(title: l.backup, rows: [
+          // Only the backup here (owner 2026-10-21): the Recovery Key and the password,
+          // which open it on a new phone, live under Security; the backup sheet names them.
+          _Group(title: l.settingsBackupData, rows: [
             _Row(
               icon: Icons.cloud_upload_outlined,
               color: _Mau.xanh,
               title: l.backupShort,
-              subtitle: widget.lastBackup(),
               trailing: FilledButton(
                 style: FilledButton.styleFrom(
                   // Settings may use colour (owner): a soft tint of the backup blue, low
@@ -373,20 +397,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Text(l.backupNow),
               ),
             ),
-            _Row(
-              icon: Icons.key_outlined,
-              color: _Mau.vang,
-              title: l.backupPasswordLabel,
-              value: vault.hasPassword ? l.isSet : l.notSet,
-              onTap: () => _then(widget.onPassword),
-            ),
-            if (vault.hasPassword)
-              _Row(
-                icon: Icons.medical_services_outlined,
-              color: _Mau.doTuoi,
-                title: l.showKit,
-                onTap: widget.onShowKit,
-              ),
           ]),
           _Group(title: l.settingsDisplay, rows: [
             _Row(
@@ -422,13 +432,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             _Row(
+              key: const ValueKey('lock-on-plus-row'),
+              icon: Icons.lock_outline_rounded,
+              color: _Mau.tim,
+              title: l.lockOnPlusTitle,
+              trailing: _Switch(
+                value: lockOnPlus(),
+                onChanged: (on) => setState(() => Prefs.write(lockOnPlusPref, on ? '1' : '0')),
+              ),
+            ),
+            _Row(
               icon: Icons.notes_rounded,
               color: _Mau.bacHa,
               // "Hide", on by default (owner 2026-10-21): the safe state is the on state,
               // like "Blur thumbnails". The pref keeps its old meaning (1 = show text).
               key: const ValueKey('hide-note-text-row'),
               title: l.hideNoteText,
-              subtitle: l.hideNoteTextNote,
               trailing: _Switch(
                 value: !notePreviews(),
                 // Showing more is weaker: turning "hide" off asks for the owner.
@@ -442,7 +461,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.blur_on_rounded,
               color: _Mau.ngoc,
               title: l.blurThumbs,
-              subtitle: l.blurThumbsNote,
               trailing: _Switch(
                 value: blurThumbnails(),
                 // Turning it on protects more; turning it off asks for the owner.
@@ -451,21 +469,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : _guarded(() async => setState(() => Prefs.write(blurThumbsPref, '0'))),
               ),
             ),
-          ]),
-          _Group(title: l.settingsSecurity, rows: [
-            _Row(
-              icon: Icons.verified_user_outlined,
-              color: _Mau.ngoc,
-              title: l.securityTitle,
-              subtitle: l.securityShort,
-              onTap: _showSecurity,
-            ),
+            // With the other privacy-on-screen switches (owner 2026-10-21).
             if (Device.android || Device.iOS || Settings.debugIOS)
               _Row(
                 icon: Icons.visibility_off_outlined,
               color: _Mau.hong,
                 title: l.blockScreenshots,
-                subtitle: Device.iOS || Settings.debugIOS ? l.blockScreenshotsNoteIos : l.blockScreenshotsNote,
                 trailing: _Switch(
                   value: _secure,
                   onChanged: (v) => _guarded(() async {
@@ -480,7 +489,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.add,
               color: _Mau.troi,
               title: l.newVault,
-              subtitle: l.newVaultNote,
               onTap: widget.onNewVault,
             ),
           ]),
@@ -494,7 +502,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Center(
-                  child: Text(l.deleteVault, style: TextStyle(color: danger, fontWeight: FontWeight.w600, fontSize: 15)),
+                  // Destructive in the system red, like Delete elsewhere (docs/ui.md); the theme's
+                  // error colour is ink in this black-and-white design.
+                  child: Text(l.deleteVault, style: TextStyle(color: recordRed(context), fontWeight: FontWeight.w600, fontSize: 15)),
                 ),
               ),
             ),
@@ -535,7 +545,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.code_rounded,
                   color: _Mau.xam,
                   title: l.aboutCommit,
-                  subtitle: l.aboutSourceNote,
                   value: buildCommit.isEmpty ? l.aboutLocal : buildCommitShort,
                 ),
                 _Row(icon: Icons.gavel_rounded, color: _Mau.xam, title: l.aboutLicense, value: 'GPL-3.0'),
@@ -545,7 +554,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.chat_bubble_outline_rounded,
                   color: _Mau.xanh,
                   title: l.feedback,
-                  subtitle: Links.canOpen ? l.feedbackNote : Links.feedback(_langCode(context)),
                   onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
                 ),
                 if (debugModeOn())
@@ -732,7 +740,6 @@ class _Row extends StatelessWidget {
     required this.color,
     this.glyph,
     required this.title,
-    this.subtitle,
     this.value,
     this.trailing,
     this.onTap,
@@ -748,7 +755,6 @@ class _Row extends StatelessWidget {
   /// A drawn symbol instead of [icon] (the real Face ID glyph).
   final Widget? glyph;
   final String title;
-  final String? subtitle;
   final String? value;
   final Widget? trailing;
   final VoidCallback? onTap;
@@ -771,16 +777,8 @@ class _Row extends StatelessWidget {
                 child: Center(child: glyph ?? Icon(icon, color: Colors.white, size: 18)),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontSize: 15.5)),
-                    if (subtitle != null)
-                      Text(subtitle!, style: TextStyle(color: c.muted, fontSize: 12.5, height: 1.3)),
-                  ],
-                ),
-              ),
+              // Just a name, no note under it (owner 2026-10-21): the name says enough.
+              Expanded(child: Text(title, style: const TextStyle(fontSize: 15.5))),
               if (value != null) ...[
                 const SizedBox(width: 8),
                 Text(value!, style: TextStyle(color: c.muted, fontSize: 14)),

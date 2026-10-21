@@ -33,6 +33,7 @@ import 'new_vault.dart';
 import 'quick_look.dart';
 import 'note.dart';
 import 'recorder.dart';
+import '../widgets/native_bar.dart';
 import 'overview.dart';
 import 'search.dart';
 import 'settings.dart';
@@ -642,9 +643,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
     if (item.kind == ItemKind.note) return _openNote(item);
     if (item.kind == ItemKind.audio) {
-      // A recording opens in place in Voice.
-      setState(() => _section = VaultSection.audio);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _recorder.currentState?.openRow(item.id));
+      // Voice opens its own row; anywhere else it plays in a card over the page you
+      // are on, never a jump to another tab (owner 2026-10-21).
+      if (_section == VaultSection.audio) {
+        _recorder.currentState?.openRow(item.id);
+        return;
+      }
+      final pick = await showRecording(context, item);
+      if (pick != null && mounted) await _audioActions(item, pick);
       return;
     }
     final String? deleted;
@@ -1406,11 +1412,30 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         ),
       );
 
+  void _pickSection(VaultSection k) {
+    if (_recordingNow) return;
+    setState(() {
+      _section = k;
+      _keepSection = false;
+      _selected.clear();
+    });
+  }
+
+  /// "Hold + to lock" is on (Settings): no lock button; the + is there even in an empty
+  /// vault, as the way to lock.
+  bool get _noLockButton => lockOnPlus();
+
   Widget _actionButton(BuildContext context) {
     final l = AppLocalizations.of(context);
     final (icon, tip) = _recordingNow ? (Icons.stop_rounded, l.stopRecording) : (Icons.add, _adding ? l.close : l.addToVault);
+    final holdLocks = lockOnPlus() && !_recordingNow && !_adding;
     return ActionButton(
-        key: _actionKey, icon: icon, tooltip: tip, onTap: _mainAction, turns: _adding ? .125 : 0,
+        key: _actionKey,
+        icon: icon,
+        tooltip: holdLocks ? '$tip · ${l.holdToLock}' : tip,
+        onTap: _mainAction,
+        onLongPress: holdLocks ? _lock : null,
+        turns: _adding ? .125 : 0,
         color: _recordingNow ? recordRed(context) : null);
   }
 
@@ -1535,6 +1560,21 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   ),
                 ),
               ),
+              // iOS 26: the system's own bar (Liquid Glass), centred on the same line.
+              if (nativeBarOn())
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  bottom: bottom + Ui.edge - (NativeVaultBar.height - Ui.bar) / 2,
+                  child: NativeVaultBar(
+                    section: _section,
+                    sections: sections,
+                    onSection: _pickSection,
+                    onLock: _lock,
+                    showLock: !_noLockButton,
+                  ),
+                )
+              else
               Positioned(
                 left: 10,
                 right: 10,
@@ -1543,24 +1583,21 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   section: _section,
                   sections: sections,
                   home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
-                  onSection: (k) {
-                    if (_recordingNow) return;
-                    setState(() {
-                      _section = k;
-                      _keepSection = false;
-                      _selected.clear();
-                    });
-                  },
+                  onSection: _pickSection,
                   // Just the lock, big: no vault icon, which would hint that the phone
                   // holds other vaults (owner 2026-10-21, after user testing).
-                  lock: GlassButton(
-                    key: const ValueKey('lock-button'),
-                    tooltip: l.lockVault,
-                    size: Ui.bar,
-                    icon: null,
-                    onTap: _lock,
-                    child: LockGlyph(size: 26, color: Theme.of(context).colorScheme.onSurface),
-                  ),
+                  // With "hold + to lock" there is no lock button: the sections run the
+                  // full width and the + stays where it is (owner 2026-10-21).
+                  lock: _noLockButton
+                      ? null
+                      : GlassButton(
+                          key: const ValueKey('lock-button'),
+                          tooltip: l.lockVault,
+                          size: Ui.bar,
+                          icon: null,
+                          onTap: _lock,
+                          child: LockGlyph(size: 26, color: Theme.of(context).colorScheme.onSurface),
+                        ),
                 ),
               ),
               if (_addShown)
@@ -1573,7 +1610,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                     columnKey: _addColumnKey,
                     scroll: _addScroll,
                     right: actionOnRight(),
-                    side: 7,
+                    side: actionSide,
                     bottom: bottom + Ui.actionLift + Ui.primary + 4 - 18, // the column's bottom fade sits behind the button's top
                     hovered: _hover,
                     onPick: _pickAdd,
@@ -1581,13 +1618,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   ),
                 ),
               // Above the lock (left thumb), or on the right if chosen in Settings. An
-              // empty vault has the add tiles on screen instead.
-              if (!empty) Positioned(
+              // empty vault has the add tiles on screen instead, unless + is also the lock.
+              if (!empty || _noLockButton) Positioned(
                 // Keyed: the column appearing above must not rebuild the button mid-slide
                 // (it would drop the finger's gesture).
                 key: const ValueKey('action-slot'),
-                left: actionOnRight() ? null : 7,
-                right: actionOnRight() ? 7 : null,
+                left: actionOnRight() ? null : actionSide,
+                right: actionOnRight() ? actionSide : null,
                 bottom: bottom + Ui.actionLift,
                 // Tap: open or close the column. Finger down and slide up: pick on release.
                 child: GestureDetector(
