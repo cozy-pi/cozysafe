@@ -228,7 +228,8 @@ extension AppDelegate: PHPickerViewControllerDelegate {
         let copy = dir.appendingPathComponent("\(UUID().uuidString)-\(name)")
         guard (try? FileManager.default.copyItem(at: url, to: copy)) != nil else { return }
         lock.lock()
-        out[i] = ["path": copy.path, "name": name, "mime": "", // Dart reads it from the extension (.heic, .mov, .mp4…) "id": r.assetIdentifier ?? ""]
+        // "mime" empty: Dart reads it from the extension (.heic, .mov, .mp4…).
+        out[i] = ["path": copy.path, "name": name, "mime": "", "id": r.assetIdentifier ?? ""]
         lock.unlock()
       }
     }
