@@ -444,6 +444,9 @@ everywhere, easy to hit with a thumb.
   height), the page dark and blurred behind, name + date under it, one glass bar of four
   icons; swipe down closes.
 - **Settings rows: a name, no note** (owner 2026-10-21). Pick a name that says enough.
+- **Tap opens, long press selects, for every kind of item** (owner 2026-10-22). Actions
+  on items live in the selection bar (Send, Group, Rename with one selected, Delete), not
+  in buttons under a row.
 - **A tap never changes tab by itself**: a recording opened from home or search plays in
   a card over the page you are on.
 - **Bottom bar words are never cut** (owner 2026-10-21): the home tab stays put on the

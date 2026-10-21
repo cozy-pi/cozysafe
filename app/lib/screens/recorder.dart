@@ -29,7 +29,6 @@ class RecorderView extends StatefulWidget {
     required this.items,
     required this.onSaved,
     required this.onRecordingChanged,
-    required this.onOpen,
     this.selected = const {},
     this.onToggleSelect,
     this.tagId,
@@ -44,10 +43,8 @@ class RecorderView extends StatefulWidget {
   final List<rust.ItemInfo> items;
   final VoidCallback onSaved;
   final ValueChanged<bool> onRecordingChanged;
-  /// One of the open row's buttons: 0 rename, 1 send, 2 delete.
-  final void Function(rust.ItemInfo item, int action) onOpen;
-  /// Selected recordings (long press, like photos and files); while any is selected a
-  /// tap selects too instead of opening the row.
+  /// Selected recordings (long press, like photos and files: the selection bar sends,
+  /// groups, renames and deletes); while any is selected a tap selects too.
   final Set<String> selected;
   final ValueChanged<String>? onToggleSelect;
 
@@ -72,11 +69,11 @@ class RecorderViewState extends State<RecorderView> {
 
   // In-place playback of one recording.
   String? _playingId;
-  /// The row open in place (like Voice Memos): its buttons show under it.
-  String? _openId;
-
-  /// Open [id]'s row, e.g. when a search result is a recording.
-  void openRow(String id) => setState(() => _openId = id);
+  /// Play [id], e.g. when a search result is a recording.
+  void openRow(String id) {
+    final it = widget.items.where((i) => i.id == id).firstOrNull;
+    if (it != null && _playingId != id) _togglePlay(it);
+  }
   VideoPlayerController? _player;
   File? _copy;
 
@@ -312,33 +309,20 @@ class RecorderViewState extends State<RecorderView> {
     final primary = Theme.of(context).colorScheme.primary;
     final selecting = widget.selected.isNotEmpty;
     final chosen = widget.selected.contains(it.id);
-    final open = _openId == it.id && !selecting;
-    final ink = Theme.of(context).colorScheme.onSurface;
-    Widget act(IconData icon, String label, int action, {Color? color}) => Expanded(
-          child: TextButton.icon(
-            key: ValueKey('audio-${['rename', 'send', 'delete'][action]}'),
-            onPressed: () => widget.onOpen(it, action),
-            style: TextButton.styleFrom(foregroundColor: color ?? ink, minimumSize: const Size(0, Ui.circle)),
-            icon: Icon(icon, size: 22),
-            label: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-          ),
-        );
-    // Tapping a row opens it in place, with its buttons right under it; no sheet.
+    // A tap plays (as a tap opens a photo); a long press selects (owner 2026-10-22: one
+    // way for every kind of item).
     final select = widget.onToggleSelect;
     return SelectableRow(
       selected: chosen,
       selecting: selecting,
-      highlight: playing || open ? primary.withValues(alpha: .08) : null,
+      highlight: playing ? primary.withValues(alpha: .08) : null,
       padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
       onTap: selecting && select != null
           ? () => select(it.id)
-          : () => setState(() => _openId = open ? null : it.id),
+          : () => _togglePlay(it),
       onLongPress: select == null
           ? null
-          : () {
-              setState(() => _openId = null);
-              select(it.id);
-            },
+          : () => select(it.id),
       child: AnimatedSize(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
@@ -379,17 +363,6 @@ class RecorderViewState extends State<RecorderView> {
 
           ],
         ),
-          if (open)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Row(
-                children: [
-                  act(Icons.ios_share, l.sendOut, 1),
-                  act(Icons.edit_outlined, l.rename, 0),
-                  act(Icons.delete_outline, l.delete, 2, color: recordRed(context)),
-                ],
-              ),
-            ),
           ],
         ),
       ),
