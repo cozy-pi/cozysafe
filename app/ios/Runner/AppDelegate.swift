@@ -361,7 +361,7 @@ private final class TabBarRoot: UIView {
   }
 }
 
-final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
+final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate, UIGestureRecognizerDelegate {
   private let root: TabBarRoot
   private let bar = UITabBar()
   private let lock = UIButton(type: .system)
@@ -370,6 +370,9 @@ final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
   private var holdHome = false
   private var itemsKey = ""
   private var reportedHeight: CGFloat = 0
+  /// Room around the bar: the glass bubble under a finger grows past the bar's edge, and
+  /// a platform view clips to its frame (0.1.26: the bubble was cut).
+  private let margin = UIEdgeInsets(top: 14, left: 10, bottom: 10, right: 10)
 
   init(frame: CGRect, id: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
     root = TabBarRoot(frame: frame)
@@ -387,6 +390,10 @@ final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
     }
     let hold = UILongPressGestureRecognizer(target: self, action: #selector(held(_:)))
     hold.cancelsTouchesInView = false
+    hold.delaysTouchesEnded = false
+    // Alongside the bar's own gestures, never instead of them: taking a touch away left
+    // the glass bubble stuck under a lifted finger (0.1.26 on a real iPhone).
+    hold.delegate = self
     bar.addGestureRecognizer(hold)
     lock.addTarget(self, action: #selector(lockTapped), for: .touchUpInside)
     let symbol = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
@@ -412,19 +419,24 @@ final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
 
   func view() -> UIView { root }
 
+  func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+    true
+  }
+
   private func layout() {
-    let b = root.bounds
+    let b = root.bounds.inset(by: margin)
     let side = showLock ? min(b.height, 56) : 0
     lock.isHidden = !showLock
-    lock.frame = CGRect(x: 0, y: (b.height - side) / 2, width: side, height: side)
-    let x = showLock ? side + 6 : 0
-    let width = max(0, b.width - x)
-    // As tall as the system wants it; Dart resizes the view to match.
+    lock.frame = CGRect(x: b.minX, y: b.minY + (b.height - side) / 2, width: side, height: side)
+    let x = b.minX + (showLock ? side + 6 : 0)
+    let width = max(0, b.maxX - x)
+    // As tall as the system wants it, plus the room around; Dart resizes the view.
     let need = ceil(bar.sizeThatFits(CGSize(width: width, height: 200)).height)
-    bar.frame = CGRect(x: x, y: max(0, (b.height - need) / 2), width: width, height: min(need, b.height))
-    if need > 0, abs(need - reportedHeight) > 0.5 {
-      reportedHeight = need
-      channel.invokeMethod("height", arguments: Double(need))
+    bar.frame = CGRect(x: x, y: b.minY + max(0, (b.height - need) / 2), width: width, height: min(need, b.height))
+    let total = need + margin.top + margin.bottom
+    if need > 0, abs(total - reportedHeight) > 0.5 {
+      reportedHeight = total
+      channel.invokeMethod("height", arguments: Double(total))
     }
   }
 

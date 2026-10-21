@@ -63,8 +63,12 @@ class NativeVaultBar extends StatefulWidget {
   /// Holding the home tab locks.
   final VoidCallback? onHoldHome;
 
+  /// Room the native side leaves around the bar for the glass bubble (AppDelegate
+  /// `margin`): the view is this much taller and runs the full width.
+  static const double marginBottom = 10, marginTop = 14;
+
   /// The platform view's height until the system bar says what it needs ("height").
-  static const double height = Ui.bar + 8;
+  static const double height = Ui.bar + 8 + marginTop + marginBottom;
 
   @override
   State<NativeVaultBar> createState() => _NativeVaultBarState();
@@ -106,7 +110,7 @@ class _NativeVaultBarState extends State<NativeVaultBar> {
         widget.onHoldHome?.call();
       } else if (call.method == 'height') {
         final h = (call.arguments as num).toDouble();
-        if (mounted && (h - _height).abs() > .5 && h >= Ui.bar && h <= 120) setState(() => _height = h);
+        if (mounted && (h - _height).abs() > .5 && h >= Ui.bar && h <= 160) setState(() => _height = h);
       }
     });
     _channel = channel;
