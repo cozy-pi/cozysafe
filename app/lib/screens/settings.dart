@@ -202,15 +202,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Settings.autoLockMinutes = picked;
   }
 
-  /// Something to read: its own page, at eye level.
+  /// A few lines to read: a card in the middle, at eye level.
   Future<void> _showSecurity() {
     final l = AppLocalizations.of(context);
-    return pushPage<void>(
+    return showCard<void>(
       context,
       title: l.securityTitle,
-      builder: (context) => ListView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-        children: [Text(l.securityBody, style: const TextStyle(fontSize: 17, height: 1.6))],
+      builder: (context) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 24),
+        child: Text(l.securityBody, style: const TextStyle(fontSize: 16.5, height: 1.6)),
       ),
     );
   }

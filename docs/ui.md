@@ -433,6 +433,15 @@ everywhere, easy to hit with a thumb.
   under a light dim and blur; videos play in the card (tap to pause, a line shows where).
   Under it: Close bottom left (as in the camera), Full screen, then Send (videos) and
   Delete in red. Full screen is the old black viewer; its corner button returns to the card.
+- **Short content in a card** (owner 2026-10-21: pages for a few lines felt empty):
+  `showCard`, centred, the vault dimmed and blurred behind (security, change icon and
+  colour in one card with a live badge, icon or colour pickers). Long scrolling lists stay
+  pages; actions for the thumb stay bottom sheets (share out, remove originals).
+- **Unlocking, new** (owner 2026-10-21): the vault's icon sits behind the dial, faint and
+  blurred as it starts to turn, clearer as it turns (the dial thins), sharp when the dial
+  scales away; the vault screen takes over with the same icon in place, then fades it.
+- **Add column loop**: a thin line with room above and below where the loop starts; no ↻,
+  no dimmed repeats.
 - **Where content appears** (owner 2026-10-21, "too far from the eye"): reading, or choosing
   among many → a page (`pushPage`: security, all groups, groups for a selection, icons,
   colours); a few choices → a menu at the row (auto-lock); actions with a thumb button →

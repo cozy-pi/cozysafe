@@ -11,6 +11,8 @@ import '../src/rust/api/vault.dart' as rust;
 import '../prefs.dart';
 import '../widgets/pin_pad.dart';
 import '../widgets/brand.dart';
+import '../widgets/vault_bar.dart';
+import '../widgets/identity.dart';
 import 'common.dart';
 import 'new_vault.dart';
 import 'restore.dart';
@@ -287,7 +289,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     }
     if (!mounted) return;
     final nav = Navigator.of(context);
-    await playVaultSpin(context, opening: true, onCovered: () {
+    await playVaultSpin(context, opening: true,
+        behind: revealIconOn() ? VaultBadge(icon: vault.icon, color: vault.color, size: 120) : null, onCovered: () {
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
