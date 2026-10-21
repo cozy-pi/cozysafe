@@ -9,6 +9,40 @@ notes. Everything is encrypted on your device before it is saved.
 
 Website and downloads: <https://safe.cozypi.com>
 
+## Security: what we do
+
+A vault app has to hold up against more than a stolen file. Each risk below and what
+Cozy Safe does about it; the details are in the linked documents.
+
+| If… | Cozy Safe… |
+|---|---|
+| **someone copies your files or your backup** | encrypts everything on the device before it is written, with a key that needs both your password and a Secret Key kept in the device's keystore ([how](#how-your-data-is-protected)) |
+| **someone picks up your phone while a vault is open** | locks the vault as soon as the app leaves the screen (60 seconds of grace only when the app itself opened the share sheet or a picker), and after a few minutes without a touch (2 by default) |
+| **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Secret Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher (iPhone) and blocks screenshots and screen recording (Android) |
+| **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing the PIN or auto-lock, backups, the Emergency Kit, showing note text, deleting a vault ([rules](docs/security.md)) |
+| **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; each vault has its own PIN and only its icon and colour tell it apart |
+| **something is left behind on the device** | encodes camera photos in memory (never the photo library, no location data); videos, voice memos and files being played or sent exist only as copies in the app's private temporary folder, deleted when done, on lock and at every start |
+| **a library tries to send data out** | runs fully offline: no internet permission on Android, a sandbox with no network on macOS, network calls switched off inside the app, and every library reviewed before it gets in ([below](#no-library-can-send-your-data-out)) |
+| **someone tampers with a build** | builds in the open on GitHub, with every third-party action pinned to an exact commit; signing and store keys never reach the jobs that run other people's build code; every release file carries a build-provenance attestation, and the macOS app is notarized by Apple ([supply chain](docs/supply-chain.md)) |
+
+How it stays that way:
+
+- **Rules, not memory.** [`docs/security.md`](docs/security.md) lists every security
+  setting and how secrets appear on screen; a new setting gets the owner check and a row
+  there in the same change.
+- **Checked on every push.** CI runs the Rust tests (encryption, vault, backup and
+  restore), the app's tests (including that secrets stay hidden), and the network and
+  library checks; a failure blocks the release.
+- **Reviewed before it ships.** Every change to the app's screens is shown as a mockup
+  rendered from the app itself and approved before release.
+- **Open source** ([GPL-3.0](LICENSE)): anyone can read the code and verify a download with
+  `gh attestation verify <file> -R cozy-pi/cozysafe`.
+
+Honest limits: there is **no recovery** if you lose your password, or both the device and
+the Emergency Kit. iPhone, Windows and Linux cannot take the network away from one app,
+so there the offline guarantee rests on the app's own checks. iPhone does not let apps
+block screenshots. The code has not had an independent security audit yet.
+
 ## No library can send your data out
 
 Cozy Safe works fully offline and does not need the network for anything. A vault app
