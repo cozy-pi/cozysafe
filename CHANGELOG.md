@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.28 (2026-10-22)
+
+### Changed
+- Tapping a photo or video opens it big, over a dark, soft background, with its name and
+  date under it and one small glass bar: Close, Full screen, Send, Delete. Swipe down to
+  close.
+
 ## 0.1.27 (2026-10-22)
 
 ### Fixed

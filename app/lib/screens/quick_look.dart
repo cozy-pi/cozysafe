@@ -15,10 +15,11 @@ import 'file_view.dart';
 import 'vault_home.dart' show PhotoViewerScreen;
 import 'video_view.dart';
 
-/// Tapping a photo or video opens it as a card a little bigger than its thumbnail, over
-/// the vault, which stays in view behind a light dim (owner 2026-10-21). A video plays
-/// right in the card. Under it: Close (bottom left, as in the camera), Full screen, then
-/// Send and Delete. A tap outside closes. Pops with the id when the item was deleted.
+/// Tapping a photo or video opens it big, over the vault, which goes dark and soft
+/// behind (owner 2026-10-22: the first card was small and the page behind looked messy).
+/// A video plays right there. Under it: its name and date, then one glass bar with Close,
+/// Full screen, Send and Delete. A tap outside or a swipe down closes. Pops with the id
+/// when the item was deleted.
 class QuickLook extends StatefulWidget {
   const QuickLook({super.key, required this.item, required this.photos, required this.vaultId});
 
@@ -131,8 +132,10 @@ class _QuickLookState extends State<QuickLook> {
     final l = AppLocalizations.of(context);
     final size = MediaQuery.sizeOf(context);
     final page = Theme.of(context).scaffoldBackgroundColor;
-    // A little bigger than a thumbnail: most of the width, at most half the height.
-    final box = BoxConstraints(maxWidth: (size.width - 64).clamp(0, 380), maxHeight: size.height * .5);
+    // Big: the width less a margin, up to about two thirds of the height.
+    final box = BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: size.height * .62);
+    final c = CsColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final p = _player;
     final v = p?.value;
     final still = QuickLook.debugVideo;
@@ -146,6 +149,9 @@ class _QuickLookState extends State<QuickLook> {
             ? Image.memory(snap.data!,
                 fit: BoxFit.contain,
                 gaplessPlayback: true,
+                // A tiny scale makes the natural size huge, so the card's limits shrink it
+                // to the most room it can have, keeping its shape.
+                scale: .05,
                 cacheWidth: (box.maxWidth * MediaQuery.devicePixelRatioOf(context)).round())
             : const SizedBox(width: 220, height: 220, child: Center(child: CircularProgressIndicator())),
       );
@@ -191,84 +197,95 @@ class _QuickLookState extends State<QuickLook> {
       );
     }
 
-    return Stack(
+    Widget tool(Key key, IconData icon, String tip, VoidCallback onTap, {Color? color}) => IconButton(
+          key: key,
+          tooltip: tip,
+          onPressed: onTap,
+          iconSize: 24,
+          style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
+          icon: Icon(icon, color: color ?? Theme.of(context).colorScheme.onSurface),
+        );
+
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
       children: [
-        // The vault stays visible: a light dim and a little blur, tap to close.
+        // The vault goes dark and soft behind, so only the photo speaks; tap to close.
         Positioned.fill(
           child: GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-              child: ColoredBox(color: page.withValues(alpha: .45)),
+              filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: ColoredBox(color: page.withValues(alpha: dark ? .82 : .72)),
             ),
           ),
         ),
         Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: .88, end: 1),
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutBack,
-                builder: (context, s, child) => Transform.scale(scale: s, child: child),
-                child: Container(
-                  key: const ValueKey('quick-look'),
-                  constraints: box,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 30, offset: Offset(0, 12))],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: ColoredBox(color: Colors.black, child: media),
+          child: GestureDetector(
+            // Swipe down to put it away, as in Photos.
+            onVerticalDragEnd: (d) {
+              if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: .92, end: 1),
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, s, child) => Transform.scale(scale: s, child: child),
+                  child: Container(
+                    key: const ValueKey('quick-look'),
+                    constraints: box,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 40, offset: Offset(0, 16))],
+                    ),
+                    child: ClipRRect(borderRadius: BorderRadius.circular(20), child: media),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: box.maxWidth,
-                child: Row(
-                  children: [
-                    GlassButton(
-                      key: const ValueKey('quick-close'),
-                      icon: Icons.close,
-                      tooltip: l.close,
-                      size: Ui.bar,
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                    const SizedBox(width: 8),
-                    GlassButton(
-                      key: const ValueKey('quick-full'),
-                      icon: Icons.fullscreen_rounded,
-                      tooltip: l.fullScreen,
-                      size: Ui.bar,
-                      onTap: _full,
-                    ),
-                    const Spacer(),
-                    GlassButton(
-                      key: const ValueKey('quick-send'),
-                      icon: Icons.ios_share,
-                      tooltip: l.sendOut,
-                      size: Ui.bar,
-                      onTap: _send,
-                    ),
-                    const SizedBox(width: 8),
-                    GlassButton(
-                      key: const ValueKey('quick-delete'),
-                      tooltip: l.delete,
-                      size: Ui.bar,
-                      icon: null,
-                      onTap: _delete,
-                      child: Icon(Icons.delete_outline, color: recordRed(context), size: 24),
-                    ),
-                  ],
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: box.maxWidth,
+                  child: Column(
+                    children: [
+                      Text(widget.item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text(MaterialLocalizations.of(context).formatShortDate(dateOf(widget.item.createdMs)),
+                          style: TextStyle(fontSize: 13, color: c.muted)),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 14),
+                // One small glass bar, not four big circles.
+                Glass(
+                  radius: 28,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, () => Navigator.of(context).pop()),
+                        const SizedBox(width: 10),
+                        tool(const ValueKey('quick-full'), Icons.fullscreen_rounded, l.fullScreen, _full),
+                        const SizedBox(width: 10),
+                        tool(const ValueKey('quick-send'), Icons.ios_share, l.sendOut, _send),
+                        const SizedBox(width: 10),
+                        tool(const ValueKey('quick-delete'), Icons.delete_outline, l.delete, _delete, color: recordRed(context)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
+      ),
     );
   }
 }
