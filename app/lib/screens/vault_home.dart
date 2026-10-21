@@ -27,6 +27,7 @@ import 'common.dart';
 import 'emergency_kit.dart';
 import 'file_view.dart';
 import 'new_vault.dart';
+import 'quick_look.dart';
 import 'note.dart';
 import 'recorder.dart';
 import 'search.dart';
@@ -72,8 +73,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   bool _keepSection = false;
   /// The + column is open; [_hover] is the way under a finger sliding up from +.
   bool _adding = false;
+  /// The column stays on screen while it closes.
+  bool _addShown = false;
   AddWhat? _hover;
-  final _addKeys = {for (final w in AddWhat.values) w: GlobalKey()};
+  final _addColumnKey = GlobalKey();
+  ScrollController _addScroll = ScrollController();
   final _actionKey = GlobalKey();
   final _recorder = GlobalKey<RecorderViewState>();
   bool _recordingNow = false;
@@ -120,6 +124,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   @override
   void dispose() {
+    _addScroll.dispose();
     _reveal.dispose();
     _idleTimer?.cancel();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
@@ -234,8 +239,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (_section == VaultSection.audio) return _recorder.currentState?.toggle();
     setState(() {
       _adding = !_adding;
+      if (_adding) _openAdd();
       _hover = null;
     });
+  }
+
+  /// Each opening starts with the nearest way by the button.
+  void _openAdd() {
+    if (!_addShown) {
+      _addScroll.dispose();
+      _addScroll = ScrollController();
+    }
+    _addShown = true;
   }
 
   void _closeAdd() => setState(() {
@@ -248,20 +263,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _add(what);
   }
 
-  /// One hand: keep the finger down from + and slide; the row level with it lights up.
+  /// One hand: keep the finger down from + and slide; the way level with it lights up.
   void _hoverAt(Offset at) {
-    AddWhat? found;
-    for (final MapEntry(:key, :value) in _addKeys.entries) {
-      final box = value.currentContext?.findRenderObject() as RenderBox?;
-      if (box == null || !box.hasSize) continue;
-      final top = box.localToGlobal(Offset.zero).dy;
-      if (at.dy >= top && at.dy < top + box.size.height) found = key;
-    }
+    final found = AddColumn.wayAt(at, _addColumnKey, _addScroll, _addWays());
     if (found != _hover) {
       if (found != null) HapticFeedback.selectionClick();
       setState(() => _hover = found);
     }
   }
+
+  List<(AddWhat, IconData, String)> _addWays() => addColumnOrder(AppLocalizations.of(context), _section,
+      camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
+
 
   /// One way of adding, from the add column or the empty vault's tiles. The section it fills
   /// opens, and stays offered until something lands in it or another is picked.
@@ -578,21 +591,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       return;
     }
     final String? deleted;
-    if (item.kind == ItemKind.photo) {
-      final photos = media.where((m) => m.kind == ItemKind.photo).toList();
-      deleted = await Navigator.of(context).push<String>(
-        PageRouteBuilder(
-          opaque: false,
-          transitionDuration: const Duration(milliseconds: 220),
-          reverseTransitionDuration: const Duration(milliseconds: 200),
-          pageBuilder: (_, _, _) => PhotoViewerScreen(items: photos, initial: photos.indexOf(item)),
-          transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
-        ),
-      );
-    } else if (item.kind == ItemKind.video && VideoViewScreen.supported) {
-      deleted = await Navigator.of(context).push<String>(
-        MaterialPageRoute(builder: (_) => VideoViewScreen(item: item, vaultId: _vault.id)),
-      );
+    if (item.kind == ItemKind.photo || (item.kind == ItemKind.video && VideoViewScreen.supported)) {
+      // A card over the vault, a little bigger than the thumbnail; full screen on request.
+      deleted = await QuickLook.show(context, item,
+          photos: media.where((m) => m.kind == ItemKind.photo).toList(), vaultId: _vault.id);
     } else {
       LockGuard.allowAway();
       deleted = await Navigator.of(context)
@@ -1236,9 +1238,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     final (icon, tip) = _section == VaultSection.audio
         ? (_recordingNow ? Icons.stop_rounded : Icons.mic, _recordingNow ? l.stopRecording : l.startRecording)
-        : (_adding ? Icons.close : Icons.add, _adding ? l.close : l.addToVault);
+        : (Icons.add, _adding ? l.close : l.addToVault);
     return ActionButton(
-        key: _actionKey, icon: icon, tooltip: tip, onTap: _mainAction,
+        key: _actionKey, icon: icon, tooltip: tip, onTap: _mainAction, turns: _adding ? .125 : 0,
         color: _section == VaultSection.audio ? recordRed(context) : null);
   }
 
@@ -1383,15 +1385,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   ),
                 ),
               ),
-              if (_adding)
+              if (_addShown)
                 Positioned.fill(
                   child: AddColumn(
-                    ways: addColumnOrder(l, _section, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                    open: _adding,
+                    onGone: () => setState(() => _addShown = false),
+                    ways: _addWays(),
                     mine: addWaysOf(_section),
-                    keys: _addKeys,
+                    columnKey: _addColumnKey,
+                    scroll: _addScroll,
                     right: actionOnRight(),
                     side: 7,
-                    bottom: bottom + Ui.edge + Ui.bar + 14 + Ui.primary + 4,
+                    bottom: bottom + Ui.actionLift + Ui.primary + 4 - 18, // the column's bottom fade sits behind the button's top
                     hovered: _hover,
                     onPick: _pickAdd,
                     onClose: _closeAdd,
@@ -1405,7 +1410,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 key: const ValueKey('action-slot'),
                 left: actionOnRight() ? null : 7,
                 right: actionOnRight() ? 7 : null,
-                bottom: bottom + Ui.edge + Ui.bar + 14,
+                bottom: bottom + Ui.actionLift,
                 // Tap: open or close the column. Finger down and slide up: pick on release.
                 child: GestureDetector(
                   onPanStart: _section == VaultSection.audio
@@ -1413,7 +1418,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       : (_) {
                           if (!_adding) {
                             HapticFeedback.mediumImpact();
-                            setState(() => _adding = true);
+                            setState(() {
+                              _adding = true;
+                              _openAdd();
+                            });
                           }
                         },
                   onPanUpdate: _section == VaultSection.audio ? null : (d) => _hoverAt(d.globalPosition),
@@ -1948,8 +1956,28 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
     }
   }
 
+  Widget _pageView(BuildContext context) => PageView.builder(
+        controller: _pages,
+        itemCount: widget.items.length,
+        onPageChanged: (i) => setState(() => _index = i),
+        itemBuilder: (context, i) => FutureBuilder<Uint8List>(
+          future: _load(widget.items[i].id),
+          builder: (context, snap) {
+            if (snap.hasError) {
+              return Center(child: Text(AppLocalizations.of(context).errorStorage, style: const TextStyle(color: Colors.white70)));
+            }
+            final bytes = snap.data;
+            if (bytes == null) return const Center(child: CircularProgressIndicator(color: Colors.white));
+            return InteractiveViewer(maxScale: 6, child: Center(child: Image.memory(bytes, gaplessPlayback: true)));
+          },
+        ),
+      );
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _fullView(context);
+
+  /// Full screen: black, bars come and go with a tap, swipe down closes.
+  Widget _fullView(BuildContext context) {
     final l = AppLocalizations.of(context);
     final when = dateOf(_item.createdMs);
     final ml = MaterialLocalizations.of(context);
@@ -1972,22 +2000,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
               offset: Offset(0, _drag),
               child: Transform.scale(
                 scale: (1 - _drag.abs() / 1500).clamp(.7, 1.0),
-                child: PageView.builder(
-                  controller: _pages,
-                  itemCount: widget.items.length,
-                  onPageChanged: (i) => setState(() => _index = i),
-                  itemBuilder: (context, i) => FutureBuilder<Uint8List>(
-                    future: _load(widget.items[i].id),
-                    builder: (context, snap) {
-                      if (snap.hasError) {
-                        return Center(child: Text(l.errorStorage, style: const TextStyle(color: Colors.white70)));
-                      }
-                      final bytes = snap.data;
-                      if (bytes == null) return const Center(child: CircularProgressIndicator(color: Colors.white));
-                      return InteractiveViewer(maxScale: 6, child: Center(child: Image.memory(bytes, gaplessPlayback: true)));
-                    },
-                  ),
-                ),
+                child: _pageView(context),
               ),
             ),
           ),
@@ -2003,9 +2016,11 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                     child: Row(
                       children: [
                         IconButton(
+                          key: const ValueKey('media-exit-full'),
+                          // Back to the quick look this full screen was opened from.
                           onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
-                          tooltip: l.close,
+                          icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 28),
+                          tooltip: l.exitFullScreen,
                         ),
                         Expanded(
                           child: Column(

@@ -404,6 +404,8 @@
   "trashTapHint": "Tap to select, then restore or delete for good below.",
   "deleteForGoodShort": "Delete for good",
   "kitCopyNote": "The copy is cleared from the clipboard after 60 seconds. Do not send this key in a message.",
+  "fullScreen": "Full screen",
+  "exitFullScreen": "Exit full screen",
   "addToVault": "Add to vault",
   "addToLibrary": "Add to library",
   "recordingVideo": "Recording",

@@ -202,8 +202,10 @@ class VaultBar extends StatelessWidget {
 /// The main action, floating above the lock (left thumb): one tap for notes and voice,
 /// a small menu for the library and files.
 class ActionButton extends StatelessWidget {
-  const ActionButton({super.key, required this.icon, required this.tooltip, required this.onTap, this.color});
+  const ActionButton({super.key, required this.icon, required this.tooltip, required this.onTap, this.color, this.turns = 0});
   final IconData icon;
+  /// The + turns into × by rotating an eighth of a turn, smoothly.
+  final double turns;
   /// Voice: the record red with a white mic (theme.dart `recordRed`); otherwise ink.
   final Color? color;
   final String tooltip;
@@ -228,7 +230,12 @@ class ActionButton extends StatelessWidget {
           },
           child: SizedBox.square(
             dimension: Ui.primary,
-            child: Icon(icon, color: color != null ? Colors.white : Theme.of(context).colorScheme.onPrimary, size: 30),
+            child: AnimatedRotation(
+              turns: turns,
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutBack,
+              child: Icon(icon, color: color != null ? Colors.white : Theme.of(context).colorScheme.onPrimary, size: 30),
+            ),
           ),
         ),
       ),
@@ -269,75 +276,183 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
 /// The + button's column: the page dims and the ways to add stack above the button,
 /// nearest first. Tap one, or keep the finger down from + and slide to one and let go
 /// ([hovered] is the one under the finger). [keys] let the screen find each row.
-class AddColumn extends StatelessWidget {
+class AddColumn extends StatefulWidget {
   const AddColumn({
     super.key,
+    required this.open,
     required this.ways,
     required this.mine,
-    required this.keys,
+    required this.columnKey,
+    required this.scroll,
     required this.right,
     required this.side,
     required this.bottom,
     required this.hovered,
     required this.onPick,
     required this.onClose,
+    required this.onGone,
   });
+  /// false: play the closing motion, then call [onGone] so the screen can drop it.
+  final bool open;
   final List<(AddWhat, IconData, String)> ways;
   final Set<AddWhat> mine;
-  final Map<AddWhat, GlobalKey> keys;
+  /// The column's box and its scroll position: the screen finds the way under a
+  /// sliding finger from them ([wayAt]).
+  final GlobalKey columnKey;
+  final ScrollController scroll;
   final bool right;
   final double side;
   final double bottom;
   final AddWhat? hovered;
   final ValueChanged<AddWhat> onPick;
   final VoidCallback onClose;
+  final VoidCallback onGone;
+
+  /// One way's height in the column: the circle and the gap above it.
+  static const row = Ui.bar + 10;
+
+  /// Room under the nearest way for the bottom fade.
+  static const fade = 18.0;
+
+  /// Which way is level with [at] (a point on screen), counting from the button and
+  /// round the loop; null when outside the column.
+  static AddWhat? wayAt(Offset at, GlobalKey columnKey, ScrollController scroll, List<(AddWhat, IconData, String)> ways) {
+    final box = columnKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize || !scroll.hasClients) return null;
+    final local = box.globalToLocal(at);
+    if (local.dy < 0 || local.dy > box.size.height) return null;
+    final fromBottom = box.size.height - local.dy + scroll.offset - fade;
+    if (fromBottom < 0) return null;
+    return ways[(fromBottom ~/ row) % ways.length].$1;
+  }
+
+  @override
+  State<AddColumn> createState() => _AddColumnState();
+}
+
+class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMixin {
+  static const _fade = AddColumn.fade;
+
+  // Opening: each way pops out of the + in turn, nearest first, with a small overshoot.
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+    reverseDuration: const Duration(milliseconds: 220),
+  )..forward();
+
+  @override
+  void didUpdateWidget(AddColumn old) {
+    super.didUpdateWidget(old);
+    if (old.open && !widget.open) _c.reverse().whenComplete(() => widget.onGone());
+    if (!old.open && widget.open) _c.forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final page = Theme.of(context).scaffoldBackgroundColor;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      builder: (context, v, _) => Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(onTap: onClose, child: ColoredBox(color: page.withValues(alpha: .82 * v))),
+    final w = widget;
+    final n = w.ways.length;
+    final dim = CurvedAnimation(parent: _c, curve: const Interval(0, .5, curve: Curves.easeOut));
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: w.onClose,
+            child: FadeTransition(opacity: dim, child: ColoredBox(color: page.withValues(alpha: .82))),
           ),
-          Positioned(
-            left: right ? null : side,
-            right: right ? side : null,
-            bottom: bottom,
-            child: Opacity(
-              opacity: v,
-              child: Transform.translate(
-                offset: Offset(0, 24 * (1 - v)),
-                child: Column(
-                  key: const ValueKey('add-column'),
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: right ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                  children: [
-                    // Built top-down, so the nearest way is last.
-                    for (final (what, icon, label) in ways.reversed)
-                      Padding(
-                        key: keys[what],
+        ),
+        Positioned(
+          left: w.right ? null : w.side,
+          right: w.right ? w.side : null,
+          bottom: w.bottom,
+          // A list that rolls: drag it down and the far ways (Add files…) come down to
+          // the thumb, the near ones slip away under the button.
+          child: SizedBox(
+            key: w.columnKey,
+            width: MediaQuery.sizeOf(context).width - w.side * 2,
+            height: AddColumn.row * n + _fade,
+            child: ShaderMask(
+              blendMode: BlendMode.dstIn,
+              shaderCallback: (r) => LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: const [Colors.white, Colors.white, Colors.transparent],
+                stops: [0, 1 - _fade / r.height, 1],
+              ).createShader(r),
+              // A loop: rolling down never ends, the ways come round again (owner
+              // 2026-10-21), like the iPhone's time picker.
+              child: ListView.builder(
+                key: const ValueKey('add-column'),
+                controller: w.scroll,
+                reverse: true, // nearest way at the bottom, by the button
+                physics: const ClampingScrollPhysics(),
+                clipBehavior: Clip.none,
+                // Bottom: room for the fade, so only ways rolled past it fade out.
+                padding: const EdgeInsets.only(bottom: _fade),
+                itemExtent: AddColumn.row,
+                itemBuilder: (context, i) {
+                  final (what, icon, label) = w.ways[i % n];
+                  return _Pop(
+                      animation: CurvedAnimation(
+                        parent: _c,
+                        curve: Interval((i * .07).clamp(0, .45), (i * .07 + .55).clamp(0, 1), curve: Curves.easeOutBack),
+                        reverseCurve: Curves.easeIn,
+                      ),
+                      // From the button: the i-th way travels i+1 rows up.
+                      travel: AddColumn.row * (i + 1),
+                      right: w.right,
+                      child: Padding(
                         padding: const EdgeInsets.only(top: 10),
                         child: _AddWay(
                           key: ValueKey('add-${what.name}'),
                           icon: icon,
                           label: label,
-                          near: mine.contains(what),
-                          hovered: hovered == what,
-                          right: right,
-                          onTap: () => onPick(what),
+                          near: w.mine.contains(what),
+                          hovered: w.hovered == what,
+                          right: w.right,
+                          onTap: () => w.onPick(what),
                         ),
                       ),
-                  ],
-                ),
+                    );
+                },
               ),
             ),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+/// One way popping out of the + button: up from it, growing, fading in.
+class _Pop extends AnimatedWidget {
+  const _Pop({required Animation<double> animation, required this.travel, required this.right, required this.child})
+      : super(listenable: animation);
+  final double travel;
+  final bool right;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = (listenable as Animation<double>).value;
+    return Align(
+      alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+      child: Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.translate(
+          offset: Offset(0, travel * (1 - t)),
+          child: Transform.scale(
+            scale: .4 + .6 * t,
+            alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+            child: child,
+          ),
+        ),
       ),
     );
   }

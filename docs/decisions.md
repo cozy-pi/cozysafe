@@ -6,6 +6,12 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-21
 
+**0.1.12: quick look and a looping add column.** Owner: a tapped photo or video should not
+take the whole screen, only a little bigger than its thumbnail with the vault visible
+behind, full screen on request; Close where the camera's is. The add column gets motion
+(pop out, + to ×), scrolls in a loop for one hand, and + sits higher above the lock.
+Settings lose the brown tiles. A framed full-page viewer was tried and dropped.
+
 **0.1.11: the add column, and no bottom sheets on tap.** Owner found + inconsistent
 (Library offered every kind, other sections one) and proposed the column: + opens every
 way to add stacked above it, the current section's ways nearest; then asked for press and
