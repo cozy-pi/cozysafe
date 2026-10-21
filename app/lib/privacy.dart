@@ -7,6 +7,17 @@ import 'platform.dart';
 abstract final class PrivacyCover {
   static const _channel = MethodChannel('cozysafe/privacy');
 
+  /// Called after the person takes a screenshot (iOS tells us; it cannot be stopped).
+  static void Function()? onScreenshot;
+
+  /// Start listening to the platform side (main, once).
+  static void listen() {
+    if (!Device.iOS) return;
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'screenshot') onScreenshot?.call();
+    });
+  }
+
   /// Run [ask] (a biometric prompt) without the cover coming up for it.
   static Future<T> whileAsking<T>(Future<T> Function() ask) async {
     await _set(true);

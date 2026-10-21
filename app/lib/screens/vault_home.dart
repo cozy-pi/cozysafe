@@ -17,7 +17,9 @@ import '../platform.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../originals.dart';
 import '../prefs.dart';
+import '../privacy.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
@@ -110,6 +112,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (mounted) setState(() => _canBio = k != null);
     });
     LockGuard.onActivity = _touch;
+    // A screenshot of an open vault lands in Photos, unencrypted: say so (iOS can't stop it).
+    PrivacyCover.onScreenshot = () {
+      if (mounted) showToast(context, AppLocalizations.of(context).screenshotWarning, icon: Icons.warning_amber_rounded);
+    };
     // Design B (the whole app in the vault's colour) is off since 2026-10-20: it often
     // looked wrong. The palette code stays in theme.dart; turn it back on here.
     if (_tintApp) WidgetsBinding.instance.addPostFrameCallback((_) => vaultTint.value = _color);
@@ -122,10 +128,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// Which vault just opened: on the plain page, its icon comes in as the unlock effect
   /// ends, holds, fades; only then does the content show (docs/ui.md). Vaults have no name.
   late final AnimationController _reveal =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 2000));
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
 
   @override
   void dispose() {
+    PrivacyCover.onScreenshot = null;
     _addScroll.dispose();
     _reveal.dispose();
     _idleTimer?.cancel();
@@ -267,7 +274,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   /// One hand: keep the finger down from + and slide; the way level with it lights up.
   void _hoverAt(Offset at) {
-    final found = AddColumn.wayAt(at, _addColumnKey, _addScroll, _addWays());
+    final found = AddColumn.wayAt(at);
     if (found != _hover) {
       if (found != null) HapticFeedback.selectionClick();
       setState(() => _hover = found);
@@ -337,7 +344,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     LockGuard.allowAway();
     try {
-      final files = photos ? await pickPhotos() : await pickFiles();
+      final (files, origins) = await Originals.pick(photos: photos);
       if (files.isEmpty || !mounted) return;
       final done = ValueNotifier<int>(0);
       var cancel = false;
@@ -366,10 +373,43 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       }
       // No "N added" message: the items appear at once, and the bar showed progress.
       if (mounted) _reload();
+      // What went in (the first ones: a cancel only skips the rest) can be removed from
+      // the phone, after asking here and then again by the system.
+      final from = [for (final o in origins.take(added.length)) ?o];
+      if (from.isNotEmpty && mounted) {
+        await _offerDeleteOriginals(from, photos: photos);
+      } else {
+        await Originals.release();
+      }
     } on rust.VaultError catch (e) {
       if (mounted) _snack(vaultErrorText(l, e));
     } catch (_) {
       if (mounted) _snack(l.errorStorage);
+    } finally {
+      LockGuard.clear();
+    }
+  }
+
+  /// "Remove the originals from this phone?" after an import: the person decides here,
+  /// then iOS or Android asks once more and does it.
+  Future<void> _offerDeleteOriginals(List<String> ids, {required bool photos}) async {
+    final l = AppLocalizations.of(context);
+    final yes = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => DeleteOriginalsSheet(count: ids.length, photos: photos),
+    );
+    if (yes != true) return Originals.release();
+    LockGuard.allowAway(); // the system's own question takes the screen for a moment
+    try {
+      final r = await Originals.delete(ids, photos: photos);
+      if (!mounted || r.cancelled) return;
+      if (r.failed > 0) {
+        _snack(l.originalsFailed(r.failed));
+      } else if (r.deleted > 0) {
+        _snack(l.originalsDeleted(r.deleted));
+      }
+    } catch (_) {
+      if (mounted) _snack(l.originalsFailed(ids.length));
     } finally {
       LockGuard.clear();
     }
@@ -499,12 +539,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _changeIdentity() async {
     var icon = vaultIcons.indexWhere((i) => i.id == _vault.icon);
     var color = vaultColors.indexWhere((c) => c.id == _vault.color);
-    final i = await showAllIcons(context, icon < 0 ? 0 : icon);
-    if (i == null || !mounted) return;
-    icon = i;
-    final c = await showAllColors(context, color < 0 ? 0 : color);
-    if (c == null || !mounted) return;
-    color = c;
+    final picked = await showIdentityCard(context, icon: icon < 0 ? 0 : icon, color: color < 0 ? 0 : color);
+    if (picked == null || !mounted) return;
+    (icon, color) = picked;
     try {
       final info = await rust.setIdentity(icon: vaultIcons[icon].id, color: vaultColors[color].id);
       if (mounted) {
@@ -1153,12 +1190,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
-  /// A button for every group, then the tags with something in this section as chips
-  /// (the open one first and marked), then "New group".
+  /// A button for every group, then the groups that hold anything as chips (with their
+  /// whole count; the open one first and marked), then "New group".
   Widget _tagChips(BuildContext context) {
     final l = AppLocalizations.of(context);
     final items = _items ?? const <rust.ItemInfo>[];
-    int count(String tagId) => items.where((i) => _inSection(_section, i) && i.tagIds.contains(tagId)).length;
+    // The whole group's count, the same in every section and in All groups (owner
+    // 2026-10-21); a group with nothing in this section still shows, and opening it
+    // offers the sections where it has something.
+    int count(String tagId) => items.where((i) => i.kind != ItemKind.tag && i.tagIds.contains(tagId)).length;
     final all = _tags.values.toList();
     // The open tag first, then the others by name.
     final here = all.where((t) => t.id == _tagId || count(t.id) > 0).toList()
@@ -1248,9 +1288,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             double seg(double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
             // The vault's content stays hidden under the page colour until the icon has come
             // and gone: icon in, hold, icon out, then the content shows (docs/ui.md).
-            final icon = t < .4 ? Curves.easeOut.transform(seg(.22, .32)) : 1 - Curves.easeIn.transform(seg(.58, .74));
-            final cover = 1 - Curves.easeOut.transform(seg(.76, 1));
-            final scale = .9 + .1 * Curves.easeOut.transform(seg(.22, .38));
+            // The icon arrives sharp from the unlock (the dial left it there): hold it,
+            // fade it, then the content.
+            final icon = 1 - Curves.easeIn.transform(seg(.22, .55));
+            final cover = 1 - Curves.easeOut.transform(seg(.5, 1));
+            const scale = 1.0;
             // Nothing under the cover can be tapped while it is up.
             return AbsorbPointer(
               absorbing: cover > .5,
@@ -1786,7 +1828,7 @@ class _FileRow extends StatelessWidget {
                   ? FutureBuilder<Uint8List>(
                       future: thumbnail,
                       builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                          ? Image.memory(snap.data!, fit: BoxFit.cover)
+                          ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover))
                           : const SizedBox.expand(),
                     )
                   : Center(
@@ -1904,7 +1946,7 @@ class _MediaTile extends StatelessWidget {
                       ? const ColoredBox(color: Color(0xFF2A3133))
                       : const SizedBox.expand();
                 }
-                return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
+                return privateThumb(Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true));
               },
             ),
             if (item.kind == ItemKind.video)
@@ -2182,6 +2224,50 @@ class _Welcome extends StatelessWidget {
         const SizedBox(height: 28),
         tiles,
       ],
+    );
+  }
+}
+
+/// After an import: remove the originals from the phone? (owner 2026-10-21: always ask).
+class DeleteOriginalsSheet extends StatelessWidget {
+  const DeleteOriginalsSheet({super.key, required this.count, required this.photos});
+  final int count;
+  final bool photos;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(photos ? Icons.photo_library_outlined : Icons.folder_outlined, size: 36, color: c.muted),
+            const SizedBox(height: 10),
+            Text(l.originalsTitle, textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -.2)),
+            const SizedBox(height: 8),
+            Text(photos ? l.originalsBodyPhotos(count) : l.originalsBodyFiles(count),
+                textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.45)),
+            const SizedBox(height: 18),
+            FilledButton(
+              key: const ValueKey('originals-delete'),
+              style: FilledButton.styleFrom(backgroundColor: recordRed(context), foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l.originalsDelete),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              key: const ValueKey('originals-keep'),
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l.originalsKeep),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -6,6 +6,13 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-21
 
+**After 0.1.14 (owner):** remove originals after import, photos and files, both phones,
+always asked first (then the system asks); the Secret Key keeps its English name in
+Vietnamese too, like 1Password ("Mã bí mật" was the same thing and is gone); group chips count the whole group; blurred thumbnails option now; iOS covers
+the screen while recording and warns after a screenshot (it cannot block them); short
+content opens in a centred card; the unlock shows the vault's icon behind the dial,
+sharpening as it opens. Remove-originals needs testing on real phones (native code).
+
 **0.1.14: about and hidden debug, share everywhere, safer big files, clearer groups.**
 Owner asked for build info and a hidden debug mode like Flip Match, Send on every item,
 nicer reading, a reviewed list of text types, and no memory blow-up on heavy files.

@@ -30,6 +30,7 @@ import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/widgets/brand.dart';
+import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
 import 'package:cozysafe/widgets/toast.dart';
 import 'package:flutter/material.dart';
@@ -324,19 +325,23 @@ void main() {
 
   _screen('lock', 'Màn khoá', lock);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
-  // The unlock animation (playVaultSpin), frozen at three moments of its 1.15 s.
-  for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay'), (950, 'phóng to và tan')]) {
-    _screen('unlock-$ms', 'Mở khoá · $ms ms · $what', lock, after: 0, act: (t) async {
-      playVaultSpin(t.element(find.byType(UnlockScreen)), opening: true, onCovered: () {});
+  // The unlock animation (playVaultSpin), frozen at four moments of its 1.15 s: the vault's
+  // icon behind the dial, blurred at first, sharp when the dial has gone.
+  for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay, màu két hắt quanh mép'), (950, 'cửa két mở vụt qua, biểu tượng hiện'), (1100, 'biểu tượng nét')]) {
+    _screen('unlock-$ms', 'Mở khoá · $ms ms · $what', lock, after: 0,
+        change: ms == 520 ? 'Mở két kiểu “cửa két”: mặt khoá đặc xoay, màu của két hắt sáng quanh mép; xong thì mặt khoá phóng vụt qua như cửa mở, biểu tượng két từ nhỏ và nhoè thành nét' : null,
+        act: (t) async {
+      playVaultSpin(t.element(find.byType(UnlockScreen)), opening: true, onCovered: () {},
+          behind: const VaultBadge(icon: 'home', color: 'green', size: 120), glow: colorById('green').color);
       await t.pump();
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  // After the unlock spin: the vault's icon in the middle, then it fades (docs/ui.md).
-  for (final (ms, what) in [(900, 'nền trơn, biểu tượng két'), (1350, 'biểu tượng mờ dần'), (1800, 'dữ liệu hiện ra')]) {
+  // After the spin: the same icon, already sharp, holds, fades, then the content.
+  for (final (ms, what) in [(100, 'biểu tượng nét, nối tiếp từ cửa két'), (500, 'biểu tượng mờ dần'), (1000, 'nội dung hiện ra')]) {
     _screen('reveal-$ms', 'Vừa mở · $ms ms · $what', home, section: 'library', after: 0,
         setup: () => VaultHomeScreen.debugReveal = true, act: (t) async {
-      await t.pump(Duration(milliseconds: ms - 800));
+      await t.pump(Duration(milliseconds: ms));
     });
   }
   _screen('library', 'Thư viện', home, section: 'library');
@@ -350,7 +355,7 @@ void main() {
     });
   }
   _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true,
-      change: 'Chỗ cột bắt đầu lặp có vạch ↻, các mục lặp lại mờ hơn (không ai tưởng là thêm mục); mép trên mờ dần; vài lần mở đầu cột tự nhích xuống rồi bật lại',
+      change: 'Bỏ ↻ và bỏ làm mờ các mục lặp; chỉ còn một vạch mảnh có khoảng trống rộng trên dưới ở chỗ bắt đầu lặp',
       marks: [() => find.byKey(const ValueKey('add-loop'))], act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     for (var i = 0; i < 6; i++) {
@@ -381,18 +386,15 @@ void main() {
         debugCamera = true;
         _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList();
       }, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
-  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
-      change: 'Dòng đầu (tên ghi chú) tự to và đậm ngay khi gõ; thân bài giãn dòng dễ đọc; thêm nút Gửi (gửi ghi chú thành tệp .txt)',
-      marks: [() => find.byKey(const ValueKey('note-send'))]);
+  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
   _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'),
-      change: 'Nhóm đang chọn rõ hơn: viên tô đậm có ✓ và × để thoát; dòng nhỏ “Nhóm · Thư viện” trên tên nhóm',
-      marks: [() => find.byKey(const ValueKey('group-label'))]);
+      change: 'Số trên viên nhóm là TỔNG cả nhóm, giống nhau ở mọi mục và ở Tất cả nhóm');
   _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'file', act: (t) async {
     await _tapChip(t, 'Hộ chiếu');
     await t.pump();
     await t.tap(find.text('Ghi âm').last);
-  }, change: 'Nhóm trống ở mục này: nói rõ và đưa nút tới chỗ nhóm có nội dung', marks: [() => find.byType(ActionChip)]);
+  });
   Widget camera({required bool video}) => CameraScreen(video: video, onOpenLast: (_) {});
   void still() {
     CameraView.debugPreview =
@@ -410,13 +412,11 @@ void main() {
     }
   }
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
-      change: 'Ảnh cũng có nút Gửi (trước chỉ video có)', marks: [() => find.byKey(const ValueKey('quick-send'))],
       act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
       act: (t) => tapThumb(t, 5));
-  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library',
-      change: 'Toàn màn hình cũng có Gửi cạnh Xoá', marks: [() => find.byKey(const ValueKey('photo-send'))], act: (t) async {
+  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
     for (var i = 0; i < 6; i++) {
@@ -434,15 +434,14 @@ void main() {
     await t.pump();
     await t.tap(find.text('Ghi chú'));
   });
-  _screen('all-tags', 'Tất cả nhóm', home, section: 'audio', act: (t) => t.tap(find.byKey(const ValueKey('all-tags'))),
-      change: 'Mở thành trang riêng (trước là bảng bật từ dưới): danh sách ngay tầm mắt');
+  _screen('all-tags', 'Tất cả nhóm', home, section: 'audio', act: (t) => t.tap(find.byKey(const ValueKey('all-tags'))));
   _screen('select', 'Đang chọn', home, section: 'library', act: (t) async {
     await t.longPress(find.byType(Image).at(2));
     await t.pump();
     await t.tap(find.byType(Image).at(4));
   });
   _screen('tag-sheet', 'Chọn 2 ảnh → Nhóm', home, section: 'library',
-      change: 'Trang riêng thay bảng từ dưới; nút Xong ở đáy', act: (t) async {
+      act: (t) async {
     await t.longPress(find.byType(Image).at(1));
     await t.pump();
     await t.tap(find.byType(Image).at(2));
@@ -457,23 +456,17 @@ void main() {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
     await t.enterText(find.byType(TextField), 'thuoc');
   });
-  _screen('text-json', 'Tệp · mở wifi-config.json', () => FileViewScreen(item: _item('j1', ItemKind.file, 'wifi-config.json', 180), vaultId: 'v'),
-      change: 'JSON trong khung bo góc nền nhạt: khoá đậm, giá trị nhạt hơn; tên tệp + loại · dung lượng · ngày ở đầu; × góc trái, Gửi · Xoá ở thanh kính',
-      marks: [() => find.byKey(const ValueKey('text-view'))]);
-  _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'),
-      change: 'Markdown hiện đẹp do app tự vẽ (không thêm thư viện): tiêu đề, danh sách, đánh số, trích dẫn, khối code, đậm/nghiêng/code',
-      marks: [() => find.byKey(const ValueKey('text-view'))]);
-  _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'),
-      change: 'Tệp app chưa biết: thêm nút “Xem như văn bản” (chỉ giải mã 1 MB đầu) bên cạnh “Mở bằng app khác”',
-      marks: [() => find.byKey(const ValueKey('open-as-text'))]);
-  _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'),
-      change: 'Văn bản thường như trang sách: chữ 17,5, giãn dòng rộng, lề thoáng');
-  _screen('settings', 'Cài đặt', () => settings(vault),
-      change: 'Thêm công tắc “Hiện biểu tượng khi mở két” trong nhóm Két này (tắt thì mở két vào thẳng nội dung)',
-      marks: [() => find.byKey(const ValueKey('reveal-row'))]);
+  _screen('text-json', 'Tệp · mở wifi-config.json', () => FileViewScreen(item: _item('j1', ItemKind.file, 'wifi-config.json', 180), vaultId: 'v'));
+  _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
+  _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
+  _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
+  _screen('settings', 'Cài đặt', () => settings(vault));
+  _screen('identity-card', 'Cài đặt · Đổi biểu tượng và màu', () => Builder(builder: (context) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => showIdentityCard(context, icon: 0, color: 3));
+        return settings(vault);
+      }),
+      change: 'Một hộp nổi: biểu tượng xem trước ở trên đổi theo lựa chọn, lưới biểu tượng, hàng màu, nút Lưu (trước là hai trang liên tiếp)');
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
-      change: '“Nút thêm” → “Vị trí nút thêm”, chọn Trái | Phải ngay trên dòng, không phải mở bảng chọn',
-      marks: [() => find.byKey(const ValueKey('side-row'))],
       act: (t) async {
     await t.scrollUntilVisible(find.text('Hiện nội dung ghi chú'), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
@@ -482,37 +475,46 @@ void main() {
     await t.scrollUntilVisible(find.byKey(const ValueKey('about-version')), 300, scrollable: find.byType(Scrollable).first);
     await t.pump();
   }
-  _screen('settings-about', 'Cài đặt · Thông tin', () => settings(vault), act: toAbout,
-      change: 'MỚI: nhóm Thông tin — phiên bản (build), ngày dựng, mã commit, giấy phép. Ảnh này là bản tự dựng nên ghi “Bản tự dựng”; bản CI ghi ngày giờ và mã commit thật',
-      marks: [() => find.byKey(const ValueKey('about-version'))]);
+  _screen('settings-about', 'Cài đặt · Thông tin', () => settings(vault), act: toAbout);
   _screen('settings-debug-taps', 'Cài đặt · chạm 5 lần vào Phiên bản', () => settings(vault), act: (t) async {
     await toAbout(t);
     for (var i = 0; i < 5; i++) {
       await t.tap(find.byKey(const ValueKey('about-version')));
       await t.pump(const Duration(milliseconds: 120));
     }
-  }, change: 'Chạm 7 lần vào Phiên bản để bật gỡ lỗi (như Lật Thẻ); từ lần thứ 3 có đếm ngược; bật phải qua Face ID');
-  _screen('settings-debug-on', 'Cài đặt · đã bật gỡ lỗi', () => settings(vault), setup: () => Prefs.write('debug-mode', '1'), act: toAbout,
-      change: 'Gỡ lỗi bật thì có dòng “Gỡ lỗi” cuối nhóm Thông tin', marks: [() => find.byKey(const ValueKey('debug-row'))]);
-  _screen('debug', 'Trang gỡ lỗi', () => const DebugScreen(), setup: () => DebugScreen.debugNetworkBlocked = true,
-      change: 'MỚI: chỉ thông tin kỹ thuật (bản dựng, máy, sinh trắc, chặn mạng, số mục, bản tạm) + Xoá bản tạm + Tắt gỡ lỗi; không bao giờ hiện khoá hay nội dung két',
-      marks: [() => find.byKey(const ValueKey('debug-network'))]);
+  });
+  _screen('settings-debug-on', 'Cài đặt · đã bật gỡ lỗi', () => settings(vault), setup: () => Prefs.write('debug-mode', '1'), act: toAbout);
+  _screen('debug', 'Trang gỡ lỗi', () => const DebugScreen(), setup: () => DebugScreen.debugNetworkBlocked = true);
   Future<void> toRow(WidgetTester t, String text) async {
     await t.scrollUntilVisible(find.text(text), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
   }
-  _screen('security-page', 'Cài đặt · Cách két được bảo vệ', () => settings(vault), act: (t) async {
+  _screen('security-page', 'Cài đặt · Cách két được bảo vệ', () => settings(vault),
+      change: 'Nội dung ngắn để đọc: HỘP NỔI giữa màn hình (không còn trang trống trải), chạm ra ngoài là đóng', act: (t) async {
     await toRow(t, 'Cách két được bảo vệ');
     await t.tap(find.text('Cách két được bảo vệ'));
-  }, change: 'Nội dung để ĐỌC mở thành trang riêng, chữ ngay tầm mắt (trước là bảng bật từ dưới)');
+  });
   _screen('autolock-menu', 'Cài đặt · Tự khoá', () => settings(vault), act: (t) async {
     await t.tap(find.text('Tự khoá khi không dùng'));
-  }, change: 'Chọn vài giá trị: menu bật ra ngay tại dòng, cạnh giá trị đang chọn (trước là bảng từ dưới)');
+  });
+  Widget sheetOver(Widget sheet) => Builder(builder: (context) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => showModalBottomSheet<bool>(context: context, builder: (_) => sheet));
+        return home();
+      });
+  _screen('originals-photos', 'Vừa cất 5 ảnh vào két', () => sheetOver(const DeleteOriginalsSheet(count: 5, photos: true)),
+      section: 'library',
+      change: 'MỚI: sau khi cất ảnh/video vào két, hỏi xoá bản gốc trong app Ảnh; bấm Xoá thì iPhone/Android hỏi thêm một lần rồi đưa vào Đã xoá gần đây',
+      marks: [() => find.byKey(const ValueKey('originals-delete'))]);
+  _screen('originals-files', 'Vừa cất 2 tệp vào két', () => sheetOver(const DeleteOriginalsSheet(count: 2, photos: false)),
+      section: 'file', change: 'Tệp cũng vậy: xoá bản gốc ở chỗ cũ (Tệp/iCloud Drive, bộ nhớ máy)');
+  _screen('blur', 'Thư viện · bật làm mờ ảnh thu nhỏ', home, section: 'library', setup: () => Prefs.write('blur-thumbnails', '1'),
+      change: 'MỚI: Cài đặt → Hiển thị → Làm mờ ảnh thu nhỏ: người bên cạnh không nhìn rõ; chạm vào vẫn xem rõ. Tắt phải qua Face ID');
   _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
   _screen('trash-select', 'Đã xoá · chạm chọn 1 ảnh', () => const TrashScreen(),
       act: (t) => t.tap(find.byType(Image).first));
   _screen('kit', 'Bộ khẩn cấp: khoá bí mật che sẵn', () => const EmergencyKitScreen(
-      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false));
+      keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
+      change: 'Một tên duy nhất “Secret Key” (trước có chỗ ghi “Mã bí mật”); khác hẳn mật khẩu sao lưu và mã PIN');
   _screen('kit-shown', 'Bộ khẩn cấp: sau khi bấm Xem', () => const EmergencyKitScreen(
       keyText: 'CS1-7KQ2-M9XA-4TWB-PL3D-8VNC-2HRE-6YJF', confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));

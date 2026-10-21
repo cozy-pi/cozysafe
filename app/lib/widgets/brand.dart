@@ -129,6 +129,8 @@ Future<void> playVaultSpin(
   BuildContext context, {
   required bool opening,
   required VoidCallback onCovered,
+  Widget? behind,
+  Color? glow,
 }) async {
   // The page colour with the mark in ink: black and white, light or dark.
   final color = Theme.of(context).scaffoldBackgroundColor;
@@ -139,7 +141,9 @@ Future<void> playVaultSpin(
     vsync: overlay,
     duration: Duration(milliseconds: opening ? 1150 : 1050),
   );
-  final entry = OverlayEntry(builder: (_) => _Spin(controller: controller, opening: opening, reduce: reduce, color: color, ink: ink));
+  final entry = OverlayEntry(
+      builder: (_) => _Spin(
+          controller: controller, opening: opening, reduce: reduce, color: color, ink: ink, behind: behind, glow: glow));
   overlay.insert(entry);
   var covered = false;
   void check() {
@@ -163,7 +167,17 @@ class _Spin extends AnimatedWidget {
     required this.reduce,
     required this.color,
     required this.ink,
+    this.behind,
+    this.glow,
   }) : super(listenable: controller);
+
+  /// The vault's colour, glowing around the dial's edge while it turns.
+  final Color? glow;
+
+  /// Opening: the vault's icon behind the dial, blurred and faint as the dial starts to
+  /// turn, sharper as it opens, sharp once the dial has gone (owner 2026-10-21). The vault
+  /// screen then shows the same icon in the same place, so the two meet without a jump.
+  final Widget? behind;
 
   final bool opening;
   final bool reduce;
@@ -174,6 +188,40 @@ class _Spin extends AnimatedWidget {
 
   static double _seg(double t, double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
 
+  /// From the dial's first turn (.16) to fully open (.78): faint and very blurred, then
+  /// clearer with the turn, sharp as the dial scales away.
+  Widget _behind(Widget icon) {
+    final open = Curves.easeInOut.transform(_seg(t, .16, .80));
+    // While the solid dial turns, the vault's colour glows around its edge; as
+    // the dial swings away the icon behind comes forward from small and soft to sharp.
+    final reveal = Curves.easeOutCubic.transform(_seg(t, .74, 1));
+    final blur = reduce ? 0.0 : 16 * (1 - reveal);
+    final g = glow;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        if (g != null)
+          Opacity(
+            opacity: (.75 * open * (1 - reveal)).clamp(0.0, 1.0),
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26, tileMode: TileMode.decal),
+              child: Container(width: 250, height: 250, decoration: BoxDecoration(color: g, shape: BoxShape.circle)),
+            ),
+          ),
+        Opacity(
+          opacity: reveal,
+          child: Transform.scale(
+            scale: .7 + .3 * reveal,
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur, tileMode: TileMode.decal),
+              child: icon,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ease = Curves.easeInOutCubic;
@@ -182,7 +230,15 @@ class _Spin extends AnimatedWidget {
       bg = t < .14 ? _seg(t, 0, .14) : (t < .78 ? 1 : 1 - _seg(t, .78, 1));
       scale = t < .16 ? .55 + .45 * ease.transform(_seg(t, 0, .16)) : (t < .78 ? 1 : 1 + 1.6 * ease.transform(_seg(t, .78, 1)));
       turn = t < .16 ? 0 : (t < .62 ? 192 * ease.transform(_seg(t, .16, .62)) : 192 - 12 * _seg(t, .62, .70));
+      // With the vault's icon behind, the dial thins as it turns so the icon shows
+      // through, then goes as it scales away.
       alpha = t < .78 ? 1 : 1 - _seg(t, .78, 1);
+      // With the vault's icon behind: the dial stays solid and swings open past the eye,
+      // like a safe's door (owner chose this over a dial thinning over the icon).
+      if (behind != null && t >= .78) {
+        scale = 1 + 3.2 * Curves.easeIn.transform(_seg(t, .78, 1));
+        alpha = 1 - Curves.easeIn.transform(_seg(t, .84, 1));
+      }
     } else {
       bg = t < .18 ? _seg(t, 0, .18) : (t < .80 ? 1 : 1 - _seg(t, .80, 1));
       scale = t < .20 ? 2.6 - 1.6 * ease.transform(_seg(t, 0, .20)) : (t < .82 ? 1 : 1 - .45 * _seg(t, .82, 1));
@@ -199,12 +255,18 @@ class _Spin extends AnimatedWidget {
         child: ColoredBox(
           color: color,
           child: Center(
-            child: Opacity(
-              opacity: alpha.clamp(0.0, 1.0),
-              child: Transform.rotate(
-                angle: turn * math.pi / 180,
-                child: Transform.scale(scale: scale, child: BrandMark(size: 190, color: ink)),
-              ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (opening && behind != null) _behind(behind!),
+                Opacity(
+                  opacity: alpha.clamp(0.0, 1.0),
+                  child: Transform.rotate(
+                    angle: turn * math.pi / 180,
+                    child: Transform.scale(scale: scale, child: BrandMark(size: 190, color: ink)),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

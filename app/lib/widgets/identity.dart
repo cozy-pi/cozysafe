@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import 'vault_bar.dart' show pushPage;
+import 'vault_bar.dart' show showCard;
 
 
 /// A vault is recognised by an icon and a colour, never a typed name (docs/ui.md).
@@ -143,68 +143,146 @@ class VaultBadge extends StatelessWidget {
   }
 }
 
-/// All icons (or colours) on a page, for the "⋯" tile and the vault menu.
-Future<int?> showAllIcons(BuildContext context, int selected) => pushPage<int>(
+/// All icons (or colours) in a card, for the "⋯" tile when making a vault.
+Future<int?> showAllIcons(BuildContext context, int selected) => showCard<int>(
       context,
       title: AppLocalizations.of(context).pickIconHint,
-      builder: (context) => Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: GridView.count(
-            crossAxisCount: 6,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            children: [
-              for (var i = 0; i < vaultIcons.length; i++)
-                Semantics(
-                  button: true,
-                  selected: i == selected,
-                  label: vaultIcons[i].label,
-                  child: Material(
-                    color: i == selected ? Theme.of(context).colorScheme.primary : Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Theme.of(context).colorScheme.outline),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => Navigator.pop(context, i),
-                      child: Icon(vaultIcons[i].icon,
-                          color: i == selected ? Theme.of(context).colorScheme.onPrimary : null),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+      builder: (context) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+        child: _IconGrid(selected: selected, onPick: (i) => Navigator.pop(context, i)),
+      ),
     );
 
-Future<int?> showAllColors(BuildContext context, int selected) => pushPage<int>(
+Future<int?> showAllColors(BuildContext context, int selected) => showCard<int>(
       context,
       title: AppLocalizations.of(context).pickColorTitle,
       builder: (context) => Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-          child: GridView.count(
-            crossAxisCount: 5,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            children: [
-              for (var i = 0; i < vaultColors.length; i++)
-                Semantics(
-                  button: true,
-                  selected: i == selected,
-                  label: vaultColors[i].label,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, i),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: vaultColors[i].color,
-                        shape: BoxShape.circle,
-                        border: i == selected ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3) : null,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+        padding: const EdgeInsets.fromLTRB(18, 4, 18, 20),
+        child: _ColorRow(selected: selected, onPick: (i) => Navigator.pop(context, i)),
+      ),
+    );
+
+/// Change a vault's icon and colour in one card: the badge on top follows the choice.
+Future<(int, int)?> showIdentityCard(BuildContext context, {required int icon, required int color}) =>
+    showCard<(int, int)>(
+      context,
+      title: AppLocalizations.of(context).changeIdentity,
+      builder: (context) => _IdentityPicker(icon: icon, color: color),
+    );
+
+class _IdentityPicker extends StatefulWidget {
+  const _IdentityPicker({required this.icon, required this.color});
+  final int icon;
+  final int color;
+
+  @override
+  State<_IdentityPicker> createState() => _IdentityPickerState();
+}
+
+class _IdentityPickerState extends State<_IdentityPicker> {
+  late int _icon = widget.icon;
+  late int _color = widget.color;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(child: VaultBadge(icon: vaultIcons[_icon].id, color: vaultColors[_color].id, size: 72)),
+        const SizedBox(height: 14),
+        Flexible(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                _IconGrid(selected: _icon, onPick: (i) => setState(() => _icon = i)),
+                const SizedBox(height: 16),
+                _ColorRow(selected: _color, onPick: (i) => setState(() => _color = i)),
+              ],
+            ),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: FilledButton(
+            key: const ValueKey('identity-save'),
+            onPressed: () => Navigator.pop(context, (_icon, _color)),
+            child: Text(l.save),
+          ),
+        ),
+      ],
     );
+  }
+}
+
+class _IconGrid extends StatelessWidget {
+  const _IconGrid({required this.selected, required this.onPick});
+  final int selected;
+  final ValueChanged<int> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      crossAxisCount: 7,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      children: [
+        for (var i = 0; i < vaultIcons.length; i++)
+          Semantics(
+            button: true,
+            selected: i == selected,
+            label: vaultIcons[i].label,
+            child: Material(
+              color: i == selected ? ink : ink.withValues(alpha: .06),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => onPick(i),
+                child: Icon(vaultIcons[i].icon, color: i == selected ? page : ink),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ColorRow extends StatelessWidget {
+  const _ColorRow({required this.selected, required this.onPick});
+  final int selected;
+  final ValueChanged<int> onPick;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          for (var i = 0; i < vaultColors.length; i++)
+            Semantics(
+              button: true,
+              selected: i == selected,
+              label: vaultColors[i].label,
+              child: GestureDetector(
+                onTap: () => onPick(i),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: vaultColors[i].color,
+                    shape: BoxShape.circle,
+                    border: i == selected ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3) : null,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+}

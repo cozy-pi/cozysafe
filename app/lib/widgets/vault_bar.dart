@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../theme.dart';
@@ -42,6 +43,16 @@ bool revealIconOn() => Prefs.read(revealIconPref) != '0';
 /// not read a password off the list (docs/security.md, secrets on screen).
 const notePreviewsPref = 'note-previews';
 bool notePreviews() => Prefs.read(notePreviewsPref) == '1';
+
+/// Thumbnails blurred in lists, for crowded places (Settings → Display; persona review
+/// 2026-10-21). Opening an item still shows it clearly.
+const blurThumbsPref = 'blur-thumbnails';
+bool blurThumbnails() => Prefs.read(blurThumbsPref) == '1';
+
+/// A thumbnail, blurred when [blurThumbnails] is on.
+Widget privateThumb(Widget image) => blurThumbnails()
+    ? ClipRect(child: ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12), child: image))
+    : image;
 
 /// The section the vault opens on: the last one used (0.1.6 kept it as `vault-kind`).
 VaultSection startSection() {
@@ -320,14 +331,18 @@ class AddColumn extends StatefulWidget {
 
   /// Which way is level with [at] (a point on screen), counting from the button and
   /// round the loop; null when outside the column.
-  static AddWhat? wayAt(Offset at, GlobalKey columnKey, ScrollController scroll, List<(AddWhat, IconData, String)> ways) {
-    final box = columnKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize || !scroll.hasClients) return null;
-    final local = box.globalToLocal(at);
-    if (local.dy < 0 || local.dy > box.size.height) return null;
-    final fromBottom = box.size.height - local.dy + scroll.offset - fade;
-    if (fromBottom < 0) return null;
-    return ways[(fromBottom ~/ row) % ways.length].$1;
+  static AddWhat? wayAt(Offset at) {
+    // Whatever row lies under the point, whatever the scroll and spacing (each row is
+    // tagged with its way, across the whole width).
+    final result = HitTestResult();
+    final view = WidgetsBinding.instance.platformDispatcher.implicitView;
+    if (view == null) return null;
+    WidgetsBinding.instance.hitTestInView(result, at, view.viewId);
+    for (final e in result.path) {
+      final target = e.target;
+      if (target is RenderMetaData && target.metaData is AddWhat) return target.metaData as AddWhat;
+    }
+    return null;
   }
 
   @override
@@ -412,7 +427,6 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
                 clipBehavior: Clip.none,
                 // Bottom: room for the fade, so only ways rolled past it fade out.
                 padding: const EdgeInsets.only(bottom: _fade),
-                itemExtent: AddColumn.row,
                 itemBuilder: (context, i) {
                   final (what, icon, label) = w.ways[i % n];
                   final round = i ~/ n;
@@ -438,23 +452,13 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
                         ),
                       ),
                     );
-                  if (round == 0) return pop;
-                  // From the second round on: dimmer, and a ↻ line where it starts again, so
-                  // nobody takes the repeats for more ways (owner 2026-10-21).
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Opacity(opacity: .55, child: pop),
-                      if (i % n == 0)
-                        Positioned(
-                          left: w.right ? null : 0,
-                          right: w.right ? 0 : null,
-                          // Under the first way of the new round: between it and the last
-                          // way of the round before.
-                          bottom: -9,
-                          child: _LoopMark(key: const ValueKey('add-loop'), right: w.right),
-                        ),
-                    ],
+                  final row = MetaData(metaData: what, behavior: HitTestBehavior.opaque, child: pop);
+                  if (round == 0 || i % n != 0) return row;
+                  // Where the loop starts again: a thin line with room above and below,
+                  // nothing else (owner 2026-10-21: no ↻, no dimmed repeats).
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [row, _LoopMark(key: const ValueKey('add-loop'), right: w.right)],
                   );
                 },
               ),
@@ -603,24 +607,24 @@ class AddTiles extends StatelessWidget {
   }
 }
 
-/// Where the add column starts its loop again: a short faint line with ↻.
+/// Where the add column starts its loop again: a short faint line, room on both sides.
 class _LoopMark extends StatelessWidget {
   const _LoopMark({super.key, required this.right});
   final bool right;
 
   @override
-  Widget build(BuildContext context) {
-    final ink = Theme.of(context).colorScheme.onSurface.withValues(alpha: .35);
-    final line = Container(width: 70, height: 1.5, color: ink);
-    final mark = Icon(Icons.replay_rounded, size: 14, color: ink);
-    return Padding(
-      padding: EdgeInsets.only(left: right ? 0 : (Ui.primary - Ui.bar) / 2 + 8, right: right ? (Ui.primary - Ui.bar) / 2 + 8 : 0),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: right ? [line, const SizedBox(width: 6), mark] : [mark, const SizedBox(width: 6), line],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SizedBox(
+        height: 26,
+        child: Align(
+          alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 96,
+            height: 1.5,
+            margin: EdgeInsets.only(left: right ? 0 : 6, right: right ? 6 : 0, top: 10),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .22),
+          ),
+        ),
+      );
 }
 
 /// Reading, or choosing among many, opens a page: the content sits at eye level, not
@@ -633,3 +637,76 @@ Future<T?> pushPage<T>(BuildContext context, {required String title, required Wi
         body: SafeArea(top: false, child: builder(context)),
       ),
     ));
+
+/// Short content in a card in the middle of the screen, at eye level, the vault dimmed
+/// and blurred behind (owner 2026-10-21: a page for a few lines felt empty, a sheet at
+/// the bottom too far from the eye). A tap outside or × closes. Long scrolling lists
+/// stay pages ([pushPage]); actions for the thumb stay bottom sheets.
+Future<T?> showCard<T>(BuildContext context, {String? title, required WidgetBuilder builder}) => showGeneralDialog<T>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: AppLocalizations.of(context).close,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (context, _, _) {
+        final page = Theme.of(context).scaffoldBackgroundColor;
+        final size = MediaQuery.sizeOf(context);
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                  child: ColoredBox(color: page.withValues(alpha: .55)),
+                ),
+              ),
+            ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 440, maxHeight: size.height * .8),
+                  child: Material(
+                    key: const ValueKey('card'),
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(26),
+                    clipBehavior: Clip.antiAlias,
+                    elevation: 12,
+                    shadowColor: Colors.black45,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(22, 14, 10, 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(title ?? '',
+                                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.2)),
+                              ),
+                              IconButton(
+                                key: const ValueKey('card-close'),
+                                tooltip: AppLocalizations.of(context).close,
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Flexible(child: builder(context)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      transitionBuilder: (context, a, _, child) => FadeTransition(
+        opacity: a,
+        child: ScaleTransition(scale: Tween(begin: .95, end: 1.0).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)), child: child),
+      ),
+    );
