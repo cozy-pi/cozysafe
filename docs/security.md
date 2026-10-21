@@ -39,6 +39,9 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
 - **Note text stays out of lists.** The notes list and search show titles and dates only;
   search says "Found in the text" instead of quoting it. Settings → Display can show it
   (owner check to turn on).
+- **Text files are read in memory.** txt, md, json and other text files open inside the
+  app from decrypted bytes, never written to a file; copying from them is wiped like
+  any copy (`file_view.dart`, `_textView`).
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
   the clipboard after 60 seconds and when the vault locks.

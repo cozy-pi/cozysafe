@@ -207,6 +207,10 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
+        // Dark mode: a soft grey with white text, not a white slab that glares (owner
+        // 2026-10-21). Light mode keeps black with white text.
+        backgroundColor: dark ? tone(.2) : null,
+        foregroundColor: dark ? pen : null,
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: label.copyWith(fontSize: 16, fontWeight: FontWeight.w700),

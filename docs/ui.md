@@ -380,6 +380,11 @@ name) are kept.
 - Notes list: title, then when it was made (time today, weekday this week, else the
   date). The first words show only with Settings → Display → Show note text (0.1.10;
   `docs/security.md`). Sections and groups change with a short fade.
+- **Settings may use colour, softly** (owner 2026-10-21): the storage bar in one colour per
+  kind (photos blue, videos purple, notes yellow, voice orange, files green), the storage
+  card on the groups' surface, Back up now a soft blue tint, switches iOS green when on.
+  No black slab in light mode, no white slab in dark mode; dark-mode filled buttons
+  elsewhere are a soft grey.
 - **Destructive actions are red** (owner 2026-10-21): Delete in the selection bar and
   "Delete all" in Recently deleted use the system red, apart from the safe choice.
 - Deleting a vault uses the opposite brightness (light when the app is dark, and the
