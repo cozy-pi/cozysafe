@@ -467,14 +467,10 @@ void main() {
     }
   }
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
-      act: (t) => tapThumb(t, 2),
-      change: 'Làm lại: ảnh to gần hết bề ngang, nền sau tối và mờ hẳn, tên + ngày dưới ảnh, bốn nút gom trong một thanh kính nhỏ; vuốt xuống để đóng',
-      marks: [() => find.byKey(const ValueKey('quick-look'))]);
+      act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
-      act: (t) => tapThumb(t, 5),
-      change: 'Video cùng kiểu mới với ảnh',
-      marks: [() => find.byKey(const ValueKey('quick-look'))]);
+      act: (t) => tapThumb(t, 5));
   _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
@@ -493,15 +489,29 @@ void main() {
       act: (t) async {
     await t.longPress(find.text('Cuộc họp với luật sư'));
     await t.pumpAndSettle();
-  });
+  },
+      change: 'Bấm giữ = chọn, như ảnh và tệp. Chọn đúng 1 mục thì thanh dưới có thêm Đổi tên',
+      marks: [() => find.text('Đổi tên')]);
   _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
-      act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
+      act: (t) => t.tap(find.text('Cuộc họp với luật sư')),
+      change: 'Chạm = phát luôn (như chạm ảnh là xem). Bỏ hàng nút Gửi/Đổi tên/Xoá hiện dưới dòng');
   _screen('files', 'Tệp', home, section: 'file');
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
     await t.pumpAndSettle();
-  });
+  },
+      change: 'MỚI: chọn đúng 1 tệp thì có Đổi tên (ảnh, video, ghi âm cũng vậy; ghi chú thì không, vì tên ghi chú là dòng đầu)',
+      marks: [() => find.text('Đổi tên')]);
+  _screen('rename', 'Tệp · bấm giữ → Đổi tên', home, section: 'file',
+      act: (t) async {
+    await t.longPress(find.byType(SelectableRow).first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Đổi tên'));
+    await t.pumpAndSettle();
+  },
+      change: 'MỚI: hộp đổi tên, chỉ sửa phần tên, giữ đuôi tệp (.pdf, .jpg…)',
+      marks: [() => find.byKey(const ValueKey('rename-field'))]);
   _screen('tag-files', 'Tệp · trong nhóm "Hộ chiếu"', home, section: 'file', act: (t) => _tapChip(t, 'Hộ chiếu'));
   _screen('tag-notes', 'Ghi chú · cùng nhóm "Hộ chiếu"', home, section: 'file', act: (t) async {
     await _tapChip(t, 'Hộ chiếu');

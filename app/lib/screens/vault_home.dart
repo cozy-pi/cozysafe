@@ -672,25 +672,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   /// A recording's buttons, from its open row: 0 rename, 1 send, 2 delete.
   Future<void> _audioActions(rust.ItemInfo item, int pick) async {
-    final l = AppLocalizations.of(context);
     if (pick == 0) {
-      final text = TextEditingController(text: item.name.replaceAll(RegExp(r'\.m4a$'), ''));
-      final name = await showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l.rename),
-          content: TextField(controller: text, autofocus: true, textCapitalization: TextCapitalization.sentences),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
-            TextButton(onPressed: () => Navigator.pop(context, text.text.trim()), child: Text(l.save)),
-          ],
-        ),
-      );
-      text.dispose();
-      if (name != null && name.isNotEmpty) {
-        await rust.renameItem(id: item.id, name: '$name.m4a');
-        _reload();
-      }
+      await _rename(item);
     } else if (pick == 1) {
       setState(() => _selected
         ..clear()
@@ -702,6 +685,52 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       _reload();
       _trashed([item.id]);
     }
+  }
+
+  /// Rename a photo, video, recording or file: the name is edited, its extension kept
+  /// (owner 2026-10-22: the same Rename everywhere, from a long press). A note has no
+  /// name of its own: its first line is its title.
+  Future<void> _rename(rust.ItemInfo item) async {
+    final l = AppLocalizations.of(context);
+    final dot = item.name.lastIndexOf('.');
+    final ext = dot > 0 && item.name.length - dot <= 6 ? item.name.substring(dot) : '';
+    final text = TextEditingController(text: ext.isEmpty ? item.name : item.name.substring(0, dot));
+    text.selection = TextSelection(baseOffset: 0, extentOffset: text.text.length);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.rename),
+        content: TextField(
+          key: const ValueKey('rename-field'),
+          controller: text,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          onSubmitted: (v) => Navigator.pop(context, v.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
+          TextButton(onPressed: () => Navigator.pop(context, text.text.trim()), child: Text(l.save)),
+        ],
+      ),
+    );
+    text.dispose();
+    if (name == null || name.isEmpty || '$name$ext' == item.name) return;
+    await rust.renameItem(id: item.id, name: '$name$ext');
+    _reload();
+  }
+
+  /// The one selected item, when it can be renamed (not a note, not a group).
+  rust.ItemInfo? get _renamable {
+    if (_selected.length != 1) return null;
+    final it = (_items ?? const <rust.ItemInfo>[]).where((i) => i.id == _selected.first).firstOrNull;
+    return it == null || it.kind == ItemKind.note || it.kind == ItemKind.tag ? null : it;
+  }
+
+  Future<void> _renameSelected() async {
+    final it = _renamable;
+    if (it == null) return;
+    await _rename(it);
+    if (mounted) setState(_selected.clear);
   }
 
   /// "Moved to Recently deleted · Undo".
@@ -1133,7 +1162,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           bottomPad: _bottomRoom,
           onSaved: _reload,
           onRecordingChanged: (v) => setState(() => _recordingNow = v),
-          onOpen: _audioActions,
           selected: _selected,
           onToggleSelect: _toggle,
         ),
@@ -1517,7 +1545,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         // While selecting, the bar gives way to what can be done with the selection
         // (a real bottom bar, so messages float above it).
         bottomNavigationBar: selecting
-            ? _SelectionBar(onSend: _sendSelected, onTag: _tagSelected, onDelete: _deleteSelected)
+            ? _SelectionBar(
+                onSend: _sendSelected,
+                onTag: _tagSelected,
+                onRename: _renamable == null ? null : _renameSelected,
+                onDelete: _deleteSelected)
             : null,
         body: Stack(
           children: [
@@ -1805,9 +1837,11 @@ class _TagSheetState extends State<_TagSheet> {
 
 /// While items are selected the dock gives way to what can be done with them.
 class _SelectionBar extends StatelessWidget {
-  const _SelectionBar({required this.onSend, required this.onTag, required this.onDelete});
+  const _SelectionBar({required this.onSend, required this.onTag, required this.onDelete, this.onRename});
   final VoidCallback onSend;
   final VoidCallback onTag;
+  /// Only with one item selected that has a name of its own.
+  final VoidCallback? onRename;
   final VoidCallback onDelete;
 
   @override
@@ -1844,6 +1878,7 @@ class _SelectionBar extends StatelessWidget {
             children: [
               action(Icons.ios_share, l.sendOut, onSend),
               action(Icons.sell_outlined, l.tagAction, onTag),
+              if (onRename case final rename?) action(Icons.edit_outlined, l.rename, rename),
               action(Icons.delete_outline, l.delete, onDelete, color: recordRed(context)),
             ],
           ),

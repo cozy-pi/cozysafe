@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.29 (2026-10-22)
+
+### Changed
+- One way for every kind of item: a tap opens it (a recording plays), a long press
+  selects. With one item selected, the bar at the bottom has Rename next to Send, Group
+  and Delete. Rename keeps the file's extension. Notes take their name from their first
+  line, so they have no Rename.
+
 ## 0.1.28 (2026-10-22)
 
 ### Changed
