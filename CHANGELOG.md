@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.27 (2026-10-22)
+
+### Fixed
+- iPhone's own bottom bar (Debug, iOS 26): the glass bubble under your finger is no
+  longer cut at the bar's edge, and no longer stays after you lift your finger.
+
 ## 0.1.26 (2026-10-22)
 
 ### Changed

@@ -1566,9 +1566,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               // iOS 26: the system's own bar (Liquid Glass), centred on the same line.
               if (nativeBarOn())
                 Positioned(
-                  left: 10,
-                  right: 10,
-                  bottom: bottom + Ui.edge - 4,
+                  left: 0,
+                  right: 0,
+                  bottom: bottom + Ui.edge - 4 - NativeVaultBar.marginBottom,
                   child: NativeVaultBar(
                     section: _section,
                     sections: sections,
