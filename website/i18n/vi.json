@@ -65,7 +65,8 @@
   "c5h": "Kín đáo trên màn hình",
   "c5p": "Mật khẩu và Secret Key bị che cho tới khi bạn bấm Xem, chữ đã sao chép bị xoá sau 60 giây, và két tự khoá ngay khi bạn rời app.",
   "c6h": "Sao lưu do bạn giữ",
-  "c6p": "Sao lưu cả két ra một tệp đã mã hoá, khôi phục trên máy mới bằng Bộ khẩn cấp. Không gì được gửi về máy chủ của chúng tôi; chúng tôi không có máy chủ nào."
+  "c6p": "Sao lưu cả két ra một tệp đã mã hoá, khôi phục trên máy mới bằng Bộ khẩn cấp. Không gì được gửi về máy chủ của chúng tôi; chúng tôi không có máy chủ nào.",
+  "f_fb": "Góp ý"
  },
  "privacy": {
   "title": "Chính sách quyền riêng tư · Cozy Safe",
@@ -122,5 +123,28 @@
     ]
    ]
   ]
+ },
+ "feedback": {
+  "title": "Góp ý · Cozy Safe",
+  "h1": "Gửi góp ý",
+  "intro": "Ý tưởng, lỗi, chỗ nào khó hiểu: chúng tôi đọc mọi tin nhắn.",
+  "email_h": "Qua email",
+  "email_p": "Viết cho chúng tôi bằng ngôn ngữ nào cũng được.",
+  "copy": "Sao chép địa chỉ",
+  "copied": "Đã sao chép",
+  "gh_h": "Báo lỗi trên GitHub",
+  "gh_p": "Nếu có tài khoản GitHub, bạn có thể mở một báo lỗi công khai.",
+  "gh_link": "Mở báo lỗi",
+  "tips_h": "Điều giúp chúng tôi",
+  "tips": [
+   "Phiên bản app (Cài đặt → Thông tin) và loại máy.",
+   "Bạn đã làm gì, mong đợi gì, và điều gì đã xảy ra.",
+   "Ảnh chụp màn hình không có thông tin riêng tư."
+  ],
+  "shot_h": "Chụp màn hình",
+  "shot_p": "Cozy Safe chặn chụp màn hình theo mặc định. Muốn chụp, hãy mở két, vào Cài đặt → Bảo mật và tắt “Chặn chụp màn hình” (app sẽ hỏi Face ID, vân tay hoặc mật mã máy).",
+  "shot_after": "Chụp xong nhớ bật lại, và xem kỹ ảnh không có thông tin riêng tư.",
+  "never": "Đừng bao giờ gửi mật khẩu, Secret Key hay bất cứ thứ gì trong két: chúng tôi không bao giờ cần chúng.",
+  "back": "Cozy Safe"
  }
 }

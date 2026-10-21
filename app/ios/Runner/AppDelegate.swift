@@ -17,6 +17,12 @@ import UniformTypeIdentifiers
   /// can see it and hide its content for as long as it lasts).
   private var captureCovers: [ObjectIdentifier: UIView] = [:]
   private var privacyChannel: FlutterMethodChannel?
+  /// "Block screenshots" (Settings, on by default). iOS has no switch for it; like banking
+  /// and dating apps, the window's layer is moved inside a secure text field's, which the
+  /// system leaves out of screenshots and recordings (they come out black). Undocumented:
+  /// if it ever stops working, the capture cover and the screenshot warning still stand.
+  private var secureOn = true
+  private var secureFields: [ObjectIdentifier: UITextField] = [:]
 
   override func application(
     _ application: UIApplication,
@@ -77,6 +83,15 @@ import UniformTypeIdentifiers
         if call.method == "suspendCover" {
           self?.coverSuspended = (call.arguments as? Bool) ?? false
           result(nil)
+        } else if call.method == "openUrl" {
+          // Our own pages only (lib/links.dart); the system opens the browser.
+          guard let text = call.arguments as? String, let url = URL(string: text),
+                url.scheme == "https", url.host == "safe.cozypi.com" else { return result(false) }
+          UIApplication.shared.open(url) { ok in result(ok) }
+        } else if call.method == "setSecure" {
+          self?.secureOn = (call.arguments as? Bool) ?? true
+          self?.applySecure()
+          result(nil)
         } else {
           result(FlutterMethodNotImplemented)
         }
@@ -111,7 +126,35 @@ import UniformTypeIdentifiers
   @objc private func sceneDidActivate(_ note: Notification) {
     guard let scene = note.object as? UIWindowScene else { return }
     covers.removeValue(forKey: ObjectIdentifier(scene))?.removeFromSuperview()
+    applySecure() // the window exists by now
     captureChanged() // recording may have started while the app was away
+  }
+
+  /// Put each app window under a secure text field's layer once, then switch the field's
+  /// secure entry on or off: off, screenshots work again (for a bug report).
+  private func applySecure() {
+    for case let scene as UIWindowScene in UIApplication.shared.connectedScenes {
+      guard let window = scene.windows.first(where: { $0.rootViewController is FlutterViewController }) ?? scene.windows.first
+      else { continue }
+      let key = ObjectIdentifier(window)
+      if let field = secureFields[key] {
+        field.isSecureTextEntry = secureOn
+        continue
+      }
+      guard secureOn, let host = window.layer.superlayer else { continue }
+      let field = UITextField()
+      field.isSecureTextEntry = true
+      field.isUserInteractionEnabled = false
+      window.addSubview(field)
+      host.addSublayer(field.layer)
+      // The field's own content layer is the last sublayer on current iOS.
+      guard let secure = field.layer.sublayers?.last else {
+        field.removeFromSuperview()
+        continue
+      }
+      secure.addSublayer(window.layer)
+      secureFields[key] = field
+    }
   }
 
   @objc private func captureChanged() {

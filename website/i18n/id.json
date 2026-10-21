@@ -65,7 +65,8 @@
   "c5h": "Tetap tertutup di layar",
   "c5p": "Kata sandi dan Secret Key tetap tersembunyi sampai Anda mengetuk Tampilkan, teks yang disalin dihapus setelah 60 detik, dan brankas langsung terkunci begitu Anda meninggalkan aplikasi.",
   "c6h": "Cadangan di tangan Anda",
-  "c6p": "Cadangkan seluruh brankas ke satu file terenkripsi, lalu pulihkan di perangkat baru dengan Kit Darurat Anda. Tidak ada yang dikirim ke server kami; kami memang tidak punya server."
+  "c6p": "Cadangkan seluruh brankas ke satu file terenkripsi, lalu pulihkan di perangkat baru dengan Kit Darurat Anda. Tidak ada yang dikirim ke server kami; kami memang tidak punya server.",
+  "f_fb": "Masukan"
  },
  "privacy": {
   "title": "Kebijakan privasi · Cozy Safe",
@@ -122,5 +123,28 @@
     ]
    ]
   ]
+ },
+ "feedback": {
+  "title": "Masukan · Cozy Safe",
+  "h1": "Kirim masukan",
+  "intro": "Ide, masalah, hal yang membingungkan: kami membaca setiap pesan.",
+  "email_h": "Lewat email",
+  "email_p": "Tulis kepada kami dalam bahasa apa pun.",
+  "copy": "Salin alamat",
+  "copied": "Tersalin",
+  "gh_h": "Laporkan bug di GitHub",
+  "gh_p": "Jika punya akun GitHub, Anda bisa membuka laporan publik.",
+  "gh_link": "Buka laporan",
+  "tips_h": "Yang membantu kami",
+  "tips": [
+   "Versi aplikasi (Pengaturan → Tentang) dan perangkat Anda.",
+   "Apa yang Anda lakukan, apa yang diharapkan, dan apa yang terjadi.",
+   "Tangkapan layar tanpa hal pribadi."
+  ],
+  "shot_h": "Mengambil tangkapan layar",
+  "shot_p": "Cozy Safe memblokir tangkapan layar secara bawaan. Untuk mengambilnya, buka brankas, masuk ke Pengaturan → Keamanan, lalu matikan “Blokir tangkapan layar” (akan diminta Face ID, sidik jari, atau kode perangkat).",
+  "shot_after": "Nyalakan lagi setelah selesai, dan pastikan tangkapan layar tidak memuat hal pribadi.",
+  "never": "Jangan pernah mengirim kata sandi, Secret Key, atau isi brankas Anda: kami tidak pernah membutuhkannya.",
+  "back": "Cozy Safe"
  }
 }

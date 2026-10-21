@@ -350,7 +350,7 @@
   "sec4Title": "Niente va su internet",
   "sec4Body": "Questa versione non si collega mai alla rete: nessun account, nessuna pubblicità, nessuna analisi, nessun report sugli arresti anomali. Su Android e Mac, il sistema non concede all'app il permesso di rete. Su iPhone e sugli altri computer, è l'app stessa a bloccare ogni connessione, e ogni versione viene verificata automaticamente. Nessun server conserva una copia o una password, quindi nessuno può nemmeno recuperarli per te: se dimentichi la password di backup, o perdi sia il telefono sia il Kit di emergenza, i dati sono persi.",
   "sec5Title": "Mentre la cassaforte è aperta",
-  "sec5Body": "La cassaforte si blocca appena esci dall'app e dopo qualche minuto senza tocchi. Gli elenchi mostrano solo i titoli delle note, i segreti sono mascherati, il testo copiato viene cancellato dopo 60 secondi. Android blocca screenshot e registrazioni; iPhone copre la cassaforte mentre lo schermo viene registrato.",
+  "sec5Body": "La cassaforte si blocca appena esci dall'app e dopo qualche minuto senza tocchi. Gli elenchi mostrano solo i titoli delle note, i segreti sono mascherati, il testo copiato viene cancellato dopo 60 secondi. Screenshot e registrazioni escono neri (su iPhone con una tecnica iOS non ufficiale).",
   "sec6Title": "Backup",
   "sec6Body": "Un backup è un unico file cifrato che puoi conservare ovunque. Per aprirlo su un nuovo telefono servono sia la password di backup sia la Secret Key del Kit di emergenza: conserva il kit in un posto sicuro, lontano dal telefono.",
   "secTech": "Dettagli tecnici",
@@ -382,5 +382,8 @@
   "searchAll": "Tutto",
   "searchNothingFor": "Nessun risultato per “{query}”",
   "searchNothingHint": "Prova una parola più corta. La ricerca include i nomi e il testo delle note, gli accenti non contano.",
-  "modeHome": "Panoramica"
+  "modeHome": "Panoramica",
+  "blockScreenshotsNoteIos": "Screenshot e registrazioni dello schermo escono neri. Disattiva per fare uno screenshot da allegare a una segnalazione.",
+  "feedback": "Feedback",
+  "feedbackNote": "Apre safe.cozypi.com nel browser"
 }

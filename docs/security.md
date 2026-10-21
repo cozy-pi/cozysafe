@@ -53,9 +53,12 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
 - **Thumbnails are blurred** in lists by default, for crowded places (Settings → Display);
   opening an item shows it clearly. Turning it off asks for the owner.
 - **Screen capture.** Android: screenshots and recordings show black (FLAG_SECURE, on by
-  default). iOS cannot block them: while the screen is recorded or mirrored the app is
-  covered (page colour and dial), and after a screenshot the app warns that it is in
-  Photos, unencrypted.
+  default). iOS has no official switch: the app window's layer sits inside a secure text
+  field's layer (AppDelegate `applySecure`, same switch, on by default), which iOS leaves
+  out of screenshots and recordings, as banking and dating apps do. It is undocumented,
+  so the older guards stay: while the screen is recorded or mirrored the app is covered
+  (page colour and dial), and after a screenshot the app warns that it is in Photos,
+  unencrypted. Turning the switch off (owner check) allows screenshots for bug reports.
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
   the clipboard after 60 seconds and when the vault locks.

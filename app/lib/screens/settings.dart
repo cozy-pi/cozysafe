@@ -6,6 +6,7 @@ import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../appearance.dart';
 import '../language.dart';
+import '../links.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -35,8 +36,12 @@ abstract final class Settings {
 
   static set autoLockMinutes(int m) => Prefs.write(_autoLock, '$m');
 
-  /// Android only: keep the vault out of screenshots and the recent-apps preview.
+  /// Keep the vault out of screenshots and recordings: Android FLAG_SECURE (and the
+  /// recent-apps preview), iPhone a secure layer (AppDelegate.swift). On by default.
   static bool get blockScreenshots => Prefs.read(_secure) != '0';
+
+  /// Mockups: show the iPhone row on any platform.
+  static bool debugIOS = false;
 
   static const _privacy = MethodChannel('cozysafe/privacy');
 
@@ -47,7 +52,7 @@ abstract final class Settings {
 
   /// Called at start-up: the window starts protected, this turns it off if asked.
   static Future<void> apply() async {
-    if (!Device.android) return;
+    if (!Device.android && !Device.iOS) return;
     try {
       await _privacy.invokeMethod<void>('setSecure', blockScreenshots);
     } catch (_) {}
@@ -455,12 +460,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: l.securityShort,
               onTap: _showSecurity,
             ),
-            if (Device.android)
+            if (Device.android || Device.iOS || Settings.debugIOS)
               _Row(
                 icon: Icons.visibility_off_outlined,
               color: _Mau.hong,
                 title: l.blockScreenshots,
-                subtitle: l.blockScreenshotsNote,
+                subtitle: Device.iOS || Settings.debugIOS ? l.blockScreenshotsNoteIos : l.blockScreenshotsNote,
                 trailing: _Switch(
                   value: _secure,
                   onChanged: (v) => _guarded(() async {
@@ -534,6 +539,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: buildCommit.isEmpty ? l.aboutLocal : buildCommitShort,
                 ),
                 _Row(icon: Icons.gavel_rounded, color: _Mau.xam, title: l.aboutLicense, value: 'GPL-3.0'),
+                // Feedback lives on the website; the app only opens it (owner 2026-10-21).
+                _Row(
+                  key: const ValueKey('feedback-row'),
+                  icon: Icons.chat_bubble_outline_rounded,
+                  color: _Mau.xanh,
+                  title: l.feedback,
+                  subtitle: Links.canOpen ? l.feedbackNote : Links.feedback(_langCode(context)),
+                  onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
+                ),
                 if (debugModeOn())
                   _Row(
                     key: const ValueKey('debug-row'),
@@ -865,4 +879,10 @@ class _LanguageList extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The app's language as the arb code ("zh_Hant" for Traditional Chinese).
+String _langCode(BuildContext context) {
+  final l = Localizations.localeOf(context);
+  return l.scriptCode == 'Hant' ? 'zh_Hant' : l.languageCode;
 }

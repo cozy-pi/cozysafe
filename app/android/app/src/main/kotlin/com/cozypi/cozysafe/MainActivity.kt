@@ -2,6 +2,7 @@ package com.cozypi.cozysafe
 
 import android.app.LocaleManager
 import android.content.ContentUris
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -54,7 +55,17 @@ class MainActivity : FlutterFragmentActivity() {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         MethodChannel(messenger, "cozysafe/privacy").setMethodCallHandler { call, result ->
-            if (call.method == "setSecure") {
+            if (call.method == "openUrl") {
+                // Our own pages only (lib/links.dart); the system opens the browser.
+                val uri = Uri.parse(call.arguments as? String ?: "")
+                if (uri.scheme != "https" || uri.host != "safe.cozypi.com") return@setMethodCallHandler result.success(false)
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.success(false)
+                }
+            } else if (call.method == "setSecure") {
                 if (call.arguments == true) {
                     window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 } else {

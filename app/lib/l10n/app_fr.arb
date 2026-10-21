@@ -350,7 +350,7 @@
   "sec4Title": "Rien ne part sur Internet",
   "sec4Body": "Cette version ne se connecte jamais au réseau : ni compte, ni publicité, ni statistiques d'utilisation, ni rapports de plantage. Sur Android et Mac, le système ne donne à l'app aucune autorisation réseau. Sur iPhone et les autres ordinateurs, l'app bloque elle-même toute connexion, et chaque version est vérifiée automatiquement. Aucun serveur ne détient de copie ni de mot de passe, donc personne ne peut non plus les récupérer pour vous : oubliez le mot de passe de sauvegarde, ou perdez à la fois le téléphone et le kit d'urgence, et les données sont perdues.",
   "sec5Title": "Pendant que le coffre est ouvert",
-  "sec5Body": "Le coffre se verrouille dès que vous quittez l'app et après quelques minutes sans interaction. Les listes n'affichent que les titres des notes, les secrets sont masqués et le texte copié est effacé après 60 secondes. Android bloque les captures et enregistrements d'écran ; l'iPhone masque le coffre pendant l'enregistrement de l'écran.",
+  "sec5Body": "Le coffre se verrouille dès que vous quittez l'app et après quelques minutes sans interaction. Les listes n'affichent que les titres des notes, les secrets sont masqués et le texte copié est effacé après 60 secondes. Les captures et enregistrements d'écran sortent noirs (sur iPhone, grâce à une technique iOS non officielle).",
   "sec6Title": "Sauvegardes",
   "sec6Body": "Une sauvegarde est un seul fichier chiffré que vous pouvez conserver n'importe où. Pour l'ouvrir sur un nouveau téléphone, il faut le mot de passe de sauvegarde et la Secret Key du kit d'urgence : rangez le kit en lieu sûr, loin de votre téléphone.",
   "secTech": "Détails techniques",
@@ -382,5 +382,8 @@
   "searchAll": "Tout",
   "searchNothingFor": "Aucun résultat pour « {query} »",
   "searchNothingHint": "Essayez un mot plus court. La recherche porte sur les noms et le texte des notes, sans tenir compte des accents.",
-  "modeHome": "Aperçu"
+  "modeHome": "Aperçu",
+  "blockScreenshotsNoteIos": "Les captures et enregistrements d'écran sortent noirs. Désactivez pour faire une capture pour signaler un bug.",
+  "feedback": "Donner votre avis",
+  "feedbackNote": "Ouvre safe.cozypi.com dans le navigateur"
 }

@@ -65,7 +65,8 @@
   "c5h": "Diskret auf dem Bildschirm",
   "c5p": "Passwörter und der Secret Key bleiben verborgen, bis Sie auf Anzeigen tippen, kopierter Text wird nach 60 Sekunden gelöscht, und der Tresor sperrt sich, sobald Sie die App verlassen.",
   "c6h": "Backups in Ihrer Hand",
-  "c6p": "Sichern Sie den ganzen Tresor in einer verschlüsselten Datei und stellen Sie ihn mit Ihrem Notfall-Kit auf einem neuen Gerät wieder her. Nichts geht an unsere Server; wir haben keine."
+  "c6p": "Sichern Sie den ganzen Tresor in einer verschlüsselten Datei und stellen Sie ihn mit Ihrem Notfall-Kit auf einem neuen Gerät wieder her. Nichts geht an unsere Server; wir haben keine.",
+  "f_fb": "Feedback"
  },
  "privacy": {
   "title": "Datenschutzerklärung · Cozy Safe",
@@ -122,5 +123,28 @@
     ]
    ]
   ]
+ },
+ "feedback": {
+  "title": "Feedback · Cozy Safe",
+  "h1": "Feedback senden",
+  "intro": "Ideen, Probleme, Unklares: Wir lesen jede Nachricht.",
+  "email_h": "Per E-Mail",
+  "email_p": "Schreiben Sie uns in jeder Sprache.",
+  "copy": "Adresse kopieren",
+  "copied": "Kopiert",
+  "gh_h": "Fehler auf GitHub melden",
+  "gh_p": "Mit einem GitHub-Konto können Sie ein öffentliches Issue eröffnen.",
+  "gh_link": "Issue eröffnen",
+  "tips_h": "Was uns hilft",
+  "tips": [
+   "Die App-Version (Einstellungen → Info) und Ihr Gerät.",
+   "Was Sie getan haben, was Sie erwartet haben und was passiert ist.",
+   "Ein Bildschirmfoto ohne Privates."
+  ],
+  "shot_h": "Ein Bildschirmfoto machen",
+  "shot_p": "Cozy Safe blockiert Bildschirmfotos standardmäßig. Öffnen Sie dafür Ihren Tresor, gehen Sie zu Einstellungen → Sicherheit und schalten Sie „Screenshots blockieren“ aus (Face ID, Fingerabdruck oder Gerätecode wird abgefragt).",
+  "shot_after": "Schalten Sie es danach wieder ein und prüfen Sie, dass das Bild nichts Privates zeigt.",
+  "never": "Senden Sie nie Ihr Passwort, Ihren Secret Key oder Inhalte aus dem Tresor: Wir brauchen sie nie.",
+  "back": "Cozy Safe"
  }
 }

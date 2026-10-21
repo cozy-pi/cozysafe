@@ -18,7 +18,7 @@ Cozy Safe does about it; the details are in the linked documents.
 |---|---|
 | **someone copies your files or your backup** | encrypts everything on the device before it is written, with a key that needs both your password and a Secret Key kept in the device's keystore ([how](#how-your-data-is-protected)) |
 | **someone picks up your phone while a vault is open** | locks the vault as soon as the app leaves the screen (60 seconds of grace only when the app itself opened the share sheet or a picker), and after a few minutes without a touch (2 by default) |
-| **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Secret Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher and while the screen is being recorded, and warns after a screenshot (iPhone); blocks screenshots and screen recording (Android) |
+| **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Secret Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher and while the screen is being recorded, and warns after a screenshot (iPhone); blocks screenshots and screen recording (Android, and iPhone through a secure layer) |
 | **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing the PIN or auto-lock, backups, the Emergency Kit, showing note text, deleting a vault ([rules](docs/security.md)) |
 | **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; each vault has its own PIN and only its icon and colour tell it apart |
 | **something is left behind on the device** | encodes camera photos in memory (never the photo library, no location data); videos, voice memos and files being played or sent exist only as copies in the app's private temporary folder, deleted when done, on lock and at every start |
@@ -61,8 +61,9 @@ How it stays that way:
 
 Honest limits: there is **no recovery** if you lose your password, or both the device and
 the Emergency Kit. iPhone, Windows and Linux cannot take the network away from one app,
-so there the offline guarantee rests on the app's own checks. iPhone does not let apps
-block screenshots. The code has not had an independent security audit yet, there is no
+so there the offline guarantee rests on the app's own checks. On iPhone, blocking
+screenshots relies on an unofficial iOS technique (a secure text field's layer) that
+Apple could change. The code has not had an independent security audit yet, there is no
 fuzzing yet, and one maintainer reviews the changes; reports are welcome at
 support@cozypi.com.
 

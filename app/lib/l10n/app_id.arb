@@ -350,7 +350,7 @@
   "sec4Title": "Tidak ada yang dikirim ke internet",
   "sec4Body": "Versi ini tidak pernah terhubung ke jaringan: tanpa akun, tanpa iklan, tanpa analitik, tanpa laporan crash. Di Android dan Mac, sistem tidak memberi aplikasi izin jaringan. Di iPhone dan komputer lain, aplikasi sendiri yang memblokir setiap koneksi, dan setiap rilis diperiksa secara otomatis. Tidak ada server yang menyimpan salinan atau kata sandi, jadi tidak ada yang bisa memulihkannya untuk Anda: jika Anda lupa kata sandi cadangan, atau kehilangan ponsel sekaligus Kit Darurat, datanya hilang.",
   "sec5Title": "Selama brankas terbuka",
-  "sec5Body": "Brankas terkunci begitu Anda meninggalkan aplikasi dan setelah beberapa menit tanpa sentuhan. Daftar hanya menampilkan judul catatan, rahasia disamarkan, teks yang disalin dihapus setelah 60 detik. Android memblokir tangkapan dan rekaman layar; iPhone menutupi brankas saat layar sedang direkam.",
+  "sec5Body": "Brankas terkunci begitu Anda meninggalkan aplikasi dan setelah beberapa menit tanpa sentuhan. Daftar hanya menampilkan judul catatan, rahasia disamarkan, teks yang disalin dihapus setelah 60 detik. Tangkapan dan rekaman layar jadi hitam (di iPhone lewat teknik iOS yang tidak resmi).",
   "sec6Title": "Cadangan",
   "sec6Body": "Cadangan adalah satu file terenkripsi yang bisa Anda simpan di mana saja. Membukanya di ponsel baru memerlukan kata sandi cadangan dan Secret Key dari Kit Darurat: simpan kit di tempat aman, jauh dari ponsel Anda.",
   "secTech": "Detail teknis",
@@ -382,5 +382,8 @@
   "searchAll": "Semua",
   "searchNothingFor": "Tidak ada hasil untuk “{query}”",
   "searchNothingHint": "Coba kata yang lebih pendek. Pencarian mencakup nama dan isi catatan, tanda aksen tidak berpengaruh.",
-  "modeHome": "Ringkasan"
+  "modeHome": "Ringkasan",
+  "blockScreenshotsNoteIos": "Tangkapan dan rekaman layar jadi hitam. Matikan bila perlu tangkapan layar untuk melaporkan bug.",
+  "feedback": "Masukan",
+  "feedbackNote": "Membuka safe.cozypi.com di browser"
 }

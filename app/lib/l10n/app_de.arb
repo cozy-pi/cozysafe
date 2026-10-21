@@ -350,7 +350,7 @@
   "sec4Title": "Nichts geht ins Internet",
   "sec4Body": "Diese Version verbindet sich nie mit dem Netzwerk: kein Konto, keine Werbung, keine Analyse, keine Absturzberichte. Unter Android und auf dem Mac gibt das System der App keine Netzwerkberechtigung. Auf dem iPhone und anderen Computern blockiert die App jede Verbindung selbst, und jede Version wird automatisch geprüft. Kein Server hat eine Kopie oder ein Passwort, daher kann auch niemand etwas für Sie wiederherstellen: Vergessen Sie das Backup-Passwort oder verlieren Sie sowohl das Telefon als auch das Notfall-Kit, sind die Daten weg.",
   "sec5Title": "Während der Tresor offen ist",
-  "sec5Body": "Der Tresor sperrt sich, sobald Sie die App verlassen, und nach einigen Minuten ohne Berührung. Listen zeigen nur Notiztitel, Geheimnisse sind verdeckt, kopierter Text wird nach 60 Sekunden gelöscht. Android blockiert Screenshots und Bildschirmaufnahmen; das iPhone verdeckt den Tresor, während der Bildschirm aufgezeichnet wird.",
+  "sec5Body": "Der Tresor sperrt sich, sobald Sie die App verlassen, und nach einigen Minuten ohne Berührung. Listen zeigen nur Notiztitel, Geheimnisse sind verdeckt, kopierter Text wird nach 60 Sekunden gelöscht. Screenshots und Bildschirmaufnahmen werden schwarz (auf dem iPhone mit einem nicht offiziellen iOS-Weg).",
   "sec6Title": "Backups",
   "sec6Body": "Ein Backup ist eine verschlüsselte Datei, die Sie überall aufbewahren können. Zum Öffnen auf einem neuen Telefon brauchen Sie das Backup-Passwort und den Secret Key aus dem Notfall-Kit: Bewahren Sie das Kit sicher und getrennt von Ihrem Telefon auf.",
   "secTech": "Technische Details",
@@ -382,5 +382,8 @@
   "searchAll": "Alle",
   "searchNothingFor": "Keine Ergebnisse für „{query}“",
   "searchNothingHint": "Versuchen Sie ein kürzeres Wort. Gesucht wird in Namen und im Text von Notizen, Akzente spielen keine Rolle.",
-  "modeHome": "Übersicht"
+  "modeHome": "Übersicht",
+  "blockScreenshotsNoteIos": "Bildschirmfotos und -aufnahmen werden schwarz. Ausschalten, um für eine Fehlermeldung ein Bildschirmfoto zu machen.",
+  "feedback": "Feedback",
+  "feedbackNote": "Öffnet safe.cozypi.com im Browser"
 }
