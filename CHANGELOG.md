@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.24 (2026-10-21)
+
+### Added
+- iPhone: "Block screenshots" (Settings → Security, on by default) now works on iPhone
+  too: screenshots and screen recordings come out black. Turn it off when you need a
+  screenshot for a bug report.
+- Settings → About → Feedback opens safe.cozypi.com/feedback in your browser, in the
+  app's language.
+
 ## 0.1.23 (2026-10-21)
 
 ### Changed

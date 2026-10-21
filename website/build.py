@@ -38,7 +38,7 @@ IDS = [c for c, _ in LANGS]
 HTML_LANG = {'pt': 'pt-BR', 'zh': 'zh-CN'}  # hreflang / <html lang>
 # Public URL of each page. Cloudflare serves privacy.html at /privacy (it 307s the .html form),
 # so canonical, hreflang and the sitemap use the final address.
-PAGES = {'home': '', 'privacy': 'privacy'}
+PAGES = {'home': '', 'privacy': 'privacy', 'feedback': 'feedback'}
 
 
 def load():
@@ -262,6 +262,7 @@ def page(lang, texts, css):
     <a href="{REPO}">{t['f_src']}</a>
     <span>{t['f_lic']}</span>
     <a href="privacy">{t['f_priv']}</a>
+    <a href="feedback">{t['f_fb']}</a>
     <a href="mailto:support@cozypi.com">support@cozypi.com</a>
   </div>
 </footer>
@@ -310,6 +311,48 @@ def privacy(lang, texts, css):
 '''
 
 
+def feedback(lang, texts, css):
+    """Where people send feedback. The app links here and does nothing else (owner
+    2026-10-21): the ways to reach us can change without an app release."""
+    t = texts[lang]['feedback']
+    root = '' if lang == 'en' else '../'
+    issue = f'{REPO}/issues/new'
+    tips = ''.join(f'<li>{x}</li>' for x in t['tips'])
+    return f'''<!doctype html>
+<html lang="{HTML_LANG.get(lang, lang)}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{t['title']}</title>
+{head_common(lang, 'feedback', css)}
+<style>.doc{{max-width:720px;margin:0 auto;padding:40px 20px 80px}}.doc h1{{font-size:40px;letter-spacing:-.02em;margin:24px 0 8px;hyphens:auto;overflow-wrap:break-word}}.doc h2{{font-size:20px;margin:0 0 6px}}.doc p{{margin:0 0 10px;color:var(--ink)}}.doc .lead{{color:var(--muted);font-size:18px;margin-bottom:24px}}.doc .bar{{display:flex;align-items:center;gap:12px}}.doc .home{{display:inline-flex;align-items:center;gap:8px;font-weight:700;text-decoration:none}}.doc .home img{{width:28px;height:28px;border-radius:8px}}.way{{border:1px solid var(--line,rgba(127,127,127,.3));border-radius:16px;padding:18px 20px;margin:14px 0}}.addr{{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}}.addr code{{font-size:17px;font-weight:700;user-select:all}}.addr button,.way .go{{font:inherit;font-weight:700;border-radius:999px;padding:8px 16px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;text-decoration:none;display:inline-block}}.doc ul{{margin:6px 0 0;padding-left:20px}}.doc li{{margin:4px 0}}.warn{{font-weight:600}}</style>
+</head>
+<body>
+<main class="doc">
+<div class="bar"><a class="home" href="./"><img src="{root}icon-512.png" alt="" width="28" height="28">{t['back']}</a>{lang_menu(lang, 'feedback', texts[lang]['lang_label'])}</div>
+<h1>{t['h1']}</h1>
+<p class="lead">{t['intro']}</p>
+<section class="way"><h2>{t['email_h']}</h2><p>{t['email_p']}</p>
+<div class="addr"><code id="mail">support@cozypi.com</code><button type="button" id="copy" data-done="{t['copied']}">{t['copy']}</button></div></section>
+<section class="way"><h2>{t['gh_h']}</h2><p>{t['gh_p']}</p><a class="go" href="{issue}" rel="noopener">{t['gh_link']}</a></section>
+<section class="way"><h2>{t['shot_h']}</h2><p>{t['shot_p']}</p><p>{t['shot_after']}</p></section>
+<section class="way"><h2>{t['tips_h']}</h2><ul>{tips}</ul></section>
+<p class="warn">{t['never']}</p>
+</main>
+<script>
+(function () {{
+  var b = document.getElementById('copy');
+  b.addEventListener('click', function () {{
+    var done = function () {{ var old = b.textContent; b.textContent = b.dataset.done; setTimeout(function () {{ b.textContent = old; }}, 1500); }};
+    if (navigator.clipboard) navigator.clipboard.writeText('support@cozypi.com').then(done, function () {{}});
+  }});
+}})();
+</script>
+</body>
+</html>
+'''
+
+
 def sitemap():
     urls = ''
     for pg in PAGES:
@@ -330,5 +373,6 @@ if __name__ == '__main__':
         os.makedirs(d, exist_ok=True)
         open(os.path.join(d, 'index.html'), 'w', encoding='utf-8').write(page(c, texts, css))
         open(os.path.join(d, 'privacy.html'), 'w', encoding='utf-8').write(privacy(c, texts, css))
+        open(os.path.join(d, 'feedback.html'), 'w', encoding='utf-8').write(feedback(c, texts, css))
     open(os.path.join(pub, 'sitemap.xml'), 'w').write(sitemap())
     print(f'built {len(IDS)} languages x {len(PAGES)} pages + sitemap.xml')

@@ -65,7 +65,8 @@
   "c5h": "Private on screen",
   "c5p": "Passwords and the Secret Key stay hidden until you tap Show, copied text is wiped after 60 seconds, and the vault locks as soon as you leave the app.",
   "c6h": "Backups you control",
-  "c6p": "Back up the whole vault to one encrypted file and restore it on a new device with your Emergency Kit. Nothing goes to our servers; we have none."
+  "c6p": "Back up the whole vault to one encrypted file and restore it on a new device with your Emergency Kit. Nothing goes to our servers; we have none.",
+  "f_fb": "Feedback"
  },
  "privacy": {
   "title": "Privacy policy · Cozy Safe",
@@ -122,5 +123,28 @@
     ]
    ]
   ]
+ },
+ "feedback": {
+  "title": "Feedback · Cozy Safe",
+  "h1": "Send feedback",
+  "intro": "Ideas, problems, anything that confused you: we read every message.",
+  "email_h": "By email",
+  "email_p": "Write to us in any language.",
+  "copy": "Copy address",
+  "copied": "Copied",
+  "gh_h": "Report a bug on GitHub",
+  "gh_p": "If you have a GitHub account, you can open a public issue.",
+  "gh_link": "Open an issue",
+  "tips_h": "What helps us",
+  "tips": [
+   "Your app version (Settings → About) and your device.",
+   "What you did, what you expected, and what happened instead.",
+   "A screenshot without anything private in it."
+  ],
+  "shot_h": "Taking a screenshot",
+  "shot_p": "Cozy Safe blocks screenshots by default. To take one, open your vault, go to Settings → Security and turn off “Block screenshots” (it asks for Face ID, fingerprint or the phone's passcode).",
+  "shot_after": "Turn it back on when you are done, and check the screenshot shows nothing private.",
+  "never": "Never send your password, your Secret Key or anything from inside your vault: we never need them.",
+  "back": "Cozy Safe"
  }
 }

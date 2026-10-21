@@ -65,7 +65,8 @@
   "c5h": "Ekranda gizli",
   "c5p": "Parolalar ve Secret Key siz Göster'e dokunana kadar gizli kalır, kopyalanan metin 60 saniye sonra silinir ve uygulamadan çıktığınız anda kasa kilitlenir.",
   "c6h": "Kontrolü sizde olan yedekler",
-  "c6p": "Kasanın tamamını tek bir şifreli dosyaya yedekleyin ve Acil Durum Kitinizle yeni bir cihaza geri yükleyin. Sunucularımıza hiçbir şey gitmez; zaten sunucumuz yok."
+  "c6p": "Kasanın tamamını tek bir şifreli dosyaya yedekleyin ve Acil Durum Kitinizle yeni bir cihaza geri yükleyin. Sunucularımıza hiçbir şey gitmez; zaten sunucumuz yok.",
+  "f_fb": "Geri bildirim"
  },
  "privacy": {
   "title": "Gizlilik politikası · Cozy Safe",
@@ -122,5 +123,28 @@
     ]
    ]
   ]
+ },
+ "feedback": {
+  "title": "Geri bildirim · Cozy Safe",
+  "h1": "Geri bildirim gönder",
+  "intro": "Fikirler, sorunlar, kafanızı karıştıran şeyler: her mesajı okuyoruz.",
+  "email_h": "E-postayla",
+  "email_p": "Bize istediğiniz dilde yazın.",
+  "copy": "Adresi kopyala",
+  "copied": "Kopyalandı",
+  "gh_h": "GitHub'da hata bildir",
+  "gh_p": "GitHub hesabınız varsa herkese açık bir kayıt açabilirsiniz.",
+  "gh_link": "Kayıt aç",
+  "tips_h": "Bize yardımcı olanlar",
+  "tips": [
+   "Uygulama sürümü (Ayarlar → Hakkında) ve cihazınız.",
+   "Ne yaptığınız, ne beklediğiniz ve ne olduğu.",
+   "Özel bilgi içermeyen bir ekran görüntüsü."
+  ],
+  "shot_h": "Ekran görüntüsü almak",
+  "shot_p": "Cozy Safe ekran görüntülerini varsayılan olarak engeller. Görüntü almak için kasanızı açın, Ayarlar → Güvenlik bölümüne gidin ve “Ekran görüntülerini engelle” seçeneğini kapatın (Face ID, parmak izi veya cihaz şifresi sorulur).",
+  "shot_after": "İşiniz bitince yeniden açın ve görüntüde özel bir şey olmadığından emin olun.",
+  "never": "Parolanızı, Secret Key'inizi veya kasanızdaki hiçbir şeyi asla göndermeyin: onlara hiç ihtiyacımız yok.",
+  "back": "Cozy Safe"
  }
 }

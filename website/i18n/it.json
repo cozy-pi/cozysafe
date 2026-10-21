@@ -65,7 +65,8 @@
   "c5h": "Riservato sullo schermo",
   "c5p": "Le password e la Secret Key restano nascoste finché non tocchi Mostra, il testo copiato viene cancellato dopo 60 secondi e la cassaforte si blocca appena esci dall'app.",
   "c6h": "Backup sotto il tuo controllo",
-  "c6p": "Salva l'intera cassaforte in un unico file cifrato e ripristinala su un nuovo dispositivo con il tuo Kit di emergenza. Niente finisce sui nostri server: non ne abbiamo."
+  "c6p": "Salva l'intera cassaforte in un unico file cifrato e ripristinala su un nuovo dispositivo con il tuo Kit di emergenza. Niente finisce sui nostri server: non ne abbiamo.",
+  "f_fb": "Feedback"
  },
  "privacy": {
   "title": "Informativa sulla privacy · Cozy Safe",
@@ -122,5 +123,28 @@
     ]
    ]
   ]
+ },
+ "feedback": {
+  "title": "Feedback · Cozy Safe",
+  "h1": "Invia un feedback",
+  "intro": "Idee, problemi, qualcosa di poco chiaro: leggiamo ogni messaggio.",
+  "email_h": "Via email",
+  "email_p": "Scrivici in qualsiasi lingua.",
+  "copy": "Copia indirizzo",
+  "copied": "Copiato",
+  "gh_h": "Segnala un bug su GitHub",
+  "gh_p": "Se hai un account GitHub, puoi aprire una segnalazione pubblica.",
+  "gh_link": "Apri una segnalazione",
+  "tips_h": "Cosa ci aiuta",
+  "tips": [
+   "La versione dell'app (Impostazioni → Info) e il tuo dispositivo.",
+   "Cosa hai fatto, cosa ti aspettavi e cosa è successo.",
+   "Uno screenshot senza nulla di privato."
+  ],
+  "shot_h": "Fare uno screenshot",
+  "shot_p": "Cozy Safe blocca gli screenshot per impostazione predefinita. Per farne uno, apri la cassaforte, vai in Impostazioni → Sicurezza e disattiva «Blocca screenshot» (ti chiede Face ID, impronta o il codice del telefono).",
+  "shot_after": "Riattivalo quando hai finito e controlla che lo screenshot non mostri nulla di privato.",
+  "never": "Non inviare mai la password, la Secret Key o qualcosa dalla cassaforte: non ci servono mai.",
+  "back": "Cozy Safe"
  }
 }

@@ -526,7 +526,7 @@
   "sec4Title": "Nothing goes to the internet",
   "sec4Body": "This version never connects to the network: no account, no ads, no analytics, no crash reports. On Android and Mac, the system gives the app no network permission. On iPhone and other computers, the app blocks every connection itself, and every release is checked automatically. No server holds a copy or a password, so nobody can recover it for you either: forget the backup password, or lose both the phone and the Emergency Kit, and the data is gone.",
   "sec5Title": "While the vault is open",
-  "sec5Body": "The vault locks as soon as you leave the app and after a few minutes without a touch. Lists show note titles only, secrets are masked, copied text is cleared after 60 seconds. Android blocks screenshots and recordings; iPhone covers the vault while the screen is recorded.",
+  "sec5Body": "The vault locks as soon as you leave the app and after a few minutes without a touch. Lists show note titles only, secrets are masked, copied text is cleared after 60 seconds. Screenshots and recordings come out black (on iPhone through an unofficial iOS technique).",
   "sec6Title": "Backups",
   "sec6Body": "A backup is one encrypted file you can keep anywhere. Opening it on a new phone takes both the backup password and the Secret Key from the Emergency Kit: keep the kit somewhere safe, away from your phone.",
   "secTech": "Technical details",
@@ -559,5 +559,8 @@
   "searchNothingFor": "No results for “{query}”",
   "searchNothingHint": "Try a shorter word. Names and the text of notes are searched, accents don't matter.",
   "@searchNothingFor": {"placeholders": {"query": {"type": "String"}}},
-  "modeHome": "Overview"
+  "modeHome": "Overview",
+  "blockScreenshotsNoteIos": "Screenshots and screen recordings come out black. Turn off to take a screenshot for a bug report.",
+  "feedback": "Feedback",
+  "feedbackNote": "Opens safe.cozypi.com in your browser"
 }

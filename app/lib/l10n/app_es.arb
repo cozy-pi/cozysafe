@@ -350,7 +350,7 @@
   "sec4Title": "Nada va a internet",
   "sec4Body": "Esta versión nunca se conecta a la red: sin cuenta, sin anuncios, sin analíticas, sin informes de fallos. En Android y Mac, el sistema no da a la app permiso de red. En iPhone y otros ordenadores, la propia app bloquea cada conexión, y cada versión se comprueba automáticamente. Ningún servidor guarda una copia ni una contraseña, así que nadie puede recuperarla por ti: si olvidas la contraseña de copia de seguridad, o pierdes a la vez el teléfono y el Kit de emergencia, los datos se pierden.",
   "sec5Title": "Mientras la caja fuerte está abierta",
-  "sec5Body": "La caja fuerte se bloquea en cuanto sales de la app y tras unos minutos sin tocarla. Las listas solo muestran títulos de notas, los secretos están ocultos y el texto copiado se borra a los 60 segundos. Android bloquea capturas y grabaciones de pantalla; el iPhone tapa la caja fuerte mientras se graba la pantalla.",
+  "sec5Body": "La caja fuerte se bloquea en cuanto sales de la app y tras unos minutos sin tocarla. Las listas solo muestran títulos de notas, los secretos están ocultos y el texto copiado se borra a los 60 segundos. Las capturas y grabaciones de pantalla salen en negro (en iPhone, con una técnica no oficial de iOS).",
   "sec6Title": "Copias de seguridad",
   "sec6Body": "Una copia de seguridad es un único archivo cifrado que puedes guardar donde quieras. Para abrirla en un teléfono nuevo se necesitan la contraseña de copia de seguridad y la Secret Key del Kit de emergencia: guarda el kit en un lugar seguro, lejos de tu teléfono.",
   "secTech": "Detalles técnicos",
@@ -382,5 +382,8 @@
   "searchAll": "Todo",
   "searchNothingFor": "Sin resultados para “{query}”",
   "searchNothingHint": "Prueba con una palabra más corta. Se buscan los nombres y el texto de las notas, sin importar los acentos.",
-  "modeHome": "Resumen"
+  "modeHome": "Resumen",
+  "blockScreenshotsNoteIos": "Las capturas y grabaciones de pantalla salen en negro. Desactívalo para hacer una captura para informar de un error.",
+  "feedback": "Comentarios",
+  "feedbackNote": "Abre safe.cozypi.com en el navegador"
 }

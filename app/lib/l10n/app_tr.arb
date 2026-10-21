@@ -350,7 +350,7 @@
   "sec4Title": "İnternete hiçbir şey gitmez",
   "sec4Body": "Bu sürüm ağa hiç bağlanmaz: hesap yok, reklam yok, analiz yok, çökme raporu yok. Android ve Mac'te sistem uygulamaya ağ izni vermez. iPhone'da ve diğer bilgisayarlarda uygulama her bağlantıyı kendisi engeller ve her sürüm otomatik olarak denetlenir. Hiçbir sunucuda kopya veya parola tutulmaz, bu yüzden kimse onu sizin için kurtaramaz: yedek parolasını unutursanız ya da hem telefonu hem Acil Durum Kitini kaybederseniz veriler gider.",
   "sec5Title": "Kasa açıkken",
-  "sec5Body": "Uygulamadan çıktığınız anda ve birkaç dakika dokunulmadığında kasa kilitlenir. Listeler yalnızca not başlıklarını gösterir, gizli bilgiler maskelenir, kopyalanan metin 60 saniye sonra silinir. Android ekran görüntülerini ve kayıtları engeller; iPhone ekran kaydedilirken kasayı örter.",
+  "sec5Body": "Uygulamadan çıktığınız anda ve birkaç dakika dokunulmadığında kasa kilitlenir. Listeler yalnızca not başlıklarını gösterir, gizli bilgiler maskelenir, kopyalanan metin 60 saniye sonra silinir. Ekran görüntüleri ve kayıtları siyah çıkar (iPhone'da resmî olmayan bir iOS yöntemiyle).",
   "sec6Title": "Yedekler",
   "sec6Body": "Yedek, istediğiniz yerde saklayabileceğiniz tek bir şifreli dosyadır. Yeni bir telefonda açmak için hem yedek parolası hem de Acil Durum Kitindeki Secret Key gerekir: kiti telefonunuzdan uzakta, güvenli bir yerde saklayın.",
   "secTech": "Teknik ayrıntılar",
@@ -382,5 +382,8 @@
   "searchAll": "Tümü",
   "searchNothingFor": "“{query}” için sonuç yok",
   "searchNothingHint": "Daha kısa bir kelime deneyin. Adlarda ve not metinlerinde aranır, aksanlar önemli değildir.",
-  "modeHome": "Genel bakış"
+  "modeHome": "Genel bakış",
+  "blockScreenshotsNoteIos": "Ekran görüntüleri ve kayıtları siyah çıkar. Hata bildirmek için ekran görüntüsü almanız gerekirse kapatın.",
+  "feedback": "Geri bildirim",
+  "feedbackNote": "safe.cozypi.com tarayıcıda açılır"
 }

@@ -9,6 +9,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show PictureRecorder, ImageByteFormat;
 
+import 'package:cozysafe/links.dart';
 import 'package:cozysafe/widgets/selectable_row.dart';
 import 'package:cozysafe/biometric.dart';
 import 'package:cozysafe/item_kind.dart';
@@ -285,6 +286,8 @@ void main() {
         appName: 'Cozy Safe', packageName: 'com.cozypi.cozysafe', version: '0.1.8', buildNumber: '1100', buildSignature: '');
     debugVoice = true;
     BiometricUnlock.debugKind = BiometricKind.face; // the owner's iPhone
+    Links.debugCanOpen = true;
+    Settings.debugIOS = true;
     debugOwnerConfirmed = true; // Face ID prompts pass in the renders (debug builds only)
     await _loadFonts();
   });
@@ -333,9 +336,6 @@ void main() {
           LaunchHandoff.debugReset();
           LaunchHandoff.debugHold = true;
         },
-        change: ms == 0
-            ? 'MỚI: màn khởi động không còn nhảy cụt sang màn khoá: khung đầu giống hệt (nền trơn, mặt khoá giữa), rồi mặt khoá thu nhỏ, mờ đi trong lúc hình nền và thẻ PIN hiện ra (0,56 giây)'
-            : null,
         act: (t) async {
       LaunchHandoff.debugGo();
       await t.pump();
@@ -526,6 +526,12 @@ void main() {
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt', () => settings(vault));
+  _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
+      change: 'iPhone cũng có công tắc Chặn chụp màn hình (bật sẵn): ảnh chụp và quay màn hình ra màn đen. Tắt khi cần chụp để báo lỗi, phải qua Face ID',
+      act: (t) async {
+    await t.scrollUntilVisible(find.text('Chặn chụp màn hình'), 200, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+  });
   _screen('identity-card', 'Cài đặt · Đổi biểu tượng và màu', () => Builder(builder: (context) {
         WidgetsBinding.instance.addPostFrameCallback((_) => showIdentityCard(context, icon: 0, color: 3));
         return settings(vault);
@@ -556,7 +562,9 @@ void main() {
     await t.scrollUntilVisible(find.byKey(const ValueKey('about-version')), 300, scrollable: find.byType(Scrollable).first);
     await t.pump();
   }
-  _screen('settings-about', 'Cài đặt · Thông tin', () => settings(vault), act: toAbout);
+  _screen('settings-about', 'Cài đặt · Thông tin', () => settings(vault), act: toAbout,
+      change: 'MỚI: dòng Góp ý, mở trang safe.cozypi.com/feedback (đúng ngôn ngữ app) trong trình duyệt. App không xử lý gì thêm',
+      marks: [() => find.byKey(const ValueKey('feedback-row'))]);
   _screen('settings-debug-taps', 'Cài đặt · chạm 5 lần vào Phiên bản', () => settings(vault), act: (t) async {
     await toAbout(t);
     for (var i = 0; i < 5; i++) {

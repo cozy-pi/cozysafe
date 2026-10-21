@@ -65,7 +65,8 @@
   "c5h": "Discreto na tela",
   "c5p": "Senhas e a Secret Key ficam ocultas até você tocar em Mostrar, o texto copiado é apagado após 60 segundos e o cofre é bloqueado assim que você sai do app.",
   "c6h": "Backups sob o seu controle",
-  "c6p": "Faça backup do cofre inteiro em um único arquivo criptografado e restaure em um novo dispositivo com seu Kit de Emergência. Nada vai para nossos servidores; não temos nenhum."
+  "c6p": "Faça backup do cofre inteiro em um único arquivo criptografado e restaure em um novo dispositivo com seu Kit de Emergência. Nada vai para nossos servidores; não temos nenhum.",
+  "f_fb": "Feedback"
  },
  "privacy": {
   "title": "Política de privacidade · Cozy Safe",
@@ -122,5 +123,28 @@
     ]
    ]
   ]
+ },
+ "feedback": {
+  "title": "Feedback · Cozy Safe",
+  "h1": "Enviar feedback",
+  "intro": "Ideias, problemas, algo que confundiu você: lemos todas as mensagens.",
+  "email_h": "Por e-mail",
+  "email_p": "Escreva para nós em qualquer idioma.",
+  "copy": "Copiar endereço",
+  "copied": "Copiado",
+  "gh_h": "Relatar um bug no GitHub",
+  "gh_p": "Se você tem conta no GitHub, pode abrir uma issue pública.",
+  "gh_link": "Abrir uma issue",
+  "tips_h": "O que nos ajuda",
+  "tips": [
+   "A versão do app (Ajustes → Sobre) e seu aparelho.",
+   "O que você fez, o que esperava e o que aconteceu.",
+   "Uma captura de tela sem nada privado."
+  ],
+  "shot_h": "Tirar uma captura de tela",
+  "shot_p": "O Cozy Safe bloqueia capturas de tela por padrão. Para tirar uma, abra seu cofre, vá em Ajustes → Segurança e desative “Bloquear capturas de tela” (ele pede Face ID, digital ou o código do aparelho).",
+  "shot_after": "Ative de novo quando terminar e confira se a captura não mostra nada privado.",
+  "never": "Nunca envie sua senha, sua Secret Key ou nada do seu cofre: nunca precisamos deles.",
+  "back": "Cozy Safe"
  }
 }

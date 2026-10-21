@@ -204,3 +204,13 @@ was rebuilt around the same overview. Appearance (automatic / light / dark) is a
 The lock-screen collage stays (owner wants it, even more detailed) but is drawn in the
 theme's greys.
 
+## 2026-10-21 — Block screenshots on iPhone too
+
+Owner's choice after looking at Tinder's documented iOS capture blocking and the Flutter
+plugins that do the same (screen_security, screen_guard): the window's layer goes inside
+a secure text field's layer. Written in AppDelegate (no new dependency), behind the
+existing "Block screenshots" switch, on by default, off with the owner check. Undocumented
+by Apple: if a future iOS breaks it, or App Review objects, remove `applySecure` and keep
+the capture cover and the screenshot warning. Tested on a real iPhone via TestFlight
+before relying on it.
+

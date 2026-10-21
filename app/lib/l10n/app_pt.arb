@@ -350,7 +350,7 @@
   "sec4Title": "Nada vai para a internet",
   "sec4Body": "Esta versão nunca se conecta à rede: sem conta, sem anúncios, sem análises, sem relatórios de falhas. No Android e no Mac, o sistema não dá ao app permissão de rede. No iPhone e em outros computadores, o próprio app bloqueia toda conexão, e cada versão é verificada automaticamente. Nenhum servidor guarda uma cópia ou uma senha, então ninguém consegue recuperar para você: se esquecer a senha de backup, ou perder o celular e o Kit de Emergência, os dados se perdem.",
   "sec5Title": "Enquanto o cofre está aberto",
-  "sec5Body": "O cofre é bloqueado assim que você sai do app e após alguns minutos sem toque. As listas mostram só os títulos das notas, segredos ficam ocultos e o texto copiado é apagado após 60 segundos. O Android bloqueia capturas e gravações de tela; o iPhone cobre o cofre enquanto a tela é gravada.",
+  "sec5Body": "O cofre é bloqueado assim que você sai do app e após alguns minutos sem toque. As listas mostram só os títulos das notas, segredos ficam ocultos e o texto copiado é apagado após 60 segundos. Capturas e gravações de tela saem pretas (no iPhone, com uma técnica não oficial do iOS).",
   "sec6Title": "Backups",
   "sec6Body": "Um backup é um único arquivo criptografado que você pode guardar em qualquer lugar. Para abri-lo em um novo celular, é preciso a senha de backup e a Secret Key do Kit de Emergência: guarde o kit em um lugar seguro, longe do seu celular.",
   "secTech": "Detalhes técnicos",
@@ -382,5 +382,8 @@
   "searchAll": "Tudo",
   "searchNothingFor": "Nenhum resultado para “{query}”",
   "searchNothingHint": "Tente uma palavra mais curta. A busca inclui nomes e o texto das notas, sem importar acentos.",
-  "modeHome": "Visão geral"
+  "modeHome": "Visão geral",
+  "blockScreenshotsNoteIos": "Capturas e gravações de tela saem pretas. Desative para tirar uma captura e relatar um problema.",
+  "feedback": "Feedback",
+  "feedbackNote": "Abre safe.cozypi.com no navegador"
 }
