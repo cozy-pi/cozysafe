@@ -406,6 +406,7 @@
   "kitCopyNote": "The copy is cleared from the clipboard after 60 seconds. Do not send this key in a message.",
   "fullScreen": "Full screen",
   "exitFullScreen": "Exit full screen",
+  "textTruncated": "Showing the first 1 MB. Use Send to open the whole file in another app.",
   "addToVault": "Add to vault",
   "addToLibrary": "Add to library",
   "recordingVideo": "Recording",

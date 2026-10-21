@@ -15,6 +15,7 @@ import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/screens/camera.dart';
 import 'package:cozysafe/screens/backup_password.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
+import 'package:cozysafe/screens/file_view.dart';
 import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/search.dart';
@@ -102,6 +103,8 @@ final _items = [
 ];
 
 const _noteText = {
+  'j1': '{"router":{"ssid":"TP-Link_5G_BaNgoai","password":"hoaMai2024@","channel":36},"camera":{"app":"EZVIZ","device":"F7K2Q9","admin":true}}',
+  'm1': '# Giấy tờ cần mang khi gia hạn hộ chiếu\n\n- Hộ chiếu cũ (bản gốc)\n- Căn cước công dân\n- 2 ảnh 4x6 nền trắng\n- Tờ khai TK01 (điền sẵn)\n\n## Lệ phí\n\n200.000 đ, nộp tiền mặt tại quầy.\n\n> Hẹn lấy sau 8 ngày làm việc.',
   'n1': 'Wifi nhà bà ngoại\nTên mạng: TP-Link_5G_BaNgoai\nMật khẩu: hoaMai2024@',
   'n2': 'Tài khoản ngân hàng\nVietcombank 0011 0023 4567 — Nguyễn Văn A, chi nhánh Hoàn Kiếm.\nTechcombank 1903 2211 4455 66 — tài khoản phụ, chỉ nhận lương.\nMB 0909 123 456 — tài khoản tiết kiệm của con.',
   'n3': 'Thuốc của mẹ\nSáng: Amlodipine 5mg sau ăn.\nTối: Metformin 500mg sau ăn.\nTái khám ngày 3/11, mang sổ khám và kết quả xét nghiệm lần trước.',
@@ -331,22 +334,17 @@ void main() {
       await t.pump(Duration(milliseconds: ms - 800));
     });
   }
-  _screen('library', 'Thư viện', home, section: 'library',
-      change: 'Nút + cao hơn, cách nút khoá 30 điểm (trước 14) để ngón cái to không bấm nhầm',
-      marks: [() => find.byKey(const ValueKey('vault-action')), () => find.byKey(const ValueKey('lock-button'))]);
+  _screen('library', 'Thư viện', home, section: 'library');
   _screen('add-library', 'Thư viện · bấm +', home, section: 'library', setup: () => debugCamera = true, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
   for (final (ms, what) in [(90, 'mục gần nhất vừa bật ra'), (200, 'các mục lần lượt nảy lên'), (320, 'gần xong, + đã xoay thành ×')]) {
     _screen('add-pop-$ms', 'Bấm + · $ms ms · $what', home, section: 'library', setup: () => debugCamera = true, after: 0,
-        change: ms == 90 ? 'Hiệu ứng mở: từng mục bật ra từ nút +, mục gần trước mục xa sau, nảy nhẹ; + xoay mượt thành ×' : null,
         act: (t) async {
       await t.tap(find.byKey(const ValueKey('vault-action')));
       await t.pump();
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true,
-      change: 'Kéo cột xuống: cột cuộn VÒNG — “Thêm tệp”, “Ghi âm” trôi về sát ngón cái, qua hết lại tới “Thêm ảnh từ máy”…',
-      marks: [() => find.byKey(const ValueKey('add-file'))], act: (t) async {
+  _screen('add-rolled', 'Thư viện · bấm + rồi kéo cột xuống', home, section: 'library', setup: () => debugCamera = true, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     for (var i = 0; i < 6; i++) {
       await t.pump(const Duration(milliseconds: 100));
@@ -376,7 +374,8 @@ void main() {
         debugCamera = true;
         _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList();
       }, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
-  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
+  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
+      change: 'Nút “Xong” ở giao diện tối cũng thành xám tối', marks: [() => find.byKey(const ValueKey('note-done'))]);
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
   _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
   Widget camera({required bool video}) => CameraScreen(video: video, onOpenLast: (_) {});
@@ -396,17 +395,11 @@ void main() {
     }
   }
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
-      change: 'Ảnh nổi lên thành thẻ to hơn ảnh nhỏ một chút, thư viện vẫn thấy phía sau; × góc trái như camera, ⛶ toàn màn hình, Xoá',
-      marks: [() => find.byKey(const ValueKey('quick-look')), () => find.byKey(const ValueKey('quick-close')), () => find.byKey(const ValueKey('quick-full'))],
       act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
-      change: 'Video phát ngay trong thẻ (chạm để dừng/phát, vạch tiến độ ở đáy thẻ); thêm nút Gửi',
-      marks: [() => find.byKey(const ValueKey('quick-look'))],
       act: (t) => tapThumb(t, 5));
-  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library',
-      change: 'Bấm ⛶ mới ra toàn màn hình đen; nút góc trái thu nhỏ về thẻ',
-      marks: [() => find.byKey(const ValueKey('media-exit-full'))], act: (t) async {
+  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
     for (var i = 0; i < 6; i++) {
@@ -445,9 +438,15 @@ void main() {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
     await t.enterText(find.byType(TextField), 'thuoc');
   });
-  _screen('settings', 'Cài đặt', () => settings(vault));
+  _screen('text-json', 'Tệp · mở wifi-config.json', () => FileViewScreen(item: _item('j1', ItemKind.file, 'wifi-config.json', 180), vaultId: 'v'),
+      change: 'MỚI: tệp văn bản mở ngay trong app (giải mã trong bộ nhớ, không ghi ra file); JSON tự dàn dòng, font đều nét',
+      marks: [() => find.byKey(const ValueKey('text-view'))]);
+  _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 320), vaultId: 'v'),
+      change: 'Markdown tạm hiện chữ thô (hiển thị đẹp cần thêm thư viện, phải duyệt chuỗi cung ứng)',
+      marks: [() => find.byKey(const ValueKey('text-view'))]);
+  _screen('settings', 'Cài đặt', () => settings(vault),
+      change: 'Thanh dung lượng: mỗi loại một màu (Ảnh xanh dương, Video tím, Ghi chú vàng, Ghi âm cam, Tệp xanh lá), kèm dung lượng từng loại; trước đây bỏ sót video và ghi âm. Khung thống kê nền như các nhóm; nút “Sao lưu ngay” xanh dương nhạt; công tắc bật màu xanh lá như iPhone — không còn khối đen (sáng) hay trắng (tối)');
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
-      change: 'Bỏ màu nâu: Mật khẩu sao lưu vàng hổ phách, Hiện nội dung ghi chú xanh bạc hà',
       act: (t) async {
     await t.scrollUntilVisible(find.text('Hiện nội dung ghi chú'), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -12,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_guard.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -50,6 +52,19 @@ const _mimeByExt = {
   'doc': 'application/msword', 'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'xls': 'application/vnd.ms-excel', 'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 };
+
+/// The extensions read as text inside the app; null when [name] is not one of them.
+String? textExtension(String name) {
+  final dot = name.lastIndexOf('.');
+  if (dot < 0) return null;
+  final ext = name.substring(dot + 1).toLowerCase();
+  return const {
+    'txt', 'md', 'markdown', 'log', 'csv', 'tsv', 'srt', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'conf', 'cfg',
+    'env', 'html', 'htm', 'css', 'js', 'ts', 'py', 'sh', 'sql', 'dart', 'rs', 'go', 'java', 'kt', 'swift', 'c', 'h', 'cpp',
+  }.contains(ext)
+      ? ext
+      : null;
+}
 
 String mimeOf(String name) {
   final dot = name.lastIndexOf('.');
@@ -209,6 +224,81 @@ class _FileViewScreenState extends State<FileViewScreen> {
 
   bool get _pdf => widget.item.mime == 'application/pdf';
 
+  /// Shown at most this much; the rest goes out with Send.
+  static const _textLimit = 1 << 20;
+
+  /// Text files are read inside the app from the decrypted bytes in memory, like PDFs:
+  /// no file is written. JSON is laid out; data and code use a fixed-width font.
+  Widget _textView(AppLocalizations l) {
+    final ext = textExtension(widget.item.name);
+    final mono = ext != null && !const {'txt', 'md', 'markdown', 'srt', 'log'}.contains(ext);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          Builder(
+            builder: (b) => IconButton(
+              tooltip: l.sendOut,
+              onPressed: _busy ? null : () => _open(b),
+              icon: const Icon(Icons.ios_share),
+            ),
+          ),
+          IconButton(tooltip: l.delete, onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline)),
+        ],
+      ),
+      body: FutureBuilder<Uint8List>(
+        future: _bytes ??= rust.itemContent(id: widget.item.id),
+        builder: (context, snap) {
+          if (snap.hasError) return Center(child: Text(l.errorStorage));
+          final data = snap.data;
+          if (data == null) return const Center(child: CircularProgressIndicator());
+          final cut = data.length > _textLimit;
+          var text = utf8.decode(cut ? data.sublist(0, _textLimit) : data, allowMalformed: true);
+          if (ext == 'json' && !cut) {
+            try {
+              text = const JsonEncoder.withIndent('  ').convert(jsonDecode(text));
+            } catch (_) {} // not valid JSON: shown as it is
+          }
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
+            children: [
+              if (cut)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(l.textTruncated, style: TextStyle(color: CsColors.of(context).muted, fontSize: 13)),
+                ),
+              SelectableText(
+                text,
+                key: const ValueKey('text-view'),
+                // Copy notes what left the vault, so it is wiped from the clipboard later.
+                contextMenuBuilder: (context, state) {
+                  final sel = state.textEditingValue.selection;
+                  final picked = sel.isValid && !sel.isCollapsed ? sel.textInside(state.textEditingValue.text) : null;
+                  return AdaptiveTextSelectionToolbar.buttonItems(
+                    anchors: state.contextMenuAnchors,
+                    buttonItems: [
+                      for (final it in state.contextMenuButtonItems)
+                        if (it.type == ContextMenuButtonType.copy && picked != null)
+                          it.copyWith(onPressed: () {
+                            it.onPressed?.call();
+                            LockGuard.copied(picked);
+                          })
+                        else
+                          it,
+                    ],
+                  );
+                },
+                style: mono
+                    ? const TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Roboto Mono'], fontSize: 13.5, height: 1.45)
+                    : const TextStyle(fontSize: 16, height: 1.5),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   /// PDFs are shown inside the app from the decrypted bytes in memory; no file is
   /// written. "Send out" stays available as the secondary action.
   Widget _pdfView(AppLocalizations l) => Scaffold(
@@ -242,6 +332,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     if (_pdf) return _pdfView(l);
+    if (textExtension(widget.item.name) != null || widget.item.mime.startsWith('text/')) return _textView(l);
     final c = CsColors.of(context);
     final when = dateOf(widget.item.createdMs);
     return Scaffold(

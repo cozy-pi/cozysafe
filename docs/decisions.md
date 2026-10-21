@@ -6,6 +6,11 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 ## 2026-10-21
 
+**0.1.13: softer settings, colours per kind, text files in the app.** Owner: the white card
+and buttons glared in dark mode and black ones were too strong in light mode; Settings may
+use colour. Text-like files open in the app (Markdown as plain text for now; rendering it
+would need a library to review).
+
 **0.1.12: quick look and a looping add column.** Owner: a tapped photo or video should not
 take the whole screen, only a little bigger than its thumbnail with the vault visible
 behind, full screen on request; Close where the camera's is. The add column gets motion

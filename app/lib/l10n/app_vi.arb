@@ -285,6 +285,7 @@
   "kitCopyNote": "Bản sao tự xoá khỏi bộ nhớ tạm sau 60 giây. Đừng gửi mã này qua tin nhắn.",
   "fullScreen": "Toàn màn hình",
   "exitFullScreen": "Thu nhỏ",
+  "textTruncated": "Chỉ hiện 1 MB đầu của tệp. Dùng Gửi để mở toàn bộ bằng app khác.",
   "addToVault": "Thêm vào két",
   "addToLibrary": "Thêm vào thư viện",
   "recordingVideo": "Đang quay",

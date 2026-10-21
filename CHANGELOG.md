@@ -4,6 +4,19 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.13 (2026-10-21)
+
+### Changed
+- Settings: the storage bar shows every kind in its own colour (photos, videos, notes,
+  voice memos, files) with each one's size; videos and voice memos were missing before.
+- Settings is easier on the eyes in both modes: the storage card sits on the same surface
+  as the groups, Back up now is a soft blue, switches are green when on.
+- Dark mode: filled buttons are a soft grey instead of a white slab.
+
+### Added
+- Text files (txt, md, json, csv, xml, yaml, log, code…) open inside the app, decrypted
+  in memory only; JSON is laid out, copied text is cleared from the clipboard.
+
 ## 0.1.12 (2026-10-21)
 
 ### Changed

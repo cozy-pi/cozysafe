@@ -298,6 +298,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: widget.lastBackup(),
               trailing: FilledButton(
                 style: FilledButton.styleFrom(
+                  // Settings may use colour (owner): a soft tint of the backup blue, low
+                  // contrast in both modes, never a black or white slab.
+                  backgroundColor: _Mau.xanh.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? .22 : .12),
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF64A8FF) : _Mau.xanh,
                   minimumSize: const Size(0, 34),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: const StadiumBorder(),
@@ -424,17 +428,32 @@ class _VaultCard extends StatelessWidget {
   final String lastBackup;
   final Map<String, BigInt> byKind;
 
-  /// Kinds in the storage bar, told apart by how strong the page colour is on the ink.
-  static const _kinds = [(ItemKind.photo, 1.0), (ItemKind.file, .62), (ItemKind.note, .34)];
+  /// Every kind in the storage bar, each in its own iOS system colour (owner 2026-10-21:
+  /// grey shades were hard to tell apart). Video and voice count too.
+  static const _kinds = [
+    (ItemKind.photo, Color(0xFF0A84FF)),
+    (ItemKind.video, Color(0xFFBF5AF2)),
+    (ItemKind.note, Color(0xFFFFD60A)),
+    (ItemKind.audio, Color(0xFFFF9F0A)),
+    (ItemKind.file, Color(0xFF30D158)),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    // Black and white: the card in ink, its text in the page colour.
-    final bg = Theme.of(context).colorScheme.onSurface;
-    final fg = Theme.of(context).scaffoldBackgroundColor;
+    // The same surface as the groups below, ink text: a black card in light mode and a
+    // white one in dark mode were both too strong (owner 2026-10-21).
+    final bg = Theme.of(context).cardColor;
+    final fg = Theme.of(context).colorScheme.onSurface;
     final total = byKind.values.fold(BigInt.zero, (a, b) => a + b);
-    final names = {ItemKind.photo: l.kindPhotos, ItemKind.file: l.kindFiles, ItemKind.note: l.kindNotes};
+    final names = {
+      ItemKind.photo: l.kindPhotos,
+      ItemKind.video: l.cameraVideo,
+      ItemKind.note: l.kindNotes,
+      ItemKind.audio: l.modeAudio,
+      ItemKind.file: l.kindFiles,
+    };
+    BigInt size(String k) => byKind[k] ?? BigInt.zero;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
@@ -468,11 +487,14 @@ class _VaultCard extends StatelessWidget {
                   : Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        for (final (k, strength) in _kinds)
-                          if ((byKind[k] ?? BigInt.zero) > BigInt.zero)
+                        for (final (k, color) in _kinds)
+                          if (size(k) > BigInt.zero)
                             Expanded(
-                              flex: ((byKind[k]! * BigInt.from(1000)) ~/ total).toInt().clamp(1, 1000),
-                              child: ColoredBox(color: fg.withValues(alpha: strength)),
+                              flex: ((size(k) * BigInt.from(1000)) ~/ total).toInt().clamp(1, 1000),
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 2), // a hairline between kinds
+                                child: ColoredBox(color: color),
+                              ),
                             ),
                       ],
                     ),
@@ -481,17 +503,18 @@ class _VaultCard extends StatelessWidget {
           const SizedBox(height: 8),
           Wrap(
             spacing: 14,
+            runSpacing: 4,
             children: [
-              for (final (k, strength) in _kinds)
-                Row(
+              for (final (k, color) in _kinds)
+                if (size(k) > BigInt.zero) Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                         width: 8,
                         height: 8,
-                        decoration: BoxDecoration(color: fg.withValues(alpha: strength), shape: BoxShape.circle)),
+                        decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
                     const SizedBox(width: 5),
-                    Text(names[k]!, style: TextStyle(color: fg.withValues(alpha: .9), fontSize: 12)),
+                    Text('${names[k]!} ${fileSize(size(k))}', style: TextStyle(color: fg.withValues(alpha: .9), fontSize: 12.5)),
                   ],
                 ),
             ],
@@ -628,7 +651,9 @@ class _Switch extends StatelessWidget {
   Widget build(BuildContext context) => Switch.adaptive(
         value: value,
         onChanged: onChanged,
-        activeTrackColor: Theme.of(context).colorScheme.onSurface,
-        activeThumbColor: Theme.of(context).scaffoldBackgroundColor,
+        // On is the iPhone's green with a white knob (settings may use colour; a black or
+        // white track was too strong, owner 2026-10-21).
+        activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : _Mau.xanhLa,
+        activeThumbColor: Colors.white,
       );
 }
