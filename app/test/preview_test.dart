@@ -60,6 +60,8 @@ ItemInfo _item(String id, String kind, String name, int sizeBytes,
       deletedMs: deleted,
       durationMs: duration,
       tagIds: [for (final t in tags) t.padRight(32, '_')],
+      isFavorite: false,
+      modifiedMs: _now - ago,
     );
 
 const _day = 86400000;

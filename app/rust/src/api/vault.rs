@@ -367,6 +367,8 @@ pub struct ItemInfo {
     pub tag_ids: Vec<String>,
     /// Marked as a favourite.
     pub is_favorite: bool,
+    /// Last change (content, name, groups…); the creation time if never changed.
+    pub modified_ms: i64,
 }
 
 impl From<ItemMeta> for ItemInfo {
@@ -382,6 +384,7 @@ impl From<ItemMeta> for ItemInfo {
             duration_ms: m.duration_ms,
             tag_ids: m.tag_ids,
             is_favorite: m.is_favorite,
+            modified_ms: m.modified_ms,
         }
     }
 }

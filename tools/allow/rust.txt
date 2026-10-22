@@ -102,8 +102,6 @@ num_cpus
 object
 once_cell
 opaque-debug
-openssl-src
-openssl-sys
 oslog
 parking_lot_core
 password-hash

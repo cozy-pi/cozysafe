@@ -57,7 +57,5 @@ deny = [
     { name = "rustls", reason = "TLS means network; the app is offline" },
     { name = "native-tls", reason = "TLS means network; the app is offline" },
     { name = "openssl", reason = "TLS means network; the app is offline" },
-    # openssl-sys only as SQLCipher's crypto library (vault index, Android/Windows/Linux):
-    # libcrypto linked statically; tools/check-rust-symbols proves no socket call ships.
-    { name = "openssl-sys", wrappers = ["libsqlite3-sys"], reason = "only as SQLCipher's libcrypto" },
+    { name = "openssl-sys", reason = "TLS means network; the app is offline" },
 ]
