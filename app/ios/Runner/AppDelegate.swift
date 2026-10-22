@@ -1,4 +1,5 @@
 import Flutter
+import ImageIO
 import Photos
 import PhotosUI
 import UIKit
@@ -49,6 +50,19 @@ import UniformTypeIdentifiers
       registrar.register(TabBarFactory(messenger: registrar.messenger()), withId: "cozysafe/tabbar")
       let channel = FlutterMethodChannel(name: "cozysafe/privacy", binaryMessenger: registrar.messenger())
       privacyChannel = channel
+      // Thumbnails for imported photos, made by ImageIO at the small size directly (it
+      // reads only what it needs of a HEIC or JPEG), several at once off the main thread
+      // (lib/screens/file_view.dart imageThumbnail). The JPEG goes back to Dart, sealed there.
+      let media = FlutterMethodChannel(name: "cozysafe/media", binaryMessenger: registrar.messenger())
+      media.setMethodCallHandler { call, result in
+        guard call.method == "thumbnail", let args = call.arguments as? [String: Any],
+              let path = args["path"] as? String else { return result(FlutterMethodNotImplemented) }
+        let side = args["shortSide"] as? Int ?? 320
+        DispatchQueue.global(qos: .userInitiated).async {
+          let data = Thumbnails.jpeg(path: path, shortSide: side)
+          DispatchQueue.main.async { result(data.map { FlutterStandardTypedData(bytes: $0) }) }
+        }
+      }
       let originals = FlutterMethodChannel(name: "cozysafe/originals", binaryMessenger: registrar.messenger())
       originals.setMethodCallHandler { [weak self] call, result in
         guard let self else { return result(nil) }
@@ -479,5 +493,35 @@ final class TabBarView: NSObject, FlutterPlatformView, UITabBarDelegate, UIGestu
   @objc private func lockTapped() {
     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     channel.invokeMethod("lock", arguments: nil)
+  }
+}
+
+/// A small JPEG of a picture file, its shorter side about `shortSide` pixels, upright.
+enum Thumbnails {
+  static func jpeg(path: String, shortSide: Int) -> Data? {
+    let url = URL(fileURLWithPath: path) as CFURL
+    guard let source = CGImageSourceCreateWithURL(url, [kCGImageSourceShouldCache: false] as CFDictionary) else {
+      return nil
+    }
+    // ImageIO limits the longer side; work it out so the shorter one gets `shortSide`.
+    var longSide = shortSide
+    if let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+       let w = props[kCGImagePropertyPixelWidth] as? Int, let h = props[kCGImagePropertyPixelHeight] as? Int,
+       min(w, h) > 0 {
+      longSide = Int((Double(shortSide) * Double(max(w, h)) / Double(min(w, h))).rounded(.up))
+    }
+    let options: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceThumbnailMaxPixelSize: longSide,
+      kCGImageSourceShouldCacheImmediately: true,
+    ]
+    guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+    let out = NSMutableData()
+    guard let dest = CGImageDestinationCreateWithData(out, UTType.jpeg.identifier as CFString, 1, nil) else {
+      return nil
+    }
+    CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary)
+    return CGImageDestinationFinalize(dest) ? out as Data : nil
   }
 }

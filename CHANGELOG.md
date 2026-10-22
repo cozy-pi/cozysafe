@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.32 (2026-10-22)
+
+### Changed
+- Adding many photos at once is about three times faster: the phone makes each thumbnail
+  at its small size directly (iOS ImageIO, Android ImageDecoder) instead of decoding the
+  whole photo, and three photos are prepared at a time.
+
 ## 0.1.31 (2026-10-22)
 
 ### Added

@@ -92,6 +92,19 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+        // Thumbnails for imported photos, made by the platform's decoder at the small size
+        // directly (lib/screens/file_view.dart imageThumbnail): several at once, off the UI
+        // thread. Pixels stay in memory; the JPEG goes back to Dart and is sealed there.
+        MethodChannel(messenger, "cozysafe/media").setMethodCallHandler { call, result ->
+            if (call.method != "thumbnail") return@setMethodCallHandler result.notImplemented()
+            val path = call.argument<String>("path") ?: return@setMethodCallHandler result.success(null)
+            val side = call.argument<Int>("shortSide") ?: 320
+            val main = android.os.Handler(android.os.Looper.getMainLooper())
+            thumbnailPool.execute {
+                val bytes = try { thumbnailJpeg(path, side) } catch (_: Throwable) { null }
+                main.post { result.success(bytes) }
+            }
+        }
         MethodChannel(messenger, "cozysafe/originals").setMethodCallHandler { call, result ->
             when (call.method) {
                 "pickMedia" -> {
@@ -196,5 +209,48 @@ class MainActivity : FlutterFragmentActivity() {
         deleteResult = null
         pendingMedia = 0
         result.success(mapOf("deleted" to deleted, "failed" to failed, "cancelled" to cancelled))
+    }
+
+    private val thumbnailPool = java.util.concurrent.Executors.newFixedThreadPool(3)
+
+    /// A JPEG whose shorter side is about [side] pixels, upright. ImageDecoder (Android 9+)
+    /// decodes straight at the target size; older phones subsample with BitmapFactory and
+    /// turn the picture by its EXIF orientation.
+    private fun thumbnailJpeg(path: String, side: Int): ByteArray? {
+        val bitmap: android.graphics.Bitmap = if (Build.VERSION.SDK_INT >= 28) {
+            val source = android.graphics.ImageDecoder.createSource(java.io.File(path))
+            android.graphics.ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                val w = info.size.width
+                val h = info.size.height
+                val scale = side.toFloat() / minOf(w, h)
+                if (scale < 1f) decoder.setTargetSize(maxOf(1, (w * scale).toInt()), maxOf(1, (h * scale).toInt()))
+                decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+            }
+        } else {
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeFile(path, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            var sample = 1
+            while (minOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= side) sample *= 2
+            val decoded = android.graphics.BitmapFactory.decodeFile(
+                path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
+            ) ?: return null
+            val degrees = when (android.media.ExifInterface(path).getAttributeInt(
+                android.media.ExifInterface.TAG_ORIENTATION, android.media.ExifInterface.ORIENTATION_NORMAL
+            )) {
+                android.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                android.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                else -> 0f
+            }
+            if (degrees == 0f) decoded else android.graphics.Bitmap.createBitmap(
+                decoded, 0, 0, decoded.width, decoded.height,
+                android.graphics.Matrix().apply { postRotate(degrees) }, true
+            )
+        }
+        val out = java.io.ByteArrayOutputStream()
+        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+        bitmap.recycle()
+        return out.toByteArray()
     }
 }
