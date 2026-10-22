@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/item_menu.dart';
 import '../widgets/vault_bar.dart';
 import 'file_view.dart';
 import 'overview.dart';
@@ -15,6 +16,12 @@ import '../item_kind.dart';
 /// Search the open vault by name, and inside notes. Note text is decrypted into memory
 /// for this screen only and dropped when it closes. Typing "hoa" finds "Hoá đơn":
 /// accents and case are ignored. Pops with the item to open.
+/// A long press on a result: the vault shows that item's (or group's) menu.
+class SearchMenu {
+  const SearchMenu(this.item);
+  final rust.ItemInfo item;
+}
+
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key, required this.items, required this.thumbnail});
 
@@ -96,7 +103,7 @@ class _SearchScreenState extends State<SearchScreen> {
       for (final s in VaultSection.values) s: hits.where((i) => sectionOf(i) == s).length,
     }..removeWhere((_, n) => n == 0);
     final shown = _kind == null ? hits : hits.where((i) => sectionOf(i) == _kind).toList();
-    return Scaffold(
+    return MenuPointer(child: Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(Ui.circle + 16),
         child: SafeArea(
@@ -126,7 +133,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ],
             ),
-    );
+    ));
   }
 
   Widget _field(BuildContext context, AppLocalizations l) {
@@ -169,6 +176,8 @@ class _SearchScreenState extends State<SearchScreen> {
         onKind: (s) => setState(() => _kind = s),
         onGroup: (g) => Navigator.of(context).pop(g),
         onOpen: (it) => Navigator.of(context).pop(it),
+        onMenu: (it) => Navigator.of(context).pop(SearchMenu(it)),
+        onGroupMenu: (g) => Navigator.of(context).pop(SearchMenu(g)),
       );
 
   Widget _chips(BuildContext context, AppLocalizations l, int all, Map<VaultSection, int> counts) {
@@ -248,7 +257,12 @@ class _SearchScreenState extends State<SearchScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [for (final g in groups) GroupChip(name: g.name, count: _count(g), query: q, onTap: () => Navigator.of(context).pop(g))],
+            children: [for (final g in groups) GroupChip(
+                  name: g.name,
+                  count: _count(g),
+                  query: q,
+                  onTap: () => Navigator.of(context).pop(g),
+                  onLongPress: () => Navigator.of(context).pop(SearchMenu(g)))],
           ),
           const SizedBox(height: 6),
         ],
@@ -265,6 +279,7 @@ class _SearchScreenState extends State<SearchScreen> {
               for (final it in media)
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(it),
+                  onLongPress: () => Navigator.of(context).pop(SearchMenu(it)),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: FutureBuilder<Uint8List>(
@@ -316,6 +331,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final under = snippet == null ? null : (notePreviews() ? snippet : l.foundInText);
     return InkWell(
       onTap: () => Navigator.of(context).pop(it),
+      onLongPress: () => Navigator.of(context).pop(SearchMenu(it)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Row(

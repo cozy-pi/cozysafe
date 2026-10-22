@@ -383,5 +383,17 @@
   "holdToLock": "กดค้างเพื่อล็อก",
   "debugTry": "ทดลอง",
   "debugNativeBar": "แถบด้านล่างของ iPhone เอง",
-  "debugNativeBarNone": "ต้องใช้ iOS 26"
+  "debugNativeBarNone": "ต้องใช้ iOS 26",
+  "selectItems": "เลือกรายการ",
+  "selectAll": "เลือกทั้งหมด",
+  "deselectAll": "ยกเลิกทั้งหมด",
+  "openItem": "เปิด",
+  "info": "ข้อมูล",
+  "infoName": "ชื่อ",
+  "infoKind": "ประเภท",
+  "infoSize": "ขนาด",
+  "infoAdded": "วันที่เพิ่ม",
+  "infoLength": "ความยาว",
+  "infoGroups": "กลุ่ม",
+  "infoNoGroup": "ไม่มี"
 }

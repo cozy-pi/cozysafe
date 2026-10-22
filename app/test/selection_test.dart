@@ -2,23 +2,21 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// One way to select in every list (docs/ui.md): rows that can be long-pressed are
-/// built on SelectableRow, so the circles and the tint are the same everywhere. A new
-/// list with its own InkWell + onLongPress fails here.
+/// One way for every kind of item (docs/ui.md, owner 2026-10-22): a long press opens the
+/// item's menu (lib/widgets/item_menu.dart), as in the iPhone's Files app; selecting many
+/// goes through the Select button. A new long press that selects, or does something of
+/// its own, fails here.
 void main() {
-  test('long-pressable rows use SelectableRow', () {
-    final own = RegExp(r'(InkWell|GestureDetector|ListTile)\((?:(?!\n  \S)[\s\S]){0,400}?onLongPress:');
+  test('every long press opens a menu', () {
+    final press = RegExp(r'onLongPress:\s*([^\n]*)');
+    // What a long press may lead to: a menu, a callback that is one, or the home tab's
+    // hold-to-lock (lib/widgets/vault_bar.dart).
+    final ok = RegExp(r'[Mm]enu|onLongPress\b|hold\b|null');
     final offenders = <String>[];
     for (final f in Directory('lib').listSync(recursive: true).whereType<File>()) {
-      if (!f.path.endsWith('.dart') || f.path.endsWith('selectable_row.dart')) continue;
-      final src = f.readAsStringSync();
-      for (final m in own.allMatches(src)) {
-        // The photo grid draws its own circle on the picture (_MediaTile).
-        final before = src.substring(0, m.start);
-        if (before.substring(before.lastIndexOf('\nclass ')).startsWith('\nclass _MediaTile')) continue;
-        // Holding the home tab locks the vault: a tab, not a list row.
-        if (before.substring(before.lastIndexOf('\nclass ')).startsWith('\nclass _TabsState')) continue;
-        offenders.add('${f.path}: ${m[0]!.split('\n').first.trim()}');
+      if (!f.path.endsWith('.dart')) continue;
+      for (final m in press.allMatches(f.readAsStringSync())) {
+        if (!ok.hasMatch(m[1]!)) offenders.add('${f.path}: ${m[0]!.trim()}');
       }
     }
     expect(offenders, isEmpty);

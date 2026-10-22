@@ -383,5 +383,17 @@
   "holdToLock": "長押しでロック",
   "debugTry": "試験機能",
   "debugNativeBar": "iPhone標準の下部バー",
-  "debugNativeBarNone": "iOS 26が必要"
+  "debugNativeBarNone": "iOS 26が必要",
+  "selectItems": "項目を選択",
+  "selectAll": "すべて選択",
+  "deselectAll": "すべて選択解除",
+  "openItem": "開く",
+  "info": "情報",
+  "infoName": "名前",
+  "infoKind": "種類",
+  "infoSize": "サイズ",
+  "infoAdded": "追加日",
+  "infoLength": "長さ",
+  "infoGroups": "グループ",
+  "infoNoGroup": "なし"
 }

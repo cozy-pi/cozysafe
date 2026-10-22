@@ -250,3 +250,12 @@ before relying on it.
 - The iOS 26 system bar is off by default (Debug turns it on): on a real iPhone the
   standalone UITabBar laid icon and word side by side and overlapped. Fixed by forcing
   compact size classes and letting the bar report its height; to be checked again.
+
+## 2026-10-22 — Long press opens a menu (iPhone Files), Select for many
+
+- Audit against iPhone Files, Files by Google and Photos. Round 1: long press menu on
+  every item and group (home, search and trash too), Select mode with Select All, item
+  Info, ⋯ in the photo/video preview, Delete inside a note. Later rounds: sort and list/grid
+  view, favourites, receive files from other apps (share extension), preview imported
+  images/audio, move to another vault, note edit time, trash preview.
+

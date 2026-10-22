@@ -28,6 +28,9 @@ class QuickLook extends StatefulWidget {
   final List<rust.ItemInfo> photos;
   final String vaultId;
 
+  /// Popped by ⋯: the vault shows the item's menu (Rename, Group, Info…) over itself.
+  static const menuRequest = '\u0000menu';
+
   /// For the mockup renders: a still in place of the video player.
   static Widget? debugVideo;
 
@@ -274,6 +277,9 @@ class _QuickLookState extends State<QuickLook> {
                         tool(const ValueKey('quick-full'), Icons.fullscreen_rounded, l.fullScreen, _full),
                         const SizedBox(width: 10),
                         tool(const ValueKey('quick-send'), Icons.ios_share, l.sendOut, _send),
+                        const SizedBox(width: 10),
+                        tool(const ValueKey('quick-more'), Icons.more_horiz, l.more,
+                            () => Navigator.of(context).pop(QuickLook.menuRequest)),
                         const SizedBox(width: 10),
                         tool(const ValueKey('quick-delete'), Icons.delete_outline, l.delete, _delete, color: recordRed(context)),
                       ],

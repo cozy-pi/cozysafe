@@ -383,5 +383,17 @@
   "holdToLock": "길게 눌러 잠그기",
   "debugTry": "실험",
   "debugNativeBar": "iPhone 기본 하단 바",
-  "debugNativeBarNone": "iOS 26 필요"
+  "debugNativeBarNone": "iOS 26 필요",
+  "selectItems": "항목 선택",
+  "selectAll": "모두 선택",
+  "deselectAll": "모두 선택 해제",
+  "openItem": "열기",
+  "info": "정보",
+  "infoName": "이름",
+  "infoKind": "종류",
+  "infoSize": "크기",
+  "infoAdded": "추가한 날짜",
+  "infoLength": "길이",
+  "infoGroups": "그룹",
+  "infoNoGroup": "없음"
 }

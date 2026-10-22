@@ -383,5 +383,17 @@
   "holdToLock": "tieni premuto per bloccare",
   "debugTry": "Prove",
   "debugNativeBar": "Barra inferiore di iPhone",
-  "debugNativeBarNone": "Richiede iOS 26"
+  "debugNativeBarNone": "Richiede iOS 26",
+  "selectItems": "Seleziona",
+  "selectAll": "Seleziona tutto",
+  "deselectAll": "Deseleziona tutto",
+  "openItem": "Apri",
+  "info": "Info",
+  "infoName": "Nome",
+  "infoKind": "Tipo",
+  "infoSize": "Dimensioni",
+  "infoAdded": "Aggiunto",
+  "infoLength": "Durata",
+  "infoGroups": "Gruppi",
+  "infoNoGroup": "Nessuno"
 }

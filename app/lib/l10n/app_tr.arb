@@ -383,5 +383,17 @@
   "holdToLock": "kilitlemek için basılı tutun",
   "debugTry": "Deneme",
   "debugNativeBar": "iPhone’un kendi alt çubuğu",
-  "debugNativeBarNone": "iOS 26 gerekir"
+  "debugNativeBarNone": "iOS 26 gerekir",
+  "selectItems": "Öğe seç",
+  "selectAll": "Tümünü seç",
+  "deselectAll": "Seçimi kaldır",
+  "openItem": "Aç",
+  "info": "Bilgi",
+  "infoName": "Ad",
+  "infoKind": "Tür",
+  "infoSize": "Boyut",
+  "infoAdded": "Eklenme",
+  "infoLength": "Süre",
+  "infoGroups": "Gruplar",
+  "infoNoGroup": "Yok"
 }

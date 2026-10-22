@@ -397,5 +397,17 @@
   "holdToLock": "giữ để khoá",
   "debugTry": "Thử nghiệm",
   "debugNativeBar": "Thanh dưới của iPhone",
-  "debugNativeBarNone": "Cần iOS 26"
+  "debugNativeBarNone": "Cần iOS 26",
+  "selectItems": "Chọn mục",
+  "selectAll": "Chọn tất cả",
+  "deselectAll": "Bỏ chọn tất cả",
+  "openItem": "Mở",
+  "info": "Thông tin",
+  "infoName": "Tên",
+  "infoKind": "Loại",
+  "infoSize": "Kích thước",
+  "infoAdded": "Ngày thêm",
+  "infoLength": "Thời lượng",
+  "infoGroups": "Nhóm",
+  "infoNoGroup": "Chưa có"
 }

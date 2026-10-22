@@ -383,5 +383,17 @@
   "holdToLock": "长按锁定",
   "debugTry": "试用",
   "debugNativeBar": "iPhone 自带的底部栏",
-  "debugNativeBarNone": "需要 iOS 26"
+  "debugNativeBarNone": "需要 iOS 26",
+  "selectItems": "选择项目",
+  "selectAll": "全选",
+  "deselectAll": "取消全选",
+  "openItem": "打开",
+  "info": "信息",
+  "infoName": "名称",
+  "infoKind": "类型",
+  "infoSize": "大小",
+  "infoAdded": "添加时间",
+  "infoLength": "时长",
+  "infoGroups": "分组",
+  "infoNoGroup": "无"
 }

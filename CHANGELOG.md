@@ -4,6 +4,21 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.29 (2026-10-22)
+
+### Added
+- A long press on anything opens its menu, right where your finger is, like the
+  iPhone's Files app: Open, Select, Rename, Group, Info, Send, Delete. It works on the
+  home page, in every list and in the photo grid, in search, and in Recently deleted
+  (Restore, Delete for good).
+- A long press on a group: Open, Rename, Delete.
+- Info: name, kind, size, when it was added, length, groups.
+- ⋯ in the photo and video preview opens the same menu.
+- Delete a note from inside it, with Undo.
+
+### Changed
+- Select starts empty, with Select All and Done.
+
 ## 0.1.28 (2026-10-22)
 
 ### Changed

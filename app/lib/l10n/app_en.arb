@@ -561,5 +561,17 @@
   "holdToLock": "hold to lock",
   "debugTry": "Try out",
   "debugNativeBar": "iPhone's own bottom bar",
-  "debugNativeBarNone": "Needs iOS 26"
+  "debugNativeBarNone": "Needs iOS 26",
+  "selectItems": "Select Items",
+  "selectAll": "Select All",
+  "deselectAll": "Deselect All",
+  "openItem": "Open",
+  "info": "Info",
+  "infoName": "Name",
+  "infoKind": "Kind",
+  "infoSize": "Size",
+  "infoAdded": "Added",
+  "infoLength": "Length",
+  "infoGroups": "Groups",
+  "infoNoGroup": "None"
 }
