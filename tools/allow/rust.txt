@@ -51,12 +51,15 @@ digest
 either
 env_filter
 errno
+fallible-iterator
+fallible-streaming-iterator
 fancy-regex
 fastrand
 find-msvc-tools
 flutter_rust_bridge
 flutter_rust_bridge_macros
 fnv
+foldhash
 futures
 futures-channel
 futures-core
@@ -70,6 +73,7 @@ generic-array
 getrandom
 gimli
 hashbrown
+hashlink
 hermit-abi
 hex
 hkdf
@@ -84,6 +88,7 @@ itoa
 js-sys
 lazy_static
 libc
+libsqlite3-sys
 linux-raw-sys
 lock_api
 log
@@ -97,10 +102,13 @@ num_cpus
 object
 once_cell
 opaque-debug
+openssl-src
+openssl-sys
 oslog
 parking_lot_core
 password-hash
 pin-project-lite
+pkg-config
 poly1305
 portable-atomic
 powerfmt
@@ -113,6 +121,8 @@ redox_syscall
 regex
 regex-automata
 regex-syntax
+rsqlite-vfs
+rusqlite
 rust_lib_cozysafe
 rustc-demangle
 rustix
@@ -126,6 +136,7 @@ sha2
 shlex
 slab
 smallvec
+sqlite-wasm-rs
 strsim
 subtle
 syn
@@ -139,6 +150,7 @@ tokio
 typenum
 unicode-ident
 universal-hash
+vcpkg
 version_check
 wasi
 wasm-bindgen

@@ -38,6 +38,8 @@ pub struct ItemMeta {
     pub duration_ms: Option<i64>,
     /// The tags (ids of items of kind `tag`) this item carries; empty for tags.
     pub tag_ids: Vec<String>,
+    /// Marked as a favourite: shown first, and in Favourites on the home page.
+    pub is_favorite: bool,
 }
 
 /// The item kinds. Use these, never the string literals.
@@ -63,6 +65,10 @@ const RECORD_FORMAT: u32 = 2;
 
 fn format_1() -> u32 {
     1
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 /// One item's metadata, sealed in `<item>.meta`.
@@ -91,6 +97,10 @@ struct ItemRecord {
     duration_ms: Option<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     tag_ids: Vec<String>,
+    /// Added in format 2 (0.1.31) without raising it: absent means no, and older apps
+    /// ignore it (no `deny_unknown_fields`), so records stay readable both ways.
+    #[serde(default, skip_serializing_if = "is_false")]
+    is_favorite: bool,
     /// Format 1: the folder the item was in. Read, never written.
     #[serde(default, rename = "folder", skip_serializing)]
     legacy_folder_id: Option<String>,
@@ -174,6 +184,7 @@ impl OpenVault {
             deleted_ms: None,
             duration_ms: None,
             tag_ids: Vec::new(),
+            is_favorite: false,
             legacy_folder_id: None,
             wrapped_dek: hex::encode(wrap::wrap_key(
                 &self.master_key,
@@ -284,6 +295,13 @@ impl OpenVault {
         record.name = name.to_owned();
         self.write_record(id, &record)?;
         Ok(meta(id.to_owned(), record))
+    }
+
+    /// Mark or unmark an item as a favourite.
+    pub fn set_favorite(&self, id: &str, is_favorite: bool) -> Result<()> {
+        let mut record = self.record(id)?;
+        record.is_favorite = is_favorite;
+        self.write_record(id, &record)
     }
 
     /// Record a video's or a recording's length (measured by the app).
@@ -420,6 +438,7 @@ fn meta(id: String, r: ItemRecord) -> ItemMeta {
         deleted_ms: r.deleted_ms,
         duration_ms: r.duration_ms,
         tag_ids: r.tag_ids,
+        is_favorite: r.is_favorite,
     }
 }
 
@@ -660,5 +679,27 @@ mod tests {
         assert!(text.contains(r#""format":2"#));
         assert!(text.contains(r#""size_bytes":42"#) && text.contains(r#""has_thumbnail":true"#));
         assert!(text.contains(r#""tag_ids""#) && !text.contains(r#""folder""#));
+    }
+
+    #[test]
+    fn favourite_is_stored_and_old_records_read_as_not() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
+            .unwrap()
+            .create_vault("A", PW)
+            .unwrap();
+        let it = v.add_item(photo(b"x", 1)).unwrap();
+        assert!(!v.items().unwrap()[0].is_favorite);
+        v.set_favorite(&it.id, true).unwrap();
+        assert!(v.items().unwrap()[0].is_favorite);
+        v.set_favorite(&it.id, false).unwrap();
+        assert!(!v.items().unwrap()[0].is_favorite);
+        // A record as 0.1.30 wrote it (no is_favorite) reads as not a favourite.
+        let old: ItemRecord = serde_json::from_str(
+            r#"{"format":2,"kind":"note","name":"n","mime":"text/plain","created_ms":1,
+                "size_bytes":1,"has_thumbnail":false,"wrapped_dek":"x"}"#,
+        )
+        .unwrap();
+        assert!(!old.is_favorite);
     }
 }

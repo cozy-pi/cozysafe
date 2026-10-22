@@ -31,6 +31,7 @@ use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
 pub mod backup;
+pub mod db;
 pub mod items;
 pub mod passphrase;
 pub mod pin;

@@ -365,6 +365,8 @@ pub struct ItemInfo {
     pub duration_ms: Option<i64>,
     /// Ids of the tags it carries; empty for tags.
     pub tag_ids: Vec<String>,
+    /// Marked as a favourite.
+    pub is_favorite: bool,
 }
 
 impl From<ItemMeta> for ItemInfo {
@@ -379,6 +381,7 @@ impl From<ItemMeta> for ItemInfo {
             deleted_ms: m.deleted_ms,
             duration_ms: m.duration_ms,
             tag_ids: m.tag_ids,
+            is_favorite: m.is_favorite,
         }
     }
 }
@@ -600,6 +603,11 @@ pub fn delete_tag(tag_id: String) -> Result<(), VaultError> {
 
 pub fn rename_item(id: String, name: String) -> Result<ItemInfo, VaultError> {
     with_open(|v| Ok(v.rename_item(&id, &name)?.into()))
+}
+
+/// Mark or unmark an item as a favourite.
+pub fn set_item_favorite(id: String, is_favorite: bool) -> Result<(), VaultError> {
+    with_open(|v| Ok(v.set_favorite(&id, is_favorite)?))
 }
 
 pub fn set_item_duration(id: String, duration_ms: i64) -> Result<(), VaultError> {
