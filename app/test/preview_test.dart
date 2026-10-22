@@ -49,7 +49,7 @@ const _enabled = bool.fromEnvironment('PREVIEW');
 final _now = DateTime.now().millisecondsSinceEpoch;
 
 ItemInfo _item(String id, String kind, String name, int sizeBytes,
-        {int ago = 0, int? deleted, int? duration, List<String> tags = const []}) =>
+        {int ago = 0, int? deleted, int? duration, List<String> tags = const [], bool fav = false}) =>
     ItemInfo(
       id: id.padRight(32, '_'),
       kind: kind,
@@ -60,6 +60,8 @@ ItemInfo _item(String id, String kind, String name, int sizeBytes,
       deletedMs: deleted,
       durationMs: duration,
       tagIds: [for (final t in tags) t.padRight(32, '_')],
+      isFavorite: fav,
+      modifiedMs: _now - ago,
     );
 
 const _day = 86400000;
@@ -90,14 +92,14 @@ final _items = [
   _item('a2', ItemKind.audio, 'Bác sĩ dặn về thuốc của mẹ.m4a', 1500000, ago: _day, duration: 185000, tags: ['t5']),
   _item('a3', ItemKind.audio, 'Thoả thuận đặt cọc nhà.m4a', 11600000, ago: _day * 8, duration: 1450000, tags: ['t6']),
   _item('n1', ItemKind.note, 'Wifi nhà bà ngoại', 120, tags: ['t7']),
-  _item('n2', ItemKind.note, 'Tài khoản ngân hàng', 640, ago: _day),
+  _item('n2', ItemKind.note, 'Tài khoản ngân hàng', 640, ago: _day, fav: true),
   _item('n3', ItemKind.note, 'Thuốc của mẹ', 420, ago: _day * 3, tags: ['t5']),
   _item('n4', ItemKind.note, 'Hộ chiếu và visa', 260, ago: _day * 9, tags: ['t1', 't2', 't3']),
   _item('n5', ItemKind.note, 'Mật khẩu router và camera an ninh', 300, ago: _day * 15, tags: ['t7', 't6']),
   _item('n6', ItemKind.note, 'Danh sách quà Tết', 90, ago: _day * 30, tags: ['t4']),
   _item('n7', ItemKind.note, 'Mã két sắt', 40, ago: _day * 60, tags: ['t7', 't6']),
   _item('n8', ItemKind.note, 'Thông tin bảo hiểm xe', 520, ago: _day * 75),
-  _item('g1', ItemKind.file, 'Ho-chieu-scan.pdf', 2300000, ago: _day * 220, tags: ['t1', 't2']),
+  _item('g1', ItemKind.file, 'Ho-chieu-scan.pdf', 2300000, ago: _day * 220, tags: ['t1', 't2'], fav: true),
   _item('g2', ItemKind.file, 'Giay-khai-sinh-Na.pdf', 640000, ago: _day * 290, tags: ['t1', 't4']),
   _item('g3', ItemKind.file, 'Bang-lai-xe.pdf', 1100000, ago: _day * 72, tags: ['t1']),
   _item('f1', ItemKind.file, 'Hop-dong-thue-nha-2026.pdf', 1240000, tags: ['t6']),
@@ -426,20 +428,18 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
-  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
+  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home',
+      change: 'MỚI: mục Yêu thích trên trang chủ; mục yêu thích có ngôi sao vàng cạnh tên',
+      marks: [() => find.byKey(const ValueKey('home-favorites'))]);
   _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
-  },
-      change: 'MỚI: thẻ giữa màn hình, nằm tới khi đóng: vì sao ảnh chụp ra màn đen, cách tắt chặn, nút mở Cài đặt (trước: dòng nhỏ ở đáy, 3 giây)',
-      marks: [() => find.byKey(const ValueKey('shot-card'))]);
+  });
   _screen('shot-saved', 'Vừa chụp màn hình · không chặn', home, section: 'library', setup: () => Prefs.write('block-screenshots', '0'),
       act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
-  },
-      change: 'MỚI: khi không chặn: thẻ giữa màn hình nhắc ảnh chụp nằm trong app Ảnh, không được mã hoá',
-      marks: [() => find.byKey(const ValueKey('shot-card'))]);
+  });
   _screen('home-recording', 'Trang chủ · chạm một bản ghi âm', home, section: 'home',
       setup: () {
         debugRecordingStill = true;
@@ -468,7 +468,15 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('notes', 'Ghi chú', home, section: 'note');
+  _screen('notes', 'Ghi chú', home, section: 'note',
+      change: 'Mục yêu thích nằm trên cùng, có sao. MỚI: nút ⇅ Sắp xếp trên đầu trang',
+      marks: [() => find.byKey(const ValueKey('sort-button'))]);
+  _screen('sort-menu', 'Ghi chú · bấm ⇅', home, section: 'note', act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sort-button')));
+    await t.pumpAndSettle();
+  },
+      change: 'MỚI: Sắp xếp: mới nhất, cũ nhất, tên, lớn nhất, vừa sửa (ghi chú). Mỗi mục nhớ cách sắp riêng',
+      marks: [() => find.byKey(const ValueKey('item-menu'))]);
   _screen('notes-select', 'Ghi chú · bấm giữ một dòng', home, section: 'note',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
@@ -486,7 +494,9 @@ void main() {
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
       act: (t) => tapThumb(t, 5));
-  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
+  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library',
+      change: 'MỚI: nút ⋯ ở màn xem toàn màn hình (cả video và tệp); lướt sang được cả video',
+      marks: [() => find.byKey(const ValueKey('photo-more'))], act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
     for (var i = 0; i < 6; i++) {
@@ -508,6 +518,9 @@ void main() {
   _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
       act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
   _screen('files', 'Tệp', home, section: 'file');
+  _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'),
+      change: 'MỚI: Tệp xem dạng lưới (⇅ → Dạng lưới), nhớ lựa chọn',
+      marks: [() => find.byKey(const ValueKey('files-grid'))]);
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
@@ -670,8 +683,25 @@ void main() {
     await t.scrollUntilVisible(find.textContaining('kiểm toán'), 300, scrollable: find.byType(Scrollable).first);
   });
   _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
-  _screen('trash-select', 'Đã xoá · chạm chọn 1 ảnh', () => const TrashScreen(),
-      act: (t) => t.tap(find.byType(Image).first));
+  _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 1 ảnh', () => const TrashScreen(),
+      act: (t) async {
+        await t.tap(find.byKey(const ValueKey('trash-select')));
+        await t.pump();
+        await t.tap(find.byType(Image).first);
+        await t.pump();
+      },
+      change: 'Chọn nhiều qua nút Chọn (như mọi màn khác)',
+      marks: [() => find.byKey(const ValueKey('trash-done'))]);
+  _screen('trash-preview', 'Đã xoá · chạm 1 ảnh', () => const TrashScreen(),
+      act: (t) async {
+        await t.tap(find.byType(Image).first);
+        for (var i = 0; i < 6; i++) {
+          await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+          await t.pump(const Duration(milliseconds: 100));
+        }
+      },
+      change: 'MỚI: chạm = xem trước (ảnh, chữ ghi chú, tên tệp) với Khôi phục / Xoá hẳn',
+      marks: [() => find.byKey(const ValueKey('trash-preview'))]);
   _screen('trash-menu', 'Đã xoá · bấm giữ 1 ảnh', () => const TrashScreen(),
       act: (t) async {
         await t.longPress(find.byType(Image).first);

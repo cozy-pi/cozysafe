@@ -262,7 +262,7 @@
   "select": "選択",
   "hideNoteText": "メモの本文を隠す",
   "foundInText": "本文に一致",
-  "trashTapHint": "タップして選択し、下のバーで復元または完全に削除します。",
+  "trashTapHint": "項目をタップするとプレビューします。複数選ぶには「選択」をタップします。",
   "deleteForGoodShort": "完全に削除",
   "kitCopyNote": "コピーした内容は60秒後にクリップボードから消去されます。このキーをメッセージで送らないでください。",
   "fullScreen": "全画面表示",
@@ -400,5 +400,16 @@
   "shotBlockedBody": "金庫の中身を誰にも撮られないよう、スクリーンショットと画面収録は黒くなります。",
   "shotBlockedHow": "不具合の報告などでスクリーンショットが必要なら、設定 → 表示 で「スクリーンショットをブロック」をオフにしてください。終わったらオンに戻しましょう。",
   "shotSavedTitle": "スクリーンショットは暗号化されていません",
-  "gotIt": "OK"
+  "gotIt": "OK",
+  "favorite": "お気に入り",
+  "unfavorite": "お気に入りから削除",
+  "favorites": "お気に入り",
+  "sortBy": "並べ替え",
+  "sortNewest": "新しい順",
+  "sortOldest": "古い順",
+  "sortName": "名前",
+  "sortSize": "大きい順",
+  "sortEdited": "最近編集",
+  "viewGrid": "グリッド",
+  "viewList": "リスト"
 }

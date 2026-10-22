@@ -345,7 +345,15 @@ class RecorderViewState extends State<RecorderView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(it.name.replaceAll(RegExp(r'\.m4a$'), ''), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(it.name.replaceAll(RegExp(r'\.m4a$'), ''),
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      ),
+                      if (it.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
+                    ],
+                  ),
                   const SizedBox(height: 2),
                   if (playing && p != null && p.value.isInitialized)
                     Padding(

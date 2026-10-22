@@ -7,6 +7,7 @@
 //!                         fingerprint (none of it secret)
 //! vaults/<id>/header.json vault salt, wrapped Master Key, sealed metadata (name)
 //! vaults/<id>/items/      one encrypted object per item, see [`items`]
+//! vaults/<id>/vault.db    SQLite index of the items' sealed records, see [`db`]
 //! ```
 //!
 //! Unlocking derives the root key once and then tries every vault header; the
@@ -31,6 +32,7 @@ use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
 pub mod backup;
+pub mod db;
 pub mod items;
 pub mod passphrase;
 pub mod pin;
@@ -69,6 +71,8 @@ pub enum Error {
     LibraryExists,
     #[error("library data is damaged: {0}")]
     Corrupt(&'static str),
+    #[error("vault index: {0}")]
+    Index(String),
     #[error(transparent)]
     Crypto(#[from] cs_crypto::Error),
     #[error(transparent)]
@@ -165,6 +169,7 @@ pub struct OpenVault {
     pub color: String,
     dir: PathBuf,
     master_key: Key,
+    index: db::Index,
 }
 
 impl Library {
@@ -311,6 +316,7 @@ impl Library {
             &vault_dir.join(HEADER_FILE),
             &serde_json::to_vec_pretty(&header).expect("serialisable"),
         )?;
+        let index = db::Index::open(&vault_dir)?;
         Ok(OpenVault {
             id,
             name: name.to_owned(),
@@ -318,6 +324,7 @@ impl Library {
             color: String::new(),
             dir: vault_dir,
             master_key,
+            index,
         })
     }
 
@@ -452,6 +459,7 @@ impl Library {
             &vault_dir.join(HEADER_FILE),
             &serde_json::to_vec_pretty(&header).expect("serialisable"),
         )?;
+        let index = db::Index::open(&vault_dir)?;
         let vault = OpenVault {
             id,
             name: String::new(),
@@ -459,6 +467,7 @@ impl Library {
             color: meta.color,
             dir: vault_dir,
             master_key,
+            index,
         };
         if let Err(e) = vault.enable_pin(pin, device_key, pin_params) {
             let _ = fs::remove_dir_all(&vault.dir);
@@ -599,14 +608,20 @@ pub(crate) fn open_with(
     let meta_json = wrap::open(&master_key, &meta_bytes, &aad(&id, "meta"))?;
     let meta: VaultMeta =
         serde_json::from_slice(&meta_json).map_err(|_| Error::Corrupt("vault meta"))?;
-    Ok(OpenVault {
+    let index = db::Index::open(&dir)?;
+    let vault = OpenVault {
         id,
         name: meta.name,
         icon: meta.icon,
         color: meta.color,
         dir,
         master_key,
-    })
+        index,
+    };
+    // Every vault from before the index, every restored backup, and any change the
+    // index missed (the app stopped between the two writes) comes in here.
+    vault.sync_index()?;
+    Ok(vault)
 }
 
 pub(crate) fn remove_if_exists(path: &Path) -> Result<()> {

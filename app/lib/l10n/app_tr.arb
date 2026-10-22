@@ -262,7 +262,7 @@
   "select": "Seç",
   "hideNoteText": "Not metnini gizle",
   "foundInText": "Metinde bulundu",
-  "trashTapHint": "Seçmek için dokunun, ardından aşağıdan geri yükleyin veya kalıcı olarak silin.",
+  "trashTapHint": "Görmek için bir öğeye dokunun. Birden fazlası için Seç'e dokunun.",
   "deleteForGoodShort": "Kalıcı olarak sil",
   "kitCopyNote": "Kopya 60 saniye sonra panodan silinir. Bu anahtarı mesajla göndermeyin.",
   "fullScreen": "Tam ekran",
@@ -400,5 +400,16 @@
   "shotBlockedBody": "Kasanızdakileri kimse kaydedemesin diye ekran görüntüleri ve ekran kayıtları siyah çıkar.",
   "shotBlockedHow": "Örneğin hata bildirmek için ekran görüntüsü mü gerekiyor? Ayarlar → Görünüm'e gidip “Ekran görüntülerini engelle”yi kapatın. İşiniz bitince yeniden açın.",
   "shotSavedTitle": "Ekran görüntüsü şifrelenmedi",
-  "gotIt": "Anladım"
+  "gotIt": "Anladım",
+  "favorite": "Favori",
+  "unfavorite": "Favorilerden çıkar",
+  "favorites": "Favoriler",
+  "sortBy": "Sırala",
+  "sortNewest": "Önce en yeni",
+  "sortOldest": "Önce en eski",
+  "sortName": "Ad",
+  "sortSize": "Önce en büyük",
+  "sortEdited": "Son düzenlenen",
+  "viewGrid": "Izgara",
+  "viewList": "Liste"
 }

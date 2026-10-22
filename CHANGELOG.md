@@ -4,6 +4,24 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.31 (2026-10-22)
+
+### Added
+- Favourites: long press → Favorite. Favourites come first with a gold star, and have
+  their own section on the home page.
+- Sort (⇅) in every section: newest, oldest, name, largest, and recently edited for notes.
+  Files can be shown as a grid.
+- Pictures added from Files open as pictures; music and recordings added from Files play.
+- ⋯ in the full-screen photo, video and file viewers, with the same menu as a long press.
+  The photo viewer swipes through videos too; the library remembers its columns.
+- Recently deleted: tap to look at an item, with Restore and Delete for good; Select picks
+  several.
+
+### Changed
+- Vaults keep an index (SQLite) of their items, sealed like everything else: a vault with
+  10,000 items lists in a few hundredths of a second instead of seconds. Built the first
+  time a vault opens on this version; nothing is removed, old backups still restore.
+
 ## 0.1.30 (2026-10-22)
 
 ### Changed

@@ -36,6 +36,8 @@ class FakeVault implements RustLibApi {
           deletedMs: null,
           durationMs: duration == null ? null : i64(duration),
           tagIds: tags,
+          isFavorite: false,
+          modifiedMs: i64(now - ago),
         );
     _items.addAll([
       it('t1', ItemKind.tag, 'Giấy tờ tùy thân', 0),
@@ -89,7 +91,8 @@ class FakeVault implements RustLibApi {
     'n6': 'Danh sách quà Tết\nÔng bà nội: chè Thái, bánh. Bố mẹ vợ: rượu vang, hoa quả.',
   };
 
-  ItemInfo _copy(ItemInfo i, {String? name, List<String>? tagIds, PlatformInt64? deleted, bool restore = false}) =>
+  ItemInfo _copy(ItemInfo i,
+          {String? name, List<String>? tagIds, PlatformInt64? deleted, bool restore = false, bool? favorite}) =>
       ItemInfo(
         id: i.id,
         kind: i.kind,
@@ -100,6 +103,8 @@ class FakeVault implements RustLibApi {
         deletedMs: restore ? null : (deleted ?? i.deletedMs),
         durationMs: i.durationMs,
         tagIds: tagIds ?? i.tagIds,
+        isFavorite: favorite ?? i.isFavorite,
+        modifiedMs: i.modifiedMs,
       );
 
   void _replace(String id, ItemInfo Function(ItemInfo) f) {
@@ -176,6 +181,7 @@ class FakeVault implements RustLibApi {
           id: id, kind: ItemKind.note, name: a<String>('title'), mime: 'text/plain',
           createdMs: a<PlatformInt64>('createdMs'), sizeBytes: BigInt.from(text.length),
           deletedMs: null, durationMs: null, tagIds: const [],
+          isFavorite: false, modifiedMs: a<PlatformInt64>('createdMs'),
         );
         _items.add(item);
         return _f(item);
@@ -197,7 +203,7 @@ class FakeVault implements RustLibApi {
         final t = ItemInfo(
           id: 't${_next++}', kind: ItemKind.tag, name: a<String>('name'), mime: '',
           createdMs: a<PlatformInt64>('createdMs'), sizeBytes: BigInt.zero, deletedMs: null, durationMs: null,
-          tagIds: const [],
+          tagIds: const [], isFavorite: false, modifiedMs: a<PlatformInt64>('createdMs'),
         );
         _items.add(t);
         return _f(t);
@@ -230,6 +236,12 @@ class FakeVault implements RustLibApi {
       case 'CreateVaultWithPin':
         _vault = VaultInfo(id: 'preview2', name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: false);
         return _f(_vault);
+      case 'RenameItem':
+        _replace(a<String>('id'), (i) => _copy(i, name: a<String>('name')));
+        return _f(_items.firstWhere((x) => x.id == a<String>('id')));
+      case 'SetItemFavorite':
+        _replace(a<String>('id'), (i) => _copy(i, favorite: a<bool>('isFavorite')));
+        return _f<void>(null);
       case 'EnablePin':
       case 'SetItemDuration':
         return _f<void>(null);

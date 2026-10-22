@@ -262,7 +262,7 @@
   "select": "Sélectionner",
   "hideNoteText": "Masquer le texte des notes",
   "foundInText": "Trouvé dans le texte",
-  "trashTapHint": "Touchez pour sélectionner, puis restaurez ou supprimez définitivement en bas.",
+  "trashTapHint": "Touchez un élément pour l’afficher. Sélectionner permet d’en choisir plusieurs.",
   "deleteForGoodShort": "Supprimer définitivement",
   "kitCopyNote": "La copie est effacée du presse-papiers après 60 secondes. N'envoyez pas cette clé dans un message.",
   "fullScreen": "Plein écran",
@@ -400,5 +400,16 @@
   "shotBlockedBody": "Pour que personne ne puisse capturer le contenu de votre coffre, les captures et enregistrements d’écran sont noirs.",
   "shotBlockedHow": "Besoin d’une capture, par exemple pour signaler un bug ? Allez dans Réglages → Affichage et désactivez « Bloquer les captures d'écran ». Réactivez-le ensuite.",
   "shotSavedTitle": "Capture non chiffrée",
-  "gotIt": "J’ai compris"
+  "gotIt": "J’ai compris",
+  "favorite": "Favori",
+  "unfavorite": "Retirer des favoris",
+  "favorites": "Favoris",
+  "sortBy": "Trier",
+  "sortNewest": "Plus récents d’abord",
+  "sortOldest": "Plus anciens d’abord",
+  "sortName": "Nom",
+  "sortSize": "Plus grands d’abord",
+  "sortEdited": "Modifiés récemment",
+  "viewGrid": "Grille",
+  "viewList": "Liste"
 }

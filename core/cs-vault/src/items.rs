@@ -9,6 +9,11 @@
 //! Every blob's associated data names the vault, the item and the blob's role, so
 //! nothing can be swapped between items or vaults. The `.meta` file is written last:
 //! an item exists only once its content is fully on disk.
+//!
+//! The vault index (`vault.db`, see [`crate::db`]) holds a copy of every `.meta` record
+//! and is what lists and lookups read. An item exists while its `.meta` file does:
+//! records are written to the file first and the index second, deleted from the file
+//! first, and [`OpenVault::sync_index`] brings the index back in line on every unlock.
 
 use std::fs;
 use std::io::{Read, Write};
@@ -38,6 +43,11 @@ pub struct ItemMeta {
     pub duration_ms: Option<i64>,
     /// The tags (ids of items of kind `tag`) this item carries; empty for tags.
     pub tag_ids: Vec<String>,
+    /// Marked as a favourite: shown first, and in Favourites on the home page.
+    pub is_favorite: bool,
+    /// Last change to the item (its content, name, tags…); its creation time for items
+    /// not changed since the index came (0.1.31).
+    pub modified_ms: i64,
 }
 
 /// The item kinds. Use these, never the string literals.
@@ -65,14 +75,18 @@ fn format_1() -> u32 {
     1
 }
 
-/// One item's metadata, sealed in `<item>.meta`.
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+/// One item's metadata, sealed in `<item>.meta` (and copied into the index).
 ///
 /// Format 1 (0.1.0–0.1.6) wrote `size`, `has_thumb`, and folders: items of kind
 /// `folder` with `color`/`space`, and `folder` on what was inside. Format 2 reads all
 /// of that: the old names are aliases, a folder becomes a tag and an item in it carries
 /// that tag (nested folders become separate tags). Records are rewritten in format 2
 /// the next time they change; nothing is converted in bulk.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct ItemRecord {
     #[serde(default = "format_1")]
     format: u32,
@@ -91,6 +105,13 @@ struct ItemRecord {
     duration_ms: Option<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     tag_ids: Vec<String>,
+    /// Added in format 2 (0.1.31) without raising it: absent means no, and older apps
+    /// ignore it (no `deny_unknown_fields`), so records stay readable both ways.
+    #[serde(default, skip_serializing_if = "is_false")]
+    is_favorite: bool,
+    /// Also additive in format 2 (0.1.31); absent means "not changed since created".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    modified_ms: Option<i64>,
     /// Format 1: the folder the item was in. Read, never written.
     #[serde(default, rename = "folder", skip_serializing)]
     legacy_folder_id: Option<String>,
@@ -174,6 +195,8 @@ impl OpenVault {
             deleted_ms: None,
             duration_ms: None,
             tag_ids: Vec::new(),
+            is_favorite: false,
+            modified_ms: None,
             legacy_folder_id: None,
             wrapped_dek: hex::encode(wrap::wrap_key(
                 &self.master_key,
@@ -181,9 +204,7 @@ impl OpenVault {
                 &self.item_aad(&id, "dek"),
             )),
         };
-        let json = serde_json::to_vec(&record).expect("serialisable");
-        let sealed = wrap::seal(&self.master_key, &json, &self.item_aad(&id, "meta"));
-        write_atomic(&self.path(&id, "meta")?, &sealed)?;
+        let record = self.write_record(&id, &record)?;
         Ok(meta(id, record))
     }
 
@@ -202,21 +223,75 @@ impl OpenVault {
         fs::rename(&tmp, &data_path)?;
         record.size_bytes = size_bytes;
         record.name = name.to_owned();
-        self.write_record(id, &record)?;
+        let record = self.write_record(id, &record)?;
         Ok(meta(id.to_owned(), record))
     }
 
-    fn write_record(&self, id: &str, record: &ItemRecord) -> Result<()> {
-        let json = serde_json::to_vec(record).expect("serialisable");
+    /// Seal `record` into the item's `.meta` file, then into the index. Returns the
+    /// record as stored (with its modification time). A new item's record is created
+    /// unchanged: `modified_ms` stays empty until its first change.
+    fn write_record(&self, id: &str, record: &ItemRecord) -> Result<ItemRecord> {
+        let mut record = record.clone();
+        if self.index.sealed_record(id)?.is_some() || self.path(id, "meta")?.exists() {
+            record.modified_ms = Some(now_ms());
+        }
+        let json = serde_json::to_vec(&record).expect("serialisable");
         let sealed = wrap::seal(&self.master_key, &json, &self.item_aad(id, "meta"));
-        write_atomic(&self.path(id, "meta")?, &sealed)
+        write_atomic(&self.path(id, "meta")?, &sealed)?;
+        self.index.upsert(id, &columns(&record), &sealed)?;
+        Ok(record)
+    }
+
+    /// Bring the index in line with the `.meta` files: add what it misses (vaults from
+    /// before the index, restored backups, an app stopped between the two writes) and
+    /// drop what no longer exists. Reads only file names unless something is missing.
+    pub(crate) fn sync_index(&self) -> Result<()> {
+        let mut on_disk = std::collections::HashSet::new();
+        match fs::read_dir(self.items_dir()) {
+            Ok(dir) => {
+                for entry in dir {
+                    let name = entry?.file_name().to_string_lossy().into_owned();
+                    if let Some(id) = name.strip_suffix(".meta") {
+                        on_disk.insert(id.to_owned());
+                    }
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.into()),
+        }
+        let indexed = self.index.ids()?;
+        if on_disk == indexed {
+            return Ok(());
+        }
+        self.index.transaction(|| {
+            for id in indexed.difference(&on_disk) {
+                self.index.remove(id)?;
+            }
+            for id in on_disk.difference(&indexed) {
+                let Ok(sealed) = fs::read(self.path(id, "meta")?) else {
+                    continue;
+                };
+                // Damaged entries are skipped, not fatal (as listing always did).
+                if let Ok(record) = self.open_record(id, &sealed) {
+                    self.index.upsert(id, &columns(&record), &sealed)?;
+                }
+            }
+            Ok(())
+        })
+    }
+
+    fn open_record(&self, id: &str, sealed: &[u8]) -> Result<ItemRecord> {
+        let json = wrap::open(&self.master_key, sealed, &self.item_aad(id, "meta"))?;
+        serde_json::from_slice::<ItemRecord>(&json)
+            .map(ItemRecord::upgraded)
+            .map_err(|_| Error::Corrupt("item meta"))
     }
 
     /// Move an item to Recently deleted. Still encrypted, still in the vault.
     pub fn trash_item(&self, id: &str, now_ms: i64) -> Result<()> {
         let mut record = self.record(id)?;
         record.deleted_ms = Some(now_ms);
-        self.write_record(id, &record)
+        self.write_record(id, &record).map(|_| ())
     }
 
     /// A new tag with no items yet.
@@ -254,7 +329,7 @@ impl OpenVault {
         } else {
             record.tag_ids.retain(|t| t != tag_id);
         }
-        self.write_record(item_id, &record)
+        self.write_record(item_id, &record).map(|_| ())
     }
 
     /// Delete a tag. It comes off every item; no item is deleted.
@@ -282,33 +357,34 @@ impl OpenVault {
     pub fn rename_item(&self, id: &str, name: &str) -> Result<ItemMeta> {
         let mut record = self.record(id)?;
         record.name = name.to_owned();
-        self.write_record(id, &record)?;
+        let record = self.write_record(id, &record)?;
         Ok(meta(id.to_owned(), record))
+    }
+
+    /// Mark or unmark an item as a favourite.
+    pub fn set_favorite(&self, id: &str, is_favorite: bool) -> Result<()> {
+        let mut record = self.record(id)?;
+        record.is_favorite = is_favorite;
+        self.write_record(id, &record).map(|_| ())
     }
 
     /// Record a video's or a recording's length (measured by the app).
     pub fn set_duration(&self, id: &str, duration_ms: i64) -> Result<()> {
         let mut record = self.record(id)?;
         record.duration_ms = Some(duration_ms);
-        self.write_record(id, &record)
+        self.write_record(id, &record).map(|_| ())
     }
 
     /// Bring an item back from Recently deleted.
     pub fn restore_item(&self, id: &str) -> Result<()> {
         let mut record = self.record(id)?;
         record.deleted_ms = None;
-        self.write_record(id, &record)
+        self.write_record(id, &record).map(|_| ())
     }
 
     /// Items in Recently deleted, most recently deleted first.
     pub fn trashed(&self) -> Result<Vec<ItemMeta>> {
-        let mut out: Vec<_> = self
-            .all_items()?
-            .into_iter()
-            .filter(|m| m.deleted_ms.is_some())
-            .collect();
-        out.sort_by(|a, b| b.deleted_ms.cmp(&a.deleted_ms).then(a.id.cmp(&b.id)));
-        Ok(out)
+        self.listed(true)
     }
 
     /// Delete for good what has been in Recently deleted for 30 days. Returns how many.
@@ -327,33 +403,28 @@ impl OpenVault {
 
     /// Items in the vault (not in Recently deleted), newest first.
     pub fn items(&self) -> Result<Vec<ItemMeta>> {
-        Ok(self
-            .all_items()?
-            .into_iter()
-            .filter(|m| m.deleted_ms.is_none())
-            .collect())
+        self.listed(false)
     }
 
-    /// Every item, including Recently deleted, newest first. Damaged entries are
-    /// skipped, not fatal.
+    /// Every item, including Recently deleted.
     fn all_items(&self) -> Result<Vec<ItemMeta>> {
-        let dir = match fs::read_dir(self.items_dir()) {
-            Ok(d) => d,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-            Err(e) => return Err(e.into()),
-        };
-        let mut out = Vec::new();
-        for entry in dir {
-            let name = entry?.file_name().to_string_lossy().into_owned();
-            let Some(id) = name.strip_suffix(".meta") else {
-                continue;
-            };
-            if let Ok(record) = self.record(id) {
-                out.push(meta(id.to_owned(), record));
-            }
-        }
-        out.sort_by(|a, b| b.created_ms.cmp(&a.created_ms).then(a.id.cmp(&b.id)));
+        let mut out = self.listed(false)?;
+        out.extend(self.listed(true)?);
         Ok(out)
+    }
+
+    /// One read of the index, then each sealed record opened in memory. Damaged
+    /// entries are skipped, not fatal.
+    fn listed(&self, deleted: bool) -> Result<Vec<ItemMeta>> {
+        Ok(self
+            .index
+            .rows(deleted)?
+            .into_iter()
+            .filter_map(|row| {
+                let record = self.open_record(&row.id, &row.sealed_record).ok()?;
+                Some(meta(row.id, record))
+            })
+            .collect())
     }
 
     /// Decrypt an item's content into `out`. On error, discard what was written.
@@ -380,7 +451,9 @@ impl OpenVault {
         if !meta_path.exists() {
             return Err(Error::NoSuchItem);
         }
+        // The file decides that the item exists: it goes first, the index row second.
         fs::remove_file(meta_path)?;
+        self.index.remove(id)?;
         for ext in ["data", "thumb"] {
             match fs::remove_file(self.path(id, ext)?) {
                 Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e.into()),
@@ -391,14 +464,11 @@ impl OpenVault {
     }
 
     fn record(&self, id: &str) -> Result<ItemRecord> {
-        let sealed = match fs::read(self.path(id, "meta")?) {
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Err(Error::NoSuchItem),
-            r => r?,
-        };
-        let json = wrap::open(&self.master_key, &sealed, &self.item_aad(id, "meta"))?;
-        serde_json::from_slice::<ItemRecord>(&json)
-            .map(ItemRecord::upgraded)
-            .map_err(|_| Error::Corrupt("item meta"))
+        self.path(id, "meta")?; // rejects ids that are not ours
+        match self.index.sealed_record(id)? {
+            Some(sealed) => self.open_record(id, &sealed),
+            None => Err(Error::NoSuchItem),
+        }
     }
 
     fn record_and_key(&self, id: &str) -> Result<(ItemRecord, Key)> {
@@ -409,8 +479,26 @@ impl OpenVault {
     }
 }
 
+/// The index's plain columns for a record.
+fn columns(r: &ItemRecord) -> crate::db::Columns {
+    crate::db::Columns {
+        created_ms: r.created_ms,
+        modified_ms: r.modified_ms.unwrap_or(r.created_ms),
+        deleted_ms: r.deleted_ms,
+        size_bytes: r.size_bytes,
+    }
+}
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
 fn meta(id: String, r: ItemRecord) -> ItemMeta {
     ItemMeta {
+        modified_ms: r.modified_ms.unwrap_or(r.created_ms),
         id,
         kind: r.kind,
         name: r.name,
@@ -420,6 +508,7 @@ fn meta(id: String, r: ItemRecord) -> ItemMeta {
         deleted_ms: r.deleted_ms,
         duration_ms: r.duration_ms,
         tag_ids: r.tag_ids,
+        is_favorite: r.is_favorite,
     }
 }
 
@@ -641,6 +730,11 @@ mod tests {
                 r#"{{"kind":"photo","name":"IMG.jpg","mime":"image/jpeg","created_ms":3,"size":42,"has_thumb":true,"wrapped_dek":"{wrapped}","folder":"{sub}","duration_ms":5}}"#
             ),
         );
+        // As a vault from before the index: no rows yet, built from the files on unlock.
+        for id in v.index.ids().unwrap() {
+            v.index.remove(&id).unwrap();
+        }
+        v.sync_index().unwrap();
         let items = v.items().unwrap();
         let get = |id: &str| items.iter().find(|m| m.id == id).unwrap();
         assert_eq!(get(&folder).kind, kind::TAG);
@@ -660,5 +754,60 @@ mod tests {
         assert!(text.contains(r#""format":2"#));
         assert!(text.contains(r#""size_bytes":42"#) && text.contains(r#""has_thumbnail":true"#));
         assert!(text.contains(r#""tag_ids""#) && !text.contains(r#""folder""#));
+    }
+
+    #[test]
+    fn favourite_is_stored_and_old_records_read_as_not() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
+            .unwrap()
+            .create_vault("A", PW)
+            .unwrap();
+        let it = v.add_item(photo(b"x", 1)).unwrap();
+        assert!(!v.items().unwrap()[0].is_favorite);
+        v.set_favorite(&it.id, true).unwrap();
+        assert!(v.items().unwrap()[0].is_favorite);
+        v.set_favorite(&it.id, false).unwrap();
+        assert!(!v.items().unwrap()[0].is_favorite);
+        // A record as 0.1.30 wrote it (no is_favorite) reads as not a favourite.
+        let old: ItemRecord = serde_json::from_str(
+            r#"{"format":2,"kind":"note","name":"n","mime":"text/plain","created_ms":1,
+                "size_bytes":1,"has_thumbnail":false,"wrapped_dek":"x"}"#,
+        )
+        .unwrap();
+        assert!(!old.is_favorite);
+    }
+
+    #[test]
+    fn the_index_follows_the_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
+        let v = lib.create_vault("A", PW).unwrap();
+        let a = v.add_item(photo(b"a", 1)).unwrap();
+        let b = v.add_item(photo(b"b", 2)).unwrap();
+        v.rename_item(&a.id, "renamed.jpg").unwrap();
+        let renamed = v
+            .items()
+            .unwrap()
+            .into_iter()
+            .find(|m| m.id == a.id)
+            .unwrap();
+        assert!(
+            renamed.modified_ms > renamed.created_ms,
+            "a change sets modified_ms"
+        );
+        // The index is lost: the next unlock builds it again from the .meta files.
+        drop(v);
+        let db = tmp.path().join(crate::VAULTS_DIR);
+        let vault_dir = fs::read_dir(&db).unwrap().next().unwrap().unwrap().path();
+        fs::remove_file(vault_dir.join(crate::db::INDEX_FILE)).unwrap();
+        let v = lib.unlock(PW).unwrap().unwrap();
+        let names: Vec<_> = v.items().unwrap().into_iter().map(|m| m.name).collect();
+        assert_eq!(names, vec!["IMG.jpg", "renamed.jpg"]);
+        // A .meta file gone (the app stopped mid-delete): its row goes too.
+        fs::remove_file(v.path(&b.id, "meta").unwrap()).unwrap();
+        drop(v);
+        let v = lib.unlock(PW).unwrap().unwrap();
+        assert_eq!(v.items().unwrap().len(), 1);
     }
 }

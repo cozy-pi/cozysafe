@@ -262,7 +262,7 @@
   "select": "Seleccionar",
   "hideNoteText": "Ocultar el texto de las notas",
   "foundInText": "Encontrado en el texto",
-  "trashTapHint": "Toca para seleccionar y luego restaura o elimina para siempre abajo.",
+  "trashTapHint": "Toca un elemento para verlo. Seleccionar elige varios.",
   "deleteForGoodShort": "Eliminar para siempre",
   "kitCopyNote": "La copia se borra del portapapeles a los 60 segundos. No envíes esta clave en un mensaje.",
   "fullScreen": "Pantalla completa",
@@ -400,5 +400,16 @@
   "shotBlockedBody": "Para que nadie pueda capturar lo que hay en tu caja fuerte, las capturas y grabaciones de pantalla salen en negro.",
   "shotBlockedHow": "¿Necesitas una captura, por ejemplo para informar de un error? Ve a Ajustes → Pantalla y desactiva «Bloquear capturas de pantalla». Vuelve a activarlo al terminar.",
   "shotSavedTitle": "Captura sin cifrar",
-  "gotIt": "Entendido"
+  "gotIt": "Entendido",
+  "favorite": "Favorito",
+  "unfavorite": "Quitar de favoritos",
+  "favorites": "Favoritos",
+  "sortBy": "Ordenar",
+  "sortNewest": "Más recientes primero",
+  "sortOldest": "Más antiguos primero",
+  "sortName": "Nombre",
+  "sortSize": "Más grandes primero",
+  "sortEdited": "Editados recientemente",
+  "viewGrid": "Cuadrícula",
+  "viewList": "Lista"
 }

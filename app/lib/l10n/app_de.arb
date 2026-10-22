@@ -262,7 +262,7 @@
   "select": "Auswählen",
   "hideNoteText": "Notiztext ausblenden",
   "foundInText": "Im Text gefunden",
-  "trashTapHint": "Tippen zum Auswählen, dann unten wiederherstellen oder endgültig löschen.",
+  "trashTapHint": "Tippe auf ein Objekt, um es anzusehen. Mit „Auswählen“ wählst du mehrere.",
   "deleteForGoodShort": "Endgültig löschen",
   "kitCopyNote": "Die Kopie wird nach 60 Sekunden aus der Zwischenablage gelöscht. Senden Sie diesen Schlüssel nicht per Nachricht.",
   "fullScreen": "Vollbild",
@@ -400,5 +400,16 @@
   "shotBlockedBody": "Damit niemand den Inhalt deines Tresors festhalten kann, werden Bildschirmfotos und Bildschirmaufnahmen schwarz.",
   "shotBlockedHow": "Du brauchst ein Bildschirmfoto, etwa für eine Fehlermeldung? Öffne Einstellungen → Anzeige und schalte „Screenshots blockieren“ aus. Schalte es danach wieder ein.",
   "shotSavedTitle": "Bildschirmfoto nicht verschlüsselt",
-  "gotIt": "Verstanden"
+  "gotIt": "Verstanden",
+  "favorite": "Favorit",
+  "unfavorite": "Aus Favoriten entfernen",
+  "favorites": "Favoriten",
+  "sortBy": "Sortieren",
+  "sortNewest": "Neueste zuerst",
+  "sortOldest": "Älteste zuerst",
+  "sortName": "Name",
+  "sortSize": "Größte zuerst",
+  "sortEdited": "Zuletzt bearbeitet",
+  "viewGrid": "Raster",
+  "viewList": "Liste"
 }

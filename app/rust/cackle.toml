@@ -363,3 +363,40 @@ allow_proc_macro = true
 # Regex engine used by zxcvbn (password strength); unsafe for speed, no I/O.
 [pkg.fancy-regex]
 allow_unsafe = true
+
+# The vault index (docs/adr/0002): SQLite, compiled from the bundled source. Its build
+# script copies the amalgamation and runs the C compiler; at run time only files.
+[pkg.rusqlite]
+allow_unsafe = true
+allow_apis = [
+    "fs",
+]
+
+[pkg."libsqlite3-sys"]
+allow_unsafe = true
+build.allow_apis = ["fs"]
+
+[pkg.hashlink]
+allow_unsafe = true
+
+[pkg.hashbrown]
+allow_unsafe = true
+
+[pkg.foldhash]
+allow_unsafe = true
+
+[pkg."fallible-iterator"]
+
+[pkg."fallible-streaming-iterator"]
+
+[pkg."pkg-config"]
+from.build.allow_apis = ["fs", "process"]
+
+[pkg.vcpkg]
+from.build.allow_apis = ["fs"]
+
+[pkg.bitflags]
+allow_unsafe = true
+
+[pkg.smallvec]
+allow_unsafe = true

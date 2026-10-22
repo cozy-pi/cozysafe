@@ -276,7 +276,7 @@
   "select": "Chọn",
   "hideNoteText": "Ẩn nội dung ghi chú",
   "foundInText": "Có trong nội dung",
-  "trashTapHint": "Chạm để chọn, rồi khôi phục hoặc xoá hẳn ở thanh dưới.",
+  "trashTapHint": "Chạm một mục để xem trước. Bấm Chọn để chọn nhiều mục.",
   "deleteForGoodShort": "Xoá hẳn",
   "kitCopyNote": "Bản sao tự xoá khỏi bộ nhớ tạm sau 60 giây. Đừng gửi khoá này qua tin nhắn.",
   "fullScreen": "Toàn màn hình",
@@ -414,5 +414,16 @@
   "shotBlockedBody": "Để không ai chụp lại được nội dung trong két, ảnh chụp và quay màn hình chỉ ra màn đen.",
   "shotBlockedHow": "Cần chụp màn hình, ví dụ để báo lỗi? Vào Cài đặt → Hiển thị, tắt “Chặn chụp màn hình”. Chụp xong nhớ bật lại.",
   "shotSavedTitle": "Ảnh chụp không được mã hoá",
-  "gotIt": "Đã hiểu"
+  "gotIt": "Đã hiểu",
+  "favorite": "Yêu thích",
+  "unfavorite": "Bỏ yêu thích",
+  "favorites": "Yêu thích",
+  "sortBy": "Sắp xếp",
+  "sortNewest": "Mới nhất trước",
+  "sortOldest": "Cũ nhất trước",
+  "sortName": "Tên",
+  "sortSize": "Lớn nhất trước",
+  "sortEdited": "Vừa sửa",
+  "viewGrid": "Dạng lưới",
+  "viewList": "Dạng danh sách"
 }

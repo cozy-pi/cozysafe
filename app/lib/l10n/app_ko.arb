@@ -262,7 +262,7 @@
   "select": "선택",
   "hideNoteText": "메모 내용 숨기기",
   "foundInText": "본문에서 찾음",
-  "trashTapHint": "탭해서 선택한 뒤, 아래에서 복원하거나 영구 삭제하세요.",
+  "trashTapHint": "항목을 탭하면 미리 봅니다. 여러 개를 고르려면 선택을 누르세요.",
   "deleteForGoodShort": "영구 삭제",
   "kitCopyNote": "복사한 내용은 60초 후 클립보드에서 지워집니다. 이 키를 메시지로 보내지 마세요.",
   "fullScreen": "전체 화면",
@@ -400,5 +400,16 @@
   "shotBlockedBody": "누구도 금고 내용을 찍을 수 없도록 스크린샷과 화면 녹화는 검은 화면으로 나옵니다.",
   "shotBlockedHow": "버그 신고 등으로 스크린샷이 필요하면 설정 → 화면에서 ‘스크린샷 차단’을 끄세요. 끝나면 다시 켜세요.",
   "shotSavedTitle": "스크린샷이 암호화되지 않음",
-  "gotIt": "확인"
+  "gotIt": "확인",
+  "favorite": "즐겨찾기",
+  "unfavorite": "즐겨찾기에서 제거",
+  "favorites": "즐겨찾기",
+  "sortBy": "정렬",
+  "sortNewest": "최신순",
+  "sortOldest": "오래된순",
+  "sortName": "이름",
+  "sortSize": "큰 순서",
+  "sortEdited": "최근 편집",
+  "viewGrid": "격자",
+  "viewList": "목록"
 }
