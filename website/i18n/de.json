@@ -18,14 +18,14 @@
   "p_how": "Ihre Daten verlassen Ihr Gerät nie unverschlüsselt, und der Code dafür ist öffentlich.",
   "c1h": "Verschlüsselt auf Ihrem Gerät",
   "c1p": "Daten werden verschlüsselt, bevor sie auf die Festplatte geschrieben werden. Eine Sicherung in einem Cloud-Ordner ist daher ebenfalls verschlüsselt.",
-  "c2h": "Passwort plus Secret Key",
-  "c2p": "Ihr Passwort wird mit einem zufälligen 128-Bit-Schlüssel auf Ihrem Gerät kombiniert. Selbst wer eine Kopie Ihres Tresors hat, kann das Passwort nicht erraten.",
+  "c2h": "Tresor-Passwort plus Wiederherstellungsschlüssel",
+  "c2p": "Ihr Tresor-Passwort wird mit einem zufälligen 256-Bit-Wiederherstellungsschlüssel (24 Wörter) kombiniert. Selbst wer eine Kopie Ihres Backups hat, kann das Passwort nicht erraten.",
   "c3h": "Open Source",
   "c3p": "Jeder kann den Code lesen und prüfen (GPL-3.0). Die Installationsdateien werden von GitHub erstellt, mit überprüfbarer Herkunft.",
   "h_lim": "Gut zu wissen",
   "l1h": "Keine Wiederherstellung",
   "l1": [
-   "Wenn Sie das Passwort vergessen, kann niemand den Tresor mehr öffnen, auch wir nicht.",
+   "Wenn Sie Ihren Wiederherstellungsschlüssel oder Ihr Tresor-Passwort verlieren, kann niemand Ihr Backup öffnen, auch wir nicht.",
    "Wählen Sie ein Passwort, das Sie sich merken können, etwa einen Satz aus mehreren Wörtern."
   ],
   "l2h": "Was es nicht kann",
@@ -63,9 +63,9 @@
   "c4h": "Komplett offline",
   "c4p": "Cozy Safe braucht kein Netzwerk. Unter Android hat die App gar keine Internetberechtigung, und unter macOS läuft sie in einer Sandbox ohne Netzwerkzugriff.",
   "c5h": "Diskret auf dem Bildschirm",
-  "c5p": "Passwörter und der Secret Key bleiben verborgen, bis Sie auf Anzeigen tippen, kopierter Text wird nach 60 Sekunden gelöscht, und der Tresor sperrt sich, sobald Sie die App verlassen.",
+  "c5p": "Passwörter und der Wiederherstellungsschlüssel bleiben verborgen, bis Sie auf Anzeigen tippen, kopierter Text wird nach 60 Sekunden gelöscht, und der Tresor sperrt sich, sobald Sie die App verlassen.",
   "c6h": "Backups in Ihrer Hand",
-  "c6p": "Sichern Sie den ganzen Tresor in einer verschlüsselten Datei und stellen Sie ihn mit Ihrem Notfall-Kit auf einem neuen Gerät wieder her. Nichts geht an unsere Server; wir haben keine.",
+  "c6p": "Sichern Sie alle Tresore in einer verschlüsselten Datei und öffnen Sie sie auf einem neuen Gerät mit Ihrem Wiederherstellungsschlüssel und Ihrem Tresor-Passwort. Nichts geht an unsere Server; wir haben keine.",
   "f_fb": "Feedback"
  },
  "privacy": {
@@ -84,15 +84,14 @@
    [
     "Was auf Ihrem Gerät bleibt",
     [
-     "Ihre Tresore, Notizen, Dateien und Fotos, immer verschlüsselt mit Schlüsseln, die aus Ihrem Passwort und Ihrem Secret Key abgeleitet werden.",
+     "Ihre Tresore, Notizen, Dateien und Fotos, immer verschlüsselt mit Schlüsseln, die aus Ihrem Tresor-Passwort und Ihrem Wiederherstellungsschlüssel abgeleitet werden.",
      "App-Einstellungen wie Sprache sowie heller oder dunkler Modus."
     ]
    ],
    [
     "Wohin Ihre Daten gelangen können, nur wenn Sie es wählen",
     [
-     "Synchronisierung und Backup nutzen einen Ordner oder ein Gerät Ihrer Wahl (zum Beispiel iCloud Drive, Google Drive, Dropbox oder ein anderes Gerät in Ihrem Netzwerk). Dort werden nur verschlüsselte Daten gespeichert; der gewählte Anbieter kann sie nicht lesen.",
-     "Wenn Sie die Synchronisierung des Secret Key aktivieren, wird der Secret Key im Ende-zu-Ende-verschlüsselten Passwortspeicher Ihrer Plattform (iCloud-Schlüsselbund oder Google Passwortmanager) gespeichert, gemäß den Datenschutzbestimmungen dieses Anbieters.",
+     "Ein Backup ist eine einzelne verschlüsselte Datei, gespeichert an einem Ort Ihrer Wahl (zum Beispiel iCloud Drive, Google Drive oder Dropbox). Dort werden nur verschlüsselte Daten gespeichert; der gewählte Anbieter kann sie nicht lesen.",
      "Wenn Sie ein Element teilen, exportieren oder in einer anderen App öffnen, erhält diese App eine unverschlüsselte Kopie und verarbeitet sie nach ihren eigenen Bestimmungen."
     ]
    ],
@@ -145,13 +144,13 @@
   "shot_h": "Ein Bildschirmfoto machen",
   "shot_steps": [
    "Öffnen Sie Ihren Tresor.",
-   "Gehen Sie zu Einstellungen → Sicherheit.",
+   "Gehen Sie zu Einstellungen → Anzeige.",
    "Schalten Sie „Screenshots blockieren“ aus (Face ID, Fingerabdruck oder Gerätecode wird abgefragt).",
    "Machen Sie das Bildschirmfoto.",
    "Schalten Sie „Screenshots blockieren“ wieder ein."
   ],
   "shot_after": "Schalten Sie es danach wieder ein und prüfen Sie, dass das Bild nichts Privates zeigt.",
-  "never": "Senden Sie nie Ihr Passwort, Ihren Secret Key oder Inhalte aus dem Tresor: Wir brauchen sie nie.",
+  "never": "Senden Sie nie Ihr Tresor-Passwort, Ihren Wiederherstellungsschlüssel oder Inhalte aus Ihrem Tresor: Wir brauchen sie nie.",
   "back": "Cozy Safe",
   "switch": "Screenshots blockieren"
  }

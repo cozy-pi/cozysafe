@@ -18,14 +18,14 @@
   "p_how": "Your data never leaves your device unencrypted, and the code that does it is public.",
   "c1h": "Encrypted on your device",
   "c1p": "Data is encrypted before it is written to the disk, so a backup kept in a cloud folder is encrypted too.",
-  "c2h": "Password plus Secret Key",
-  "c2p": "Your password is combined with a random 128-bit key kept on your device, so someone holding a copy of your vault still cannot guess the password.",
+  "c2h": "Vault password plus Recovery Key",
+  "c2p": "Your vault password is combined with a random 256-bit Recovery Key (24 words), so someone holding a copy of your backup still cannot guess the password.",
   "c3h": "Open source",
   "c3p": "Anyone can read and check the code (GPL-3.0). Installers are built by GitHub, with provenance you can verify.",
   "h_lim": "Good to know first",
   "l1h": "There is no recovery",
   "l1": [
-   "If you forget the password, nobody can open the vault again, including us.",
+   "If you lose your Recovery Key or your vault password, nobody can open your backup, including us.",
    "Choose a password you will remember, such as a phrase of several words."
   ],
   "l2h": "What it cannot do",
@@ -63,9 +63,9 @@
   "c4h": "Fully offline",
   "c4p": "Cozy Safe needs no network. On Android it has no internet permission at all, and on macOS it runs in a sandbox without network access.",
   "c5h": "Private on screen",
-  "c5p": "Passwords and the Secret Key stay hidden until you tap Show, copied text is wiped after 60 seconds, and the vault locks as soon as you leave the app.",
+  "c5p": "Passwords and the Recovery Key stay hidden until you tap Show, copied text is wiped after 60 seconds, and the vault locks as soon as you leave the app.",
   "c6h": "Backups you control",
-  "c6p": "Back up the whole vault to one encrypted file and restore it on a new device with your Emergency Kit. Nothing goes to our servers; we have none.",
+  "c6p": "Back up every vault to one encrypted file and open it on a new device with your Recovery Key and vault password. Nothing goes to our servers; we have none.",
   "f_fb": "Feedback"
  },
  "privacy": {
@@ -84,15 +84,14 @@
    [
     "What stays on your device",
     [
-     "Your vaults, notes, files and photos, always encrypted with keys derived from your password and Secret Key.",
+     "Your vaults, notes, files and photos, always encrypted with keys derived from your vault password and Recovery Key.",
      "App settings such as language and light or dark mode."
     ]
    ],
    [
     "Where your data can go, only if you choose",
     [
-     "Sync and backup use a folder or device you pick (for example iCloud Drive, Google Drive, Dropbox, or another device on your network). Only encrypted data is written there; the provider you choose cannot read it.",
-     "If you turn on Secret Key sync, the Secret Key is stored in your platform's end-to-end encrypted password store (iCloud Keychain or Google Password Manager), under that provider's privacy terms.",
+     "A backup is one encrypted file, saved where you choose (for example iCloud Drive, Google Drive or Dropbox). Only encrypted data is written there; the provider you choose cannot read it.",
      "When you share, export or open an item in another app, that app receives an unencrypted copy and handles it under its own terms."
     ]
    ],
@@ -145,13 +144,13 @@
   "shot_h": "Taking a screenshot",
   "shot_steps": [
    "Open your vault.",
-   "Go to Settings → Security.",
+   "Go to Settings → Display.",
    "Turn off “Block screenshots” (it asks for Face ID, fingerprint or the phone's passcode).",
    "Take your screenshot.",
    "Turn “Block screenshots” back on."
   ],
   "shot_after": "Turn it back on when you are done, and check the screenshot shows nothing private.",
-  "never": "Never send your password, your Secret Key or anything from inside your vault: we never need them.",
+  "never": "Never send your vault password, your Recovery Key or anything from inside your vault: we never need them.",
   "back": "Cozy Safe",
   "switch": "Block screenshots"
  }

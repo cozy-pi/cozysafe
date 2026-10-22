@@ -18,14 +18,14 @@
   "p_how": "Dữ liệu không bao giờ rời máy ở dạng chưa mã hoá, và đoạn mã làm việc đó ai cũng đọc được.",
   "c1h": "Mã hoá ngay trên máy",
   "c1p": "Dữ liệu được mã hoá trước khi ghi xuống ổ đĩa, nên bản sao lưu để trong thư mục cloud cũng đã được mã hoá.",
-  "c2h": "Mật khẩu cộng Secret Key",
-  "c2p": "Mật khẩu được kết hợp với một khoá ngẫu nhiên 128 bit cất trên máy bạn, nên kẻ có bản sao két cũng không dò ra được mật khẩu.",
+  "c2h": "Mật khẩu két và Khoá khôi phục",
+  "c2p": "Mật khẩu két được kết hợp với một Khoá khôi phục ngẫu nhiên 256 bit (24 từ), nên kẻ có bản sao tệp sao lưu của bạn cũng không dò ra được mật khẩu.",
   "c3h": "Mã nguồn công khai",
   "c3p": "Ai cũng đọc và kiểm tra được mã nguồn (giấy phép GPL-3.0). Bản cài do GitHub build, có chứng thực nguồn gốc.",
   "h_lim": "Những điều nên biết trước",
   "l1h": "Không có cách khôi phục",
   "l1": [
-   "Quên mật khẩu thì không ai mở lại được két, kể cả chúng tôi.",
+   "Mất Khoá khôi phục hoặc mật khẩu két thì không ai mở được tệp sao lưu, kể cả chúng tôi.",
    "Hãy chọn mật khẩu bạn nhớ được, chẳng hạn một câu gồm vài từ."
   ],
   "l2h": "Những gì app không làm được",
@@ -63,9 +63,9 @@
   "c4h": "Hoàn toàn ngoại tuyến",
   "c4p": "Cozy Safe không cần mạng. Trên Android app không có quyền truy cập internet, trên macOS app chạy trong sandbox không có mạng.",
   "c5h": "Kín đáo trên màn hình",
-  "c5p": "Mật khẩu và Secret Key bị che cho tới khi bạn bấm Xem, chữ đã sao chép bị xoá sau 60 giây, và két tự khoá ngay khi bạn rời app.",
+  "c5p": "Mật khẩu và Khoá khôi phục bị che cho tới khi bạn bấm Xem, chữ đã sao chép bị xoá sau 60 giây, và két tự khoá ngay khi bạn rời app.",
   "c6h": "Sao lưu do bạn giữ",
-  "c6p": "Sao lưu cả két ra một tệp đã mã hoá, khôi phục trên máy mới bằng Bộ khẩn cấp. Không gì được gửi về máy chủ của chúng tôi; chúng tôi không có máy chủ nào.",
+  "c6p": "Sao lưu mọi két ra một tệp đã mã hoá, mở lại trên máy mới bằng Khoá khôi phục và mật khẩu két. Không gì được gửi về máy chủ của chúng tôi; chúng tôi không có máy chủ nào.",
   "f_fb": "Góp ý"
  },
  "privacy": {
@@ -84,15 +84,14 @@
    [
     "Những gì nằm trên máy bạn",
     [
-     "Két, ghi chú, file và ảnh, luôn được mã hoá bằng khoá suy ra từ mật khẩu và Secret Key của bạn.",
+     "Két, ghi chú, file và ảnh, luôn được mã hoá bằng khoá suy ra từ mật khẩu két và Khoá khôi phục của bạn.",
      "Cài đặt của app như ngôn ngữ, giao diện sáng hay tối."
     ]
    ],
    [
     "Dữ liệu chỉ đi ra ngoài khi bạn chọn",
     [
-     "Đồng bộ và sao lưu dùng thư mục hoặc thiết bị do bạn chọn (ví dụ iCloud Drive, Google Drive, Dropbox, hay máy khác trong mạng nhà). Chỉ dữ liệu đã mã hoá được ghi ra đó; nhà cung cấp bạn chọn không đọc được.",
-     "Nếu bạn bật đồng bộ Secret Key, khoá được lưu trong kho mật khẩu mã hoá đầu-cuối của hệ điều hành (iCloud Keychain hoặc Google Password Manager), theo điều khoản riêng tư của nhà cung cấp đó.",
+     "Bản sao lưu là một tệp đã mã hoá, lưu ở nơi bạn chọn (ví dụ iCloud Drive, Google Drive hay Dropbox). Chỉ dữ liệu đã mã hoá được ghi ra đó; nhà cung cấp bạn chọn không đọc được.",
      "Khi bạn chia sẻ, xuất hay mở một mục bằng app khác, app đó nhận bản không mã hoá và xử lý theo điều khoản của họ."
     ]
    ],
@@ -145,13 +144,13 @@
   "shot_h": "Chụp màn hình",
   "shot_steps": [
    "Mở két.",
-   "Vào Cài đặt → Bảo mật.",
+   "Vào Cài đặt → Hiển thị.",
    "Tắt “Chặn chụp màn hình” (app sẽ hỏi Face ID, vân tay hoặc mật mã máy).",
    "Chụp màn hình.",
    "Bật lại “Chặn chụp màn hình”."
   ],
   "shot_after": "Chụp xong nhớ bật lại, và xem kỹ ảnh không có thông tin riêng tư.",
-  "never": "Đừng bao giờ gửi mật khẩu, Secret Key hay bất cứ thứ gì trong két: chúng tôi không bao giờ cần chúng.",
+  "never": "Đừng bao giờ gửi mật khẩu két, Khoá khôi phục hay bất cứ thứ gì trong két: chúng tôi không bao giờ cần chúng.",
   "back": "Cozy Safe",
   "switch": "Chặn chụp màn hình"
  }

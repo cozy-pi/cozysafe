@@ -25,7 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = 'https://github.com/cozy-pi/cozysafe/releases/latest/download/'
 REPO = 'https://github.com/cozy-pi/cozysafe'
 SITE = 'https://safe.cozypi.com'
-UPDATED = '2026-10-19'  # privacy policy date
+UPDATED = '2026-10-22'  # privacy policy date
 
 # Same list and order as Flip Match (lib/i18n.ts NGON_NGU); cozypi.com uses the same codes.
 LANGS = [

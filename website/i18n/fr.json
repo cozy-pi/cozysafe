@@ -18,14 +18,14 @@
   "p_how": "Vos données ne quittent jamais votre appareil sans être chiffrées, et le code qui s'en charge est public.",
   "c1h": "Chiffré sur votre appareil",
   "c1p": "Les données sont chiffrées avant d'être écrites sur le disque : une sauvegarde conservée dans un dossier cloud est donc chiffrée elle aussi.",
-  "c2h": "Mot de passe et Secret Key",
-  "c2p": "Votre mot de passe est combiné à une clé aléatoire de 128 bits conservée sur votre appareil. Même avec une copie de votre coffre, personne ne peut deviner le mot de passe.",
+  "c2h": "Mot de passe du coffre et Clé de récupération",
+  "c2p": "Votre mot de passe du coffre est combiné à une Clé de récupération aléatoire de 256 bits (24 mots). Même avec une copie de votre sauvegarde, personne ne peut deviner le mot de passe.",
   "c3h": "Open source",
   "c3p": "Tout le monde peut lire et vérifier le code (GPL-3.0). Les installateurs sont compilés par GitHub, avec une provenance vérifiable.",
   "h_lim": "À savoir avant de commencer",
   "l1h": "Aucune récupération possible",
   "l1": [
-   "Si vous oubliez le mot de passe, personne ne pourra plus ouvrir le coffre, pas même nous.",
+   "Si vous perdez votre Clé de récupération ou votre mot de passe du coffre, personne ne pourra ouvrir votre sauvegarde, pas même nous.",
    "Choisissez un mot de passe dont vous vous souviendrez, par exemple une phrase de plusieurs mots."
   ],
   "l2h": "Ce qu'il ne peut pas faire",
@@ -63,9 +63,9 @@
   "c4h": "Entièrement hors ligne",
   "c4p": "Cozy Safe n'a pas besoin de réseau. Sur Android, il n'a même pas l'autorisation d'accéder à Internet, et sur macOS il tourne dans un sandbox sans accès au réseau.",
   "c5h": "Discret à l'écran",
-  "c5p": "Les mots de passe et la Secret Key restent masqués jusqu'à ce que vous touchiez Afficher, le texte copié est effacé après 60 secondes et le coffre se verrouille dès que vous quittez l'app.",
+  "c5p": "Les mots de passe et la Clé de récupération restent masqués jusqu'à ce que vous touchiez Afficher, le texte copié est effacé après 60 secondes et le coffre se verrouille dès que vous quittez l'app.",
   "c6h": "Des sauvegardes que vous maîtrisez",
-  "c6p": "Sauvegardez tout le coffre dans un seul fichier chiffré et restaurez-le sur un nouvel appareil avec votre kit d'urgence. Rien ne part sur nos serveurs : nous n'en avons aucun.",
+  "c6p": "Sauvegardez tous vos coffres dans un seul fichier chiffré et ouvrez-le sur un nouvel appareil avec votre Clé de récupération et votre mot de passe du coffre. Rien ne part sur nos serveurs : nous n'en avons aucun.",
   "f_fb": "Avis"
  },
  "privacy": {
@@ -84,15 +84,14 @@
    [
     "Ce qui reste sur votre appareil",
     [
-     "Vos coffres, notes, fichiers et photos, toujours chiffrés avec des clés dérivées de votre mot de passe et de votre Secret Key.",
+     "Vos coffres, notes, fichiers et photos, toujours chiffrés avec des clés dérivées de votre mot de passe du coffre et de votre Clé de récupération.",
      "Les réglages de l'app, comme la langue et le mode clair ou sombre."
     ]
    ],
    [
     "Où vos données peuvent aller, uniquement si vous le choisissez",
     [
-     "La synchronisation et la sauvegarde utilisent un dossier ou un appareil de votre choix (par exemple iCloud Drive, Google Drive, Dropbox ou un autre appareil de votre réseau). Seules des données chiffrées y sont écrites ; le fournisseur choisi ne peut pas les lire.",
-     "Si vous activez la synchronisation de la Secret Key, la Secret Key est stockée dans le gestionnaire de mots de passe chiffré de bout en bout de votre plateforme (Trousseau iCloud ou Gestionnaire de mots de passe de Google), selon les conditions de confidentialité de ce fournisseur.",
+     "Une sauvegarde est un seul fichier chiffré, enregistré à l'endroit de votre choix (par exemple iCloud Drive, Google Drive ou Dropbox). Seules des données chiffrées y sont écrites ; le fournisseur choisi ne peut pas les lire.",
      "Lorsque vous partagez, exportez ou ouvrez un élément dans une autre app, cette app reçoit une copie non chiffrée et la traite selon ses propres conditions."
     ]
    ],
@@ -145,13 +144,13 @@
   "shot_h": "Faire une capture d'écran",
   "shot_steps": [
    "Ouvrez votre coffre.",
-   "Allez dans Réglages → Sécurité.",
+   "Allez dans Réglages → Affichage.",
    "Désactivez « Bloquer les captures d'écran » (Face ID, empreinte ou code de l'appareil demandé).",
    "Faites la capture.",
    "Réactivez « Bloquer les captures d'écran »."
   ],
   "shot_after": "Réactivez-le ensuite, et vérifiez que la capture ne montre rien de privé.",
-  "never": "N'envoyez jamais votre mot de passe, votre Secret Key ni rien de votre coffre : nous n'en avons jamais besoin.",
+  "never": "N'envoyez jamais votre mot de passe du coffre, votre Clé de récupération ni rien de l'intérieur de votre coffre : nous n'en avons jamais besoin.",
   "back": "Cozy Safe",
   "switch": "Bloquer les captures d'écran"
  }
