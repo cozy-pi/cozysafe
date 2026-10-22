@@ -18,14 +18,14 @@
   "p_how": "I tuoi dati non lasciano mai il dispositivo in chiaro, e il codice che se ne occupa è pubblico.",
   "c1h": "Cifrato sul tuo dispositivo",
   "c1p": "I dati vengono cifrati prima di essere scritti sul disco, quindi anche un backup conservato in una cartella cloud è cifrato.",
-  "c2h": "Password più Secret Key",
-  "c2p": "La tua password viene combinata con una chiave casuale a 128 bit conservata sul dispositivo: anche chi ha una copia della tua cassaforte non può indovinare la password.",
+  "c2h": "Password della cassaforte più Chiave di recupero",
+  "c2p": "La tua password della cassaforte viene combinata con una Chiave di recupero casuale a 256 bit (24 parole): anche chi ha una copia del tuo backup non può indovinare la password.",
   "c3h": "Open source",
   "c3p": "Chiunque può leggere e verificare il codice (GPL-3.0). I programmi di installazione sono generati da GitHub, con una provenienza verificabile.",
   "h_lim": "Da sapere prima",
   "l1h": "Nessun recupero",
   "l1": [
-   "Se dimentichi la password, nessuno potrà più aprire la cassaforte, nemmeno noi.",
+   "Se perdi la Chiave di recupero o la password della cassaforte, nessuno potrà aprire il tuo backup, nemmeno noi.",
    "Scegli una password che ricorderai, ad esempio una frase di più parole."
   ],
   "l2h": "Cosa non può fare",
@@ -63,9 +63,9 @@
   "c4h": "Completamente offline",
   "c4p": "Cozy Safe non ha bisogno di rete. Su Android non ha nemmeno il permesso di accedere a internet, e su macOS gira in una sandbox senza accesso alla rete.",
   "c5h": "Riservato sullo schermo",
-  "c5p": "Le password e la Secret Key restano nascoste finché non tocchi Mostra, il testo copiato viene cancellato dopo 60 secondi e la cassaforte si blocca appena esci dall'app.",
+  "c5p": "Le password e la Chiave di recupero restano nascoste finché non tocchi Mostra, il testo copiato viene cancellato dopo 60 secondi e la cassaforte si blocca appena esci dall'app.",
   "c6h": "Backup sotto il tuo controllo",
-  "c6p": "Salva l'intera cassaforte in un unico file cifrato e ripristinala su un nuovo dispositivo con il tuo Kit di emergenza. Niente finisce sui nostri server: non ne abbiamo.",
+  "c6p": "Salva tutte le casseforti in un unico file cifrato e aprilo su un nuovo dispositivo con la tua Chiave di recupero e la password della cassaforte. Niente finisce sui nostri server: non ne abbiamo.",
   "f_fb": "Feedback"
  },
  "privacy": {
@@ -84,15 +84,14 @@
    [
     "Cosa resta sul tuo dispositivo",
     [
-     "Le tue casseforti, note, file e foto, sempre cifrati con chiavi derivate dalla tua password e dalla tua Secret Key.",
+     "Le tue casseforti, note, file e foto, sempre cifrati con chiavi derivate dalla password della cassaforte e dalla Chiave di recupero.",
      "Le impostazioni dell'app, come la lingua e la modalità chiara o scura."
     ]
    ],
    [
     "Dove possono andare i tuoi dati, solo se lo scegli tu",
     [
-     "Sincronizzazione e backup usano una cartella o un dispositivo scelto da te (ad esempio iCloud Drive, Google Drive, Dropbox o un altro dispositivo della tua rete). Lì vengono scritti solo dati cifrati; il fornitore scelto non può leggerli.",
-     "Se attivi la sincronizzazione della Secret Key, la Secret Key viene salvata nell'archivio password con crittografia end-to-end della tua piattaforma (Portachiavi iCloud o Gestore delle password di Google), secondo le condizioni sulla privacy di quel fornitore.",
+     "Un backup è un unico file cifrato, salvato dove scegli tu (ad esempio iCloud Drive, Google Drive o Dropbox). Lì vengono scritti solo dati cifrati; il fornitore scelto non può leggerli.",
      "Quando condividi, esporti o apri un elemento in un'altra app, quell'app riceve una copia non cifrata e la gestisce secondo le proprie condizioni."
     ]
    ],
@@ -145,13 +144,13 @@
   "shot_h": "Fare uno screenshot",
   "shot_steps": [
    "Apri la cassaforte.",
-   "Vai in Impostazioni → Sicurezza.",
+   "Vai in Impostazioni → Schermo.",
    "Disattiva «Blocca screenshot» (ti chiede Face ID, impronta o il codice del telefono).",
    "Fai lo screenshot.",
    "Riattiva «Blocca screenshot»."
   ],
   "shot_after": "Riattivalo quando hai finito e controlla che lo screenshot non mostri nulla di privato.",
-  "never": "Non inviare mai la password, la Secret Key o qualcosa dalla cassaforte: non ci servono mai.",
+  "never": "Non inviare mai la password della cassaforte, la Chiave di recupero o qualcosa dall'interno della cassaforte: non ci servono mai.",
   "back": "Cozy Safe",
   "switch": "Blocca screenshot"
  }

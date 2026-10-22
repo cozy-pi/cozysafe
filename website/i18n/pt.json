@@ -18,14 +18,14 @@
   "p_how": "Seus dados nunca saem do seu dispositivo sem criptografia, e o código que faz isso é público.",
   "c1h": "Criptografado no seu dispositivo",
   "c1p": "Os dados são criptografados antes de serem gravados no disco, então um backup guardado em uma pasta na nuvem também fica criptografado.",
-  "c2h": "Senha mais Secret Key",
-  "c2p": "Sua senha é combinada com uma chave aleatória de 128 bits guardada no seu dispositivo. Assim, quem tiver uma cópia do seu cofre ainda não consegue adivinhar a senha.",
+  "c2h": "Senha do cofre mais Chave de recuperação",
+  "c2p": "Sua senha do cofre é combinada com uma Chave de recuperação aleatória de 256 bits (24 palavras). Assim, quem tiver uma cópia do seu backup ainda não consegue adivinhar a senha.",
   "c3h": "Código aberto",
   "c3p": "Qualquer pessoa pode ler e conferir o código (GPL-3.0). Os instaladores são gerados pelo GitHub, com procedência que você pode verificar.",
   "h_lim": "Bom saber antes",
   "l1h": "Não há recuperação",
   "l1": [
-   "Se você esquecer a senha, ninguém conseguirá abrir o cofre de novo, nem mesmo nós.",
+   "Se você perder sua Chave de recuperação ou sua senha do cofre, ninguém conseguirá abrir seu backup, nem mesmo nós.",
    "Escolha uma senha que você vai lembrar, como uma frase de várias palavras."
   ],
   "l2h": "O que ele não faz",
@@ -63,9 +63,9 @@
   "c4h": "Totalmente offline",
   "c4p": "O Cozy Safe não precisa de rede. No Android ele nem tem permissão de acesso à internet, e no macOS roda em um sandbox sem acesso à rede.",
   "c5h": "Discreto na tela",
-  "c5p": "Senhas e a Secret Key ficam ocultas até você tocar em Mostrar, o texto copiado é apagado após 60 segundos e o cofre é bloqueado assim que você sai do app.",
+  "c5p": "Senhas e a Chave de recuperação ficam ocultas até você tocar em Mostrar, o texto copiado é apagado após 60 segundos e o cofre é bloqueado assim que você sai do app.",
   "c6h": "Backups sob o seu controle",
-  "c6p": "Faça backup do cofre inteiro em um único arquivo criptografado e restaure em um novo dispositivo com seu Kit de Emergência. Nada vai para nossos servidores; não temos nenhum.",
+  "c6p": "Faça backup de todos os cofres em um único arquivo criptografado e abra-o em um novo dispositivo com sua Chave de recuperação e sua senha do cofre. Nada vai para nossos servidores; não temos nenhum.",
   "f_fb": "Feedback"
  },
  "privacy": {
@@ -84,15 +84,14 @@
    [
     "O que fica no seu dispositivo",
     [
-     "Seus cofres, notas, arquivos e fotos, sempre criptografados com chaves derivadas da sua senha e da sua Secret Key.",
+     "Seus cofres, notas, arquivos e fotos, sempre criptografados com chaves derivadas da sua senha do cofre e da sua Chave de recuperação.",
      "As configurações do app, como idioma e modo claro ou escuro."
     ]
    ],
    [
     "Para onde seus dados podem ir, só se você escolher",
     [
-     "A sincronização e o backup usam uma pasta ou um dispositivo que você escolhe (por exemplo, iCloud Drive, Google Drive, Dropbox ou outro dispositivo na sua rede). Somente dados criptografados são gravados ali; o provedor escolhido não consegue lê-los.",
-     "Se você ativar a sincronização da Secret Key, a Secret Key é guardada no gerenciador de senhas com criptografia de ponta a ponta da sua plataforma (Chaves do iCloud ou Gerenciador de senhas do Google), conforme os termos de privacidade desse provedor.",
+     "Um backup é um único arquivo criptografado, salvo onde você escolher (por exemplo, iCloud Drive, Google Drive ou Dropbox). Somente dados criptografados são gravados ali; o provedor escolhido não consegue lê-los.",
      "Quando você compartilha, exporta ou abre um item em outro app, esse app recebe uma cópia sem criptografia e a trata conforme os próprios termos."
     ]
    ],
@@ -145,13 +144,13 @@
   "shot_h": "Tirar uma captura de tela",
   "shot_steps": [
    "Abra seu cofre.",
-   "Vá em Ajustes → Segurança.",
+   "Vá em Ajustes → Exibição.",
    "Desative “Bloquear capturas de tela” (ele pede Face ID, digital ou o código do aparelho).",
    "Tire a captura.",
    "Ative “Bloquear capturas de tela” de novo."
   ],
   "shot_after": "Ative de novo quando terminar e confira se a captura não mostra nada privado.",
-  "never": "Nunca envie sua senha, sua Secret Key ou nada do seu cofre: nunca precisamos deles.",
+  "never": "Nunca envie sua senha do cofre, sua Chave de recuperação ou nada de dentro do seu cofre: nunca precisamos deles.",
   "back": "Cozy Safe",
   "switch": "Bloquear capturas de tela"
  }

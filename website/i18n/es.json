@@ -18,14 +18,14 @@
   "p_how": "Tus datos nunca salen de tu dispositivo sin cifrar, y el código que lo hace es público.",
   "c1h": "Cifrado en tu dispositivo",
   "c1p": "Los datos se cifran antes de escribirse en el disco, así que una copia de seguridad guardada en una carpeta en la nube también está cifrada.",
-  "c2h": "Contraseña más Secret Key",
-  "c2p": "Tu contraseña se combina con una clave aleatoria de 128 bits guardada en tu dispositivo, así que quien tenga una copia de tu caja fuerte no podrá adivinar la contraseña.",
+  "c2h": "Contraseña de la caja fuerte más Clave de recuperación",
+  "c2p": "Tu contraseña de la caja fuerte se combina con una Clave de recuperación aleatoria de 256 bits (24 palabras), así que quien tenga una copia de tu copia de seguridad no podrá adivinar la contraseña.",
   "c3h": "Código abierto",
   "c3p": "Cualquiera puede leer y revisar el código (GPL-3.0). Los instaladores los compila GitHub, con una procedencia que puedes verificar.",
   "h_lim": "Conviene saber antes",
   "l1h": "No hay recuperación",
   "l1": [
-   "Si olvidas la contraseña, nadie podrá volver a abrir la caja fuerte, ni siquiera nosotros.",
+   "Si pierdes tu Clave de recuperación o tu contraseña de la caja fuerte, nadie podrá abrir tu copia de seguridad, ni siquiera nosotros.",
    "Elige una contraseña que vayas a recordar, como una frase de varias palabras."
   ],
   "l2h": "Lo que no puede hacer",
@@ -63,9 +63,9 @@
   "c4h": "Totalmente sin conexión",
   "c4p": "Cozy Safe no necesita red. En Android no tiene permiso de acceso a internet, y en macOS se ejecuta en un sandbox sin acceso a la red.",
   "c5h": "Discreta en pantalla",
-  "c5p": "Las contraseñas y la Secret Key permanecen ocultas hasta que tocas Mostrar, el texto copiado se borra a los 60 segundos y la caja fuerte se bloquea en cuanto sales de la app.",
+  "c5p": "Las contraseñas y la Clave de recuperación permanecen ocultas hasta que tocas Mostrar, el texto copiado se borra a los 60 segundos y la caja fuerte se bloquea en cuanto sales de la app.",
   "c6h": "Copias de seguridad bajo tu control",
-  "c6p": "Guarda toda la caja fuerte en un único archivo cifrado y restáurala en un dispositivo nuevo con tu Kit de emergencia. Nada va a nuestros servidores; no tenemos ninguno.",
+  "c6p": "Guarda todas tus cajas fuertes en un único archivo cifrado y ábrelo en un dispositivo nuevo con tu Clave de recuperación y tu contraseña de la caja fuerte. Nada va a nuestros servidores; no tenemos ninguno.",
   "f_fb": "Comentarios"
  },
  "privacy": {
@@ -84,15 +84,14 @@
    [
     "Lo que se queda en tu dispositivo",
     [
-     "Tus cajas fuertes, notas, archivos y fotos, siempre cifrados con claves derivadas de tu contraseña y tu Secret Key.",
+     "Tus cajas fuertes, notas, archivos y fotos, siempre cifrados con claves derivadas de tu contraseña de la caja fuerte y tu Clave de recuperación.",
      "Los ajustes de la app, como el idioma y el modo claro u oscuro."
     ]
    ],
    [
     "Adónde pueden ir tus datos, solo si tú lo eliges",
     [
-     "La sincronización y las copias de seguridad usan una carpeta o un dispositivo que tú eliges (por ejemplo, iCloud Drive, Google Drive, Dropbox u otro dispositivo de tu red). Allí solo se escriben datos cifrados; el proveedor que elijas no puede leerlos.",
-     "Si activas la sincronización de la Secret Key, la Secret Key se guarda en el almacén de contraseñas con cifrado de extremo a extremo de tu plataforma (Llavero de iCloud o Gestor de contraseñas de Google), según las condiciones de privacidad de ese proveedor.",
+     "Una copia de seguridad es un único archivo cifrado, guardado donde tú elijas (por ejemplo, iCloud Drive, Google Drive o Dropbox). Allí solo se escriben datos cifrados; el proveedor que elijas no puede leerlos.",
      "Cuando compartes, exportas o abres un elemento en otra app, esa app recibe una copia sin cifrar y la trata según sus propias condiciones."
     ]
    ],
@@ -145,13 +144,13 @@
   "shot_h": "Hacer una captura de pantalla",
   "shot_steps": [
    "Abre tu caja fuerte.",
-   "Ve a Ajustes → Seguridad.",
+   "Ve a Ajustes → Pantalla.",
    "Desactiva «Bloquear capturas de pantalla» (pide Face ID, huella o el código del teléfono).",
    "Haz la captura.",
    "Vuelve a activar «Bloquear capturas de pantalla»."
   ],
   "shot_after": "Vuelve a activarlo al terminar y comprueba que la captura no muestre nada privado.",
-  "never": "Nunca envíes tu contraseña, tu Secret Key ni nada de tu caja fuerte: nunca los necesitamos.",
+  "never": "Nunca envíes tu contraseña de la caja fuerte, tu Clave de recuperación ni nada de dentro de tu caja fuerte: nunca los necesitamos.",
   "back": "Cozy Safe",
   "switch": "Bloquear capturas de pantalla"
  }

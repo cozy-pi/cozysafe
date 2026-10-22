@@ -18,14 +18,14 @@
   "p_how": "Data Anda tidak pernah meninggalkan perangkat dalam keadaan tidak terenkripsi, dan kode yang melakukannya terbuka untuk umum.",
   "c1h": "Dienkripsi di perangkat Anda",
   "c1p": "Data dienkripsi sebelum ditulis ke disk, jadi cadangan yang disimpan di folder cloud juga terenkripsi.",
-  "c2h": "Kata sandi plus Secret Key",
-  "c2p": "Kata sandi Anda digabungkan dengan kunci acak 128-bit yang disimpan di perangkat Anda, sehingga orang yang memegang salinan brankas Anda tetap tidak bisa menebak kata sandinya.",
+  "c2h": "Kata sandi brankas plus Kunci Pemulihan",
+  "c2p": "Kata sandi brankas Anda digabungkan dengan Kunci Pemulihan acak 256-bit (24 kata), sehingga orang yang memegang salinan cadangan Anda tetap tidak bisa menebak kata sandinya.",
   "c3h": "Sumber terbuka",
   "c3p": "Siapa pun bisa membaca dan memeriksa kodenya (GPL-3.0). Penginstal dibuat oleh GitHub, dengan bukti asal-usul yang bisa Anda verifikasi.",
   "h_lim": "Yang perlu diketahui dulu",
   "l1h": "Tidak ada pemulihan",
   "l1": [
-   "Jika Anda lupa kata sandi, tidak ada yang bisa membuka brankas itu lagi, termasuk kami.",
+   "Jika Anda kehilangan Kunci Pemulihan atau kata sandi brankas, tidak ada yang bisa membuka cadangan Anda, termasuk kami.",
    "Pilih kata sandi yang akan Anda ingat, misalnya frasa yang terdiri dari beberapa kata."
   ],
   "l2h": "Yang tidak bisa dilakukannya",
@@ -63,9 +63,9 @@
   "c4h": "Sepenuhnya offline",
   "c4p": "Cozy Safe tidak memerlukan jaringan. Di Android aplikasinya sama sekali tidak punya izin internet, dan di macOS aplikasinya berjalan dalam sandbox tanpa akses jaringan.",
   "c5h": "Tetap tertutup di layar",
-  "c5p": "Kata sandi dan Secret Key tetap tersembunyi sampai Anda mengetuk Tampilkan, teks yang disalin dihapus setelah 60 detik, dan brankas langsung terkunci begitu Anda meninggalkan aplikasi.",
+  "c5p": "Kata sandi dan Kunci Pemulihan tetap tersembunyi sampai Anda mengetuk Tampilkan, teks yang disalin dihapus setelah 60 detik, dan brankas langsung terkunci begitu Anda meninggalkan aplikasi.",
   "c6h": "Cadangan di tangan Anda",
-  "c6p": "Cadangkan seluruh brankas ke satu file terenkripsi, lalu pulihkan di perangkat baru dengan Kit Darurat Anda. Tidak ada yang dikirim ke server kami; kami memang tidak punya server.",
+  "c6p": "Cadangkan semua brankas ke satu file terenkripsi, lalu buka di perangkat baru dengan Kunci Pemulihan dan kata sandi brankas Anda. Tidak ada yang dikirim ke server kami; kami memang tidak punya server.",
   "f_fb": "Masukan"
  },
  "privacy": {
@@ -84,15 +84,14 @@
    [
     "Yang tetap ada di perangkat Anda",
     [
-     "Brankas, catatan, file, dan foto Anda, yang selalu dienkripsi dengan kunci yang diturunkan dari kata sandi dan Secret Key Anda.",
+     "Brankas, catatan, file, dan foto Anda, yang selalu dienkripsi dengan kunci yang diturunkan dari kata sandi brankas dan Kunci Pemulihan Anda.",
      "Pengaturan aplikasi seperti bahasa serta mode terang atau gelap."
     ]
    ],
    [
     "Ke mana data Anda bisa pergi, hanya jika Anda memilihnya",
     [
-     "Sinkronisasi dan cadangan menggunakan folder atau perangkat yang Anda pilih (misalnya iCloud Drive, Google Drive, Dropbox, atau perangkat lain di jaringan Anda). Hanya data terenkripsi yang ditulis ke sana; penyedia yang Anda pilih tidak bisa membacanya.",
-     "Jika Anda mengaktifkan sinkronisasi Secret Key, Secret Key disimpan di penyimpanan kata sandi platform Anda yang terenkripsi end-to-end (Rantai Kunci iCloud atau Pengelola Sandi Google), sesuai ketentuan privasi penyedia tersebut.",
+     "Cadangan adalah satu file terenkripsi yang disimpan di tempat pilihan Anda (misalnya iCloud Drive, Google Drive, atau Dropbox). Hanya data terenkripsi yang ditulis ke sana; penyedia yang Anda pilih tidak bisa membacanya.",
      "Saat Anda membagikan, mengekspor, atau membuka item di aplikasi lain, aplikasi itu menerima salinan yang tidak terenkripsi dan menanganinya sesuai ketentuannya sendiri."
     ]
    ],
@@ -145,13 +144,13 @@
   "shot_h": "Mengambil tangkapan layar",
   "shot_steps": [
    "Buka brankas Anda.",
-   "Masuk ke Pengaturan → Keamanan.",
+   "Masuk ke Pengaturan → Tampilan.",
    "Matikan “Blokir tangkapan layar” (akan diminta Face ID, sidik jari, atau kode perangkat).",
    "Ambil tangkapan layar.",
    "Nyalakan lagi “Blokir tangkapan layar”."
   ],
   "shot_after": "Nyalakan lagi setelah selesai, dan pastikan tangkapan layar tidak memuat hal pribadi.",
-  "never": "Jangan pernah mengirim kata sandi, Secret Key, atau isi brankas Anda: kami tidak pernah membutuhkannya.",
+  "never": "Jangan pernah mengirim kata sandi brankas, Kunci Pemulihan, atau isi brankas Anda: kami tidak pernah membutuhkannya.",
   "back": "Cozy Safe",
   "switch": "Blokir tangkapan layar"
  }

@@ -18,14 +18,14 @@
   "p_how": "Verileriniz cihazınızdan asla şifresiz çıkmaz ve bunu yapan kod herkese açıktır.",
   "c1h": "Cihazınızda şifrelenir",
   "c1p": "Veriler diske yazılmadan önce şifrelenir; bu yüzden bir bulut klasöründe tutulan yedek de şifrelidir.",
-  "c2h": "Parola ve Secret Key",
-  "c2p": "Parolanız, cihazınızda tutulan rastgele 128 bitlik bir anahtarla birleştirilir. Böylece kasanızın bir kopyasını ele geçiren biri bile parolanızı tahmin edemez.",
+  "c2h": "Kasa parolası ve Kurtarma Anahtarı",
+  "c2p": "Kasa parolanız, rastgele 256 bitlik bir Kurtarma Anahtarı (24 kelime) ile birleştirilir. Böylece yedeğinizin bir kopyasını ele geçiren biri bile parolanızı tahmin edemez.",
   "c3h": "Açık kaynak",
   "c3p": "Kodu herkes okuyup denetleyebilir (GPL-3.0). Yükleyiciler GitHub tarafından, doğrulayabileceğiniz köken bilgisiyle derlenir.",
   "h_lim": "Önce bilmeniz gerekenler",
   "l1h": "Kurtarma yoktur",
   "l1": [
-   "Parolanızı unutursanız biz dahil hiç kimse kasayı bir daha açamaz.",
+   "Kurtarma Anahtarınızı veya kasa parolanızı kaybederseniz biz dahil hiç kimse yedeğinizi açamaz.",
    "Hatırlayacağınız bir parola seçin; örneğin birkaç kelimeden oluşan bir ifade."
   ],
   "l2h": "Yapamadıkları",
@@ -63,9 +63,9 @@
   "c4h": "Tamamen çevrimdışı",
   "c4p": "Cozy Safe ağa ihtiyaç duymaz. Android'de hiçbir internet izni yoktur, macOS'ta ise ağ erişimi olmayan bir sandbox içinde çalışır.",
   "c5h": "Ekranda gizli",
-  "c5p": "Parolalar ve Secret Key siz Göster'e dokunana kadar gizli kalır, kopyalanan metin 60 saniye sonra silinir ve uygulamadan çıktığınız anda kasa kilitlenir.",
+  "c5p": "Parolalar ve Kurtarma Anahtarı siz Göster'e dokunana kadar gizli kalır, kopyalanan metin 60 saniye sonra silinir ve uygulamadan çıktığınız anda kasa kilitlenir.",
   "c6h": "Kontrolü sizde olan yedekler",
-  "c6p": "Kasanın tamamını tek bir şifreli dosyaya yedekleyin ve Acil Durum Kitinizle yeni bir cihaza geri yükleyin. Sunucularımıza hiçbir şey gitmez; zaten sunucumuz yok.",
+  "c6p": "Tüm kasaları tek bir şifreli dosyaya yedekleyin ve yeni bir cihazda Kurtarma Anahtarınız ve kasa parolanızla açın. Sunucularımıza hiçbir şey gitmez; zaten sunucumuz yok.",
   "f_fb": "Geri bildirim"
  },
  "privacy": {
@@ -84,15 +84,14 @@
    [
     "Cihazınızda kalanlar",
     [
-     "Kasalarınız, notlarınız, dosyalarınız ve fotoğraflarınız; her zaman parolanızdan ve Secret Key'inizden türetilen anahtarlarla şifrelenir.",
+     "Kasalarınız, notlarınız, dosyalarınız ve fotoğraflarınız; her zaman kasa parolanızdan ve Kurtarma Anahtarınızdan türetilen anahtarlarla şifrelenir.",
      "Dil ve açık ya da koyu mod gibi uygulama ayarları."
     ]
    ],
    [
     "Verileriniz nereye gidebilir (yalnızca siz seçerseniz)",
     [
-     "Eşitleme ve yedekleme, seçtiğiniz bir klasörü veya cihazı kullanır (örneğin iCloud Drive, Google Drive, Dropbox ya da ağınızdaki başka bir cihaz). Oraya yalnızca şifreli veri yazılır; seçtiğiniz sağlayıcı bu veriyi okuyamaz.",
-     "Secret Key eşitlemeyi açarsanız Secret Key, platformunuzun uçtan uca şifreli parola deposunda (iCloud Anahtar Zinciri veya Google Şifre Yöneticisi), o sağlayıcının gizlilik koşulları altında saklanır.",
+     "Yedek, seçtiğiniz bir yere kaydedilen tek bir şifreli dosyadır (örneğin iCloud Drive, Google Drive veya Dropbox). Oraya yalnızca şifreli veri yazılır; seçtiğiniz sağlayıcı bu veriyi okuyamaz.",
      "Bir öğeyi paylaştığınızda, dışa aktardığınızda veya başka bir uygulamada açtığınızda o uygulama şifresiz bir kopya alır ve bunu kendi koşullarına göre işler."
     ]
    ],
@@ -145,13 +144,13 @@
   "shot_h": "Ekran görüntüsü almak",
   "shot_steps": [
    "Kasanızı açın.",
-   "Ayarlar → Güvenlik bölümüne gidin.",
+   "Ayarlar → Görünüm bölümüne gidin.",
    "“Ekran görüntülerini engelle” seçeneğini kapatın (Face ID, parmak izi veya cihaz şifresi sorulur).",
    "Ekran görüntüsünü alın.",
    "“Ekran görüntülerini engelle” seçeneğini yeniden açın."
   ],
   "shot_after": "İşiniz bitince yeniden açın ve görüntüde özel bir şey olmadığından emin olun.",
-  "never": "Parolanızı, Secret Key'inizi veya kasanızdaki hiçbir şeyi asla göndermeyin: onlara hiç ihtiyacımız yok.",
+  "never": "Kasa parolanızı, Kurtarma Anahtarınızı veya kasanızdaki hiçbir şeyi asla göndermeyin: onlara hiç ihtiyacımız yok.",
   "back": "Cozy Safe",
   "switch": "Ekran görüntülerini engelle"
  }

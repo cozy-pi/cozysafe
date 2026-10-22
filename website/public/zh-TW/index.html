@@ -75,17 +75,17 @@
     <p class="section-lead">你的資料不會以未加密的形式離開裝置，負責加密的程式碼也完全公開。</p>
     <div class="features">
       <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><h3>在裝置上加密</h3><p>資料在寫入磁碟之前就已加密，因此存放在雲端資料夾中的備份同樣是加密的。</p></div>
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></div><h3>密碼加上 Secret Key</h3><p>你的密碼會與儲存在裝置上的一組隨機 128 位元金鑰結合，因此即使有人取得你的保險箱副本，也無法猜出密碼。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></div><h3>保險箱密碼加上復原金鑰</h3><p>你的保險箱密碼會與一組隨機的 256 位元復原金鑰（24 個單字）結合，因此即使有人取得你的備份副本，也無法猜出密碼。</p></div>
       <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 4.2-2.6M9.3 5.2A15 15 0 0 1 22 8.8M5 12.5a10 10 0 0 1 3.4-2M15.6 10.5A10 10 0 0 1 19 12.5M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/></svg></div><h3>完全離線</h3><p>Cozy Safe 不需要網路。在 Android 上，它完全沒有網路權限；在 macOS 上，它在無法連網的沙箱中執行。</p></div>
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></div><h3>螢幕上也不外露</h3><p>密碼和 Secret Key 在你點選「顯示」之前都會隱藏，複製的文字 60 秒後自動清除，離開 App 後保險箱會立即鎖定。</p></div>
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10M8 9l4 4 4-4"/><rect x="4" y="15" width="16" height="6" rx="2"/><path d="M8 18h.01"/></svg></div><h3>備份由你掌控</h3><p>將整個保險箱備份成一個加密檔案，並在新裝置上用緊急復原包還原。資料不會傳到我們的伺服器，我們也沒有伺服器。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></div><h3>螢幕上也不外露</h3><p>密碼和復原金鑰在你點選「顯示」之前都會隱藏，複製的文字 60 秒後自動清除，離開 App 後保險箱會立即鎖定。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10M8 9l4 4 4-4"/><rect x="4" y="15" width="16" height="6" rx="2"/><path d="M8 18h.01"/></svg></div><h3>備份由你掌控</h3><p>將所有保險箱備份成一個加密檔案，並在新裝置上用復原金鑰和保險箱密碼開啟。資料不會傳到我們的伺服器，我們也沒有伺服器。</p></div>
       <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg></div><h3>開放原始碼</h3><p>任何人都能閱讀和檢查程式碼（GPL-3.0）。安裝檔由 GitHub 建置，並附有可驗證的來源證明。</p></div>
     </div>
   </section>
   <section class="block" aria-labelledby="h-lim">
     <h2 id="h-lim">使用前須知</h2>
     <div class="limits" style="margin-top:24px">
-      <div class="limit"><h3>無法復原</h3><ul><li>如果忘記密碼，任何人都無法再打開保險箱，包括我們。</li><li>請選一組你記得住的密碼，例如由幾個詞組成的片語。</li></ul></div>
+      <div class="limit"><h3>無法復原</h3><ul><li>如果遺失復原金鑰或保險箱密碼，任何人都無法打開你的備份，包括我們。</li><li>請選一組你記得住的密碼，例如由幾個詞組成的片語。</li></ul></div>
       <div class="limit"><h3>它做不到的事</h3><ul><li>裝置間暫不支援同步：請經常備份成檔案。</li><li>無法保護已經感染惡意軟體的裝置。</li><li>任何知道密碼的人都能打開保險箱。</li></ul></div>
     </div>
   </section>
