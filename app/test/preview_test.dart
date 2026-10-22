@@ -32,6 +32,7 @@ import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
+import 'package:cozysafe/privacy.dart';
 import 'package:cozysafe/screens/overview.dart';
 import 'package:cozysafe/screens/recorder.dart';
 import 'package:cozysafe/widgets/brand.dart';
@@ -409,9 +410,7 @@ void main() {
         debugCamera = true;
         _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList();
       }, act: (t) => t.tap(find.byKey(const ValueKey('vault-action'))));
-  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
-      change: 'MỚI: nút Xoá ngay trong ghi chú (xoá xong có Hoàn tác)',
-      marks: [() => find.byKey(const ValueKey('note-delete'))]);
+  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
   _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
   _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'file', act: (t) async {
@@ -428,6 +427,19 @@ void main() {
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
   _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
+  _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {
+    PrivacyCover.onScreenshot?.call();
+    await t.pumpAndSettle();
+  },
+      change: 'MỚI: thẻ giữa màn hình, nằm tới khi đóng: vì sao ảnh chụp ra màn đen, cách tắt chặn, nút mở Cài đặt (trước: dòng nhỏ ở đáy, 3 giây)',
+      marks: [() => find.byKey(const ValueKey('shot-card'))]);
+  _screen('shot-saved', 'Vừa chụp màn hình · không chặn', home, section: 'library', setup: () => Prefs.write('block-screenshots', '0'),
+      act: (t) async {
+    PrivacyCover.onScreenshot?.call();
+    await t.pumpAndSettle();
+  },
+      change: 'MỚI: khi không chặn: thẻ giữa màn hình nhắc ảnh chụp nằm trong app Ảnh, không được mã hoá',
+      marks: [() => find.byKey(const ValueKey('shot-card'))]);
   _screen('home-recording', 'Trang chủ · chạm một bản ghi âm', home, section: 'home',
       setup: () {
         debugRecordingStill = true;
@@ -461,9 +473,7 @@ void main() {
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
     await t.pumpAndSettle();
-  },
-      change: 'MỚI: bấm giữ hiện menu ngay cạnh ngón tay: Mở · Chọn · Nhóm · Thông tin · Gửi · Xoá (ghi chú không có Đổi tên)',
-      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+  });
   Future<void> tapThumb(WidgetTester t, int n) async {
     await t.tap(find.byType(Image).at(n));
     for (var i = 0; i < 6; i++) {
@@ -472,9 +482,7 @@ void main() {
     }
   }
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
-      act: (t) => tapThumb(t, 2),
-      change: 'Thêm nút ⋯: mở menu Đổi tên · Nhóm · Thông tin… cho ảnh/video đang xem',
-      marks: [() => find.byKey(const ValueKey('quick-more'))]);
+      act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
       act: (t) => tapThumb(t, 5));
@@ -496,9 +504,7 @@ void main() {
       act: (t) async {
     await t.longPress(find.text('Cuộc họp với luật sư'));
     await t.pumpAndSettle();
-  },
-      change: 'Bấm giữ bản ghi âm: cùng menu như mọi loại mục, có Đổi tên',
-      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+  });
   _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
       act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
   _screen('files', 'Tệp', home, section: 'file');
@@ -506,27 +512,21 @@ void main() {
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
     await t.pumpAndSettle();
-  },
-      change: 'Bấm giữ tệp: menu Mở · Chọn · Đổi tên · Nhóm · Thông tin · Gửi · Xoá',
-      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+  });
   _screen('info', 'Tệp · bấm giữ → Thông tin', home, section: 'file',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('menu-info')));
     await t.pumpAndSettle();
-  },
-      change: 'MỚI: Thông tin — tên, loại, kích thước, ngày thêm, thời lượng (ghi âm/video), nhóm',
-      marks: [() => find.byKey(const ValueKey('item-info'))]);
+  });
   _screen('rename', 'Tệp · bấm giữ → Đổi tên', home, section: 'file',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('menu-rename')));
     await t.pumpAndSettle();
-  },
-      change: 'Bấm giữ → Đổi tên: chỉ sửa phần tên, giữ đuôi tệp',
-      marks: [() => find.byKey(const ValueKey('rename-field'))]);
+  });
   _screen('tag-files', 'Tệp · trong nhóm "Hộ chiếu"', home, section: 'file', act: (t) => _tapChip(t, 'Hộ chiếu'));
   _screen('tag-notes', 'Ghi chú · cùng nhóm "Hộ chiếu"', home, section: 'file', act: (t) async {
     await _tapChip(t, 'Hộ chiếu');
@@ -537,9 +537,7 @@ void main() {
   _screen('select-mode', 'Thư viện · bấm Chọn', home, section: 'library', act: (t) async {
     await t.tap(find.byKey(const ValueKey('select-button')));
     await t.pump();
-  },
-      change: 'MỚI: nút Chọn mở chế độ chọn trống (trước: tự chọn ảnh đầu); có Chọn tất cả, Xong; thanh dưới mờ tới khi chọn',
-      marks: [() => find.byKey(const ValueKey('select-all'))]);
+  });
   _screen('select', 'Đang chọn', home, section: 'library', act: (t) async {
     await t.tap(find.byKey(const ValueKey('select-button')));
     await t.pump();
@@ -550,9 +548,7 @@ void main() {
   _screen('photo-menu', 'Thư viện · bấm giữ một ảnh', home, section: 'library', act: (t) async {
     await t.longPress(find.byType(Image).at(2));
     await t.pumpAndSettle();
-  },
-      change: 'MỚI: bấm giữ ảnh hiện menu (trước: chọn ảnh)',
-      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+  });
   _screen('home-menu', 'Trang chủ · bấm giữ một mục mới thêm', home, section: 'home', act: (t) async {
     final row = find.byType(OverviewRow).first;
     await t.scrollUntilVisible(row, 200, scrollable: find.byType(Scrollable).first);
@@ -560,15 +556,11 @@ void main() {
     await t.pump();
     await t.longPress(row);
     await t.pumpAndSettle();
-  },
-      change: 'MỚI: ở trang chủ bấm giữ cũng hiện menu (trước: không có gì)',
-      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+  });
   _screen('chip-menu', 'Bấm giữ chip nhóm', home, section: 'library', act: (t) async {
     await t.longPress(find.text('Du lịch').first);
     await t.pumpAndSettle();
-  },
-      change: 'MỚI: bấm giữ nhóm: Mở · Đổi tên nhóm · Xoá nhóm (cũng có ở trang chủ, Tất cả nhóm, tìm kiếm)',
-      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+  });
   _screen('tag-sheet', 'Chọn 2 ảnh → Nhóm', home, section: 'library',
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('select-button')));
@@ -684,9 +676,7 @@ void main() {
       act: (t) async {
         await t.longPress(find.byType(Image).first);
         await t.pumpAndSettle();
-      },
-      change: 'MỚI: bấm giữ trong thùng rác: Khôi phục · Xoá hẳn',
-      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+      });
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit', 'Khoá khôi phục: 24 từ che sẵn', () => const EmergencyKitScreen(keyText: words, confirm: false));
   _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),

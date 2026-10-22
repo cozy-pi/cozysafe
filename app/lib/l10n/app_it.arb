@@ -395,5 +395,10 @@
   "infoAdded": "Aggiunto",
   "infoLength": "Durata",
   "infoGroups": "Gruppi",
-  "infoNoGroup": "Nessuno"
+  "infoNoGroup": "Nessuno",
+  "shotBlockedTitle": "Screenshot bloccati",
+  "shotBlockedBody": "Perché nessuno possa catturare il contenuto della tua cassaforte, screenshot e registrazioni dello schermo risultano neri.",
+  "shotBlockedHow": "Ti serve uno screenshot, per esempio per segnalare un problema? Vai su Impostazioni → Schermo e disattiva «Blocca screenshot». Riattivalo quando hai finito.",
+  "shotSavedTitle": "Screenshot non cifrato",
+  "gotIt": "Ho capito"
 }

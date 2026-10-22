@@ -573,5 +573,10 @@
   "infoAdded": "Added",
   "infoLength": "Length",
   "infoGroups": "Groups",
-  "infoNoGroup": "None"
+  "infoNoGroup": "None",
+  "shotBlockedTitle": "Screenshots are blocked",
+  "shotBlockedBody": "So nobody can capture what is in your vault, screenshots and screen recordings come out black.",
+  "shotBlockedHow": "Need a screenshot, for example to report a bug? Go to Settings → Display and turn off “Block screenshots”. Turn it back on when you are done.",
+  "shotSavedTitle": "Screenshot not encrypted",
+  "gotIt": "Got It"
 }

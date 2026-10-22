@@ -395,5 +395,10 @@
   "infoAdded": "添加时间",
   "infoLength": "时长",
   "infoGroups": "分组",
-  "infoNoGroup": "无"
+  "infoNoGroup": "无",
+  "shotBlockedTitle": "已阻止截屏",
+  "shotBlockedBody": "为了不让任何人截下保险箱里的内容，截屏和录屏都会变成黑色。",
+  "shotBlockedHow": "需要截屏（比如反馈问题）？前往 设置 → 显示，关闭“禁止截屏”。用完记得重新打开。",
+  "shotSavedTitle": "截图未加密",
+  "gotIt": "知道了"
 }

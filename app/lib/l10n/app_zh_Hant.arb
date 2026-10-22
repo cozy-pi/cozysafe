@@ -395,5 +395,10 @@
   "infoAdded": "加入時間",
   "infoLength": "長度",
   "infoGroups": "群組",
-  "infoNoGroup": "無"
+  "infoNoGroup": "無",
+  "shotBlockedTitle": "已阻擋截圖",
+  "shotBlockedBody": "為了不讓任何人擷取保險箱裡的內容，截圖和螢幕錄影都會變成黑色。",
+  "shotBlockedHow": "需要截圖（例如回報問題）？前往 設定 → 顯示，關閉「禁止截圖」。用完記得重新開啟。",
+  "shotSavedTitle": "截圖未加密",
+  "gotIt": "知道了"
 }

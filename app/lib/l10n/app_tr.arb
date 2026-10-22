@@ -395,5 +395,10 @@
   "infoAdded": "Eklenme",
   "infoLength": "Süre",
   "infoGroups": "Gruplar",
-  "infoNoGroup": "Yok"
+  "infoNoGroup": "Yok",
+  "shotBlockedTitle": "Ekran görüntüleri engellendi",
+  "shotBlockedBody": "Kasanızdakileri kimse kaydedemesin diye ekran görüntüleri ve ekran kayıtları siyah çıkar.",
+  "shotBlockedHow": "Örneğin hata bildirmek için ekran görüntüsü mü gerekiyor? Ayarlar → Görünüm'e gidip “Ekran görüntülerini engelle”yi kapatın. İşiniz bitince yeniden açın.",
+  "shotSavedTitle": "Ekran görüntüsü şifrelenmedi",
+  "gotIt": "Anladım"
 }

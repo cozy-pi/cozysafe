@@ -395,5 +395,10 @@
   "infoAdded": "Adicionado",
   "infoLength": "Duração",
   "infoGroups": "Grupos",
-  "infoNoGroup": "Nenhum"
+  "infoNoGroup": "Nenhum",
+  "shotBlockedTitle": "Capturas de tela bloqueadas",
+  "shotBlockedBody": "Para ninguém capturar o que está no seu cofre, capturas e gravações de tela saem pretas.",
+  "shotBlockedHow": "Precisa de uma captura, por exemplo para relatar um problema? Vá em Ajustes → Exibição e desative “Bloquear capturas de tela”. Ative de novo quando terminar.",
+  "shotSavedTitle": "Captura de tela sem criptografia",
+  "gotIt": "Entendi"
 }
