@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.30 (2026-10-22)
+
+### Changed
+- iPhone: after a screenshot, a card in the middle of the screen stays until you close
+  it. With screenshots blocked it says why the picture came out black and how to allow
+  one (Settings → Display), with a button to Settings; otherwise it reminds you the
+  screenshot sits in Photos unencrypted.
+
 ## 0.1.29 (2026-10-22)
 
 ### Added
