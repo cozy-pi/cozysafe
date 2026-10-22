@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -11,8 +12,9 @@ import '../widgets/vault_bar.dart';
 import '../item_kind.dart';
 
 /// Recently deleted: items stay here, still encrypted, for 30 days, then go for good.
-/// Tap items to select them, then Restore or Delete for good in the bottom bar (with
-/// nothing selected, the bar acts on everything). The vault reloads when it closes.
+/// A tap shows the item (owner 2026-10-22), a long press offers Restore or Delete for
+/// good; Select picks several, and the bottom bar acts on them (with nothing selected,
+/// on everything). The vault reloads when it closes.
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
 
@@ -25,6 +27,118 @@ class _TrashScreenState extends State<TrashScreen> {
   List<rust.ItemInfo>? _items;
   final Map<String, Future<Uint8List>> _thumbnails = {};
   final Set<String> _picked = {};
+  /// Full pictures for the preview, decrypted once per screen.
+  final Map<String, Future<Uint8List>> _full = {};
+  bool _selectMode = false;
+  bool get _selecting => _selectMode || _picked.isNotEmpty;
+  void _endSelect() {
+    _selectMode = false;
+    _picked.clear();
+  }
+
+  /// What was deleted, before deciding: the picture, the note's first lines, or the
+  /// file's name and size, with Restore and Delete for good.
+  Future<void> _preview(rust.ItemInfo it) async {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final size = MediaQuery.sizeOf(context);
+    Widget body;
+    if (it.kind == ItemKind.photo || it.kind == ItemKind.video) {
+      body = ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: size.height * .45),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          // The thumbnail at once; a photo's full picture replaces it when decrypted.
+          child: FutureBuilder<Uint8List>(
+            future: _thumbnails[it.id] ??= rust.itemThumbnail(id: it.id),
+            builder: (context, thumb) {
+              final small = thumb.hasData && thumb.data!.isNotEmpty
+                  ? Image.memory(thumb.data!, fit: BoxFit.contain, gaplessPlayback: true)
+                  : const SizedBox(height: 200);
+              if (it.kind != ItemKind.photo || it.sizeBytes > BigInt.from(60 << 20)) return small;
+              return FutureBuilder<Uint8List>(
+                future: _full[it.id] ??= rust.itemContent(id: it.id),
+                builder: (context, full) => full.hasData && full.data!.isNotEmpty
+                    ? Image.memory(full.data!,
+                        fit: BoxFit.contain,
+                        gaplessPlayback: true,
+                        cacheWidth: (size.width * MediaQuery.devicePixelRatioOf(context)).round())
+                    : small,
+              );
+            },
+          ),
+        ),
+      );
+    } else if (it.kind == ItemKind.note) {
+      body = FutureBuilder<Uint8List>(
+        future: rust.itemContent(id: it.id),
+        builder: (context, snap) {
+          final full = snap.hasData ? utf8.decode(snap.data!, allowMalformed: true).trim() : '';
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: size.height * .4),
+            child: SingleChildScrollView(
+              child: Text(full.length > 2000 ? '${full.substring(0, 2000)}…' : full,
+                  style: const TextStyle(fontSize: 15.5, height: 1.45)),
+            ),
+          );
+        },
+      );
+    } else {
+      body = Row(
+        children: [
+          Icon(fileIcon(it), size: 40, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 14),
+          Expanded(child: Text(fileSize(it.sizeBytes), style: TextStyle(color: c.muted))),
+        ],
+      );
+    }
+    final pick = await showCard<int>(
+      context,
+      title: it.name.isEmpty ? l.untitledNote : it.name,
+      builder: (context) => Padding(
+        key: const ValueKey('trash-preview'),
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            body,
+            const SizedBox(height: 12),
+            Text(l.daysLeft(_daysLeft(it)), style: TextStyle(color: c.muted, fontSize: 13.5)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(1),
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, Ui.circle),
+                        shape: const StadiumBorder(),
+                        foregroundColor: recordRed(context)),
+                    child: Text(l.deleteForGoodShort),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    key: const ValueKey('preview-restore'),
+                    onPressed: () => Navigator.of(context).pop(0),
+                    style: FilledButton.styleFrom(minimumSize: const Size(0, Ui.circle), shape: const StadiumBorder()),
+                    child: Text(l.restore),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || pick == null) return;
+    if (pick == 0) await _restore([it]);
+    if (pick == 1) await _deleteForGood([it]);
+  }
+
+  void _open(rust.ItemInfo it) => _selecting ? _toggle(it) : _preview(it);
 
   @override
   void initState() {
@@ -51,7 +165,7 @@ class _TrashScreenState extends State<TrashScreen> {
     for (final it in items) {
       await rust.restoreItem(id: it.id);
     }
-    _picked.clear();
+    _endSelect();
     await _load();
   }
 
@@ -77,6 +191,7 @@ class _TrashScreenState extends State<TrashScreen> {
       await rust.deleteItem(id: it.id);
       _thumbnails.remove(it.id);
     }
+    _endSelect();
     await _load();
   }
 
@@ -104,9 +219,17 @@ class _TrashScreenState extends State<TrashScreen> {
     return MenuPointer(child: PopScope(
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_picked.isEmpty ? l.recentlyDeleted : l.selectedCount(_picked.length)),
+          title: Text(!_selecting
+              ? l.recentlyDeleted
+              : _picked.isEmpty
+                  ? l.selectItems
+                  : l.selectedCount(_picked.length)),
           actions: [
-            if (_picked.isNotEmpty) TextButton(onPressed: () => setState(_picked.clear), child: Text(l.cancel)),
+            if (_selecting)
+              TextButton(key: const ValueKey('trash-done'), onPressed: () => setState(_endSelect), child: Text(l.done))
+            else if (items != null && items.isNotEmpty)
+              TextButton(
+                  key: const ValueKey('trash-select'), onPressed: () => setState(() => _selectMode = true), child: Text(l.select)),
             const SizedBox(width: 8),
           ],
         ),
@@ -134,7 +257,7 @@ class _TrashScreenState extends State<TrashScreen> {
                         final on = _picked.contains(it.id);
                         return GestureDetector(
                           key: ValueKey('trash-${it.id}'),
-                          onTap: () => _toggle(it),
+                          onTap: () => _open(it),
                           onLongPress: () => _menu(it),
                           child: Stack(
                             fit: StackFit.expand,
@@ -147,12 +270,13 @@ class _TrashScreenState extends State<TrashScreen> {
                               ),
                               Positioned(left: 4, bottom: 4, child: _DaysLeft(l.daysLeft(_daysLeft(it)))),
                               if (on) ColoredBox(color: Colors.white.withValues(alpha: .25)),
-                              Positioned(
-                                top: 6,
-                                right: 6,
-                                child: Icon(on ? Icons.check_circle : Icons.radio_button_unchecked,
-                                    color: Colors.white, shadows: const [Shadow(color: Color(0x88000000), blurRadius: 6)]),
-                              ),
+                              if (_selecting)
+                                Positioned(
+                                  top: 6,
+                                  right: 6,
+                                  child: Icon(on ? Icons.check_circle : Icons.radio_button_unchecked,
+                                      color: Colors.white, shadows: const [Shadow(color: Color(0x88000000), blurRadius: 6)]),
+                                ),
                             ],
                           ),
                         );
@@ -172,10 +296,12 @@ class _TrashScreenState extends State<TrashScreen> {
                             children: [
                               for (final it in others)
                                 ListTile(
-                                  onTap: () => _toggle(it),
+                                  onTap: () => _open(it),
                                   onLongPress: () => _menu(it),
-                                  trailing: Icon(_picked.contains(it.id) ? Icons.check_circle : Icons.radio_button_unchecked,
-                                      color: Theme.of(context).colorScheme.onSurface),
+                                  trailing: _selecting
+                                      ? Icon(_picked.contains(it.id) ? Icons.check_circle : Icons.radio_button_unchecked,
+                                          color: Theme.of(context).colorScheme.onSurface)
+                                      : null,
                                   leading: Icon(fileIcon(it), color: Theme.of(context).colorScheme.primary),
                                   title: Text(it.name.isEmpty ? l.untitledNote : it.name,
                                       maxLines: 1, overflow: TextOverflow.ellipsis),

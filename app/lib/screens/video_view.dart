@@ -1,3 +1,4 @@
+import 'quick_look.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -290,6 +291,16 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                                 style: glassButton,
                                 icon: const Icon(Icons.delete_outline),
                                 label: glassLabel(l.delete),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            GlassPill(
+                              child: IconButton(
+                                key: const ValueKey('video-more'),
+                                tooltip: l.more,
+                                color: Colors.white,
+                                onPressed: () => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id)),
+                                icon: const Icon(Icons.more_horiz),
                               ),
                             ),
                           ],

@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/selectable_row.dart';
 import '../widgets/vault_bar.dart';
 import 'file_view.dart';
 import 'search.dart' show MarkedText;
@@ -80,6 +81,23 @@ class VaultOverview extends StatelessWidget {
     ];
     final recent = [...things]..sort((a, b) => b.createdMs.compareTo(a.createdMs));
     final groups = items.where((g) => g.kind == ItemKind.tag && count(g) > 0).toList();
+    final favorites = recent.where((i) => i.isFavorite).toList();
+    // A card of rows (favourites, what was added last).
+    Widget rows(List<rust.ItemInfo> list) => Material(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: Column(children: [
+            for (final (i, it) in list.indexed) ...[
+              if (i > 0) Divider(height: 1, indent: 70, color: c.border.withValues(alpha: .6)),
+              OverviewRow(
+                  item: it,
+                  thumbnail: thumbnail,
+                  onTap: () => onOpen(it),
+                  onLongPress: onMenu == null ? null : () => onMenu!(it)),
+            ],
+          ]),
+        );
     Widget title(String t) => Padding(
           padding: const EdgeInsets.fromLTRB(6, 18, 6, 10),
           child: Text(t, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: c.muted)),
@@ -110,6 +128,11 @@ class VaultOverview extends StatelessWidget {
             ],
           ),
         ],
+        // What the person marked: always on the home page, all of it.
+        if (favorites.isNotEmpty) ...[
+          title(l.favorites),
+          KeyedSubtree(key: const ValueKey('home-favorites'), child: rows(favorites)),
+        ],
         if (groups.isNotEmpty) ...[
           title(l.searchGroups),
           Wrap(
@@ -124,21 +147,7 @@ class VaultOverview extends StatelessWidget {
         ],
         if (recent.isNotEmpty) ...[
           title(l.searchRecent),
-          Material(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
-            clipBehavior: Clip.antiAlias,
-            child: Column(children: [
-              for (final (i, it) in recent.take(recentCount).indexed) ...[
-                if (i > 0) Divider(height: 1, indent: 70, color: c.border.withValues(alpha: .6)),
-                OverviewRow(
-                    item: it,
-                    thumbnail: thumbnail,
-                    onTap: () => onOpen(it),
-                    onLongPress: onMenu == null ? null : () => onMenu!(it)),
-              ],
-            ]),
-          ),
+          rows(recent.take(recentCount).toList()),
         ],
       ],
     );
@@ -193,7 +202,15 @@ class OverviewRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(name,
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
+                      ),
+                      if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
+                    ],
+                  ),
                   const SizedBox(height: 3),
                   Text(MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs)),
                       style: TextStyle(color: c.muted, fontSize: 13.5)),

@@ -71,7 +71,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// Decrypted previews, in memory only, dropped with this screen.
   final Map<String, Future<Uint8List>> _thumbnails = {};
   /// Photos per row; pinch to change, like Photos.
-  int _cols = 4;
+  /// Library columns (pinch), remembered across launches (owner 2026-10-22).
+  int _cols = _colSteps.contains(int.tryParse(Prefs.read('library-columns') ?? ''))
+      ? int.parse(Prefs.read('library-columns')!)
+      : 4;
+  void _setCols(int n) {
+    Prefs.write('library-columns', '$n');
+    setState(() => _cols = n);
+  }
   static const _colSteps = [3, 4, 5, 7];
   double _scaleStart = 1;
   /// What the vault shows, picked in the bottom capsule.
@@ -671,16 +678,22 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (item.kind == ItemKind.photo || (item.kind == ItemKind.video && VideoViewScreen.supported)) {
       // A card over the vault, a little bigger than the thumbnail; full screen on request.
       deleted = await QuickLook.show(context, item,
-          photos: media.where((m) => m.kind == ItemKind.photo).toList(), vaultId: _vault.id);
-      if (deleted == QuickLook.menuRequest) {
-        if (mounted && !_locked) await _itemMenu(item, media);
-        return;
-      }
+          // Photos and videos: the full-screen view swipes through both.
+          photos: media.where((m) => m.kind == ItemKind.photo || VideoViewScreen.supported).toList(),
+          vaultId: _vault.id);
+
     } else {
       LockGuard.allowAway();
       deleted = await Navigator.of(context)
           .push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: item, vaultId: _vault.id)));
       LockGuard.clear();
+    }
+    // ⋯ in a viewer: that item's menu (it may be another photo, swiped to).
+    final target = QuickLook.menuTarget(deleted);
+    if (target != null) {
+      final it = (_items ?? const <rust.ItemInfo>[]).where((i) => i.id == target).firstOrNull;
+      if (it != null && mounted && !_locked) await _itemMenu(it, media);
+      return;
     }
     if (!_locked && deleted != null) {
       _reload();
@@ -906,6 +919,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           }), key: const ValueKey('menu-select')),
       if (item.kind != ItemKind.note)
         MenuEntry(Icons.edit_outlined, l.rename, () => _rename(item), key: const ValueKey('menu-rename')),
+      MenuEntry(item.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded, item.isFavorite ? l.unfavorite : l.favorite,
+          () => _toggleFavorite(item), key: const ValueKey('menu-favorite')),
       MenuEntry(Icons.sell_outlined, l.tagAction, () => _onlyThis(item, _tagSelected), key: const ValueKey('menu-group')),
       MenuEntry(Icons.info_outline, l.info, () => _info(item), key: const ValueKey('menu-info')),
       MenuEntry(Icons.ios_share, l.sendOut, () => _onlyThis(item, _sendSelected), key: const ValueKey('menu-send')),
@@ -1046,10 +1061,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         if (d.pointerCount < 2) return;
         final at = _colSteps.indexOf(_cols);
         if (d.scale < _scaleStart * .8 && at < _colSteps.length - 1) {
-          setState(() => _cols = _colSteps[at + 1]);
+          _setCols(_colSteps[at + 1]);
           _scaleStart = d.scale;
         } else if (d.scale > _scaleStart * 1.25 && at > 0) {
-          setState(() => _cols = _colSteps[at - 1]);
+          _setCols(_colSteps[at - 1]);
           _scaleStart = d.scale;
         }
       },
@@ -1135,6 +1150,27 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ? _Empty(icon: Icons.sticky_note_2_outlined, title: l.emptyNotesTitle, body: l.emptyNotesBody)
           : _Empty(icon: Icons.description_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody);
     }
+    if (!notes && _filesAsGrid) {
+      return Scrollbar(
+        child: GridView.builder(
+          key: const ValueKey('files-grid'),
+          padding: EdgeInsets.fromLTRB(12, 4, 12, _bottomRoom),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78),
+          itemCount: list.length,
+          itemBuilder: (context, i) {
+            final it = list[i];
+            return _FileTile(
+              item: it,
+              selected: _selected.contains(it.id),
+              selecting: _selecting,
+              onTap: () => _openItem(it, list.where(_isMedia).toList()),
+              onLongPress: () => _itemMenu(it, list.where(_isMedia).toList()),
+            );
+          },
+        ),
+      );
+    }
     return Scrollbar(
       child: ListView(
         padding: EdgeInsets.fromLTRB(12, 4, 12, _bottomRoom),
@@ -1191,9 +1227,79 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       };
 
   /// What the section on show holds, narrowed to the open tag.
-  List<rust.ItemInfo> _shown(List<rust.ItemInfo> items) => items
-      .where((i) => _inSection(_section, i) && (_tagId == null || i.tagIds.contains(_tagId)))
-      .toList();
+  /// The open section's items in the chosen order, favourites first (the library keeps
+  /// its date groups, so there they only carry a star).
+  List<rust.ItemInfo> _shown(List<rust.ItemInfo> items) {
+    final out = items
+        .where((i) => _inSection(_section, i) && (_tagId == null || i.tagIds.contains(_tagId)))
+        .toList();
+    final sort = _sort;
+    int by(rust.ItemInfo a, rust.ItemInfo b) => switch (sort) {
+          ItemSort.newest => b.createdMs.compareTo(a.createdMs),
+          ItemSort.oldest => a.createdMs.compareTo(b.createdMs),
+          ItemSort.name => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          ItemSort.size => b.sizeBytes.compareTo(a.sizeBytes),
+          ItemSort.edited => b.modifiedMs.compareTo(a.modifiedMs),
+        };
+    final pinFirst = _section != VaultSection.library;
+    out.sort((a, b) {
+      if (pinFirst && a.isFavorite != b.isFavorite) return a.isFavorite ? -1 : 1;
+      final c = by(a, b);
+      return c != 0 ? c : a.id.compareTo(b.id);
+    });
+    return out;
+  }
+
+  /// This section's order (Prefs `sort-<section>`): newest first unless changed.
+  ItemSort get _sort {
+    final saved = Prefs.read('sort-${_section.name}');
+    final sort = ItemSort.values.where((v) => v.name == saved).firstOrNull ?? ItemSort.newest;
+    // The library is grouped by date: only newest or oldest first make sense there.
+    if (_section == VaultSection.library && sort != ItemSort.oldest) return ItemSort.newest;
+    return sort;
+  }
+
+  /// Files as a grid of tiles instead of rows (Prefs `files-view`).
+  bool get _filesAsGrid => Prefs.read('files-view') == 'grid';
+
+  /// Sort and view, from the ⇅ button in the header.
+  Future<void> _sortMenu() async {
+    final l = AppLocalizations.of(context);
+    final now = _sort;
+    final options = switch (_section) {
+      VaultSection.library => [ItemSort.newest, ItemSort.oldest],
+      VaultSection.note => ItemSort.values,
+      _ => [ItemSort.newest, ItemSort.oldest, ItemSort.name, ItemSort.size],
+    };
+    String label(ItemSort s) => switch (s) {
+          ItemSort.newest => l.sortNewest,
+          ItemSort.oldest => l.sortOldest,
+          ItemSort.name => l.sortName,
+          ItemSort.size => l.sortSize,
+          ItemSort.edited => l.sortEdited,
+        };
+    await showItemMenu(context, title: l.sortBy, entries: [
+      for (final o in options)
+        MenuEntry(o == now ? Icons.check_rounded : null, label(o), () {
+          Prefs.write('sort-${_section.name}', o.name);
+          setState(() {});
+        }, key: ValueKey('sort-${o.name}')),
+      if (_section == VaultSection.file)
+        MenuEntry(_filesAsGrid ? Icons.view_list_rounded : Icons.grid_view_rounded, _filesAsGrid ? l.viewList : l.viewGrid, () {
+          Prefs.write('files-view', _filesAsGrid ? 'list' : 'grid');
+          setState(() {});
+        }, key: const ValueKey('files-view')),
+    ]);
+  }
+
+  Future<void> _toggleFavorite(rust.ItemInfo item) async {
+    try {
+      await rust.setItemFavorite(id: item.id, isFavorite: !item.isFavorite);
+      await _reload();
+    } on rust.VaultError catch (e) {
+      if (mounted) _snack(vaultErrorText(AppLocalizations.of(context), e));
+    }
+  }
 
   Future<String?> _askTagName({required String title, String name = ''}) {
     final l = AppLocalizations.of(context);
@@ -1490,6 +1596,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 ),
               ),
             ),
+            const SizedBox(width: 8),
+          ],
+          // Sort (and, for files, grid or list), as in Files.
+          if (_section != VaultSection.home && _items != null && !_empty && _shown(_items!).length > 1) ...[
+            GlassButton(
+                key: const ValueKey('sort-button'), icon: Icons.swap_vert_rounded, tooltip: l.sortBy, size: Ui.circle, onTap: _sortMenu),
             const SizedBox(width: 8),
           ],
           // The home tab has its own search field.
@@ -2152,11 +2264,18 @@ class _NoteRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.name.isEmpty ? l.untitledNote : item.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          item.name.isEmpty ? l.untitledNote : item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
+                    ],
                   ),
                   const SizedBox(height: 3),
                   // One line, as in iPhone Notes: when, then the first words. Every row
@@ -2241,7 +2360,12 @@ class _FileRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15)),
+                  Row(
+                    children: [
+                      Flexible(child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15))),
+                      if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
+                    ],
+                  ),
                   const SizedBox(height: 2),
                   Text('${fileSize(item.sizeBytes)} · $when', style: TextStyle(color: c.muted, fontSize: 12.5)),
                 ],
@@ -2249,6 +2373,66 @@ class _FileRow extends StatelessWidget {
             ),
           ],
         ),
+    );
+  }
+}
+
+/// A file as a tile in the grid view (⇅ → Grid): its type, then its name.
+class _FileTile extends StatelessWidget {
+  const _FileTile({
+    required this.item,
+    required this.selected,
+    required this.selecting,
+    required this.onTap,
+    required this.onLongPress,
+  });
+  final rust.ItemInfo item;
+  final bool selected;
+  final bool selecting;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    final dot = item.name.lastIndexOf('.');
+    final ext = dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          color: selected ? primary.withValues(alpha: .12) : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(10)),
+                    alignment: Alignment.center,
+                    child: ext.isEmpty || ext.length > 4
+                        ? Icon(fileIcon(item), color: primary, size: 30)
+                        : Text(ext, style: TextStyle(color: primary, fontSize: 15, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(item.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, height: 1.25)),
+                const SizedBox(height: 2),
+                Text(fileSize(item.sizeBytes), style: TextStyle(color: c.muted, fontSize: 11.5)),
+              ],
+            ),
+            if (item.isFavorite) const Positioned(left: 4, top: 4, child: FavoriteStar(size: 16)),
+            if (selecting) Positioned(right: 2, top: 2, child: SelectCircle(selected: selected)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -2361,6 +2545,7 @@ class _MediaTile extends StatelessWidget {
                   ],
                 ),
               ),
+            if (item.isFavorite) const Positioned(left: 5, bottom: 4, child: FavoriteStar(size: 17, onPhoto: true)),
             if (selecting)
               Positioned(
                 right: 5,
@@ -2425,7 +2610,9 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
         controller: _pages,
         itemCount: widget.items.length,
         onPageChanged: (i) => setState(() => _index = i),
-        itemBuilder: (context, i) => FutureBuilder<Uint8List>(
+        itemBuilder: (context, i) => widget.items[i].kind == ItemKind.video
+            ? _videoPage(context, widget.items[i])
+            : FutureBuilder<Uint8List>(
           future: _load(widget.items[i].id),
           builder: (context, snap) {
             if (snap.hasError) {
@@ -2440,6 +2627,41 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
           },
         ),
       );
+
+  /// A video among the photos: its still and a play button; playing opens the video
+  /// player (owner 2026-10-22: swiping goes through videos too).
+  Widget _videoPage(BuildContext context, rust.ItemInfo item) => GestureDetector(
+        onTap: () => _playVideo(item),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: FutureBuilder<Uint8List>(
+                future: _thumbnails[item.id] ??= rust.itemThumbnail(id: item.id),
+                builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
+                    ? Image.memory(snap.data!, fit: BoxFit.contain, gaplessPlayback: true)
+                    : const SizedBox.expand(),
+              ),
+            ),
+            Container(
+              key: const ValueKey('viewer-play'),
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(color: Color(0x99000000), shape: BoxShape.circle),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 46),
+            ),
+          ],
+        ),
+      );
+
+  final Map<String, Future<Uint8List>> _thumbnails = {};
+
+  Future<void> _playVideo(rust.ItemInfo item) async {
+    final result = await Navigator.of(context).push<String>(MaterialPageRoute(
+      builder: (_) => VideoViewScreen(item: item, vaultId: widget.vaultId),
+    ));
+    if (result != null && mounted) Navigator.of(context).pop(result);
+  }
 
   @override
   Widget build(BuildContext context) => _fullView(context);
@@ -2535,6 +2757,16 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                               style: glassButton,
                               icon: const Icon(Icons.delete_outline),
                               label: glassLabel(l.delete),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          GlassPill(
+                            child: IconButton(
+                              key: const ValueKey('photo-more'),
+                              tooltip: l.more,
+                              color: Colors.white,
+                              onPressed: () => Navigator.of(context).pop(QuickLook.menuFor(_item.id)),
+                              icon: const Icon(Icons.more_horiz),
                             ),
                           ),
                         ],
@@ -2679,3 +2911,6 @@ class DeleteOriginalsSheet extends StatelessWidget {
     );
   }
 }
+
+/// How a section is ordered (the ⇅ menu). Saved per section.
+enum ItemSort { newest, oldest, name, size, edited }

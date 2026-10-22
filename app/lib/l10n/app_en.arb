@@ -397,7 +397,7 @@
   "select": "Select",
   "hideNoteText": "Hide note text",
   "foundInText": "Found in the text",
-  "trashTapHint": "Tap to select, then restore or delete for good below.",
+  "trashTapHint": "Tap an item to look at it. Select picks several.",
   "deleteForGoodShort": "Delete for good",
   "kitCopyNote": "The copy is cleared from the clipboard after 60 seconds. Do not send this key in a message.",
   "fullScreen": "Full screen",
@@ -578,5 +578,16 @@
   "shotBlockedBody": "So nobody can capture what is in your vault, screenshots and screen recordings come out black.",
   "shotBlockedHow": "Need a screenshot, for example to report a bug? Go to Settings → Display and turn off “Block screenshots”. Turn it back on when you are done.",
   "shotSavedTitle": "Screenshot not encrypted",
-  "gotIt": "Got It"
+  "gotIt": "Got It",
+  "favorite": "Favorite",
+  "unfavorite": "Remove from Favorites",
+  "favorites": "Favorites",
+  "sortBy": "Sort",
+  "sortNewest": "Newest First",
+  "sortOldest": "Oldest First",
+  "sortName": "Name",
+  "sortSize": "Largest First",
+  "sortEdited": "Recently Edited",
+  "viewGrid": "Grid",
+  "viewList": "List"
 }

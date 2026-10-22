@@ -262,7 +262,7 @@
   "select": "Pilih",
   "hideNoteText": "Sembunyikan isi catatan",
   "foundInText": "Ditemukan di teks",
-  "trashTapHint": "Ketuk untuk memilih, lalu pulihkan atau hapus permanen di bawah.",
+  "trashTapHint": "Ketuk item untuk melihatnya. Pilih untuk memilih beberapa.",
   "deleteForGoodShort": "Hapus permanen",
   "kitCopyNote": "Salinan dihapus dari papan klip setelah 60 detik. Jangan kirim kunci ini lewat pesan.",
   "fullScreen": "Layar penuh",
@@ -400,5 +400,16 @@
   "shotBlockedBody": "Agar tidak ada yang bisa merekam isi brankas Anda, tangkapan dan rekaman layar menjadi hitam.",
   "shotBlockedHow": "Perlu tangkapan layar, misalnya untuk melaporkan bug? Buka Pengaturan → Tampilan lalu matikan “Blokir tangkapan layar”. Nyalakan lagi setelah selesai.",
   "shotSavedTitle": "Tangkapan layar tidak dienkripsi",
-  "gotIt": "Mengerti"
+  "gotIt": "Mengerti",
+  "favorite": "Favorit",
+  "unfavorite": "Hapus dari favorit",
+  "favorites": "Favorit",
+  "sortBy": "Urutkan",
+  "sortNewest": "Terbaru dulu",
+  "sortOldest": "Terlama dulu",
+  "sortName": "Nama",
+  "sortSize": "Terbesar dulu",
+  "sortEdited": "Baru diedit",
+  "viewGrid": "Kisi",
+  "viewList": "Daftar"
 }

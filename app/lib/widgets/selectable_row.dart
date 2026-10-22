@@ -71,3 +71,20 @@ class SelectCircle extends StatelessWidget {
         color: selected ? Theme.of(context).colorScheme.primary : CsColors.of(context).muted,
       );
 }
+
+/// A favourite's mark next to its name or on its thumbnail: a small gold star.
+class FavoriteStar extends StatelessWidget {
+  const FavoriteStar({super.key, this.size = 15, this.onPhoto = false});
+  final double size;
+  /// On a photo: white rim and shadow so it reads on any picture.
+  final bool onPhoto;
+
+  @override
+  Widget build(BuildContext context) => Icon(
+        Icons.star_rounded,
+        key: const ValueKey('favorite-star'),
+        size: size,
+        color: const Color(0xFFFFB300),
+        shadows: onPhoto ? const [Shadow(blurRadius: 4, color: Color(0x99000000))] : null,
+      );
+}

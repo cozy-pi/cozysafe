@@ -8,7 +8,8 @@ import '../theme.dart';
 /// One line of [showItemMenu].
 class MenuEntry {
   const MenuEntry(this.icon, this.label, this.onTap, {this.danger = false, this.key});
-  final IconData icon;
+  /// None: an empty space (unchosen options in a list where only the chosen one has ✓).
+  final IconData? icon;
   final String label;
   final VoidCallback onTap;
   /// Delete and the like: the system red.
@@ -133,7 +134,10 @@ class _Menu extends StatelessWidget {
                                     style: TextStyle(
                                         fontSize: 16, color: e.danger ? recordRed(context) : ink, fontWeight: FontWeight.w500)),
                               ),
-                              Icon(e.icon, size: 21, color: e.danger ? recordRed(context) : ink),
+                              if (e.icon != null)
+                                Icon(e.icon, size: 21, color: e.danger ? recordRed(context) : ink)
+                              else
+                                const SizedBox(width: 21),
                             ],
                           ),
                         ),

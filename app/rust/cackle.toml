@@ -376,6 +376,9 @@ build.allow_apis = ["fs", "process"]
 [pkg.hashlink]
 allow_unsafe = true
 
+[pkg.hashbrown]
+allow_unsafe = true
+
 [pkg.foldhash]
 allow_unsafe = true
 

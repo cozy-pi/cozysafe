@@ -15,6 +15,8 @@ import 'package:video_player/video_player.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../widgets/vault_bar.dart';
+import 'quick_look.dart';
+import 'recorder.dart';
 import 'video_view.dart';
 import '../widgets/text_styles.dart';
 import '../platform.dart';
@@ -252,6 +254,65 @@ class _FileViewScreenState extends State<FileViewScreen> {
 
   bool get _pdf => widget.item.mime == 'application/pdf';
 
+  /// ⋯: back to the vault, which shows this item's menu (Rename, Group, Info…).
+  Widget _more(AppLocalizations l) => IconButton(
+        key: const ValueKey('file-more'),
+        tooltip: l.more,
+        onPressed: _busy ? null : () => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id)),
+        icon: const Icon(Icons.more_horiz),
+      );
+
+  /// The same player card as a recording opened from the home page.
+  Future<void> _play() async {
+    final pick = await showRecording(context, widget.item);
+    if (!mounted || pick == null) return;
+    if (pick == 2) return _delete();
+    if (pick == 1) setState(() => _busy = true);
+    if (pick == 1) await shareItem(context, widget.item, widget.vaultId);
+    if (mounted) setState(() => _busy = false);
+  }
+
+  /// Pictures up to this size are decrypted into memory and shown here.
+  static const _imageInMemory = 60 << 20;
+  Future<Uint8List>? _imageBytes;
+
+  Widget _imageView(AppLocalizations l) => Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)),
+          actions: [
+            Builder(
+              builder: (b) => IconButton(
+                  onPressed: _busy ? null : () => _open(b), icon: const Icon(Icons.ios_share), tooltip: l.sendOut),
+            ),
+            IconButton(onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline), tooltip: l.delete),
+            _more(l),
+          ],
+        ),
+        body: FutureBuilder<Uint8List>(
+          future: _imageBytes ??= rust.itemContent(id: widget.item.id),
+          builder: (context, snap) {
+            if (snap.hasError) {
+              return Center(child: Text(l.videoFailed, style: const TextStyle(color: Colors.white)));
+            }
+            if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
+            return InteractiveViewer(
+              key: const ValueKey('file-image'),
+              maxScale: 6,
+              child: Center(
+                child: Image.memory(snap.data!,
+                    fit: BoxFit.contain,
+                    cacheWidth: (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context) * 2).round(),
+                    errorBuilder: (_, _, _) =>
+                        Text(l.videoFailed, style: const TextStyle(color: Colors.white))),
+              ),
+            );
+          },
+        ),
+      );
+
   /// "Open as text" on a file the app does not know: only the first part is decrypted.
   bool _asText = false;
 
@@ -350,6 +411,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
                                 label: Text(l.delete, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
                               ),
                             ),
+                            _more(l),
+                            const SizedBox(width: 4),
                           ],
                         ),
                       ),
@@ -378,6 +441,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
               ),
             ),
             IconButton(tooltip: l.delete, onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline)),
+            _more(l),
           ],
         ),
         // Up to [_pdfInMemory] the PDF is decrypted into memory only. A bigger one would not
@@ -424,11 +488,17 @@ class _FileViewScreenState extends State<FileViewScreen> {
     final l = AppLocalizations.of(context);
     if (_pdf) return _pdfView(l);
     if (_asText || textKindOf(widget.item.name) != null || widget.item.mime.startsWith('text/')) return _textView(l);
+    // A picture added from Files (not through the photo picker) is a file, but it opens
+    // as a picture (owner 2026-10-22). Very large ones go to "Open with".
+    if (widget.item.mime.startsWith('image/') && widget.item.sizeBytes < BigInt.from(_imageInMemory)) {
+      return _imageView(l);
+    }
     final c = CsColors.of(context);
     final when = dateOf(widget.item.createdMs);
     return Scaffold(
       appBar: AppBar(actions: [
         IconButton(onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline), tooltip: l.delete),
+        _more(l),
       ]),
       body: SafeArea(
         child: Center(
@@ -449,8 +519,18 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 Text('${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
                     style: TextStyle(color: c.muted)),
                 const SizedBox(height: 24),
+                // Music or a recording added from Files plays right here.
+                if (widget.item.mime.startsWith('audio/')) ...[
+                  FilledButton.icon(
+                    key: const ValueKey('file-play'),
+                    onPressed: _busy ? null : _play,
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: Text(l.play),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Builder(
-                  builder: (b) => FilledButton.icon(
+                  builder: (b) => (widget.item.mime.startsWith('audio/') ? OutlinedButton.icon : FilledButton.icon)(
                     onPressed: _busy ? null : () => _open(b),
                     icon: const Icon(Icons.open_in_new),
                     label: Text(l.openWith),

@@ -262,7 +262,7 @@
   "select": "选择",
   "hideNoteText": "隐藏笔记内容",
   "foundInText": "在正文中找到",
-  "trashTapHint": "轻点以选择，然后在下方恢复或永久删除。",
+  "trashTapHint": "轻点一项即可预览。轻点“选择”可选多项。",
   "deleteForGoodShort": "永久删除",
   "kitCopyNote": "复制的内容会在 60 秒后从剪贴板中清除。请勿通过消息发送此密钥。",
   "fullScreen": "全屏",
@@ -400,5 +400,16 @@
   "shotBlockedBody": "为了不让任何人截下保险箱里的内容，截屏和录屏都会变成黑色。",
   "shotBlockedHow": "需要截屏（比如反馈问题）？前往 设置 → 显示，关闭“禁止截屏”。用完记得重新打开。",
   "shotSavedTitle": "截图未加密",
-  "gotIt": "知道了"
+  "gotIt": "知道了",
+  "favorite": "收藏",
+  "unfavorite": "取消收藏",
+  "favorites": "收藏",
+  "sortBy": "排序",
+  "sortNewest": "最新优先",
+  "sortOldest": "最早优先",
+  "sortName": "名称",
+  "sortSize": "最大优先",
+  "sortEdited": "最近编辑",
+  "viewGrid": "网格",
+  "viewList": "列表"
 }
