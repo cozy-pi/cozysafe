@@ -43,7 +43,8 @@ First one due: 1 February 2027, covering 2026.
 - Available in France: **No**.
 - Apple's answer: "you don't need to upload any documents", and the app may declare no
   non-exempt encryption in Info.plist. So `ITSAppUsesNonExemptEncryption = false` stays.
-- This holds only while France is left out of App Store availability. Selling in France
+- This holds only while France is left out of App Store availability (not set up yet on
+  2026-10-22: when setting it up, untick France). Selling in France
   means the French declaration first, then uploading it here.
 
 ## Earlier to-do list (kept for reference)
