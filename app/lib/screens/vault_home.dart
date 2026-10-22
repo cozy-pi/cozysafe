@@ -126,9 +126,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (mounted) setState(() => _canBio = k != null);
     });
     LockGuard.onActivity = _touch;
-    // A screenshot of an open vault lands in Photos, unencrypted: say so (iOS can't stop it).
+    // iOS says when a screenshot was taken (it can't stop one): blocked, it came out black,
+    // so say why and how to allow one; not blocked, it sits in Photos unencrypted. A card in
+    // the middle that stays until closed (owner 2026-10-22: the toast was small and quick).
     PrivacyCover.onScreenshot = () {
-      if (mounted) showToast(context, AppLocalizations.of(context).screenshotWarning, icon: Icons.warning_amber_rounded);
+      if (mounted) _screenshotNotice();
     };
     // Design B (the whole app in the vault's colour) is off since 2026-10-20: it often
     // looked wrong. The palette code stays in theme.dart; turn it back on here.
@@ -821,6 +823,63 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         dir.deleteSync(recursive: true);
       } catch (_) {}
     }
+  }
+
+  bool _shotCardOpen = false;
+
+  Future<void> _screenshotNotice() async {
+    if (_shotCardOpen) return; // a burst of screenshots: one card
+    _shotCardOpen = true;
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final blocked = Settings.blockScreenshots;
+    final go = await showCard<bool>(
+      context,
+      title: blocked ? l.shotBlockedTitle : l.shotSavedTitle,
+      builder: (context) => Padding(
+        key: const ValueKey('shot-card'),
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(blocked ? Icons.visibility_off_outlined : Icons.warning_amber_rounded,
+                size: 40, color: blocked ? c.muted : recordRed(context)),
+            const SizedBox(height: 12),
+            Text(blocked ? l.shotBlockedBody : l.screenshotWarning, style: const TextStyle(fontSize: 16, height: 1.45)),
+            if (blocked) ...[
+              const SizedBox(height: 10),
+              Text(l.shotBlockedHow, style: TextStyle(fontSize: 15, height: 1.45, color: c.muted)),
+            ],
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                if (blocked)
+                  Expanded(
+                    child: OutlinedButton(
+                      key: const ValueKey('shot-settings'),
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ui.circle), shape: const StadiumBorder()),
+                      child: Text(l.settings),
+                    ),
+                  ),
+                if (blocked) const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    key: const ValueKey('shot-ok'),
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: FilledButton.styleFrom(minimumSize: const Size(0, Ui.circle), shape: const StadiumBorder()),
+                    child: Text(l.gotIt),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    _shotCardOpen = false;
+    if (go == true && mounted && !_locked) _openSettings();
   }
 
   // ---------- one item's menu (long press) ----------

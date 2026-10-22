@@ -409,5 +409,10 @@
   "infoAdded": "Ngày thêm",
   "infoLength": "Thời lượng",
   "infoGroups": "Nhóm",
-  "infoNoGroup": "Chưa có"
+  "infoNoGroup": "Chưa có",
+  "shotBlockedTitle": "Đang chặn chụp màn hình",
+  "shotBlockedBody": "Để không ai chụp lại được nội dung trong két, ảnh chụp và quay màn hình chỉ ra màn đen.",
+  "shotBlockedHow": "Cần chụp màn hình, ví dụ để báo lỗi? Vào Cài đặt → Hiển thị, tắt “Chặn chụp màn hình”. Chụp xong nhớ bật lại.",
+  "shotSavedTitle": "Ảnh chụp không được mã hoá",
+  "gotIt": "Đã hiểu"
 }

@@ -395,5 +395,10 @@
   "infoAdded": "Ajouté",
   "infoLength": "Durée",
   "infoGroups": "Groupes",
-  "infoNoGroup": "Aucun"
+  "infoNoGroup": "Aucun",
+  "shotBlockedTitle": "Captures d’écran bloquées",
+  "shotBlockedBody": "Pour que personne ne puisse capturer le contenu de votre coffre, les captures et enregistrements d’écran sont noirs.",
+  "shotBlockedHow": "Besoin d’une capture, par exemple pour signaler un bug ? Allez dans Réglages → Affichage et désactivez « Bloquer les captures d'écran ». Réactivez-le ensuite.",
+  "shotSavedTitle": "Capture non chiffrée",
+  "gotIt": "J’ai compris"
 }

@@ -395,5 +395,10 @@
   "infoAdded": "追加日",
   "infoLength": "長さ",
   "infoGroups": "グループ",
-  "infoNoGroup": "なし"
+  "infoNoGroup": "なし",
+  "shotBlockedTitle": "スクリーンショットはブロック中",
+  "shotBlockedBody": "金庫の中身を誰にも撮られないよう、スクリーンショットと画面収録は黒くなります。",
+  "shotBlockedHow": "不具合の報告などでスクリーンショットが必要なら、設定 → 表示 で「スクリーンショットをブロック」をオフにしてください。終わったらオンに戻しましょう。",
+  "shotSavedTitle": "スクリーンショットは暗号化されていません",
+  "gotIt": "OK"
 }

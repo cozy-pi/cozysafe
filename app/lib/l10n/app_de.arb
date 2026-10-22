@@ -395,5 +395,10 @@
   "infoAdded": "Hinzugefügt",
   "infoLength": "Dauer",
   "infoGroups": "Gruppen",
-  "infoNoGroup": "Keine"
+  "infoNoGroup": "Keine",
+  "shotBlockedTitle": "Bildschirmfotos sind gesperrt",
+  "shotBlockedBody": "Damit niemand den Inhalt deines Tresors festhalten kann, werden Bildschirmfotos und Bildschirmaufnahmen schwarz.",
+  "shotBlockedHow": "Du brauchst ein Bildschirmfoto, etwa für eine Fehlermeldung? Öffne Einstellungen → Anzeige und schalte „Screenshots blockieren“ aus. Schalte es danach wieder ein.",
+  "shotSavedTitle": "Bildschirmfoto nicht verschlüsselt",
+  "gotIt": "Verstanden"
 }

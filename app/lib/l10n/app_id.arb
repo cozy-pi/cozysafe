@@ -395,5 +395,10 @@
   "infoAdded": "Ditambahkan",
   "infoLength": "Durasi",
   "infoGroups": "Grup",
-  "infoNoGroup": "Tidak ada"
+  "infoNoGroup": "Tidak ada",
+  "shotBlockedTitle": "Tangkapan layar diblokir",
+  "shotBlockedBody": "Agar tidak ada yang bisa merekam isi brankas Anda, tangkapan dan rekaman layar menjadi hitam.",
+  "shotBlockedHow": "Perlu tangkapan layar, misalnya untuk melaporkan bug? Buka Pengaturan → Tampilan lalu matikan “Blokir tangkapan layar”. Nyalakan lagi setelah selesai.",
+  "shotSavedTitle": "Tangkapan layar tidak dienkripsi",
+  "gotIt": "Mengerti"
 }
