@@ -411,5 +411,12 @@
   "sortSize": "ใหญ่สุดก่อน",
   "sortEdited": "แก้ไขล่าสุด",
   "viewGrid": "ตาราง",
-  "viewList": "รายการ"
+  "viewList": "รายการ",
+  "debugImport": "การนำเข้าครั้งล่าสุด",
+  "debugImportNone": "ยังไม่เคยนำเข้า",
+  "debugImportCount": "จำนวนรายการ",
+  "debugImportPick": "คัดลอกจากรูปภาพ",
+  "debugImportThumbnails": "ภาพย่อ (รวม)",
+  "debugImportVault": "เข้ารหัสและบันทึก (รวม)",
+  "debugImportTotal": "ทั้งหมด"
 }

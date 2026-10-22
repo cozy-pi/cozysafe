@@ -411,5 +411,12 @@
   "sortSize": "큰 순서",
   "sortEdited": "최근 편집",
   "viewGrid": "격자",
-  "viewList": "목록"
+  "viewList": "목록",
+  "debugImport": "마지막 가져오기",
+  "debugImportNone": "아직 가져오기 없음",
+  "debugImportCount": "항목",
+  "debugImportPick": "사진에서 복사",
+  "debugImportThumbnails": "썸네일(합계)",
+  "debugImportVault": "암호화 및 저장(합계)",
+  "debugImportTotal": "전체"
 }

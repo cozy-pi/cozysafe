@@ -411,5 +411,12 @@
   "sortSize": "Önce en büyük",
   "sortEdited": "Son düzenlenen",
   "viewGrid": "Izgara",
-  "viewList": "Liste"
+  "viewList": "Liste",
+  "debugImport": "Son içe aktarma",
+  "debugImportNone": "Henüz içe aktarma yok",
+  "debugImportCount": "Öğe",
+  "debugImportPick": "Fotoğraflar'dan kopyalama",
+  "debugImportThumbnails": "Küçük resimler (toplam)",
+  "debugImportVault": "Şifreleme ve kaydetme (toplam)",
+  "debugImportTotal": "Toplam"
 }

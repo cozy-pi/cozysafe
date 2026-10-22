@@ -411,5 +411,12 @@
   "sortSize": "最大優先",
   "sortEdited": "最近編輯",
   "viewGrid": "格狀",
-  "viewList": "列表"
+  "viewList": "列表",
+  "debugImport": "最近一次匯入",
+  "debugImportNone": "尚未匯入",
+  "debugImportCount": "項目數",
+  "debugImportPick": "從照片拷貝",
+  "debugImportThumbnails": "縮圖（合計）",
+  "debugImportVault": "加密並儲存（合計）",
+  "debugImportTotal": "總計"
 }

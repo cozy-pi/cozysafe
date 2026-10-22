@@ -411,5 +411,12 @@
   "sortSize": "Größte zuerst",
   "sortEdited": "Zuletzt bearbeitet",
   "viewGrid": "Raster",
-  "viewList": "Liste"
+  "viewList": "Liste",
+  "debugImport": "Letzter Import",
+  "debugImportNone": "Noch kein Import",
+  "debugImportCount": "Objekte",
+  "debugImportPick": "Aus Fotos kopieren",
+  "debugImportThumbnails": "Vorschaubilder (Summe)",
+  "debugImportVault": "Verschlüsseln und speichern (Summe)",
+  "debugImportTotal": "Gesamt"
 }

@@ -425,5 +425,12 @@
   "sortSize": "Lớn nhất trước",
   "sortEdited": "Vừa sửa",
   "viewGrid": "Dạng lưới",
-  "viewList": "Dạng danh sách"
+  "viewList": "Dạng danh sách",
+  "debugImport": "Lần nhập gần nhất",
+  "debugImportNone": "Chưa nhập lần nào",
+  "debugImportCount": "Số mục",
+  "debugImportPick": "Chép từ thư viện Ảnh",
+  "debugImportThumbnails": "Tạo ảnh nhỏ (cộng dồn)",
+  "debugImportVault": "Mã hoá và ghi (cộng dồn)",
+  "debugImportTotal": "Tổng"
 }

@@ -411,5 +411,12 @@
   "sortSize": "Prima i più grandi",
   "sortEdited": "Modificati di recente",
   "viewGrid": "Griglia",
-  "viewList": "Elenco"
+  "viewList": "Elenco",
+  "debugImport": "Ultima importazione",
+  "debugImportNone": "Nessuna importazione",
+  "debugImportCount": "Elementi",
+  "debugImportPick": "Copia da Foto",
+  "debugImportThumbnails": "Miniature (somma)",
+  "debugImportVault": "Cifra e salva (somma)",
+  "debugImportTotal": "Totale"
 }
