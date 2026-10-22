@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -121,7 +122,19 @@ String mimeOf(String name) {
 
 /// A small preview for an image, made with the platform's own decoders (so HEIC from
 /// an iPhone works too). null when the file is not an image this device can read.
+const _media = MethodChannel('cozysafe/media');
+
+/// A photo's thumbnail (shorter side 320 px). On phones the platform makes it: it reads
+/// only what it needs of the picture and writes a JPEG, ~10× faster than decoding the
+/// whole photo here (owner 2026-10-22: 191 photos took 30 s). Elsewhere, or if that fails,
+/// Flutter's decoder.
 Future<Uint8List?> imageThumbnail(String path) async {
+  if (Device.iOS || Device.android) {
+    try {
+      final jpeg = await _media.invokeMethod<Uint8List>('thumbnail', {'path': path, 'shortSide': 320});
+      if (jpeg != null && jpeg.isNotEmpty) return jpeg;
+    } catch (_) {}
+  }
   try {
     final codec = await ui.instantiateImageCodecFromBuffer(
       await ui.ImmutableBuffer.fromFilePath(path),
@@ -178,45 +191,65 @@ Future<List<rust.ItemInfo>> importFiles(
 }) async {
   final tmp = (await getTemporaryDirectory()).path;
   final added = <rust.ItemInfo>[];
-  for (final f in files) {
-    // Cancel keeps what is finished; the current file is never half added.
-    if (cancelled?.call() ?? false) {
-      if (f.path.startsWith(tmp)) {
-        try {
-          File(f.path).deleteSync();
-        } catch (_) {}
-      }
-      continue;
+  // Three at a time: while one is being encrypted (the vault takes one at a time) the
+  // next ones get their thumbnails made on other cores.
+  var next = 0;
+  Future<void> worker() async {
+    while (next < files.length) {
+      final f = files[next++];
+      await importOne(f, tmp, photos: photos, cancelled: cancelled, mediaName: mediaName, added: added);
+      progress?.call(added.length, files.length);
     }
-    final mime = (f.mimeType?.isNotEmpty ?? false) ? f.mimeType! : mimeOf(f.name);
-    final isImage = mime.startsWith('image/');
-    final isVideo = mime.startsWith('video/');
-    final dot = f.name.lastIndexOf('.');
-    final name = (isImage || isVideo) && mediaName != null && isMadeUpName(f.name)
-        ? mediaName(isVideo ? ItemKind.video : ItemKind.photo, dot < 0 ? '' : f.name.substring(dot).toLowerCase())
-        : f.name;
-    final thumbnail = isImage ? await imageThumbnail(f.path) : (isVideo ? await videoThumbnail(f.path) : null);
-    final item = await rust.addFile(
-      path: f.path,
-      kind: isVideo ? ItemKind.video : (isImage && (photos || thumbnail != null) ? ItemKind.photo : ItemKind.file),
-      name: name,
-      mime: mime,
-      createdMs: nowMs(),
-      thumbnail: thumbnail,
-    );
-    if (isVideo) {
-      final ms = await videoLength(f.path);
-      if (ms != null) await rust.setItemDuration(id: item.id, durationMs: i64(ms));
-    }
-    added.add(item);
-    progress?.call(added.length, files.length);
+  }
+
+  await Future.wait([for (var i = 0; i < 3; i++) worker()]);
+  return added;
+}
+
+/// One file of [importFiles]: thumbnail, encrypt, add; the picker's copy is deleted.
+Future<void> importOne(
+  XFile f,
+  String tmp, {
+  required bool photos,
+  required bool Function()? cancelled,
+  required String Function(String kind, String extension)? mediaName,
+  required List<rust.ItemInfo> added,
+}) async {
+  // Cancel keeps what is finished; the current file is never half added.
+  if (cancelled?.call() ?? false) {
     if (f.path.startsWith(tmp)) {
       try {
         File(f.path).deleteSync();
       } catch (_) {}
     }
+    return;
   }
-  return added;
+  final mime = (f.mimeType?.isNotEmpty ?? false) ? f.mimeType! : mimeOf(f.name);
+  final isImage = mime.startsWith('image/');
+  final isVideo = mime.startsWith('video/');
+  final dot = f.name.lastIndexOf('.');
+  final name = (isImage || isVideo) && mediaName != null && isMadeUpName(f.name)
+      ? mediaName(isVideo ? ItemKind.video : ItemKind.photo, dot < 0 ? '' : f.name.substring(dot).toLowerCase())
+      : f.name;
+  final thumbnail = isImage ? await imageThumbnail(f.path) : (isVideo ? await videoThumbnail(f.path) : null);
+  final item = await rust.addFile(
+    path: f.path,
+    kind: isVideo ? ItemKind.video : (isImage && (photos || thumbnail != null) ? ItemKind.photo : ItemKind.file),
+    name: name,
+    mime: mime,
+    createdMs: nowMs(),
+    thumbnail: thumbnail,
+  );
+  if (isVideo) {
+    final ms = await videoLength(f.path);
+    if (ms != null) await rust.setItemDuration(id: item.id, durationMs: i64(ms));
+  }
+  added.add(item);
+  if (f.path.startsWith(tmp)) {
+    try {
+      File(f.path).deleteSync();
+    } catch (_) {}
+  }
 }
 
 Future<List<XFile>> pickPhotos() => ImagePicker().pickMultipleMedia(requestFullMetadata: false);
