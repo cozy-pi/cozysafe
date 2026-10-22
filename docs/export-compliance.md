@@ -36,7 +36,17 @@ Coordinator (addresses on bis.gov), **by 1 February** for the previous calendar 
 A year with no exports needs no report; an unchanged year can be a short statement.
 First one due: 1 February 2027, covering 2026.
 
-## To do (owner)
+## Answered 2026-10-22 (App Store Connect → App Information → App Encryption Documentation)
+
+- Algorithms: "Standard encryption algorithms instead of, or in addition to, using or
+  accessing the encryption within Apple's operating system".
+- Available in France: **No**.
+- Apple's answer: "you don't need to upload any documents", and the app may declare no
+  non-exempt encryption in Info.plist. So `ITSAppUsesNonExemptEncryption = false` stays.
+- This holds only while France is left out of App Store availability. Selling in France
+  means the French declaration first, then uploading it here.
+
+## Earlier to-do list (kept for reference)
 
 1. App Store Connect → Cozy Safe → App Information → App Encryption Documentation:
    answer the questions once. It says which documents are needed.
