@@ -383,5 +383,17 @@
   "holdToLock": "tahan untuk mengunci",
   "debugTry": "Uji coba",
   "debugNativeBar": "Bilah bawah bawaan iPhone",
-  "debugNativeBarNone": "Perlu iOS 26"
+  "debugNativeBarNone": "Perlu iOS 26",
+  "selectItems": "Pilih item",
+  "selectAll": "Pilih semua",
+  "deselectAll": "Batalkan semua",
+  "openItem": "Buka",
+  "info": "Info",
+  "infoName": "Nama",
+  "infoKind": "Jenis",
+  "infoSize": "Ukuran",
+  "infoAdded": "Ditambahkan",
+  "infoLength": "Durasi",
+  "infoGroups": "Grup",
+  "infoNoGroup": "Tidak ada"
 }

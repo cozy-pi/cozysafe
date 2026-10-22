@@ -21,6 +21,9 @@ class NoteScreen extends StatefulWidget {
 
   /// The write started by a swipe back (null when the back button already saved).
   static Future<void>? lastSave;
+
+  /// The note just moved to Recently deleted from inside it, for the vault's Undo.
+  static String? lastDeleted;
   /// For Send (the first share out of each vault asks once).
   final String vaultId;
 
@@ -128,6 +131,27 @@ class _NoteScreenState extends State<NoteScreen> {
     await shareById(context, id, 'text/plain', '${title.isEmpty ? 'note' : title}.txt', widget.vaultId);
   }
 
+  /// Delete from inside the note (owner 2026-10-22): what was typed is saved first, so
+  /// Undo brings back all of it.
+  Future<void> _delete() async {
+    if (_saving) return;
+    final nav = Navigator.of(context);
+    setState(() => _saving = true);
+    try {
+      await _saveNow();
+      final id = _id;
+      if (id != null) {
+        await rust.trashItem(id: id, nowMs: nowMs());
+        NoteScreen.lastDeleted = id;
+      }
+      nav.pop(true);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+    }
+  }
+
   Future<void> _saveAndLeave() async {
     if (_saving) return;
     final nav = Navigator.of(context);
@@ -183,6 +207,14 @@ class _NoteScreenState extends State<NoteScreen> {
                   children: [
                     GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: _saving ? null : _saveAndLeave),
                     const Spacer(),
+                    GlassButton(
+                      key: const ValueKey('note-delete'),
+                      icon: null,
+                      tooltip: AppLocalizations.of(context).delete,
+                      onTap: _saving ? null : _delete,
+                      child: Icon(Icons.delete_outline, color: recordRed(context), size: 22),
+                    ),
+                    const SizedBox(width: 8),
                     // Send the note as a text file ("Title.txt"); saved first.
                     GlassButton(
                       key: const ValueKey('note-send'),

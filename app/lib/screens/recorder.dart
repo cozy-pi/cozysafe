@@ -30,7 +30,9 @@ class RecorderView extends StatefulWidget {
     required this.onSaved,
     required this.onRecordingChanged,
     this.selected = const {},
+    this.selecting = false,
     this.onToggleSelect,
+    this.onMenu,
     this.tagId,
     this.bottomPad = 16,
   });
@@ -43,10 +45,14 @@ class RecorderView extends StatefulWidget {
   final List<rust.ItemInfo> items;
   final VoidCallback onSaved;
   final ValueChanged<bool> onRecordingChanged;
-  /// Selected recordings (long press, like photos and files: the selection bar sends,
-  /// groups, renames and deletes); while any is selected a tap selects too.
+  /// Selected recordings (the Select button, as for photos and files: the selection bar
+  /// sends, groups, renames and deletes); while selecting a tap selects.
   final Set<String> selected;
+  /// Select mode is on (the Select button), even with nothing chosen yet.
+  final bool selecting;
   final ValueChanged<String>? onToggleSelect;
+  /// A long press: the recording's menu (Open, Rename, Group, Info…).
+  final ValueChanged<rust.ItemInfo>? onMenu;
 
   static bool get supported => Device.iOS || Device.android;
 
@@ -307,10 +313,10 @@ class RecorderViewState extends State<RecorderView> {
     final total = Duration(milliseconds: it.durationMs?.toInt() ?? 0);
     final pos = p?.value.position ?? Duration.zero;
     final primary = Theme.of(context).colorScheme.primary;
-    final selecting = widget.selected.isNotEmpty;
+    final selecting = widget.selecting || widget.selected.isNotEmpty;
     final chosen = widget.selected.contains(it.id);
-    // A tap plays (as a tap opens a photo); a long press selects (owner 2026-10-22: one
-    // way for every kind of item).
+    // A tap plays (as a tap opens a photo); a long press opens the menu (owner
+    // 2026-10-22: one way for every kind of item).
     final select = widget.onToggleSelect;
     return SelectableRow(
       selected: chosen,
@@ -320,9 +326,7 @@ class RecorderViewState extends State<RecorderView> {
       onTap: selecting && select != null
           ? () => select(it.id)
           : () => _togglePlay(it),
-      onLongPress: select == null
-          ? null
-          : () => select(it.id),
+      onLongPress: widget.onMenu == null ? null : () => widget.onMenu!(it),
       child: AnimatedSize(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,

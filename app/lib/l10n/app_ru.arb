@@ -383,5 +383,17 @@
   "holdToLock": "удерживайте, чтобы заблокировать",
   "debugTry": "Эксперименты",
   "debugNativeBar": "Нижняя панель самого iPhone",
-  "debugNativeBarNone": "Нужна iOS 26"
+  "debugNativeBarNone": "Нужна iOS 26",
+  "selectItems": "Выбрать",
+  "selectAll": "Выбрать все",
+  "deselectAll": "Снять выбор",
+  "openItem": "Открыть",
+  "info": "Сведения",
+  "infoName": "Имя",
+  "infoKind": "Тип",
+  "infoSize": "Размер",
+  "infoAdded": "Добавлено",
+  "infoLength": "Длительность",
+  "infoGroups": "Группы",
+  "infoNoGroup": "Нет"
 }

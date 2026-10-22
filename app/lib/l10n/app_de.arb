@@ -383,5 +383,17 @@
   "holdToLock": "gedrückt halten zum Sperren",
   "debugTry": "Ausprobieren",
   "debugNativeBar": "Eigene Leiste des iPhone",
-  "debugNativeBarNone": "Erfordert iOS 26"
+  "debugNativeBarNone": "Erfordert iOS 26",
+  "selectItems": "Objekte auswählen",
+  "selectAll": "Alle auswählen",
+  "deselectAll": "Auswahl aufheben",
+  "openItem": "Öffnen",
+  "info": "Info",
+  "infoName": "Name",
+  "infoKind": "Art",
+  "infoSize": "Größe",
+  "infoAdded": "Hinzugefügt",
+  "infoLength": "Dauer",
+  "infoGroups": "Gruppen",
+  "infoNoGroup": "Keine"
 }

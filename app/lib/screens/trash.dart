@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'file_view.dart';
+import '../widgets/item_menu.dart';
 import '../widgets/vault_bar.dart';
 import '../item_kind.dart';
 
@@ -79,6 +80,15 @@ class _TrashScreenState extends State<TrashScreen> {
     await _load();
   }
 
+  /// A long press: Restore or Delete for good, for that one item (owner 2026-10-22).
+  Future<void> _menu(rust.ItemInfo it) {
+    final l = AppLocalizations.of(context);
+    return showItemMenu(context, title: it.name.isEmpty ? l.untitledNote : it.name, entries: [
+      MenuEntry(Icons.restore_rounded, l.restore, () => _restore([it]), key: const ValueKey('menu-restore')),
+      MenuEntry(Icons.delete_forever_outlined, l.deleteForGoodShort, () => _deleteForGood([it]), danger: true),
+    ]);
+  }
+
   /// Tap selects, as in the Library; what to do sits in the bar at the bottom.
   void _toggle(rust.ItemInfo it) => setState(() => _picked.contains(it.id) ? _picked.remove(it.id) : _picked.add(it.id));
 
@@ -91,7 +101,7 @@ class _TrashScreenState extends State<TrashScreen> {
     final others = items?.where((i) => i.kind != ItemKind.photo).toList() ?? const [];
     // No canPop: false here: it would switch off the iOS swipe back. A swipe pops null
     // and the vault reloads anyway.
-    return PopScope(
+    return MenuPointer(child: PopScope(
       child: Scaffold(
         appBar: AppBar(
           title: Text(_picked.isEmpty ? l.recentlyDeleted : l.selectedCount(_picked.length)),
@@ -125,6 +135,7 @@ class _TrashScreenState extends State<TrashScreen> {
                         return GestureDetector(
                           key: ValueKey('trash-${it.id}'),
                           onTap: () => _toggle(it),
+                          onLongPress: () => _menu(it),
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
@@ -162,6 +173,7 @@ class _TrashScreenState extends State<TrashScreen> {
                               for (final it in others)
                                 ListTile(
                                   onTap: () => _toggle(it),
+                                  onLongPress: () => _menu(it),
                                   trailing: Icon(_picked.contains(it.id) ? Icons.check_circle : Icons.radio_button_unchecked,
                                       color: Theme.of(context).colorScheme.onSurface),
                                   leading: Icon(fileIcon(it), color: Theme.of(context).colorScheme.primary),
@@ -212,7 +224,7 @@ class _TrashScreenState extends State<TrashScreen> {
                 ),
               ),
       ),
-    );
+    ));
   }
 }
 

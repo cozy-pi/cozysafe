@@ -48,6 +48,8 @@ class VaultOverview extends StatelessWidget {
     required this.onKind,
     required this.onGroup,
     required this.onOpen,
+    this.onMenu,
+    this.onGroupMenu,
     this.header,
     this.bottomPad = 24,
     this.recentCount = 5,
@@ -59,6 +61,9 @@ class VaultOverview extends StatelessWidget {
   final ValueChanged<VaultSection> onKind;
   final ValueChanged<rust.ItemInfo> onGroup;
   final ValueChanged<rust.ItemInfo> onOpen;
+  /// A long press: the item's menu, or the group's (owner 2026-10-22).
+  final ValueChanged<rust.ItemInfo>? onMenu;
+  final ValueChanged<rust.ItemInfo>? onGroupMenu;
   final Widget? header;
   final double bottomPad;
   final int recentCount;
@@ -110,7 +115,11 @@ class VaultOverview extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [for (final g in groups) GroupChip(name: g.name, count: count(g), onTap: () => onGroup(g))],
+            children: [for (final g in groups) GroupChip(
+                  name: g.name,
+                  count: count(g),
+                  onTap: () => onGroup(g),
+                  onLongPress: onGroupMenu == null ? null : () => onGroupMenu!(g))],
           ),
         ],
         if (recent.isNotEmpty) ...[
@@ -122,7 +131,11 @@ class VaultOverview extends StatelessWidget {
             child: Column(children: [
               for (final (i, it) in recent.take(recentCount).indexed) ...[
                 if (i > 0) Divider(height: 1, indent: 70, color: c.border.withValues(alpha: .6)),
-                OverviewRow(item: it, thumbnail: thumbnail, onTap: () => onOpen(it)),
+                OverviewRow(
+                    item: it,
+                    thumbnail: thumbnail,
+                    onTap: () => onOpen(it),
+                    onLongPress: onMenu == null ? null : () => onMenu!(it)),
               ],
             ]),
           ),
@@ -134,10 +147,11 @@ class VaultOverview extends StatelessWidget {
 
 /// One item: its kind's tile (or the photo), its name and date.
 class OverviewRow extends StatelessWidget {
-  const OverviewRow({super.key, required this.item, required this.thumbnail, required this.onTap});
+  const OverviewRow({super.key, required this.item, required this.thumbnail, required this.onTap, this.onLongPress});
   final rust.ItemInfo item;
   final Future<Uint8List> Function(String id) thumbnail;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +166,7 @@ class OverviewRow extends StatelessWidget {
             : item.name;
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Row(
@@ -239,13 +254,14 @@ class KindTile extends StatelessWidget {
   }
 }
 
-/// A group: tap opens it in the vault.
+/// A group: tap opens it in the vault, a long press shows its menu.
 class GroupChip extends StatelessWidget {
-  const GroupChip({super.key, required this.name, required this.count, required this.onTap, this.query = ''});
+  const GroupChip({super.key, required this.name, required this.count, required this.onTap, this.onLongPress, this.query = ''});
   final String name;
   final int count;
   final String query;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -256,6 +272,7 @@ class GroupChip extends StatelessWidget {
       child: InkWell(
         customBorder: const StadiumBorder(),
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Container(
           height: Ui.chip,
           padding: const EdgeInsets.symmetric(horizontal: 14),
