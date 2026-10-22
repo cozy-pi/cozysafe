@@ -589,5 +589,12 @@
   "sortSize": "Largest First",
   "sortEdited": "Recently Edited",
   "viewGrid": "Grid",
-  "viewList": "List"
+  "viewList": "List",
+  "debugImport": "Last import",
+  "debugImportNone": "No import yet",
+  "debugImportCount": "Items",
+  "debugImportPick": "Copy from Photos",
+  "debugImportThumbnails": "Thumbnails (sum)",
+  "debugImportVault": "Encrypt and save (sum)",
+  "debugImportTotal": "Total"
 }

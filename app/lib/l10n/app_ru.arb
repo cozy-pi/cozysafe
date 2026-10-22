@@ -411,5 +411,12 @@
   "sortSize": "Сначала большие",
   "sortEdited": "Недавно изменённые",
   "viewGrid": "Сетка",
-  "viewList": "Список"
+  "viewList": "Список",
+  "debugImport": "Последний импорт",
+  "debugImportNone": "Импорта ещё не было",
+  "debugImportCount": "Объектов",
+  "debugImportPick": "Копирование из «Фото»",
+  "debugImportThumbnails": "Миниатюры (сумма)",
+  "debugImportVault": "Шифрование и запись (сумма)",
+  "debugImportTotal": "Всего"
 }

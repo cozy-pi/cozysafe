@@ -411,5 +411,12 @@
   "sortSize": "Terbesar dulu",
   "sortEdited": "Baru diedit",
   "viewGrid": "Kisi",
-  "viewList": "Daftar"
+  "viewList": "Daftar",
+  "debugImport": "Impor terakhir",
+  "debugImportNone": "Belum ada impor",
+  "debugImportCount": "Item",
+  "debugImportPick": "Salin dari Foto",
+  "debugImportThumbnails": "Thumbnail (jumlah)",
+  "debugImportVault": "Enkripsi dan simpan (jumlah)",
+  "debugImportTotal": "Total"
 }

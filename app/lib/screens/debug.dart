@@ -77,6 +77,8 @@ class _DebugScreenState extends State<DebugScreen> {
     }
   }
 
+  static String _seconds(int ms) => '${(ms / 1000).toStringAsFixed(1)} s';
+
   static String get _platform {
     if (Device.iOS) return 'iOS ${Platform.operatingSystemVersion}';
     if (Device.android) return 'Android ${Platform.operatingSystemVersion}';
@@ -153,6 +155,17 @@ class _DebugScreenState extends State<DebugScreen> {
               _ => l.debugNone,
             }),
             row(l.debugAutoLock, l.debugMinutes(Settings.autoLockMinutes)),
+          ]),
+          group(l.debugImport, [
+            if (ImportStats.items == null)
+              row(l.debugImport, l.debugImportNone)
+            else ...[
+              row(l.debugImportCount, '${ImportStats.items}', key: const ValueKey('debug-import-count')),
+              row(l.debugImportPick, _seconds(ImportStats.pickMs)),
+              row(l.debugImportThumbnails, _seconds(ImportStats.thumbnailMs)),
+              row(l.debugImportVault, _seconds(ImportStats.vaultMs)),
+              row(l.debugImportTotal, _seconds(ImportStats.totalMs)),
+            ],
           ]),
           group(l.debugChecks, [
             row(l.debugNetwork, blocked ? l.debugNetworkOn : l.debugNetworkOff,

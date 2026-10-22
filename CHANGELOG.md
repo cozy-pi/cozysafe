@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.33 (2026-10-22)
+
+### Added
+- Debug: timings of the last import (copy from Photos, thumbnails, encrypt and save,
+  total). Numbers only, kept in memory.
+
 ## 0.1.32 (2026-10-22)
 
 ### Changed

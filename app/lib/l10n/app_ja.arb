@@ -411,5 +411,12 @@
   "sortSize": "大きい順",
   "sortEdited": "最近編集",
   "viewGrid": "グリッド",
-  "viewList": "リスト"
+  "viewList": "リスト",
+  "debugImport": "最後の取り込み",
+  "debugImportNone": "まだ取り込みはありません",
+  "debugImportCount": "項目数",
+  "debugImportPick": "写真からコピー",
+  "debugImportThumbnails": "サムネイル（合計）",
+  "debugImportVault": "暗号化と保存（合計）",
+  "debugImportTotal": "合計"
 }

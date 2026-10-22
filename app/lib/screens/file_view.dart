@@ -179,6 +179,16 @@ Future<int?> videoLength(String path) async {
   }
 }
 
+/// Timings of the last import, for the Debug page (owner 2026-10-22: measure on the
+/// phone before making it faster). Numbers only, in memory only: no names, nothing kept.
+abstract final class ImportStats {
+  static int? items;
+  static int pickMs = 0;
+  static int thumbnailMs = 0;
+  static int vaultMs = 0;
+  static int totalMs = 0;
+}
+
 /// Bring files from outside into the open vault. Copies that pickers left in this app's
 /// temp folder are deleted once encrypted; files picked in place (desktop) are left alone.
 Future<List<rust.ItemInfo>> importFiles(
@@ -191,6 +201,10 @@ Future<List<rust.ItemInfo>> importFiles(
 }) async {
   final tmp = (await getTemporaryDirectory()).path;
   final added = <rust.ItemInfo>[];
+  final total = Stopwatch()..start();
+  ImportStats.items = files.length;
+  ImportStats.thumbnailMs = 0;
+  ImportStats.vaultMs = 0;
   // Three at a time: while one is being encrypted (the vault takes one at a time) the
   // next ones get their thumbnails made on other cores.
   var next = 0;
@@ -203,6 +217,7 @@ Future<List<rust.ItemInfo>> importFiles(
   }
 
   await Future.wait([for (var i = 0; i < 3; i++) worker()]);
+  ImportStats.totalMs = total.elapsedMilliseconds;
   return added;
 }
 
@@ -231,7 +246,10 @@ Future<void> importOne(
   final name = (isImage || isVideo) && mediaName != null && isMadeUpName(f.name)
       ? mediaName(isVideo ? ItemKind.video : ItemKind.photo, dot < 0 ? '' : f.name.substring(dot).toLowerCase())
       : f.name;
+  final watch = Stopwatch()..start();
   final thumbnail = isImage ? await imageThumbnail(f.path) : (isVideo ? await videoThumbnail(f.path) : null);
+  ImportStats.thumbnailMs += watch.elapsedMilliseconds;
+  watch.reset();
   final item = await rust.addFile(
     path: f.path,
     kind: isVideo ? ItemKind.video : (isImage && (photos || thumbnail != null) ? ItemKind.photo : ItemKind.file),
@@ -240,6 +258,7 @@ Future<void> importOne(
     createdMs: nowMs(),
     thumbnail: thumbnail,
   );
+  ImportStats.vaultMs += watch.elapsedMilliseconds;
   if (isVideo) {
     final ms = await videoLength(f.path);
     if (ms != null) await rust.setItemDuration(id: item.id, durationMs: i64(ms));

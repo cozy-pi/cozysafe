@@ -383,7 +383,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     LockGuard.allowAway();
     try {
+      final picking = Stopwatch()..start();
       final (files, origins) = await Originals.pick(photos: photos);
+      ImportStats.pickMs = picking.elapsedMilliseconds;
       if (files.isEmpty || !mounted) return;
       final done = ValueNotifier<int>(0);
       var cancel = false;
