@@ -144,7 +144,7 @@ allow_unsafe = true
 
 [pkg."find-msvc-tools"]
 allow_unsafe = true
-from.build.allow_apis = ["fs", "process"]
+from.build.allow_apis = ["fs"]
 
 [pkg.flutter_rust_bridge]
 allow_unsafe = true
@@ -368,10 +368,13 @@ allow_unsafe = true
 # script copies the amalgamation and runs the C compiler; at run time only files.
 [pkg.rusqlite]
 allow_unsafe = true
+allow_apis = [
+    "fs",
+]
 
 [pkg."libsqlite3-sys"]
 allow_unsafe = true
-build.allow_apis = ["fs", "process"]
+build.allow_apis = ["fs"]
 
 [pkg.hashlink]
 allow_unsafe = true
@@ -390,4 +393,10 @@ allow_unsafe = true
 from.build.allow_apis = ["fs", "process"]
 
 [pkg.vcpkg]
-from.build.allow_apis = ["fs", "process"]
+from.build.allow_apis = ["fs"]
+
+[pkg.bitflags]
+allow_unsafe = true
+
+[pkg.smallvec]
+allow_unsafe = true
