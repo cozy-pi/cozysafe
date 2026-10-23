@@ -91,3 +91,20 @@ class BrandHeader extends StatelessWidget {
     );
   }
 }
+
+/// A page that fades in over the current one instead of sliding: for the pages with the
+/// lock screen's background (creating a vault, setting a PIN), so a plain page and that
+/// background never sit side by side during the move (owner 2026-10-24: the slide showed
+/// half light, half dark, and flashed).
+PageRoute<T> fadeRoute<T>(WidgetBuilder builder) => PageRouteBuilder<T>(
+      transitionDuration: const Duration(milliseconds: 320),
+      reverseTransitionDuration: const Duration(milliseconds: 240),
+      pageBuilder: (context, _, _) => builder(context),
+      transitionsBuilder: (context, animation, _, child) {
+        final a = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+        return FadeTransition(
+          opacity: a,
+          child: ScaleTransition(scale: Tween(begin: .97, end: 1.0).animate(a), child: child),
+        );
+      },
+    );

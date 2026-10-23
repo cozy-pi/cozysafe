@@ -33,9 +33,6 @@ bool debugCamera = false;
 
 const _sectionPref = 'vault-section';
 
-/// Which side the main action floats on: left (default, under the left thumb) or right.
-const actionSidePref = 'action-side';
-bool actionOnRight() => Prefs.read(actionSidePref) == 'right';
 
 /// No lock button in the bar: holding the home tab locks (owner 2026-10-22: on by
 /// default). Settings can bring the lock button back. Where the bar has no home tab
@@ -43,8 +40,9 @@ bool actionOnRight() => Prefs.read(actionSidePref) == 'right';
 const holdHomePref = 'hold-home-lock';
 bool holdHomeLocks() => Prefs.read(holdHomePref) != '0';
 
-/// How far the main action sits from the screen edge: lined up with the lock button.
-const double actionSide = 10;
+/// Where the main action sits: in the middle, above the bar (owner 2026-10-24; it used to
+/// be on the left or right edge, which a thumb swiping the library kept hitting).
+double actionLeft(BuildContext context) => (MediaQuery.sizeOf(context).width - Ui.primary) / 2;
 
 /// Show the vault's icon on a plain page after unlocking (on by default; Settings).
 const revealIconPref = 'reveal-icon';
@@ -174,8 +172,11 @@ class VaultBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (sections.length < 2) return Row(children: [?lock]);
-    final capsule = Expanded(
+    if (sections.length < 2) return Row(mainAxisAlignment: MainAxisAlignment.center, children: [?lock]);
+    // As wide as its tabs and centred (owner 2026-10-24: with one kind of item, a capsule
+    // stretched across the screen around one word looked odd); full width when they
+    // need it all.
+    final capsule = Flexible(
           child: Glass(
             radius: Ui.bar / 2,
             child: SizedBox(
@@ -188,6 +189,7 @@ class VaultBar extends StatelessWidget {
           ),
         );
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [if (lock case final lock?) ...[lock, const SizedBox(width: 4)], capsule],
     );
@@ -234,7 +236,7 @@ class _TabsState extends State<_Tabs> {
       });
 
   static const _style = TextStyle(fontSize: 14, fontWeight: FontWeight.w700);
-  static const _pad = 11.0;
+  static const _pad = 16.0;
 
   @override
   Widget build(BuildContext context) {
@@ -303,9 +305,11 @@ class _TabsState extends State<_Tabs> {
       final total = need.fold<double>(0, (a, w) => a + w);
       final fits = total <= room;
       return Row(
+        mainAxisSize: fits ? MainAxisSize.min : MainAxisSize.max,
         children: [
           if (homeOn) tab(VaultSection.home, width: homeW),
-          Expanded(
+          SizedBox(
+            width: fits ? total : room,
             child: fits
                 // Everything fits: each tab gets room in proportion to its word, and a
                 // finger sliding along picks as before.
@@ -535,7 +539,7 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
           // the thumb, the near ones slip away under the button.
           child: SizedBox(
             key: w.columnKey,
-            width: MediaQuery.sizeOf(context).width - w.side * 2,
+            width: MediaQuery.sizeOf(context).width - w.side - 10,
             height: AddColumn.row * n + _fade,
             // Rows may spill sideways and below (the pop from +), never above: a row half
             // past the top drew sharp outside the fade and cut by it inside, a dark band

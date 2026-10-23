@@ -637,18 +637,27 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _locked = true;
     _idleTimer?.cancel();
     rust.lock();
-    // Under it, the lock screen: Cancel on the new vault goes back there.
+    // The new vault fades in over this page; once it covers the screen, the lock screen
+    // takes the place of everything under it, so Cancel goes back there. (Swapping to the
+    // lock screen first flashed it for a moment.)
     final nav = Navigator.of(context);
-    nav.pushAndRemoveUntil(
-      PageRouteBuilder<void>(
+    final libraryDir = widget.libraryDir;
+    final route = fadeRoute<void>((_) => NewVaultScreen(libraryDir: libraryDir, first: false, avoid: avoid));
+    nav.push(route);
+    void swap(AnimationStatus s) {
+      if (s != AnimationStatus.completed) return;
+      route.animation?.removeStatusListener(swap);
+      if (!route.isActive) return;
+      final unlock = PageRouteBuilder<void>(
         transitionDuration: Duration.zero,
-        pageBuilder: (_, _, _) => UnlockScreen(libraryDir: widget.libraryDir, askBiometricNow: false),
-      ),
-      (_) => false,
-    );
-    nav.push(MaterialPageRoute<void>(
-      builder: (_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false, avoid: avoid),
-    ));
+        pageBuilder: (_, _, _) => UnlockScreen(libraryDir: libraryDir, askBiometricNow: false),
+      );
+      nav.replaceRouteBelow(anchorRoute: route, newRoute: unlock);
+      while (!unlock.isFirst) {
+        nav.removeRouteBelow(unlock);
+      }
+    }
+    route.animation?.addStatusListener(swap);
   }
 
   void _snack(String text) => showToast(context, text, besideAction: _selected.isEmpty);
@@ -1977,22 +1986,22 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                     mine: addWaysOf(_section),
                     columnKey: _addColumnKey,
                     scroll: _addScroll,
-                    right: actionOnRight(),
-                    side: actionSide,
+                    right: false,
+                    // The ways' circles stack straight above the centred +.
+                    side: actionLeft(context),
                     bottom: bottom + Ui.actionLift + Ui.primary + 4 - 18, // the column's bottom fade sits behind the button's top
                     hovered: _hover,
                     onPick: _pickAdd,
                     onClose: _closeAdd,
                   ),
                 ),
-              // Above the lock (left thumb), or on the right if chosen in Settings. An
-              // empty vault has the add tiles on screen instead.
+              // In the middle, above the bar. An empty vault has the add tiles on screen
+              // instead.
               if (!empty) Positioned(
                 // Keyed: the column appearing above must not rebuild the button mid-slide
                 // (it would drop the finger's gesture).
                 key: const ValueKey('action-slot'),
-                left: actionOnRight() ? null : actionSide,
-                right: actionOnRight() ? actionSide : null,
+                left: actionLeft(context),
                 bottom: bottom + Ui.actionLift,
                 // Tap: open or close the column. Finger down and slide up: pick on release.
                 child: GestureDetector(
