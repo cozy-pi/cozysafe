@@ -384,9 +384,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     LockGuard.allowAway();
     try {
       final picking = Stopwatch()..start();
-      final (files, origins) = await Originals.pick(photos: photos);
+      final batch = await Originals.pick(photos: photos);
       ImportStats.pickMs = picking.elapsedMilliseconds;
-      if (files.isEmpty || !mounted) return;
+      if (batch.count == 0) return;
+      if (!mounted) return await Originals.stopCopying();
       final done = ValueNotifier<int>(0);
       var cancel = false;
       final nav = Navigator.of(context);
@@ -394,11 +395,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         context: context,
         isDismissible: false,
         enableDrag: false,
-        builder: (context) => _ImportSheet(total: files.length, done: done, onCancel: () => cancel = true),
+        builder: (context) => _ImportSheet(total: batch.count, done: done, onCancel: () {
+          cancel = true;
+          Originals.stopCopying(); // what is still being copied is not wanted any more
+        }),
       );
-      final List<rust.ItemInfo> added;
+      final List<(rust.ItemInfo, String?)> picked;
       try {
-        added = await importFiles(files, photos: photos, progress: (d, _) {
+        picked = await importPicked(batch, photos: photos, progress: (d, _) {
           done.value = d;
           LockGuard.activity(); // a long import is not idleness
         }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(l, kind, DateTime.now(), ext));
@@ -407,6 +411,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         await sheet;
         done.dispose();
       }
+      final added = [for (final p in picked) p.$1];
       // Added while a tag is open: they carry it.
       final tagId = _tagId;
       if (tagId != null && added.isNotEmpty) {
@@ -416,7 +421,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (mounted) _reload();
       // What went in (the first ones: a cancel only skips the rest) can be removed from
       // the phone, after asking here and then again by the system.
-      final from = [for (final o in origins.take(added.length)) ?o];
+      final from = [for (final p in picked) ?p.$2];
       if (from.isNotEmpty && mounted) {
         await _offerDeleteOriginals(from, photos: photos);
       } else {
@@ -2591,6 +2596,35 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
 
   Future<Uint8List> _load(String id) => _content[id] ??= rust.itemContent(id: id);
 
+  /// Width photos are decoded at: 1.5× the screen's (at most 3000 px, ~20 MB as a
+  /// bitmap), sharp enough to zoom, without a very large photo's full bitmap in memory.
+  int get _decodeWidth =>
+      (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context) * 1.5).round().clamp(1, 3000);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _around(_index));
+  }
+
+  /// Smooth swiping (owner 2026-10-23): the photos next to this one are decrypted and
+  /// decoded before they slide in, and only the few around it stay in memory (the bytes
+  /// of every photo seen used to be kept until the viewer closed).
+  void _around(int i) {
+    if (!mounted) return;
+    final n = widget.items.length;
+    final keep = {for (var j = i - 2; j <= i + 2; j++) if (j >= 0 && j < n) widget.items[j].id};
+    _content.removeWhere((id, _) => !keep.contains(id));
+    final w = _decodeWidth;
+    for (final j in [i, i + 1, i - 1]) {
+      if (j < 0 || j >= n || widget.items[j].kind != ItemKind.photo) continue;
+      _load(widget.items[j].id).then((bytes) {
+        // The same provider Image.memory(cacheWidth:) makes, so the page finds it decoded.
+        if (mounted) precacheImage(ResizeImage(MemoryImage(bytes), width: w), context, onError: (_, _) {});
+      }, onError: (_) {});
+    }
+  }
+
   @override
   void dispose() {
     _pages.dispose();
@@ -2609,26 +2643,47 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
   }
 
   Widget _pageView(BuildContext context) => PageView.builder(
+        allowImplicitScrolling: true, // the pages beside this one are built (and decoded) ahead
         controller: _pages,
         itemCount: widget.items.length,
-        onPageChanged: (i) => setState(() => _index = i),
+        onPageChanged: (i) {
+          setState(() => _index = i);
+          _around(i);
+        },
         itemBuilder: (context, i) => widget.items[i].kind == ItemKind.video
             ? _videoPage(context, widget.items[i])
-            : FutureBuilder<Uint8List>(
-          future: _load(widget.items[i].id),
-          builder: (context, snap) {
-            if (snap.hasError) {
-              return Center(child: Text(AppLocalizations.of(context).errorStorage, style: const TextStyle(color: Colors.white70)));
-            }
-            final bytes = snap.data;
-            if (bytes == null) return const Center(child: CircularProgressIndicator(color: Colors.white));
-            // Decoded at 1.5× the screen's width (at most 3000 px, ~20 MB as a bitmap): sharp
-            // enough to zoom, without a very large photo's full-size bitmap in memory.
-            final w = (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context) * 1.5).round().clamp(1, 3000);
-            return InteractiveViewer(maxScale: 6, child: Center(child: Image.memory(bytes, gaplessPlayback: true, cacheWidth: w)));
-          },
-        ),
+            : _photoPage(context, widget.items[i]),
       );
+
+  /// The thumbnail at once (no spinner between photos), the full photo over it as soon as
+  /// it is decoded.
+  Widget _photoPage(BuildContext context, rust.ItemInfo item) {
+    final still = FutureBuilder<Uint8List>(
+      future: _thumbnails[item.id] ??= rust.itemThumbnail(id: item.id),
+      builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
+          ? Image.memory(snap.data!, fit: BoxFit.contain, gaplessPlayback: true, width: double.infinity, height: double.infinity)
+          : const SizedBox.expand(),
+    );
+    return FutureBuilder<Uint8List>(
+      future: _load(item.id),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(child: Text(AppLocalizations.of(context).errorStorage, style: const TextStyle(color: Colors.white70)));
+        }
+        final bytes = snap.data;
+        if (bytes == null) return still;
+        return InteractiveViewer(
+          maxScale: 6,
+          child: Center(
+            child: Image.memory(bytes,
+                gaplessPlayback: true,
+                cacheWidth: _decodeWidth,
+                frameBuilder: (context, child, frame, sync) => frame == null && !sync ? still : child),
+          ),
+        );
+      },
+    );
+  }
 
   /// A video among the photos: its still and a play button; playing opens the video
   /// player (owner 2026-10-22: swiping goes through videos too).

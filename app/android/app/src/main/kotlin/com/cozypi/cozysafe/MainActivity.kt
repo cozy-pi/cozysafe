@@ -25,6 +25,9 @@ class MainActivity : FlutterFragmentActivity() {
     // where each came from, so that after they are encrypted into the vault the person can
     // remove the originals. Android itself asks before anything is deleted.
     private var pickResult: MethodChannel.Result? = null
+    private var originals: MethodChannel? = null
+    private var pickSession = 0
+    @Volatile private var copyStopped = false
     private var deleteResult: MethodChannel.Result? = null
     private var pendingDocDeleted = 0
     private var pendingFailed = 0
@@ -105,21 +108,27 @@ class MainActivity : FlutterFragmentActivity() {
                 main.post { result.success(bytes) }
             }
         }
-        MethodChannel(messenger, "cozysafe/originals").setMethodCallHandler { call, result ->
+        originals = MethodChannel(messenger, "cozysafe/originals").apply { setMethodCallHandler { call, result ->
             when (call.method) {
                 "pickMedia" -> {
                     pickResult = result
+                    pickSession = call.argument<Int>("session") ?: 0
                     pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
                 }
                 "pickFiles" -> {
                     pickResult = result
+                    pickSession = call.argument<Int>("session") ?: 0
                     pickDocs.launch(arrayOf("*/*"))
+                }
+                "stopCopy" -> {
+                    copyStopped = true
+                    result.success(null)
                 }
                 "delete" -> delete(call.argument<List<String>>("ids") ?: emptyList(), result)
                 "release" -> result.success(null)
                 else -> result.notImplemented()
             }
-        }
+        } }
     }
 
     /// Copy each picked item into the app's cache (the vault encrypts from there; the copy
@@ -127,30 +136,38 @@ class MainActivity : FlutterFragmentActivity() {
     private fun deliver(uris: List<Uri>) {
         val result = pickResult ?: return
         pickResult = null
-        Thread {
-            val out = mutableListOf<Map<String, String>>()
-            val dir = File(cacheDir, "pick").apply { mkdirs() }
-            for (uri in uris) {
-                try {
-                    var name = "file"
-                    contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-                        if (c.moveToFirst() && !c.isNull(0)) name = c.getString(0)
-                    }
-                    val safe = name.replace('/', '-')
-                    val copy = File(dir, "${System.nanoTime()}-$safe")
-                    contentResolver.openInputStream(uri)?.use { input -> copy.outputStream().use { input.copyTo(it) } }
-                    out.add(mapOf(
-                        "path" to copy.path,
-                        "name" to safe,
-                        "mime" to (contentResolver.getType(uri) ?: ""),
-                        "id" to uri.toString(),
-                    ))
-                } catch (e: Exception) {
-                    // Not readable: left out, like a cancelled pick.
+        // The count first, then each file as soon as it is copied, so the vault encrypts
+        // while the rest are still being copied (owner 2026-10-23). Three at a time.
+        result.success(uris.size)
+        if (uris.isEmpty()) return
+        copyStopped = false
+        val session = pickSession
+        val dir = File(cacheDir, "pick").apply { mkdirs() }
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(3)
+        for (uri in uris) pool.execute {
+            val item = mutableMapOf<String, Any>("session" to session)
+            val started = System.nanoTime()
+            if (!copyStopped) try {
+                var name = "file"
+                contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                    if (c.moveToFirst() && !c.isNull(0)) name = c.getString(0)
                 }
+                val safe = name.replace('/', '-')
+                val copy = File(dir, "${System.nanoTime()}-$safe")
+                contentResolver.openInputStream(uri)?.use { input -> copy.outputStream().use { input.copyTo(it) } }
+                item.putAll(mapOf(
+                    "path" to copy.path,
+                    "name" to safe,
+                    "mime" to (contentResolver.getType(uri) ?: ""),
+                    "id" to uri.toString(),
+                    "ms" to ((System.nanoTime() - started) / 1_000_000).toInt(),
+                ))
+            } catch (e: Exception) {
+                // Not readable: sent without a path, and left out.
             }
-            runOnUiThread { result.success(out) }
-        }.start()
+            runOnUiThread { originals?.invokeMethod("copied", item) }
+        }
+        pool.shutdown()
     }
 
     /// A MediaStore item behind a photo-picker or media-documents URI, so Android can ask
