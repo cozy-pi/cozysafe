@@ -64,12 +64,14 @@ import UniformTypeIdentifiers
         }
       }
       let originals = FlutterMethodChannel(name: "cozysafe/originals", binaryMessenger: registrar.messenger())
+      originalsChannel = originals
       originals.setMethodCallHandler { [weak self] call, result in
         guard let self else { return result(nil) }
         let args = call.arguments as? [String: Any]
         switch call.method {
-        case "pickMedia": self.pickMedia(result)
-        case "pickFiles": self.pickFiles(result)
+        case "pickMedia": self.pickSession = args?["session"] as? Int ?? 0; self.pickMedia(result)
+        case "pickFiles": self.pickSession = args?["session"] as? Int ?? 0; self.pickFiles(result)
+        case "stopCopy": self.stopCopying(); result(nil)
         case "delete": self.deleteOriginals(args?["ids"] as? [String] ?? [], photos: args?["photos"] as? Bool ?? true, result)
         case "release": self.releaseFiles(); result(nil)
         default: result(FlutterMethodNotImplemented)
@@ -213,6 +215,12 @@ import UniformTypeIdentifiers
   // anything in Photos is deleted; files are removed from where they were picked.
 
   private var pickResult: FlutterResult?
+  private var originalsChannel: FlutterMethodChannel?
+  /// Dart's number for the current pick: each copied file is sent back with it.
+  private var pickSession = 0
+  /// Copies still on their way, so a cancelled import can stop them.
+  private var copying: [Progress] = []
+  private var copyStopped = false
   /// Picked files, by the id given to Dart, still open for their security scope.
   private var pickedFiles: [String: URL] = [:]
 
@@ -282,6 +290,12 @@ import UniformTypeIdentifiers
     }
   }
 
+  private func stopCopying() {
+    copyStopped = true
+    for p in copying { p.cancel() }
+    copying = []
+  }
+
   private func releaseFiles() {
     for url in pickedFiles.values { url.stopAccessingSecurityScopedResource() }
     pickedFiles.removeAll()
@@ -289,31 +303,51 @@ import UniformTypeIdentifiers
 }
 
 extension AppDelegate: PHPickerViewControllerDelegate {
+  /// Tell Dart the count at once, then hand over each file as soon as iOS has it, so the
+  /// vault encrypts while the rest are still being copied (owner 2026-10-23: 4 GB took
+  /// 96 s to copy and the vault waited for all of it). Four at a time, in order: the
+  /// first ones arrive early instead of all of them at the end.
   func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
     picker.dismiss(animated: true)
     guard let result = pickResult else { return }
     pickResult = nil
+    result(results.count)
+    guard !results.isEmpty else { return }
     let dir = copyFolder()
-    let group = DispatchGroup()
-    let lock = NSLock()
-    var out: [Int: [String: String]] = [:]
-    for (i, r) in results.enumerated() {
-      let provider = r.itemProvider
-      let type = provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) ? UTType.movie : UTType.image
-      group.enter()
-      provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, _ in
-        defer { group.leave() }
-        guard let url else { return }
-        let name = url.lastPathComponent
-        let copy = dir.appendingPathComponent("\(UUID().uuidString)-\(name)")
-        guard (try? FileManager.default.copyItem(at: url, to: copy)) != nil else { return }
-        lock.lock()
-        // "mime" empty: Dart reads it from the extension (.heic, .mov, .mp4…).
-        out[i] = ["path": copy.path, "name": name, "mime": "", "id": r.assetIdentifier ?? ""]
-        lock.unlock()
+    let session = pickSession
+    copyStopped = false
+    copying = []
+    let slots = DispatchSemaphore(value: 4)
+    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+      for r in results {
+        slots.wait()
+        let provider = r.itemProvider
+        let type = provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) ? UTType.movie : UTType.image
+        let started = Date()
+        let id = r.assetIdentifier ?? ""
+        let progress = provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, _ in
+          defer { slots.signal() }
+          var item: [String: Any] = ["session": session]
+          if let url {
+            let name = url.lastPathComponent
+            let copy = dir.appendingPathComponent("\(UUID().uuidString)-\(name)")
+            // iOS deletes its file when this returns: take it (a rename) or copy it.
+            let fm = FileManager.default
+            if (try? fm.moveItem(at: url, to: copy)) != nil || (try? fm.copyItem(at: url, to: copy)) != nil {
+              // "mime" empty: Dart reads it from the extension (.heic, .mov, .mp4…).
+              item.merge(["path": copy.path, "name": name, "mime": "", "id": id,
+                          "ms": Int(Date().timeIntervalSince(started) * 1000)]) { $1 }
+            }
+          }
+          let sent = item
+          DispatchQueue.main.async { self?.originalsChannel?.invokeMethod("copied", arguments: sent) }
+        }
+        DispatchQueue.main.async {
+          guard let self else { return }
+          if self.copyStopped { progress.cancel() } else { self.copying.append(progress) }
+        }
       }
     }
-    group.notify(queue: .main) { result((0..<results.count).compactMap { out[$0] }) }
   }
 }
 
@@ -321,29 +355,43 @@ extension AppDelegate: UIDocumentPickerDelegate {
   func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
     guard let result = pickResult else { return }
     pickResult = nil
+    result(urls.count)
     let dir = copyFolder()
-    var out: [[String: String]] = []
-    for url in urls {
-      let scoped = url.startAccessingSecurityScopedResource()
-      let copy = dir.appendingPathComponent("\(UUID().uuidString)-\(url.lastPathComponent)")
-      var error: NSError?
-      var copied = false
-      NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &error) { u in
-        copied = (try? FileManager.default.copyItem(at: u, to: copy)) != nil
+    let session = pickSession
+    copyStopped = false
+    // One after another off the main thread; each is sent to Dart as soon as it is copied.
+    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+      for url in urls {
+        let stopped = DispatchQueue.main.sync { self?.copyStopped ?? true }
+        let started = Date()
+        let scoped = !stopped && url.startAccessingSecurityScopedResource()
+        let copy = dir.appendingPathComponent("\(UUID().uuidString)-\(url.lastPathComponent)")
+        var copied = false
+        if !stopped {
+          var error: NSError?
+          NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &error) { u in
+            copied = (try? FileManager.default.copyItem(at: u, to: copy)) != nil
+          }
+        }
+        let done = copied
+        let ms = Int(Date().timeIntervalSince(started) * 1000)
+        DispatchQueue.main.async {
+          var item: [String: Any] = ["session": session]
+          if done {
+            let id = UUID().uuidString
+            self?.pickedFiles[id] = url // kept open until deleted or released
+            item.merge(["path": copy.path, "name": url.lastPathComponent, "mime": "", "id": id, "ms": ms]) { $1 }
+          } else if scoped {
+            url.stopAccessingSecurityScopedResource()
+          }
+          self?.originalsChannel?.invokeMethod("copied", arguments: item)
+        }
       }
-      guard copied else {
-        if scoped { url.stopAccessingSecurityScopedResource() }
-        continue
-      }
-      let id = UUID().uuidString
-      pickedFiles[id] = url // kept open until deleted or released
-      out.append(["path": copy.path, "name": url.lastPathComponent, "mime": "", "id": id])
     }
-    result(out)
   }
 
   func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-    pickResult?([])
+    pickResult?(0)
     pickResult = nil
   }
 }

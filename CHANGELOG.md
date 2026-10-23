@@ -4,6 +4,18 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.35 (2026-10-23)
+
+### Changed
+- Importing photos, videos and files: each one is encrypted as soon as the phone has
+  copied it, instead of waiting for the whole selection to be copied first.
+- Swiping between photos is smoother: the photos beside the one shown are prepared
+  ahead, the thumbnail shows at once instead of a spinner, and only the photos near the
+  one shown stay in memory.
+
+### Fixed
+- Videos in Recently Deleted can be played from their preview.
+
 ## 0.1.34 (2026-10-23)
 
 ### Added

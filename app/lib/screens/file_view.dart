@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -15,6 +16,7 @@ import 'package:video_player/video_player.dart';
 import '../l10n/app_localizations.dart';
 import '../debug_log.dart';
 import '../lock_guard.dart';
+import '../originals.dart' show PickedBatch, PickedCopy;
 import '../widgets/vault_bar.dart';
 import 'quick_look.dart';
 import 'recorder.dart';
@@ -128,13 +130,17 @@ const _media = MethodChannel('cozysafe/media');
 /// only what it needs of the picture and writes a JPEG, ~10× faster than decoding the
 /// whole photo here (owner 2026-10-22: 191 photos took 30 s). Elsewhere, or if that fails,
 /// Flutter's decoder.
-Future<Uint8List?> imageThumbnail(String path) async {
+Future<Uint8List?> imageThumbnail(String path, {void Function(String way)? way}) async {
   if (Device.iOS || Device.android) {
     try {
       final jpeg = await _media.invokeMethod<Uint8List>('thumbnail', {'path': path, 'shortSide': 320});
-      if (jpeg != null && jpeg.isNotEmpty) return jpeg;
+      if (jpeg != null && jpeg.isNotEmpty) {
+        way?.call('system');
+        return jpeg;
+      }
     } catch (_) {}
   }
+  way?.call('flutter');
   try {
     final codec = await ui.instantiateImageCodecFromBuffer(
       await ui.ImmutableBuffer.fromFilePath(path),
@@ -184,6 +190,9 @@ Future<int?> videoLength(String path) async {
 abstract final class ImportStats {
   static int? items;
   static int pickMs = 0;
+  /// Sum of the platform's copy times, and when the first file was ready.
+  static int copyMs = 0;
+  static int? firstMs;
   static int thumbnailMs = 0;
   static int vaultMs = 0;
   static int totalMs = 0;
@@ -199,29 +208,91 @@ Future<List<rust.ItemInfo>> importFiles(
   /// Name for a photo or video whose picked name is made up ([isMadeUpName]).
   String Function(String kind, String extension)? mediaName,
 }) async {
+  final added = await importPicked(
+    PickedBatch(files.length, Stream.fromIterable([for (final f in files) PickedCopy(f, null, 0)])),
+    photos: photos,
+    progress: progress,
+    cancelled: cancelled,
+    mediaName: mediaName,
+  );
+  return [for (final a in added) a.$1];
+}
+
+/// [importFiles] for a pick whose files arrive one by one: each is encrypted as soon as
+/// it is there, while the platform is still copying the next ones. Gives each added item
+/// with where it came from.
+Future<List<(rust.ItemInfo, String?)>> importPicked(
+  PickedBatch batch, {
+  required bool photos,
+  void Function(int done, int total)? progress,
+  bool Function()? cancelled,
+  String Function(String kind, String extension)? mediaName,
+}) async {
   final tmp = (await getTemporaryDirectory()).path;
-  final added = <rust.ItemInfo>[];
+  final added = <(rust.ItemInfo, String?)>[];
   final total = Stopwatch()..start();
-  ImportStats.items = files.length;
-  DebugLog.add('import ${files.length} files: copied from the picker in ${ImportStats.pickMs} ms');
+  ImportStats.items = batch.count;
+  ImportStats.copyMs = 0;
   ImportStats.thumbnailMs = 0;
   ImportStats.vaultMs = 0;
+  ImportStats.firstMs = null;
+  DebugLog.add('import ${batch.count} files: picker closed after ${ImportStats.pickMs} ms');
+  final inbox = _Inbox(batch.files);
   // Three at a time: while one is being encrypted (the vault takes one at a time) the
   // next ones get their thumbnails made on other cores.
-  var next = 0;
-  Future<void> worker() async {
-    while (next < files.length) {
-      final f = files[next++];
-      await importOne(f, tmp, photos: photos, cancelled: cancelled, mediaName: mediaName, added: added);
-      progress?.call(added.length, files.length);
+  var n = 0;
+  Future<void> worker(int w) async {
+    for (PickedCopy? p; (p = await inbox.next()) != null;) {
+      final i = ++n;
+      ImportStats.firstMs ??= total.elapsedMilliseconds;
+      ImportStats.copyMs += p!.copyMs;
+      final items = <rust.ItemInfo>[];
+      await importOne(p.file, tmp, photos: photos, cancelled: cancelled, mediaName: mediaName, added: items,
+          tag: '#$i w$w copy ${p.copyMs} ms ·');
+      for (final it in items) {
+        added.add((it, p.origin));
+      }
+      progress?.call(added.length, batch.count);
     }
   }
 
-  await Future.wait([for (var i = 0; i < 3; i++) worker()]);
+  await Future.wait([for (var w = 1; w <= 3; w++) worker(w)]);
   ImportStats.totalMs = total.elapsedMilliseconds;
-  DebugLog.add('import done: ${added.length}/${files.length} in ${ImportStats.totalMs} ms · '
+  DebugLog.add('import done: ${added.length}/${batch.count} in ${ImportStats.totalMs} ms · '
+      'first file after ${ImportStats.firstMs ?? 0} ms · copy ${ImportStats.copyMs} ms (sum) · '
       'thumbnails ${ImportStats.thumbnailMs} ms (sum) · vault ${ImportStats.vaultMs} ms (sum, waits included)');
   return added;
+}
+
+/// Files from a stream, handed to whichever worker asks first.
+class _Inbox {
+  _Inbox(Stream<PickedCopy> files) {
+    files.listen((f) {
+      if (_waiting.isNotEmpty) {
+        _waiting.removeAt(0).complete(f);
+      } else {
+        _ready.add(f);
+      }
+    }, onDone: () {
+      _done = true;
+      for (final w in _waiting) {
+        w.complete(null);
+      }
+      _waiting.clear();
+    });
+  }
+
+  final _ready = <PickedCopy>[];
+  final _waiting = <Completer<PickedCopy?>>[];
+  var _done = false;
+
+  Future<PickedCopy?> next() {
+    if (_ready.isNotEmpty) return Future.value(_ready.removeAt(0));
+    if (_done) return Future.value(null);
+    final c = Completer<PickedCopy?>();
+    _waiting.add(c);
+    return c.future;
+  }
 }
 
 /// One file of [importFiles]: thumbnail, encrypt, add; the picker's copy is deleted.
@@ -232,6 +303,7 @@ Future<void> importOne(
   required bool Function()? cancelled,
   required String Function(String kind, String extension)? mediaName,
   required List<rust.ItemInfo> added,
+  String tag = '',
 }) async {
   // Cancel keeps what is finished; the current file is never half added.
   if (cancelled?.call() ?? false) {
@@ -250,7 +322,9 @@ Future<void> importOne(
       ? mediaName(isVideo ? ItemKind.video : ItemKind.photo, dot < 0 ? '' : f.name.substring(dot).toLowerCase())
       : f.name;
   final watch = Stopwatch()..start();
-  final thumbnail = isImage ? await imageThumbnail(f.path) : (isVideo ? await videoThumbnail(f.path) : null);
+  var way = isVideo ? 'video' : '';
+  final thumbnail =
+      isImage ? await imageThumbnail(f.path, way: (w) => way = w) : (isVideo ? await videoThumbnail(f.path) : null);
   final thumbMs = watch.elapsedMilliseconds;
   ImportStats.thumbnailMs += thumbMs;
   watch.reset();
@@ -263,8 +337,8 @@ Future<void> importOne(
     thumbnail: thumbnail,
   );
   ImportStats.vaultMs += watch.elapsedMilliseconds;
-  DebugLog.add('import ${isVideo ? 'video' : isImage ? 'image' : 'file'} ${(item.sizeBytes ~/ BigInt.from(1024))} KB: '
-      'thumbnail $thumbMs ms (${thumbnail == null ? 'none' : '${thumbnail.length ~/ 1024} KB'}) · vault ${watch.elapsedMilliseconds} ms');
+  DebugLog.add('import $tag ${isVideo ? 'video' : isImage ? 'image' : 'file'} ${(item.sizeBytes ~/ BigInt.from(1024))} KB: '
+      'thumbnail $way $thumbMs ms (${thumbnail == null ? 'none' : '${thumbnail.length ~/ 1024} KB'}) · vault ${watch.elapsedMilliseconds} ms');
   if (isVideo) {
     final ms = await videoLength(f.path);
     if (ms != null) await rust.setItemDuration(id: item.id, durationMs: i64(ms));

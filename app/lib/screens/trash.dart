@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'file_view.dart';
+import 'video_view.dart';
 import '../widgets/item_menu.dart';
 import '../widgets/vault_bar.dart';
 import '../item_kind.dart';
@@ -55,7 +59,10 @@ class _TrashScreenState extends State<TrashScreen> {
               final small = thumb.hasData && thumb.data!.isNotEmpty
                   ? Image.memory(thumb.data!, fit: BoxFit.contain, gaplessPlayback: true)
                   : const SizedBox(height: 200);
-              if (it.kind != ItemKind.photo || it.sizeBytes > BigInt.from(60 << 20)) return small;
+              if (it.kind == ItemKind.video) {
+                return VideoViewScreen.supported ? _TrashVideo(item: it, still: small) : small;
+              }
+              if (it.sizeBytes > BigInt.from(60 << 20)) return small;
               return FutureBuilder<Uint8List>(
                 future: _full[it.id] ??= rust.itemContent(id: it.id),
                 builder: (context, full) => full.hasData && full.data!.isNotEmpty
@@ -366,4 +373,87 @@ class _DaysLeft extends StatelessWidget {
           child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
         ),
       );
+}
+
+/// A deleted video in the preview: its still with a play button; a tap decrypts it into
+/// the private playback folder and plays it there (owner 2026-10-23: videos in the trash
+/// could not be watched). The copy is deleted when the preview closes.
+class _TrashVideo extends StatefulWidget {
+  const _TrashVideo({required this.item, required this.still});
+
+  final rust.ItemInfo item;
+  final Widget still;
+
+  @override
+  State<_TrashVideo> createState() => _TrashVideoState();
+}
+
+class _TrashVideoState extends State<_TrashVideo> {
+  VideoPlayerController? _player;
+  File? _copy;
+  bool _opening = false;
+
+  Future<void> _tap() async {
+    final p = _player;
+    if (p != null) {
+      p.value.isPlaying ? await p.pause() : await p.play();
+      return;
+    }
+    if (_opening) return;
+    setState(() => _opening = true);
+    try {
+      final copy = await playbackCopy(widget.item);
+      _copy = copy;
+      final player = VideoPlayerController.file(copy);
+      await player.initialize();
+      if (!mounted) {
+        await player.dispose();
+        return;
+      }
+      player.addListener(() {
+        if (mounted) setState(() {});
+      });
+      setState(() => _player = player);
+      await player.play();
+    } catch (_) {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _player?.dispose();
+    try {
+      _copy?.deleteSync();
+    } catch (_) {}
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _player;
+    final playing = p?.value.isPlaying ?? false;
+    return GestureDetector(
+      key: const ValueKey('trash-video'),
+      onTap: _tap,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (p != null) AspectRatio(aspectRatio: p.value.aspectRatio, child: VideoPlayer(p)) else widget.still,
+          if (!playing)
+            Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(color: Color(0x8C000000), shape: BoxShape.circle),
+              child: _opening && p == null
+                  ? const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    )
+                  : const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 34),
+            ),
+        ],
+      ),
+    );
+  }
 }
