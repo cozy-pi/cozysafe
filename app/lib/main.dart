@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'appearance.dart';
+import 'debug_log.dart';
 import 'l10n/app_localizations.dart';
 import 'language.dart';
 import 'offline.dart';
@@ -34,6 +35,7 @@ Future<void> main() async {
   final hasKey = await loadSecretKey(libraryDir);
   await AppLanguage.load();
   await NativeBar.probe(); // iOS 26: the system's own bottom bar
+  DebugLog.sync(); // keep debug lines only if debug mode is on
   Appearance.load();
   runApp(CozySafeApp(libraryDir: libraryDir, hasSecretKey: hasKey));
 }

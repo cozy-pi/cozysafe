@@ -418,5 +418,10 @@
   "debugImportPick": "Copiar desde Fotos",
   "debugImportThumbnails": "Miniaturas (suma)",
   "debugImportVault": "Cifrar y guardar (suma)",
-  "debugImportTotal": "Total"
+  "debugImportTotal": "Total",
+  "debugLog": "Registro",
+  "debugLogCopy": "Copiar registro",
+  "debugLogClear": "Borrar registro",
+  "debugLogCopied": "Registro copiado",
+  "debugLogEmpty": "Aún vacío. Añade algunas fotos y vuelve."
 }

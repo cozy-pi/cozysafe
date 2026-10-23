@@ -418,5 +418,10 @@
   "debugImportPick": "Aus Fotos kopieren",
   "debugImportThumbnails": "Vorschaubilder (Summe)",
   "debugImportVault": "Verschlüsseln und speichern (Summe)",
-  "debugImportTotal": "Gesamt"
+  "debugImportTotal": "Gesamt",
+  "debugLog": "Protokoll",
+  "debugLogCopy": "Protokoll kopieren",
+  "debugLogClear": "Protokoll löschen",
+  "debugLogCopied": "Protokoll kopiert",
+  "debugLogEmpty": "Noch leer. Füge ein paar Fotos hinzu und komm zurück."
 }

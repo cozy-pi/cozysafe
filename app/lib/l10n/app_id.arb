@@ -418,5 +418,10 @@
   "debugImportPick": "Salin dari Foto",
   "debugImportThumbnails": "Thumbnail (jumlah)",
   "debugImportVault": "Enkripsi dan simpan (jumlah)",
-  "debugImportTotal": "Total"
+  "debugImportTotal": "Total",
+  "debugLog": "Log",
+  "debugLogCopy": "Salin log",
+  "debugLogClear": "Hapus log",
+  "debugLogCopied": "Log disalin",
+  "debugLogEmpty": "Belum ada. Tambahkan beberapa foto, lalu kembali."
 }

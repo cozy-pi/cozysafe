@@ -136,6 +136,17 @@ impl ItemRecord {
     }
 }
 
+/// Milliseconds spent in each step of adding an item: reading and encrypting the
+/// content, making it durable on disk, sealing the thumbnail, writing the record and
+/// the index row.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct AddTimings {
+    pub encrypt_ms: u32,
+    pub sync_ms: u32,
+    pub thumbnail_ms: u32,
+    pub record_ms: u32,
+}
+
 /// Content to store as a new item.
 pub struct NewItem<'a, R: Read> {
     pub kind: &'a str,
@@ -165,6 +176,17 @@ impl OpenVault {
 
     /// Encrypt and store a new item; returns its metadata.
     pub fn add_item<R: Read>(&self, new: NewItem<'_, R>) -> Result<ItemMeta> {
+        self.add_item_timed(new).map(|(m, _)| m)
+    }
+
+    /// [`Self::add_item`], and how long each step took (for the app's Debug page).
+    pub fn add_item_timed<R: Read>(&self, new: NewItem<'_, R>) -> Result<(ItemMeta, AddTimings)> {
+        let mut t = AddTimings::default();
+        let mut clock = std::time::Instant::now();
+        let mut lap = |slot: &mut u32| {
+            *slot = clock.elapsed().as_millis() as u32;
+            clock = std::time::Instant::now();
+        };
         fs::create_dir_all(self.items_dir())?;
         let id = hex::encode(cs_crypto::generate_salt());
         let dek = Key::generate();
@@ -174,15 +196,18 @@ impl OpenVault {
         let size_bytes = {
             let mut f = fs::File::create(&tmp)?;
             let n = stream::encrypt(&dek, &self.item_aad(&id, "data"), new.content, &mut f)?;
+            lap(&mut t.encrypt_ms);
             f.sync_all()?;
             n
         };
         fs::rename(&tmp, &data_path)?;
+        lap(&mut t.sync_ms);
 
         if let Some(thumbnail) = new.thumbnail {
             let sealed = wrap::seal(&dek, thumbnail, &self.item_aad(&id, "thumb"));
             write_atomic(&self.path(&id, "thumb")?, &sealed)?;
         }
+        lap(&mut t.thumbnail_ms);
 
         let record = ItemRecord {
             format: RECORD_FORMAT,
@@ -205,7 +230,8 @@ impl OpenVault {
             )),
         };
         let record = self.write_record(&id, &record)?;
-        Ok(meta(id, record))
+        lap(&mut t.record_ms);
+        Ok((meta(id, record), t))
     }
 
     /// Replace an item's content and name (editing a note). Same item, same key; the

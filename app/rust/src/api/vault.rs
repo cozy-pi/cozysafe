@@ -15,6 +15,39 @@ use zeroize::Zeroizing;
 static OPEN: Mutex<Option<OpenVault>> = Mutex::new(None);
 /// This device's Secret Key, handed over by Dart from the platform keystore at start.
 static SECRET: Mutex<Option<SecretKey>> = Mutex::new(None);
+/// Technical lines for the Debug page: timings and error kinds, never names or content.
+/// `None` (nothing kept) unless the app's debug mode turns it on.
+static DEBUG_LOG: Mutex<Option<std::collections::VecDeque<String>>> = Mutex::new(None);
+
+fn debug_line(line: impl FnOnce() -> String) {
+    let mut log = DEBUG_LOG.lock().unwrap_or_else(|p| p.into_inner());
+    if let Some(q) = log.as_mut() {
+        if q.len() >= 500 {
+            q.pop_front();
+        }
+        let ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        q.push_back(format!("{ms}|{}", line()));
+    }
+}
+
+/// Keep debug lines (debug mode on) or drop them all (off).
+#[flutter_rust_bridge::frb(sync)]
+pub fn set_debug_log(on: bool) {
+    let mut log = DEBUG_LOG.lock().unwrap_or_else(|p| p.into_inner());
+    *log = on.then(std::collections::VecDeque::new);
+}
+
+/// The debug lines kept since the last call, oldest first, each `<ms since epoch>|text`.
+#[flutter_rust_bridge::frb(sync)]
+pub fn take_debug_log() -> Vec<String> {
+    let mut log = DEBUG_LOG.lock().unwrap_or_else(|p| p.into_inner());
+    log.as_mut()
+        .map(|q| q.drain(..).collect())
+        .unwrap_or_default()
+}
 
 pub struct VaultInfo {
     pub id: String,
@@ -418,7 +451,11 @@ fn with_open<T>(f: impl FnOnce(&OpenVault) -> Result<T, VaultError>) -> Result<T
 
 /// Encode a camera frame to JPEG in memory and store it encrypted. No file ever holds the
 /// plaintext image. Runs off the UI thread.
-pub fn add_photo(frame: CameraFrame, name: String, created_ms: i64) -> Result<ItemInfo, VaultError> {
+pub fn add_photo(
+    frame: CameraFrame,
+    name: String,
+    created_ms: i64,
+) -> Result<ItemInfo, VaultError> {
     let planes = frame
         .planes
         .iter()
@@ -457,6 +494,10 @@ pub fn add_photo(frame: CameraFrame, name: String, created_ms: i64) -> Result<It
 /// Encrypt a file from disk into the open vault, streaming (any size). `thumbnail` is a
 /// small JPEG/PNG preview made by the app for images, or None. The caller deletes its
 /// own temporary copies (picker caches) afterwards.
+fn thumb_bytes(thumbnail: Option<Vec<u8>>) -> Option<Zeroizing<Vec<u8>>> {
+    thumbnail.map(Zeroizing::new)
+}
+
 pub fn add_file(
     path: String,
     kind: String,
@@ -466,17 +507,29 @@ pub fn add_file(
     thumbnail: Option<Vec<u8>>,
 ) -> Result<ItemInfo, VaultError> {
     let f = std::fs::File::open(&path).map_err(|_| VaultError::Storage)?;
-    let thumb = thumbnail.map(Zeroizing::new);
+    let thumb = thumb_bytes(thumbnail);
+    let waited = std::time::Instant::now();
     with_open(|v| {
-        Ok(v.add_item(NewItem {
+        let wait_ms = waited.elapsed().as_millis();
+        let (meta, t) = v.add_item_timed(NewItem {
             kind: &kind,
             name: &name,
             mime: &mime,
             created_ms,
             content: std::io::BufReader::new(f),
             thumbnail: thumb.as_deref().map(|t| t.as_slice()),
-        })?
-        .into())
+        })?;
+        debug_line(|| {
+            format!(
+                "rust add_file {kind} {} KB: wait {wait_ms} ms · encrypt {} · sync {} · thumb {} · record {} ms",
+                meta.size_bytes / 1024,
+                t.encrypt_ms,
+                t.sync_ms,
+                t.thumbnail_ms,
+                t.record_ms
+            )
+        });
+        Ok(meta.into())
     })
 }
 
@@ -526,7 +579,20 @@ pub fn suggest_passphrase() -> String {
 
 /// Items in the open vault, newest first.
 pub fn list_items() -> Result<Vec<ItemInfo>, VaultError> {
-    with_open(|v| Ok(v.items()?.into_iter().map(Into::into).collect()))
+    let waited = std::time::Instant::now();
+    with_open(|v| {
+        let wait_ms = waited.elapsed().as_millis();
+        let start = std::time::Instant::now();
+        let items: Vec<ItemInfo> = v.items()?.into_iter().map(Into::into).collect();
+        debug_line(|| {
+            format!(
+                "rust list_items {}: wait {wait_ms} ms · read {} ms",
+                items.len(),
+                start.elapsed().as_millis()
+            )
+        });
+        Ok(items)
+    })
 }
 
 /// Decrypted preview (JPEG), empty when the item has none.
@@ -565,7 +631,10 @@ pub fn item_content_head(id: String, max: u32) -> Result<Vec<u8>, VaultError> {
         }
     }
     with_open(|v| {
-        let mut head = Head { buf: Vec::new(), max: max as usize };
+        let mut head = Head {
+            buf: Vec::new(),
+            max: max as usize,
+        };
         match v.read_item(&id, &mut head) {
             Ok(_) => Ok(head.buf),
             // Stopped on purpose once full: every chunk read so far was authenticated.

@@ -418,5 +418,10 @@
   "debugImportPick": "사진에서 복사",
   "debugImportThumbnails": "썸네일(합계)",
   "debugImportVault": "암호화 및 저장(합계)",
-  "debugImportTotal": "전체"
+  "debugImportTotal": "전체",
+  "debugLog": "로그",
+  "debugLogCopy": "로그 복사",
+  "debugLogClear": "로그 지우기",
+  "debugLogCopied": "로그를 복사함",
+  "debugLogEmpty": "아직 없습니다. 사진을 추가한 뒤 다시 오세요."
 }

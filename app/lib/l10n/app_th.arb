@@ -418,5 +418,10 @@
   "debugImportPick": "คัดลอกจากรูปภาพ",
   "debugImportThumbnails": "ภาพย่อ (รวม)",
   "debugImportVault": "เข้ารหัสและบันทึก (รวม)",
-  "debugImportTotal": "ทั้งหมด"
+  "debugImportTotal": "ทั้งหมด",
+  "debugLog": "บันทึก",
+  "debugLogCopy": "คัดลอกบันทึก",
+  "debugLogClear": "ล้างบันทึก",
+  "debugLogCopied": "คัดลอกบันทึกแล้ว",
+  "debugLogEmpty": "ยังไม่มี เพิ่มรูปสักสองสามรูปแล้วกลับมาที่นี่"
 }

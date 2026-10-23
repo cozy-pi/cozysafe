@@ -242,6 +242,10 @@ class FakeVault implements RustLibApi {
       case 'SetItemFavorite':
         _replace(a<String>('id'), (i) => _copy(i, favorite: a<bool>('isFavorite')));
         return _f<void>(null);
+      case 'SetDebugLog':
+        return _f<void>(null);
+      case 'TakeDebugLog':
+        return _f<List<String>>(const []);
       case 'EnablePin':
       case 'SetItemDuration':
         return _f<void>(null);

@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.34 (2026-10-23)
+
+### Added
+- Debug: a log of technical timings (each imported item: thumbnail, waiting for the vault,
+  encrypting, writing to disk; listing the vault) with Copy and Clear. Kept only while
+  debug mode is on, in memory, the last 500 lines; never names or contents.
+
 ## 0.1.33 (2026-10-22)
 
 ### Added

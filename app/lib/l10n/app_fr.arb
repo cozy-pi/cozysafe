@@ -418,5 +418,10 @@
   "debugImportPick": "Copie depuis Photos",
   "debugImportThumbnails": "Vignettes (somme)",
   "debugImportVault": "Chiffrer et enregistrer (somme)",
-  "debugImportTotal": "Total"
+  "debugImportTotal": "Total",
+  "debugLog": "Journal",
+  "debugLogCopy": "Copier le journal",
+  "debugLogClear": "Effacer le journal",
+  "debugLogCopied": "Journal copié",
+  "debugLogEmpty": "Rien pour l’instant. Ajoutez quelques photos, puis revenez."
 }

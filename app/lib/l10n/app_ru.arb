@@ -418,5 +418,10 @@
   "debugImportPick": "Копирование из «Фото»",
   "debugImportThumbnails": "Миниатюры (сумма)",
   "debugImportVault": "Шифрование и запись (сумма)",
-  "debugImportTotal": "Всего"
+  "debugImportTotal": "Всего",
+  "debugLog": "Журнал",
+  "debugLogCopy": "Скопировать журнал",
+  "debugLogClear": "Очистить журнал",
+  "debugLogCopied": "Журнал скопирован",
+  "debugLogEmpty": "Пока пусто. Добавьте несколько фото и вернитесь."
 }
