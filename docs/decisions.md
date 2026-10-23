@@ -4,6 +4,19 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-23 — New vault flow, one set of 24 words per device
+
+**Owner:** creating a vault becomes: what each key is for → 24 words (back them up, then
+four of them asked back) → vault password (at least 8 characters, strength shown, never
+blocked) → PIN (digits only, at least 6) → Face ID → icon and colour (optional, last).
+Existing vaults keep their 4–5 digit PINs. The 24 words stay **one set per device**,
+shared by every vault, like 1Password's Secret Key: each vault still needs its own
+password, and the password page says a weak password is only safe while the words are
+kept safe. The words can be changed (every vault's password asked; old backups still
+need the old words). A list of vaults, and deleting one after Face ID / the phone's
+passcode when its password and PIN are forgotten (data gone for good).
+Import: each file is encrypted as soon as the phone has copied it (0.1.35).
+
 ## 2026-10-21
 
 **After 0.1.14 (owner):** remove originals after import, photos and files, both phones,

@@ -1,23 +1,32 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
+import '../lock_guard.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/edge_swipe_back.dart';
+import '../widgets/password_strength.dart';
 import '../widgets/pin_pad.dart';
+import '../widgets/secret.dart';
+import '../widgets/toast.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
+import 'emergency_kit.dart';
 import 'restore.dart';
 import 'vault_home.dart';
 
-/// Create a vault in as few steps as possible, one thing per step (docs/ui.md, first
-/// run): icon → colour → PIN → PIN again → (first vault) Face ID. Tapping a choice moves
-/// on; icon and colour start on a random suggestion. No name, no password: the backup
-/// password comes later, when it is needed.
+/// Create a vault (owner 2026-10-23): what each key is for → (first vault on this
+/// device) the 24 words, written down and four of them typed back → the vault password
+/// (8 characters at least; strength shown, never blocked) → a PIN of 6 digits or more,
+/// twice → Face ID → icon and colour, which can be skipped. The 24 words belong to the
+/// device and every vault shares them; each vault has its own password and PIN.
 class NewVaultScreen extends StatefulWidget {
   const NewVaultScreen({super.key, required this.libraryDir, required this.first, this.avoid});
 
@@ -26,14 +35,18 @@ class NewVaultScreen extends StatefulWidget {
   /// The open vault's icon and colour, not suggested again (creating from inside it).
   final (String, String)? avoid;
 
+  /// Mockups: the words to show, instead of the keystore's.
+  @visibleForTesting
+  static String? debugWords;
+
   @override
   State<NewVaultScreen> createState() => _NewVaultScreenState();
 }
 
-enum _Step { icon, color, pin, confirm }
+enum _Step { intro, words, check, password, pin, confirm, icon, color }
 
 class _NewVaultScreenState extends State<NewVaultScreen> {
-  _Step _step = _Step.icon;
+  _Step _step = _Step.intro;
   late int _icon;
   late int _color;
   String _pin = '';
@@ -42,12 +55,78 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   bool _busy = false;
   int _shake = 0;
 
+  /// The device's Secret Key as 24 words; null until known. [_newWords]: made now, so
+  /// this vault is the one that shows them.
+  List<String>? _words;
+  bool _newWords = false;
+  /// The four words asked back, by position (0-based), in order.
+  late final List<int> _ask = () {
+    if (NewVaultScreen.debugWords != null) return [2, 8, 14, 21];
+    final r = Random.secure();
+    final picked = <int>{};
+    while (picked.length < 4) {
+      picked.add(r.nextInt(24));
+    }
+    return picked.toList()..sort();
+  }();
+  final _answers = List.generate(4, (_) => TextEditingController());
+  final _pw = TextEditingController();
+  final _pwAgain = TextEditingController();
+  rust.VaultInfo? _vault;
+
+  List<_Step> get _steps => [
+        _Step.intro,
+        if (_newWords) ...[_Step.words, _Step.check],
+        _Step.password,
+        _Step.pin,
+        _Step.icon,
+      ];
+
   @override
   void initState() {
     super.initState();
     final (i, c) = randomIdentity(avoid: widget.avoid);
     _icon = vaultIcons.indexWhere((x) => x.id == i);
     _color = vaultColors.indexWhere((x) => x.id == c);
+    _loadWords();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _answers) {
+      c.dispose();
+    }
+    _pw.dispose();
+    _pwAgain.dispose();
+    super.dispose();
+  }
+
+  /// The first vault on a device makes the Secret Key (kept in the keystore at once, so
+  /// leaving half-way and coming back shows the same words).
+  Future<void> _loadWords() async {
+    final debug = NewVaultScreen.debugWords;
+    if (debug != null) {
+      setState(() {
+        _words = debug.split(' ');
+        _newWords = widget.first;
+      });
+      return;
+    }
+    var key = await SecretKeyStore.read();
+    final made = key == null;
+    if (key == null) {
+      key = rust.newSecretKey();
+      await SecretKeyStore.write(key);
+    }
+    rust.setSecretKey(key: key);
+    final text = rust.secretKeyText(key: key);
+    if (!mounted) return;
+    setState(() {
+      _words = text.contains(' ') ? text.split(' ') : null;
+      // Shown when this device has no vault yet: the words were just made, or made by a
+      // start that was left half-way.
+      _newWords = (made || widget.first) && _words?.length == 24;
+    });
   }
 
   void _go(_Step s) => setState(() {
@@ -59,23 +138,64 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         }
       });
 
+  /// Back stops at the PIN once the vault exists: it is made then.
   void _back() {
-    if (_step.index == 0) {
+    if (_vault != null) {
+      if (_step == _Step.color) _go(_Step.icon);
+      return;
+    }
+    if (_step == _Step.confirm) return _go(_Step.pin);
+    final i = _steps.indexOf(_step);
+    if (i <= 0) {
       if (!widget.first) Navigator.of(context).maybePop();
       return;
     }
-    _go(_step == _Step.confirm ? _Step.pin : _Step.values[_step.index - 1]);
+    _go(_steps[i - 1]);
   }
 
-  void _pickIcon(int i) {
-    setState(() => _icon = i);
-    Future.delayed(const Duration(milliseconds: 200), () => mounted ? _go(_Step.color) : null);
+  bool get _canGoBack => !_busy && (_vault == null ? _step != _Step.intro : _step == _Step.color);
+
+  // ---------- words ----------
+
+  bool _answerOk(int i) {
+    final want = _words![_ask[i]];
+    final typed = _answers[i].text.trim().toLowerCase();
+    return typed == want || (typed.length >= 4 && want.startsWith(typed));
   }
 
-  void _pickColor(int i) {
-    setState(() => _color = i);
-    Future.delayed(const Duration(milliseconds: 240), () => mounted ? _go(_Step.pin) : null);
+  bool get _checkOk => _words != null && [for (var i = 0; i < 4; i++) _answerOk(i)].every((x) => x);
+
+  Future<void> _copyWords() async {
+    final l = AppLocalizations.of(context);
+    final text = _words!.join(' ');
+    await Clipboard.setData(ClipboardData(text: text));
+    LockGuard.copied(text); // wiped from the clipboard after 60 s and on lock
+    if (mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
   }
+
+  Future<void> _saveWords(BuildContext button) async {
+    final l = AppLocalizations.of(context);
+    final box = button.findRenderObject() as RenderBox?;
+    final plain = [for (final (i, w) in _words!.indexed) '${i + 1}. $w'].join('\n');
+    await SharePlus.instance.share(ShareParams(
+      subject: l.kitTitle,
+      text: '${l.kitTitle}\n\n$plain\n\n${l.kitShareNote}',
+      sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+    ));
+  }
+
+  // ---------- password ----------
+
+  bool get _passwordOk =>
+      _pw.text.characters.length >= rust.minPasswordLength() && _pw.text == _pwAgain.text;
+
+  void _suggest() => setState(() {
+        _pw.text = rust.suggestPassphrase();
+        _pwAgain.clear();
+        _error = null;
+      });
+
+  // ---------- PIN ----------
 
   void _digit(String d) {
     if (_busy) return;
@@ -92,8 +212,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     if (_pin.isNotEmpty) setState(() => _pin = _pin.substring(0, _pin.length - 1));
   }
 
+  int get _minPin => rust.minPinLength();
+
   void _next() {
-    if (_pin.length < 4) return;
+    if (_pin.length < _minPin) return;
     setState(() {
       _first = _pin;
       _pin = '';
@@ -101,6 +223,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     });
   }
 
+  /// PIN typed twice: make the vault with it, then give it the password. A password
+  /// another vault already opens with sends back to the password step (the vault stays,
+  /// open, and gets the next one).
   Future<void> _confirm() async {
     final l = AppLocalizations.of(context);
     if (_pin != _first) {
@@ -116,13 +241,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     }
     setState(() => _busy = true);
     try {
-      // The first vault on a device makes the Secret Key; it lives in the keystore.
-      var key = await SecretKeyStore.read();
-      if (key == null) {
-        key = rust.newSecretKey();
-        await SecretKeyStore.write(key);
-      }
-      rust.setSecretKey(key: key);
       // "This PIN is taken" tells that some vault opens with it, so creating a vault
       // shares the wrong-PIN waits: from the lock screen it is no faster than
       // guessing on the PIN pad.
@@ -131,31 +249,15 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         throw _Wait(until.difference(DateTime.now()));
       }
       final device = await PinStore.deviceKeyOrCreate(rust.newSecretKey);
-      final vault = await rust.createVaultWithPin(
+      _vault = await rust.createVaultWithPin(
         dir: widget.libraryDir,
         icon: vaultIcons[_icon].id,
         color: vaultColors[_color].id,
         pin: _pin,
         deviceKey: device,
       );
-      if (!mounted) return;
-      if (widget.first && await BiometricUnlock.available() != null && mounted) {
-        final yes = await _askBiometric(l);
-        if (yes == true) await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
-      }
-      if (!mounted) return;
-      final nav = Navigator.of(context);
-      await playVaultSpin(
-        context,
-        opening: true,
-        onCovered: () => nav.pushAndRemoveUntil(
-          PageRouteBuilder<void>(
-            transitionDuration: Duration.zero,
-            pageBuilder: (_, _, _) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault),
-          ),
-          (_) => false,
-        ),
-      );
+      _pin = '';
+      await _givePassword(l);
     } on _Wait catch (w) {
       if (mounted) _retryPin(l.pinWait(_minutes(w.left)));
     } on rust.VaultError catch (e) {
@@ -176,6 +278,32 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     }
   }
 
+  /// The password onto the vault just made; then Face ID, then the look.
+  Future<void> _givePassword(AppLocalizations l) async {
+    setState(() => _busy = true);
+    try {
+      _vault = await rust.setPassword(dir: widget.libraryDir, password: _pw.text);
+    } on rust.VaultError catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _step = _Step.password;
+        _error = vaultErrorText(l, e);
+      });
+      return;
+    }
+    _pw.clear();
+    _pwAgain.clear();
+    if (!mounted) return;
+    if (widget.first && await BiometricUnlock.available() != null && mounted) {
+      final yes = await _askBiometric(l);
+      if (yes == true) await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    _go(_Step.icon);
+  }
+
   void _retryPin(String error) => setState(() {
         _busy = false;
         _step = _Step.pin;
@@ -186,6 +314,42 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       });
 
   static int _minutes(Duration d) => d.inSeconds <= 60 ? 1 : (d.inSeconds / 60).ceil();
+
+  // ---------- look, then in ----------
+
+  void _pickIcon(int i) {
+    setState(() => _icon = i);
+    Future.delayed(const Duration(milliseconds: 200), () => mounted ? _go(_Step.color) : null);
+  }
+
+  void _pickColor(int i) {
+    setState(() => _color = i);
+    Future.delayed(const Duration(milliseconds: 240), () => mounted ? _enter(save: true) : null);
+  }
+
+  Future<void> _enter({required bool save}) async {
+    var vault = _vault!;
+    if (_busy) return;
+    setState(() => _busy = true);
+    if (save) {
+      try {
+        vault = await rust.setIdentity(icon: vaultIcons[_icon].id, color: vaultColors[_color].id);
+      } catch (_) {} // the suggested look stays; it can be changed in Settings
+    }
+    if (!mounted) return;
+    final nav = Navigator.of(context);
+    await playVaultSpin(
+      context,
+      opening: true,
+      onCovered: () => nav.pushAndRemoveUntil(
+        PageRouteBuilder<void>(
+          transitionDuration: Duration.zero,
+          pageBuilder: (_, _, _) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault),
+        ),
+        (_) => false,
+      ),
+    );
+  }
 
   Future<bool?> _askBiometric(AppLocalizations l) => showModalBottomSheet<bool>(
         context: context,
@@ -221,21 +385,34 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final l = AppLocalizations.of(context);
     final page = Theme.of(context).scaffoldBackgroundColor;
     final ink = Theme.of(context).colorScheme.onSurface;
-    final progress = _step == _Step.confirm ? 2 : _step.index;
+    final steps = _steps;
+    final progress = steps.indexOf(switch (_step) { _Step.confirm => _Step.pin, _Step.color => _Step.icon, final s => s });
     final title = switch (_step) {
-      _Step.icon => widget.first ? l.firstVaultTitle : l.newVaultTitle,
-      _Step.color => l.pickColorTitle,
+      _Step.intro => widget.first ? l.firstVaultTitle : l.newVaultTitle,
+      _Step.words => l.wordsTitle,
+      _Step.check => l.wordsCheckTitle,
+      _Step.password => l.backupPasswordTitle,
       _Step.pin => l.pinSetTitle,
       _Step.confirm => l.pinConfirmTitle,
+      _Step.icon => l.pickIconHint,
+      _Step.color => l.pickColorTitle,
     };
     final hint = switch (_step) {
-      _Step.icon => l.pickIconHint,
-      _Step.color => l.pickColorHint,
-      _Step.pin => _error ?? l.pinSetLead,
+      _Step.intro => l.introLead,
+      _Step.words => l.wordsLead,
+      _Step.check => l.wordsCheckLead,
+      _Step.password => l.passwordLead,
+      _Step.pin => _error ?? l.pinSetLead(_minPin),
       _Step.confirm => _error ?? l.pinConfirmLead,
+      _Step.icon => l.lookLead,
+      _Step.color => l.lookLead,
     };
-
-    Widget body = switch (_step) {
+    final pinError = _error != null && (_step == _Step.pin || _step == _Step.confirm);
+    final body = switch (_step) {
+      _Step.intro => _intro(l),
+      _Step.words => _wordsBody(l),
+      _Step.check => _checkBody(l),
+      _Step.password => _passwordBody(l),
       _Step.icon => _choiceGrid(
           count: gridCount,
           selected: _icon < gridCount ? _icon : -1,
@@ -277,8 +454,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
               height: 46,
               child: _step == _Step.pin
                   ? FilledButton(
+                      key: const ValueKey('pin-next'),
                       style: FilledButton.styleFrom(minimumSize: const Size(180, 46)),
-                      onPressed: _pin.length >= 4 ? _next : null,
+                      onPressed: _pin.length >= _minPin ? _next : null,
                       child: Text(l.pinNext),
                     )
                   : _busy
@@ -288,16 +466,18 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           ],
         ),
     };
+    // The badge is the vault being made; forms (words, password) need the room.
+    final badge = switch (_step) { _Step.words || _Step.check || _Step.password => false, _ => true };
 
     return PopScope(
       // The system back gesture steps back too; on the first step it leaves.
-      canPop: _step.index == 0 && !widget.first,
+      canPop: _step == _Step.intro && !widget.first,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _step.index > 0 && !_busy) _back();
+        if (!didPop && _canGoBack) _back();
       },
       // Steps live in one page, so the system swipe has nothing to pop: swipe = Back.
       child: EdgeSwipeBack(
-      enabled: _step.index > 0 && !_busy,
+      enabled: _canGoBack,
       onBack: _back,
       child: Scaffold(
       backgroundColor: page,
@@ -311,7 +491,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
                   child: Row(
                     children: [
-                      for (var i = 0; i < 3; i++) ...[
+                      for (var i = 0; i < steps.length; i++) ...[
                         if (i > 0) const SizedBox(width: 6),
                         Expanded(
                           child: AnimatedContainer(
@@ -330,6 +510,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, box) => SingleChildScrollView(
+                      key: ValueKey(_step),
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(minHeight: box.maxHeight),
@@ -340,13 +521,15 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const SizedBox(height: 16),
-                                VaultBadge(
-                                  icon: vaultIcons[_icon].id,
-                                  color: vaultColors[_color].id,
-                                  size: 92,
-                                  ring: true,
-                                ),
-                                const SizedBox(height: 20),
+                                if (badge) ...[
+                                  VaultBadge(
+                                    icon: vaultIcons[_icon].id,
+                                    color: vaultColors[_color].id,
+                                    size: _step == _Step.intro ? 76 : 92,
+                                    ring: true,
+                                  ),
+                                  const SizedBox(height: 20),
+                                ],
                                 Text(
                                   title,
                                   textAlign: TextAlign.center,
@@ -357,27 +540,11 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                                   hint,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: _error != null && _step.index >= 2 ? ink : ink.withValues(alpha: .78),
-                                    fontWeight: _error != null ? FontWeight.w600 : FontWeight.w400,
+                                    color: pinError ? ink : ink.withValues(alpha: .78),
+                                    fontWeight: pinError ? FontWeight.w600 : FontWeight.w400,
+                                    height: 1.4,
                                   ),
                                 ),
-                                if (_step == _Step.pin && _error == null) ...[
-                                  const SizedBox(height: 12),
-                                  // A new vault has no backup password yet: say what a
-                                  // forgotten PIN means, while the PIN is being chosen.
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: ink.withValues(alpha: .08),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      l.pinNoRecovery,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: ink, fontSize: 13, height: 1.4),
-                                    ),
-                                  ),
-                                ],
                                 const SizedBox(height: 20),
                                 body,
                                 const SizedBox(height: 16),
@@ -389,7 +556,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                     ),
                   ),
                 ),
-                if (widget.first && _step == _Step.icon)
+                if (widget.first && _step == _Step.intro)
                   TextButton(
                     style: TextButton.styleFrom(foregroundColor: ink.withValues(alpha: .85)),
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
@@ -398,20 +565,27 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                     child: Text(l.restoreFromBackup),
                   ),
                 // Back and Cancel under the thumbs, large, instead of a small arrow in
-                // the top corner. The very first vault has nothing to cancel back to.
+                // the top corner. The very first vault has nothing to cancel back to;
+                // once the vault exists, the look can be skipped.
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
                   child: Row(
                     children: [
-                      if (_step.index > 0)
+                      if (_canGoBack)
                         _BottomButton(
                           key: const ValueKey('new-vault-back'),
                           icon: Icons.arrow_back,
                           label: l.back,
-                          onTap: _busy ? null : _back,
+                          onTap: _back,
                         ),
                       const Spacer(),
-                      if (!widget.first)
+                      if (_vault != null && (_step == _Step.icon || _step == _Step.color))
+                        _BottomButton(
+                          key: const ValueKey('new-vault-skip'),
+                          label: l.lookSkip,
+                          onTap: _busy ? null : () => _enter(save: _step == _Step.color),
+                        )
+                      else if (!widget.first)
                         _BottomButton(
                           key: const ValueKey('new-vault-cancel'),
                           label: l.cancel,
@@ -427,6 +601,184 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       ),
     ),
     ),
+    );
+  }
+
+  /// Wide main button at the end of a form step.
+  Widget _primary(Key key, String label, VoidCallback? onTap) => SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          key: key,
+          style: FilledButton.styleFrom(minimumSize: const Size(0, 50), shape: const StadiumBorder()),
+          onPressed: onTap,
+          child: Text(label),
+        ),
+      );
+
+  /// What each key is for, before any of them is made.
+  Widget _intro(AppLocalizations l) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    Widget row(IconData icon, String title, String body, Key key) => Container(
+          key: key,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(16)),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: ink.withValues(alpha: .1), shape: BoxShape.circle),
+                child: Icon(icon, color: ink, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: TextStyle(color: ink, fontSize: 16, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(body, style: TextStyle(color: ink.withValues(alpha: .78), fontSize: 14, height: 1.4)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+    return Column(
+      children: [
+        row(Icons.pin_outlined, l.introPinTitle, l.introPinBody, const ValueKey('intro-pin')),
+        const SizedBox(height: 10),
+        row(Icons.password_rounded, l.introPasswordTitle, l.introPasswordBody, const ValueKey('intro-password')),
+        const SizedBox(height: 10),
+        row(Icons.key_rounded, l.introWordsTitle, _newWords ? l.introWordsBody : l.introWordsShared,
+            const ValueKey('intro-words')),
+        const SizedBox(height: 12),
+        Text(l.introNoCopy,
+            textAlign: TextAlign.center, style: TextStyle(color: ink.withValues(alpha: .78), fontSize: 13, height: 1.4)),
+        const SizedBox(height: 18),
+        _primary(const ValueKey('intro-start'), l.introStart,
+            _words == null && NewVaultScreen.debugWords == null && widget.first ? null : () => _go(_steps[1])),
+      ],
+    );
+  }
+
+  Widget _wordsBody(AppLocalizations l) {
+    final c = CsColors.of(context);
+    final words = _words ?? const [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
+          child: SecretText(
+            text: words.join(' '),
+            builder: (context, shown) => WordGrid(words: words, shown: shown),
+            style: const TextStyle(fontSize: 15),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                  onPressed: _copyWords, icon: const Icon(Icons.copy_outlined, size: 18), label: Text(l.kitCopy)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Builder(
+                builder: (b) => OutlinedButton.icon(
+                  onPressed: () => _saveWords(b),
+                  icon: const Icon(Icons.ios_share, size: 18),
+                  label: Text(l.wordsSave),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Material(
+          color: c.warnBg,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: 14, height: 1.45)),
+          ),
+        ),
+        const SizedBox(height: 18),
+        _primary(const ValueKey('words-done'), l.wordsWritten, () => _go(_Step.check)),
+      ],
+    );
+  }
+
+  Widget _checkBody(AppLocalizations l) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < 4; i++) ...[
+            TextField(
+              key: ValueKey('check-word-$i'),
+              controller: _answers[i],
+              autocorrect: false,
+              enableSuggestions: false,
+              textInputAction: i < 3 ? TextInputAction.next : TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: l.wordNumber(_ask[i] + 1),
+                suffixIcon: _answers[i].text.isNotEmpty && _answerOk(i) ? const Icon(Icons.check_rounded) : null,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 10),
+          ],
+          const SizedBox(height: 8),
+          _primary(const ValueKey('check-done'), l.pinNext, _checkOk ? () => _go(_Step.password) : null),
+          const SizedBox(height: 4),
+          TextButton(onPressed: () => _go(_Step.words), child: Text(l.wordsShowAgain)),
+        ],
+      );
+
+  Widget _passwordBody(AppLocalizations l) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton.tonalIcon(
+            onPressed: _suggest,
+            icon: const Icon(Icons.auto_awesome, size: 18),
+            label: Text(l.suggestPassword),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SecretField(
+          key: const ValueKey('new-password'),
+          controller: _pw,
+          label: l.password,
+          onChanged: (_) => setState(() => _error = null),
+        ),
+        const SizedBox(height: 8),
+        PasswordStrength(password: _pw.text),
+        const SizedBox(height: 12),
+        SecretField(
+          key: const ValueKey('new-password-again'),
+          controller: _pwAgain,
+          label: l.typeAgain,
+          errorText: _pwAgain.text.isNotEmpty && _pwAgain.text != _pw.text ? l.passwordsDiffer : null,
+          onChanged: (_) => setState(() {}),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
+        ],
+        const SizedBox(height: 18),
+        // Back here after the vault was made (password taken): this sets it at once.
+        _primary(
+          const ValueKey('password-next'),
+          l.pinNext,
+          !_passwordOk || _busy ? null : () => _vault != null ? _givePassword(l) : _go(_Step.pin),
+        ),
+      ],
     );
   }
 

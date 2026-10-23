@@ -136,7 +136,9 @@ class _Fake implements RustLibApi {
   dynamic noSuchMethod(Invocation call) {
     final n = call.memberName.toString();
     if (n.contains('MinPasswordScore')) return 3;
-    if (n.contains('PasswordScore')) return 4;
+    if (n.contains('MinPasswordLength')) return 8;
+    if (n.contains('MinPinLength')) return 6;
+    if (n.contains('PasswordScore')) return (call.namedArguments[#password] as String).length < 12 ? 1 : 4;
     if (n.contains('HasVaults')) return true;
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_itemsNow ?? _items);
     if (n.contains('ListTrash')) {
@@ -266,6 +268,7 @@ void _screen(String name, String caption, Widget Function() home,
       CameraView.debugPreview = null;
       CameraView.debugLast = null;
       QuickLook.debugVideo = null;
+      NewVaultScreen.debugWords = null;
       DebugScreen.debugNetworkBlocked = null;
       _itemsNow = null;
       VaultHomeScreen.debugReveal = false;
@@ -428,9 +431,7 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
-  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home',
-      change: 'MỚI: mục Yêu thích trên trang chủ; mục yêu thích có ngôi sao vàng cạnh tên',
-      marks: [() => find.byKey(const ValueKey('home-favorites'))]);
+  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
   _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
@@ -468,15 +469,11 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('notes', 'Ghi chú', home, section: 'note',
-      change: 'Mục yêu thích nằm trên cùng, có sao. MỚI: nút ⇅ Sắp xếp trên đầu trang',
-      marks: [() => find.byKey(const ValueKey('sort-button'))]);
+  _screen('notes', 'Ghi chú', home, section: 'note');
   _screen('sort-menu', 'Ghi chú · bấm ⇅', home, section: 'note', act: (t) async {
     await t.tap(find.byKey(const ValueKey('sort-button')));
     await t.pumpAndSettle();
-  },
-      change: 'MỚI: Sắp xếp: mới nhất, cũ nhất, tên, lớn nhất, vừa sửa (ghi chú). Mỗi mục nhớ cách sắp riêng',
-      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+  });
   _screen('notes-select', 'Ghi chú · bấm giữ một dòng', home, section: 'note',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
@@ -494,9 +491,7 @@ void main() {
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
       act: (t) => tapThumb(t, 5));
-  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library',
-      change: 'MỚI: nút ⋯ ở màn xem toàn màn hình (cả video và tệp); lướt sang được cả video',
-      marks: [() => find.byKey(const ValueKey('photo-more'))], act: (t) async {
+  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
     for (var i = 0; i < 6; i++) {
@@ -518,9 +513,7 @@ void main() {
   _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
       act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
   _screen('files', 'Tệp', home, section: 'file');
-  _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'),
-      change: 'MỚI: Tệp xem dạng lưới (⇅ → Dạng lưới), nhớ lựa chọn',
-      marks: [() => find.byKey(const ValueKey('files-grid'))]);
+  _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'));
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
@@ -689,9 +682,7 @@ void main() {
         await t.pump();
         await t.tap(find.byType(Image).first);
         await t.pump();
-      },
-      change: 'Chọn nhiều qua nút Chọn (như mọi màn khác)',
-      marks: [() => find.byKey(const ValueKey('trash-done'))]);
+      });
   _screen('trash-preview', 'Đã xoá · chạm 1 ảnh', () => const TrashScreen(),
       act: (t) async {
         await t.tap(find.byType(Image).first);
@@ -699,9 +690,7 @@ void main() {
           await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
           await t.pump(const Duration(milliseconds: 100));
         }
-      },
-      change: 'MỚI: chạm = xem trước (ảnh, chữ ghi chú, tên tệp) với Khôi phục / Xoá hẳn',
-      marks: [() => find.byKey(const ValueKey('trash-preview'))]);
+      });
   _screen('trash-menu', 'Đã xoá · bấm giữ 1 ảnh', () => const TrashScreen(),
       act: (t) async {
         await t.longPress(find.byType(Image).first);
@@ -716,9 +705,71 @@ void main() {
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
-  _screen('new-vault', 'Tạo két · bước 1', () => const NewVaultScreen(libraryDir: '', first: false));
-  _screen('new-vault-2', 'Tạo két · bước 2', () => const NewVaultScreen(libraryDir: '', first: false), act: (t) async {
-    await t.tap(find.byType(GestureDetector).at(3));
-    await t.pump(const Duration(milliseconds: 400));
+  void useWords() => NewVaultScreen.debugWords = words;
+  Future<void> tapKey(WidgetTester t, String key) async {
+    await t.ensureVisible(find.byKey(ValueKey(key)));
+    await t.pump();
+    await t.tap(find.byKey(ValueKey(key)));
+    await t.pump(const Duration(milliseconds: 300));
+  }
+
+  Future<void> fillCheck(WidgetTester t) async {
+    final w = words.split(' ');
+    for (final (i, n) in [2, 8, 14, 21].indexed) {
+      await t.enterText(find.byKey(ValueKey('check-word-$i')), w[n]);
+    }
+    await t.pump();
+  }
+
+  _screen('new-vault', 'Tạo két đầu tiên · 1. Ba thứ giữ két', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords,
+      change: 'MỚI: trước khi tạo, giải thích vai trò của mã PIN, mật khẩu két và 24 từ',
+      marks: [() => find.byKey(const ValueKey('intro-words'))]);
+  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords,
+      change: 'MỚI: 24 từ hiện ngay khi tạo két đầu tiên (che sẵn, chạm để xem)',
+      marks: [() => find.byKey(const ValueKey('words-done'))], act: (t) async {
+    await tapKey(t, 'intro-start');
   });
+  _screen('new-vault-words-shown', 'Tạo két · 24 từ sau khi chạm Xem', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords, act: (t) async {
+    await tapKey(t, 'intro-start');
+    await tapKey(t, 'secret-show');
+  });
+  _screen('new-vault-check', 'Tạo két · 3. Gõ lại 4 từ', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords,
+      change: 'MỚI: hỏi lại 4 từ ngẫu nhiên (trước đây 1 từ)',
+      marks: [() => find.byKey(const ValueKey('check-done'))], act: (t) async {
+    await tapKey(t, 'intro-start');
+    await tapKey(t, 'words-done');
+    await fillCheck(t);
+  });
+  _screen('new-vault-password', 'Tạo két · 4. Mật khẩu két: yếu vẫn đi tiếp được', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords,
+      change: 'MỚI: tối thiểu 8 ký tự, thanh độ mạnh, không chặn mật khẩu yếu',
+      marks: [() => find.byKey(const ValueKey('password-strength'))], act: (t) async {
+    await tapKey(t, 'intro-start');
+    await tapKey(t, 'words-done');
+    await fillCheck(t);
+    await tapKey(t, 'check-done');
+    await t.enterText(find.byKey(const ValueKey('new-password')).first, 'sunflower');
+    await t.pump();
+  });
+  _screen('new-vault-pin', 'Tạo két · 5. Mã PIN ít nhất 6 số', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords,
+      change: 'PIN mới tối thiểu 6 số (két cũ giữ PIN cũ)',
+      marks: [() => find.byKey(const ValueKey('pin-next'))], act: (t) async {
+    await tapKey(t, 'intro-start');
+    await tapKey(t, 'words-done');
+    await fillCheck(t);
+    await tapKey(t, 'check-done');
+    await t.enterText(find.byKey(const ValueKey('new-password')).first, 'orange kettle whispers at dawn');
+    await t.enterText(find.byKey(const ValueKey('new-password-again')).first, 'orange kettle whispers at dawn');
+    await t.pump();
+    await tapKey(t, 'password-next');
+  });
+  _screen('new-vault-second', 'Két thứ hai: dùng chung 24 từ, bỏ qua bước ghi từ', () => const NewVaultScreen(libraryDir: '', first: false),
+      setup: () => NewVaultScreen.debugWords = words,
+      change: 'MỚI: két thứ hai trở đi không hỏi lại 24 từ',
+      marks: [() => find.byKey(const ValueKey('intro-words'))]);
 }

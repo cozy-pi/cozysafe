@@ -32,6 +32,8 @@ class _Fake implements RustLibApi {
   @override
   dynamic noSuchMethod(Invocation call) {
     final name = call.memberName.toString();
+    if (name.contains('MinPasswordLength')) return 8;
+    if (name.contains('MinPinLength')) return 6;
     final vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: anyPassword);
     if (name.contains('MinPasswordScore')) return 3;
     if (name.contains('PasswordScore')) return 4;
@@ -190,25 +192,25 @@ void main() {
   testWidgets('setting a PIN needs the same digits twice', (t) async {
     await _pump(t, _app(const SetPinScreen()));
     await t.pump();
-    await _tapDigits(t, '1234');
+    await _tapDigits(t, '123456');
     await t.tap(find.text('Next'));
     await t.pump();
-    await _tapDigits(t, '1235');
+    await _tapDigits(t, '123457');
     await t.pump();
     expect(find.text("The PINs didn't match. Start again."), findsOneWidget);
     expect(_fake.enabledPin, isNull);
-    await _tapDigits(t, '1234');
+    await _tapDigits(t, '123456');
     await t.tap(find.text('Next'));
     await t.pump();
-    await _tapDigits(t, '1234');
+    await _tapDigits(t, '123456');
     await _settle(t);
-    expect(_fake.enabledPin, '1234');
+    expect(_fake.enabledPin, '123456');
   });
 
-  testWidgets('a PIN shorter than 4 digits cannot go on', (t) async {
+  testWidgets('a PIN shorter than 6 digits cannot go on', (t) async {
     await _pump(t, _app(const SetPinScreen()));
     await t.pump();
-    await _tapDigits(t, '123');
+    await _tapDigits(t, '12345');
     final next = t.widget<FilledButton>(find.widgetWithText(FilledButton, 'Next'));
     expect(next.onPressed, isNull);
   });
