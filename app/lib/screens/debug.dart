@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../biometric.dart';
 import '../build_info.dart';
+import '../debug_log.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
@@ -167,6 +169,52 @@ class _DebugScreenState extends State<DebugScreen> {
               row(l.debugImportTotal, _seconds(ImportStats.totalMs)),
             ],
           ]),
+          group(l.debugLog, [
+            Builder(builder: (context) {
+              final lines = DebugLog.lines();
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (lines.isEmpty)
+                      Text(l.debugLogEmpty, style: TextStyle(color: c.muted, fontSize: 14))
+                    else
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 260),
+                        child: SingleChildScrollView(
+                          reverse: true,
+                          child: SelectableText(
+                            lines.join('\n'),
+                            key: const ValueKey('debug-log'),
+                            style: const TextStyle(fontFamily: 'monospace', fontSize: 11.5, height: 1.35),
+                          ),
+                        ),
+                      ),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          key: const ValueKey('debug-log-copy'),
+                          onPressed: lines.isEmpty
+                              ? null
+                              : () async {
+                                  await Clipboard.setData(ClipboardData(text: lines.join('\n')));
+                                  if (context.mounted) showToast(context, l.debugLogCopied, icon: Icons.check_rounded);
+                                },
+                          icon: const Icon(Icons.copy_rounded, size: 18),
+                          label: Text(l.debugLogCopy),
+                        ),
+                        TextButton(
+                          onPressed: lines.isEmpty ? null : () => setState(DebugLog.clear),
+                          child: Text(l.debugLogClear),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ]),
           group(l.debugChecks, [
             row(l.debugNetwork, blocked ? l.debugNetworkOn : l.debugNetworkOff,
                 color: blocked ? const Color(0xFF30D158) : recordRed(context), key: const ValueKey('debug-network')),
@@ -212,6 +260,7 @@ class _DebugScreenState extends State<DebugScreen> {
               key: const ValueKey('debug-off'),
               onTap: () {
                 Prefs.write(debugPref, '0');
+                DebugLog.sync();
                 Navigator.of(context).pop(true);
               },
               child: Padding(

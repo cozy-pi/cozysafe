@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../debug_log.dart';
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../appearance.dart';
@@ -161,6 +162,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _taps = 0;
     await _guarded(() async {
       Prefs.write(debugPref, '1');
+      DebugLog.sync();
       if (!mounted) return;
       setState(() {});
       showToast(context, l.debugOn, icon: Icons.bug_report_outlined);

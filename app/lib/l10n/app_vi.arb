@@ -432,5 +432,10 @@
   "debugImportPick": "Chép từ thư viện Ảnh",
   "debugImportThumbnails": "Tạo ảnh nhỏ (cộng dồn)",
   "debugImportVault": "Mã hoá và ghi (cộng dồn)",
-  "debugImportTotal": "Tổng"
+  "debugImportTotal": "Tổng",
+  "debugLog": "Nhật ký",
+  "debugLogCopy": "Sao chép nhật ký",
+  "debugLogClear": "Xoá nhật ký",
+  "debugLogCopied": "Đã sao chép nhật ký",
+  "debugLogEmpty": "Chưa có gì. Thêm vài ảnh rồi quay lại đây."
 }

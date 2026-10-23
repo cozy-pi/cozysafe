@@ -418,5 +418,10 @@
   "debugImportPick": "从照片复制",
   "debugImportThumbnails": "缩略图（合计）",
   "debugImportVault": "加密并保存（合计）",
-  "debugImportTotal": "总计"
+  "debugImportTotal": "总计",
+  "debugLog": "日志",
+  "debugLogCopy": "复制日志",
+  "debugLogClear": "清除日志",
+  "debugLogCopied": "已复制日志",
+  "debugLogEmpty": "暂无内容。添加几张照片后再回来。"
 }

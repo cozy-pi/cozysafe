@@ -418,5 +418,10 @@
   "debugImportPick": "写真からコピー",
   "debugImportThumbnails": "サムネイル（合計）",
   "debugImportVault": "暗号化と保存（合計）",
-  "debugImportTotal": "合計"
+  "debugImportTotal": "合計",
+  "debugLog": "ログ",
+  "debugLogCopy": "ログをコピー",
+  "debugLogClear": "ログを消去",
+  "debugLogCopied": "ログをコピーしました",
+  "debugLogEmpty": "まだありません。写真を追加してから戻ってください。"
 }

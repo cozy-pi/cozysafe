@@ -596,5 +596,10 @@
   "debugImportPick": "Copy from Photos",
   "debugImportThumbnails": "Thumbnails (sum)",
   "debugImportVault": "Encrypt and save (sum)",
-  "debugImportTotal": "Total"
+  "debugImportTotal": "Total",
+  "debugLog": "Log",
+  "debugLogCopy": "Copy Log",
+  "debugLogClear": "Clear Log",
+  "debugLogCopied": "Log copied",
+  "debugLogEmpty": "Nothing yet. Add some photos, then come back."
 }

@@ -418,5 +418,10 @@
   "debugImportPick": "Fotoğraflar'dan kopyalama",
   "debugImportThumbnails": "Küçük resimler (toplam)",
   "debugImportVault": "Şifreleme ve kaydetme (toplam)",
-  "debugImportTotal": "Toplam"
+  "debugImportTotal": "Toplam",
+  "debugLog": "Günlük",
+  "debugLogCopy": "Günlüğü kopyala",
+  "debugLogClear": "Günlüğü temizle",
+  "debugLogCopied": "Günlük kopyalandı",
+  "debugLogEmpty": "Henüz boş. Birkaç fotoğraf ekleyip geri gelin."
 }

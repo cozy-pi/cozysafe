@@ -418,5 +418,10 @@
   "debugImportPick": "Copiar de Fotos",
   "debugImportThumbnails": "Miniaturas (soma)",
   "debugImportVault": "Criptografar e salvar (soma)",
-  "debugImportTotal": "Total"
+  "debugImportTotal": "Total",
+  "debugLog": "Registro",
+  "debugLogCopy": "Copiar registro",
+  "debugLogClear": "Limpar registro",
+  "debugLogCopied": "Registro copiado",
+  "debugLogEmpty": "Nada ainda. Adicione algumas fotos e volte."
 }

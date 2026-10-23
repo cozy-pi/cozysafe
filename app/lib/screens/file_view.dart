@@ -14,6 +14,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import '../l10n/app_localizations.dart';
+import '../debug_log.dart';
 import '../lock_guard.dart';
 import '../widgets/vault_bar.dart';
 import 'quick_look.dart';
@@ -203,6 +204,7 @@ Future<List<rust.ItemInfo>> importFiles(
   final added = <rust.ItemInfo>[];
   final total = Stopwatch()..start();
   ImportStats.items = files.length;
+  DebugLog.add('import ${files.length} files: copied from the picker in ${ImportStats.pickMs} ms');
   ImportStats.thumbnailMs = 0;
   ImportStats.vaultMs = 0;
   // Three at a time: while one is being encrypted (the vault takes one at a time) the
@@ -218,6 +220,8 @@ Future<List<rust.ItemInfo>> importFiles(
 
   await Future.wait([for (var i = 0; i < 3; i++) worker()]);
   ImportStats.totalMs = total.elapsedMilliseconds;
+  DebugLog.add('import done: ${added.length}/${files.length} in ${ImportStats.totalMs} ms · '
+      'thumbnails ${ImportStats.thumbnailMs} ms (sum) · vault ${ImportStats.vaultMs} ms (sum, waits included)');
   return added;
 }
 
@@ -248,7 +252,8 @@ Future<void> importOne(
       : f.name;
   final watch = Stopwatch()..start();
   final thumbnail = isImage ? await imageThumbnail(f.path) : (isVideo ? await videoThumbnail(f.path) : null);
-  ImportStats.thumbnailMs += watch.elapsedMilliseconds;
+  final thumbMs = watch.elapsedMilliseconds;
+  ImportStats.thumbnailMs += thumbMs;
   watch.reset();
   final item = await rust.addFile(
     path: f.path,
@@ -259,6 +264,8 @@ Future<void> importOne(
     thumbnail: thumbnail,
   );
   ImportStats.vaultMs += watch.elapsedMilliseconds;
+  DebugLog.add('import ${isVideo ? 'video' : isImage ? 'image' : 'file'} ${(item.sizeBytes ~/ BigInt.from(1024))} KB: '
+      'thumbnail $thumbMs ms (${thumbnail == null ? 'none' : '${thumbnail.length ~/ 1024} KB'}) · vault ${watch.elapsedMilliseconds} ms');
   if (isVideo) {
     final ms = await videoLength(f.path);
     if (ms != null) await rust.setItemDuration(id: item.id, durationMs: i64(ms));
