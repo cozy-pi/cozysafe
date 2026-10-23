@@ -244,10 +244,26 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       }
     });
     try {
+      final until = await PinStore.passwordWaitUntil();
+      if (until != null) {
+        final m = (until.difference(DateTime.now()).inSeconds / 60).ceil();
+        if (mounted && _busy) setState(() => _error = l.pinWait(m < 1 ? 1 : m));
+        return;
+      }
       final vault = await rust.unlock(dir: widget.libraryDir, password: text);
       _tried = text;
       if (!mounted) return;
+      final possible = text.characters.length >= rust.minPasswordLength();
+      if (vault == null && possible) {
+        final wait = await PinStore.addPasswordFail();
+        if (wait > Duration.zero && mounted) {
+          final m = (wait.inSeconds / 60).ceil();
+          setState(() => _error = l.pinWait(m < 1 ? 1 : m));
+          return;
+        }
+      }
       if (vault != null) {
+        await PinStore.resetPasswordFails();
         Prefs.write(_passwordSeenKey, '${DateTime.now().millisecondsSinceEpoch}');
         return await _open(vault, offerBiometric: true);
       }

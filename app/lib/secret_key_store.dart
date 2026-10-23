@@ -130,6 +130,47 @@ class PinStore {
     return wait;
   }
 
+  // Wrong vault passwords (owner 2026-10-23: weak passwords are allowed, so guessing on
+  // this phone must be slow). Only tries of a possible password (8 characters or more)
+  // count; tries happen while typing, so the first 10 are free.
+  static const _pwFails = 'password-fails';
+  static const _pwUntil = 'password-wait-until';
+
+  static Duration passwordWaitFor(int fails) => fails < 10 ? Duration.zero : waitFor(fails - 5);
+
+  static Future<DateTime?> passwordWaitUntil() async {
+    try {
+      final ms = int.tryParse(await _storage.read(key: _pwUntil) ?? '');
+      if (ms == null) return null;
+      final t = DateTime.fromMillisecondsSinceEpoch(ms);
+      return t.isAfter(DateTime.now()) ? t : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<Duration> addPasswordFail() async {
+    var n = 0;
+    try {
+      n = (int.tryParse(await _storage.read(key: _pwFails) ?? '') ?? 0) + 1;
+    } catch (_) {}
+    final wait = passwordWaitFor(n);
+    try {
+      await _storage.write(key: _pwFails, value: '$n');
+      if (wait > Duration.zero) {
+        await _storage.write(key: _pwUntil, value: '${DateTime.now().add(wait).millisecondsSinceEpoch}');
+      }
+    } catch (_) {}
+    return wait;
+  }
+
+  static Future<void> resetPasswordFails() async {
+    try {
+      await _storage.write(key: _pwFails, value: '0');
+      await _storage.delete(key: _pwUntil);
+    } catch (_) {}
+  }
+
   static Future<void> resetFails() async {
     try {
       await _storage.write(key: _fails, value: '0');

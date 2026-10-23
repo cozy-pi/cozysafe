@@ -46,12 +46,19 @@ pub(crate) const HEADER_FILE: &str = "header.json";
 /// Master Key wrapped by a key that lives in the platform keystore behind biometrics.
 const BIOMETRIC_FILE: &str = "biometric";
 
-/// Minimum zxcvbn score (0–4) for a vault password.
+/// zxcvbn score (0–4) from which the app calls a password strong. Shown, never enforced
+/// (owner 2026-10-23): a backup also needs the 24 words.
 pub const MIN_PASSWORD_SCORE: u8 = 3;
+/// The only rule a vault password has: at least this many characters.
+pub const MIN_PASSWORD_LEN: usize = 8;
+
+fn long_enough(password: &str) -> bool {
+    password.chars().count() >= MIN_PASSWORD_LEN
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("password too weak")]
+    #[error("password too short")]
     WeakPassword,
     #[error("another vault already uses this password")]
     PasswordInUse,
@@ -272,13 +279,13 @@ impl Library {
         Ok(())
     }
 
-    /// Create a vault. Refuses weak passwords and passwords another vault already opens with.
+    /// Create a vault. Refuses passwords under 8 characters and passwords another vault already opens with.
     pub fn create_vault(&self, name: &str, password: &str) -> Result<OpenVault> {
         let name = name.trim();
         if name.is_empty() {
             return Err(Error::EmptyName);
         }
-        if password_score(password) < MIN_PASSWORD_SCORE {
+        if !long_enough(password) {
             return Err(Error::WeakPassword);
         }
         let root = kdf::derive_root(
@@ -490,7 +497,7 @@ impl Library {
     /// re-encrypted, so it is instant whatever the vault's size. A password that already
     /// opens another vault is refused (the password picks the vault).
     pub fn set_password(&self, vault: &OpenVault, password: &str) -> Result<()> {
-        if password_score(password) < MIN_PASSWORD_SCORE {
+        if !long_enough(password) {
             return Err(Error::WeakPassword);
         }
         let root = kdf::derive_root(
@@ -772,11 +779,11 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn weak_password_and_empty_name_are_refused() {
+    fn short_password_and_empty_name_are_refused() {
         let tmp = tempfile::tempdir().unwrap();
         let l = lib(tmp.path());
         assert!(matches!(
-            l.create_vault("A", "password1"),
+            l.create_vault("A", "short12"),
             Err(Error::WeakPassword)
         ));
         assert!(matches!(l.create_vault("  ", PW_A), Err(Error::EmptyName)));

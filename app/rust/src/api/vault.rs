@@ -63,7 +63,7 @@ pub enum VaultError {
     WeakPassword,
     PasswordInUse,
     EmptyName,
-    /// A PIN has at least 4 digits.
+    /// A new PIN has at least 6 digits.
     BadPin,
     /// Another vault on this device already opens with this PIN.
     PinInUse,
@@ -118,6 +118,18 @@ pub fn password_score(password: String) -> u8 {
 #[flutter_rust_bridge::frb(sync)]
 pub fn min_password_score() -> u8 {
     cs_vault::MIN_PASSWORD_SCORE
+}
+
+/// A vault password needs at least this many characters; nothing else is enforced.
+#[flutter_rust_bridge::frb(sync)]
+pub fn min_password_length() -> u32 {
+    cs_vault::MIN_PASSWORD_LEN as u32
+}
+
+/// A new or changed PIN needs at least this many digits.
+#[flutter_rust_bridge::frb(sync)]
+pub fn min_pin_length() -> u32 {
+    cs_vault::pin::MIN_PIN_LEN as u32
 }
 
 /// Create a vault and leave it open. Runs Argon2id: call it off the UI thread (async).

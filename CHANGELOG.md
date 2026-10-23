@@ -4,6 +4,21 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.36 (2026-10-23)
+
+### Changed
+- Creating a vault: first a page on what the PIN, the vault password and the 24-word
+  Recovery Key are each for; then (first vault on this phone) the 24 words, with four of
+  them typed back; then the vault password; then the PIN; icon and colour come last and
+  can be skipped. Later vaults use the same 24 words and skip those steps.
+- Vault password: at least 8 characters. Its strength is shown but a weak one is
+  allowed.
+- New PINs have at least 6 digits. Vaults with a 4- or 5-digit PIN keep it.
+
+### Security
+- Many wrong vault passwords in a row on this phone make you wait before trying again,
+  as wrong PINs already did.
+
 ## 0.1.35 (2026-10-23)
 
 ### Changed

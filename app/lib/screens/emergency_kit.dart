@@ -91,7 +91,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
             ),
             child: SecretText(
               text: widget.keyText,
-              builder: _isWords ? (context, shown) => _WordGrid(words: _words, shown: shown) : null,
+              builder: _isWords ? (context, shown) => WordGrid(words: _words, shown: shown) : null,
               style: const TextStyle(
                 fontFamily: 'monospace',
                 fontFamilyFallback: ['Menlo', 'Consolas', 'Roboto Mono'],
@@ -157,8 +157,8 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
 
 /// The 24 words, numbered, three to a row like a hardware wallet's card; dots while
 /// hidden (always the same, so the mask tells nothing).
-class _WordGrid extends StatelessWidget {
-  const _WordGrid({required this.words, required this.shown});
+class WordGrid extends StatelessWidget {
+  const WordGrid({super.key, required this.words, required this.shown});
   final List<String> words;
   final bool shown;
 

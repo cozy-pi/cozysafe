@@ -22,7 +22,8 @@ class SetPinScreen extends StatefulWidget {
 }
 
 class _SetPinScreenState extends State<SetPinScreen> {
-  static const _max = 256, _min = 4;
+  static const _max = 256;
+  static int get _min => rust.minPinLength();
   String _pin = '';
   String? _first;
   String? _error;
@@ -141,7 +142,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      confirming ? l.pinConfirmLead : (widget.forThisPhone ? l.pinThisPhoneLead : l.pinSetLead),
+                      confirming ? l.pinConfirmLead : (widget.forThisPhone ? l.pinThisPhoneLead : l.pinSetLead(_min)),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: ink.withValues(alpha: .8), height: 1.45),
                     ),
@@ -156,7 +157,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
                       height: 44,
                       child: Center(
                         child: Text(
-                          _error ?? (!confirming && _pin.length < 6 && _pin.length >= _min ? l.pinShortNote : ''),
+                          _error ?? '',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: _error != null ? ink : ink.withValues(alpha: .7),

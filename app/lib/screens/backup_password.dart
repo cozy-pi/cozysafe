@@ -5,6 +5,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/secret.dart';
+import '../widgets/password_strength.dart';
 import 'common.dart';
 import 'emergency_kit.dart';
 
@@ -26,7 +27,6 @@ class BackupPasswordScreen extends StatefulWidget {
 class _BackupPasswordScreenState extends State<BackupPasswordScreen> {
   final _pw = TextEditingController();
   final _again = TextEditingController();
-  int _score = 0;
   bool _busy = false;
   String? _error;
 
@@ -37,10 +37,7 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> {
     super.dispose();
   }
 
-  void _changed() => setState(() {
-        _score = _pw.text.isEmpty ? 0 : rust.passwordScore(password: _pw.text);
-        _error = null;
-      });
+  void _changed() => setState(() => _error = null);
 
   void _suggest() {
     _pw.text = rust.suggestPassphrase();
@@ -48,7 +45,8 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> {
     _changed();
   }
 
-  bool get _ready => !_busy && _score >= rust.minPasswordScore() && _pw.text == _again.text;
+  /// 8 characters is the only rule; the strength is shown, not enforced (owner 2026-10-23).
+  bool get _ready => !_busy && _pw.text.characters.length >= rust.minPasswordLength() && _pw.text == _again.text;
 
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
@@ -83,7 +81,6 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final theme = Theme.of(context);
-    final strong = _score >= rust.minPasswordScore();
     return Scaffold(
       appBar: AppBar(),
       body: FormColumn(
@@ -108,12 +105,8 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> {
             label: l.password,
             onChanged: (_) => _changed(),
           ),
-          const SizedBox(height: 6),
-          if (_pw.text.isNotEmpty)
-            Text(
-              strong ? l.passwordStrongEnough : l.strengthTooWeak,
-              style: TextStyle(color: strong ? theme.colorScheme.primary : c.warnInk, fontSize: 13, fontWeight: FontWeight.w600),
-            ),
+          const SizedBox(height: 8),
+          PasswordStrength(password: _pw.text),
           const SizedBox(height: 12),
           SecretField(
             controller: _again,
