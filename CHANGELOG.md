@@ -4,6 +4,16 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.37 (2026-10-24)
+
+### Changed
+- The + button sits in the middle, just above the bottom bar (it was on the left or right
+  edge, in the way of a thumb swiping the library). The setting for its side is gone.
+- The bottom bar is only as wide as its tabs and centred: with one kind of item it no
+  longer stretches across the screen.
+- Creating a vault and setting a PIN fade in over the page instead of sliding, so the
+  two backgrounds never show side by side.
+
 ## 0.1.36 (2026-10-23)
 
 ### Changed

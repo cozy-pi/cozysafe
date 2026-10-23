@@ -11,6 +11,7 @@ import '../links.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import 'common.dart' show fadeRoute;
 import 'debug.dart';
 import 'security_info.dart';
 import '../widgets/toast.dart';
@@ -266,7 +267,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // The PIN confirms it; a vault opened with its password on this phone gets one first.
     if (!rust.pinEnabled()) {
       final set = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => const SetPinScreen(skippable: true, forThisPhone: true)),
+        fadeRoute((_) => const SetPinScreen(skippable: true, forThisPhone: true)),
       );
       if (set != true || !mounted) return;
     }
@@ -344,7 +345,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: _Mau.cham,
               title: l.pinTitle,
               value: l.change,
-              onTap: () => _guarded(() => Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const SetPinScreen()))),
+              onTap: () => _guarded(() => Navigator.of(context).push<bool>(fadeRoute((_) => const SetPinScreen()))),
             ),
             _Row(
               key: _autoLockKey,
@@ -419,19 +420,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ? l.languageSystem
                   : languages.firstWhere((x) => x.code == AppLanguage.chosen).name,
               onTap: _pickLanguage,
-            ),
-            // Left or right right on the row: no sheet to open (owner 2026-10-21).
-            _Row(
-              key: const ValueKey('side-row'),
-              icon: Icons.back_hand_outlined,
-              color: _Mau.cam,
-              title: l.actionSide,
-              trailing: _SideSwitch(
-                right: actionOnRight(),
-                left: l.sideLeftShort,
-                rightLabel: l.sideRightShort,
-                onChanged: (r) => setState(() => Prefs.write(actionSidePref, r ? 'right' : 'left')),
-              ),
             ),
             _Row(
               key: const ValueKey('hold-home-row'),
@@ -813,40 +801,6 @@ class _Switch extends StatelessWidget {
         activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : _Mau.xanhLa,
         activeThumbColor: Colors.white,
       );
-}
-
-/// Two choices side by side in a soft capsule (Trái | Phải); the chosen one is filled.
-class _SideSwitch extends StatelessWidget {
-  const _SideSwitch({required this.right, required this.left, required this.rightLabel, required this.onChanged});
-  final bool right;
-  final String left;
-  final String rightLabel;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = Theme.of(context).colorScheme.onSurface;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    Widget part(String text, bool on, bool value) => GestureDetector(
-          key: ValueKey('side-${value ? 'right' : 'left'}'),
-          onTap: () => onChanged(value),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              color: on ? (dark ? ink.withValues(alpha: .28) : Colors.white) : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: on && !dark ? const [BoxShadow(color: Color(0x22000000), blurRadius: 4, offset: Offset(0, 1))] : null,
-            ),
-            child: Text(text, style: TextStyle(fontSize: 14, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
-          ),
-        );
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(19)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [part(left, !right, false), part(rightLabel, right, true)]),
-    );
-  }
 }
 
 /// "Same as device", then every language in its own name; a tick on the current one.

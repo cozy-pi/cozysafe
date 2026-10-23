@@ -598,9 +598,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   Future<void> _newVault() async {
     final l = AppLocalizations.of(context);
     if (!await confirmOwner(l.ownerCheckReason) || !mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false),
-    ));
+    await Navigator.of(context).push(fadeRoute<void>((_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false)));
   }
 
   Widget _passwordField(AppLocalizations l, Color ink) {

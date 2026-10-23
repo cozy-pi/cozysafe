@@ -25,13 +25,11 @@ void showToast(
     backgroundColor: Colors.transparent,
     elevation: 0,
     padding: EdgeInsets.zero,
-    // Beside the action button (Ui.primary wide, actionSide from the edge it is on, its bottom
-    // Ui.actionLift above the safe area): on the other side of it, on its row.
+    // Over the vault's bottom row: above the centred action button (its bottom
+    // Ui.actionLift above the safe area, Ui.primary tall).
     margin: !besideAction
         ? const EdgeInsets.fromLTRB(12, 0, 12, 10)
-        : actionOnRight()
-            ? EdgeInsets.fromLTRB(10, 0, actionSide + Ui.primary + 10, Ui.actionLift + 6)
-            : EdgeInsets.fromLTRB(actionSide + Ui.primary + 10, 0, 10, Ui.actionLift + 6),
+        : const EdgeInsets.fromLTRB(12, 0, 12, Ui.actionLift + Ui.primary + 10),
     duration: Duration(seconds: actionLabel == null ? 3 : 5),
     content: _Toast(
       text: text,
