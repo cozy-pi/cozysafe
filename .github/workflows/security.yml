@@ -59,7 +59,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: pipx run semgrep==1.180.0 scan --error --metrics=off --config p/rust --config p/kotlin --config p/swift --config p/secrets --config p/github-actions --exclude target --exclude app/build .
+      # Installed only as pinned: every package and its hash (tools/semgrep-requirements.txt).
+      - run: |
+          python3 -m venv "$RUNNER_TEMP/sg"
+          "$RUNNER_TEMP/sg/bin/pip" install --quiet --require-hashes --no-deps -r tools/semgrep-requirements.txt
+      - run: '"$RUNNER_TEMP/sg/bin/semgrep"' scan --error --metrics=off --config p/rust --config p/kotlin --config p/swift --config p/secrets --config p/github-actions --exclude target --exclude app/build .
 
   # Secrets ever committed, in the whole history (keys, tokens, private keys).
   gitleaks:
