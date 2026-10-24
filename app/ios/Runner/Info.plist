@@ -30,6 +30,20 @@
 	<string>Move photos and videos into your encrypted vault, and remove the originals from Photos when you ask.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Voice memos you record go straight into your encrypted vault.</string>
+	<!-- Google sign-in, only for syncing with Google Drive (scope drive.file). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.521746667657-0g4kjgq4aqt2oknha1crhsb5djpvpqv7</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>521746667657-0g4kjgq4aqt2oknha1crhsb5djpvpqv7.apps.googleusercontent.com</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Sync your vault with your other device on the same Wi-Fi, only when you start it. The other device can join only if it holds this vault and has the one-time code you show it. Everything sent is encrypted.</string>
 	<key>NSCameraUsageDescription</key>

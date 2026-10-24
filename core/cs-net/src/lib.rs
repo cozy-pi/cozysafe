@@ -12,6 +12,8 @@
 
 use std::net::{Ipv4Addr, SocketAddrV4};
 
+pub mod drive;
+mod https;
 pub mod p2p;
 
 /// The person's yes to one connection. Not `Clone`: each one opens one thing.
@@ -26,6 +28,8 @@ enum Kind {
     Listen(Ipv4Addr),
     /// Connect to exactly this address.
     Connect(SocketAddrV4),
+    /// Talk to Google Drive's API ([`https::HOST`]) and nothing else, for one session.
+    Drive,
 }
 
 impl Permit {
@@ -54,17 +58,26 @@ impl Permit {
         Permit::connect(code.addr)
     }
 
+    /// Granted after the person allowed syncing with their Google Drive.
+    pub fn google_drive() -> Permit {
+        Permit { kind: Kind::Drive }
+    }
+
+    pub(crate) fn is_drive(&self) -> bool {
+        matches!(self.kind, Kind::Drive)
+    }
+
     pub(crate) fn listen_ip(&self) -> Option<Ipv4Addr> {
         match self.kind {
             Kind::Listen(ip) => Some(ip),
-            Kind::Connect(_) => None,
+            Kind::Connect(_) | Kind::Drive => None,
         }
     }
 
     pub(crate) fn connect_to(&self) -> Option<SocketAddrV4> {
         match self.kind {
             Kind::Connect(a) => Some(a),
-            Kind::Listen(_) => None,
+            Kind::Listen(_) | Kind::Drive => None,
         }
     }
 }
