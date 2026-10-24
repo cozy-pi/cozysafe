@@ -500,5 +500,8 @@
   "syncLogOtherVault": "Altra cassaforte",
   "syncLogUnreachable": "Non raggiungibile",
   "syncKnock": "Un dispositivo si sta collegando…",
-  "syncConnectingTo": "Connessione a {address}…"
+  "syncConnectingTo": "Connessione a {address}…",
+  "kitPasswordTitle": "Password della cassaforte",
+  "kitPasswordLead": "Per vedere la chiave di recupero, inserisci anche la password di questa cassaforte.",
+  "kitPasswordGo": "Mostra la chiave di recupero"
 }

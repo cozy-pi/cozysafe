@@ -500,5 +500,8 @@
   "syncLogOtherVault": "다른 금고",
   "syncLogUnreachable": "연결 불가",
   "syncKnock": "기기가 연결하는 중…",
-  "syncConnectingTo": "{address}에 연결하는 중…"
+  "syncConnectingTo": "{address}에 연결하는 중…",
+  "kitPasswordTitle": "금고 비밀번호",
+  "kitPasswordLead": "복구 키를 보려면 이 금고의 비밀번호도 입력하세요.",
+  "kitPasswordGo": "복구 키 보기"
 }

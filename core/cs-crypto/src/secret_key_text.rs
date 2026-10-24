@@ -216,6 +216,53 @@ mod tests {
             k.to_text().as_str(),
             "legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth title"
         );
+        // More reference vectors (256-bit entropy), including an irregular one.
+        let k = SecretKey::from_bytes([0x80; SECRET_KEY_LEN]);
+        assert_eq!(
+            k.to_text().as_str(),
+            "letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic bless"
+        );
+        let k = SecretKey::from_bytes([0xff; SECRET_KEY_LEN]);
+        assert_eq!(k.to_text().as_str(), "zoo ".repeat(23) + "vote");
+        let hex = "68a79eaca2324873eacc50cb9c6eca8cc68ea5d936f98787c60c7ebc74e6ce7c";
+        let mut e = [0u8; SECRET_KEY_LEN];
+        for (i, b) in e.iter_mut().enumerate() {
+            *b = u8::from_str_radix(&hex[i * 2..i * 2 + 2], 16).unwrap();
+        }
+        let k = SecretKey::from_bytes(e);
+        assert_eq!(
+            k.to_text().as_str(),
+            "hamster diagram private dutch cause delay private meat slide toddler razor book happy fancy gospel tennis maple dilemma loan word shrug inflict delay length"
+        );
+        assert_eq!(SecretKey::from_text(&k.to_text()), Some(k));
+    }
+
+    /// The Secret Key comes from the OS generator, never from anything the app seeds
+    /// (wallets were emptied when theirs came from a 32-bit seed: "Milk Sad", 2023). A
+    /// sanity check only: no repeats, and about half the bits set.
+    #[test]
+    fn secret_keys_are_random() {
+        let n = 2000;
+        let keys: std::collections::HashSet<Vec<u8>> = (0..n)
+            .map(|_| SecretKey::generate().as_bytes().to_vec())
+            .collect();
+        assert_eq!(keys.len(), n);
+        let ones: u32 = keys.iter().flatten().map(|b| b.count_ones()).sum();
+        let share = ones as f64 / (n * SECRET_KEY_LEN * 8) as f64;
+        assert!((0.49..0.51).contains(&share), "{share}");
+    }
+
+    #[test]
+    fn the_word_list_is_the_official_one() {
+        use sha2::Digest;
+        // SHA-256 of bitcoin/bips bip-0039/english.txt.
+        let sum = sha2::Sha256::digest(WORDS.as_bytes());
+        let sum: String = sum.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(
+            sum,
+            "2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda"
+        );
+        assert_eq!(words().len(), 2048);
     }
 
     #[test]

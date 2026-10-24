@@ -500,5 +500,8 @@
   "syncLogOtherVault": "Brankas berbeda",
   "syncLogUnreachable": "Tak terjangkau",
   "syncKnock": "Sebuah perangkat sedang terhubung…",
-  "syncConnectingTo": "Menghubungkan ke {address}…"
+  "syncConnectingTo": "Menghubungkan ke {address}…",
+  "kitPasswordTitle": "Kata sandi brankas",
+  "kitPasswordLead": "Untuk melihat Kunci Pemulihan, ketik juga kata sandi brankas ini.",
+  "kitPasswordGo": "Lihat Kunci Pemulihan"
 }

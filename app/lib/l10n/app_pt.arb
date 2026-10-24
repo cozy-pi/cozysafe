@@ -500,5 +500,8 @@
   "syncLogOtherVault": "Outro cofre",
   "syncLogUnreachable": "Sem resposta",
   "syncKnock": "Um dispositivo está se conectando…",
-  "syncConnectingTo": "Conectando a {address}…"
+  "syncConnectingTo": "Conectando a {address}…",
+  "kitPasswordTitle": "Senha do cofre",
+  "kitPasswordLead": "Para ver a chave de recuperação, digite também a senha deste cofre.",
+  "kitPasswordGo": "Ver a chave de recuperação"
 }

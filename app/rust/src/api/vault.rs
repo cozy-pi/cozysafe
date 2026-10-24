@@ -147,6 +147,15 @@ pub fn unlock(dir: String, password: String) -> Result<Option<VaultInfo>, VaultE
     Ok(library.unlock(&password)?.map(set_open))
 }
 
+/// Whether `password` opens the vault that is open now: asked before its Recovery Key
+/// is shown (owner 2026-10-24: Face ID alone was too little for that). Opens nothing.
+pub fn check_password(dir: String, password: String) -> Result<bool, VaultError> {
+    let password = Zeroizing::new(password);
+    let open_id = with_open(|v| Ok(v.id.clone()))?;
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    Ok(library.unlock(&password)?.is_some_and(|v| v.id == open_id))
+}
+
 /// Whether a vault here has biometric unlock turned on (shows the button).
 #[flutter_rust_bridge::frb(sync)]
 pub fn has_biometric_unlock(dir: String) -> bool {

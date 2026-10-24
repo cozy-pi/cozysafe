@@ -690,5 +690,8 @@
   "syncLogUnreachable": "Could not reach",
   "syncKnock": "A device is connecting…",
   "syncConnectingTo": "Connecting to {address}…",
-  "@syncConnectingTo": {"placeholders": {"address": {}}}
+  "@syncConnectingTo": {"placeholders": {"address": {}}},
+  "kitPasswordTitle": "Vault password",
+  "kitPasswordLead": "To show the Recovery Key, also type this vault's password.",
+  "kitPasswordGo": "Show the Recovery Key"
 }

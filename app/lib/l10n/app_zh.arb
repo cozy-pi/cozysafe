@@ -500,5 +500,8 @@
   "syncLogOtherVault": "保险箱不同",
   "syncLogUnreachable": "无法连接",
   "syncKnock": "有设备正在连接…",
-  "syncConnectingTo": "正在连接 {address}…"
+  "syncConnectingTo": "正在连接 {address}…",
+  "kitPasswordTitle": "保险箱密码",
+  "kitPasswordLead": "要查看恢复密钥，还需输入此保险箱的密码。",
+  "kitPasswordGo": "查看恢复密钥"
 }

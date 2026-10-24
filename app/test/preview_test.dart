@@ -17,6 +17,7 @@ import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/screens/camera.dart';
 import 'package:cozysafe/screens/backup_password.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
+import 'package:cozysafe/screens/kit_password.dart';
 import 'package:cozysafe/screens/debug.dart';
 import 'package:cozysafe/screens/file_view.dart';
 import 'package:cozysafe/screens/new_vault.dart';
@@ -677,8 +678,7 @@ void main() {
       setup: () {
     HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 74);
     HostSyncPage.debugEvents = Stream.value(ev(SyncStep.knock));
-  },
-      change: 'MỚI: máy gốc báo ngay khi có máy kết nối tới');
+  });
   _screen('sync-other-vault', 'Máy kia có két khác', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.otherVault)), onSynced: () {})));
   _screen('sync-unreachable', 'Không tới được máy kia', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.unreachable)), onSynced: () {})));
   _screen('sync-rejected', 'Máy hiện mã: một máy két khác vừa thử vào', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
@@ -780,6 +780,9 @@ void main() {
         await t.pumpAndSettle();
       });
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
+  _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''),
+      change: 'MỚI: xem lại 24 từ phải qua Face ID VÀ mật khẩu két; sai thì chờ như màn mở khoá',
+      marks: [() => find.byKey(const ValueKey('kit-password'))]);
   _screen('kit', 'Khoá khôi phục: 24 từ che sẵn', () => const EmergencyKitScreen(keyText: words, confirm: false));
   _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));

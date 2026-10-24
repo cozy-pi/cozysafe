@@ -500,5 +500,8 @@
   "syncLogOtherVault": "Anderer Tresor",
   "syncLogUnreachable": "Nicht erreichbar",
   "syncKnock": "Ein Gerät verbindet sich …",
-  "syncConnectingTo": "Verbinde mit {address} …"
+  "syncConnectingTo": "Verbinde mit {address} …",
+  "kitPasswordTitle": "Tresor-Passwort",
+  "kitPasswordLead": "Um den Wiederherstellungsschlüssel zu zeigen, gib auch das Passwort dieses Tresors ein.",
+  "kitPasswordGo": "Wiederherstellungsschlüssel zeigen"
 }
