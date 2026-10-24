@@ -9,6 +9,7 @@ import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/secret_key_store.dart';
 import 'package:cozysafe/screens/set_pin.dart';
+import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/unlock.dart';
 import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
@@ -187,6 +188,34 @@ void main() {
     await _settle(t);
     final lock = t.widget<UnlockScreen>(find.byType(UnlockScreen));
     expect(lock.askBiometricNow, isFalse);
+  });
+
+  testWidgets('locking on Settings comes back to Settings, and Back cannot skip the lock', (t) async {
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    await _tapDigits(t, _pin);
+    await _settle(t);
+    await t.tap(find.byTooltip('Settings'));
+    await _settle(t);
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    // Leaving the app locks it.
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await _settle(t);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await _settle(t);
+    expect(find.byType(UnlockScreen), findsOneWidget);
+    // Back (Android) or a swipe: still the lock.
+    await t.binding.handlePopRoute();
+    await _settle(t);
+    expect(find.byType(UnlockScreen), findsOneWidget);
+    await _tapDigits(t, _pin);
+    await _settle(t);
+    expect(find.byType(UnlockScreen), findsNothing);
+    expect(find.byType(SettingsScreen), findsOneWidget);
   });
 
   testWidgets('setting a PIN needs the same digits twice', (t) async {

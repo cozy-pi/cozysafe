@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../theme.dart';
 
+import '../lock_resume.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
@@ -578,7 +579,7 @@ class _TabsState extends State<_Tabs> {
 
 /// The main action, floating above the lock (left thumb): one tap for notes and voice,
 /// a small menu for the library and files.
-class ActionButton extends StatelessWidget {
+class ActionButton extends StatefulWidget {
   const ActionButton({
     super.key,
     required this.icon,
@@ -602,37 +603,83 @@ class ActionButton extends StatelessWidget {
   final String tooltip;
   final VoidCallback onTap;
 
+  /// A swipe passing over + is not a tap (owner 2026-10-24: with + on the left, swiping
+  /// back from the edge kept opening it). A tap stays put (less than [stillPx] of
+  /// travel); a brief touch that moved at all ([brushPx], under [minPress]) is a finger
+  /// passing over; and none starts at the screen's edge, where the back swipe begins.
+  static const stillPx = 8.0;
+  static const brushPx = 3.0;
+  static const minPress = Duration(milliseconds: 40);
+  static const edgePx = 16.0;
+
+  @override
+  State<ActionButton> createState() => _ActionButtonState();
+}
+
+class _ActionButtonState extends State<ActionButton> {
+  Offset? _downAt;
+  Duration _downTime = Duration.zero;
+  Duration _press = Duration.zero;
+  double _travel = 0;
+
+  bool get _meantTap {
+    final at = _downAt;
+    if (at == null) return false;
+    final width = MediaQuery.sizeOf(context).width;
+    if (at.dx < ActionButton.edgePx || at.dx > width - ActionButton.edgePx) return false;
+    if (_travel >= ActionButton.stillPx) return false;
+    return !(_press < ActionButton.minPress && _travel >= ActionButton.brushPx);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final w = widget;
     final ink = InkWell(
       key: const ValueKey('vault-action'),
       customBorder: const CircleBorder(),
       onTap: () {
+        if (!_meantTap) return;
         HapticFeedback.mediumImpact();
-        onTap();
+        w.onTap();
       },
       child: SizedBox.square(
-        dimension: size,
+        dimension: w.size,
         child: AnimatedRotation(
-          turns: turns,
+          turns: w.turns,
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutBack,
-          child: Icon(icon,
-              color: color != null
+          child: Icon(w.icon,
+              color: w.color != null
                   ? Colors.white
-                  : solid
+                  : w.solid
                       ? Theme.of(context).colorScheme.surface
                       : Theme.of(context).colorScheme.onSurface,
               size: 28),
         ),
       ),
     );
-    final fill = color ?? (solid ? Theme.of(context).colorScheme.onSurface : null);
-    return Tooltip(
-      message: tooltip,
+    final fill = w.color ?? (w.solid ? Theme.of(context).colorScheme.onSurface : null);
+    final button = Tooltip(
+      message: w.tooltip,
       child: fill != null
           ? Material(color: fill, shape: const CircleBorder(), elevation: 3, shadowColor: fill.withValues(alpha: .3), child: ink)
-          : Glass(radius: size / 2, child: Material(type: MaterialType.transparency, child: ink)),
+          : Glass(radius: w.size / 2, child: Material(type: MaterialType.transparency, child: ink)),
+    );
+    // Where the finger went down, how far it moved and how long it rested (a tap must
+    // stay put); the drag up from + (in vault_home) is not affected.
+    return Listener(
+      onPointerDown: (e) {
+        _downAt = e.position;
+        _downTime = e.timeStamp;
+        _travel = 0;
+      },
+      onPointerMove: (e) {
+        final at = _downAt;
+        if (at != null && (e.position - at).distance > _travel) _travel = (e.position - at).distance;
+      },
+      // Before the tap is decided (the arena closes after every listener has the up).
+      onPointerUp: (e) => _press = e.timeStamp - _downTime,
+      child: button,
     );
   }
 }
@@ -642,10 +689,10 @@ enum AddWhat { note, photo, video, photos, voice, file }
 
 /// Every way to add, in the fixed order (camera and voice only where the device has them).
 List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
-      (AddWhat.note, Icons.edit_note_rounded, l.newNote),
       (AddWhat.photos, Icons.photo_library_outlined, l.addFromDevice),
-      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
       if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
+      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
+      (AddWhat.note, Icons.edit_note_rounded, l.newNote),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
       (AddWhat.file, Icons.folder_outlined, l.addFiles),
     ];
@@ -669,14 +716,14 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
 }
 
 /// What + offers: every kind of item, wherever you are (owner 2026-10-24: Voice has no tab
-/// in the bar, so + is the way to it; one way per section felt like a lock-in). Photos
-/// first, then the rest, three to a row.
+/// in the bar, so + is the way to it; one way per section felt like a lock-in). In the
+/// owner's order (2026-10-24): add photos, record video, take photo, note, voice, then files.
 List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
         {required bool camera, required bool voice}) =>
     [
       (AddWhat.photos, Icons.photo_library_outlined, l.addRowAddPhotos),
-      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
       if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
+      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
       (AddWhat.file, Icons.folder_outlined, sectionLabel(l, VaultSection.file)),
@@ -1209,8 +1256,11 @@ class _LoopMark extends StatelessWidget {
 /// Reading, or choosing among many, opens a page: the content sits at eye level, not
 /// at the bottom edge (owner 2026-10-21; docs/ui.md: read → page, a few choices → a menu
 /// at the row, actions → a bottom sheet).
-Future<T?> pushPage<T>(BuildContext context, {required String title, required WidgetBuilder builder}) =>
+/// [keep]: the page shows no vault content and stays under the lock screen
+/// (lib/lock_resume.dart).
+Future<T?> pushPage<T>(BuildContext context, {required String title, required WidgetBuilder builder, bool keep = false}) =>
     Navigator.of(context).push<T>(MaterialPageRoute(
+      settings: keep ? keepOnLock : null,
       builder: (context) => Scaffold(
         appBar: AppBar(title: Text(title)),
         body: SafeArea(top: false, child: builder(context)),

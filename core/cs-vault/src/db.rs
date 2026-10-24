@@ -18,7 +18,7 @@ use crate::{Error, Result};
 
 pub(crate) const INDEX_FILE: &str = "vault.db";
 /// `PRAGMA user_version` of the schema below; each new version gets one migration.
-const SCHEMA_VERSION: i32 = 2;
+const SCHEMA_VERSION: i32 = 3;
 
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS items (
@@ -50,10 +50,13 @@ CREATE TABLE IF NOT EXISTS sync_items (
     synced_rev TEXT NOT NULL,
     PRIMARY KEY (remote, id)
 ) STRICT;
--- Items deleted for good, to tell every place synced with.
+-- Items deleted for good, to tell every place synced with. `rev` (version 3) is the
+-- last revision this device had, older than the deletion: its record in a place is
+-- removed without being read back ('' when not known).
 CREATE TABLE IF NOT EXISTS sync_gone (
     id  TEXT PRIMARY KEY CHECK (length(id) = 32),
-    hlc INTEGER NOT NULL
+    hlc INTEGER NOT NULL,
+    rev TEXT NOT NULL DEFAULT ''
 ) STRICT;
 -- Which places have been told about a deletion.
 CREATE TABLE IF NOT EXISTS sync_gone_sent (
@@ -76,6 +79,10 @@ pub(crate) struct Columns {
     pub deleted_ms: Option<i64>,
     pub size_bytes: u64,
 }
+
+/// A deletion for good: the item, its clock reading, and the last revision this device
+/// had before it ('' when not known).
+pub(crate) type Gone = (String, i64, String);
 
 pub(crate) struct Index {
     db: Connection,
@@ -114,6 +121,20 @@ impl Index {
             return Err(Error::Corrupt("vault index from a newer version"));
         }
         db.execute_batch(SCHEMA).map_err(sql)?;
+        // Version 3: an index from before has `sync_gone` without `rev` (CREATE TABLE IF
+        // NOT EXISTS leaves it as it is).
+        let has_rev: bool = db
+            .query_row(
+                "SELECT count(*) FROM pragma_table_info('sync_gone') WHERE name = 'rev'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )
+            .map_err(sql)?
+            > 0;
+        if !has_rev {
+            db.execute_batch("ALTER TABLE sync_gone ADD COLUMN rev TEXT NOT NULL DEFAULT ''")
+                .map_err(sql)?;
+        }
         db.pragma_update(None, "user_version", SCHEMA_VERSION)
             .map_err(sql)?;
         Ok(Index { db })
@@ -222,13 +243,14 @@ impl Index {
         Ok(())
     }
 
-    /// A deletion for good, to tell every place synced with.
-    pub(crate) fn add_gone(&self, id: &str, hlc: i64) -> Result<()> {
+    /// A deletion for good, to tell every place synced with. `rev`: the last revision
+    /// this device had, made before the deletion ('' when not known).
+    pub(crate) fn add_gone(&self, id: &str, hlc: i64, rev: &str) -> Result<()> {
         self.db
             .execute(
-                "INSERT INTO sync_gone (id, hlc) VALUES (?1, ?2)
-                 ON CONFLICT (id) DO UPDATE SET hlc = excluded.hlc",
-                params![id, hlc],
+                "INSERT INTO sync_gone (id, hlc, rev) VALUES (?1, ?2, ?3)
+                 ON CONFLICT (id) DO UPDATE SET hlc = excluded.hlc, rev = excluded.rev",
+                params![id, hlc, rev],
             )
             .map_err(sql)?;
         self.db
@@ -250,28 +272,28 @@ impl Index {
     }
 
     /// Every deletion kept here.
-    pub(crate) fn all_gone(&self) -> Result<Vec<(String, i64)>> {
+    pub(crate) fn all_gone(&self) -> Result<Vec<Gone>> {
         let mut stmt = self
             .db
-            .prepare("SELECT id, hlc FROM sync_gone ORDER BY id")
+            .prepare("SELECT id, hlc, rev FROM sync_gone ORDER BY id")
             .map_err(sql)?;
         let rows = stmt
-            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
             .map_err(sql)?;
         rows.collect::<rusqlite::Result<Vec<_>>>().map_err(sql)
     }
 
     /// Deletions `remote` has not been told about.
-    pub(crate) fn gone_unsent(&self, remote: &str) -> Result<Vec<(String, i64)>> {
+    pub(crate) fn gone_unsent(&self, remote: &str) -> Result<Vec<Gone>> {
         let mut stmt = self
             .db
             .prepare(
-                "SELECT id, hlc FROM sync_gone WHERE id NOT IN
+                "SELECT id, hlc, rev FROM sync_gone WHERE id NOT IN
                  (SELECT id FROM sync_gone_sent WHERE remote = ?1) ORDER BY id",
             )
             .map_err(sql)?;
         let rows = stmt
-            .query_map([remote], |r| Ok((r.get(0)?, r.get(1)?)))
+            .query_map([remote], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
             .map_err(sql)?;
         rows.collect::<rusqlite::Result<Vec<_>>>().map_err(sql)
     }
@@ -363,6 +385,33 @@ mod tests {
         std::fs::write(dir.path().join(INDEX_FILE), b"not a database at all").unwrap();
         let ix = Index::open(dir.path()).unwrap();
         assert!(ix.ids().unwrap().is_empty());
+    }
+
+    #[test]
+    fn an_index_from_version_2_keeps_its_deletions_and_gains_their_revision() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = "a".repeat(32);
+        {
+            // Version 2's sync_gone, with one deletion in it.
+            let db = Connection::open(dir.path().join(INDEX_FILE)).unwrap();
+            db.execute_batch(
+                "CREATE TABLE sync_gone (
+                     id  TEXT PRIMARY KEY CHECK (length(id) = 32),
+                     hlc INTEGER NOT NULL
+                 ) STRICT;",
+            )
+            .unwrap();
+            db.execute("INSERT INTO sync_gone (id, hlc) VALUES (?1, 7)", [&a])
+                .unwrap();
+            db.pragma_update(None, "user_version", 2).unwrap();
+        }
+        let ix = Index::open(dir.path()).unwrap();
+        assert_eq!(ix.all_gone().unwrap(), vec![(a.clone(), 7, String::new())]);
+        ix.add_gone(&a, 9, "r1").unwrap();
+        drop(ix);
+        // Opened again: no second migration.
+        let ix = Index::open(dir.path()).unwrap();
+        assert_eq!(ix.all_gone().unwrap(), vec![(a, 9, "r1".to_owned())]);
     }
 
     #[test]

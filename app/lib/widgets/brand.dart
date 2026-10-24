@@ -217,8 +217,16 @@ class _CollagePainter extends CustomPainter {
   Color get _soft => dark ? const Color(0xFF383B41) : const Color(0xFFE6E8EC);
   Color get _deep => dark ? const Color(0xFF55585F) : const Color(0xFF8E939B);
 
-  static const _kinds = ['photo', 'id', 'receipt', 'note', 'pdf', 'photo', 'passport', 'note', 'receipt', 'id', 'pdf', 'photo'];
-  static const _heights = {'photo': 104.0, 'id': 78.0, 'receipt': 168.0, 'note': 128.0, 'pdf': 150.0, 'passport': 140.0};
+  // Everything a vault keeps (owner 2026-10-24: not only landscapes): photos of several
+  // kinds, videos, passwords, keys and codes, notes, documents, cards, voice.
+  static const _kinds = [
+    'portrait', 'password', 'pdf', 'video', 'key', 'note', 'sunset', 'id', 'voice', 'grid',
+    'qr', 'receipt', 'video', 'password', 'portrait', 'note', 'passport', 'key', 'pdf', 'sunset',
+  ];
+  static const _heights = {
+    'portrait': 132.0, 'sunset': 96.0, 'grid': 118.0, 'video': 92.0, 'password': 70.0, 'key': 88.0,
+    'qr': 118.0, 'voice': 66.0, 'id': 78.0, 'receipt': 168.0, 'note': 128.0, 'pdf': 150.0, 'passport': 140.0,
+  };
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -253,20 +261,90 @@ class _CollagePainter extends CustomPainter {
         canvas.drawRRect(round(Rect.fromLTWH(r.left + dx, r.top + dy, len, t), t / 2), p ?? line);
 
     switch (kind) {
-      case 'photo':
+      case 'portrait':
+        // A photo of someone: head and shoulders.
         canvas.drawRRect(round(r, 12), soft);
         canvas.save();
         canvas.clipRRect(round(r, 12));
-        canvas.drawCircle(Offset(r.right - 28, r.top + 26), 12, fill);
-        final hills = Path()
-          ..moveTo(r.left, r.bottom)
-          ..lineTo(r.left + r.width * .38, r.top + r.height * .45)
-          ..lineTo(r.left + r.width * .62, r.top + r.height * .72)
-          ..lineTo(r.left + r.width * .78, r.top + r.height * .55)
-          ..lineTo(r.right, r.bottom)
-          ..close();
-        canvas.drawPath(hills, deep);
+        canvas.drawCircle(Offset(r.center.dx, r.top + r.height * .40), 20, deep);
+        canvas.drawOval(Rect.fromCenter(center: Offset(r.center.dx, r.bottom + 8), width: 92, height: 76), deep);
         canvas.restore();
+      case 'sunset':
+        // A sun sitting on the sea.
+        canvas.drawRRect(round(r, 12), soft);
+        canvas.save();
+        canvas.clipRRect(round(r, 12));
+        canvas.drawCircle(Offset(r.center.dx, r.top + r.height * .62), 22, fill);
+        canvas.drawRect(Rect.fromLTRB(r.left, r.top + r.height * .62, r.right, r.bottom), deep);
+        for (var i = 0; i < 3; i++) {
+          bar(26.0 + i * 8, r.height * .72 + i * 8, 66 - i * 16.0, p: soft, t: 4);
+        }
+        canvas.restore();
+      case 'grid':
+        // An album: four small pictures.
+        canvas.drawRRect(round(r, 12), fill);
+        const pad = 8.0, gap = 6.0;
+        final cw = (r.width - pad * 2 - gap) / 2, ch = (r.height - pad * 2 - gap) / 2;
+        for (var i = 0; i < 4; i++) {
+          final cell = Rect.fromLTWH(r.left + pad + (i % 2) * (cw + gap), r.top + pad + (i ~/ 2) * (ch + gap), cw, ch);
+          canvas.drawRRect(round(cell, 7), i == 1 || i == 2 ? deep : soft);
+        }
+      case 'video':
+        // A frame with a play button and a progress bar.
+        canvas.drawRRect(round(r, 12), deep);
+        final c = Offset(r.center.dx, r.top + r.height * .44);
+        canvas.drawCircle(c, 18, soft);
+        canvas.drawPath(
+            Path()
+              ..moveTo(c.dx - 5, c.dy - 9)
+              ..lineTo(c.dx + 10, c.dy)
+              ..lineTo(c.dx - 5, c.dy + 9)
+              ..close(),
+            deep);
+        bar(12, r.height - 16, r.width - 24, p: soft, t: 4);
+        bar(12, r.height - 16, (r.width - 24) * .4, p: fill, t: 4);
+      case 'password':
+        // A password field: dots, and the key beside them.
+        canvas.drawRRect(round(r, 12), fill);
+        bar(12, 12, 52, p: deep, t: 7);
+        canvas.drawRRect(round(Rect.fromLTWH(r.left + 10, r.top + 30, r.width - 20, 28), 8), soft);
+        for (var i = 0; i < 7; i++) {
+          canvas.drawCircle(Offset(r.left + 22 + i * 11.0, r.top + 44), 3.2, deep);
+        }
+      case 'key':
+        // A key, and a recovery code in groups.
+        canvas.drawRRect(round(r, 12), fill);
+        final k = Offset(r.left + 26, r.top + 28);
+        canvas.drawCircle(k, 12, deep);
+        canvas.drawCircle(k, 5, fill);
+        bar(36, 25, 52, p: deep, t: 6);
+        bar(74, 29, 6, p: deep, t: 12);
+        bar(62, 29, 6, p: deep, t: 9);
+        for (var i = 0; i < 4; i++) {
+          bar(12.0 + i * 25, 56, 20, p: soft, t: 6);
+          bar(12.0 + i * 25, 68, 20, p: soft, t: 6);
+        }
+      case 'qr':
+        // A code to scan.
+        canvas.drawRRect(round(r, 12), fill);
+        final q = Rect.fromLTWH(r.left + 14, r.top + 14, r.width - 28, r.width - 28);
+        final cell = q.width / 9;
+        for (var y = 0; y < 9; y++) {
+          for (var x = 0; x < 9; x++) {
+            final corner = (x < 3 && y < 3) || (x > 5 && y < 3) || (x < 3 && y > 5);
+            final on = corner ? (x % 6 != 1 || y % 6 != 1) && !(x % 6 == 1 && y % 6 == 1) : ((x * 7 + y * 3) % 5 < 2);
+            if (on) canvas.drawRect(Rect.fromLTWH(q.left + x * cell, q.top + y * cell, cell * .9, cell * .9), deep);
+          }
+        }
+      case 'voice':
+        // A recording: a wave.
+        canvas.drawRRect(round(r, 12), fill);
+        canvas.drawCircle(Offset(r.left + 20, r.center.dy), 10, deep);
+        for (var i = 0; i < 12; i++) {
+          final h = 8.0 + ((i * 37) % 23);
+          canvas.drawRRect(
+              round(Rect.fromCenter(center: Offset(r.left + 40 + i * 6.0, r.center.dy), width: 3.5, height: h), 2), soft);
+        }
       case 'id':
         canvas.drawRRect(round(r, 10), fill);
         canvas.drawRRect(round(Rect.fromLTWH(r.left + 10, r.top + 12, 34, 44), 6), soft);

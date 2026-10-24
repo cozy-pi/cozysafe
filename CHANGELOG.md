@@ -4,6 +4,24 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Unreleased
+
+### Changed
+- Google Drive sync sends up to 4 items at once and removes deleted items in batches:
+  much faster with many photos.
+- + lists the ways to add in this order: add photos, record video, take photo, note,
+  voice, files.
+- + ignores a finger passing over it (a swipe back from the edge no longer opens it).
+- The blurred background shows everything a vault keeps: photos, videos, passwords,
+  keys and codes, notes, documents, cards, voice; no more rows of mountains.
+
+### Fixed
+- Locking and coming back returns to the page you were on in Settings (and its pages),
+  not the home page. Pages that show vault content still close when the vault locks,
+  and Back on the lock screen cannot reveal what is under it.
+- Restoring from Google Drive when it holds several vaults opens the one your password
+  belongs to (it used to try only the first).
+
 ## 0.1.56 (2026-10-24)
 
 ### Added

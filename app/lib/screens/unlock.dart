@@ -26,9 +26,13 @@ import '../theme.dart';
 /// at the bottom is the same as inside the vault: picking an action here unlocks first,
 /// then runs it.
 class UnlockScreen extends StatefulWidget {
-  const UnlockScreen({super.key, required this.libraryDir, this.askBiometricNow = true});
+  const UnlockScreen({super.key, required this.libraryDir, this.askBiometricNow = true, this.resumeVaultId});
 
   final String libraryDir;
+
+  /// Locked over the open vault's pages (lib/lock_resume.dart): opening that same vault
+  /// goes back to them; Back cannot (it would show them without unlocking).
+  final String? resumeVaultId;
 
   /// Ask for Face ID / fingerprint as soon as the screen shows. True when the app
   /// starts; false after locking (the person is still looking at the phone, so it
@@ -310,6 +314,10 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     await playVaultSpin(context, opening: true,
         behind: revealIconOn() ? VaultBadge(icon: vault.icon, color: vault.color, size: 120) : null,
         glow: colorById(vault.color).color, onCovered: () {
+      if (vault.id == widget.resumeVaultId) {
+        nav.pop(vault);
+        return;
+      }
       nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
@@ -343,7 +351,11 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   // ---------- UI ----------
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      // Over the vault's kept pages, Back and the swipe back stay here.
+      PopScope(canPop: widget.resumeVaultId == null, child: _page(context));
+
+  Widget _page(BuildContext context) {
     final l = AppLocalizations.of(context);
     final page = Theme.of(context).scaffoldBackgroundColor;
     final cardColor = solidTint(context, Theme.of(context).cardColor);
