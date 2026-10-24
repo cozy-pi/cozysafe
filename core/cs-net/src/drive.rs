@@ -379,7 +379,12 @@ mod tests {
             let mut b = Vec::new();
             src.take(len).read_to_end(&mut b)?;
             let mut files = self.0.lock().unwrap();
-            let id = format!("id{}", files.len());
+            // Never reused, like Drive's ids (a count of files would repeat after a delete).
+            static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+            let id = format!(
+                "id{}",
+                NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+            );
             files.push((id.clone(), name.to_owned(), b));
             Ok(id)
         }
@@ -393,17 +398,17 @@ mod tests {
     fn two_devices_sync_through_drive() {
         let t = two();
         let drive = Fake::default();
-        let from_a = note(&t.a, "From A", "aaa");
+        let from_a = note(&t.a, "From A", "plain text from device A");
         t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
             .unwrap();
-        let from_b = note(&t.b, "From B", "bbb");
+        let from_b = note(&t.b, "From B", "plain text from device B");
         // A new session lists the folder afresh, as on another device.
         t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
             .unwrap();
         t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
             .unwrap();
-        assert_eq!(text(&t.b, &from_a), "aaa");
-        assert_eq!(text(&t.a, &from_b), "bbb");
+        assert_eq!(text(&t.b, &from_a), "plain text from device A");
+        assert_eq!(text(&t.a, &from_b), "plain text from device B");
         // One lock there, the newest.
         let locks = drive
             .0
@@ -415,7 +420,8 @@ mod tests {
         assert_eq!(locks, 1);
         // Only sealed bytes reach Drive.
         for (_, _, b) in drive.0.lock().unwrap().iter() {
-            assert!(!b.windows(3).any(|w| w == b"aaa" || w == b"bbb"));
+            // Long markers: three random bytes can spell "aaa" by chance.
+            assert!(!b.windows(10).any(|w| w == b"plain text"));
         }
     }
 

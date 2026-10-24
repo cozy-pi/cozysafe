@@ -128,6 +128,9 @@ allow_proc_macro = true
 [pkg.lru]
 allow_unsafe = true
 
+[pkg.once_cell]
+allow_unsafe = true
+
 [pkg.ring]
 allow_unsafe = true
 build.allow_apis = ["fs", "process"]

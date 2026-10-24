@@ -40,22 +40,24 @@ multiple-versions = "allow"
 # in-repo crates depend on each other by path, which cargo-deny counts as a wildcard.
 wildcards = "allow"
 deny = [
-    # HTTP / networking stacks: the app never talks to the network.
-    { name = "reqwest", reason = "the app is offline" },
-    { name = "hyper", reason = "the app is offline" },
-    { name = "ureq", reason = "the app is offline" },
-    { name = "curl", reason = "the app is offline" },
-    { name = "curl-sys", reason = "the app is offline" },
-    { name = "isahc", reason = "the app is offline" },
-    { name = "surf", reason = "the app is offline" },
-    { name = "attohttpc", reason = "the app is offline" },
-    { name = "tungstenite", reason = "the app is offline" },
-    { name = "tokio-tungstenite", reason = "the app is offline" },
-    { name = "quinn", reason = "the app is offline" },
-    { name = "socket2", reason = "the app is offline" },
-    { name = "mio", reason = "the app is offline (tokio is used without its net/io features)" },
-    { name = "rustls", reason = "TLS means network; the app is offline" },
-    { name = "native-tls", reason = "TLS means network; the app is offline" },
-    { name = "openssl", reason = "TLS means network; the app is offline" },
-    { name = "openssl-sys", reason = "TLS means network; the app is offline" },
+    # HTTP / networking stacks: no general-purpose network client anywhere. The app's
+    # only network code is cs-net (local sync, Google Drive), on rustls directly.
+    { name = "reqwest", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "hyper", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "ureq", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "curl", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "curl-sys", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "isahc", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "surf", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "attohttpc", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "tungstenite", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "tokio-tungstenite", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "quinn", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "socket2", reason = "no HTTP client: cs-net writes its few requests" },
+    { name = "mio", reason = "tokio is used without its net/io features" },
+    # TLS for Google Drive, used by cs-net and nothing else.
+    { name = "rustls", wrappers = ["cs-net"], reason = "TLS only in cs-net (Google Drive)" },
+    { name = "native-tls", reason = "TLS only through rustls in cs-net" },
+    { name = "openssl", reason = "TLS only through rustls in cs-net" },
+    { name = "openssl-sys", reason = "TLS only through rustls in cs-net" },
 ]
