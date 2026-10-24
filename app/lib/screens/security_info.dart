@@ -48,7 +48,7 @@ class SecurityInfoScreen extends StatelessWidget {
               _Flow([
                 _Node(Icons.folder_outlined, l.secItem, blue),
                 _Node(Icons.lock_rounded, l.secOwnKey, blue),
-                _Node(Icons.wifi_off_rounded, l.secNoNetwork, blue, strong: true),
+                _Node(Icons.cloud_off_rounded, l.secNoServer, blue, strong: true),
               ]),
               blue),
           section(2, l.secDailyTitle, l.secDailyBody,

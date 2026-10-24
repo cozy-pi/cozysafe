@@ -1003,4 +1003,30 @@ pub(crate) mod tests {
         fs::rename(dev.join("2"), dev.join("1")).unwrap();
         assert!(t.b.sync(&t.cloud).is_err());
     }
+
+    #[test]
+    fn the_connection_log_is_sealed_and_kept_short() {
+        let t = two();
+        for n in 0..(crate::CONNECTION_LOG_LEN + 5) {
+            t.a.log_connection(&format!("line {n}")).unwrap();
+        }
+        let log = t.a.connection_log().unwrap();
+        assert_eq!(log.len(), crate::CONNECTION_LOG_LEN);
+        assert_eq!(log[0], format!("line {}", crate::CONNECTION_LOG_LEN + 4));
+        // Nothing readable in the index file.
+        fn all_bytes(dir: &Path, out: &mut Vec<u8>) {
+            for e in fs::read_dir(dir).unwrap() {
+                let p = e.unwrap().path();
+                if p.is_dir() {
+                    all_bytes(&p, out)
+                } else {
+                    out.extend(fs::read(&p).unwrap())
+                }
+            }
+        }
+        let mut bytes = Vec::new();
+        all_bytes(t._dirs.0.path(), &mut bytes);
+        assert!(!bytes.windows(6).any(|w| w == b"line 1"));
+        assert!(t.b.connection_log().unwrap().is_empty());
+    }
 }

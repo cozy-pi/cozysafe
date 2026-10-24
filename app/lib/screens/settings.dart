@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -23,6 +24,7 @@ import '../widgets/vault_bar.dart';
 import 'delete_vault.dart';
 import 'file_view.dart';
 import 'set_pin.dart';
+import '../sync/sync_screen.dart';
 
 /// Per-device choices, kept next to the library (not secret).
 abstract final class Settings {
@@ -79,9 +81,12 @@ class SettingsScreen extends StatefulWidget {
     required this.onChangeIdentity,
     required this.onOpenTrash,
     required this.onNewVault,
+    this.onSynced,
   });
 
   final String libraryDir;
+  /// Items came in from another device: the vault screen reloads.
+  final VoidCallback? onSynced;
   /// Read again after each action: the password may have just been set.
   final rust.VaultInfo Function() vault;
   final bool canBiometric;
@@ -400,6 +405,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Text(l.backupNow),
               ),
             ),
+            if (!kIsWeb)
+              _Row(
+                key: const ValueKey('sync-row'),
+                icon: Icons.sync_rounded,
+                color: _Mau.xanhLa,
+                title: l.syncRow,
+                onTap: () => pushPage<void>(context,
+                    title: l.syncTitle,
+                    builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: () => widget.onSynced?.call())),
+              ),
           ]),
           _Group(title: l.settingsDisplay, rows: [
             _Row(

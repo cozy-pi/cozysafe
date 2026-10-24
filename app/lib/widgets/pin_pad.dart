@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import '../theme.dart';
 
 /// Number pad for the PIN: digits only, no letters (they mean nothing for a PIN).
 class PinPad extends StatelessWidget {
@@ -89,7 +90,7 @@ class _Key extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: ghost ? Colors.transparent : Theme.of(context).colorScheme.onSurface.withValues(alpha: .1),
+      color: ghost ? Colors.transparent : solidTint(context, Theme.of(context).colorScheme.onSurface.withValues(alpha: .1)),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

@@ -22,7 +22,7 @@ Cozy Safe does about it; the details are in the linked documents.
 | **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing the PIN or auto-lock, backups, the Recovery Key, showing note text, deleting a vault ([rules](docs/security.md)) |
 | **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; each vault has its own PIN and only its icon and colour tell it apart |
 | **something is left behind on the device** | encodes camera photos in memory (never the photo library, no location data); videos, voice memos and files being played or sent exist only as copies in the app's private temporary folder, deleted when done, on lock and at every start |
-| **a library tries to send data out** | runs fully offline: no internet permission on Android, a sandbox with no network on macOS, network calls switched off inside the app, and every library reviewed before it gets in ([below](#no-library-can-send-your-data-out)) |
+| **a library tries to send data out** | no internet service at all: only one part of the app can open a connection, only to a device on your Wi‑Fi, only when you allow it; network calls switched off everywhere else, no name lookups, and every library reviewed before it gets in ([below](#no-library-can-send-your-data-out)) |
 | **someone tampers with a build** | builds in the open on GitHub, with every third-party action pinned to an exact commit; signing and store keys never reach the jobs that run other people's build code; every release file carries a build-provenance attestation, and the macOS app is notarized by Apple ([supply chain](docs/supply-chain.md)) |
 
 How it stays that way:
@@ -61,7 +61,7 @@ How it stays that way:
 
 Honest limits: there is **no recovery** if you lose your password, or both the device and
 the Recovery Key. iPhone, Windows and Linux cannot take the network away from one app,
-so there the offline guarantee rests on the app's own checks. On iPhone, blocking
+so there the "local only" guarantee rests on the app's own checks. On iPhone, blocking
 screenshots relies on an unofficial iOS technique (a secure text field's layer) that
 Apple could change. The code has not had an independent security audit yet, there is no
 fuzzing yet, and one maintainer reviews the changes; reports are welcome at
@@ -69,26 +69,31 @@ support@cozypi.com.
 
 ## No library can send your data out
 
-Cozy Safe works fully offline and does not need the network for anything: no account, no
-ads, no analytics, no crash reports. A vault app
-is only as safe as every library inside it, and libraries do get hijacked, so this is
-checked on every build, in layers (details and limits: [supply chain](docs/supply-chain.md)):
+Cozy Safe uses no server and no internet service: no account, no ads, no analytics, no
+crash reports. The one thing that touches the network is **syncing with your other device
+on the same Wi‑Fi**, and only when you start it: you allow each connection by hand, it
+goes to one address on your local network, and everything sent is encrypted with your
+vault's keys. A vault app is only as safe as every library inside it, and libraries do
+get hijacked, so this is checked on every build, in layers (details and limits:
+[supply chain](docs/supply-chain.md)):
 
-- **Android:** the app has no internet permission at all; CI reads the built APK and
-  fails if one sneaks back in. Android then refuses every connection, native code included.
-- **macOS:** the app runs in Apple's sandbox with no network permission.
-- **Inside the app:** Dart's HTTP client and sockets are switched off when the app
-  starts, and the compiled Rust core must not import any network function.
+- **One crate holds all network code** (`core/cs-net`). Every connection needs a permit the
+  app only makes after you tap Allow, and it refuses any address outside your local network.
+  cackle forbids the network to every other Rust crate.
+- **No name lookups:** the compiled Rust core must not import any DNS function, so it can
+  only reach an address you scanned or typed, never a host on the internet by name.
+- **Inside the app:** Dart's HTTP client and sockets are switched off when the app starts.
+- **Android:** the app needs the internet permission for any socket, even a local one;
+  CI fails if any other network permission (network state, Wi‑Fi control) sneaks in.
+- **macOS:** the app runs in Apple's sandbox; only the client and server network
+  permissions sync needs are allowed.
 - **Every library is reviewed before it gets in.** CI keeps a list of every Dart and Rust
   package, direct or indirect; a new one fails the build until someone reviews it. The
   sources of every package are scanned for network code, and each exception is written
   down with its reason. Rust crates are also checked by cackle and cargo-deny.
-- **Honest limits:** iPhone, Windows and Linux have no system switch that takes the
-  network away from one app, so there the protection is the checks above, not the OS.
+- **Honest limits:** no phone or computer can limit an app to the local network, so a
+  native library determined to connect out is stopped by the checks above, not by the OS.
   The PDF engine (PDFium) is a prebuilt binary downloaded at build time.
-- **When sync arrives (v0.2)** this section changes: syncing over the local network needs
-  the Android internet permission back. Sync will be a switch you turn on, and only
-  encrypted data will leave the device ([decision](docs/decisions.md)).
 
 ## What works today
 

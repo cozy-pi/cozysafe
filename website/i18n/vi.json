@@ -2,12 +2,12 @@
  "lang_label": "Ngôn ngữ",
  "home": {
   "title": "Cozy Safe: két mã hoá mã nguồn mở",
-  "desc": "Cozy Safe giữ ghi chú, ảnh, video, ghi âm và tệp của bạn được mã hoá ngay trên máy, hoàn toàn ngoại tuyến. Miễn phí, mã nguồn mở.",
+  "desc": "Cozy Safe giữ ghi chú, ảnh, video, ghi âm và tệp của bạn được mã hoá ngay trên máy. Không tài khoản, không máy chủ. Miễn phí, mã nguồn mở.",
   "nav_how": "Cách hoạt động",
   "nav_dl": "Tải về",
   "nav_src": "Mã nguồn",
   "h1": "Két riêng cho ghi chú, ảnh và giấy tờ của bạn.",
-  "lead": "Mọi thứ được mã hoá ngay trên máy trước khi lưu, và app không bao giờ kết nối mạng. Không có mật khẩu của bạn thì không ai mở được, kể cả chúng tôi.",
+  "lead": "Mọi thứ được mã hoá ngay trên máy trước khi lưu. Không tài khoản, không máy chủ: app chỉ kết nối với máy của chính bạn trong cùng Wi-Fi khi đồng bộ. Không có mật khẩu của bạn thì không ai mở được, kể cả chúng tôi.",
   "btn": "Tải về",
   "btn_for": "Tải cho {p}",
   "btn_src": "Xem mã nguồn",
@@ -60,8 +60,8 @@
   "d_mac": "<strong>macOS</strong> · có cả Windows và Linux",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
-  "c4h": "Hoàn toàn ngoại tuyến",
-  "c4p": "Cozy Safe không cần mạng. Trên Android app không có quyền truy cập internet, trên macOS app chạy trong sandbox không có mạng.",
+  "c4h": "Không máy chủ, không tài khoản",
+  "c4p": "Cozy Safe không kết nối máy chủ nào. App chỉ kết nối với máy khác của bạn trong cùng Wi-Fi, khi bạn bắt đầu đồng bộ và cho phép. Mọi thứ gửi đi đều được mã hoá.",
   "c5h": "Kín đáo trên màn hình",
   "c5p": "Mật khẩu và Khoá khôi phục bị che cho tới khi bạn bấm Xem, chữ đã sao chép bị xoá sau 60 giây, và két tự khoá ngay khi bạn rời app.",
   "c6h": "Sao lưu do bạn giữ",
@@ -92,6 +92,7 @@
     "Dữ liệu chỉ đi ra ngoài khi bạn chọn",
     [
      "Bản sao lưu là một tệp đã mã hoá, lưu ở nơi bạn chọn (ví dụ iCloud Drive, Google Drive hay Dropbox). Chỉ dữ liệu đã mã hoá được ghi ra đó; nhà cung cấp bạn chọn không đọc được.",
+     "Đồng bộ với máy khác của bạn: khi bạn bắt đầu và cho phép, dữ liệu đã mã hoá của két đi qua Wi-Fi thẳng tới máy của chính bạn. Không có gì đi qua chúng tôi hay máy chủ nào.",
      "Khi bạn chia sẻ, xuất hay mở một mục bằng app khác, app đó nhận bản không mã hoá và xử lý theo điều khoản của họ."
     ]
    ],
@@ -99,7 +100,8 @@
     "Quyền truy cập",
     [
      "Camera: chỉ để chụp ảnh thẳng vào két, khi bạn mở camera. Ảnh không lưu vào thư viện ảnh của máy.",
-     "Sinh trắc học: chỉ khi bạn bật mở khoá bằng Face ID, Touch ID hoặc vân tay. Dữ liệu sinh trắc học không rời phần cứng bảo mật của máy và app không bao giờ truy cập được."
+     "Sinh trắc học: chỉ khi bạn bật mở khoá bằng Face ID, Touch ID hoặc vân tay. Dữ liệu sinh trắc học không rời phần cứng bảo mật của máy và app không bao giờ truy cập được.",
+     "Mạng cục bộ (iPhone) / internet (Android) / mạng (macOS): chỉ để đồng bộ với máy khác của bạn trong cùng Wi-Fi, khi bạn bắt đầu."
     ]
    ],
    [

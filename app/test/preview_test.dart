@@ -29,6 +29,12 @@ import 'package:cozysafe/screens/unlock.dart';
 import 'package:cozysafe/screens/quick_look.dart';
 import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
+import 'package:cozysafe/src/rust/api/sync.dart';
+import 'package:cozysafe/sync/host_page.dart';
+import 'package:cozysafe/sync/join_page.dart';
+import 'package:cozysafe/sync/progress.dart';
+import 'package:cozysafe/sync/qr_view.dart';
+import 'package:cozysafe/sync/sync_screen.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
@@ -131,6 +137,11 @@ final Map<int, Uint8List> _photos = {};
 /// Small solid-colour PNGs stand in for photo thumbnails.
 final _thumbnails = <int, Uint8List>{};
 
+/// A real pairing code (192.168.1.37:51234) and its QR, from the Rust encoder.
+const _qrTyped = '60N00J-BJ120X-DWG3A2';
+const _qrText = 'cozysafe:p2p:1:60N00JBJ120XDWG3A2';
+const _qrBits = '1111111000011001111010111111110000010000000000110001000001101110101000101010110010111011011101011100000111000101110110111010100101110000101011101100000101010111110100010000011111111010101010101010111111100000000110111010001000000000101111100111001101110011111001110110001011001100010101010110001010010010000110011011000001001011100001010100110110110110111110010000011011010111100101100100011110001001110001100000110001011100100100011000000110101001100001000001100110101011010100111000110100101101100000011100001010010100111000111011010001101001101100010110100110100110011111011001101001100111100100011111101100000000010000111101010001101111111110001111111000101010100100000101011110000111000110001011101011101011100011111011010111010111011000000010101011101110101010001111000011110101000001000100100100110000001011111110110110010000011001100';
+
 class _Fake implements RustLibApi {
   @override
   dynamic noSuchMethod(Invocation call) {
@@ -140,6 +151,8 @@ class _Fake implements RustLibApi {
     if (n.contains('MinPinLength')) return 6;
     if (n.contains('PasswordScore')) return (call.namedArguments[#password] as String).length < 12 ? 1 : 4;
     if (n.contains('HasVaults')) return true;
+    if (n.contains('QrMatrix')) return QrMatrix(size: 29, dark: [for (final c in _qrBits.split('')) c == '1']);
+    if (n.contains('P2PCodeAddress')) return '192.168.1.37';
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_itemsNow ?? _items);
     if (n.contains('ListTrash')) {
       return Future<List<ItemInfo>>.value([
@@ -271,6 +284,10 @@ void _screen(String name, String caption, Widget Function() home,
       NewVaultScreen.debugWords = null;
       DebugScreen.debugNetworkBlocked = null;
       _itemsNow = null;
+      SyncScreen.debugLog = null;
+      SyncScreen.debugAddress = null;
+      HostSyncPage.debugHosting = null;
+      ScanCodePage.debugPreview = null;
       VaultHomeScreen.debugReveal = false;
       debugRecordingStill = false;
       setup?.call();
@@ -337,7 +354,7 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock);
+  _screen('lock', 'Màn khoá', lock, change: 'Phím số, khung và nút Face ID nền đặc, không còn trong suốt lộ ảnh nền');
   // Cold start: the first frames hand over from the system launch screen (dial alone).
   for (final (ms, what) in [(0, 'khung đầu, y như màn khởi động của máy'), (220, 'mặt khoá thu nhỏ, mờ dần'), (420, 'màn khoá hiện ra')]) {
     _screen('launch-$ms', 'Mở app · $ms ms · $what', () => LaunchHandoff(child: lock()), after: 0,
@@ -373,9 +390,7 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library',
-      change: 'MỚI: nút + đứng ngay sau nút Tổng quan, 4 mục kia ở sau',
-      marks: [() => find.byKey(const ValueKey('home-tab')), () => find.byKey(const ValueKey('vault-action'))]);
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library');
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
@@ -632,6 +647,32 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, 200));
     await t.pumpAndSettle();
   });
+  Widget page(String title, Widget body) => Scaffold(appBar: AppBar(title: Text(title)), body: SafeArea(top: false, child: body));
+  final syncLog = [
+    '${_now - 3600000}|join|192.168.1.21|ok|12|3',
+    '${_now - 86400000}|host|-|ok|0|5',
+    '${_now - 2 * 86400000}|host|-|expired|0|0',
+  ];
+  _screen('sync', 'Đồng bộ: hiện mã / quét mã / nhập mã, và các lần kết nối gần đây', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () => SyncScreen.debugLog = syncLog);
+  _screen('sync-allow', 'Đồng bộ · bấm Hiện mã → hỏi cho phép, ghi rõ địa chỉ', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () {
+    SyncScreen.debugLog = syncLog;
+    SyncScreen.debugAddress = '192.168.1.37';
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-show')));
+    await t.pumpAndSettle();
+  });
+  _screen('sync-host', 'Máy này hiện mã: QR + mã gõ tay, mã chỉ dùng được 2 phút, một lần', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
+      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 107));
+  _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
+      setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
+  _screen('sync-type', 'Máy kia: nhập mã 18 ký tự', () => page('Nhập mã', TypeCodePage(onSynced: () {})));
+  SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0}) =>
+      SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies);
+  _screen('sync-connected', 'Đã kết nối: hai máy hiện cùng một số để đối chiếu', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})));
+  _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
+  _screen('sync-failed', 'Không kết nối được', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.failed)), onSynced: () {})));
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
       act: (t) async {
     await t.scrollUntilVisible(find.text('Chặn chụp màn hình'), 200, scrollable: find.byType(Scrollable).first);
@@ -767,6 +808,7 @@ void main() {
     await fillCheck(t);
   });
   _screen('new-vault-password', 'Tạo két · 4. Mật khẩu két: yếu vẫn đi tiếp được', () => const NewVaultScreen(libraryDir: '', first: true),
+      change: 'Ô nhập, nút Tiếp (cả lúc chưa bấm được) và nút Quay lại nền đặc',
       setup: useWords, act: (t) async {
     await tapKey(t, 'intro-start');
     await tapKey(t, 'words-done');
@@ -776,6 +818,7 @@ void main() {
     await t.pump();
   });
   _screen('new-vault-pin', 'Tạo két · 5. Mã PIN ít nhất 6 số', () => const NewVaultScreen(libraryDir: '', first: true),
+      change: 'Phím số nền đặc',
       setup: useWords, act: (t) async {
     await tapKey(t, 'intro-start');
     await tapKey(t, 'words-done');

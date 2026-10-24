@@ -2,14 +2,15 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-/// Cozy Safe never uses the network. Installed first thing in `main`, this makes
-/// every Dart-side attempt fail: `HttpClient()` (and so `package:http`, image loading
-/// from URLs, …) throws, `Socket.connect` / `Socket.startConnect` /
-/// `ServerSocket.bind` fail with a [SocketException].
+/// No Dart code in Cozy Safe uses the network (sync is in Rust, cs-net). Installed first
+/// thing in `main`, this makes every Dart-side attempt fail: `HttpClient()` (and so
+/// `package:http`, image loading from URLs, …) throws, `Socket.connect` /
+/// `Socket.startConnect` / `ServerSocket.bind` fail with a [SocketException].
 ///
 /// One layer of several (docs/supply-chain.md): it covers Dart code only. Native code
-/// in plugins is held back by the OS where it can be (Android without the INTERNET
-/// permission, the macOS sandbox without a network entitlement) and by CI checks.
+/// in plugins is held back by CI checks and the review of every package; the OS no
+/// longer helps there, since sync needs Android's INTERNET permission and the macOS
+/// network entitlements.
 /// `RawSocket` / `RawDatagramSocket` have no override hook in `dart:io`; the
 /// dependency source scan (tools/check-deps) looks for them instead.
 ///

@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cozy Safe：オープンソースの暗号化金庫</title>
-<meta name="description" content="Cozy Safe は、メモ・写真・動画・ボイスメモ・ファイルをデバイス上で暗号化し、完全オフラインで保管します。無料のオープンソースです。">
+<meta name="description" content="Cozy Safe は、メモ・写真・動画・ボイスメモ・ファイルをデバイス上で暗号化して保管します。アカウントもサーバーも不要。無料のオープンソースです。">
 <meta name="theme-color" content="#0F3D33">
 <meta property="og:title" content="Cozy Safe：オープンソースの暗号化金庫">
-<meta property="og:description" content="Cozy Safe は、メモ・写真・動画・ボイスメモ・ファイルをデバイス上で暗号化し、完全オフラインで保管します。無料のオープンソースです。">
+<meta property="og:description" content="Cozy Safe は、メモ・写真・動画・ボイスメモ・ファイルをデバイス上で暗号化して保管します。アカウントもサーバーも不要。無料のオープンソースです。">
 <meta property="og:url" content="https://safe.cozypi.com/ja/">
 <meta property="og:image" content="https://safe.cozypi.com/icon-512.png">
 <meta property="og:locale" content="ja">
@@ -44,7 +44,7 @@
     <div class="hero-grid">
       <div>
         <h1>メモ、写真、ファイルのためのプライベートな金庫。</h1>
-        <p class="lead">すべてのデータは保存前にデバイス上で暗号化され、アプリがインターネットに接続することはありません。パスワードがなければ、私たちを含め誰も開けません。</p>
+        <p class="lead">すべてのデータは保存前にデバイス上で暗号化されます。アカウントもサーバーもなく、アプリが接続するのは、同期するときに同じ Wi-Fi 上にあるあなた自身のデバイスだけです。パスワードがなければ、私たちを含め誰も開けません。</p>
         <div class="cta">
           <a class="btn btn-gold" id="primary" href="#download"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg><span>ダウンロード</span></a>
           <a class="btn btn-ghost" href="https://github.com/cozy-pi/cozysafe"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg>ソースコードを見る</a>
@@ -76,7 +76,7 @@
     <div class="features">
       <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><h3>デバイス上で暗号化</h3><p>データはディスクに書き込まれる前に暗号化されます。そのため、クラウドフォルダに置いたバックアップも暗号化されたままです。</p></div>
       <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></div><h3>金庫のパスワード ＋ リカバリーキー</h3><p>金庫のパスワードは、ランダムな 256 ビットのリカバリーキー（24 語）と組み合わされます。そのため、バックアップのコピーを手にした人でもパスワードを推測できません。</p></div>
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 4.2-2.6M9.3 5.2A15 15 0 0 1 22 8.8M5 12.5a10 10 0 0 1 3.4-2M15.6 10.5A10 10 0 0 1 19 12.5M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/></svg></div><h3>完全オフライン</h3><p>Cozy Safe はネットワークを必要としません。Android ではインターネット権限を一切持たず、macOS ではネットワークにアクセスできないサンドボックス内で動作します。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M5.8 5.8A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.3-.2M21.5 16.5A4.5 4.5 0 0 0 17.5 10h-1.8A7 7 0 0 0 10 5.1"/></svg></div><h3>サーバーなし、アカウントなし</h3><p>Cozy Safe はどのサーバーとも通信しません。唯一の接続先は、同じ Wi-Fi 上にあるあなた自身のデバイスです。それも同期を開始して許可したときだけで、送信される内容はすべて暗号化されます。</p></div>
       <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></div><h3>画面上でも見せない</h3><p>パスワードとリカバリーキーは「表示」をタップするまで隠され、コピーしたテキストは60秒後に消去されます。アプリを離れるとすぐに金庫がロックされます。</p></div>
       <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10M8 9l4 4 4-4"/><rect x="4" y="15" width="16" height="6" rx="2"/><path d="M8 18h.01"/></svg></div><h3>自分で管理できるバックアップ</h3><p>すべての金庫をひとつの暗号化ファイルにバックアップし、新しいデバイスでリカバリーキーと金庫のパスワードを使って開けます。私たちのサーバーには何も送られません。そもそもサーバーがありません。</p></div>
       <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg></div><h3>オープンソース</h3><p>コードは誰でも読んで確認できます（GPL-3.0）。インストーラは GitHub でビルドされ、その出所を検証できます。</p></div>

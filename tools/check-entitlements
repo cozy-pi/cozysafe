@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""Fail if the macOS release build could reach the network.
+"""Fail if the macOS release build leaves the App Sandbox or widens it.
 
   tools/check-entitlements [path/to/Release.entitlements]
 
-The release app must run in the App Sandbox, and the sandbox must not grant any
-network entitlement (com.apple.security.network.client / .server, or anything else
-under com.apple.security.network.*). With the sandbox on and no such entitlement,
-macOS refuses every socket the app or any library in it opens.
-DebugProfile.entitlements keeps network.server: Flutter's debugger needs it.
+The release app must run in the App Sandbox. Of the network entitlements only
+network.client and network.server are allowed: syncing with a nearby device on the
+Wi-Fi (cs-net, docs/supply-chain.md) needs both. No temporary exceptions.
 """
 
 import plistlib
@@ -22,7 +20,10 @@ errors = []
 if ent.get("com.apple.security.app-sandbox") is not True:
     errors.append("com.apple.security.app-sandbox must be <true/>")
 for key, value in ent.items():
-    if key.startswith("com.apple.security.network.") and value is not False:
+    if key.startswith("com.apple.security.network.") and value is not False and key not in (
+        "com.apple.security.network.client",
+        "com.apple.security.network.server",
+    ):
         errors.append(f"{key} grants network access")
     # A temporary exception can punch holes in the sandbox (e.g. mach-lookup to a
     # network helper); none is needed today.
@@ -32,5 +33,5 @@ for key, value in ent.items():
 for e in errors:
     print(f"error: {path.name}: {e}", file=sys.stderr)
 if not errors:
-    print(f"{path.name}: sandboxed, no network entitlement")
+    print(f"{path.name}: sandboxed, network only for local sync")
 sys.exit(1 if errors else 0)

@@ -32,15 +32,15 @@ jobs:
           workspaces: app/rust
       - uses: ./.github/actions/flutter-setup
       # Supply chain (docs/supply-chain.md): every package reviewed, no network code
-      # in what ships, macOS sandbox without network.
+      # in what ships, macOS sandbox with only the network sync needs.
       - name: Dependency allowlists + network-code scan of pub packages
         run: tools/check-deps
-      - name: macOS release entitlements have no network access
+      - name: macOS release entitlements stay sandboxed (network only for local sync)
         run: tools/check-entitlements
       - name: Rust side of the app
         working-directory: app/rust
         run: cargo clippy --locked -- -D warnings
-      - name: Compiled Rust library imports no network functions
+      - name: Compiled Rust library does no name lookups
         working-directory: app/rust
         run: |
           cargo build --release --locked
@@ -67,8 +67,9 @@ jobs:
           command: check
           command-arguments: advisories sources bans
 
-  # cackle: no crate in the app's Rust library may use the network API (app/rust/cackle.toml).
-  # Blocking. On failure it uploads the config cackle suggests (still failing on any net grant).
+  # cackle: no crate in the app's Rust library but cs-net may use the network API
+  # (app/rust/cackle.toml). Blocking. On failure it uploads the config cackle suggests
+  # (still failing on a net grant to any other crate).
   cackle:
     runs-on: ubuntu-latest
     steps:
@@ -99,7 +100,8 @@ jobs:
           def walk(node, where):
               if isinstance(node, dict):
                   for k, v in node.items():
-                      if k == "allow_apis" and {"net", "unix_sockets"} & set(v):
+                      # cs-net is the one crate with network code (docs/supply-chain.md).
+                      if k == "allow_apis" and {"net", "unix_sockets"} & set(v) and where != "pkg.cs-net":
                           bad.append(where)
                       walk(v, f"{where}.{k}")
           walk(tomllib.load(open("cackle.toml", "rb")).get("pkg", {}), "pkg")

@@ -25,7 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = 'https://github.com/cozy-pi/cozysafe/releases/latest/download/'
 REPO = 'https://github.com/cozy-pi/cozysafe'
 SITE = 'https://safe.cozypi.com'
-UPDATED = '2026-10-22'  # privacy policy date
+UPDATED = '2026-10-24'  # privacy policy date
 
 # Same list and order as Flip Match (lib/i18n.ts NGON_NGU); cozypi.com uses the same codes.
 LANGS = [
@@ -108,7 +108,7 @@ I = {
     'linux': '<path d="M12 3c-2.5 0-3.5 2.5-3.5 5 0 1.5-1.5 3-2.5 5-1 2-1 4 .5 5s2.5 0 3.5 1c.7.6 1.3 1 2 1s1.3-.4 2-1c1-1 2-.1 3.5-1s1.5-3 .5-5-2.5-3.5-2.5-5c0-2.5-1-5-3.5-5z"/><path d="M10.5 8h.01M13.5 8h.01"/>',
     'android': '<path d="M5 10h14v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 10a4 4 0 0 1 8 0M8 5l1.5 2.5M16 5l-1.5 2.5M3 11v5M21 11v5"/>',
     'iphone': '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
-    'offline': '<path d="M2 8.8a15 15 0 0 1 4.2-2.6M9.3 5.2A15 15 0 0 1 22 8.8M5 12.5a10 10 0 0 1 3.4-2M15.6 10.5A10 10 0 0 1 19 12.5M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/>',
+    'noserver': '<path d="M2 2l20 20M5.8 5.8A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.3-.2M21.5 16.5A4.5 4.5 0 0 0 17.5 10h-1.8A7 7 0 0 0 10 5.1"/>',
     'eye': '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/>',
     'backup': '<path d="M12 3v10M8 9l4 4 4-4"/><rect x="4" y="15" width="16" height="6" rx="2"/><path d="M8 18h.01"/>',
     'download': '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
@@ -241,7 +241,7 @@ def page(lang, texts, css):
     <div class="features">
       <div class="feat"><div class="ic">{ic('lock', 24)}</div><h3>{t['c1h']}</h3><p>{t['c1p']}</p></div>
       <div class="feat"><div class="ic">{ic('key', 24)}</div><h3>{t['c2h']}</h3><p>{t['c2p']}</p></div>
-      <div class="feat"><div class="ic">{ic('offline', 24)}</div><h3>{t['c4h']}</h3><p>{t['c4p']}</p></div>
+      <div class="feat"><div class="ic">{ic('noserver', 24)}</div><h3>{t['c4h']}</h3><p>{t['c4p']}</p></div>
       <div class="feat"><div class="ic">{ic('eye', 24)}</div><h3>{t['c5h']}</h3><p>{t['c5p']}</p></div>
       <div class="feat"><div class="ic">{ic('backup', 24)}</div><h3>{t['c6h']}</h3><p>{t['c6p']}</p></div>
       <div class="feat"><div class="ic">{ic('code', 24)}</div><h3>{t['c3h']}</h3><p>{t['c3p']}</p></div>

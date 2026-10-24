@@ -2,12 +2,12 @@
  "lang_label": "Idioma",
  "home": {
   "title": "Cozy Safe: una caja fuerte cifrada de código abierto",
-  "desc": "Cozy Safe guarda tus notas, fotos, vídeos, notas de voz y archivos cifrados en tu dispositivo, sin conexión. Gratis y de código abierto.",
+  "desc": "Cozy Safe guarda tus notas, fotos, vídeos, notas de voz y archivos cifrados en tu dispositivo. Sin cuenta, sin servidor. Gratis y de código abierto.",
   "nav_how": "Cómo funciona",
   "nav_dl": "Descargar",
   "nav_src": "Código fuente",
   "h1": "Una caja fuerte privada para tus notas, fotos y archivos.",
-  "lead": "Todo se cifra en tu dispositivo antes de guardarse, y la app nunca se conecta a internet. Sin tu contraseña, nadie puede abrirlo, ni siquiera nosotros.",
+  "lead": "Todo se cifra en tu dispositivo antes de guardarse. Sin cuenta ni servidor: la app solo se conecta con tu propio dispositivo en la misma Wi-Fi cuando sincronizas. Sin tu contraseña, nadie puede abrirlo, ni siquiera nosotros.",
   "btn": "Descargar",
   "btn_for": "Descargar para {p}",
   "btn_src": "Ver el código",
@@ -60,8 +60,8 @@
   "d_mac": "<strong>macOS</strong> · también Windows y Linux",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
-  "c4h": "Totalmente sin conexión",
-  "c4p": "Cozy Safe no necesita red. En Android no tiene permiso de acceso a internet, y en macOS se ejecuta en un sandbox sin acceso a la red.",
+  "c4h": "Sin servidor, sin cuenta",
+  "c4p": "Cozy Safe no se comunica con ningún servidor. La única conexión que hace es con tu propio dispositivo en la misma Wi-Fi, cuando inicias una sincronización y la permites, y todo lo que se envía va cifrado.",
   "c5h": "Discreta en pantalla",
   "c5p": "Las contraseñas y la Clave de recuperación permanecen ocultas hasta que tocas Mostrar, el texto copiado se borra a los 60 segundos y la caja fuerte se bloquea en cuanto sales de la app.",
   "c6h": "Copias de seguridad bajo tu control",
@@ -92,6 +92,7 @@
     "Adónde pueden ir tus datos, solo si tú lo eliges",
     [
      "Una copia de seguridad es un único archivo cifrado, guardado donde tú elijas (por ejemplo, iCloud Drive, Google Drive o Dropbox). Allí solo se escriben datos cifrados; el proveedor que elijas no puede leerlos.",
+     "Sincronización con tu otro dispositivo: cuando la inicias y la permites, los datos cifrados de la caja fuerte van por tu Wi-Fi directamente a tu propio dispositivo. Nada pasa por nosotros ni por ningún servidor.",
      "Cuando compartes, exportas o abres un elemento en otra app, esa app recibe una copia sin cifrar y la trata según sus propias condiciones."
     ]
    ],
@@ -99,7 +100,8 @@
     "Permisos",
     [
      "Cámara: solo para hacer fotos directamente en una caja fuerte, cuando abres la cámara. Las fotos no se guardan en tu fototeca.",
-     "Biometría: solo si activas el desbloqueo con Face ID, Touch ID o huella dactilar. Tus datos biométricos nunca salen del hardware seguro del dispositivo y la app nunca tiene acceso a ellos."
+     "Biometría: solo si activas el desbloqueo con Face ID, Touch ID o huella dactilar. Tus datos biométricos nunca salen del hardware seguro del dispositivo y la app nunca tiene acceso a ellos.",
+     "Red local (iPhone) / internet (Android) / red (macOS): solo para sincronizar con tu otro dispositivo en la misma Wi-Fi, cuando tú la inicias."
     ]
    ],
    [

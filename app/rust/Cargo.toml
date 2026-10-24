@@ -12,6 +12,10 @@ flutter_rust_bridge = "=2.13.0"
 cs-crypto = { path = "../../core/cs-crypto" }
 cs-vault = { path = "../../core/cs-vault" }
 cs-photo = { path = "../../core/cs-photo" }
+cs-net = { path = "../../core/cs-net" }
+# QR codes for pairing with a nearby device: draw one, read one from camera frames.
+qrcode = { version = "0.14", default-features = false }
+rqrr = "0.11"
 zeroize = "1"
 
 [lints.rust]

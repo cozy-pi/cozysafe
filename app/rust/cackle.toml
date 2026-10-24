@@ -3,8 +3,9 @@
 #   cd app/rust && cargo acl --no-ui
 # Linux only. See docs/supply-chain.md.
 #
-# The point is the `net` API: no crate may use it. Never add "net" or
-# "unix_sockets" to any allow_apis below; replace the crate instead.
+# The point is the `net` API: only cs-net may use it (syncing with a nearby device on
+# the Wi-Fi, after the person allows each connection; docs/supply-chain.md). Never add
+# "net" or "unix_sockets" to any other crate below; replace the crate instead.
 #
 # The fs / process / unsafe grants were first written from a scan of each crate's
 # sources (generous on purpose). cackle warns about a grant a crate does not use;
@@ -109,6 +110,15 @@ allow_unsafe = true
 
 # Our core has no unsafe code (#![forbid(unsafe_code)] in lib.rs). cackle flags it
 # because the EFF word list it embeds contains the word "unsafe".
+[pkg."cs-net"]
+allow_apis = ["fs", "net"]
+
+[pkg.g2gen]
+allow_proc_macro = true
+
+[pkg.lru]
+allow_unsafe = true
+
 [pkg."cs-vault"]
 allow_apis = ["fs"]
 allow_unsafe = true

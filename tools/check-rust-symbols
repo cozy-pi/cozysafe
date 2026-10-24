@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Fail if the app's compiled Rust library imports socket / name-lookup functions.
+# Fail if the app's compiled Rust library imports name-lookup functions, or socket
+# functions beyond those cs-net needs.
 #   tools/check-rust-symbols path/to/librust_lib_cozysafe.so   (Linux, CI)
 #   tools/check-rust-symbols path/to/librust_lib_cozysafe.dylib (macOS)
 #   NM=llvm-nm tools/check-rust-symbols lib/arm64-v8a/librust_lib_cozysafe.so (from the APK)
@@ -9,8 +10,9 @@
 # staticlib bundles whole object files of std and every crate, used or not, so it
 # can list imports of code that never runs.
 #
-# Nothing needs allowing today. If a symbol ever must be allowed, add it to ALLOW
-# with the reason next to it.
+# The plain socket calls are allowed: cs-net (and only cs-net, cackle checks that)
+# syncs with a nearby device on the Wi-Fi by IP address. Name lookups stay forbidden:
+# nothing can reach a host on the internet by its name.
 set -euo pipefail
 lib="$1"
 
@@ -18,7 +20,9 @@ NET="socket socketpair connect bind listen accept accept4 send sendto sendmsg se
 recv recvfrom recvmsg recvmmsg getaddrinfo freeaddrinfo gai_strerror getnameinfo
 gethostbyname gethostbyname2 gethostbyaddr getsockopt setsockopt getpeername
 getsockname shutdown"
-ALLOW=""
+# cs-net, local sync (docs/supply-chain.md).
+ALLOW="socket connect bind listen accept accept4 send sendto sendmsg recv recvfrom recvmsg
+getsockopt setsockopt getpeername getsockname shutdown"
 
 case "$lib" in
   # ELF (Linux, Android). NM can point at the NDK's llvm-nm for Android libraries.
@@ -39,4 +43,4 @@ if [ -n "$found" ]; then
   echo "Find the crate that calls them (cargo tree, cackle) before allowing anything." >&2
   exit 1
 fi
-echo "OK: $lib imports $(wc -l <<<"$imports" | tr -d ' ') symbols, none for networking"
+echo "OK: $lib imports $(wc -l <<<"$imports" | tr -d ' ') symbols, no name lookups"

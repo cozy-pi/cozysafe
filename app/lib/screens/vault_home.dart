@@ -626,6 +626,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         onChangeIdentity: _changeIdentity,
         onOpenTrash: _openTrash,
         onNewVault: _newVault,
+        onSynced: _reload,
       ),
     ));
     if (!_locked) {

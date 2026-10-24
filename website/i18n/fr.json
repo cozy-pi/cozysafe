@@ -2,12 +2,12 @@
  "lang_label": "Langue",
  "home": {
   "title": "Cozy Safe : un coffre-fort chiffré et open source",
-  "desc": "Cozy Safe garde vos notes, photos, vidéos, mémos vocaux et fichiers chiffrés sur votre appareil, entièrement hors ligne. Gratuit et open source.",
+  "desc": "Cozy Safe garde vos notes, photos, vidéos, mémos vocaux et fichiers chiffrés sur votre appareil. Sans compte, sans serveur. Gratuit et open source.",
   "nav_how": "Fonctionnement",
   "nav_dl": "Télécharger",
   "nav_src": "Code source",
   "h1": "Un coffre-fort privé pour vos notes, photos et fichiers.",
-  "lead": "Tout est chiffré sur votre appareil avant d'être enregistré, et l'app ne se connecte jamais à Internet. Sans votre mot de passe, personne ne peut l'ouvrir, pas même nous.",
+  "lead": "Tout est chiffré sur votre appareil avant d'être enregistré. Sans compte ni serveur : l'app ne se connecte qu'à votre propre appareil sur le même Wi-Fi, quand vous synchronisez. Sans votre mot de passe, personne ne peut l'ouvrir, pas même nous.",
   "btn": "Télécharger",
   "btn_for": "Télécharger pour {p}",
   "btn_src": "Voir le code source",
@@ -60,8 +60,8 @@
   "d_mac": "<strong>macOS</strong> · aussi Windows et Linux",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
-  "c4h": "Entièrement hors ligne",
-  "c4p": "Cozy Safe n'a pas besoin de réseau. Sur Android, il n'a même pas l'autorisation d'accéder à Internet, et sur macOS il tourne dans un sandbox sans accès au réseau.",
+  "c4h": "Sans serveur, sans compte",
+  "c4p": "Cozy Safe ne communique avec aucun serveur. La seule connexion qu'il établit est avec votre propre appareil sur le même Wi-Fi, quand vous lancez une synchronisation et l'autorisez, et tout ce qui est envoyé est chiffré.",
   "c5h": "Discret à l'écran",
   "c5p": "Les mots de passe et la Clé de récupération restent masqués jusqu'à ce que vous touchiez Afficher, le texte copié est effacé après 60 secondes et le coffre se verrouille dès que vous quittez l'app.",
   "c6h": "Des sauvegardes que vous maîtrisez",
@@ -92,6 +92,7 @@
     "Où vos données peuvent aller, uniquement si vous le choisissez",
     [
      "Une sauvegarde est un seul fichier chiffré, enregistré à l'endroit de votre choix (par exemple iCloud Drive, Google Drive ou Dropbox). Seules des données chiffrées y sont écrites ; le fournisseur choisi ne peut pas les lire.",
+     "Synchronisation avec votre autre appareil : quand vous la lancez et l'autorisez, les données chiffrées du coffre passent par votre Wi-Fi directement vers votre propre appareil. Rien ne passe par nous ni par un serveur.",
      "Lorsque vous partagez, exportez ou ouvrez un élément dans une autre app, cette app reçoit une copie non chiffrée et la traite selon ses propres conditions."
     ]
    ],
@@ -99,7 +100,8 @@
     "Autorisations",
     [
      "Appareil photo : uniquement pour prendre des photos directement dans un coffre, lorsque vous ouvrez l'appareil photo. Les photos ne sont pas enregistrées dans votre photothèque.",
-     "Biométrie : uniquement si vous activez le déverrouillage par Face ID, Touch ID ou empreinte digitale. Vos données biométriques ne quittent jamais le matériel sécurisé de l'appareil et ne sont jamais accessibles à l'app."
+     "Biométrie : uniquement si vous activez le déverrouillage par Face ID, Touch ID ou empreinte digitale. Vos données biométriques ne quittent jamais le matériel sécurisé de l'appareil et ne sont jamais accessibles à l'app.",
+     "Réseau local (iPhone) / Internet (Android) / réseau (macOS) : uniquement pour synchroniser avec votre autre appareil sur le même Wi-Fi, quand vous la lancez."
     ]
    ],
    [

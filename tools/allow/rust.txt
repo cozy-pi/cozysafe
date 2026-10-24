@@ -70,6 +70,9 @@ futures-macro
 futures-sink
 futures-task
 futures-util
+g2gen
+g2p
+g2poly
 generic-array
 getrandom
 gimli
@@ -93,6 +96,7 @@ libsqlite3-sys
 linux-raw-sys
 lock_api
 log
+lru
 md-5
 memchr
 miniz_oxide
@@ -113,6 +117,7 @@ portable-atomic
 powerfmt
 proc-macro2
 pxfm
+qrcode
 quote
 r-efi
 rand_core
@@ -120,6 +125,7 @@ redox_syscall
 regex
 regex-automata
 regex-syntax
+rqrr
 rsqlite-vfs
 rusqlite
 rust_lib_cozysafe

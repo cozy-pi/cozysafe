@@ -2,12 +2,12 @@
  "lang_label": "Lingua",
  "home": {
   "title": "Cozy Safe: una cassaforte cifrata open source",
-  "desc": "Cozy Safe conserva note, foto, video, memo vocali e file cifrati sul tuo dispositivo, completamente offline. Gratuito e open source.",
+  "desc": "Cozy Safe conserva note, foto, video, memo vocali e file cifrati sul tuo dispositivo. Nessun account, nessun server. Gratuito e open source.",
   "nav_how": "Come funziona",
   "nav_dl": "Download",
   "nav_src": "Codice sorgente",
   "h1": "Una cassaforte privata per note, foto e file.",
-  "lead": "Tutto viene cifrato sul tuo dispositivo prima di essere salvato, e l'app non va mai online. Senza la tua password nessuno può aprirlo, nemmeno noi.",
+  "lead": "Tutto viene cifrato sul tuo dispositivo prima di essere salvato. Nessun account, nessun server: l'app si collega solo a un tuo dispositivo sulla stessa Wi-Fi quando sincronizzi. Senza la tua password nessuno può aprirlo, nemmeno noi.",
   "btn": "Scarica",
   "btn_for": "Scarica per {p}",
   "btn_src": "Vedi il codice",
@@ -60,8 +60,8 @@
   "d_mac": "<strong>macOS</strong> · anche Windows e Linux",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
-  "c4h": "Completamente offline",
-  "c4p": "Cozy Safe non ha bisogno di rete. Su Android non ha nemmeno il permesso di accedere a internet, e su macOS gira in una sandbox senza accesso alla rete.",
+  "c4h": "Nessun server, nessun account",
+  "c4p": "Cozy Safe non comunica con alcun server. L'unica connessione che stabilisce è con un tuo dispositivo sulla stessa Wi-Fi, quando avvii una sincronizzazione e la autorizzi, e tutto ciò che viene inviato è cifrato.",
   "c5h": "Riservato sullo schermo",
   "c5p": "Le password e la Chiave di recupero restano nascoste finché non tocchi Mostra, il testo copiato viene cancellato dopo 60 secondi e la cassaforte si blocca appena esci dall'app.",
   "c6h": "Backup sotto il tuo controllo",
@@ -92,6 +92,7 @@
     "Dove possono andare i tuoi dati, solo se lo scegli tu",
     [
      "Un backup è un unico file cifrato, salvato dove scegli tu (ad esempio iCloud Drive, Google Drive o Dropbox). Lì vengono scritti solo dati cifrati; il fornitore scelto non può leggerli.",
+     "Sincronizzazione con l'altro tuo dispositivo: quando la avvii e la autorizzi, i dati cifrati della cassaforte passano dalla tua Wi-Fi direttamente al tuo dispositivo. Niente passa da noi o da un server.",
      "Quando condividi, esporti o apri un elemento in un'altra app, quell'app riceve una copia non cifrata e la gestisce secondo le proprie condizioni."
     ]
    ],
@@ -99,7 +100,8 @@
     "Autorizzazioni",
     [
      "Fotocamera: solo per scattare foto direttamente in una cassaforte, quando apri la fotocamera. Le foto non vengono salvate nella tua libreria foto.",
-     "Biometria: solo se attivi lo sblocco con Face ID, Touch ID o impronta digitale. I tuoi dati biometrici non lasciano mai l'hardware sicuro del dispositivo e non sono mai accessibili all'app."
+     "Biometria: solo se attivi lo sblocco con Face ID, Touch ID o impronta digitale. I tuoi dati biometrici non lasciano mai l'hardware sicuro del dispositivo e non sono mai accessibili all'app.",
+     "Rete locale (iPhone) / internet (Android) / rete (macOS): solo per sincronizzare con l'altro tuo dispositivo sulla stessa Wi-Fi, quando la avvii."
     ]
    ],
    [
