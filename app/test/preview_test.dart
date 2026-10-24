@@ -488,15 +488,17 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  }),
-      change: 'Thứ tự mới: Thêm ảnh → Quay video → Chụp ảnh → Ghi chú → Ghi âm → Tệp');  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
+  },
+      change: 'Thứ tự mới: Thêm ảnh → Quay video → Chụp ảnh → Ghi chú → Ghi âm → Tệp');
+  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  }),
-      change: 'Thứ tự mới: Thêm ảnh → Quay video → Chụp ảnh → Ghi chú → Ghi âm → Tệp');  _screen('home-add', 'Trang chủ · nút bên trái (Cài đặt) · bấm +', home, section: 'home',
+  },
+      change: 'Thứ tự mới: Thêm ảnh → Quay video → Chụp ảnh → Ghi chú → Ghi âm → Tệp');
+  _screen('home-add', 'Trang chủ · nút bên trái (Cài đặt) · bấm +', home, section: 'home',
       setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'left');
