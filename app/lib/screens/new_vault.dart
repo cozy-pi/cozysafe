@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -104,7 +105,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   /// The first vault on a device makes the Secret Key (kept in the keystore at once, so
   /// leaving half-way and coming back shows the same words).
   Future<void> _loadWords() async {
-    final debug = NewVaultScreen.debugWords;
+    // Fixed words only in tests and mockups, never in a release build.
+    final debug = kReleaseMode ? null : NewVaultScreen.debugWords;
     if (debug != null) {
       setState(() {
         _words = debug.split(' ');

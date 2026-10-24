@@ -500,5 +500,8 @@
   "syncLogOtherVault": "Otra caja fuerte",
   "syncLogUnreachable": "Sin respuesta",
   "syncKnock": "Un dispositivo se está conectando…",
-  "syncConnectingTo": "Conectando con {address}…"
+  "syncConnectingTo": "Conectando con {address}…",
+  "kitPasswordTitle": "Contraseña de la caja fuerte",
+  "kitPasswordLead": "Para ver la clave de recuperación, escribe también la contraseña de esta caja fuerte.",
+  "kitPasswordGo": "Ver la clave de recuperación"
 }

@@ -500,5 +500,8 @@
   "syncLogOtherVault": "Farklı kasa",
   "syncLogUnreachable": "Ulaşılamadı",
   "syncKnock": "Bir cihaz bağlanıyor…",
-  "syncConnectingTo": "{address} adresine bağlanılıyor…"
+  "syncConnectingTo": "{address} adresine bağlanılıyor…",
+  "kitPasswordTitle": "Kasa parolası",
+  "kitPasswordLead": "Kurtarma Anahtarını görmek için bu kasanın parolasını da yazın.",
+  "kitPasswordGo": "Kurtarma Anahtarını göster"
 }

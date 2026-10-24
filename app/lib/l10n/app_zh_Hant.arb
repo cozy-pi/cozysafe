@@ -500,5 +500,8 @@
   "syncLogOtherVault": "保險箱不同",
   "syncLogUnreachable": "無法連線",
   "syncKnock": "有裝置正在連線…",
-  "syncConnectingTo": "正在連線至 {address}…"
+  "syncConnectingTo": "正在連線至 {address}…",
+  "kitPasswordTitle": "保險箱密碼",
+  "kitPasswordLead": "要查看復原金鑰，還需輸入此保險箱的密碼。",
+  "kitPasswordGo": "查看復原金鑰"
 }

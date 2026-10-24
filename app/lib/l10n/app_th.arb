@@ -500,5 +500,8 @@
   "syncLogOtherVault": "ตู้นิรภัยอื่น",
   "syncLogUnreachable": "ติดต่อไม่ได้",
   "syncKnock": "มีอุปกรณ์กำลังเชื่อมต่อ…",
-  "syncConnectingTo": "กำลังเชื่อมต่อกับ {address}…"
+  "syncConnectingTo": "กำลังเชื่อมต่อกับ {address}…",
+  "kitPasswordTitle": "รหัสผ่านตู้นิรภัย",
+  "kitPasswordLead": "หากต้องการดูคีย์กู้คืน ให้พิมพ์รหัสผ่านของตู้นิรภัยนี้ด้วย",
+  "kitPasswordGo": "ดูคีย์กู้คืน"
 }

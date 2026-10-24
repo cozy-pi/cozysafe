@@ -500,5 +500,8 @@
   "syncLogOtherVault": "Autre coffre",
   "syncLogUnreachable": "Injoignable",
   "syncKnock": "Un appareil se connecte…",
-  "syncConnectingTo": "Connexion à {address}…"
+  "syncConnectingTo": "Connexion à {address}…",
+  "kitPasswordTitle": "Mot de passe du coffre",
+  "kitPasswordLead": "Pour afficher la clé de récupération, saisissez aussi le mot de passe de ce coffre.",
+  "kitPasswordGo": "Afficher la clé de récupération"
 }

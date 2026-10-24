@@ -500,5 +500,8 @@
   "syncLogOtherVault": "Другой сейф",
   "syncLogUnreachable": "Недоступно",
   "syncKnock": "Устройство подключается…",
-  "syncConnectingTo": "Подключение к {address}…"
+  "syncConnectingTo": "Подключение к {address}…",
+  "kitPasswordTitle": "Пароль сейфа",
+  "kitPasswordLead": "Чтобы показать ключ восстановления, введите также пароль этого сейфа.",
+  "kitPasswordGo": "Показать ключ восстановления"
 }

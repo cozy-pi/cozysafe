@@ -17,11 +17,11 @@ time, wherever it is opened from:
 | Face ID / fingerprint on or off | `vault_home.dart` `_toggleBiometric` |
 | Change PIN | `settings.dart` (`_guarded`) |
 | Auto-lock time | `settings.dart` (`_guarded`) |
-| Block screenshots | `settings.dart` (`_guarded`) |
+| Block screenshots (off only: turning it on only makes the vault safer) | `settings.dart` (`_guarded`) |
 | Hide note text: turning it off (lists and search would show it) | `settings.dart` (`_guarded`) |
 | Back up to a file | `vault_home.dart` `_backup` |
 | Backup password (set or change) | `vault_home.dart` `_password` (also the reminder banner) |
-| Emergency Kit (shows the Secret Key) | `vault_home.dart` `_showKit` |
+| Recovery Key (shows the 24 words): Face ID, **then the vault password** (`KitPasswordScreen`, wrong tries share the lock screen's waits) | `vault_home.dart` `_showKit` |
 | Blur thumbnails (off only) | `settings.dart` (`_guarded`) |
 | Delete this vault | `settings.dart` (`_guarded`), then the vault's PIN |
 | New vault | `confirmOwner` (lock screen and vault) |

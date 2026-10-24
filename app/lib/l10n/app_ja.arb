@@ -500,5 +500,8 @@
   "syncLogOtherVault": "別の金庫",
   "syncLogUnreachable": "接続できません",
   "syncKnock": "デバイスが接続しています…",
-  "syncConnectingTo": "{address} に接続しています…"
+  "syncConnectingTo": "{address} に接続しています…",
+  "kitPasswordTitle": "金庫のパスワード",
+  "kitPasswordLead": "リカバリーキーを表示するには、この金庫のパスワードも入力してください。",
+  "kitPasswordGo": "リカバリーキーを表示"
 }

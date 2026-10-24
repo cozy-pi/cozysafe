@@ -514,5 +514,8 @@
   "syncLogOtherVault": "Khác két",
   "syncLogUnreachable": "Không tới được máy kia",
   "syncKnock": "Một máy đang kết nối…",
-  "syncConnectingTo": "Đang kết nối tới {address}…"
+  "syncConnectingTo": "Đang kết nối tới {address}…",
+  "kitPasswordTitle": "Mật khẩu két",
+  "kitPasswordLead": "Để xem khoá khôi phục, hãy nhập cả mật khẩu két.",
+  "kitPasswordGo": "Xem khoá khôi phục"
 }

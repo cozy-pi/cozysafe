@@ -4,6 +4,16 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.48 (2026-10-24)
+
+### Changed
+- Showing the Recovery Key again (Settings, Security) now needs the vault password after
+  Face ID. Wrong tries wait like on the lock screen.
+
+### Security
+- More checks on the 24 words: the official BIP39 word list (by its checksum), the
+  reference test vectors, and that new keys come from the system's random generator.
+
 ## 0.1.47 (2026-10-24)
 
 ### Changed
