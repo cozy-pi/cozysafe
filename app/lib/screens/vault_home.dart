@@ -1852,7 +1852,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // lock button may sit.
     final centreMode = actionSide() == ActionSide.center;
     final lockShown = !_noLockButton(sections) && !nativeBarOn();
-    final centreX = (MediaQuery.sizeOf(context).width + (lockShown ? Ui.bar + 4 : 0)) / 2;
+    // Left of the bar: a lock button, and the vault's badge (the overview tab).
+    final leftOfBar = (lockShown ? Ui.bar + 4 : 0) + (sections.length >= 2 ? centreHomeWidth : 0);
+    final centreX = (MediaQuery.sizeOf(context).width + leftOfBar) / 2;
 
     final header = selecting
         ? Padding(
