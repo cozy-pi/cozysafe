@@ -452,5 +452,6 @@
   "lookLead": "Vous pourrez le modifier plus tard dans les Réglages.",
   "lookSkip": "Passer",
   "addRowPhotos": "Photos",
-  "addRowCamera": "Appareil photo"
+  "addRowCamera": "Appareil photo",
+  "sideCenterShort": "Milieu"
 }

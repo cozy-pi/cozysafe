@@ -452,5 +452,6 @@
   "lookLead": "Puedes cambiarlo más tarde en Ajustes.",
   "lookSkip": "Omitir",
   "addRowPhotos": "Fotos",
-  "addRowCamera": "Cámara"
+  "addRowCamera": "Cámara",
+  "sideCenterShort": "Centro"
 }

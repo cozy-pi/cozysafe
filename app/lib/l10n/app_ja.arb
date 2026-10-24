@@ -452,5 +452,6 @@
   "lookLead": "あとで設定から変更できます。",
   "lookSkip": "スキップ",
   "addRowPhotos": "写真",
-  "addRowCamera": "カメラ"
+  "addRowCamera": "カメラ",
+  "sideCenterShort": "中央"
 }

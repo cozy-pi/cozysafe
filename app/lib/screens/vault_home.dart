@@ -94,6 +94,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The column stays on screen while it closes.
   bool _addShown = false;
   AddWhat? _hover;
+  final _addColumnKey = GlobalKey();
   ScrollController _addScroll = ScrollController();
   final _actionKey = GlobalKey();
   final _recorder = GlobalKey<RecorderViewState>();
@@ -1994,27 +1995,47 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
               if (_addShown)
                 Positioned.fill(
-                  child: AddRow(
-                    open: _adding,
-                    onGone: () => setState(() => _addShown = false),
-                    ways: _addWays(),
-                    bottom: bottom + Ui.actionLift + Ui.primary + 14,
-                    hovered: _hover,
-                    onPick: _pickAdd,
-                    onClose: _closeAdd,
-                  ),
+                  child: actionSide() == ActionSide.center
+                      ? AddFan(
+                          open: _adding,
+                          onGone: () => setState(() => _addShown = false),
+                          ways: _addWays(),
+                          centre: Offset(MediaQuery.sizeOf(context).width / 2,
+                              MediaQuery.sizeOf(context).height - bottom - actionLift() - Ui.primary / 2),
+                          hovered: _hover,
+                          onPick: _pickAdd,
+                          onClose: _closeAdd,
+                        )
+                      // On an edge: the few ways stack straight up that edge.
+                      : AddColumn(
+                          open: _adding,
+                          onGone: () => setState(() => _addShown = false),
+                          ways: _addWays(),
+                          mine: addWaysOf(_section),
+                          columnKey: _addColumnKey,
+                          scroll: _addScroll,
+                          right: actionOnRight(),
+                          side: actionEdge,
+                          bottom: bottom + actionLift() + Ui.primary + 4 - 18, // the column's bottom fade sits behind the button's top
+                          hovered: _hover,
+                          onPick: _pickAdd,
+                          onClose: _closeAdd,
+                        ),
                 ),
-              // In the middle, above the bar. An empty vault has the add tiles on screen
-              // instead.
+              // Above the lock (left thumb), on the right, or in the middle above the bar
+              // (Settings). An empty vault has the add tiles on screen instead.
               if (!empty) Positioned(
                 // Keyed: the column appearing above must not rebuild the button mid-slide
                 // (it would drop the finger's gesture).
                 key: const ValueKey('action-slot'),
                 left: actionLeft(context),
-                bottom: bottom + Ui.actionLift,
+                bottom: bottom + actionLift(),
                 // Tap: open or close the column. Finger down and slide up: pick on release.
+                // Only a tap, or a finger sliding UP from +, opens the ways: a sideways
+                // swipe over the button belongs to the page (owner 2026-10-24: swiping the
+                // library from the edge kept opening the column).
                 child: GestureDetector(
-                  onPanStart: _recordingNow || _directAdd != null
+                  onVerticalDragStart: _recordingNow || _directAdd != null
                       ? null
                       : (_) {
                           if (!_adding) {
@@ -2025,8 +2046,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                             });
                           }
                         },
-                  onPanUpdate: _recordingNow ? null : (d) => _hoverAt(d.globalPosition),
-                  onPanEnd: _recordingNow
+                  onVerticalDragUpdate: _recordingNow ? null : (d) => _hoverAt(d.globalPosition),
+                  onVerticalDragEnd: _recordingNow
                       ? null
                       : (_) {
                           final h = _hover;

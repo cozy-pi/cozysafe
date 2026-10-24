@@ -251,7 +251,8 @@ abstract final class Ui {
   static const double radius = 18;
   /// Space between the bottom bar, the main action and the screen edge.
   static const double edge = 10;
-  /// The main action's bottom above the safe area: centred just above the bottom bar
-  /// (owner 2026-10-24: on the side it was in the way of the thumb swiping the library).
-  static const double actionLift = edge + bar + 14;
+  /// The main action's bottom above the safe area when on an edge: clear of the bottom bar
+  /// by 30, so a big thumb does not hit the lock instead (owner 2026-10-21). In the
+  /// middle it sits lower ([actionLift] in vault_bar.dart).
+  static const double actionLift = edge + bar + 30;
 }

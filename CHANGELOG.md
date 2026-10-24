@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.39 (2026-10-24)
+
+### Changed
+- The + button is back on the left by default. Settings → Add button position offers
+  Left, Middle or Right. On an edge, its choices stack up above it; in the middle they
+  fan out around it.
+- Swiping sideways over the + button no longer opens its choices; only a tap, or
+  sliding up from it, does.
+
 ## 0.1.38 (2026-10-24)
 
 ### Changed

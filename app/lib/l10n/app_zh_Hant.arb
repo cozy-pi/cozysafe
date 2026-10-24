@@ -452,5 +452,6 @@
   "lookLead": "之後可以在設定中更改。",
   "lookSkip": "略過",
   "addRowPhotos": "照片",
-  "addRowCamera": "相機"
+  "addRowCamera": "相機",
+  "sideCenterShort": "中間"
 }

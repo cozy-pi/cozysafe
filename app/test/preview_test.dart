@@ -373,14 +373,12 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện', home, section: 'library',
-      change: 'Nút + chuyển vào giữa, ngay trên thanh dưới (trước nằm sát cạnh, vướng khi vuốt)',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('library', 'Thư viện', home, section: 'library');
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
-  _screen('add-library', 'Thư viện · bấm +', home, section: 'library', setup: () => debugCamera = true,
-      change: 'MỚI: + ở Thư viện bung 2 ô ngang: Ảnh · Máy ảnh (máy ảnh có cả chụp và quay)',
-      marks: [() => find.byKey(const ValueKey('add-row'))], act: (t) async {
+  _screen('add-library', 'Thư viện · bấm + (nút bên trái)', home, section: 'library', setup: () => debugCamera = true,
+      change: 'Nút + về lại bên trái (mặc định); bấm là các lựa chọn xếp dọc ngay trên nút. Vuốt ngang qua nút không còn mở',
+      marks: [() => find.byKey(const ValueKey('add-column'))], act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
@@ -406,12 +404,9 @@ void main() {
     _itemsNow = const [];
   });
   _screen('one-type', 'Chỉ có ghi chú · thanh dưới gọn', home, section: 'note',
-      change: 'Thanh dưới chỉ rộng vừa các mục, nằm giữa (trước kéo dài hết màn rất lạ)',
-      marks: [() => find.byKey(const ValueKey('home-tab'))],
       setup: () => _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList());
   _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
-  _screen('note-new', 'Ghi chú mới', () => const NoteScreen(),
-      change: 'Ghi chú mới không còn nút xoá đỏ cạnh Xong');
+  _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
   _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
   _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'file', act: (t) async {
     await _tapChip(t, 'Hộ chiếu');
@@ -459,17 +454,31 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
     await t.pumpAndSettle();
   });
-  _screen('home-add', 'Trang chủ · bấm +', home, section: 'home',
+  _screen('add-library-center', 'Thư viện · nút ở giữa · bấm +', home, section: 'library', setup: () {
+    debugCamera = true;
+    Prefs.write('action-side', 'center');
+  },
+      change: 'MỚI: chọn "Giữa" trong Cài đặt: 2 lựa chọn bung ra hai bên nút',
+      marks: [() => find.byKey(const ValueKey('add-photos'))], act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  });
+  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
+    debugCamera = true;
+    Prefs.write('action-side', 'center');
+  },
+      change: 'MỚI: nút ở giữa: 5 lựa chọn xoè hình quạt quanh nút',
+      marks: [() => find.byKey(const ValueKey('add-note'))], act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  });
+  _screen('home-add', 'Trang chủ · bấm + (nút bên trái)', home, section: 'home',
       setup: () => debugCamera = true,
-      change: 'MỚI: một hàng ngang trên nút +: Ảnh · Máy ảnh · Ghi chú · Ghi âm · Tệp. Ở Ghi chú, Ghi âm, Tệp: + làm ngay, không có menu',
-      marks: [() => find.byKey(const ValueKey('add-row'))],
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('notes', 'Ghi chú', home, section: 'note',
-      change: 'Nút + đổi thành hình bút: bấm là mở ngay ghi chú mới',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('notes', 'Ghi chú', home, section: 'note');
   _screen('sort-menu', 'Ghi chú · bấm ⇅', home, section: 'note', act: (t) async {
     await t.tap(find.byKey(const ValueKey('sort-button')));
     await t.pumpAndSettle();
@@ -499,9 +508,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   });
-  _screen('audio', 'Ghi âm', home, section: 'audio',
-      change: 'Nút + thành micro đỏ: bấm là ghi âm ngay, nhìn là biết',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('audio', 'Ghi âm', home, section: 'audio');
   _screen('audio-select', 'Ghi âm · bấm giữ một bản ghi', home, section: 'audio',
       act: (t) async {
     await t.longPress(find.text('Cuộc họp với luật sư'));
@@ -509,9 +516,7 @@ void main() {
   });
   _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
       act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
-  _screen('files', 'Tệp', home, section: 'file',
-      change: 'Nút + thành hình tệp: bấm là chọn tệp ngay',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('files', 'Tệp', home, section: 'file');
   _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'));
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
       act: (t) async {
@@ -618,7 +623,8 @@ void main() {
         return settings(vault);
       }));
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
-      change: 'Bỏ mục "Vị trí nút thêm": nút + luôn ở giữa',
+      change: 'Vị trí nút thêm: Trái · Giữa · Phải',
+      marks: [() => find.byKey(const ValueKey('side-row'))],
       act: (t) async {
         await t.scrollUntilVisible(find.byKey(const ValueKey('hold-home-row')), 200, scrollable: find.byType(Scrollable).first);
         await t.drag(find.byType(Scrollable).first, const Offset(0, 500));

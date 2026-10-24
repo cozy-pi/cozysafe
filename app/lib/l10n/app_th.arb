@@ -452,5 +452,6 @@
   "lookLead": "เปลี่ยนได้ภายหลังในการตั้งค่า",
   "lookSkip": "ข้าม",
   "addRowPhotos": "รูปภาพ",
-  "addRowCamera": "กล้อง"
+  "addRowCamera": "กล้อง",
+  "sideCenterShort": "กลาง"
 }
