@@ -215,6 +215,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cs-net"
+version = "0.1.0"
+dependencies = [
+ "cs-crypto",
+ "cs-vault",
+ "hex",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "cs-photo"
 version = "0.1.0"
 dependencies = [

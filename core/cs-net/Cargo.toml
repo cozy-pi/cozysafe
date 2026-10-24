@@ -1,0 +1,16 @@
+[package]
+name = "cs-net"
+version = "0.1.0"
+description = "Cozy Safe network code, all of it: sync with a nearby device (P2P). The only crate allowed to use the network; every connection needs a permit the person granted"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+cs-crypto = { path = "../cs-crypto" }
+cs-vault = { path = "../cs-vault" }
+hex = "0.4"
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"
