@@ -233,6 +233,21 @@ impl Library {
             .unwrap_or(false)
     }
 
+    /// With no vault left in `dir`, forget the library's salt and Secret Key fingerprint,
+    /// so the next vault can start it with a new Secret Key (a device whose last vault was
+    /// deleted, holding a 128-bit key from before the 24 words). Refuses, returning
+    /// false, while any vault is there.
+    pub fn reset_if_empty(dir: &Path) -> Result<bool> {
+        if Library::has_vaults(dir) {
+            return Ok(false);
+        }
+        match fs::remove_file(dir.join(LIBRARY_FILE)) {
+            Ok(()) => Ok(true),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(true),
+            Err(e) => Err(e.into()),
+        }
+    }
+
     /// Open the library in `dir` with the app's Secret Key, creating the library (salt,
     /// fingerprint) with `params_if_new` if absent. A Secret Key from another library is
     /// refused with [`Error::WrongSecretKey`] instead of failing every password.
@@ -736,6 +751,26 @@ pub(crate) mod tests {
 
     fn lib(dir: &Path) -> Library {
         Library::open_or_create(dir, FAST, sk()).unwrap()
+    }
+
+    #[test]
+    fn an_empty_library_can_start_again_with_a_new_key() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = SecretKey::from_slice(&[9u8; 16]).unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, old.clone())
+            .unwrap()
+            .create_vault("Cũ", PW_A)
+            .unwrap();
+        // Not while a vault is there.
+        assert!(!Library::reset_if_empty(tmp.path()).unwrap());
+        assert!(matches!(
+            Library::open_or_create(tmp.path(), FAST, sk()),
+            Err(Error::WrongSecretKey)
+        ));
+        v.destroy().unwrap();
+        assert!(Library::reset_if_empty(tmp.path()).unwrap());
+        let fresh = lib(tmp.path()).create_vault("Mới", PW_B).unwrap();
+        assert_eq!(lib(tmp.path()).unlock(PW_B).unwrap().unwrap().id, fresh.id);
     }
 
     #[test]

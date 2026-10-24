@@ -115,6 +115,11 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       return;
     }
     var key = await SecretKeyStore.read();
+    // The last vault was deleted and this device still holds a Secret Key from before the
+    // 24 words: start afresh with a new one (owner 2026-10-24: Start stayed greyed out).
+    if (key != null && widget.first && !rust.secretKeyText(key: key).contains(' ')) {
+      if (await rust.resetEmptyLibrary(dir: widget.libraryDir)) key = null;
+    }
     final made = key == null;
     if (key == null) {
       key = rust.newSecretKey();
