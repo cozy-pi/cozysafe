@@ -87,6 +87,11 @@ get hijacked, so this is checked on every build, in layers (details and limits:
   CI fails if any other network permission (network state, Wi‑Fi control) sneaks in.
 - **macOS:** the app runs in Apple's sandbox; only the client and server network
   permissions sync needs are allowed.
+- **Independent scanners gate every release:** Google's OSV-Scanner (Rust and Dart
+  vulnerabilities), GitHub CodeQL, Semgrep (code and the release workflows), gitleaks
+  (secrets anywhere in the history), cargo-deny and cackle. A finding stops the release.
+- **No library version younger than 14 days** gets in: most hijacked releases are caught
+  and pulled within days. A security fix may come in sooner, with its advisory on record.
 - **Every library is reviewed before it gets in.** CI keeps a list of every Dart and Rust
   package, direct or indirect; a new one fails the build until someone reviews it. The
   sources of every package are scanned for network code, and each exception is written

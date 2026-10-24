@@ -93,6 +93,31 @@ app outside the export is fragile, the certificate can be revoked, and without t
 Store Connect key nothing can be uploaded with it. Run by hand, `testflight.yml` can
 validate a build with Apple instead of uploading it (`upload: false`).
 
+## Independent scanners (`.github/workflows/security.yml`)
+
+Run on every push to main, on pull requests, weekly, and first in every release
+(`release.yml` needs them): a finding stops the release. Each tool is pinned to a commit or
+an exact version that was at least 14 days old when added.
+
+| Tool | What it looks at |
+|---|---|
+| OSV-Scanner (Google) | Known vulnerabilities in `Cargo.lock`, `app/rust/Cargo.lock`, `app/pubspec.lock` |
+| CodeQL (GitHub) | The Rust code and the GitHub workflows (`security-extended` queries) |
+| Semgrep | Rust, Kotlin, Swift, secrets and GitHub Actions rules (shell injection, `secrets: inherit`) |
+| gitleaks | Secrets in the whole git history; reviewed test fixtures listed in `.gitleaksignore` |
+| `tools/check-age` | No locked Rust or Dart version younger than 14 days |
+
+**Minimum age.** A hijacked release is usually found and pulled within days, so nothing
+newer than 14 days comes in, direct or not. A version that must come in sooner, such as a
+security fix, is listed in `tools/allow/young.txt` with its advisory. (When this rule came
+in, the first run showed why: the then-newest rustls and webpki releases were themselves
+the fixes for six advisories, so the older ones could not be kept either.)
+
+**First run, 2026-10-24.** Semgrep found release-workflow inputs pasted into shell
+commands (now passed as environment variables) and `secrets: inherit` (now each secret by
+name); gitleaks found a real Recovery Key used as mockup data (replaced; the owner changed
+it). None of it was in a shipped app.
+
 ## Limits
 
 - **No OS can hold an app to the local network.** With sync, Android has the INTERNET
