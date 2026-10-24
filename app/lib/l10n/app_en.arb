@@ -765,5 +765,7 @@
   "syncRemoving": "Removing deleted items",
   "syncRemovingDrive": "Removing deleted items from Google Drive",
   "syncRemovingDevice": "Removing deleted items from the other device",
-  "syncRemovingWhat": "What you deleted for good is taken off there too."
+  "syncRemovingWhat": "What you deleted for good is taken off there too.",
+  "changeKeyOtherVault": "Another vault on this device uses the same 24 words. Type its password so the new key opens it too.",
+  "changeKeyOtherPassword": "Password of the other vault"
 }

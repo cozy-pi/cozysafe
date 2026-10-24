@@ -11,9 +11,14 @@ import 'common.dart';
 /// Choose a PIN for this vault on this device: at least 4 digits, then the same again.
 /// Pops with `true` once it is set. `skippable` adds "Not now" (after the first vault).
 class SetPinScreen extends StatefulWidget {
-  const SetPinScreen({super.key, this.skippable = false, this.forThisPhone = false});
+  const SetPinScreen({
+    super.key,
+    this.skippable = false,
+    this.forThisPhone = false,
+  });
 
   final bool skippable;
+
   /// After opening with the password on a phone that has no PIN for this vault yet.
   final bool forThisPhone;
 
@@ -42,8 +47,16 @@ class _SetPinScreenState extends State<SetPinScreen> {
   }
 
   void _delete() {
-    if (_pin.isNotEmpty) setState(() => _pin = _pin.substring(0, _pin.length - 1));
+    if (_pin.isNotEmpty) {
+      setState(() => _pin = _pin.substring(0, _pin.length - 1));
+    }
   }
+
+  void _restart() => setState(() {
+    _first = null;
+    _pin = '';
+    _error = null;
+  });
 
   void _next() {
     if (_pin.length < _min) return;
@@ -110,80 +123,119 @@ class _SetPinScreenState extends State<SetPinScreen> {
     final l = AppLocalizations.of(context);
     final confirming = _first != null;
     final ink = Theme.of(context).colorScheme.onSurface;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: ink,
-        automaticallyImplyLeading: !widget.skippable,
-        actions: [
-          if (widget.skippable)
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              style: TextButton.styleFrom(foregroundColor: ink),
-              child: Text(l.notNow),
-            ),
-        ],
-      ),
-      extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: VaultBackdrop()),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      confirming ? l.pinConfirmTitle : (widget.forThisPhone ? l.pinThisPhoneTitle : l.pinSetTitle),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: ink, fontSize: 24, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      confirming ? l.pinConfirmLead : (widget.forThisPhone ? l.pinThisPhoneLead : l.pinSetLead(_min)),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: ink.withValues(alpha: .8), height: 1.45),
-                    ),
-                    const SizedBox(height: 22),
-                    SizedBox(
-                      height: 20,
-                      child: PinDots(filled: _pin.length,
-                        color: ink,
+    // Back while confirming goes to the first entry, not out (owner 2026-10-25).
+    return PopScope(
+      canPop: !confirming && !_busy,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && confirming && !_busy) _restart();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: ink,
+          automaticallyImplyLeading: !widget.skippable && !confirming,
+          leading: confirming
+              ? IconButton(
+                  key: const ValueKey('pin-back'),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  icon: const BackButtonIcon(),
+                  onPressed: _busy ? null : _restart,
+                )
+              : null,
+          actions: [
+            if (widget.skippable)
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                style: TextButton.styleFrom(foregroundColor: ink),
+                child: Text(l.notNow),
+              ),
+          ],
+        ),
+        extendBodyBehindAppBar: true,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: VaultBackdrop()),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        confirming
+                            ? l.pinConfirmTitle
+                            : (widget.forThisPhone
+                                  ? l.pinThisPhoneTitle
+                                  : l.pinSetTitle),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: ink,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    SizedBox(
-                      height: 44,
-                      child: Center(
-                        child: Text(
-                          _error ?? '',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: _error != null ? ink : ink.withValues(alpha: .7),
-                            fontSize: 13,
-                            fontWeight: _error != null ? FontWeight.w600 : FontWeight.w400,
+                      const SizedBox(height: 8),
+                      Text(
+                        confirming
+                            ? l.pinConfirmLead
+                            : (widget.forThisPhone
+                                  ? l.pinThisPhoneLead
+                                  : l.pinSetLead(_min)),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: ink.withValues(alpha: .8),
+                          height: 1.45,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      SizedBox(
+                        height: 20,
+                        child: PinDots(filled: _pin.length, color: ink),
+                      ),
+                      SizedBox(
+                        height: 44,
+                        child: Center(
+                          child: Text(
+                            _error ?? '',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _error != null
+                                  ? ink
+                                  : ink.withValues(alpha: .7),
+                              fontSize: 13,
+                              fontWeight: _error != null
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    PinPad(onDigit: _digit, onDelete: _delete, enabled: !_busy),
-                    const SizedBox(height: 18),
-                    if (!confirming)
-                      SizedBox(
-                        width: 220,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(),
-                          onPressed: _pin.length >= _min ? _next : null,
-                          child: Text(l.pinNext),
-                        ),
+                      PinPad(
+                        onDigit: _digit,
+                        onDelete: _delete,
+                        enabled: !_busy,
                       ),
-                  ],
+                      const SizedBox(height: 18),
+                      if (!confirming)
+                        SizedBox(
+                          width: 220,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(),
+                            onPressed: _pin.length >= _min ? _next : null,
+                            child: Text(l.pinNext),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

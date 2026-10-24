@@ -570,5 +570,7 @@
   "syncRemoving": "Menghapus item yang sudah dihapus",
   "syncRemovingDrive": "Menghapus item yang sudah dihapus dari Google Drive",
   "syncRemovingDevice": "Menghapus item yang sudah dihapus dari perangkat lain",
-  "syncRemovingWhat": "Yang sudah dihapus permanen juga dihapus di sana."
+  "syncRemovingWhat": "Yang sudah dihapus permanen juga dihapus di sana.",
+  "changeKeyOtherVault": "Brankas lain di perangkat ini memakai 24 kata yang sama. Masukkan kata sandinya agar kunci baru juga bisa membukanya.",
+  "changeKeyOtherPassword": "Kata sandi brankas lain"
 }

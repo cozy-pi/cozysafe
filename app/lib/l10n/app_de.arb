@@ -570,5 +570,7 @@
   "syncRemoving": "Gelöschte Elemente werden entfernt",
   "syncRemovingDrive": "Gelöschte Elemente werden aus Google Drive entfernt",
   "syncRemovingDevice": "Gelöschte Elemente werden vom anderen Gerät entfernt",
-  "syncRemovingWhat": "Was endgültig gelöscht wurde, wird auch dort entfernt."
+  "syncRemovingWhat": "Was endgültig gelöscht wurde, wird auch dort entfernt.",
+  "changeKeyOtherVault": "Ein anderer Tresor auf diesem Gerät nutzt dieselben 24 Wörter. Geben Sie sein Passwort ein, damit der neue Schlüssel auch ihn öffnet.",
+  "changeKeyOtherPassword": "Passwort des anderen Tresors"
 }

@@ -570,5 +570,7 @@
   "syncRemoving": "削除した項目を消去中",
   "syncRemovingDrive": "Google Drive から削除した項目を消去中",
   "syncRemovingDevice": "もう一台から削除した項目を消去中",
-  "syncRemovingWhat": "完全に削除したものは、そちらからも消去されます。"
+  "syncRemovingWhat": "完全に削除したものは、そちらからも消去されます。",
+  "changeKeyOtherVault": "この端末の別の金庫も同じ24語を使っています。新しいキーでその金庫も開けるように、そのパスワードを入力してください。",
+  "changeKeyOtherPassword": "もう一つの金庫のパスワード"
 }

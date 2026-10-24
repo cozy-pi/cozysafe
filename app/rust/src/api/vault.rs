@@ -214,19 +214,48 @@ pub fn reset_empty_library(dir: String) -> Result<bool, VaultError> {
     Ok(Library::reset_if_empty(Path::new(&dir))?)
 }
 
-/// Move this device's library to `new_key` (a new Recovery Key) after the person typed
-/// the open vault's password: false if it is not that password. Nothing is lost if the
-/// app stops before [`finish_secret_key_change`]: the old key still opens it.
+/// Move this device's library to `new_key` (a new Recovery Key) with the password of
+/// every vault here that opens by password (they share the key; the open vault's first).
+/// Nothing is lost if the app stops before [`finish_secret_key_change`]: the old key
+/// still opens them.
 pub fn change_secret_key(
     dir: String,
-    password: String,
+    passwords: Vec<String>,
     new_key: Vec<u8>,
-) -> Result<bool, VaultError> {
-    let password = Zeroizing::new(password);
+) -> Result<KeyChangeResult, VaultError> {
+    let passwords: Vec<Zeroizing<String>> = passwords.into_iter().map(Zeroizing::new).collect();
+    let refs: Vec<&str> = passwords.iter().map(|p| p.as_str()).collect();
     let new_key = Zeroizing::new(new_key);
     let new_key = key_from(&new_key).ok_or(VaultError::Storage)?;
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
-    with_open(|v| Ok(library.change_secret_key(v, &password, &new_key)?))
+    // Every failure names itself in the debug log (owner 2026-10-25: "it did not change"
+    // told nothing).
+    let logged = |e: cs_vault::Error| {
+        debug_line(|| format!("key change: {e}"));
+        VaultError::from(e)
+    };
+    let secret = secret().inspect_err(|_| debug_line(|| "key change: no Recovery Key in use".into()))?;
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret).map_err(logged)?;
+    let change = library.change_secret_key_all(&refs, &new_key).map_err(logged)?;
+    debug_line(|| format!("key change: {change:?} ({} password(s))", refs.len()));
+    Ok(match change {
+        cs_vault::KeyChange::Changed => KeyChangeResult { step: KeyChangeStep::Changed },
+        cs_vault::KeyChange::WrongPassword => KeyChangeResult { step: KeyChangeStep::WrongPassword },
+        cs_vault::KeyChange::OthersNeeded(_) => KeyChangeResult { step: KeyChangeStep::OtherVault },
+    })
+}
+
+/// What came of [`change_secret_key`].
+pub enum KeyChangeStep {
+    Changed,
+    /// A password given opens no vault here.
+    WrongPassword,
+    /// Another vault here shares the key: its password is needed too (how many is not
+    /// said, so the screen does not tell who holds the phone how many vaults it has).
+    OtherVault,
+}
+
+pub struct KeyChangeResult {
+    pub step: KeyChangeStep,
 }
 
 /// The new key is in the keystore: use it from now on, which also drops the old one from
@@ -234,7 +263,10 @@ pub fn change_secret_key(
 pub fn finish_secret_key_change(dir: String, new_key: Vec<u8>) -> Result<(), VaultError> {
     let new_key = Zeroizing::new(new_key);
     let key = key_from(&new_key).ok_or(VaultError::Storage)?;
-    Library::open_or_create(Path::new(&dir), params_for_this_device(), key.clone())?;
+    Library::open_or_create(Path::new(&dir), params_for_this_device(), key.clone()).map_err(|e| {
+        debug_line(|| format!("key change finish: {e}"));
+        VaultError::from(e)
+    })?;
     *SECRET.lock().unwrap_or_else(|p| p.into_inner()) = Some(key);
     Ok(())
 }

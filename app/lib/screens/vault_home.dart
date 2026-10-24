@@ -241,6 +241,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       _thumbnails.clear();
       // The lock covers the pages kept for after (Settings), not the rest: what showed
       // vault content closes, and the item names go until the vault opens again.
+      vaultLocks.value++;
       nav.popUntil(keptOnLock);
       if (mounted) setState(() => _items = null);
       final opened = await nav.push<rust.VaultInfo>(
@@ -597,6 +598,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         confirm: false,
         // A new Recovery Key replaces this page (it would show the old one).
         onChange: () => Navigator.of(kit).pushReplacement(MaterialPageRoute<void>(
+          // Kept under the lock: its new words are not in use yet, and locking must not
+          // make the person write down another set (owner 2026-10-25).
+          settings: keepOnLock,
           builder: (_) => ChangeKeyScreen(libraryDir: widget.libraryDir, password: password, onBackup: _backup),
         )),
       ),
