@@ -129,6 +129,13 @@ pub(crate) struct ItemRecord {
     pub(crate) device: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub(crate) data_rev: String,
+    /// SHA-256 of the encrypted `.data` and `.thumb` files, sealed in the record: a sync
+    /// place cannot hand back older content under a newer revision (same item key, so
+    /// it would decrypt) without the check failing.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub(crate) data_hash: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub(crate) thumb_hash: String,
     /// Format 1: the folder the item was in. Read, never written.
     #[serde(default, rename = "folder", skip_serializing)]
     legacy_folder_id: Option<String>,
@@ -218,19 +225,21 @@ impl OpenVault {
 
         let data_path = self.path(&id, "data")?;
         let tmp = data_path.with_extension("data.tmp");
-        let size_bytes = {
-            let mut f = fs::File::create(&tmp)?;
+        let (size_bytes, data_hash) = {
+            let mut f = Hashing::new(fs::File::create(&tmp)?);
             let n = stream::encrypt(&dek, &self.item_aad(&id, "data"), new.content, &mut f)?;
             lap(&mut t.encrypt_ms);
-            f.sync_all()?;
-            n
+            f.inner.sync_all()?;
+            (n, f.hex())
         };
         fs::rename(&tmp, &data_path)?;
         lap(&mut t.sync_ms);
 
+        let mut thumb_hash = String::new();
         if let Some(thumbnail) = new.thumbnail {
             let sealed = wrap::seal(&dek, thumbnail, &self.item_aad(&id, "thumb"));
             write_atomic(&self.path(&id, "thumb")?, &sealed)?;
+            thumb_hash = sha256_hex(&sealed);
         }
         lap(&mut t.thumbnail_ms);
 
@@ -252,6 +261,8 @@ impl OpenVault {
             hlc: 0,
             device: String::new(),
             data_rev: String::new(),
+            data_hash,
+            thumb_hash,
             legacy_folder_id: None,
             wrapped_dek: hex::encode(wrap::wrap_key(
                 &self.master_key,
@@ -270,14 +281,15 @@ impl OpenVault {
         let (mut record, dek) = self.record_and_key(id)?;
         let data_path = self.path(id, "data")?;
         let tmp = data_path.with_extension("data.tmp");
-        let size_bytes = {
-            let mut f = fs::File::create(&tmp)?;
+        let (size_bytes, data_hash) = {
+            let mut f = Hashing::new(fs::File::create(&tmp)?);
             let n = stream::encrypt(&dek, &self.item_aad(id, "data"), content, &mut f)?;
-            f.sync_all()?;
-            n
+            f.inner.sync_all()?;
+            (n, f.hex())
         };
         fs::rename(&tmp, &data_path)?;
         record.size_bytes = size_bytes;
+        record.data_hash = data_hash;
         record.name = name.to_owned();
         record.data_rev.clear(); // new content: this revision carries it
         let record = self.write_record(id, &record)?;
@@ -611,6 +623,62 @@ fn meta(id: String, r: ItemRecord) -> ItemMeta {
         duration_ms: r.duration_ms,
         tag_ids: r.tag_ids,
         is_favorite: r.is_favorite,
+    }
+}
+
+/// Hex SHA-256 of some bytes.
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    hex::encode(sha2::Sha256::digest(bytes))
+}
+
+/// Hex SHA-256 of a file, read in pieces.
+pub(crate) fn file_sha256_hex(path: &std::path::Path) -> Result<String> {
+    use sha2::Digest;
+    let mut h = sha2::Sha256::new();
+    let mut f = fs::File::open(path)?;
+    let mut buf = vec![0u8; 1 << 20];
+    loop {
+        let n = f.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        h.update(&buf[..n]);
+    }
+    Ok(hex::encode(h.finalize()))
+}
+
+/// A writer that hashes what goes through it (the encrypted content, as written).
+pub(crate) struct Hashing<W: Write> {
+    pub(crate) inner: W,
+    hash: sha2::Sha256,
+}
+
+impl<W: Write> Hashing<W> {
+    pub(crate) fn new(inner: W) -> Self {
+        use sha2::Digest;
+        Hashing {
+            inner,
+            hash: sha2::Sha256::new(),
+        }
+    }
+
+    pub(crate) fn hex(self) -> String {
+        use sha2::Digest;
+        hex::encode(self.hash.finalize())
+    }
+}
+
+impl<W: Write> Write for Hashing<W> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        use sha2::Digest;
+        let n = self.inner.write(buf)?;
+        self.hash.update(&buf[..n]);
+        Ok(n)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.inner.flush()
     }
 }
 
