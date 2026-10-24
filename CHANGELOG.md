@@ -4,7 +4,7 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## Unreleased
+## 0.1.57 (2026-10-24)
 
 ### Changed
 - Google Drive sync sends up to 4 items at once and removes deleted items in batches:
@@ -14,6 +14,14 @@ Dates are UTC.
 - + ignores a finger passing over it (a swipe back from the edge no longer opens it).
 - The blurred background shows everything a vault keeps: photos, videos, passwords,
   keys and codes, notes, documents, cards, voice; no more rows of mountains.
+
+### Security
+- Every input a build downloads is pinned by hash: the PDFium library (SHA-256 of each
+  archive), every Gradle dependency (dependency verification), the Swift packages
+  (committed Package.resolved, checked after each Apple build), Dart packages
+  (lockfile enforced) and the Semgrep scanner (hashed packages, none newer than 14
+  days). A changed byte stops the build; both checks were tried with a wrong hash.
+- Code vendored into third_party/ is scanned for network APIs like any package.
 
 ### Fixed
 - Locking and coming back returns to the page you were on in Settings (and its pages),
