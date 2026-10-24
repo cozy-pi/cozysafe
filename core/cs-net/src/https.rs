@@ -1,8 +1,8 @@
 //! The few HTTPS requests Google Drive needs, on rustls, to one host only. A full HTTP
 //! client pulled in 44 crates (docs/supply-chain.md); this is HTTP/1.1 with
-//! `Content-Length` or chunked bodies, nothing else. One connection is kept open and
-//! reused (keep-alive) while the server allows it, so a sync of many small items pays
-//! for one TLS handshake, not one per request.
+//! `Content-Length` or chunked bodies, nothing else. Up to [`POOL`] connections are kept
+//! open and reused (keep-alive) while the server allows it, so a sync of many small
+//! items, a few at once, pays for a few TLS handshakes, not one per request.
 //!
 //! The only name ever looked up is [`HOST`]: this is the one place in the app that
 //! resolves a name, and it takes no name from outside.
@@ -21,6 +21,8 @@ pub(crate) const MAX_SMALL: usize = 8 << 20;
 const MAX_HEADERS: usize = 64 << 10;
 /// A connection idle longer than this is not reused (servers drop idle ones after ~60 s).
 const MAX_IDLE: Duration = Duration::from_secs(50);
+/// Idle connections kept, one per request a sync runs at once.
+pub(crate) const POOL: usize = 4;
 /// A body nobody read is read away up to this much to keep the connection; past it the
 /// connection is closed instead.
 const DRAIN: u64 = 64 << 10;
@@ -61,9 +63,11 @@ impl Wire for Tls {
 type Conn = BufReader<Box<dyn Wire>>;
 type Dial = Box<dyn Fn() -> Result<Box<dyn Wire>> + Send + Sync>;
 
-/// Requests to [`HOST`], over one kept connection.
+/// Requests to [`HOST`], over kept connections. Shared between threads: each request
+/// takes a connection of its own (a kept one, or a new one) and hands it back after.
 pub(crate) struct Client {
-    idle: Mutex<Option<(Conn, Instant)>>,
+    /// Idle connections, the most recently used last.
+    idle: Mutex<Vec<(Conn, Instant)>>,
     dial: Dial,
 }
 
@@ -74,19 +78,30 @@ impl Client {
 
     fn with_dial(dial: Dial) -> Self {
         Client {
-            idle: Mutex::new(None),
+            idle: Mutex::new(Vec::new()),
             dial,
         }
     }
 
-    /// The kept connection, if it is recent and still open.
+    /// The most recent kept connection that is still recent and open; the others met on
+    /// the way are closed.
     fn take(&self) -> Option<Conn> {
-        let (conn, at) = self.idle.lock().unwrap_or_else(|p| p.into_inner()).take()?;
-        (at.elapsed() < MAX_IDLE && conn.get_ref().open()).then_some(conn)
+        let mut idle = self.idle.lock().unwrap_or_else(|p| p.into_inner());
+        while let Some((conn, at)) = idle.pop() {
+            if at.elapsed() < MAX_IDLE && conn.get_ref().open() {
+                return Some(conn);
+            }
+        }
+        None
     }
 
+    /// Keep `conn` for the next request; past [`POOL`] the oldest is closed.
     fn keep(&self, conn: Conn) {
-        *self.idle.lock().unwrap_or_else(|p| p.into_inner()) = Some((conn, Instant::now()));
+        let mut idle = self.idle.lock().unwrap_or_else(|p| p.into_inner());
+        idle.push((conn, Instant::now()));
+        if idle.len() > POOL {
+            idle.remove(0);
+        }
     }
 
     /// One request to [`HOST`]. `path` starts with `/` and is sent as it is. The next
@@ -213,12 +228,15 @@ impl Response<'_> {
     }
 
     /// The whole body, refused past [`MAX_SMALL`].
-    pub fn bytes(mut self) -> Result<Vec<u8>> {
+    pub fn bytes(self) -> Result<Vec<u8>> {
+        self.bytes_max(MAX_SMALL)
+    }
+
+    /// The whole body, refused past `cap` bytes.
+    pub fn bytes_max(mut self, cap: usize) -> Result<Vec<u8>> {
         let mut out = Vec::new();
-        (&mut self)
-            .take(MAX_SMALL as u64 + 1)
-            .read_to_end(&mut out)?;
-        if out.len() > MAX_SMALL {
+        (&mut self).take(cap as u64 + 1).read_to_end(&mut out)?;
+        if out.len() > cap {
             self.reuse = false;
             return Err(Error::Corrupt("drive response too large"));
         }
@@ -629,13 +647,44 @@ mod tests {
     fn a_connection_idle_too_long_is_not_reused() {
         let s = server(vec![vec![OK, OK], vec![OK]]);
         get(&s.client).unwrap();
-        if let Some((_, at)) = s.client.idle.lock().unwrap().as_mut() {
+        for (_, at) in s.client.idle.lock().unwrap().iter_mut() {
             *at = Instant::now()
                 .checked_sub(MAX_IDLE + Duration::from_secs(1))
                 .unwrap();
         }
         get(&s.client).unwrap();
         assert_eq!(s.dials.load(Ordering::SeqCst), 2);
+    }
+
+    #[test]
+    fn requests_at_once_each_get_a_connection_and_up_to_four_are_kept() {
+        let s = server(vec![vec![OK, OK]; POOL + 1]);
+        // Bodies not read yet: each request holds its connection.
+        let held: Vec<_> = (0..=POOL)
+            .map(|_| s.client.request("GET", "/x", "t", &[], Body::None).unwrap())
+            .collect();
+        assert_eq!(s.dials.load(Ordering::SeqCst), POOL + 1);
+        for r in held {
+            assert_eq!(r.bytes().unwrap(), b"hi");
+        }
+        assert_eq!(s.client.idle.lock().unwrap().len(), POOL);
+        // Four more at once reuse the four kept; none dials.
+        let again: Vec<_> = (0..POOL)
+            .map(|_| s.client.request("GET", "/x", "t", &[], Body::None).unwrap())
+            .collect();
+        assert_eq!(s.dials.load(Ordering::SeqCst), POOL + 1);
+        for r in again {
+            assert_eq!(r.bytes().unwrap(), b"hi");
+        }
+    }
+
+    #[test]
+    fn a_body_past_its_cap_is_refused() {
+        let s = server(vec![vec![
+            b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello",
+        ]]);
+        let r = s.client.request("GET", "/x", "t", &[], Body::None).unwrap();
+        assert!(r.bytes_max(4).is_err());
     }
 
     #[test]

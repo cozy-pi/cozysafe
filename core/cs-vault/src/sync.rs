@@ -21,17 +21,18 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
 use cs_crypto::wrap;
 use serde::{Deserialize, Serialize};
 
-use crate::db::Index;
+use crate::db::{Gone, Index};
 use crate::items::{kind, ItemRecord};
 use crate::{Error, OpenVault, Result};
 
 /// The shared folder, seen from this device. Paths use '/' and stay inside the folder.
-pub trait Remote {
+/// Shared between threads when [`Remote::parallel`] is above 1.
+pub trait Remote: Sync {
     /// A stable name for this place (the sync state kept here is per place).
     fn key(&self) -> String;
     /// File names directly in `dir` (empty when it does not exist).
@@ -56,6 +57,19 @@ pub trait Remote {
     /// are taken off the place too.
     fn removes(&self) -> bool {
         false
+    }
+    /// [`Remote::remove`] for many files at once (a place that can delete in batches
+    /// does it in far fewer requests).
+    fn remove_many(&self, paths: &[String]) -> Result<()> {
+        for p in paths {
+            self.remove(p)?;
+        }
+        Ok(())
+    }
+    /// How many items may go up at once. Above 1 only for places whose requests wait on
+    /// the network (each one a round trip) and that take calls from several threads.
+    fn parallel(&self) -> usize {
+        1
     }
 }
 
@@ -344,6 +358,14 @@ impl Remote for Counted<'_> {
 
     fn removes(&self) -> bool {
         self.inner.removes()
+    }
+
+    fn remove_many(&self, paths: &[String]) -> Result<()> {
+        self.inner.remove_many(paths)
+    }
+
+    fn parallel(&self) -> usize {
+        self.inner.parallel()
     }
 }
 
@@ -752,8 +774,14 @@ impl OpenVault {
             return Ok(()); // edited here after: it stays (and goes up again)
         }
         self.remove_item(id)?;
-        // Kept as a deletion to pass on to the other places, already known here.
-        self.index.add_gone(id, hlc)?;
+        // Kept as a deletion to pass on to the other places, already known here. Our
+        // revision is dropped unread there only if it is older than the deletion.
+        let rev = if ours.hlc <= hlc {
+            ours.rev.as_str()
+        } else {
+            ""
+        };
+        self.index.add_gone(id, hlc, rev)?;
         self.index.gone_sent(&remote.key(), id)?;
         report.removed += 1;
         Ok(())
@@ -861,30 +889,47 @@ impl OpenVault {
         let total = todo.len() as u32;
         let start = remote.bytes();
         let mut bytes_total = 0u64;
-        for (id, record, sealed) in &todo {
-            bytes_total +=
-                sealed.len() as u64 + fs::metadata(self.path(id, "data")?).map_or(0, |m| m.len());
-            if record.has_thumbnail() {
-                bytes_total += fs::metadata(self.path(id, "thumb")?).map_or(0, |m| m.len());
-            }
-        }
-        let mut done = 0u32;
-        let mut entry = Entry::default();
+        let mut jobs = Vec::with_capacity(todo.len());
         for (id, record, sealed) in todo {
+            let mut files = Vec::new();
             for ext in ["data", "thumb"] {
                 if ext == "thumb" && !record.has_thumbnail() {
                     continue;
                 }
-                let to = format!("{base}/blobs/{id}.{}.{ext}", record.data_rev);
-                if !remote.exists(&to)? {
-                    remote.put_file(&to, &self.path(&id, ext)?)?;
+                let local = self.path(&id, ext)?;
+                bytes_total += fs::metadata(&local).map_or(0, |m| m.len());
+                files.push((
+                    format!("{base}/blobs/{id}.{}.{ext}", record.data_rev),
+                    local,
+                ));
+            }
+            bytes_total += sealed.len() as u64;
+            jobs.push(Upload {
+                record: format!("{base}/records/{id}/{}", record.rev),
+                id,
+                rev: record.rev,
+                files,
+                sealed,
+            });
+        }
+        // Content first, the record last: a record in the place always has its content.
+        let send = |job: &Upload| -> Result<()> {
+            for (to, local) in &job.files {
+                if !remote.exists(to)? {
+                    remote.put_file(to, local)?;
                 }
             }
-            let to = format!("{base}/records/{id}/{}", record.rev);
-            if !remote.exists(&to)? {
-                remote.put(&to, &mut &sealed[..])?;
+            if !remote.exists(&job.record)? {
+                remote.put(&job.record, &mut &job.sealed[..])?;
             }
-            entry.items.push((id, record.rev));
+            Ok(())
+        };
+        let mut done = 0u32;
+        let mut entry = Entry::default();
+        // Items are told in the order they are fully up, so a journal entry only ever
+        // names items whose files are all in the place.
+        each_at_once(remote.parallel(), &jobs, &send, |i| {
+            entry.items.push((jobs[i].id.clone(), jobs[i].rev.clone()));
             done += 1;
             progress(SyncProgress {
                 phase: SyncPhase::Sending,
@@ -896,10 +941,11 @@ impl OpenVault {
             if entry.items.len() >= LOG_EVERY {
                 self.send_entry(remote, std::mem::take(&mut entry), report)?;
             }
-        }
+            Ok(())
+        })?;
         // Before the deletions are told: stopped half-way, it is done again next time.
         self.clean_gone(remote, &base, &gone, progress)?;
-        entry.gone = gone;
+        entry.gone = gone.into_iter().map(|(id, hlc, _)| (id, hlc)).collect();
         if !entry.items.is_empty() || !entry.gone.is_empty() {
             self.send_entry(remote, entry, report)?;
             progress(SyncProgress {
@@ -917,11 +963,16 @@ impl OpenVault {
     /// deleted photos stayed in Google Drive). Only revisions made before the deletion
     /// go: one edited on another device after it stays, with its content. The first
     /// time on a place, deletions it was already told about are cleaned as well.
+    ///
+    /// The revision this device last had is older than the deletion and goes unread;
+    /// any other is read to compare its clock. Files go in batches of about
+    /// [`REMOVE_EVERY`], each batch's records before its content, so a device catching
+    /// up finds a record gone (and skips it) rather than a record without content.
     fn clean_gone(
         &self,
         remote: &Counted<'_>,
         base: &str,
-        unsent: &[(String, i64)],
+        unsent: &[Gone],
         progress: &dyn Fn(SyncProgress),
     ) -> Result<()> {
         if !remote.removes() {
@@ -929,7 +980,7 @@ impl OpenVault {
         }
         let swept_key = format!("{}:gone-swept", remote.key());
         let swept = self.index.meta_get(&swept_key)?.is_some();
-        let todo: Vec<(String, i64)> = if swept {
+        let todo: Vec<Gone> = if swept {
             unsent.to_vec()
         } else {
             self.index.all_gone()?
@@ -938,14 +989,20 @@ impl OpenVault {
             let blobs = remote.list(&format!("{base}/blobs"))?;
             let total = todo.len() as u32;
             let start = remote.bytes();
-            for (n, (id, hlc)) in todo.iter().enumerate() {
+            let (mut records, mut contents) = (Vec::new(), Vec::new());
+            for (n, (id, hlc, last_rev)) in todo.iter().enumerate() {
                 let mut keep = BTreeSet::new();
                 for rev in remote.list(&format!("{base}/records/{id}"))? {
+                    let path = format!("{base}/records/{id}/{rev}");
+                    if !last_rev.is_empty() && rev == *last_rev {
+                        records.push(path);
+                        continue;
+                    }
                     match self.remote_record(remote, id, &rev) {
                         Ok(Some((r, _))) if r.hlc > *hlc => {
                             keep.insert(r.data_rev);
                         }
-                        Ok(_) => remote.remove(&format!("{base}/records/{id}/{rev}"))?,
+                        Ok(_) => records.push(path),
                         // Unreadable: not ours to judge; leave it.
                         Err(_) => {}
                     }
@@ -957,16 +1014,20 @@ impl OpenVault {
                     };
                     let data_rev = rest.rsplit_once('.').map_or("", |(d, _)| d);
                     if !keep.contains(data_rev) {
-                        remote.remove(&format!("{base}/blobs/{name}"))?;
+                        contents.push(format!("{base}/blobs/{name}"));
                     }
                 }
-                progress(SyncProgress {
-                    phase: SyncPhase::Removing,
-                    done: n as u32 + 1,
-                    total,
-                    bytes: remote.bytes() - start,
-                    bytes_total: 0,
-                });
+                if records.len() + contents.len() >= REMOVE_EVERY || n + 1 == todo.len() {
+                    remote.remove_many(&std::mem::take(&mut records))?;
+                    remote.remove_many(&std::mem::take(&mut contents))?;
+                    progress(SyncProgress {
+                        phase: SyncPhase::Removing,
+                        done: n as u32 + 1,
+                        total,
+                        bytes: remote.bytes() - start,
+                        bytes_total: 0,
+                    });
+                }
             }
         }
         if !swept {
@@ -1001,6 +1062,75 @@ impl OpenVault {
         report.sent += entry.items.len() as u32;
         Ok(())
     }
+}
+
+/// One item going up: its content files (place path, file here), then its record.
+struct Upload {
+    id: String,
+    rev: String,
+    files: Vec<(String, PathBuf)>,
+    record: String,
+    sealed: Vec<u8>,
+}
+
+/// Most items sent at once, whatever a place allows.
+const MAX_AT_ONCE: usize = 4;
+/// Files of deleted items removed per batch (Google Drive takes 100 per request).
+const REMOVE_EVERY: usize = 100;
+
+/// Run `work` on every job, up to `n` at once on their own threads (here, in order,
+/// when `n` is 1), and hand each job that worked to `done`, in this thread, as it
+/// finishes. The first error (from `work` or `done`) stops the jobs not started yet,
+/// waits for those running, and is returned; what they did is not handed on.
+fn each_at_once<J: Sync>(
+    n: usize,
+    jobs: &[J],
+    work: &(dyn Fn(&J) -> Result<()> + Sync),
+    mut done: impl FnMut(usize) -> Result<()>,
+) -> Result<()> {
+    let n = n.clamp(1, MAX_AT_ONCE).min(jobs.len());
+    if n <= 1 {
+        for (i, job) in jobs.iter().enumerate() {
+            work(job)?;
+            done(i)?;
+        }
+        return Ok(());
+    }
+    let next = AtomicUsize::new(0);
+    let halt = AtomicBool::new(false);
+    let (tx, rx) = std::sync::mpsc::channel::<(usize, Result<()>)>();
+    std::thread::scope(|s| {
+        for _ in 0..n {
+            let tx = tx.clone();
+            let (next, halt) = (&next, &halt);
+            s.spawn(move || {
+                while !halt.load(Ordering::SeqCst) {
+                    let i = next.fetch_add(1, Ordering::SeqCst);
+                    let Some(job) = jobs.get(i) else { break };
+                    let r = work(job);
+                    if r.is_err() {
+                        halt.store(true, Ordering::SeqCst);
+                    }
+                    if tx.send((i, r)).is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+        drop(tx);
+        let mut first = None;
+        // Ends once every worker has stopped.
+        for (i, r) in rx {
+            if first.is_some() {
+                continue;
+            }
+            if let Err(e) = r.and_then(|()| done(i)) {
+                halt.store(true, Ordering::SeqCst);
+                first = Some(e);
+            }
+        }
+        first.map_or(Ok(()), Err)
+    })
 }
 
 /// Records and journal entries are small: a place sending more is refused, not read
@@ -1361,6 +1491,215 @@ pub(crate) mod tests {
         // The first sync with a place that removes sweeps every deletion kept here.
         t.a.sync(&t.cloud).unwrap();
         assert_eq!(files_of(&t, &gone), 0);
+    }
+
+    /// A place that says what was asked of it: paths read, batches removed. It can take
+    /// several items at once, and fail every put after the first `fail_after`.
+    struct Watched<'a> {
+        inner: &'a FolderRemote,
+        at_once: usize,
+        fail_after: Option<usize>,
+        puts: AtomicUsize,
+        gets: std::sync::Mutex<Vec<String>>,
+        batches: std::sync::Mutex<Vec<usize>>,
+    }
+
+    impl<'a> Watched<'a> {
+        fn new(inner: &'a FolderRemote, at_once: usize) -> Self {
+            Watched {
+                inner,
+                at_once,
+                fail_after: None,
+                puts: AtomicUsize::new(0),
+                gets: Default::default(),
+                batches: Default::default(),
+            }
+        }
+
+        fn got(&self, part: &str) -> usize {
+            self.gets
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|p| p.contains(part))
+                .count()
+        }
+
+        fn put_ok(&self) -> Result<()> {
+            let n = self.puts.fetch_add(1, Ordering::SeqCst);
+            match self.fail_after {
+                Some(k) if n >= k => Err(Error::Corrupt("test: place failed")),
+                _ => Ok(()),
+            }
+        }
+    }
+
+    impl Remote for Watched<'_> {
+        fn key(&self) -> String {
+            self.inner.key()
+        }
+        fn list(&self, dir: &str) -> Result<Vec<String>> {
+            self.inner.list(dir)
+        }
+        fn get(&self, path: &str, out: &mut dyn Write) -> Result<bool> {
+            self.gets.lock().unwrap().push(path.to_owned());
+            self.inner.get(path, out)
+        }
+        fn put(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+            self.put_ok()?;
+            self.inner.put(path, src)
+        }
+        fn put_file(&self, path: &str, local: &Path) -> Result<()> {
+            self.put_ok()?;
+            // Slow enough that several are under way together.
+            std::thread::sleep(std::time::Duration::from_millis(1));
+            self.inner.put_file(path, local)
+        }
+        fn exists(&self, path: &str) -> Result<bool> {
+            self.inner.exists(path)
+        }
+        fn remove(&self, path: &str) -> Result<()> {
+            self.inner.remove(path)
+        }
+        fn removes(&self) -> bool {
+            true
+        }
+        fn remove_many(&self, paths: &[String]) -> Result<()> {
+            if !paths.is_empty() {
+                self.batches.lock().unwrap().push(paths.len());
+            }
+            for p in paths {
+                self.inner.remove(p)?;
+            }
+            Ok(())
+        }
+        fn parallel(&self) -> usize {
+            self.at_once
+        }
+    }
+
+    #[test]
+    fn a_deleted_item_with_one_revision_is_cleaned_unread() {
+        let t = two();
+        let gone = note(&t.a, "gone", "g");
+        t.a.sync(&t.cloud).unwrap();
+        t.a.delete_item(&gone).unwrap();
+        let w = Watched::new(&t.cloud, 1);
+        t.a.sync(&w).unwrap();
+        assert_eq!(files_of(&t, &gone), 0);
+        // Its record was this device's last revision: removed without reading it back.
+        assert_eq!(w.got(&format!("/records/{gone}/")), 0);
+    }
+
+    #[test]
+    fn a_revision_made_elsewhere_after_the_deletion_survives_with_its_content() {
+        let t = two();
+        let id = note(&t.a, "Keep", "v1");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        t.a.delete_item(&id).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        t.b.replace_item(&id, "Keep", &b"v2"[..]).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        // A has not read B's journal yet (B's entry held back), so its cleaning meets
+        // B's newer revision in the place.
+        let me_b = device_id(&t.b.index).unwrap();
+        let log_b = t.cloud.root.join(&t.a.id).join("log").join(&me_b);
+        let held = t._dirs.2.path().join("held");
+        fs::rename(&log_b, &held).unwrap();
+        let w = Watched::new(&t.cloud, 1);
+        t.a.sync(&w).unwrap();
+        // Its own old revision went unread; B's was read, and stays with its content.
+        let rev_b = t.b.record(&id).unwrap().rev;
+        assert_eq!(w.got(&format!("/records/{id}/")), 1);
+        assert_eq!(w.got(&format!("/records/{id}/{rev_b}")), 1);
+        assert_eq!(
+            t.cloud.list(&format!("{}/records/{id}", t.a.id)).unwrap(),
+            vec![rev_b]
+        );
+        fs::rename(&held, &log_b).unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        assert_eq!(text(&t.a, &id), "v2");
+    }
+
+    #[test]
+    fn items_go_up_several_at_once_and_the_journal_names_only_items_fully_up() {
+        let t = two();
+        let n = LOG_EVERY + 7;
+        let ids: Vec<String> = (0..n).map(|i| note(&t.a, &format!("N{i}"), "x")).collect();
+        // The place fails part-way through: whatever the journal names is all there.
+        let mut w = Watched::new(&t.cloud, 4);
+        w.fail_after = Some(LOG_EVERY * 2 + 9);
+        assert!(t.a.sync(&w).is_err());
+        let me = device_id(&t.a.index).unwrap();
+        let base = t.a.sync_dir();
+        for e in t.cloud.list(&format!("{base}/log/{me}")).unwrap() {
+            let n: u64 = e.parse().unwrap();
+            let mut sealed = Vec::new();
+            t.cloud
+                .get(&format!("{base}/log/{me}/{n}"), &mut sealed)
+                .unwrap();
+            let json = wrap::open(&t.a.master_key, &sealed, &t.a.log_aad(&me, n)).unwrap();
+            let entry: Entry = serde_json::from_slice(&json).unwrap();
+            for (id, rev) in entry.items {
+                let r = t.a.record(&id).unwrap();
+                assert!(t
+                    .cloud
+                    .exists(&format!("{base}/records/{id}/{rev}"))
+                    .unwrap());
+                let data = format!("{base}/blobs/{id}.{}.data", r.data_rev);
+                assert!(t.cloud.exists(&data).unwrap());
+            }
+        }
+        t.b.sync(&t.cloud).unwrap();
+        // Then the rest goes up, several at once, and every item arrives.
+        let seen = std::sync::Mutex::new(Vec::new());
+        t.a.sync_with(&Watched::new(&t.cloud, 4), &|p| {
+            seen.lock().unwrap().push(p)
+        })
+        .unwrap();
+        let sending: Vec<u32> = seen
+            .into_inner()
+            .unwrap()
+            .iter()
+            .filter(|p| p.phase == SyncPhase::Sending)
+            .map(|p| p.done)
+            .collect();
+        assert!(sending.windows(2).all(|w| w[0] <= w[1]));
+        t.b.sync(&t.cloud).unwrap();
+        for id in &ids {
+            assert_eq!(text(&t.b, id), "x");
+        }
+    }
+
+    #[test]
+    fn deleted_items_leave_the_place_in_batches() {
+        let t = two();
+        let n = 70;
+        let ids: Vec<String> = (0..n).map(|i| note(&t.a, &format!("N{i}"), "x")).collect();
+        t.a.sync(&t.cloud).unwrap();
+        for id in &ids {
+            t.a.delete_item(id).unwrap();
+        }
+        let w = Watched::new(&t.cloud, 1);
+        let seen = std::sync::Mutex::new(Vec::new());
+        t.a.sync_with(&w, &|p| seen.lock().unwrap().push(p))
+            .unwrap();
+        assert!(ids.iter().all(|id| files_of(&t, id) == 0));
+        assert_eq!(w.got("/records/"), 0);
+        // 140 files (a record and its content each) in a handful of batches, records
+        // first; none read back.
+        let batches = w.batches.into_inner().unwrap();
+        assert_eq!(batches.iter().sum::<usize>(), 2 * n);
+        assert!(batches.len() <= 4 && batches.iter().all(|b| *b <= REMOVE_EVERY));
+        let removing: Vec<_> = seen
+            .into_inner()
+            .unwrap()
+            .into_iter()
+            .filter(|p| p.phase == SyncPhase::Removing)
+            .collect();
+        assert_eq!(removing.last().unwrap().done, n as u32);
+        assert!(removing.len() >= 2);
     }
 
     // ---------- a hostile sync place ----------

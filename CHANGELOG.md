@@ -6,6 +6,12 @@ Dates are UTC.
 
 ## Unreleased
 
+### Changed
+- Google Drive sync sends up to 4 items at once and removes deleted items in batches:
+  much faster with many photos.
+- + lists the ways to add in this order: add photos, record video, take photo, note,
+  voice, files.
+
 ### Fixed
 - Locking and coming back returns to the page you were on in Settings (and its pages),
   not the home page. Pages that show vault content still close when the vault locks,
