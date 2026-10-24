@@ -1,25 +1,20 @@
-import 'dart:math';
-
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
-import '../lock_guard.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/edge_swipe_back.dart';
 import '../widgets/password_strength.dart';
+import '../widgets/recovery_words.dart';
 import '../widgets/pin_pad.dart';
 import '../widgets/secret.dart';
-import '../widgets/toast.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
-import 'emergency_kit.dart';
 import 'restore.dart';
 import 'vault_home.dart';
 
@@ -61,16 +56,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   List<String>? _words;
   bool _newWords = false;
   /// The four words asked back, by position (0-based), in order.
-  late final List<int> _ask = () {
-    if (NewVaultScreen.debugWords != null) return [2, 8, 14, 21];
-    final r = Random.secure();
-    final picked = <int>{};
-    while (picked.length < 4) {
-      picked.add(r.nextInt(24));
-    }
-    return picked.toList()..sort();
-  }();
-  final _answers = List.generate(4, (_) => TextEditingController());
+  late final List<int> _ask = pickFourWords(fixed: NewVaultScreen.debugWords != null);
   final _pw = TextEditingController();
   final _pwAgain = TextEditingController();
   rust.VaultInfo? _vault;
@@ -94,9 +80,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   @override
   void dispose() {
-    for (final c in _answers) {
-      c.dispose();
-    }
     _pw.dispose();
     _pwAgain.dispose();
     super.dispose();
@@ -163,33 +146,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   bool get _canGoBack => !_busy && (_vault == null ? _step != _Step.intro : _step == _Step.color);
 
   // ---------- words ----------
-
-  bool _answerOk(int i) {
-    final want = _words![_ask[i]];
-    final typed = _answers[i].text.trim().toLowerCase();
-    return typed == want || (typed.length >= 4 && want.startsWith(typed));
-  }
-
-  bool get _checkOk => _words != null && [for (var i = 0; i < 4; i++) _answerOk(i)].every((x) => x);
-
-  Future<void> _copyWords() async {
-    final l = AppLocalizations.of(context);
-    final text = _words!.join(' ');
-    await Clipboard.setData(ClipboardData(text: text));
-    LockGuard.copied(text); // wiped from the clipboard after 60 s and on lock
-    if (mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
-  }
-
-  Future<void> _saveWords(BuildContext button) async {
-    final l = AppLocalizations.of(context);
-    final box = button.findRenderObject() as RenderBox?;
-    final plain = [for (final (i, w) in _words!.indexed) '${i + 1}. $w'].join('\n');
-    await SharePlus.instance.share(ShareParams(
-      subject: l.kitTitle,
-      text: '${l.kitTitle}\n\n$plain\n\n${l.kitShareNote}',
-      sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-    ));
-  }
 
   // ---------- password ----------
 
@@ -670,78 +626,16 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     );
   }
 
-  Widget _wordsBody(AppLocalizations l) {
-    final c = CsColors.of(context);
-    final words = _words ?? const [];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
-          child: SecretText(
-            text: words.join(' '),
-            builder: (context, shown) => WordGrid(words: words, shown: shown),
-            style: const TextStyle(fontSize: 15),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                  onPressed: _copyWords, icon: const Icon(Icons.copy_outlined, size: 18), label: Text(l.kitCopy)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Builder(
-                builder: (b) => OutlinedButton.icon(
-                  onPressed: () => _saveWords(b),
-                  icon: const Icon(Icons.ios_share, size: 18),
-                  label: Text(l.wordsSave),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Material(
-          color: c.warnBg,
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: 14, height: 1.45)),
-          ),
-        ),
-        const SizedBox(height: 18),
-        _primary(const ValueKey('words-done'), l.wordsWritten, () => _go(_Step.check)),
-      ],
-    );
-  }
+  Widget _wordsBody(AppLocalizations l) => RecoveryWordsPanel(
+        words: _words ?? const [],
+        action: _primary(const ValueKey('words-done'), l.wordsWritten, () => _go(_Step.check)),
+      );
 
-  Widget _checkBody(AppLocalizations l) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < 4; i++) ...[
-            TextField(
-              key: ValueKey('check-word-$i'),
-              controller: _answers[i],
-              autocorrect: false,
-              enableSuggestions: false,
-              textInputAction: i < 3 ? TextInputAction.next : TextInputAction.done,
-              decoration: InputDecoration(
-                labelText: l.wordNumber(_ask[i] + 1),
-                suffixIcon: _answers[i].text.isNotEmpty && _answerOk(i) ? const Icon(Icons.check_rounded) : null,
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 10),
-          ],
-          const SizedBox(height: 8),
-          _primary(const ValueKey('check-done'), l.pinNext, _checkOk ? () => _go(_Step.password) : null),
-          const SizedBox(height: 4),
-          TextButton(onPressed: () => _go(_Step.words), child: Text(l.wordsShowAgain)),
-        ],
+  Widget _checkBody(AppLocalizations l) => RecoveryWordsCheck(
+        words: _words ?? const [],
+        ask: _ask,
+        action: (ok) => _primary(const ValueKey('check-done'), l.pinNext, ok ? () => _go(_Step.password) : null),
+        onShowAgain: () => _go(_Step.words),
       );
 
   Widget _passwordBody(AppLocalizations l) {

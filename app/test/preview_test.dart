@@ -18,6 +18,7 @@ import 'package:cozysafe/screens/camera.dart';
 import 'package:cozysafe/screens/backup_password.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/screens/kit_password.dart';
+import 'package:cozysafe/screens/change_key.dart';
 import 'package:cozysafe/screens/debug.dart';
 import 'package:cozysafe/screens/file_view.dart';
 import 'package:cozysafe/screens/new_vault.dart';
@@ -289,6 +290,8 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugAddress = null;
       HostSyncPage.debugHosting = null;
       HostSyncPage.debugEvents = null;
+      ChangeKeyScreen.debugWords = null;
+      ChangeKeyScreen.debugStep = null;
       ScanCodePage.debugPreview = null;
       VaultHomeScreen.debugReveal = false;
       debugRecordingStill = false;
@@ -780,10 +783,23 @@ void main() {
         await t.pumpAndSettle();
       });
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
-  _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''),
-      change: 'MỚI: xem lại 24 từ phải qua Face ID VÀ mật khẩu két; sai thì chờ như màn mở khoá',
-      marks: [() => find.byKey(const ValueKey('kit-password'))]);
-  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn', () => const EmergencyKitScreen(keyText: words, confirm: false));
+  _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
+  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}),
+      change: 'MỚI: nút "Đổi khoá khôi phục"', marks: [() => find.byKey(const ValueKey('kit-change'))]);
+  _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-63VN-V6GG-GPDY-2RV9-WMB9-ZEWP-2WVH', confirm: false, onChange: () {}),
+      change: 'MỚI: két dùng mã cũ đổi được sang 24 từ, giữ nguyên dữ liệu', marks: [() => find.byKey(const ValueKey('kit-change'))]);
+  Widget change(int step) => ChangeKeyScreen(libraryDir: '', password: '', onBackup: () async {});
+  for (final (i, name, what) in [
+    (0, 'intro', 'giải thích: dữ liệu giữ nguyên, PIN/Face ID dùng tiếp, bản sao lưu cũ cần khoá cũ'),
+    (1, 'words', '24 từ mới'),
+    (2, 'check', 'gõ lại 4 từ'),
+    (3, 'done', 'xong, nhắc sao lưu lại'),
+  ]) {
+    _screen('change-key-$name', 'Đổi khoá khôi phục · $what', () => change(i), setup: () {
+      ChangeKeyScreen.debugWords = words;
+      ChangeKeyScreen.debugStep = i;
+    }, change: i == 0 ? 'MỚI: đổi khoá khôi phục (cả từ mã cũ sang 24 từ)' : null);
+  }
   _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
   _screen('kit-confirm', 'Khoá khôi phục lần đầu: gõ một từ để xác nhận', () => const EmergencyKitScreen(keyText: words, confirm: true));

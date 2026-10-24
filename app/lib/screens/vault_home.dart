@@ -28,6 +28,7 @@ import 'camera.dart';
 import 'common.dart';
 import 'emergency_kit.dart';
 import 'kit_password.dart';
+import 'change_key.dart';
 import 'file_view.dart';
 import 'glass.dart';
 import 'new_vault.dart';
@@ -571,11 +572,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     // Face ID, then the vault password too: the 24 words are half of what opens the vault
     // anywhere (owner 2026-10-24).
-    if (!await KitPasswordScreen.ask(context, widget.libraryDir) || !mounted) return;
+    final password = await KitPasswordScreen.ask(context, widget.libraryDir);
+    if (password == null || !mounted) return;
     final key = await SecretKeyStore.read();
     if (key == null || !mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => EmergencyKitScreen(keyText: rust.secretKeyText(key: key), confirm: false),
+      builder: (kit) => EmergencyKitScreen(
+        keyText: rust.secretKeyText(key: key),
+        confirm: false,
+        // A new Recovery Key replaces this page (it would show the old one).
+        onChange: () => Navigator.of(kit).pushReplacement(MaterialPageRoute<void>(
+          builder: (_) => ChangeKeyScreen(libraryDir: widget.libraryDir, password: password, onBackup: _backup),
+        )),
+      ),
     ));
   }
 

@@ -503,5 +503,14 @@
   "syncConnectingTo": "Connexion à {address}…",
   "kitPasswordTitle": "Mot de passe du coffre",
   "kitPasswordLead": "Pour afficher la clé de récupération, saisissez aussi le mot de passe de ce coffre.",
-  "kitPasswordGo": "Afficher la clé de récupération"
+  "kitPasswordGo": "Afficher la clé de récupération",
+  "changeKeyButton": "Changer la clé de récupération",
+  "changeKeyLegacy": "Passer à 24 mots",
+  "changeKeyTitle": "Nouvelle clé de récupération",
+  "changeKeyLead": "Vous recevez 24 nouveaux mots. Tout le contenu du coffre reste tel quel, et votre code PIN et Face ID continuent de fonctionner.",
+  "changeKeyBackupNote": "Les sauvegardes déjà faites demandent toujours l'ancienne clé de récupération. Une fois terminé, faites une nouvelle sauvegarde.",
+  "changeKeyStart": "Créer de nouveaux mots",
+  "changeKeyApply": "Utiliser les nouveaux mots",
+  "changeKeyDone": "Terminé. L'ancienne clé de récupération n'ouvre plus ce coffre sur cet appareil.",
+  "changeKeyFailed": "Impossible de changer la clé de récupération. Rien n'a changé : l'ancienne fonctionne toujours."
 }

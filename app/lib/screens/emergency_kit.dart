@@ -15,11 +15,13 @@ import '../widgets/toast.dart';
 /// the vault menu). With `confirm`, the user must type its last 4 characters to go on,
 /// so it has really been written down somewhere.
 class EmergencyKitScreen extends StatefulWidget {
-  const EmergencyKitScreen({super.key, required this.keyText, required this.confirm, this.onDone});
+  const EmergencyKitScreen({super.key, required this.keyText, required this.confirm, this.onDone, this.onChange});
 
   final String keyText;
   final bool confirm;
   final VoidCallback? onDone;
+  /// Settings only: change to a new Recovery Key (24 words; from an earlier key too).
+  final VoidCallback? onChange;
 
   @override
   State<EmergencyKitScreen> createState() => _EmergencyKitScreenState();
@@ -131,6 +133,15 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
               child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: 14, height: 1.45)),
             ),
           ),
+          if (widget.onChange != null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              key: const ValueKey('kit-change'),
+              onPressed: widget.onChange,
+              icon: const Icon(Icons.autorenew_rounded, size: 18),
+              label: Text(_isWords ? l.changeKeyButton : l.changeKeyLegacy),
+            ),
+          ],
           if (widget.confirm) ...[
             const SizedBox(height: 20),
             TextField(

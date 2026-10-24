@@ -503,5 +503,14 @@
   "syncConnectingTo": "{address} に接続しています…",
   "kitPasswordTitle": "金庫のパスワード",
   "kitPasswordLead": "リカバリーキーを表示するには、この金庫のパスワードも入力してください。",
-  "kitPasswordGo": "リカバリーキーを表示"
+  "kitPasswordGo": "リカバリーキーを表示",
+  "changeKeyButton": "リカバリーキーを変更",
+  "changeKeyLegacy": "24語に変更",
+  "changeKeyTitle": "新しいリカバリーキー",
+  "changeKeyLead": "新しい24語が発行されます。金庫の中身はそのままで、PIN と Face ID も引き続き使えます。",
+  "changeKeyBackupNote": "以前のバックアップには、引き続き古いリカバリーキーが必要です。変更が済んだら、新しくバックアップしてください。",
+  "changeKeyStart": "新しい単語を作成",
+  "changeKeyApply": "新しい単語を使う",
+  "changeKeyDone": "完了しました。この端末では、古いリカバリーキーでこの金庫を開けなくなりました。",
+  "changeKeyFailed": "リカバリーキーを変更できませんでした。何も変わっていません。古いキーは引き続き使えます。"
 }

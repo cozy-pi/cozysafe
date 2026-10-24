@@ -14,10 +14,10 @@ class KitPasswordScreen extends StatefulWidget {
   const KitPasswordScreen({super.key, required this.libraryDir});
   final String libraryDir;
 
-  /// Pushes the screen; true once the right password was typed.
-  static Future<bool> ask(BuildContext context, String libraryDir) async =>
-      await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => KitPasswordScreen(libraryDir: libraryDir))) ??
-      false;
+  /// Pushes the screen; the password once it was the right one (a Recovery Key change
+  /// needs it again), null otherwise.
+  static Future<String?> ask(BuildContext context, String libraryDir) =>
+      Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => KitPasswordScreen(libraryDir: libraryDir)));
 
   @override
   State<KitPasswordScreen> createState() => _KitPasswordScreenState();
@@ -53,7 +53,7 @@ class _KitPasswordScreenState extends State<KitPasswordScreen> {
       if (!mounted) return;
       if (ok) {
         await PinStore.resetPasswordFails();
-        if (mounted) Navigator.of(context).pop(true);
+        if (mounted) Navigator.of(context).pop(_pw.text);
         return;
       }
       final wait = await PinStore.addPasswordFail();

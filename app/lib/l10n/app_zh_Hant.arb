@@ -503,5 +503,14 @@
   "syncConnectingTo": "正在連線至 {address}…",
   "kitPasswordTitle": "保險箱密碼",
   "kitPasswordLead": "要查看復原金鑰，還需輸入此保險箱的密碼。",
-  "kitPasswordGo": "查看復原金鑰"
+  "kitPasswordGo": "查看復原金鑰",
+  "changeKeyButton": "更換復原金鑰",
+  "changeKeyLegacy": "改為 24 個單字",
+  "changeKeyTitle": "新的復原金鑰",
+  "changeKeyLead": "你將取得 24 個新單字。保險箱裡的一切保持不變，PIN 碼和 Face ID 也照常可用。",
+  "changeKeyBackupNote": "之前的備份仍需要舊的復原金鑰。更換完成後，請重新備份。",
+  "changeKeyStart": "產生新單字",
+  "changeKeyApply": "使用新單字",
+  "changeKeyDone": "完成。在這部裝置上，舊的復原金鑰已無法開啟這個保險箱。",
+  "changeKeyFailed": "無法更換復原金鑰。沒有任何變更：舊金鑰仍然可用。"
 }

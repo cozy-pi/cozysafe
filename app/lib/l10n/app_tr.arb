@@ -503,5 +503,14 @@
   "syncConnectingTo": "{address} adresine bağlanılıyor…",
   "kitPasswordTitle": "Kasa parolası",
   "kitPasswordLead": "Kurtarma Anahtarını görmek için bu kasanın parolasını da yazın.",
-  "kitPasswordGo": "Kurtarma Anahtarını göster"
+  "kitPasswordGo": "Kurtarma Anahtarını göster",
+  "changeKeyButton": "Kurtarma Anahtarını değiştir",
+  "changeKeyLegacy": "24 kelimeye geç",
+  "changeKeyTitle": "Yeni Kurtarma Anahtarı",
+  "changeKeyLead": "24 yeni kelime alırsınız. Kasadaki her şey olduğu gibi kalır; PIN ve Face ID çalışmaya devam eder.",
+  "changeKeyBackupNote": "Önceden alınan yedekler hâlâ eski Kurtarma Anahtarını gerektirir. İşiniz bitince yeni bir yedek alın.",
+  "changeKeyStart": "Yeni kelimeler oluştur",
+  "changeKeyApply": "Yeni kelimeleri kullan",
+  "changeKeyDone": "Tamam. Eski Kurtarma Anahtarı bu cihazda artık bu kasayı açmıyor.",
+  "changeKeyFailed": "Kurtarma Anahtarı değiştirilemedi. Hiçbir şey değişmedi: eskisi hâlâ çalışıyor."
 }

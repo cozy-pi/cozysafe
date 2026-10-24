@@ -503,5 +503,14 @@
   "syncConnectingTo": "Conectando con {address}…",
   "kitPasswordTitle": "Contraseña de la caja fuerte",
   "kitPasswordLead": "Para ver la clave de recuperación, escribe también la contraseña de esta caja fuerte.",
-  "kitPasswordGo": "Ver la clave de recuperación"
+  "kitPasswordGo": "Ver la clave de recuperación",
+  "changeKeyButton": "Cambiar clave de recuperación",
+  "changeKeyLegacy": "Cambiar a 24 palabras",
+  "changeKeyTitle": "Nueva clave de recuperación",
+  "changeKeyLead": "Recibirás 24 palabras nuevas. Todo lo que hay en la caja fuerte se queda igual, y tu PIN y Face ID siguen funcionando.",
+  "changeKeyBackupNote": "Las copias de seguridad anteriores siguen necesitando la clave de recuperación antigua. Cuando termines, haz una copia de seguridad nueva.",
+  "changeKeyStart": "Crear palabras nuevas",
+  "changeKeyApply": "Usar las palabras nuevas",
+  "changeKeyDone": "Listo. La clave de recuperación antigua ya no abre esta caja fuerte en este dispositivo.",
+  "changeKeyFailed": "No se pudo cambiar la clave de recuperación. No ha cambiado nada: la antigua sigue funcionando."
 }

@@ -503,5 +503,14 @@
   "syncConnectingTo": "正在连接 {address}…",
   "kitPasswordTitle": "保险箱密码",
   "kitPasswordLead": "要查看恢复密钥，还需输入此保险箱的密码。",
-  "kitPasswordGo": "查看恢复密钥"
+  "kitPasswordGo": "查看恢复密钥",
+  "changeKeyButton": "更换恢复密钥",
+  "changeKeyLegacy": "改为 24 个单词",
+  "changeKeyTitle": "新的恢复密钥",
+  "changeKeyLead": "你将获得 24 个新单词。保险箱里的一切保持不变，PIN 码和 Face ID 也照常可用。",
+  "changeKeyBackupNote": "之前的备份仍需要旧的恢复密钥。更换完成后，请重新备份。",
+  "changeKeyStart": "生成新单词",
+  "changeKeyApply": "使用新单词",
+  "changeKeyDone": "完成。在此设备上，旧的恢复密钥已无法打开这个保险箱。",
+  "changeKeyFailed": "无法更换恢复密钥。没有任何改动：旧密钥仍然可用。"
 }

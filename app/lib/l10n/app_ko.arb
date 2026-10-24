@@ -503,5 +503,14 @@
   "syncConnectingTo": "{address}에 연결하는 중…",
   "kitPasswordTitle": "금고 비밀번호",
   "kitPasswordLead": "복구 키를 보려면 이 금고의 비밀번호도 입력하세요.",
-  "kitPasswordGo": "복구 키 보기"
+  "kitPasswordGo": "복구 키 보기",
+  "changeKeyButton": "복구 키 변경",
+  "changeKeyLegacy": "24개 단어로 변경",
+  "changeKeyTitle": "새 복구 키",
+  "changeKeyLead": "새 단어 24개를 받습니다. 금고 안의 모든 항목은 그대로이며 PIN과 Face ID도 계속 사용할 수 있습니다.",
+  "changeKeyBackupNote": "이전에 만든 백업에는 여전히 이전 복구 키가 필요합니다. 변경을 마친 후 새로 백업하세요.",
+  "changeKeyStart": "새 단어 만들기",
+  "changeKeyApply": "새 단어 사용",
+  "changeKeyDone": "완료되었습니다. 이 기기에서는 더 이상 이전 복구 키로 이 금고를 열 수 없습니다.",
+  "changeKeyFailed": "복구 키를 변경하지 못했습니다. 아무것도 바뀌지 않았으며 이전 키를 계속 사용할 수 있습니다."
 }
