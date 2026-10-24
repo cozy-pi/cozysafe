@@ -57,11 +57,15 @@ jobs:
   semgrep:
     runs-on: ubuntu-latest
     steps:
+      # Every package with the hashes of all its files, and none published in the last 14
+      # days (the same age rule as the Rust and Dart packages; tools/check-age).
       - run: |
           python3 -m venv "$RUNNER_TEMP/v"
-          "$RUNNER_TEMP/v/bin/pip" install --quiet pip==24.2 pip-tools==7.4.1
+          "$RUNNER_TEMP/v/bin/pip" install --quiet uv==0.8.17
           echo "semgrep==1.180.0" > "$RUNNER_TEMP/semgrep.in"
-          "$RUNNER_TEMP/v/bin/pip-compile" --quiet --generate-hashes --allow-unsafe --strip-extras \
+          "$RUNNER_TEMP/v/bin/uv" pip compile --generate-hashes --no-header --universal \
+            --exclude-newer "$(date -u -d '14 days ago' +%Y-%m-%dT%H:%M:%SZ)" \
             --output-file "$RUNNER_TEMP/semgrep.txt" "$RUNNER_TEMP/semgrep.in"
           python3 --version
+          echo "=== semgrep.txt"
           cat "$RUNNER_TEMP/semgrep.txt"
