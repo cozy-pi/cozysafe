@@ -97,8 +97,8 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 
 ## What works today
 
-- **Several vaults on one device**, each with its own PIN. A vault is told apart by its
-  icon and colour; nothing on disk says what is inside or how it is used.
+- **One vault per device**, with its own icon and colour; nothing on disk says what is
+  inside or how it is used. (The core supports several; the app shows one.)
 - Unlock with Face ID or fingerprint, the vault's PIN, or its password. Wrong PINs
   make you wait longer each time.
 - **Photos and videos:** take them inside the app (never in the photo library, no
@@ -120,14 +120,23 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 - **Private on screen:** note lists and search show titles only, the Recovery Key and
   passwords stay masked until you tap Show, and every security setting asks for Face ID,
   fingerprint or the phone's passcode first ([security rules](docs/security.md)).
-- **Simple to start:** an empty vault offers big tiles to add the first thing; only the
-  sections you use appear at the bottom; buttons are large enough for any thumb.
+- **Simple to start:** an empty vault offers big tiles to add the first thing; the bottom
+  bar shows the overview, library, +, files and notes, and + always offers every way to
+  add (photos, camera, video, note, voice memo, file).
+- **Sync with your other device on the same Wi‑Fi:** one shows a QR or typed code, the
+  other scans or types it. You allow every connection by hand, naming the address; the
+  code works once, for 2 minutes; both screens show a number to compare. Notes edited on
+  both keep both texts. A sealed log lists every connection.
 - **Back up to one encrypted file** (every vault with a vault password) and restore it
   on a new device with your **Recovery Key** (24 words) and the **vault password**.
+- **See or change the Recovery Key:** behind Face ID **and** the vault password. Change it
+  to new 24 words (also from the older `CS1-` key) without touching any item; earlier
+  backups keep needing the old key. Deleting the last vault forgets its words too.
 - **15 languages**, light and dark. Pick one in Settings → Language, or in the
   system's settings for the app (iPhone, Android 13+); the two stay the same.
 
-Not yet: sync between devices. Until then, use **Back up to a file** often.
+Not yet: Google Drive sync (in progress) and joining a vault on a new device from the
+24 words and password alone. Until then, a new device starts from **Back up to a file**.
 
 ## Install
 
@@ -153,6 +162,8 @@ Every file has a GitHub build-provenance attestation:
   21 October 2026 have a 128-bit key in the earlier `CS1-` form; it still works.)
   How this compares with a Bitcoin wallet, and why it resists quantum computers:
   [security](docs/security.md#how-strong-is-it-compared-with-a-bitcoin-wallet).
+  It comes from the system's random generator, never from anything the app seeds; tests
+  pin the official BIP39 word list (by checksum) and its reference vectors.
 - **Argon2id** stretches the password (128 MiB on phones, 512 MiB on computers);
   **XChaCha20-Poly1305** encrypts everything, file content in 64 KiB chunks so
   multi-gigabyte files need little memory. Each item has its own random key.

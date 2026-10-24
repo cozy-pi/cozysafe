@@ -512,5 +512,6 @@
   "changeKeyStart": "Crear palabras nuevas",
   "changeKeyApply": "Usar las palabras nuevas",
   "changeKeyDone": "Listo. La clave de recuperación antigua ya no abre esta caja fuerte en este dispositivo.",
-  "changeKeyFailed": "No se pudo cambiar la clave de recuperación. No ha cambiado nada: la antigua sigue funcionando."
+  "changeKeyFailed": "No se pudo cambiar la clave de recuperación. No ha cambiado nada: la antigua sigue funcionando.",
+  "kitLeadLegacy": "Esta clave y la contraseña de tu caja fuerte la abren en un móvil nuevo o desde una copia de seguridad. Es el tipo antiguo de clave: cámbiala a 24 palabras abajo."
 }

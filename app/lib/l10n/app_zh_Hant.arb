@@ -512,5 +512,6 @@
   "changeKeyStart": "產生新單字",
   "changeKeyApply": "使用新單字",
   "changeKeyDone": "完成。在這部裝置上，舊的復原金鑰已無法開啟這個保險箱。",
-  "changeKeyFailed": "無法更換復原金鑰。沒有任何變更：舊金鑰仍然可用。"
+  "changeKeyFailed": "無法更換復原金鑰。沒有任何變更：舊金鑰仍然可用。",
+  "kitLeadLegacy": "此金鑰加上保險箱密碼，可在新手機上或從備份開啟保險箱。這是舊式金鑰：請在下方換成 24 個單字。"
 }
