@@ -498,5 +498,7 @@
   "syncUnreachable": "Das andere Gerät ist nicht erreichbar. Prüfe, ob beide im selben WLAN sind (nicht in einem Gastnetz) und der Code noch angezeigt wird.",
   "syncRejected": "Ein Gerät mit einem anderen Tresor wollte sich verbinden. Es wird weiter gewartet.",
   "syncLogOtherVault": "Anderer Tresor",
-  "syncLogUnreachable": "Nicht erreichbar"
+  "syncLogUnreachable": "Nicht erreichbar",
+  "syncKnock": "Ein Gerät verbindet sich …",
+  "syncConnectingTo": "Verbinde mit {address} …"
 }

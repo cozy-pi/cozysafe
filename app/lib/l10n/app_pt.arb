@@ -498,5 +498,7 @@
   "syncUnreachable": "Não foi possível alcançar o outro dispositivo. Verifique se os dois estão na mesma Wi‑Fi (não numa rede de convidados) e se o código ainda está aparecendo.",
   "syncRejected": "Um dispositivo com outro cofre tentou entrar. Ainda aguardando.",
   "syncLogOtherVault": "Outro cofre",
-  "syncLogUnreachable": "Sem resposta"
+  "syncLogUnreachable": "Sem resposta",
+  "syncKnock": "Um dispositivo está se conectando…",
+  "syncConnectingTo": "Conectando a {address}…"
 }

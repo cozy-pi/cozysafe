@@ -498,5 +498,7 @@
   "syncUnreachable": "No se pudo llegar al otro dispositivo. Comprueba que ambos estén en la misma Wi‑Fi (no en una red de invitados) y que el código siga visible.",
   "syncRejected": "Un dispositivo con otra caja fuerte intentó unirse. Seguimos esperando.",
   "syncLogOtherVault": "Otra caja fuerte",
-  "syncLogUnreachable": "Sin respuesta"
+  "syncLogUnreachable": "Sin respuesta",
+  "syncKnock": "Un dispositivo se está conectando…",
+  "syncConnectingTo": "Conectando con {address}…"
 }

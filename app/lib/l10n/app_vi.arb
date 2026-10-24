@@ -512,5 +512,7 @@
   "syncUnreachable": "Không tới được máy kia. Kiểm tra hai máy cùng Wi‑Fi (không phải mạng khách) và mã vẫn đang hiện.",
   "syncRejected": "Một máy có két khác vừa thử vào. Vẫn đang chờ.",
   "syncLogOtherVault": "Khác két",
-  "syncLogUnreachable": "Không tới được máy kia"
+  "syncLogUnreachable": "Không tới được máy kia",
+  "syncKnock": "Một máy đang kết nối…",
+  "syncConnectingTo": "Đang kết nối tới {address}…"
 }

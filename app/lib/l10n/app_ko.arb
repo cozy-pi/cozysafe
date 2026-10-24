@@ -498,5 +498,7 @@
   "syncUnreachable": "다른 기기에 연결할 수 없습니다. 두 기기가 같은 Wi‑Fi(게스트 네트워크 아님)에 있고 코드가 아직 표시되어 있는지 확인하세요.",
   "syncRejected": "다른 금고가 있는 기기가 연결을 시도했습니다. 계속 기다리는 중입니다.",
   "syncLogOtherVault": "다른 금고",
-  "syncLogUnreachable": "연결 불가"
+  "syncLogUnreachable": "연결 불가",
+  "syncKnock": "기기가 연결하는 중…",
+  "syncConnectingTo": "{address}에 연결하는 중…"
 }

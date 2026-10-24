@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.47 (2026-10-24)
+
+### Changed
+- Sync: the question to allow the connection comes up the moment a code is read, the
+  camera reads codes on a screen better, the device showing the code says as soon as
+  another device connects, and the joining device says where it is connecting.
+
 ## 0.1.46 (2026-10-24)
 
 ### Changed

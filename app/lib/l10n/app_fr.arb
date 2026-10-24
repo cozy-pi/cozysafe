@@ -498,5 +498,7 @@
   "syncUnreachable": "Impossible de joindre l’autre appareil. Vérifiez que les deux sont sur le même Wi‑Fi (pas un réseau invité) et que le code est toujours affiché.",
   "syncRejected": "Un appareil avec un autre coffre a tenté de se connecter. Toujours en attente.",
   "syncLogOtherVault": "Autre coffre",
-  "syncLogUnreachable": "Injoignable"
+  "syncLogUnreachable": "Injoignable",
+  "syncKnock": "Un appareil se connecte…",
+  "syncConnectingTo": "Connexion à {address}…"
 }

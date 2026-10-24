@@ -498,5 +498,7 @@
   "syncUnreachable": "Diğer cihaza ulaşılamadı. İkisinin de aynı Wi‑Fi'da (misafir ağında değil) olduğunu ve kodun hâlâ göründüğünü kontrol edin.",
   "syncRejected": "Farklı kasası olan bir cihaz katılmaya çalıştı. Beklemeye devam ediliyor.",
   "syncLogOtherVault": "Farklı kasa",
-  "syncLogUnreachable": "Ulaşılamadı"
+  "syncLogUnreachable": "Ulaşılamadı",
+  "syncKnock": "Bir cihaz bağlanıyor…",
+  "syncConnectingTo": "{address} adresine bağlanılıyor…"
 }
