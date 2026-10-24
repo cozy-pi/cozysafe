@@ -720,12 +720,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           // the + closes it and offers the ways (owner 2026-10-24).
           bar: (ctx) => VaultBar(
                 section: _section,
-                sections: _sections,
+                sections: barSections(_sections),
                 home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
                 onSection: (s) => Navigator.of(ctx).pop(QuickLook.sectionFor(s.name)),
                 centre: actionSide() == ActionSide.center
                     ? ActionButton(
                         icon: Icons.add,
+                        solid: true,
+                        size: centrePlusSize,
                         tooltip: AppLocalizations.of(ctx).addToVault,
                         onTap: () => Navigator.of(ctx).pop(QuickLook.addRequest))
                     : null,
@@ -1847,6 +1849,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         tooltip: tip,
         onTap: _mainAction,
         turns: _adding && icon == Icons.add ? .125 : 0,
+        solid: actionSide() == ActionSide.center,
+        size: actionSide() == ActionSide.center ? centrePlusSize : Ui.primary,
         // Red where it records: the stop while recording, the microphone in Voice.
         color: _recordingNow || (!_adding && _directAdd == AddWhat.voice) ? recordRed(context) : null);
   }
@@ -1869,7 +1873,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // Left of the bar: a lock button, and the vault's badge (the overview tab).
     final leftOfBar = (lockShown ? Ui.bar + 4 : 0);
     final barW = MediaQuery.sizeOf(context).width - 20 - leftOfBar;
-    final centreX = 10 + leftOfBar + barW * centrePlusShare(sections.length < 2 ? const [] : sections);
+    final centreX = 10 + leftOfBar + barW * centrePlusShare(barSections(sections).length < 2 ? const [] : barSections(sections));
 
     final header = selecting
         ? Padding(
@@ -2006,7 +2010,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   bottom: bottom + Ui.edge - 4 - NativeVaultBar.marginBottom,
                   child: NativeVaultBar(
                     section: _section,
-                    sections: sections,
+                    sections: barSections(sections),
                     onSection: _pickSection,
                     onLock: _lock,
                     showLock: !_noLockButton(sections),
@@ -2020,9 +2024,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 bottom: bottom + Ui.edge,
                 child: VaultBar(
                   section: _section,
-                  sections: sections,
+                  sections: barSections(sections),
                   home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
-                  centre: centreMode && !empty ? const SizedBox(width: Ui.primary, height: Ui.primary) : null,
+                  centre: centreMode && !empty ? const SizedBox(width: centrePlusSize, height: centrePlusSize) : null,
                   onSection: _pickSection,
                   // Just the lock, big: no vault icon, which would hint that the phone
                   // holds other vaults (owner 2026-10-21, after user testing).
@@ -2079,7 +2083,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 // (it would drop the finger's gesture). In the middle it floats exactly over
                 // the gap the bar leaves for it, so it stays one widget throughout.
                 key: const ValueKey('action-slot'),
-                left: centreMode ? centreX - Ui.primary / 2 : actionLeft(context),
+                left: centreMode ? centreX - centrePlusSize / 2 : actionLeft(context),
                 bottom: bottom + actionLift(),
                 // Tap: open or close the column. Finger down and slide up: pick on release.
                 // Only a tap, or a finger sliding UP from +, opens the ways: a sideways
