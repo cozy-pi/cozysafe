@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Fail if any locked dependency version was published less than MIN_DAYS ago.
+
+  tools/check-age
+
+Most hijacked releases (a stolen publishing token, a malicious maintainer) are found and
+pulled within days. Waiting MIN_DAYS before taking any new version, direct or not, keeps
+those out (docs/supply-chain.md). Reads Cargo.lock, app/rust/Cargo.lock and
+app/pubspec.lock; asks crates.io and pub.dev when each version was published (one request
+a second, as crates.io asks). A version that must come in sooner (a security fix) goes in
+tools/allow/young.txt as "<name> <version>  # why", reviewed.
+"""
+
+import json
+import re
+import sys
+import time
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+MIN_DAYS = 14
+ROOT = Path(__file__).resolve().parent.parent
+UA = {"User-Agent": "cozysafe-check-age (https://github.com/cozy-pi/cozysafe)"}
+
+
+def get(url):
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
+                return json.load(r)
+        except Exception:
+            if attempt == 3:
+                raise
+            time.sleep(2 + attempt * 3)
+
+
+def crates():
+    seen = set()
+    for lock in [ROOT / "Cargo.lock", ROOT / "app/rust/Cargo.lock"]:
+        text = lock.read_text()
+        for block in text.split("[[package]]")[1:]:
+            name = re.search(r'^name = "([^"]+)"', block, re.M)
+            ver = re.search(r'^version = "([^"]+)"', block, re.M)
+            src = re.search(r'^source = "registry\+https://github.com/rust-lang/crates.io-index"', block, re.M)
+            if name and ver and src:
+                seen.add((name.group(1), ver.group(1)))
+    return sorted(seen)
+
+
+def pub_packages():
+    seen = set()
+    text = (ROOT / "app/pubspec.lock").read_text()
+    for m in re.finditer(r'^  ([a-z0-9_]+):\n((?:    .*\n)+)', text, re.M):
+        body = m.group(2)
+        if 'source: hosted' in body:
+            v = re.search(r'^    version: "([^"]+)"', body, re.M)
+            if v:
+                seen.add((m.group(1), v.group(1)))
+    return sorted(seen)
+
+
+def allowed():
+    path = ROOT / "tools/allow/young.txt"
+    out = set()
+    if path.exists():
+        for line in path.read_text().splitlines():
+            line = line.split("#")[0].strip()
+            if line:
+                name, ver = line.split()[:2]
+                out.add((name, ver))
+    return out
+
+
+def age_days(when):
+    t = datetime.fromisoformat(when.replace("Z", "+00:00"))
+    return (datetime.now(timezone.utc) - t).total_seconds() / 86400
+
+
+def main():
+    young = []
+    ok = allowed()
+    for name, ver in crates():
+        d = get(f"https://crates.io/api/v1/crates/{name}/{ver}")
+        days = age_days(d["version"]["created_at"])
+        if days < MIN_DAYS and (name, ver) not in ok:
+            young.append(f"Rust {name} {ver}: {days:.1f} days old")
+        time.sleep(1)
+    pub_cache = {}
+    for name, ver in pub_packages():
+        if name not in pub_cache:
+            pub_cache[name] = get(f"https://pub.dev/api/packages/{name}")
+        found = [v for v in pub_cache[name]["versions"] if v["version"] == ver]
+        if not found:
+            young.append(f"Dart {name} {ver}: not on pub.dev")
+            continue
+        days = age_days(found[0]["published"])
+        if days < MIN_DAYS and (name, ver) not in ok:
+            young.append(f"Dart {name} {ver}: {days:.1f} days old")
+    for y in young:
+        print(f"error: {y} (needs {MIN_DAYS}); pin an older version, or review it into tools/allow/young.txt", file=sys.stderr)
+    if not young:
+        print(f"every locked version is at least {MIN_DAYS} days old")
+    sys.exit(1 if young else 0)
+
+
+main()
