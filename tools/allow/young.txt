@@ -21,3 +21,8 @@ material_ui 1.7.0  # baseline 2026-10-24 (Flutter team)
 pdfrx 2.6.6  # baseline 2026-10-24
 synchronized 3.5.0  # baseline 2026-10-24
 vm_service 15.4.0  # baseline 2026-10-24 (dev only)
+cc 1.8.0  # baseline 2026-10-24 (build-time)
+deranged 0.5.9  # baseline 2026-10-24
+libc 0.2.191  # baseline 2026-10-24
+# Security fixes may come in young, reviewed:
+webpki-roots 1.0.10  # RUSTSEC-2026-0381: 1.0.9 still trusted distrusted emSign intermediates; Mozilla root list only (no code), reviewed 2026-10-24

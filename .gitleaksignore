@@ -1,0 +1,10 @@
+# gitleaks findings reviewed as test fixtures: made-up keys in tests and mockups,
+# never a real secret. One fingerprint per line (gitleaks git --redact shows them).
+3ffd35aa7a8589df63e2208b18ce1e51be72bed6:app/test/preview_test.dart:generic-api-key:550
+6a55fcbd20efcc663eeb569abef9580f67c9835b:app/test/preview_test.dart:generic-api-key:516
+4ea0a22d672cd952a8add9a17e6398c4bbb1294f:app/test/preview_test.dart:generic-api-key:417
+1cf0e7376fd6813857609da4eae3e0bcc9aaf678:app/test/preview_test.dart:generic-api-key:414
+37e278ab36d391dc34e5ad72049126a5d34d2467:app/test/preview_test.dart:generic-api-key:344
+37e278ab36d391dc34e5ad72049126a5d34d2467:app/test/preview_test.dart:generic-api-key:346
+37e278ab36d391dc34e5ad72049126a5d34d2467:app/test/secret_test.dart:generic-api-key:15
+8ba606e025c4d2369b713b66ca63f4ad0aa7136d:app/test/lock_flow_test.dart:generic-api-key:209

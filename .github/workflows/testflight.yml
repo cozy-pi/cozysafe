@@ -33,6 +33,15 @@ on:
       build:
         type: string
         default: ""
+    # Named one by one (release.yml passes exactly these, never `secrets: inherit`).
+    secrets:
+      IOS_DIST_P12_BASE64:
+      IOS_DIST_P12_PASSWORD:
+      IOS_PROFILE_BASE64:
+      APPLE_TEAM_ID:
+      ASC_ADMIN_KEY_ID:
+      ASC_ISSUER_ID:
+      ASC_ADMIN_KEY_P8_BASE64:
 
 permissions:
   contents: read
@@ -116,7 +125,10 @@ jobs:
           EOF
       - name: Build signed IPA
         working-directory: app
-        run: flutter build ipa --release --build-number ${{ inputs.build || github.run_number }} ${{ inputs.version && format('--build-name {0}', inputs.version) || '' }} --dart-define=BUILD_DATE=${{ env.BUILD_DATE }} --dart-define=BUILD_COMMIT=${{ github.sha }} --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+        env: # inputs reach the shell as variables, never pasted into the script
+          BUILD_NUMBER: ${{ inputs.build || github.run_number }}
+          VERSION: ${{ inputs.version }}
+        run: flutter build ipa --release --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA" --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
       - name: Remove the keychain
         if: always()
         run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true

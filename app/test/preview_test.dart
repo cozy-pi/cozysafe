@@ -789,7 +789,7 @@ void main() {
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
   _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
-  _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-63VN-V6GG-GPDY-2RV9-WMB9-ZEWP-2WVH', confirm: false, onChange: () {}));
+  _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-7QK2-M9XD-4TRB-PW3H-8ZNA-6CJE-1VFS', confirm: false, onChange: () {}));
   Widget change(int step) => ChangeKeyScreen(libraryDir: '', password: '', onBackup: () async {});
   for (final (i, name, what) in [
     (0, 'intro', 'giải thích: dữ liệu giữ nguyên, PIN/Face ID dùng tiếp, bản sao lưu cũ cần khoá cũ'),
