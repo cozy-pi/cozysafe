@@ -117,7 +117,10 @@ validate a build with Apple instead of uploading it (`upload: false`).
   `www.googleapis.com`, a constant; it is the only name the app ever looks up, so the
   compiled-library check allows `getaddrinfo`. TLS is rustls with ring and Mozilla's roots
   bundled (6 crates; a ready-made HTTP client pulled in 44, so the few HTTP/1.1 requests
-  are written in cs-net, with tests for chunked bodies and size caps). An upload URL Drive
+  are written in cs-net, with tests for chunked bodies and size caps). One connection is
+  kept and reused (HTTP/1.1 keep-alive) while the server allows it and it has been idle
+  under 50 s; a request that finds it closed is sent once more on a new one only if its
+  body is in memory. An upload URL Drive
   hands back must be on the same host. Sign-in is Google's own plugin (`google_sign_in`,
   published by the Flutter team) and its native SDKs, which talk to Google's sign-in
   servers themselves: that part is reviewed, not sandboxed.

@@ -4,6 +4,11 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Unreleased
+
+### Changed
+- Google Drive sync reuses one secure connection, so many small items go up much faster.
+
 ## 0.1.55 (2026-10-24)
 
 ### Added
