@@ -490,6 +490,22 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   }
+  _screen('add-library-right', 'Thư viện · nút bên phải · bấm +', home, section: 'library', setup: () {
+    debugCamera = true;
+    Prefs.write('action-side', 'right');
+  },
+      change: 'Sửa lỗi: nút bên phải bấm + bị lặp và lệch (cột cuộn vòng); nay 2 lựa chọn xếp gọn',
+      marks: [() => find.byKey(const ValueKey('add-column'))], act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  });
+  _screen('home-add-right', 'Trang chủ · nút bên phải · bấm +', home, section: 'home', setup: () {
+    debugCamera = true;
+    Prefs.write('action-side', 'right');
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  });
   _screen('library-center', 'Thư viện · nút + ở giữa thanh', home, section: 'library', setup: () {
     Prefs.write('action-side', 'center');
   },
