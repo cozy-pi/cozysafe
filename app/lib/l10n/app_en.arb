@@ -634,5 +634,7 @@
   "@pinSetLead": {"placeholders": {"n": {"type": "int"}}},
   "addRowPhotos": "Photos",
   "addRowCamera": "Camera",
-  "sideCenterShort": "Middle"
+  "sideCenterShort": "Middle",
+  "addRowAddPhotos": "Add photos",
+  "@addRowAddPhotos": {"description": "In the library, + offers this: pick photos and videos from the device. Short, under a round button."}
 }

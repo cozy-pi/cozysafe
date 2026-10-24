@@ -4,6 +4,16 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.43 (2026-10-24)
+
+### Changed
+- The add button now sits in the middle of the bottom bar by default (left and right
+  are still in Settings).
+- Middle bar: the vault's badge is a tab inside the bar, like the others, and every
+  tab gets the same space.
+- In the library, + offers Add photos, Take photo and Record video side by side, just
+  above the button.
+
 ## 0.1.42 (2026-10-24)
 
 ### Changed

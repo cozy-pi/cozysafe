@@ -453,5 +453,6 @@
   "lookSkip": "ข้าม",
   "addRowPhotos": "รูปภาพ",
   "addRowCamera": "กล้อง",
-  "sideCenterShort": "กลาง"
+  "sideCenterShort": "กลาง",
+  "addRowAddPhotos": "เพิ่มรูปภาพ"
 }

@@ -453,5 +453,6 @@
   "lookSkip": "略過",
   "addRowPhotos": "照片",
   "addRowCamera": "相機",
-  "sideCenterShort": "中間"
+  "sideCenterShort": "中間",
+  "addRowAddPhotos": "加入照片"
 }

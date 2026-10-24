@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -41,16 +40,16 @@ const _sectionPref = 'vault-section';
 const holdHomePref = 'hold-home-lock';
 bool holdHomeLocks() => Prefs.read(holdHomePref) != '0';
 
-/// Where the main action floats (Settings): left (default, under the left thumb), right,
-/// or in the middle above the bar (owner 2026-10-24). Its ways stack up the edge it is
+/// Where the main action sits (Settings): in the middle of the bar (default, owner
+/// 2026-10-24: an edge is easy to hit by mistake), or floating on the left or right. Its ways stack up the edge it is
 /// on; from the middle they fan out to both sides.
 enum ActionSide { left, right, center }
 
 const actionSidePref = 'action-side';
 ActionSide actionSide() => switch (Prefs.read(actionSidePref)) {
       'right' => ActionSide.right,
-      'center' => ActionSide.center,
-      _ => ActionSide.left,
+      'left' => ActionSide.left,
+      _ => ActionSide.center,
     };
 bool actionOnRight() => actionSide() == ActionSide.right;
 
@@ -203,18 +202,12 @@ class VaultBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final centre = this.centre;
     if (centre != null) {
-      // The vault's badge (the overview, hold to lock) on its own on the left; the
-      // other sections share the bar two and two around the + (owner 2026-10-24: icons
-      // only, balanced).
-      final homeOn = sections.length >= 2 && sections.contains(VaultSection.home) && home != null;
+      // The vault's badge (the overview, hold to lock) is the first slot of the bar,
+      // like any other section (owner 2026-10-24: a separate ringed button looked odd).
       return Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (lock case final lock?) ...[lock, const SizedBox(width: 4)],
-          if (homeOn) ...[
-            _HomeButton(on: section == VaultSection.home, home: home!, onTap: () => _pick(VaultSection.home), onHold: onHoldHome),
-            const SizedBox(width: 4),
-          ],
           Expanded(
             child: Glass(
               radius: Ui.bar / 2,
@@ -222,7 +215,12 @@ class VaultBar extends StatelessWidget {
                 height: Ui.bar + 8,
                 child: _CentreTabs(
                   section: section,
-                  sections: [for (final s in sections.length < 2 ? const <VaultSection>[] : sections) if (s != VaultSection.home) s],
+                  sections: [
+                    for (final s in sections.length < 2 ? const <VaultSection>[] : sections)
+                      if (s != VaultSection.home || home != null) s,
+                  ],
+                  home: home,
+                  onHoldHome: onHoldHome,
                   onPick: _pick,
                   centre: centre,
                 ),
@@ -256,53 +254,6 @@ class VaultBar extends StatelessWidget {
   }
 }
 
-/// Wide enough to sit left of the bar: the vault's badge as the overview tab.
-const double centreHomeWidth = Ui.bar + 8 + 4;
-
-class _HomeButton extends StatelessWidget {
-  const _HomeButton({required this.on, required this.home, required this.onTap, this.onHold});
-  final bool on;
-  final Widget home;
-  final VoidCallback onTap;
-  final VoidCallback? onHold;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final primary = Theme.of(context).colorScheme.primary;
-    return Semantics(
-      button: true,
-      selected: on,
-      label: sectionLabel(l, VaultSection.home),
-      hint: onHold == null ? null : l.holdToLock,
-      child: GestureDetector(
-        key: const ValueKey('home-tab'),
-        onTap: onTap,
-        onLongPress: onHold == null
-            ? null
-            : () {
-                HapticFeedback.heavyImpact();
-                onHold!();
-              },
-        child: Glass(
-          radius: (Ui.bar + 8) / 2,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            width: Ui.bar + 8,
-            height: Ui.bar + 8,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: on ? primary : Colors.transparent, width: 2),
-            ),
-            child: home,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// The bar with the + in its middle: each section an icon (names for screen readers),
 /// in equal slots, half on each side, so the + stays in the centre whatever the count.
 class _CentreTabs extends StatelessWidget {
@@ -311,11 +262,15 @@ class _CentreTabs extends StatelessWidget {
     required this.sections,
     required this.onPick,
     required this.centre,
+    this.home,
+    this.onHoldHome,
   });
   final VaultSection section;
   final List<VaultSection> sections;
   final ValueChanged<VaultSection> onPick;
   final Widget centre;
+  final Widget? home;
+  final VoidCallback? onHoldHome;
 
   static IconData _icon(VaultSection s) => switch (s) {
         VaultSection.home => Icons.home_outlined,
@@ -340,17 +295,26 @@ class _CentreTabs extends StatelessWidget {
             selected: on,
             label: sectionLabel(l, s),
             excludeSemantics: true,
+            hint: s == VaultSection.home && onHoldHome != null ? l.holdToLock : null,
             child: GestureDetector(
-              key: ValueKey('tab-${s.name}'),
+              key: ValueKey(s == VaultSection.home ? 'home-tab' : 'tab-${s.name}'),
               behavior: HitTestBehavior.opaque,
               onTap: () => onPick(s),
+              onLongPress: s != VaultSection.home || onHoldHome == null
+                  ? null
+                  : () {
+                      HapticFeedback.heavyImpact();
+                      onHoldHome!();
+                    },
               child: Center(
                 // A small pop as it becomes the one on show (the pill slides under it).
                 child: AnimatedScale(
                   scale: on ? 1.08 : 1,
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOutBack,
-                  child: Icon(_icon(s), size: 26, color: on ? primary : ink.withValues(alpha: .7)),
+                  child: s == VaultSection.home && home != null
+                      ? home!
+                      : Icon(_icon(s), size: 26, color: on ? primary : ink.withValues(alpha: .7)),
                 ),
               ),
             ),
@@ -359,28 +323,16 @@ class _CentreTabs extends StatelessWidget {
       );
     }
 
-    final half = (sections.length + 1) ~/ 2;
-    final left = sections.take(half).toList();
-    final right = sections.skip(half).toList();
-    // Equal slots on both sides (the side with fewer keeps an empty one), so the gaps
-    // match and the + is centred.
-    Widget side(List<VaultSection> list, {required bool leading}) => Expanded(
-          child: Row(children: [
-            if (!leading) for (var i = list.length; i < half; i++) const Spacer(),
-            for (final s in list) tab(s),
-            if (leading) for (var i = list.length; i < half; i++) const Spacer(),
-          ]),
-        );
-    const gap = 4.0;
+    // Every slot the same width, the + one of them (owner 2026-10-24: with the home
+    // badge in the bar an empty slot was left on one side).
+    final at = centrePlusSlot(sections.length);
+    final slots = sections.length + 1;
     return LayoutBuilder(builder: (context, box) {
       // Where the lit pill sits: under the section on show, sliding from one to the
       // next (owner 2026-10-24: "like Instagram").
-      final sideW = (box.maxWidth - Ui.primary - gap * 2) / 2;
-      final slotW = half == 0 ? 0.0 : sideW / half;
-      double? pillX;
-      final li = left.indexOf(section), ri = right.indexOf(section);
-      if (li >= 0) pillX = (half - left.length + li) * slotW;
-      if (ri >= 0) pillX = sideW + Ui.primary + gap * 2 + ri * slotW;
+      final slotW = box.maxWidth / slots;
+      final i = sections.indexOf(section);
+      final double? pillX = i < 0 ? null : (i < at ? i : i + 1) * slotW;
       const pillW = 52.0, pillH = Ui.bar - 12;
       return Stack(
         alignment: Alignment.center,
@@ -403,9 +355,9 @@ class _CentreTabs extends StatelessWidget {
             ),
           Row(
             children: [
-              side(left, leading: false),
-              Padding(padding: const EdgeInsets.symmetric(horizontal: gap), child: centre),
-              side(right, leading: true),
+              for (final s in sections.take(at)) tab(s),
+              Expanded(child: Center(child: centre)),
+              for (final s in sections.skip(at)) tab(s),
             ],
           ),
         ],
@@ -413,6 +365,13 @@ class _CentreTabs extends StatelessWidget {
     });
   }
 }
+
+/// Which slot of the middle bar holds the + (the sections fill the others): the middle
+/// one, or just right of the middle when the count is odd.
+int centrePlusSlot(int sections) => (sections + 1) ~/ 2;
+
+/// The + button's centre across the middle bar, as a share of the bar's width.
+double centrePlusShare(int sections) => (centrePlusSlot(sections) + .5) / (sections + 1);
 
 /// The tabs inside the capsule. The home tab stays put on the left; the others share
 /// the rest equally when their words fit, and scroll sideways (no loop) when they do not
@@ -679,8 +638,7 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
 }
 
 /// What + offers, as a row (owner 2026-10-24, after looking at how other apps add):
-/// on the overview every kind; in the library its two ways (the camera takes photos and
-/// videos); elsewhere none, because + does that section's one thing straight away.
+/// on the overview every kind; in the library add photos, take a photo, record a video; elsewhere none, because + does that section's one thing straight away.
 /// Empty: no row.
 List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
     {required bool camera, required bool voice}) {
@@ -694,7 +652,14 @@ List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection se
         if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
         (AddWhat.file, Icons.description_outlined, sectionLabel(l, VaultSection.file)),
       ],
-    VaultSection.library => camera ? [photos, cam] : const [],
+    // Add from the device, take a photo, record a video, side by side (owner 2026-10-24).
+    VaultSection.library => camera
+        ? [
+            (AddWhat.photos, Icons.photo_library_outlined, l.addRowAddPhotos),
+            (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
+            (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
+          ]
+        : const [],
     _ => const [],
   };
 }
@@ -721,11 +686,14 @@ class AddRow extends StatefulWidget {
     required this.onPick,
     required this.onClose,
     required this.onGone,
+    this.centreX,
   });
   final bool open;
   final List<(AddWhat, IconData, String)> ways;
   /// The row's bottom above the screen's bottom edge.
   final double bottom;
+  /// Centred over this x (the + button's), kept on screen; the screen's middle if none.
+  final double? centreX;
   final AddWhat? hovered;
   final ValueChanged<AddWhat> onPick;
   final VoidCallback onClose;
@@ -758,6 +726,17 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  /// Where the row sits across the screen: over [AddRow.centreX], but never off an edge.
+  Alignment _align(BuildContext context) {
+    final x = widget.centreX;
+    if (x == null) return Alignment.center;
+    final width = MediaQuery.sizeOf(context).width;
+    final half = widget.ways.length * AddRow.width / 2;
+    if (width <= half * 2) return Alignment.center;
+    final c = x.clamp(half + 8, width - half - 8);
+    return Alignment((c - half) / (width - half * 2) * 2 - 1, 0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final page = Theme.of(context).scaffoldBackgroundColor;
@@ -777,7 +756,8 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
           left: 0,
           right: 0,
           bottom: w.bottom,
-          child: Center(
+          child: Align(
+            alignment: _align(context),
             child: Row(
               key: const ValueKey('add-row'),
               mainAxisSize: MainAxisSize.min,
@@ -812,7 +792,7 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
 }
 
 /// One way to add as a round button with its word under it, findable under a sliding
-/// finger ([AddColumn.wayAt]). Used by [AddRow] and [AddFan].
+/// finger ([AddColumn.wayAt]). Used by [AddRow].
 Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String label,
     {required bool hovered, required VoidCallback onTap}) {
   final page = Theme.of(context).scaffoldBackgroundColor;
@@ -859,104 +839,6 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
       ),
     ),
   );
-}
-
-/// The + in the middle: its ways fan out on a half circle around it, out to both sides
-/// (owner 2026-10-24: a column rising from the middle looked heavy). Two ways sit level
-/// on either side; five spread over the arc. Same tap / slide as the column.
-class AddFan extends StatefulWidget {
-  const AddFan({
-    super.key,
-    required this.open,
-    required this.ways,
-    required this.centre,
-    required this.hovered,
-    required this.onPick,
-    required this.onClose,
-    required this.onGone,
-  });
-  final bool open;
-  final List<(AddWhat, IconData, String)> ways;
-  /// The + button's centre, in this widget's box.
-  final Offset centre;
-  final AddWhat? hovered;
-  final ValueChanged<AddWhat> onPick;
-  final VoidCallback onClose;
-  final VoidCallback onGone;
-
-  @override
-  State<AddFan> createState() => _AddFanState();
-}
-
-class _AddFanState extends State<AddFan> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 380),
-    reverseDuration: const Duration(milliseconds: 200),
-  )..forward();
-
-  @override
-  void didUpdateWidget(AddFan old) {
-    super.didUpdateWidget(old);
-    if (old.open && !widget.open) _c.reverse().whenComplete(() => widget.onGone());
-    if (!old.open && widget.open) _c.forward();
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final page = Theme.of(context).scaffoldBackgroundColor;
-    final w = widget;
-    final n = w.ways.length;
-    // The + sits in the bar, so even the lowest ways rise clear of it (with their words);
-    // wider for more ways.
-    // The arc turns round a point above the +, so it can open wide (words clear of each
-    // other) and still sit above the bar.
-    final radius = n <= 2 ? 100.0 : 142.0;
-    final from = n <= 2 ? 160.0 : 170.0, to = 180 - from;
-    final pivot = w.centre - Offset(0, n <= 2 ? 40 : 58);
-    final dim = CurvedAnimation(parent: _c, curve: const Interval(0, .6, curve: Curves.easeOut));
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: w.onClose,
-            child: FadeTransition(opacity: dim, child: ColoredBox(color: page.withValues(alpha: .92))),
-          ),
-        ),
-        for (final (i, (what, icon, label)) in w.ways.indexed)
-          AnimatedBuilder(
-            key: ValueKey('fan-$i'),
-            animation: _c,
-            builder: (context, child) {
-              final start = i * .05;
-              final t = Curves.easeOutBack.transform(((_c.value - start) / (1 - start)).clamp(0.0, 1.0));
-              final deg = n == 1 ? 90.0 : from - (from - to) * i / (n - 1);
-              // Out along its own ray, turning a little as it goes.
-              final a = (deg + (1 - t) * 20) * math.pi / 180;
-              // From the + itself out to its place on the arc.
-              final x = w.centre.dx + (pivot.dx + radius * math.cos(a) - w.centre.dx) * t;
-              final y = w.centre.dy + (pivot.dy - radius * math.sin(a) - w.centre.dy) * t;
-              return Positioned(
-                left: x - AddRow.width / 2,
-                top: y - Ui.bar / 2,
-                child: Opacity(
-                  opacity: t.clamp(0.0, 1.0),
-                  child: Transform.scale(scale: .5 + .5 * t, alignment: Alignment.topCenter, child: child),
-                ),
-              );
-            },
-            child: addWayButton(context, what, icon, label, hovered: w.hovered == what, onTap: () => w.onPick(what)),
-          ),
-      ],
-    );
-  }
 }
 
 /// The + button's column: the page dims and the ways to add stack above the button,

@@ -453,5 +453,6 @@
   "lookSkip": "スキップ",
   "addRowPhotos": "写真",
   "addRowCamera": "カメラ",
-  "sideCenterShort": "中央"
+  "sideCenterShort": "中央",
+  "addRowAddPhotos": "写真を追加"
 }

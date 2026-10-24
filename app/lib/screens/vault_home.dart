@@ -1853,8 +1853,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final centreMode = actionSide() == ActionSide.center;
     final lockShown = !_noLockButton(sections) && !nativeBarOn();
     // Left of the bar: a lock button, and the vault's badge (the overview tab).
-    final leftOfBar = (lockShown ? Ui.bar + 4 : 0) + (sections.length >= 2 ? centreHomeWidth : 0);
-    final centreX = (MediaQuery.sizeOf(context).width + leftOfBar) / 2;
+    final leftOfBar = (lockShown ? Ui.bar + 4 : 0);
+    final barW = MediaQuery.sizeOf(context).width - 20 - leftOfBar;
+    final centreX = 10 + leftOfBar + barW * centrePlusShare(sections.length < 2 ? 0 : sections.length);
 
     final header = selecting
         ? Padding(
@@ -2029,12 +2030,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               if (_addShown)
                 Positioned.fill(
                   child: actionSide() == ActionSide.center
-                      ? AddFan(
+                      // In the middle: the ways side by side just above the + (owner
+                      // 2026-10-24: the fan put them too far apart).
+                      ? AddRow(
                           open: _adding,
                           onGone: () => setState(() => _addShown = false),
                           ways: _addWays(),
-                          centre: Offset(centreX,
-                              MediaQuery.sizeOf(context).height - bottom - actionLift() - Ui.primary / 2),
+                          bottom: bottom + actionLift() + Ui.primary + 10,
+                          centreX: centreX,
                           hovered: _hover,
                           onPick: _pickAdd,
                           onClose: _closeAdd,
