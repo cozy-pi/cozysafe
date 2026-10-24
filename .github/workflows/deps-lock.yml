@@ -1,0 +1,71 @@
+# Writes the lock files that pin what the builds download (docs/supply-chain.md), and
+# prints them to the log to be read and committed by hand: Gradle's checksums, the Swift
+# packages' resolved versions, and Semgrep with the hash of every Python package.
+# Run by hand when a dependency changes; nothing is committed or uploaded from here.
+name: deps-lock
+
+on:
+  workflow_dispatch:
+  # Also by pushing to this branch (a new workflow cannot be dispatched before it is on main).
+  push:
+    branches: [deps-lock]
+
+permissions:
+  contents: read
+
+jobs:
+  gradle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: ./.github/actions/flutter-setup
+      # Gradle's first run writes the SHA-256 of every artifact it resolves (from a fresh
+      # file: an artifact already in the cache when writing starts can be left out). Flutter
+      # only writes its config before that. Then the two release builds run with the file
+      # enforced, so a missing entry fails here and not in a release.
+      - working-directory: app
+        run: flutter build apk --config-only
+      - working-directory: app/android
+        run: |
+          rm -f gradle/verification-metadata.xml
+          ./gradlew --write-verification-metadata sha256 :app:assembleRelease :app:bundleRelease -Ptarget-platform=android-arm64,android-arm,android-x64
+      - working-directory: app
+        run: |
+          flutter build apk --release --target-platform android-arm64
+          flutter build appbundle --release
+      - run: cat app/android/gradle/verification-metadata.xml
+
+  swift:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/flutter-setup
+      - working-directory: app
+        run: |
+          flutter build ios --release --no-codesign
+          flutter build macos --release
+      - run: |
+          for f in $(find app/ios app/macos -name Package.resolved -not -path '*/build/*' -not -path '*/.build/*'); do
+            echo "=== $f"
+            cat "$f"
+          done
+
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      # Every package with the hashes of all its files, and none published in the last 14
+      # days (the same age rule as the Rust and Dart packages; tools/check-age).
+      - run: |
+          python3 -m venv "$RUNNER_TEMP/v"
+          "$RUNNER_TEMP/v/bin/pip" install --quiet uv==0.8.17
+          echo "semgrep==1.180.0" > "$RUNNER_TEMP/semgrep.in"
+          "$RUNNER_TEMP/v/bin/uv" pip compile --generate-hashes --no-header --universal \
+            --exclude-newer "$(date -u -d '14 days ago' +%Y-%m-%dT%H:%M:%SZ)" \
+            --output-file "$RUNNER_TEMP/semgrep.txt" "$RUNNER_TEMP/semgrep.in"
+          python3 --version
+          echo "=== semgrep.txt"
+          cat "$RUNNER_TEMP/semgrep.txt"

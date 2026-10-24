@@ -39,6 +39,12 @@ dev_dependencies:
   integration_test:
     sdk: flutter
 
+# PDFium's build hook, with the SHA-256 of every binary it downloads pinned
+# (third_party/pdfium_dart/pubspec.yaml).
+dependency_overrides:
+  pdfium_dart:
+    path: ../third_party/pdfium_dart
+
 flutter:
   uses-material-design: true
   generate: true

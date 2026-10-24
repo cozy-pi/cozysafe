@@ -190,8 +190,10 @@ def network_scan():
             ok = False
     flagged = set()
     for name, root in sorted(shipped_packages(config).items()):
-        # The Flutter SDK comes with the toolchain; path packages are this repo's own code.
-        if root.is_relative_to(flutter_root) or root.is_relative_to(ROOT):
+        # The Flutter SDK comes with the toolchain; path packages are this repo's own code,
+        # except third_party/ (others' code vendored here: scanned like any package).
+        own = root.is_relative_to(ROOT) and not root.is_relative_to(ROOT / "third_party")
+        if root.is_relative_to(flutter_root) or own:
             continue
         hits = scan(root)
         if not hits:

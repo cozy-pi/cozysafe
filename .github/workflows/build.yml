@@ -216,6 +216,10 @@ jobs:
           VERSION: ${{ inputs.version }}
           BUILD: ${{ inputs.build }}
         run: flutter build macos --release ${VERSION:+--build-name "$VERSION" --build-number "$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
+      # Swift packages exactly as pinned in the committed Package.resolved files (the
+      # Google sign-in SDKs, by commit): a different resolution stops the build here.
+      - name: Swift packages are the pinned ones
+        run: tools/check-swift-pins
       # The app is built ad-hoc signed (CODE_SIGN_IDENTITY "-"): no certificate on this
       # machine while Flutter, CocoaPods and every package's build code run.
       - name: Hand the built app to the signing job (ditto keeps symlinks and permissions)
