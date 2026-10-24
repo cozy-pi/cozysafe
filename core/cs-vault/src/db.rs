@@ -42,15 +42,24 @@ CREATE TABLE IF NOT EXISTS sync_meta (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 ) STRICT;
--- Per item, the revision this device and the cloud last agreed on.
+-- Per place synced with (the cloud, a nearby device) and item, the revision both last
+-- agreed on.
 CREATE TABLE IF NOT EXISTS sync_items (
-    id         TEXT PRIMARY KEY CHECK (length(id) = 32),
-    synced_rev TEXT NOT NULL
+    remote     TEXT NOT NULL,
+    id         TEXT NOT NULL CHECK (length(id) = 32),
+    synced_rev TEXT NOT NULL,
+    PRIMARY KEY (remote, id)
 ) STRICT;
--- Items deleted for good here, to tell the other devices (until pushed).
+-- Items deleted for good, to tell every place synced with.
 CREATE TABLE IF NOT EXISTS sync_gone (
     id  TEXT PRIMARY KEY CHECK (length(id) = 32),
     hlc INTEGER NOT NULL
+) STRICT;
+-- Which places have been told about a deletion.
+CREATE TABLE IF NOT EXISTS sync_gone_sent (
+    remote TEXT NOT NULL,
+    id     TEXT NOT NULL,
+    PRIMARY KEY (remote, id)
 ) STRICT;
 ";
 
@@ -191,28 +200,29 @@ impl Index {
         Ok(())
     }
 
-    pub(crate) fn synced_rev(&self, id: &str) -> Result<Option<String>> {
+    pub(crate) fn synced_rev(&self, remote: &str, id: &str) -> Result<Option<String>> {
         self.db
             .query_row(
-                "SELECT synced_rev FROM sync_items WHERE id = ?1",
-                [id],
+                "SELECT synced_rev FROM sync_items WHERE remote = ?1 AND id = ?2",
+                [remote, id],
                 |r| r.get(0),
             )
             .optional()
             .map_err(sql)
     }
 
-    pub(crate) fn set_synced(&self, id: &str, rev: &str) -> Result<()> {
+    pub(crate) fn set_synced(&self, remote: &str, id: &str, rev: &str) -> Result<()> {
         self.db
             .execute(
-                "INSERT INTO sync_items (id, synced_rev) VALUES (?1, ?2)
-                 ON CONFLICT (id) DO UPDATE SET synced_rev = excluded.synced_rev",
-                params![id, rev],
+                "INSERT INTO sync_items (remote, id, synced_rev) VALUES (?1, ?2, ?3)
+                 ON CONFLICT (remote, id) DO UPDATE SET synced_rev = excluded.synced_rev",
+                params![remote, id, rev],
             )
             .map_err(sql)?;
         Ok(())
     }
 
+    /// A deletion for good, to tell every place synced with.
     pub(crate) fn add_gone(&self, id: &str, hlc: i64) -> Result<()> {
         self.db
             .execute(
@@ -224,23 +234,64 @@ impl Index {
         self.db
             .execute("DELETE FROM sync_items WHERE id = ?1", [id])
             .map_err(sql)?;
+        self.db
+            .execute("DELETE FROM sync_gone_sent WHERE id = ?1", [id])
+            .map_err(sql)?;
         Ok(())
     }
 
-    pub(crate) fn gone(&self) -> Result<Vec<(String, i64)>> {
+    pub(crate) fn gone_hlc(&self, id: &str) -> Result<Option<i64>> {
+        self.db
+            .query_row("SELECT hlc FROM sync_gone WHERE id = ?1", [id], |r| {
+                r.get(0)
+            })
+            .optional()
+            .map_err(sql)
+    }
+
+    /// Deletions `remote` has not been told about.
+    pub(crate) fn gone_unsent(&self, remote: &str) -> Result<Vec<(String, i64)>> {
         let mut stmt = self
             .db
-            .prepare("SELECT id, hlc FROM sync_gone ORDER BY id")
+            .prepare(
+                "SELECT id, hlc FROM sync_gone WHERE id NOT IN
+                 (SELECT id FROM sync_gone_sent WHERE remote = ?1) ORDER BY id",
+            )
             .map_err(sql)?;
         let rows = stmt
-            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .query_map([remote], |r| Ok((r.get(0)?, r.get(1)?)))
             .map_err(sql)?;
         rows.collect::<rusqlite::Result<Vec<_>>>().map_err(sql)
     }
 
-    pub(crate) fn clear_gone(&self, id: &str) -> Result<()> {
+    pub(crate) fn gone_sent(&self, remote: &str, id: &str) -> Result<()> {
+        self.db
+            .execute(
+                "INSERT OR IGNORE INTO sync_gone_sent (remote, id) VALUES (?1, ?2)",
+                [remote, id],
+            )
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    /// The item came back (edited elsewhere after the deletion): forget the deletion.
+    pub(crate) fn forget_gone(&self, id: &str) -> Result<()> {
         self.db
             .execute("DELETE FROM sync_gone WHERE id = ?1", [id])
+            .map_err(sql)?;
+        self.db
+            .execute("DELETE FROM sync_gone_sent WHERE id = ?1", [id])
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    /// Forget what was agreed with `remote` (it is a new, empty place).
+    pub(crate) fn forget_remote(&self, remote: &str) -> Result<()> {
+        self.db
+            .execute("DELETE FROM sync_items WHERE remote = ?1", [remote])
+            .map_err(sql)?;
+        self.db
+            .execute("DELETE FROM sync_gone_sent WHERE remote = ?1", [remote])
             .map_err(sql)?;
         Ok(())
     }

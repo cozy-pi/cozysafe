@@ -31,6 +31,8 @@ use crate::{Error, OpenVault, Result};
 
 /// The shared folder, seen from this device. Paths use '/' and stay inside the folder.
 pub trait Remote {
+    /// A stable name for this place (the sync state kept here is per place).
+    fn key(&self) -> String;
     /// File names directly in `dir` (empty when it does not exist).
     fn list(&self, dir: &str) -> Result<Vec<String>>;
     /// Copy the file at `path` into `out`; `false` when there is no such file.
@@ -38,18 +40,49 @@ pub trait Remote {
     /// Create the file at `path` from `src` (it never exists yet: nothing is overwritten).
     fn put(&self, path: &str, src: &mut dyn Read) -> Result<()>;
     fn exists(&self, path: &str) -> Result<bool>;
+    /// [`Remote::put`] from a file on this device.
+    fn put_file(&self, path: &str, local: &Path) -> Result<()> {
+        self.put(path, &mut fs::File::open(local)?)
+    }
 }
 
 /// A folder on this device: tests, desktops, and any folder a sync client mirrors.
 pub struct FolderRemote {
     root: PathBuf,
+    key: Option<String>,
 }
 
 impl FolderRemote {
     pub fn new(root: &Path) -> FolderRemote {
         FolderRemote {
             root: root.to_path_buf(),
+            key: None,
         }
+    }
+
+    /// The same, with a fixed name for its sync state (a folder made fresh each time).
+    pub fn with_key(root: &Path, key: &str) -> FolderRemote {
+        FolderRemote {
+            root: root.to_path_buf(),
+            key: Some(key.to_owned()),
+        }
+    }
+
+    /// The file at `path`, open for reading, if there is one.
+    pub fn open(&self, path: &str) -> Result<Option<fs::File>> {
+        match fs::File::open(self.at(path)?) {
+            Ok(f) => Ok(Some(f)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// A temporary file name inside the folder (ignored by listings).
+    pub fn scratch(&self) -> Result<PathBuf> {
+        fs::create_dir_all(&self.root)?;
+        Ok(self
+            .root
+            .join(format!("{}.tmp", hex::encode(cs_crypto::generate_salt()))))
     }
 
     fn at(&self, path: &str) -> Result<PathBuf> {
@@ -64,6 +97,12 @@ impl FolderRemote {
 }
 
 impl Remote for FolderRemote {
+    fn key(&self) -> String {
+        self.key
+            .clone()
+            .unwrap_or_else(|| format!("folder:{}", self.root.display()))
+    }
+
     fn list(&self, dir: &str) -> Result<Vec<String>> {
         match fs::read_dir(self.at(dir)?) {
             Ok(d) => Ok(d
@@ -104,6 +143,19 @@ impl Remote for FolderRemote {
 
     fn exists(&self, path: &str) -> Result<bool> {
         Ok(self.at(path)?.exists())
+    }
+
+    /// A hard link when the folder is on the same disk (a P2P host's folder holds the
+    /// whole vault for a moment: linking costs no space), a copy otherwise.
+    fn put_file(&self, path: &str, local: &Path) -> Result<()> {
+        let to = self.at(path)?;
+        if let Some(parent) = to.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        if fs::hard_link(local, &to).is_ok() {
+            return Ok(());
+        }
+        self.put(path, &mut fs::File::open(local)?)
     }
 }
 
@@ -197,7 +249,7 @@ impl OpenVault {
             if !device.bytes().all(|b| b.is_ascii_hexdigit()) {
                 continue;
             }
-            let key = format!("cursor:{device}");
+            let key = format!("{}:cursor:{device}", remote.key());
             let cursor: u64 = self
                 .index
                 .meta_get(&key)?
@@ -222,7 +274,7 @@ impl OpenVault {
                     self.take(remote, &id, &rev, report)?;
                 }
                 for (id, hlc) in entry.gone {
-                    self.take_gone(&id, hlc, report)?;
+                    self.take_gone(remote, &id, hlc, report)?;
                 }
                 self.index.meta_set(&key, &n.to_string())?;
             }
@@ -293,23 +345,23 @@ impl OpenVault {
             .sealed_record(id)?
             .map(|s| self.open_record(id, &s))
             .transpose()?;
-        let synced = self.index.synced_rev(id)?;
+        let synced = self.index.synced_rev(&remote.key(), id)?;
         let Some(ours) = ours else {
             // New here, unless this device deleted it for good after that revision.
-            if let Some((_, gone_hlc)) = self.index.gone()?.into_iter().find(|(g, _)| g == id) {
+            if let Some(gone_hlc) = self.index.gone_hlc(id)? {
                 if gone_hlc > theirs.hlc {
                     return Ok(());
                 }
-                self.index.clear_gone(id)?;
+                self.index.forget_gone(id)?;
             }
             self.fetch_blobs(remote, id, &theirs)?;
             self.store_record(id, &theirs)?;
-            self.index.set_synced(id, rev)?;
+            self.index.set_synced(&remote.key(), id, rev)?;
             report.received += 1;
             return Ok(());
         };
         if ours.rev == theirs.rev {
-            self.index.set_synced(id, rev)?;
+            self.index.set_synced(&remote.key(), id, rev)?;
             return Ok(());
         }
         let changed_here = synced.as_deref() != Some(ours.rev.as_str());
@@ -319,7 +371,7 @@ impl OpenVault {
                 self.fetch_blobs(remote, id, &theirs)?;
             }
             self.store_record(id, &theirs)?;
-            self.index.set_synced(id, rev)?;
+            self.index.set_synced(&remote.key(), id, rev)?;
             report.received += 1;
             return Ok(());
         }
@@ -334,7 +386,7 @@ impl OpenVault {
         let merged = self.merge(remote, id, base.as_ref(), &ours, &theirs, report)?;
         self.store_record(id, &merged)?;
         // Agreed on theirs; ours (the merge) is the newer revision and goes up next.
-        self.index.set_synced(id, rev)?;
+        self.index.set_synced(&remote.key(), id, rev)?;
         report.received += 1;
         Ok(())
     }
@@ -467,24 +519,34 @@ impl OpenVault {
         Ok(())
     }
 
-    fn take_gone(&self, id: &str, hlc: i64, report: &mut SyncReport) -> Result<()> {
+    fn take_gone(
+        &self,
+        remote: &dyn Remote,
+        id: &str,
+        hlc: i64,
+        report: &mut SyncReport,
+    ) -> Result<()> {
         observe_hlc(&self.index, hlc)?;
         let Some(sealed) = self.sealed_record(id)? else {
             return Ok(());
         };
         let ours = self.open_record(id, &sealed)?;
-        let changed_here = self.index.synced_rev(id)?.as_deref() != Some(ours.rev.as_str());
+        let changed_here =
+            self.index.synced_rev(&remote.key(), id)?.as_deref() != Some(ours.rev.as_str());
         if changed_here && ours.hlc > hlc {
             return Ok(()); // edited here after: it stays (and goes up again)
         }
         self.remove_item(id)?;
-        self.index.clear_gone(id)?;
+        // Kept as a deletion to pass on to the other places, already known here.
+        self.index.add_gone(id, hlc)?;
+        self.index.gone_sent(&remote.key(), id)?;
         report.removed += 1;
         Ok(())
     }
 
     fn push(&self, remote: &dyn Remote, report: &mut SyncReport) -> Result<()> {
         let me = device_id(&self.index)?;
+        let rk = remote.key();
         let base = self.sync_dir();
         // What the others need to open the vault: public files, sealed or not secret.
         if let Some(header) = self.dir.join(crate::HEADER_FILE).to_str() {
@@ -508,7 +570,7 @@ impl OpenVault {
                 record.modified_ms = modified;
                 sealed = self.store_record(&id, &record)?;
             }
-            if self.index.synced_rev(&id)?.as_deref() == Some(record.rev.as_str()) {
+            if self.index.synced_rev(&rk, &id)?.as_deref() == Some(record.rev.as_str()) {
                 continue;
             }
             for ext in ["data", "thumb"] {
@@ -517,8 +579,7 @@ impl OpenVault {
                 }
                 let to = format!("{base}/blobs/{id}.{}.{ext}", record.data_rev);
                 if !remote.exists(&to)? {
-                    let mut f = fs::File::open(self.path(&id, ext)?)?;
-                    remote.put(&to, &mut f)?;
+                    remote.put_file(&to, &self.path(&id, ext)?)?;
                 }
             }
             let to = format!("{base}/records/{id}/{}", record.rev);
@@ -527,25 +588,25 @@ impl OpenVault {
             }
             entry.items.push((id.clone(), record.rev.clone()));
         }
-        entry.gone = self.index.gone()?;
+        entry.gone = self.index.gone_unsent(&rk)?;
         if entry.items.is_empty() && entry.gone.is_empty() {
             return Ok(());
         }
         let n: u64 = self
             .index
-            .meta_get("seq")?
+            .meta_get(&format!("{rk}:seq"))?
             .and_then(|v| v.parse().ok())
             .unwrap_or(0)
             + 1;
         let json = serde_json::to_vec(&entry).expect("serialisable");
         let sealed = wrap::seal(&self.master_key, &json, &self.log_aad(&me, n));
         remote.put(&format!("{base}/log/{me}/{n}"), &mut &sealed[..])?;
-        self.index.meta_set("seq", &n.to_string())?;
+        self.index.meta_set(&format!("{rk}:seq"), &n.to_string())?;
         for (id, rev) in &entry.items {
-            self.index.set_synced(id, rev)?;
+            self.index.set_synced(&remote.key(), id, rev)?;
         }
         for (id, _) in &entry.gone {
-            self.index.clear_gone(id)?;
+            self.index.gone_sent(&rk, id)?;
         }
         report.sent += entry.items.len() as u32;
         Ok(())
@@ -557,7 +618,7 @@ fn short_device(device: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::items::NewItem;
     use crate::Library;
@@ -572,11 +633,11 @@ mod tests {
 
     /// A vault on device A, the same vault copied to device B (without A's local sync
     /// state, as a new device starts), and the folder they share.
-    struct Two {
-        _dirs: (tempfile::TempDir, tempfile::TempDir, tempfile::TempDir),
-        a: OpenVault,
-        b: OpenVault,
-        cloud: FolderRemote,
+    pub(crate) struct Two {
+        pub(crate) _dirs: (tempfile::TempDir, tempfile::TempDir, tempfile::TempDir),
+        pub(crate) a: OpenVault,
+        pub(crate) b: OpenVault,
+        pub(crate) cloud: FolderRemote,
     }
 
     fn copy_dir(from: &Path, to: &Path) {
@@ -595,7 +656,7 @@ mod tests {
         }
     }
 
-    fn two() -> Two {
+    pub(crate) fn two() -> Two {
         let (da, db, dc) = (
             tempfile::tempdir().unwrap(),
             tempfile::tempdir().unwrap(),
@@ -627,7 +688,7 @@ mod tests {
         }
     }
 
-    fn note(v: &OpenVault, name: &str, text: &str) -> String {
+    pub(crate) fn note(v: &OpenVault, name: &str, text: &str) -> String {
         v.add_item(NewItem {
             kind: kind::NOTE,
             name,
@@ -640,7 +701,7 @@ mod tests {
         .id
     }
 
-    fn text(v: &OpenVault, id: &str) -> String {
+    pub(crate) fn text(v: &OpenVault, id: &str) -> String {
         let mut out = Vec::new();
         v.read_item(id, &mut out).unwrap();
         String::from_utf8(out).unwrap()
