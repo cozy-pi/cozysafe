@@ -513,5 +513,12 @@
   "changeKeyApply": "Usar las palabras nuevas",
   "changeKeyDone": "Listo. La clave de recuperación antigua ya no abre esta caja fuerte en este dispositivo.",
   "changeKeyFailed": "No se pudo cambiar la clave de recuperación. No ha cambiado nada: la antigua sigue funcionando.",
-  "kitLeadLegacy": "Esta clave y la contraseña de tu caja fuerte la abren en un móvil nuevo o desde una copia de seguridad. Es el tipo antiguo de clave: cámbiala a 24 palabras abajo."
+  "kitLeadLegacy": "Esta clave y la contraseña de tu caja fuerte la abren en un móvil nuevo o desde una copia de seguridad. Es el tipo antiguo de clave: cámbiala a 24 palabras abajo.",
+  "syncDriveRow": "Sincronizar con Google Drive",
+  "syncDriveNote": "Guarda una copia cifrada de esta caja fuerte en una carpeta «Cozy Safe» de tu Google Drive, para que tus otros dispositivos puedan sincronizarse cuando quieran. Google solo ve archivos cifrados.",
+  "syncAllowDrive": "Este dispositivo se conectará a Google Drive (www.googleapis.com) como {account}, solo para esta sincronización.",
+  "syncDriveWorking": "Sincronizando con Google Drive",
+  "syncSignInAgain": "Google te pide que vuelvas a iniciar sesión. Toca Sincronizar con Google Drive otra vez.",
+  "syncDriveSignOut": "Cerrar sesión de Google",
+  "syncLogDrive": "Google Drive"
 }

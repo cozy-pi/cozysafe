@@ -513,5 +513,12 @@
   "changeKeyApply": "Neue Wörter verwenden",
   "changeKeyDone": "Fertig. Der alte Wiederherstellungsschlüssel öffnet diesen Tresor auf diesem Gerät nicht mehr.",
   "changeKeyFailed": "Der Wiederherstellungsschlüssel konnte nicht geändert werden. Es hat sich nichts geändert: Der alte funktioniert weiterhin.",
-  "kitLeadLegacy": "Dieser Schlüssel und dein Tresor-Passwort öffnen deinen Tresor auf einem neuen Handy oder aus einem Backup. Es ist die ältere Art Schlüssel: wechsle unten zu 24 Wörtern."
+  "kitLeadLegacy": "Dieser Schlüssel und dein Tresor-Passwort öffnen deinen Tresor auf einem neuen Handy oder aus einem Backup. Es ist die ältere Art Schlüssel: wechsle unten zu 24 Wörtern.",
+  "syncDriveRow": "Mit Google Drive synchronisieren",
+  "syncDriveNote": "Bewahrt eine verschlüsselte Kopie dieses Tresors im Ordner „Cozy Safe“ in deinem Google Drive auf, damit sich deine anderen Geräte jederzeit synchronisieren können. Google sieht nur verschlüsselte Dateien.",
+  "syncAllowDrive": "Dieses Gerät verbindet sich als {account} mit Google Drive (www.googleapis.com), nur für diese Synchronisierung.",
+  "syncDriveWorking": "Synchronisierung mit Google Drive",
+  "syncSignInAgain": "Google bittet dich, dich erneut anzumelden. Tippe noch einmal auf „Mit Google Drive synchronisieren“.",
+  "syncDriveSignOut": "Von Google abmelden",
+  "syncLogDrive": "Google Drive"
 }

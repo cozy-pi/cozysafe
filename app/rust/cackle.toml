@@ -35,6 +35,15 @@ include = [
     "libc::getnameinfo",
     "tokio::net",
 ]
+# IP address values are data, not connections: TLS checks a certificate against them
+# (rustls, webpki). Sockets and name lookups stay `net`.
+exclude = [
+    "std::net::IpAddr",
+    "std::net::Ipv4Addr",
+    "std::net::Ipv6Addr",
+    "std::net::AddrParseError",
+    "core::net",
+]
 
 # Build scripts and proc macros run as in any cargo build: cackle checks what they
 # use but does not sandbox them (Bubblewrap needs unprivileged user namespaces,
@@ -117,6 +126,16 @@ allow_apis = ["fs", "net"]
 allow_proc_macro = true
 
 [pkg.lru]
+allow_unsafe = true
+
+[pkg.ring]
+allow_unsafe = true
+build.allow_apis = ["fs", "process"]
+
+[pkg.rustls]
+allow_unsafe = true
+
+[pkg."rustls-pki-types"]
 allow_unsafe = true
 
 [pkg."cs-vault"]

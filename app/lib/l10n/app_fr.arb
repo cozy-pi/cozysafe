@@ -513,5 +513,12 @@
   "changeKeyApply": "Utiliser les nouveaux mots",
   "changeKeyDone": "Terminé. L'ancienne clé de récupération n'ouvre plus ce coffre sur cet appareil.",
   "changeKeyFailed": "Impossible de changer la clé de récupération. Rien n'a changé : l'ancienne fonctionne toujours.",
-  "kitLeadLegacy": "Cette clé et le mot de passe de votre coffre l'ouvrent sur un nouveau téléphone ou depuis une sauvegarde. C'est l'ancien type de clé : passez à 24 mots ci-dessous."
+  "kitLeadLegacy": "Cette clé et le mot de passe de votre coffre l'ouvrent sur un nouveau téléphone ou depuis une sauvegarde. C'est l'ancien type de clé : passez à 24 mots ci-dessous.",
+  "syncDriveRow": "Synchroniser avec Google Drive",
+  "syncDriveNote": "Conserve une copie chiffrée de ce coffre dans un dossier « Cozy Safe » de votre Google Drive, pour que vos autres appareils puissent se synchroniser à tout moment. Google ne voit que des fichiers chiffrés.",
+  "syncAllowDrive": "Cet appareil se connectera à Google Drive (www.googleapis.com) en tant que {account}, uniquement pour cette synchronisation.",
+  "syncDriveWorking": "Synchronisation avec Google Drive",
+  "syncSignInAgain": "Google vous demande de vous reconnecter. Touchez à nouveau Synchroniser avec Google Drive.",
+  "syncDriveSignOut": "Se déconnecter de Google",
+  "syncLogDrive": "Google Drive"
 }

@@ -513,5 +513,12 @@
   "changeKeyApply": "使用新单词",
   "changeKeyDone": "完成。在此设备上，旧的恢复密钥已无法打开这个保险箱。",
   "changeKeyFailed": "无法更换恢复密钥。没有任何改动：旧密钥仍然可用。",
-  "kitLeadLegacy": "此密钥加上保险箱密码，可在新手机上或从备份打开保险箱。这是旧式密钥：请在下方换成 24 个单词。"
+  "kitLeadLegacy": "此密钥加上保险箱密码，可在新手机上或从备份打开保险箱。这是旧式密钥：请在下方换成 24 个单词。",
+  "syncDriveRow": "与 Google Drive 同步",
+  "syncDriveNote": "在你的 Google Drive 的“Cozy Safe”文件夹中保存此保险箱的加密副本，让你的其他设备随时都能同步。Google 只能看到加密的文件。",
+  "syncAllowDrive": "此设备将以 {account} 身份连接到 Google Drive（www.googleapis.com），仅用于本次同步。",
+  "syncDriveWorking": "正在与 Google Drive 同步",
+  "syncSignInAgain": "Google 要求你重新登录。请再点一次“与 Google Drive 同步”。",
+  "syncDriveSignOut": "退出 Google 账号",
+  "syncLogDrive": "Google Drive"
 }

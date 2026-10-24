@@ -6,7 +6,10 @@ import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show pushPage;
+import '../platform.dart';
 import 'consent.dart';
+import 'drive.dart';
+import 'progress.dart';
 import 'host_page.dart';
 import 'join_page.dart';
 import 'wifi.dart';
@@ -23,6 +26,8 @@ class SyncScreen extends StatefulWidget {
   static List<String>? debugLog;
   /// For the mockup renders: the address without asking the system.
   static String? debugAddress;
+  /// For the mockup renders: show Google Drive on any platform.
+  static bool debugDrive = false;
 
   @override
   State<SyncScreen> createState() => _SyncScreenState();
@@ -61,6 +66,33 @@ class _SyncScreenState extends State<SyncScreen> {
     await pushPage<void>(context,
         title: l.syncShowCode,
         builder: (_) => HostSyncPage(address: address, mirror: '${widget.libraryDir}-sync', onSynced: widget.onSynced));
+    _loadLog();
+  }
+
+  /// Google Drive: sign in, ask, then one sync (the vault's sealed files only).
+  Future<void> _drive() async {
+    final l = AppLocalizations.of(context);
+    DriveSession? session;
+    try {
+      session = await driveSignIn();
+    } catch (_) {
+      if (mounted) showToast(context, l.syncFailed, icon: Icons.error_outline_rounded);
+      return;
+    }
+    if (session == null || !mounted) return;
+    if (!await allowConnection(context, l.syncAllowDrive(session.email)) || !mounted) return;
+    final token = session.token;
+    await pushPage<void>(context,
+        title: l.syncTitle,
+        builder: (_) => SyncProgress(
+              events: Stream.fromFuture(sync.driveSync(token: token)),
+              onSynced: widget.onSynced,
+              waiting: Column(mainAxisSize: MainAxisSize.min, children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 18),
+                Text(l.syncDriveWorking, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+              ]),
+            ));
     _loadLog();
   }
 
@@ -103,6 +135,17 @@ class _SyncScreenState extends State<SyncScreen> {
           _Action(key: const ValueKey('sync-scan'), icon: Icons.qr_code_scanner_rounded, color: const Color(0xFF34C759), title: l.syncScanCode, onTap: _scan),
           _Action(key: const ValueKey('sync-type'), icon: Icons.keyboard_outlined, color: const Color(0xFF8E8E93), title: l.syncTypeCode, onTap: _type),
         ]),
+        // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
+        if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
+          const SizedBox(height: 24),
+          _Card(children: [
+            _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), title: l.syncDriveRow, onTap: _drive),
+          ]),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+            child: Text(l.syncDriveNote, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.35)),
+          ),
+        ],
         const SizedBox(height: 24),
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 7),
@@ -185,7 +228,11 @@ class _LogRow extends StatelessWidget {
     final when = DateTime.fromMillisecondsSinceEpoch(int.tryParse(p[0]) ?? 0);
     final tag = Localizations.localeOf(context).toLanguageTag();
     final date = '${DateFormat.yMMMd(tag).format(when)} ${DateFormat.Hm(tag).format(when)}';
-    final title = p[1] == 'join' ? l.syncLogJoin(p[2]) : l.syncLogHost;
+    final title = switch (p[1]) {
+      'join' => l.syncLogJoin(p[2]),
+      'drive' => l.syncLogDrive,
+      _ => l.syncLogHost,
+    };
     final (outcome, ok) = switch (p[3]) {
       'ok' => (l.syncLogCounts(p[4], p[5]), true),
       'cancelled' => (l.syncLogCancelled, false),
