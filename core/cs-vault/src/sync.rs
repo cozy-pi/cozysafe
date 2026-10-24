@@ -1010,15 +1010,25 @@ impl OpenVault {
             let start = remote.bytes();
             let (mut records, mut contents) = (Vec::new(), Vec::new());
             for (n, (id, current, revs)) in todo.iter().enumerate() {
-                // The other revisions, oldest first; unreadable ones are left alone.
-                let mut others: Vec<(i64, String, String)> = revs
-                    .iter()
-                    .filter(|r| **r != current.rev)
-                    .filter_map(|r| match self.remote_record(remote, id, r) {
-                        Ok(Some((r, _))) => Some((r.hlc, r.rev, r.data_rev)),
-                        _ => None,
-                    })
-                    .collect();
+                // The other revisions, oldest first. Each record is read once per place,
+                // its clock kept here; unreadable ones are left alone (and tried again).
+                let mut known = std::collections::HashMap::new();
+                for (rev, hlc, data_rev) in self.index.rev_clocks(&rk, id)? {
+                    if rev == current.rev || !revs.contains(&rev) {
+                        self.index.forget_rev_clock(&rk, id, &rev)?;
+                    } else {
+                        known.insert(rev, (hlc, data_rev));
+                    }
+                }
+                let mut others: Vec<(i64, String, String)> = Vec::new();
+                for rev in revs.iter().filter(|r| **r != current.rev) {
+                    if let Some((hlc, data_rev)) = known.remove(rev) {
+                        others.push((hlc, rev.clone(), data_rev));
+                    } else if let Ok(Some((r, _))) = self.remote_record(remote, id, rev) {
+                        self.index.set_rev_clock(&rk, id, rev, r.hlc, &r.data_rev)?;
+                        others.push((r.hlc, r.rev, r.data_rev));
+                    }
+                }
                 others.sort();
                 let mut keep = BTreeSet::from([current.data_rev.clone()]);
                 let mut dropped = BTreeSet::new();
@@ -1028,6 +1038,7 @@ impl OpenVault {
                         .map_or(current.hlc, |o| o.0.min(current.hlc));
                     if *hlc < current.hlc && superseded <= cutoff {
                         records.push(format!("{base}/records/{id}/{rev}"));
+                        self.index.forget_rev_clock(&rk, id, rev)?;
                         dropped.insert(data_rev.clone());
                     } else {
                         keep.insert(data_rev.clone());
@@ -1812,9 +1823,13 @@ pub(crate) mod tests {
 
     /// Look for old revisions on `t.cloud` from device A, as if it were `now`.
     fn collect(t: &Two, now: i64) -> Vec<SyncProgress> {
+        collect_on(t, &t.cloud, now)
+    }
+
+    fn collect_on(t: &Two, place: &dyn Remote, now: i64) -> Vec<SyncProgress> {
         let seen = std::sync::Mutex::new(Vec::new());
         let counted = Counted {
-            inner: &t.cloud,
+            inner: place,
             bytes: AtomicU64::new(0),
         };
         t.a.collect_garbage(&counted, now, &|p| seen.lock().unwrap().push(p))
@@ -1900,6 +1915,50 @@ pub(crate) mod tests {
         t.b.sync(&t.cloud).unwrap();
         t.a.sync(&t.cloud).unwrap();
         assert_eq!(names(&t.a), vec!["N5", "Other"]);
+    }
+
+    #[test]
+    fn each_old_record_is_read_once_per_place() {
+        let t = two();
+        let id = note(&t.a, "N1", "text");
+        t.a.sync(&t.cloud).unwrap();
+        for n in 2..=4 {
+            t.a.rename_item(&id, &format!("N{n}")).unwrap();
+            t.a.sync(&t.cloud).unwrap();
+        }
+        let all = revisions(&t, &id);
+        assert_eq!(all.len(), 4);
+        let now = now_ms() + GC_EVERY_MS;
+        // First pass: the three older records are read; nothing is old enough yet.
+        let watched = Watched::new(&t.cloud, 1);
+        assert!(collect_on(&t, &watched, now).is_empty());
+        assert_eq!(watched.got("/records/"), 3);
+        // The next day: nothing read again.
+        let watched = Watched::new(&t.cloud, 1);
+        assert!(collect_on(&t, &watched, now + GC_EVERY_MS).is_empty());
+        assert_eq!(watched.got("/records/"), 0);
+        // A new revision: only it is read (its predecessor became an older one).
+        t.a.rename_item(&id, "N5").unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        let watched = Watched::new(&t.cloud, 1);
+        collect_on(&t, &watched, now + 2 * GC_EVERY_MS);
+        assert_eq!(watched.got("/records/"), 1);
+        // Removed ones are forgotten, and the clocks of the rest still decide.
+        collect(&t, all[2].0 - 1 + KEEP_OLD_MS + 3 * GC_EVERY_MS);
+        let left = revisions(&t, &id);
+        assert_eq!(left.len(), 1);
+        assert_eq!(
+            t.a.index.rev_clocks(&t.cloud.key(), &id).unwrap().len(),
+            left.len() - 1
+        );
+        // An item deleted for good takes its clocks along.
+        t.a.delete_item(&id).unwrap();
+        assert!(t
+            .a
+            .index
+            .rev_clocks(&t.cloud.key(), &id)
+            .unwrap()
+            .is_empty());
     }
 
     #[test]

@@ -18,7 +18,7 @@ use crate::{Error, Result};
 
 pub(crate) const INDEX_FILE: &str = "vault.db";
 /// `PRAGMA user_version` of the schema below; each new version gets one migration.
-const SCHEMA_VERSION: i32 = 3;
+const SCHEMA_VERSION: i32 = 4;
 
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS items (
@@ -63,6 +63,16 @@ CREATE TABLE IF NOT EXISTS sync_gone_sent (
     remote TEXT NOT NULL,
     id     TEXT NOT NULL,
     PRIMARY KEY (remote, id)
+) STRICT;
+-- Version 4: the clock and content of an item's older revisions in a place, once read,
+-- so the daily look for old revisions reads each record once.
+CREATE TABLE IF NOT EXISTS sync_rev_clock (
+    remote   TEXT    NOT NULL,
+    id       TEXT    NOT NULL CHECK (length(id) = 32),
+    rev      TEXT    NOT NULL,
+    hlc      INTEGER NOT NULL,
+    data_rev TEXT    NOT NULL,
+    PRIMARY KEY (remote, id, rev)
 ) STRICT;
 ";
 
@@ -169,6 +179,52 @@ impl Index {
     pub(crate) fn remove(&self, id: &str) -> Result<()> {
         self.db
             .execute("DELETE FROM items WHERE id = ?1", [id])
+            .map_err(sql)?;
+        self.db
+            .execute("DELETE FROM sync_rev_clock WHERE id = ?1", [id])
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    /// The older revisions of `id` in `remote` read so far: (rev, hlc, data_rev).
+    pub(crate) fn rev_clocks(&self, remote: &str, id: &str) -> Result<Vec<(String, i64, String)>> {
+        let mut q = self
+            .db
+            .prepare_cached(
+                "SELECT rev, hlc, data_rev FROM sync_rev_clock WHERE remote = ?1 AND id = ?2",
+            )
+            .map_err(sql)?;
+        let rows = q
+            .query_map([remote, id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+            .map_err(sql)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(sql)
+    }
+
+    pub(crate) fn set_rev_clock(
+        &self,
+        remote: &str,
+        id: &str,
+        rev: &str,
+        hlc: i64,
+        data_rev: &str,
+    ) -> Result<()> {
+        self.db
+            .execute(
+                "INSERT OR REPLACE INTO sync_rev_clock (remote, id, rev, hlc, data_rev)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![remote, id, rev, hlc, data_rev],
+            )
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    /// The revision is no longer in the place (or is the item's current one).
+    pub(crate) fn forget_rev_clock(&self, remote: &str, id: &str, rev: &str) -> Result<()> {
+        self.db
+            .execute(
+                "DELETE FROM sync_rev_clock WHERE remote = ?1 AND id = ?2 AND rev = ?3",
+                [remote, id, rev],
+            )
             .map_err(sql)?;
         Ok(())
     }
@@ -326,6 +382,9 @@ impl Index {
             .map_err(sql)?;
         self.db
             .execute("DELETE FROM sync_gone_sent WHERE remote = ?1", [remote])
+            .map_err(sql)?;
+        self.db
+            .execute("DELETE FROM sync_rev_clock WHERE remote = ?1", [remote])
             .map_err(sql)?;
         Ok(())
     }
