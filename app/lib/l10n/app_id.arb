@@ -453,5 +453,6 @@
   "lookSkip": "Lewati",
   "addRowPhotos": "Foto",
   "addRowCamera": "Kamera",
-  "sideCenterShort": "Tengah"
+  "sideCenterShort": "Tengah",
+  "addRowAddPhotos": "Tambah foto"
 }

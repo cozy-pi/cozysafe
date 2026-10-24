@@ -453,5 +453,6 @@
   "lookSkip": "건너뛰기",
   "addRowPhotos": "사진",
   "addRowCamera": "카메라",
-  "sideCenterShort": "가운데"
+  "sideCenterShort": "가운데",
+  "addRowAddPhotos": "사진 추가"
 }

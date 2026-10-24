@@ -373,24 +373,24 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện', home, section: 'library',
-      change: 'MỚI: bấm mục khác, viên nền sáng trượt nhẹ sang mục đó (như Instagram)',
-      marks: [() => find.byKey(const ValueKey('tab-pill'))]);
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library',
+      change: 'Nút trang chủ (biểu tượng két) vào trong thanh như các mục khác, bỏ nút tròn viền trắng; nút + mặc định ở giữa',
+      marks: [() => find.byKey(const ValueKey('home-tab')), () => find.byKey(const ValueKey('vault-action'))]);
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
-  _screen('add-library', 'Thư viện · bấm + (nút bên trái)', home, section: 'library', setup: () => debugCamera = true, act: (t) async {
+  _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
   for (final (ms, what) in [(90, 'mục gần nhất vừa bật ra'), (200, 'các mục lần lượt nảy lên'), (320, 'gần xong, + đã xoay thành ×')]) {
-    _screen('add-pop-$ms', 'Bấm + · $ms ms · $what', home, section: 'library', setup: () => debugCamera = true, after: 0,
+    _screen('add-pop-$ms', 'Bấm + · $ms ms · $what', home, section: 'library', setup: _leftCamera, after: 0,
         act: (t) async {
       await t.tap(find.byKey(const ValueKey('vault-action')));
       await t.pump();
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('add-slide', 'Thư viện · giữ + rồi vuốt tới “Máy ảnh”', home, section: 'library', setup: () => debugCamera = true, act: (t) async {
+  _screen('add-slide', 'Thư viện · nút bên trái · giữ + rồi vuốt tới “Máy ảnh”', home, section: 'library', setup: _leftCamera, act: (t) async {
     final g = await t.startGesture(t.getCenter(find.byKey(const ValueKey('vault-action'))));
     await g.moveBy(const Offset(0, -30));
     for (var i = 0; i < 5; i++) {
@@ -411,7 +411,7 @@ void main() {
   _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'file', act: (t) async {
     await _tapChip(t, 'Hộ chiếu');
     await t.pump();
-    await t.tap(find.text('Ghi âm').last);
+    await t.tap(find.byKey(const ValueKey('tab-audio')));
   });
   Widget camera({required bool video}) => CameraScreen(video: video, onOpenLast: (_) {});
   void still() {
@@ -457,8 +457,7 @@ void main() {
   _screen('add-library-center', 'Thư viện · nút ở giữa · bấm +', home, section: 'library', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
-  },
-      change: 'Từ nút trong thanh: 2 lựa chọn bung ra hai bên', act: (t) async {
+  }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
@@ -469,8 +468,11 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('home-add', 'Trang chủ · bấm + (nút bên trái)', home, section: 'home',
-      setup: () => debugCamera = true,
+  _screen('home-add', 'Trang chủ · nút bên trái (Cài đặt) · bấm +', home, section: 'home',
+      setup: () {
+    debugCamera = true;
+    Prefs.write('action-side', 'left');
+  },
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
@@ -495,9 +497,7 @@ void main() {
   _screen('add-library-right', 'Thư viện · nút bên phải · bấm +', home, section: 'library', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'right');
-  },
-      change: 'Sửa lỗi: nút bên phải bấm + bị lặp và lệch (cột cuộn vòng); nay 2 lựa chọn xếp gọn',
-      marks: [() => find.byKey(const ValueKey('add-column'))], act: (t) async {
+  }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
@@ -508,17 +508,13 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('library-center', 'Thư viện · nút + ở giữa thanh', home, section: 'library', setup: () {
-    Prefs.write('action-side', 'center');
-  },
-      change: 'Nút giữa: chỉ biểu tượng, két tách ra nút tròn bên trái, 2 | + | 2 cân đều; viên nền trượt sang mục được bấm',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('library-left', 'Thư viện · nút + bên trái (chọn trong Cài đặt)', home, section: 'library', setup: () {
+    Prefs.write('action-side', 'left');
+  });
   _screen('quick-photo-center', 'Xem trước · nút + ở giữa thanh', home, section: 'library', setup: () {
     Prefs.write('action-side', 'center');
   }, act: (t) => tapThumb(t, 2));
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
-      change: 'Nút Đóng · Toàn màn hình · Gửi · ⋯ · Xoá xuống sát dưới; thanh dưới vẫn hiện (bấm mục là đóng xem trước và chuyển)',
-      marks: [() => find.byKey(const ValueKey('quick-close')), () => find.byKey(const ValueKey('home-tab'))],
       act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
@@ -564,7 +560,7 @@ void main() {
   _screen('tag-notes', 'Ghi chú · cùng nhóm "Hộ chiếu"', home, section: 'file', act: (t) async {
     await _tapChip(t, 'Hộ chiếu');
     await t.pump();
-    await t.tap(find.text('Ghi chú'));
+    await t.tap(find.byKey(const ValueKey('tab-note')));
   });
   _screen('all-tags', 'Tất cả nhóm', home, section: 'audio', act: (t) => t.tap(find.byKey(const ValueKey('all-tags'))));
   _screen('select-mode', 'Thư viện · bấm Chọn', home, section: 'library', act: (t) async {
@@ -681,9 +677,7 @@ void main() {
   });
   _screen('settings-debug-on', 'Cài đặt · đã bật gỡ lỗi', () => settings(vault), setup: () => Prefs.write('debug-mode', '1'), act: toAbout);
   _screen('settings-debug-vault', 'Cài đặt · gỡ lỗi bật: Tạo két mới', () => settings(vault),
-      setup: () => Prefs.write('debug-mode', '1'),
-      change: 'Chỉ một két; "Tạo két mới" chỉ hiện khi bật gỡ lỗi (để thử)',
-      marks: [() => find.byKey(const ValueKey('debug-new-vault'))], act: (t) async {
+      setup: () => Prefs.write('debug-mode', '1'), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('debug-new-vault')), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
   });
@@ -794,4 +788,9 @@ void main() {
   });
   _screen('new-vault-second', 'Két thứ hai: dùng chung 24 từ, bỏ qua bước ghi từ', () => const NewVaultScreen(libraryDir: '', first: false),
       setup: () => NewVaultScreen.debugWords = words);
+}
+
+void _leftCamera() {
+  debugCamera = true;
+  Prefs.write('action-side', 'left');
 }

@@ -453,5 +453,6 @@
   "lookSkip": "Passer",
   "addRowPhotos": "Photos",
   "addRowCamera": "Appareil photo",
-  "sideCenterShort": "Milieu"
+  "sideCenterShort": "Milieu",
+  "addRowAddPhotos": "Ajouter des photos"
 }

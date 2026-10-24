@@ -453,5 +453,6 @@
   "lookSkip": "Omitir",
   "addRowPhotos": "Fotos",
   "addRowCamera": "Cámara",
-  "sideCenterShort": "Centro"
+  "sideCenterShort": "Centro",
+  "addRowAddPhotos": "Añadir fotos"
 }

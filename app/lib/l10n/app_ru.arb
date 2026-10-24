@@ -453,5 +453,6 @@
   "lookSkip": "Пропустить",
   "addRowPhotos": "Фото",
   "addRowCamera": "Камера",
-  "sideCenterShort": "Центр"
+  "sideCenterShort": "Центр",
+  "addRowAddPhotos": "Добавить фото"
 }

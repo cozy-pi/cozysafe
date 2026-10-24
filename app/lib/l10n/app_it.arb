@@ -453,5 +453,6 @@
   "lookSkip": "Salta",
   "addRowPhotos": "Foto",
   "addRowCamera": "Fotocamera",
-  "sideCenterShort": "Centro"
+  "sideCenterShort": "Centro",
+  "addRowAddPhotos": "Aggiungi foto"
 }
