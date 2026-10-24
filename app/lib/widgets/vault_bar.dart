@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -19,11 +21,16 @@ enum VaultSection { home, note, library, audio, file }
 /// The sections this device offers: voice memos need a phone's microphone.
 List<VaultSection> vaultSections() => [
       VaultSection.home,
-      VaultSection.note,
       VaultSection.library,
-      if (Device.iOS || Device.android || debugVoice) VaultSection.audio,
       VaultSection.file,
+      VaultSection.note,
+      if (Device.iOS || Device.android || debugVoice) VaultSection.audio,
     ];
+
+/// The sections with a tab in the bar: all but Voice (owner 2026-10-24: overview,
+/// library, +, files, notes). Voice memos stay, reached from the overview and the +.
+List<VaultSection> barSections(List<VaultSection> sections) =>
+    [for (final s in sections) if (s != VaultSection.audio) s];
 
 /// For tests and the browser preview: offer voice memos on any platform.
 bool debugVoice = false;
@@ -65,7 +72,8 @@ double actionLeft(BuildContext context) => switch (actionSide()) {
 
 /// The main action's bottom above the safe area: on an edge clear of the bar by 30 (a big
 /// thumb would hit the lock); in the middle it sits inside the bar.
-double actionLift() => actionSide() == ActionSide.center ? Ui.edge + 4 : Ui.actionLift;
+double actionLift() =>
+    actionSide() == ActionSide.center ? Ui.edge + (Ui.bar + 8 - centrePlusSize) / 2 : Ui.actionLift;
 
 /// Show the vault's icon on a plain page after unlocking (on by default; Settings).
 const revealIconPref = 'reveal-icon';
@@ -366,10 +374,12 @@ class _CentreTabs extends StatelessWidget {
   }
 }
 
-/// Which slot of the middle bar holds the + (the sections fill the others): right after
-/// the overview (owner 2026-10-24), or the middle one without it.
-int centrePlusSlot(List<VaultSection> sections) =>
-    sections.isNotEmpty && sections.first == VaultSection.home ? 1 : (sections.length + 1) ~/ 2;
+/// The + in the middle of the bar: a little smaller than the bar's other buttons.
+const double centrePlusSize = 46;
+
+/// Which slot of the middle bar holds the + (the sections fill the others): the middle
+/// one, so overview and library sit left of it, files and notes right (owner 2026-10-24).
+int centrePlusSlot(List<VaultSection> sections) => (sections.length + 1) ~/ 2;
 
 /// The + button's centre across the middle bar, as a share of the bar's width.
 double centrePlusShare(List<VaultSection> sections) =>
@@ -570,7 +580,20 @@ class _TabsState extends State<_Tabs> {
 /// The main action, floating above the lock (left thumb): one tap for notes and voice,
 /// a small menu for the library and files.
 class ActionButton extends StatelessWidget {
-  const ActionButton({super.key, required this.icon, required this.tooltip, required this.onTap, this.color, this.turns = 0});
+  const ActionButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.color,
+    this.turns = 0,
+    this.solid = false,
+    this.size = Ui.primary,
+  });
+  /// In the middle of the bar: filled with the ink (black or white), smaller than the
+  /// bar is tall, so it stands out as the one action (owner 2026-10-24).
+  final bool solid;
+  final double size;
   final IconData icon;
   /// The + turns into × by rotating an eighth of a turn, smoothly.
   final double turns;
@@ -590,20 +613,27 @@ class ActionButton extends StatelessWidget {
         onTap();
       },
       child: SizedBox.square(
-        dimension: Ui.primary,
+        dimension: size,
         child: AnimatedRotation(
           turns: turns,
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutBack,
-          child: Icon(icon, color: color != null ? Colors.white : Theme.of(context).colorScheme.onSurface, size: 28),
+          child: Icon(icon,
+              color: color != null
+                  ? Colors.white
+                  : solid
+                      ? Theme.of(context).colorScheme.surface
+                      : Theme.of(context).colorScheme.onSurface,
+              size: 28),
         ),
       ),
     );
+    final fill = color ?? (solid ? Theme.of(context).colorScheme.onSurface : null);
     return Tooltip(
       message: tooltip,
-      child: color != null
-          ? Material(color: color, shape: const CircleBorder(), elevation: 2, shadowColor: color!.withValues(alpha: .25), child: ink)
-          : Glass(radius: Ui.primary / 2, child: Material(type: MaterialType.transparency, child: ink)),
+      child: fill != null
+          ? Material(color: fill, shape: const CircleBorder(), elevation: 3, shadowColor: fill.withValues(alpha: .3), child: ink)
+          : Glass(radius: size / 2, child: Material(type: MaterialType.transparency, child: ink)),
     );
   }
 }
@@ -639,41 +669,22 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
   return [...all.where((w) => mine.contains(w.$1)), ...all.where((w) => !mine.contains(w.$1))];
 }
 
-/// What + offers, as a row (owner 2026-10-24, after looking at how other apps add):
-/// on the overview every kind; in the library add photos, take a photo, record a video; elsewhere none, because + does that section's one thing straight away.
-/// Empty: no row.
+/// What + offers: every kind of item, wherever you are (owner 2026-10-24: Voice has no tab
+/// in the bar, so + is the way to it; one way per section felt like a lock-in). Photos
+/// first, then the rest, three to a row.
 List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
-    {required bool camera, required bool voice}) {
-  final photos = (AddWhat.photos, Icons.photo_library_outlined, l.addRowPhotos);
-  final cam = (AddWhat.photo, Icons.photo_camera_outlined, l.addRowCamera);
-  return switch (section) {
-    VaultSection.home => [
-        photos,
-        if (camera) cam,
-        (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
-        if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
-        (AddWhat.file, Icons.description_outlined, sectionLabel(l, VaultSection.file)),
-      ],
-    // Add from the device, take a photo, record a video, side by side (owner 2026-10-24).
-    VaultSection.library => camera
-        ? [
-            (AddWhat.photos, Icons.photo_library_outlined, l.addRowAddPhotos),
-            (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
-            (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
-          ]
-        : const [],
-    _ => const [],
-  };
-}
+        {required bool camera, required bool voice}) =>
+    [
+      (AddWhat.photos, Icons.photo_library_outlined, l.addRowAddPhotos),
+      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
+      if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
+      (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
+      if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
+      (AddWhat.file, Icons.description_outlined, sectionLabel(l, VaultSection.file)),
+    ];
 
-/// The one thing + does at once where it offers no row.
-AddWhat? addDirect(VaultSection section, {required bool camera}) => switch (section) {
-      VaultSection.note => AddWhat.note,
-      VaultSection.audio => AddWhat.voice,
-      VaultSection.file => AddWhat.file,
-      VaultSection.library when !camera => AddWhat.photos,
-      _ => null,
-    };
+/// + never does one thing at once any more: it always offers every way ([addRowWays]).
+AddWhat? addDirect(VaultSection section, {required bool camera}) => null;
 
 /// The + button's row: the page dims and the ways to add spread out sideways from the
 /// button, centred just above it. Tap one, or keep the finger down from + and slide to
@@ -703,6 +714,8 @@ class AddRow extends StatefulWidget {
 
   /// Room each way takes in the row.
   static const width = 72.0;
+  /// Ways side by side; more go on another row above.
+  static const perRow = 3;
 
   @override
   State<AddRow> createState() => _AddRowState();
@@ -733,7 +746,7 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
     final x = widget.centreX;
     if (x == null) return Alignment.center;
     final width = MediaQuery.sizeOf(context).width;
-    final half = widget.ways.length * AddRow.width / 2;
+    final half = math.min(widget.ways.length, AddRow.perRow) * AddRow.width / 2;
     if (width <= half * 2) return Alignment.center;
     final c = x.clamp(half + 8, width - half - 8);
     return Alignment((c - half) / (width - half * 2) * 2 - 1, 0);
@@ -760,29 +773,43 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
           bottom: w.bottom,
           child: Align(
             alignment: _align(context),
-            child: Row(
+            // Three to a row; the rows stack up from the + (owner 2026-10-24: every way).
+            child: Column(
               key: const ValueKey('add-row'),
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (final (i, (what, icon, label)) in w.ways.indexed)
-                  AnimatedBuilder(
-                    animation: _c,
-                    builder: (context, child) {
-                      // Each way slides out of the + (in the middle) to its place, the
-                      // nearer ones first, with a small overshoot.
-                      final start = (i - (n - 1) / 2).abs() * .06;
-                      final t = Curves.easeOutBack.transform(
-                          ((_c.value - start) / (1 - start)).clamp(0.0, 1.0));
-                      final fromCentre = ((n - 1) / 2 - i) * AddRow.width;
-                      return Opacity(
-                        opacity: t.clamp(0.0, 1.0),
-                        child: Transform.translate(
-                          offset: Offset(fromCentre * (1 - t), 36 * (1 - t)),
-                          child: Transform.scale(scale: .5 + .5 * t, child: child),
-                        ),
-                      );
-                    },
-                    child: addWayButton(context, what, icon, label, hovered: w.hovered == what, onTap: () => w.onPick(what)),
+                for (var r = 0; r * AddRow.perRow < n; r++)
+                  Padding(
+                    padding: EdgeInsets.only(top: r == 0 ? 0 : 12),
+                    child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final (i, (what, icon, label)) in w.ways.indexed)
+                        if (i ~/ AddRow.perRow == r)
+                          AnimatedBuilder(
+                            animation: _c,
+                            builder: (context, child) {
+                              // Each way comes out of the + with a small overshoot, the
+                              // lower row first.
+                              final rows = (n + AddRow.perRow - 1) ~/ AddRow.perRow;
+                              final inRow = i ~/ AddRow.perRow == rows - 1 ? n - (rows - 1) * AddRow.perRow : AddRow.perRow;
+                              final col = i % AddRow.perRow;
+                              final start = (rows - 1 - r) * .1 + (col - (inRow - 1) / 2).abs() * .05;
+                              final t = Curves.easeOutBack.transform(((_c.value - start) / (1 - start)).clamp(0.0, 1.0));
+                              final fromCentre = ((inRow - 1) / 2 - col) * AddRow.width;
+                              final fromBelow = 36.0 + (rows - 1 - r) * 80;
+                              return Opacity(
+                                opacity: t.clamp(0.0, 1.0),
+                                child: Transform.translate(
+                                  offset: Offset(fromCentre * (1 - t), fromBelow * (1 - t)),
+                                  child: Transform.scale(scale: .5 + .5 * t, child: child),
+                                ),
+                              );
+                            },
+                            child: addWayButton(context, what, icon, label, hovered: w.hovered == what, onTap: () => w.onPick(what)),
+                          ),
+                    ],
+                  ),
                   ),
               ],
             ),

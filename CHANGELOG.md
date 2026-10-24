@@ -4,6 +4,24 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.52 (2026-10-24)
+
+### Fixed
+- New vault: "I wrote them down" is pinned at the bottom, next to Back, so a small phone
+  no longer has to scroll to find it.
+- Recovery Key page: the Save button no longer wraps on two lines, and a key from before
+  the 24 words gets its own explanation.
+
+## 0.1.51 (2026-10-24)
+
+### Changed
+- Bottom bar: overview, library, +, files, notes. Voice memos have no tab any more; they
+  open from the overview and from +.
+- + always offers every way to add (add photos, take a photo, record a video, note,
+  voice memo, file), three to a row; it is a little smaller and filled, so it stands out.
+- Deleting the last vault now also forgets its 24 words on this device: the next vault
+  starts with new ones.
+
 ## 0.1.50 (2026-10-24)
 
 ### Added

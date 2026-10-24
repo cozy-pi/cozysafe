@@ -396,7 +396,9 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library');
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library',
+      change: 'Thanh: Tổng quan · Thư viện · + · Tệp · Ghi chú; bỏ Ghi âm khỏi thanh (vào từ Tổng quan hoặc +); nút + nhỏ hơn, tô đặc',
+      marks: [() => find.byKey(const ValueKey('vault-action'))]);
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
@@ -429,11 +431,7 @@ void main() {
   _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
   _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
-  _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'file', act: (t) async {
-    await _tapChip(t, 'Hộ chiếu');
-    await t.pump();
-    await t.tap(find.byKey(const ValueKey('tab-audio')));
-  });
+  _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'audio', act: (t) => _tapChip(t, 'Hộ chiếu'));
   Widget camera({required bool video}) => CameraScreen(video: video, onOpenLast: (_) {});
   void still() {
     CameraView.debugPreview =
@@ -475,7 +473,7 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
     await t.pumpAndSettle();
   });
-  _screen('add-library-center', 'Thư viện · nút ở giữa · bấm +', home, section: 'library', setup: () {
+  _screen('add-library-center', 'Thư viện · bấm +: đủ mọi loại, 3 ô mỗi hàng', home, section: 'library', change: 'Bấm + ở đâu cũng ra đủ: Thêm ảnh, Chụp ảnh, Quay video, Ghi chú, Ghi âm, Tệp', marks: [() => find.byKey(const ValueKey('add-row'))], setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {
