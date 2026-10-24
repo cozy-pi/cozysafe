@@ -39,6 +39,13 @@ pub enum SyncStep {
     Failed,
     /// The vault locked meanwhile.
     Locked,
+    /// The other device holds a different vault (it could not prove this one, or this
+    /// device could not prove it to the other).
+    OtherVault,
+    /// The other device could not be reached (another network, gone, code closed).
+    Unreachable,
+    /// Host only, not the end: a device with a different vault tried and was turned away.
+    Rejected,
 }
 
 fn step(kind: SyncStep) -> SyncEvent {
@@ -81,6 +88,21 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
     step(match e {
         _ if STOP.load(Ordering::Relaxed) => SyncStep::Cancelled,
         cs_vault::Error::Corrupt("p2p code expired") => SyncStep::Expired,
+        cs_vault::Error::Corrupt(
+            "p2p host not proven" | "p2p joiner not proven" | "p2p too many failed tries",
+        ) => SyncStep::OtherVault,
+        cs_vault::Error::Io(e)
+            if matches!(
+                e.kind(),
+                std::io::ErrorKind::ConnectionRefused
+                    | std::io::ErrorKind::TimedOut
+                    | std::io::ErrorKind::HostUnreachable
+                    | std::io::ErrorKind::NetworkUnreachable
+                    | std::io::ErrorKind::WouldBlock
+            ) =>
+        {
+            SyncStep::Unreachable
+        }
         _ => SyncStep::Failed,
     })
 }
@@ -129,12 +151,18 @@ fn forget_mirror() {
 /// Wait for the joiner, serve it, then take its changes in. The vault stays free while
 /// waiting and serving.
 pub fn p2p_host_run(sink: StreamSink<SyncEvent>) {
-    let served = p2p::host_session(&STOP, &|check| {
-        let _ = sink.add(SyncEvent {
-            check,
-            ..step(SyncStep::Connected)
-        });
-    });
+    let served = p2p::host_session(
+        &STOP,
+        &|check| {
+            let _ = sink.add(SyncEvent {
+                check,
+                ..step(SyncStep::Connected)
+            });
+        },
+        &|| {
+            let _ = sink.add(step(SyncStep::Rejected));
+        },
+    );
     let event = match served {
         Ok(served) => match with_open(|v| Ok(p2p::host_finish(v, served)?)) {
             Ok(r) => report(r),
@@ -196,7 +224,9 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         SyncStep::Done => "ok",
         SyncStep::Cancelled => "cancelled",
         SyncStep::Expired => "expired",
-        SyncStep::Connected => return,
+        SyncStep::Connected | SyncStep::Rejected => return,
+        SyncStep::OtherVault => "othervault",
+        SyncStep::Unreachable => "unreachable",
         SyncStep::Failed | SyncStep::Locked => "failed",
     };
     let (received, sent) = (event.received, event.sent);

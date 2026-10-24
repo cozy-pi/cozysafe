@@ -24,6 +24,8 @@ class _SyncProgressState extends State<SyncProgress> {
   StreamSubscription<sync.SyncEvent>? _sub;
   sync.SyncEvent? _last;
   int? _check;
+  /// A device with another vault tried while this one waits (it keeps waiting).
+  bool _rejected = false;
 
   bool get _over => _last != null && _last!.kind != sync.SyncStep.connected;
 
@@ -32,6 +34,10 @@ class _SyncProgressState extends State<SyncProgress> {
     super.initState();
     _sub = widget.events.listen((e) {
       if (!mounted) return;
+      if (e.kind == sync.SyncStep.rejected) {
+        setState(() => _rejected = true);
+        return;
+      }
       setState(() {
         _last = e;
         if (e.kind == sync.SyncStep.connected) _check = e.check;
@@ -54,7 +60,17 @@ class _SyncProgressState extends State<SyncProgress> {
     final e = _last;
     Widget body;
     if (e == null) {
-      body = widget.waiting ?? _Status(icon: null, title: l.syncWorking);
+      body = Column(mainAxisSize: MainAxisSize.min, children: [
+        widget.waiting ?? _Status(icon: null, title: l.syncWorking),
+        if (_rejected) ...[
+          const SizedBox(height: 16),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFFFF9500)),
+            const SizedBox(width: 8),
+            Flexible(child: Text(l.syncRejected, key: const ValueKey('sync-rejected'), style: const TextStyle(fontSize: 14, height: 1.3))),
+          ]),
+        ],
+      ]);
     } else {
       body = switch (e.kind) {
         sync.SyncStep.connected => Column(
@@ -87,7 +103,11 @@ class _SyncProgressState extends State<SyncProgress> {
         sync.SyncStep.expired => _Status(icon: Icons.timer_off_outlined, title: l.syncExpired),
         sync.SyncStep.cancelled => _Status(icon: Icons.close_rounded, title: l.syncCancelled),
         sync.SyncStep.locked => _Status(icon: Icons.lock_outline_rounded, title: l.syncLocked),
-        sync.SyncStep.failed => _Status(icon: Icons.wifi_off_rounded, color: const Color(0xFFFF3B30), title: l.syncFailed),
+        sync.SyncStep.otherVault => _Status(icon: Icons.no_encryption_gmailerrorred_outlined, color: const Color(0xFFFF9500), title: l.syncOtherVault),
+        sync.SyncStep.unreachable => _Status(icon: Icons.wifi_off_rounded, color: const Color(0xFFFF3B30), title: l.syncUnreachable),
+        sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: const Color(0xFFFF3B30), title: l.syncFailed),
+        // Never the last word (handled above); kept for an exhaustive switch.
+        sync.SyncStep.rejected => _Status(icon: null, title: l.syncWorking),
       };
     }
     return Padding(

@@ -493,5 +493,10 @@
   "syncCodeBad": "Itu bukan kode Cozy Safe untuk Wi‑Fi ini.",
   "syncConnect": "Sambungkan",
   "syncPointCamera": "Arahkan kamera ke kode di perangkat Anda yang lain.",
-  "syncNoCamera": "Tidak ada kamera. Ketik kodenya saja."
+  "syncNoCamera": "Tidak ada kamera. Ketik kodenya saja.",
+  "syncOtherVault": "Perangkat lain berisi brankas yang berbeda. Keduanya perlu brankas yang sama: pulihkan brankas ini di perangkat lain dari cadangan, dengan 24 kata dan kata sandi yang sama.",
+  "syncUnreachable": "Tidak bisa menjangkau perangkat lain. Pastikan keduanya di Wi‑Fi yang sama (bukan jaringan tamu) dan kodenya masih tampil.",
+  "syncRejected": "Perangkat dengan brankas lain mencoba bergabung. Masih menunggu.",
+  "syncLogOtherVault": "Brankas berbeda",
+  "syncLogUnreachable": "Tak terjangkau"
 }

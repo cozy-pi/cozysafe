@@ -190,6 +190,8 @@ class _LogRow extends StatelessWidget {
       'ok' => (l.syncLogCounts(p[4], p[5]), true),
       'cancelled' => (l.syncLogCancelled, false),
       'expired' => (l.syncLogExpired, false),
+      'othervault' => (l.syncLogOtherVault, false),
+      'unreachable' => (l.syncLogUnreachable, false),
       _ => (l.syncLogFailed, false),
     };
     return Padding(

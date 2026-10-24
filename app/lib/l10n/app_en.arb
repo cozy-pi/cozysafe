@@ -682,5 +682,10 @@
   "syncCodeBad": "That is not a Cozy Safe code for this Wi‑Fi.",
   "syncConnect": "Connect",
   "syncPointCamera": "Point the camera at the code on your other device.",
-  "syncNoCamera": "No camera here. Type the code instead."
+  "syncNoCamera": "No camera here. Type the code instead.",
+  "syncOtherVault": "The other device holds a different vault. Both need the same vault: restore it on the other device from a backup, with the same 24 words and password.",
+  "syncUnreachable": "Could not reach the other device. Check that both are on the same Wi‑Fi (not a guest network) and that the code is still showing.",
+  "syncRejected": "A device with a different vault tried to join. Still waiting.",
+  "syncLogOtherVault": "Different vault",
+  "syncLogUnreachable": "Could not reach"
 }

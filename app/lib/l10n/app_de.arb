@@ -493,5 +493,10 @@
   "syncCodeBad": "Das ist kein Cozy-Safe-Code für dieses WLAN.",
   "syncConnect": "Verbinden",
   "syncPointCamera": "Richte die Kamera auf den Code auf deinem anderen Gerät.",
-  "syncNoCamera": "Keine Kamera vorhanden. Gib den Code stattdessen ein."
+  "syncNoCamera": "Keine Kamera vorhanden. Gib den Code stattdessen ein.",
+  "syncOtherVault": "Das andere Gerät hat einen anderen Tresor. Beide brauchen denselben Tresor: Stelle ihn auf dem anderen Gerät aus einem Backup wieder her, mit denselben 24 Wörtern und demselben Passwort.",
+  "syncUnreachable": "Das andere Gerät ist nicht erreichbar. Prüfe, ob beide im selben WLAN sind (nicht in einem Gastnetz) und der Code noch angezeigt wird.",
+  "syncRejected": "Ein Gerät mit einem anderen Tresor wollte sich verbinden. Es wird weiter gewartet.",
+  "syncLogOtherVault": "Anderer Tresor",
+  "syncLogUnreachable": "Nicht erreichbar"
 }

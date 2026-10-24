@@ -493,5 +493,10 @@
   "syncCodeBad": "이 Wi‑Fi의 Cozy Safe 코드가 아닙니다.",
   "syncConnect": "연결",
   "syncPointCamera": "다른 기기에 표시된 코드에 카메라를 맞추세요.",
-  "syncNoCamera": "카메라가 없습니다. 코드를 입력하세요."
+  "syncNoCamera": "카메라가 없습니다. 코드를 입력하세요.",
+  "syncOtherVault": "다른 기기에 다른 금고가 있습니다. 두 기기 모두 같은 금고가 있어야 합니다. 다른 기기에서 같은 24개 단어와 비밀번호로 백업에서 복원하세요.",
+  "syncUnreachable": "다른 기기에 연결할 수 없습니다. 두 기기가 같은 Wi‑Fi(게스트 네트워크 아님)에 있고 코드가 아직 표시되어 있는지 확인하세요.",
+  "syncRejected": "다른 금고가 있는 기기가 연결을 시도했습니다. 계속 기다리는 중입니다.",
+  "syncLogOtherVault": "다른 금고",
+  "syncLogUnreachable": "연결 불가"
 }

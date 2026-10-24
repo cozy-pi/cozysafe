@@ -493,5 +493,10 @@
   "syncCodeBad": "這不是此 Wi‑Fi 的 Cozy Safe 代碼。",
   "syncConnect": "連線",
   "syncPointCamera": "將相機對準另一台裝置上的代碼。",
-  "syncNoCamera": "此裝置沒有相機。請輸入代碼。"
+  "syncNoCamera": "此裝置沒有相機。請輸入代碼。",
+  "syncOtherVault": "另一台裝置上是另一個保險箱。兩台裝置必須有同一個保險箱：請在另一台裝置上用相同的 24 個單字和密碼從備份還原。",
+  "syncUnreachable": "無法連線到另一台裝置。請確認兩台裝置在同一 Wi‑Fi 下（不是訪客網路），且代碼仍在顯示。",
+  "syncRejected": "有一台保險箱不同的裝置嘗試加入。仍在等待。",
+  "syncLogOtherVault": "保險箱不同",
+  "syncLogUnreachable": "無法連線"
 }
