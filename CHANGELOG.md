@@ -4,7 +4,7 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## Unreleased
+## 0.1.56 (2026-10-24)
 
 ### Added
 - Restore from another device: type or paste the 24 words and the password on the new
@@ -19,6 +19,13 @@ Dates are UTC.
 
 ### Changed
 - Google Drive sync reuses one secure connection, so many small items go up much faster.
+- The sync screen shows this phone and the other end, says what goes where, and shows
+  items, MB, speed and time left.
+
+### Fixed
+- Items deleted for good no longer stay in Google Drive: their encrypted files are
+  removed there too, including ones left by earlier versions. Deletions are counted apart
+  from items going up.
 
 ### Security
 - Leaving the making of a first vault half-way and coming back shows new 24 words: words

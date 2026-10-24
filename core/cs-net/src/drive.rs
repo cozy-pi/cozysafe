@@ -34,7 +34,7 @@ pub trait DriveApi: Send + Sync {
     fn download(&self, id: &str, out: &mut dyn Write) -> Result<bool>;
     /// A new file named `name` in `folder`, `len` bytes from `src`; its id.
     fn upload(&self, folder: &str, name: &str, len: u64, src: &mut dyn Read) -> Result<String>;
-    /// Delete the file (only ever an old copy of the vault's lock).
+    /// Delete the file (an old copy of the vault's lock, or a deleted item's files).
     fn delete(&self, id: &str) -> Result<()>;
 }
 
@@ -156,6 +156,10 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
     fn exists(&self, path: &str) -> Result<bool> {
         check(path)?;
         Ok(self.id(path).is_some())
+    }
+
+    fn removes(&self) -> bool {
+        true
     }
 
     fn remove(&self, path: &str) -> Result<()> {

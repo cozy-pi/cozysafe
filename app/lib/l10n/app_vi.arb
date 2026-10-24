@@ -570,5 +570,19 @@
   "restoreWrongWords": "24 từ này không mở được két ở đó. Kiểm tra lại từng từ, đúng thứ tự.",
   "secondPlaceTitle": "Két chỉ đang ở máy này",
   "secondPlaceBody": "Mất máy là mất két. Giữ thêm một bản ở máy khác, Google Drive hoặc file sao lưu.",
-  "secondPlaceAdd": "Thêm nơi giữ"
+  "secondPlaceAdd": "Thêm nơi giữ",
+  "syncSendingDrive": "Đang gửi lên Google Drive",
+  "syncReceivingDrive": "Đang tải về từ Google Drive",
+  "syncCheckingDrive": "Đang xem Google Drive",
+  "syncSendingDevice": "Đang gửi sang máy kia",
+  "syncReceivingDevice": "Đang nhận từ máy kia",
+  "syncCheckingDevice": "Đang xem máy kia",
+  "syncWhat": "Ảnh, ghi chú, ghi âm và tệp trong két, đã mã hoá.",
+  "syncItems": "{done} / {total} mục",
+  "syncLeftUnderMinute": "Còn chưa tới 1 phút",
+  "syncLeftMinutes": "{count, plural, other{Còn khoảng {count} phút}}",
+  "syncRemoving": "Đang xoá các mục đã xoá",
+  "syncRemovingDrive": "Đang dọn Google Drive",
+  "syncRemovingDevice": "Đang dọn máy kia",
+  "syncRemovingWhat": "Xoá ở đó những mục bạn đã xoá hẳn."
 }

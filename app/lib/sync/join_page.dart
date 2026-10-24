@@ -20,7 +20,7 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
   if (!context.mounted) return;
   await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
     builder: (context) => Scaffold(
-      appBar: AppBar(title: Text(l.syncTitle)),
+      appBar: AppBar(title: Text(l.syncRow)),
       body: SafeArea(
         top: false,
         child: SyncProgress(

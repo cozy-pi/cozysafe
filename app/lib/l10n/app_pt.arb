@@ -556,5 +556,19 @@
   "restoreWrongWords": "Estas 24 palavras não abrem o cofre de lá. Confira cada palavra, na ordem.",
   "secondPlaceTitle": "Só neste dispositivo",
   "secondPlaceBody": "Se perder este dispositivo, você perde o cofre. Guarde uma cópia em outro dispositivo, no Google Drive ou em um arquivo de backup.",
-  "secondPlaceAdd": "Adicionar um segundo lugar"
+  "secondPlaceAdd": "Adicionar um segundo lugar",
+  "syncSendingDrive": "Enviando para o Google Drive",
+  "syncReceivingDrive": "Recebendo do Google Drive",
+  "syncCheckingDrive": "Verificando o Google Drive",
+  "syncSendingDevice": "Enviando para o outro dispositivo",
+  "syncReceivingDevice": "Recebendo do outro dispositivo",
+  "syncCheckingDevice": "Verificando o outro dispositivo",
+  "syncWhat": "As fotos, notas, gravações e arquivos deste cofre, criptografados.",
+  "syncItems": "{done} / {total} itens",
+  "syncLeftUnderMinute": "Falta menos de um minuto",
+  "syncLeftMinutes": "{count, plural, =1{Falta cerca de 1 minuto} other{Faltam cerca de {count} minutos}}",
+  "syncRemoving": "Removendo itens excluídos",
+  "syncRemovingDrive": "Removendo do Google Drive os itens excluídos",
+  "syncRemovingDevice": "Removendo do outro dispositivo os itens excluídos",
+  "syncRemovingWhat": "O que foi excluído para sempre também é removido de lá."
 }

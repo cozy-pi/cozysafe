@@ -556,5 +556,19 @@
   "restoreWrongWords": "この24語ではそのデバイスの金庫を開けません。各単語を順番どおりに確認してください。",
   "secondPlaceTitle": "このデバイスにだけ保存",
   "secondPlaceBody": "このデバイスを失くすと、金庫も失われます。別のデバイス、Google Drive、またはバックアップファイルにコピーを残してください。",
-  "secondPlaceAdd": "2つ目の保存先を追加"
+  "secondPlaceAdd": "2つ目の保存先を追加",
+  "syncSendingDrive": "Google Drive に送信中",
+  "syncReceivingDrive": "Google Drive から受信中",
+  "syncCheckingDrive": "Google Drive を確認中",
+  "syncSendingDevice": "もう一台に送信中",
+  "syncReceivingDevice": "もう一台から受信中",
+  "syncCheckingDevice": "もう一台を確認中",
+  "syncWhat": "この金庫の写真、メモ、録音、ファイルを暗号化したまま送ります。",
+  "syncItems": "{done} / {total} 件",
+  "syncLeftUnderMinute": "残り1分未満",
+  "syncLeftMinutes": "{count, plural, other{残り約{count}分}}",
+  "syncRemoving": "削除した項目を消去中",
+  "syncRemovingDrive": "Google Drive から削除した項目を消去中",
+  "syncRemovingDevice": "もう一台から削除した項目を消去中",
+  "syncRemovingWhat": "完全に削除したものは、そちらからも消去されます。"
 }

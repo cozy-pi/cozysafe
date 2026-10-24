@@ -32,6 +32,7 @@ import 'package:cozysafe/screens/quick_look.dart';
 import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/screens/welcome.dart';
 import 'package:cozysafe/screens/restore_flow.dart';
+import 'package:cozysafe/widgets/second_place.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/api/sync.dart';
 import 'package:cozysafe/sync/drive_join.dart';
@@ -292,6 +293,8 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugLog = null;
       SyncScreen.debugAddress = null;
       SyncScreen.debugDrive = false;
+      SyncProgress.debugRate = null;
+      SecondPlaceNudge.debugShow = false;
       NewVaultScreen.debugBiometricStep = false;
       RestoreSourceScreen.debugDrive = false;
       DriveJoinScreen.debugAccount = null;
@@ -445,6 +448,10 @@ void main() {
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
   _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
+  _screen('home-nudge', 'Trang chủ: két chỉ ở máy này', home, section: 'home',
+      setup: () => SecondPlaceNudge.debugShow = true,
+      change: 'MỚI: nhắc khi két chỉ ở một máy (chưa đồng bộ, chưa sao lưu); ✕ ẩn 30 ngày',
+      marks: [() => find.byKey(const ValueKey('second-place'))]);
   _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
@@ -679,9 +686,19 @@ void main() {
   _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
   _screen('sync-type', 'Máy kia: nhập mã 18 ký tự', () => page('Nhập mã', TypeCodePage(onSynced: () {})));
-  SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0}) =>
-      SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.zero, bytesTotal: BigInt.zero);
-  _screen('sync-drive-progress', 'Google Drive: đang tải về, có thanh tiến trình', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.receiving, done: 128, total: 340)), onSynced: () {})));
+  SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0}) =>
+      SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal));
+  _screen('sync-drive-progress', 'Google Drive: đang gửi lên', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 128, total: 340, bytes: 52 << 20, bytesTotal: 131 << 20)), onSynced: () {})),
+      setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6),
+      change: 'MỚI: điện thoại ⇄ Drive có chấm chạy; ghi rõ gửi gì, đi đâu; mục + MB, tốc độ, thời gian còn lại',
+      marks: [() => find.byKey(const ValueKey('sync-bytes')), () => find.byKey(const ValueKey('sync-speed'))]);
+  _screen('sync-drive-receiving', 'Google Drive: đang tải về', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.receiving, done: 40, total: 212, bytes: 18 << 20)), onSynced: () {})),
+      setup: () => SyncProgress.debugRate = (3.1 * (1 << 20), 7),
+      change: 'Tải về: chấm chạy về phía điện thoại; chưa biết tổng MB nên chỉ hiện đã tải');
+  _screen('sync-drive-removing', 'Google Drive: xoá các mục đã xoá', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.removing, done: 312, total: 700)), onSynced: () {})),
+      change: 'MỚI: mục đã xoá hẳn được xoá cả trên Drive, đếm riêng (không lẫn vào số mục gửi lên)');
+  _screen('sync-device-progress', 'Máy gần đây: đang nhận', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.receiving, done: 64, total: 90, bytes: 210 << 20)), onSynced: () {})),
+      setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3));
   _screen('sync-interrupted', 'Bị gián đoạn (máy ngủ, mất mạng): bấm Tiếp tục', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.interrupted)), onSynced: () {}, retry: () => const Stream.empty())));
   _screen('sync-connected', 'Đã kết nối: hai máy hiện cùng một số để đối chiếu', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})));
   _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));

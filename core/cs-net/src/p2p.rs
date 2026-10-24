@@ -23,8 +23,8 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use cs_crypto::{kdf, wrap, Key, SecretKey};
-use cs_vault::sync::{FolderRemote, Remote, SyncReport};
 use cs_vault::sync::SyncProgress;
+use cs_vault::sync::{FolderRemote, Remote, SyncReport};
 use cs_vault::{Error, Library, OpenVault, Result};
 
 use crate::Permit;
@@ -261,7 +261,11 @@ fn handshake_join(pk: &Key, mode: u8, token: &[u8], mut stream: TcpStream) -> Re
 }
 
 /// Host side of the handshake: the joiner's hello says which key it proves.
-fn handshake_host(prepared: &Prepared, token: &[u8], mut stream: TcpStream) -> Result<(Channel, u8)> {
+fn handshake_host(
+    prepared: &Prepared,
+    token: &[u8],
+    mut stream: TcpStream,
+) -> Result<(Channel, u8)> {
     let hello = read_frame(&mut stream)?;
     if hello.len() != 2 + NONCE_LEN || hello[0] != VERSION {
         return Err(Error::Corrupt("p2p hello"));
@@ -269,7 +273,10 @@ fn handshake_host(prepared: &Prepared, token: &[u8], mut stream: TcpStream) -> R
     let mode = hello[1];
     let pk = match mode {
         MODE_SYNC => &prepared.key,
-        MODE_RESTORE => prepared.restore_key.as_ref().ok_or(Error::Corrupt("p2p hello"))?,
+        MODE_RESTORE => prepared
+            .restore_key
+            .as_ref()
+            .ok_or(Error::Corrupt("p2p hello"))?,
         _ => return Err(Error::Corrupt("p2p hello")),
     };
     let hello_key = kdf::subkey(pk, &format!("hello/{}", hex::encode(token)));
@@ -510,7 +517,11 @@ pub struct Prepared {
 
 /// Step 1 (vault): sync the vault into `mirror` (an empty private folder). With the
 /// library's Recovery Key, a device restoring with the 24 words may join too.
-pub fn host_prepare(vault: &OpenVault, secret: Option<&SecretKey>, mirror: &Path) -> Result<Prepared> {
+pub fn host_prepare(
+    vault: &OpenVault,
+    secret: Option<&SecretKey>,
+    mirror: &Path,
+) -> Result<Prepared> {
     let folder = FolderRemote::with_key(mirror, HOST_KEY);
     // Fresh folder, fresh state: everything goes into it.
     vault.forget_sync_place(HOST_KEY)?;
@@ -885,7 +896,9 @@ mod tests {
             mirror: PathBuf::new(),
         };
         let h = std::thread::spawn(move || {
-            handshake_host(&prepared, &token, l.accept().unwrap().0).unwrap().0
+            handshake_host(&prepared, &token, l.accept().unwrap().0)
+                .unwrap()
+                .0
         });
         let j = handshake_join(&pk, MODE_SYNC, &token, TcpStream::connect(addr).unwrap()).unwrap();
         (h.join().unwrap(), j)
@@ -1002,8 +1015,15 @@ mod tests {
         let server = std::thread::spawn(move || {
             host_accept(h, prepared, &AtomicBool::new(false), &|_| ()).map(|_| ())
         });
-        let got = restore(fresh.path(), Permit::connect(code.addr), &code, t.sk.clone(),
-            crate::testkit::PW, &|_| (), &|_| ());
+        let got = restore(
+            fresh.path(),
+            Permit::connect(code.addr),
+            &code,
+            t.sk.clone(),
+            crate::testkit::PW,
+            &|_| (),
+            &|_| (),
+        );
         assert!(got.is_err());
         cancel_live();
         drop(server);

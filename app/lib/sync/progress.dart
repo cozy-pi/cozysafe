@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
+import '../screens/file_view.dart' show fileSize;
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import 'awake.dart';
@@ -12,9 +13,23 @@ import 'awake.dart';
 /// vault, then the number to compare while it syncs, then the result. Leaving before
 /// the end cancels. A Google Drive run stopped while the app was away (phone locked)
 /// continues by itself when the person comes back.
+/// Who is on the other end, to draw and name it.
+enum SyncPlace { drive, device }
+
 class SyncProgress extends StatefulWidget {
-  const SyncProgress({super.key, required this.events, required this.onSynced, this.waiting, this.retry});
+  const SyncProgress({
+    super.key,
+    required this.events,
+    required this.onSynced,
+    this.waiting,
+    this.retry,
+    this.place = SyncPlace.device,
+  });
   final Stream<sync.SyncEvent> events;
+  final SyncPlace place;
+
+  /// For the mockup renders: a steady speed (bytes and items a second).
+  static (double, double)? debugRate;
   /// After an interruption: a fresh run (Google Drive), shown by "Continue".
   final Stream<sync.SyncEvent> Function()? retry;
   /// The vault changed: the screens behind reload.
@@ -25,7 +40,7 @@ class SyncProgress extends StatefulWidget {
   State<SyncProgress> createState() => _SyncProgressState();
 }
 
-class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver {
+class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   StreamSubscription<sync.SyncEvent>? _sub;
   sync.SyncEvent? _last;
   int? _check;
@@ -39,6 +54,7 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
     sync.SyncStep.checking,
     sync.SyncStep.receiving,
     sync.SyncStep.sending,
+    sync.SyncStep.removing,
   };
 
   bool get _over => _last != null && !_running.contains(_last!.kind);
@@ -53,6 +69,10 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
   DateTime? _backAt;
   DateTime? _notifiedAt;
   sync.SyncStep? _notifiedKind;
+  /// The dots running between the two ends.
+  late final AnimationController _flow = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat();
+  /// Recent (time, bytes, items) of the step under way, for the speed.
+  final _samples = <(DateTime, int, int)>[];
 
   @override
   void initState() {
@@ -83,8 +103,15 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
         return;
       }
       setState(() {
+        if (_last?.kind != e.kind) _samples.clear();
         _last = e;
         if (e.kind == sync.SyncStep.connected) _check = e.check;
+        _samples.add((DateTime.now(), e.bytes.toInt(), e.done));
+        // A few seconds back is enough for a steady figure.
+        final from = DateTime.now().subtract(const Duration(seconds: 4));
+        while (_samples.length > 2 && _samples.first.$1.isBefore(from)) {
+          _samples.removeAt(0);
+        }
       });
       if (_over) {
         Awake.set(false);
@@ -97,7 +124,7 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
       // The stream itself broke (the app was suspended mid-way): the same as an
       // interruption, which the engine's journal makes safe to continue.
       if (!mounted) return;
-      setState(() => _last = sync.SyncEvent(kind: sync.SyncStep.interrupted, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0));
+      setState(() => _last = sync.SyncEvent(kind: sync.SyncStep.interrupted, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero));
       Awake.set(false);
       _autoContinue();
     });
@@ -151,6 +178,7 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _flow.dispose();
     if (!_over) sync.p2PCancel();
     Awake.set(false);
     _sub?.cancel();
@@ -161,27 +189,88 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
     sync.SyncStep.receiving => l.syncReceiving(e.done.toString(), e.total.toString()),
     sync.SyncStep.sending => l.syncSending(e.done.toString(), e.total.toString()),
     sync.SyncStep.checking => l.syncChecking,
+    sync.SyncStep.removing => l.syncRemoving,
     _ => l.syncWorking,
   };
 
+  /// Bytes and items a second over the recent samples, or null before there is enough.
+  (double, double)? get _rate {
+    if (SyncProgress.debugRate != null) return SyncProgress.debugRate;
+    if (_samples.length < 2) return null;
+    final (t0, b0, i0) = _samples.first;
+    final (t1, b1, i1) = _samples.last;
+    final secs = t1.difference(t0).inMilliseconds / 1000;
+    if (secs < 1) return null;
+    return ((b1 - b0) / secs, (i1 - i0) / secs);
+  }
+
   Widget _runningBody(AppLocalizations l, CsColors c, sync.SyncEvent e) {
-    final title = _title(l, e);
+    final drive = widget.place == SyncPlace.drive;
+    final title = switch (e.kind) {
+      sync.SyncStep.sending => drive ? l.syncSendingDrive : l.syncSendingDevice,
+      sync.SyncStep.receiving => drive ? l.syncReceivingDrive : l.syncReceivingDevice,
+      sync.SyncStep.removing => drive ? l.syncRemovingDrive : l.syncRemovingDevice,
+      _ => drive ? l.syncCheckingDrive : l.syncCheckingDevice,
+    };
+    final bytes = e.bytes.toInt();
+    final bytesTotal = e.bytesTotal.toInt();
+    final rate = _rate;
+    String? left;
+    if (rate != null) {
+      final secs = bytesTotal > 0 && rate.$1 > 0
+          ? (bytesTotal - bytes) / rate.$1
+          : rate.$2 > 0
+              ? (e.total - e.done) / rate.$2
+              : null;
+      if (secs != null) left = secs < 60 ? l.syncLeftUnderMinute : l.syncLeftMinutes((secs / 60).ceil());
+    }
+    final small = TextStyle(color: c.muted, fontSize: 14, fontFeatures: const [FontFeature.tabularFigures()]);
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      Text(title, key: const ValueKey('sync-progress'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 18),
-      SizedBox(
-        width: 240,
-        child: LinearProgressIndicator(
-          value: e.total > 0 ? e.done / e.total : null,
-          minHeight: 6,
-          // The black-and-white theme would draw track and bar alike.
-          backgroundColor: c.border,
-          borderRadius: BorderRadius.circular(3),
-        ),
+      _Ends(
+        flow: _flow,
+        place: widget.place,
+        // Toward this phone when bringing in, away from it when sending.
+        direction: switch (e.kind) {
+          sync.SyncStep.receiving => -1,
+          sync.SyncStep.sending || sync.SyncStep.removing => 1,
+          _ => 0,
+        },
       ),
+      const SizedBox(height: 26),
+      Text(title, key: const ValueKey('sync-progress'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 6),
+      Text(e.kind == sync.SyncStep.removing ? l.syncRemovingWhat : l.syncWhat, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14.5, height: 1.35)),
+      const SizedBox(height: 22),
+      LinearProgressIndicator(
+        value: bytesTotal > 0 ? (bytes / bytesTotal).clamp(0, 1) : (e.total > 0 ? e.done / e.total : null),
+        minHeight: 8,
+        // The black-and-white theme would draw track and bar alike.
+        backgroundColor: c.border,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      const SizedBox(height: 10),
+      if (e.total > 0)
+        Row(children: [
+          Text(l.syncItems(e.done, e.total), key: const ValueKey('sync-items'), style: small),
+          const Spacer(),
+          if (e.kind != sync.SyncStep.removing)
+          Text(
+            bytesTotal > 0 ? '${fileSize(BigInt.from(bytes))} / ${fileSize(BigInt.from(bytesTotal))}' : fileSize(BigInt.from(bytes)),
+            key: const ValueKey('sync-bytes'),
+            style: small,
+          ),
+        ]),
+      if (rate != null) ...[
+        const SizedBox(height: 4),
+        Row(children: [
+          Text('${fileSize(BigInt.from(rate.$1.round()))}/s', key: const ValueKey('sync-speed'), style: small),
+          const Spacer(),
+          if (left != null) Text(left, style: small),
+        ]),
+      ],
       // Android keeps going with the phone locked (a notification shows it); iOS does not.
       if (Device.iOS) ...[
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
         Text(l.syncKeepOpen, key: const ValueKey('sync-keep-open'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14)),
       ],
     ]);
@@ -244,7 +333,8 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
         sync.SyncStep.wrongWords => _Status(icon: Icons.key_off_outlined, color: const Color(0xFFFF9500), title: l.restoreWrongWords),
         sync.SyncStep.wrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.wrongPassword),
         sync.SyncStep.interrupted => _Status(icon: Icons.pause_circle_outline_rounded, color: const Color(0xFFFF9500), title: l.syncInterrupted),
-        sync.SyncStep.checking || sync.SyncStep.receiving || sync.SyncStep.sending => _runningBody(l, c, e),
+        sync.SyncStep.checking || sync.SyncStep.receiving || sync.SyncStep.sending || sync.SyncStep.removing =>
+          _runningBody(l, c, e),
         // Never the last word (handled above); kept for an exhaustive switch.
         sync.SyncStep.rejected || sync.SyncStep.knock => _Status(icon: null, title: l.syncWorking),
       };
@@ -305,5 +395,60 @@ class _Status extends StatelessWidget {
         ],
       ],
     );
+  }
+}
+
+/// This phone and the other end (Google Drive or another device), with dots running
+/// the way the items go.
+class _Ends extends StatelessWidget {
+  const _Ends({required this.flow, required this.place, required this.direction});
+  final Animation<double> flow;
+  final SyncPlace place;
+  /// 1: from this phone to the other end; -1: back; 0: looking (the dots pulse).
+  final int direction;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final c = CsColors.of(context);
+    Widget end(IconData icon, Color tint) => Container(
+          width: 76,
+          height: 76,
+          decoration: BoxDecoration(color: tint.withValues(alpha: .14), shape: BoxShape.circle),
+          child: Icon(icon, size: 38, color: tint),
+        );
+    const blue = Color(0xFF0A84FF);
+    const green = Color(0xFF30D158);
+    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      end(Icons.smartphone_rounded, ink),
+      SizedBox(
+        width: 96,
+        height: 20,
+        child: AnimatedBuilder(
+          animation: flow,
+          builder: (context, _) => Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              for (var i = 0; i < 5; i++)
+                Builder(builder: (context) {
+                  // Each dot lights up in turn along the direction of travel.
+                  final pos = direction >= 0 ? i / 5 : (4 - i) / 5;
+                  final phase = (flow.value - pos) % 1.0;
+                  final lit = direction == 0 ? (0.5 + 0.5 * (1 - (flow.value * 2 - 1).abs())) : (1 - phase).clamp(0.0, 1.0);
+                  return Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color.lerp(c.border, place == SyncPlace.drive ? blue : green, lit),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ),
+      place == SyncPlace.drive ? end(Icons.cloud_rounded, blue) : end(Icons.phone_android_rounded, green),
+    ]);
   }
 }

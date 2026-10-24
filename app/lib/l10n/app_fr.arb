@@ -556,5 +556,19 @@
   "restoreWrongWords": "Ces 24 mots n’ouvrent pas le coffre de l’autre appareil. Vérifiez chaque mot, dans l’ordre.",
   "secondPlaceTitle": "Uniquement sur cet appareil",
   "secondPlaceBody": "Si vous perdez cet appareil, le coffre est perdu. Gardez une copie sur un autre appareil, dans Google Drive ou dans un fichier de sauvegarde.",
-  "secondPlaceAdd": "Ajouter un second emplacement"
+  "secondPlaceAdd": "Ajouter un second emplacement",
+  "syncSendingDrive": "Envoi vers Google Drive",
+  "syncReceivingDrive": "Réception depuis Google Drive",
+  "syncCheckingDrive": "Vérification de Google Drive",
+  "syncSendingDevice": "Envoi vers l’autre appareil",
+  "syncReceivingDevice": "Réception depuis l’autre appareil",
+  "syncCheckingDevice": "Vérification de l’autre appareil",
+  "syncWhat": "Les photos, notes, enregistrements et fichiers de ce coffre, chiffrés.",
+  "syncItems": "{done} / {total} éléments",
+  "syncLeftUnderMinute": "Moins d’une minute restante",
+  "syncLeftMinutes": "{count, plural, =1{Environ 1 minute restante} other{Environ {count} minutes restantes}}",
+  "syncRemoving": "Retrait des éléments supprimés",
+  "syncRemovingDrive": "Retrait des éléments supprimés de Google Drive",
+  "syncRemovingDevice": "Retrait des éléments supprimés de l’autre appareil",
+  "syncRemovingWhat": "Ce qui a été supprimé définitivement y est aussi retiré."
 }

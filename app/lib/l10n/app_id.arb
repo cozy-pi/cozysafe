@@ -556,5 +556,19 @@
   "restoreWrongWords": "24 kata ini tidak membuka brankas di sana. Periksa setiap kata, sesuai urutan.",
   "secondPlaceTitle": "Hanya di perangkat ini",
   "secondPlaceBody": "Jika perangkat ini hilang, brankas ikut hilang. Simpan salinannya di perangkat lain, di Google Drive, atau di file cadangan.",
-  "secondPlaceAdd": "Tambahkan tempat kedua"
+  "secondPlaceAdd": "Tambahkan tempat kedua",
+  "syncSendingDrive": "Mengirim ke Google Drive",
+  "syncReceivingDrive": "Menerima dari Google Drive",
+  "syncCheckingDrive": "Memeriksa Google Drive",
+  "syncSendingDevice": "Mengirim ke perangkat lain",
+  "syncReceivingDevice": "Menerima dari perangkat lain",
+  "syncCheckingDevice": "Memeriksa perangkat lain",
+  "syncWhat": "Foto, catatan, rekaman, dan file di brankas ini, terenkripsi.",
+  "syncItems": "{done} / {total} item",
+  "syncLeftUnderMinute": "Kurang dari satu menit lagi",
+  "syncLeftMinutes": "{count, plural, other{Sekitar {count} menit lagi}}",
+  "syncRemoving": "Menghapus item yang sudah dihapus",
+  "syncRemovingDrive": "Menghapus item yang sudah dihapus dari Google Drive",
+  "syncRemovingDevice": "Menghapus item yang sudah dihapus dari perangkat lain",
+  "syncRemovingWhat": "Yang sudah dihapus permanen juga dihapus di sana."
 }

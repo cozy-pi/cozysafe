@@ -749,5 +749,21 @@
   "restoreWrongWords": "These 24 words do not open the vault there. Check each word, in order.",
   "secondPlaceTitle": "Only on this device",
   "secondPlaceBody": "Lose this device and the vault is gone. Keep a copy on another device, in Google Drive or in a backup file.",
-  "secondPlaceAdd": "Add a second place"
+  "secondPlaceAdd": "Add a second place",
+  "syncSendingDrive": "Sending to Google Drive",
+  "syncReceivingDrive": "Bringing in from Google Drive",
+  "syncCheckingDrive": "Looking at Google Drive",
+  "syncSendingDevice": "Sending to the other device",
+  "syncReceivingDevice": "Bringing in from the other device",
+  "syncCheckingDevice": "Looking at the other device",
+  "syncWhat": "The photos, notes, recordings and files in this vault, encrypted.",
+  "syncItems": "{done} / {total} items",
+  "@syncItems": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+  "syncLeftUnderMinute": "Under a minute left",
+  "syncLeftMinutes": "{count, plural, =1{About 1 minute left} other{About {count} minutes left}}",
+  "@syncLeftMinutes": {"placeholders": {"count": {"type": "int"}}},
+  "syncRemoving": "Removing deleted items",
+  "syncRemovingDrive": "Removing deleted items from Google Drive",
+  "syncRemovingDevice": "Removing deleted items from the other device",
+  "syncRemovingWhat": "What you deleted for good is taken off there too."
 }

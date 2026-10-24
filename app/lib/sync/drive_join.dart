@@ -102,10 +102,11 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       // The items come down with progress on screen; stopping loses nothing.
       await Navigator.of(context).push<void>(MaterialPageRoute(
         builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(l.syncTitle), automaticallyImplyLeading: false),
+          appBar: AppBar(title: Text(l.restoreTitle), automaticallyImplyLeading: false),
           body: SafeArea(
             top: false,
             child: SyncProgress(
+              place: SyncPlace.drive,
               events: sync.driveSync(token: session.token),
               retry: () => sync.driveSync(token: session.token),
               onSynced: () {},

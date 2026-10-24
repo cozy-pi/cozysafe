@@ -45,11 +45,17 @@ pub trait Remote {
     fn put_file(&self, path: &str, local: &Path) -> Result<()> {
         self.put(path, &mut fs::File::open(local)?)
     }
-    /// Delete the file at `path` (gone already is fine). Only the vault's lock is ever
-    /// replaced (`<vault>/lock/…`); every other file stays as written. A place that
-    /// lives for one session only (a P2P host's folder) may ignore it.
+    /// Delete the file at `path` (gone already is fine). Files are never rewritten: the
+    /// vault's lock is replaced by a newer one (`<vault>/lock/…`), and the records and
+    /// content of an item deleted for good are taken away. A place that lives for one
+    /// session only (a P2P host's folder) may ignore it.
     fn remove(&self, _path: &str) -> Result<()> {
         Ok(())
+    }
+    /// Whether [`Remote::remove`] really deletes: then the files of items deleted for good
+    /// are taken off the place too.
+    fn removes(&self) -> bool {
+        false
     }
 }
 
@@ -174,6 +180,10 @@ impl Remote for FolderRemote {
             _ => Ok(()),
         }
     }
+
+    fn removes(&self) -> bool {
+        true
+    }
 }
 
 /// This device's id in the vault's sync, made the first time it is asked for.
@@ -235,6 +245,8 @@ pub enum SyncPhase {
     Receiving,
     /// Sending this device's changes.
     Sending,
+    /// Taking the files of items deleted for good off the place.
+    Removing,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -306,11 +318,13 @@ impl Remote for Counted<'_> {
     }
 
     fn get(&self, path: &str, out: &mut dyn Write) -> Result<bool> {
-        self.inner.get(path, &mut CountingWriter { out, counted: self })
+        self.inner
+            .get(path, &mut CountingWriter { out, counted: self })
     }
 
     fn put(&self, path: &str, src: &mut dyn Read) -> Result<()> {
-        self.inner.put(path, &mut CountingReader { src, counted: self })
+        self.inner
+            .put(path, &mut CountingReader { src, counted: self })
     }
 
     fn exists(&self, path: &str) -> Result<bool> {
@@ -326,6 +340,10 @@ impl Remote for Counted<'_> {
 
     fn remove(&self, path: &str) -> Result<()> {
         self.inner.remove(path)
+    }
+
+    fn removes(&self) -> bool {
+        self.inner.removes()
     }
 }
 
@@ -839,11 +857,13 @@ impl OpenVault {
             todo.push((id, record, sealed));
         }
         let gone = self.index.gone_unsent(&rk)?;
-        let total = (todo.len() + gone.len()) as u32;
+        // Deletions are counted apart (Removing): they are not items going up.
+        let total = todo.len() as u32;
         let start = remote.bytes();
         let mut bytes_total = 0u64;
         for (id, record, sealed) in &todo {
-            bytes_total += sealed.len() as u64 + fs::metadata(self.path(id, "data")?).map_or(0, |m| m.len());
+            bytes_total +=
+                sealed.len() as u64 + fs::metadata(self.path(id, "data")?).map_or(0, |m| m.len());
             if record.has_thumbnail() {
                 bytes_total += fs::metadata(self.path(id, "thumb")?).map_or(0, |m| m.len());
             }
@@ -877,8 +897,9 @@ impl OpenVault {
                 self.send_entry(remote, std::mem::take(&mut entry), report)?;
             }
         }
+        // Before the deletions are told: stopped half-way, it is done again next time.
+        self.clean_gone(remote, &base, &gone, progress)?;
         entry.gone = gone;
-        done += entry.gone.len() as u32;
         if !entry.items.is_empty() || !entry.gone.is_empty() {
             self.send_entry(remote, entry, report)?;
             progress(SyncProgress {
@@ -888,6 +909,68 @@ impl OpenVault {
                 bytes: remote.bytes() - start,
                 bytes_total,
             });
+        }
+        Ok(())
+    }
+
+    /// Take the files of items deleted for good off the place (owner 2026-10-24: 700
+    /// deleted photos stayed in Google Drive). Only revisions made before the deletion
+    /// go: one edited on another device after it stays, with its content. The first
+    /// time on a place, deletions it was already told about are cleaned as well.
+    fn clean_gone(
+        &self,
+        remote: &Counted<'_>,
+        base: &str,
+        unsent: &[(String, i64)],
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<()> {
+        if !remote.removes() {
+            return Ok(());
+        }
+        let swept_key = format!("{}:gone-swept", remote.key());
+        let swept = self.index.meta_get(&swept_key)?.is_some();
+        let todo: Vec<(String, i64)> = if swept {
+            unsent.to_vec()
+        } else {
+            self.index.all_gone()?
+        };
+        if !todo.is_empty() {
+            let blobs = remote.list(&format!("{base}/blobs"))?;
+            let total = todo.len() as u32;
+            let start = remote.bytes();
+            for (n, (id, hlc)) in todo.iter().enumerate() {
+                let mut keep = BTreeSet::new();
+                for rev in remote.list(&format!("{base}/records/{id}"))? {
+                    match self.remote_record(remote, id, &rev) {
+                        Ok(Some((r, _))) if r.hlc > *hlc => {
+                            keep.insert(r.data_rev);
+                        }
+                        Ok(_) => remote.remove(&format!("{base}/records/{id}/{rev}"))?,
+                        // Unreadable: not ours to judge; leave it.
+                        Err(_) => {}
+                    }
+                }
+                let prefix = format!("{id}.");
+                for name in &blobs {
+                    let Some(rest) = name.strip_prefix(&prefix) else {
+                        continue;
+                    };
+                    let data_rev = rest.rsplit_once('.').map_or("", |(d, _)| d);
+                    if !keep.contains(data_rev) {
+                        remote.remove(&format!("{base}/blobs/{name}"))?;
+                    }
+                }
+                progress(SyncProgress {
+                    phase: SyncPhase::Removing,
+                    done: n as u32 + 1,
+                    total,
+                    bytes: remote.bytes() - start,
+                    bytes_total: 0,
+                });
+            }
+        }
+        if !swept {
+            self.index.meta_set(&swept_key, "1")?;
         }
         Ok(())
     }
@@ -1202,6 +1285,82 @@ pub(crate) mod tests {
         assert_eq!(t.a.sync(&t.cloud).unwrap().sent, 1);
         t.b.sync(&t.cloud).unwrap();
         assert_eq!(text(&t.b, &id), "x");
+    }
+
+    /// The files item `id` has in the place (records and content).
+    fn files_of(t: &Two, id: &str) -> usize {
+        let base = t.cloud.root.join(&t.a.id);
+        let records = fs::read_dir(base.join("records").join(id)).map_or(0, |d| d.count());
+        let prefix = format!("{id}.");
+        let blobs = fs::read_dir(base.join("blobs")).map_or(0, |d| {
+            d.flatten()
+                .filter(|e| e.file_name().to_string_lossy().starts_with(&prefix))
+                .count()
+        });
+        records + blobs
+    }
+
+    #[test]
+    fn an_item_deleted_for_good_leaves_the_place() {
+        let t = two();
+        let keep = note(&t.a, "keep", "k");
+        let gone = note(&t.a, "gone", "g");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        assert!(files_of(&t, &gone) >= 2);
+        t.a.delete_item(&gone).unwrap();
+        let seen = std::sync::Mutex::new(Vec::new());
+        t.a.sync_with(&t.cloud, &|p| seen.lock().unwrap().push(p))
+            .unwrap();
+        assert_eq!(files_of(&t, &gone), 0);
+        assert!(files_of(&t, &keep) >= 2);
+        // Told apart from the items going up (none here).
+        let seen = seen.into_inner().unwrap();
+        assert!(seen
+            .iter()
+            .any(|p| (p.phase, p.done, p.total) == (SyncPhase::Removing, 1, 1)));
+        assert!(seen
+            .iter()
+            .filter(|p| p.phase == SyncPhase::Sending)
+            .all(|p| p.total == 0));
+        // The other device still learns it is gone, and its record missing is no error.
+        t.b.sync(&t.cloud).unwrap();
+        assert!(t.b.sealed_record(&gone).unwrap().is_none());
+        assert_eq!(text(&t.b, &keep), "k");
+    }
+
+    /// A place as before deleted items were cleaned: deletions are told, nothing removed.
+    struct NoRemove<'a>(&'a FolderRemote);
+
+    impl Remote for NoRemove<'_> {
+        fn key(&self) -> String {
+            self.0.key()
+        }
+        fn list(&self, dir: &str) -> Result<Vec<String>> {
+            self.0.list(dir)
+        }
+        fn get(&self, path: &str, out: &mut dyn Write) -> Result<bool> {
+            self.0.get(path, out)
+        }
+        fn put(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+            self.0.put(path, src)
+        }
+        fn exists(&self, path: &str) -> Result<bool> {
+            self.0.exists(path)
+        }
+    }
+
+    #[test]
+    fn deletions_told_before_cleaning_existed_are_cleaned_once() {
+        let t = two();
+        let gone = note(&t.a, "gone", "g");
+        t.a.sync(&NoRemove(&t.cloud)).unwrap();
+        t.a.delete_item(&gone).unwrap();
+        t.a.sync(&NoRemove(&t.cloud)).unwrap();
+        assert!(files_of(&t, &gone) >= 2);
+        // The first sync with a place that removes sweeps every deletion kept here.
+        t.a.sync(&t.cloud).unwrap();
+        assert_eq!(files_of(&t, &gone), 0);
     }
 
     // ---------- a hostile sync place ----------

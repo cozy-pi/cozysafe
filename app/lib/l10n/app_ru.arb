@@ -556,5 +556,19 @@
   "restoreWrongWords": "Эти 24 слова не открывают сейф на том устройстве. Проверьте каждое слово по порядку.",
   "secondPlaceTitle": "Только на этом устройстве",
   "secondPlaceBody": "Потеряете это устройство — потеряете и сейф. Храните копию на другом устройстве, в Google Drive или в файле резервной копии.",
-  "secondPlaceAdd": "Добавить второе место"
+  "secondPlaceAdd": "Добавить второе место",
+  "syncSendingDrive": "Отправка в Google Drive",
+  "syncReceivingDrive": "Получение из Google Drive",
+  "syncCheckingDrive": "Проверка Google Drive",
+  "syncSendingDevice": "Отправка на другое устройство",
+  "syncReceivingDevice": "Получение с другого устройства",
+  "syncCheckingDevice": "Проверка другого устройства",
+  "syncWhat": "Фото, заметки, записи и файлы в этом сейфе, в зашифрованном виде.",
+  "syncItems": "Объекты: {done} из {total}",
+  "syncLeftUnderMinute": "Осталось меньше минуты",
+  "syncLeftMinutes": "{count, plural, one{Осталось около {count} минуты} few{Осталось около {count} минут} many{Осталось около {count} минут} other{Осталось около {count} минуты}}",
+  "syncRemoving": "Удаление удалённых объектов",
+  "syncRemovingDrive": "Удаление удалённых объектов из Google Drive",
+  "syncRemovingDevice": "Удаление удалённых объектов с другого устройства",
+  "syncRemovingWhat": "То, что удалено навсегда, удаляется и там."
 }

@@ -556,5 +556,19 @@
   "restoreWrongWords": "이 24개 단어로는 그 기기의 금고를 열 수 없습니다. 각 단어를 순서대로 확인하세요.",
   "secondPlaceTitle": "이 기기에만 있음",
   "secondPlaceBody": "이 기기를 잃어버리면 금고도 사라집니다. 다른 기기, Google Drive 또는 백업 파일에 사본을 보관하세요.",
-  "secondPlaceAdd": "두 번째 보관 장소 추가"
+  "secondPlaceAdd": "두 번째 보관 장소 추가",
+  "syncSendingDrive": "Google Drive로 보내는 중",
+  "syncReceivingDrive": "Google Drive에서 받는 중",
+  "syncCheckingDrive": "Google Drive 확인 중",
+  "syncSendingDevice": "다른 기기로 보내는 중",
+  "syncReceivingDevice": "다른 기기에서 받는 중",
+  "syncCheckingDevice": "다른 기기 확인 중",
+  "syncWhat": "이 금고의 사진, 메모, 녹음, 파일을 암호화된 상태로 주고받습니다.",
+  "syncItems": "항목 {done} / {total}개",
+  "syncLeftUnderMinute": "1분 미만 남음",
+  "syncLeftMinutes": "{count, plural, other{약 {count}분 남음}}",
+  "syncRemoving": "삭제한 항목 지우는 중",
+  "syncRemovingDrive": "Google Drive에서 삭제한 항목 지우는 중",
+  "syncRemovingDevice": "다른 기기에서 삭제한 항목 지우는 중",
+  "syncRemovingWhat": "영구 삭제한 항목은 그곳에서도 지워집니다."
 }

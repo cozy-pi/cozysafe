@@ -556,5 +556,19 @@
   "restoreWrongWords": "Estas 24 palabras no abren la caja fuerte de allí. Revisa cada palabra, en orden.",
   "secondPlaceTitle": "Solo en este dispositivo",
   "secondPlaceBody": "Si pierdes este dispositivo, pierdes la caja fuerte. Guarda una copia en otro dispositivo, en Google Drive o en un archivo de copia de seguridad.",
-  "secondPlaceAdd": "Añadir un segundo lugar"
+  "secondPlaceAdd": "Añadir un segundo lugar",
+  "syncSendingDrive": "Enviando a Google Drive",
+  "syncReceivingDrive": "Recibiendo de Google Drive",
+  "syncCheckingDrive": "Revisando Google Drive",
+  "syncSendingDevice": "Enviando al otro dispositivo",
+  "syncReceivingDevice": "Recibiendo del otro dispositivo",
+  "syncCheckingDevice": "Revisando el otro dispositivo",
+  "syncWhat": "Las fotos, notas, grabaciones y archivos de esta caja fuerte, cifrados.",
+  "syncItems": "{done} / {total} elementos",
+  "syncLeftUnderMinute": "Queda menos de un minuto",
+  "syncLeftMinutes": "{count, plural, =1{Queda 1 minuto aprox.} other{Quedan {count} minutos aprox.}}",
+  "syncRemoving": "Quitando elementos eliminados",
+  "syncRemovingDrive": "Quitando de Google Drive los elementos eliminados",
+  "syncRemovingDevice": "Quitando del otro dispositivo los elementos eliminados",
+  "syncRemovingWhat": "Lo que se eliminó para siempre también se quita de allí."
 }

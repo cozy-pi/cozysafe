@@ -556,5 +556,19 @@
   "restoreWrongWords": "Diese 24 Wörter öffnen den Tresor dort nicht. Prüfen Sie jedes Wort in der richtigen Reihenfolge.",
   "secondPlaceTitle": "Nur auf diesem Gerät",
   "secondPlaceBody": "Geht dieses Gerät verloren, ist der Tresor weg. Bewahren Sie eine Kopie auf einem anderen Gerät, in Google Drive oder in einer Backup-Datei auf.",
-  "secondPlaceAdd": "Zweiten Ort hinzufügen"
+  "secondPlaceAdd": "Zweiten Ort hinzufügen",
+  "syncSendingDrive": "Wird an Google Drive gesendet",
+  "syncReceivingDrive": "Wird von Google Drive empfangen",
+  "syncCheckingDrive": "Google Drive wird geprüft",
+  "syncSendingDevice": "Wird an das andere Gerät gesendet",
+  "syncReceivingDevice": "Wird vom anderen Gerät empfangen",
+  "syncCheckingDevice": "Das andere Gerät wird geprüft",
+  "syncWhat": "Die Fotos, Notizen, Aufnahmen und Dateien in diesem Tresor, verschlüsselt.",
+  "syncItems": "{done} / {total} Elemente",
+  "syncLeftUnderMinute": "Weniger als eine Minute übrig",
+  "syncLeftMinutes": "{count, plural, =1{Noch etwa 1 Minute} other{Noch etwa {count} Minuten}}",
+  "syncRemoving": "Gelöschte Elemente werden entfernt",
+  "syncRemovingDrive": "Gelöschte Elemente werden aus Google Drive entfernt",
+  "syncRemovingDevice": "Gelöschte Elemente werden vom anderen Gerät entfernt",
+  "syncRemovingWhat": "Was endgültig gelöscht wurde, wird auch dort entfernt."
 }

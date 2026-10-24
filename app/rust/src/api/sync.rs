@@ -61,6 +61,8 @@ pub enum SyncStep {
     Checking,
     Receiving,
     Sending,
+    /// Taking the files of items deleted for good off the place.
+    Removing,
     /// The connection dropped mid-way (the phone slept, the network went): what was
     /// done is kept, the next sync goes on from there.
     Interrupted,
@@ -125,6 +127,7 @@ fn progress_event(p: cs_vault::sync::SyncProgress) -> SyncEvent {
             SyncPhase::Checking => SyncStep::Checking,
             SyncPhase::Receiving => SyncStep::Receiving,
             SyncPhase::Sending => SyncStep::Sending,
+            SyncPhase::Removing => SyncStep::Removing,
         })
     }
 }
@@ -433,7 +436,8 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         | SyncStep::Knock
         | SyncStep::Checking
         | SyncStep::Receiving
-        | SyncStep::Sending => return,
+        | SyncStep::Sending
+        | SyncStep::Removing => return,
         SyncStep::Interrupted => "interrupted",
         SyncStep::OtherVault => "othervault",
         SyncStep::Unreachable => "unreachable",

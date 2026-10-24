@@ -556,5 +556,19 @@
   "restoreWrongWords": "Queste 24 parole non aprono la cassaforte sull’altro dispositivo. Controlla ogni parola, in ordine.",
   "secondPlaceTitle": "Solo su questo dispositivo",
   "secondPlaceBody": "Se perdi questo dispositivo, perdi la cassaforte. Tieni una copia su un altro dispositivo, in Google Drive o in un file di backup.",
-  "secondPlaceAdd": "Aggiungi un secondo posto"
+  "secondPlaceAdd": "Aggiungi un secondo posto",
+  "syncSendingDrive": "Invio a Google Drive",
+  "syncReceivingDrive": "Ricezione da Google Drive",
+  "syncCheckingDrive": "Controllo di Google Drive",
+  "syncSendingDevice": "Invio all’altro dispositivo",
+  "syncReceivingDevice": "Ricezione dall’altro dispositivo",
+  "syncCheckingDevice": "Controllo dell’altro dispositivo",
+  "syncWhat": "Le foto, le note, le registrazioni e i file di questa cassaforte, crittografati.",
+  "syncItems": "{done} / {total} elementi",
+  "syncLeftUnderMinute": "Manca meno di un minuto",
+  "syncLeftMinutes": "{count, plural, =1{Manca circa 1 minuto} other{Mancano circa {count} minuti}}",
+  "syncRemoving": "Rimozione degli elementi eliminati",
+  "syncRemovingDrive": "Rimozione degli elementi eliminati da Google Drive",
+  "syncRemovingDevice": "Rimozione degli elementi eliminati dall’altro dispositivo",
+  "syncRemovingWhat": "Ciò che è stato eliminato definitivamente viene rimosso anche lì."
 }

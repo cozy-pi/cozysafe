@@ -556,5 +556,19 @@
   "restoreWrongWords": "Bu 24 kelime oradaki kasayı açmıyor. Her kelimeyi sırasıyla kontrol edin.",
   "secondPlaceTitle": "Yalnızca bu cihazda",
   "secondPlaceBody": "Bu cihazı kaybederseniz kasa da gider. Başka bir cihazda, Google Drive'da veya bir yedek dosyasında bir kopyasını saklayın.",
-  "secondPlaceAdd": "İkinci bir yer ekle"
+  "secondPlaceAdd": "İkinci bir yer ekle",
+  "syncSendingDrive": "Google Drive'a gönderiliyor",
+  "syncReceivingDrive": "Google Drive'dan alınıyor",
+  "syncCheckingDrive": "Google Drive kontrol ediliyor",
+  "syncSendingDevice": "Diğer cihaza gönderiliyor",
+  "syncReceivingDevice": "Diğer cihazdan alınıyor",
+  "syncCheckingDevice": "Diğer cihaz kontrol ediliyor",
+  "syncWhat": "Bu kasadaki fotoğraflar, notlar, kayıtlar ve dosyalar, şifrelenmiş olarak.",
+  "syncItems": "{done} / {total} öğe",
+  "syncLeftUnderMinute": "Bir dakikadan az kaldı",
+  "syncLeftMinutes": "{count, plural, other{Yaklaşık {count} dakika kaldı}}",
+  "syncRemoving": "Silinen öğeler kaldırılıyor",
+  "syncRemovingDrive": "Silinen öğeler Google Drive'dan kaldırılıyor",
+  "syncRemovingDevice": "Silinen öğeler diğer cihazdan kaldırılıyor",
+  "syncRemovingWhat": "Kalıcı olarak silinenler oradan da kaldırılır."
 }

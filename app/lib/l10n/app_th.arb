@@ -556,5 +556,19 @@
   "restoreWrongWords": "คำ 24 คำนี้เปิดตู้นิรภัยบนเครื่องนั้นไม่ได้ ตรวจสอบทีละคำตามลำดับ",
   "secondPlaceTitle": "อยู่บนอุปกรณ์นี้เท่านั้น",
   "secondPlaceBody": "หากอุปกรณ์นี้หาย ตู้นิรภัยก็จะหายไปด้วย เก็บสำเนาไว้บนอุปกรณ์อื่น ใน Google Drive หรือในไฟล์สำรอง",
-  "secondPlaceAdd": "เพิ่มที่เก็บแห่งที่สอง"
+  "secondPlaceAdd": "เพิ่มที่เก็บแห่งที่สอง",
+  "syncSendingDrive": "กำลังส่งไปยัง Google Drive",
+  "syncReceivingDrive": "กำลังรับจาก Google Drive",
+  "syncCheckingDrive": "กำลังตรวจสอบ Google Drive",
+  "syncSendingDevice": "กำลังส่งไปยังอุปกรณ์อีกเครื่อง",
+  "syncReceivingDevice": "กำลังรับจากอุปกรณ์อีกเครื่อง",
+  "syncCheckingDevice": "กำลังตรวจสอบอุปกรณ์อีกเครื่อง",
+  "syncWhat": "รูปภาพ โน้ต เสียงบันทึก และไฟล์ในตู้นิรภัยนี้ ซึ่งเข้ารหัสไว้",
+  "syncItems": "{done} / {total} รายการ",
+  "syncLeftUnderMinute": "เหลือไม่ถึง 1 นาที",
+  "syncLeftMinutes": "{count, plural, other{เหลืออีกประมาณ {count} นาที}}",
+  "syncRemoving": "กำลังนำรายการที่ลบแล้วออก",
+  "syncRemovingDrive": "กำลังนำรายการที่ลบแล้วออกจาก Google Drive",
+  "syncRemovingDevice": "กำลังนำรายการที่ลบแล้วออกจากอุปกรณ์อีกเครื่อง",
+  "syncRemovingWhat": "สิ่งที่ลบอย่างถาวรแล้วจะถูกนำออกจากที่นั่นด้วย"
 }

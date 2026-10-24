@@ -556,5 +556,19 @@
   "restoreWrongWords": "这 24 个单词无法打开那台设备上的保险箱。请按顺序逐个检查单词。",
   "secondPlaceTitle": "仅在此设备上",
   "secondPlaceBody": "如果丢失此设备，保险箱也会随之丢失。请在另一台设备、Google Drive 或备份文件中保留一份副本。",
-  "secondPlaceAdd": "添加第二个存放位置"
+  "secondPlaceAdd": "添加第二个存放位置",
+  "syncSendingDrive": "正在发送到 Google Drive",
+  "syncReceivingDrive": "正在从 Google Drive 接收",
+  "syncCheckingDrive": "正在查看 Google Drive",
+  "syncSendingDevice": "正在发送到另一台设备",
+  "syncReceivingDevice": "正在从另一台设备接收",
+  "syncCheckingDevice": "正在查看另一台设备",
+  "syncWhat": "此保险箱中的照片、笔记、录音和文件，均已加密。",
+  "syncItems": "{done} / {total} 项",
+  "syncLeftUnderMinute": "剩余不到 1 分钟",
+  "syncLeftMinutes": "{count, plural, other{大约还剩 {count} 分钟}}",
+  "syncRemoving": "正在移除已删除的项目",
+  "syncRemovingDrive": "正在从 Google Drive 移除已删除的项目",
+  "syncRemovingDevice": "正在从另一台设备移除已删除的项目",
+  "syncRemovingWhat": "永久删除的内容也会从那里移除。"
 }
