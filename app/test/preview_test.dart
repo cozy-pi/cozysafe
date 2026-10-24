@@ -30,6 +30,7 @@ import 'package:cozysafe/screens/trash.dart';
 import 'package:cozysafe/screens/unlock.dart';
 import 'package:cozysafe/screens/quick_look.dart';
 import 'package:cozysafe/screens/vault_home.dart';
+import 'package:cozysafe/screens/welcome.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/api/sync.dart';
 import 'package:cozysafe/sync/drive_join.dart';
@@ -290,7 +291,8 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugLog = null;
       SyncScreen.debugAddress = null;
       SyncScreen.debugDrive = false;
-      NewVaultScreen.debugDriveJoin = false;
+      NewVaultScreen.debugBiometricStep = false;
+      RestoreChoiceScreen.debugDrive = false;
       DriveJoinScreen.debugAccount = null;
       HostSyncPage.debugHosting = null;
       HostSyncPage.debugEvents = null;
@@ -441,7 +443,8 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
-  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
+  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home',
+      change: 'Icon Ghi chú (giấy + bút) và Tệp (thư mục) nay khác hẳn nhau');
   _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
@@ -678,12 +681,8 @@ void main() {
   _screen('sync-type', 'Máy kia: nhập mã 18 ký tự', () => page('Nhập mã', TypeCodePage(onSynced: () {})));
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0}) =>
       SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies, done: done, total: total);
-  _screen('sync-drive-progress', 'Google Drive: đang tải về, có thanh tiến trình', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.receiving, done: 128, total: 340)), onSynced: () {})),
-      change: 'MỚI: thanh tiến trình + số mục; màn hình luôn sáng khi đang đồng bộ',
-      marks: [() => find.byKey(const ValueKey('sync-progress'))]);
-  _screen('sync-interrupted', 'Bị gián đoạn (máy ngủ, mất mạng): bấm Tiếp tục', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.interrupted)), onSynced: () {}, retry: () => const Stream.empty())),
-      change: 'MỚI: gián đoạn không phải lỗi; bấm Tiếp tục là chạy tiếp phần còn lại',
-      marks: [() => find.byKey(const ValueKey('sync-continue'))]);
+  _screen('sync-drive-progress', 'Google Drive: đang tải về, có thanh tiến trình', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.receiving, done: 128, total: 340)), onSynced: () {})));
+  _screen('sync-interrupted', 'Bị gián đoạn (máy ngủ, mất mạng): bấm Tiếp tục', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.interrupted)), onSynced: () {}, retry: () => const Stream.empty())));
   _screen('sync-connected', 'Đã kết nối: hai máy hiện cùng một số để đối chiếu', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})));
   _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
   _screen('sync-knock', 'Máy hiện mã: máy kia vừa chạm tới, đang chứng minh cùng két', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
@@ -806,7 +805,7 @@ void main() {
     _screen('change-key-$name', 'Đổi khoá khôi phục · $what', () => change(i), setup: () {
       ChangeKeyScreen.debugWords = words;
       ChangeKeyScreen.debugStep = i;
-    }, change: i == 0 ? 'MỚI: đổi khoá khôi phục (cả từ mã cũ sang 24 từ)' : null);
+    });
   }
   _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
@@ -831,41 +830,43 @@ void main() {
     await t.pump();
   }
 
-  _screen('new-vault', 'Tạo két đầu tiên · 1. Ba thứ giữ két', () => const NewVaultScreen(libraryDir: '', first: true),
+  _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''),
+      change: 'MỚI: chỉ hai lựa chọn lớn, gần như không chữ',
+      marks: [() => find.byKey(const ValueKey('welcome-new')), () => find.byKey(const ValueKey('welcome-restore'))]);
+  _screen('restore-choice', 'Khôi phục két: két đang ở đâu?', () => const RestoreChoiceScreen(libraryDir: ''),
+      setup: () => RestoreChoiceScreen.debugDrive = true,
+      change: 'MỚI: chọn nguồn (Google Drive / file sao lưu); bước sau mới hỏi 24 từ và mật khẩu');
+  _screen('new-vault-biometric', 'Tạo két · 5. Face ID: Bật hoặc Để sau', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: () {
     useWords();
-    NewVaultScreen.debugDriveJoin = true;
-  });
+    NewVaultScreen.debugBiometricStep = true;
+  },
+      change: 'MỚI: Face ID là một bước riêng: Bật hoặc Để sau');
+  _screen('new-vault', 'Tạo két · 1. Ghi lại 24 từ (vào thẳng, không màn giới thiệu)', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords,
+      change: 'Bỏ màn giới thiệu gộp ba thứ: vào thẳng bước 24 từ, mỗi bước chỉ một câu ngắn');
   _screen('join-drive', 'Mở két từ Google Drive · trước khi đăng nhập', () => const DriveJoinScreen(libraryDir: ''));
   _screen('join-drive-signed', 'Mở két từ Google Drive · đã đăng nhập: nhập 24 từ và mật khẩu', () => const DriveJoinScreen(libraryDir: ''),
       setup: () => DriveJoinScreen.debugAccount = 'ban@gmail.com');
-  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ', () => const NewVaultScreen(libraryDir: '', first: true),
-      setup: useWords, act: (t) async {
-    await tapKey(t, 'intro-start');
-  });
   _screen('new-vault-words-shown', 'Tạo két · 24 từ sau khi chạm Xem', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
-    await tapKey(t, 'intro-start');
     await tapKey(t, 'secret-show');
   });
-  _screen('new-vault-check', 'Tạo két · 3. Gõ lại 4 từ', () => const NewVaultScreen(libraryDir: '', first: true),
+  _screen('new-vault-check', 'Tạo két · 2. Gõ lại 4 từ', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
-    await tapKey(t, 'intro-start');
     await tapKey(t, 'words-done');
     await fillCheck(t);
   });
-  _screen('new-vault-password', 'Tạo két · 4. Mật khẩu két: yếu vẫn đi tiếp được', () => const NewVaultScreen(libraryDir: '', first: true),
+  _screen('new-vault-password', 'Tạo két · 3. Mật khẩu: nhớ thật kỹ', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
-    await tapKey(t, 'intro-start');
     await tapKey(t, 'words-done');
     await fillCheck(t);
     await tapKey(t, 'check-done');
     await t.enterText(find.byKey(const ValueKey('new-password')).first, 'sunflower');
     await t.pump();
   });
-  _screen('new-vault-pin', 'Tạo két · 5. Mã PIN ít nhất 6 số', () => const NewVaultScreen(libraryDir: '', first: true),
+  _screen('new-vault-pin', 'Tạo két · 4. Mã PIN = mở nhanh trên máy này', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
-    await tapKey(t, 'intro-start');
     await tapKey(t, 'words-done');
     await fillCheck(t);
     await tapKey(t, 'check-done');

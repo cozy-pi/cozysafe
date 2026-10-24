@@ -1209,8 +1209,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (list.isEmpty) {
       if (_tagId != null) return _tagEmpty(context);
       return notes
-          ? _Empty(icon: Icons.sticky_note_2_outlined, title: l.emptyNotesTitle, body: l.emptyNotesBody)
-          : _Empty(icon: Icons.description_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody);
+          ? _Empty(icon: Icons.edit_note_rounded, title: l.emptyNotesTitle, body: l.emptyNotesBody)
+          : _Empty(icon: Icons.folder_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody);
     }
     if (!notes && _filesAsGrid) {
       return Scrollbar(
@@ -1839,7 +1839,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         : switch (_adding ? null : _directAdd) {
             AddWhat.note => (Icons.edit_note_rounded, l.newNote),
             AddWhat.voice => (Icons.mic_rounded, l.startRecording),
-            AddWhat.file => (Icons.note_add_outlined, l.addFiles),
+            AddWhat.file => (Icons.folder_outlined, l.addFiles),
             AddWhat.photos => (Icons.add_photo_alternate_outlined, l.addFromDevice),
             _ => (Icons.add, _adding ? l.close : l.addToVault),
           };

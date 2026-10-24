@@ -8,7 +8,6 @@ import 'debug_log.dart';
 import 'l10n/app_localizations.dart';
 import 'language.dart';
 import 'offline.dart';
-import 'screens/new_vault.dart';
 import 'screens/settings.dart';
 import 'screens/video_view.dart';
 import 'screens/restore.dart';
@@ -21,6 +20,7 @@ import 'widgets/brand.dart';
 import 'widgets/native_bar.dart';
 import 'prefs.dart';
 import 'privacy.dart';
+import 'screens/welcome.dart';
 
 Future<void> main() async {
   installNetworkGuard(); // before any plugin or library code runs
@@ -86,7 +86,7 @@ class CozySafeApp extends StatelessWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: !rust.hasVaults(dir: libraryDir)
-          ? NewVaultScreen(libraryDir: libraryDir, first: true)
+          ? WelcomeScreen(libraryDir: libraryDir)
           : hasSecretKey
               ? UnlockScreen(libraryDir: libraryDir)
               // Vaults are here but this device has no Secret Key (reinstall,

@@ -15,9 +15,6 @@ import '../widgets/secret.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
-import 'restore.dart';
-import '../platform.dart';
-import '../sync/drive_join.dart';
 import 'vault_home.dart';
 
 /// Create a vault (owner 2026-10-23): what each key is for → (first vault on this
@@ -36,14 +33,15 @@ class NewVaultScreen extends StatefulWidget {
   /// Mockups: the words to show, instead of the keystore's.
   @visibleForTesting
   static String? debugWords;
-  /// For the mockup renders: offer joining from Google Drive on any platform.
-  static bool debugDriveJoin = false;
+  /// For the mockup renders: open on the Face ID step.
+  @visibleForTesting
+  static bool debugBiometricStep = false;
 
   @override
   State<NewVaultScreen> createState() => _NewVaultScreenState();
 }
 
-enum _Step { intro, words, check, password, pin, confirm, icon, color }
+enum _Step { intro, words, check, password, pin, confirm, biometric, icon, color }
 
 class _NewVaultScreenState extends State<NewVaultScreen> {
   _Step _step = _Step.intro;
@@ -53,6 +51,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   String? _first;
   String? _error;
   bool _busy = false;
+  /// Face ID or fingerprint, when this phone has one (asked after the PIN).
+  BiometricKind? _bioKind;
   int _shake = 0;
 
   /// The device's Secret Key as 24 words; null until known. [_newWords]: made now, so
@@ -65,8 +65,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   final _pwAgain = TextEditingController();
   rust.VaultInfo? _vault;
 
+  /// One thing per step, said briefly (owner 2026-10-24: no screen explaining all three
+  /// at once). The first vault starts from the welcome screen, so it has no intro.
   List<_Step> get _steps => [
-        _Step.intro,
+        if (!widget.first) _Step.intro,
         if (_newWords) ...[_Step.words, _Step.check],
         _Step.password,
         _Step.pin,
@@ -80,6 +82,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     _icon = vaultIcons.indexWhere((x) => x.id == i);
     _color = vaultColors.indexWhere((x) => x.id == c);
     _loadWords();
+    if (NewVaultScreen.debugBiometricStep) {
+      _step = _Step.biometric;
+      _bioKind = BiometricKind.face;
+    }
   }
 
   @override
@@ -98,6 +104,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       setState(() {
         _words = debug.split(' ');
         _newWords = widget.first;
+        if (_step == _Step.intro) _step = _steps.first;
       });
       return;
     }
@@ -120,6 +127,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       // Shown when this device has no vault yet: the words were just made, or made by a
       // start that was left half-way.
       _newWords = (made || widget.first) && _words?.length == 24;
+      if (_step == _Step.intro) _step = _steps.first;
     });
   }
 
@@ -147,7 +155,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     _go(_steps[i - 1]);
   }
 
-  bool get _canGoBack => !_busy && (_vault == null ? _step != _Step.intro : _step == _Step.color);
+  bool get _canGoBack => !_busy && (_vault == null ? _step != _steps.first : _step == _Step.color);
 
   // ---------- words ----------
 
@@ -262,13 +270,11 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     _pw.clear();
     _pwAgain.clear();
     if (!mounted) return;
-    if (widget.first && await BiometricUnlock.available() != null && mounted) {
-      final yes = await _askBiometric(l);
-      if (yes == true) await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
-    }
+    _bioKind = widget.first ? await BiometricUnlock.available() : null;
+    final bio = _bioKind != null;
     if (!mounted) return;
     setState(() => _busy = false);
-    _go(_Step.icon);
+    _go(bio ? _Step.biometric : _Step.icon);
   }
 
   void _retryPin(String error) => setState(() {
@@ -318,32 +324,16 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     );
   }
 
-  Future<bool?> _askBiometric(AppLocalizations l) => showModalBottomSheet<bool>(
-        context: context,
-        isDismissible: false,
-        builder: (context) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(l.biometricAskTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text(l.biometricAskBody, style: TextStyle(color: CsColors.of(context).muted)),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false), child: Text(l.biometricOfferNo))),
-                    const SizedBox(width: 10),
-                    Expanded(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.biometricOfferYes))),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+  Future<void> _biometricAnswer(bool yes) async {
+    final l = AppLocalizations.of(context);
+    if (yes) {
+      setState(() => _busy = true);
+      await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
+      if (!mounted) return;
+      setState(() => _busy = false);
+    }
+    _go(_Step.icon);
+  }
 
   // ---------- UI ----------
 
@@ -353,13 +343,19 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final page = Theme.of(context).scaffoldBackgroundColor;
     final ink = Theme.of(context).colorScheme.onSurface;
     final steps = _steps;
-    final progress = steps.indexOf(switch (_step) { _Step.confirm => _Step.pin, _Step.color => _Step.icon, final s => s });
+    final progress = steps.indexOf(switch (_step) {
+      _Step.confirm || _Step.biometric => _Step.pin,
+      _Step.color => _Step.icon,
+      _Step.intro => steps.first,
+      final s => s,
+    });
     final title = switch (_step) {
       _Step.intro => widget.first ? l.firstVaultTitle : l.newVaultTitle,
       _Step.words => l.wordsTitle,
       _Step.check => l.wordsCheckTitle,
       _Step.password => l.backupPasswordTitle,
       _Step.pin => l.pinSetTitle,
+      _Step.biometric => l.biometricAskTitle,
       _Step.confirm => l.pinConfirmTitle,
       _Step.icon => l.pickIconHint,
       _Step.color => l.pickColorTitle,
@@ -369,6 +365,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       _Step.words => l.wordsLead,
       _Step.check => l.wordsCheckLead,
       _Step.password => l.passwordLead,
+      _Step.biometric => l.biometricAskBody,
       _Step.pin => _error ?? l.pinSetLead(_minPin),
       _Step.confirm => _error ?? l.pinConfirmLead,
       _Step.icon => l.lookLead,
@@ -380,6 +377,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       _Step.words => _wordsBody(l),
       _Step.check => _checkBody(l),
       _Step.password => _passwordBody(l),
+      _Step.biometric => _biometricBody(l),
       _Step.icon => _choiceGrid(
           count: gridCount,
           selected: _icon < gridCount ? _icon : -1,
@@ -433,12 +431,14 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           ],
         ),
     };
-    // The badge is the vault being made; forms (words, password) need the room.
-    final badge = switch (_step) { _Step.words || _Step.check || _Step.password => false, _ => true };
+    // The badge is the vault being made; forms (words, password) need the room, and the
+    // Face ID step has its own glyph.
+    final badge = switch (_step) { _Step.words || _Step.check || _Step.password || _Step.biometric => false, _ => true };
 
     return PopScope(
       // The system back gesture steps back too; on the first step it leaves.
-      canPop: _step == _Step.intro && !widget.first,
+      // Back from the first step leaves (to the welcome screen for the first vault).
+      canPop: _step == _steps.first || _step == _Step.intro,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _canGoBack) _back();
       },
@@ -523,29 +523,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                     ),
                   ),
                 ),
-                if (widget.first && _step == _Step.intro)
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    children: [
-                      // Phones only, like Drive sync (no desktop sign-in client yet).
-                      if (Device.iOS || Device.android || NewVaultScreen.debugDriveJoin)
-                        TextButton(
-                          key: const ValueKey('join-drive'),
-                          style: TextButton.styleFrom(foregroundColor: ink.withValues(alpha: .85)),
-                          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                            builder: (_) => DriveJoinScreen(libraryDir: widget.libraryDir),
-                          )),
-                          child: Text(l.joinDriveButton),
-                        ),
-                      TextButton(
-                        style: TextButton.styleFrom(foregroundColor: ink.withValues(alpha: .85)),
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                          builder: (_) => RestoreScreen(libraryDir: widget.libraryDir, needFile: true),
-                        )),
-                        child: Text(l.restoreFromBackup),
-                      ),
-                    ],
-                  ),
                 // Back and Cancel under the thumbs, large, instead of a small arrow in
                 // the top corner. The very first vault has nothing to cancel back to;
                 // once the vault exists, the look can be skipped.
@@ -594,6 +571,25 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   }
 
   /// Wide main button at the end of a form step.
+  /// Face ID (or fingerprint): one question, its own step.
+  Widget _biometricBody(AppLocalizations l) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        BiometricGlyph(kind: _bioKind ?? BiometricKind.face, size: 72, color: ink),
+        const SizedBox(height: 28),
+        _primary(const ValueKey('bio-yes'), l.biometricOfferYes, _busy ? null : () => _biometricAnswer(true)),
+        const SizedBox(height: 6),
+        TextButton(
+          key: const ValueKey('bio-no'),
+          onPressed: _busy ? null : () => _biometricAnswer(false),
+          child: Text(l.biometricOfferNo),
+        ),
+      ],
+    );
+  }
+
   Widget _primary(Key key, String label, VoidCallback? onTap) => SizedBox(
         width: double.infinity,
         child: FilledButton(
