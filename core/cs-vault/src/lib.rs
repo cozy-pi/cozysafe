@@ -36,6 +36,7 @@ pub mod db;
 pub mod items;
 pub mod passphrase;
 pub mod pin;
+pub mod sync;
 pub use items::ItemMeta;
 
 const FORMAT: u32 = 1;
