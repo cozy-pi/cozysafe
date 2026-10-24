@@ -129,6 +129,10 @@ jobs:
           BUILD_NUMBER: ${{ inputs.build || github.run_number }}
           VERSION: ${{ inputs.version }}
         run: flutter build ipa --release --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA" --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+      # Swift packages exactly as pinned in the committed Package.resolved files (the
+      # Google sign-in SDKs, by commit): a different resolution stops the build here.
+      - name: Swift packages are the pinned ones
+        run: tools/check-swift-pins
       - name: Remove the keychain
         if: always()
         run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# The Swift packages a build resolved must be the ones pinned in the committed
+# Package.resolved files (docs/supply-chain.md): Xcode writes them during the build, so a
+# changed or new one means another version (or another commit) was fetched.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+changed=$(git status --porcelain -- 'app/ios' 'app/macos' | grep 'Package.resolved$' || true)
+if [ -n "$changed" ]; then
+  echo "Swift packages differ from the pinned ones:" >&2
+  echo "$changed" >&2
+  git --no-pager diff -- '*Package.resolved' >&2 || true
+  exit 1
+fi
+echo "Swift packages: as pinned"

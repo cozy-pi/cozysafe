@@ -51,7 +51,7 @@ jobs:
     steps:
       - run: |
           python3 -m venv "$RUNNER_TEMP/v"
-          "$RUNNER_TEMP/v/bin/pip" install --quiet pip-tools==7.4.1
+          "$RUNNER_TEMP/v/bin/pip" install --quiet pip==24.2 pip-tools==7.4.1
           echo "semgrep==1.180.0" > "$RUNNER_TEMP/semgrep.in"
           "$RUNNER_TEMP/v/bin/pip-compile" --quiet --generate-hashes --allow-unsafe --strip-extras \
             --output-file "$RUNNER_TEMP/semgrep.txt" "$RUNNER_TEMP/semgrep.in"
