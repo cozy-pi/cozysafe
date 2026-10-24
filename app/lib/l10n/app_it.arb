@@ -534,6 +534,8 @@
   "syncKeepOpen": "Tieni l'app aperta finché non ha finito.",
   "syncInterrupted": "Interrotto. Ciò che è già sincronizzato resta salvato.",
   "syncContinue": "Continua",
+  "syncNotifyTitle": "Sincronizzazione della cassaforte",
+  "syncNotifyChannel": "Avanzamento della sincronizzazione",
   "welcomeLead": "Una cassaforte privata per le tue foto, note e file.",
   "welcomeNew": "Crea una nuova cassaforte",
   "welcomeNewNote": "Prima volta con Cozy Safe",

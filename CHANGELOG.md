@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Unreleased
+
+### Added
+- Android: locking the phone no longer stops a sync; a notification shows its progress.
+- iPhone: a sync stopped by locking the phone continues by itself when you come back.
+
 ## 0.1.55 (2026-10-24)
 
 ### Added

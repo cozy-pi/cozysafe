@@ -101,7 +101,8 @@
     [
      "Kamera: nur um Fotos direkt in einen Tresor aufzunehmen, wenn Sie die Kamera öffnen. Fotos werden nicht in Ihrer Fotomediathek gespeichert.",
      "Biometrie: nur wenn Sie das Entsperren per Face ID, Touch ID oder Fingerabdruck aktivieren. Ihre biometrischen Daten verlassen nie die sichere Hardware des Geräts und sind für die App nie zugänglich.",
-     "Lokales Netzwerk (iPhone) / Internet (Android) / Netzwerk (macOS): nur zum Synchronisieren mit Ihrem anderen Gerät im selben WLAN, wenn Sie es starten."
+     "Lokales Netzwerk (iPhone) / Internet (Android) / Netzwerk (macOS): nur zum Synchronisieren mit Ihrem anderen Gerät im selben WLAN, wenn Sie es starten.",
+     "Mitteilungen (Android): nur während einer Synchronisierung, um ihren Fortschritt zu zeigen und sie bei gesperrtem Telefon weiterlaufen zu lassen. Wenn Sie ablehnen, läuft die Synchronisierung trotzdem."
     ]
    ],
    [

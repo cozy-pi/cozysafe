@@ -534,6 +534,8 @@
   "syncKeepOpen": "Lass die App geöffnet, bis es fertig ist.",
   "syncInterrupted": "Unterbrochen. Bereits Synchronisiertes bleibt erhalten.",
   "syncContinue": "Fortsetzen",
+  "syncNotifyTitle": "Tresor wird synchronisiert",
+  "syncNotifyChannel": "Synchronisierungsfortschritt",
   "welcomeLead": "Ein privater Tresor für Ihre Fotos, Notizen und Dateien.",
   "welcomeNew": "Neuen Tresor erstellen",
   "welcomeNewNote": "Zum ersten Mal bei Cozy Safe",

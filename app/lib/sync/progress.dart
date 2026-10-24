@@ -3,13 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import 'awake.dart';
 
 /// The live part of a session: [waiting] until the other device proves it holds this
 /// vault, then the number to compare while it syncs, then the result. Leaving before
-/// the end cancels.
+/// the end cancels. A Google Drive run stopped while the app was away (phone locked)
+/// continues by itself when the person comes back.
 class SyncProgress extends StatefulWidget {
   const SyncProgress({super.key, required this.events, required this.onSynced, this.waiting, this.retry});
   final Stream<sync.SyncEvent> events;
@@ -23,7 +25,7 @@ class SyncProgress extends StatefulWidget {
   State<SyncProgress> createState() => _SyncProgressState();
 }
 
-class _SyncProgressState extends State<SyncProgress> {
+class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver {
   StreamSubscription<sync.SyncEvent>? _sub;
   sync.SyncEvent? _last;
   int? _check;
@@ -41,14 +43,35 @@ class _SyncProgressState extends State<SyncProgress> {
 
   bool get _over => _last != null && !_running.contains(_last!.kind);
 
+  bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;
+
+  bool _started = false;
+  /// The app left the screen (phone locked, another app) since the last automatic
+  /// Continue; iOS stops a sync soon after.
+  bool _wasAway = false;
+  /// When the app last came back to the screen.
+  DateTime? _backAt;
+  DateTime? _notifiedAt;
+  sync.SyncStep? _notifiedKind;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Here rather than initState: the notification text needs the language.
+    if (_started) return;
+    _started = true;
     _listen(widget.events);
   }
 
   void _listen(Stream<sync.SyncEvent> events) {
     Awake.set(true);
+    _notify(null);
     _sub?.cancel();
     _sub = events.listen((e) {
       if (!mounted) return;
@@ -63,25 +86,86 @@ class _SyncProgressState extends State<SyncProgress> {
         _last = e;
         if (e.kind == sync.SyncStep.connected) _check = e.check;
       });
-      if (_over) Awake.set(false);
+      if (_over) {
+        Awake.set(false);
+      } else {
+        _notify(e);
+      }
       if (e.kind == sync.SyncStep.done) widget.onSynced();
+      if (e.kind == sync.SyncStep.interrupted) _autoContinue();
+    }, onError: (Object _) {
+      // The stream itself broke (the app was suspended mid-way): the same as an
+      // interruption, which the engine's journal makes safe to continue.
+      if (!mounted) return;
+      setState(() => _last = sync.SyncEvent(kind: sync.SyncStep.interrupted, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0));
+      Awake.set(false);
+      _autoContinue();
     });
+  }
+
+  void _continue() {
+    setState(() => _last = null);
+    _listen(widget.retry!());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
+      _wasAway = true;
+    } else if (state == AppLifecycleState.resumed) {
+      _backAt = DateTime.now();
+      _autoContinue();
+    }
+  }
+
+  /// Back from being away and the run was interrupted (on return, or just after it, as
+  /// the dropped connection surfaces): Continue once without a tap. The button stays
+  /// for any other interruption.
+  void _autoContinue() {
+    final back = _backAt;
+    if (!mounted || !_wasAway || !_canContinue || back == null) return;
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
+    if (DateTime.now().difference(back) > const Duration(seconds: 30)) return;
+    _wasAway = false;
+    _continue();
+  }
+
+  /// The Android notification (lib/sync/awake.dart): at most about twice a second, and
+  /// at once when the step changes.
+  void _notify(sync.SyncEvent? e) {
+    final now = DateTime.now();
+    final last = _notifiedAt;
+    if (e != null && e.kind == _notifiedKind && last != null && now.difference(last) < const Duration(milliseconds: 500)) return;
+    _notifiedAt = now;
+    _notifiedKind = e?.kind;
+    final l = AppLocalizations.of(context);
+    Awake.progress(
+      title: l.syncNotifyTitle,
+      text: e == null ? l.syncWorking : _title(l, e),
+      channel: l.syncNotifyChannel,
+      done: e?.done ?? 0,
+      total: e?.total ?? 0,
+    );
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (!_over) sync.p2PCancel();
     Awake.set(false);
     _sub?.cancel();
     super.dispose();
   }
 
+  static String _title(AppLocalizations l, sync.SyncEvent e) => switch (e.kind) {
+    sync.SyncStep.receiving => l.syncReceiving(e.done.toString(), e.total.toString()),
+    sync.SyncStep.sending => l.syncSending(e.done.toString(), e.total.toString()),
+    sync.SyncStep.checking => l.syncChecking,
+    _ => l.syncWorking,
+  };
+
   Widget _runningBody(AppLocalizations l, CsColors c, sync.SyncEvent e) {
-    final title = switch (e.kind) {
-      sync.SyncStep.receiving => l.syncReceiving(e.done.toString(), e.total.toString()),
-      sync.SyncStep.sending => l.syncSending(e.done.toString(), e.total.toString()),
-      _ => l.syncChecking,
-    };
+    final title = _title(l, e);
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Text(title, key: const ValueKey('sync-progress'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
       const SizedBox(height: 18),
@@ -95,8 +179,11 @@ class _SyncProgressState extends State<SyncProgress> {
           borderRadius: BorderRadius.circular(3),
         ),
       ),
-      const SizedBox(height: 12),
-      Text(l.syncKeepOpen, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14)),
+      // Android keeps going with the phone locked (a notification shows it); iOS does not.
+      if (Device.iOS) ...[
+        const SizedBox(height: 12),
+        Text(l.syncKeepOpen, key: const ValueKey('sync-keep-open'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14)),
+      ],
     ]);
   }
 
@@ -167,13 +254,10 @@ class _SyncProgressState extends State<SyncProgress> {
           Expanded(child: Center(child: SingleChildScrollView(child: body))),
           SizedBox(
             width: double.infinity,
-            child: _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null
+            child: _canContinue
                 ? FilledButton(
                     key: const ValueKey('sync-continue'),
-                    onPressed: () {
-                      setState(() => _last = null);
-                      _listen(widget.retry!());
-                    },
+                    onPressed: _continue,
                     child: Text(l.syncContinue),
                   )
                 : _over

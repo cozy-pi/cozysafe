@@ -548,6 +548,8 @@
   "syncKeepOpen": "Giữ app mở tới khi xong.",
   "syncInterrupted": "Bị gián đoạn. Phần đã đồng bộ vẫn được giữ.",
   "syncContinue": "Tiếp tục",
+  "syncNotifyTitle": "Đang đồng bộ két",
+  "syncNotifyChannel": "Tiến trình đồng bộ",
   "welcomeLead": "Két riêng cho ảnh, ghi chú và tệp của bạn.",
   "welcomeNew": "Tạo két mới",
   "welcomeNewNote": "Lần đầu dùng Cozy Safe",

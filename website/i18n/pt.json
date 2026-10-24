@@ -101,7 +101,8 @@
     [
      "Câmera: só para tirar fotos direto para um cofre, quando você abre a câmera. As fotos não são salvas na sua biblioteca de fotos.",
      "Biometria: só se você ativar o desbloqueio por Face ID, Touch ID ou impressão digital. Seus dados biométricos nunca saem do hardware seguro do dispositivo e nunca ficam disponíveis para o app.",
-     "Rede local (iPhone) / internet (Android) / rede (macOS): só para sincronizar com seu outro dispositivo na mesma Wi-Fi, quando você inicia."
+     "Rede local (iPhone) / internet (Android) / rede (macOS): só para sincronizar com seu outro dispositivo na mesma Wi-Fi, quando você inicia.",
+     "Notificações (Android): só durante uma sincronização, para mostrar o progresso e mantê-la rodando com o celular bloqueado. Se você não permitir, a sincronização continua mesmo assim."
     ]
    ],
    [

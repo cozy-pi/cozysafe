@@ -534,6 +534,8 @@
   "syncKeepOpen": "Bitene kadar uygulamayı açık tutun.",
   "syncInterrupted": "Kesintiye uğradı. Eşitlenen kısım korunuyor.",
   "syncContinue": "Devam et",
+  "syncNotifyTitle": "Kasa eşitleniyor",
+  "syncNotifyChannel": "Eşitleme ilerlemesi",
   "welcomeLead": "Fotoğraflarınız, notlarınız ve dosyalarınız için özel bir kasa.",
   "welcomeNew": "Yeni kasa oluştur",
   "welcomeNewNote": "Cozy Safe'te ilk kez",

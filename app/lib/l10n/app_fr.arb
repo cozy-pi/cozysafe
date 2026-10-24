@@ -534,6 +534,8 @@
   "syncKeepOpen": "Gardez l'app ouverte jusqu'à la fin.",
   "syncInterrupted": "Interrompu. Ce qui a été synchronisé est conservé.",
   "syncContinue": "Continuer",
+  "syncNotifyTitle": "Synchronisation du coffre",
+  "syncNotifyChannel": "Progression de la synchronisation",
   "welcomeLead": "Un coffre privé pour vos photos, notes et fichiers.",
   "welcomeNew": "Créer un nouveau coffre",
   "welcomeNewNote": "Première fois avec Cozy Safe",

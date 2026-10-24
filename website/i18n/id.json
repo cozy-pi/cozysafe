@@ -101,7 +101,8 @@
     [
      "Kamera: hanya untuk mengambil foto langsung ke dalam brankas, saat Anda membuka kamera. Foto tidak disimpan ke galeri foto Anda.",
      "Biometrik: hanya jika Anda mengaktifkan buka kunci dengan Face ID, Touch ID, atau sidik jari. Data biometrik Anda tidak pernah meninggalkan perangkat keras aman di perangkat dan tidak pernah dapat diakses oleh aplikasi.",
-     "Jaringan lokal (iPhone) / internet (Android) / jaringan (macOS): hanya untuk sinkronisasi dengan perangkat Anda yang lain di Wi-Fi yang sama, saat Anda memulainya."
+     "Jaringan lokal (iPhone) / internet (Android) / jaringan (macOS): hanya untuk sinkronisasi dengan perangkat Anda yang lain di Wi-Fi yang sama, saat Anda memulainya.",
+     "Notifikasi (Android): hanya selama sinkronisasi berjalan, untuk menampilkan progresnya dan menjaganya tetap berjalan saat ponsel terkunci. Jika Anda menolak, sinkronisasi tetap berjalan."
     ]
    ],
    [

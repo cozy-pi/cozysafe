@@ -57,6 +57,9 @@ import UniformTypeIdentifiers
       let awake = FlutterMethodChannel(name: "cozysafe/awake", binaryMessenger: registrar.messenger())
       awake.setMethodCallHandler { [weak self] call, result in
         guard let self else { return result(nil) }
+        // "progress" feeds Android's notification; iOS has no long background work to show.
+        if call.method == "progress" { return result(nil) }
+        guard call.method == "set" else { return result(FlutterMethodNotImplemented) }
         let on = (call.arguments as? Bool) ?? false
         UIApplication.shared.isIdleTimerDisabled = on
         if on, self.awakeTask == .invalid {

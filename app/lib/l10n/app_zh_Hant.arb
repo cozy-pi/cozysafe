@@ -534,6 +534,8 @@
   "syncKeepOpen": "完成前請保持 App 開啟。",
   "syncInterrupted": "已中斷。已同步的內容會保留。",
   "syncContinue": "繼續",
+  "syncNotifyTitle": "正在同步保險箱",
+  "syncNotifyChannel": "同步進度",
   "welcomeLead": "存放照片、筆記和檔案的私人保險箱。",
   "welcomeNew": "建立新保險箱",
   "welcomeNewNote": "第一次使用 Cozy Safe",
