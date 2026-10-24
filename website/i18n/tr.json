@@ -101,7 +101,8 @@
     [
      "Kamera: yalnızca kamerayı siz açtığınızda, fotoğrafları doğrudan bir kasaya çekmek için. Fotoğraflar fotoğraf arşivinize kaydedilmez.",
      "Biyometri: yalnızca Face ID, Touch ID veya parmak iziyle kilit açmayı etkinleştirirseniz. Biyometrik verileriniz cihazın güvenli donanımından asla çıkmaz ve uygulamanın erişimine hiçbir zaman açık değildir.",
-     "Yerel ağ (iPhone) / internet (Android) / ağ (macOS): yalnızca siz başlattığınızda, aynı Wi-Fi ağındaki diğer cihazınızla eşitleme için."
+     "Yerel ağ (iPhone) / internet (Android) / ağ (macOS): yalnızca siz başlattığınızda, aynı Wi-Fi ağındaki diğer cihazınızla eşitleme için.",
+     "Bildirimler (Android): yalnızca eşitleme sürerken, ilerlemesini göstermek ve telefon kilitliyken devam etmesini sağlamak için. İzin vermezseniz eşitleme yine de sürer."
     ]
    ],
    [

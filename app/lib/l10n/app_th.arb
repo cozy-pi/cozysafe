@@ -534,6 +534,8 @@
   "syncKeepOpen": "เปิดแอปไว้จนกว่าจะเสร็จ",
   "syncInterrupted": "ถูกขัดจังหวะ ส่วนที่ซิงค์แล้วยังอยู่ครบ",
   "syncContinue": "ดำเนินการต่อ",
+  "syncNotifyTitle": "กำลังซิงค์ตู้นิรภัย",
+  "syncNotifyChannel": "ความคืบหน้าการซิงค์",
   "welcomeLead": "ตู้นิรภัยส่วนตัวสำหรับรูปภาพ โน้ต และไฟล์ของคุณ",
   "welcomeNew": "สร้างตู้นิรภัยใหม่",
   "welcomeNewNote": "ใช้ Cozy Safe ครั้งแรก",

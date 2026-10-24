@@ -27,7 +27,11 @@ one to a device on the same Wi‑Fi, and it cannot be limited to the local netwo
 dumps the permissions of the built APK (`aapt2 dump permissions`) and of the Play bundle,
 and fails if a network permission beyond it appears (network or Wi‑Fi state, changing
 them, multicast, nearby devices). The protection against a library using INTERNET is
-the other layers.
+the other layers. The other permissions in the manifest give no network access:
+USE_BIOMETRIC, RECORD_AUDIO, and FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC and
+POST_NOTIFICATIONS, which keep a running sync alive with the phone locked (a dataSync
+foreground service, `SyncService.kt`, showing its progress in a quiet notification, only
+while a sync runs).
 
 **macOS.** The release build runs in the App Sandbox with `network.client` and
 `network.server` (sync: one device listens, the other connects). `tools/check-entitlements`

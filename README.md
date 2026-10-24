@@ -85,6 +85,8 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 - **Inside the app:** Dart's HTTP client and sockets are switched off when the app starts.
 - **Android:** the app needs the internet permission for any socket, even a local one;
   CI fails if any other network permission (network state, Wi‑Fi control) sneaks in.
+  While a sync runs it also uses a foreground service and a notification (no network
+  access), so locking the phone does not stop it.
 - **macOS:** the app runs in Apple's sandbox; only the client and server network
   permissions sync needs are allowed.
 - **Every library is reviewed before it gets in.** CI keeps a list of every Dart and Rust

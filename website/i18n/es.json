@@ -101,7 +101,8 @@
     [
      "Cámara: solo para hacer fotos directamente en una caja fuerte, cuando abres la cámara. Las fotos no se guardan en tu fototeca.",
      "Biometría: solo si activas el desbloqueo con Face ID, Touch ID o huella dactilar. Tus datos biométricos nunca salen del hardware seguro del dispositivo y la app nunca tiene acceso a ellos.",
-     "Red local (iPhone) / internet (Android) / red (macOS): solo para sincronizar con tu otro dispositivo en la misma Wi-Fi, cuando tú la inicias."
+     "Red local (iPhone) / internet (Android) / red (macOS): solo para sincronizar con tu otro dispositivo en la misma Wi-Fi, cuando tú la inicias.",
+     "Notificaciones (Android): solo mientras se sincroniza, para mostrar el progreso y que siga con el teléfono bloqueado. Si dices que no, la sincronización sigue igualmente."
     ]
    ],
    [

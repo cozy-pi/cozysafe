@@ -534,6 +534,8 @@
   "syncKeepOpen": "Не закрывайте приложение до завершения.",
   "syncInterrupted": "Прервано. Уже синхронизированное сохранено.",
   "syncContinue": "Продолжить",
+  "syncNotifyTitle": "Синхронизация сейфа",
+  "syncNotifyChannel": "Ход синхронизации",
   "welcomeLead": "Личный сейф для ваших фото, заметок и файлов.",
   "welcomeNew": "Создать новый сейф",
   "welcomeNewNote": "Впервые в Cozy Safe",

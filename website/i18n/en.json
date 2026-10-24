@@ -101,7 +101,8 @@
     [
      "Camera: only to take photos straight into a vault, when you open the camera. Photos are not saved to your photo library.",
      "Biometrics: only if you turn on Face ID, Touch ID or fingerprint unlock. Your biometric data never leaves the device's secure hardware and is never available to the app.",
-     "Local network (iPhone) / internet (Android) / network (macOS): only for syncing with your other device on the same Wi-Fi, when you start it."
+     "Local network (iPhone) / internet (Android) / network (macOS): only for syncing with your other device on the same Wi-Fi, when you start it.",
+     "Notifications (Android): only while a sync runs, to show its progress and keep it going with the phone locked. If you say no, the sync still runs."
     ]
    ],
    [

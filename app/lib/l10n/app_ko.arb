@@ -534,6 +534,8 @@
   "syncKeepOpen": "끝날 때까지 앱을 열어 두세요.",
   "syncInterrupted": "중단되었습니다. 동기화된 부분은 유지됩니다.",
   "syncContinue": "계속",
+  "syncNotifyTitle": "금고 동기화 중",
+  "syncNotifyChannel": "동기화 진행 상황",
   "welcomeLead": "사진, 메모, 파일을 위한 나만의 금고.",
   "welcomeNew": "새 금고 만들기",
   "welcomeNewNote": "Cozy Safe를 처음 사용",

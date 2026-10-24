@@ -3,6 +3,7 @@ package com.cozypi.cozysafe
 import android.app.LocaleManager
 import android.content.ContentUris
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -57,14 +58,33 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
-        // While a sync runs (lib/sync/awake.dart): the screen stays on.
+        // While a sync runs (lib/sync/awake.dart): the screen stays on, and a foreground
+        // service with a notification (SyncService) keeps it going with the phone locked.
         MethodChannel(messenger, "cozysafe/awake").setMethodCallHandler { call, result ->
-            if (call.arguments as? Boolean == true) {
-                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            } else {
-                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            when (call.method) {
+                "set" -> {
+                    if (call.arguments as? Boolean == true) {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    } else {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        SyncService.stop(this)
+                    }
+                    result.success(null)
+                }
+                "progress" -> {
+                    askNotifications()
+                    SyncService.show(
+                        this,
+                        call.argument<String>("title") ?: "",
+                        call.argument<String>("text") ?: "",
+                        call.argument<String>("channel") ?: "",
+                        call.argument<Number>("done")?.toInt() ?: 0,
+                        call.argument<Number>("total")?.toInt() ?: 0,
+                    )
+                    result.success(null)
+                }
+                else -> result.notImplemented()
             }
-            result.success(null)
         }
         MethodChannel(messenger, "cozysafe/privacy").setMethodCallHandler { call, result ->
             if (call.method == "openUrl") {
@@ -138,6 +158,24 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         } }
+    }
+
+    private var askedNotifications = false
+
+    /// Android 13+: the sync notification needs the person's yes. Asked when a sync
+    /// starts, once per launch; if they say no the sync still keeps running, only the
+    /// notification is hidden.
+    private fun askNotifications() {
+        if (Build.VERSION.SDK_INT < 33 || askedNotifications) return
+        askedNotifications = true
+        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7302)
+    }
+
+    override fun onDestroy() {
+        // The app is closing (not just turning): no sync is left to keep alive.
+        if (isFinishing) SyncService.stop(this)
+        super.onDestroy()
     }
 
     /// Copy each picked item into the app's cache (the vault encrypts from there; the copy

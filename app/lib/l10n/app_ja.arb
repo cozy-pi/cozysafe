@@ -534,6 +534,8 @@
   "syncKeepOpen": "完了するまでアプリを開いたままにしてください。",
   "syncInterrupted": "中断しました。同期済みの分は保持されています。",
   "syncContinue": "続ける",
+  "syncNotifyTitle": "金庫を同期中",
+  "syncNotifyChannel": "同期の進行状況",
   "welcomeLead": "写真、メモ、ファイルのためのプライベートな金庫。",
   "welcomeNew": "新しい金庫を作成",
   "welcomeNewNote": "Cozy Safe を初めて使う",
