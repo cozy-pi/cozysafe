@@ -2,12 +2,11 @@
 //! person first, every time, naming the address; only then does it call these, and each
 //! call makes the one [`Permit`] it needs. Nothing here runs unless called.
 
-use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
-use cs_net::p2p::{self, Host, PairCode, Prepared};
+use cs_net::p2p::{self, PairCode};
 use cs_net::Permit;
 use cs_vault::sync::SyncReport;
 
@@ -62,12 +61,10 @@ pub struct Hosting {
     pub seconds: u32,
 }
 
-/// The waiting host, between [`p2p_host_start`] and [`p2p_host_run`].
-static HOSTING: Mutex<Option<(Host, Prepared, PathBuf)>> = Mutex::new(None);
+/// The sealed copy the waiting host serves, removed when the session ends.
+static MIRROR: Mutex<Option<PathBuf>> = Mutex::new(None);
 /// Set by Cancel.
 static STOP: AtomicBool = AtomicBool::new(false);
-/// The live session's socket, so Cancel can end it.
-static LIVE: Mutex<Option<TcpStream>> = Mutex::new(None);
 
 fn report(r: SyncReport) -> SyncEvent {
     SyncEvent {
@@ -102,57 +99,50 @@ fn now_ms() -> u128 {
 /// Whether this device may wait on `ip` (a home or office network address).
 #[flutter_rust_bridge::frb(sync)]
 pub fn p2p_local_address(ip: String) -> bool {
-    ip.parse::<Ipv4Addr>().is_ok_and(p2p::on_local_network)
+    p2p::local_address(&ip)
 }
 
 /// The person allowed waiting for a nearby device on `ip`. Copies the vault, sealed,
 /// into `mirror` (a private folder, emptied first) and opens the listener.
 pub fn p2p_host_start(ip: String, mirror: String) -> Result<Hosting, VaultError> {
     STOP.store(false, Ordering::Relaxed);
-    let ip: Ipv4Addr = ip.parse().map_err(|_| VaultError::Storage)?;
-    let mirror = Path::new(&mirror);
-    let _ = std::fs::remove_dir_all(mirror);
-    std::fs::create_dir_all(mirror).map_err(|_| VaultError::Storage)?;
-    let prepared = with_open(|v| Ok(p2p::host_prepare(v, mirror)?))?;
-    let host = p2p::host(Permit::listen(ip))?;
-    let shown = Hosting {
-        typed: host.code.typed(),
-        qr: host.code.qr(),
+    let permit = Permit::listen_on(&ip).ok_or(VaultError::Storage)?;
+    let dir = Path::new(&mirror);
+    let _ = std::fs::remove_dir_all(dir);
+    std::fs::create_dir_all(dir).map_err(|_| VaultError::Storage)?;
+    let shown = with_open(|v| Ok(p2p::host_open(v, permit, dir)?))?;
+    *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
+    Ok(Hosting {
+        typed: shown.typed,
+        qr: shown.qr,
         seconds: p2p::CODE_LIFETIME.as_secs() as u32,
-    };
-    *HOSTING.lock().unwrap_or_else(|p| p.into_inner()) =
-        Some((host, prepared, mirror.to_path_buf()));
-    Ok(shown)
+    })
+}
+
+fn forget_mirror() {
+    if let Some(dir) = MIRROR.lock().unwrap_or_else(|p| p.into_inner()).take() {
+        // The copy was sealed, but it has done its job.
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }
 
 /// Wait for the joiner, serve it, then take its changes in. The vault stays free while
 /// waiting and serving.
 pub fn p2p_host_run(sink: StreamSink<SyncEvent>) {
-    let Some((host, prepared, mirror)) = HOSTING.lock().unwrap_or_else(|p| p.into_inner()).take()
-    else {
-        let _ = sink.add(step(SyncStep::Expired));
-        return;
-    };
-    let result = (|| {
-        let session = p2p::host_accept(host, prepared, &STOP)?;
-        *LIVE.lock().unwrap_or_else(|p| p.into_inner()) = session.closer().ok();
+    let served = p2p::host_session(&STOP, &|check| {
         let _ = sink.add(SyncEvent {
-            check: session.check,
+            check,
             ..step(SyncStep::Connected)
         });
-        let served = session.serve();
-        *LIVE.lock().unwrap_or_else(|p| p.into_inner()) = None;
-        served
-    })();
-    let event = match result {
+    });
+    let event = match served {
         Ok(served) => match with_open(|v| Ok(p2p::host_finish(v, served)?)) {
             Ok(r) => report(r),
             Err(_) => step(SyncStep::Locked),
         },
         Err(e) => failure(e),
     };
-    // The copy was sealed, but it has done its job.
-    let _ = std::fs::remove_dir_all(&mirror);
+    forget_mirror();
     log_event("host", None, &event);
     let _ = sink.add(event);
 }
@@ -162,7 +152,7 @@ pub fn p2p_host_run(sink: StreamSink<SyncEvent>) {
 #[flutter_rust_bridge::frb(sync)]
 pub fn p2p_code_address(code: String) -> Option<String> {
     let c = PairCode::parse(&code)?;
-    p2p::on_local_network(*c.addr.ip()).then(|| c.addr.ip().to_string())
+    c.is_local().then(|| c.ip_text())
 }
 
 /// The person allowed connecting to the device showing `code`.
@@ -172,38 +162,21 @@ pub fn p2p_join(code: String, sink: StreamSink<SyncEvent>) {
         let _ = sink.add(step(SyncStep::Failed));
         return;
     };
-    let addr: SocketAddrV4 = c.addr;
-    let result = with_open(|v| {
-        p2p::join_with(
-            v,
-            Permit::connect(addr),
-            &c,
-            &|check| {
-                let _ = sink.add(SyncEvent {
-                    check,
-                    ..step(SyncStep::Connected)
-                });
-            },
-            &|socket| {
-                *LIVE.lock().unwrap_or_else(|p| p.into_inner()) = Some(socket);
-            },
-        )
-        .map_err(|e| {
-            let _ = sink.add(failure(e));
-            VaultError::Storage
-        })
+    let peer = c.ip_text();
+    let joined = with_open(|v| {
+        Ok(p2p::join(v, Permit::connect_for(&c), &c, &|check| {
+            let _ = sink.add(SyncEvent {
+                check,
+                ..step(SyncStep::Connected)
+            });
+        }))
     });
-    *LIVE.lock().unwrap_or_else(|p| p.into_inner()) = None;
-    let event = match result {
-        Ok(r) => report(r),
-        Err(VaultError::Locked) => step(SyncStep::Locked),
-        // Already told.
-        Err(_) => {
-            log_event("join", Some(addr), &step(SyncStep::Failed));
-            return;
-        }
+    let event = match joined {
+        Ok(Ok(r)) => report(r),
+        Ok(Err(e)) => failure(e),
+        Err(_) => step(SyncStep::Locked),
     };
-    log_event("join", Some(addr), &event);
+    log_event("join", Some(&peer), &event);
     let _ = sink.add(event);
 }
 
@@ -211,19 +184,14 @@ pub fn p2p_join(code: String, sink: StreamSink<SyncEvent>) {
 #[flutter_rust_bridge::frb(sync)]
 pub fn p2p_cancel() {
     STOP.store(true, Ordering::Relaxed);
-    if let Some((_, _, mirror)) = HOSTING.lock().unwrap_or_else(|p| p.into_inner()).take() {
-        let _ = std::fs::remove_dir_all(mirror);
-    }
-    if let Some(s) = LIVE.lock().unwrap_or_else(|p| p.into_inner()).take() {
-        let _ = s.shutdown(std::net::Shutdown::Both);
-    }
+    p2p::host_close();
+    forget_mirror();
+    p2p::cancel_live();
 }
 
 /// One log line: `<ms>|<host|join>|<address or ->|<ok|cancelled|expired|failed>|<received>|<sent>`.
-fn log_event(side: &str, addr: Option<SocketAddrV4>, event: &SyncEvent) {
-    let peer = addr
-        .map(|a| a.ip().to_string())
-        .unwrap_or_else(|| "-".into());
+fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
+    let peer = peer.unwrap_or("-");
     let outcome = match event.kind {
         SyncStep::Done => "ok",
         SyncStep::Cancelled => "cancelled",

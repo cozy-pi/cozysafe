@@ -4,6 +4,8 @@
          each connection (docs/supply-chain.md): Android needs INTERNET for any socket,
          even a local one. Only the Rust crate cs-net opens sockets, by IP address. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- A plugin asks for this; sync never reads the network state. CI refuses it. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove"/>
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application

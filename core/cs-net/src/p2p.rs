@@ -50,6 +50,16 @@ pub struct PairCode {
 const ALPHABET: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford, no I L O U
 
 impl PairCode {
+    /// The address it points at, to name it when asking the person.
+    pub fn ip_text(&self) -> String {
+        self.addr.ip().to_string()
+    }
+
+    /// Whether it points at a device on a local network.
+    pub fn is_local(&self) -> bool {
+        on_local_network(*self.addr.ip())
+    }
+
     fn bytes(&self) -> [u8; 11] {
         let mut b = [0u8; 11];
         b[..4].copy_from_slice(&self.addr.ip().octets());
@@ -426,6 +436,26 @@ pub struct Host {
     deadline: Instant,
 }
 
+/// Whether `ip` (as text) is an address on a home or office network.
+pub fn local_address(ip: &str) -> bool {
+    ip.parse::<Ipv4Addr>().is_ok_and(on_local_network)
+}
+
+/// The socket of the session under way, so [`cancel_live`] can end it from another
+/// thread. One session at a time.
+static LIVE: Mutex<Option<TcpStream>> = Mutex::new(None);
+
+fn set_live(stream: Option<TcpStream>) {
+    *LIVE.lock().unwrap_or_else(|p| p.into_inner()) = stream;
+}
+
+/// End the session under way, if any (the person tapped Cancel).
+pub fn cancel_live() {
+    if let Some(s) = LIVE.lock().unwrap_or_else(|p| p.into_inner()).take() {
+        let _ = s.shutdown(std::net::Shutdown::Both);
+    }
+}
+
 /// Only addresses of a home or office network, never one on the open internet: a code
 /// (or a QR someone shows you) cannot make this device listen or connect out there.
 pub fn on_local_network(ip: Ipv4Addr) -> bool {
@@ -526,15 +556,13 @@ pub fn host_accept(host: Host, prepared: Prepared, stop: &AtomicBool) -> Result<
 }
 
 impl Session {
-    /// A handle that ends the session from another thread (Cancel).
-    pub fn closer(&self) -> Result<TcpStream> {
-        Ok(self.ch.stream.try_clone()?)
-    }
-
     /// Step 3 (no vault): answer the joiner until it is done.
     pub fn serve(mut self) -> Result<Served> {
         let folder = FolderRemote::with_key(&self.mirror, HOST_KEY);
-        serve(&mut self.ch, &folder, &self.vault_id)?;
+        set_live(self.ch.stream.try_clone().ok());
+        let served = serve(&mut self.ch, &folder, &self.vault_id);
+        set_live(None);
+        served?;
         Ok(Served {
             mirror: self.mirror,
         })
@@ -549,6 +577,46 @@ pub struct Served {
 /// Step 4 (vault): take the joiner's changes in.
 pub fn host_finish(vault: &OpenVault, served: Served) -> Result<SyncReport> {
     vault.sync(&FolderRemote::with_key(&served.mirror, HOST_KEY))
+}
+
+/// The waiting host for an app that must not hold sockets itself (cackle allows `net`
+/// to this crate only): [`host_open`], then [`host_session`] on a worker thread.
+static PENDING: Mutex<Option<(Host, Prepared)>> = Mutex::new(None);
+
+/// What the host shows.
+pub struct Shown {
+    pub typed: String,
+    pub qr: String,
+}
+
+/// Steps 1 and the listener: copy the vault into `mirror` and start waiting at the
+/// permitted address. Replaces any host still pending.
+pub fn host_open(vault: &OpenVault, permit: Permit, mirror: &Path) -> Result<Shown> {
+    let prepared = host_prepare(vault, mirror)?;
+    let host = host(permit)?;
+    let shown = Shown {
+        typed: host.code.typed(),
+        qr: host.code.qr(),
+    };
+    *PENDING.lock().unwrap_or_else(|p| p.into_inner()) = Some((host, prepared));
+    Ok(shown)
+}
+
+/// Steps 2 and 3 (no vault) for the pending host; then [`host_finish`].
+pub fn host_session(stop: &AtomicBool, on_check: &dyn Fn(u16)) -> Result<Served> {
+    let (host, prepared) = PENDING
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .take()
+        .ok_or(Error::Corrupt("p2p code expired"))?;
+    let session = host_accept(host, prepared, stop)?;
+    on_check(session.check);
+    session.serve()
+}
+
+/// Stop listening (Cancel before anyone joined).
+pub fn host_close() {
+    PENDING.lock().unwrap_or_else(|p| p.into_inner()).take();
 }
 
 /// All four steps at once (tests, tools).
@@ -573,17 +641,17 @@ pub fn join(
     code: &PairCode,
     on_check: &dyn Fn(u16),
 ) -> Result<SyncReport> {
-    join_with(vault, permit, code, on_check, &|_| ())
+    set_live(None);
+    let report = join_inner(vault, permit, code, on_check);
+    set_live(None);
+    report
 }
 
-/// [`join`], handing over a clone of the socket once connected, so Cancel can end it
-/// from another thread.
-pub fn join_with(
+fn join_inner(
     vault: &OpenVault,
     permit: Permit,
     code: &PairCode,
     on_check: &dyn Fn(u16),
-    on_socket: &dyn Fn(TcpStream),
 ) -> Result<SyncReport> {
     if permit.connect_to() != Some(code.addr) {
         return Err(Error::Corrupt("permit is for another address"));
@@ -593,7 +661,7 @@ pub fn join_with(
     }
     let stream = TcpStream::connect_timeout(&SocketAddr::V4(code.addr), Duration::from_secs(10))?;
     stream.set_read_timeout(Some(Duration::from_secs(60)))?;
-    on_socket(stream.try_clone()?);
+    set_live(stream.try_clone().ok());
     let ch = handshake_join(&pairing_key(vault), &code.token, stream)?;
     on_check(ch.check);
     vault.forget_sync_place(JOIN_KEY)?;

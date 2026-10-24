@@ -43,6 +43,17 @@ impl Permit {
         }
     }
 
+    /// [`Permit::listen`] from the address as text, if it is one on a local network.
+    pub fn listen_on(ip: &str) -> Option<Permit> {
+        let ip: Ipv4Addr = ip.parse().ok()?;
+        p2p::on_local_network(ip).then(|| Permit::listen(ip))
+    }
+
+    /// [`Permit::connect`] to the device showing `code`.
+    pub fn connect_for(code: &p2p::PairCode) -> Permit {
+        Permit::connect(code.addr)
+    }
+
     pub(crate) fn listen_ip(&self) -> Option<Ipv4Addr> {
         match self.kind {
             Kind::Listen(ip) => Some(ip),
