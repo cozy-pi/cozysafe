@@ -11,6 +11,9 @@ Dates are UTC.
   much faster with many photos.
 - + lists the ways to add in this order: add photos, record video, take photo, note,
   voice, files.
+- + ignores a finger passing over it (a swipe back from the edge no longer opens it).
+- The blurred background shows everything a vault keeps: photos, videos, passwords,
+  keys and codes, notes, documents, cards, voice; no more rows of mountains.
 
 ### Fixed
 - Locking and coming back returns to the page you were on in Settings (and its pages),
