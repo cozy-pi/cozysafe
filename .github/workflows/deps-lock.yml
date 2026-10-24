@@ -1,0 +1,59 @@
+# Writes the lock files that pin what the builds download (docs/supply-chain.md), and
+# prints them to the log to be read and committed by hand: Gradle's checksums, the Swift
+# packages' resolved versions, and Semgrep with the hash of every Python package.
+# Run by hand when a dependency changes; nothing is committed or uploaded from here.
+name: deps-lock
+
+on:
+  workflow_dispatch:
+  # Also by pushing to this branch (a new workflow cannot be dispatched before it is on main).
+  push:
+    branches: [deps-lock]
+
+permissions:
+  contents: read
+
+jobs:
+  gradle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: ./.github/actions/flutter-setup
+      # A Flutter build first (it writes local.properties and the generated files), then
+      # the same release tasks through Gradle, writing the SHA-256 of every artifact.
+      - working-directory: app
+        run: flutter build apk --release --target-platform android-arm64
+      - working-directory: app/android
+        run: ./gradlew --write-verification-metadata sha256 :app:assembleRelease :app:bundleRelease -Ptarget-platform=android-arm64,android-arm,android-x64
+      - run: cat app/android/gradle/verification-metadata.xml
+
+  swift:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/flutter-setup
+      - working-directory: app
+        run: |
+          flutter build ios --release --no-codesign
+          flutter build macos --release
+      - run: |
+          for f in $(find app/ios app/macos -name Package.resolved -not -path '*/build/*' -not -path '*/.build/*'); do
+            echo "=== $f"
+            cat "$f"
+          done
+
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          python3 -m venv "$RUNNER_TEMP/v"
+          "$RUNNER_TEMP/v/bin/pip" install --quiet pip-tools==7.4.1
+          echo "semgrep==1.180.0" > "$RUNNER_TEMP/semgrep.in"
+          "$RUNNER_TEMP/v/bin/pip-compile" --quiet --generate-hashes --allow-unsafe --strip-extras \
+            --output-file "$RUNNER_TEMP/semgrep.txt" "$RUNNER_TEMP/semgrep.in"
+          python3 --version
+          cat "$RUNNER_TEMP/semgrep.txt"

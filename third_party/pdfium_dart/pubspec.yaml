@@ -1,0 +1,20 @@
+# Vendored from pub.dev pdfium_dart 0.3.1 (MIT). One change: hook/build.dart checks
+# the SHA-256 of the PDFium archive it downloads (docs/supply-chain.md).
+name: pdfium_dart
+description: Dart FFI bindings for PDFium library. Provides low-level access to PDFium's C API from Dart.
+version: 0.3.1
+homepage: https://github.com/espresso3389/pdfrx
+repository: https://github.com/espresso3389/pdfrx/tree/master/packages/pdfium_dart
+issue_tracker: https://github.com/espresso3389/pdfrx/issues
+
+environment:
+  sdk: ^3.13.0
+publish_to: none
+
+dependencies:
+  archive:
+  crypto:
+  code_assets:
+  ffi:
+  hooks:
+  http:
