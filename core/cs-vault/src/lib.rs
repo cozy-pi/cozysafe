@@ -180,6 +180,19 @@ pub struct OpenVault {
     index: db::Index,
 }
 
+impl OpenVault {
+    /// The key a nearby-device session is built on (docs/adr/0003, P2P security): only a
+    /// device holding this vault can derive it.
+    pub fn p2p_key(&self) -> Key {
+        cs_crypto::kdf::subkey(&self.master_key, &format!("p2p/v1/{}", self.id))
+    }
+
+    /// Forget what was agreed with a sync place that starts empty again.
+    pub fn forget_sync_place(&self, key: &str) -> Result<()> {
+        self.index.forget_remote(key)
+    }
+}
+
 impl Library {
     /// Whether a library with at least one vault exists in `dir`.
     pub fn has_vaults(dir: &Path) -> bool {
