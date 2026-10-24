@@ -5,7 +5,7 @@
 //! numbers). Every session needs a [`Permit::google_drive`] and an access token from
 //! the person's sign-in; nothing runs in the background.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -23,6 +23,15 @@ pub const FOLDER: &str = "Cozy Safe";
 const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
 /// Uploads up to this size are held in memory while sent.
 const SMALL_UPLOAD: u64 = 1 << 20;
+/// Items a sync sends at once: one kept connection each (round trips overlap).
+const AT_ONCE: usize = https::POOL;
+/// Most deletions in one batch request (Google takes up to 100 calls in one).
+const BATCH: usize = 100;
+/// Largest answer to a batch read (100 short answers come to a few tens of KiB).
+const MAX_BATCH_ANSWER: usize = 1 << 20;
+/// Separates the parts of a batch request. Drive ids are letters, digits, '-' and '_',
+/// and no line of a part starts with "--", so it never occurs inside one.
+const BOUNDARY: &str = "cozysafe_batch_9c1e4b";
 
 /// What the sync needs from Drive, so the logic is tested without the network.
 pub trait DriveApi: Send + Sync {
@@ -36,6 +45,13 @@ pub trait DriveApi: Send + Sync {
     fn upload(&self, folder: &str, name: &str, len: u64, src: &mut dyn Read) -> Result<String>;
     /// Delete the file (an old copy of the vault's lock, or a deleted item's files).
     fn delete(&self, id: &str) -> Result<()>;
+    /// Delete many files (gone already is fine), in as few requests as the API allows.
+    fn delete_many(&self, ids: &[String]) -> Result<()> {
+        for id in ids {
+            self.delete(id)?;
+        }
+        Ok(())
+    }
 }
 
 /// The sync place: one Drive folder, listed once per session.
@@ -44,6 +60,8 @@ pub struct DriveRemote<A: DriveApi> {
     folder: String,
     /// name → id, kept up to date as files are added.
     index: Mutex<HashMap<String, String>>,
+    /// Names being uploaded right now (items go up a few at once).
+    uploading: Mutex<HashSet<String>>,
     /// Set by Cancel: the next request ends the sync (what was done is kept).
     stop: Option<&'static AtomicBool>,
 }
@@ -60,6 +78,7 @@ impl<A: DriveApi> DriveRemote<A> {
             api,
             folder,
             index: Mutex::new(index),
+            uploading: Mutex::new(HashSet::new()),
             stop: None,
         })
     }
@@ -182,27 +201,67 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
         let len = f.metadata()?.len();
         self.put_bytes(path, len, &mut f)
     }
+
+    fn remove_many(&self, paths: &[String]) -> Result<()> {
+        for p in paths {
+            check(p)?;
+        }
+        self.go_on()?;
+        let found: Vec<(&String, String)> = {
+            let index = self.index.lock().unwrap_or_else(|p| p.into_inner());
+            paths
+                .iter()
+                .filter_map(|p| index.get(p).map(|id| (p, id.clone())))
+                .collect()
+        };
+        let ids: Vec<String> = found.iter().map(|(_, id)| id.clone()).collect();
+        self.api.delete_many(&ids)?;
+        let mut index = self.index.lock().unwrap_or_else(|p| p.into_inner());
+        for (p, _) in found {
+            index.remove(p);
+        }
+        Ok(())
+    }
+
+    fn parallel(&self) -> usize {
+        AT_ONCE
+    }
 }
 
 impl<A: DriveApi> DriveRemote<A> {
     fn put_bytes(&self, path: &str, len: u64, src: &mut dyn Read) -> Result<()> {
-        // Never two files of one name: the layout's files never change once written.
-        if self.id(path).is_some() {
-            return Ok(());
+        // Never two files of one name: the layout's files never change once written. With
+        // items going up at once, a name is claimed before its upload and known (in the
+        // index) before the claim ends.
+        {
+            let index = self.index.lock().unwrap_or_else(|p| p.into_inner());
+            if index.contains_key(path) {
+                return Ok(());
+            }
+            let mut uploading = self.uploading.lock().unwrap_or_else(|p| p.into_inner());
+            if !uploading.insert(path.to_owned()) {
+                return Err(Error::Corrupt("drive file sent twice at once"));
+            }
         }
-        let id = self.api.upload(&self.folder, path, len, src)?;
-        self.index
+        let up = self.api.upload(&self.folder, path, len, src);
+        if let Ok(id) = &up {
+            self.index
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .insert(path.to_owned(), id.clone());
+        }
+        self.uploading
             .lock()
             .unwrap_or_else(|p| p.into_inner())
-            .insert(path.to_owned(), id);
-        Ok(())
+            .remove(path);
+        up.map(|_| ())
     }
 }
 
 /// The real Drive, through [`https`].
 pub struct GoogleDrive {
     token: String,
-    /// One kept connection for the whole session.
+    /// A few kept connections for the whole session.
     http: https::Client,
 }
 
@@ -249,6 +308,131 @@ fn status_ok(status: u16) -> Result<()> {
         401 | 403 => Err(Error::Corrupt("drive not signed in")),
         _ => Err(Error::Corrupt("drive request failed")),
     }
+}
+
+/// A batch request deleting `ids` (at most [`BATCH`]): one `DELETE` part each, numbered
+/// from 1 in `Content-ID`. The outer request's sign-in covers every part.
+fn batch_body(ids: &[String]) -> Result<Vec<u8>> {
+    if ids.is_empty() || ids.len() > BATCH {
+        return Err(Error::Corrupt("drive batch size"));
+    }
+    let mut out = String::new();
+    for (n, id) in ids.iter().enumerate() {
+        if id.is_empty()
+            || !id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))
+        {
+            return Err(Error::Corrupt("drive file id"));
+        }
+        out.push_str(&format!(
+            "--{BOUNDARY}\r\nContent-Type: application/http\r\nContent-ID: <{}>\r\n\r\nDELETE /drive/v3/files/{id}\r\n\r\n",
+            n + 1
+        ));
+    }
+    out.push_str(&format!("--{BOUNDARY}--\r\n"));
+    Ok(out.into_bytes())
+}
+
+/// The boundary named in a `multipart/mixed` content type, if it is a valid one.
+fn boundary_of(content_type: &str) -> Option<&str> {
+    let (kind, params) = content_type.split_once(';')?;
+    if !kind.trim().eq_ignore_ascii_case("multipart/mixed") {
+        return None;
+    }
+    let b = params.split(';').find_map(|p| {
+        let (k, v) = p.split_once('=')?;
+        k.trim().eq_ignore_ascii_case("boundary").then(|| v.trim())
+    })?;
+    let b = b
+        .strip_prefix('"')
+        .and_then(|b| b.strip_suffix('"'))
+        .unwrap_or(b);
+    // RFC 2046: 1 to 70 of these, not ending in a space.
+    let ok = (1..=70).contains(&b.len())
+        && !b.ends_with(' ')
+        && b.bytes()
+            .all(|c| c.is_ascii_alphanumeric() || b"'()+_,-./:=? ".contains(&c));
+    ok.then_some(b)
+}
+
+/// Check the answer to a batch of `n` deletions: every part answered exactly once,
+/// each with 204 (deleted) or 404 (gone already). Anything else fails the whole batch.
+fn batch_check(content_type: &str, body: &[u8], n: usize) -> Result<()> {
+    let bad = || Error::Corrupt("drive batch answer");
+    let boundary = boundary_of(content_type).ok_or_else(bad)?;
+    let delim = format!("--{boundary}");
+    let close = format!("--{boundary}--");
+    enum At {
+        Preamble,
+        Head(Option<usize>),
+        Status(usize),
+        Body,
+        Closed,
+    }
+    let mut at = At::Preamble;
+    let mut answered = vec![false; n];
+    for line in body.split(|&c| c == b'\n') {
+        if matches!(at, At::Closed) {
+            break; // the epilogue, ignored
+        }
+        let line = line.strip_suffix(b"\r").unwrap_or(line);
+        let is_close = line == close.as_bytes();
+        if is_close || line == delim.as_bytes() {
+            // A part that ended before its answer's status line.
+            if matches!(at, At::Head(_) | At::Status(_)) {
+                return Err(bad());
+            }
+            at = if is_close { At::Closed } else { At::Head(None) };
+            continue;
+        }
+        at = match at {
+            At::Preamble | At::Body => at,
+            At::Head(id) if line.is_empty() => At::Status(id.ok_or_else(bad)?),
+            At::Head(id) => {
+                let line = std::str::from_utf8(line).map_err(|_| bad())?;
+                let (k, v) = line.split_once(':').ok_or_else(bad)?;
+                if !k.trim().eq_ignore_ascii_case("content-id") {
+                    At::Head(id)
+                } else if id.is_some() {
+                    return Err(bad());
+                } else {
+                    let v = v.trim();
+                    let v = v
+                        .strip_prefix('<')
+                        .and_then(|v| v.strip_suffix('>'))
+                        .unwrap_or(v);
+                    let k: usize = v
+                        .strip_prefix("response-")
+                        .and_then(|k| k.parse().ok())
+                        .filter(|k| (1..=n).contains(k))
+                        .ok_or_else(bad)?;
+                    At::Head(Some(k - 1))
+                }
+            }
+            At::Status(id) => {
+                let line = std::str::from_utf8(line).map_err(|_| bad())?;
+                let mut words = line.split(' ');
+                let status: u16 = match (words.next(), words.next()) {
+                    (Some(v), Some(s)) if v.starts_with("HTTP/") => s.parse().map_err(|_| bad())?,
+                    _ => return Err(bad()),
+                };
+                if std::mem::replace(&mut answered[id], true) {
+                    return Err(bad());
+                }
+                if !matches!(status, 204 | 404) {
+                    status_ok(status)?;
+                    return Err(Error::Corrupt("drive request failed"));
+                }
+                At::Body
+            }
+            At::Closed => unreachable!(),
+        };
+    }
+    if !matches!(at, At::Closed) || answered.contains(&false) {
+        return Err(bad());
+    }
+    Ok(())
 }
 
 impl DriveApi for GoogleDrive {
@@ -376,6 +560,30 @@ impl DriveApi for GoogleDrive {
             s => status_ok(s),
         }
     }
+
+    /// Up to [`BATCH`] deletions per request, through Google's batch endpoint (same host).
+    fn delete_many(&self, ids: &[String]) -> Result<()> {
+        let kind = format!("multipart/mixed; boundary={BOUNDARY}");
+        for chunk in ids.chunks(BATCH) {
+            if let [id] = chunk {
+                self.delete(id)?;
+                continue;
+            }
+            let r = self.http.request(
+                "POST",
+                "/batch/drive/v3",
+                &self.token,
+                &[],
+                Body::Bytes(&kind, batch_body(chunk)?),
+            )?;
+            let status = r.status;
+            let answer_kind = r.header("Content-Type").unwrap_or("").to_owned();
+            let body = r.bytes_max(MAX_BATCH_ANSWER)?;
+            status_ok(status)?;
+            batch_check(&answer_kind, &body, chunk.len())?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -388,7 +596,10 @@ mod tests {
     type Files = Vec<(String, String, Vec<u8>)>;
 
     #[derive(Default, Clone)]
-    struct Fake(std::sync::Arc<Mutex<Files>>);
+    struct Fake(
+        std::sync::Arc<Mutex<Files>>,
+        std::sync::Arc<Mutex<Vec<usize>>>,
+    );
 
     impl DriveApi for Fake {
         fn folder(&self) -> Result<String> {
@@ -428,6 +639,11 @@ mod tests {
         }
         fn delete(&self, id: &str) -> Result<()> {
             self.0.lock().unwrap().retain(|(i, _, _)| i != id);
+            Ok(())
+        }
+        fn delete_many(&self, ids: &[String]) -> Result<()> {
+            self.1.lock().unwrap().push(ids.len());
+            self.0.lock().unwrap().retain(|(i, _, _)| !ids.contains(i));
             Ok(())
         }
     }
@@ -473,5 +689,116 @@ mod tests {
             GoogleDrive::new(Permit::listen(std::net::Ipv4Addr::LOCALHOST), "t".into()).is_err()
         );
         assert!(GoogleDrive::new(Permit::google_drive(), "a\r\nb".into()).is_err());
+    }
+
+    #[test]
+    fn many_items_go_up_at_once_and_deleted_ones_leave_in_batches() {
+        let t = two();
+        let drive = Fake::default();
+        let ids: Vec<String> = (0..30)
+            .map(|i| note(&t.a, &format!("N{i}"), &format!("text {i}")))
+            .collect();
+        let r = DriveRemote::open(drive.clone()).unwrap();
+        assert_eq!(r.parallel(), 4);
+        t.a.sync(&r).unwrap();
+        // One file per name, though several went up together.
+        let names: Vec<String> = drive
+            .0
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|f| f.1.clone())
+            .collect();
+        let unique: HashSet<&String> = names.iter().collect();
+        assert_eq!(unique.len(), names.len());
+        t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        for (i, id) in ids.iter().enumerate() {
+            assert_eq!(text(&t.b, id), format!("text {i}"));
+        }
+        for id in &ids {
+            t.a.delete_item(id).unwrap();
+        }
+        let before = drive.0.lock().unwrap().len();
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        // A record and its content per item, in two batches (records, then contents).
+        assert_eq!(*drive.1.lock().unwrap(), vec![30, 30]);
+        let after = drive.0.lock().unwrap().len();
+        assert_eq!(before - after, 60 - 1); // and one journal entry more
+    }
+
+    #[test]
+    fn a_batch_request_has_one_delete_per_file() {
+        let ids: Vec<String> = vec!["abc-1".into(), "x_Y2".into()];
+        let body = String::from_utf8(batch_body(&ids).unwrap()).unwrap();
+        assert_eq!(
+            body,
+            format!(
+                "--{BOUNDARY}\r\nContent-Type: application/http\r\nContent-ID: <1>\r\n\r\n\
+                 DELETE /drive/v3/files/abc-1\r\n\r\n\
+                 --{BOUNDARY}\r\nContent-Type: application/http\r\nContent-ID: <2>\r\n\r\n\
+                 DELETE /drive/v3/files/x_Y2\r\n\r\n\
+                 --{BOUNDARY}--\r\n"
+            )
+        );
+        // Nothing that could break out of a part, and never more than Google takes.
+        for bad in ["a/b", "a b", "a\r\nb", "", "a?b", "a%2F"] {
+            assert!(batch_body(&[bad.to_owned()]).is_err(), "{bad:?}");
+        }
+        assert!(batch_body(&[]).is_err());
+        assert!(batch_body(&vec!["a".to_owned(); BATCH + 1]).is_err());
+    }
+
+    /// An answer as Drive writes it: parts in any order, each an HTTP answer.
+    fn answer(parts: &[(&str, &str)]) -> Vec<u8> {
+        let mut out = String::from("\r\n");
+        for (id, status) in parts {
+            out.push_str(&format!(
+                "--batch_Ab9\r\nContent-Type: application/http\r\nContent-ID: <response-{id}>\r\n\r\n\
+                 HTTP/1.1 {status}\r\nContent-Type: application/json\r\n\r\n{{\"x\": 1}}\r\n\r\n"
+            ));
+        }
+        out.push_str("--batch_Ab9--\r\n");
+        out.into_bytes()
+    }
+
+    const KIND: &str = "multipart/mixed; boundary=batch_Ab9";
+
+    #[test]
+    fn a_batch_answer_is_read_strictly() {
+        let ok = answer(&[("2", "404 Not Found"), ("1", "204 No Content")]);
+        batch_check(KIND, &ok, 2).unwrap();
+        batch_check("multipart/mixed; boundary=\"batch_Ab9\"", &ok, 2).unwrap();
+        // One part failing fails the batch; a sign-in problem says so.
+        let one_failed = answer(&[("1", "204 No Content"), ("2", "500 Internal Server Error")]);
+        assert!(batch_check(KIND, &one_failed, 2).is_err());
+        let forbidden = answer(&[("1", "204 No Content"), ("2", "403 Forbidden")]);
+        assert!(matches!(
+            batch_check(KIND, &forbidden, 2),
+            Err(Error::Corrupt("drive not signed in"))
+        ));
+        assert!(batch_check(KIND, &answer(&[("1", "200 OK")]), 1).is_err());
+        // A part missing, twice, out of range, or without a number.
+        assert!(batch_check(KIND, &answer(&[("1", "204 No Content")]), 2).is_err());
+        let twice = answer(&[("1", "204 No Content"), ("1", "204 No Content")]);
+        assert!(batch_check(KIND, &twice, 2).is_err());
+        assert!(batch_check(KIND, &answer(&[("3", "204 No Content")]), 1).is_err());
+        assert!(batch_check(KIND, &answer(&[("x", "204 No Content")]), 1).is_err());
+        // Cut short (no closing line), or a part with no status line.
+        let mut cut = answer(&[("1", "204 No Content")]);
+        cut.truncate(cut.len() - 16);
+        assert!(batch_check(KIND, &cut, 1).is_err());
+        let headless = b"--batch_Ab9\r\nContent-ID: <response-1>\r\n--batch_Ab9--\r\n";
+        assert!(batch_check(KIND, headless, 1).is_err());
+        let not_http =
+            b"--batch_Ab9\r\nContent-ID: <response-1>\r\n\r\nhello 204\r\n--batch_Ab9--\r\n";
+        assert!(batch_check(KIND, not_http, 1).is_err());
+        // Another boundary, or not a batch at all.
+        assert!(batch_check("multipart/mixed; boundary=other", &ok, 2).is_err());
+        assert!(batch_check("application/json", &ok, 2).is_err());
+        assert!(batch_check("multipart/mixed", &ok, 2).is_err());
+        let long = format!("multipart/mixed; boundary={}", "a".repeat(71));
+        assert!(batch_check(&long, &ok, 2).is_err());
     }
 }

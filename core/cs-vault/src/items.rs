@@ -542,10 +542,11 @@ impl OpenVault {
     /// Remove an item. The metadata goes first, so a crash midway never shows half an item.
     /// The other devices hear of it at the next sync.
     pub fn delete_item(&self, id: &str) -> Result<()> {
-        let hlc = self.record(id).map(|r| r.hlc).unwrap_or(0);
+        let (hlc, rev) = self.record(id).map(|r| (r.hlc, r.rev)).unwrap_or_default();
         self.remove_item(id)?;
+        // Its last revision here is older than the deletion: a place drops it unread.
         self.index
-            .add_gone(id, crate::sync::next_hlc(&self.index, hlc)?)
+            .add_gone(id, crate::sync::next_hlc(&self.index, hlc)?, &rev)
     }
 
     /// [`Self::delete_item`] without telling the other devices (a sync applying theirs).

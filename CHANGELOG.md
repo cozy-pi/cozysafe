@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Unreleased
+
+### Changed
+- Google Drive sync sends up to 4 items at once and removes deleted items in batches:
+  much faster with many photos.
+
 ## 0.1.56 (2026-10-24)
 
 ### Added
