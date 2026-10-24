@@ -520,5 +520,12 @@
   "syncDriveWorking": "Google Drive ile eşitleniyor",
   "syncSignInAgain": "Google yeniden oturum açmanızı istiyor. Google Drive ile eşitle'ye bir kez daha dokunun.",
   "syncDriveSignOut": "Google oturumunu kapat",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "Google Drive'da bir kasam var",
+  "joinDriveTitle": "Kasanızı Google Drive'dan açın",
+  "joinDriveLead": "Kasanızın eşitlendiği Google hesabında oturum açın, ardından 24 kelimesini ve kasa parolasını yazın. Kasa şifrelenmiş olarak indirilir ve bu cihazda açılır.",
+  "joinSignIn": "Google ile oturum aç",
+  "joinOpen": "Kasayı aç",
+  "joinNoVault": "Bu Google hesabının Drive'ında Cozy Safe kasası yok.",
+  "joinWrongWords": "Bu 24 kelime Drive'daki kasaya ait değil. Her kelimeyi sırasıyla kontrol edin."
 }

@@ -520,5 +520,12 @@
   "syncDriveWorking": "Synchronisation avec Google Drive",
   "syncSignInAgain": "Google vous demande de vous reconnecter. Touchez à nouveau Synchroniser avec Google Drive.",
   "syncDriveSignOut": "Se déconnecter de Google",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "J'ai un coffre sur Google Drive",
+  "joinDriveTitle": "Ouvrir votre coffre depuis Google Drive",
+  "joinDriveLead": "Connectez-vous au compte Google avec lequel votre coffre se synchronise, puis saisissez ses 24 mots et le mot de passe du coffre. Le coffre est téléchargé chiffré et s'ouvre sur cet appareil.",
+  "joinSignIn": "Se connecter avec Google",
+  "joinOpen": "Ouvrir le coffre",
+  "joinNoVault": "Aucun coffre Cozy Safe dans le Drive de ce compte Google.",
+  "joinWrongWords": "Ces 24 mots ne sont pas ceux du coffre sur Drive. Vérifiez chaque mot, dans l'ordre."
 }

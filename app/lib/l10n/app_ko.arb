@@ -520,5 +520,12 @@
   "syncDriveWorking": "Google Drive와 동기화 중",
   "syncSignInAgain": "Google에서 다시 로그인하라고 요청합니다. Google Drive와 동기화를 한 번 더 탭하세요.",
   "syncDriveSignOut": "Google에서 로그아웃",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "Google Drive에 금고가 있어요",
+  "joinDriveTitle": "Google Drive에서 금고 열기",
+  "joinDriveLead": "금고가 동기화되는 Google 계정에 로그인한 다음 24개 단어와 금고 비밀번호를 입력하세요. 금고는 암호화된 상태로 내려받아 이 기기에서 열립니다.",
+  "joinSignIn": "Google로 로그인",
+  "joinOpen": "금고 열기",
+  "joinNoVault": "이 Google 계정의 Drive에 Cozy Safe 금고가 없습니다.",
+  "joinWrongWords": "이 24개 단어는 Drive에 있는 금고의 단어가 아닙니다. 각 단어를 순서대로 확인하세요."
 }

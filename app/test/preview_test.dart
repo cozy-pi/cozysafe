@@ -32,6 +32,7 @@ import 'package:cozysafe/screens/quick_look.dart';
 import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/api/sync.dart';
+import 'package:cozysafe/sync/drive_join.dart';
 import 'package:cozysafe/sync/host_page.dart';
 import 'package:cozysafe/sync/join_page.dart';
 import 'package:cozysafe/sync/progress.dart';
@@ -289,6 +290,8 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugLog = null;
       SyncScreen.debugAddress = null;
       SyncScreen.debugDrive = false;
+      NewVaultScreen.debugDriveJoin = false;
+      DriveJoinScreen.debugAccount = null;
       HostSyncPage.debugHosting = null;
       HostSyncPage.debugEvents = null;
       ChangeKeyScreen.debugWords = null;
@@ -396,9 +399,7 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library',
-      change: 'Thanh: Tổng quan · Thư viện · + · Tệp · Ghi chú; bỏ Ghi âm khỏi thanh (vào từ Tổng quan hoặc +); nút + nhỏ hơn, tô đặc',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library');
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
@@ -473,7 +474,7 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
     await t.pumpAndSettle();
   });
-  _screen('add-library-center', 'Thư viện · bấm +: đủ mọi loại, 3 ô mỗi hàng', home, section: 'library', change: 'Bấm + ở đâu cũng ra đủ: Thêm ảnh, Chụp ảnh, Quay video, Ghi chú, Ghi âm, Tệp', marks: [() => find.byKey(const ValueKey('add-row'))], setup: () {
+  _screen('add-library-center', 'Thư viện · bấm +: đủ mọi loại, 3 ô mỗi hàng', home, section: 'library', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {
@@ -661,9 +662,7 @@ void main() {
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
-  },
-      change: 'MỚI: Đồng bộ với Google Drive (đăng nhập Google, hỏi cho phép, rồi đồng bộ; Google chỉ thấy tệp đã mã hoá)',
-      marks: [() => find.byKey(const ValueKey('sync-drive'))]);
+  });
   _screen('sync-allow', 'Đồng bộ · bấm Hiện mã → hỏi cho phép, ghi rõ địa chỉ', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
@@ -693,8 +692,7 @@ void main() {
     HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 74);
     HostSyncPage.debugEvents = Stream.value(ev(SyncStep.rejected));
   });
-  _screen('sync-signin', 'Google Drive: phiên đăng nhập hết hạn', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.signIn)), onSynced: () {})),
-      change: 'MỚI: Google đòi đăng nhập lại');
+  _screen('sync-signin', 'Google Drive: phiên đăng nhập hết hạn', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.signIn)), onSynced: () {})));
   _screen('sync-failed', 'Không kết nối được', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.failed)), onSynced: () {})));
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
       act: (t) async {
@@ -791,7 +789,7 @@ void main() {
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
   _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
-  _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-63VN-V6GG-GPDY-2RV9-WMB9-ZEWP-2WVH', confirm: false, onChange: () {}));
+  _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-7QK2-M9XD-4TRB-PW3H-8ZNA-6CJE-1VFS', confirm: false, onChange: () {}));
   Widget change(int step) => ChangeKeyScreen(libraryDir: '', password: '', onBackup: () async {});
   for (final (i, name, what) in [
     (0, 'intro', 'giải thích: dữ liệu giữ nguyên, PIN/Face ID dùng tiếp, bản sao lưu cũ cần khoá cũ'),
@@ -828,7 +826,17 @@ void main() {
   }
 
   _screen('new-vault', 'Tạo két đầu tiên · 1. Ba thứ giữ két', () => const NewVaultScreen(libraryDir: '', first: true),
-      setup: useWords);
+      setup: () {
+    useWords();
+    NewVaultScreen.debugDriveJoin = true;
+  },
+      change: 'MỚI: "Đã có két trên Google Drive" — mở két bằng 24 từ + mật khẩu, không cần file sao lưu',
+      marks: [() => find.byKey(const ValueKey('join-drive'))]);
+  _screen('join-drive', 'Mở két từ Google Drive · trước khi đăng nhập', () => const DriveJoinScreen(libraryDir: ''),
+      change: 'MỚI: đăng nhập Google → hỏi cho phép → nhập 24 từ + mật khẩu');
+  _screen('join-drive-signed', 'Mở két từ Google Drive · đã đăng nhập: nhập 24 từ và mật khẩu', () => const DriveJoinScreen(libraryDir: ''),
+      setup: () => DriveJoinScreen.debugAccount = 'ban@gmail.com',
+      marks: [() => find.byKey(const ValueKey('join-words'))]);
   _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
     await tapKey(t, 'intro-start');

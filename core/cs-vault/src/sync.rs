@@ -753,7 +753,7 @@ pub(crate) mod tests {
         t: 1,
         p: 1,
     };
-    const PW: &str = "orange kettle whispers at dawn 77";
+    pub(crate) const PW: &str = "orange kettle whispers at dawn 77";
 
     /// A vault on device A, the same vault copied to device B (without A's local sync
     /// state, as a new device starts), and the folder they share.
@@ -905,6 +905,9 @@ pub(crate) mod tests {
         t.a.sync(&t.cloud).unwrap();
         t.b.sync(&t.cloud).unwrap();
         t.a.replace_item(&id, "Plan", &b"from A"[..]).unwrap();
+        // Later by the clock, not by luck: on a fast machine both edits can share a
+        // millisecond, and then the device id decides (by design), not the order.
+        std::thread::sleep(std::time::Duration::from_millis(5));
         t.b.replace_item(&id, "Plan", &b"from B"[..]).unwrap(); // later: wins
         t.a.sync(&t.cloud).unwrap();
         let r = t.b.sync(&t.cloud).unwrap();

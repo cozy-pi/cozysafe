@@ -31,7 +31,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Every independent scanner first (security.yml): a finding stops the release.
+  security:
+    uses: ./.github/workflows/security.yml
+    permissions:
+      contents: read
+      security-events: write
+
   version:
+    needs: security
     runs-on: ubuntu-latest
     outputs:
       name: ${{ steps.v.outputs.name }}
@@ -65,7 +73,15 @@ jobs:
       upload: true # a release always uploads; never rely on a default here
       version: ${{ needs.version.outputs.name }}
       build: ${{ needs.version.outputs.build }}
-    secrets: inherit
+    # Only what the iOS job uses (Semgrep: secrets: inherit hands over every secret).
+    secrets:
+      IOS_DIST_P12_BASE64: ${{ secrets.IOS_DIST_P12_BASE64 }}
+      IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+      IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_ADMIN_KEY_ID: ${{ secrets.ASC_ADMIN_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_ADMIN_KEY_P8_BASE64: ${{ secrets.ASC_ADMIN_KEY_P8_BASE64 }}
 
   builds:
     needs: version
@@ -74,4 +90,12 @@ jobs:
       version: ${{ needs.version.outputs.name }}
       build: ${{ needs.version.outputs.build }}
       publish: true
-    secrets: inherit
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      MACOS_DEVID_P12_BASE64: ${{ secrets.MACOS_DEVID_P12_BASE64 }}
+      MACOS_DEVID_P12_PASSWORD: ${{ secrets.MACOS_DEVID_P12_PASSWORD }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}

@@ -520,5 +520,12 @@
   "syncDriveWorking": "Sincronizzazione con Google Drive",
   "syncSignInAgain": "Google ti chiede di accedere di nuovo. Tocca ancora Sincronizza con Google Drive.",
   "syncDriveSignOut": "Esci da Google",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "Ho una cassaforte su Google Drive",
+  "joinDriveTitle": "Apri la tua cassaforte da Google Drive",
+  "joinDriveLead": "Accedi all'account Google con cui si sincronizza la tua cassaforte, poi digita le sue 24 parole e la password della cassaforte. La cassaforte viene scaricata crittografata e si apre su questo dispositivo.",
+  "joinSignIn": "Accedi con Google",
+  "joinOpen": "Apri la cassaforte",
+  "joinNoVault": "Nessuna cassaforte Cozy Safe nel Drive di questo account Google.",
+  "joinWrongWords": "Queste 24 parole non sono quelle della cassaforte su Drive. Controlla ogni parola, nell'ordine."
 }

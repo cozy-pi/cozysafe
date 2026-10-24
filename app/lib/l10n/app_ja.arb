@@ -520,5 +520,12 @@
   "syncDriveWorking": "Google Driveと同期中",
   "syncSignInAgain": "Googleから再ログインを求められています。もう一度「Google Driveと同期」をタップしてください。",
   "syncDriveSignOut": "Googleからログアウト",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "Google Driveに金庫があります",
+  "joinDriveTitle": "Google Driveから金庫を開く",
+  "joinDriveLead": "金庫と同期しているGoogleアカウントにログインし、24語と金庫のパスワードを入力してください。金庫は暗号化されたままダウンロードされ、このデバイスで開きます。",
+  "joinSignIn": "Googleでログイン",
+  "joinOpen": "金庫を開く",
+  "joinNoVault": "このGoogleアカウントのDriveにCozy Safeの金庫がありません。",
+  "joinWrongWords": "この24語はDrive上の金庫のものではありません。各単語を順番どおりに確認してください。"
 }

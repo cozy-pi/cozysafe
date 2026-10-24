@@ -520,5 +520,12 @@
   "syncDriveWorking": "Sincronizando con Google Drive",
   "syncSignInAgain": "Google te pide que vuelvas a iniciar sesión. Toca Sincronizar con Google Drive otra vez.",
   "syncDriveSignOut": "Cerrar sesión de Google",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "Tengo una caja fuerte en Google Drive",
+  "joinDriveTitle": "Abre tu caja fuerte desde Google Drive",
+  "joinDriveLead": "Inicia sesión en la cuenta de Google con la que se sincroniza tu caja fuerte y escribe sus 24 palabras y la contraseña de la caja fuerte. La caja fuerte se descarga cifrada y se abre en este dispositivo.",
+  "joinSignIn": "Iniciar sesión con Google",
+  "joinOpen": "Abrir la caja fuerte",
+  "joinNoVault": "No hay ninguna caja fuerte de Cozy Safe en el Drive de esta cuenta de Google.",
+  "joinWrongWords": "Estas 24 palabras no son las de la caja fuerte en Drive. Revisa cada palabra, en orden."
 }

@@ -34,6 +34,7 @@ use zeroize::Zeroizing;
 pub mod backup;
 pub mod db;
 pub mod items;
+pub mod join;
 pub mod passphrase;
 pub mod pin;
 pub mod sync;

@@ -534,5 +534,12 @@
   "syncDriveWorking": "Đang đồng bộ với Google Drive",
   "syncSignInAgain": "Google yêu cầu đăng nhập lại. Bấm Đồng bộ với Google Drive thêm lần nữa.",
   "syncDriveSignOut": "Đăng xuất Google",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "Đã có két trên Google Drive",
+  "joinDriveTitle": "Mở két từ Google Drive",
+  "joinDriveLead": "Đăng nhập tài khoản Google mà két đồng bộ cùng, rồi nhập 24 từ và mật khẩu két. Két được tải về ở dạng mã hoá và mở trên máy này.",
+  "joinSignIn": "Đăng nhập Google",
+  "joinOpen": "Mở két",
+  "joinNoVault": "Không thấy két Cozy Safe nào trên Google Drive của tài khoản này.",
+  "joinWrongWords": "24 từ này không phải của két trên Drive. Kiểm tra lại từng từ, đúng thứ tự."
 }

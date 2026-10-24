@@ -711,5 +711,12 @@
   "syncSignInAgain": "Google asks you to sign in again. Tap Sync with Google Drive once more.",
   "syncDriveSignOut": "Sign out of Google",
   "syncLogDrive": "Google Drive",
-  "@syncAllowDrive": {"placeholders": {"account": {}}}
+  "@syncAllowDrive": {"placeholders": {"account": {}}},
+  "joinDriveButton": "I have a vault on Google Drive",
+  "joinDriveTitle": "Open your vault from Google Drive",
+  "joinDriveLead": "Sign in to the Google account your vault syncs with, then type its 24 words and vault password. The vault comes down encrypted and opens on this device.",
+  "joinSignIn": "Sign in with Google",
+  "joinOpen": "Open the vault",
+  "joinNoVault": "No Cozy Safe vault in this Google account's Drive.",
+  "joinWrongWords": "These 24 words are not the vault's on Drive. Check each word, in order."
 }

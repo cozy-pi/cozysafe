@@ -153,6 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Seven taps on the version turn on debug mode, after the owner check (docs/security.md).
   int _taps = 0;
   DateTime _tapAt = DateTime(0);
+  final _debugRowKey = GlobalKey(debugLabel: 'debug-row');
 
   Future<void> _versionTap() async {
     final l = AppLocalizations.of(context);
@@ -171,7 +172,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       DebugLog.sync();
       if (!mounted) return;
       setState(() {});
-      showToast(context, l.debugOn, icon: Icons.bug_report_outlined);
+      // No toast: it covered the Debug row that had just appeared (owner 2026-10-24).
+      // The row itself, scrolled into view with a tick, says debug mode is on.
+      HapticFeedback.mediumImpact();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final row = _debugRowKey.currentContext;
+        if (row != null) Scrollable.ensureVisible(row, alignment: .5, duration: const Duration(milliseconds: 300));
+      });
     });
   }
 
@@ -585,7 +592,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 if (debugModeOn())
                   _Row(
-                    key: const ValueKey('debug-row'),
+                    key: _debugRowKey,
                     icon: Icons.bug_report_outlined,
                     color: _Mau.doTuoi,
                     title: l.debugMode,

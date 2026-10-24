@@ -24,6 +24,16 @@ on:
       publish:
         type: boolean
         default: false
+    # Named one by one (release.yml passes exactly these, never `secrets: inherit`).
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+      ANDROID_KEYSTORE_PASSWORD:
+      MACOS_DEVID_P12_BASE64:
+      MACOS_DEVID_P12_PASSWORD:
+      ASC_KEY_ID:
+      ASC_ISSUER_ID:
+      ASC_KEY_P8_BASE64:
+      PLAY_SERVICE_ACCOUNT_JSON:
 
 # Build jobs only read; the release job below asks for what it needs to attest and publish.
 permissions:
@@ -54,10 +64,18 @@ jobs:
       # no Gradle, plugin or package code runs.
       - working-directory: app
         # arm64 only: every current phone; skips building Rust for armv7 and x86_64 (emulators).
-        run: flutter build apk --release --target-platform android-arm64 --build-number ${{ inputs.build || github.run_number }} ${{ inputs.version && format('--build-name {0}.{1}', inputs.version, inputs.build) || '' }} --dart-define=BUILD_DATE=${{ env.BUILD_DATE }} --dart-define=BUILD_COMMIT=${{ github.sha }}
+        env: # inputs reach the shell as variables, never pasted into the script
+          BUILD_NUMBER: ${{ inputs.build || github.run_number }}
+          VERSION: ${{ inputs.version }}
+          BUILD: ${{ inputs.build }}
+        run: flutter build apk --release --target-platform android-arm64 --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
       - name: App bundle for Google Play (all ABIs; Play serves each device its own)
         working-directory: app
-        run: flutter build appbundle --release --build-number ${{ inputs.build || github.run_number }} ${{ inputs.version && format('--build-name {0}.{1}', inputs.version, inputs.build) || '' }} --dart-define=BUILD_DATE=${{ env.BUILD_DATE }} --dart-define=BUILD_COMMIT=${{ github.sha }}
+        env: # inputs reach the shell as variables, never pasted into the script
+          BUILD_NUMBER: ${{ inputs.build || github.run_number }}
+          VERSION: ${{ inputs.version }}
+          BUILD: ${{ inputs.build }}
+        run: flutter build appbundle --release --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
       - run: |
           mv app/build/app/outputs/flutter-apk/app-release.apk built-android.apk
           mv app/build/app/outputs/bundle/release/app-release.aab built-android.aab
@@ -135,7 +153,11 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libjpeg-dev liblzma-dev libsecret-1-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev
       - uses: ./.github/actions/flutter-setup
       - working-directory: app
-        run: flutter build linux --release ${{ inputs.version && format('--build-name {0} --build-number {1}', inputs.version, inputs.build) || '' }} --dart-define=BUILD_DATE=${{ env.BUILD_DATE }} --dart-define=BUILD_COMMIT=${{ github.sha }}
+        env: # inputs reach the shell as variables, never pasted into the script
+          BUILD_NUMBER: ${{ inputs.build || github.run_number }}
+          VERSION: ${{ inputs.version }}
+          BUILD: ${{ inputs.build }}
+        run: flutter build linux --release ${VERSION:+--build-name "$VERSION" --build-number "$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
       - run: tar -C app/build/linux/x64/release/bundle -czf CozySafe-linux-x64.tar.gz .
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -158,7 +180,12 @@ jobs:
           restore-keys: cargokit-windows-
       - uses: ./.github/actions/flutter-setup
       - working-directory: app
-        run: flutter build windows --release ${{ inputs.version && format('--build-name {0} --build-number {1}', inputs.version, inputs.build) || '' }} --dart-define=BUILD_DATE=${{ env.BUILD_DATE }} --dart-define=BUILD_COMMIT=${{ github.sha }}
+        env: # inputs reach the shell as variables, never pasted into the script
+          BUILD_NUMBER: ${{ inputs.build || github.run_number }}
+          VERSION: ${{ inputs.version }}
+          BUILD: ${{ inputs.build }}
+        shell: bash
+        run: flutter build windows --release ${VERSION:+--build-name "$VERSION" --build-number "$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
       - shell: pwsh
         run: Compress-Archive -Path app/build/windows/x64/runner/Release/* -DestinationPath CozySafe-windows-x64.zip
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -184,7 +211,11 @@ jobs:
       - name: Release entitlements keep the sandbox and grant no network access
         run: tools/check-entitlements
       - working-directory: app
-        run: flutter build macos --release ${{ inputs.version && format('--build-name {0} --build-number {1}', inputs.version, inputs.build) || '' }} --dart-define=BUILD_DATE=${{ env.BUILD_DATE }} --dart-define=BUILD_COMMIT=${{ github.sha }}
+        env: # inputs reach the shell as variables, never pasted into the script
+          BUILD_NUMBER: ${{ inputs.build || github.run_number }}
+          VERSION: ${{ inputs.version }}
+          BUILD: ${{ inputs.build }}
+        run: flutter build macos --release ${VERSION:+--build-name "$VERSION" --build-number "$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
       # The app is built ad-hoc signed (CODE_SIGN_IDENTITY "-"): no certificate on this
       # machine while Flutter, CocoaPods and every package's build code run.
       - name: Hand the built app to the signing job (ditto keeps symlinks and permissions)
@@ -322,11 +353,12 @@ jobs:
       - name: Google Play, the same build into closed testing (alpha, reviewed by Google)
         env:
           SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          BUILD: ${{ inputs.build }}
         run: |
           set -o pipefail # tee must not hide a failure
           printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
           trap 'rm -f "$RUNNER_TEMP/sa.json"' EXIT
-          node src/tools/play-track.mjs "$RUNNER_TEMP/sa.json" "${{ inputs.build }}" alpha | tee play.log
+          node src/tools/play-track.mjs "$RUNNER_TEMP/sa.json" "$BUILD" alpha | tee play.log
           # Say where the build is, in the run summary (internal: minutes; alpha: after review).
           { echo "### Google Play"; echo '```'; cat play.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
@@ -348,8 +380,8 @@ jobs:
           subject-path: CozySafe-*
       - env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}
         run: |
-          TAG="${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}"
           gh release create "$TAG" CozySafe-* SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "Cozy Safe $TAG (preview)" \
             --notes "Preview build for testing. macOS: signed with Developer ID and notarized by Apple. Android: signed with the Cozy Pi release key (SHA-256 D0:82:E9:7B:D2:93:E3:CB:69:4D:66:69:A2:82:AD:E1:1E:6F:1C:1E:04:B8:4C:48:AA:07:BA:32:AF:C2:9D:A4); allow installing from this source. Windows: not signed yet, choose More info → Run anyway. Every file has a build-provenance attestation: gh attestation verify <file> -R cozy-pi/cozysafe. What changed: https://github.com/cozy-pi/cozysafe/blob/main/CHANGELOG.md"
