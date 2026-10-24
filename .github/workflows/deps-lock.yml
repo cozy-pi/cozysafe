@@ -23,12 +23,20 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: ./.github/actions/flutter-setup
-      # A Flutter build first (it writes local.properties and the generated files), then
-      # the same release tasks through Gradle, writing the SHA-256 of every artifact.
+      # Gradle's first run writes the SHA-256 of every artifact it resolves (from a fresh
+      # file: an artifact already in the cache when writing starts can be left out). Flutter
+      # only writes its config before that. Then the two release builds run with the file
+      # enforced, so a missing entry fails here and not in a release.
       - working-directory: app
-        run: flutter build apk --release --target-platform android-arm64
+        run: flutter build apk --config-only
       - working-directory: app/android
-        run: ./gradlew --write-verification-metadata sha256 :app:assembleRelease :app:bundleRelease -Ptarget-platform=android-arm64,android-arm,android-x64
+        run: |
+          rm -f gradle/verification-metadata.xml
+          ./gradlew --write-verification-metadata sha256 :app:assembleRelease :app:bundleRelease -Ptarget-platform=android-arm64,android-arm,android-x64
+      - working-directory: app
+        run: |
+          flutter build apk --release --target-platform android-arm64
+          flutter build appbundle --release
       - run: cat app/android/gradle/verification-metadata.xml
 
   swift:
