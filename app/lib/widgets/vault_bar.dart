@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 
 import 'dart:ui' as ui;
 
@@ -713,9 +712,7 @@ class AddRow extends StatefulWidget {
   final VoidCallback onGone;
 
   /// Room each way takes in the row.
-  static const width = 72.0;
-  /// Ways side by side; more go on another row above.
-  static const perRow = 3;
+  static const width = 80.0;
 
   @override
   State<AddRow> createState() => _AddRowState();
@@ -741,22 +738,10 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  /// Where the row sits across the screen: over [AddRow.centreX], but never off an edge.
-  Alignment _align(BuildContext context) {
-    final x = widget.centreX;
-    if (x == null) return Alignment.center;
-    final width = MediaQuery.sizeOf(context).width;
-    final half = math.min(widget.ways.length, AddRow.perRow) * AddRow.width / 2;
-    if (width <= half * 2) return Alignment.center;
-    final c = x.clamp(half + 8, width - half - 8);
-    return Alignment((c - half) / (width - half * 2) * 2 - 1, 0);
-  }
-
   @override
   Widget build(BuildContext context) {
     final page = Theme.of(context).scaffoldBackgroundColor;
     final w = widget;
-    final n = w.ways.length;
     final dim = CurvedAnimation(parent: _c, curve: const Interval(0, .6, curve: Curves.easeOut));
     return Stack(
       children: [
@@ -771,47 +756,39 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
           left: 0,
           right: 0,
           bottom: w.bottom,
-          child: Align(
-            alignment: _align(context),
-            // Three to a row; the rows stack up from the + (owner 2026-10-24: every way).
-            child: Column(
+          // One row, side by side, scrolling sideways when it does not fit (owner
+          // 2026-10-24: two rows looked uneven); centred when it does.
+          child: LayoutBuilder(
+            builder: (context, box) => SingleChildScrollView(
               key: const ValueKey('add-row'),
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var r = 0; r * AddRow.perRow < n; r++)
-                  Padding(
-                    padding: EdgeInsets.only(top: r == 0 ? 0 : 12),
-                    child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final (i, (what, icon, label)) in w.ways.indexed)
-                        if (i ~/ AddRow.perRow == r)
-                          AnimatedBuilder(
-                            animation: _c,
-                            builder: (context, child) {
-                              // Each way comes out of the + with a small overshoot, the
-                              // lower row first.
-                              final rows = (n + AddRow.perRow - 1) ~/ AddRow.perRow;
-                              final inRow = i ~/ AddRow.perRow == rows - 1 ? n - (rows - 1) * AddRow.perRow : AddRow.perRow;
-                              final col = i % AddRow.perRow;
-                              final start = (rows - 1 - r) * .1 + (col - (inRow - 1) / 2).abs() * .05;
-                              final t = Curves.easeOutBack.transform(((_c.value - start) / (1 - start)).clamp(0.0, 1.0));
-                              final fromCentre = ((inRow - 1) / 2 - col) * AddRow.width;
-                              final fromBelow = 36.0 + (rows - 1 - r) * 80;
-                              return Opacity(
-                                opacity: t.clamp(0.0, 1.0),
-                                child: Transform.translate(
-                                  offset: Offset(fromCentre * (1 - t), fromBelow * (1 - t)),
-                                  child: Transform.scale(scale: .5 + .5 * t, child: child),
-                                ),
-                              );
-                            },
-                            child: addWayButton(context, what, icon, label, hovered: w.hovered == what, onTap: () => w.onPick(what)),
-                          ),
-                    ],
-                  ),
-                  ),
-              ],
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: box.maxWidth - 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final (i, (what, icon, label)) in w.ways.indexed)
+                      AnimatedBuilder(
+                        animation: _c,
+                        builder: (context, child) {
+                          // Each way rises out of the bar in turn, with a small overshoot.
+                          final start = i * .05;
+                          final t = Curves.easeOutBack.transform(((_c.value - start) / (1 - start)).clamp(0.0, 1.0));
+                          return Opacity(
+                            opacity: t.clamp(0.0, 1.0),
+                            child: Transform.translate(
+                              offset: Offset(0, 36 * (1 - t)),
+                              child: Transform.scale(scale: .5 + .5 * t, child: child),
+                            ),
+                          );
+                        },
+                        child: addWayButton(context, what, icon, label, hovered: w.hovered == what, onTap: () => w.onPick(what)),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -856,11 +833,12 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
                   child: Icon(icon, size: 26, color: hovered ? page : ink),
                 ),
                 const SizedBox(height: 6),
-                Text(label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                // One line: a long word shrinks rather than wrap (a two-line label put
+                // its button out of line with the others).
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                ),
               ],
             ),
           ),
