@@ -47,6 +47,12 @@ flutter_secure_storage_windows
 flutter_test
 flutter_web_plugins
 fuchsia_remote_debug_protocol
+google_identity_services_web
+google_sign_in
+google_sign_in_android
+google_sign_in_ios
+google_sign_in_platform_interface
+google_sign_in_web
 hooks
 html
 http

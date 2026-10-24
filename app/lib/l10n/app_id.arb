@@ -513,5 +513,12 @@
   "changeKeyApply": "Gunakan kata baru",
   "changeKeyDone": "Selesai. Kunci Pemulihan lama tidak lagi bisa membuka brankas ini di perangkat ini.",
   "changeKeyFailed": "Kunci Pemulihan tidak dapat diganti. Tidak ada yang berubah: kunci lama masih berfungsi.",
-  "kitLeadLegacy": "Kunci ini dan kata sandi brankas membuka brankas di ponsel baru atau dari cadangan. Ini kunci jenis lama: ubah ke 24 kata di bawah."
+  "kitLeadLegacy": "Kunci ini dan kata sandi brankas membuka brankas di ponsel baru atau dari cadangan. Ini kunci jenis lama: ubah ke 24 kata di bawah.",
+  "syncDriveRow": "Sinkronkan dengan Google Drive",
+  "syncDriveNote": "Menyimpan salinan terenkripsi brankas ini di folder \"Cozy Safe\" di Google Drive Anda, agar perangkat lain bisa sinkron kapan saja. Google hanya melihat file terenkripsi.",
+  "syncAllowDrive": "Perangkat ini akan tersambung ke Google Drive (www.googleapis.com) sebagai {account}, hanya untuk sinkronisasi ini.",
+  "syncDriveWorking": "Menyinkronkan dengan Google Drive",
+  "syncSignInAgain": "Google meminta Anda masuk lagi. Ketuk Sinkronkan dengan Google Drive sekali lagi.",
+  "syncDriveSignOut": "Keluar dari Google",
+  "syncLogDrive": "Google Drive"
 }

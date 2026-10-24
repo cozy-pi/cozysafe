@@ -27,6 +27,7 @@ dependencies:
   fc_native_video_thumbnail: ^4.0.0
   package_info_plus: ^10.2.2
   record: ^7.1.2
+  google_sign_in: 7.2.0
 
 dev_dependencies:
   flutter_test:

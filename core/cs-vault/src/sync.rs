@@ -44,6 +44,12 @@ pub trait Remote {
     fn put_file(&self, path: &str, local: &Path) -> Result<()> {
         self.put(path, &mut fs::File::open(local)?)
     }
+    /// Delete the file at `path` (gone already is fine). Only the vault's lock is ever
+    /// replaced (`<vault>/lock/…`); every other file stays as written. A place that
+    /// lives for one session only (a P2P host's folder) may ignore it.
+    fn remove(&self, _path: &str) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// A folder on this device: tests, desktops, and any folder a sync client mirrors.
@@ -159,6 +165,13 @@ impl Remote for FolderRemote {
             return Ok(());
         }
         self.put(path, &mut fs::File::open(local)?)
+    }
+
+    fn remove(&self, path: &str) -> Result<()> {
+        match fs::remove_file(self.at(path)?) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.into()),
+            _ => Ok(()),
+        }
     }
 }
 
@@ -566,18 +579,72 @@ impl OpenVault {
         Ok(())
     }
 
+    /// The vault's lock as this device has it: its header (the Master Key wrapped with
+    /// the password and the Recovery Key, sealed meta) and the library's (salt, Argon2
+    /// cost, the key's fingerprint). What a new device needs, with the 24 words and the
+    /// password, to open the vault from the place. Nothing in it opens anything alone.
+    /// With when it last changed here (ms), so an older lock never replaces a newer one.
+    fn lock_bytes(&self) -> Result<(u64, Vec<u8>)> {
+        let header_file = self.dir.join(crate::HEADER_FILE);
+        let library_file = self
+            .dir
+            .parent()
+            .and_then(Path::parent)
+            .map(|d| d.join(crate::LIBRARY_FILE))
+            .ok_or(Error::Corrupt("library"))?;
+        let changed = [&header_file, &library_file]
+            .iter()
+            .filter_map(|f| fs::metadata(f).and_then(|m| m.modified()).ok())
+            .filter_map(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64)
+            .max()
+            .unwrap_or(0);
+        let vault: serde_json::Value = serde_json::from_slice(&fs::read(header_file)?)
+            .map_err(|_| Error::Corrupt("vault header"))?;
+        let library: serde_json::Value = serde_json::from_slice(&fs::read(library_file)?)
+            .map_err(|_| Error::Corrupt("library.json"))?;
+        let bytes = serde_json::to_vec(&serde_json::json!({ "vault": vault, "library": library }))
+            .expect("json");
+        Ok((changed, bytes))
+    }
+
+    /// Put this device's lock in the place, named by its content, and only then remove
+    /// any other: after the password or Recovery Key changed, the old ones no longer
+    /// open the copy there (owner 2026-10-24).
+    ///
+    /// Names are `<ms changed>-<sha256>.json`. A device whose lock is older (its password
+    /// or key not changed yet) leaves the newer one alone.
+    fn push_lock(&self, remote: &dyn Remote, base: &str) -> Result<()> {
+        let (changed, bytes) = self.lock_bytes()?;
+        let name = format!("{changed:013}-{}.json", crate::items::sha256_hex(&bytes));
+        let dir = format!("{base}/lock");
+        let there = remote.list(&dir)?;
+        let when = |n: &str| {
+            n.split('-')
+                .next()
+                .and_then(|t| t.parse::<u64>().ok())
+                .unwrap_or(0)
+        };
+        if there.iter().any(|n| when(n) > changed) {
+            return Ok(());
+        }
+        if !there.contains(&name) {
+            remote.put(&format!("{dir}/{name}"), &mut &bytes[..])?;
+        }
+        for old in there {
+            if old != name {
+                remote.remove(&format!("{dir}/{old}"))?;
+            }
+        }
+        // The single header of the first sync builds.
+        remote.remove(&format!("{base}/header.json"))
+    }
+
     fn push(&self, remote: &dyn Remote, report: &mut SyncReport) -> Result<()> {
         let me = device_id(&self.index)?;
         let rk = remote.key();
         let base = self.sync_dir();
-        // What the others need to open the vault: public files, sealed or not secret.
-        if let Some(header) = self.dir.join(crate::HEADER_FILE).to_str() {
-            if !remote.exists(&format!("{base}/header.json"))? {
-                if let Ok(bytes) = fs::read(header) {
-                    remote.put(&format!("{base}/header.json"), &mut &bytes[..])?;
-                }
-            }
-        }
+        self.push_lock(remote, &base)?;
         let mut entry = Entry::default();
         for id in self.index.ids()? {
             let Some(sealed) = self.sealed_record(&id)? else {
@@ -1028,5 +1095,57 @@ pub(crate) mod tests {
         all_bytes(t._dirs.0.path(), &mut bytes);
         assert!(!bytes.windows(6).any(|w| w == b"line 1"));
         assert!(t.b.connection_log().unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_newest_lock_replaces_the_one_in_the_place() {
+        let t = two();
+        let locks = |t: &Two| {
+            let dir = t._dirs.2.path().join(t.a.sync_dir()).join("lock");
+            let mut n: Vec<String> = fs::read_dir(dir)
+                .map(|d| {
+                    d.flatten()
+                        .map(|e| e.file_name().to_string_lossy().into_owned())
+                        .collect()
+                })
+                .unwrap_or_default();
+            n.sort();
+            n
+        };
+        t.a.sync(&t.cloud).unwrap();
+        let first = locks(&t);
+        assert_eq!(first.len(), 1);
+        assert!(!t
+            ._dirs
+            .2
+            .path()
+            .join(t.a.sync_dir())
+            .join("header.json")
+            .exists());
+        // A new password on A: its lock replaces the old one there.
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        let la = Library::open_or_create(t._dirs.0.path(), FAST, crate::tests::sk()).unwrap();
+        la.set_password(&t.a, "a brand new vault password 2026")
+            .unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        let second = locks(&t);
+        assert_eq!(second.len(), 1);
+        assert_ne!(second, first);
+        // B, still on the old password, never puts its older lock back.
+        t.b.sync(&t.cloud).unwrap();
+        assert_eq!(locks(&t), second);
+        let body = fs::read_to_string(
+            t._dirs
+                .2
+                .path()
+                .join(t.a.sync_dir())
+                .join("lock")
+                .join(&second[0]),
+        )
+        .unwrap();
+        let mine = fs::read_to_string(t.a.dir.join(crate::HEADER_FILE)).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let h: serde_json::Value = serde_json::from_str(&mine).unwrap();
+        assert_eq!(v["vault"], h);
     }
 }

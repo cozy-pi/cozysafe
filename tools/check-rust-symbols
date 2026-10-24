@@ -11,8 +11,9 @@
 # can list imports of code that never runs.
 #
 # The plain socket calls are allowed: cs-net (and only cs-net, cackle checks that)
-# syncs with a nearby device on the Wi-Fi by IP address. Name lookups stay forbidden:
-# nothing can reach a host on the internet by its name.
+# syncs with a nearby device on the Wi-Fi by IP address. getaddrinfo is allowed for one
+# name only: Google Drive's API host, a constant in cs-net/src/https.rs (no name ever
+# comes from outside). Reverse lookups and the old gethostbyname family stay forbidden.
 set -euo pipefail
 lib="$1"
 
@@ -22,7 +23,8 @@ gethostbyname gethostbyname2 gethostbyaddr getsockopt setsockopt getpeername
 getsockname shutdown"
 # cs-net, local sync (docs/supply-chain.md).
 ALLOW="socket connect bind listen accept accept4 send sendto sendmsg recv recvfrom recvmsg
-getsockopt setsockopt getpeername getsockname shutdown"
+getsockopt setsockopt getpeername getsockname shutdown
+getaddrinfo freeaddrinfo gai_strerror"
 
 case "$lib" in
   # ELF (Linux, Android). NM can point at the NDK's llvm-nm for Android libraries.
@@ -43,4 +45,4 @@ if [ -n "$found" ]; then
   echo "Find the crate that calls them (cargo tree, cackle) before allowing anything." >&2
   exit 1
 fi
-echo "OK: $lib imports $(wc -l <<<"$imports" | tr -d ' ') symbols, no name lookups"
+echo "OK: $lib imports $(wc -l <<<"$imports" | tr -d ' ') symbols, network calls only as allowed"

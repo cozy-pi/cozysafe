@@ -111,6 +111,7 @@ class _SyncProgressState extends State<SyncProgress> {
         sync.SyncStep.otherVault => _Status(icon: Icons.no_encryption_gmailerrorred_outlined, color: const Color(0xFFFF9500), title: l.syncOtherVault),
         sync.SyncStep.unreachable => _Status(icon: Icons.wifi_off_rounded, color: const Color(0xFFFF3B30), title: l.syncUnreachable),
         sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: const Color(0xFFFF3B30), title: l.syncFailed),
+        sync.SyncStep.signIn => _Status(icon: Icons.account_circle_outlined, color: const Color(0xFFFF9500), title: l.syncSignInAgain),
         // Never the last word (handled above); kept for an exhaustive switch.
         sync.SyncStep.rejected || sync.SyncStep.knock => _Status(icon: null, title: l.syncWorking),
       };

@@ -513,5 +513,12 @@
   "changeKeyApply": "Usar as palavras novas",
   "changeKeyDone": "Pronto. A chave de recuperação antiga não abre mais este cofre neste dispositivo.",
   "changeKeyFailed": "Não foi possível alterar a chave de recuperação. Nada mudou: a antiga continua funcionando.",
-  "kitLeadLegacy": "Esta chave e a senha do cofre o abrem num celular novo ou a partir de um backup. É o tipo antigo de chave: mude para 24 palavras abaixo."
+  "kitLeadLegacy": "Esta chave e a senha do cofre o abrem num celular novo ou a partir de um backup. É o tipo antigo de chave: mude para 24 palavras abaixo.",
+  "syncDriveRow": "Sincronizar com o Google Drive",
+  "syncDriveNote": "Guarda uma cópia criptografada deste cofre numa pasta \"Cozy Safe\" do seu Google Drive, para que seus outros dispositivos possam sincronizar a qualquer momento. O Google só vê arquivos criptografados.",
+  "syncAllowDrive": "Este dispositivo vai se conectar ao Google Drive (www.googleapis.com) como {account}, só para esta sincronização.",
+  "syncDriveWorking": "Sincronizando com o Google Drive",
+  "syncSignInAgain": "O Google pede que você entre de novo. Toque em Sincronizar com o Google Drive mais uma vez.",
+  "syncDriveSignOut": "Sair do Google",
+  "syncLogDrive": "Google Drive"
 }

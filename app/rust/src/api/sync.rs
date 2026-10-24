@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
+use cs_net::drive::{DriveRemote, GoogleDrive};
 use cs_net::p2p::{self, PairCode};
 use cs_net::Permit;
 use cs_vault::sync::SyncReport;
@@ -48,6 +49,8 @@ pub enum SyncStep {
     Rejected,
     /// Host only, not the end: a device has just connected and is proving the vault.
     Knock,
+    /// Google Drive refused the sign-in (expired or withdrawn): sign in again.
+    SignIn,
 }
 
 fn step(kind: SyncStep) -> SyncEvent {
@@ -90,6 +93,7 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
     step(match e {
         _ if STOP.load(Ordering::Relaxed) => SyncStep::Cancelled,
         cs_vault::Error::Corrupt("p2p code expired") => SyncStep::Expired,
+        cs_vault::Error::Corrupt("drive not signed in") => SyncStep::SignIn,
         cs_vault::Error::Corrupt(
             "p2p host not proven" | "p2p joiner not proven" | "p2p too many failed tries",
         ) => SyncStep::OtherVault,
@@ -213,6 +217,26 @@ pub fn p2p_join(code: String, sink: StreamSink<SyncEvent>) {
     let _ = sink.add(event);
 }
 
+/// The person allowed syncing with their Google Drive; `token` is the access token from
+/// their sign-in on this device (scope `drive.file`). Listing Drive happens before the
+/// vault is held; the sync itself holds it.
+pub fn drive_sync(token: String) -> SyncEvent {
+    STOP.store(false, Ordering::Relaxed);
+    let token = zeroize::Zeroizing::new(token);
+    let remote =
+        GoogleDrive::new(Permit::google_drive(), token.to_string()).and_then(DriveRemote::open);
+    let event = match remote {
+        Err(e) => failure(e),
+        Ok(remote) => match with_open(|v| Ok(v.sync(&remote))) {
+            Ok(Ok(r)) => report(r),
+            Ok(Err(e)) => failure(e),
+            Err(_) => step(SyncStep::Locked),
+        },
+    };
+    log_event("drive", Some("Google Drive"), &event);
+    event
+}
+
 /// Stop waiting, or end the session under way.
 #[flutter_rust_bridge::frb(sync)]
 pub fn p2p_cancel() {
@@ -232,7 +256,7 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         SyncStep::Connected | SyncStep::Rejected | SyncStep::Knock => return,
         SyncStep::OtherVault => "othervault",
         SyncStep::Unreachable => "unreachable",
-        SyncStep::Failed | SyncStep::Locked => "failed",
+        SyncStep::SignIn | SyncStep::Failed | SyncStep::Locked => "failed",
     };
     let (received, sent) = (event.received, event.sent);
     record(format!(

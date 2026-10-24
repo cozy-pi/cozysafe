@@ -288,6 +288,7 @@ void _screen(String name, String caption, Widget Function() home,
       _itemsNow = null;
       SyncScreen.debugLog = null;
       SyncScreen.debugAddress = null;
+      SyncScreen.debugDrive = false;
       HostSyncPage.debugHosting = null;
       HostSyncPage.debugEvents = null;
       ChangeKeyScreen.debugWords = null;
@@ -657,7 +658,12 @@ void main() {
     '${_now - 2 * 86400000}|host|-|expired|0|0',
   ];
   _screen('sync', 'Đồng bộ: hiện mã / quét mã / nhập mã, và các lần kết nối gần đây', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
-      setup: () => SyncScreen.debugLog = syncLog);
+      setup: () {
+    SyncScreen.debugLog = syncLog;
+    SyncScreen.debugDrive = true;
+  },
+      change: 'MỚI: Đồng bộ với Google Drive (đăng nhập Google, hỏi cho phép, rồi đồng bộ; Google chỉ thấy tệp đã mã hoá)',
+      marks: [() => find.byKey(const ValueKey('sync-drive'))]);
   _screen('sync-allow', 'Đồng bộ · bấm Hiện mã → hỏi cho phép, ghi rõ địa chỉ', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
@@ -687,6 +693,8 @@ void main() {
     HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 74);
     HostSyncPage.debugEvents = Stream.value(ev(SyncStep.rejected));
   });
+  _screen('sync-signin', 'Google Drive: phiên đăng nhập hết hạn', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.signIn)), onSynced: () {})),
+      change: 'MỚI: Google đòi đăng nhập lại');
   _screen('sync-failed', 'Không kết nối được', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.failed)), onSynced: () {})));
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
       act: (t) async {
@@ -782,10 +790,8 @@ void main() {
       });
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
-  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}),
-      change: 'MỚI: nút "Đổi khoá khôi phục"', marks: [() => find.byKey(const ValueKey('kit-change'))]);
-  _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-63VN-V6GG-GPDY-2RV9-WMB9-ZEWP-2WVH', confirm: false, onChange: () {}),
-      change: 'MỚI: két dùng mã cũ đổi được sang 24 từ, giữ nguyên dữ liệu', marks: [() => find.byKey(const ValueKey('kit-change'))]);
+  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
+  _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-63VN-V6GG-GPDY-2RV9-WMB9-ZEWP-2WVH', confirm: false, onChange: () {}));
   Widget change(int step) => ChangeKeyScreen(libraryDir: '', password: '', onBackup: () async {});
   for (final (i, name, what) in [
     (0, 'intro', 'giải thích: dữ liệu giữ nguyên, PIN/Face ID dùng tiếp, bản sao lưu cũ cần khoá cũ'),

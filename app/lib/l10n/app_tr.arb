@@ -513,5 +513,12 @@
   "changeKeyApply": "Yeni kelimeleri kullan",
   "changeKeyDone": "Tamam. Eski Kurtarma Anahtarı bu cihazda artık bu kasayı açmıyor.",
   "changeKeyFailed": "Kurtarma Anahtarı değiştirilemedi. Hiçbir şey değişmedi: eskisi hâlâ çalışıyor.",
-  "kitLeadLegacy": "Bu anahtar ve kasa parolanız kasanızı yeni bir telefonda veya yedekten açar. Bu eski tür bir anahtar: aşağıdan 24 kelimeye geçin."
+  "kitLeadLegacy": "Bu anahtar ve kasa parolanız kasanızı yeni bir telefonda veya yedekten açar. Bu eski tür bir anahtar: aşağıdan 24 kelimeye geçin.",
+  "syncDriveRow": "Google Drive ile eşitle",
+  "syncDriveNote": "Bu kasanın şifrelenmiş bir kopyasını Google Drive'ınızdaki \"Cozy Safe\" klasöründe tutar, böylece diğer cihazlarınız istediği zaman eşitlenebilir. Google yalnızca şifrelenmiş dosyaları görür.",
+  "syncAllowDrive": "Bu cihaz yalnızca bu eşitleme için Google Drive'a (www.googleapis.com) {account} olarak bağlanacak.",
+  "syncDriveWorking": "Google Drive ile eşitleniyor",
+  "syncSignInAgain": "Google yeniden oturum açmanızı istiyor. Google Drive ile eşitle'ye bir kez daha dokunun.",
+  "syncDriveSignOut": "Google oturumunu kapat",
+  "syncLogDrive": "Google Drive"
 }

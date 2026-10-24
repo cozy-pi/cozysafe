@@ -513,5 +513,12 @@
   "changeKeyApply": "Usa le nuove parole",
   "changeKeyDone": "Fatto. La vecchia chiave di recupero non apre più questa cassaforte su questo dispositivo.",
   "changeKeyFailed": "Impossibile cambiare la chiave di recupero. Non è cambiato nulla: la vecchia funziona ancora.",
-  "kitLeadLegacy": "Questa chiave e la password della cassaforte la aprono su un nuovo telefono o da un backup. È il tipo di chiave precedente: passa a 24 parole qui sotto."
+  "kitLeadLegacy": "Questa chiave e la password della cassaforte la aprono su un nuovo telefono o da un backup. È il tipo di chiave precedente: passa a 24 parole qui sotto.",
+  "syncDriveRow": "Sincronizza con Google Drive",
+  "syncDriveNote": "Conserva una copia crittografata di questa cassaforte in una cartella \"Cozy Safe\" del tuo Google Drive, così gli altri tuoi dispositivi possono sincronizzarsi in qualsiasi momento. Google vede solo file crittografati.",
+  "syncAllowDrive": "Questo dispositivo si collegherà a Google Drive (www.googleapis.com) come {account}, solo per questa sincronizzazione.",
+  "syncDriveWorking": "Sincronizzazione con Google Drive",
+  "syncSignInAgain": "Google ti chiede di accedere di nuovo. Tocca ancora Sincronizza con Google Drive.",
+  "syncDriveSignOut": "Esci da Google",
+  "syncLogDrive": "Google Drive"
 }

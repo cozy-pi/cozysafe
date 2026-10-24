@@ -703,5 +703,13 @@
   "changeKeyApply": "Use the new words",
   "changeKeyDone": "Done. The old Recovery Key no longer opens this vault on this device.",
   "changeKeyFailed": "The Recovery Key could not be changed. Nothing changed: the old one still works.",
-  "kitLeadLegacy": "This key and your vault password open your vault on a new phone or from a backup. It is the older kind of key: change it to 24 words below."
+  "kitLeadLegacy": "This key and your vault password open your vault on a new phone or from a backup. It is the older kind of key: change it to 24 words below.",
+  "syncDriveRow": "Sync with Google Drive",
+  "syncDriveNote": "Keeps an encrypted copy of this vault in a \"Cozy Safe\" folder of your Google Drive, so your other devices can sync any time. Google sees only encrypted files.",
+  "syncAllowDrive": "This device will connect to Google Drive (www.googleapis.com) as {account}, for this sync only.",
+  "syncDriveWorking": "Syncing with Google Drive",
+  "syncSignInAgain": "Google asks you to sign in again. Tap Sync with Google Drive once more.",
+  "syncDriveSignOut": "Sign out of Google",
+  "syncLogDrive": "Google Drive",
+  "@syncAllowDrive": {"placeholders": {"account": {}}}
 }

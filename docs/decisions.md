@@ -4,6 +4,23 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-24 — Google Drive sync, item by item, newest lock only
+
+**Owner:** sync with Google Drive like P2P (same engine, item by item: only what changed
+travels). As built: one "Cozy Safe" folder the app makes (scope `drive.file`, the app
+sees nothing else), each sealed file named by its path in the sync layout. Every sync is
+started by hand and allowed after a question naming Google Drive and the account; the
+access token comes from Google's sign-in on the device, is used for that sync and kept
+nowhere by the app. HTTPS is written in cs-net on rustls (one host, `www.googleapis.com`).
+
+The vault's lock (header + library salt and fingerprint) is kept in the place as
+`<vault>/lock/<ms>-<sha256>.json`: a newer lock replaces the others, an older one is
+never put back, so after a password or Recovery Key change the old ones stop opening the
+copy there (they found the earlier single `header.json` never changed). Passwords and the
+24 words stay per device: another device keeps its own until changed there.
+
+Next: join on a new device from Drive (or P2P) with the 24 words and the password alone.
+
 ## 2026-10-24 — The Recovery Key can be changed
 
 **Owner:** let people change their Recovery Key, including from a key made before the 24

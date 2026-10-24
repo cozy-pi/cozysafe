@@ -513,5 +513,12 @@
   "changeKeyApply": "新しい単語を使う",
   "changeKeyDone": "完了しました。この端末では、古いリカバリーキーでこの金庫を開けなくなりました。",
   "changeKeyFailed": "リカバリーキーを変更できませんでした。何も変わっていません。古いキーは引き続き使えます。",
-  "kitLeadLegacy": "このキーと金庫のパスワードで、新しいスマートフォンやバックアップから金庫を開けます。古い形式のキーです。下で24個の単語に変更してください。"
+  "kitLeadLegacy": "このキーと金庫のパスワードで、新しいスマートフォンやバックアップから金庫を開けます。古い形式のキーです。下で24個の単語に変更してください。",
+  "syncDriveRow": "Google Driveと同期",
+  "syncDriveNote": "この金庫の暗号化コピーをGoogle Driveの「Cozy Safe」フォルダに保管し、ほかのデバイスがいつでも同期できるようにします。Googleには暗号化されたファイルしか見えません。",
+  "syncAllowDrive": "このデバイスは {account} としてGoogle Drive（www.googleapis.com）に接続します。この同期のためだけです。",
+  "syncDriveWorking": "Google Driveと同期中",
+  "syncSignInAgain": "Googleから再ログインを求められています。もう一度「Google Driveと同期」をタップしてください。",
+  "syncDriveSignOut": "Googleからログアウト",
+  "syncLogDrive": "Google Drive"
 }

@@ -4,6 +4,18 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.53 (2026-10-24)
+
+### Added
+- Sync with Google Drive (Settings, Sync): sign in with Google, allow the connection,
+  and the vault syncs item by item through a "Cozy Safe" folder in your Drive. Google
+  sees only encrypted files; the app sees nothing else in your Drive. iPhone first;
+  Android once its sign-in is registered.
+
+### Security
+- After a password or Recovery Key change, the old ones no longer open the copy kept in a
+  sync place: only the newest lock stays there.
+
 ## 0.1.52 (2026-10-24)
 
 ### Fixed
