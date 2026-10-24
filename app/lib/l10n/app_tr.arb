@@ -493,5 +493,10 @@
   "syncCodeBad": "Bu, bu Wi‑Fi için bir Cozy Safe kodu değil.",
   "syncConnect": "Bağlan",
   "syncPointCamera": "Kamerayı diğer cihazınızdaki koda doğrultun.",
-  "syncNoCamera": "Burada kamera yok. Kodu yazın."
+  "syncNoCamera": "Burada kamera yok. Kodu yazın.",
+  "syncOtherVault": "Diğer cihazda farklı bir kasa var. İkisinde de aynı kasa olmalı: kasayı diğer cihazda aynı 24 kelime ve parolayla yedekten geri yükleyin.",
+  "syncUnreachable": "Diğer cihaza ulaşılamadı. İkisinin de aynı Wi‑Fi'da (misafir ağında değil) olduğunu ve kodun hâlâ göründüğünü kontrol edin.",
+  "syncRejected": "Farklı kasası olan bir cihaz katılmaya çalıştı. Beklemeye devam ediliyor.",
+  "syncLogOtherVault": "Farklı kasa",
+  "syncLogUnreachable": "Ulaşılamadı"
 }

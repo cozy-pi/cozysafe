@@ -18,6 +18,8 @@ class HostSyncPage extends StatefulWidget {
 
   /// For the mockup renders: a code without starting anything.
   static sync.Hosting? debugHosting;
+  /// For the mockup renders: what the session says.
+  static Stream<sync.SyncEvent>? debugEvents;
 
   @override
   State<HostSyncPage> createState() => _HostSyncPageState();
@@ -49,7 +51,7 @@ class _HostSyncPageState extends State<HostSyncPage> {
       });
       setState(() {
         _hosting = h;
-        _events = HostSyncPage.debugHosting != null ? const Stream.empty() : sync.p2PHostRun();
+        _events = HostSyncPage.debugHosting != null ? (HostSyncPage.debugEvents ?? const Stream.empty()) : sync.p2PHostRun();
       });
     } catch (_) {
       if (mounted) setState(() => _failed = true);

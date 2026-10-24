@@ -493,5 +493,10 @@
   "syncCodeBad": "这不是此 Wi‑Fi 的 Cozy Safe 代码。",
   "syncConnect": "连接",
   "syncPointCamera": "将相机对准另一台设备上的代码。",
-  "syncNoCamera": "此设备没有相机。请输入代码。"
+  "syncNoCamera": "此设备没有相机。请输入代码。",
+  "syncOtherVault": "另一台设备上是另一个保险箱。两台设备必须有同一个保险箱：请在另一台设备上用相同的 24 个单词和密码从备份恢复。",
+  "syncUnreachable": "无法连接到另一台设备。请检查两台设备是否在同一 Wi‑Fi 下（不是访客网络），并且代码仍在显示。",
+  "syncRejected": "有一台保险箱不同的设备尝试加入。仍在等待。",
+  "syncLogOtherVault": "保险箱不同",
+  "syncLogUnreachable": "无法连接"
 }

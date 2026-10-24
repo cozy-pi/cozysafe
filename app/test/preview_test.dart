@@ -287,6 +287,7 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugLog = null;
       SyncScreen.debugAddress = null;
       HostSyncPage.debugHosting = null;
+      HostSyncPage.debugEvents = null;
       ScanCodePage.debugPreview = null;
       VaultHomeScreen.debugReveal = false;
       debugRecordingStill = false;
@@ -659,9 +660,7 @@ void main() {
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugAddress = '192.168.1.37';
-  },
-      change: 'Sửa: ghi rõ chỉ máy có cùng két VÀ có mã tạm thời mới vào được',
-      marks: [() => find.byKey(const ValueKey('sync-allow-message'))], act: (t) async {
+  }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-show')));
     await t.pumpAndSettle();
   });
@@ -674,6 +673,16 @@ void main() {
       SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies);
   _screen('sync-connected', 'Đã kết nối: hai máy hiện cùng một số để đối chiếu', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})));
   _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
+  _screen('sync-other-vault', 'Máy kia có két khác', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.otherVault)), onSynced: () {})),
+      change: 'MỚI: báo rõ là khác két, và cách sửa (khôi phục két từ bản sao lưu)');
+  _screen('sync-unreachable', 'Không tới được máy kia', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.unreachable)), onSynced: () {})),
+      change: 'MỚI: lỗi mạng tách riêng: cùng Wi‑Fi chưa, mã còn hiện không');
+  _screen('sync-rejected', 'Máy hiện mã: một máy két khác vừa thử vào', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
+      setup: () {
+    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 74);
+    HostSyncPage.debugEvents = Stream.value(ev(SyncStep.rejected));
+  },
+      change: 'MỚI: máy hiện mã báo có máy két khác thử vào, vẫn tiếp tục chờ', marks: [() => find.byKey(const ValueKey('sync-rejected'))]);
   _screen('sync-failed', 'Không kết nối được', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.failed)), onSynced: () {})));
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
       act: (t) async {

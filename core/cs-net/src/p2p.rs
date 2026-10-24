@@ -515,7 +515,13 @@ pub struct Session {
 
 /// Step 2 (no vault): wait for the joiner until the code expires, three failed tries,
 /// or `stop` is set (the person tapped Cancel).
-pub fn host_accept(host: Host, prepared: Prepared, stop: &AtomicBool) -> Result<Session> {
+/// `on_reject` is told each time a device that could not prove this vault was turned away.
+pub fn host_accept(
+    host: Host,
+    prepared: Prepared,
+    stop: &AtomicBool,
+    on_reject: &dyn Fn(),
+) -> Result<Session> {
     host.listener.set_nonblocking(true)?;
     let mut failures = 0;
     let ch = loop {
@@ -532,6 +538,7 @@ pub fn host_accept(host: Host, prepared: Prepared, stop: &AtomicBool) -> Result<
                 match handshake_host(&prepared.key, &host.code.token, stream) {
                     Ok(ch) => break ch,
                     Err(_) => {
+                        on_reject();
                         failures += 1;
                         if failures >= MAX_FAILURES {
                             return Err(Error::Corrupt("p2p too many failed tries"));
@@ -603,13 +610,17 @@ pub fn host_open(vault: &OpenVault, permit: Permit, mirror: &Path) -> Result<Sho
 }
 
 /// Steps 2 and 3 (no vault) for the pending host; then [`host_finish`].
-pub fn host_session(stop: &AtomicBool, on_check: &dyn Fn(u16)) -> Result<Served> {
+pub fn host_session(
+    stop: &AtomicBool,
+    on_check: &dyn Fn(u16),
+    on_reject: &dyn Fn(),
+) -> Result<Served> {
     let (host, prepared) = PENDING
         .lock()
         .unwrap_or_else(|p| p.into_inner())
         .take()
         .ok_or(Error::Corrupt("p2p code expired"))?;
-    let session = host_accept(host, prepared, stop)?;
+    let session = host_accept(host, prepared, stop, on_reject)?;
     on_check(session.check);
     session.serve()
 }
@@ -627,7 +638,7 @@ pub fn serve_one(
     on_check: &dyn Fn(u16),
 ) -> Result<SyncReport> {
     let prepared = host_prepare(vault, mirror)?;
-    let session = host_accept(host, prepared, &AtomicBool::new(false))?;
+    let session = host_accept(host, prepared, &AtomicBool::new(false), &|| ())?;
     on_check(session.check);
     let served = session.serve()?;
     host_finish(vault, served)
@@ -739,12 +750,12 @@ mod tests {
             serve_one(&a, h, &m, &|_| panic!("no check for strangers")).is_err()
         });
         for _ in 0..MAX_FAILURES {
-            assert!(
-                join(&other.a, Permit::connect(code.addr), &code, &|_| panic!(
-                    "not proven"
-                ))
-                .is_err()
-            );
+            // The app tells the person it is another vault, not a network problem.
+            let e = join(&other.a, Permit::connect(code.addr), &code, &|_| {
+                panic!("not proven")
+            })
+            .unwrap_err();
+            assert!(matches!(e, Error::Corrupt("p2p host not proven")), "{e:?}");
         }
         // Three failures: the host stops listening.
         assert!(host_side.join().unwrap());
@@ -831,7 +842,7 @@ mod tests {
         let prepared = host_prepare(&t.a, mirror.path()).unwrap();
         let stop = AtomicBool::new(true);
         let started = Instant::now();
-        assert!(host_accept(h, prepared, &stop).is_err());
+        assert!(host_accept(h, prepared, &stop, &|| ()).is_err());
         assert!(started.elapsed() < Duration::from_secs(1));
     }
 }

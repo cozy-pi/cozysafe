@@ -507,5 +507,10 @@
   "syncCodeBad": "Đây không phải mã Cozy Safe trên Wi‑Fi này.",
   "syncConnect": "Kết nối",
   "syncPointCamera": "Hướng camera vào mã trên máy kia.",
-  "syncNoCamera": "Máy này không có camera. Hãy nhập mã."
+  "syncNoCamera": "Máy này không có camera. Hãy nhập mã.",
+  "syncOtherVault": "Máy kia đang có két khác. Hai máy phải cùng một két: trên máy kia, khôi phục két từ bản sao lưu bằng đúng 24 từ và mật khẩu.",
+  "syncUnreachable": "Không tới được máy kia. Kiểm tra hai máy cùng Wi‑Fi (không phải mạng khách) và mã vẫn đang hiện.",
+  "syncRejected": "Một máy có két khác vừa thử vào. Vẫn đang chờ.",
+  "syncLogOtherVault": "Khác két",
+  "syncLogUnreachable": "Không tới được máy kia"
 }

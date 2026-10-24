@@ -493,5 +493,10 @@
   "syncCodeBad": "Ce n’est pas un code Cozy Safe pour ce Wi‑Fi.",
   "syncConnect": "Se connecter",
   "syncPointCamera": "Pointez l’appareil photo vers le code sur votre autre appareil.",
-  "syncNoCamera": "Pas d’appareil photo ici. Saisissez plutôt le code."
+  "syncNoCamera": "Pas d’appareil photo ici. Saisissez plutôt le code.",
+  "syncOtherVault": "L’autre appareil contient un coffre différent. Les deux doivent avoir le même coffre : restaurez-le sur l’autre appareil depuis une sauvegarde, avec les mêmes 24 mots et le même mot de passe.",
+  "syncUnreachable": "Impossible de joindre l’autre appareil. Vérifiez que les deux sont sur le même Wi‑Fi (pas un réseau invité) et que le code est toujours affiché.",
+  "syncRejected": "Un appareil avec un autre coffre a tenté de se connecter. Toujours en attente.",
+  "syncLogOtherVault": "Autre coffre",
+  "syncLogUnreachable": "Injoignable"
 }

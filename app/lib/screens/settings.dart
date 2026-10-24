@@ -494,10 +494,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l.blockScreenshots,
                 trailing: _Switch(
                   value: _secure,
-                  onChanged: (v) => _guarded(() async {
-                    setState(() => _secure = v);
-                    Settings.setBlockScreenshots(v);
-                  }),
+                  // Turning it on only makes the vault safer: no Face ID for that
+                  // (owner 2026-10-24). Turning it off still asks.
+                  onChanged: (v) {
+                    void apply() {
+                      setState(() => _secure = v);
+                      Settings.setBlockScreenshots(v);
+                    }
+
+                    v ? apply() : _guarded(() async => apply());
+                  },
                 ),
               ),
           ]),

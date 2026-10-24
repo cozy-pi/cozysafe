@@ -493,5 +493,10 @@
   "syncCodeBad": "Este não é um código do Cozy Safe para esta Wi‑Fi.",
   "syncConnect": "Conectar",
   "syncPointCamera": "Aponte a câmera para o código no seu outro dispositivo.",
-  "syncNoCamera": "Sem câmera aqui. Digite o código."
+  "syncNoCamera": "Sem câmera aqui. Digite o código.",
+  "syncOtherVault": "O outro dispositivo tem um cofre diferente. Os dois precisam do mesmo cofre: restaure-o no outro dispositivo a partir de um backup, com as mesmas 24 palavras e a mesma senha.",
+  "syncUnreachable": "Não foi possível alcançar o outro dispositivo. Verifique se os dois estão na mesma Wi‑Fi (não numa rede de convidados) e se o código ainda está aparecendo.",
+  "syncRejected": "Um dispositivo com outro cofre tentou entrar. Ainda aguardando.",
+  "syncLogOtherVault": "Outro cofre",
+  "syncLogUnreachable": "Sem resposta"
 }

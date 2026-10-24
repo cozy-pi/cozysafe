@@ -493,5 +493,10 @@
   "syncCodeBad": "No es un código de Cozy Safe para esta Wi‑Fi.",
   "syncConnect": "Conectar",
   "syncPointCamera": "Apunta la cámara al código de tu otro dispositivo.",
-  "syncNoCamera": "No hay cámara. Escribe el código."
+  "syncNoCamera": "No hay cámara. Escribe el código.",
+  "syncOtherVault": "El otro dispositivo tiene una caja fuerte distinta. Ambos necesitan la misma: restáurala en el otro dispositivo desde una copia de seguridad, con las mismas 24 palabras y la misma contraseña.",
+  "syncUnreachable": "No se pudo llegar al otro dispositivo. Comprueba que ambos estén en la misma Wi‑Fi (no en una red de invitados) y que el código siga visible.",
+  "syncRejected": "Un dispositivo con otra caja fuerte intentó unirse. Seguimos esperando.",
+  "syncLogOtherVault": "Otra caja fuerte",
+  "syncLogUnreachable": "Sin respuesta"
 }
