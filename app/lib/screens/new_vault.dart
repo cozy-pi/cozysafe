@@ -621,14 +621,14 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     Widget row(IconData icon, String title, String body, Key key) => Container(
           key: key,
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(color: solidTint(context, ink.withValues(alpha: .08)), borderRadius: BorderRadius.circular(16)),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(color: ink.withValues(alpha: .1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: solidTint(context, ink.withValues(alpha: .1)), shape: BoxShape.circle),
                 child: Icon(icon, color: ink, size: 22),
               ),
               const SizedBox(width: 12),
@@ -805,7 +805,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             decoration: BoxDecoration(
-              color: bg ?? ink.withValues(alpha: .08),
+              color: bg ?? solidTint(context, ink.withValues(alpha: .08)),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: on ? ink : Colors.transparent, width: 3),
             ),
@@ -891,7 +891,7 @@ class _BottomButton extends StatelessWidget {
           foregroundColor: Theme.of(context).colorScheme.onSurface,
           minimumSize: const Size(96, 52),
           padding: const EdgeInsets.symmetric(horizontal: 18),
-          backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: .1),
+          backgroundColor: solidTint(context, Theme.of(context).colorScheme.onSurface.withValues(alpha: .1)),
           shape: const StadiumBorder(),
           textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
         ),

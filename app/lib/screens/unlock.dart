@@ -19,6 +19,7 @@ import 'new_vault.dart';
 import 'restore.dart';
 import 'set_pin.dart';
 import 'vault_home.dart';
+import '../theme.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
 /// PIN pad is the fallback; the password is the fallback of the fallback. The add dock
@@ -345,7 +346,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final page = Theme.of(context).scaffoldBackgroundColor;
-    final cardColor = Theme.of(context).cardColor.withValues(alpha: .94);
+    final cardColor = solidTint(context, Theme.of(context).cardColor);
     final ink = Theme.of(context).colorScheme.onSurface;
     final accent = ink;
     final bio = _bioOn ? _bioKind : null;
@@ -684,7 +685,7 @@ class _RoundButton extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
         message: tooltip,
         child: Material(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .12),
+          color: solidTint(context, Theme.of(context).colorScheme.onSurface.withValues(alpha: .12)),
           shape: const CircleBorder(),
           child: InkWell(
             customBorder: const CircleBorder(),
@@ -707,7 +708,7 @@ class _BiometricButton extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final ink = dark ? const Color(0xFF7CC0FF) : const Color(0xFF0A6FD8);
     return Material(
-      color: ink.withValues(alpha: dark ? .18 : .12),
+      color: solidTint(context, ink.withValues(alpha: dark ? .18 : .12)),
       shape: const StadiumBorder(),
       child: InkWell(
         customBorder: const StadiumBorder(),

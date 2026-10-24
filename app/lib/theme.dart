@@ -211,6 +211,9 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
         // 2026-10-21). Light mode keeps black with white text.
         backgroundColor: dark ? tone(.2) : null,
         foregroundColor: dark ? pen : null,
+        // Opaque when off too (the default is see-through over the lock's picture).
+        disabledBackgroundColor: tone(dark ? .12 : .08),
+        disabledForegroundColor: tone(.38),
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         textStyle: label.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
@@ -256,3 +259,9 @@ abstract final class Ui {
   /// middle it sits lower ([actionLift] in vault_bar.dart).
   static const double actionLift = edge + bar + 30;
 }
+
+/// [color] laid on the page, as one opaque colour. Keys, fields and buttons sit over the
+/// blurred vault picture on the lock and new-vault screens; a see-through tint let the
+/// picture show through and was hard to read (owner 2026-10-24).
+Color solidTint(BuildContext context, Color color) =>
+    Color.alphaBlend(color, Theme.of(context).scaffoldBackgroundColor);

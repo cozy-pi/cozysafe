@@ -19,6 +19,8 @@ Dates are UTC.
   sandbox rights, iPhone local network) for sync only. All network code sits in one part
   of the app, which can only reach addresses on your local network and does no name
   lookups.
+- Lock screen and new vault: number keys, fields and buttons are solid, so the picture
+  behind no longer shows through them.
 
 ## 0.1.43 (2026-10-24)
 

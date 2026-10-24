@@ -354,7 +354,7 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock);
+  _screen('lock', 'Màn khoá', lock, change: 'Phím số, khung và nút Face ID nền đặc, không còn trong suốt lộ ảnh nền');
   // Cold start: the first frames hand over from the system launch screen (dial alone).
   for (final (ms, what) in [(0, 'khung đầu, y như màn khởi động của máy'), (220, 'mặt khoá thu nhỏ, mờ dần'), (420, 'màn khoá hiện ra')]) {
     _screen('launch-$ms', 'Mở app · $ms ms · $what', () => LaunchHandoff(child: lock()), after: 0,
@@ -390,9 +390,7 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library',
-      change: 'MỚI: nút + đứng ngay sau nút Tổng quan, 4 mục kia ở sau',
-      marks: [() => find.byKey(const ValueKey('home-tab')), () => find.byKey(const ValueKey('vault-action'))]);
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library');
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
@@ -644,8 +642,6 @@ void main() {
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt', () => settings(vault));
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
-      change: 'MỚI: dòng "Đồng bộ với máy gần đây" dưới Sao lưu',
-      marks: [() => find.byKey(const ValueKey('sync-row'))],
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('kit-row')), 200, scrollable: find.byType(Scrollable).first);
     await t.drag(find.byType(Scrollable).first, const Offset(0, 200));
@@ -658,34 +654,24 @@ void main() {
     '${_now - 2 * 86400000}|host|-|expired|0|0',
   ];
   _screen('sync', 'Đồng bộ: hiện mã / quét mã / nhập mã, và các lần kết nối gần đây', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
-      setup: () => SyncScreen.debugLog = syncLog,
-      change: 'MỚI: trang Đồng bộ. Không có gì tự kết nối; nhật ký ghi mọi lần kết nối (lưu mã hoá trong két)',
-      marks: [() => find.byKey(const ValueKey('sync-show'))]);
+      setup: () => SyncScreen.debugLog = syncLog);
   _screen('sync-allow', 'Đồng bộ · bấm Hiện mã → hỏi cho phép, ghi rõ địa chỉ', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugAddress = '192.168.1.37';
-  },
-      change: 'MỚI: lần nào cũng hỏi trước khi mở kết nối, nói rõ kết nối tới đâu, bao lâu',
-      marks: [() => find.byKey(const ValueKey('sync-allow'))], act: (t) async {
+  }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-show')));
     await t.pumpAndSettle();
   });
   _screen('sync-host', 'Máy này hiện mã: QR + mã gõ tay, mã chỉ dùng được 2 phút, một lần', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 107),
-      change: 'MỚI: chờ máy kia quét mã',
-      marks: [() => find.byKey(const ValueKey('sync-qr'))]);
+      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 107));
   _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
-      setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))),
-      change: 'MỚI: chỉ nhận mã Cozy Safe; đọc được mã thì hỏi cho phép rồi mới kết nối');
-  _screen('sync-type', 'Máy kia: nhập mã 18 ký tự', () => page('Nhập mã', TypeCodePage(onSynced: () {})),
-      change: 'MỚI: nhập mã thay cho quét');
+      setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
+  _screen('sync-type', 'Máy kia: nhập mã 18 ký tự', () => page('Nhập mã', TypeCodePage(onSynced: () {})));
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0}) =>
       SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies);
-  _screen('sync-connected', 'Đã kết nối: hai máy hiện cùng một số để đối chiếu', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})),
-      change: 'MỚI: số đối chiếu; khác số thì bấm Huỷ', marks: [() => find.byKey(const ValueKey('sync-check'))]);
-  _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})),
-      change: 'MỚI: kết quả; ghi chú bị sửa ở cả hai máy thì giữ cả hai bản');
+  _screen('sync-connected', 'Đã kết nối: hai máy hiện cùng một số để đối chiếu', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})));
+  _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
   _screen('sync-failed', 'Không kết nối được', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.failed)), onSynced: () {})));
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
       act: (t) async {
@@ -749,8 +735,7 @@ void main() {
   _screen('originals-files', 'Vừa cất 2 tệp vào két', () => sheetOver(const DeleteOriginalsSheet(count: 2, photos: false)),
       section: 'file');
   _screen('blur', 'Thư viện · làm mờ ảnh thu nhỏ (mặc định)', home, section: 'library');
-  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen(),
-      change: 'Sửa: "không bao giờ kết nối internet" → không máy chủ; kết nối duy nhất là tới máy của bạn khi đồng bộ');
+  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen());
   _screen('security-info-2', 'Cách két được bảo vệ · giữa trang', () => const SecurityInfoScreen(), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-4')), 300, scrollable: find.byType(Scrollable).first);
     await t.pump();
@@ -823,6 +808,7 @@ void main() {
     await fillCheck(t);
   });
   _screen('new-vault-password', 'Tạo két · 4. Mật khẩu két: yếu vẫn đi tiếp được', () => const NewVaultScreen(libraryDir: '', first: true),
+      change: 'Ô nhập, nút Tiếp (cả lúc chưa bấm được) và nút Quay lại nền đặc',
       setup: useWords, act: (t) async {
     await tapKey(t, 'intro-start');
     await tapKey(t, 'words-done');
@@ -832,6 +818,7 @@ void main() {
     await t.pump();
   });
   _screen('new-vault-pin', 'Tạo két · 5. Mã PIN ít nhất 6 số', () => const NewVaultScreen(libraryDir: '', first: true),
+      change: 'Phím số nền đặc',
       setup: useWords, act: (t) async {
     await tapKey(t, 'intro-start');
     await tapKey(t, 'words-done');
