@@ -659,7 +659,7 @@
   "@syncAllowHost": {"placeholders": {"address": {}}},
   "syncAllowJoin": "This device will connect to {address} on your Wi‑Fi, once.",
   "@syncAllowJoin": {"placeholders": {"address": {}}},
-  "syncAllowNote": "Everything sent is encrypted. A device without this vault cannot join.",
+  "syncAllowNote": "Only a device that holds this vault and has the one-time code can join. Everything sent is encrypted.",
   "syncAllow": "Allow",
   "syncNoWifi": "Connect to Wi‑Fi first, with both devices on the same network.",
   "syncWaiting": "Waiting for your other device",

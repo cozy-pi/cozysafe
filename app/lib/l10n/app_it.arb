@@ -473,7 +473,7 @@
   "syncAllowTitle": "Consentire questa connessione?",
   "syncAllowHost": "Questo dispositivo attenderà su {address} nella tua Wi‑Fi per 2 minuti un dispositivo che ha questa cassaforte.",
   "syncAllowJoin": "Questo dispositivo si collegherà a {address} nella tua Wi‑Fi, una volta.",
-  "syncAllowNote": "Tutto ciò che viene inviato è crittografato. Un dispositivo senza questa cassaforte non può unirsi.",
+  "syncAllowNote": "Può unirsi solo un dispositivo che ha questa cassaforte e il codice monouso. Tutto ciò che viene inviato è cifrato.",
   "syncAllow": "Consenti",
   "syncNoWifi": "Prima connettiti alla Wi‑Fi, con entrambi i dispositivi sulla stessa rete.",
   "syncWaiting": "In attesa dell’altro dispositivo",

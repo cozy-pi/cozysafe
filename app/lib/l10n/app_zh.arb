@@ -473,7 +473,7 @@
   "syncAllowTitle": "允许此连接？",
   "syncAllowHost": "此设备将在你的 Wi‑Fi 上的 {address} 等待 2 分钟，等待一台有此保险箱的设备。",
   "syncAllowJoin": "此设备将连接到你的 Wi‑Fi 上的 {address}，仅一次。",
-  "syncAllowNote": "发送的所有内容都经过加密。没有此保险箱的设备无法加入。",
+  "syncAllowNote": "只有拥有此保险箱和一次性代码的设备才能加入。发送的所有内容均已加密。",
   "syncAllow": "允许",
   "syncNoWifi": "请先连接 Wi‑Fi，并让两台设备在同一网络中。",
   "syncWaiting": "正在等待另一台设备",

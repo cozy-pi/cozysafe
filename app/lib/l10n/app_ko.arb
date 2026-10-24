@@ -473,7 +473,7 @@
   "syncAllowTitle": "이 연결을 허용할까요?",
   "syncAllowHost": "이 기기는 Wi‑Fi의 {address}에서 2분 동안 이 금고가 있는 기기 한 대를 기다립니다.",
   "syncAllowJoin": "이 기기는 Wi‑Fi의 {address}에 한 번 연결합니다.",
-  "syncAllowNote": "보내는 모든 내용은 암호화됩니다. 이 금고가 없는 기기는 참여할 수 없습니다.",
+  "syncAllowNote": "이 금고와 일회용 코드가 있는 기기만 참여할 수 있습니다. 보내는 모든 내용은 암호화됩니다.",
   "syncAllow": "허용",
   "syncNoWifi": "먼저 Wi‑Fi에 연결하고 두 기기를 같은 네트워크에 두세요.",
   "syncWaiting": "다른 기기를 기다리는 중",

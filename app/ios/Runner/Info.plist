@@ -31,7 +31,7 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Voice memos you record go straight into your encrypted vault.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Sync your vault with your other device on the same Wi-Fi, only when you start it. Everything sent is encrypted.</string>
+	<string>Sync your vault with your other device on the same Wi-Fi, only when you start it. The other device can join only if it holds this vault and has the one-time code you show it. Everything sent is encrypted.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Photos you take go straight into your encrypted vault.</string>
 	<key>CFBundleDevelopmentRegion</key>
