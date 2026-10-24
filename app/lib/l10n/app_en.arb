@@ -633,5 +633,6 @@
   "lookSkip": "Skip",
   "@pinSetLead": {"placeholders": {"n": {"type": "int"}}},
   "addRowPhotos": "Photos",
-  "addRowCamera": "Camera"
+  "addRowCamera": "Camera",
+  "sideCenterShort": "Middle"
 }

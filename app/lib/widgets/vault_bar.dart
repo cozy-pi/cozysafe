@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -40,9 +41,32 @@ const _sectionPref = 'vault-section';
 const holdHomePref = 'hold-home-lock';
 bool holdHomeLocks() => Prefs.read(holdHomePref) != '0';
 
-/// Where the main action sits: in the middle, above the bar (owner 2026-10-24; it used to
-/// be on the left or right edge, which a thumb swiping the library kept hitting).
-double actionLeft(BuildContext context) => (MediaQuery.sizeOf(context).width - Ui.primary) / 2;
+/// Where the main action floats (Settings): left (default, under the left thumb), right,
+/// or in the middle above the bar (owner 2026-10-24). Its ways stack up the edge it is
+/// on; from the middle they fan out to both sides.
+enum ActionSide { left, right, center }
+
+const actionSidePref = 'action-side';
+ActionSide actionSide() => switch (Prefs.read(actionSidePref)) {
+      'right' => ActionSide.right,
+      'center' => ActionSide.center,
+      _ => ActionSide.left,
+    };
+bool actionOnRight() => actionSide() == ActionSide.right;
+
+/// How far the main action sits from the screen edge: lined up with the lock button.
+const double actionEdge = 10;
+
+/// The main action's left edge on screen.
+double actionLeft(BuildContext context) => switch (actionSide()) {
+      ActionSide.left => actionEdge,
+      ActionSide.right => MediaQuery.sizeOf(context).width - actionEdge - Ui.primary,
+      ActionSide.center => (MediaQuery.sizeOf(context).width - Ui.primary) / 2,
+    };
+
+/// The main action's bottom above the safe area: on an edge clear of the bar by 30 (a big
+/// thumb would hit the lock), in the middle just above it.
+double actionLift() => actionSide() == ActionSide.center ? Ui.edge + Ui.bar + 14 : Ui.actionLift;
 
 /// Show the vault's icon on a plain page after unlocking (on by default; Settings).
 const revealIconPref = 'reveal-icon';
@@ -505,7 +529,6 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final page = Theme.of(context).scaffoldBackgroundColor;
-    final ink = Theme.of(context).colorScheme.onSurface;
     final w = widget;
     final n = w.ways.length;
     final dim = CurvedAnimation(parent: _c, curve: const Interval(0, .6, curve: Curves.easeOut));
@@ -545,53 +568,156 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
                         ),
                       );
                     },
-                    child: MetaData(
-                      metaData: what,
-                      behavior: HitTestBehavior.opaque,
-                      child: Semantics(
-                        button: true,
-                        label: label,
-                        excludeSemantics: true,
-                        child: GestureDetector(
-                          key: ValueKey('add-${what.name}'),
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => w.onPick(what),
-                          child: SizedBox(
-                            width: AddRow.width,
-                            child: AnimatedScale(
-                              scale: w.hovered == what ? 1.14 : 1,
-                              duration: const Duration(milliseconds: 120),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: Ui.bar,
-                                    height: Ui.bar,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: w.hovered == what ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
-                                      boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
-                                    ),
-                                    child: Icon(icon, size: 26, color: w.hovered == what ? page : ink),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(label,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    child: addWayButton(context, what, icon, label, hovered: w.hovered == what, onTap: () => w.onPick(what)),
                   ),
               ],
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// One way to add as a round button with its word under it, findable under a sliding
+/// finger ([AddColumn.wayAt]). Used by [AddRow] and [AddFan].
+Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String label,
+    {required bool hovered, required VoidCallback onTap}) {
+  final page = Theme.of(context).scaffoldBackgroundColor;
+  final ink = Theme.of(context).colorScheme.onSurface;
+  return MetaData(
+    metaData: what,
+    behavior: HitTestBehavior.opaque,
+    child: Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        key: ValueKey('add-${what.name}'),
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: AddRow.width,
+          child: AnimatedScale(
+            scale: hovered ? 1.14 : 1,
+            duration: const Duration(milliseconds: 120),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: Ui.bar,
+                  height: Ui.bar,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: hovered ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
+                    boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
+                  ),
+                  child: Icon(icon, size: 26, color: hovered ? page : ink),
+                ),
+                const SizedBox(height: 6),
+                Text(label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// The + in the middle: its ways fan out on a half circle around it, out to both sides
+/// (owner 2026-10-24: a column rising from the middle looked heavy). Two ways sit level
+/// on either side; five spread over the arc. Same tap / slide as the column.
+class AddFan extends StatefulWidget {
+  const AddFan({
+    super.key,
+    required this.open,
+    required this.ways,
+    required this.centre,
+    required this.hovered,
+    required this.onPick,
+    required this.onClose,
+    required this.onGone,
+  });
+  final bool open;
+  final List<(AddWhat, IconData, String)> ways;
+  /// The + button's centre, in this widget's box.
+  final Offset centre;
+  final AddWhat? hovered;
+  final ValueChanged<AddWhat> onPick;
+  final VoidCallback onClose;
+  final VoidCallback onGone;
+
+  @override
+  State<AddFan> createState() => _AddFanState();
+}
+
+class _AddFanState extends State<AddFan> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 380),
+    reverseDuration: const Duration(milliseconds: 200),
+  )..forward();
+
+  @override
+  void didUpdateWidget(AddFan old) {
+    super.didUpdateWidget(old);
+    if (old.open && !widget.open) _c.reverse().whenComplete(() => widget.onGone());
+    if (!old.open && widget.open) _c.forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    final w = widget;
+    final n = w.ways.length;
+    // Ends a little above level so the words under them clear the bar; wider for more.
+    final radius = n <= 2 ? 96.0 : 134.0;
+    final from = n <= 2 ? 170.0 : 165.0, to = 180 - from;
+    final dim = CurvedAnimation(parent: _c, curve: const Interval(0, .6, curve: Curves.easeOut));
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: w.onClose,
+            child: FadeTransition(opacity: dim, child: ColoredBox(color: page.withValues(alpha: .92))),
+          ),
+        ),
+        for (final (i, (what, icon, label)) in w.ways.indexed)
+          AnimatedBuilder(
+            key: ValueKey('fan-$i'),
+            animation: _c,
+            builder: (context, child) {
+              final start = i * .05;
+              final t = Curves.easeOutBack.transform(((_c.value - start) / (1 - start)).clamp(0.0, 1.0));
+              final deg = n == 1 ? 90.0 : from - (from - to) * i / (n - 1);
+              // Out along its own ray, turning a little as it goes.
+              final a = (deg + (1 - t) * 20) * math.pi / 180;
+              final r = radius * t;
+              final x = w.centre.dx + r * math.cos(a);
+              final y = w.centre.dy - r * math.sin(a);
+              return Positioned(
+                left: x - AddRow.width / 2,
+                top: y - Ui.bar / 2,
+                child: Opacity(
+                  opacity: t.clamp(0.0, 1.0),
+                  child: Transform.scale(scale: .5 + .5 * t, alignment: Alignment.topCenter, child: child),
+                ),
+              );
+            },
+            child: addWayButton(context, what, icon, label, hovered: w.hovered == what, onTap: () => w.onPick(what)),
+          ),
       ],
     );
   }

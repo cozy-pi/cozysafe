@@ -421,6 +421,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   : languages.firstWhere((x) => x.code == AppLanguage.chosen).name,
               onTap: _pickLanguage,
             ),
+            // Left, middle or right right on the row: no sheet to open (owner 2026-10-24).
+            _Row(
+              key: const ValueKey('side-row'),
+              icon: Icons.back_hand_outlined,
+              color: _Mau.cam,
+              title: l.actionSide,
+              trailing: _SideSwitch(
+                side: actionSide(),
+                labels: (l.sideLeftShort, l.sideCenterShort, l.sideRightShort),
+                onChanged: (v) => setState(() => Prefs.write(actionSidePref, v.name)),
+              ),
+            ),
             _Row(
               key: const ValueKey('hold-home-row'),
               icon: Icons.lock_outline_rounded,
@@ -801,6 +813,46 @@ class _Switch extends StatelessWidget {
         activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : _Mau.xanhLa,
         activeThumbColor: Colors.white,
       );
+}
+
+class _SideSwitch extends StatelessWidget {
+  const _SideSwitch({required this.side, required this.labels, required this.onChanged});
+  final ActionSide side;
+  final (String, String, String) labels;
+  final ValueChanged<ActionSide> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    Widget part(String text, ActionSide value) {
+      final on = side == value;
+      return GestureDetector(
+        key: ValueKey('side-${value.name}'),
+        onTap: () => onChanged(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: on ? (dark ? ink.withValues(alpha: .28) : Colors.white) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: on && !dark ? const [BoxShadow(color: Color(0x22000000), blurRadius: 4, offset: Offset(0, 1))] : null,
+          ),
+          child: Text(text, style: TextStyle(fontSize: 14, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(19)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        part(labels.$1, ActionSide.left),
+        part(labels.$2, ActionSide.center),
+        part(labels.$3, ActionSide.right),
+      ]),
+    );
+  }
 }
 
 /// "Same as device", then every language in its own name; a tick on the current one.

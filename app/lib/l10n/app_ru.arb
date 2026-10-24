@@ -452,5 +452,6 @@
   "lookLead": "Это можно изменить позже в настройках.",
   "lookSkip": "Пропустить",
   "addRowPhotos": "Фото",
-  "addRowCamera": "Камера"
+  "addRowCamera": "Камера",
+  "sideCenterShort": "Центр"
 }

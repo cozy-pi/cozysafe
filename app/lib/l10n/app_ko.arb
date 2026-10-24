@@ -452,5 +452,6 @@
   "lookLead": "나중에 설정에서 바꿀 수 있습니다.",
   "lookSkip": "건너뛰기",
   "addRowPhotos": "사진",
-  "addRowCamera": "카메라"
+  "addRowCamera": "카메라",
+  "sideCenterShort": "가운데"
 }

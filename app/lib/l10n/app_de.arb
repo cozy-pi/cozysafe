@@ -452,5 +452,6 @@
   "lookLead": "Sie können das später in den Einstellungen ändern.",
   "lookSkip": "Überspringen",
   "addRowPhotos": "Fotos",
-  "addRowCamera": "Kamera"
+  "addRowCamera": "Kamera",
+  "sideCenterShort": "Mitte"
 }
