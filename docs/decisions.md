@@ -4,6 +4,19 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-24 — One vault in the app; the core keeps many
+
+**Owner:** the app offers **one vault**: no "New vault" button, no vault list. Settings
+gets "Delete vault" (after Face ID / the phone's passcode, also when the PIN and
+password are forgotten), then a fresh start. **The core (`cs-vault`) keeps multi-vault
+support unchanged** (library with several `vaults/<id>/`, PIN and password picking the
+vault, backups) so that several vaults can come back later by changing only the UI.
+A phone that already has several vaults keeps opening each with its PIN.
+Why: simpler (one PIN, one password, one set of 24 words), and a vault list would show
+how many vaults exist — which the files on disk show anyway, so hiding it was never real.
+Groups (tags) cover "family / work". Also: the + sits in the middle; its menu is to be
+redone (horizontal, fewer choices) — under discussion.
+
 ## 2026-10-23 — New vault flow, one set of 24 words per device
 
 **Owner:** creating a vault becomes: what each key is for → 24 words (back them up, then
