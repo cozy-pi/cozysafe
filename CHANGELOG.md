@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.49 (2026-10-24)
+
+### Fixed
+- After deleting the last vault on a device set up before the 24 words, Start on the
+  new-vault screen stayed greyed out. The device now makes a new 24-word Recovery Key.
+
 ## 0.1.48 (2026-10-24)
 
 ### Changed

@@ -208,6 +208,12 @@ fn key_from(bytes: &[u8]) -> Option<SecretKey> {
     SecretKey::from_slice(bytes)
 }
 
+/// With no vault on this device, let the next one start the library with a new Secret
+/// Key (an old 128-bit key cannot be shown as 24 words). False while any vault exists.
+pub fn reset_empty_library(dir: String) -> Result<bool, VaultError> {
+    Ok(Library::reset_if_empty(Path::new(&dir))?)
+}
+
 /// A new random Secret Key, for the first vault on a device.
 #[flutter_rust_bridge::frb(sync)]
 pub fn new_secret_key() -> Vec<u8> {
