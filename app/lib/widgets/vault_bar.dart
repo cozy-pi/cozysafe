@@ -203,10 +203,18 @@ class VaultBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final centre = this.centre;
     if (centre != null) {
+      // The vault's badge (the overview, hold to lock) on its own on the left; the
+      // other sections share the bar two and two around the + (owner 2026-10-24: icons
+      // only, balanced).
+      final homeOn = sections.length >= 2 && sections.contains(VaultSection.home) && home != null;
       return Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (lock case final lock?) ...[lock, const SizedBox(width: 4)],
+          if (homeOn) ...[
+            _HomeButton(on: section == VaultSection.home, home: home!, onTap: () => _pick(VaultSection.home), onHold: onHoldHome),
+            const SizedBox(width: 4),
+          ],
           Expanded(
             child: Glass(
               radius: Ui.bar / 2,
@@ -214,10 +222,8 @@ class VaultBar extends StatelessWidget {
                 height: Ui.bar + 8,
                 child: _CentreTabs(
                   section: section,
-                  sections: sections.length < 2 ? const [] : sections,
-                  home: home,
+                  sections: [for (final s in sections.length < 2 ? const <VaultSection>[] : sections) if (s != VaultSection.home) s],
                   onPick: _pick,
-                  onHoldHome: onHoldHome,
                   centre: centre,
                 ),
               ),
@@ -250,22 +256,65 @@ class VaultBar extends StatelessWidget {
   }
 }
 
-/// The bar with the + in its middle: each section an icon over a small word, half of them
-/// on each side, so the + stays in the centre whatever the count.
+/// Wide enough to sit left of the bar: the vault's badge as the overview tab.
+const double centreHomeWidth = Ui.bar + 8 + 4;
+
+class _HomeButton extends StatelessWidget {
+  const _HomeButton({required this.on, required this.home, required this.onTap, this.onHold});
+  final bool on;
+  final Widget home;
+  final VoidCallback onTap;
+  final VoidCallback? onHold;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      button: true,
+      selected: on,
+      label: sectionLabel(l, VaultSection.home),
+      hint: onHold == null ? null : l.holdToLock,
+      child: GestureDetector(
+        key: const ValueKey('home-tab'),
+        onTap: onTap,
+        onLongPress: onHold == null
+            ? null
+            : () {
+                HapticFeedback.heavyImpact();
+                onHold!();
+              },
+        child: Glass(
+          radius: (Ui.bar + 8) / 2,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: Ui.bar + 8,
+            height: Ui.bar + 8,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: on ? primary : Colors.transparent, width: 2),
+            ),
+            child: home,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The bar with the + in its middle: each section an icon (names for screen readers),
+/// in equal slots, half on each side, so the + stays in the centre whatever the count.
 class _CentreTabs extends StatelessWidget {
   const _CentreTabs({
     required this.section,
     required this.sections,
-    required this.home,
     required this.onPick,
-    required this.onHoldHome,
     required this.centre,
   });
   final VaultSection section;
   final List<VaultSection> sections;
-  final Widget? home;
   final ValueChanged<VaultSection> onPick;
-  final VoidCallback? onHoldHome;
   final Widget centre;
 
   static IconData _icon(VaultSection s) => switch (s) {
@@ -283,36 +332,27 @@ class _CentreTabs extends StatelessWidget {
     final ink = Theme.of(context).colorScheme.onSurface;
     Widget tab(VaultSection s) {
       final on = s == section;
-      final color = on ? primary : ink.withValues(alpha: .7);
-      final hold = s == VaultSection.home ? onHoldHome : null;
       return Expanded(
-        child: Semantics(
-          button: true,
-          selected: on,
-          label: sectionLabel(l, s),
-          hint: hold == null ? null : l.holdToLock,
-          child: GestureDetector(
-            key: s == VaultSection.home ? const ValueKey('home-tab') : ValueKey('tab-${s.name}'),
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onPick(s),
-            onLongPress: hold == null
-                ? null
-                : () {
-                    HapticFeedback.heavyImpact();
-                    hold();
-                  },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                s == VaultSection.home && home != null
-                    ? SizedBox(height: 26, child: FittedBox(child: home!))
-                    : Icon(_icon(s), size: 24, color: color),
-                const SizedBox(height: 3),
-                Text(sectionLabel(l, s),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10.5, fontWeight: on ? FontWeight.w700 : FontWeight.w600, color: color)),
-              ],
+        child: Tooltip(
+          message: sectionLabel(l, s),
+          child: Semantics(
+            button: true,
+            selected: on,
+            label: sectionLabel(l, s),
+            excludeSemantics: true,
+            child: GestureDetector(
+              key: ValueKey('tab-${s.name}'),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onPick(s),
+              child: Center(
+                // A small pop as it becomes the one on show (the pill slides under it).
+                child: AnimatedScale(
+                  scale: on ? 1.08 : 1,
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutBack,
+                  child: Icon(_icon(s), size: 26, color: on ? primary : ink.withValues(alpha: .7)),
+                ),
+              ),
             ),
           ),
         ),
@@ -320,13 +360,57 @@ class _CentreTabs extends StatelessWidget {
     }
 
     final half = (sections.length + 1) ~/ 2;
-    return Row(
-      children: [
-        Expanded(child: Row(children: [for (final s in sections.take(half)) tab(s)])),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: centre),
-        Expanded(child: Row(children: [for (final s in sections.skip(half)) tab(s)])),
-      ],
-    );
+    final left = sections.take(half).toList();
+    final right = sections.skip(half).toList();
+    // Equal slots on both sides (the side with fewer keeps an empty one), so the gaps
+    // match and the + is centred.
+    Widget side(List<VaultSection> list, {required bool leading}) => Expanded(
+          child: Row(children: [
+            if (!leading) for (var i = list.length; i < half; i++) const Spacer(),
+            for (final s in list) tab(s),
+            if (leading) for (var i = list.length; i < half; i++) const Spacer(),
+          ]),
+        );
+    const gap = 4.0;
+    return LayoutBuilder(builder: (context, box) {
+      // Where the lit pill sits: under the section on show, sliding from one to the
+      // next (owner 2026-10-24: "like Instagram").
+      final sideW = (box.maxWidth - Ui.primary - gap * 2) / 2;
+      final slotW = half == 0 ? 0.0 : sideW / half;
+      double? pillX;
+      final li = left.indexOf(section), ri = right.indexOf(section);
+      if (li >= 0) pillX = (half - left.length + li) * slotW;
+      if (ri >= 0) pillX = sideW + Ui.primary + gap * 2 + ri * slotW;
+      const pillW = 52.0, pillH = Ui.bar - 12;
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          if (pillX != null)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutCubic,
+              left: pillX + (slotW - pillW) / 2,
+              top: (box.maxHeight - pillH) / 2,
+              width: pillW,
+              height: pillH,
+              child: DecoratedBox(
+                key: const ValueKey('tab-pill'),
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(pillH / 2),
+                ),
+              ),
+            ),
+          Row(
+            children: [
+              side(left, leading: false),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: gap), child: centre),
+              side(right, leading: true),
+            ],
+          ),
+        ],
+      );
+    });
   }
 }
 
@@ -383,7 +467,9 @@ class _TabsState extends State<_Tabs> {
     // Measure in the font the tabs are drawn in.
     final base = DefaultTextStyle.of(context).style;
 
-    Widget tab(VaultSection s, {double? width}) {
+    // `lit`: the tab draws its own pill (scrolling row); otherwise one pill slides
+    // under the tabs.
+    Widget tab(VaultSection s, {double? width, bool lit = true}) {
       final on = s == widget.section;
       final hold = s == VaultSection.home ? widget.onHoldHome : null;
       return Semantics(
@@ -406,7 +492,7 @@ class _TabsState extends State<_Tabs> {
             width: width,
             padding: width == null ? const EdgeInsets.symmetric(horizontal: _pad) : EdgeInsets.zero,
             decoration: BoxDecoration(
-              color: on ? primary.withValues(alpha: .14) : Colors.transparent,
+              color: on && lit ? primary.withValues(alpha: .14) : Colors.transparent,
               borderRadius: BorderRadius.circular((Ui.bar - 8) / 2),
             ),
             alignment: Alignment.center,
@@ -438,10 +524,24 @@ class _TabsState extends State<_Tabs> {
       ];
       final total = need.fold<double>(0, (a, w) => a + w);
       final fits = total <= room;
-      return Row(
+      // Where the one pill sits (all tabs fit): it slides to the tab tapped, as in
+      // Instagram's bar (owner 2026-10-24).
+      Rect? pill;
+      if (fits) {
+        if (homeOn && widget.section == VaultSection.home) {
+          pill = Rect.fromLTWH(0, 0, homeW, box.maxHeight);
+        } else {
+          final i = rest.indexOf(widget.section);
+          if (i >= 0) {
+            final x = need.take(i).fold<double>(0, (a, w) => a + w);
+            pill = Rect.fromLTWH(homeW + x, 0, need[i], box.maxHeight);
+          }
+        }
+      }
+      final row = Row(
         mainAxisSize: fits ? MainAxisSize.min : MainAxisSize.max,
         children: [
-          if (homeOn) tab(VaultSection.home, width: homeW),
+          if (homeOn) tab(VaultSection.home, width: homeW, lit: !fits),
           SizedBox(
             width: fits ? total : room,
             child: fits
@@ -459,7 +559,8 @@ class _TabsState extends State<_Tabs> {
                     return GestureDetector(
                       onHorizontalDragUpdate: (d) => widget.onPick(at(d.localPosition.dx)),
                       child: Row(children: [
-                        for (final (i, s) in rest.indexed) Expanded(flex: (need[i] * 10).round(), child: tab(s)),
+                        for (final (i, s) in rest.indexed)
+                          Expanded(flex: (need[i] * 10).round(), child: tab(s, lit: false)),
                       ]),
                     );
                   })
@@ -478,6 +579,27 @@ class _TabsState extends State<_Tabs> {
                     ),
                   ),
           ),
+        ],
+      );
+      if (pill == null) return row;
+      return Stack(
+        children: [
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            left: pill.left,
+            top: 0,
+            width: pill.width,
+            height: pill.height,
+            child: DecoratedBox(
+              key: const ValueKey('tab-pill'),
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular((Ui.bar - 8) / 2),
+              ),
+            ),
+          ),
+          row,
         ],
       );
     });

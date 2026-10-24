@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.42 (2026-10-24)
+
+### Changed
+- Bottom bar: the lit pill slides to the section tapped.
+- Add button "Middle": icons only, the vault's badge on its own on the left, and the
+  four sections two on each side of the +, evenly spaced (the words overflowed).
+
 ## 0.1.41 (2026-10-24)
 
 ### Fixed

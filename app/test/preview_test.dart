@@ -373,7 +373,9 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện', home, section: 'library');
+  _screen('library', 'Thư viện', home, section: 'library',
+      change: 'MỚI: bấm mục khác, viên nền sáng trượt nhẹ sang mục đó (như Instagram)',
+      marks: [() => find.byKey(const ValueKey('tab-pill'))]);
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · bấm + (nút bên trái)', home, section: 'library', setup: () => debugCamera = true, act: (t) async {
@@ -509,7 +511,7 @@ void main() {
   _screen('library-center', 'Thư viện · nút + ở giữa thanh', home, section: 'library', setup: () {
     Prefs.write('action-side', 'center');
   },
-      change: 'MỚI: chọn "Giữa": nút + nằm trong thanh dưới, các mục thành biểu tượng + chữ nhỏ chia hai bên',
+      change: 'Nút giữa: chỉ biểu tượng, két tách ra nút tròn bên trái, 2 | + | 2 cân đều; viên nền trượt sang mục được bấm',
       marks: [() => find.byKey(const ValueKey('vault-action'))]);
   _screen('quick-photo-center', 'Xem trước · nút + ở giữa thanh', home, section: 'library', setup: () {
     Prefs.write('action-side', 'center');
