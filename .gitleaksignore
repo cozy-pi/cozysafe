@@ -8,3 +8,8 @@
 37e278ab36d391dc34e5ad72049126a5d34d2467:app/test/preview_test.dart:generic-api-key:346
 37e278ab36d391dc34e5ad72049126a5d34d2467:app/test/secret_test.dart:generic-api-key:15
 8ba606e025c4d2369b713b66ca63f4ad0aa7136d:app/test/lock_flow_test.dart:generic-api-key:209
+ad70d3b423bc22488a4377682f026e49fcfd3cdb:app/test/preview_test.dart:generic-api-key:792
+# A real Recovery Key of the old kind, pasted by the owner in a chat and wrongly used as
+# mockup data (removed in 2026-10-24). Retired: the owner changed to new 24 words that day.
+d9082769cc1dca1289015347f7ff7a69d246a69a:app/test/preview_test.dart:generic-api-key:796
+deb5b81992a75cfe9ca5930a668904918606d3c2:app/test/preview_test.dart:generic-api-key:789
