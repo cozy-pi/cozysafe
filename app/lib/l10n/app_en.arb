@@ -693,5 +693,14 @@
   "@syncConnectingTo": {"placeholders": {"address": {}}},
   "kitPasswordTitle": "Vault password",
   "kitPasswordLead": "To show the Recovery Key, also type this vault's password.",
-  "kitPasswordGo": "Show the Recovery Key"
+  "kitPasswordGo": "Show the Recovery Key",
+  "changeKeyButton": "Change Recovery Key",
+  "changeKeyLegacy": "Change to 24 words",
+  "changeKeyTitle": "New Recovery Key",
+  "changeKeyLead": "You get 24 new words. Everything in the vault stays as it is, and your PIN and Face ID keep working.",
+  "changeKeyBackupNote": "Backups made before still need the old Recovery Key. Make a new backup once you are done.",
+  "changeKeyStart": "Make new words",
+  "changeKeyApply": "Use the new words",
+  "changeKeyDone": "Done. The old Recovery Key no longer opens this vault on this device.",
+  "changeKeyFailed": "The Recovery Key could not be changed. Nothing changed: the old one still works."
 }

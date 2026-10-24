@@ -214,6 +214,31 @@ pub fn reset_empty_library(dir: String) -> Result<bool, VaultError> {
     Ok(Library::reset_if_empty(Path::new(&dir))?)
 }
 
+/// Move this device's library to `new_key` (a new Recovery Key) after the person typed
+/// the open vault's password: false if it is not that password. Nothing is lost if the
+/// app stops before [`finish_secret_key_change`]: the old key still opens it.
+pub fn change_secret_key(
+    dir: String,
+    password: String,
+    new_key: Vec<u8>,
+) -> Result<bool, VaultError> {
+    let password = Zeroizing::new(password);
+    let new_key = Zeroizing::new(new_key);
+    let new_key = key_from(&new_key).ok_or(VaultError::Storage)?;
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    with_open(|v| Ok(library.change_secret_key(v, &password, &new_key)?))
+}
+
+/// The new key is in the keystore: use it from now on, which also drops the old one from
+/// the library (it opens nothing here any more).
+pub fn finish_secret_key_change(dir: String, new_key: Vec<u8>) -> Result<(), VaultError> {
+    let new_key = Zeroizing::new(new_key);
+    let key = key_from(&new_key).ok_or(VaultError::Storage)?;
+    Library::open_or_create(Path::new(&dir), params_for_this_device(), key.clone())?;
+    *SECRET.lock().unwrap_or_else(|p| p.into_inner()) = Some(key);
+    Ok(())
+}
+
 /// A new random Secret Key, for the first vault on a device.
 #[flutter_rust_bridge::frb(sync)]
 pub fn new_secret_key() -> Vec<u8> {

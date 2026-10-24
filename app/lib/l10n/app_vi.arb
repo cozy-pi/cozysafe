@@ -517,5 +517,14 @@
   "syncConnectingTo": "Đang kết nối tới {address}…",
   "kitPasswordTitle": "Mật khẩu két",
   "kitPasswordLead": "Để xem khoá khôi phục, hãy nhập cả mật khẩu két.",
-  "kitPasswordGo": "Xem khoá khôi phục"
+  "kitPasswordGo": "Xem khoá khôi phục",
+  "changeKeyButton": "Đổi khoá khôi phục",
+  "changeKeyLegacy": "Đổi sang 24 từ",
+  "changeKeyTitle": "Khoá khôi phục mới",
+  "changeKeyLead": "Bạn nhận 24 từ mới. Mọi thứ trong két giữ nguyên, mã PIN và Face ID vẫn dùng như cũ.",
+  "changeKeyBackupNote": "Bản sao lưu cũ vẫn cần khoá khôi phục cũ. Đổi xong, hãy sao lưu lại.",
+  "changeKeyStart": "Tạo 24 từ mới",
+  "changeKeyApply": "Dùng 24 từ mới",
+  "changeKeyDone": "Xong. Khoá khôi phục cũ không còn mở được két này trên máy này.",
+  "changeKeyFailed": "Không đổi được khoá khôi phục. Chưa có gì thay đổi: khoá cũ vẫn dùng được."
 }

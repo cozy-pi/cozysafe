@@ -503,5 +503,14 @@
   "syncConnectingTo": "Connessione a {address}…",
   "kitPasswordTitle": "Password della cassaforte",
   "kitPasswordLead": "Per vedere la chiave di recupero, inserisci anche la password di questa cassaforte.",
-  "kitPasswordGo": "Mostra la chiave di recupero"
+  "kitPasswordGo": "Mostra la chiave di recupero",
+  "changeKeyButton": "Cambia chiave di recupero",
+  "changeKeyLegacy": "Passa a 24 parole",
+  "changeKeyTitle": "Nuova chiave di recupero",
+  "changeKeyLead": "Ricevi 24 nuove parole. Tutto ciò che è nella cassaforte resta com'è, e PIN e Face ID continuano a funzionare.",
+  "changeKeyBackupNote": "I backup fatti prima richiedono ancora la vecchia chiave di recupero. Al termine, fai un nuovo backup.",
+  "changeKeyStart": "Crea nuove parole",
+  "changeKeyApply": "Usa le nuove parole",
+  "changeKeyDone": "Fatto. La vecchia chiave di recupero non apre più questa cassaforte su questo dispositivo.",
+  "changeKeyFailed": "Impossibile cambiare la chiave di recupero. Non è cambiato nulla: la vecchia funziona ancora."
 }

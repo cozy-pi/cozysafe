@@ -102,6 +102,10 @@ struct LibraryHeader {
     /// [`SecretKey::fingerprint`]; absent in libraries from the first previews.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     secret_key: Option<String>,
+    /// During a Secret Key change ([`Library::change_secret_key`]): the old key's
+    /// fingerprint, still accepted until the device holds the new key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    prev_secret_key: Option<String>,
 }
 
 /// Argon2id cost, named as in RFC 9106: memory in KiB, passes (t), lanes (p).
@@ -140,6 +144,10 @@ pub(crate) struct VaultHeader {
     /// can start with only a PIN and biometrics on this device (docs/ui.md, first run).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     wrapped_master_key: String,
+    /// During a Secret Key change: the Master Key wrapped with the password and the old
+    /// key, dropped once the device holds the new one.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    prev_wrapped_master_key: String,
     meta: String,
 }
 
@@ -268,6 +276,7 @@ impl Library {
                 },
                 salt: hex::encode(cs_crypto::generate_salt()),
                 secret_key: Some(secret_key.fingerprint()),
+                prev_secret_key: None,
             };
             write_atomic(
                 &header_path,
@@ -276,8 +285,15 @@ impl Library {
         }
 
         let mut header = read_library_header(dir)?;
+        let fp = secret_key.fingerprint();
         match &header.secret_key {
-            Some(f) if *f != secret_key.fingerprint() => return Err(Error::WrongSecretKey),
+            // The new key of a change that has reached the device: the old one goes.
+            Some(f) if *f == fp && header.prev_secret_key.is_some() => {
+                finish_key_change(dir, &mut header)?;
+            }
+            // The old key of a change the device has not taken up yet: still fine.
+            Some(_) if header.prev_secret_key.as_deref() == Some(fp.as_str()) => {}
+            Some(f) if *f != fp => return Err(Error::WrongSecretKey),
             Some(_) => {}
             None => {
                 // Older library: record the fingerprint now.
@@ -365,6 +381,7 @@ impl Library {
         .expect("serialisable");
         let header = VaultHeader {
             format: FORMAT,
+            prev_wrapped_master_key: String::new(),
             salt: hex::encode(vault_salt),
             wrapped_master_key: hex::encode(wrap::wrap_key(
                 &kek,
@@ -418,14 +435,17 @@ impl Library {
             if !header.has_password() {
                 continue;
             }
-            let (Ok(salt), Ok(wrapped)) = (
-                decode_array::<SALT_LEN>(&header.salt, "vault salt"),
-                hex::decode(&header.wrapped_master_key),
-            ) else {
+            let Ok(salt) = decode_array::<SALT_LEN>(&header.salt, "vault salt") else {
                 continue;
             };
             let kek = kdf::vault_kek(root, &salt);
-            let Ok(master_key) = wrap::unwrap_key(&kek, &wrapped, &aad(&id, "master-key")) else {
+            // The current wrap, or the old one while a Secret Key change is under way.
+            let opened = [&header.wrapped_master_key, &header.prev_wrapped_master_key]
+                .into_iter()
+                .filter(|w| !w.is_empty())
+                .filter_map(|w| hex::decode(w).ok())
+                .find_map(|w| wrap::unwrap_key(&kek, &w, &aad(&id, "master-key")).ok());
+            let Some(master_key) = opened else {
                 continue;
             };
             return open_with(id, entry.path(), &header, master_key).map(Some);
@@ -508,6 +528,7 @@ impl Library {
         };
         let header = VaultHeader {
             format: FORMAT,
+            prev_wrapped_master_key: String::new(),
             salt: hex::encode(cs_crypto::generate_salt()),
             wrapped_master_key: String::new(),
             meta: hex::encode(wrap::seal(
@@ -580,6 +601,94 @@ impl Library {
             &serde_json::to_vec_pretty(&header).expect("serialisable"),
         )
     }
+
+    /// Move this library to `new_key` (a new Recovery Key), keeping every item: the
+    /// vault's Master Key is wrapped again with its password and the new key. False if
+    /// `password` is not this vault's.
+    ///
+    /// Crash-safe in this order: (1) the vault keeps its old wrap beside the new one,
+    /// (2) the library accepts both keys, (3) the app stores the new key, (4) opening with
+    /// it ([`Library::open_or_create`]) drops the old wrap and fingerprint. Stopped
+    /// anywhere, the key the device holds still opens the vault. Backups made before
+    /// still need the old key.
+    pub fn change_secret_key(
+        &self,
+        vault: &OpenVault,
+        password: &str,
+        new_key: &SecretKey,
+    ) -> Result<bool> {
+        let old_root = kdf::derive_root(
+            password.as_bytes(),
+            &self.secret_key,
+            &self.salt,
+            self.params,
+        )?;
+        let mut header = read_header(&vault.dir).ok_or(Error::Corrupt("vault header"))?;
+        let salt = decode_array::<SALT_LEN>(&header.salt, "vault salt")?;
+        let old_kek = kdf::vault_kek(&old_root, &salt);
+        let aad = aad(&vault.id, "master-key");
+        // Which wrap the old key opens (the current one, or the kept one after a change
+        // that stopped half-way): that one is kept until the end.
+        let Some(old_wrap) = [&header.wrapped_master_key, &header.prev_wrapped_master_key]
+            .into_iter()
+            .filter(|w| !w.is_empty())
+            .find(|w| {
+                hex::decode(w).is_ok_and(|b| {
+                    wrap::unwrap_key(&old_kek, &b, &aad).is_ok_and(|k| k == vault.master_key)
+                })
+            })
+            .cloned()
+        else {
+            return Ok(false);
+        };
+        // Another vault opening by password would stop opening (debug builds only).
+        for entry in fs::read_dir(self.dir.join(VAULTS_DIR))? {
+            let entry = entry?;
+            if entry.file_name().to_string_lossy() != vault.id
+                && read_header(&entry.path()).is_some_and(|h| h.has_password())
+            {
+                return Err(Error::Corrupt("another vault uses this Recovery Key"));
+            }
+        }
+        let new_root = kdf::derive_root(password.as_bytes(), new_key, &self.salt, self.params)?;
+        let new_kek = kdf::vault_kek(&new_root, &salt);
+        header.prev_wrapped_master_key = old_wrap;
+        header.wrapped_master_key = hex::encode(wrap::wrap_key(&new_kek, &vault.master_key, &aad));
+        write_atomic(
+            &vault.dir.join(HEADER_FILE),
+            &serde_json::to_vec_pretty(&header).expect("serialisable"),
+        )?;
+        let mut lib = read_library_header(&self.dir)?;
+        lib.prev_secret_key = Some(self.secret_key.fingerprint());
+        lib.secret_key = Some(new_key.fingerprint());
+        write_atomic(
+            &self.dir.join(LIBRARY_FILE),
+            &serde_json::to_vec_pretty(&lib).expect("serialisable"),
+        )?;
+        Ok(true)
+    }
+}
+
+/// The end of a Secret Key change: the old key no longer opens anything here.
+fn finish_key_change(dir: &Path, header: &mut LibraryHeader) -> Result<()> {
+    if let Ok(entries) = fs::read_dir(dir.join(VAULTS_DIR)) {
+        for entry in entries.flatten() {
+            if let Some(mut h) = read_header(&entry.path()) {
+                if !h.prev_wrapped_master_key.is_empty() {
+                    h.prev_wrapped_master_key.clear();
+                    write_atomic(
+                        &entry.path().join(HEADER_FILE),
+                        &serde_json::to_vec_pretty(&h).expect("serialisable"),
+                    )?;
+                }
+            }
+        }
+    }
+    header.prev_secret_key = None;
+    write_atomic(
+        &dir.join(LIBRARY_FILE),
+        &serde_json::to_vec_pretty(&*header).expect("serialisable"),
+    )
 }
 
 impl OpenVault {
@@ -751,6 +860,98 @@ pub(crate) mod tests {
 
     fn lib(dir: &Path) -> Library {
         Library::open_or_create(dir, FAST, sk()).unwrap()
+    }
+
+    fn note(v: &OpenVault, text: &str) -> String {
+        v.add_item(crate::items::NewItem {
+            kind: crate::items::kind::NOTE,
+            name: "n",
+            mime: "text/plain",
+            created_ms: 1,
+            content: text.as_bytes(),
+            thumbnail: None,
+        })
+        .unwrap()
+        .id
+    }
+
+    #[test]
+    fn the_recovery_key_changes_from_the_old_kind_to_24_words() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = SecretKey::from_slice(&[9u8; 16]).unwrap();
+        let new = SecretKey::generate();
+        let l = Library::open_or_create(tmp.path(), FAST, old.clone()).unwrap();
+        let v = l.create_vault("Két", PW_A).unwrap();
+        let id = note(&v, "giữ nguyên");
+        let dk = SecretKey::generate();
+        v.enable_pin("246810", &dk, FAST).unwrap();
+
+        assert!(
+            !l.change_secret_key(&v, PW_B, &new).unwrap(),
+            "wrong password"
+        );
+        assert!(l.change_secret_key(&v, PW_A, &new).unwrap());
+        drop(v);
+        // Until the device holds the new key, the old one still opens it.
+        let still = Library::open_or_create(tmp.path(), FAST, old.clone()).unwrap();
+        assert!(still.unlock(PW_A).unwrap().is_some());
+        // The new key: opens, and the change finishes.
+        let l = Library::open_or_create(tmp.path(), FAST, new.clone()).unwrap();
+        let v = l.unlock(PW_A).unwrap().expect("opens with the new key");
+        let mut out = Vec::new();
+        v.read_item(&id, &mut out).unwrap();
+        assert_eq!(out, "giữ nguyên".as_bytes());
+        drop(v);
+        // The old key opens nothing any more; the PIN still does.
+        assert!(matches!(
+            Library::open_or_create(tmp.path(), FAST, old),
+            Err(Error::WrongSecretKey)
+        ));
+        assert!(Library::unlock_pin(tmp.path(), "246810", &dk)
+            .unwrap()
+            .is_some());
+        let h = read_header(&tmp.path().join(VAULTS_DIR).join(id_of(tmp.path()))).unwrap();
+        assert!(h.prev_wrapped_master_key.is_empty());
+    }
+
+    fn id_of(dir: &Path) -> String {
+        fs::read_dir(dir.join(VAULTS_DIR))
+            .unwrap()
+            .flatten()
+            .next()
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    #[test]
+    fn a_key_change_stopped_half_way_never_locks_the_vault_out() {
+        let tmp = tempfile::tempdir().unwrap();
+        let k0 = sk();
+        let l = Library::open_or_create(tmp.path(), FAST, k0.clone()).unwrap();
+        let v = l.create_vault("Két", PW_A).unwrap();
+        let lib_before = fs::read(tmp.path().join(LIBRARY_FILE)).unwrap();
+        // The app stopped after the vault header, before the library header.
+        let k1 = SecretKey::generate();
+        assert!(l.change_secret_key(&v, PW_A, &k1).unwrap());
+        fs::write(tmp.path().join(LIBRARY_FILE), &lib_before).unwrap();
+        drop(v);
+        let l = Library::open_or_create(tmp.path(), FAST, k0.clone()).unwrap();
+        let v = l.unlock(PW_A).unwrap().expect("the old key still opens");
+        // Trying again with another key works, and keeps the old way in until the end.
+        let k2 = SecretKey::generate();
+        assert!(l.change_secret_key(&v, PW_A, &k2).unwrap());
+        drop(v);
+        assert!(Library::open_or_create(tmp.path(), FAST, k0)
+            .unwrap()
+            .unlock(PW_A)
+            .unwrap()
+            .is_some());
+        // The lost k1 opens nothing.
+        assert!(Library::open_or_create(tmp.path(), FAST, k1).is_err());
+        let l = Library::open_or_create(tmp.path(), FAST, k2).unwrap();
+        assert!(l.unlock(PW_A).unwrap().is_some());
     }
 
     #[test]

@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.50 (2026-10-24)
+
+### Added
+- Change the Recovery Key (Settings, Security, Recovery Key): new 24 words for this
+  device, also from a key made before the 24 words. Everything in the vault stays; the
+  PIN and Face ID keep working. Stopping half-way never locks the vault out. Backups made
+  before still need the old key, so the app offers a new backup at the end.
+
 ## 0.1.49 (2026-10-24)
 
 ### Fixed

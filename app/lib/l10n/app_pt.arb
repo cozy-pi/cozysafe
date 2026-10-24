@@ -503,5 +503,14 @@
   "syncConnectingTo": "Conectando a {address}…",
   "kitPasswordTitle": "Senha do cofre",
   "kitPasswordLead": "Para ver a chave de recuperação, digite também a senha deste cofre.",
-  "kitPasswordGo": "Ver a chave de recuperação"
+  "kitPasswordGo": "Ver a chave de recuperação",
+  "changeKeyButton": "Alterar chave de recuperação",
+  "changeKeyLegacy": "Mudar para 24 palavras",
+  "changeKeyTitle": "Nova chave de recuperação",
+  "changeKeyLead": "Você recebe 24 palavras novas. Tudo no cofre continua como está, e seu PIN e o Face ID continuam funcionando.",
+  "changeKeyBackupNote": "Backups feitos antes ainda precisam da chave de recuperação antiga. Quando terminar, faça um novo backup.",
+  "changeKeyStart": "Criar palavras novas",
+  "changeKeyApply": "Usar as palavras novas",
+  "changeKeyDone": "Pronto. A chave de recuperação antiga não abre mais este cofre neste dispositivo.",
+  "changeKeyFailed": "Não foi possível alterar a chave de recuperação. Nada mudou: a antiga continua funcionando."
 }

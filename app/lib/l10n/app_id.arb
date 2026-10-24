@@ -503,5 +503,14 @@
   "syncConnectingTo": "Menghubungkan ke {address}…",
   "kitPasswordTitle": "Kata sandi brankas",
   "kitPasswordLead": "Untuk melihat Kunci Pemulihan, ketik juga kata sandi brankas ini.",
-  "kitPasswordGo": "Lihat Kunci Pemulihan"
+  "kitPasswordGo": "Lihat Kunci Pemulihan",
+  "changeKeyButton": "Ganti Kunci Pemulihan",
+  "changeKeyLegacy": "Ganti ke 24 kata",
+  "changeKeyTitle": "Kunci Pemulihan baru",
+  "changeKeyLead": "Anda mendapat 24 kata baru. Semua isi brankas tetap seperti semula, dan PIN serta Face ID tetap berfungsi.",
+  "changeKeyBackupNote": "Cadangan yang dibuat sebelumnya tetap memerlukan Kunci Pemulihan lama. Setelah selesai, buat cadangan baru.",
+  "changeKeyStart": "Buat kata baru",
+  "changeKeyApply": "Gunakan kata baru",
+  "changeKeyDone": "Selesai. Kunci Pemulihan lama tidak lagi bisa membuka brankas ini di perangkat ini.",
+  "changeKeyFailed": "Kunci Pemulihan tidak dapat diganti. Tidak ada yang berubah: kunci lama masih berfungsi."
 }

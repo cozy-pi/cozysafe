@@ -4,6 +4,17 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-24 — The Recovery Key can be changed
+
+**Owner:** let people change their Recovery Key, including from a key made before the 24
+words. Behind Face ID and the vault password (like viewing it). Only the vault's Master Key
+wrap changes (password + new key); no item is re-encrypted. Crash-safe order: the vault
+keeps its old wrap beside the new one and the library accepts both keys, then the
+keystore takes the new key, then opening with it drops the old ones
+(`Library::change_secret_key`, `finish_key_change`). Earlier backups keep needing the old
+key; the app offers a backup at the end. Refused while another vault opens by password
+(the app has one vault; debug builds can have more).
+
 ## 2026-10-24 — Network only by hand, in one crate
 
 **Owner:** sync (Google Drive, P2P) may use the network, but **every connection is

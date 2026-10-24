@@ -503,5 +503,14 @@
   "syncConnectingTo": "Verbinde mit {address} …",
   "kitPasswordTitle": "Tresor-Passwort",
   "kitPasswordLead": "Um den Wiederherstellungsschlüssel zu zeigen, gib auch das Passwort dieses Tresors ein.",
-  "kitPasswordGo": "Wiederherstellungsschlüssel zeigen"
+  "kitPasswordGo": "Wiederherstellungsschlüssel zeigen",
+  "changeKeyButton": "Wiederherstellungsschlüssel ändern",
+  "changeKeyLegacy": "Auf 24 Wörter umstellen",
+  "changeKeyTitle": "Neuer Wiederherstellungsschlüssel",
+  "changeKeyLead": "Sie erhalten 24 neue Wörter. Alles im Tresor bleibt, wie es ist, und PIN und Face ID funktionieren weiter.",
+  "changeKeyBackupNote": "Frühere Sicherungen brauchen weiterhin den alten Wiederherstellungsschlüssel. Erstellen Sie danach eine neue Sicherung.",
+  "changeKeyStart": "Neue Wörter erstellen",
+  "changeKeyApply": "Neue Wörter verwenden",
+  "changeKeyDone": "Fertig. Der alte Wiederherstellungsschlüssel öffnet diesen Tresor auf diesem Gerät nicht mehr.",
+  "changeKeyFailed": "Der Wiederherstellungsschlüssel konnte nicht geändert werden. Es hat sich nichts geändert: Der alte funktioniert weiterhin."
 }
