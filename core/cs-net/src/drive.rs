@@ -8,6 +8,7 @@
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use cs_vault::sync::Remote;
@@ -41,6 +42,8 @@ pub struct DriveRemote<A: DriveApi> {
     folder: String,
     /// name → id, kept up to date as files are added.
     index: Mutex<HashMap<String, String>>,
+    /// Set by Cancel: the next request ends the sync (what was done is kept).
+    stop: Option<&'static AtomicBool>,
 }
 
 impl<A: DriveApi> DriveRemote<A> {
@@ -55,7 +58,21 @@ impl<A: DriveApi> DriveRemote<A> {
             api,
             folder,
             index: Mutex::new(index),
+            stop: None,
         })
+    }
+
+    /// Stop at the next request once `stop` is set.
+    pub fn stop_on(mut self, stop: &'static AtomicBool) -> Self {
+        self.stop = Some(stop);
+        self
+    }
+
+    fn go_on(&self) -> Result<()> {
+        if self.stop.is_some_and(|s| s.load(Ordering::Relaxed)) {
+            return Err(Error::Corrupt("drive cancelled"));
+        }
+        Ok(())
     }
 
     /// The vaults this Drive folder holds a lock for (to join one on a new device).
@@ -114,6 +131,7 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
 
     fn get(&self, path: &str, out: &mut dyn Write) -> Result<bool> {
         check(path)?;
+        self.go_on()?;
         match self.id(path) {
             Some(id) => self.api.download(&id, out),
             None => Ok(false),
@@ -122,6 +140,7 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
 
     fn put(&self, path: &str, src: &mut dyn Read) -> Result<()> {
         check(path)?;
+        self.go_on()?;
         // Records and journal entries: small (the sync caps what it reads back at 1 MiB).
         let mut bytes = Vec::new();
         src.take(https::MAX_SMALL as u64 + 1)
@@ -152,6 +171,7 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
 
     fn put_file(&self, path: &str, local: &Path) -> Result<()> {
         check(path)?;
+        self.go_on()?;
         let mut f = std::fs::File::open(local)?;
         let len = f.metadata()?.len();
         self.put_bytes(path, len, &mut f)

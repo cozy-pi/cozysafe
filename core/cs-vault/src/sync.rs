@@ -225,6 +225,28 @@ struct Entry {
     gone: Vec<(String, i64)>,
 }
 
+/// Where a sync is, for the screen.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SyncPhase {
+    /// Reading what the place holds.
+    Checking,
+    /// Bringing items in.
+    Receiving,
+    /// Sending this device's changes.
+    Sending,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SyncProgress {
+    pub phase: SyncPhase,
+    pub done: u32,
+    pub total: u32,
+}
+
+/// Items per journal entry while sending, so a long first sync that stops half-way has
+/// already told the other devices about what went up.
+pub const LOG_EVERY: usize = 50;
+
 /// What one sync did, for the app and the tests.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct SyncReport {
@@ -246,9 +268,25 @@ impl OpenVault {
     /// Bring this vault and the shared folder in line: take the other devices' changes,
     /// then send this device's.
     pub fn sync(&self, remote: &dyn Remote) -> Result<SyncReport> {
+        self.sync_with(remote, &|_| {})
+    }
+
+    /// [`OpenVault::sync`], telling `progress` how far it is. Stopping anywhere loses
+    /// nothing: what came in is kept, what went up is recorded every [`LOG_EVERY`]
+    /// items, and the next sync goes on from there.
+    pub fn sync_with(
+        &self,
+        remote: &dyn Remote,
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<SyncReport> {
         let mut report = SyncReport::default();
-        self.pull(remote, &mut report)?;
-        self.push(remote, &mut report)?;
+        progress(SyncProgress {
+            phase: SyncPhase::Checking,
+            done: 0,
+            total: 0,
+        });
+        self.pull(remote, &mut report, progress)?;
+        self.push(remote, &mut report, progress)?;
         Ok(report)
     }
 
@@ -256,9 +294,16 @@ impl OpenVault {
         crate::aad(&self.id, &format!("sync/log/{device}/{n}"))
     }
 
-    fn pull(&self, remote: &dyn Remote, report: &mut SyncReport) -> Result<()> {
+    fn pull(
+        &self,
+        remote: &dyn Remote,
+        report: &mut SyncReport,
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<()> {
         let me = device_id(&self.index)?;
         let base = self.sync_dir();
+        // First every new journal entry (small), so the screen knows how much is coming.
+        let mut todo: Vec<(String, u64, Entry)> = Vec::new();
         let mut devices = remote.list(&format!("{base}/log"))?;
         devices.sort();
         for device in devices.into_iter().filter(|d| *d != me) {
@@ -287,14 +332,35 @@ impl OpenVault {
                 let json = wrap::open(&self.master_key, &sealed, &self.log_aad(&device, n))?;
                 let entry: Entry =
                     serde_json::from_slice(&json).map_err(|_| Error::Corrupt("sync log"))?;
-                for (id, rev) in entry.items {
-                    self.take(remote, &id, &rev, report)?;
-                }
-                for (id, hlc) in entry.gone {
-                    self.take_gone(remote, &id, hlc, report)?;
-                }
-                self.index.meta_set(&key, &n.to_string())?;
+                todo.push((device.clone(), n, entry));
             }
+        }
+        let total = todo
+            .iter()
+            .map(|(_, _, e)| e.items.len() + e.gone.len())
+            .sum::<usize>() as u32;
+        let mut done = 0u32;
+        for (device, n, entry) in todo {
+            for (id, rev) in entry.items {
+                self.take(remote, &id, &rev, report)?;
+                done += 1;
+                progress(SyncProgress {
+                    phase: SyncPhase::Receiving,
+                    done,
+                    total,
+                });
+            }
+            for (id, hlc) in entry.gone {
+                self.take_gone(remote, &id, hlc, report)?;
+                done += 1;
+                progress(SyncProgress {
+                    phase: SyncPhase::Receiving,
+                    done,
+                    total,
+                });
+            }
+            self.index
+                .meta_set(&format!("{}:cursor:{device}", remote.key()), &n.to_string())?;
         }
         Ok(())
     }
@@ -640,12 +706,18 @@ impl OpenVault {
         remote.remove(&format!("{base}/header.json"))
     }
 
-    fn push(&self, remote: &dyn Remote, report: &mut SyncReport) -> Result<()> {
-        let me = device_id(&self.index)?;
+    fn push(
+        &self,
+        remote: &dyn Remote,
+        report: &mut SyncReport,
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<()> {
         let rk = remote.key();
         let base = self.sync_dir();
         self.push_lock(remote, &base)?;
-        let mut entry = Entry::default();
+        // First what has changed here since this place last heard, so the screen knows
+        // how much is going.
+        let mut todo: Vec<(String, ItemRecord, Vec<u8>)> = Vec::new();
         for id in self.index.ids()? {
             let Some(sealed) = self.sealed_record(&id)? else {
                 continue;
@@ -668,6 +740,13 @@ impl OpenVault {
             if self.index.synced_rev(&rk, &id)?.as_deref() == Some(record.rev.as_str()) {
                 continue;
             }
+            todo.push((id, record, sealed));
+        }
+        let gone = self.index.gone_unsent(&rk)?;
+        let total = (todo.len() + gone.len()) as u32;
+        let mut done = 0u32;
+        let mut entry = Entry::default();
+        for (id, record, sealed) in todo {
             for ext in ["data", "thumb"] {
                 if ext == "thumb" && !record.has_thumbnail() {
                     continue;
@@ -681,12 +760,34 @@ impl OpenVault {
             if !remote.exists(&to)? {
                 remote.put(&to, &mut &sealed[..])?;
             }
-            entry.items.push((id.clone(), record.rev.clone()));
+            entry.items.push((id, record.rev));
+            done += 1;
+            progress(SyncProgress {
+                phase: SyncPhase::Sending,
+                done,
+                total,
+            });
+            if entry.items.len() >= LOG_EVERY {
+                self.send_entry(remote, std::mem::take(&mut entry), report)?;
+            }
         }
-        entry.gone = self.index.gone_unsent(&rk)?;
-        if entry.items.is_empty() && entry.gone.is_empty() {
-            return Ok(());
+        entry.gone = gone;
+        done += entry.gone.len() as u32;
+        if !entry.items.is_empty() || !entry.gone.is_empty() {
+            self.send_entry(remote, entry, report)?;
+            progress(SyncProgress {
+                phase: SyncPhase::Sending,
+                done,
+                total,
+            });
         }
+        Ok(())
+    }
+
+    /// One journal entry up, then mark its items and deletions as told to this place.
+    fn send_entry(&self, remote: &dyn Remote, entry: Entry, report: &mut SyncReport) -> Result<()> {
+        let me = device_id(&self.index)?;
+        let rk = remote.key();
         let n: u64 = self
             .index
             .meta_get(&format!("{rk}:seq"))?
@@ -695,10 +796,13 @@ impl OpenVault {
             + 1;
         let json = serde_json::to_vec(&entry).expect("serialisable");
         let sealed = wrap::seal(&self.master_key, &json, &self.log_aad(&me, n));
-        remote.put(&format!("{base}/log/{me}/{n}"), &mut &sealed[..])?;
+        remote.put(
+            &format!("{}/log/{me}/{n}", self.sync_dir()),
+            &mut &sealed[..],
+        )?;
         self.index.meta_set(&format!("{rk}:seq"), &n.to_string())?;
         for (id, rev) in &entry.items {
-            self.index.set_synced(&remote.key(), id, rev)?;
+            self.index.set_synced(&rk, id, rev)?;
         }
         for (id, _) in &entry.gone {
             self.index.gone_sent(&rk, id)?;
@@ -1150,5 +1254,38 @@ pub(crate) mod tests {
         let v: serde_json::Value = serde_json::from_str(&body).unwrap();
         let h: serde_json::Value = serde_json::from_str(&mine).unwrap();
         assert_eq!(v["vault"], h);
+    }
+
+    #[test]
+    fn progress_counts_up_and_a_long_send_is_told_in_parts() {
+        let t = two();
+        let n = LOG_EVERY + 7;
+        let ids: Vec<String> = (0..n).map(|i| note(&t.a, &format!("N{i}"), "x")).collect();
+        let seen = std::sync::Mutex::new(Vec::new());
+        t.a.sync_with(&t.cloud, &|p| seen.lock().unwrap().push(p))
+            .unwrap();
+        let seen = seen.into_inner().unwrap();
+        let sending: Vec<_> = seen
+            .iter()
+            .filter(|p| p.phase == SyncPhase::Sending)
+            .collect();
+        assert_eq!(sending.last().unwrap().done, n as u32);
+        assert!(sending.iter().all(|p| p.total == n as u32));
+        // Two journal entries: the first LOG_EVERY items, then the rest.
+        let me = device_id(&t.a.index).unwrap();
+        let entries = t
+            .cloud
+            .list(&format!("{}/log/{me}", t.a.sync_dir()))
+            .unwrap();
+        assert_eq!(entries.len(), 2);
+        let seen_b = std::sync::Mutex::new(Vec::new());
+        t.b.sync_with(&t.cloud, &|p| seen_b.lock().unwrap().push(p))
+            .unwrap();
+        let last = *seen_b.into_inner().unwrap().last().unwrap();
+        assert_eq!(
+            (last.phase, last.done, last.total),
+            (SyncPhase::Receiving, n as u32, n as u32)
+        );
+        assert_eq!(text(&t.b, &ids[n - 1]), "x");
     }
 }

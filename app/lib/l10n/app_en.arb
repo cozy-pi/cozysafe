@@ -718,5 +718,13 @@
   "joinSignIn": "Sign in with Google",
   "joinOpen": "Open the vault",
   "joinNoVault": "No Cozy Safe vault in this Google account's Drive.",
-  "joinWrongWords": "These 24 words are not the vault's on Drive. Check each word, in order."
+  "joinWrongWords": "These 24 words are not the vault's on Drive. Check each word, in order.",
+  "syncChecking": "Checking",
+  "syncReceiving": "Bringing in {done} of {total}",
+  "syncSending": "Sending {done} of {total}",
+  "syncKeepOpen": "Keep the app open until it is done.",
+  "syncInterrupted": "Interrupted. What was synced is kept.",
+  "syncContinue": "Continue",
+  "@syncReceiving": {"placeholders": {"done": {}, "total": {}}},
+  "@syncSending": {"placeholders": {"done": {}, "total": {}}}
 }

@@ -541,5 +541,11 @@
   "joinSignIn": "Đăng nhập Google",
   "joinOpen": "Mở két",
   "joinNoVault": "Không thấy két Cozy Safe nào trên Google Drive của tài khoản này.",
-  "joinWrongWords": "24 từ này không phải của két trên Drive. Kiểm tra lại từng từ, đúng thứ tự."
+  "joinWrongWords": "24 từ này không phải của két trên Drive. Kiểm tra lại từng từ, đúng thứ tự.",
+  "syncChecking": "Đang kiểm tra",
+  "syncReceiving": "Đang tải về {done}/{total}",
+  "syncSending": "Đang gửi lên {done}/{total}",
+  "syncKeepOpen": "Giữ app mở tới khi xong.",
+  "syncInterrupted": "Bị gián đoạn. Phần đã đồng bộ vẫn được giữ.",
+  "syncContinue": "Tiếp tục"
 }

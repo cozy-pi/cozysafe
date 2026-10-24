@@ -676,8 +676,14 @@ void main() {
   _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
   _screen('sync-type', 'Máy kia: nhập mã 18 ký tự', () => page('Nhập mã', TypeCodePage(onSynced: () {})));
-  SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0}) =>
-      SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies);
+  SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0}) =>
+      SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies, done: done, total: total);
+  _screen('sync-drive-progress', 'Google Drive: đang tải về, có thanh tiến trình', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.receiving, done: 128, total: 340)), onSynced: () {})),
+      change: 'MỚI: thanh tiến trình + số mục; màn hình luôn sáng khi đang đồng bộ',
+      marks: [() => find.byKey(const ValueKey('sync-progress'))]);
+  _screen('sync-interrupted', 'Bị gián đoạn (máy ngủ, mất mạng): bấm Tiếp tục', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.interrupted)), onSynced: () {}, retry: () => const Stream.empty())),
+      change: 'MỚI: gián đoạn không phải lỗi; bấm Tiếp tục là chạy tiếp phần còn lại',
+      marks: [() => find.byKey(const ValueKey('sync-continue'))]);
   _screen('sync-connected', 'Đã kết nối: hai máy hiện cùng một số để đối chiếu', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})));
   _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
   _screen('sync-knock', 'Máy hiện mã: máy kia vừa chạm tới, đang chứng minh cùng két', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
@@ -829,14 +835,10 @@ void main() {
       setup: () {
     useWords();
     NewVaultScreen.debugDriveJoin = true;
-  },
-      change: 'MỚI: "Đã có két trên Google Drive" — mở két bằng 24 từ + mật khẩu, không cần file sao lưu',
-      marks: [() => find.byKey(const ValueKey('join-drive'))]);
-  _screen('join-drive', 'Mở két từ Google Drive · trước khi đăng nhập', () => const DriveJoinScreen(libraryDir: ''),
-      change: 'MỚI: đăng nhập Google → hỏi cho phép → nhập 24 từ + mật khẩu');
+  });
+  _screen('join-drive', 'Mở két từ Google Drive · trước khi đăng nhập', () => const DriveJoinScreen(libraryDir: ''));
   _screen('join-drive-signed', 'Mở két từ Google Drive · đã đăng nhập: nhập 24 từ và mật khẩu', () => const DriveJoinScreen(libraryDir: ''),
-      setup: () => DriveJoinScreen.debugAccount = 'ban@gmail.com',
-      marks: [() => find.byKey(const ValueKey('join-words'))]);
+      setup: () => DriveJoinScreen.debugAccount = 'ban@gmail.com');
   _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
     await tapKey(t, 'intro-start');

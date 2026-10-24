@@ -18,6 +18,8 @@ import UniformTypeIdentifiers
   /// can see it and hide its content for as long as it lasts).
   private var captureCovers: [ObjectIdentifier: UIView] = [:]
   private var privacyChannel: FlutterMethodChannel?
+  /// Extra time to finish a sync if the person leaves the app mid-way (cozysafe/awake).
+  private var awakeTask: UIBackgroundTaskIdentifier = .invalid
   /// "Block screenshots" (Settings, on by default). iOS has no switch for it; like banking
   /// and dating apps, the window's layer is moved inside a secure text field's, which the
   /// system leaves out of screenshots and recordings (they come out black). Undocumented:
@@ -50,6 +52,25 @@ import UniformTypeIdentifiers
       registrar.register(TabBarFactory(messenger: registrar.messenger()), withId: "cozysafe/tabbar")
       let channel = FlutterMethodChannel(name: "cozysafe/privacy", binaryMessenger: registrar.messenger())
       privacyChannel = channel
+      // While a sync runs (lib/sync/awake.dart): the screen stays on, and if the person
+      // still leaves the app, iOS lends it some time to finish the item under way.
+      let awake = FlutterMethodChannel(name: "cozysafe/awake", binaryMessenger: registrar.messenger())
+      awake.setMethodCallHandler { [weak self] call, result in
+        guard let self else { return result(nil) }
+        let on = (call.arguments as? Bool) ?? false
+        UIApplication.shared.isIdleTimerDisabled = on
+        if on, self.awakeTask == .invalid {
+          self.awakeTask = UIApplication.shared.beginBackgroundTask(withName: "sync") { [weak self] in
+            guard let self, self.awakeTask != .invalid else { return }
+            UIApplication.shared.endBackgroundTask(self.awakeTask)
+            self.awakeTask = .invalid
+          }
+        } else if !on, self.awakeTask != .invalid {
+          UIApplication.shared.endBackgroundTask(self.awakeTask)
+          self.awakeTask = .invalid
+        }
+        result(nil)
+      }
       // Thumbnails for imported photos, made by ImageIO at the small size directly (it
       // reads only what it needs of a HEIC or JPEG), several at once off the main thread
       // (lib/screens/file_view.dart imageThumbnail). The JPEG goes back to Dart, sealed there.

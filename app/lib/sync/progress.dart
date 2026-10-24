@@ -5,13 +5,16 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
+import 'awake.dart';
 
 /// The live part of a session: [waiting] until the other device proves it holds this
 /// vault, then the number to compare while it syncs, then the result. Leaving before
 /// the end cancels.
 class SyncProgress extends StatefulWidget {
-  const SyncProgress({super.key, required this.events, required this.onSynced, this.waiting});
+  const SyncProgress({super.key, required this.events, required this.onSynced, this.waiting, this.retry});
   final Stream<sync.SyncEvent> events;
+  /// After an interruption: a fresh run (Google Drive), shown by "Continue".
+  final Stream<sync.SyncEvent> Function()? retry;
   /// The vault changed: the screens behind reload.
   final VoidCallback onSynced;
   final Widget? waiting;
@@ -29,12 +32,25 @@ class _SyncProgressState extends State<SyncProgress> {
   /// A device has just connected and is proving the vault (host only).
   bool _knock = false;
 
-  bool get _over => _last != null && _last!.kind != sync.SyncStep.connected;
+  static const _running = {
+    sync.SyncStep.connected,
+    sync.SyncStep.checking,
+    sync.SyncStep.receiving,
+    sync.SyncStep.sending,
+  };
+
+  bool get _over => _last != null && !_running.contains(_last!.kind);
 
   @override
   void initState() {
     super.initState();
-    _sub = widget.events.listen((e) {
+    _listen(widget.events);
+  }
+
+  void _listen(Stream<sync.SyncEvent> events) {
+    Awake.set(true);
+    _sub?.cancel();
+    _sub = events.listen((e) {
       if (!mounted) return;
       if (e.kind == sync.SyncStep.rejected || e.kind == sync.SyncStep.knock) {
         setState(() {
@@ -47,6 +63,7 @@ class _SyncProgressState extends State<SyncProgress> {
         _last = e;
         if (e.kind == sync.SyncStep.connected) _check = e.check;
       });
+      if (_over) Awake.set(false);
       if (e.kind == sync.SyncStep.done) widget.onSynced();
     });
   }
@@ -54,8 +71,33 @@ class _SyncProgressState extends State<SyncProgress> {
   @override
   void dispose() {
     if (!_over) sync.p2PCancel();
+    Awake.set(false);
     _sub?.cancel();
     super.dispose();
+  }
+
+  Widget _runningBody(AppLocalizations l, CsColors c, sync.SyncEvent e) {
+    final title = switch (e.kind) {
+      sync.SyncStep.receiving => l.syncReceiving(e.done.toString(), e.total.toString()),
+      sync.SyncStep.sending => l.syncSending(e.done.toString(), e.total.toString()),
+      _ => l.syncChecking,
+    };
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(title, key: const ValueKey('sync-progress'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 18),
+      SizedBox(
+        width: 240,
+        child: LinearProgressIndicator(
+          value: e.total > 0 ? e.done / e.total : null,
+          minHeight: 6,
+          // The black-and-white theme would draw track and bar alike.
+          backgroundColor: c.border,
+          borderRadius: BorderRadius.circular(3),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Text(l.syncKeepOpen, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14)),
+    ]);
   }
 
   @override
@@ -112,6 +154,8 @@ class _SyncProgressState extends State<SyncProgress> {
         sync.SyncStep.unreachable => _Status(icon: Icons.wifi_off_rounded, color: const Color(0xFFFF3B30), title: l.syncUnreachable),
         sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: const Color(0xFFFF3B30), title: l.syncFailed),
         sync.SyncStep.signIn => _Status(icon: Icons.account_circle_outlined, color: const Color(0xFFFF9500), title: l.syncSignInAgain),
+        sync.SyncStep.interrupted => _Status(icon: Icons.pause_circle_outline_rounded, color: const Color(0xFFFF9500), title: l.syncInterrupted),
+        sync.SyncStep.checking || sync.SyncStep.receiving || sync.SyncStep.sending => _runningBody(l, c, e),
         // Never the last word (handled above); kept for an exhaustive switch.
         sync.SyncStep.rejected || sync.SyncStep.knock => _Status(icon: null, title: l.syncWorking),
       };
@@ -123,7 +167,16 @@ class _SyncProgressState extends State<SyncProgress> {
           Expanded(child: Center(child: SingleChildScrollView(child: body))),
           SizedBox(
             width: double.infinity,
-            child: _over
+            child: _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null
+                ? FilledButton(
+                    key: const ValueKey('sync-continue'),
+                    onPressed: () {
+                      setState(() => _last = null);
+                      _listen(widget.retry!());
+                    },
+                    child: Text(l.syncContinue),
+                  )
+                : _over
                 ? FilledButton(
                     key: const ValueKey('sync-close'),
                     onPressed: () => Navigator.of(context).pop(),

@@ -57,6 +57,15 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
+        // While a sync runs (lib/sync/awake.dart): the screen stays on.
+        MethodChannel(messenger, "cozysafe/awake").setMethodCallHandler { call, result ->
+            if (call.arguments as? Boolean == true) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+            result.success(null)
+        }
         MethodChannel(messenger, "cozysafe/privacy").setMethodCallHandler { call, result ->
             if (call.method == "openUrl") {
                 // Our own pages only (lib/links.dart); the system opens the browser.
