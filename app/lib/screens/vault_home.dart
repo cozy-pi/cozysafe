@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../biometric.dart';
+import '../lock_resume.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../platform.dart';
@@ -238,13 +239,25 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       LockGuard.clearCopied();
       clearPlaybackCopies();
       _thumbnails.clear();
-      nav.pushAndRemoveUntil(
-        PageRouteBuilder<void>(
+      // The lock covers the pages kept for after (Settings), not the rest: what showed
+      // vault content closes, and the item names go until the vault opens again.
+      nav.popUntil(keptOnLock);
+      if (mounted) setState(() => _items = null);
+      final opened = await nav.push<rust.VaultInfo>(
+        PageRouteBuilder<rust.VaultInfo>(
           transitionDuration: Duration.zero,
-          pageBuilder: (_, _, _) => UnlockScreen(libraryDir: widget.libraryDir, askBiometricNow: false),
+          pageBuilder: (_, _, _) =>
+              UnlockScreen(libraryDir: widget.libraryDir, askBiometricNow: false, resumeVaultId: _vault.id),
         ),
-        (_) => false,
       );
+      // Another vault opened instead: this page is gone with the rest.
+      if (opened == null || !mounted) return;
+      setState(() {
+        _vault = opened;
+        _locked = false;
+      });
+      _reload();
+      _touch();
     }
 
     if (animate) {
@@ -628,6 +641,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _openSettings() async {
     final l = AppLocalizations.of(context);
     await Navigator.of(context).push(MaterialPageRoute<void>(
+      settings: keepOnLock,
       builder: (_) => SettingsScreen(
         libraryDir: widget.libraryDir,
         vault: () => _vault,

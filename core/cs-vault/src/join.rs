@@ -117,6 +117,33 @@ impl Library {
         )?;
         open_with(vault_id.to_owned(), vault_dir, &vh, master_key).map(Some)
     }
+
+    /// [`Library::join`] for a place that holds several vaults (one Google Drive folder
+    /// serves them all): the two secrets say which one. `None` when the words belong to
+    /// one of them but the password opens none; [`Error::WrongSecretKey`] when none has
+    /// these words. A lock that fails to read does not stop the others being tried.
+    pub fn join_any(
+        dir: &Path,
+        remote: &dyn Remote,
+        vault_ids: &[String],
+        secret_key: SecretKey,
+        password: &str,
+    ) -> Result<Option<OpenVault>> {
+        let mut words_known = false;
+        let mut failed = None;
+        for id in vault_ids {
+            match Library::join(dir, remote, id, secret_key.clone(), password) {
+                Ok(Some(vault)) => return Ok(Some(vault)),
+                Ok(None) => words_known = true,
+                Err(Error::WrongSecretKey) => {}
+                Err(e) => failed = Some(e),
+            }
+        }
+        if words_known {
+            return Ok(None);
+        }
+        Err(failed.unwrap_or(Error::WrongSecretKey))
+    }
 }
 
 #[cfg(test)]
@@ -173,6 +200,44 @@ mod tests {
         // And it opens again like any vault here.
         let l = Library::open_or_create(fresh.path(), FAST, crate::tests::sk()).unwrap();
         assert!(l.unlock(crate::sync::tests::PW).unwrap().is_some());
+    }
+
+    #[test]
+    fn of_several_vaults_in_one_place_the_password_picks_its_own() {
+        let t = two();
+        // A second vault in the same library (same words), its own password.
+        let pw2 = hex::encode(cs_crypto::generate_salt());
+        let lib = Library::open_or_create(t._dirs.0.path(), FAST, crate::tests::sk()).unwrap();
+        let w = lib.create_vault("W", &pw2).unwrap();
+        let id = note(&w, "W", "second");
+        t.a.sync(&t.cloud).unwrap();
+        w.sync(&t.cloud).unwrap();
+        for ids in [
+            vec![t.a.id.clone(), w.id.clone()],
+            vec![w.id.clone(), t.a.id.clone()],
+        ] {
+            let fresh = tempfile::tempdir().unwrap();
+            let v = Library::join_any(fresh.path(), &t.cloud, &ids, crate::tests::sk(), &pw2)
+                .unwrap()
+                .expect("the password's own vault");
+            assert_eq!(v.id, w.id);
+            v.sync(&t.cloud).unwrap();
+            assert_eq!(text(&v, &id), "second");
+        }
+        let fresh = tempfile::tempdir().unwrap();
+        let ids = [t.a.id.clone(), w.id.clone()];
+        let wrong: String = pw2.chars().rev().collect();
+        assert!(
+            Library::join_any(fresh.path(), &t.cloud, &ids, crate::tests::sk(), &wrong)
+                .unwrap()
+                .is_none()
+        );
+        let other = SecretKey::from_bytes([1; 32]);
+        assert!(matches!(
+            Library::join_any(fresh.path(), &t.cloud, &ids, other, &pw2),
+            Err(Error::WrongSecretKey)
+        ));
+        assert!(!Library::has_vaults(fresh.path()));
     }
 
     #[test]

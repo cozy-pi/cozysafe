@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Unreleased
+
+### Fixed
+- Locking and coming back returns to the page you were on in Settings (and its pages),
+  not the home page. Pages that show vault content still close when the vault locks,
+  and Back on the lock screen cannot reveal what is under it.
+- Restoring from Google Drive when it holds several vaults opens the one your password
+  belongs to (it used to try only the first).
+
 ## 0.1.56 (2026-10-24)
 
 ### Added

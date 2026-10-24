@@ -397,24 +397,30 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
         }
         Err(_) => return join_result(JoinOutcome::Failed),
     };
-    let Some(id) = remote.vault_ids().into_iter().next() else {
+    let ids = remote.vault_ids();
+    if ids.is_empty() {
         return join_result(JoinOutcome::NoVault);
-    };
+    }
     let dir = Path::new(&dir);
     if cs_vault::Library::reset_if_empty(dir).is_err() {
         return join_result(JoinOutcome::Failed);
     }
-    let vault = match cs_vault::Library::join(dir, &remote, &id, key.clone(), &password) {
-        Ok(Some(v)) => v,
+    // Several vaults may share the Drive folder: the two secrets say which one.
+    match cs_vault::Library::join_any(dir, &remote, &ids, key.clone(), &password) {
+        Ok(Some(_)) => {}
         Ok(None) => return join_result(JoinOutcome::WrongPassword),
         Err(cs_vault::Error::WrongSecretKey) => return join_result(JoinOutcome::WrongWords),
         Err(_) => return join_result(JoinOutcome::Failed),
-    };
-    // The items come next, through drive_sync, with progress on screen.
+    }
+    // Opened the usual way, from this device's folder with the two secrets; the items
+    // come next, through drive_sync, with progress on screen.
     super::vault::use_secret(key);
-    JoinResult {
-        outcome: JoinOutcome::Joined,
-        vault: Some(super::vault::set_open(vault)),
+    match super::vault::unlock(dir.to_string_lossy().into_owned(), password.to_string()) {
+        Ok(Some(vault)) => JoinResult {
+            outcome: JoinOutcome::Joined,
+            vault: Some(vault),
+        },
+        _ => join_result(JoinOutcome::Failed),
     }
 }
 
