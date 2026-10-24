@@ -783,7 +783,11 @@ mod tests {
         t: 1,
         p: 1,
     };
-    const PW: &str = "orange kettle whispers at dawn 77";
+    /// A vault password, random each run: none is written in the code.
+    fn pw() -> &'static str {
+        static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+    }
 
     fn photo<'a>(content: &'a [u8], created_ms: i64) -> NewItem<'a, &'a [u8]> {
         NewItem {
@@ -801,7 +805,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let big = vec![7u8; 200_000];
         let a = v.add_item(photo(&big, 1)).unwrap();
@@ -810,7 +814,7 @@ mod tests {
         // After a restart the items are still there, newest first.
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .unlock(PW)
+            .unlock(pw())
             .unwrap()
             .unwrap();
         let ids: Vec<_> = v.items().unwrap().into_iter().map(|m| m.id).collect();
@@ -833,7 +837,7 @@ mod tests {
     fn nothing_readable_on_disk_and_no_cross_vault_reads() {
         let tmp = tempfile::tempdir().unwrap();
         let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
-        let a = lib.create_vault("A", PW).unwrap();
+        let a = lib.create_vault("A", pw()).unwrap();
         let b = lib
             .create_vault("B", "mây tháng mười rơi trên phố cổ")
             .unwrap();
@@ -860,7 +864,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let n = v
             .add_item(NewItem {
@@ -890,7 +894,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         for bad in ["../header", "", "zz", "../../library.json"] {
             assert!(matches!(v.delete_item(bad), Err(Error::NoSuchItem)));
@@ -902,7 +906,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("V", PW)
+            .create_vault("V", pw())
             .unwrap();
         let a = v.add_item(photo(b"a", 1)).unwrap();
         let b = v.add_item(photo(b"b", 2)).unwrap();
@@ -930,7 +934,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("V", PW)
+            .create_vault("V", pw())
             .unwrap();
         let papers = v.create_tag("Giấy tờ", 1).unwrap();
         let passport = v.create_tag("Hộ chiếu", 2).unwrap();
@@ -969,7 +973,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("V", PW)
+            .create_vault("V", pw())
             .unwrap();
         // A real item, so its key unwraps; its record is then overwritten in format 1.
         let real = v.add_item(photo(b"p", 3)).unwrap();
@@ -1027,7 +1031,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let it = v.add_item(photo(b"x", 1)).unwrap();
         assert!(!v.items().unwrap()[0].is_favorite);
@@ -1048,7 +1052,7 @@ mod tests {
     fn the_index_follows_the_files() {
         let tmp = tempfile::tempdir().unwrap();
         let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
-        let v = lib.create_vault("A", PW).unwrap();
+        let v = lib.create_vault("A", pw()).unwrap();
         let a = v.add_item(photo(b"a", 1)).unwrap();
         let b = v.add_item(photo(b"b", 2)).unwrap();
         v.rename_item(&a.id, "renamed.jpg").unwrap();
@@ -1067,13 +1071,13 @@ mod tests {
         let db = tmp.path().join(crate::VAULTS_DIR);
         let vault_dir = fs::read_dir(&db).unwrap().next().unwrap().unwrap().path();
         fs::remove_file(vault_dir.join(crate::db::INDEX_FILE)).unwrap();
-        let v = lib.unlock(PW).unwrap().unwrap();
+        let v = lib.unlock(pw()).unwrap().unwrap();
         let names: Vec<_> = v.items().unwrap().into_iter().map(|m| m.name).collect();
         assert_eq!(names, vec!["IMG.jpg", "renamed.jpg"]);
         // A .meta file gone (the app stopped mid-delete): its row goes too.
         fs::remove_file(v.path(&b.id, "meta").unwrap()).unwrap();
         drop(v);
-        let v = lib.unlock(PW).unwrap().unwrap();
+        let v = lib.unlock(pw()).unwrap().unwrap();
         assert_eq!(v.items().unwrap().len(), 1);
     }
 
@@ -1123,7 +1127,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let item = v.add_item(photo(b"p", 1)).unwrap();
         let bucket = crate::bucket_of(&item.id).unwrap().to_owned();
@@ -1138,7 +1142,7 @@ mod tests {
     fn files_of_earlier_versions_move_into_buckets_on_open() {
         let tmp = tempfile::tempdir().unwrap();
         let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
-        let v = lib.create_vault("A", PW).unwrap();
+        let v = lib.create_vault("A", pw()).unwrap();
         let items: Vec<ItemMeta> = (0..6)
             .map(|i| {
                 v.add_item(photo(format!("photo {i}").as_bytes(), i))
@@ -1149,7 +1153,7 @@ mod tests {
         flatten(&v, usize::MAX);
         assert!(files_of(&v).iter().all(|(b, _)| b.is_empty()));
         drop(v);
-        let v = lib.unlock(PW).unwrap().unwrap();
+        let v = lib.unlock(pw()).unwrap().unwrap();
         assert_eq!(files_of(&v), moved);
         assert_eq!(v.items().unwrap().len(), 6);
         for (i, m) in items.iter().enumerate() {
@@ -1167,7 +1171,7 @@ mod tests {
     fn a_move_into_buckets_cut_short_goes_on_and_reads_meanwhile() {
         let tmp = tempfile::tempdir().unwrap();
         let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
-        let v = lib.create_vault("A", PW).unwrap();
+        let v = lib.create_vault("A", pw()).unwrap();
         let items: Vec<ItemMeta> = (0..4)
             .map(|i| {
                 v.add_item(photo(format!("photo {i}").as_bytes(), i))
@@ -1203,7 +1207,7 @@ mod tests {
         );
         drop(v);
         // The next open finishes the move.
-        let v = lib.unlock(PW).unwrap().unwrap();
+        let v = lib.unlock(pw()).unwrap().unwrap();
         let done = files_of(&v);
         assert!(done
             .iter()
@@ -1216,7 +1220,7 @@ mod tests {
         crate::backup::import(&backup[..], &target).unwrap();
         let w = Library::open_or_create(&target, FAST, crate::tests::sk())
             .unwrap()
-            .unlock(PW)
+            .unlock(pw())
             .unwrap()
             .unwrap();
         assert_eq!(files_of(&w), done);

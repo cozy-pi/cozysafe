@@ -891,8 +891,16 @@ pub(crate) mod tests {
         t: 1,
         p: 1,
     };
-    const PW_A: &str = "mây tháng mười rơi trên phố cổ";
-    const PW_B: &str = "orange kettle whispers at dawn 77";
+    /// A vault password, random each run: none is written in the code.
+    fn pw_a() -> &'static str {
+        static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+    }
+    /// A vault password, random each run: none is written in the code.
+    fn pw_b() -> &'static str {
+        static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+    }
 
     pub(crate) fn sk() -> SecretKey {
         SecretKey::from_bytes([7; SECRET_KEY_LEN])
@@ -921,23 +929,23 @@ pub(crate) mod tests {
         let old = SecretKey::from_slice(&[9u8; 16]).unwrap();
         let new = SecretKey::generate();
         let l = Library::open_or_create(tmp.path(), FAST, old.clone()).unwrap();
-        let v = l.create_vault("Két", PW_A).unwrap();
+        let v = l.create_vault("Két", pw_a()).unwrap();
         let id = note(&v, "giữ nguyên");
         let dk = SecretKey::generate();
         v.enable_pin("246810", &dk, FAST).unwrap();
 
         assert!(
-            !l.change_secret_key(&v, PW_B, &new).unwrap(),
+            !l.change_secret_key(&v, pw_b(), &new).unwrap(),
             "wrong password"
         );
-        assert!(l.change_secret_key(&v, PW_A, &new).unwrap());
+        assert!(l.change_secret_key(&v, pw_a(), &new).unwrap());
         drop(v);
         // Until the device holds the new key, the old one still opens it.
         let still = Library::open_or_create(tmp.path(), FAST, old.clone()).unwrap();
-        assert!(still.unlock(PW_A).unwrap().is_some());
+        assert!(still.unlock(pw_a()).unwrap().is_some());
         // The new key: opens, and the change finishes.
         let l = Library::open_or_create(tmp.path(), FAST, new.clone()).unwrap();
-        let v = l.unlock(PW_A).unwrap().expect("opens with the new key");
+        let v = l.unlock(pw_a()).unwrap().expect("opens with the new key");
         let mut out = Vec::new();
         v.read_item(&id, &mut out).unwrap();
         assert_eq!(out, "giữ nguyên".as_bytes());
@@ -970,28 +978,28 @@ pub(crate) mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let k0 = sk();
         let l = Library::open_or_create(tmp.path(), FAST, k0.clone()).unwrap();
-        let v = l.create_vault("Két", PW_A).unwrap();
+        let v = l.create_vault("Két", pw_a()).unwrap();
         let lib_before = fs::read(tmp.path().join(LIBRARY_FILE)).unwrap();
         // The app stopped after the vault header, before the library header.
         let k1 = SecretKey::generate();
-        assert!(l.change_secret_key(&v, PW_A, &k1).unwrap());
+        assert!(l.change_secret_key(&v, pw_a(), &k1).unwrap());
         fs::write(tmp.path().join(LIBRARY_FILE), &lib_before).unwrap();
         drop(v);
         let l = Library::open_or_create(tmp.path(), FAST, k0.clone()).unwrap();
-        let v = l.unlock(PW_A).unwrap().expect("the old key still opens");
+        let v = l.unlock(pw_a()).unwrap().expect("the old key still opens");
         // Trying again with another key works, and keeps the old way in until the end.
         let k2 = SecretKey::generate();
-        assert!(l.change_secret_key(&v, PW_A, &k2).unwrap());
+        assert!(l.change_secret_key(&v, pw_a(), &k2).unwrap());
         drop(v);
         assert!(Library::open_or_create(tmp.path(), FAST, k0)
             .unwrap()
-            .unlock(PW_A)
+            .unlock(pw_a())
             .unwrap()
             .is_some());
         // The lost k1 opens nothing.
         assert!(Library::open_or_create(tmp.path(), FAST, k1).is_err());
         let l = Library::open_or_create(tmp.path(), FAST, k2).unwrap();
-        assert!(l.unlock(PW_A).unwrap().is_some());
+        assert!(l.unlock(pw_a()).unwrap().is_some());
     }
 
     #[test]
@@ -1000,7 +1008,7 @@ pub(crate) mod tests {
         let old = SecretKey::from_slice(&[9u8; 16]).unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, old.clone())
             .unwrap()
-            .create_vault("Cũ", PW_A)
+            .create_vault("Cũ", pw_a())
             .unwrap();
         // Not while a vault is there.
         assert!(!Library::reset_if_empty(tmp.path()).unwrap());
@@ -1010,19 +1018,25 @@ pub(crate) mod tests {
         ));
         v.destroy().unwrap();
         assert!(Library::reset_if_empty(tmp.path()).unwrap());
-        let fresh = lib(tmp.path()).create_vault("Mới", PW_B).unwrap();
-        assert_eq!(lib(tmp.path()).unlock(PW_B).unwrap().unwrap().id, fresh.id);
+        let fresh = lib(tmp.path()).create_vault("Mới", pw_b()).unwrap();
+        assert_eq!(
+            lib(tmp.path()).unlock(pw_b()).unwrap().unwrap().id,
+            fresh.id
+        );
     }
 
     #[test]
     fn create_then_unlock() {
         let tmp = tempfile::tempdir().unwrap();
         assert!(!Library::has_vaults(tmp.path()));
-        let v = lib(tmp.path()).create_vault("Cá nhân", PW_A).unwrap();
+        let v = lib(tmp.path()).create_vault("Cá nhân", pw_a()).unwrap();
         assert!(Library::has_vaults(tmp.path()));
 
         // A fresh Library instance, as after an app restart.
-        let opened = lib(tmp.path()).unlock(PW_A).unwrap().expect("vault opens");
+        let opened = lib(tmp.path())
+            .unlock(pw_a())
+            .unwrap()
+            .expect("vault opens");
         assert_eq!(opened.id, v.id);
         assert_eq!(opened.name, "Cá nhân");
         assert!(lib(tmp.path())
@@ -1035,18 +1049,18 @@ pub(crate) mod tests {
     fn password_picks_the_vault() {
         let tmp = tempfile::tempdir().unwrap();
         let l = lib(tmp.path());
-        let a = l.create_vault("A", PW_A).unwrap();
-        let b = l.create_vault("B", PW_B).unwrap();
-        assert_eq!(l.unlock(PW_A).unwrap().unwrap().id, a.id);
-        assert_eq!(l.unlock(PW_B).unwrap().unwrap().id, b.id);
+        let a = l.create_vault("A", pw_a()).unwrap();
+        let b = l.create_vault("B", pw_b()).unwrap();
+        assert_eq!(l.unlock(pw_a()).unwrap().unwrap().id, a.id);
+        assert_eq!(l.unlock(pw_b()).unwrap().unwrap().id, b.id);
     }
 
     #[test]
     fn biometric_copy_opens_only_its_vault_and_moves_on_enable() {
         let tmp = tempfile::tempdir().unwrap();
         let l = lib(tmp.path());
-        let a = l.create_vault("A", PW_A).unwrap();
-        let b = l.create_vault("B", PW_B).unwrap();
+        let a = l.create_vault("A", pw_a()).unwrap();
+        let b = l.create_vault("B", pw_b()).unwrap();
         assert!(!Library::has_biometric(tmp.path()));
 
         let ka = a.enable_biometric().unwrap();
@@ -1088,9 +1102,9 @@ pub(crate) mod tests {
     fn same_password_twice_is_refused() {
         let tmp = tempfile::tempdir().unwrap();
         let l = lib(tmp.path());
-        l.create_vault("A", PW_A).unwrap();
+        l.create_vault("A", pw_a()).unwrap();
         assert!(matches!(
-            l.create_vault("B", PW_A),
+            l.create_vault("B", pw_a()),
             Err(Error::PasswordInUse)
         ));
     }
@@ -1103,7 +1117,10 @@ pub(crate) mod tests {
             l.create_vault("A", "short12"),
             Err(Error::WeakPassword)
         ));
-        assert!(matches!(l.create_vault("  ", PW_A), Err(Error::EmptyName)));
+        assert!(matches!(
+            l.create_vault("  ", pw_a()),
+            Err(Error::EmptyName)
+        ));
         assert!(!Library::has_vaults(tmp.path()));
     }
 
@@ -1111,7 +1128,7 @@ pub(crate) mod tests {
     fn nothing_on_disk_names_the_vault() {
         let tmp = tempfile::tempdir().unwrap();
         let v = lib(tmp.path())
-            .create_vault("Hồ sơ thuế bí mật", PW_A)
+            .create_vault("Hồ sơ thuế bí mật", pw_a())
             .unwrap();
         let header =
             fs::read_to_string(tmp.path().join(VAULTS_DIR).join(&v.id).join(HEADER_FILE)).unwrap();
@@ -1121,7 +1138,7 @@ pub(crate) mod tests {
     #[test]
     fn another_secret_key_is_refused_up_front() {
         let tmp = tempfile::tempdir().unwrap();
-        lib(tmp.path()).create_vault("A", PW_A).unwrap();
+        lib(tmp.path()).create_vault("A", pw_a()).unwrap();
         let other = SecretKey::generate();
         assert!(!Library::secret_key_fits(tmp.path(), &other));
         assert!(Library::secret_key_fits(tmp.path(), &sk()));
@@ -1134,7 +1151,7 @@ pub(crate) mod tests {
     #[test]
     fn legacy_secret_key_file_moves_out() {
         let tmp = tempfile::tempdir().unwrap();
-        lib(tmp.path()).create_vault("A", PW_A).unwrap();
+        lib(tmp.path()).create_vault("A", pw_a()).unwrap();
         // A first-preview library: key in a file, no fingerprint in library.json.
         write_private(&tmp.path().join(SECRET_KEY_FILE), sk().as_bytes()).unwrap();
         let mut h = read_library_header(tmp.path()).unwrap();
@@ -1152,7 +1169,7 @@ pub(crate) mod tests {
         // Opening records the fingerprint; the vault still opens.
         assert!(Library::open_or_create(tmp.path(), FAST, key)
             .unwrap()
-            .unlock(PW_A)
+            .unlock(pw_a())
             .unwrap()
             .is_some());
         assert!(!Library::secret_key_fits(
@@ -1165,32 +1182,32 @@ pub(crate) mod tests {
     fn damaged_header_does_not_block_other_vaults() {
         let tmp = tempfile::tempdir().unwrap();
         let l = lib(tmp.path());
-        let a = l.create_vault("A", PW_A).unwrap();
-        l.create_vault("B", PW_B).unwrap();
+        let a = l.create_vault("A", pw_a()).unwrap();
+        l.create_vault("B", pw_b()).unwrap();
         fs::write(
             tmp.path().join(VAULTS_DIR).join(&a.id).join(HEADER_FILE),
             b"{not json",
         )
         .unwrap();
-        assert!(l.unlock(PW_A).unwrap().is_none());
-        assert!(l.unlock(PW_B).unwrap().is_some());
+        assert!(l.unlock(pw_a()).unwrap().is_none());
+        assert!(l.unlock(pw_b()).unwrap().is_some());
     }
 
     #[test]
     fn scores() {
         assert!(password_score("password1") < MIN_PASSWORD_SCORE);
-        assert!(password_score(PW_A) >= MIN_PASSWORD_SCORE);
-        assert!(password_score(PW_B) >= MIN_PASSWORD_SCORE);
+        assert!(password_score(pw_a()) >= MIN_PASSWORD_SCORE);
+        assert!(password_score(pw_b()) >= MIN_PASSWORD_SCORE);
     }
 
     #[test]
     fn destroy_removes_the_vault() {
         let tmp = tempfile::tempdir().unwrap();
         let lib = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
-        let a = lib.create_vault("A", PW_A).unwrap();
-        lib.create_vault("B", PW_B).unwrap();
+        let a = lib.create_vault("A", pw_a()).unwrap();
+        lib.create_vault("B", pw_b()).unwrap();
         a.destroy().unwrap();
-        assert!(lib.unlock(PW_A).unwrap().is_none());
-        assert!(lib.unlock(PW_B).unwrap().is_some());
+        assert!(lib.unlock(pw_a()).unwrap().is_none());
+        assert!(lib.unlock(pw_b()).unwrap().is_some());
     }
 }

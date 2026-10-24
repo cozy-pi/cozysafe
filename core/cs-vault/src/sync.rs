@@ -1295,7 +1295,11 @@ pub(crate) mod tests {
         t: 1,
         p: 1,
     };
-    pub(crate) const PW: &str = "orange kettle whispers at dawn 77";
+    /// A vault password, random each run: none is written in the code.
+    pub(crate) fn pw() -> &'static str {
+        static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+    }
 
     /// A vault on device A, the same vault copied to device B (without A's local sync
     /// state, as a new device starts), and the folder they share.
@@ -1331,17 +1335,17 @@ pub(crate) mod tests {
         let sk = crate::tests::sk();
         Library::open_or_create(da.path(), FAST, sk.clone())
             .unwrap()
-            .create_vault("V", PW)
+            .create_vault("V", pw())
             .unwrap();
         copy_dir(da.path(), db.path());
         let a = Library::open_or_create(da.path(), FAST, sk.clone())
             .unwrap()
-            .unlock(PW)
+            .unlock(pw())
             .unwrap()
             .unwrap();
         let b = Library::open_or_create(db.path(), FAST, sk)
             .unwrap()
-            .unlock(PW)
+            .unlock(pw())
             .unwrap()
             .unwrap();
         assert_ne!(device_id(&a.index).unwrap(), device_id(&b.index).unwrap());

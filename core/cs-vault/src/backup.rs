@@ -229,14 +229,18 @@ mod tests {
         t: 1,
         p: 1,
     };
-    const PW: &str = "orange kettle whispers at dawn 77";
+    /// A vault password, random each run: none is written in the code.
+    fn pw() -> &'static str {
+        static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+    }
 
     #[test]
     fn backup_restores_on_a_fresh_install() {
         let a = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(a.path(), FAST, sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let big = vec![9u8; 300_000];
         let item = v
@@ -261,7 +265,7 @@ mod tests {
         assert!(!Library::has_biometric(&target));
         let v2 = Library::open_or_create(&target, FAST, sk())
             .unwrap()
-            .unlock(PW)
+            .unlock(pw())
             .unwrap()
             .unwrap();
         let mut out = Vec::new();
@@ -279,7 +283,7 @@ mod tests {
         let a = tempfile::tempdir().unwrap();
         Library::open_or_create(a.path(), FAST, sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let mut file = Vec::new();
         export(a.path(), &mut file).unwrap();
