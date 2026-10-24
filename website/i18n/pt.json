@@ -7,13 +7,13 @@
   "nav_dl": "Baixar",
   "nav_src": "Código-fonte",
   "h1": "Um cofre privado para suas notas, fotos e arquivos.",
-  "lead": "Tudo é criptografado no seu dispositivo antes de ser salvo. Sem conta e sem servidor: o app só se conecta ao seu próprio dispositivo na mesma Wi-Fi quando você sincroniza. Sem a sua senha, ninguém consegue abrir, nem mesmo nós.",
+  "lead": "Tudo é criptografado no seu dispositivo antes de ser salvo. Sem conta e sem servidor: o app só se conecta quando você inicia uma sincronização, com o seu próprio dispositivo na mesma Wi-Fi ou com o seu próprio Google Drive, e só envia dados criptografados. Sem a sua senha, ninguém consegue abrir, nem mesmo nós.",
   "btn": "Baixar",
   "btn_for": "Baixar para {p}",
   "btn_src": "Ver o código",
   "unlock": "Desbloquear",
   "unlock_bio": "Desbloquear com Face ID",
-  "note": "<strong>Versão preliminar.</strong> O Cozy Safe funciona em um único dispositivo; a sincronização entre dispositivos ainda não existe. Use <em>Fazer backup em arquivo</em> com frequência e ainda não guarde aqui a única cópia de nada importante.",
+  "note": "<strong>Versão preliminar.</strong> A sincronização entre seus dispositivos é nova. Use <em>Fazer backup em arquivo</em> com frequência e ainda não guarde aqui a única cópia de nada importante.",
   "h_how": "Como o Cozy Safe protege você",
   "p_how": "Seus dados nunca saem do seu dispositivo sem criptografia, e o código que faz isso é público.",
   "c1h": "Criptografado no seu dispositivo",
@@ -30,7 +30,7 @@
   ],
   "l2h": "O que ele não faz",
   "l2": [
-   "Ainda não há sincronização entre dispositivos: faça backup em arquivo com frequência.",
+   "A sincronização é nova, e a sincronização com o Google Drive por enquanto só funciona no iPhone: faça backup em arquivo com frequência.",
    "Não protege um dispositivo que já tenha malware.",
    "Qualquer pessoa que saiba a senha pode abrir o cofre."
   ],
@@ -61,7 +61,7 @@
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
   "c4h": "Sem servidor, sem conta",
-  "c4p": "O Cozy Safe não se comunica com nenhum servidor. A única conexão que ele faz é com o seu próprio dispositivo na mesma Wi-Fi, quando você inicia uma sincronização e a permite, e tudo o que é enviado é criptografado.",
+  "c4p": "O Cozy Safe não tem servidor próprio. Ele só se conecta quando você inicia uma sincronização e a permite: com o seu próprio dispositivo na mesma Wi-Fi ou com o seu próprio Google Drive. Tudo o que é enviado é criptografado.",
   "c5h": "Discreto na tela",
   "c5p": "Senhas e a Chave de recuperação ficam ocultas até você tocar em Mostrar, o texto copiado é apagado após 60 segundos e o cofre é bloqueado assim que você sai do app.",
   "c6h": "Backups sob o seu controle",
@@ -92,7 +92,7 @@
     "Para onde seus dados podem ir, só se você escolher",
     [
      "Um backup é um único arquivo criptografado, salvo onde você escolher (por exemplo, iCloud Drive, Google Drive ou Dropbox). Somente dados criptografados são gravados ali; o provedor escolhido não consegue lê-los.",
-     "Sincronização com seu outro dispositivo: quando você inicia e permite, os dados criptografados do cofre vão pela sua Wi-Fi direto para o seu próprio dispositivo. Nada passa por nós nem por nenhum servidor.",
+     "Sincronização, só quando você inicia e permite: os dados criptografados do cofre vão pela sua Wi-Fi direto para o seu próprio dispositivo ou, depois que você entra com o Google, para uma pasta \"Cozy Safe\" no seu próprio Google Drive. O app só vê os arquivos que ele mesmo criou lá, e o Google só vê arquivos criptografados. Nada passa por nós.",
      "Quando você compartilha, exporta ou abre um item em outro app, esse app recebe uma cópia sem criptografia e a trata conforme os próprios termos."
     ]
    ],
@@ -101,7 +101,7 @@
     [
      "Câmera: só para tirar fotos direto para um cofre, quando você abre a câmera. As fotos não são salvas na sua biblioteca de fotos.",
      "Biometria: só se você ativar o desbloqueio por Face ID, Touch ID ou impressão digital. Seus dados biométricos nunca saem do hardware seguro do dispositivo e nunca ficam disponíveis para o app.",
-     "Rede local (iPhone) / internet (Android) / rede (macOS): só para sincronizar com seu outro dispositivo na mesma Wi-Fi, quando você inicia."
+     "Rede local (iPhone) / internet (Android) / rede (macOS): só para sincronizar, quando você inicia: com seu outro dispositivo na mesma Wi-Fi ou com o seu Google Drive."
     ]
    ],
    [

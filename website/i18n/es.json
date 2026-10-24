@@ -7,13 +7,13 @@
   "nav_dl": "Descargar",
   "nav_src": "Código fuente",
   "h1": "Una caja fuerte privada para tus notas, fotos y archivos.",
-  "lead": "Todo se cifra en tu dispositivo antes de guardarse. Sin cuenta ni servidor: la app solo se conecta con tu propio dispositivo en la misma Wi-Fi cuando sincronizas. Sin tu contraseña, nadie puede abrirlo, ni siquiera nosotros.",
+  "lead": "Todo se cifra en tu dispositivo antes de guardarse. Sin cuenta ni servidor: la app solo se conecta cuando inicias una sincronización, con tu propio dispositivo en la misma Wi-Fi o con tu propio Google Drive, y solo envía datos cifrados. Sin tu contraseña, nadie puede abrirlo, ni siquiera nosotros.",
   "btn": "Descargar",
   "btn_for": "Descargar para {p}",
   "btn_src": "Ver el código",
   "unlock": "Desbloquear",
   "unlock_bio": "Desbloquear con Face ID",
-  "note": "<strong>Versión preliminar.</strong> Cozy Safe funciona en un solo dispositivo; la sincronización entre dispositivos aún no existe. Usa <em>Copia de seguridad en archivo</em> a menudo y no guardes aquí todavía la única copia de nada importante.",
+  "note": "<strong>Versión preliminar.</strong> La sincronización entre tus dispositivos es nueva. Usa <em>Copia de seguridad en archivo</em> a menudo y no guardes aquí todavía la única copia de nada importante.",
   "h_how": "Cómo te protege Cozy Safe",
   "p_how": "Tus datos nunca salen de tu dispositivo sin cifrar, y el código que lo hace es público.",
   "c1h": "Cifrado en tu dispositivo",
@@ -30,7 +30,7 @@
   ],
   "l2h": "Lo que no puede hacer",
   "l2": [
-   "Aún no hay sincronización entre dispositivos: haz copias de seguridad en archivo a menudo.",
+   "La sincronización es nueva, y la sincronización con Google Drive por ahora solo funciona en iPhone: haz copias de seguridad en archivo a menudo.",
    "No puede proteger un dispositivo que ya tenga malware.",
    "Cualquiera que sepa la contraseña puede abrir la caja fuerte."
   ],
@@ -61,7 +61,7 @@
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
   "c4h": "Sin servidor, sin cuenta",
-  "c4p": "Cozy Safe no se comunica con ningún servidor. La única conexión que hace es con tu propio dispositivo en la misma Wi-Fi, cuando inicias una sincronización y la permites, y todo lo que se envía va cifrado.",
+  "c4p": "Cozy Safe no tiene servidor propio. Solo se conecta cuando inicias una sincronización y la permites: con tu propio dispositivo en la misma Wi-Fi o con tu propio Google Drive. Todo lo que se envía va cifrado.",
   "c5h": "Discreta en pantalla",
   "c5p": "Las contraseñas y la Clave de recuperación permanecen ocultas hasta que tocas Mostrar, el texto copiado se borra a los 60 segundos y la caja fuerte se bloquea en cuanto sales de la app.",
   "c6h": "Copias de seguridad bajo tu control",
@@ -92,7 +92,7 @@
     "Adónde pueden ir tus datos, solo si tú lo eliges",
     [
      "Una copia de seguridad es un único archivo cifrado, guardado donde tú elijas (por ejemplo, iCloud Drive, Google Drive o Dropbox). Allí solo se escriben datos cifrados; el proveedor que elijas no puede leerlos.",
-     "Sincronización con tu otro dispositivo: cuando la inicias y la permites, los datos cifrados de la caja fuerte van por tu Wi-Fi directamente a tu propio dispositivo. Nada pasa por nosotros ni por ningún servidor.",
+     "Sincronización, solo cuando la inicias y la permites: los datos cifrados de la caja fuerte van por tu Wi-Fi directamente a tu propio dispositivo o, después de iniciar sesión con Google, a una carpeta «Cozy Safe» de tu propio Google Drive. La app solo puede ver los archivos que creó allí, y Google solo ve archivos cifrados. Nada pasa por nosotros.",
      "Cuando compartes, exportas o abres un elemento en otra app, esa app recibe una copia sin cifrar y la trata según sus propias condiciones."
     ]
    ],
@@ -101,7 +101,7 @@
     [
      "Cámara: solo para hacer fotos directamente en una caja fuerte, cuando abres la cámara. Las fotos no se guardan en tu fototeca.",
      "Biometría: solo si activas el desbloqueo con Face ID, Touch ID o huella dactilar. Tus datos biométricos nunca salen del hardware seguro del dispositivo y la app nunca tiene acceso a ellos.",
-     "Red local (iPhone) / internet (Android) / red (macOS): solo para sincronizar con tu otro dispositivo en la misma Wi-Fi, cuando tú la inicias."
+     "Red local (iPhone) / internet (Android) / red (macOS): solo para sincronizar, cuando tú la inicias: con tu otro dispositivo en la misma Wi-Fi o con tu Google Drive."
     ]
    ],
    [

@@ -7,13 +7,13 @@
   "nav_dl": "İndir",
   "nav_src": "Kaynak kodu",
   "h1": "Notlarınız, fotoğraflarınız ve dosyalarınız için özel bir kasa.",
-  "lead": "Her şey kaydedilmeden önce cihazınızda şifrelenir. Hesap yok, sunucu yok: uygulama yalnızca eşitleme yaptığınızda aynı Wi-Fi ağındaki kendi cihazınıza bağlanır. Parolanız olmadan biz dahil kimse açamaz.",
+  "lead": "Her şey kaydedilmeden önce cihazınızda şifrelenir. Hesap yok, sunucu yok: uygulama yalnızca siz bir eşitleme başlattığınızda, aynı Wi-Fi ağındaki kendi cihazınıza veya kendi Google Drive'ınıza bağlanır ve yalnızca şifreli veri gönderir. Parolanız olmadan biz dahil kimse açamaz.",
   "btn": "İndir",
   "btn_for": "{p} için indir",
   "btn_src": "Kaynak koduna bak",
   "unlock": "Kilidi aç",
   "unlock_bio": "Face ID ile kilidi aç",
-  "note": "<strong>Önizleme.</strong> Cozy Safe tek bir cihazda çalışır; cihazlar arası eşitleme henüz yok. <em>Dosyaya yedekle</em> özelliğini sık kullanın ve önemli bir şeyin tek kopyasını şimdilik burada tutmayın.",
+  "note": "<strong>Önizleme.</strong> Cihazlarınız arasında eşitleme yeni bir özellik. <em>Dosyaya yedekle</em> özelliğini sık kullanın ve önemli bir şeyin tek kopyasını şimdilik burada tutmayın.",
   "h_how": "Cozy Safe sizi nasıl korur",
   "p_how": "Verileriniz cihazınızdan asla şifresiz çıkmaz ve bunu yapan kod herkese açıktır.",
   "c1h": "Cihazınızda şifrelenir",
@@ -30,7 +30,7 @@
   ],
   "l2h": "Yapamadıkları",
   "l2": [
-   "Cihazlar arası eşitleme henüz yok: sık sık dosyaya yedekleyin.",
+   "Eşitleme yeni ve Google Drive ile eşitleme şimdilik yalnızca iPhone'da çalışıyor: sık sık dosyaya yedekleyin.",
    "Zaten kötü amaçlı yazılım bulunan bir cihazı koruyamaz.",
    "Parolayı bilen herkes kasayı açabilir."
   ],
@@ -61,7 +61,7 @@
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
   "c4h": "Sunucu yok, hesap yok",
-  "c4p": "Cozy Safe hiçbir sunucuyla iletişim kurmaz. Kurduğu tek bağlantı, aynı Wi-Fi ağındaki kendi cihazınızladır; bu da yalnızca bir eşitleme başlatıp izin verdiğinizde olur ve gönderilen her şey şifrelidir.",
+  "c4p": "Cozy Safe'in kendine ait bir sunucusu yoktur. Yalnızca bir eşitleme başlatıp izin verdiğinizde bağlanır: aynı Wi-Fi ağındaki kendi cihazınıza veya kendi Google Drive'ınıza. Gönderilen her şey şifrelidir.",
   "c5h": "Ekranda gizli",
   "c5p": "Parolalar ve Kurtarma Anahtarı siz Göster'e dokunana kadar gizli kalır, kopyalanan metin 60 saniye sonra silinir ve uygulamadan çıktığınız anda kasa kilitlenir.",
   "c6h": "Kontrolü sizde olan yedekler",
@@ -92,7 +92,7 @@
     "Verileriniz nereye gidebilir (yalnızca siz seçerseniz)",
     [
      "Yedek, seçtiğiniz bir yere kaydedilen tek bir şifreli dosyadır (örneğin iCloud Drive, Google Drive veya Dropbox). Oraya yalnızca şifreli veri yazılır; seçtiğiniz sağlayıcı bu veriyi okuyamaz.",
-     "Diğer cihazınızla eşitleme: siz başlatıp izin verdiğinizde kasanın şifreli verileri Wi-Fi ağınız üzerinden doğrudan kendi cihazınıza gider. Hiçbir şey bizden veya herhangi bir sunucudan geçmez.",
+     "Eşitleme, yalnızca siz başlatıp izin verdiğinizde: kasanın şifreli verileri Wi-Fi ağınız üzerinden doğrudan kendi cihazınıza ya da Google ile oturum açtıktan sonra kendi Google Drive'ınızdaki \"Cozy Safe\" klasörüne gider. Uygulama orada yalnızca kendi oluşturduğu dosyaları görebilir, Google ise yalnızca şifreli dosyaları görür. Hiçbir şey bizden geçmez.",
      "Bir öğeyi paylaştığınızda, dışa aktardığınızda veya başka bir uygulamada açtığınızda o uygulama şifresiz bir kopya alır ve bunu kendi koşullarına göre işler."
     ]
    ],
@@ -101,7 +101,7 @@
     [
      "Kamera: yalnızca kamerayı siz açtığınızda, fotoğrafları doğrudan bir kasaya çekmek için. Fotoğraflar fotoğraf arşivinize kaydedilmez.",
      "Biyometri: yalnızca Face ID, Touch ID veya parmak iziyle kilit açmayı etkinleştirirseniz. Biyometrik verileriniz cihazın güvenli donanımından asla çıkmaz ve uygulamanın erişimine hiçbir zaman açık değildir.",
-     "Yerel ağ (iPhone) / internet (Android) / ağ (macOS): yalnızca siz başlattığınızda, aynı Wi-Fi ağındaki diğer cihazınızla eşitleme için."
+     "Yerel ağ (iPhone) / internet (Android) / ağ (macOS): yalnızca siz başlattığınızda eşitleme için: aynı Wi-Fi ağındaki diğer cihazınızla veya Google Drive'ınızla."
     ]
    ],
    [

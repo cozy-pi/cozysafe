@@ -7,13 +7,13 @@
   "nav_dl": "Download",
   "nav_src": "Source code",
   "h1": "A private vault for your notes, photos and files.",
-  "lead": "Everything is encrypted on your device before it is saved. No account, no server: the app only connects to your own device on the same Wi-Fi when you sync. Without your password, nobody can open it, including us.",
+  "lead": "Everything is encrypted on your device before it is saved. No account, no server: the app connects only when you start a sync, to your own device on the same Wi-Fi or to your own Google Drive, and sends only encrypted data. Without your password, nobody can open it, including us.",
   "btn": "Download",
   "btn_for": "Download for {p}",
   "btn_src": "View the source",
   "unlock": "Unlock",
   "unlock_bio": "Unlock with Face ID",
-  "note": "<strong>Preview.</strong> Cozy Safe works on one device; sync between devices is not built yet. Use <em>Back up to a file</em> often, and don't keep the only copy of anything important here yet.",
+  "note": "<strong>Preview.</strong> Sync between your devices is new. Use <em>Back up to a file</em> often, and don't keep the only copy of anything important here yet.",
   "h_how": "How Cozy Safe keeps you safe",
   "p_how": "Your data never leaves your device unencrypted, and the code that does it is public.",
   "c1h": "Encrypted on your device",
@@ -30,7 +30,7 @@
   ],
   "l2h": "What it cannot do",
   "l2": [
-   "There is no sync between devices yet: back up to a file often.",
+   "Sync is new, and Google Drive sync works on iPhone only for now: back up to a file often.",
    "It cannot protect a device that already has malware.",
    "Anyone who knows the password can open the vault."
   ],
@@ -61,7 +61,7 @@
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
   "c4h": "No server, no account",
-  "c4p": "Cozy Safe talks to no server. The only connection it makes is to your own device on the same Wi-Fi, when you start a sync and allow it, and everything sent is encrypted.",
+  "c4p": "Cozy Safe has no server of its own. It connects only when you start a sync and allow it: to your own device on the same Wi-Fi, or to your own Google Drive. Everything sent is encrypted.",
   "c5h": "Private on screen",
   "c5p": "Passwords and the Recovery Key stay hidden until you tap Show, copied text is wiped after 60 seconds, and the vault locks as soon as you leave the app.",
   "c6h": "Backups you control",
@@ -92,7 +92,7 @@
     "Where your data can go, only if you choose",
     [
      "A backup is one encrypted file, saved where you choose (for example iCloud Drive, Google Drive or Dropbox). Only encrypted data is written there; the provider you choose cannot read it.",
-     "Sync with your other device: when you start it and allow it, the vault's encrypted data goes over your Wi-Fi straight to your own device. Nothing goes through us or any server.",
+     "Sync, only when you start it and allow it: the vault's encrypted data goes over your Wi-Fi straight to your own device, or, after you sign in with Google, to a \"Cozy Safe\" folder in your own Google Drive. The app can see only the files it made there, and Google sees only encrypted files. Nothing goes through us.",
      "When you share, export or open an item in another app, that app receives an unencrypted copy and handles it under its own terms."
     ]
    ],
@@ -101,7 +101,7 @@
     [
      "Camera: only to take photos straight into a vault, when you open the camera. Photos are not saved to your photo library.",
      "Biometrics: only if you turn on Face ID, Touch ID or fingerprint unlock. Your biometric data never leaves the device's secure hardware and is never available to the app.",
-     "Local network (iPhone) / internet (Android) / network (macOS): only for syncing with your other device on the same Wi-Fi, when you start it."
+     "Local network (iPhone) / internet (Android) / network (macOS): only for sync, when you start it: with your other device on the same Wi-Fi, or with your Google Drive."
     ]
    ],
    [

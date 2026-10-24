@@ -7,13 +7,13 @@
   "nav_dl": "Télécharger",
   "nav_src": "Code source",
   "h1": "Un coffre-fort privé pour vos notes, photos et fichiers.",
-  "lead": "Tout est chiffré sur votre appareil avant d'être enregistré. Sans compte ni serveur : l'app ne se connecte qu'à votre propre appareil sur le même Wi-Fi, quand vous synchronisez. Sans votre mot de passe, personne ne peut l'ouvrir, pas même nous.",
+  "lead": "Tout est chiffré sur votre appareil avant d'être enregistré. Sans compte ni serveur : l'app ne se connecte que lorsque vous lancez une synchronisation, à votre propre appareil sur le même Wi-Fi ou à votre propre Google Drive, et n'envoie que des données chiffrées. Sans votre mot de passe, personne ne peut l'ouvrir, pas même nous.",
   "btn": "Télécharger",
   "btn_for": "Télécharger pour {p}",
   "btn_src": "Voir le code source",
   "unlock": "Déverrouiller",
   "unlock_bio": "Déverrouiller avec Face ID",
-  "note": "<strong>Version préliminaire.</strong> Cozy Safe fonctionne sur un seul appareil ; la synchronisation entre appareils n'existe pas encore. Utilisez souvent <em>Sauvegarder dans un fichier</em>, et n'y conservez pas encore l'unique copie de quoi que ce soit d'important.",
+  "note": "<strong>Version préliminaire.</strong> La synchronisation entre vos appareils est nouvelle. Utilisez souvent <em>Sauvegarder dans un fichier</em>, et n'y conservez pas encore l'unique copie de quoi que ce soit d'important.",
   "h_how": "Comment Cozy Safe vous protège",
   "p_how": "Vos données ne quittent jamais votre appareil sans être chiffrées, et le code qui s'en charge est public.",
   "c1h": "Chiffré sur votre appareil",
@@ -30,7 +30,7 @@
   ],
   "l2h": "Ce qu'il ne peut pas faire",
   "l2": [
-   "Pas encore de synchronisation entre appareils : sauvegardez souvent dans un fichier.",
+   "La synchronisation est nouvelle, et la synchronisation avec Google Drive ne fonctionne pour l'instant que sur iPhone : sauvegardez souvent dans un fichier.",
    "Il ne peut pas protéger un appareil déjà infecté par un logiciel malveillant.",
    "Toute personne qui connaît le mot de passe peut ouvrir le coffre."
   ],
@@ -61,7 +61,7 @@
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
   "c4h": "Sans serveur, sans compte",
-  "c4p": "Cozy Safe ne communique avec aucun serveur. La seule connexion qu'il établit est avec votre propre appareil sur le même Wi-Fi, quand vous lancez une synchronisation et l'autorisez, et tout ce qui est envoyé est chiffré.",
+  "c4p": "Cozy Safe n'a pas de serveur à lui. Il ne se connecte que lorsque vous lancez une synchronisation et l'autorisez : à votre propre appareil sur le même Wi-Fi, ou à votre propre Google Drive. Tout ce qui est envoyé est chiffré.",
   "c5h": "Discret à l'écran",
   "c5p": "Les mots de passe et la Clé de récupération restent masqués jusqu'à ce que vous touchiez Afficher, le texte copié est effacé après 60 secondes et le coffre se verrouille dès que vous quittez l'app.",
   "c6h": "Des sauvegardes que vous maîtrisez",
@@ -92,7 +92,7 @@
     "Où vos données peuvent aller, uniquement si vous le choisissez",
     [
      "Une sauvegarde est un seul fichier chiffré, enregistré à l'endroit de votre choix (par exemple iCloud Drive, Google Drive ou Dropbox). Seules des données chiffrées y sont écrites ; le fournisseur choisi ne peut pas les lire.",
-     "Synchronisation avec votre autre appareil : quand vous la lancez et l'autorisez, les données chiffrées du coffre passent par votre Wi-Fi directement vers votre propre appareil. Rien ne passe par nous ni par un serveur.",
+     "Synchronisation, uniquement quand vous la lancez et l'autorisez : les données chiffrées du coffre passent par votre Wi-Fi directement vers votre propre appareil ou, après connexion avec Google, vers un dossier « Cozy Safe » de votre propre Google Drive. L'app ne voit que les fichiers qu'elle y a créés, et Google ne voit que des fichiers chiffrés. Rien ne passe par nous.",
      "Lorsque vous partagez, exportez ou ouvrez un élément dans une autre app, cette app reçoit une copie non chiffrée et la traite selon ses propres conditions."
     ]
    ],
@@ -101,7 +101,7 @@
     [
      "Appareil photo : uniquement pour prendre des photos directement dans un coffre, lorsque vous ouvrez l'appareil photo. Les photos ne sont pas enregistrées dans votre photothèque.",
      "Biométrie : uniquement si vous activez le déverrouillage par Face ID, Touch ID ou empreinte digitale. Vos données biométriques ne quittent jamais le matériel sécurisé de l'appareil et ne sont jamais accessibles à l'app.",
-     "Réseau local (iPhone) / Internet (Android) / réseau (macOS) : uniquement pour synchroniser avec votre autre appareil sur le même Wi-Fi, quand vous la lancez."
+     "Réseau local (iPhone) / Internet (Android) / réseau (macOS) : uniquement pour la synchronisation, quand vous la lancez : avec votre autre appareil sur le même Wi-Fi, ou avec votre Google Drive."
     ]
    ],
    [

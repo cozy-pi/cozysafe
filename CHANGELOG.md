@@ -18,7 +18,9 @@ Dates are UTC.
 ### Security
 - New independent scanners on every change: Google's OSV-Scanner (Rust and Dart),
   GitHub CodeQL, Semgrep, gitleaks (secrets in the whole history), and a rule that no
-  library version younger than 14 days gets in.
+  library version younger than 14 days gets in. Every release now runs them first.
+- Release workflows hardened: inputs reach shell commands only as environment variables,
+  and each build gets only the secrets it needs.
 
 ## 0.1.53 (2026-10-24)
 

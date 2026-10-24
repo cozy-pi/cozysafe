@@ -1,21 +1,22 @@
 # Supply chain: no library may send data out
 
-Cozy Safe uses no server. The only network use is syncing with the person's other device
-on the same Wi‑Fi, started and allowed by hand each time, all of it in one crate
-(`core/cs-net`, decisions 2026-10-24). The goal: **no third-party library (Dart package,
-Flutter plugin, Rust crate) can send data out of the device**, whether by accident,
-through a feature we do not use, or on purpose after a compromised update; and our own
-network code can only reach a local address the person allowed.
+Cozy Safe uses no server of ours. The only network use is sync, started and allowed by
+hand each time: with the person's other device on the same Wi‑Fi, or with their own
+Google Drive. All of it is in one crate (`core/cs-net`, decisions 2026-10-24). The goal:
+**no third-party library (Dart package, Flutter plugin, Rust crate) can send data out of
+the device**, whether by accident, through a feature we do not use, or on purpose after a
+compromised update; and our own network code can only reach a local address, or Google
+Drive's one API host, that the person allowed.
 
 No single check can promise that. Several layers, each catching what another misses:
 
 | Layer | Where | What it stops |
 |---|---|---|
-| OS: Android | `app/android/app/src/main/AndroidManifest.xml`, CI `build.yml` | Only `INTERNET` (any socket needs it, even a local one); no network-state, Wi‑Fi or nearby-device permission |
+| OS: Android | `app/android/app/src/main/AndroidManifest.xml`, `tools/check-apk-permissions` (CI `build.yml`) | Only `INTERNET` (any socket needs it, even a local one); no network-state, Wi‑Fi or nearby-device permission |
 | OS: macOS | `app/macos/Runner/Release.entitlements`, `tools/check-entitlements` | App Sandbox on; of the network entitlements only `network.client` / `network.server` (sync) |
 | Compiled Rust | `tools/check-rust-symbols` (CI `ci.yml` on Linux, `build.yml` on the APK's library) | The linked Rust library imports only the socket calls cs-net needs, and `getaddrinfo` (Google Drive's one host); no reverse or legacy lookups |
 | cackle | `app/rust/cackle.toml`, CI `ci.yml` | No crate but `cs-net` uses the `net` API (std::net, Unix sockets, libc socket calls, tokio::net) |
-| cargo-deny | `deny.toml`, CI `ci.yml` | Known-vulnerable or yanked crates, any source but crates.io, known networking crates |
+| cargo-deny | `deny.toml`, CI `ci.yml` | Known-vulnerable or yanked crates, any source but crates.io, known HTTP, TLS and socket crates (rustls only under cs-net) |
 | Dart runtime guard | `app/lib/offline.dart` (installed first thing in `main`) | `HttpClient()` throws; `Socket.connect`, `Socket.startConnect`, `ServerSocket.bind` fail |
 | Allowlists | `tools/check-deps`, `tools/allow/*.txt` | Any new Dart package or Rust crate, direct or transitive, until someone reviews it |
 | Source scan | `tools/check-deps`, `tools/allow/network-ok.txt` | Network APIs in the Dart, Kotlin/Java, Swift/Objective-C and C/C++ sources of every pub package that ships |
@@ -23,9 +24,11 @@ No single check can promise that. Several layers, each catching what another mis
 ## The layers
 
 **Android.** The main manifest declares INTERNET: Android needs it for any socket, even
-one to a device on the same Wi‑Fi, and it cannot be limited to the local network. CI
-dumps the permissions of the built APK (`aapt2 dump permissions`) and of the Play bundle,
-and fails if a network permission beyond it appears (network or Wi‑Fi state, changing
+one to a device on the same Wi‑Fi, and it cannot be limited to the local network. The
+manifest removes `ACCESS_NETWORK_STATE` that plugins would merge in. CI
+(`tools/check-apk-permissions`) dumps the permissions of the built APK
+(`aapt2 dump permissions`) and of the Play bundle, and fails if a network permission
+beyond it appears (network or Wi‑Fi state, changing
 them, multicast, nearby devices). The protection against a library using INTERNET is
 the other layers.
 
@@ -36,11 +39,13 @@ appears, or if a sandbox temporary exception is added. It runs in CI on every pu
 `DebugProfile.entitlements` keeps `network.server` for the debugger.
 
 **Compiled Rust.** `tools/check-rust-symbols` reads the undefined (imported) symbols
-of the built `librust_lib_cozysafe` shared library and fails on name lookups
-(`getaddrinfo`, `getnameinfo`, `gethostbyname` and similar). The plain socket calls
-(`socket`, `connect`, `bind`, `listen`, `accept`, `send*`, `recv*`) are allowed for
-cs-net, which works with IP addresses only: without a name lookup nothing in the Rust
-core can reach a host on the internet by name. It checks the linked library, not the
+of the built `librust_lib_cozysafe` shared library and fails on any network import
+outside an allowlist. The plain socket calls (`socket`, `connect`, `bind`, `listen`,
+`accept`, `send*`, `recv*` and socket options) are allowed for cs-net. So is
+`getaddrinfo` (with `freeaddrinfo`, `gai_strerror`), for one name only: Google Drive's
+API host, a constant in `cs-net/src/https.rs`; no name ever comes from outside. Reverse
+lookups (`getnameinfo`) and the old `gethostbyname` family stay forbidden. Device-to-device
+sync works with IP addresses only, so it can reach nothing on the internet by name. It checks the linked library, not the
 static archive: the linker keeps only reachable code, so an import there means
 something really calls it.
 
@@ -55,7 +60,9 @@ The core crates (`cs-vault`, `cs-crypto`, `cs-photo`) also carry
 
 **cargo-deny** checks both lockfiles (the core workspace and `app/rust`) against the
 RustSec advisory database, accepts crates only from crates.io, and bans well-known
-HTTP, TLS and socket crates.
+HTTP clients (reqwest, hyper, ureq, curl…), WebSocket and QUIC stacks, `socket2`, `mio`,
+and every TLS library but rustls; rustls itself is allowed only as a dependency of
+`cs-net`.
 
 **Dart runtime guard.** `installNetworkGuard()` sets `HttpOverrides.global` and
 `IOOverrides.global` before anything else runs, so Dart code (including
@@ -92,6 +99,31 @@ Build jobs only read the repository; attestations and the GitHub release come fr
 app outside the export is fragile, the certificate can be revoked, and without the App
 Store Connect key nothing can be uploaded with it. Run by hand, `testflight.yml` can
 validate a build with Apple instead of uploading it (`upload: false`).
+
+## Independent scanners (`.github/workflows/security.yml`)
+
+Run on every push to main, on pull requests, weekly, and first in every release
+(`release.yml` needs them): a finding stops the release. Each tool is pinned to a commit or
+an exact version that was at least 14 days old when added.
+
+| Tool | What it looks at |
+|---|---|
+| OSV-Scanner (Google) | Known vulnerabilities in `Cargo.lock`, `app/rust/Cargo.lock`, `app/pubspec.lock` |
+| CodeQL (GitHub) | The Rust code and the GitHub workflows (`security-extended` queries) |
+| Semgrep | Rust, Kotlin, Swift, secrets and GitHub Actions rules (shell injection, `secrets: inherit`) |
+| gitleaks | Secrets in the whole git history; reviewed test fixtures listed in `.gitleaksignore` |
+| `tools/check-age` | No locked Rust or Dart version younger than 14 days |
+
+**Minimum age.** A hijacked release is usually found and pulled within days, so nothing
+newer than 14 days comes in, direct or not. A version that must come in sooner, such as a
+security fix, is listed in `tools/allow/young.txt` with its advisory. (When this rule came
+in, the first run showed why: the then-newest rustls and webpki releases were themselves
+the fixes for six advisories, so the older ones could not be kept either.)
+
+**First run, 2026-10-24.** Semgrep found release-workflow inputs pasted into shell
+commands (now passed as environment variables) and `secrets: inherit` (now each secret by
+name); gitleaks found a real Recovery Key used as mockup data (replaced; the owner changed
+it). None of it was in a shipped app.
 
 ## Limits
 
