@@ -86,9 +86,12 @@ impl FolderRemote {
     }
 
     fn at(&self, path: &str) -> Result<PathBuf> {
-        if path
-            .split('/')
-            .any(|p| p.is_empty() || p == "." || p == "..")
+        // '/' only: no "..", no empty parts, and none of what another system reads as a
+        // separator or a drive ('\\' and ':' on Windows), nor NUL.
+        if path.contains(['\\', ':', '\0'])
+            || path
+                .split('/')
+                .any(|p| p.is_empty() || p == "." || p == "..")
         {
             return Err(Error::Corrupt("sync path"));
         }
@@ -263,10 +266,11 @@ impl OpenVault {
                 .collect();
             entries.sort_unstable();
             for n in entries {
-                let mut sealed = Vec::new();
+                let mut sealed = Capped::new(MAX_SMALL);
                 if !remote.get(&format!("{base}/log/{device}/{n}"), &mut sealed)? {
                     break;
                 }
+                let sealed = sealed.0;
                 let json = wrap::open(&self.master_key, &sealed, &self.log_aad(&device, n))?;
                 let entry: Entry =
                     serde_json::from_slice(&json).map_err(|_| Error::Corrupt("sync log"))?;
@@ -288,13 +292,14 @@ impl OpenVault {
         id: &str,
         rev: &str,
     ) -> Result<Option<(ItemRecord, Vec<u8>)>> {
-        let mut sealed = Vec::new();
+        let mut sealed = Capped::new(MAX_SMALL);
         if !remote.get(
             &format!("{}/records/{id}/{rev}", self.sync_dir()),
             &mut sealed,
         )? {
             return Ok(None);
         }
+        let sealed = sealed.0;
         let record = self.open_record(id, &sealed)?;
         if record.rev != rev {
             return Err(Error::Corrupt("sync record"));
@@ -323,6 +328,16 @@ impl OpenVault {
             if !found {
                 let _ = fs::remove_file(&tmp);
                 return Err(Error::Corrupt("sync content missing"));
+            }
+            // The content must be exactly what the (sealed) record says.
+            let want = if ext == "data" {
+                &record.data_hash
+            } else {
+                &record.thumb_hash
+            };
+            if want.is_empty() || crate::items::file_sha256_hex(&tmp)? != *want {
+                let _ = fs::remove_file(&tmp);
+                return Err(Error::Corrupt("sync content does not match its record"));
             }
             fs::rename(tmp, to)?;
         }
@@ -468,6 +483,8 @@ impl OpenVault {
             out.data_rev = theirs.data_rev.clone();
             out.size_bytes = theirs.size_bytes;
             out.wrapped_dek = theirs.wrapped_dek.clone();
+            out.data_hash = theirs.data_hash.clone();
+            out.thumb_hash = theirs.thumb_hash.clone();
             out.set_thumbnail(theirs.has_thumbnail());
         }
         out.rev = theirs.rev.clone();
@@ -494,11 +511,16 @@ impl OpenVault {
     ) -> Result<()> {
         let mut plain = Vec::new();
         if from_remote {
-            let mut sealed = Vec::new();
+            // A note: small. Capped all the same, and checked against its record.
+            let mut sealed = Capped::new(MAX_NOTE);
             remote.get(
                 &format!("{}/blobs/{id}.{}.data", self.sync_dir(), loser.data_rev),
                 &mut sealed,
             )?;
+            let sealed = sealed.0;
+            if loser.data_hash.is_empty() || crate::items::sha256_hex(&sealed) != loser.data_hash {
+                return Err(Error::Corrupt("sync content does not match its record"));
+            }
             let dek = self.unwrap_dek(id, loser)?;
             cs_crypto::stream::decrypt(&dek, &self.item_aad(id, "data"), &sealed[..], &mut plain)?;
         } else {
@@ -563,9 +585,15 @@ impl OpenVault {
             };
             let mut record = self.open_record(&id, &sealed)?;
             let mut sealed = sealed;
-            if record.rev.is_empty() {
-                // From before sync: give it a first revision (same content, same time).
+            if record.rev.is_empty() || record.data_hash.is_empty() {
+                // From before sync: a first revision, with its content's fingerprints
+                // (same content, same time).
                 let modified = record.modified_ms;
+                record.data_hash = crate::items::file_sha256_hex(&self.path(&id, "data")?)?;
+                if record.has_thumbnail() {
+                    record.thumb_hash = crate::items::file_sha256_hex(&self.path(&id, "thumb")?)?;
+                }
+                record.data_rev.clear(); // its content goes up under this new revision
                 self.stamp(&mut record)?;
                 record.modified_ms = modified;
                 sealed = self.store_record(&id, &record)?;
@@ -609,6 +637,35 @@ impl OpenVault {
             self.index.gone_sent(&rk, id)?;
         }
         report.sent += entry.items.len() as u32;
+        Ok(())
+    }
+}
+
+/// Records and journal entries are small: a place sending more is refused, not read
+/// into memory.
+const MAX_SMALL: usize = 1 << 20;
+/// A note's content, read whole to keep a copy.
+const MAX_NOTE: usize = 64 << 20;
+
+/// A memory buffer that refuses to grow past its cap.
+struct Capped(Vec<u8>, usize);
+
+impl Capped {
+    fn new(cap: usize) -> Capped {
+        Capped(Vec::new(), cap)
+    }
+}
+
+impl Write for Capped {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        if self.0.len() + buf.len() > self.1 {
+            return Err(std::io::Error::other("sync: more than expected"));
+        }
+        self.0.extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
 }
@@ -863,5 +920,87 @@ pub(crate) mod tests {
         assert_eq!(t.a.sync(&t.cloud).unwrap().sent, 1);
         t.b.sync(&t.cloud).unwrap();
         assert_eq!(text(&t.b, &id), "x");
+    }
+
+    // ---------- a hostile sync place ----------
+
+    fn blobs_of(cloud: &Path) -> Vec<PathBuf> {
+        let mut out = Vec::new();
+        for v in fs::read_dir(cloud).unwrap().flatten() {
+            if let Ok(d) = fs::read_dir(v.path().join("blobs")) {
+                out.extend(
+                    d.flatten()
+                        .map(|e| e.path())
+                        .filter(|p| p.extension().is_some_and(|e| e == "data")),
+                );
+            }
+        }
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn older_content_handed_back_under_a_newer_revision_is_refused() {
+        let t = two();
+        let id = note(&t.a, "PIN", "old 1234");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap(); // B has revision 1, rightly
+        let rev1 = t.b.record(&id).unwrap().rev;
+        let before: Vec<_> = blobs_of(&t.cloud.root);
+        t.a.replace_item(&id, "PIN", &b"new 9876"[..]).unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        let newer = blobs_of(&t.cloud.root)
+            .into_iter()
+            .find(|p| !before.contains(p))
+            .unwrap();
+        // The cloud swaps the new content for the old one (same item key: it decrypts).
+        fs::copy(&before[0], &newer).unwrap();
+        assert!(t.b.sync(&t.cloud).is_err());
+        // B did not take revision 2 with the swapped content: it stays at revision 1.
+        assert_eq!(t.b.record(&id).unwrap().rev, rev1);
+        assert_eq!(text(&t.b, &id), "old 1234");
+    }
+
+    #[test]
+    fn an_oversized_record_is_refused_not_read() {
+        let t = two();
+        let id = note(&t.a, "N", "x");
+        t.a.sync(&t.cloud).unwrap();
+        let rev = t.a.record(&id).unwrap().rev;
+        let path = t
+            .cloud
+            .root
+            .join(&t.a.id)
+            .join("records")
+            .join(&id)
+            .join(&rev);
+        fs::write(&path, vec![0u8; (MAX_SMALL) + 1]).unwrap();
+        assert!(t.b.sync(&t.cloud).is_err());
+    }
+
+    #[test]
+    fn paths_cannot_leave_the_folder_on_any_system() {
+        let dir = tempfile::tempdir().unwrap();
+        let f = FolderRemote::new(dir.path());
+        for bad in ["a/../b", "a\\..\\b", "C:/x", "a//b", "/etc", "a/\0b", "./a"] {
+            assert!(f.list(bad).is_err(), "{bad}");
+            assert!(f.put(bad, &mut &b"x"[..]).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_journal_entry_cannot_be_moved_or_forged() {
+        let t = two();
+        note(&t.a, "N", "x");
+        t.a.sync(&t.cloud).unwrap();
+        // Renumber A's entry 1 as 2: its sealed number no longer matches.
+        let log = t.cloud.root.join(&t.a.id).join("log");
+        let dev = fs::read_dir(&log).unwrap().next().unwrap().unwrap().path();
+        fs::rename(dev.join("1"), dev.join("2")).unwrap();
+        assert!(t.b.sync(&t.cloud).is_err());
+        // A made-up entry fails as well.
+        fs::write(dev.join("3"), b"not sealed").unwrap();
+        fs::rename(dev.join("2"), dev.join("1")).unwrap();
+        assert!(t.b.sync(&t.cloud).is_err());
     }
 }
