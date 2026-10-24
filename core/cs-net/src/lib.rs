@@ -98,12 +98,15 @@ pub(crate) mod testkit {
         t: 1,
         p: 1,
     };
-    const PW: &str = "orange kettle whispers at dawn 77";
 
     pub(crate) struct Two {
         pub(crate) dirs: (tempfile::TempDir, tempfile::TempDir),
         pub(crate) a: OpenVault,
         pub(crate) b: OpenVault,
+        /// The library's Recovery Key.
+        pub(crate) sk: SecretKey,
+        /// The vault password (random each run: no password is written in the code).
+        pub(crate) pw: String,
     }
 
     fn copy_dir(from: &Path, to: &Path) {
@@ -123,27 +126,40 @@ pub(crate) mod testkit {
 
     pub(crate) fn two() -> Two {
         let (da, db) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let pw = hex::encode(cs_crypto::generate_salt());
+        let pw = pw.as_str();
         let sk = SecretKey::from_bytes([cs_crypto::rand_u32() as u8; cs_crypto::SECRET_KEY_LEN]);
         Library::open_or_create(da.path(), FAST, sk.clone())
             .unwrap()
-            .create_vault("V", PW)
+            .create_vault("V", pw)
             .unwrap();
         copy_dir(da.path(), db.path());
         let a = Library::open_or_create(da.path(), FAST, sk.clone())
             .unwrap()
-            .unlock(PW)
+            .unlock(pw)
             .unwrap()
             .unwrap();
-        let b = Library::open_or_create(db.path(), FAST, sk)
+        let b = Library::open_or_create(db.path(), FAST, sk.clone())
             .unwrap()
-            .unlock(PW)
+            .unlock(pw)
             .unwrap()
             .unwrap();
         Two {
             dirs: (da, db),
             a,
             b,
+            sk,
+            pw: pw.to_owned(),
         }
+    }
+
+    /// Open the vault in `dir` the usual way.
+    pub(crate) fn open(dir: &Path, sk: &SecretKey, pw: &str) -> OpenVault {
+        Library::open_or_create(dir, FAST, sk.clone())
+            .unwrap()
+            .unlock(pw)
+            .unwrap()
+            .unwrap()
     }
 
     pub(crate) fn note(v: &OpenVault, name: &str, text: &str) -> String {

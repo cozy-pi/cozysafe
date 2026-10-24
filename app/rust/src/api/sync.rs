@@ -28,6 +28,9 @@ pub struct SyncEvent {
     /// While under way: items done so far and in all.
     pub done: u32,
     pub total: u32,
+    /// While under way: bytes moved in this step so far, and (sending) in all, or 0.
+    pub bytes: u64,
+    pub bytes_total: u64,
 }
 
 pub enum SyncStep {
@@ -58,9 +61,15 @@ pub enum SyncStep {
     Checking,
     Receiving,
     Sending,
+    /// Taking the files of items deleted for good off the place.
+    Removing,
     /// The connection dropped mid-way (the phone slept, the network went): what was
     /// done is kept, the next sync goes on from there.
     Interrupted,
+    /// Restoring: the other device does not take these 24 words.
+    WrongWords,
+    /// Restoring: the words are right, the vault password is not.
+    WrongPassword,
 }
 
 fn step(kind: SyncStep) -> SyncEvent {
@@ -73,6 +82,8 @@ fn step(kind: SyncStep) -> SyncEvent {
         copies: 0,
         done: 0,
         total: 0,
+        bytes: 0,
+        bytes_total: 0,
     }
 }
 
@@ -100,6 +111,8 @@ fn report(r: SyncReport) -> SyncEvent {
         copies: r.copies,
         done: 0,
         total: 0,
+        bytes: 0,
+        bytes_total: 0,
     }
 }
 
@@ -108,10 +121,13 @@ fn progress_event(p: cs_vault::sync::SyncProgress) -> SyncEvent {
     SyncEvent {
         done: p.done,
         total: p.total,
+        bytes: p.bytes,
+        bytes_total: p.bytes_total,
         ..step(match p.phase {
             SyncPhase::Checking => SyncStep::Checking,
             SyncPhase::Receiving => SyncStep::Receiving,
             SyncPhase::Sending => SyncStep::Sending,
+            SyncPhase::Removing => SyncStep::Removing,
         })
     }
 }
@@ -165,7 +181,9 @@ pub fn p2p_host_start(ip: String, mirror: String) -> Result<Hosting, VaultError>
     let dir = Path::new(&mirror);
     let _ = std::fs::remove_dir_all(dir);
     std::fs::create_dir_all(dir).map_err(|_| VaultError::Storage)?;
-    let shown = with_open(|v| Ok(p2p::host_open(v, permit, dir)?))?;
+    // With the library's words, a device restoring this vault may join as well.
+    let secret = super::vault::secret().ok();
+    let shown = with_open(|v| Ok(p2p::host_open(v, secret.as_ref(), permit, dir)?))?;
     *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
     Ok(Hosting {
         typed: shown.typed,
@@ -241,6 +259,59 @@ pub fn p2p_join(code: String, sink: StreamSink<SyncEvent>) {
         Err(_) => step(SyncStep::Locked),
     };
     log_event("join", Some(&peer), &event);
+    let _ = sink.add(event);
+}
+
+/// A new device with no vault: restore the vault of the device showing `code` with
+/// the 24 words and the vault password, then sync its items in. The person allowed the
+/// connection. On Done the vault is open here (`open_vault_info`) and the key in use;
+/// Dart then keeps it in the keystore.
+pub fn p2p_restore(dir: String, code: String, words: String, password: String, sink: StreamSink<SyncEvent>) {
+    STOP.store(false, Ordering::Relaxed);
+    let password = zeroize::Zeroizing::new(password);
+    let words = zeroize::Zeroizing::new(words);
+    let (Some(c), Some(key)) = (PairCode::parse(&code), cs_crypto::SecretKey::from_text(&words)) else {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    };
+    let peer = c.ip_text();
+    let dir = Path::new(&dir);
+    if cs_vault::Library::reset_if_empty(dir).is_err() {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    }
+    let restored = p2p::restore(
+        dir,
+        Permit::connect_for(&c),
+        &c,
+        key.clone(),
+        &password,
+        &|check| {
+            let _ = sink.add(SyncEvent {
+                check,
+                ..step(SyncStep::Connected)
+            });
+        },
+        &|p| {
+            let _ = sink.add(progress_event(p));
+        },
+    );
+    let event = match restored {
+        // Opened the usual way, from this device's folder with the two secrets.
+        Ok(true) => {
+            super::vault::use_secret(key);
+            match super::vault::unlock(dir.to_string_lossy().into_owned(), password.to_string()) {
+                Ok(Some(_)) => step(SyncStep::Done),
+                _ => step(SyncStep::Failed),
+            }
+        }
+        Ok(false) => step(SyncStep::WrongPassword),
+        Err(cs_vault::Error::WrongSecretKey) => step(SyncStep::WrongWords),
+        Err(e) => failure(e),
+    };
+    // Half a restore (lock opened, items cut short) is still a vault here; the next sync
+    // goes on. Nothing is left when the words or password were wrong.
+    log_event("restore", Some(&peer), &event);
     let _ = sink.add(event);
 }
 
@@ -356,7 +427,7 @@ pub fn p2p_cancel() {
     p2p::cancel_live();
 }
 
-/// One log line: `<ms>|<host|join>|<address or ->|<ok|cancelled|expired|failed>|<received>|<sent>`.
+/// One log line: `<ms>|<host|join|restore|drive>|<address or ->|<ok|cancelled|expired|failed>|<received>|<sent>`.
 fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
     let peer = peer.unwrap_or("-");
     let outcome = match event.kind {
@@ -368,11 +439,16 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         | SyncStep::Knock
         | SyncStep::Checking
         | SyncStep::Receiving
-        | SyncStep::Sending => return,
+        | SyncStep::Sending
+        | SyncStep::Removing => return,
         SyncStep::Interrupted => "interrupted",
         SyncStep::OtherVault => "othervault",
         SyncStep::Unreachable => "unreachable",
-        SyncStep::SignIn | SyncStep::Failed | SyncStep::Locked => "failed",
+        SyncStep::SignIn
+        | SyncStep::Failed
+        | SyncStep::Locked
+        | SyncStep::WrongWords
+        | SyncStep::WrongPassword => "failed",
     };
     let (received, sent) = (event.received, event.sent);
     record(format!(

@@ -5,6 +5,10 @@
 # even on the local Wi-Fi); everything else about the network (state, Wi-Fi control,
 # nearby devices) stays out. Checks the merged result in the real files. APKs need
 # aapt2 from the Android SDK build-tools ($ANDROID_HOME).
+# Not network permissions, so not refused here: FOREGROUND_SERVICE,
+# FOREGROUND_SERVICE_DATA_SYNC and POST_NOTIFICATIONS keep a sync running with the phone
+# locked (a foreground service with a progress notification, only while a sync runs;
+# app/android/.../SyncService.kt). They add no way to reach the network.
 set -euo pipefail
 status=0
 for f in "$@"; do

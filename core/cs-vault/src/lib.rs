@@ -765,6 +765,19 @@ fn read_library_header(dir: &Path) -> Result<LibraryHeader> {
     Ok(header)
 }
 
+/// An id (a vault's or an item's: 32 lowercase hex) as it may go into a file name,
+/// rebuilt from its number: nothing but hex digits can reach a path, whatever came from
+/// a sync place, another device or Dart (and CodeQL sees the check).
+pub(crate) fn id_name(id: &str) -> Option<String> {
+    if id.len() != SALT_LEN * 2 {
+        return None;
+    }
+    let n = u128::from_str_radix(id, 16).ok()?;
+    let name = format!("{n:032x}");
+    // "+…" parses too, and capitals format back in lowercase: only the exact form passes.
+    (name == id).then_some(name)
+}
+
 pub(crate) fn read_header(vault_dir: &Path) -> Option<VaultHeader> {
     let bytes = fs::read(vault_dir.join(HEADER_FILE)).ok()?;
     let header: VaultHeader = serde_json::from_slice(&bytes).ok()?;
@@ -846,6 +859,21 @@ fn write_private(path: &Path, data: &[u8]) -> Result<()> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[test]
+    fn only_exact_lowercase_hex_ids_reach_a_path() {
+        let id = "0123456789abcdef0123456789abcdef";
+        assert_eq!(id_name(id).as_deref(), Some(id));
+        for bad in [
+            "0123456789ABCDEF0123456789abcdef",
+            "+123456789abcdef0123456789abcdef",
+            "../../../../../../../../etc/pass",
+            "0123456789abcdef0123456789abcde",
+            "",
+        ] {
+            assert_eq!(id_name(bad), None, "{bad}");
+        }
+    }
 
     const FAST: KdfParams = KdfParams {
         m_kib: 64,

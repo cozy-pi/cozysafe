@@ -27,7 +27,11 @@ one to a device on the same Wi‑Fi, and it cannot be limited to the local netwo
 dumps the permissions of the built APK (`aapt2 dump permissions`) and of the Play bundle,
 and fails if a network permission beyond it appears (network or Wi‑Fi state, changing
 them, multicast, nearby devices). The protection against a library using INTERNET is
-the other layers.
+the other layers. The other permissions in the manifest give no network access:
+USE_BIOMETRIC, RECORD_AUDIO, and FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC and
+POST_NOTIFICATIONS, which keep a running sync alive with the phone locked (a dataSync
+foreground service, `SyncService.kt`, showing its progress in a quiet notification, only
+while a sync runs).
 
 **macOS.** The release build runs in the App Sandbox with `network.client` and
 `network.server` (sync: one device listens, the other connects). `tools/check-entitlements`
@@ -117,7 +121,10 @@ validate a build with Apple instead of uploading it (`upload: false`).
   `www.googleapis.com`, a constant; it is the only name the app ever looks up, so the
   compiled-library check allows `getaddrinfo`. TLS is rustls with ring and Mozilla's roots
   bundled (6 crates; a ready-made HTTP client pulled in 44, so the few HTTP/1.1 requests
-  are written in cs-net, with tests for chunked bodies and size caps). An upload URL Drive
+  are written in cs-net, with tests for chunked bodies and size caps). One connection is
+  kept and reused (HTTP/1.1 keep-alive) while the server allows it and it has been idle
+  under 50 s; a request that finds it closed is sent once more on a new one only if its
+  body is in memory. An upload URL Drive
   hands back must be on the same host. Sign-in is Google's own plugin (`google_sign_in`,
   published by the Flutter team) and its native SDKs, which talk to Google's sign-in
   servers themselves: that part is reviewed, not sandboxed.

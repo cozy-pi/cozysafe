@@ -101,7 +101,8 @@
     [
      "Camera: chỉ để chụp ảnh thẳng vào két, khi bạn mở camera. Ảnh không lưu vào thư viện ảnh của máy.",
      "Sinh trắc học: chỉ khi bạn bật mở khoá bằng Face ID, Touch ID hoặc vân tay. Dữ liệu sinh trắc học không rời phần cứng bảo mật của máy và app không bao giờ truy cập được.",
-     "Mạng cục bộ (iPhone) / internet (Android) / mạng (macOS): chỉ để đồng bộ với máy khác của bạn trong cùng Wi-Fi, khi bạn bắt đầu."
+     "Mạng cục bộ (iPhone) / internet (Android) / mạng (macOS): chỉ để đồng bộ với máy khác của bạn trong cùng Wi-Fi, khi bạn bắt đầu.",
+     "Thông báo (Android): chỉ trong lúc đồng bộ, để hiện tiến trình và giữ việc đồng bộ chạy tiếp khi khoá máy. Nếu bạn không cho phép, việc đồng bộ vẫn chạy."
     ]
    ],
    [

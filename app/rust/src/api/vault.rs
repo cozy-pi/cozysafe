@@ -195,7 +195,7 @@ pub fn biometric_enabled() -> bool {
         .is_some_and(|v| v.biometric_enabled())
 }
 
-fn secret() -> Result<SecretKey, VaultError> {
+pub(crate) fn secret() -> Result<SecretKey, VaultError> {
     SECRET
         .lock()
         .unwrap_or_else(|p| p.into_inner())
@@ -439,6 +439,12 @@ fn info_of(vault: &OpenVault) -> VaultInfo {
 #[flutter_rust_bridge::frb(sync)]
 pub fn lock() {
     *OPEN.lock().unwrap_or_else(|p| p.into_inner()) = None;
+}
+
+/// The vault open now, if any (e.g. right after a restore from another device).
+#[flutter_rust_bridge::frb(sync)]
+pub fn open_vault_info() -> Option<VaultInfo> {
+    OPEN.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(info_of)
 }
 
 pub(crate) fn set_open(vault: OpenVault) -> VaultInfo {

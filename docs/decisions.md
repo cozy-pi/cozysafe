@@ -334,3 +334,22 @@ before relying on it.
   view, favourites, receive files from other apps (share extension), preview imported
   images/audio, move to another vault, note edit time, trash preview.
 
+
+## 2026-10-24 — Restore from anywhere, cleaner sync
+
+- Restore asks the 24 words and the vault password once, then where the vault is:
+  another device over Wi‑Fi (the main way; no cloud, no file), Google Drive, or a backup
+  file. A device with no vault pairs with a key from the 24 words (docs/adr/0003-sync.md,
+  P2P security 8). With no copy left anywhere the app says so plainly: the words alone
+  cannot bring a vault back, since its Master Key is random and lives only in the vault.
+- A first vault always shows fresh 24 words: a start left half-way never shows its words
+  again.
+- Paste button on every 24-word field; the clipboard is emptied after.
+- Home says when the vault is only on this device (no sync, no backup yet); closing the
+  note hides it for 30 days.
+- Items deleted for good are removed from the sync place too (they used to stay in
+  Google Drive); counted apart from the items going up.
+- The sync screen draws this phone and the other end, says what goes where, and shows
+  items, MB, speed and time left. Android keeps syncing with the phone locked (a
+  foreground service with a notification); iPhone continues by itself on return.
+- Google Drive reuses one HTTPS connection (keep-alive).

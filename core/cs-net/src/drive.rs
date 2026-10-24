@@ -21,6 +21,8 @@ use crate::Permit;
 /// The folder the app keeps in the person's Drive.
 pub const FOLDER: &str = "Cozy Safe";
 const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
+/// Uploads up to this size are held in memory while sent.
+const SMALL_UPLOAD: u64 = 1 << 20;
 
 /// What the sync needs from Drive, so the logic is tested without the network.
 pub trait DriveApi: Send + Sync {
@@ -32,7 +34,7 @@ pub trait DriveApi: Send + Sync {
     fn download(&self, id: &str, out: &mut dyn Write) -> Result<bool>;
     /// A new file named `name` in `folder`, `len` bytes from `src`; its id.
     fn upload(&self, folder: &str, name: &str, len: u64, src: &mut dyn Read) -> Result<String>;
-    /// Delete the file (only ever an old copy of the vault's lock).
+    /// Delete the file (an old copy of the vault's lock, or a deleted item's files).
     fn delete(&self, id: &str) -> Result<()>;
 }
 
@@ -156,6 +158,10 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
         Ok(self.id(path).is_some())
     }
 
+    fn removes(&self) -> bool {
+        true
+    }
+
     fn remove(&self, path: &str) -> Result<()> {
         check(path)?;
         let id = self
@@ -196,6 +202,8 @@ impl<A: DriveApi> DriveRemote<A> {
 /// The real Drive, through [`https`].
 pub struct GoogleDrive {
     token: String,
+    /// One kept connection for the whole session.
+    http: https::Client,
 }
 
 impl GoogleDrive {
@@ -208,11 +216,14 @@ impl GoogleDrive {
         if token.is_empty() || token.contains(['\r', '\n', ' ']) {
             return Err(Error::Corrupt("drive token"));
         }
-        Ok(GoogleDrive { token })
+        Ok(GoogleDrive {
+            token,
+            http: https::Client::new(),
+        })
     }
 
     fn json(&self, method: &str, path: &str, body: Option<&Value>) -> Result<Value> {
-        let r = https::request(
+        let r = self.http.request(
             method,
             path,
             &self.token,
@@ -291,7 +302,7 @@ impl DriveApi for GoogleDrive {
     }
 
     fn download(&self, id: &str, out: &mut dyn Write) -> Result<bool> {
-        let r = https::request(
+        let r = self.http.request(
             "GET",
             &format!("/drive/v3/files/{}?alt=media", https::encode(id)),
             &self.token,
@@ -310,7 +321,7 @@ impl DriveApi for GoogleDrive {
         // Resumable upload: the metadata first, then the bytes to the URL Drive gives,
         // which must be on the same host.
         let meta = serde_json::json!({ "name": name, "parents": [folder] });
-        let r = https::request(
+        let r = self.http.request(
             "POST",
             "/upload/drive/v3/files?uploadType=resumable&fields=id",
             &self.token,
@@ -325,16 +336,23 @@ impl DriveApi for GoogleDrive {
             .header("Location")
             .ok_or(Error::Corrupt("drive upload url"))?
             .to_owned();
+        drop(r);
         let path = at
             .strip_prefix(&format!("https://{}", https::HOST))
             .ok_or(Error::Corrupt("drive upload url on another host"))?;
-        let r = https::request(
-            "PUT",
-            path,
-            &self.token,
-            &[],
-            Body::Stream("application/octet-stream", len, src),
-        )?;
+        // Small ones (records, journal entries) from memory, so the request can be sent
+        // again if a kept connection turns out closed; files stream.
+        let body = if len <= SMALL_UPLOAD {
+            let mut b = Vec::new();
+            src.take(len).read_to_end(&mut b)?;
+            if b.len() as u64 != len {
+                return Err(Error::Corrupt("drive upload short"));
+            }
+            Body::Bytes("application/octet-stream", b)
+        } else {
+            Body::Stream("application/octet-stream", len, src)
+        };
+        let r = self.http.request("PUT", path, &self.token, &[], body)?;
         let status = r.status;
         let v: Value =
             serde_json::from_slice(&r.bytes()?).map_err(|_| Error::Corrupt("drive json"))?;
@@ -346,7 +364,7 @@ impl DriveApi for GoogleDrive {
     }
 
     fn delete(&self, id: &str) -> Result<()> {
-        let r = https::request(
+        let r = self.http.request(
             "DELETE",
             &format!("/drive/v3/files/{}", https::encode(id)),
             &self.token,

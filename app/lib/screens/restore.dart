@@ -113,6 +113,7 @@ class _RestoreScreenState extends State<RestoreScreen> {
               enabled: !_busy,
               capitalization: TextCapitalization.none,
               multiline: true,
+              paste: true,
               label: l.secretKeyLabel,
               hint: l.recoveryWordsHint,
               onChanged: (_) => setState(() => _error = null),

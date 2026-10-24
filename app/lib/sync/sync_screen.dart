@@ -83,8 +83,9 @@ class _SyncScreenState extends State<SyncScreen> {
     if (!await allowConnection(context, l.syncAllowDrive(session.email)) || !mounted) return;
     final token = session.token;
     await pushPage<void>(context,
-        title: l.syncTitle,
+        title: l.syncDriveRow,
         builder: (_) => SyncProgress(
+              place: SyncPlace.drive,
               events: sync.driveSync(token: token),
               retry: () => sync.driveSync(token: token),
               onSynced: widget.onSynced,
@@ -230,7 +231,7 @@ class _LogRow extends StatelessWidget {
     final tag = Localizations.localeOf(context).toLanguageTag();
     final date = '${DateFormat.yMMMd(tag).format(when)} ${DateFormat.Hm(tag).format(when)}';
     final title = switch (p[1]) {
-      'join' => l.syncLogJoin(p[2]),
+      'join' || 'restore' => l.syncLogJoin(p[2]),
       'drive' => l.syncLogDrive,
       _ => l.syncLogHost,
     };

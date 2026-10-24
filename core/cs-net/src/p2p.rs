@@ -8,6 +8,11 @@
 //! vault into, so the sync itself is the ordinary one ([`OpenVault::sync`]); afterwards
 //! the host syncs that folder back in to take the joiner's changes.
 //!
+//! A device with no vault yet (restoring) joins the same way with a key from the 24
+//! words instead ([`kdf::restore_pairing_key`]); the host then tells it the vault's id,
+//! and it opens the vault's lock with the words and the password ([`Library::join`])
+//! before the ordinary sync brings the items.
+//!
 //! Nothing is advertised on the network: no Bonjour, no broadcast.
 
 use std::io::{Read, Write};
@@ -17,13 +22,17 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use cs_crypto::{kdf, wrap, Key};
+use cs_crypto::{kdf, wrap, Key, SecretKey};
+use cs_vault::sync::SyncProgress;
 use cs_vault::sync::{FolderRemote, Remote, SyncReport};
-use cs_vault::{Error, OpenVault, Result};
+use cs_vault::{Error, Library, OpenVault, Result};
 
 use crate::Permit;
 
 const VERSION: u8 = 1;
+/// What the joiner comes for, in its hello: sync a vault both hold, or restore it.
+const MODE_SYNC: u8 = 1;
+const MODE_RESTORE: u8 = 2;
 /// Bytes of one-time token in the code (with the vault key, it only binds the session).
 pub const TOKEN_LEN: usize = 5;
 const NONCE_LEN: usize = 32;
@@ -232,10 +241,10 @@ fn proof_aad(who: &str, a: &[u8], b: &[u8]) -> Vec<u8> {
 }
 
 /// Joiner side of the handshake.
-fn handshake_join(pk: &Key, token: &[u8], mut stream: TcpStream) -> Result<Channel> {
+fn handshake_join(pk: &Key, mode: u8, token: &[u8], mut stream: TcpStream) -> Result<Channel> {
     let hello_key = kdf::subkey(pk, &format!("hello/{}", hex::encode(token)));
     let nj: [u8; NONCE_LEN] = random();
-    let mut hello = vec![VERSION];
+    let mut hello = vec![VERSION, mode];
     hello.extend_from_slice(&nj);
     write_frame(&mut stream, &hello)?;
     let reply = read_frame(&mut stream)?;
@@ -251,14 +260,27 @@ fn handshake_join(pk: &Key, token: &[u8], mut stream: TcpStream) -> Result<Chann
     Ok(session(pk, token, &nj, nh, stream, false))
 }
 
-/// Host side of the handshake.
-fn handshake_host(pk: &Key, token: &[u8], mut stream: TcpStream) -> Result<Channel> {
-    let hello_key = kdf::subkey(pk, &format!("hello/{}", hex::encode(token)));
+/// Host side of the handshake: the joiner's hello says which key it proves.
+fn handshake_host(
+    prepared: &Prepared,
+    token: &[u8],
+    mut stream: TcpStream,
+) -> Result<(Channel, u8)> {
     let hello = read_frame(&mut stream)?;
-    if hello.len() != 1 + NONCE_LEN || hello[0] != VERSION {
+    if hello.len() != 2 + NONCE_LEN || hello[0] != VERSION {
         return Err(Error::Corrupt("p2p hello"));
     }
-    let nj = &hello[1..];
+    let mode = hello[1];
+    let pk = match mode {
+        MODE_SYNC => &prepared.key,
+        MODE_RESTORE => prepared
+            .restore_key
+            .as_ref()
+            .ok_or(Error::Corrupt("p2p hello"))?,
+        _ => return Err(Error::Corrupt("p2p hello")),
+    };
+    let hello_key = kdf::subkey(pk, &format!("hello/{}", hex::encode(token)));
+    let nj = &hello[2..];
     let nh: [u8; NONCE_LEN] = random();
     let mut reply = nh.to_vec();
     reply.extend(wrap::seal(&hello_key, b"", &proof_aad("host", nj, &nh)));
@@ -266,7 +288,7 @@ fn handshake_host(pk: &Key, token: &[u8], mut stream: TcpStream) -> Result<Chann
     let proof_j = read_frame(&mut stream)?;
     wrap::open(&hello_key, &proof_j, &proof_aad("joiner", &nh, nj))
         .map_err(|_| Error::Corrupt("p2p joiner not proven"))?;
-    Ok(session(pk, token, nj, &nh, stream, true))
+    Ok((session(pk, token, nj, &nh, stream, true), mode))
 }
 
 fn random<const N: usize>() -> [u8; N] {
@@ -487,18 +509,26 @@ pub fn host(permit: Permit) -> Result<Host> {
 /// (the app keeps it free while waiting and while the other device works).
 pub struct Prepared {
     key: Key,
+    /// From the Recovery Key, to let a device with no vault restore this one.
+    restore_key: Option<Key>,
     vault_id: String,
     mirror: PathBuf,
 }
 
-/// Step 1 (vault): sync the vault into `mirror` (an empty private folder).
-pub fn host_prepare(vault: &OpenVault, mirror: &Path) -> Result<Prepared> {
+/// Step 1 (vault): sync the vault into `mirror` (an empty private folder). With the
+/// library's Recovery Key, a device restoring with the 24 words may join too.
+pub fn host_prepare(
+    vault: &OpenVault,
+    secret: Option<&SecretKey>,
+    mirror: &Path,
+) -> Result<Prepared> {
     let folder = FolderRemote::with_key(mirror, HOST_KEY);
     // Fresh folder, fresh state: everything goes into it.
     vault.forget_sync_place(HOST_KEY)?;
     vault.sync(&folder)?;
     Ok(Prepared {
         key: pairing_key(vault),
+        restore_key: secret.map(kdf::restore_pairing_key),
         vault_id: vault.id.clone(),
         mirror: mirror.to_path_buf(),
     })
@@ -545,8 +575,14 @@ pub fn host_accept(
                 on_seen(Seen::Knock);
                 stream.set_nonblocking(false)?;
                 stream.set_read_timeout(Some(Duration::from_secs(20)))?;
-                match handshake_host(&prepared.key, &host.code.token, stream) {
-                    Ok(ch) => break ch,
+                match handshake_host(&prepared, &host.code.token, stream) {
+                    Ok((mut ch, mode)) => {
+                        // A restoring device does not know which vault yet.
+                        if mode == MODE_RESTORE {
+                            ch.send(prepared.vault_id.as_bytes())?;
+                        }
+                        break ch;
+                    }
                     Err(_) => {
                         on_seen(Seen::Rejected);
                         failures += 1;
@@ -608,8 +644,13 @@ pub struct Shown {
 
 /// Steps 1 and the listener: copy the vault into `mirror` and start waiting at the
 /// permitted address. Replaces any host still pending.
-pub fn host_open(vault: &OpenVault, permit: Permit, mirror: &Path) -> Result<Shown> {
-    let prepared = host_prepare(vault, mirror)?;
+pub fn host_open(
+    vault: &OpenVault,
+    secret: Option<&SecretKey>,
+    permit: Permit,
+    mirror: &Path,
+) -> Result<Shown> {
+    let prepared = host_prepare(vault, secret, mirror)?;
     let host = host(permit)?;
     let shown = Shown {
         typed: host.code.typed(),
@@ -647,7 +688,7 @@ pub fn serve_one(
     mirror: &Path,
     on_check: &dyn Fn(u16),
 ) -> Result<SyncReport> {
-    let prepared = host_prepare(vault, mirror)?;
+    let prepared = host_prepare(vault, None, mirror)?;
     let session = host_accept(host, prepared, &AtomicBool::new(false), &|_| ())?;
     on_check(session.check);
     let served = session.serve()?;
@@ -683,13 +724,72 @@ fn join_inner(
     let stream = TcpStream::connect_timeout(&SocketAddr::V4(code.addr), Duration::from_secs(10))?;
     stream.set_read_timeout(Some(Duration::from_secs(60)))?;
     set_live(stream.try_clone().ok());
-    let ch = handshake_join(&pairing_key(vault), &code.token, stream)?;
+    let ch = handshake_join(&pairing_key(vault), MODE_SYNC, &code.token, stream)?;
     on_check(ch.check);
     vault.forget_sync_place(JOIN_KEY)?;
     let remote = ChannelRemote { ch: Mutex::new(ch) };
     let report = vault.sync(&remote)?;
     remote.done()?;
     Ok(report)
+}
+
+/// Restore onto this device (`dir`, no vault in it) the vault of the device showing
+/// `code`, with only the 24 words and the password: pair with a key from the words,
+/// open the vault's lock, then sync its items in. False for a wrong password;
+/// [`Error::WrongSecretKey`] when the host does not take these words. The vault is then
+/// opened the usual way, from `dir` with the two secrets: nothing that came over the
+/// network is handed back.
+pub fn restore(
+    dir: &Path,
+    permit: Permit,
+    code: &PairCode,
+    secret: SecretKey,
+    password: &str,
+    on_check: &dyn Fn(u16),
+    progress: &dyn Fn(SyncProgress),
+) -> Result<bool> {
+    set_live(None);
+    let out = restore_inner(dir, permit, code, secret, password, on_check, progress);
+    set_live(None);
+    out
+}
+
+fn restore_inner(
+    dir: &Path,
+    permit: Permit,
+    code: &PairCode,
+    secret: SecretKey,
+    password: &str,
+    on_check: &dyn Fn(u16),
+    progress: &dyn Fn(SyncProgress),
+) -> Result<bool> {
+    if permit.connect_to() != Some(code.addr) {
+        return Err(Error::Corrupt("permit is for another address"));
+    }
+    if !on_local_network(*code.addr.ip()) {
+        return Err(Error::Corrupt("p2p address is not on a local network"));
+    }
+    let stream = TcpStream::connect_timeout(&SocketAddr::V4(code.addr), Duration::from_secs(10))?;
+    stream.set_read_timeout(Some(Duration::from_secs(60)))?;
+    set_live(stream.try_clone().ok());
+    let pk = kdf::restore_pairing_key(&secret);
+    let mut ch = match handshake_join(&pk, MODE_RESTORE, &code.token, stream) {
+        Ok(ch) => ch,
+        // The host could not prove the same words: these are another library's.
+        Err(Error::Corrupt("p2p host not proven")) => return Err(Error::WrongSecretKey),
+        Err(e) => return Err(e),
+    };
+    on_check(ch.check);
+    let id = String::from_utf8(ch.recv()?).map_err(|_| Error::Corrupt("p2p vault id"))?;
+    let remote = ChannelRemote { ch: Mutex::new(ch) };
+    let Some(vault) = Library::join(dir, &remote, &id, secret, password)? else {
+        remote.done()?;
+        return Ok(false);
+    };
+    vault.forget_sync_place(JOIN_KEY)?;
+    vault.sync_with(&remote, progress)?;
+    remote.done()?;
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -724,7 +824,7 @@ mod tests {
         let mirror = tempfile::tempdir().unwrap();
         let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
         let code = PairCode::parse(&h.code.typed()).unwrap();
-        let crate::testkit::Two { dirs, a, b } = t;
+        let crate::testkit::Two { dirs, a, b, .. } = t;
         let m = mirror.path().to_path_buf();
         // The host on its own thread, as in the app.
         let host_side = std::thread::spawn(move || {
@@ -791,11 +891,18 @@ mod tests {
         let l = TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = l.local_addr().unwrap();
         let token = [9u8; TOKEN_LEN];
-        let pk2 = pk.clone();
+        let prepared = Prepared {
+            key: pk.clone(),
+            restore_key: None,
+            vault_id: String::new(),
+            mirror: PathBuf::new(),
+        };
         let h = std::thread::spawn(move || {
-            handshake_host(&pk2, &token, l.accept().unwrap().0).unwrap()
+            handshake_host(&prepared, &token, l.accept().unwrap().0)
+                .unwrap()
+                .0
         });
-        let j = handshake_join(&pk, &token, TcpStream::connect(addr).unwrap()).unwrap();
+        let j = handshake_join(&pk, MODE_SYNC, &token, TcpStream::connect(addr).unwrap()).unwrap();
         (h.join().unwrap(), j)
     }
 
@@ -844,12 +951,94 @@ mod tests {
         assert!(!on_local_network(Ipv4Addr::new(172, 32, 0, 2)));
     }
 
+    /// Host a restore for `t.a` (whose library key is `sk`), restore into a fresh folder
+    /// with `words` and `password`.
+    fn restore_from(
+        t: &crate::testkit::Two,
+        sk: &SecretKey,
+        words: SecretKey,
+        password: &str,
+    ) -> (Result<bool>, tempfile::TempDir) {
+        let mirror = tempfile::tempdir().unwrap();
+        let fresh = tempfile::tempdir().unwrap();
+        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
+        let code = h.code.clone();
+        let prepared = host_prepare(&t.a, Some(sk), mirror.path()).unwrap();
+        let server = std::thread::spawn(move || {
+            host_accept(h, prepared, &AtomicBool::new(false), &|_| ()).and_then(|s| s.serve())
+        });
+        let got = restore(
+            fresh.path(),
+            Permit::connect(code.addr),
+            &code,
+            words,
+            password,
+            &|_| (),
+            &|_| (),
+        );
+        if got.is_ok() {
+            server.join().unwrap().unwrap();
+        }
+        (got, fresh)
+    }
+
+    #[test]
+    fn a_new_device_restores_with_only_the_words_and_the_password() {
+        let t = crate::testkit::two();
+        let id = crate::testkit::note(&t.a, "bank", "PIN 4821");
+        let sk = t.sk.clone();
+        let (got, dir) = restore_from(&t, &sk, sk.clone(), &t.pw);
+        assert!(got.unwrap());
+        let v = crate::testkit::open(dir.path(), &sk, &t.pw);
+        assert_eq!(v.id, t.a.id);
+        assert_eq!(crate::testkit::text(&v, &id), "PIN 4821");
+    }
+
+    #[test]
+    fn a_wrong_password_or_other_words_restore_nothing() {
+        let t = crate::testkit::two();
+        let sk = t.sk.clone();
+        let wrong: String = t.pw.chars().rev().collect();
+        let (got, dir) = restore_from(&t, &sk, sk.clone(), &wrong);
+        assert!(!got.unwrap());
+        assert!(!Library::has_vaults(dir.path()));
+        let other = SecretKey::from_bytes([7; cs_crypto::SECRET_KEY_LEN]);
+        let (got, dir) = restore_from(&t, &sk, other, &t.pw);
+        assert!(matches!(got, Err(Error::WrongSecretKey)));
+        assert!(!Library::has_vaults(dir.path()));
+    }
+
+    #[test]
+    fn a_host_without_the_words_turns_a_restoring_device_away() {
+        let t = crate::testkit::two();
+        let mirror = tempfile::tempdir().unwrap();
+        let fresh = tempfile::tempdir().unwrap();
+        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
+        let code = h.code.clone();
+        let prepared = host_prepare(&t.a, None, mirror.path()).unwrap();
+        let server = std::thread::spawn(move || {
+            host_accept(h, prepared, &AtomicBool::new(false), &|_| ()).map(|_| ())
+        });
+        let got = restore(
+            fresh.path(),
+            Permit::connect(code.addr),
+            &code,
+            t.sk.clone(),
+            &t.pw,
+            &|_| (),
+            &|_| (),
+        );
+        assert!(got.is_err());
+        cancel_live();
+        drop(server);
+    }
+
     #[test]
     fn cancel_stops_the_wait() {
         let t = two();
         let mirror = tempfile::tempdir().unwrap();
         let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
-        let prepared = host_prepare(&t.a, mirror.path()).unwrap();
+        let prepared = host_prepare(&t.a, None, mirror.path()).unwrap();
         let stop = AtomicBool::new(true);
         let started = Instant::now();
         assert!(host_accept(h, prepared, &stop, &|_| ()).is_err());

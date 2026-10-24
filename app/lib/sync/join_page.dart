@@ -20,7 +20,7 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
   if (!context.mounted) return;
   await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
     builder: (context) => Scaffold(
-      appBar: AppBar(title: Text(l.syncTitle)),
+      appBar: AppBar(title: Text(l.syncRow)),
       body: SafeArea(
         top: false,
         child: SyncProgress(
@@ -33,10 +33,14 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
   ));
 }
 
+/// What to do with a code read or typed (sync by default; a restore passes its own).
+typedef OnCode = Future<void> Function(BuildContext context, String code);
+
 /// Type the code the other device shows.
 class TypeCodePage extends StatefulWidget {
-  const TypeCodePage({super.key, required this.onSynced});
+  const TypeCodePage({super.key, required this.onSynced, this.onCode});
   final VoidCallback onSynced;
+  final OnCode? onCode;
 
   @override
   State<TypeCodePage> createState() => _TypeCodePageState();
@@ -58,7 +62,12 @@ class _TypeCodePageState extends State<TypeCodePage> {
       setState(() => _bad = true);
       return;
     }
-    joinWithCode(context, code, onSynced: widget.onSynced);
+    final onCode = widget.onCode;
+    if (onCode != null) {
+      onCode(context, code);
+    } else {
+      joinWithCode(context, code, onSynced: widget.onSynced);
+    }
   }
 
   @override
@@ -95,8 +104,9 @@ class _TypeCodePageState extends State<TypeCodePage> {
 
 /// Read the code with the camera; only Cozy Safe pairing codes are taken.
 class ScanCodePage extends StatefulWidget {
-  const ScanCodePage({super.key, required this.onSynced});
+  const ScanCodePage({super.key, required this.onSynced, this.onCode});
   final VoidCallback onSynced;
+  final OnCode? onCode;
 
   /// For the mockup renders: a still image instead of the camera.
   static Widget? debugPreview;
@@ -149,7 +159,12 @@ class _ScanCodePageState extends State<ScanCodePage> {
         HapticFeedback.mediumImpact();
         // Ask at once; the camera stops meanwhile (waiting for it first felt slow).
         unawaited(_camera?.stopImageStream());
-        await joinWithCode(context, code, onSynced: widget.onSynced);
+        final onCode = widget.onCode;
+        if (onCode != null) {
+          await onCode(context, code);
+        } else {
+          await joinWithCode(context, code, onSynced: widget.onSynced);
+        }
         // Asked and refused: keep looking.
         if (mounted) {
           _found = false;
@@ -222,7 +237,7 @@ class _ScanCodePageState extends State<ScanCodePage> {
               key: const ValueKey('sync-type-instead'),
               icon: const Icon(Icons.keyboard_outlined),
               label: Text(l.syncTypeCode),
-              onPressed: () => pushPage<void>(context, title: l.syncTypeCode, builder: (_) => TypeCodePage(onSynced: widget.onSynced)),
+              onPressed: () => pushPage<void>(context, title: l.syncTypeCode, builder: (_) => TypeCodePage(onSynced: widget.onSynced, onCode: widget.onCode)),
             ),
           ),
         ],

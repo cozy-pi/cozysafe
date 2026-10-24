@@ -4,6 +4,33 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.56 (2026-10-24)
+
+### Added
+- Restore from another device: type or paste the 24 words and the password on the new
+  device, scan the code the old one shows, and the vault comes over Wi‑Fi with all its
+  items. No cloud, no backup file.
+- Restore asks the 24 words and the password once, then where the vault is (another
+  device, Google Drive or a backup file). If it is nowhere else, the app says so.
+- A Paste button on every 24-word field; the clipboard is emptied after pasting.
+- Home says when the vault is only on this device, with a way to keep a second copy.
+- Android: locking the phone no longer stops a sync; a notification shows its progress.
+- iPhone: a sync stopped by locking the phone continues by itself when you come back.
+
+### Changed
+- Google Drive sync reuses one secure connection, so many small items go up much faster.
+- The sync screen shows this phone and the other end, says what goes where, and shows
+  items, MB, speed and time left.
+
+### Fixed
+- Items deleted for good no longer stay in Google Drive: their encrypted files are
+  removed there too, including ones left by earlier versions. Deletions are counted apart
+  from items going up.
+
+### Security
+- Leaving the making of a first vault half-way and coming back shows new 24 words: words
+  that may have been seen are never used.
+
 ## 0.1.55 (2026-10-24)
 
 ### Added

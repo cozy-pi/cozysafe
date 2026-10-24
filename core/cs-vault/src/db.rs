@@ -249,6 +249,18 @@ impl Index {
             .map_err(sql)
     }
 
+    /// Every deletion kept here.
+    pub(crate) fn all_gone(&self) -> Result<Vec<(String, i64)>> {
+        let mut stmt = self
+            .db
+            .prepare("SELECT id, hlc FROM sync_gone ORDER BY id")
+            .map_err(sql)?;
+        let rows = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(sql)?;
+        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(sql)
+    }
+
     /// Deletions `remote` has not been told about.
     pub(crate) fn gone_unsent(&self, remote: &str) -> Result<Vec<(String, i64)>> {
         let mut stmt = self

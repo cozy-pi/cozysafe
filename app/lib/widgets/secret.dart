@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme.dart';
@@ -89,7 +90,12 @@ class SecretField extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
     this.multiline = false,
+    this.paste = false,
   });
+
+  /// A Paste button (the 24 words come from a password manager or a note). The
+  /// clipboard is emptied after, so the words do not linger there.
+  final bool paste;
 
   /// Long secrets (24 words): once shown, the field grows to several lines.
   final bool multiline;
@@ -110,6 +116,15 @@ class SecretField extends StatefulWidget {
 class _SecretFieldState extends State<SecretField> {
   bool _obscure = true;
 
+  Future<void> _paste() async {
+    final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim();
+    if (text == null || text.isEmpty || !mounted) return;
+    widget.controller.text = text;
+    widget.controller.selection = TextSelection.collapsed(offset: text.length);
+    await Clipboard.setData(const ClipboardData(text: ''));
+    widget.onChanged?.call(text);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -127,11 +142,20 @@ class _SecretFieldState extends State<SecretField> {
         labelText: widget.label,
         hintText: widget.hint,
         errorText: widget.errorText,
-        suffixIcon: IconButton(
-          tooltip: _obscure ? l.showPassword : l.hidePassword,
-          icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-          onPressed: () => setState(() => _obscure = !_obscure),
-        ),
+        suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (widget.paste)
+            IconButton(
+              key: const ValueKey('secret-paste'),
+              tooltip: l.modePaste,
+              icon: const Icon(Icons.content_paste_rounded),
+              onPressed: widget.enabled ? _paste : null,
+            ),
+          IconButton(
+            tooltip: _obscure ? l.showPassword : l.hidePassword,
+            icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+            onPressed: () => setState(() => _obscure = !_obscure),
+          ),
+        ]),
       ),
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,

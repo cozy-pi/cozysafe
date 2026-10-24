@@ -95,8 +95,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     super.dispose();
   }
 
-  /// The first vault on a device makes the Secret Key (kept in the keystore at once, so
-  /// leaving half-way and coming back shows the same words).
+  /// The first vault on a device makes the Secret Key. Words shown by a start that was
+  /// left half-way are never shown again (owner 2026-10-24): someone may have seen
+  /// them, so a device with no vault yet always gets fresh ones.
   Future<void> _loadWords() async {
     // Fixed words only in tests and mockups, never in a release build.
     final debug = kReleaseMode ? null : NewVaultScreen.debugWords;
@@ -109,10 +110,13 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       return;
     }
     var key = await SecretKeyStore.read();
-    // The last vault was deleted and this device still holds a Secret Key from before the
-    // 24 words: start afresh with a new one (owner 2026-10-24: Start stayed greyed out).
-    if (key != null && widget.first && !rust.secretKeyText(key: key).contains(' ')) {
-      if (await rust.resetEmptyLibrary(dir: widget.libraryDir)) key = null;
+    // No vault here yet: whatever key is kept (a start left half-way, or one from before
+    // the 24 words) is dropped for a new one.
+    if (key != null && widget.first && !rust.hasVaults(dir: widget.libraryDir)) {
+      await rust.resetEmptyLibrary(dir: widget.libraryDir);
+      await SecretKeyStore.delete();
+      rust.forgetSecretKey();
+      key = null;
     }
     final made = key == null;
     if (key == null) {
