@@ -4,6 +4,11 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Unreleased
+
+### Changed
+- The first screen says: "A secure vault for your world."
+
 ## 0.1.57 (2026-10-24)
 
 ### Changed
