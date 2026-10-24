@@ -26,6 +26,8 @@ class _SyncProgressState extends State<SyncProgress> {
   int? _check;
   /// A device with another vault tried while this one waits (it keeps waiting).
   bool _rejected = false;
+  /// A device has just connected and is proving the vault (host only).
+  bool _knock = false;
 
   bool get _over => _last != null && _last!.kind != sync.SyncStep.connected;
 
@@ -34,8 +36,11 @@ class _SyncProgressState extends State<SyncProgress> {
     super.initState();
     _sub = widget.events.listen((e) {
       if (!mounted) return;
-      if (e.kind == sync.SyncStep.rejected) {
-        setState(() => _rejected = true);
+      if (e.kind == sync.SyncStep.rejected || e.kind == sync.SyncStep.knock) {
+        setState(() {
+          _knock = e.kind == sync.SyncStep.knock;
+          if (!_knock) _rejected = true;
+        });
         return;
       }
       setState(() {
@@ -61,7 +66,7 @@ class _SyncProgressState extends State<SyncProgress> {
     Widget body;
     if (e == null) {
       body = Column(mainAxisSize: MainAxisSize.min, children: [
-        widget.waiting ?? _Status(icon: null, title: l.syncWorking),
+        if (_knock) _Status(icon: null, title: l.syncKnock) else widget.waiting ?? _Status(icon: null, title: l.syncWorking),
         if (_rejected) ...[
           const SizedBox(height: 16),
           Row(mainAxisSize: MainAxisSize.min, children: [
@@ -107,7 +112,7 @@ class _SyncProgressState extends State<SyncProgress> {
         sync.SyncStep.unreachable => _Status(icon: Icons.wifi_off_rounded, color: const Color(0xFFFF3B30), title: l.syncUnreachable),
         sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: const Color(0xFFFF3B30), title: l.syncFailed),
         // Never the last word (handled above); kept for an exhaustive switch.
-        sync.SyncStep.rejected => _Status(icon: null, title: l.syncWorking),
+        sync.SyncStep.rejected || sync.SyncStep.knock => _Status(icon: null, title: l.syncWorking),
       };
     }
     return Padding(

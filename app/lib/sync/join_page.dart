@@ -21,7 +21,14 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
   await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
     builder: (context) => Scaffold(
       appBar: AppBar(title: Text(l.syncTitle)),
-      body: SafeArea(top: false, child: SyncProgress(events: sync.p2PJoin(code: code), onSynced: onSynced)),
+      body: SafeArea(
+        top: false,
+        child: SyncProgress(
+          events: sync.p2PJoin(code: code),
+          onSynced: onSynced,
+          waiting: Builder(builder: (context) => _Connecting(address: address)),
+        ),
+      ),
     ),
   ));
 }
@@ -115,7 +122,9 @@ class _ScanCodePageState extends State<ScanCodePage> {
       final all = await availableCameras();
       final back = all.where((c) => c.lensDirection == CameraLensDirection.back).firstOrNull ?? all.firstOrNull;
       if (back == null) throw StateError('no camera');
-      final c = CameraController(back, ResolutionPreset.medium, enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
+      // High: a code on another phone's screen is small and needs the detail (reading a
+      // 720p frame takes ~10 ms).
+      final c = CameraController(back, ResolutionPreset.high, enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
       await c.initialize();
       if (!mounted) {
         await c.dispose();
@@ -138,8 +147,8 @@ class _ScanCodePageState extends State<ScanCodePage> {
       if (code != null && mounted && !_found) {
         _found = true;
         HapticFeedback.mediumImpact();
-        await _camera?.stopImageStream();
-        if (!mounted) return;
+        // Ask at once; the camera stops meanwhile (waiting for it first felt slow).
+        unawaited(_camera?.stopImageStream());
         await joinWithCode(context, code, onSynced: widget.onSynced);
         // Asked and refused: keep looking.
         if (mounted) {
@@ -220,4 +229,21 @@ class _ScanCodePageState extends State<ScanCodePage> {
       ),
     );
   }
+}
+
+/// Right after Allow, until the other device has proved the vault.
+class _Connecting extends StatelessWidget {
+  const _Connecting({required this.address});
+  final String address;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 18),
+          Text(AppLocalizations.of(context).syncConnectingTo(address),
+              textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+        ],
+      );
 }

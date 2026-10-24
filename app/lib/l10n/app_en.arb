@@ -687,5 +687,8 @@
   "syncUnreachable": "Could not reach the other device. Check that both are on the same Wi‑Fi (not a guest network) and that the code is still showing.",
   "syncRejected": "A device with a different vault tried to join. Still waiting.",
   "syncLogOtherVault": "Different vault",
-  "syncLogUnreachable": "Could not reach"
+  "syncLogUnreachable": "Could not reach",
+  "syncKnock": "A device is connecting…",
+  "syncConnectingTo": "Connecting to {address}…",
+  "@syncConnectingTo": {"placeholders": {"address": {}}}
 }

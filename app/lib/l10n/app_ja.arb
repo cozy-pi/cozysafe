@@ -498,5 +498,7 @@
   "syncUnreachable": "もう一台のデバイスに接続できませんでした。両方が同じWi‑Fi（ゲストネットワークではない）にあり、コードがまだ表示されているか確認してください。",
   "syncRejected": "別の金庫を持つデバイスが接続しようとしました。引き続き待機しています。",
   "syncLogOtherVault": "別の金庫",
-  "syncLogUnreachable": "接続できません"
+  "syncLogUnreachable": "接続できません",
+  "syncKnock": "デバイスが接続しています…",
+  "syncConnectingTo": "{address} に接続しています…"
 }

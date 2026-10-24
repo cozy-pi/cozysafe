@@ -498,5 +498,7 @@
   "syncUnreachable": "Tidak bisa menjangkau perangkat lain. Pastikan keduanya di Wi‑Fi yang sama (bukan jaringan tamu) dan kodenya masih tampil.",
   "syncRejected": "Perangkat dengan brankas lain mencoba bergabung. Masih menunggu.",
   "syncLogOtherVault": "Brankas berbeda",
-  "syncLogUnreachable": "Tak terjangkau"
+  "syncLogUnreachable": "Tak terjangkau",
+  "syncKnock": "Sebuah perangkat sedang terhubung…",
+  "syncConnectingTo": "Menghubungkan ke {address}…"
 }

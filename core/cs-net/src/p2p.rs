@@ -515,12 +515,21 @@ pub struct Session {
 
 /// Step 2 (no vault): wait for the joiner until the code expires, three failed tries,
 /// or `stop` is set (the person tapped Cancel).
-/// `on_reject` is told each time a device that could not prove this vault was turned away.
+/// What the waiting host sees before a session starts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Seen {
+    /// A device connected; it is proving it holds the vault.
+    Knock,
+    /// It could not, and was turned away (the host keeps waiting).
+    Rejected,
+}
+
+/// `on_seen` is told as devices come and are turned away.
 pub fn host_accept(
     host: Host,
     prepared: Prepared,
     stop: &AtomicBool,
-    on_reject: &dyn Fn(),
+    on_seen: &dyn Fn(Seen),
 ) -> Result<Session> {
     host.listener.set_nonblocking(true)?;
     let mut failures = 0;
@@ -533,12 +542,13 @@ pub fn host_accept(
         }
         match host.listener.accept() {
             Ok((stream, _)) => {
+                on_seen(Seen::Knock);
                 stream.set_nonblocking(false)?;
                 stream.set_read_timeout(Some(Duration::from_secs(20)))?;
                 match handshake_host(&prepared.key, &host.code.token, stream) {
                     Ok(ch) => break ch,
                     Err(_) => {
-                        on_reject();
+                        on_seen(Seen::Rejected);
                         failures += 1;
                         if failures >= MAX_FAILURES {
                             return Err(Error::Corrupt("p2p too many failed tries"));
@@ -613,14 +623,14 @@ pub fn host_open(vault: &OpenVault, permit: Permit, mirror: &Path) -> Result<Sho
 pub fn host_session(
     stop: &AtomicBool,
     on_check: &dyn Fn(u16),
-    on_reject: &dyn Fn(),
+    on_seen: &dyn Fn(Seen),
 ) -> Result<Served> {
     let (host, prepared) = PENDING
         .lock()
         .unwrap_or_else(|p| p.into_inner())
         .take()
         .ok_or(Error::Corrupt("p2p code expired"))?;
-    let session = host_accept(host, prepared, stop, on_reject)?;
+    let session = host_accept(host, prepared, stop, on_seen)?;
     on_check(session.check);
     session.serve()
 }
@@ -638,7 +648,7 @@ pub fn serve_one(
     on_check: &dyn Fn(u16),
 ) -> Result<SyncReport> {
     let prepared = host_prepare(vault, mirror)?;
-    let session = host_accept(host, prepared, &AtomicBool::new(false), &|| ())?;
+    let session = host_accept(host, prepared, &AtomicBool::new(false), &|_| ())?;
     on_check(session.check);
     let served = session.serve()?;
     host_finish(vault, served)
@@ -842,7 +852,7 @@ mod tests {
         let prepared = host_prepare(&t.a, mirror.path()).unwrap();
         let stop = AtomicBool::new(true);
         let started = Instant::now();
-        assert!(host_accept(h, prepared, &stop, &|| ()).is_err());
+        assert!(host_accept(h, prepared, &stop, &|_| ()).is_err());
         assert!(started.elapsed() < Duration::from_secs(1));
     }
 }

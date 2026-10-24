@@ -498,5 +498,7 @@
   "syncUnreachable": "无法连接到另一台设备。请检查两台设备是否在同一 Wi‑Fi 下（不是访客网络），并且代码仍在显示。",
   "syncRejected": "有一台保险箱不同的设备尝试加入。仍在等待。",
   "syncLogOtherVault": "保险箱不同",
-  "syncLogUnreachable": "无法连接"
+  "syncLogUnreachable": "无法连接",
+  "syncKnock": "有设备正在连接…",
+  "syncConnectingTo": "正在连接 {address}…"
 }

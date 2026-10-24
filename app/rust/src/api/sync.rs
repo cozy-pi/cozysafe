@@ -46,6 +46,8 @@ pub enum SyncStep {
     Unreachable,
     /// Host only, not the end: a device with a different vault tried and was turned away.
     Rejected,
+    /// Host only, not the end: a device has just connected and is proving the vault.
+    Knock,
 }
 
 fn step(kind: SyncStep) -> SyncEvent {
@@ -159,8 +161,11 @@ pub fn p2p_host_run(sink: StreamSink<SyncEvent>) {
                 ..step(SyncStep::Connected)
             });
         },
-        &|| {
-            let _ = sink.add(step(SyncStep::Rejected));
+        &|seen| {
+            let _ = sink.add(step(match seen {
+                p2p::Seen::Knock => SyncStep::Knock,
+                p2p::Seen::Rejected => SyncStep::Rejected,
+            }));
         },
     );
     let event = match served {
@@ -224,7 +229,7 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         SyncStep::Done => "ok",
         SyncStep::Cancelled => "cancelled",
         SyncStep::Expired => "expired",
-        SyncStep::Connected | SyncStep::Rejected => return,
+        SyncStep::Connected | SyncStep::Rejected | SyncStep::Knock => return,
         SyncStep::OtherVault => "othervault",
         SyncStep::Unreachable => "unreachable",
         SyncStep::Failed | SyncStep::Locked => "failed",

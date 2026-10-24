@@ -498,5 +498,7 @@
   "syncUnreachable": "Impossibile raggiungere l’altro dispositivo. Controlla che entrambi siano sulla stessa Wi‑Fi (non una rete ospiti) e che il codice sia ancora visibile.",
   "syncRejected": "Un dispositivo con un’altra cassaforte ha provato a collegarsi. Ancora in attesa.",
   "syncLogOtherVault": "Altra cassaforte",
-  "syncLogUnreachable": "Non raggiungibile"
+  "syncLogUnreachable": "Non raggiungibile",
+  "syncKnock": "Un dispositivo si sta collegando…",
+  "syncConnectingTo": "Connessione a {address}…"
 }
