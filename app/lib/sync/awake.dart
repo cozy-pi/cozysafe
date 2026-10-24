@@ -6,6 +6,10 @@ import 'package:flutter/services.dart';
 /// app running when the phone is locked; on iPhone, iOS lends a little time to finish
 /// if the person leaves the app.
 abstract final class Awake {
+  /// The Android service that keeps a sync going with the phone locked: off until Google
+  /// Play's declaration is filed (MainActivity.kt SYNC_SERVICE, AndroidManifest.xml).
+  static const androidSyncService = false;
+
   static const _channel = MethodChannel('cozysafe/awake');
 
   static Future<void> set(bool on) async {

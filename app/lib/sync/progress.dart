@@ -268,8 +268,9 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
           if (left != null) Text(left, style: small),
         ]),
       ],
-      // Android keeps going with the phone locked (a notification shows it); iOS does not.
-      if (Device.iOS) ...[
+      // Android keeps going with the phone locked (a notification shows it, when that service
+      // is on); iOS does not.
+      if (Device.iOS || (Device.android && !Awake.androidSyncService)) ...[
         const SizedBox(height: 18),
         Text(l.syncKeepOpen, key: const ValueKey('sync-keep-open'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14)),
       ],

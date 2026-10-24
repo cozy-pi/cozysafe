@@ -729,7 +729,7 @@
   "syncNotifyChannel": "Sync progress",
   "@syncReceiving": {"placeholders": {"done": {}, "total": {}}},
   "@syncSending": {"placeholders": {"done": {}, "total": {}}},
-  "welcomeLead": "A private safe for your photos, notes and files.",
+  "welcomeLead": "A secure vault for your world.",
   "welcomeNew": "Create a new vault",
   "welcomeNewNote": "First time with Cozy Safe",
   "welcomeRestore": "Restore a vault",

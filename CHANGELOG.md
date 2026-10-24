@@ -12,6 +12,18 @@ Dates are UTC.
   on the next sync or open (nothing is uploaded again). Old revisions are removed from
   Google Drive after 30 days.
 
+## 0.1.58 (2026-10-25)
+
+### Changed
+- The first screen says: "A secure vault for your world."
+- Android: syncing on with the phone locked is off for now (Google Play asks for a
+  declaration first); as on iPhone, a sync stopped by locking continues when you come
+  back, and the screen says to keep the app open.
+
+### Fixed
+- iPhone: with "Block screenshots" off, screen recording works too (it used to show the
+  lock picture whatever the setting).
+
 ## 0.1.57 (2026-10-24)
 
 ### Changed
