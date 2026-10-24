@@ -4,6 +4,20 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-24 — Network only by hand, in one crate
+
+**Owner:** sync (Google Drive, P2P) may use the network, but **every connection is
+allowed by hand**: no automatic or background sync. Each time, the app asks, naming
+where it will connect (Google Drive, or the other device's address); only then is a
+one-time permit made, bound to that one destination and that session. In code, no
+socket can be opened without such a permit. All network code lives in one small crate,
+`cs-net` (the only crate cackle lets use `net`); the vault core stays network-free.
+Platforms get their network permission (Android INTERNET, macOS sandbox network
+entitlement, iOS local network usage text). Every permitted connection is logged
+(when, where) and shown under Settings → Security. Sync is off until set up. The
+security page, website and store privacy answers change to: nothing leaves the phone
+unless you start a sync, and then only encrypted, to your Google Drive or your device.
+
 ## 2026-10-24 — One vault in the app; the core keeps many
 
 **Owner:** the app offers **one vault**: no "New vault" button, no vault list. Settings
