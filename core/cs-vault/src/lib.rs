@@ -605,7 +605,8 @@ impl Library {
 
     /// Move this library to `new_key` (a new Recovery Key), keeping every item: the
     /// vault's Master Key is wrapped again with its password and the new key. False if
-    /// `password` is not this vault's.
+    /// `password` is not this vault's. Only when no other vault here opens by password
+    /// (they share the key); [`Library::change_secret_key_all`] moves them all.
     ///
     /// Crash-safe in this order: (1) the vault keeps its old wrap beside the new one,
     /// (2) the library accepts both keys, (3) the app stores the new key, (4) opening with
@@ -618,6 +619,67 @@ impl Library {
         password: &str,
         new_key: &SecretKey,
     ) -> Result<bool> {
+        if self.password_vaults()?.iter().any(|id| *id != vault.id) {
+            return Err(Error::Corrupt("another vault uses this Recovery Key"));
+        }
+        if !self.rewrap(vault, password, new_key)? {
+            return Ok(false);
+        }
+        self.accept_key(new_key)?;
+        Ok(true)
+    }
+
+    /// [`Library::change_secret_key`] for every vault here that opens by password (owner
+    /// 2026-10-25: with two vaults the change refused): one password per vault, in any
+    /// order. Nothing changes until each of them is given; then each is wrapped again
+    /// (same crash-safe order), and only then does the library take the new key.
+    /// Vaults opened only by a PIN do not depend on the key and are left alone.
+    pub fn change_secret_key_all(
+        &self,
+        passwords: &[&str],
+        new_key: &SecretKey,
+    ) -> Result<KeyChange> {
+        let mut opened: Vec<(OpenVault, &str)> = Vec::new();
+        for &password in passwords {
+            let Some(vault) = self.unlock(password)? else {
+                return Ok(KeyChange::WrongPassword);
+            };
+            if !opened.iter().any(|(v, _)| v.id == vault.id) {
+                opened.push((vault, password));
+            }
+        }
+        let missing = self
+            .password_vaults()?
+            .iter()
+            .filter(|id| !opened.iter().any(|(v, _)| v.id == **id))
+            .count();
+        if missing > 0 {
+            return Ok(KeyChange::OthersNeeded(missing));
+        }
+        for (vault, password) in &opened {
+            if !self.rewrap(vault, password, new_key)? {
+                return Ok(KeyChange::WrongPassword);
+            }
+        }
+        self.accept_key(new_key)?;
+        Ok(KeyChange::Changed)
+    }
+
+    /// The vaults here that open by password (their wraps depend on the Recovery Key).
+    fn password_vaults(&self) -> Result<Vec<String>> {
+        let mut ids = Vec::new();
+        for entry in fs::read_dir(self.dir.join(VAULTS_DIR))? {
+            let entry = entry?;
+            if read_header(&entry.path()).is_some_and(|h| h.has_password()) {
+                ids.push(entry.file_name().to_string_lossy().into_owned());
+            }
+        }
+        Ok(ids)
+    }
+
+    /// Step 1 for one vault: its Master Key wrapped with `password` and `new_key`, the old
+    /// wrap kept beside it. False if `password` is not this vault's.
+    fn rewrap(&self, vault: &OpenVault, password: &str, new_key: &SecretKey) -> Result<bool> {
         let old_root = kdf::derive_root(
             password.as_bytes(),
             &self.secret_key,
@@ -642,15 +704,6 @@ impl Library {
         else {
             return Ok(false);
         };
-        // Another vault opening by password would stop opening (debug builds only).
-        for entry in fs::read_dir(self.dir.join(VAULTS_DIR))? {
-            let entry = entry?;
-            if entry.file_name().to_string_lossy() != vault.id
-                && read_header(&entry.path()).is_some_and(|h| h.has_password())
-            {
-                return Err(Error::Corrupt("another vault uses this Recovery Key"));
-            }
-        }
         let new_root = kdf::derive_root(password.as_bytes(), new_key, &self.salt, self.params)?;
         let new_kek = kdf::vault_kek(&new_root, &salt);
         header.prev_wrapped_master_key = old_wrap;
@@ -659,6 +712,11 @@ impl Library {
             &vault.dir.join(HEADER_FILE),
             &serde_json::to_vec_pretty(&header).expect("serialisable"),
         )?;
+        Ok(true)
+    }
+
+    /// Step 2: the library accepts both keys.
+    fn accept_key(&self, new_key: &SecretKey) -> Result<()> {
         let mut lib = read_library_header(&self.dir)?;
         lib.prev_secret_key = Some(self.secret_key.fingerprint());
         lib.secret_key = Some(new_key.fingerprint());
@@ -666,8 +724,18 @@ impl Library {
             &self.dir.join(LIBRARY_FILE),
             &serde_json::to_vec_pretty(&lib).expect("serialisable"),
         )?;
-        Ok(true)
+        Ok(())
     }
+}
+
+/// What came of [`Library::change_secret_key_all`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyChange {
+    Changed,
+    /// A password given opens no vault here.
+    WrongPassword,
+    /// This many vaults that open by password were not given theirs.
+    OthersNeeded(usize),
 }
 
 /// The end of a Secret Key change: the old key no longer opens anything here.
@@ -960,6 +1028,50 @@ pub(crate) mod tests {
             .is_some());
         let h = read_header(&tmp.path().join(VAULTS_DIR).join(id_of(tmp.path()))).unwrap();
         assert!(h.prev_wrapped_master_key.is_empty());
+    }
+
+    #[test]
+    fn the_recovery_key_changes_for_every_vault_given_their_passwords() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = sk();
+        let new = SecretKey::generate();
+        let l = Library::open_or_create(tmp.path(), FAST, old.clone()).unwrap();
+        let a = l.create_vault("A", pw_a()).unwrap();
+        let b = l.create_vault("B", pw_b()).unwrap();
+        let in_a = note(&a, "của A");
+        let in_b = note(&b, "của B");
+        drop((a, b));
+        // One password is not enough while the other vault shares the key: nothing moves.
+        assert_eq!(
+            l.change_secret_key_all(&[pw_a()], &new).unwrap(),
+            KeyChange::OthersNeeded(1)
+        );
+        assert!(Library::open_or_create(tmp.path(), FAST, old.clone())
+            .unwrap()
+            .unlock(pw_b())
+            .unwrap()
+            .is_some());
+        let wrong: String = pw_a().chars().rev().collect();
+        assert_eq!(
+            l.change_secret_key_all(&[pw_a(), &wrong], &new).unwrap(),
+            KeyChange::WrongPassword
+        );
+        // Both, in any order: both move.
+        assert_eq!(
+            l.change_secret_key_all(&[pw_b(), pw_a()], &new).unwrap(),
+            KeyChange::Changed
+        );
+        let l = Library::open_or_create(tmp.path(), FAST, new.clone()).unwrap();
+        for (pw, id, text) in [(pw_a(), &in_a, "của A"), (pw_b(), &in_b, "của B")] {
+            let v = l.unlock(pw).unwrap().expect("opens with the new key");
+            let mut out = Vec::new();
+            v.read_item(id, &mut out).unwrap();
+            assert_eq!(out, text.as_bytes());
+        }
+        assert!(matches!(
+            Library::open_or_create(tmp.path(), FAST, old),
+            Err(Error::WrongSecretKey)
+        ));
     }
 
     fn id_of(dir: &Path) -> String {

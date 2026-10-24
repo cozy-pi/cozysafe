@@ -570,5 +570,7 @@
   "syncRemoving": "正在移除已刪除的項目",
   "syncRemovingDrive": "正在從 Google Drive 移除已刪除的項目",
   "syncRemovingDevice": "正在從另一台裝置移除已刪除的項目",
-  "syncRemovingWhat": "永久刪除的內容也會從那裡移除。"
+  "syncRemovingWhat": "永久刪除的內容也會從那裡移除。",
+  "changeKeyOtherVault": "此裝置上的另一個保險箱使用相同的 24 個單字。請輸入它的密碼，讓新金鑰也能開啟它。",
+  "changeKeyOtherPassword": "另一個保險箱的密碼"
 }

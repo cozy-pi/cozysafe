@@ -570,5 +570,7 @@
   "syncRemoving": "Rimozione degli elementi eliminati",
   "syncRemovingDrive": "Rimozione degli elementi eliminati da Google Drive",
   "syncRemovingDevice": "Rimozione degli elementi eliminati dall’altro dispositivo",
-  "syncRemovingWhat": "Ciò che è stato eliminato definitivamente viene rimosso anche lì."
+  "syncRemovingWhat": "Ciò che è stato eliminato definitivamente viene rimosso anche lì.",
+  "changeKeyOtherVault": "Un'altra cassaforte su questo dispositivo usa le stesse 24 parole. Inserisci la sua password perché la nuova chiave apra anche quella.",
+  "changeKeyOtherPassword": "Password dell'altra cassaforte"
 }

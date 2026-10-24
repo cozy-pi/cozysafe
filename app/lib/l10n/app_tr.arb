@@ -570,5 +570,7 @@
   "syncRemoving": "Silinen öğeler kaldırılıyor",
   "syncRemovingDrive": "Silinen öğeler Google Drive'dan kaldırılıyor",
   "syncRemovingDevice": "Silinen öğeler diğer cihazdan kaldırılıyor",
-  "syncRemovingWhat": "Kalıcı olarak silinenler oradan da kaldırılır."
+  "syncRemovingWhat": "Kalıcı olarak silinenler oradan da kaldırılır.",
+  "changeKeyOtherVault": "Bu cihazdaki başka bir kasa da aynı 24 kelimeyi kullanıyor. Yeni anahtarın onu da açması için o kasanın parolasını girin.",
+  "changeKeyOtherPassword": "Diğer kasanın parolası"
 }

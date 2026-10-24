@@ -8,3 +8,8 @@ const keepOnLock = RouteSettings(name: 'keep-on-lock');
 
 /// Pop down to this when locking: the vault's home, or a page kept under the lock.
 bool keptOnLock(Route<dynamic> route) => route.isFirst || route.settings.name == keepOnLock.name;
+
+/// Counts the vault's locks: a page kept under the lock that holds a secret of its own
+/// (a password typed earlier) listens and drops it, so nothing typed waits in memory
+/// while the vault is locked.
+final vaultLocks = ValueNotifier<int>(0);

@@ -570,5 +570,7 @@
   "syncRemoving": "Quitando elementos eliminados",
   "syncRemovingDrive": "Quitando de Google Drive los elementos eliminados",
   "syncRemovingDevice": "Quitando del otro dispositivo los elementos eliminados",
-  "syncRemovingWhat": "Lo que se eliminó para siempre también se quita de allí."
+  "syncRemovingWhat": "Lo que se eliminó para siempre también se quita de allí.",
+  "changeKeyOtherVault": "Otra caja fuerte de este dispositivo usa las mismas 24 palabras. Escribe su contraseña para que la nueva clave también la abra.",
+  "changeKeyOtherPassword": "Contraseña de la otra caja fuerte"
 }

@@ -584,5 +584,7 @@
   "syncRemoving": "Đang xoá các mục đã xoá",
   "syncRemovingDrive": "Đang dọn Google Drive",
   "syncRemovingDevice": "Đang dọn máy kia",
-  "syncRemovingWhat": "Xoá ở đó những mục bạn đã xoá hẳn."
+  "syncRemovingWhat": "Xoá ở đó những mục bạn đã xoá hẳn.",
+  "changeKeyOtherVault": "Một két khác trên máy này dùng chung 24 từ. Nhập mật khẩu của két đó để khoá mới mở được cả nó.",
+  "changeKeyOtherPassword": "Mật khẩu của két kia"
 }

@@ -4,6 +4,17 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.60 (2026-10-25)
+
+### Fixed
+- Changing the Recovery Key works on a device with several vaults: it asks the password
+  of each other vault that shares the key and moves them all at once.
+- A failed key change says why, with a code (Settings → Debug has the details).
+- Back on the key change and on the "enter the PIN again" step goes one step back
+  instead of leaving.
+- Locking during a key change keeps the page and its new words; the password it held is
+  forgotten at once and asked again.
+
 ## 0.1.59 (2026-10-25)
 
 ### Changed
