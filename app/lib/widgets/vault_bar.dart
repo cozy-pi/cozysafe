@@ -911,6 +911,7 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
   /// The first few openings, the column dips a little and springs back: it can be dragged.
   static const _hintPref = 'add-column-hint';
   Future<void> _nudge() async {
+    if (widget.ways.length <= 6) return; // nothing to roll
     final shown = int.tryParse(Prefs.read(_hintPref) ?? '') ?? 0;
     if (shown >= 3 || !mounted || !widget.scroll.hasClients) return;
     Prefs.write(_hintPref, '${shown + 1}');
@@ -977,7 +978,10 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
                 key: const ValueKey('add-column'),
                 controller: w.scroll,
                 reverse: true, // nearest way at the bottom, by the button
-                physics: const ClampingScrollPhysics(),
+                // A few ways only (2–5, owner 2026-10-24): all on screen, no rolling loop
+                // (with two ways the loop showed a repeat and slid one under the ×).
+                itemCount: n,
+                physics: const NeverScrollableScrollPhysics(),
                 clipBehavior: Clip.none,
                 // Bottom: room for the fade, so only ways rolled past it fade out.
                 padding: const EdgeInsets.only(bottom: _fade),

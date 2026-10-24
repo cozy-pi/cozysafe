@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.41 (2026-10-24)
+
+### Fixed
+- With the add button on the right, its choices showed a repeat and slid one under the
+  ×. The few choices now sit in a plain column, nothing rolls.
+
 ## 0.1.40 (2026-10-24)
 
 ### Changed
