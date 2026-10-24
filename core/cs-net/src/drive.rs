@@ -31,6 +31,8 @@ pub trait DriveApi: Send + Sync {
     fn download(&self, id: &str, out: &mut dyn Write) -> Result<bool>;
     /// A new file named `name` in `folder`, `len` bytes from `src`; its id.
     fn upload(&self, folder: &str, name: &str, len: u64, src: &mut dyn Read) -> Result<String>;
+    /// Delete the file (only ever an old copy of the vault's lock).
+    fn delete(&self, id: &str) -> Result<()>;
 }
 
 /// The sync place: one Drive folder, listed once per session.
@@ -121,6 +123,19 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
     fn exists(&self, path: &str) -> Result<bool> {
         check(path)?;
         Ok(self.id(path).is_some())
+    }
+
+    fn remove(&self, path: &str) -> Result<()> {
+        check(path)?;
+        let id = self
+            .index
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .remove(path);
+        match id {
+            Some(id) => self.api.delete(&id),
+            None => Ok(()),
+        }
     }
 
     fn put_file(&self, path: &str, local: &Path) -> Result<()> {
@@ -297,6 +312,20 @@ impl DriveApi for GoogleDrive {
             .map(str::to_owned)
             .ok_or(Error::Corrupt("drive upload"))
     }
+
+    fn delete(&self, id: &str) -> Result<()> {
+        let r = https::request(
+            "DELETE",
+            &format!("/drive/v3/files/{}", https::encode(id)),
+            &self.token,
+            &[],
+            Body::None,
+        )?;
+        match r.status {
+            404 => Ok(()),
+            s => status_ok(s),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -305,8 +334,11 @@ mod tests {
     use crate::testkit::{note, text, two};
 
     /// Drive in memory.
+    /// (id, name, bytes) of every file.
+    type Files = Vec<(String, String, Vec<u8>)>;
+
     #[derive(Default, Clone)]
-    struct Fake(std::sync::Arc<Mutex<Vec<(String, String, Vec<u8>)>>>);
+    struct Fake(std::sync::Arc<Mutex<Files>>);
 
     impl DriveApi for Fake {
         fn folder(&self) -> Result<String> {
@@ -339,6 +371,10 @@ mod tests {
             files.push((id.clone(), name.to_owned(), b));
             Ok(id)
         }
+        fn delete(&self, id: &str) -> Result<()> {
+            self.0.lock().unwrap().retain(|(i, _, _)| i != id);
+            Ok(())
+        }
     }
 
     #[test]
@@ -356,6 +392,15 @@ mod tests {
             .unwrap();
         assert_eq!(text(&t.b, &from_a), "aaa");
         assert_eq!(text(&t.a, &from_b), "bbb");
+        // One lock there, the newest.
+        let locks = drive
+            .0
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(_, n, _)| n.contains("/lock/"))
+            .count();
+        assert_eq!(locks, 1);
         // Only sealed bytes reach Drive.
         for (_, _, b) in drive.0.lock().unwrap().iter() {
             assert!(!b.windows(3).any(|w| w == b"aaa" || w == b"bbb"));
