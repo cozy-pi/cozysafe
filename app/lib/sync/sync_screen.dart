@@ -230,7 +230,7 @@ class _LogRow extends StatelessWidget {
     final tag = Localizations.localeOf(context).toLanguageTag();
     final date = '${DateFormat.yMMMd(tag).format(when)} ${DateFormat.Hm(tag).format(when)}';
     final title = switch (p[1]) {
-      'join' => l.syncLogJoin(p[2]),
+      'join' || 'restore' => l.syncLogJoin(p[2]),
       'drive' => l.syncLogDrive,
       _ => l.syncLogHost,
     };

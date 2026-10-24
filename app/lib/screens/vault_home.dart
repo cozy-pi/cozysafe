@@ -48,6 +48,8 @@ import '../item_kind.dart';
 import '../widgets/edge_swipe_back.dart';
 import '../widgets/selectable_row.dart';
 import '../widgets/toast.dart';
+import '../widgets/second_place.dart';
+import '../sync/sync_screen.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -1574,6 +1576,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             padding: const EdgeInsets.fromLTRB(6, 12, 6, 0),
             child: Text(l.storageUsed(fileSize(bytes), things.length), style: TextStyle(color: c.muted, fontSize: 13.5)),
           ),
+          if (things.isNotEmpty)
+            SecondPlaceNudge(
+              onAdd: () => pushPage<void>(context,
+                  title: l.syncTitle, builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
+            ),
         ],
       ),
       onKind: (s) => setState(() {

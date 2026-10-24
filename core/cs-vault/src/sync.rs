@@ -21,6 +21,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use cs_crypto::wrap;
 use serde::{Deserialize, Serialize};
@@ -241,6 +242,91 @@ pub struct SyncProgress {
     pub phase: SyncPhase,
     pub done: u32,
     pub total: u32,
+    /// Bytes moved in this phase so far (for the speed on screen).
+    pub bytes: u64,
+    /// While sending: the bytes this device's changes come to (0 when not known).
+    pub bytes_total: u64,
+}
+
+/// A place that counts the bytes crossing it.
+struct Counted<'a> {
+    inner: &'a dyn Remote,
+    bytes: AtomicU64,
+}
+
+impl Counted<'_> {
+    fn bytes(&self) -> u64 {
+        self.bytes.load(Ordering::Relaxed)
+    }
+
+    fn add(&self, n: u64) {
+        self.bytes.fetch_add(n, Ordering::Relaxed);
+    }
+}
+
+/// A writer that counts what goes through it.
+struct CountingWriter<'a, 'b> {
+    out: &'a mut dyn Write,
+    counted: &'a Counted<'b>,
+}
+
+impl Write for CountingWriter<'_, '_> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let n = self.out.write(buf)?;
+        self.counted.add(n as u64);
+        Ok(n)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.out.flush()
+    }
+}
+
+/// A reader that counts what goes through it.
+struct CountingReader<'a, 'b> {
+    src: &'a mut dyn Read,
+    counted: &'a Counted<'b>,
+}
+
+impl Read for CountingReader<'_, '_> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let n = self.src.read(buf)?;
+        self.counted.add(n as u64);
+        Ok(n)
+    }
+}
+
+impl Remote for Counted<'_> {
+    fn key(&self) -> String {
+        self.inner.key()
+    }
+
+    fn list(&self, dir: &str) -> Result<Vec<String>> {
+        self.inner.list(dir)
+    }
+
+    fn get(&self, path: &str, out: &mut dyn Write) -> Result<bool> {
+        self.inner.get(path, &mut CountingWriter { out, counted: self })
+    }
+
+    fn put(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+        self.inner.put(path, &mut CountingReader { src, counted: self })
+    }
+
+    fn exists(&self, path: &str) -> Result<bool> {
+        self.inner.exists(path)
+    }
+
+    fn put_file(&self, path: &str, local: &Path) -> Result<()> {
+        // The place may stream the file its own way; count it once it is up.
+        self.inner.put_file(path, local)?;
+        self.add(fs::metadata(local)?.len());
+        Ok(())
+    }
+
+    fn remove(&self, path: &str) -> Result<()> {
+        self.inner.remove(path)
+    }
 }
 
 /// Items per journal entry while sending, so a long first sync that stops half-way has
@@ -280,13 +366,19 @@ impl OpenVault {
         progress: &dyn Fn(SyncProgress),
     ) -> Result<SyncReport> {
         let mut report = SyncReport::default();
+        let counted = Counted {
+            inner: remote,
+            bytes: AtomicU64::new(0),
+        };
         progress(SyncProgress {
             phase: SyncPhase::Checking,
             done: 0,
             total: 0,
+            bytes: 0,
+            bytes_total: 0,
         });
-        self.pull(remote, &mut report, progress)?;
-        self.push(remote, &mut report, progress)?;
+        self.pull(&counted, &mut report, progress)?;
+        self.push(&counted, &mut report, progress)?;
         Ok(report)
     }
 
@@ -296,7 +388,7 @@ impl OpenVault {
 
     fn pull(
         &self,
-        remote: &dyn Remote,
+        remote: &Counted<'_>,
         report: &mut SyncReport,
         progress: &dyn Fn(SyncProgress),
     ) -> Result<()> {
@@ -348,6 +440,8 @@ impl OpenVault {
                     phase: SyncPhase::Receiving,
                     done,
                     total,
+                    bytes: remote.bytes(),
+                    bytes_total: 0,
                 });
             }
             for (id, hlc) in entry.gone {
@@ -357,6 +451,8 @@ impl OpenVault {
                     phase: SyncPhase::Receiving,
                     done,
                     total,
+                    bytes: remote.bytes(),
+                    bytes_total: 0,
                 });
             }
             self.index
@@ -708,7 +804,7 @@ impl OpenVault {
 
     fn push(
         &self,
-        remote: &dyn Remote,
+        remote: &Counted<'_>,
         report: &mut SyncReport,
         progress: &dyn Fn(SyncProgress),
     ) -> Result<()> {
@@ -744,6 +840,14 @@ impl OpenVault {
         }
         let gone = self.index.gone_unsent(&rk)?;
         let total = (todo.len() + gone.len()) as u32;
+        let start = remote.bytes();
+        let mut bytes_total = 0u64;
+        for (id, record, sealed) in &todo {
+            bytes_total += sealed.len() as u64 + fs::metadata(self.path(id, "data")?).map_or(0, |m| m.len());
+            if record.has_thumbnail() {
+                bytes_total += fs::metadata(self.path(id, "thumb")?).map_or(0, |m| m.len());
+            }
+        }
         let mut done = 0u32;
         let mut entry = Entry::default();
         for (id, record, sealed) in todo {
@@ -766,6 +870,8 @@ impl OpenVault {
                 phase: SyncPhase::Sending,
                 done,
                 total,
+                bytes: remote.bytes() - start,
+                bytes_total,
             });
             if entry.items.len() >= LOG_EVERY {
                 self.send_entry(remote, std::mem::take(&mut entry), report)?;
@@ -779,6 +885,8 @@ impl OpenVault {
                 phase: SyncPhase::Sending,
                 done,
                 total,
+                bytes: remote.bytes() - start,
+                bytes_total,
             });
         }
         Ok(())
@@ -1271,6 +1379,11 @@ pub(crate) mod tests {
             .collect();
         assert_eq!(sending.last().unwrap().done, n as u32);
         assert!(sending.iter().all(|p| p.total == n as u32));
+        // Bytes count up to at least what the changes come to (journal entries add a bit).
+        let total_bytes = sending[0].bytes_total;
+        assert!(total_bytes > 0 && sending.iter().all(|p| p.bytes_total == total_bytes));
+        assert!(sending.windows(2).all(|w| w[0].bytes <= w[1].bytes));
+        assert!(sending.last().unwrap().bytes >= total_bytes);
         // Two journal entries: the first LOG_EVERY items, then the rest.
         let me = device_id(&t.a.index).unwrap();
         let entries = t
@@ -1286,6 +1399,7 @@ pub(crate) mod tests {
             (last.phase, last.done, last.total),
             (SyncPhase::Receiving, n as u32, n as u32)
         );
+        assert!(last.bytes > 0);
         assert_eq!(text(&t.b, &ids[n - 1]), "x");
     }
 }

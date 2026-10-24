@@ -20,8 +20,12 @@ import 'progress.dart';
 /// connection, type the two secrets; the vault comes down sealed, opens here, then this
 /// phone gets its own PIN.
 class DriveJoinScreen extends StatefulWidget {
-  const DriveJoinScreen({super.key, required this.libraryDir});
+  const DriveJoinScreen({super.key, required this.libraryDir, this.words, this.password});
   final String libraryDir;
+  /// Typed on the step before (Restore): not asked again, the vault opens right after
+  /// signing in.
+  final String? words;
+  final String? password;
 
   /// For the mockup renders: signed in as this account, nothing asked.
   static String? debugAccount;
@@ -55,6 +59,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       if (s == null || !mounted) return;
       if (!await allowConnection(context, l.syncAllowDrive(s.email)) || !mounted) return;
       setState(() => _session = s);
+      if (widget.words != null) await _open();
     } catch (_) {
       if (mounted) setState(() => _error = l.syncFailed);
     }
@@ -64,7 +69,9 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
     final l = AppLocalizations.of(context);
     final session = _session;
     if (session == null || _busy) return;
-    final parsed = rust.parseSecretKey(text: _words.text);
+    final words = widget.words ?? _words.text;
+    final password = widget.password ?? _password.text;
+    final parsed = rust.parseSecretKey(text: words);
     if (parsed == null) {
       setState(() => _error = l.secretKeyTypo);
       return;
@@ -75,7 +82,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
     });
     try {
       final r = await sync.driveJoin(
-          dir: widget.libraryDir, token: session.token, words: _words.text, password: _password.text);
+          dir: widget.libraryDir, token: session.token, words: words, password: password);
       if (!mounted) return;
       final vault = r.vault;
       if (r.outcome != sync.JoinOutcome.joined || vault == null) {
@@ -150,11 +157,13 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
               Expanded(child: Text(account, style: const TextStyle(fontWeight: FontWeight.w600))),
             ]),
             const SizedBox(height: 16),
+            if (widget.words == null) ...[
             SecretField(
               key: const ValueKey('join-words'),
               controller: _words,
               enabled: !_busy,
               multiline: true,
+              paste: true,
               label: l.secretKeyLabel,
               hint: l.recoveryWordsHint,
               onChanged: (_) => setState(() => _error = null),
@@ -169,9 +178,13 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
               onSubmitted: (_) => _open(),
             ),
             const SizedBox(height: 16),
+            ],
             FilledButton(
               key: const ValueKey('join-open'),
-              onPressed: _busy || _words.text.trim().isEmpty || _password.text.isEmpty ? null : _open,
+              onPressed: _busy ||
+                      (widget.words == null && (_words.text.trim().isEmpty || _password.text.isEmpty))
+                  ? null
+                  : _open,
               child: BusyLabel(busy: _busy, idle: l.joinOpen, working: l.restoring),
             ),
           ],
