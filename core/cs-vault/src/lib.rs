@@ -191,7 +191,34 @@ impl OpenVault {
     pub fn forget_sync_place(&self, key: &str) -> Result<()> {
         self.index.forget_remote(key)
     }
+
+    /// The connections this vault made, newest first (Settings → Sync shows them). Sealed
+    /// with the Master Key like everything else in the index.
+    pub fn connection_log(&self) -> Result<Vec<String>> {
+        let Some(sealed) = self.index.meta_get(CONNECTION_LOG)? else {
+            return Ok(Vec::new());
+        };
+        let bytes = hex::decode(sealed).map_err(|_| Error::Corrupt("connection log"))?;
+        let plain = cs_crypto::wrap::open(&self.master_key, &bytes, CONNECTION_LOG.as_bytes())
+            .map_err(|_| Error::Corrupt("connection log"))?;
+        serde_json::from_slice(&plain).map_err(|_| Error::Corrupt("connection log"))
+    }
+
+    /// Add one line to [`OpenVault::connection_log`], keeping the newest
+    /// [`CONNECTION_LOG_LEN`].
+    pub fn log_connection(&self, line: &str) -> Result<()> {
+        let mut log = self.connection_log().unwrap_or_default();
+        log.insert(0, line.to_owned());
+        log.truncate(CONNECTION_LOG_LEN);
+        let plain = serde_json::to_vec(&log).expect("serialisable");
+        let sealed = cs_crypto::wrap::seal(&self.master_key, &plain, CONNECTION_LOG.as_bytes());
+        self.index.meta_set(CONNECTION_LOG, &hex::encode(sealed))
+    }
 }
+
+const CONNECTION_LOG: &str = "connection-log";
+/// Lines kept in the connection log.
+pub const CONNECTION_LOG_LEN: usize = 50;
 
 impl Library {
     /// Whether a library with at least one vault exists in `dir`.

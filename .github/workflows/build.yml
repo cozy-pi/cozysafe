@@ -61,12 +61,12 @@ jobs:
       - run: |
           mv app/build/app/outputs/flutter-apk/app-release.apk built-android.apk
           mv app/build/app/outputs/bundle/release/app-release.aab built-android.aab
-      # Offline by construction (docs/supply-chain.md): no INTERNET permission after
-      # every plugin's manifest is merged, and the shipped Rust library imports no
-      # socket functions.
-      - name: Check the APK and bundle have no INTERNET permission
+      # Network only for local sync (docs/supply-chain.md): no network permission but
+      # INTERNET after every plugin's manifest is merged, and the shipped Rust library
+      # does no name lookups (it can only reach an address someone typed or scanned).
+      - name: Check the APK and bundle ask for no other network permission
         run: tools/check-apk-permissions built-android.apk built-android.aab
-      - name: Check the shipped Rust library imports no network functions
+      - name: Check the shipped Rust library does no name lookups
         run: |
           unzip -p built-android.apk lib/arm64-v8a/librust_lib_cozysafe.so > "$RUNNER_TEMP/librust_lib_cozysafe.so"
           NM=$(ls "$ANDROID_HOME"/ndk/*/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm 2>/dev/null | sort -V | tail -1 || true)

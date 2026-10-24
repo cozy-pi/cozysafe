@@ -2,12 +2,12 @@
  "lang_label": "Sprache",
  "home": {
   "title": "Cozy Safe: ein verschlüsselter Open-Source-Tresor",
-  "desc": "Cozy Safe speichert Notizen, Fotos, Videos, Sprachmemos und Dateien verschlüsselt auf Ihrem Gerät, komplett offline. Kostenlos und Open Source.",
+  "desc": "Cozy Safe speichert Notizen, Fotos, Videos, Sprachmemos und Dateien verschlüsselt auf Ihrem Gerät. Kein Konto, kein Server. Kostenlos und Open Source.",
   "nav_how": "So funktioniert's",
   "nav_dl": "Download",
   "nav_src": "Quellcode",
   "h1": "Ein privater Tresor für Ihre Notizen, Fotos und Dateien.",
-  "lead": "Alles wird auf Ihrem Gerät verschlüsselt, bevor es gespeichert wird, und die App geht nie online. Ohne Ihr Passwort kann es niemand öffnen, auch wir nicht.",
+  "lead": "Alles wird auf Ihrem Gerät verschlüsselt, bevor es gespeichert wird. Kein Konto, kein Server: Die App verbindet sich nur beim Synchronisieren mit Ihrem eigenen Gerät im selben WLAN. Ohne Ihr Passwort kann es niemand öffnen, auch wir nicht.",
   "btn": "Herunterladen",
   "btn_for": "Für {p} herunterladen",
   "btn_src": "Quellcode ansehen",
@@ -60,8 +60,8 @@
   "d_mac": "<strong>macOS</strong> · auch Windows und Linux",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
-  "c4h": "Komplett offline",
-  "c4p": "Cozy Safe braucht kein Netzwerk. Unter Android hat die App gar keine Internetberechtigung, und unter macOS läuft sie in einer Sandbox ohne Netzwerkzugriff.",
+  "c4h": "Kein Server, kein Konto",
+  "c4p": "Cozy Safe verbindet sich mit keinem Server. Die einzige Verbindung geht zu Ihrem eigenen Gerät im selben WLAN, wenn Sie eine Synchronisierung starten und erlauben, und alles Gesendete ist verschlüsselt.",
   "c5h": "Diskret auf dem Bildschirm",
   "c5p": "Passwörter und der Wiederherstellungsschlüssel bleiben verborgen, bis Sie auf Anzeigen tippen, kopierter Text wird nach 60 Sekunden gelöscht, und der Tresor sperrt sich, sobald Sie die App verlassen.",
   "c6h": "Backups in Ihrer Hand",
@@ -92,6 +92,7 @@
     "Wohin Ihre Daten gelangen können, nur wenn Sie es wählen",
     [
      "Ein Backup ist eine einzelne verschlüsselte Datei, gespeichert an einem Ort Ihrer Wahl (zum Beispiel iCloud Drive, Google Drive oder Dropbox). Dort werden nur verschlüsselte Daten gespeichert; der gewählte Anbieter kann sie nicht lesen.",
+     "Synchronisierung mit Ihrem anderen Gerät: Wenn Sie sie starten und erlauben, gehen die verschlüsselten Daten des Tresors über Ihr WLAN direkt zu Ihrem eigenen Gerät. Nichts läuft über uns oder einen Server.",
      "Wenn Sie ein Element teilen, exportieren oder in einer anderen App öffnen, erhält diese App eine unverschlüsselte Kopie und verarbeitet sie nach ihren eigenen Bestimmungen."
     ]
    ],
@@ -99,7 +100,8 @@
     "Berechtigungen",
     [
      "Kamera: nur um Fotos direkt in einen Tresor aufzunehmen, wenn Sie die Kamera öffnen. Fotos werden nicht in Ihrer Fotomediathek gespeichert.",
-     "Biometrie: nur wenn Sie das Entsperren per Face ID, Touch ID oder Fingerabdruck aktivieren. Ihre biometrischen Daten verlassen nie die sichere Hardware des Geräts und sind für die App nie zugänglich."
+     "Biometrie: nur wenn Sie das Entsperren per Face ID, Touch ID oder Fingerabdruck aktivieren. Ihre biometrischen Daten verlassen nie die sichere Hardware des Geräts und sind für die App nie zugänglich.",
+     "Lokales Netzwerk (iPhone) / Internet (Android) / Netzwerk (macOS): nur zum Synchronisieren mit Ihrem anderen Gerät im selben WLAN, wenn Sie es starten."
     ]
    ],
    [

@@ -6,21 +6,32 @@ Dates are UTC.
 
 ## 0.1.44 (2026-10-24)
 
-### Changed
-- Middle bar: + sits right after the overview tab, the four kinds of items after it.
+### Added
+- Sync with a nearby device (Settings, Sync): one device shows a QR code or an 18-character
+  code, the other scans or types it, and both bring the vault up to date over the Wi‑Fi.
+  Both must hold the same vault. Nothing connects on its own: each time the app asks,
+  naming the address, and the code works once, for 2 minutes. Both screens show the same
+  number to compare. A note edited on both devices keeps both texts. A log lists every
+  connection (kept encrypted in the vault).
 
-### Fixed
-- Linux build (a JPEG library the runner no longer had).
+### Changed
+- The app now asks for network access (Android internet permission, macOS network
+  sandbox rights, iPhone local network) for sync only. All network code sits in one part
+  of the app, which can only reach addresses on your local network and does no name
+  lookups.
 
 ## 0.1.43 (2026-10-24)
 
 ### Changed
-- The add button now sits in the middle of the bottom bar by default (left and right
-  are still in Settings).
+- The add button now sits in the bottom bar by default, right after the overview tab
+  (left and right floating buttons are still in Settings).
 - Middle bar: the vault's badge is a tab inside the bar, like the others, and every
   tab gets the same space.
 - In the library, + offers Add photos, Take photo and Record video side by side, just
   above the button.
+
+### Fixed
+- Linux build (a JPEG library the runner no longer had).
 
 ## 0.1.42 (2026-10-24)
 

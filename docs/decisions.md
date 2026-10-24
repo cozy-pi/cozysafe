@@ -18,6 +18,13 @@ entitlement, iOS local network usage text). Every permitted connection is logged
 security page, website and store privacy answers change to: nothing leaves the phone
 unless you start a sync, and then only encrypted, to your Google Drive or your device.
 
+As built (P2P, 0.1.44): the log sits on the Sync page, sealed in the vault index. cs-net
+refuses any address outside the local network (private, link-local) both for listening
+and connecting, and the compiled Rust library may import no name-lookup function, so it
+can only reach an address that was scanned or typed. QR codes are drawn and read in Rust
+(`qrcode`, `rqrr`), no camera-scanning plugin. While the host waits and while the other
+device works, the vault is not held (it stays usable).
+
 ## 2026-10-24 — One vault in the app; the core keeps many
 
 **Owner:** the app offers **one vault**: no "New vault" button, no vault list. Settings

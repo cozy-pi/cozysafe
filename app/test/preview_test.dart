@@ -29,6 +29,12 @@ import 'package:cozysafe/screens/unlock.dart';
 import 'package:cozysafe/screens/quick_look.dart';
 import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
+import 'package:cozysafe/src/rust/api/sync.dart';
+import 'package:cozysafe/sync/host_page.dart';
+import 'package:cozysafe/sync/join_page.dart';
+import 'package:cozysafe/sync/progress.dart';
+import 'package:cozysafe/sync/qr_view.dart';
+import 'package:cozysafe/sync/sync_screen.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
@@ -131,6 +137,11 @@ final Map<int, Uint8List> _photos = {};
 /// Small solid-colour PNGs stand in for photo thumbnails.
 final _thumbnails = <int, Uint8List>{};
 
+/// A real pairing code (192.168.1.37:51234) and its QR, from the Rust encoder.
+const _qrTyped = '60N00J-BJ120X-DWG3A2';
+const _qrText = 'cozysafe:p2p:1:60N00JBJ120XDWG3A2';
+const _qrBits = '1111111000011001111010111111110000010000000000110001000001101110101000101010110010111011011101011100000111000101110110111010100101110000101011101100000101010111110100010000011111111010101010101010111111100000000110111010001000000000101111100111001101110011111001110110001011001100010101010110001010010010000110011011000001001011100001010100110110110110111110010000011011010111100101100100011110001001110001100000110001011100100100011000000110101001100001000001100110101011010100111000110100101101100000011100001010010100111000111011010001101001101100010110100110100110011111011001101001100111100100011111101100000000010000111101010001101111111110001111111000101010100100000101011110000111000110001011101011101011100011111011010111010111011000000010101011101110101010001111000011110101000001000100100100110000001011111110110110010000011001100';
+
 class _Fake implements RustLibApi {
   @override
   dynamic noSuchMethod(Invocation call) {
@@ -140,6 +151,8 @@ class _Fake implements RustLibApi {
     if (n.contains('MinPinLength')) return 6;
     if (n.contains('PasswordScore')) return (call.namedArguments[#password] as String).length < 12 ? 1 : 4;
     if (n.contains('HasVaults')) return true;
+    if (n.contains('QrMatrix')) return QrMatrix(size: 29, dark: [for (final c in _qrBits.split('')) c == '1']);
+    if (n.contains('P2PCodeAddress')) return '192.168.1.37';
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_itemsNow ?? _items);
     if (n.contains('ListTrash')) {
       return Future<List<ItemInfo>>.value([
@@ -271,6 +284,10 @@ void _screen(String name, String caption, Widget Function() home,
       NewVaultScreen.debugWords = null;
       DebugScreen.debugNetworkBlocked = null;
       _itemsNow = null;
+      SyncScreen.debugLog = null;
+      SyncScreen.debugAddress = null;
+      HostSyncPage.debugHosting = null;
+      ScanCodePage.debugPreview = null;
       VaultHomeScreen.debugReveal = false;
       debugRecordingStill = false;
       setup?.call();
@@ -627,11 +644,49 @@ void main() {
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt', () => settings(vault));
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
+      change: 'MỚI: dòng "Đồng bộ với máy gần đây" dưới Sao lưu',
+      marks: [() => find.byKey(const ValueKey('sync-row'))],
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('kit-row')), 200, scrollable: find.byType(Scrollable).first);
     await t.drag(find.byType(Scrollable).first, const Offset(0, 200));
     await t.pumpAndSettle();
   });
+  Widget page(String title, Widget body) => Scaffold(appBar: AppBar(title: Text(title)), body: SafeArea(top: false, child: body));
+  final syncLog = [
+    '${_now - 3600000}|join|192.168.1.21|ok|12|3',
+    '${_now - 86400000}|host|-|ok|0|5',
+    '${_now - 2 * 86400000}|host|-|expired|0|0',
+  ];
+  _screen('sync', 'Đồng bộ: hiện mã / quét mã / nhập mã, và các lần kết nối gần đây', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () => SyncScreen.debugLog = syncLog,
+      change: 'MỚI: trang Đồng bộ. Không có gì tự kết nối; nhật ký ghi mọi lần kết nối (lưu mã hoá trong két)',
+      marks: [() => find.byKey(const ValueKey('sync-show'))]);
+  _screen('sync-allow', 'Đồng bộ · bấm Hiện mã → hỏi cho phép, ghi rõ địa chỉ', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () {
+    SyncScreen.debugLog = syncLog;
+    SyncScreen.debugAddress = '192.168.1.37';
+  },
+      change: 'MỚI: lần nào cũng hỏi trước khi mở kết nối, nói rõ kết nối tới đâu, bao lâu',
+      marks: [() => find.byKey(const ValueKey('sync-allow'))], act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-show')));
+    await t.pumpAndSettle();
+  });
+  _screen('sync-host', 'Máy này hiện mã: QR + mã gõ tay, mã chỉ dùng được 2 phút, một lần', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
+      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 107),
+      change: 'MỚI: chờ máy kia quét mã',
+      marks: [() => find.byKey(const ValueKey('sync-qr'))]);
+  _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
+      setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))),
+      change: 'MỚI: chỉ nhận mã Cozy Safe; đọc được mã thì hỏi cho phép rồi mới kết nối');
+  _screen('sync-type', 'Máy kia: nhập mã 18 ký tự', () => page('Nhập mã', TypeCodePage(onSynced: () {})),
+      change: 'MỚI: nhập mã thay cho quét');
+  SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0}) =>
+      SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies);
+  _screen('sync-connected', 'Đã kết nối: hai máy hiện cùng một số để đối chiếu', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})),
+      change: 'MỚI: số đối chiếu; khác số thì bấm Huỷ', marks: [() => find.byKey(const ValueKey('sync-check'))]);
+  _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})),
+      change: 'MỚI: kết quả; ghi chú bị sửa ở cả hai máy thì giữ cả hai bản');
+  _screen('sync-failed', 'Không kết nối được', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.failed)), onSynced: () {})));
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
       act: (t) async {
     await t.scrollUntilVisible(find.text('Chặn chụp màn hình'), 200, scrollable: find.byType(Scrollable).first);
@@ -694,7 +749,8 @@ void main() {
   _screen('originals-files', 'Vừa cất 2 tệp vào két', () => sheetOver(const DeleteOriginalsSheet(count: 2, photos: false)),
       section: 'file');
   _screen('blur', 'Thư viện · làm mờ ảnh thu nhỏ (mặc định)', home, section: 'library');
-  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen());
+  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen(),
+      change: 'Sửa: "không bao giờ kết nối internet" → không máy chủ; kết nối duy nhất là tới máy của bạn khi đồng bộ');
   _screen('security-info-2', 'Cách két được bảo vệ · giữa trang', () => const SecurityInfoScreen(), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-4')), 300, scrollable: find.byType(Scrollable).first);
     await t.pump();

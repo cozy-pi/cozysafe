@@ -2,12 +2,12 @@
  "lang_label": "Idioma",
  "home": {
   "title": "Cozy Safe: um cofre criptografado de código aberto",
-  "desc": "O Cozy Safe guarda suas notas, fotos, vídeos, gravações de voz e arquivos criptografados no seu dispositivo, totalmente offline. Gratuito e open source.",
+  "desc": "O Cozy Safe guarda suas notas, fotos, vídeos, gravações de voz e arquivos criptografados no seu dispositivo. Sem conta, sem servidor. Gratuito e open source.",
   "nav_how": "Como funciona",
   "nav_dl": "Baixar",
   "nav_src": "Código-fonte",
   "h1": "Um cofre privado para suas notas, fotos e arquivos.",
-  "lead": "Tudo é criptografado no seu dispositivo antes de ser salvo, e o app nunca se conecta à internet. Sem a sua senha, ninguém consegue abrir, nem mesmo nós.",
+  "lead": "Tudo é criptografado no seu dispositivo antes de ser salvo. Sem conta e sem servidor: o app só se conecta ao seu próprio dispositivo na mesma Wi-Fi quando você sincroniza. Sem a sua senha, ninguém consegue abrir, nem mesmo nós.",
   "btn": "Baixar",
   "btn_for": "Baixar para {p}",
   "btn_src": "Ver o código",
@@ -60,8 +60,8 @@
   "d_mac": "<strong>macOS</strong> · também Windows e Linux",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
-  "c4h": "Totalmente offline",
-  "c4p": "O Cozy Safe não precisa de rede. No Android ele nem tem permissão de acesso à internet, e no macOS roda em um sandbox sem acesso à rede.",
+  "c4h": "Sem servidor, sem conta",
+  "c4p": "O Cozy Safe não se comunica com nenhum servidor. A única conexão que ele faz é com o seu próprio dispositivo na mesma Wi-Fi, quando você inicia uma sincronização e a permite, e tudo o que é enviado é criptografado.",
   "c5h": "Discreto na tela",
   "c5p": "Senhas e a Chave de recuperação ficam ocultas até você tocar em Mostrar, o texto copiado é apagado após 60 segundos e o cofre é bloqueado assim que você sai do app.",
   "c6h": "Backups sob o seu controle",
@@ -92,6 +92,7 @@
     "Para onde seus dados podem ir, só se você escolher",
     [
      "Um backup é um único arquivo criptografado, salvo onde você escolher (por exemplo, iCloud Drive, Google Drive ou Dropbox). Somente dados criptografados são gravados ali; o provedor escolhido não consegue lê-los.",
+     "Sincronização com seu outro dispositivo: quando você inicia e permite, os dados criptografados do cofre vão pela sua Wi-Fi direto para o seu próprio dispositivo. Nada passa por nós nem por nenhum servidor.",
      "Quando você compartilha, exporta ou abre um item em outro app, esse app recebe uma cópia sem criptografia e a trata conforme os próprios termos."
     ]
    ],
@@ -99,7 +100,8 @@
     "Permissões",
     [
      "Câmera: só para tirar fotos direto para um cofre, quando você abre a câmera. As fotos não são salvas na sua biblioteca de fotos.",
-     "Biometria: só se você ativar o desbloqueio por Face ID, Touch ID ou impressão digital. Seus dados biométricos nunca saem do hardware seguro do dispositivo e nunca ficam disponíveis para o app."
+     "Biometria: só se você ativar o desbloqueio por Face ID, Touch ID ou impressão digital. Seus dados biométricos nunca saem do hardware seguro do dispositivo e nunca ficam disponíveis para o app.",
+     "Rede local (iPhone) / internet (Android) / rede (macOS): só para sincronizar com seu outro dispositivo na mesma Wi-Fi, quando você inicia."
     ]
    ],
    [

@@ -1,0 +1,211 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../l10n/app_localizations.dart';
+import '../src/rust/api/sync.dart' as sync;
+import '../theme.dart';
+import '../widgets/toast.dart';
+import '../widgets/vault_bar.dart' show pushPage;
+import 'consent.dart';
+import 'host_page.dart';
+import 'join_page.dart';
+import 'wifi.dart';
+
+/// Settings → Sync: bring this vault up to date with the person's other device on the
+/// same Wi-Fi (docs/adr/0003-sync.md). Every connection is started here and allowed by
+/// hand; the log below lists them.
+class SyncScreen extends StatefulWidget {
+  const SyncScreen({super.key, required this.libraryDir, required this.onSynced});
+  final String libraryDir;
+  final VoidCallback onSynced;
+
+  /// For the mockup renders: the log without a vault.
+  static List<String>? debugLog;
+  /// For the mockup renders: the address without asking the system.
+  static String? debugAddress;
+
+  @override
+  State<SyncScreen> createState() => _SyncScreenState();
+}
+
+class _SyncScreenState extends State<SyncScreen> {
+  List<String> _log = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLog();
+  }
+
+  Future<void> _loadLog() async {
+    try {
+      final log = SyncScreen.debugLog ?? await sync.connectionLog();
+      if (mounted) setState(() => _log = log);
+    } catch (_) {}
+  }
+
+  void _synced() {
+    widget.onSynced();
+    _loadLog();
+  }
+
+  Future<void> _show() async {
+    final l = AppLocalizations.of(context);
+    final address = SyncScreen.debugAddress ?? await localAddress();
+    if (!mounted) return;
+    if (address == null) {
+      showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
+      return;
+    }
+    if (!await allowConnection(context, l.syncAllowHost(address)) || !mounted) return;
+    await pushPage<void>(context,
+        title: l.syncShowCode,
+        builder: (_) => HostSyncPage(address: address, mirror: '${widget.libraryDir}-sync', onSynced: widget.onSynced));
+    _loadLog();
+  }
+
+  Future<void> _scan() async {
+    await pushPage<void>(context, title: AppLocalizations.of(context).syncScanCode, builder: (_) => ScanCodePage(onSynced: _synced));
+    _loadLog();
+  }
+
+  Future<void> _type() async {
+    await pushPage<void>(context, title: AppLocalizations.of(context).syncTypeCode, builder: (_) => TypeCodePage(onSynced: _synced));
+    _loadLog();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(l.syncLead, style: const TextStyle(fontSize: 15.5, height: 1.4)),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.back_hand_outlined, size: 18, color: c.muted),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l.syncByHand, style: TextStyle(color: c.muted, fontSize: 14, height: 1.3))),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _Card(children: [
+          _Action(key: const ValueKey('sync-show'), icon: Icons.qr_code_2_rounded, color: const Color(0xFF007AFF), title: l.syncShowCode, onTap: _show),
+          _Action(key: const ValueKey('sync-scan'), icon: Icons.qr_code_scanner_rounded, color: const Color(0xFF34C759), title: l.syncScanCode, onTap: _scan),
+          _Action(key: const ValueKey('sync-type'), icon: Icons.keyboard_outlined, color: const Color(0xFF8E8E93), title: l.syncTypeCode, onTap: _type),
+        ]),
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 7),
+          child: Text(l.syncLog, style: TextStyle(color: c.muted, fontSize: 13, fontWeight: FontWeight.w600)),
+        ),
+        if (_log.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Text(l.syncLogEmpty, style: TextStyle(color: c.muted)),
+          )
+        else
+          _Card(children: [for (final line in _log) _LogRow(line: line)]),
+      ],
+    );
+  }
+}
+
+class _Card extends StatelessWidget {
+  const _Card({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: Column(children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) Divider(height: 1, thickness: 1, indent: 56, color: c.border.withValues(alpha: .6)),
+          children[i],
+        ],
+      ]),
+    );
+  }
+}
+
+class _Action extends StatelessWidget {
+  const _Action({super.key, required this.icon, required this.color, required this.title, required this.onTap});
+  final IconData icon;
+  final Color color;
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
+        child: Row(children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(title, style: const TextStyle(fontSize: 15.5))),
+          Icon(Icons.chevron_right, color: c.muted, size: 20),
+        ]),
+      ),
+    );
+  }
+}
+
+/// One line of the connection log: `<ms>|<host|join>|<address or ->|<outcome>|<in>|<out>`.
+class _LogRow extends StatelessWidget {
+  const _LogRow({required this.line});
+  final String line;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final p = line.split('|');
+    if (p.length < 6) return const SizedBox.shrink();
+    final when = DateTime.fromMillisecondsSinceEpoch(int.tryParse(p[0]) ?? 0);
+    final tag = Localizations.localeOf(context).toLanguageTag();
+    final date = '${DateFormat.yMMMd(tag).format(when)} ${DateFormat.Hm(tag).format(when)}';
+    final title = p[1] == 'join' ? l.syncLogJoin(p[2]) : l.syncLogHost;
+    final (outcome, ok) = switch (p[3]) {
+      'ok' => (l.syncLogCounts(p[4], p[5]), true),
+      'cancelled' => (l.syncLogCancelled, false),
+      'expired' => (l.syncLogExpired, false),
+      _ => (l.syncLogFailed, false),
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      child: Row(children: [
+        Icon(ok ? Icons.check_circle_outline_rounded : Icons.remove_circle_outline_rounded,
+            color: ok ? const Color(0xFF34C759) : c.muted, size: 26),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontSize: 15)),
+            const SizedBox(height: 2),
+            Text('$date · $outcome', style: TextStyle(color: c.muted, fontSize: 13)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}

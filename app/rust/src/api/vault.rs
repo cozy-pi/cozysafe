@@ -455,7 +455,9 @@ pub struct CameraFrame {
     pub rotation: u32,
 }
 
-fn with_open<T>(f: impl FnOnce(&OpenVault) -> Result<T, VaultError>) -> Result<T, VaultError> {
+pub(crate) fn with_open<T>(
+    f: impl FnOnce(&OpenVault) -> Result<T, VaultError>,
+) -> Result<T, VaultError> {
     let guard = OPEN.lock().unwrap_or_else(|p| p.into_inner());
     let vault = guard.as_ref().ok_or(VaultError::Locked)?;
     f(vault)

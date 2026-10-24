@@ -2,12 +2,12 @@
  "lang_label": "Dil",
  "home": {
   "title": "Cozy Safe: açık kaynaklı şifreli kasa",
-  "desc": "Cozy Safe notlarınızı, fotoğraf ve videolarınızı, ses kayıtlarınızı ve dosyalarınızı cihazınızda, tamamen çevrimdışı şifreli tutar. Ücretsiz, açık kaynak.",
+  "desc": "Cozy Safe notlarınızı, fotoğraf ve videolarınızı, ses kayıtlarınızı ve dosyalarınızı cihazınızda şifreli tutar. Hesap yok, sunucu yok. Ücretsiz, açık kaynak.",
   "nav_how": "Nasıl çalışır",
   "nav_dl": "İndir",
   "nav_src": "Kaynak kodu",
   "h1": "Notlarınız, fotoğraflarınız ve dosyalarınız için özel bir kasa.",
-  "lead": "Her şey kaydedilmeden önce cihazınızda şifrelenir ve uygulama hiçbir zaman internete bağlanmaz. Parolanız olmadan biz dahil kimse açamaz.",
+  "lead": "Her şey kaydedilmeden önce cihazınızda şifrelenir. Hesap yok, sunucu yok: uygulama yalnızca eşitleme yaptığınızda aynı Wi-Fi ağındaki kendi cihazınıza bağlanır. Parolanız olmadan biz dahil kimse açamaz.",
   "btn": "İndir",
   "btn_for": "{p} için indir",
   "btn_src": "Kaynak koduna bak",
@@ -60,8 +60,8 @@
   "d_mac": "<strong>macOS</strong> · ayrıca Windows ve Linux",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
-  "c4h": "Tamamen çevrimdışı",
-  "c4p": "Cozy Safe ağa ihtiyaç duymaz. Android'de hiçbir internet izni yoktur, macOS'ta ise ağ erişimi olmayan bir sandbox içinde çalışır.",
+  "c4h": "Sunucu yok, hesap yok",
+  "c4p": "Cozy Safe hiçbir sunucuyla iletişim kurmaz. Kurduğu tek bağlantı, aynı Wi-Fi ağındaki kendi cihazınızladır; bu da yalnızca bir eşitleme başlatıp izin verdiğinizde olur ve gönderilen her şey şifrelidir.",
   "c5h": "Ekranda gizli",
   "c5p": "Parolalar ve Kurtarma Anahtarı siz Göster'e dokunana kadar gizli kalır, kopyalanan metin 60 saniye sonra silinir ve uygulamadan çıktığınız anda kasa kilitlenir.",
   "c6h": "Kontrolü sizde olan yedekler",
@@ -92,6 +92,7 @@
     "Verileriniz nereye gidebilir (yalnızca siz seçerseniz)",
     [
      "Yedek, seçtiğiniz bir yere kaydedilen tek bir şifreli dosyadır (örneğin iCloud Drive, Google Drive veya Dropbox). Oraya yalnızca şifreli veri yazılır; seçtiğiniz sağlayıcı bu veriyi okuyamaz.",
+     "Diğer cihazınızla eşitleme: siz başlatıp izin verdiğinizde kasanın şifreli verileri Wi-Fi ağınız üzerinden doğrudan kendi cihazınıza gider. Hiçbir şey bizden veya herhangi bir sunucudan geçmez.",
      "Bir öğeyi paylaştığınızda, dışa aktardığınızda veya başka bir uygulamada açtığınızda o uygulama şifresiz bir kopya alır ve bunu kendi koşullarına göre işler."
     ]
    ],
@@ -99,7 +100,8 @@
     "İzinler",
     [
      "Kamera: yalnızca kamerayı siz açtığınızda, fotoğrafları doğrudan bir kasaya çekmek için. Fotoğraflar fotoğraf arşivinize kaydedilmez.",
-     "Biyometri: yalnızca Face ID, Touch ID veya parmak iziyle kilit açmayı etkinleştirirseniz. Biyometrik verileriniz cihazın güvenli donanımından asla çıkmaz ve uygulamanın erişimine hiçbir zaman açık değildir."
+     "Biyometri: yalnızca Face ID, Touch ID veya parmak iziyle kilit açmayı etkinleştirirseniz. Biyometrik verileriniz cihazın güvenli donanımından asla çıkmaz ve uygulamanın erişimine hiçbir zaman açık değildir.",
+     "Yerel ağ (iPhone) / internet (Android) / ağ (macOS): yalnızca siz başlattığınızda, aynı Wi-Fi ağındaki diğer cihazınızla eşitleme için."
     ]
    ],
    [

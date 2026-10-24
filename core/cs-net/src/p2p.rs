@@ -12,7 +12,8 @@
 
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -425,12 +426,21 @@ pub struct Host {
     deadline: Instant,
 }
 
+/// Only addresses of a home or office network, never one on the open internet: a code
+/// (or a QR someone shows you) cannot make this device listen or connect out there.
+pub fn on_local_network(ip: Ipv4Addr) -> bool {
+    ip.is_private() || ip.is_link_local() || ip.is_loopback()
+}
+
 /// Start listening on the permitted Wi-Fi address, on a random port, for
 /// [`CODE_LIFETIME`]. Show [`Host::code`] to the other device.
 pub fn host(permit: Permit) -> Result<Host> {
     let ip = permit
         .listen_ip()
         .ok_or(Error::Corrupt("permit is not for listening"))?;
+    if !on_local_network(ip) {
+        return Err(Error::Corrupt("p2p address is not on a local network"));
+    }
     let listener = TcpListener::bind(SocketAddrV4::new(ip, 0))?;
     let port = listener.local_addr()?.port();
     Ok(Host {
@@ -443,22 +453,45 @@ pub fn host(permit: Permit) -> Result<Host> {
     })
 }
 
-/// Wait for the joiner, sync with it through `mirror` (an empty private folder), then
-/// take its changes in. `on_check` gets the number to compare once proven.
-pub fn serve_one(
-    vault: &OpenVault,
-    host: Host,
-    mirror: &Path,
-    on_check: &dyn Fn(u16),
-) -> Result<SyncReport> {
+/// The host's side, in steps, so the vault is only needed at the start and the end
+/// (the app keeps it free while waiting and while the other device works).
+pub struct Prepared {
+    key: Key,
+    vault_id: String,
+    mirror: PathBuf,
+}
+
+/// Step 1 (vault): sync the vault into `mirror` (an empty private folder).
+pub fn host_prepare(vault: &OpenVault, mirror: &Path) -> Result<Prepared> {
     let folder = FolderRemote::with_key(mirror, HOST_KEY);
     // Fresh folder, fresh state: everything goes into it.
     vault.forget_sync_place(HOST_KEY)?;
     vault.sync(&folder)?;
-    let pk = pairing_key(vault);
+    Ok(Prepared {
+        key: pairing_key(vault),
+        vault_id: vault.id.clone(),
+        mirror: mirror.to_path_buf(),
+    })
+}
+
+/// A joiner proven to hold the vault.
+pub struct Session {
+    ch: Channel,
+    vault_id: String,
+    mirror: PathBuf,
+    /// The number both screens show.
+    pub check: u16,
+}
+
+/// Step 2 (no vault): wait for the joiner until the code expires, three failed tries,
+/// or `stop` is set (the person tapped Cancel).
+pub fn host_accept(host: Host, prepared: Prepared, stop: &AtomicBool) -> Result<Session> {
     host.listener.set_nonblocking(true)?;
     let mut failures = 0;
-    let mut ch = loop {
+    let ch = loop {
+        if stop.load(Ordering::Relaxed) {
+            return Err(Error::Corrupt("p2p cancelled"));
+        }
         if Instant::now() > host.deadline {
             return Err(Error::Corrupt("p2p code expired"));
         }
@@ -466,7 +499,7 @@ pub fn serve_one(
             Ok((stream, _)) => {
                 stream.set_nonblocking(false)?;
                 stream.set_read_timeout(Some(Duration::from_secs(20)))?;
-                match handshake_host(&pk, &host.code.token, stream) {
+                match handshake_host(&prepared.key, &host.code.token, stream) {
                     Ok(ch) => break ch,
                     Err(_) => {
                         failures += 1;
@@ -483,10 +516,53 @@ pub fn serve_one(
         }
     };
     drop(host.listener); // one session per code
-    on_check(ch.check);
     ch.stream.set_read_timeout(Some(IDLE))?;
-    serve(&mut ch, &folder, &vault.id)?;
-    vault.sync(&folder)
+    Ok(Session {
+        check: ch.check,
+        ch,
+        vault_id: prepared.vault_id,
+        mirror: prepared.mirror,
+    })
+}
+
+impl Session {
+    /// A handle that ends the session from another thread (Cancel).
+    pub fn closer(&self) -> Result<TcpStream> {
+        Ok(self.ch.stream.try_clone()?)
+    }
+
+    /// Step 3 (no vault): answer the joiner until it is done.
+    pub fn serve(mut self) -> Result<Served> {
+        let folder = FolderRemote::with_key(&self.mirror, HOST_KEY);
+        serve(&mut self.ch, &folder, &self.vault_id)?;
+        Ok(Served {
+            mirror: self.mirror,
+        })
+    }
+}
+
+/// The joiner is done; its changes wait in the mirror.
+pub struct Served {
+    mirror: PathBuf,
+}
+
+/// Step 4 (vault): take the joiner's changes in.
+pub fn host_finish(vault: &OpenVault, served: Served) -> Result<SyncReport> {
+    vault.sync(&FolderRemote::with_key(&served.mirror, HOST_KEY))
+}
+
+/// All four steps at once (tests, tools).
+pub fn serve_one(
+    vault: &OpenVault,
+    host: Host,
+    mirror: &Path,
+    on_check: &dyn Fn(u16),
+) -> Result<SyncReport> {
+    let prepared = host_prepare(vault, mirror)?;
+    let session = host_accept(host, prepared, &AtomicBool::new(false))?;
+    on_check(session.check);
+    let served = session.serve()?;
+    host_finish(vault, served)
 }
 
 /// Join the device showing `code` (the permit must be for that address): prove we hold
@@ -497,11 +573,27 @@ pub fn join(
     code: &PairCode,
     on_check: &dyn Fn(u16),
 ) -> Result<SyncReport> {
+    join_with(vault, permit, code, on_check, &|_| ())
+}
+
+/// [`join`], handing over a clone of the socket once connected, so Cancel can end it
+/// from another thread.
+pub fn join_with(
+    vault: &OpenVault,
+    permit: Permit,
+    code: &PairCode,
+    on_check: &dyn Fn(u16),
+    on_socket: &dyn Fn(TcpStream),
+) -> Result<SyncReport> {
     if permit.connect_to() != Some(code.addr) {
         return Err(Error::Corrupt("permit is for another address"));
     }
+    if !on_local_network(*code.addr.ip()) {
+        return Err(Error::Corrupt("p2p address is not on a local network"));
+    }
     let stream = TcpStream::connect_timeout(&SocketAddr::V4(code.addr), Duration::from_secs(10))?;
     stream.set_read_timeout(Some(Duration::from_secs(60)))?;
+    on_socket(stream.try_clone()?);
     let ch = handshake_join(&pairing_key(vault), &code.token, stream)?;
     on_check(ch.check);
     vault.forget_sync_place(JOIN_KEY)?;
@@ -645,5 +737,33 @@ mod tests {
         msg.extend_from_slice(b"other-vault/records/x");
         j.send(&msg).unwrap();
         assert!(server.join().unwrap().is_err());
+    }
+
+    #[test]
+    fn never_listens_or_connects_outside_the_local_network() {
+        let public = Ipv4Addr::new(8, 8, 8, 8);
+        assert!(host(Permit::listen(public)).is_err());
+        let t = two();
+        let code = PairCode {
+            addr: SocketAddrV4::new(public, 443),
+            token: [0; TOKEN_LEN],
+        };
+        assert!(join(&t.b, Permit::connect(code.addr), &code, &|_| ()).is_err());
+        assert!(on_local_network(Ipv4Addr::new(192, 168, 1, 7)));
+        assert!(on_local_network(Ipv4Addr::new(10, 0, 0, 2)));
+        assert!(on_local_network(Ipv4Addr::new(172, 20, 0, 2)));
+        assert!(!on_local_network(Ipv4Addr::new(172, 32, 0, 2)));
+    }
+
+    #[test]
+    fn cancel_stops_the_wait() {
+        let t = two();
+        let mirror = tempfile::tempdir().unwrap();
+        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
+        let prepared = host_prepare(&t.a, mirror.path()).unwrap();
+        let stop = AtomicBool::new(true);
+        let started = Instant::now();
+        assert!(host_accept(h, prepared, &stop).is_err());
+        assert!(started.elapsed() < Duration::from_secs(1));
     }
 }

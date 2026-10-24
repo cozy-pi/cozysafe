@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Fail if a built APK or app bundle asks for the INTERNET permission.
+# Fail if a built APK or app bundle asks for a network permission beyond INTERNET.
 #   tools/check-apk-permissions CozySafe-android.apk [CozySafe-android-play.aab]
-# The main AndroidManifest.xml removes INTERNET with tools:node="remove", which also
-# strips it from every plugin's manifest; this checks the merged result in the real
-# files. Without INTERNET, Android denies sockets to the whole app process, native
-# code included. APKs need aapt2 from the Android SDK build-tools ($ANDROID_HOME).
+# INTERNET is there for syncing with a nearby device (Android needs it for any socket,
+# even on the local Wi-Fi); everything else about the network (state, Wi-Fi control,
+# nearby devices) stays out. Checks the merged result in the real files. APKs need
+# aapt2 from the Android SDK build-tools ($ANDROID_HOME).
 set -euo pipefail
 status=0
 for f in "$@"; do
@@ -21,9 +21,12 @@ for f in "$@"; do
   esac
   echo "== $f"
   echo "$perms"
-  if grep -q "android.permission.INTERNET" <<<"$perms"; then
-    echo "error: $f requests android.permission.INTERNET; the app must stay offline" >&2
-    status=1
-  fi
+  for p in ACCESS_NETWORK_STATE ACCESS_WIFI_STATE CHANGE_NETWORK_STATE CHANGE_WIFI_STATE \
+    CHANGE_WIFI_MULTICAST_STATE NEARBY_WIFI_DEVICES BLUETOOTH_CONNECT BLUETOOTH_SCAN; do
+    if grep -q "android.permission.$p\b" <<<"$perms"; then
+      echo "error: $f requests android.permission.$p; only INTERNET (local sync) is allowed" >&2
+      status=1
+    fi
+  done
 done
 exit $status
