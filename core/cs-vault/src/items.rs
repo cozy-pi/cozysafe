@@ -1,10 +1,16 @@
 //! Items inside an open vault: photos, videos, notes, recordings, files and tags.
 //!
 //! ```text
-//! items/<item>.meta   ItemRecord sealed with the Master Key (kind, name, size, wrapped DEK)
-//! items/<item>.data   content, STREAM-encrypted with the item's own random key (DEK)
-//! items/<item>.thumb  optional small preview, sealed with the same DEK
+//! items/<bucket>/<item>.meta   ItemRecord sealed with the Master Key (kind, name, size,
+//!                              wrapped DEK)
+//! items/<bucket>/<item>.data   content, STREAM-encrypted with the item's own random key
+//! items/<bucket>/<item>.thumb  optional small preview, sealed with the same DEK
 //! ```
+//!
+//! `<bucket>` is the last two hex digits of the item's id ([`crate::bucket_of`]), so no
+//! folder holds more than about 1/256 of the items. Versions up to 0.1.57 kept every
+//! file flat in `items/`; opening the vault moves them (`move_into_buckets`), and until
+//! that is done a file is read from either place.
 //!
 //! Every blob's associated data names the vault, the item and the blob's role, so
 //! nothing can be swapped between items or vaults. The `.meta` file is written last:
@@ -25,6 +31,10 @@ use serde::{Deserialize, Serialize};
 use crate::{write_atomic, Error, OpenVault, Result};
 
 const ITEMS_DIR: &str = "items";
+/// The files of an item, by extension.
+pub(crate) const ITEM_EXTS: [&str; 3] = ["meta", "data", "thumb"];
+/// Index meta: the files of versions up to 0.1.57 are in their buckets.
+pub(crate) const BUCKETS_DONE: &str = "items-in-buckets";
 
 /// What Dart sees about an item. No key material. Names follow docs/naming.md.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -198,10 +208,80 @@ impl OpenVault {
         crate::aad(&self.id, &format!("item/{item}/{role}"))
     }
 
+    /// Where the item's file is written: in its bucket.
     pub(crate) fn path(&self, item: &str, ext: &str) -> Result<PathBuf> {
         // Item IDs come back from Dart: accept only our own format (no path tricks).
         let name = crate::id_name(item).ok_or(Error::NoSuchItem)?;
+        let bucket = crate::bucket_of(&name).ok_or(Error::NoSuchItem)?;
+        Ok(self.items_dir().join(bucket).join(format!("{name}.{ext}")))
+    }
+
+    /// [`Self::path`], with its bucket made.
+    pub(crate) fn new_path(&self, item: &str, ext: &str) -> Result<PathBuf> {
+        let path = self.path(item, ext)?;
+        if let Some(dir) = path.parent() {
+            fs::create_dir_all(dir)?;
+        }
+        Ok(path)
+    }
+
+    /// Where versions up to 0.1.57 kept it: flat in `items/`.
+    pub(crate) fn flat_path(&self, item: &str, ext: &str) -> Result<PathBuf> {
+        let name = crate::id_name(item).ok_or(Error::NoSuchItem)?;
         Ok(self.items_dir().join(format!("{name}.{ext}")))
+    }
+
+    /// Where the item's file is read: its bucket, or flat in `items/` while the move into
+    /// buckets is not finished (it stopped half-way).
+    pub(crate) fn read_path(&self, item: &str, ext: &str) -> Result<PathBuf> {
+        let path = self.path(item, ext)?;
+        if !path.exists() {
+            let flat = self.flat_path(item, ext)?;
+            if flat.exists() {
+                return Ok(flat);
+            }
+        }
+        Ok(path)
+    }
+
+    /// Move the item files of versions up to 0.1.57 (flat in `items/`) into their
+    /// buckets: one rename each, so a file is always in one place or the other and a
+    /// move cut short goes on at the next open. A file already in its bucket is the
+    /// newer one (written since): the flat copy goes. Done once, then remembered.
+    pub(crate) fn move_into_buckets(&self) -> Result<()> {
+        if self.index.meta_get(BUCKETS_DONE)?.as_deref() == Some("1") {
+            return Ok(());
+        }
+        let mut flat = Vec::new();
+        match fs::read_dir(self.items_dir()) {
+            Ok(dir) => {
+                for entry in dir {
+                    let entry = entry?;
+                    if !entry.file_type()?.is_file() {
+                        continue;
+                    }
+                    let name = entry.file_name().to_string_lossy().into_owned();
+                    if let Some((item, ext)) = name.split_once('.') {
+                        if ITEM_EXTS.contains(&ext) && crate::bucket_of(item).is_some() {
+                            flat.push((item.to_owned(), ext.to_owned()));
+                        }
+                    }
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.into()),
+        }
+        // Content before records: an item whose record has moved has its content too.
+        flat.sort_by(|a, b| (a.1 == "meta", &a.0).cmp(&(b.1 == "meta", &b.0)));
+        for (item, ext) in flat {
+            let (from, to) = (self.flat_path(&item, &ext)?, self.new_path(&item, &ext)?);
+            if to.exists() {
+                crate::remove_if_exists(&from)?;
+            } else {
+                fs::rename(&from, &to)?;
+            }
+        }
+        self.index.meta_set(BUCKETS_DONE, "1")
     }
 
     /// Encrypt and store a new item; returns its metadata.
@@ -217,11 +297,10 @@ impl OpenVault {
             *slot = clock.elapsed().as_millis() as u32;
             clock = std::time::Instant::now();
         };
-        fs::create_dir_all(self.items_dir())?;
         let id = hex::encode(cs_crypto::generate_salt());
         let dek = Key::generate();
 
-        let data_path = self.path(&id, "data")?;
+        let data_path = self.new_path(&id, "data")?;
         let tmp = data_path.with_extension("data.tmp");
         let (size_bytes, data_hash) = {
             let mut f = Hashing::new(fs::File::create(&tmp)?);
@@ -236,7 +315,7 @@ impl OpenVault {
         let mut thumb_hash = String::new();
         if let Some(thumbnail) = new.thumbnail {
             let sealed = wrap::seal(&dek, thumbnail, &self.item_aad(&id, "thumb"));
-            write_atomic(&self.path(&id, "thumb")?, &sealed)?;
+            write_atomic(&self.new_path(&id, "thumb")?, &sealed)?;
             thumb_hash = sha256_hex(&sealed);
         }
         lap(&mut t.thumbnail_ms);
@@ -277,7 +356,7 @@ impl OpenVault {
     /// new content is encrypted with a fresh nonce prefix and swapped in atomically.
     pub fn replace_item<R: Read>(&self, id: &str, name: &str, content: R) -> Result<ItemMeta> {
         let (mut record, dek) = self.record_and_key(id)?;
-        let data_path = self.path(id, "data")?;
+        let data_path = self.new_path(id, "data")?;
         let tmp = data_path.with_extension("data.tmp");
         let (size_bytes, data_hash) = {
             let mut f = Hashing::new(fs::File::create(&tmp)?);
@@ -299,7 +378,7 @@ impl OpenVault {
     /// unchanged: `modified_ms` stays empty until its first change.
     fn write_record(&self, id: &str, record: &ItemRecord) -> Result<ItemRecord> {
         let mut record = record.clone();
-        if self.index.sealed_record(id)?.is_some() || self.path(id, "meta")?.exists() {
+        if self.index.sealed_record(id)?.is_some() || self.read_path(id, "meta")?.exists() {
             record.modified_ms = Some(now_ms());
         }
         self.stamp(&mut record)?;
@@ -325,7 +404,7 @@ impl OpenVault {
     pub(crate) fn store_record(&self, id: &str, record: &ItemRecord) -> Result<Vec<u8>> {
         let json = serde_json::to_vec(record).expect("serialisable");
         let sealed = wrap::seal(&self.master_key, &json, &self.item_aad(id, "meta"));
-        write_atomic(&self.path(id, "meta")?, &sealed)?;
+        write_atomic(&self.new_path(id, "meta")?, &sealed)?;
         self.index.upsert(id, &columns(record), &sealed)?;
         Ok(sealed)
     }
@@ -341,17 +420,25 @@ impl OpenVault {
     /// drop what no longer exists. Reads only file names unless something is missing.
     pub(crate) fn sync_index(&self) -> Result<()> {
         let mut on_disk = std::collections::HashSet::new();
-        match fs::read_dir(self.items_dir()) {
-            Ok(dir) => {
-                for entry in dir {
-                    let name = entry?.file_name().to_string_lossy().into_owned();
-                    if let Some(id) = name.strip_suffix(".meta") {
-                        on_disk.insert(id.to_owned());
+        // The buckets, and flat in `items/` (a move into buckets cut short).
+        let mut dirs = vec![self.items_dir()];
+        while let Some(at) = dirs.pop() {
+            let top = at == self.items_dir();
+            match fs::read_dir(&at) {
+                Ok(dir) => {
+                    for entry in dir {
+                        let entry = entry?;
+                        let name = entry.file_name().to_string_lossy().into_owned();
+                        if top && is_bucket(&name) && entry.file_type()?.is_dir() {
+                            dirs.push(entry.path());
+                        } else if let Some(id) = name.strip_suffix(".meta") {
+                            on_disk.insert(id.to_owned());
+                        }
                     }
                 }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => return Err(e.into()),
             }
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) => return Err(e.into()),
         }
         let indexed = self.index.ids()?;
         if on_disk == indexed {
@@ -362,7 +449,7 @@ impl OpenVault {
                 self.index.remove(id)?;
             }
             for id in on_disk.difference(&indexed) {
-                let Ok(sealed) = fs::read(self.path(id, "meta")?) else {
+                let Ok(sealed) = fs::read(self.read_path(id, "meta")?) else {
                     continue;
                 };
                 // Damaged entries are skipped, not fatal (as listing always did).
@@ -524,7 +611,7 @@ impl OpenVault {
     /// Decrypt an item's content into `out`. On error, discard what was written.
     pub fn read_item<W: Write>(&self, id: &str, out: W) -> Result<u64> {
         let (_, dek) = self.record_and_key(id)?;
-        let f = fs::File::open(self.path(id, "data")?)?;
+        let f = fs::File::open(self.read_path(id, "data")?)?;
         Ok(stream::decrypt(&dek, &self.item_aad(id, "data"), f, out)?)
     }
 
@@ -534,7 +621,7 @@ impl OpenVault {
         if !record.has_thumbnail {
             return Ok(None);
         }
-        let sealed = fs::read(self.path(id, "thumb")?)?;
+        let sealed = fs::read(self.read_path(id, "thumb")?)?;
         let plain = wrap::open(&dek, &sealed, &self.item_aad(id, "thumb"))?;
         Ok(Some(plain.to_vec()))
     }
@@ -551,18 +638,17 @@ impl OpenVault {
 
     /// [`Self::delete_item`] without telling the other devices (a sync applying theirs).
     pub(crate) fn remove_item(&self, id: &str) -> Result<()> {
-        let meta_path = self.path(id, "meta")?;
-        if !meta_path.exists() {
+        if !self.read_path(id, "meta")?.exists() {
             return Err(Error::NoSuchItem);
         }
-        // The file decides that the item exists: it goes first, the index row second.
-        fs::remove_file(meta_path)?;
+        // The file decides that the item exists: it goes first (from both places a move
+        // into buckets cut short may have left it), the index row second.
+        crate::remove_if_exists(&self.flat_path(id, "meta")?)?;
+        crate::remove_if_exists(&self.path(id, "meta")?)?;
         self.index.remove(id)?;
         for ext in ["data", "thumb"] {
-            match fs::remove_file(self.path(id, ext)?) {
-                Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e.into()),
-                _ => {}
-            }
+            crate::remove_if_exists(&self.path(id, ext)?)?;
+            crate::remove_if_exists(&self.flat_path(id, ext)?)?;
         }
         Ok(())
     }
@@ -590,6 +676,11 @@ impl OpenVault {
             &self.item_aad(id, "dek"),
         )?)
     }
+}
+
+/// A bucket's name: two lowercase hex digits.
+pub(crate) fn is_bucket(name: &str) -> bool {
+    name.len() == 2 && name.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
 }
 
 /// The index's plain columns for a record.
@@ -692,7 +783,11 @@ mod tests {
         t: 1,
         p: 1,
     };
-    const PW: &str = "orange kettle whispers at dawn 77";
+    /// A vault password, random each run: none is written in the code.
+    fn pw() -> &'static str {
+        static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+    }
 
     fn photo<'a>(content: &'a [u8], created_ms: i64) -> NewItem<'a, &'a [u8]> {
         NewItem {
@@ -710,7 +805,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let big = vec![7u8; 200_000];
         let a = v.add_item(photo(&big, 1)).unwrap();
@@ -719,7 +814,7 @@ mod tests {
         // After a restart the items are still there, newest first.
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .unlock(PW)
+            .unlock(pw())
             .unwrap()
             .unwrap();
         let ids: Vec<_> = v.items().unwrap().into_iter().map(|m| m.id).collect();
@@ -742,14 +837,20 @@ mod tests {
     fn nothing_readable_on_disk_and_no_cross_vault_reads() {
         let tmp = tempfile::tempdir().unwrap();
         let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
-        let a = lib.create_vault("A", PW).unwrap();
+        let a = lib.create_vault("A", pw()).unwrap();
         let b = lib
             .create_vault("B", "mây tháng mười rơi trên phố cổ")
             .unwrap();
         let secret = b"PLAINTEXT-MARKER-0123456789";
         let item = a.add_item(photo(secret, 1)).unwrap();
 
-        for e in fs::read_dir(a.items_dir()).unwrap() {
+        let bucket = a
+            .path(&item.id, "data")
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_owned();
+        for e in fs::read_dir(bucket).unwrap() {
             let bytes = fs::read(e.unwrap().path()).unwrap();
             assert!(!bytes.windows(secret.len()).any(|w| w == secret));
             assert!(!bytes.windows(5).any(|w| w == b"photo"));
@@ -763,7 +864,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let n = v
             .add_item(NewItem {
@@ -793,7 +894,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         for bad in ["../header", "", "zz", "../../library.json"] {
             assert!(matches!(v.delete_item(bad), Err(Error::NoSuchItem)));
@@ -805,7 +906,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("V", PW)
+            .create_vault("V", pw())
             .unwrap();
         let a = v.add_item(photo(b"a", 1)).unwrap();
         let b = v.add_item(photo(b"b", 2)).unwrap();
@@ -833,7 +934,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("V", PW)
+            .create_vault("V", pw())
             .unwrap();
         let papers = v.create_tag("Giấy tờ", 1).unwrap();
         let passport = v.create_tag("Hộ chiếu", 2).unwrap();
@@ -872,14 +973,14 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("V", PW)
+            .create_vault("V", pw())
             .unwrap();
         // A real item, so its key unwraps; its record is then overwritten in format 1.
         let real = v.add_item(photo(b"p", 3)).unwrap();
         let wrapped = v.record(&real.id).unwrap().wrapped_dek;
         let write_v1 = |id: &str, json: &str| {
             let sealed = wrap::seal(&v.master_key, json.as_bytes(), &v.item_aad(id, "meta"));
-            write_atomic(&v.path(id, "meta").unwrap(), &sealed).unwrap();
+            write_atomic(&v.new_path(id, "meta").unwrap(), &sealed).unwrap();
         };
         let folder = "a".repeat(32);
         let sub = "b".repeat(32);
@@ -930,7 +1031,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let it = v.add_item(photo(b"x", 1)).unwrap();
         assert!(!v.items().unwrap()[0].is_favorite);
@@ -951,7 +1052,7 @@ mod tests {
     fn the_index_follows_the_files() {
         let tmp = tempfile::tempdir().unwrap();
         let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
-        let v = lib.create_vault("A", PW).unwrap();
+        let v = lib.create_vault("A", pw()).unwrap();
         let a = v.add_item(photo(b"a", 1)).unwrap();
         let b = v.add_item(photo(b"b", 2)).unwrap();
         v.rename_item(&a.id, "renamed.jpg").unwrap();
@@ -970,13 +1071,161 @@ mod tests {
         let db = tmp.path().join(crate::VAULTS_DIR);
         let vault_dir = fs::read_dir(&db).unwrap().next().unwrap().unwrap().path();
         fs::remove_file(vault_dir.join(crate::db::INDEX_FILE)).unwrap();
-        let v = lib.unlock(PW).unwrap().unwrap();
+        let v = lib.unlock(pw()).unwrap().unwrap();
         let names: Vec<_> = v.items().unwrap().into_iter().map(|m| m.name).collect();
         assert_eq!(names, vec!["IMG.jpg", "renamed.jpg"]);
         // A .meta file gone (the app stopped mid-delete): its row goes too.
         fs::remove_file(v.path(&b.id, "meta").unwrap()).unwrap();
         drop(v);
-        let v = lib.unlock(PW).unwrap().unwrap();
+        let v = lib.unlock(pw()).unwrap().unwrap();
         assert_eq!(v.items().unwrap().len(), 1);
+    }
+
+    // ---------- buckets ----------
+
+    /// Every item file of the vault: (folder name under items/, file name).
+    fn files_of(v: &OpenVault) -> Vec<(String, String)> {
+        let mut out = Vec::new();
+        for e in fs::read_dir(v.items_dir()).unwrap().flatten() {
+            let n = e.file_name().to_string_lossy().into_owned();
+            if e.path().is_dir() {
+                for f in fs::read_dir(e.path()).unwrap().flatten() {
+                    out.push((n.clone(), f.file_name().to_string_lossy().into_owned()));
+                }
+            } else {
+                out.push((String::new(), n));
+            }
+        }
+        out.sort();
+        out
+    }
+
+    /// The layout of 0.1.57: every item file flat in items/ (the `take`-th first only).
+    fn flatten(v: &OpenVault, take: usize) {
+        let mut n = 0;
+        for (b, f) in files_of(v) {
+            if !b.is_empty() && n < take {
+                fs::rename(v.items_dir().join(&b).join(&f), v.items_dir().join(&f)).unwrap();
+                n += 1;
+            }
+        }
+        v.index.meta_set(BUCKETS_DONE, "0").unwrap();
+    }
+
+    #[test]
+    fn the_bucket_is_the_last_two_hex_digits_of_the_item_id() {
+        let id = format!("{}c7", "0".repeat(30));
+        assert_eq!(crate::bucket_of(&id), Some("c7"));
+        for bad in [
+            "",
+            "c7",
+            "../../00000000000000000000000000c7",
+            &id.to_uppercase(),
+        ] {
+            assert_eq!(crate::bucket_of(bad), None, "{bad}");
+        }
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
+            .unwrap()
+            .create_vault("A", pw())
+            .unwrap();
+        let item = v.add_item(photo(b"p", 1)).unwrap();
+        let bucket = crate::bucket_of(&item.id).unwrap().to_owned();
+        let want: Vec<(String, String)> = ["data", "meta", "thumb"]
+            .iter()
+            .map(|ext| (bucket.clone(), format!("{}.{ext}", item.id)))
+            .collect();
+        assert_eq!(files_of(&v), want);
+    }
+
+    #[test]
+    fn files_of_earlier_versions_move_into_buckets_on_open() {
+        let tmp = tempfile::tempdir().unwrap();
+        let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
+        let v = lib.create_vault("A", pw()).unwrap();
+        let items: Vec<ItemMeta> = (0..6)
+            .map(|i| {
+                v.add_item(photo(format!("photo {i}").as_bytes(), i))
+                    .unwrap()
+            })
+            .collect();
+        let moved = files_of(&v);
+        flatten(&v, usize::MAX);
+        assert!(files_of(&v).iter().all(|(b, _)| b.is_empty()));
+        drop(v);
+        let v = lib.unlock(pw()).unwrap().unwrap();
+        assert_eq!(files_of(&v), moved);
+        assert_eq!(v.items().unwrap().len(), 6);
+        for (i, m) in items.iter().enumerate() {
+            let mut out = Vec::new();
+            v.read_item(&m.id, &mut out).unwrap();
+            assert_eq!(out, format!("photo {i}").as_bytes());
+        }
+        assert_eq!(
+            v.index.meta_get(BUCKETS_DONE).unwrap().as_deref(),
+            Some("1")
+        );
+    }
+
+    #[test]
+    fn a_move_into_buckets_cut_short_goes_on_and_reads_meanwhile() {
+        let tmp = tempfile::tempdir().unwrap();
+        let lib = Library::open_or_create(tmp.path(), FAST, crate::tests::sk()).unwrap();
+        let v = lib.create_vault("A", pw()).unwrap();
+        let items: Vec<ItemMeta> = (0..4)
+            .map(|i| {
+                v.add_item(photo(format!("photo {i}").as_bytes(), i))
+                    .unwrap()
+            })
+            .collect();
+        let all = files_of(&v);
+        // Half the files back where 0.1.57 kept them, as if the move stopped half-way;
+        // and one stale flat copy of a file that is also in its bucket.
+        flatten(&v, all.len() / 2);
+        let (b, f) = all.last().unwrap();
+        fs::copy(v.items_dir().join(b).join(f), v.items_dir().join(f)).unwrap();
+        let half = files_of(&v);
+        assert!(half.iter().any(|(b, _)| b.is_empty()) && half.iter().any(|(b, _)| !b.is_empty()));
+        // Meanwhile every item reads, lists and is deleted from either place.
+        v.sync_index().unwrap();
+        assert_eq!(v.items().unwrap().len(), 4);
+        for (i, m) in items.iter().enumerate() {
+            let mut out = Vec::new();
+            v.read_item(&m.id, &mut out).unwrap();
+            assert_eq!(out, format!("photo {i}").as_bytes());
+            assert_eq!(v.read_thumbnail(&m.id).unwrap().unwrap(), b"thumb");
+        }
+        v.delete_item(&items[0].id).unwrap();
+        assert!(!files_of(&v)
+            .iter()
+            .any(|(_, f)| f.starts_with(&items[0].id)));
+        // A backup made now has every file once, under its old name.
+        let mut backup = Vec::new();
+        assert_eq!(
+            crate::backup::export(tmp.path(), &mut backup).unwrap(),
+            2 + 3 * 3
+        );
+        drop(v);
+        // The next open finishes the move.
+        let v = lib.unlock(pw()).unwrap().unwrap();
+        let done = files_of(&v);
+        assert!(done
+            .iter()
+            .all(|(b, f)| crate::bucket_of(&f[..32]) == Some(b.as_str())));
+        assert_eq!(done.len(), 3 * 3);
+        assert_eq!(v.items().unwrap().len(), 3);
+        // The backup restores into buckets.
+        let other = tempfile::tempdir().unwrap();
+        let target = other.path().join("library");
+        crate::backup::import(&backup[..], &target).unwrap();
+        let w = Library::open_or_create(&target, FAST, crate::tests::sk())
+            .unwrap()
+            .unlock(pw())
+            .unwrap()
+            .unwrap();
+        assert_eq!(files_of(&w), done);
+        let mut out = Vec::new();
+        w.read_item(&items[3].id, &mut out).unwrap();
+        assert_eq!(out, b"photo 3");
     }
 }

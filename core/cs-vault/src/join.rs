@@ -171,7 +171,7 @@ mod tests {
                 &t.cloud,
                 &t.a.id,
                 other,
-                crate::sync::tests::PW
+                crate::sync::tests::pw()
             ),
             Err(Error::WrongSecretKey)
         ));
@@ -190,7 +190,7 @@ mod tests {
             &t.cloud,
             &t.a.id,
             crate::tests::sk(),
-            crate::sync::tests::PW,
+            crate::sync::tests::pw(),
         )
         .unwrap()
         .expect("opens");
@@ -199,7 +199,7 @@ mod tests {
         drop(v);
         // And it opens again like any vault here.
         let l = Library::open_or_create(fresh.path(), FAST, crate::tests::sk()).unwrap();
-        assert!(l.unlock(crate::sync::tests::PW).unwrap().is_some());
+        assert!(l.unlock(crate::sync::tests::pw()).unwrap().is_some());
     }
 
     #[test]

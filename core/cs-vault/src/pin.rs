@@ -241,13 +241,17 @@ mod tests {
         t: 1,
         p: 1,
     };
-    const PW: &str = "orange kettle whispers at dawn 77";
+    /// A vault password, random each run: none is written in the code.
+    fn pw() -> &'static str {
+        static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+    }
 
     #[test]
     fn pin_opens_its_vault_only_with_the_device_key() {
         let tmp = tempfile::tempdir().unwrap();
         let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
-        let v = l.create_vault("A", PW).unwrap();
+        let v = l.create_vault("A", pw()).unwrap();
         let device = SecretKey::generate();
         assert!(Library::pin_length(tmp.path()).is_none());
         v.enable_pin("246802", &device, FAST).unwrap();
@@ -279,7 +283,7 @@ mod tests {
     fn reads_format_1_pin_files() {
         let tmp = tempfile::tempdir().unwrap();
         let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
-        let v = l.create_vault("A", PW).unwrap();
+        let v = l.create_vault("A", pw()).unwrap();
         let device = SecretKey::generate();
         v.enable_pin("246802", &device, FAST).unwrap();
         let path = tmp.path().join(VAULTS_DIR).join(&v.id).join(PIN_FILE);
@@ -347,19 +351,22 @@ mod tests {
         // No password yet: no password opens anything, and backups leave the vault out.
         assert!(!a.has_password());
         assert!(!Library::any_password(tmp.path()));
-        assert!(l.unlock(PW).unwrap().is_none());
+        assert!(l.unlock(pw()).unwrap().is_none());
         let mut out = Vec::new();
         assert_eq!(crate::backup::export(tmp.path(), &mut out).unwrap(), 1); // library.json only
 
         // Set a password later: it opens the vault; the same password for B is refused.
-        l.set_password(&a, PW).unwrap();
+        l.set_password(&a, pw()).unwrap();
         assert!(a.has_password() && Library::any_password(tmp.path()));
-        assert_eq!(l.unlock(PW).unwrap().unwrap().id, a.id);
-        assert!(matches!(l.set_password(&b, PW), Err(Error::PasswordInUse)));
+        assert_eq!(l.unlock(pw()).unwrap().unwrap().id, a.id);
+        assert!(matches!(
+            l.set_password(&b, pw()),
+            Err(Error::PasswordInUse)
+        ));
         // Changing it is just a re-wrap: the old one stops working.
         l.set_password(&a, "mây tháng mười rơi trên phố cổ")
             .unwrap();
-        assert!(l.unlock(PW).unwrap().is_none());
+        assert!(l.unlock(pw()).unwrap().is_none());
         assert_eq!(
             l.unlock("mây tháng mười rơi trên phố cổ")
                 .unwrap()
@@ -392,7 +399,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let d = SecretKey::generate();
         for bad in ["123", "12345", &"1".repeat(257), "12a456", ""] {
@@ -410,7 +417,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, sk())
             .unwrap()
-            .create_vault("A", PW)
+            .create_vault("A", pw())
             .unwrap();
         let d = SecretKey::generate();
         v.write_pin("2468", &d, FAST).unwrap();

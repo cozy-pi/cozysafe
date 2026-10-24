@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.59 (2026-10-25)
+
+### Changed
+- Google Drive keeps each vault in its own folder inside "Cozy Safe", its files in up to
+  256 small folders; files on the device are split the same way. Earlier files are moved
+  on the next sync or open (nothing is uploaded again). Old revisions are removed from
+  Google Drive after 30 days.
+
 ## 0.1.58 (2026-10-25)
 
 ### Changed
