@@ -10,6 +10,7 @@
 //! <vault>/blobs/<item>.<rev>.data   content written in revision <rev>
 //! <vault>/blobs/<item>.<rev>.thumb  its preview
 //! <vault>/log/<device>/<n>          sealed journal entries of one device, numbered
+//! <vault>/lock/<ms>-<sha256>.json   the vault's lock (to join from the place)
 //! ```
 //!
 //! A sync reads the other devices' new journal entries and merges each item they name
@@ -524,12 +525,11 @@ impl OpenVault {
 
     /// Fetch a revision's content into place (sealed as it is; nothing is decrypted).
     fn fetch_blobs(&self, remote: &dyn Remote, id: &str, record: &ItemRecord) -> Result<()> {
-        fs::create_dir_all(self.items_dir())?;
         for ext in ["data", "thumb"] {
             if ext == "thumb" && !record.has_thumbnail() {
                 continue;
             }
-            let to = self.path(id, ext)?;
+            let to = self.new_path(id, ext)?;
             let tmp = to.with_extension(format!("{ext}.tmp"));
             let found = {
                 let mut f = fs::File::create(&tmp)?;
@@ -870,9 +870,10 @@ impl OpenVault {
                 // From before sync: a first revision, with its content's fingerprints
                 // (same content, same time).
                 let modified = record.modified_ms;
-                record.data_hash = crate::items::file_sha256_hex(&self.path(&id, "data")?)?;
+                record.data_hash = crate::items::file_sha256_hex(&self.read_path(&id, "data")?)?;
                 if record.has_thumbnail() {
-                    record.thumb_hash = crate::items::file_sha256_hex(&self.path(&id, "thumb")?)?;
+                    record.thumb_hash =
+                        crate::items::file_sha256_hex(&self.read_path(&id, "thumb")?)?;
                 }
                 record.data_rev.clear(); // its content goes up under this new revision
                 self.stamp(&mut record)?;
@@ -896,7 +897,7 @@ impl OpenVault {
                 if ext == "thumb" && !record.has_thumbnail() {
                     continue;
                 }
-                let local = self.path(&id, ext)?;
+                let local = self.read_path(&id, ext)?;
                 bytes_total += fs::metadata(&local).map_or(0, |m| m.len());
                 files.push((
                     format!("{base}/blobs/{id}.{}.{ext}", record.data_rev),
@@ -956,7 +957,107 @@ impl OpenVault {
                 bytes_total,
             });
         }
-        Ok(())
+        self.collect_garbage(remote, now_ms(), progress)
+    }
+
+    /// Take old revisions off the place (at most once a day): the record of a revision
+    /// superseded more than [`KEEP_OLD_MS`] ago (the next newer one, by `hlc`, made
+    /// before then), and its content unless a revision that stays uses it too. A device
+    /// that has not synced for that long finds them gone and takes the newer revision
+    /// its journal names. Only items this device holds, at the revision the place has;
+    /// never their current revision or its content, nor a revision newer than it (another
+    /// device's, not told yet). Records go before content, in batches.
+    fn collect_garbage(
+        &self,
+        remote: &Counted<'_>,
+        now: i64,
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<()> {
+        if !remote.removes() {
+            return Ok(());
+        }
+        let rk = remote.key();
+        let at_key = format!("{rk}:gc-at");
+        let last: i64 = self
+            .index
+            .meta_get(&at_key)?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
+        if now - last < GC_EVERY_MS {
+            return Ok(());
+        }
+        let base = self.sync_dir();
+        let cutoff = now - KEEP_OLD_MS;
+        let mut todo = Vec::new();
+        for id in self.index.ids()? {
+            let Some(sealed) = self.sealed_record(&id)? else {
+                continue;
+            };
+            let current = self.open_record(&id, &sealed)?;
+            if current.rev.is_empty()
+                || self.index.synced_rev(&rk, &id)?.as_deref() != Some(current.rev.as_str())
+            {
+                continue;
+            }
+            let revs = remote.list(&format!("{base}/records/{id}"))?;
+            if revs.iter().any(|r| *r != current.rev) {
+                todo.push((id, current, revs));
+            }
+        }
+        if !todo.is_empty() {
+            let blobs = remote.list(&format!("{base}/blobs"))?;
+            let total = todo.len() as u32;
+            let start = remote.bytes();
+            let (mut records, mut contents) = (Vec::new(), Vec::new());
+            for (n, (id, current, revs)) in todo.iter().enumerate() {
+                // The other revisions, oldest first; unreadable ones are left alone.
+                let mut others: Vec<(i64, String, String)> = revs
+                    .iter()
+                    .filter(|r| **r != current.rev)
+                    .filter_map(|r| match self.remote_record(remote, id, r) {
+                        Ok(Some((r, _))) => Some((r.hlc, r.rev, r.data_rev)),
+                        _ => None,
+                    })
+                    .collect();
+                others.sort();
+                let mut keep = BTreeSet::from([current.data_rev.clone()]);
+                let mut dropped = BTreeSet::new();
+                for (i, (hlc, rev, data_rev)) in others.iter().enumerate() {
+                    let superseded = others
+                        .get(i + 1)
+                        .map_or(current.hlc, |o| o.0.min(current.hlc));
+                    if *hlc < current.hlc && superseded <= cutoff {
+                        records.push(format!("{base}/records/{id}/{rev}"));
+                        dropped.insert(data_rev.clone());
+                    } else {
+                        keep.insert(data_rev.clone());
+                    }
+                }
+                let prefix = format!("{id}.");
+                for name in &blobs {
+                    let Some(rest) = name.strip_prefix(&prefix) else {
+                        continue;
+                    };
+                    let data_rev = rest.rsplit_once('.').map_or("", |(d, _)| d);
+                    if dropped.contains(data_rev) && !keep.contains(data_rev) {
+                        contents.push(format!("{base}/blobs/{name}"));
+                    }
+                }
+                let full = records.len() + contents.len() >= REMOVE_EVERY;
+                if (full || n + 1 == todo.len()) && !(records.is_empty() && contents.is_empty()) {
+                    remote.remove_many(&std::mem::take(&mut records))?;
+                    remote.remove_many(&std::mem::take(&mut contents))?;
+                    progress(SyncProgress {
+                        phase: SyncPhase::Removing,
+                        done: n as u32 + 1,
+                        total,
+                        bytes: remote.bytes() - start,
+                        bytes_total: 0,
+                    });
+                }
+            }
+        }
+        self.index.meta_set(&at_key, &now.to_string())
     }
 
     /// Take the files of items deleted for good off the place (owner 2026-10-24: 700
@@ -1077,6 +1178,11 @@ struct Upload {
 const MAX_AT_ONCE: usize = 4;
 /// Files of deleted items removed per batch (Google Drive takes 100 per request).
 const REMOVE_EVERY: usize = 100;
+
+/// A revision superseded longer ago than this leaves the place (30 days).
+const KEEP_OLD_MS: i64 = 30 * 24 * 60 * 60 * 1000;
+/// Old revisions are looked for at most this often on a place (a day).
+const GC_EVERY_MS: i64 = 24 * 60 * 60 * 1000;
 
 /// Run `work` on every job, up to `n` at once on their own threads (here, in order,
 /// when `n` is 1), and hand each job that worked to `done`, in this thread, as it
@@ -1700,6 +1806,117 @@ pub(crate) mod tests {
             .collect();
         assert_eq!(removing.last().unwrap().done, n as u32);
         assert!(removing.len() >= 2);
+    }
+
+    // ---------- old revisions ----------
+
+    /// Look for old revisions on `t.cloud` from device A, as if it were `now`.
+    fn collect(t: &Two, now: i64) -> Vec<SyncProgress> {
+        let seen = std::sync::Mutex::new(Vec::new());
+        let counted = Counted {
+            inner: &t.cloud,
+            bytes: AtomicU64::new(0),
+        };
+        t.a.collect_garbage(&counted, now, &|p| seen.lock().unwrap().push(p))
+            .unwrap();
+        seen.into_inner().unwrap()
+    }
+
+    /// The revisions of `id` on the place: (hlc, rev, data_rev), oldest first.
+    fn revisions(t: &Two, id: &str) -> Vec<(i64, String, String)> {
+        let mut out: Vec<_> = t
+            .cloud
+            .list(&format!("{}/records/{id}", t.a.sync_dir()))
+            .unwrap()
+            .iter()
+            .map(|r| {
+                let (r, _) = t.a.remote_record(&t.cloud, id, r).unwrap().unwrap();
+                (r.hlc, r.rev, r.data_rev)
+            })
+            .collect();
+        out.sort();
+        out
+    }
+
+    fn contents(t: &Two, id: &str) -> Vec<String> {
+        let mut out: Vec<String> = t
+            .cloud
+            .list(&format!("{}/blobs", t.a.sync_dir()))
+            .unwrap()
+            .into_iter()
+            .filter(|n| n.starts_with(id))
+            .collect();
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn revisions_superseded_over_30_days_ago_leave_the_place() {
+        let t = two();
+        let id = note(&t.a, "N1", "first text");
+        let other = note(&t.a, "Other", "never changed");
+        t.a.sync(&t.cloud).unwrap();
+        // B syncs once, then not for a long time.
+        t.b.sync(&t.cloud).unwrap();
+        // r2 keeps r1's content; r3 has new content, which r4 keeps.
+        t.a.rename_item(&id, "N2").unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        t.a.replace_item(&id, "N3", &b"second text"[..]).unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        t.a.rename_item(&id, "N4").unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        let all = revisions(&t, &id);
+        assert_eq!(all.len(), 4);
+        assert_eq!(all[0].2, all[1].2);
+        assert_eq!(all[2].2, all[3].2);
+        assert_eq!(contents(&t, &id).len(), 2);
+        let now = now_ms();
+        // Nothing superseded 30 days ago yet.
+        assert!(collect(&t, now + GC_EVERY_MS).is_empty());
+        assert_eq!(revisions(&t, &id), all);
+        // When only r1 was superseded (by r2) over 30 days ago: r1 goes, its content
+        // stays (r2 uses it).
+        let seen = collect(&t, all[2].0 - 1 + KEEP_OLD_MS);
+        assert!(seen.iter().all(|p| p.phase == SyncPhase::Removing) && !seen.is_empty());
+        assert_eq!(revisions(&t, &id), all[1..]);
+        assert_eq!(contents(&t, &id).len(), 2);
+        // Later, r2 and r3 as well, and r1's content; the current revision and its content
+        // (shared with r3) stay, as does the item never changed.
+        collect(&t, now + KEEP_OLD_MS + 2 * GC_EVERY_MS);
+        assert_eq!(revisions(&t, &id), all[3..]);
+        assert_eq!(contents(&t, &id), vec![format!("{id}.{}.data", all[3].2)]);
+        assert_eq!(revisions(&t, &other).len(), 1);
+        assert_eq!(contents(&t, &other).len(), 1);
+        // Once a day at most.
+        let removed_again = collect(&t, now + KEEP_OLD_MS + 2 * GC_EVERY_MS + 1);
+        assert!(removed_again.is_empty());
+        // B, a month behind (it had r1), catches up through the journal.
+        assert!(t.b.sync(&t.cloud).unwrap().received >= 1);
+        assert_eq!(text(&t.b, &id), "second text");
+        assert_eq!(names(&t.b), vec!["N4", "Other"]);
+        assert_eq!(text(&t.b, &other), "never changed");
+        // And both go on syncing.
+        t.b.rename_item(&id, "N5").unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        assert_eq!(names(&t.a), vec!["N5", "Other"]);
+    }
+
+    #[test]
+    fn a_revision_newer_than_this_devices_is_never_collected() {
+        let t = two();
+        let id = note(&t.a, "N1", "text");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        // B's newer revision is in the place but A has not taken it yet.
+        t.b.rename_item(&id, "From B").unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        let all = revisions(&t, &id);
+        assert_eq!(all.len(), 2);
+        collect(&t, now_ms() + 10 * KEEP_OLD_MS);
+        assert_eq!(revisions(&t, &id), all);
+        t.a.sync(&t.cloud).unwrap();
+        assert_eq!(names(&t.a), vec!["From B"]);
     }
 
     // ---------- a hostile sync place ----------

@@ -778,6 +778,15 @@ pub(crate) fn id_name(id: &str) -> Option<String> {
     (name == id).then_some(name)
 }
 
+/// The bucket of an item: the last two hex digits of its id, "00" to "ff". Item ids are
+/// random, so each of the 256 buckets holds about 1/256 of a vault's items: the folder
+/// its files are kept in, on this device (`items/<bucket>/`) and in Google Drive alike.
+/// `None` for anything that is not an item id.
+pub fn bucket_of(item_id: &str) -> Option<&str> {
+    id_name(item_id)?;
+    Some(&item_id[item_id.len() - 2..])
+}
+
 pub(crate) fn read_header(vault_dir: &Path) -> Option<VaultHeader> {
     let bytes = fs::read(vault_dir.join(HEADER_FILE)).ok()?;
     let header: VaultHeader = serde_json::from_slice(&bytes).ok()?;
@@ -804,6 +813,8 @@ pub(crate) fn open_with(
         master_key,
         index,
     };
+    // Files from before buckets (0.1.57 and earlier) go into theirs.
+    vault.move_into_buckets()?;
     // Every vault from before the index, every restored backup, and any change the
     // index missed (the app stopped between the two writes) comes in here.
     vault.sync_index()?;

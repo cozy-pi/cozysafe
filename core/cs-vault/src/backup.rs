@@ -9,24 +9,27 @@
 //! Layout: `MAGIC`, then per file `u16 path length ‖ path (UTF-8, '/') ‖ u64 size ‖
 //! bytes`, ended by a zero path length and the number of files as `u32`. Files stream
 //! through a fixed buffer, so multi-gigabyte libraries need no extra memory.
+//!
+//! Item files are named `vaults/<vault>/items/<item>.<ext>` in a backup, as they were on
+//! disk before buckets (0.1.57): the format does not change. Export takes them from their
+//! buckets (`items/<bucket>/`), import puts them back there.
 
 use std::fs;
 use std::io::{self, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 
+use crate::items::ITEM_EXTS;
 use crate::{Error, Result, HEADER_FILE, LIBRARY_FILE, VAULTS_DIR};
 
 const MAGIC: &[u8; 16] = b"COZYSAFE-BACKUP1";
 const ITEMS_DIR: &str = "items";
-const ITEM_EXTS: [&str; 3] = ["meta", "data", "thumb"];
 
 /// Write a backup of the library in `dir` to `out`. Returns the number of files.
 pub fn export<W: Write>(dir: &Path, out: W) -> Result<u32> {
     let mut out = BufWriter::new(out);
     out.write_all(MAGIC)?;
     let mut count = 0u32;
-    for rel in files(dir)? {
-        let path = dir.join(&rel);
+    for (rel, path) in files(dir)? {
         let size = fs::metadata(&path)?.len();
         let name = rel.replace('\\', "/");
         out.write_all(&(name.len() as u16).to_be_bytes())?;
@@ -105,7 +108,7 @@ fn read_into<R: Read>(input: R, dir: &Path) -> Result<u32> {
         let name = String::from_utf8(name).map_err(|_| Error::BadBackup)?;
         let rel = allowed(&name).ok_or(Error::BadBackup)?;
         let size = u64::from_be_bytes(read_n(&mut input)?);
-        let path = dir.join(rel);
+        let path = dir.join(in_bucket(rel));
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -125,9 +128,24 @@ fn read_n<const N: usize, R: Read>(r: &mut R) -> Result<[u8; N]> {
     Ok(b)
 }
 
-/// The library files a backup carries, relative to `dir`, in a stable order.
-fn files(dir: &Path) -> Result<Vec<String>> {
-    let mut out = vec![LIBRARY_FILE.to_owned()];
+/// Where an item file of a backup goes: into its bucket.
+fn in_bucket(rel: PathBuf) -> PathBuf {
+    let bucket = rel
+        .file_name()
+        .and_then(|n| n.to_str())
+        .and_then(|n| n.split_once('.'))
+        .and_then(|(item, _)| crate::bucket_of(item))
+        .map(str::to_owned);
+    match (bucket, rel.parent(), rel.file_name()) {
+        (Some(b), Some(dir), Some(name)) if dir.ends_with(ITEMS_DIR) => dir.join(b).join(name),
+        _ => rel,
+    }
+}
+
+/// The library files a backup carries: its name for each (relative to `dir`, item
+/// files as if flat in `items/`) and where it is, in a stable order.
+fn files(dir: &Path) -> Result<Vec<(String, PathBuf)>> {
+    let mut out = vec![(LIBRARY_FILE.to_owned(), dir.join(LIBRARY_FILE))];
     let mut vaults: Vec<_> = match fs::read_dir(dir.join(VAULTS_DIR)) {
         Ok(d) => d
             .flatten()
@@ -146,20 +164,29 @@ fn files(dir: &Path) -> Result<Vec<String>> {
         if !crate::read_header(&dir.join(VAULTS_DIR).join(&v)).is_some_and(|h| h.has_password()) {
             continue;
         }
-        out.push(format!("{VAULTS_DIR}/{v}/{HEADER_FILE}"));
+        let header = format!("{VAULTS_DIR}/{v}/{HEADER_FILE}");
+        out.push((header.clone(), dir.join(header)));
         let items = dir.join(VAULTS_DIR).join(&v).join(ITEMS_DIR);
-        let mut names: Vec<_> = match fs::read_dir(&items) {
-            Ok(d) => d
-                .flatten()
-                .map(|e| e.file_name().to_string_lossy().into_owned())
-                .collect(),
-            Err(_) => Vec::new(),
-        };
-        names.sort();
-        for n in names {
+        // Flat (a move into buckets cut short) first; a file in its bucket wins.
+        let mut names = std::collections::BTreeMap::new();
+        let mut buckets = Vec::new();
+        for e in fs::read_dir(&items).into_iter().flatten().flatten() {
+            let n = e.file_name().to_string_lossy().into_owned();
+            if crate::items::is_bucket(&n) && e.path().is_dir() {
+                buckets.push(e.path());
+            } else {
+                names.insert(n, e.path());
+            }
+        }
+        for b in buckets {
+            for e in fs::read_dir(&b).into_iter().flatten().flatten() {
+                names.insert(e.file_name().to_string_lossy().into_owned(), e.path());
+            }
+        }
+        for (n, path) in names {
             let rel = format!("{VAULTS_DIR}/{v}/{ITEMS_DIR}/{n}");
-            if allowed(&rel).is_some() {
-                out.push(rel);
+            if allowed(&rel).is_some() && path.is_file() {
+                out.push((rel, path));
             }
         }
     }

@@ -7,8 +7,10 @@ Dates are UTC.
 ## Unreleased
 
 ### Changed
-- Google Drive keeps each vault in its own folder inside "Cozy Safe"; files from earlier
-  versions are moved there on the next sync (nothing is uploaded again).
+- Google Drive keeps each vault in its own folder inside "Cozy Safe", its files in up to
+  256 small folders; files on the device are split the same way. Earlier files are moved
+  on the next sync or open (nothing is uploaded again). Old revisions are removed from
+  Google Drive after 30 days.
 
 ## 0.1.57 (2026-10-24)
 

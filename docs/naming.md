@@ -13,7 +13,7 @@ wrong, change it here first and then in the code, in the same commit.
 | What an item is | `kind` on an item: `photo`, `video`, `note`, `audio`, `file`, `tag` | | Rust: `cs_vault::items::kind::*`; Dart: `ItemKind.*`. Never write the strings by hand |
 | A group of items | `tag`; on an item `tag_ids` / `tagIds` | nhóm | A tag is an item of kind `tag` (encrypted like the rest). An item can carry several |
 | The four tabs at the bottom | `section`: `note`, `library`, `audio`, `file` (Dart `VaultSection`) | Ghi chú · Thư viện · Ghi âm · Tệp | A section shows items of some kinds; it is not a kind |
-| Small preview image | `thumbnail` | | Not `thumb`. The on-disk role tag `thumb` (file `<item>.thumb`, AAD `item/<id>/thumb`) stays: it is part of the encryption format |
+| Small preview image | `thumbnail` | | Not `thumb`. The on-disk role tag `thumb` (file `<bucket>/<item>.thumb`, AAD `item/<id>/thumb`) stays: it is part of the encryption format |
 | The second secret, kept in the device's keystore | `secret key` in code (`SecretKey`, `SecretKeyStore`) | **Recovery Key** · **Khoá khôi phục** (24 words) | Owner 2026-10-21: replaces "Emergency Kit / Bộ khẩn cấp". "Secret Key" only in technical text (security page details, docs). 256 bits as 24 BIP39 words; 128-bit `CS1-` keys from before still read |
 | A vault's password | `password` | **vault password** · **Mật khẩu két** | Owner 2026-10-21: replaces "backup password / mật khẩu sao lưu". One per vault: opens it without PIN/Face ID, and with the Recovery Key opens a backup |
 | The two ways in | — | everyday (PIN / Face ID, this phone) · recovery (Recovery Key + vault password + backup file) | How the app explains keys to people (security page, Settings) |
