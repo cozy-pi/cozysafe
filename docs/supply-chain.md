@@ -129,6 +129,11 @@ validate a build with Apple instead of uploading it (`upload: false`).
   same host. Deleted items leave Drive through Google's batch endpoint
   (`POST /batch/drive/v3`, same host, up to 100 `DELETE`s in one `multipart/mixed`
   request): the answer is capped at 1 MiB and read strictly (its boundary checked, every
-  part answered once with 204 or 404, or the batch fails). Sign-in is Google's own plugin (`google_sign_in`,
+  part answered once with 204 or 404, or the batch fails). Each vault has its own folder
+  inside "Cozy Safe" (listed and made with the same files API, ids checked to letters,
+  digits, `-` and `_` before they go into a query or a path); files of earlier versions,
+  flat in "Cozy Safe", are moved into it by renaming (`PATCH /drive/v3/files/<id>` with
+  `addParents`/`removeParents`, through the same batch endpoint, each part answered with
+  200 or 404), never sent again. Sign-in is Google's own plugin (`google_sign_in`,
   published by the Flutter team) and its native SDKs, which talk to Google's sign-in
   servers themselves: that part is reviewed, not sandboxed.

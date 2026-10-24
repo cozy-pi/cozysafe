@@ -1,10 +1,16 @@
 //! Google Drive as a sync place (docs/adr/0003-sync.md). The vault's sealed files live in
-//! one folder the app made ("Cozy Safe"), each named by its path in the sync layout
-//! (`<vault>/records/<id>/<rev>`, …): with the `drive.file` scope the app sees only
-//! what it made, and Google sees only sealed bytes and those names (random ids and
+//! a folder the app made ("Cozy Safe"), one folder per vault inside it named by the
+//! vault's id, each file named by the rest of its path in the sync layout
+//! (`records/<id>/<rev>`, …; no deeper folders): with the `drive.file` scope the app sees
+//! only what it made, and Google sees only sealed bytes and those names (random ids and
 //! numbers). Every session needs a [`Permit::google_drive`] and an access token from
 //! the person's sign-in; nothing runs in the background.
+//!
+//! Earlier versions kept every file flat in "Cozy Safe", named by its whole path
+//! (`<vault>/records/<id>/<rev>`). Opening moves those into their vault's folder, one
+//! rename each, no bytes sent again.
 
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::path::Path;
@@ -25,7 +31,7 @@ const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
 const SMALL_UPLOAD: u64 = 1 << 20;
 /// Items a sync sends at once: one kept connection each (round trips overlap).
 const AT_ONCE: usize = https::POOL;
-/// Most deletions in one batch request (Google takes up to 100 calls in one).
+/// Most calls in one batch request (Google takes up to 100 calls in one).
 const BATCH: usize = 100;
 /// Largest answer to a batch read (100 short answers come to a few tens of KiB).
 const MAX_BATCH_ANSWER: usize = 1 << 20;
@@ -33,16 +39,39 @@ const MAX_BATCH_ANSWER: usize = 1 << 20;
 /// and no line of a part starts with "--", so it never occurs inside one.
 const BOUNDARY: &str = "cozysafe_batch_9c1e4b";
 
+/// A file going into another folder under another name; its bytes stay where they are.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Move {
+    pub id: String,
+    /// The folder it leaves.
+    pub from: String,
+    /// The folder it goes to.
+    pub to: String,
+    /// Its name there.
+    pub name: String,
+}
+
 /// What the sync needs from Drive, so the logic is tested without the network.
 pub trait DriveApi: Send + Sync {
     /// The app's folder, made if missing.
     fn folder(&self) -> Result<String>;
-    /// Every file in `folder`: (id, name).
+    /// Every folder directly in `parent`: (id, name).
+    fn folders(&self, parent: &str) -> Result<Vec<(String, String)>>;
+    /// Every file (not folder) directly in `folder`: (id, name).
     fn files(&self, folder: &str) -> Result<Vec<(String, String)>>;
+    /// A new folder named `name` in `parent`; its id.
+    fn make_folder(&self, parent: &str, name: &str) -> Result<String>;
     /// The file's bytes into `out`; false if it is gone.
     fn download(&self, id: &str, out: &mut dyn Write) -> Result<bool>;
     /// A new file named `name` in `folder`, `len` bytes from `src`; its id.
     fn upload(&self, folder: &str, name: &str, len: u64, src: &mut dyn Read) -> Result<String>;
+    /// Move the file (its id stays); false if it is gone.
+    fn move_file(&self, m: &Move) -> Result<bool>;
+    /// [`DriveApi::move_file`] for many, in as few requests as the API allows; for each,
+    /// whether it moved (false: gone).
+    fn move_many(&self, moves: &[Move]) -> Result<Vec<bool>> {
+        moves.iter().map(|m| self.move_file(m)).collect()
+    }
     /// Delete the file (an old copy of the vault's lock, or a deleted item's files).
     fn delete(&self, id: &str) -> Result<()>;
     /// Delete many files (gone already is fine), in as few requests as the API allows.
@@ -54,33 +83,131 @@ pub trait DriveApi: Send + Sync {
     }
 }
 
-/// The sync place: one Drive folder, listed once per session.
+/// The sync place: the app's Drive folder and its vault folders, listed once per session.
 pub struct DriveRemote<A: DriveApi> {
     api: A,
-    folder: String,
-    /// name → id, kept up to date as files are added.
+    /// The "Cozy Safe" folder.
+    root: String,
+    /// vault id → its folder, made on the vault's first file.
+    vaults: Mutex<HashMap<String, String>>,
+    /// Sync path (`<vault>/<name>`) → file id, kept up to date as files are added.
     index: Mutex<HashMap<String, String>>,
-    /// Names being uploaded right now (items go up a few at once).
+    /// Paths being uploaded right now (items go up a few at once).
     uploading: Mutex<HashSet<String>>,
     /// Set by Cancel: the next request ends the sync (what was done is kept).
     stop: Option<&'static AtomicBool>,
 }
 
+/// A vault's id, as the app makes them: 32 lowercase hex digits.
+fn is_vault(name: &str) -> bool {
+    name.len() == 32 && name.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+}
+
+/// A sync path's vault and the rest (its file name in the vault's folder).
+fn split(path: &str) -> Option<(&str, &str)> {
+    path.split_once('/')
+        .filter(|(vault, rest)| is_vault(vault) && !rest.is_empty())
+}
+
 impl<A: DriveApi> DriveRemote<A> {
     pub fn open(api: A) -> Result<Self> {
-        let folder = api.folder()?;
-        let index = api
-            .files(&folder)?
+        let root = api.folder()?;
+        // A vault's folder: the first by id, should two devices have made one at once.
+        let mut found: Vec<(String, String)> = api
+            .folders(&root)?
             .into_iter()
-            .map(|(id, name)| (name, id))
+            .filter(|(_, name)| is_vault(name))
             .collect();
-        Ok(DriveRemote {
+        found.sort();
+        let mut vaults: HashMap<String, String> = HashMap::new();
+        let mut others = Vec::new();
+        for (id, vault) in found {
+            match vaults.entry(vault) {
+                Entry::Occupied(e) => others.push((id, e.key().clone())),
+                Entry::Vacant(e) => {
+                    e.insert(id);
+                }
+            }
+        }
+        let mut index = HashMap::new();
+        for (vault, folder) in &vaults {
+            for (id, name) in api.files(folder)? {
+                let path = format!("{vault}/{name}");
+                if check(&path).is_ok() {
+                    index.entry(path).or_insert(id);
+                }
+            }
+        }
+        // Files not in their vault's folder yet: in a second folder of the vault, or flat
+        // in "Cozy Safe" (earlier versions), named by their whole path.
+        let mut astray = Vec::new();
+        for (folder, vault) in &others {
+            for (id, name) in api.files(folder)? {
+                astray.push((format!("{vault}/{name}"), id, folder.clone()));
+            }
+        }
+        for (id, name) in api.files(&root)? {
+            if split(&name).is_some() {
+                astray.push((name, id, root.clone()));
+            }
+        }
+        let remote = DriveRemote {
             api,
-            folder,
-            index: Mutex::new(index),
+            root,
+            vaults: Mutex::new(vaults),
+            index: Mutex::new(HashMap::new()),
             uploading: Mutex::new(HashSet::new()),
             stop: None,
-        })
+        };
+        remote.gather(&mut index, astray)?;
+        *remote.index.lock().unwrap_or_else(|p| p.into_inner()) = index;
+        Ok(remote)
+    }
+
+    /// Bring `astray` files (path, id, folder) into their vault's folder: moved, or
+    /// deleted when the vault's folder has that file already (files never change, so the
+    /// copies are the same). Each move is one rename, so a move cut short leaves every
+    /// file in one place or the other, and the next open goes on.
+    fn gather(
+        &self,
+        index: &mut HashMap<String, String>,
+        astray: Vec<(String, String, String)>,
+    ) -> Result<()> {
+        let mut moves = Vec::new();
+        let mut paths = Vec::new();
+        let mut seen = HashSet::new();
+        let mut copies = Vec::new();
+        for (path, id, from) in astray {
+            let Some((vault, name)) = split(&path).filter(|_| check(&path).is_ok()) else {
+                continue;
+            };
+            if index.contains_key(&path) || !seen.insert(path.clone()) {
+                copies.push(id);
+                continue;
+            }
+            moves.push(Move {
+                id,
+                from,
+                to: self.vault_folder(vault)?,
+                name: name.to_owned(),
+            });
+            paths.push(path);
+        }
+        if !moves.is_empty() {
+            let moved = self.api.move_many(&moves)?;
+            if moved.len() != moves.len() {
+                return Err(Error::Corrupt("drive move answer"));
+            }
+            for ((m, path), ok) in moves.into_iter().zip(paths).zip(moved) {
+                if ok {
+                    index.insert(path, m.id);
+                }
+            }
+        }
+        if !copies.is_empty() {
+            self.api.delete_many(&copies)?;
+        }
+        Ok(())
     }
 
     /// Stop at the next request once `stop` is set.
@@ -114,6 +241,18 @@ impl<A: DriveApi> DriveRemote<A> {
             .unwrap_or_else(|p| p.into_inner())
             .get(path)
             .cloned()
+    }
+
+    /// The vault's folder, made the first time (held while made, so items going up at
+    /// once never make two).
+    fn vault_folder(&self, vault: &str) -> Result<String> {
+        let mut vaults = self.vaults.lock().unwrap_or_else(|p| p.into_inner());
+        if let Some(id) = vaults.get(vault) {
+            return Ok(id.clone());
+        }
+        let id = self.api.make_folder(&self.root, vault)?;
+        vaults.insert(vault.to_owned(), id.clone());
+        Ok(id)
     }
 }
 
@@ -230,6 +369,8 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
 
 impl<A: DriveApi> DriveRemote<A> {
     fn put_bytes(&self, path: &str, len: u64, src: &mut dyn Read) -> Result<()> {
+        // Every file belongs to a vault: `<vault>/<name>`.
+        let (vault, name) = split(path).ok_or(Error::Corrupt("drive path"))?;
         // Never two files of one name: the layout's files never change once written. With
         // items going up at once, a name is claimed before its upload and known (in the
         // index) before the claim ends.
@@ -243,7 +384,9 @@ impl<A: DriveApi> DriveRemote<A> {
                 return Err(Error::Corrupt("drive file sent twice at once"));
             }
         }
-        let up = self.api.upload(&self.folder, path, len, src);
+        let up = self
+            .vault_folder(vault)
+            .and_then(|folder| self.api.upload(&folder, name, len, src));
         if let Ok(id) = &up {
             self.index
                 .lock()
@@ -300,6 +443,49 @@ impl GoogleDrive {
         status_ok(status)?;
         serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("drive json"))
     }
+
+    /// Every (id, name) matching the query `q`, page by page.
+    fn list(&self, q: &str) -> Result<Vec<(String, String)>> {
+        let mut out = Vec::new();
+        let mut page = String::new();
+        loop {
+            let mut path = format!(
+                "/drive/v3/files?q={}&fields=nextPageToken,files(id,name)&pageSize=1000&spaces=drive",
+                https::encode(q)
+            );
+            if !page.is_empty() {
+                path.push_str(&format!("&pageToken={}", https::encode(&page)));
+            }
+            let v = self.json("GET", &path, None)?;
+            for f in v["files"].as_array().into_iter().flatten() {
+                if let (Some(id), Some(name)) = (f["id"].as_str(), f["name"].as_str()) {
+                    out.push((id.to_owned(), name.to_owned()));
+                }
+            }
+            match v["nextPageToken"].as_str() {
+                Some(t) => page = t.to_owned(),
+                None => return Ok(out),
+            }
+        }
+    }
+
+    /// Up to [`BATCH`] calls in one request to Google's batch endpoint (same host); the
+    /// status of each, in order.
+    fn batch(&self, parts: &[Part]) -> Result<Vec<u16>> {
+        let kind = format!("multipart/mixed; boundary={BOUNDARY}");
+        let r = self.http.request(
+            "POST",
+            "/batch/drive/v3",
+            &self.token,
+            &[],
+            Body::Bytes(&kind, batch_body(parts)?),
+        )?;
+        let status = r.status;
+        let answer_kind = r.header("Content-Type").unwrap_or("").to_owned();
+        let body = r.bytes_max(MAX_BATCH_ANSWER)?;
+        status_ok(status)?;
+        batch_statuses(&answer_kind, &body, parts.len())
+    }
 }
 
 fn status_ok(status: u16) -> Result<()> {
@@ -310,28 +496,117 @@ fn status_ok(status: u16) -> Result<()> {
     }
 }
 
-/// A batch request deleting `ids` (at most [`BATCH`]): one `DELETE` part each, numbered
-/// from 1 in `Content-ID`. The outer request's sign-in covers every part.
-fn batch_body(ids: &[String]) -> Result<Vec<u8>> {
-    if ids.is_empty() || ids.len() > BATCH {
+/// A Drive file or folder id: letters, digits, '-' and '_' only, so it can go into a
+/// path, a query or a batch part as it is.
+fn drive_id(id: &str) -> Result<&str> {
+    if id.is_empty()
+        || !id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))
+    {
+        return Err(Error::Corrupt("drive file id"));
+    }
+    Ok(id)
+}
+
+/// A string in a Drive query: quoted, with `\` and `'` escaped.
+fn quoted(s: &str) -> String {
+    format!("'{}'", s.replace('\\', "\\\\").replace('\'', "\\'"))
+}
+
+/// The query for the app's folder.
+fn folder_query() -> String {
+    format!(
+        "name = {} and mimeType = {} and trashed = false",
+        quoted(FOLDER),
+        quoted(FOLDER_MIME)
+    )
+}
+
+/// The query for what is directly in `parent`: its folders, or its other files.
+fn children_query(parent: &str, folders: bool) -> Result<String> {
+    Ok(format!(
+        "{} in parents and mimeType {} {} and trashed = false",
+        quoted(drive_id(parent)?),
+        if folders { "=" } else { "!=" },
+        quoted(FOLDER_MIME)
+    ))
+}
+
+/// The request line of a move: into `to`, out of `from`, by id.
+fn move_line(m: &Move) -> Result<String> {
+    Ok(format!(
+        "/drive/v3/files/{}?addParents={}&removeParents={}&fields=id",
+        drive_id(&m.id)?,
+        drive_id(&m.to)?,
+        drive_id(&m.from)?
+    ))
+}
+
+/// A move's body: the new name, as one line of JSON (it never starts with "--").
+fn move_body(m: &Move) -> Vec<u8> {
+    serde_json::to_vec(&serde_json::json!({ "name": m.name })).expect("json")
+}
+
+/// One call in a batch: its request line, and a JSON body if it has one.
+struct Part {
+    line: String,
+    json: Option<Vec<u8>>,
+}
+
+fn delete_parts(ids: &[String]) -> Result<Vec<Part>> {
+    ids.iter()
+        .map(|id| {
+            Ok(Part {
+                line: format!("DELETE /drive/v3/files/{}", drive_id(id)?),
+                json: None,
+            })
+        })
+        .collect()
+}
+
+fn move_parts(moves: &[Move]) -> Result<Vec<Part>> {
+    moves
+        .iter()
+        .map(|m| {
+            Ok(Part {
+                line: format!("PATCH {}", move_line(m)?),
+                json: Some(move_body(m)),
+            })
+        })
+        .collect()
+}
+
+/// A batch request of `parts` (at most [`BATCH`]), numbered from 1 in `Content-ID`. The
+/// outer request's sign-in covers every part.
+fn batch_body(parts: &[Part]) -> Result<Vec<u8>> {
+    if parts.is_empty() || parts.len() > BATCH {
         return Err(Error::Corrupt("drive batch size"));
     }
-    let mut out = String::new();
-    for (n, id) in ids.iter().enumerate() {
-        if id.is_empty()
-            || !id
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))
-        {
-            return Err(Error::Corrupt("drive file id"));
+    let mut out = Vec::new();
+    for (n, part) in parts.iter().enumerate() {
+        out.extend_from_slice(
+            format!(
+                "--{BOUNDARY}\r\nContent-Type: application/http\r\nContent-ID: <{}>\r\n\r\n{}\r\n",
+                n + 1,
+                part.line
+            )
+            .as_bytes(),
+        );
+        match &part.json {
+            Some(json) => {
+                if json.contains(&b'\n') || json.starts_with(b"-") {
+                    return Err(Error::Corrupt("drive batch body"));
+                }
+                out.extend_from_slice(b"Content-Type: application/json; charset=UTF-8\r\n\r\n");
+                out.extend_from_slice(json);
+                out.extend_from_slice(b"\r\n");
+            }
+            None => out.extend_from_slice(b"\r\n"),
         }
-        out.push_str(&format!(
-            "--{BOUNDARY}\r\nContent-Type: application/http\r\nContent-ID: <{}>\r\n\r\nDELETE /drive/v3/files/{id}\r\n\r\n",
-            n + 1
-        ));
     }
-    out.push_str(&format!("--{BOUNDARY}--\r\n"));
-    Ok(out.into_bytes())
+    out.extend_from_slice(format!("--{BOUNDARY}--\r\n").as_bytes());
+    Ok(out)
 }
 
 /// The boundary named in a `multipart/mixed` content type, if it is a valid one.
@@ -356,9 +631,9 @@ fn boundary_of(content_type: &str) -> Option<&str> {
     ok.then_some(b)
 }
 
-/// Check the answer to a batch of `n` deletions: every part answered exactly once,
-/// each with 204 (deleted) or 404 (gone already). Anything else fails the whole batch.
-fn batch_check(content_type: &str, body: &[u8], n: usize) -> Result<()> {
+/// Read the answer to a batch of `n` calls strictly: every part answered exactly once,
+/// with an HTTP status line. The status of each call, in the order sent.
+fn batch_statuses(content_type: &str, body: &[u8], n: usize) -> Result<Vec<u16>> {
     let bad = || Error::Corrupt("drive batch answer");
     let boundary = boundary_of(content_type).ok_or_else(bad)?;
     let delim = format!("--{boundary}");
@@ -371,7 +646,7 @@ fn batch_check(content_type: &str, body: &[u8], n: usize) -> Result<()> {
         Closed,
     }
     let mut at = At::Preamble;
-    let mut answered = vec![false; n];
+    let mut answered: Vec<Option<u16>> = vec![None; n];
     for line in body.split(|&c| c == b'\n') {
         if matches!(at, At::Closed) {
             break; // the epilogue, ignored
@@ -417,32 +692,54 @@ fn batch_check(content_type: &str, body: &[u8], n: usize) -> Result<()> {
                     (Some(v), Some(s)) if v.starts_with("HTTP/") => s.parse().map_err(|_| bad())?,
                     _ => return Err(bad()),
                 };
-                if std::mem::replace(&mut answered[id], true) {
+                if answered[id].replace(status).is_some() {
                     return Err(bad());
-                }
-                if !matches!(status, 204 | 404) {
-                    status_ok(status)?;
-                    return Err(Error::Corrupt("drive request failed"));
                 }
                 At::Body
             }
             At::Closed => unreachable!(),
         };
     }
-    if !matches!(at, At::Closed) || answered.contains(&false) {
+    if !matches!(at, At::Closed) {
         return Err(bad());
     }
-    Ok(())
+    answered.into_iter().map(|s| s.ok_or_else(bad)).collect()
+}
+
+/// A failed call in a batch fails it all; a sign-in problem says so.
+fn failed(status: u16) -> Error {
+    match status_ok(status) {
+        Err(e) => e,
+        Ok(()) => Error::Corrupt("drive request failed"),
+    }
+}
+
+fn deleted(statuses: Vec<u16>) -> Result<()> {
+    match statuses.into_iter().find(|s| !matches!(s, 204 | 404)) {
+        Some(s) => Err(failed(s)),
+        None => Ok(()),
+    }
+}
+
+/// Each move done (200) or its file gone (404, false).
+fn moved(statuses: Vec<u16>) -> Result<Vec<bool>> {
+    statuses
+        .into_iter()
+        .map(|s| match s {
+            200 => Ok(true),
+            404 => Ok(false),
+            s => Err(failed(s)),
+        })
+        .collect()
 }
 
 impl DriveApi for GoogleDrive {
     fn folder(&self) -> Result<String> {
-        let q = format!("name = '{FOLDER}' and mimeType = '{FOLDER_MIME}' and trashed = false");
         let found = self.json(
             "GET",
             &format!(
                 "/drive/v3/files?q={}&fields=files(id)&spaces=drive",
-                https::encode(&q)
+                https::encode(&folder_query())
             ),
             None,
         )?;
@@ -460,29 +757,28 @@ impl DriveApi for GoogleDrive {
             .ok_or(Error::Corrupt("drive folder"))
     }
 
+    fn folders(&self, parent: &str) -> Result<Vec<(String, String)>> {
+        self.list(&children_query(parent, true)?)
+    }
+
     fn files(&self, folder: &str) -> Result<Vec<(String, String)>> {
-        let q = format!("'{folder}' in parents and trashed = false");
-        let mut out = Vec::new();
-        let mut page = String::new();
-        loop {
-            let mut path = format!(
-                "/drive/v3/files?q={}&fields=nextPageToken,files(id,name)&pageSize=1000&spaces=drive",
-                https::encode(&q)
-            );
-            if !page.is_empty() {
-                path.push_str(&format!("&pageToken={}", https::encode(&page)));
-            }
-            let v = self.json("GET", &path, None)?;
-            for f in v["files"].as_array().into_iter().flatten() {
-                if let (Some(id), Some(name)) = (f["id"].as_str(), f["name"].as_str()) {
-                    out.push((id.to_owned(), name.to_owned()));
-                }
-            }
-            match v["nextPageToken"].as_str() {
-                Some(t) => page = t.to_owned(),
-                None => return Ok(out),
-            }
-        }
+        self.list(&children_query(folder, false)?)
+    }
+
+    fn make_folder(&self, parent: &str, name: &str) -> Result<String> {
+        let made = self.json(
+            "POST",
+            "/drive/v3/files?fields=id",
+            Some(&serde_json::json!({
+                "name": name,
+                "mimeType": FOLDER_MIME,
+                "parents": [drive_id(parent)?],
+            })),
+        )?;
+        made["id"]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or(Error::Corrupt("drive folder"))
     }
 
     fn download(&self, id: &str, out: &mut dyn Write) -> Result<bool> {
@@ -547,6 +843,33 @@ impl DriveApi for GoogleDrive {
             .ok_or(Error::Corrupt("drive upload"))
     }
 
+    /// A rename into another folder (`PATCH` with addParents/removeParents): no bytes move.
+    fn move_file(&self, m: &Move) -> Result<bool> {
+        let r = self.http.request(
+            "PATCH",
+            &move_line(m)?,
+            &self.token,
+            &[],
+            Body::Bytes("application/json; charset=UTF-8", move_body(m)),
+        )?;
+        let status = r.status;
+        drop(r.bytes()?);
+        Ok(moved(vec![status])?[0])
+    }
+
+    /// Up to [`BATCH`] moves per request, through Google's batch endpoint.
+    fn move_many(&self, moves: &[Move]) -> Result<Vec<bool>> {
+        let mut out = Vec::new();
+        for chunk in moves.chunks(BATCH) {
+            if let [m] = chunk {
+                out.push(self.move_file(m)?);
+                continue;
+            }
+            out.extend(moved(self.batch(&move_parts(chunk)?)?)?);
+        }
+        Ok(out)
+    }
+
     fn delete(&self, id: &str) -> Result<()> {
         let r = self.http.request(
             "DELETE",
@@ -561,26 +884,14 @@ impl DriveApi for GoogleDrive {
         }
     }
 
-    /// Up to [`BATCH`] deletions per request, through Google's batch endpoint (same host).
+    /// Up to [`BATCH`] deletions per request, through Google's batch endpoint.
     fn delete_many(&self, ids: &[String]) -> Result<()> {
-        let kind = format!("multipart/mixed; boundary={BOUNDARY}");
         for chunk in ids.chunks(BATCH) {
             if let [id] = chunk {
                 self.delete(id)?;
                 continue;
             }
-            let r = self.http.request(
-                "POST",
-                "/batch/drive/v3",
-                &self.token,
-                &[],
-                Body::Bytes(&kind, batch_body(chunk)?),
-            )?;
-            let status = r.status;
-            let answer_kind = r.header("Content-Type").unwrap_or("").to_owned();
-            let body = r.bytes_max(MAX_BATCH_ANSWER)?;
-            status_ok(status)?;
-            batch_check(&answer_kind, &body, chunk.len())?;
+            deleted(self.batch(&delete_parts(chunk)?)?)?;
         }
         Ok(())
     }
@@ -590,60 +901,164 @@ impl DriveApi for GoogleDrive {
 mod tests {
     use super::*;
     use crate::testkit::{note, text, two};
+    use std::sync::atomic::AtomicU64;
+    use std::sync::Arc;
 
-    /// Drive in memory.
-    /// (id, name, bytes) of every file.
-    type Files = Vec<(String, String, Vec<u8>)>;
+    /// A file or folder of the fake Drive.
+    #[derive(Clone, Debug)]
+    struct Node {
+        id: String,
+        parent: String,
+        name: String,
+        bytes: Vec<u8>,
+        folder: bool,
+    }
 
+    #[derive(Default)]
+    struct State {
+        nodes: Vec<Node>,
+        /// Size of each delete_many call.
+        batches: Vec<usize>,
+        uploads: usize,
+        moves: usize,
+        /// Moves that go through before the next one fails (a cut connection).
+        moves_left: Option<usize>,
+    }
+
+    /// Drive in memory; the app's folder is "F".
     #[derive(Default, Clone)]
-    struct Fake(
-        std::sync::Arc<Mutex<Files>>,
-        std::sync::Arc<Mutex<Vec<usize>>>,
-    );
+    struct Fake(Arc<Mutex<State>>);
+
+    /// Never reused, like Drive's ids (a count of files would repeat after a delete).
+    fn new_id() -> String {
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        format!("id{}", NEXT.fetch_add(1, Ordering::Relaxed))
+    }
+
+    impl Fake {
+        fn state(&self) -> std::sync::MutexGuard<'_, State> {
+            self.0.lock().unwrap()
+        }
+
+        fn children(&self, parent: &str, folder: bool) -> Vec<(String, String)> {
+            self.state()
+                .nodes
+                .iter()
+                .filter(|n| n.parent == parent && n.folder == folder)
+                .map(|n| (n.id.clone(), n.name.clone()))
+                .collect()
+        }
+
+        fn add(&self, parent: &str, name: &str, bytes: Vec<u8>, folder: bool) -> String {
+            let id = new_id();
+            self.state().nodes.push(Node {
+                id: id.clone(),
+                parent: parent.to_owned(),
+                name: name.to_owned(),
+                bytes,
+                folder,
+            });
+            id
+        }
+
+        /// The layout of earlier versions: every file flat in "F", named by its whole
+        /// path; no vault folders.
+        fn flatten(&self) {
+            let mut s = self.state();
+            let folders: HashMap<String, String> = s
+                .nodes
+                .iter()
+                .filter(|n| n.folder)
+                .map(|n| (n.id.clone(), n.name.clone()))
+                .collect();
+            s.nodes.retain(|n| !n.folder);
+            for n in &mut s.nodes {
+                n.name = format!("{}/{}", folders[&n.parent], n.name);
+                n.parent = "F".into();
+            }
+        }
+
+        /// Every file: (folder name, file name, id).
+        fn layout(&self) -> Vec<(String, String, String)> {
+            let s = self.state();
+            let name_of = |id: &str| {
+                s.nodes
+                    .iter()
+                    .find(|n| n.id == id)
+                    .map_or(id.to_owned(), |n| n.name.clone())
+            };
+            let mut out: Vec<_> = s
+                .nodes
+                .iter()
+                .filter(|n| !n.folder)
+                .map(|n| (name_of(&n.parent), n.name.clone(), n.id.clone()))
+                .collect();
+            out.sort();
+            out
+        }
+    }
 
     impl DriveApi for Fake {
         fn folder(&self) -> Result<String> {
             Ok("F".into())
         }
-        fn files(&self, _: &str) -> Result<Vec<(String, String)>> {
-            Ok(self
-                .0
-                .lock()
-                .unwrap()
-                .iter()
-                .map(|(i, n, _)| (i.clone(), n.clone()))
-                .collect())
+        fn folders(&self, parent: &str) -> Result<Vec<(String, String)>> {
+            Ok(self.children(parent, true))
+        }
+        fn files(&self, folder: &str) -> Result<Vec<(String, String)>> {
+            Ok(self.children(folder, false))
+        }
+        fn make_folder(&self, parent: &str, name: &str) -> Result<String> {
+            Ok(self.add(parent, name, Vec::new(), true))
         }
         fn download(&self, id: &str, out: &mut dyn Write) -> Result<bool> {
-            let files = self.0.lock().unwrap();
-            match files.iter().find(|(i, _, _)| i == id) {
-                Some((_, _, b)) => {
-                    out.write_all(b)?;
+            let s = self.state();
+            match s.nodes.iter().find(|n| n.id == id && !n.folder) {
+                Some(n) => {
+                    out.write_all(&n.bytes)?;
                     Ok(true)
                 }
                 None => Ok(false),
             }
         }
-        fn upload(&self, _: &str, name: &str, len: u64, src: &mut dyn Read) -> Result<String> {
+        fn upload(&self, folder: &str, name: &str, len: u64, src: &mut dyn Read) -> Result<String> {
             let mut b = Vec::new();
             src.take(len).read_to_end(&mut b)?;
-            let mut files = self.0.lock().unwrap();
-            // Never reused, like Drive's ids (a count of files would repeat after a delete).
-            static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-            let id = format!(
-                "id{}",
-                NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-            );
-            files.push((id.clone(), name.to_owned(), b));
-            Ok(id)
+            assert!(self
+                .state()
+                .nodes
+                .iter()
+                .any(|n| n.id == folder && n.folder));
+            self.state().uploads += 1;
+            Ok(self.add(folder, name, b, false))
+        }
+        fn move_file(&self, m: &Move) -> Result<bool> {
+            let mut s = self.state();
+            if let Some(left) = &mut s.moves_left {
+                if *left == 0 {
+                    return Err(Error::Io(std::io::ErrorKind::ConnectionReset.into()));
+                }
+                *left -= 1;
+            }
+            s.moves += 1;
+            match s.nodes.iter_mut().find(|n| n.id == m.id) {
+                Some(n) => {
+                    assert_eq!(n.parent, m.from);
+                    n.parent = m.to.clone();
+                    n.name = m.name.clone();
+                    Ok(true)
+                }
+                None => Ok(false),
+            }
         }
         fn delete(&self, id: &str) -> Result<()> {
-            self.0.lock().unwrap().retain(|(i, _, _)| i != id);
+            self.state().nodes.retain(|n| n.id != id);
             Ok(())
         }
         fn delete_many(&self, ids: &[String]) -> Result<()> {
-            self.1.lock().unwrap().push(ids.len());
-            self.0.lock().unwrap().retain(|(i, _, _)| !ids.contains(i));
+            let mut s = self.state();
+            s.batches.push(ids.len());
+            s.nodes.retain(|n| !ids.contains(&n.id));
             Ok(())
         }
     }
@@ -663,20 +1078,199 @@ mod tests {
             .unwrap();
         assert_eq!(text(&t.b, &from_a), "plain text from device A");
         assert_eq!(text(&t.a, &from_b), "plain text from device B");
+        // One folder, the vault's, in the app's folder; every file in it, named by the
+        // rest of its path.
+        assert_eq!(drive.children("F", true).len(), 1);
+        assert_eq!(drive.children("F", true)[0].1, t.a.id);
+        assert!(drive.children("F", false).is_empty());
+        let layout = drive.layout();
+        assert!(
+            layout.iter().all(|(folder, name, _)| folder == &t.a.id
+                && !name.starts_with(&t.a.id)
+                && !name.contains(".."))
+                && ["records/", "blobs/", "log/", "lock/"]
+                    .iter()
+                    .all(|p| layout.iter().any(|(_, n, _)| n.starts_with(p)))
+        );
         // One lock there, the newest.
-        let locks = drive
-            .0
-            .lock()
-            .unwrap()
+        let locks = layout
             .iter()
-            .filter(|(_, n, _)| n.contains("/lock/"))
+            .filter(|(_, n, _)| n.starts_with("lock/"))
             .count();
         assert_eq!(locks, 1);
         // Only sealed bytes reach Drive.
-        for (_, _, b) in drive.0.lock().unwrap().iter() {
+        for n in drive.state().nodes.iter() {
             // Long markers: three random bytes can spell "aaa" by chance.
-            assert!(!b.windows(10).any(|w| w == b"plain text"));
+            assert!(!n.bytes.windows(10).any(|w| w == b"plain text"));
         }
+    }
+
+    #[test]
+    fn two_vaults_keep_to_their_own_folders() {
+        let (one, other) = (two(), two());
+        assert_ne!(one.a.id, other.a.id);
+        let drive = Fake::default();
+        let a = note(&one.a, "A", "vault one");
+        let b = note(&other.a, "B", "vault two");
+        one.a
+            .sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        other
+            .a
+            .sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        let mut folders: Vec<String> = drive.children("F", true).into_iter().map(|f| f.1).collect();
+        folders.sort();
+        let mut ids = vec![one.a.id.clone(), other.a.id.clone()];
+        ids.sort();
+        assert_eq!(folders, ids);
+        let r = DriveRemote::open(drive.clone()).unwrap();
+        assert_eq!(r.vault_ids(), ids);
+        one.b.sync(&r).unwrap();
+        other.b.sync(&r).unwrap();
+        assert_eq!(text(&one.b, &a), "vault one");
+        assert_eq!(text(&other.b, &b), "vault two");
+        // Every file sits in its own vault's folder.
+        for (folder, name, _) in drive.layout() {
+            assert!(ids.contains(&folder), "{folder}/{name}");
+        }
+        // A path outside any vault is refused, never put in "Cozy Safe" itself.
+        assert!(r.put("records/x", &mut &b"x"[..]).is_err());
+        assert!(r.put(&one.a.id, &mut &b"x"[..]).is_err());
+    }
+
+    #[test]
+    fn files_of_earlier_versions_move_into_the_vault_folder() {
+        let t = two();
+        let drive = Fake::default();
+        let ids: Vec<String> = (0..5)
+            .map(|i| note(&t.a, &format!("N{i}"), &format!("text {i}")))
+            .collect();
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        drive.flatten();
+        let flat = drive.layout();
+        assert!(flat
+            .iter()
+            .all(|(f, n, _)| f == "F" && n.starts_with(&t.a.id)));
+        let uploads = drive.state().uploads;
+        // Anything else in the folder is left alone.
+        drive.add("F", "notes.txt", b"x".to_vec(), false);
+        let r = DriveRemote::open(drive.clone()).unwrap();
+        // Renamed in place: the same files (ids), none sent again.
+        let moved = drive.layout();
+        assert_eq!(drive.state().uploads, uploads);
+        assert_eq!(drive.state().moves, flat.len());
+        assert_eq!(moved.len(), flat.len() + 1);
+        for (folder, name, id) in &flat {
+            let rest = name.strip_prefix(&format!("{}/", t.a.id)).unwrap();
+            assert!(
+                moved.contains(&(t.a.id.clone(), rest.to_owned(), id.clone())),
+                "{folder}/{name}"
+            );
+        }
+        assert_eq!(r.vault_ids(), vec![t.a.id.clone()]);
+        // Then it syncs as usual.
+        t.b.sync(&r).unwrap();
+        for (i, id) in ids.iter().enumerate() {
+            assert_eq!(text(&t.b, id), format!("text {i}"));
+        }
+        // Opened again, nothing more to move.
+        DriveRemote::open(drive.clone()).unwrap();
+        assert_eq!(drive.state().moves, flat.len());
+    }
+
+    #[test]
+    fn a_move_cut_short_goes_on_next_time() {
+        let t = two();
+        let drive = Fake::default();
+        let id = note(&t.a, "N", "moved in two goes");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        drive.flatten();
+        let all = drive.layout().len();
+        assert!(all > 3);
+        drive.state().moves_left = Some(3);
+        assert!(DriveRemote::open(drive.clone()).is_err());
+        // Each file in one place or the other.
+        let half = drive.layout();
+        assert_eq!(half.len(), all);
+        assert_eq!(half.iter().filter(|(f, _, _)| f == &t.a.id).count(), 3);
+        drive.state().moves_left = None;
+        let r = DriveRemote::open(drive.clone()).unwrap();
+        assert!(drive.layout().iter().all(|(f, _, _)| f == &t.a.id));
+        assert_eq!(drive.state().moves, all);
+        t.b.sync(&r).unwrap();
+        assert_eq!(text(&t.b, &id), "moved in two goes");
+    }
+
+    #[test]
+    fn a_file_in_two_places_is_kept_once() {
+        let t = two();
+        let drive = Fake::default();
+        let id = note(&t.a, "N", "one copy");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        let before = drive.layout();
+        let first = drive.children("F", true)[0].0.clone();
+        let bytes = |file: &str| {
+            let s = drive.state();
+            s.nodes.iter().find(|n| n.id == file).unwrap().bytes.clone()
+        };
+        // An old flat copy of every file (a move cut short between the rename and the
+        // listing), and a second folder of the vault (two devices made one at once)
+        // holding a copy of one file and a file of its own.
+        for (_, name, file) in &before {
+            let b = bytes(file);
+            drive.add("F", &format!("{}/{name}", t.a.id), b, false);
+        }
+        let second = drive.add("F", &t.a.id, Vec::new(), true);
+        let b = bytes(&before[0].2);
+        drive.add(&second, &before[0].1, b, false);
+        drive.add(&second, "log/zz/1", b"x".to_vec(), false);
+        let uploads = drive.state().uploads;
+        let r = DriveRemote::open(drive.clone()).unwrap();
+        assert_eq!(drive.state().uploads, uploads);
+        // The copies are gone: each name once, in one of the vault's folders (the other
+        // left empty), nothing in the app's folder itself.
+        assert!(drive.children("F", false).is_empty());
+        let after = drive.layout();
+        assert_eq!(after.len(), before.len() + 1);
+        assert!(after.iter().all(|(f, _, _)| f == &t.a.id));
+        let kept = [first, second].map(|f| drive.children(&f, false).len());
+        assert!(kept.contains(&0) && kept.contains(&after.len()), "{kept:?}");
+        for (_, name, _) in &before {
+            assert!(after.iter().any(|(_, n, _)| n == name), "{name}");
+        }
+        assert!(r.exists(&format!("{}/log/zz/1", t.a.id)).unwrap());
+        assert_eq!(r.vault_ids(), vec![t.a.id.clone()]);
+        t.b.sync(&r).unwrap();
+        assert_eq!(text(&t.b, &id), "one copy");
+    }
+
+    #[test]
+    fn drive_queries_are_quoted_and_ids_checked() {
+        assert_eq!(
+            folder_query(),
+            "name = 'Cozy Safe' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        );
+        assert_eq!(
+            children_query("aB-9_x", true).unwrap(),
+            "'aB-9_x' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        );
+        assert_eq!(
+            children_query("aB-9_x", false).unwrap(),
+            "'aB-9_x' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false"
+        );
+        assert_eq!(quoted(r"it's a \ name"), r"'it\'s a \\ name'");
+        for bad in ["", "a' or 'x", "a b", "a\\b", "a/b", "a%27"] {
+            assert!(children_query(bad, true).is_err(), "{bad:?}");
+        }
+        // And encoded whole into the URL.
+        assert_eq!(
+            https::encode(&children_query("x", true).unwrap()),
+            "%27x%27%20in%20parents%20and%20mimeType%20%3D%20%27application%2Fvnd.google-apps.folder%27%20and%20trashed%20%3D%20false"
+        );
     }
 
     #[test]
@@ -701,15 +1295,10 @@ mod tests {
         let r = DriveRemote::open(drive.clone()).unwrap();
         assert_eq!(r.parallel(), 4);
         t.a.sync(&r).unwrap();
-        // One file per name, though several went up together.
-        let names: Vec<String> = drive
-            .0
-            .lock()
-            .unwrap()
-            .iter()
-            .map(|f| f.1.clone())
-            .collect();
-        let unique: HashSet<&String> = names.iter().collect();
+        // One file per name and one folder, though several went up together.
+        assert_eq!(drive.children("F", true).len(), 1);
+        let names: Vec<(String, String, String)> = drive.layout();
+        let unique: HashSet<(&String, &String)> = names.iter().map(|(f, n, _)| (f, n)).collect();
         assert_eq!(unique.len(), names.len());
         t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
             .unwrap();
@@ -719,19 +1308,19 @@ mod tests {
         for id in &ids {
             t.a.delete_item(id).unwrap();
         }
-        let before = drive.0.lock().unwrap().len();
+        let before = drive.layout().len();
         t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
             .unwrap();
         // A record and its content per item, in two batches (records, then contents).
-        assert_eq!(*drive.1.lock().unwrap(), vec![30, 30]);
-        let after = drive.0.lock().unwrap().len();
+        assert_eq!(drive.state().batches, vec![30, 30]);
+        let after = drive.layout().len();
         assert_eq!(before - after, 60 - 1); // and one journal entry more
     }
 
     #[test]
-    fn a_batch_request_has_one_delete_per_file() {
+    fn a_batch_request_has_one_call_per_file() {
         let ids: Vec<String> = vec!["abc-1".into(), "x_Y2".into()];
-        let body = String::from_utf8(batch_body(&ids).unwrap()).unwrap();
+        let body = String::from_utf8(batch_body(&delete_parts(&ids).unwrap()).unwrap()).unwrap();
         assert_eq!(
             body,
             format!(
@@ -742,12 +1331,40 @@ mod tests {
                  --{BOUNDARY}--\r\n"
             )
         );
+        let moves = vec![Move {
+            id: "f1".into(),
+            from: "root".into(),
+            to: "v-1".into(),
+            name: "records/ab/cd".into(),
+        }];
+        let body = String::from_utf8(batch_body(&move_parts(&moves).unwrap()).unwrap()).unwrap();
+        assert_eq!(
+            body,
+            format!(
+                "--{BOUNDARY}\r\nContent-Type: application/http\r\nContent-ID: <1>\r\n\r\n\
+                 PATCH /drive/v3/files/f1?addParents=v-1&removeParents=root&fields=id\r\n\
+                 Content-Type: application/json; charset=UTF-8\r\n\r\n\
+                 {{\"name\":\"records/ab/cd\"}}\r\n\
+                 --{BOUNDARY}--\r\n"
+            )
+        );
+        // A name cannot break out of its part: JSON keeps it on one line.
+        let mut odd = moves[0].clone();
+        odd.name = format!("a\r\n--{BOUNDARY}--\r\nb");
+        let body = batch_body(&move_parts(&[odd]).unwrap()).unwrap();
+        assert_eq!(body.split(|&b| b == b'\n').count(), 10);
         // Nothing that could break out of a part, and never more than Google takes.
-        for bad in ["a/b", "a b", "a\r\nb", "", "a?b", "a%2F"] {
-            assert!(batch_body(&[bad.to_owned()]).is_err(), "{bad:?}");
+        for bad in ["a/b", "a b", "a\r\nb", "", "a?b", "a%2F", "a&b"] {
+            assert!(delete_parts(&[bad.to_owned()]).is_err(), "{bad:?}");
+            let mut m = moves[0].clone();
+            m.to = bad.to_owned();
+            assert!(move_parts(&[m]).is_err(), "{bad:?}");
+            let mut m = moves[0].clone();
+            m.from = bad.to_owned();
+            assert!(move_parts(&[m]).is_err(), "{bad:?}");
         }
         assert!(batch_body(&[]).is_err());
-        assert!(batch_body(&vec!["a".to_owned(); BATCH + 1]).is_err());
+        assert!(batch_body(&delete_parts(&vec!["a".to_owned(); BATCH + 1]).unwrap()).is_err());
     }
 
     /// An answer as Drive writes it: parts in any order, each an HTTP answer.
@@ -764,6 +1381,11 @@ mod tests {
     }
 
     const KIND: &str = "multipart/mixed; boundary=batch_Ab9";
+
+    /// The answer to a batch of `n` deletions, as `delete_many` reads it.
+    fn batch_check(content_type: &str, body: &[u8], n: usize) -> Result<()> {
+        deleted(batch_statuses(content_type, body, n)?)
+    }
 
     #[test]
     fn a_batch_answer_is_read_strictly() {
@@ -800,5 +1422,22 @@ mod tests {
         assert!(batch_check("multipart/mixed", &ok, 2).is_err());
         let long = format!("multipart/mixed; boundary={}", "a".repeat(71));
         assert!(batch_check(&long, &ok, 2).is_err());
+    }
+
+    #[test]
+    fn a_batch_of_moves_answers_each_in_order() {
+        let ok = answer(&[("2", "404 Not Found"), ("1", "200 OK")]);
+        assert_eq!(
+            moved(batch_statuses(KIND, &ok, 2).unwrap()).unwrap(),
+            vec![true, false]
+        );
+        let deleted_answer = answer(&[("1", "204 No Content")]);
+        assert!(moved(batch_statuses(KIND, &deleted_answer, 1).unwrap()).is_err());
+        let forbidden = answer(&[("1", "200 OK"), ("2", "403 Forbidden")]);
+        assert!(matches!(
+            moved(batch_statuses(KIND, &forbidden, 2).unwrap()),
+            Err(Error::Corrupt("drive not signed in"))
+        ));
+        assert!(batch_statuses(KIND, &answer(&[("1", "200 OK")]), 2).is_err());
     }
 }

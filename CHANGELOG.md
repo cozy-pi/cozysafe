@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Unreleased
+
+### Changed
+- Google Drive keeps each vault in its own folder inside "Cozy Safe"; files from earlier
+  versions are moved there on the next sync (nothing is uploaded again).
+
 ## 0.1.57 (2026-10-24)
 
 ### Changed
