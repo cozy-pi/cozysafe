@@ -701,13 +701,38 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       deleted = await QuickLook.show(context, item,
           // Photos and videos: the full-screen view swipes through both.
           photos: media.where((m) => m.kind == ItemKind.photo || VideoViewScreen.supported).toList(),
-          vaultId: _vault.id);
+          vaultId: _vault.id,
+          // The bar stays under the preview: a tab closes it and goes there; in the middle
+          // the + closes it and offers the ways (owner 2026-10-24).
+          bar: (ctx) => VaultBar(
+                section: _section,
+                sections: _sections,
+                home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
+                onSection: (s) => Navigator.of(ctx).pop(QuickLook.sectionFor(s.name)),
+                centre: actionSide() == ActionSide.center
+                    ? ActionButton(
+                        icon: Icons.add,
+                        tooltip: AppLocalizations.of(ctx).addToVault,
+                        onTap: () => Navigator.of(ctx).pop(QuickLook.addRequest))
+                    : null,
+              ));
 
     } else {
       LockGuard.allowAway();
       deleted = await Navigator.of(context)
           .push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: item, vaultId: _vault.id)));
       LockGuard.clear();
+    }
+    // The bar under the preview: another section, or the +.
+    final goTo = QuickLook.sectionTarget(deleted);
+    if (goTo != null) {
+      final s = VaultSection.values.where((v) => v.name == goTo).firstOrNull;
+      if (s != null && mounted) _pickSection(s);
+      return;
+    }
+    if (deleted == QuickLook.addRequest) {
+      if (mounted) await _mainAction();
+      return;
     }
     // ⋯ in a viewer: that item's menu (it may be another photo, swiped to).
     final target = QuickLook.menuTarget(deleted);
@@ -1823,6 +1848,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final sections = _sections;
     if (sections.isNotEmpty && !sections.contains(_section)) _section = sections.first;
     final empty = _empty;
+    // The + inside the bar's middle (Settings → Middle); the bar's centre, left of which a
+    // lock button may sit.
+    final centreMode = actionSide() == ActionSide.center;
+    final lockShown = !_noLockButton(sections) && !nativeBarOn();
+    final centreX = (MediaQuery.sizeOf(context).width + (lockShown ? Ui.bar + 4 : 0)) / 2;
 
     final header = selecting
         ? Padding(
@@ -1975,6 +2005,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   section: _section,
                   sections: sections,
                   home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
+                  centre: centreMode && !empty ? const SizedBox(width: Ui.primary, height: Ui.primary) : null,
                   onSection: _pickSection,
                   // Just the lock, big: no vault icon, which would hint that the phone
                   // holds other vaults (owner 2026-10-21, after user testing).
@@ -2000,7 +2031,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                           open: _adding,
                           onGone: () => setState(() => _addShown = false),
                           ways: _addWays(),
-                          centre: Offset(MediaQuery.sizeOf(context).width / 2,
+                          centre: Offset(centreX,
                               MediaQuery.sizeOf(context).height - bottom - actionLift() - Ui.primary / 2),
                           hovered: _hover,
                           onPick: _pickAdd,
@@ -2026,9 +2057,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               // (Settings). An empty vault has the add tiles on screen instead.
               if (!empty) Positioned(
                 // Keyed: the column appearing above must not rebuild the button mid-slide
-                // (it would drop the finger's gesture).
+                // (it would drop the finger's gesture). In the middle it floats exactly over
+                // the gap the bar leaves for it, so it stays one widget throughout.
                 key: const ValueKey('action-slot'),
-                left: actionLeft(context),
+                left: centreMode ? centreX - Ui.primary / 2 : actionLeft(context),
                 bottom: bottom + actionLift(),
                 // Tap: open or close the column. Finger down and slide up: pick on release.
                 // Only a tap, or a finger sliding UP from +, opens the ways: a sideways

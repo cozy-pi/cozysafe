@@ -14,6 +14,7 @@ import '../widgets/brand.dart';
 import '../widgets/vault_bar.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
+import 'debug.dart' show debugModeOn;
 import 'new_vault.dart';
 import 'restore.dart';
 import 'set_pin.dart';
@@ -567,12 +568,14 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
               onPressed: () => setState(() => _mode = _Mode.pin),
               child: Text(l.usePin),
             ),
-          MenuItemButton(
-            style: _menuItem,
-            leadingIcon: const Icon(Icons.add),
-            onPressed: _busy ? null : _newVault,
-            child: Text(l.newVault),
-          ),
+          // One vault in the app; another only in debug mode (decisions 2026-10-24).
+          if (debugModeOn())
+            MenuItemButton(
+              style: _menuItem,
+              leadingIcon: const Icon(Icons.add),
+              onPressed: _busy ? null : _newVault,
+              child: Text(l.newVault),
+            ),
           MenuItemButton(
             style: _menuItem,
             leadingIcon: const Icon(Icons.settings_backup_restore),

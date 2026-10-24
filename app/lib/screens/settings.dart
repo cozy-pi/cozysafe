@@ -486,14 +486,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
           ]),
-          _Group(title: l.settingsVaults, rows: [
-            _Row(
-              icon: Icons.add,
-              color: _Mau.troi,
-              title: l.newVault,
-              onTap: widget.onNewVault,
-            ),
-          ]),
+          // One vault in the app (decisions 2026-10-24); another one only in debug mode, for
+          // testing (the core keeps several).
+          if (debugModeOn())
+            _Group(title: l.settingsVaults, rows: [
+              _Row(
+                key: const ValueKey('debug-new-vault'),
+                icon: Icons.add,
+                color: _Mau.troi,
+                title: l.newVault,
+                onTap: widget.onNewVault,
+              ),
+            ]),
           const SizedBox(height: 22),
           Material(
             color: Theme.of(context).cardColor,
