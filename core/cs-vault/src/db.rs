@@ -18,7 +18,7 @@ use crate::{Error, Result};
 
 pub(crate) const INDEX_FILE: &str = "vault.db";
 /// `PRAGMA user_version` of the schema below; each new version gets one migration.
-const SCHEMA_VERSION: i32 = 1;
+const SCHEMA_VERSION: i32 = 2;
 
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS items (
@@ -35,6 +35,23 @@ CREATE INDEX IF NOT EXISTS idx_items_created
 -- Recently deleted, latest first, and the 30-day purge.
 CREATE INDEX IF NOT EXISTS idx_items_deleted
     ON items (deleted_ms DESC) WHERE deleted_ms IS NOT NULL;
+-- Sync (docs/adr/0003-sync.md), version 2. Local only: never in backups or the cloud.
+-- This device's id, its clock, its journal number, and how far it has read each other
+-- device's journal ('cursor:<device>').
+CREATE TABLE IF NOT EXISTS sync_meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+) STRICT;
+-- Per item, the revision this device and the cloud last agreed on.
+CREATE TABLE IF NOT EXISTS sync_items (
+    id         TEXT PRIMARY KEY CHECK (length(id) = 32),
+    synced_rev TEXT NOT NULL
+) STRICT;
+-- Items deleted for good here, to tell the other devices (until pushed).
+CREATE TABLE IF NOT EXISTS sync_gone (
+    id  TEXT PRIMARY KEY CHECK (length(id) = 32),
+    hlc INTEGER NOT NULL
+) STRICT;
 ";
 
 /// What the index knows about an item without opening it.
@@ -152,6 +169,80 @@ impl Index {
         let mut stmt = self.db.prepare("SELECT id FROM items").map_err(sql)?;
         let ids = stmt.query_map([], |r| r.get(0)).map_err(sql)?;
         ids.collect::<rusqlite::Result<HashSet<_>>>().map_err(sql)
+    }
+
+    pub(crate) fn meta_get(&self, key: &str) -> Result<Option<String>> {
+        self.db
+            .query_row("SELECT value FROM sync_meta WHERE key = ?1", [key], |r| {
+                r.get(0)
+            })
+            .optional()
+            .map_err(sql)
+    }
+
+    pub(crate) fn meta_set(&self, key: &str, value: &str) -> Result<()> {
+        self.db
+            .execute(
+                "INSERT INTO sync_meta (key, value) VALUES (?1, ?2)
+                 ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+                params![key, value],
+            )
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    pub(crate) fn synced_rev(&self, id: &str) -> Result<Option<String>> {
+        self.db
+            .query_row(
+                "SELECT synced_rev FROM sync_items WHERE id = ?1",
+                [id],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(sql)
+    }
+
+    pub(crate) fn set_synced(&self, id: &str, rev: &str) -> Result<()> {
+        self.db
+            .execute(
+                "INSERT INTO sync_items (id, synced_rev) VALUES (?1, ?2)
+                 ON CONFLICT (id) DO UPDATE SET synced_rev = excluded.synced_rev",
+                params![id, rev],
+            )
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    pub(crate) fn add_gone(&self, id: &str, hlc: i64) -> Result<()> {
+        self.db
+            .execute(
+                "INSERT INTO sync_gone (id, hlc) VALUES (?1, ?2)
+                 ON CONFLICT (id) DO UPDATE SET hlc = excluded.hlc",
+                params![id, hlc],
+            )
+            .map_err(sql)?;
+        self.db
+            .execute("DELETE FROM sync_items WHERE id = ?1", [id])
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    pub(crate) fn gone(&self) -> Result<Vec<(String, i64)>> {
+        let mut stmt = self
+            .db
+            .prepare("SELECT id, hlc FROM sync_gone ORDER BY id")
+            .map_err(sql)?;
+        let rows = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(sql)?;
+        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(sql)
+    }
+
+    pub(crate) fn clear_gone(&self, id: &str) -> Result<()> {
+        self.db
+            .execute("DELETE FROM sync_gone WHERE id = ?1", [id])
+            .map_err(sql)?;
+        Ok(())
     }
 
     /// Run `f` in one transaction: all of it lands, or none.

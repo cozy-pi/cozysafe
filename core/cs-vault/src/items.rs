@@ -79,6 +79,10 @@ fn is_false(b: &bool) -> bool {
     !*b
 }
 
+fn is_zero(n: &i64) -> bool {
+    *n == 0
+}
+
 /// One item's metadata, sealed in `<item>.meta` (and copied into the index).
 ///
 /// Format 1 (0.1.0–0.1.6) wrote `size`, `has_thumb`, and folders: items of kind
@@ -87,37 +91,58 @@ fn is_false(b: &bool) -> bool {
 /// that tag (nested folders become separate tags). Records are rewritten in format 2
 /// the next time they change; nothing is converted in bulk.
 #[derive(Clone, Serialize, Deserialize)]
-struct ItemRecord {
+pub(crate) struct ItemRecord {
     #[serde(default = "format_1")]
-    format: u32,
-    kind: String,
-    name: String,
-    mime: String,
-    created_ms: i64,
+    pub(crate) format: u32,
+    pub(crate) kind: String,
+    pub(crate) name: String,
+    pub(crate) mime: String,
+    pub(crate) created_ms: i64,
     #[serde(alias = "size")]
-    size_bytes: u64,
+    pub(crate) size_bytes: u64,
     #[serde(alias = "has_thumb")]
-    has_thumbnail: bool,
-    wrapped_dek: String,
+    pub(crate) has_thumbnail: bool,
+    pub(crate) wrapped_dek: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    deleted_ms: Option<i64>,
+    pub(crate) deleted_ms: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    duration_ms: Option<i64>,
+    pub(crate) duration_ms: Option<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    tag_ids: Vec<String>,
+    pub(crate) tag_ids: Vec<String>,
     /// Added in format 2 (0.1.31) without raising it: absent means no, and older apps
     /// ignore it (no `deny_unknown_fields`), so records stay readable both ways.
     #[serde(default, skip_serializing_if = "is_false")]
-    is_favorite: bool,
+    pub(crate) is_favorite: bool,
     /// Also additive in format 2 (0.1.31); absent means "not changed since created".
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    modified_ms: Option<i64>,
+    pub(crate) modified_ms: Option<i64>,
+    /// Sync (docs/adr/0003-sync.md), additive like the two above. This revision, the one
+    /// it was made from, the hybrid logical clock and the device that wrote it, and the
+    /// revision whose content (`.data`, `.thumb`) it has.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub(crate) rev: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) base_rev: Option<String>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub(crate) hlc: i64,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub(crate) device: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub(crate) data_rev: String,
     /// Format 1: the folder the item was in. Read, never written.
     #[serde(default, rename = "folder", skip_serializing)]
     legacy_folder_id: Option<String>,
 }
 
 impl ItemRecord {
+    pub(crate) fn has_thumbnail(&self) -> bool {
+        self.has_thumbnail
+    }
+
+    pub(crate) fn set_thumbnail(&mut self, has: bool) {
+        self.has_thumbnail = has;
+    }
+
     /// Bring a format-1 record up to date in memory.
     fn upgraded(mut self) -> Self {
         if self.kind == kind::LEGACY_FOLDER {
@@ -158,15 +183,15 @@ pub struct NewItem<'a, R: Read> {
 }
 
 impl OpenVault {
-    fn items_dir(&self) -> PathBuf {
+    pub(crate) fn items_dir(&self) -> PathBuf {
         self.dir.join(ITEMS_DIR)
     }
 
-    fn item_aad(&self, item: &str, role: &str) -> Vec<u8> {
+    pub(crate) fn item_aad(&self, item: &str, role: &str) -> Vec<u8> {
         crate::aad(&self.id, &format!("item/{item}/{role}"))
     }
 
-    fn path(&self, item: &str, ext: &str) -> Result<PathBuf> {
+    pub(crate) fn path(&self, item: &str, ext: &str) -> Result<PathBuf> {
         // Item IDs come back from Dart: accept only our own format (no path tricks).
         if item.len() != 32 || !item.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err(Error::NoSuchItem);
@@ -222,6 +247,11 @@ impl OpenVault {
             tag_ids: Vec::new(),
             is_favorite: false,
             modified_ms: None,
+            rev: String::new(),
+            base_rev: None,
+            hlc: 0,
+            device: String::new(),
+            data_rev: String::new(),
             legacy_folder_id: None,
             wrapped_dek: hex::encode(wrap::wrap_key(
                 &self.master_key,
@@ -249,6 +279,7 @@ impl OpenVault {
         fs::rename(&tmp, &data_path)?;
         record.size_bytes = size_bytes;
         record.name = name.to_owned();
+        record.data_rev.clear(); // new content: this revision carries it
         let record = self.write_record(id, &record)?;
         Ok(meta(id.to_owned(), record))
     }
@@ -261,11 +292,38 @@ impl OpenVault {
         if self.index.sealed_record(id)?.is_some() || self.path(id, "meta")?.exists() {
             record.modified_ms = Some(now_ms());
         }
-        let json = serde_json::to_vec(&record).expect("serialisable");
+        self.stamp(&mut record)?;
+        self.store_record(id, &record)?;
+        Ok(record)
+    }
+
+    /// A new revision of `record`, made here now. An empty `data_rev` means the content
+    /// changed in this revision.
+    pub(crate) fn stamp(&self, record: &mut ItemRecord) -> Result<()> {
+        let rev = hex::encode(cs_crypto::generate_salt());
+        record.base_rev = (!record.rev.is_empty()).then(|| std::mem::take(&mut record.rev));
+        record.hlc = crate::sync::next_hlc(&self.index, record.hlc)?;
+        record.device = crate::sync::device_id(&self.index)?;
+        if record.data_rev.is_empty() {
+            record.data_rev = rev.clone();
+        }
+        record.rev = rev;
+        Ok(())
+    }
+
+    /// Seal `record` as it is into `.meta` and the index (no new revision).
+    pub(crate) fn store_record(&self, id: &str, record: &ItemRecord) -> Result<Vec<u8>> {
+        let json = serde_json::to_vec(record).expect("serialisable");
         let sealed = wrap::seal(&self.master_key, &json, &self.item_aad(id, "meta"));
         write_atomic(&self.path(id, "meta")?, &sealed)?;
-        self.index.upsert(id, &columns(&record), &sealed)?;
-        Ok(record)
+        self.index.upsert(id, &columns(record), &sealed)?;
+        Ok(sealed)
+    }
+
+    /// The sealed `.meta` bytes of an item, as stored.
+    pub(crate) fn sealed_record(&self, id: &str) -> Result<Option<Vec<u8>>> {
+        self.path(id, "meta")?;
+        self.index.sealed_record(id)
     }
 
     /// Bring the index in line with the `.meta` files: add what it misses (vaults from
@@ -306,7 +364,7 @@ impl OpenVault {
         })
     }
 
-    fn open_record(&self, id: &str, sealed: &[u8]) -> Result<ItemRecord> {
+    pub(crate) fn open_record(&self, id: &str, sealed: &[u8]) -> Result<ItemRecord> {
         let json = wrap::open(&self.master_key, sealed, &self.item_aad(id, "meta"))?;
         serde_json::from_slice::<ItemRecord>(&json)
             .map(ItemRecord::upgraded)
@@ -472,7 +530,16 @@ impl OpenVault {
     }
 
     /// Remove an item. The metadata goes first, so a crash midway never shows half an item.
+    /// The other devices hear of it at the next sync.
     pub fn delete_item(&self, id: &str) -> Result<()> {
+        let hlc = self.record(id).map(|r| r.hlc).unwrap_or(0);
+        self.remove_item(id)?;
+        self.index
+            .add_gone(id, crate::sync::next_hlc(&self.index, hlc)?)
+    }
+
+    /// [`Self::delete_item`] without telling the other devices (a sync applying theirs).
+    pub(crate) fn remove_item(&self, id: &str) -> Result<()> {
         let meta_path = self.path(id, "meta")?;
         if !meta_path.exists() {
             return Err(Error::NoSuchItem);
@@ -489,7 +556,7 @@ impl OpenVault {
         Ok(())
     }
 
-    fn record(&self, id: &str) -> Result<ItemRecord> {
+    pub(crate) fn record(&self, id: &str) -> Result<ItemRecord> {
         self.path(id, "meta")?; // rejects ids that are not ours
         match self.index.sealed_record(id)? {
             Some(sealed) => self.open_record(id, &sealed),
@@ -499,9 +566,18 @@ impl OpenVault {
 
     fn record_and_key(&self, id: &str) -> Result<(ItemRecord, Key)> {
         let record = self.record(id)?;
-        let wrapped = hex::decode(&record.wrapped_dek).map_err(|_| Error::Corrupt("item key"))?;
-        let dek = wrap::unwrap_key(&self.master_key, &wrapped, &self.item_aad(id, "dek"))?;
+        let dek = self.unwrap_dek(id, &record)?;
         Ok((record, dek))
+    }
+
+    /// The item's own content key, from its record.
+    pub(crate) fn unwrap_dek(&self, id: &str, record: &ItemRecord) -> Result<Key> {
+        let wrapped = hex::decode(&record.wrapped_dek).map_err(|_| Error::Corrupt("item key"))?;
+        Ok(wrap::unwrap_key(
+            &self.master_key,
+            &wrapped,
+            &self.item_aad(id, "dek"),
+        )?)
     }
 }
 
