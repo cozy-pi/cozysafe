@@ -4,6 +4,22 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.54 (2026-10-24)
+
+### Added
+- "I have a vault on Google Drive" on the first screen: sign in with Google, type the 24
+  words and the vault password, and the vault comes down encrypted and opens on this
+  device; no backup file needed.
+
+### Changed
+- + shows every way to add in one row, scrolling sideways when needed.
+- Turning on debug mode no longer shows a message over the Debug row.
+
+### Security
+- New independent scanners on every change: Google's OSV-Scanner (Rust and Dart),
+  GitHub CodeQL, Semgrep, gitleaks (secrets in the whole history), and a rule that no
+  library version younger than 14 days gets in.
+
 ## 0.1.53 (2026-10-24)
 
 ### Added
