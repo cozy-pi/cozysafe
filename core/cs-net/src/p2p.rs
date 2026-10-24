@@ -735,8 +735,10 @@ fn join_inner(
 
 /// Restore onto this device (`dir`, no vault in it) the vault of the device showing
 /// `code`, with only the 24 words and the password: pair with a key from the words,
-/// open the vault's lock, then sync its items in. `None` for a wrong password;
-/// [`Error::WrongSecretKey`] when the host does not take these words.
+/// open the vault's lock, then sync its items in. False for a wrong password;
+/// [`Error::WrongSecretKey`] when the host does not take these words. The vault is then
+/// opened the usual way, from `dir` with the two secrets: nothing that came over the
+/// network is handed back.
 pub fn restore(
     dir: &Path,
     permit: Permit,
@@ -745,7 +747,7 @@ pub fn restore(
     password: &str,
     on_check: &dyn Fn(u16),
     progress: &dyn Fn(SyncProgress),
-) -> Result<Option<OpenVault>> {
+) -> Result<bool> {
     set_live(None);
     let out = restore_inner(dir, permit, code, secret, password, on_check, progress);
     set_live(None);
@@ -760,7 +762,7 @@ fn restore_inner(
     password: &str,
     on_check: &dyn Fn(u16),
     progress: &dyn Fn(SyncProgress),
-) -> Result<Option<OpenVault>> {
+) -> Result<bool> {
     if permit.connect_to() != Some(code.addr) {
         return Err(Error::Corrupt("permit is for another address"));
     }
@@ -782,12 +784,12 @@ fn restore_inner(
     let remote = ChannelRemote { ch: Mutex::new(ch) };
     let Some(vault) = Library::join(dir, &remote, &id, secret, password)? else {
         remote.done()?;
-        return Ok(None);
+        return Ok(false);
     };
     vault.forget_sync_place(JOIN_KEY)?;
     vault.sync_with(&remote, progress)?;
     remote.done()?;
-    Ok(Some(vault))
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -956,7 +958,7 @@ mod tests {
         sk: &SecretKey,
         words: SecretKey,
         password: &str,
-    ) -> (Result<Option<OpenVault>>, tempfile::TempDir) {
+    ) -> (Result<bool>, tempfile::TempDir) {
         let mirror = tempfile::tempdir().unwrap();
         let fresh = tempfile::tempdir().unwrap();
         let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
@@ -985,8 +987,9 @@ mod tests {
         let t = crate::testkit::two();
         let id = crate::testkit::note(&t.a, "bank", "PIN 4821");
         let sk = t.sk.clone();
-        let (got, _dir) = restore_from(&t, &sk, sk.clone(), &t.pw);
-        let v = got.unwrap().unwrap();
+        let (got, dir) = restore_from(&t, &sk, sk.clone(), &t.pw);
+        assert!(got.unwrap());
+        let v = crate::testkit::open(dir.path(), &sk, &t.pw);
         assert_eq!(v.id, t.a.id);
         assert_eq!(crate::testkit::text(&v, &id), "PIN 4821");
     }
@@ -997,7 +1000,7 @@ mod tests {
         let sk = t.sk.clone();
         let wrong: String = t.pw.chars().rev().collect();
         let (got, dir) = restore_from(&t, &sk, sk.clone(), &wrong);
-        assert!(got.unwrap().is_none());
+        assert!(!got.unwrap());
         assert!(!Library::has_vaults(dir.path()));
         let other = SecretKey::from_bytes([7; cs_crypto::SECRET_KEY_LEN]);
         let (got, dir) = restore_from(&t, &sk, other, &t.pw);

@@ -153,6 +153,15 @@ pub(crate) mod testkit {
         }
     }
 
+    /// Open the vault in `dir` the usual way.
+    pub(crate) fn open(dir: &Path, sk: &SecretKey, pw: &str) -> OpenVault {
+        Library::open_or_create(dir, FAST, sk.clone())
+            .unwrap()
+            .unlock(pw)
+            .unwrap()
+            .unwrap()
+    }
+
     pub(crate) fn note(v: &OpenVault, name: &str, text: &str) -> String {
         v.add_item(NewItem {
             kind: kind::NOTE,

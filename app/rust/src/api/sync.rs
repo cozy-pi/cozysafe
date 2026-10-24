@@ -297,12 +297,15 @@ pub fn p2p_restore(dir: String, code: String, words: String, password: String, s
         },
     );
     let event = match restored {
-        Ok(Some(vault)) => {
+        // Opened the usual way, from this device's folder with the two secrets.
+        Ok(true) => {
             super::vault::use_secret(key);
-            super::vault::set_open(vault);
-            step(SyncStep::Done)
+            match super::vault::unlock(dir.to_string_lossy().into_owned(), password.to_string()) {
+                Ok(Some(_)) => step(SyncStep::Done),
+                _ => step(SyncStep::Failed),
+            }
         }
-        Ok(None) => step(SyncStep::WrongPassword),
+        Ok(false) => step(SyncStep::WrongPassword),
         Err(cs_vault::Error::WrongSecretKey) => step(SyncStep::WrongWords),
         Err(e) => failure(e),
     };
