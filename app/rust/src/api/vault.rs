@@ -242,7 +242,15 @@ pub fn finish_secret_key_change(dir: String, new_key: Vec<u8>) -> Result<(), Vau
 /// The last vault is gone and the keystore forgot the key: drop the copy held here too.
 #[flutter_rust_bridge::frb(sync)]
 pub fn forget_secret_key() {
+    forget_secret();
+}
+
+pub(crate) fn forget_secret() {
     *SECRET.lock().unwrap_or_else(|p| p.into_inner()) = None;
+}
+
+pub(crate) fn use_secret(key: SecretKey) {
+    *SECRET.lock().unwrap_or_else(|p| p.into_inner()) = Some(key);
 }
 
 /// A new random Secret Key, for the first vault on a device.
@@ -433,7 +441,7 @@ pub fn lock() {
     *OPEN.lock().unwrap_or_else(|p| p.into_inner()) = None;
 }
 
-fn set_open(vault: OpenVault) -> VaultInfo {
+pub(crate) fn set_open(vault: OpenVault) -> VaultInfo {
     let info = info_of(&vault);
     *OPEN.lock().unwrap_or_else(|p| p.into_inner()) = Some(vault);
     info

@@ -520,5 +520,12 @@
   "syncDriveWorking": "正在與 Google Drive 同步",
   "syncSignInAgain": "Google 要求你重新登入。請再點一次「與 Google Drive 同步」。",
   "syncDriveSignOut": "登出 Google 帳號",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "我在 Google Drive 上有保險箱",
+  "joinDriveTitle": "從 Google Drive 開啟保險箱",
+  "joinDriveLead": "登入與保險箱同步的 Google 帳號，然後輸入它的 24 個單字和保險箱密碼。保險箱會以加密形式下載，並在此裝置上開啟。",
+  "joinSignIn": "使用 Google 登入",
+  "joinOpen": "開啟保險箱",
+  "joinNoVault": "此 Google 帳號的 Drive 中沒有 Cozy Safe 保險箱。",
+  "joinWrongWords": "這 24 個單字不屬於 Drive 上的保險箱。請依順序逐一檢查每個單字。"
 }

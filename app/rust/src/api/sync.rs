@@ -237,6 +237,79 @@ pub fn drive_sync(token: String) -> SyncEvent {
     event
 }
 
+/// What came of joining a vault from Google Drive on this device.
+pub enum JoinOutcome {
+    /// The vault is open here, its items synced in.
+    Joined,
+    /// Nothing of Cozy Safe in this Google account's Drive.
+    NoVault,
+    /// The 24 words are not this vault's (or are not 24 valid words).
+    WrongWords,
+    WrongPassword,
+    /// Google asks to sign in again.
+    SignIn,
+    /// The network or Drive failed.
+    Failed,
+}
+
+pub struct JoinResult {
+    pub outcome: JoinOutcome,
+    pub vault: Option<super::vault::VaultInfo>,
+}
+
+fn join_result(outcome: JoinOutcome) -> JoinResult {
+    JoinResult {
+        outcome,
+        vault: None,
+    }
+}
+
+/// A new device with no vault: open the one kept in this Google account's Drive with
+/// the 24 words and the vault password (no backup file), then sync its items in. The
+/// person allowed the connection; `token` comes from their sign-in. On success the key
+/// is in use here; Dart then keeps it in the keystore.
+pub fn drive_join(dir: String, token: String, words: String, password: String) -> JoinResult {
+    let password = zeroize::Zeroizing::new(password);
+    let words = zeroize::Zeroizing::new(words);
+    let token = zeroize::Zeroizing::new(token);
+    let Some(key) = cs_crypto::SecretKey::from_text(&words) else {
+        return join_result(JoinOutcome::WrongWords);
+    };
+    let remote = match GoogleDrive::new(Permit::google_drive(), token.to_string())
+        .and_then(DriveRemote::open)
+    {
+        Ok(r) => r,
+        Err(cs_vault::Error::Corrupt("drive not signed in")) => {
+            return join_result(JoinOutcome::SignIn)
+        }
+        Err(_) => return join_result(JoinOutcome::Failed),
+    };
+    let Some(id) = remote.vault_ids().into_iter().next() else {
+        return join_result(JoinOutcome::NoVault);
+    };
+    let dir = Path::new(&dir);
+    if cs_vault::Library::reset_if_empty(dir).is_err() {
+        return join_result(JoinOutcome::Failed);
+    }
+    let vault = match cs_vault::Library::join(dir, &remote, &id, key.clone(), &password) {
+        Ok(Some(v)) => v,
+        Ok(None) => return join_result(JoinOutcome::WrongPassword),
+        Err(cs_vault::Error::WrongSecretKey) => return join_result(JoinOutcome::WrongWords),
+        Err(_) => return join_result(JoinOutcome::Failed),
+    };
+    let synced = vault.sync(&remote);
+    let _ = vault.log_connection(&format!(
+        "{}|drive|Google Drive|{}|0|0",
+        now_ms(),
+        if synced.is_ok() { "ok" } else { "failed" }
+    ));
+    super::vault::use_secret(key);
+    JoinResult {
+        outcome: JoinOutcome::Joined,
+        vault: Some(super::vault::set_open(vault)),
+    }
+}
+
 /// Stop waiting, or end the session under way.
 #[flutter_rust_bridge::frb(sync)]
 pub fn p2p_cancel() {

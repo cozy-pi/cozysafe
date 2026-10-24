@@ -753,7 +753,7 @@ pub(crate) mod tests {
         t: 1,
         p: 1,
     };
-    const PW: &str = "orange kettle whispers at dawn 77";
+    pub(crate) const PW: &str = "orange kettle whispers at dawn 77";
 
     /// A vault on device A, the same vault copied to device B (without A's local sync
     /// state, as a new device starts), and the folder they share.

@@ -58,6 +58,18 @@ impl<A: DriveApi> DriveRemote<A> {
         })
     }
 
+    /// The vaults this Drive folder holds a lock for (to join one on a new device).
+    pub fn vault_ids(&self) -> Vec<String> {
+        let index = self.index.lock().unwrap_or_else(|p| p.into_inner());
+        let mut ids: Vec<String> = index
+            .keys()
+            .filter_map(|n| n.split_once("/lock/").map(|(id, _)| id.to_owned()))
+            .collect();
+        ids.sort();
+        ids.dedup();
+        ids
+    }
+
     fn id(&self, path: &str) -> Option<String> {
         self.index
             .lock()

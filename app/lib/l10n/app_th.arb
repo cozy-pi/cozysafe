@@ -520,5 +520,12 @@
   "syncDriveWorking": "กำลังซิงค์กับ Google Drive",
   "syncSignInAgain": "Google ขอให้คุณลงชื่อเข้าใช้อีกครั้ง แตะ ซิงค์กับ Google Drive อีกครั้ง",
   "syncDriveSignOut": "ออกจากระบบ Google",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "ฉันมีตู้นิรภัยใน Google Drive",
+  "joinDriveTitle": "เปิดตู้นิรภัยจาก Google Drive",
+  "joinDriveLead": "ลงชื่อเข้าใช้บัญชี Google ที่ตู้นิรภัยของคุณซิงค์ด้วย แล้วพิมพ์คำ 24 คำและรหัสผ่านตู้นิรภัย ตู้นิรภัยจะถูกดาวน์โหลดแบบเข้ารหัสและเปิดบนอุปกรณ์นี้",
+  "joinSignIn": "ลงชื่อเข้าใช้ด้วย Google",
+  "joinOpen": "เปิดตู้นิรภัย",
+  "joinNoVault": "ไม่พบตู้นิรภัย Cozy Safe ใน Drive ของบัญชี Google นี้",
+  "joinWrongWords": "คำ 24 คำนี้ไม่ใช่ของตู้นิรภัยใน Drive ตรวจสอบทีละคำตามลำดับ"
 }

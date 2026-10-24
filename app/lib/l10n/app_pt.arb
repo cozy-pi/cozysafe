@@ -520,5 +520,12 @@
   "syncDriveWorking": "Sincronizando com o Google Drive",
   "syncSignInAgain": "O Google pede que você entre de novo. Toque em Sincronizar com o Google Drive mais uma vez.",
   "syncDriveSignOut": "Sair do Google",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "Tenho um cofre no Google Drive",
+  "joinDriveTitle": "Abra seu cofre pelo Google Drive",
+  "joinDriveLead": "Entre na conta Google com a qual seu cofre sincroniza e digite as 24 palavras e a senha do cofre. O cofre é baixado criptografado e abre neste dispositivo.",
+  "joinSignIn": "Entrar com o Google",
+  "joinOpen": "Abrir o cofre",
+  "joinNoVault": "Nenhum cofre do Cozy Safe no Drive desta conta Google.",
+  "joinWrongWords": "Estas 24 palavras não são as do cofre no Drive. Confira cada palavra, na ordem."
 }

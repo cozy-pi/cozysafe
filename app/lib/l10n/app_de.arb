@@ -520,5 +520,12 @@
   "syncDriveWorking": "Synchronisierung mit Google Drive",
   "syncSignInAgain": "Google bittet dich, dich erneut anzumelden. Tippe noch einmal auf „Mit Google Drive synchronisieren“.",
   "syncDriveSignOut": "Von Google abmelden",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "Ich habe einen Tresor in Google Drive",
+  "joinDriveTitle": "Tresor aus Google Drive öffnen",
+  "joinDriveLead": "Melde dich bei dem Google-Konto an, mit dem dein Tresor synchronisiert wird, und gib dann die 24 Wörter und das Tresor-Passwort ein. Der Tresor wird verschlüsselt heruntergeladen und auf diesem Gerät geöffnet.",
+  "joinSignIn": "Mit Google anmelden",
+  "joinOpen": "Tresor öffnen",
+  "joinNoVault": "Kein Cozy-Safe-Tresor im Google Drive dieses Kontos.",
+  "joinWrongWords": "Diese 24 Wörter gehören nicht zum Tresor in Drive. Prüfe jedes Wort in der richtigen Reihenfolge."
 }

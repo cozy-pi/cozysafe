@@ -16,6 +16,8 @@ import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'restore.dart';
+import '../platform.dart';
+import '../sync/drive_join.dart';
 import 'vault_home.dart';
 
 /// Create a vault (owner 2026-10-23): what each key is for → (first vault on this
@@ -34,6 +36,8 @@ class NewVaultScreen extends StatefulWidget {
   /// Mockups: the words to show, instead of the keystore's.
   @visibleForTesting
   static String? debugWords;
+  /// For the mockup renders: offer joining from Google Drive on any platform.
+  static bool debugDriveJoin = false;
 
   @override
   State<NewVaultScreen> createState() => _NewVaultScreenState();
@@ -520,12 +524,27 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                   ),
                 ),
                 if (widget.first && _step == _Step.intro)
-                  TextButton(
-                    style: TextButton.styleFrom(foregroundColor: ink.withValues(alpha: .85)),
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) => RestoreScreen(libraryDir: widget.libraryDir, needFile: true),
-                    )),
-                    child: Text(l.restoreFromBackup),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    children: [
+                      // Phones only, like Drive sync (no desktop sign-in client yet).
+                      if (Device.iOS || Device.android || NewVaultScreen.debugDriveJoin)
+                        TextButton(
+                          key: const ValueKey('join-drive'),
+                          style: TextButton.styleFrom(foregroundColor: ink.withValues(alpha: .85)),
+                          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                            builder: (_) => DriveJoinScreen(libraryDir: widget.libraryDir),
+                          )),
+                          child: Text(l.joinDriveButton),
+                        ),
+                      TextButton(
+                        style: TextButton.styleFrom(foregroundColor: ink.withValues(alpha: .85)),
+                        onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                          builder: (_) => RestoreScreen(libraryDir: widget.libraryDir, needFile: true),
+                        )),
+                        child: Text(l.restoreFromBackup),
+                      ),
+                    ],
                   ),
                 // Back and Cancel under the thumbs, large, instead of a small arrow in
                 // the top corner. The very first vault has nothing to cancel back to;

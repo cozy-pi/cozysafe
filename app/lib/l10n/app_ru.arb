@@ -520,5 +520,12 @@
   "syncDriveWorking": "Синхронизация с Google Drive",
   "syncSignInAgain": "Google просит войти снова. Нажмите «Синхронизировать с Google Drive» ещё раз.",
   "syncDriveSignOut": "Выйти из Google",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "У меня есть сейф в Google Drive",
+  "joinDriveTitle": "Откройте сейф из Google Drive",
+  "joinDriveLead": "Войдите в аккаунт Google, с которым синхронизируется ваш сейф, затем введите его 24 слова и пароль сейфа. Сейф загрузится в зашифрованном виде и откроется на этом устройстве.",
+  "joinSignIn": "Войти через Google",
+  "joinOpen": "Открыть сейф",
+  "joinNoVault": "В Drive этого аккаунта Google нет сейфа Cozy Safe.",
+  "joinWrongWords": "Эти 24 слова не от сейфа в Drive. Проверьте каждое слово по порядку."
 }

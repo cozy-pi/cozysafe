@@ -520,5 +520,12 @@
   "syncDriveWorking": "Menyinkronkan dengan Google Drive",
   "syncSignInAgain": "Google meminta Anda masuk lagi. Ketuk Sinkronkan dengan Google Drive sekali lagi.",
   "syncDriveSignOut": "Keluar dari Google",
-  "syncLogDrive": "Google Drive"
+  "syncLogDrive": "Google Drive",
+  "joinDriveButton": "Saya punya brankas di Google Drive",
+  "joinDriveTitle": "Buka brankas Anda dari Google Drive",
+  "joinDriveLead": "Masuk ke akun Google yang disinkronkan dengan brankas Anda, lalu ketik 24 kata dan kata sandi brankasnya. Brankas diunduh dalam keadaan terenkripsi dan dibuka di perangkat ini.",
+  "joinSignIn": "Masuk dengan Google",
+  "joinOpen": "Buka brankas",
+  "joinNoVault": "Tidak ada brankas Cozy Safe di Drive akun Google ini.",
+  "joinWrongWords": "24 kata ini bukan milik brankas di Drive. Periksa setiap kata, sesuai urutan."
 }
