@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.44 (2026-10-24)
+
+### Changed
+- Middle bar: + sits right after the overview tab, the four kinds of items after it.
+
+### Fixed
+- Linux build (a JPEG library the runner no longer had).
+
 ## 0.1.43 (2026-10-24)
 
 ### Changed

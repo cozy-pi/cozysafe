@@ -325,7 +325,7 @@ class _CentreTabs extends StatelessWidget {
 
     // Every slot the same width, the + one of them (owner 2026-10-24: with the home
     // badge in the bar an empty slot was left on one side).
-    final at = centrePlusSlot(sections.length);
+    final at = centrePlusSlot(sections);
     final slots = sections.length + 1;
     return LayoutBuilder(builder: (context, box) {
       // Where the lit pill sits: under the section on show, sliding from one to the
@@ -366,12 +366,14 @@ class _CentreTabs extends StatelessWidget {
   }
 }
 
-/// Which slot of the middle bar holds the + (the sections fill the others): the middle
-/// one, or just right of the middle when the count is odd.
-int centrePlusSlot(int sections) => (sections + 1) ~/ 2;
+/// Which slot of the middle bar holds the + (the sections fill the others): right after
+/// the overview (owner 2026-10-24), or the middle one without it.
+int centrePlusSlot(List<VaultSection> sections) =>
+    sections.isNotEmpty && sections.first == VaultSection.home ? 1 : (sections.length + 1) ~/ 2;
 
 /// The + button's centre across the middle bar, as a share of the bar's width.
-double centrePlusShare(int sections) => (centrePlusSlot(sections) + .5) / (sections + 1);
+double centrePlusShare(List<VaultSection> sections) =>
+    (centrePlusSlot(sections) + .5) / (sections.length + 1);
 
 /// The tabs inside the capsule. The home tab stays put on the left; the others share
 /// the rest equally when their words fit, and scroll sideways (no loop) when they do not

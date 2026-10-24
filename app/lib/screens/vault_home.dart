@@ -1855,7 +1855,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // Left of the bar: a lock button, and the vault's badge (the overview tab).
     final leftOfBar = (lockShown ? Ui.bar + 4 : 0);
     final barW = MediaQuery.sizeOf(context).width - 20 - leftOfBar;
-    final centreX = 10 + leftOfBar + barW * centrePlusShare(sections.length < 2 ? 0 : sections.length);
+    final centreX = 10 + leftOfBar + barW * centrePlusShare(sections.length < 2 ? const [] : sections);
 
     final header = selecting
         ? Padding(
