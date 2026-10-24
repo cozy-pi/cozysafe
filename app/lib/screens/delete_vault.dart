@@ -83,6 +83,20 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
       await LockGuard.clearCopied();
       if (!mounted) return;
       final any = rust.hasVaults(dir: widget.libraryDir);
+      // The last vault: its 24 words go too, and the next vault starts afresh (owner
+      // 2026-10-24: keeping the old key after deleting the vault was not safe).
+      if (!any) {
+        try {
+          await rust.resetEmptyLibrary(dir: widget.libraryDir);
+          await SecretKeyStore.delete();
+          rust.forgetSecretKey();
+          await PinStore.resetFails();
+          await PinStore.resetPasswordFails();
+        } catch (_) {
+          // The new-vault screen still starts afresh from an empty library.
+        }
+      }
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(
           builder: (_) => any

@@ -45,6 +45,13 @@ class SecretKeyStore {
       throw StateError('The keystore did not keep the Secret Key');
     }
   }
+
+  /// Forget the key (the last vault on this device was deleted): a new vault starts
+  /// with new words, and backups of the old one cannot be opened with this device's copy.
+  static Future<void> delete() async {
+    await _storage.delete(key: _name);
+    if (await read() != null) throw StateError('The keystore still holds the Secret Key');
+  }
 }
 
 /// The PIN's device half (ADR 0001): one random key that never leaves this device's
