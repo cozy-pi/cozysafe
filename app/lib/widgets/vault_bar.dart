@@ -65,8 +65,8 @@ double actionLeft(BuildContext context) => switch (actionSide()) {
     };
 
 /// The main action's bottom above the safe area: on an edge clear of the bar by 30 (a big
-/// thumb would hit the lock), in the middle just above it.
-double actionLift() => actionSide() == ActionSide.center ? Ui.edge + Ui.bar + 14 : Ui.actionLift;
+/// thumb would hit the lock); in the middle it sits inside the bar.
+double actionLift() => actionSide() == ActionSide.center ? Ui.edge + 4 : Ui.actionLift;
 
 /// Show the vault's icon on a plain page after unlocking (on by default; Settings).
 const revealIconPref = 'reveal-icon';
@@ -175,7 +175,12 @@ class VaultBar extends StatelessWidget {
     this.lock,
     this.home,
     this.onHoldHome,
+    this.centre,
   });
+
+  /// The + in the middle of the bar (Settings → Middle, owner 2026-10-24): the sections
+  /// become icons with a small word and share the two sides of it.
+  final Widget? centre;
 
   final VaultSection section;
   /// What the home tab shows instead of a word: the vault's own badge.
@@ -196,6 +201,31 @@ class VaultBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final centre = this.centre;
+    if (centre != null) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (lock case final lock?) ...[lock, const SizedBox(width: 4)],
+          Expanded(
+            child: Glass(
+              radius: Ui.bar / 2,
+              child: SizedBox(
+                height: Ui.bar + 8,
+                child: _CentreTabs(
+                  section: section,
+                  sections: sections.length < 2 ? const [] : sections,
+                  home: home,
+                  onPick: _pick,
+                  onHoldHome: onHoldHome,
+                  centre: centre,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     if (sections.length < 2) return Row(mainAxisAlignment: MainAxisAlignment.center, children: [?lock]);
     // As wide as its tabs and centred (owner 2026-10-24: with one kind of item, a capsule
     // stretched across the screen around one word looked odd); full width when they
@@ -216,6 +246,86 @@ class VaultBar extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [if (lock case final lock?) ...[lock, const SizedBox(width: 4)], capsule],
+    );
+  }
+}
+
+/// The bar with the + in its middle: each section an icon over a small word, half of them
+/// on each side, so the + stays in the centre whatever the count.
+class _CentreTabs extends StatelessWidget {
+  const _CentreTabs({
+    required this.section,
+    required this.sections,
+    required this.home,
+    required this.onPick,
+    required this.onHoldHome,
+    required this.centre,
+  });
+  final VaultSection section;
+  final List<VaultSection> sections;
+  final Widget? home;
+  final ValueChanged<VaultSection> onPick;
+  final VoidCallback? onHoldHome;
+  final Widget centre;
+
+  static IconData _icon(VaultSection s) => switch (s) {
+        VaultSection.home => Icons.home_outlined,
+        VaultSection.note => Icons.sticky_note_2_outlined,
+        VaultSection.library => Icons.photo_library_outlined,
+        VaultSection.audio => Icons.mic_none_rounded,
+        VaultSection.file => Icons.description_outlined,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    final ink = Theme.of(context).colorScheme.onSurface;
+    Widget tab(VaultSection s) {
+      final on = s == section;
+      final color = on ? primary : ink.withValues(alpha: .7);
+      final hold = s == VaultSection.home ? onHoldHome : null;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: on,
+          label: sectionLabel(l, s),
+          hint: hold == null ? null : l.holdToLock,
+          child: GestureDetector(
+            key: s == VaultSection.home ? const ValueKey('home-tab') : ValueKey('tab-${s.name}'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onPick(s),
+            onLongPress: hold == null
+                ? null
+                : () {
+                    HapticFeedback.heavyImpact();
+                    hold();
+                  },
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                s == VaultSection.home && home != null
+                    ? SizedBox(height: 26, child: FittedBox(child: home!))
+                    : Icon(_icon(s), size: 24, color: color),
+                const SizedBox(height: 3),
+                Text(sectionLabel(l, s),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 10.5, fontWeight: on ? FontWeight.w700 : FontWeight.w600, color: color)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final half = (sections.length + 1) ~/ 2;
+    return Row(
+      children: [
+        Expanded(child: Row(children: [for (final s in sections.take(half)) tab(s)])),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: centre),
+        Expanded(child: Row(children: [for (final s in sections.skip(half)) tab(s)])),
+      ],
     );
   }
 }
@@ -681,9 +791,13 @@ class _AddFanState extends State<AddFan> with SingleTickerProviderStateMixin {
     final page = Theme.of(context).scaffoldBackgroundColor;
     final w = widget;
     final n = w.ways.length;
-    // Ends a little above level so the words under them clear the bar; wider for more.
-    final radius = n <= 2 ? 96.0 : 134.0;
-    final from = n <= 2 ? 170.0 : 165.0, to = 180 - from;
+    // The + sits in the bar, so even the lowest ways rise clear of it (with their words);
+    // wider for more ways.
+    // The arc turns round a point above the +, so it can open wide (words clear of each
+    // other) and still sit above the bar.
+    final radius = n <= 2 ? 100.0 : 142.0;
+    final from = n <= 2 ? 160.0 : 170.0, to = 180 - from;
+    final pivot = w.centre - Offset(0, n <= 2 ? 40 : 58);
     final dim = CurvedAnimation(parent: _c, curve: const Interval(0, .6, curve: Curves.easeOut));
     return Stack(
       clipBehavior: Clip.none,
@@ -704,9 +818,9 @@ class _AddFanState extends State<AddFan> with SingleTickerProviderStateMixin {
               final deg = n == 1 ? 90.0 : from - (from - to) * i / (n - 1);
               // Out along its own ray, turning a little as it goes.
               final a = (deg + (1 - t) * 20) * math.pi / 180;
-              final r = radius * t;
-              final x = w.centre.dx + r * math.cos(a);
-              final y = w.centre.dy - r * math.sin(a);
+              // From the + itself out to its place on the arc.
+              final x = w.centre.dx + (pivot.dx + radius * math.cos(a) - w.centre.dx) * t;
+              final y = w.centre.dy + (pivot.dy - radius * math.sin(a) - w.centre.dy) * t;
               return Positioned(
                 left: x - AddRow.width / 2,
                 top: y - Ui.bar / 2,

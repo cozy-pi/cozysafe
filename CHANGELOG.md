@@ -4,6 +4,16 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.40 (2026-10-24)
+
+### Changed
+- Add button "Middle": the + now sits inside the bottom bar, with the sections as icons
+  and small words on both sides; its choices fan out above the bar.
+- Photo and video preview: Close, Full screen, Send, More and Delete sit at the bottom,
+  just above the bottom bar, which stays on screen; tapping a section closes the preview
+  and goes there.
+- One vault in the app: "New vault" only shows in debug mode, for testing.
+
 ## 0.1.39 (2026-10-24)
 
 ### Changed

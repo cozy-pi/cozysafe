@@ -376,9 +376,7 @@ void main() {
   _screen('library', 'Thư viện', home, section: 'library');
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
-  _screen('add-library', 'Thư viện · bấm + (nút bên trái)', home, section: 'library', setup: () => debugCamera = true,
-      change: 'Nút + về lại bên trái (mặc định); bấm là các lựa chọn xếp dọc ngay trên nút. Vuốt ngang qua nút không còn mở',
-      marks: [() => find.byKey(const ValueKey('add-column'))], act: (t) async {
+  _screen('add-library', 'Thư viện · bấm + (nút bên trái)', home, section: 'library', setup: () => debugCamera = true, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
@@ -458,17 +456,14 @@ void main() {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   },
-      change: 'MỚI: chọn "Giữa" trong Cài đặt: 2 lựa chọn bung ra hai bên nút',
-      marks: [() => find.byKey(const ValueKey('add-photos'))], act: (t) async {
+      change: 'Từ nút trong thanh: 2 lựa chọn bung ra hai bên', act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
   _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
-  },
-      change: 'MỚI: nút ở giữa: 5 lựa chọn xoè hình quạt quanh nút',
-      marks: [() => find.byKey(const ValueKey('add-note'))], act: (t) async {
+  }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
@@ -495,7 +490,17 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   }
+  _screen('library-center', 'Thư viện · nút + ở giữa thanh', home, section: 'library', setup: () {
+    Prefs.write('action-side', 'center');
+  },
+      change: 'MỚI: chọn "Giữa": nút + nằm trong thanh dưới, các mục thành biểu tượng + chữ nhỏ chia hai bên',
+      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('quick-photo-center', 'Xem trước · nút + ở giữa thanh', home, section: 'library', setup: () {
+    Prefs.write('action-side', 'center');
+  }, act: (t) => tapThumb(t, 2));
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
+      change: 'Nút Đóng · Toàn màn hình · Gửi · ⋯ · Xoá xuống sát dưới; thanh dưới vẫn hiện (bấm mục là đóng xem trước và chuyển)',
+      marks: [() => find.byKey(const ValueKey('quick-close')), () => find.byKey(const ValueKey('home-tab'))],
       act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
@@ -623,8 +628,6 @@ void main() {
         return settings(vault);
       }));
   _screen('settings-display', 'Cài đặt · Hiển thị', () => settings(vault),
-      change: 'Vị trí nút thêm: Trái · Giữa · Phải',
-      marks: [() => find.byKey(const ValueKey('side-row'))],
       act: (t) async {
         await t.scrollUntilVisible(find.byKey(const ValueKey('hold-home-row')), 200, scrollable: find.byType(Scrollable).first);
         await t.drag(find.byType(Scrollable).first, const Offset(0, 500));
@@ -659,6 +662,13 @@ void main() {
     }
   });
   _screen('settings-debug-on', 'Cài đặt · đã bật gỡ lỗi', () => settings(vault), setup: () => Prefs.write('debug-mode', '1'), act: toAbout);
+  _screen('settings-debug-vault', 'Cài đặt · gỡ lỗi bật: Tạo két mới', () => settings(vault),
+      setup: () => Prefs.write('debug-mode', '1'),
+      change: 'Chỉ một két; "Tạo két mới" chỉ hiện khi bật gỡ lỗi (để thử)',
+      marks: [() => find.byKey(const ValueKey('debug-new-vault'))], act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('debug-new-vault')), 200, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+  });
   _screen('debug', 'Trang gỡ lỗi', () => const DebugScreen(), setup: () => DebugScreen.debugNetworkBlocked = true);
   _screen('autolock-menu', 'Cài đặt · Tự khoá', () => settings(vault), act: (t) async {
     await t.tap(find.text('Tự khoá khi không dùng'));

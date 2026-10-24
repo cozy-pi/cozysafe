@@ -21,12 +21,21 @@ import 'video_view.dart';
 /// Full screen, Send and Delete. A tap outside or a swipe down closes. Pops with the id
 /// when the item was deleted.
 class QuickLook extends StatefulWidget {
-  const QuickLook({super.key, required this.item, required this.photos, required this.vaultId});
+  const QuickLook({super.key, required this.item, required this.photos, required this.vaultId, this.bar});
 
   final rust.ItemInfo item;
   /// The photos around it, for swiping in full screen.
   final List<rust.ItemInfo> photos;
   final String vaultId;
+  /// The vault's own bottom bar, kept on screen under the preview (owner 2026-10-24); its
+  /// taps close the preview with [sectionFor] (a section) or [addRequest] (the +).
+  final Widget Function(BuildContext context)? bar;
+
+  static const sectionRequest = '\u0000section';
+  static String sectionFor(String name) => '$sectionRequest:$name';
+  static String? sectionTarget(String? result) =>
+      result != null && result.startsWith('$sectionRequest:') ? result.substring(sectionRequest.length + 1) : null;
+  static const addRequest = '\u0000add';
 
   /// Popped by ⋯ in any viewer, with the item's id: the vault shows that item's menu
   /// (Rename, Group, Info…) over itself. The full-screen viewers return it through here.
@@ -41,7 +50,7 @@ class QuickLook extends StatefulWidget {
 
   /// Opens over the current screen, the vault still visible behind.
   static Future<String?> show(BuildContext context, rust.ItemInfo item,
-          {required List<rust.ItemInfo> photos, required String vaultId}) =>
+          {required List<rust.ItemInfo> photos, required String vaultId, Widget Function(BuildContext)? bar}) =>
       Navigator.of(context).push<String>(PageRouteBuilder(
         opaque: false,
         barrierDismissible: true,
@@ -49,7 +58,7 @@ class QuickLook extends StatefulWidget {
         barrierColor: Colors.transparent,
         transitionDuration: const Duration(milliseconds: 260),
         reverseTransitionDuration: const Duration(milliseconds: 180),
-        pageBuilder: (_, _, _) => QuickLook(item: item, photos: photos, vaultId: vaultId),
+        pageBuilder: (_, _, _) => QuickLook(item: item, photos: photos, vaultId: vaultId, bar: bar),
         transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
       ));
 
@@ -141,7 +150,11 @@ class _QuickLookState extends State<QuickLook> {
     final size = MediaQuery.sizeOf(context);
     final page = Theme.of(context).scaffoldBackgroundColor;
     // Big: the width less a margin, up to about two thirds of the height.
-    final box = BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: size.height * .62);
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
+    // The vault's bar (when kept), then the buttons above it.
+    final barRoom = safeBottom + (widget.bar == null ? 0 : Ui.edge + Ui.bar + 8);
+    final bottomRoom = barRoom + 10 + Ui.tap + 8 + 10;
+    final box = BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: (size.height - bottomRoom) * .7);
     final c = CsColors.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final p = _player;
@@ -228,7 +241,13 @@ class _QuickLookState extends State<QuickLook> {
             ),
           ),
         ),
-        Center(
+        // The photo in the room above the buttons and the bar.
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: bottomRoom,
+          child: Center(
           child: GestureDetector(
             // Swipe down to put it away, as in Photos.
             onVerticalDragEnd: (d) {
@@ -268,8 +287,19 @@ class _QuickLookState extends State<QuickLook> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
-                // One small glass bar, not four big circles.
+              ],
+            ),
+          ),
+          ),
+        ),
+        // The buttons at the bottom, within the thumb's reach, just above the bar
+        // (owner 2026-10-24: in the middle of the screen they were a stretch).
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: barRoom + 10,
+          child: Center(
+            child: // One small glass bar, not four big circles.
                 Glass(
                   radius: 28,
                   child: Padding(
@@ -291,10 +321,10 @@ class _QuickLookState extends State<QuickLook> {
                     ),
                   ),
                 ),
-              ],
-            ),
           ),
         ),
+        if (widget.bar case final bar?)
+          Positioned(left: 10, right: 10, bottom: safeBottom + Ui.edge, child: bar(context)),
       ],
       ),
     );
