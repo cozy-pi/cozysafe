@@ -985,7 +985,7 @@ mod tests {
         let t = crate::testkit::two();
         let id = crate::testkit::note(&t.a, "bank", "PIN 4821");
         let sk = t.sk.clone();
-        let (got, _dir) = restore_from(&t, &sk, sk.clone(), crate::testkit::PW);
+        let (got, _dir) = restore_from(&t, &sk, sk.clone(), &t.pw);
         let v = got.unwrap().unwrap();
         assert_eq!(v.id, t.a.id);
         assert_eq!(crate::testkit::text(&v, &id), "PIN 4821");
@@ -995,11 +995,12 @@ mod tests {
     fn a_wrong_password_or_other_words_restore_nothing() {
         let t = crate::testkit::two();
         let sk = t.sk.clone();
-        let (got, dir) = restore_from(&t, &sk, sk.clone(), "not the password");
+        let wrong: String = t.pw.chars().rev().collect();
+        let (got, dir) = restore_from(&t, &sk, sk.clone(), &wrong);
         assert!(got.unwrap().is_none());
         assert!(!Library::has_vaults(dir.path()));
         let other = SecretKey::from_bytes([7; cs_crypto::SECRET_KEY_LEN]);
-        let (got, dir) = restore_from(&t, &sk, other, crate::testkit::PW);
+        let (got, dir) = restore_from(&t, &sk, other, &t.pw);
         assert!(matches!(got, Err(Error::WrongSecretKey)));
         assert!(!Library::has_vaults(dir.path()));
     }
@@ -1020,7 +1021,7 @@ mod tests {
             Permit::connect(code.addr),
             &code,
             t.sk.clone(),
-            crate::testkit::PW,
+            &t.pw,
             &|_| (),
             &|_| (),
         );
