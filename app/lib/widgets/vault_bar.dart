@@ -643,10 +643,10 @@ enum AddWhat { note, photo, video, photos, voice, file }
 
 /// Every way to add, in the fixed order (camera and voice only where the device has them).
 List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
-      (AddWhat.note, Icons.edit_note_rounded, l.newNote),
       (AddWhat.photos, Icons.photo_library_outlined, l.addFromDevice),
-      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
       if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
+      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
+      (AddWhat.note, Icons.edit_note_rounded, l.newNote),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
       (AddWhat.file, Icons.folder_outlined, l.addFiles),
     ];
@@ -670,14 +670,14 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
 }
 
 /// What + offers: every kind of item, wherever you are (owner 2026-10-24: Voice has no tab
-/// in the bar, so + is the way to it; one way per section felt like a lock-in). Photos
-/// first, then the rest, three to a row.
+/// in the bar, so + is the way to it; one way per section felt like a lock-in). In the
+/// owner's order (2026-10-24): add photos, record video, take photo, note, voice, then files.
 List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
         {required bool camera, required bool voice}) =>
     [
       (AddWhat.photos, Icons.photo_library_outlined, l.addRowAddPhotos),
-      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
       if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
+      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
       (AddWhat.file, Icons.folder_outlined, sectionLabel(l, VaultSection.file)),

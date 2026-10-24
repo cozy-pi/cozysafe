@@ -449,9 +449,7 @@ void main() {
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
   _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
   _screen('home-nudge', 'Trang chủ: két chỉ ở máy này', home, section: 'home',
-      setup: () => SecondPlaceNudge.debugShow = true,
-      change: 'MỚI: nhắc khi két chỉ ở một máy (chưa đồng bộ, chưa sao lưu); ✕ ẩn 30 ngày',
-      marks: [() => find.byKey(const ValueKey('second-place'))]);
+      setup: () => SecondPlaceNudge.debugShow = true);
   _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
@@ -490,15 +488,15 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  });
-  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
+  }),
+      change: 'Thứ tự mới: Thêm ảnh → Quay video → Chụp ảnh → Ghi chú → Ghi âm → Tệp');  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  });
-  _screen('home-add', 'Trang chủ · nút bên trái (Cài đặt) · bấm +', home, section: 'home',
+  }),
+      change: 'Thứ tự mới: Thêm ảnh → Quay video → Chụp ảnh → Ghi chú → Ghi âm → Tệp');  _screen('home-add', 'Trang chủ · nút bên trái (Cài đặt) · bấm +', home, section: 'home',
       setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'left');
@@ -689,14 +687,10 @@ void main() {
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0}) =>
       SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal));
   _screen('sync-drive-progress', 'Google Drive: đang gửi lên', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 128, total: 340, bytes: 52 << 20, bytesTotal: 131 << 20)), onSynced: () {})),
-      setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6),
-      change: 'MỚI: điện thoại ⇄ Drive có chấm chạy; ghi rõ gửi gì, đi đâu; mục + MB, tốc độ, thời gian còn lại',
-      marks: [() => find.byKey(const ValueKey('sync-bytes')), () => find.byKey(const ValueKey('sync-speed'))]);
+      setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6));
   _screen('sync-drive-receiving', 'Google Drive: đang tải về', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.receiving, done: 40, total: 212, bytes: 18 << 20)), onSynced: () {})),
-      setup: () => SyncProgress.debugRate = (3.1 * (1 << 20), 7),
-      change: 'Tải về: chấm chạy về phía điện thoại; chưa biết tổng MB nên chỉ hiện đã tải');
-  _screen('sync-drive-removing', 'Google Drive: xoá các mục đã xoá', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.removing, done: 312, total: 700)), onSynced: () {})),
-      change: 'MỚI: mục đã xoá hẳn được xoá cả trên Drive, đếm riêng (không lẫn vào số mục gửi lên)');
+      setup: () => SyncProgress.debugRate = (3.1 * (1 << 20), 7));
+  _screen('sync-drive-removing', 'Google Drive: xoá các mục đã xoá', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.removing, done: 312, total: 700)), onSynced: () {})));
   _screen('sync-device-progress', 'Máy gần đây: đang nhận', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.receiving, done: 64, total: 90, bytes: 210 << 20)), onSynced: () {})),
       setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3));
   _screen('sync-interrupted', 'Bị gián đoạn (máy ngủ, mất mạng): bấm Tiếp tục', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.interrupted)), onSynced: () {}, retry: () => const Stream.empty())));
@@ -848,21 +842,16 @@ void main() {
   }
 
   _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''));
-  _screen('restore-keys', 'Khôi phục · 1. Dán 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: ''),
-      change: 'MỚI: hỏi 24 từ + mật khẩu TRƯỚC, một lần cho mọi nguồn; ô 24 từ có nút Dán',
-      marks: [() => find.byKey(const ValueKey('secret-paste'))]);
+  _screen('restore-keys', 'Khôi phục · 1. Dán 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: ''));
   _screen('restore-source', 'Khôi phục · 2. Két đang ở đâu?', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake'),
-      setup: () => RestoreSourceScreen.debugDrive = true,
-      change: 'MỚI: "Từ máy khác" (Wi‑Fi) là cách chính; dưới cùng: "Không còn lưu ở đâu khác?"',
-      marks: [() => find.byKey(const ValueKey('restore-device')), () => find.byKey(const ValueKey('restore-none'))]);
+      setup: () => RestoreSourceScreen.debugDrive = true);
   _screen('restore-none', 'Khôi phục · không còn nơi nào giữ két', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake'),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('restore-none')));
     await t.pumpAndSettle();
-  }, change: 'MỚI: nói thẳng không khôi phục được, gợi ý Tạo két mới');
+  });
   _screen('restore-drive', 'Khôi phục · Google Drive (24 từ đã nhập ở bước 1)', () => const DriveJoinScreen(libraryDir: '', words: 'fake', password: 'fake'),
-      setup: () => DriveJoinScreen.debugAccount = 'me@example.com',
-      change: 'Không hỏi lại 24 từ và mật khẩu: chỉ còn nút Mở két');
+      setup: () => DriveJoinScreen.debugAccount = 'me@example.com');
   _screen('new-vault-biometric', 'Tạo két · 5. Face ID: Bật hoặc Để sau', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: () {
     useWords();
