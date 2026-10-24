@@ -13,7 +13,7 @@ No single check can promise that. Several layers, each catching what another mis
 |---|---|---|
 | OS: Android | `app/android/app/src/main/AndroidManifest.xml`, CI `build.yml` | Only `INTERNET` (any socket needs it, even a local one); no network-state, Wi‑Fi or nearby-device permission |
 | OS: macOS | `app/macos/Runner/Release.entitlements`, `tools/check-entitlements` | App Sandbox on; of the network entitlements only `network.client` / `network.server` (sync) |
-| Compiled Rust | `tools/check-rust-symbols` (CI `ci.yml` on Linux, `build.yml` on the APK's library) | The linked Rust library imports no name-lookup function (only the plain socket calls cs-net needs) |
+| Compiled Rust | `tools/check-rust-symbols` (CI `ci.yml` on Linux, `build.yml` on the APK's library) | The linked Rust library imports only the socket calls cs-net needs, and `getaddrinfo` (Google Drive's one host); no reverse or legacy lookups |
 | cackle | `app/rust/cackle.toml`, CI `ci.yml` | No crate but `cs-net` uses the `net` API (std::net, Unix sockets, libc socket calls, tokio::net) |
 | cargo-deny | `deny.toml`, CI `ci.yml` | Known-vulnerable or yanked crates, any source but crates.io, known networking crates |
 | Dart runtime guard | `app/lib/offline.dart` (installed first thing in `main`) | `HttpClient()` throws; `Socket.connect`, `Socket.startConnect`, `ServerSocket.bind` fail |
@@ -113,5 +113,11 @@ validate a build with Apple instead of uploading it (`upload: false`).
 - **Build time is not covered.** Build scripts, proc macros, Gradle and CocoaPods
   run with network access, as in any build. cackle checks what Rust build scripts
   use but does not sandbox them.
-- **Cloud sync (Google Drive) is not in yet.** It will need name lookups and HTTPS
-  for one host; that relaxation is to be made for that code only, and written here.
+- **Google Drive sync** (cs-net `drive.rs` on `https.rs`): HTTPS to one host,
+  `www.googleapis.com`, a constant; it is the only name the app ever looks up, so the
+  compiled-library check allows `getaddrinfo`. TLS is rustls with ring and Mozilla's roots
+  bundled (6 crates; a ready-made HTTP client pulled in 44, so the few HTTP/1.1 requests
+  are written in cs-net, with tests for chunked bodies and size caps). An upload URL Drive
+  hands back must be on the same host. Sign-in is Google's own plugin (`google_sign_in`,
+  published by the Flutter team) and its native SDKs, which talk to Google's sign-in
+  servers themselves: that part is reviewed, not sandboxed.
