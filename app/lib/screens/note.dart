@@ -207,6 +207,9 @@ class _NoteScreenState extends State<NoteScreen> {
                   children: [
                     GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: _saving ? null : _saveAndLeave),
                     const Spacer(),
+                    // A new note has nothing to delete yet: no red button beside Done
+                    // (owner's testers 2026-10-24: afraid of losing what they typed).
+                    if (widget.item != null)
                     GlassButton(
                       key: const ValueKey('note-delete'),
                       icon: null,
@@ -214,7 +217,7 @@ class _NoteScreenState extends State<NoteScreen> {
                       onTap: _saving ? null : _delete,
                       child: Icon(Icons.delete_outline, color: recordRed(context), size: 22),
                     ),
-                    const SizedBox(width: 8),
+                    if (widget.item != null) const SizedBox(width: 8),
                     // Send the note as a text file ("Title.txt"); saved first.
                     GlassButton(
                       key: const ValueKey('note-send'),

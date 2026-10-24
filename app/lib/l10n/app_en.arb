@@ -631,5 +631,7 @@
   "introStart": "Start",
   "lookLead": "You can change this later in Settings.",
   "lookSkip": "Skip",
-  "@pinSetLead": {"placeholders": {"n": {"type": "int"}}}
+  "@pinSetLead": {"placeholders": {"n": {"type": "int"}}},
+  "addRowPhotos": "Photos",
+  "addRowCamera": "Camera"
 }

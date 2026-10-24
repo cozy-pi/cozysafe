@@ -450,5 +450,7 @@
   "introNoCopy": "Cozy Safe no guarda ninguna copia. Si pierdes la contraseña y las 24 palabras, nadie podrá abrir tus copias de seguridad.",
   "introStart": "Empezar",
   "lookLead": "Puedes cambiarlo más tarde en Ajustes.",
-  "lookSkip": "Omitir"
+  "lookSkip": "Omitir",
+  "addRowPhotos": "Fotos",
+  "addRowCamera": "Cámara"
 }

@@ -422,6 +422,181 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
   return [...all.where((w) => mine.contains(w.$1)), ...all.where((w) => !mine.contains(w.$1))];
 }
 
+/// What + offers, as a row (owner 2026-10-24, after looking at how other apps add):
+/// on the overview every kind; in the library its two ways (the camera takes photos and
+/// videos); elsewhere none, because + does that section's one thing straight away.
+/// Empty: no row.
+List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
+    {required bool camera, required bool voice}) {
+  final photos = (AddWhat.photos, Icons.photo_library_outlined, l.addRowPhotos);
+  final cam = (AddWhat.photo, Icons.photo_camera_outlined, l.addRowCamera);
+  return switch (section) {
+    VaultSection.home => [
+        photos,
+        if (camera) cam,
+        (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
+        if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
+        (AddWhat.file, Icons.description_outlined, sectionLabel(l, VaultSection.file)),
+      ],
+    VaultSection.library => camera ? [photos, cam] : const [],
+    _ => const [],
+  };
+}
+
+/// The one thing + does at once where it offers no row.
+AddWhat? addDirect(VaultSection section, {required bool camera}) => switch (section) {
+      VaultSection.note => AddWhat.note,
+      VaultSection.audio => AddWhat.voice,
+      VaultSection.file => AddWhat.file,
+      VaultSection.library when !camera => AddWhat.photos,
+      _ => null,
+    };
+
+/// The + button's row: the page dims and the ways to add spread out sideways from the
+/// button, centred just above it. Tap one, or keep the finger down from + and slide to
+/// one and let go ([hovered] is the one under the finger, found with [AddColumn.wayAt]).
+class AddRow extends StatefulWidget {
+  const AddRow({
+    super.key,
+    required this.open,
+    required this.ways,
+    required this.bottom,
+    required this.hovered,
+    required this.onPick,
+    required this.onClose,
+    required this.onGone,
+  });
+  final bool open;
+  final List<(AddWhat, IconData, String)> ways;
+  /// The row's bottom above the screen's bottom edge.
+  final double bottom;
+  final AddWhat? hovered;
+  final ValueChanged<AddWhat> onPick;
+  final VoidCallback onClose;
+  final VoidCallback onGone;
+
+  /// Room each way takes in the row.
+  static const width = 72.0;
+
+  @override
+  State<AddRow> createState() => _AddRowState();
+}
+
+class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 360),
+    reverseDuration: const Duration(milliseconds: 200),
+  )..forward();
+
+  @override
+  void didUpdateWidget(AddRow old) {
+    super.didUpdateWidget(old);
+    if (old.open && !widget.open) _c.reverse().whenComplete(() => widget.onGone());
+    if (!old.open && widget.open) _c.forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final w = widget;
+    final n = w.ways.length;
+    final dim = CurvedAnimation(parent: _c, curve: const Interval(0, .6, curve: Curves.easeOut));
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: w.onClose,
+            // Denser than the column's veil: the labels sit over whatever is behind.
+            child: FadeTransition(opacity: dim, child: ColoredBox(color: page.withValues(alpha: .92))),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: w.bottom,
+          child: Center(
+            child: Row(
+              key: const ValueKey('add-row'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final (i, (what, icon, label)) in w.ways.indexed)
+                  AnimatedBuilder(
+                    animation: _c,
+                    builder: (context, child) {
+                      // Each way slides out of the + (in the middle) to its place, the
+                      // nearer ones first, with a small overshoot.
+                      final start = (i - (n - 1) / 2).abs() * .06;
+                      final t = Curves.easeOutBack.transform(
+                          ((_c.value - start) / (1 - start)).clamp(0.0, 1.0));
+                      final fromCentre = ((n - 1) / 2 - i) * AddRow.width;
+                      return Opacity(
+                        opacity: t.clamp(0.0, 1.0),
+                        child: Transform.translate(
+                          offset: Offset(fromCentre * (1 - t), 36 * (1 - t)),
+                          child: Transform.scale(scale: .5 + .5 * t, child: child),
+                        ),
+                      );
+                    },
+                    child: MetaData(
+                      metaData: what,
+                      behavior: HitTestBehavior.opaque,
+                      child: Semantics(
+                        button: true,
+                        label: label,
+                        excludeSemantics: true,
+                        child: GestureDetector(
+                          key: ValueKey('add-${what.name}'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => w.onPick(what),
+                          child: SizedBox(
+                            width: AddRow.width,
+                            child: AnimatedScale(
+                              scale: w.hovered == what ? 1.14 : 1,
+                              duration: const Duration(milliseconds: 120),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: Ui.bar,
+                                    height: Ui.bar,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: w.hovered == what ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
+                                      boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
+                                    ),
+                                    child: Icon(icon, size: 26, color: w.hovered == what ? page : ink),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(label,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// The + button's column: the page dims and the ways to add stack above the button,
 /// nearest first. Tap one, or keep the finger down from + and slide to one and let go
 /// ([hovered] is the one under the finger). [keys] let the screen find each row.

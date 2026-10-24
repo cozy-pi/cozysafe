@@ -55,6 +55,7 @@ class VaultHomeScreen extends StatefulWidget {
   /// For the mockup renders: the vault's icon shows after opening (off for still shots).
   static bool debugReveal = true;
 
+
   const VaultHomeScreen({super.key, required this.libraryDir, required this.vault});
 
   final String libraryDir;
@@ -93,7 +94,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The column stays on screen while it closes.
   bool _addShown = false;
   AddWhat? _hover;
-  final _addColumnKey = GlobalKey();
   ScrollController _addScroll = ScrollController();
   final _actionKey = GlobalKey();
   final _recorder = GlobalKey<RecorderViewState>();
@@ -267,11 +267,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// Nothing in the vault yet (tags alone do not count): the welcome with the add tiles.
   bool get _empty => _items != null && _sections.isEmpty;
 
-  /// The button above the lock: + opens the add column everywhere, this section's ways
-  /// nearest the thumb (Voice too: "Record" is its nearest way, owner 2026-10-21); while
-  /// recording it is the red stop (docs/ui.md, design language).
+  /// The + in the middle (owner 2026-10-24): in notes, voice and files it does that
+  /// section's one thing at once; in the library and on the overview it spreads a short
+  /// row of ways. While recording it is the red stop (docs/ui.md, design language).
   Future<void> _mainAction() async {
     if (_recordingNow) return _recorder.currentState?.toggle();
+    final direct = _directAdd;
+    if (direct != null && !_adding) return _add(direct);
     setState(() {
       _adding = !_adding;
       if (_adding) _openAdd();
@@ -307,8 +309,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
-  List<(AddWhat, IconData, String)> _addWays() => addColumnOrder(AppLocalizations.of(context), _section,
+  List<(AddWhat, IconData, String)> _addWays() => addRowWays(AppLocalizations.of(context), _section,
       camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
+
+  AddWhat? get _directAdd => addDirect(_section, camera: _hasCamera) ?? (_addWays().isEmpty ? AddWhat.photos : null);
 
 
   /// One way of adding, from the add column or the empty vault's tiles. The section it fills
@@ -1786,14 +1790,25 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Widget _actionButton(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final (icon, tip) = _recordingNow ? (Icons.stop_rounded, l.stopRecording) : (Icons.add, _adding ? l.close : l.addToVault);
+    // Where + does one thing at once, it shows that thing (owner's testers 2026-10-24: in
+    // Voice a plain + that starts the microphone was a surprise).
+    final (icon, tip) = _recordingNow
+        ? (Icons.stop_rounded, l.stopRecording)
+        : switch (_adding ? null : _directAdd) {
+            AddWhat.note => (Icons.edit_note_rounded, l.newNote),
+            AddWhat.voice => (Icons.mic_rounded, l.startRecording),
+            AddWhat.file => (Icons.note_add_outlined, l.addFiles),
+            AddWhat.photos => (Icons.add_photo_alternate_outlined, l.addFromDevice),
+            _ => (Icons.add, _adding ? l.close : l.addToVault),
+          };
     return ActionButton(
         key: _actionKey,
         icon: icon,
         tooltip: tip,
         onTap: _mainAction,
-        turns: _adding ? .125 : 0,
-        color: _recordingNow ? recordRed(context) : null);
+        turns: _adding && icon == Icons.add ? .125 : 0,
+        // Red where it records: the stop while recording, the microphone in Voice.
+        color: _recordingNow || (!_adding && _directAdd == AddWhat.voice) ? recordRed(context) : null);
   }
 
   @override
@@ -1979,17 +1994,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
               if (_addShown)
                 Positioned.fill(
-                  child: AddColumn(
+                  child: AddRow(
                     open: _adding,
                     onGone: () => setState(() => _addShown = false),
                     ways: _addWays(),
-                    mine: addWaysOf(_section),
-                    columnKey: _addColumnKey,
-                    scroll: _addScroll,
-                    right: false,
-                    // The ways' circles stack straight above the centred +.
-                    side: actionLeft(context),
-                    bottom: bottom + Ui.actionLift + Ui.primary + 4 - 18, // the column's bottom fade sits behind the button's top
+                    bottom: bottom + Ui.actionLift + Ui.primary + 14,
                     hovered: _hover,
                     onPick: _pickAdd,
                     onClose: _closeAdd,
@@ -2005,7 +2014,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 bottom: bottom + Ui.actionLift,
                 // Tap: open or close the column. Finger down and slide up: pick on release.
                 child: GestureDetector(
-                  onPanStart: _recordingNow
+                  onPanStart: _recordingNow || _directAdd != null
                       ? null
                       : (_) {
                           if (!_adding) {
