@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.46 (2026-10-24)
+
+### Changed
+- Sync says what went wrong: the other device holds a different vault (and how to fix
+  it), it cannot be reached on the Wi‑Fi, or the code ran out. The device showing the
+  code says when a device with another vault tried to join.
+- Turning on screenshot blocking no longer asks for Face ID (turning it off still does).
+
 ## 0.1.45 (2026-10-24)
 
 ### Changed
