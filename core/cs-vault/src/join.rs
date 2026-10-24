@@ -11,8 +11,8 @@ use cs_crypto::{kdf, wrap, SecretKey};
 
 use crate::sync::Remote;
 use crate::{
-    aad, decode_array, open_with, write_atomic, Error, KdfJson, Library, LibraryHeader, OpenVault,
-    Result, VaultHeader, HEADER_FILE, LIBRARY_FILE, SALT_LEN, VAULTS_DIR,
+    aad, decode_array, id_name, open_with, write_atomic, Error, KdfJson, Library, LibraryHeader,
+    OpenVault, Result, VaultHeader, HEADER_FILE, LIBRARY_FILE, SALT_LEN, VAULTS_DIR,
 };
 
 /// A lock is a few kilobytes.
@@ -22,13 +22,6 @@ const MAX_LOCK: u64 = 1 << 20;
 struct Lock {
     vault: VaultHeader,
     library: LibraryHeader,
-}
-
-fn valid_id(id: &str) -> bool {
-    id.len() == SALT_LEN * 2
-        && id
-            .bytes()
-            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
 
 impl Library {
@@ -43,9 +36,10 @@ impl Library {
         secret_key: SecretKey,
         password: &str,
     ) -> Result<Option<OpenVault>> {
-        if !valid_id(vault_id) {
+        let Some(vault_id) = id_name(vault_id) else {
             return Err(Error::Corrupt("vault id"));
-        }
+        };
+        let vault_id = vault_id.as_str();
         if Library::has_vaults(dir) {
             return Err(Error::LibraryExists);
         }

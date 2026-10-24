@@ -200,10 +200,8 @@ impl OpenVault {
 
     pub(crate) fn path(&self, item: &str, ext: &str) -> Result<PathBuf> {
         // Item IDs come back from Dart: accept only our own format (no path tricks).
-        if item.len() != 32 || !item.bytes().all(|b| b.is_ascii_hexdigit()) {
-            return Err(Error::NoSuchItem);
-        }
-        Ok(self.items_dir().join(format!("{item}.{ext}")))
+        let name = crate::id_name(item).ok_or(Error::NoSuchItem)?;
+        Ok(self.items_dir().join(format!("{name}.{ext}")))
     }
 
     /// Encrypt and store a new item; returns its metadata.
