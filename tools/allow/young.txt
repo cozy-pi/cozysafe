@@ -26,3 +26,5 @@ deranged 0.5.9  # baseline 2026-10-24
 libc 0.2.191  # baseline 2026-10-24
 # Security fixes may come in young, reviewed:
 webpki-roots 1.0.10  # RUSTSEC-2026-0381: 1.0.9 still trusted distrusted emSign intermediates; Mozilla root list only (no code), reviewed 2026-10-24
+rustls 0.23.46  # RUSTSEC-2026-0346/0347/0348/0349 (TLS secrets in Debug, ECH, Brotli 1 GiB, downgrade) fixed here; reviewed 2026-10-24
+rustls-webpki 0.103.16  # RUSTSEC-2026-0382 (distrusted intermediates accepted) fixed here; reviewed 2026-10-24
