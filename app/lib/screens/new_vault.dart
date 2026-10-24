@@ -542,7 +542,14 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                           onTap: _back,
                         ),
                       const Spacer(),
-                      if (_vault != null && (_step == _Step.icon || _step == _Step.color))
+                      if (_step == _Step.words)
+                        FilledButton(
+                          key: const ValueKey('words-done'),
+                          style: FilledButton.styleFrom(minimumSize: const Size(0, 52), shape: const StadiumBorder()),
+                          onPressed: () => _go(_Step.check),
+                          child: Text(l.wordsWritten),
+                        )
+                      else if (_vault != null && (_step == _Step.icon || _step == _Step.color))
                         _BottomButton(
                           key: const ValueKey('new-vault-skip'),
                           label: l.lookSkip,
@@ -626,10 +633,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     );
   }
 
-  Widget _wordsBody(AppLocalizations l) => RecoveryWordsPanel(
-        words: _words ?? const [],
-        action: _primary(const ValueKey('words-done'), l.wordsWritten, () => _go(_Step.check)),
-      );
+  // "I wrote them down" sits in the bottom row, always in sight: on a small Android
+  // phone it was below the fold (owner 2026-10-24).
+  Widget _wordsBody(AppLocalizations l) => RecoveryWordsPanel(words: _words ?? const []);
 
   Widget _checkBody(AppLocalizations l) => RecoveryWordsCheck(
         words: _words ?? const [],
