@@ -4,6 +4,44 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-24 — Independent scanners gate every release; 14-day minimum age
+
+Besides the project's own checks (ci.yml), `.github/workflows/security.yml` runs Google's
+OSV-Scanner (Rust and Dart lockfiles), GitHub CodeQL (Rust and the workflows), Semgrep
+(Rust, Kotlin, Swift, secrets, GitHub Actions), gitleaks (the whole history) and
+`tools/check-age`: no locked Rust or Dart version younger than 14 days, unless listed with
+its advisory in `tools/allow/young.txt`. It runs on every push to main, on pull requests,
+weekly, and first in `release.yml`: a finding stops the release. Release workflows pass
+inputs to shell commands only as environment variables and give each job only the
+secrets it names (no `secrets: inherit`). What the first run found:
+[supply-chain.md](supply-chain.md#independent-scanners-githubworkflowssecurityyml).
+
+## 2026-10-24 — Join from Google Drive (0.1.54)
+
+A new phone with no vault can open the one kept in Google Drive: "I have a vault on
+Google Drive" on the first screen, sign in, allow, then the 24 words and the vault
+password; no backup file. The newest lock in the place gives back the Master Key and an
+ordinary sync brings the items (`Library::join`, `cs-vault/src/join.rs`). Phones only,
+like Drive sync. P2P still never hands a vault to a new device.
+
+## 2026-10-24 — Bottom bar and +
+
+**Owner:** the bar is Overview · Library · + · Files · Notes (0.1.51); voice memos have no
+tab and open from the overview and from +. + sits in the middle by default (Settings: Left
+· Middle · Right) and always offers every way to add; in the middle the ways sit in one
+row above it, scrolling sideways when they do not fit (0.1.54: two rows looked uneven). On
+an edge they stack up that edge. Details: [ui.md](ui.md).
+
+## 2026-10-24 — Small security settings
+
+- **Block screenshots:** turning it on no longer asks for Face ID (it only makes the vault
+  safer); turning it off still does (owner, 0.1.46).
+- **Showing the Recovery Key** needs Face ID, then the vault password; wrong tries wait
+  like on the lock screen (0.1.48).
+- **Deleting the last vault forgets its 24 words** on the device, so the next vault starts
+  with new ones (0.1.51); a device left with an old-kind key and no vault gets a new
+  24-word key (`reset_if_empty`, 0.1.49).
+
 ## 2026-10-24 — Google Drive sync, item by item, newest lock only
 
 **Owner:** sync with Google Drive like P2P (same engine, item by item: only what changed
@@ -20,6 +58,8 @@ copy there (they found the earlier single `header.json` never changed). Password
 24 words stay per device: another device keeps its own until changed there.
 
 Next: join on a new device from Drive (or P2P) with the 24 words and the password alone.
+(Done for Drive in 0.1.54, see above. Sign-in works on iPhone; Android waits for a Web
+OAuth client, `serverClientId` in `app/lib/sync/drive.dart`.)
 
 ## 2026-10-24 — The Recovery Key can be changed
 
@@ -64,7 +104,8 @@ A phone that already has several vaults keeps opening each with its PIN.
 Why: simpler (one PIN, one password, one set of 24 words), and a vault list would show
 how many vaults exist — which the files on disk show anyway, so hiding it was never real.
 Groups (tags) cover "family / work". Also: the + sits in the middle; its menu is to be
-redone (horizontal, fewer choices) — under discussion.
+redone (horizontal, fewer choices) — under discussion. (Settled the same day: every way
+in one row, see "Bottom bar and +".)
 
 ## 2026-10-23 — New vault flow, one set of 24 words per device
 
@@ -152,7 +193,7 @@ videos" permission and a Google Play declaration. Recommended: iPhone only, and 
 a hint to delete the originals in the Photos app.
 
 **Commit messages may name the assistant.** Two commits were pushed with an assistant
-trailer; the owner chose not to rewrite history ("cứ để Claude cũng được"). Personal names
+trailer; the owner chose not to rewrite history. Personal names
 and emails stay out of the repository.
 
 **Releases: each platform ships as soon as it is built, and store keys stay out of build

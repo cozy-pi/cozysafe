@@ -22,11 +22,17 @@ time, wherever it is opened from:
 | Back up to a file | `vault_home.dart` `_backup` |
 | Backup password (set or change) | `vault_home.dart` `_password` (also the reminder banner) |
 | Recovery Key (shows the 24 words): Face ID, **then the vault password** (`KitPasswordScreen`, wrong tries share the lock screen's waits) | `vault_home.dart` `_showKit` |
+| Change the Recovery Key: only from the Recovery Key page, so after both checks above (`ChangeKeyScreen`, which also asks four of the new words back) | `vault_home.dart` `_showKit` |
 | Blur thumbnails (off only) | `settings.dart` (`_guarded`) |
 | Delete this vault | `settings.dart` (`_guarded`), then the vault's PIN |
 | New vault | `confirmOwner` (lock screen and vault) |
 
 A new security setting gets the same check in the same commit, and a row in this table.
+
+Sync (Settings → Sync) has no owner check of its own: it only works between places that
+already hold the vault, and **every connection** is asked for by name (the other device's
+address, or Google Drive and the account) and needs a tap on Allow (`allowConnection` in
+`app/lib/sync/consent.dart`). Closing the question is a no.
 Limit: on a device with no biometrics and no passcode support (`local_auth` reports it
 unsupported, e.g. Linux), the system check cannot run and is skipped.
 
@@ -74,7 +80,7 @@ Key as people see it (it was the Emergency Kit); "vault password" was the backup
 | Random key | 128 bits | 256 bits | 256 bits as 24 BIP39 words (libraries before 21 Oct 2026: 128 bits) |
 | Opens with | the words alone | the words alone | Recovery Key **and** vault password **and** the files |
 | Cost per guess | low (PBKDF2, 2048 rounds) | low | Argon2id, 128 MiB × 3 passes on phones (512 MiB on computers) |
-| Extra password | optional ("25th word") | optional | mandatory, zxcvbn score ≥ 3 |
+| Extra password | optional ("25th word") | optional | mandatory, at least 8 characters; zxcvbn strength shown, a weak one allowed |
 
 By case:
 
@@ -82,10 +88,12 @@ By case:
 - **The words / the Recovery Key leak** (someone reads the paper): a Bitcoin wallet is
   emptied at once; a Cozy Safe vault still needs the vault password, each guess costing
   an Argon2id run.
-- **A backup file leaks** (from a cloud folder): without the Recovery Key it cannot be
-  attacked at all (2¹²⁸).
+- **A backup file or the Drive sync folder leaks** (from a cloud account): without the
+  Recovery Key it cannot be attacked at all (2¹²⁸ or more). The sync folder keeps only
+  the vault's newest lock, so an old password or Recovery Key opens nothing there.
 - **Recovery Key and backup both leak:** only the password remains; a password at the
-  minimum score is our estimate of weeks to years for one machine (not measured).
+  "strong" score (zxcvbn 3) is our estimate of weeks to years for one machine (not
+  measured). A weak password is allowed, and then falls much sooner.
 - **The real weak spot today is the PIN on the phone**, not the Recovery Key: wrong-PIN
   waits exist only in the app, the PIN copy is not removed after many tries (`forget_pin`
   exists but the app never calls it), and the device key is not bound to the secure
@@ -105,8 +113,12 @@ password is deliberately expensive.
 ## Quantum computers
 
 - Shor's algorithm breaks public-key cryptography (RSA, elliptic curves: signatures, key
-  exchange). **Cozy Safe uses none**: no server, no sync, no key exchange. (Bitcoin signs
-  with elliptic curves, so exposed public keys are at risk; Cozy Safe has no such part.)
+  exchange). **The vault uses none.** Sync between two devices needs no key exchange
+  either: both derive their keys from the vault's Master Key and the one-time code. The
+  one place with public-key cryptography is the TLS connection to Google Drive (rustls),
+  and it only carries files that are already sealed with the vault's symmetric keys.
+  (Bitcoin signs with elliptic curves, so exposed public keys are at risk; Cozy Safe has
+  no such part.)
 - Grover's algorithm halves the strength of symmetric keys. Everything here is symmetric:
   XChaCha20-Poly1305, HKDF-SHA256, Argon2id.
   - Master Keys and item keys are 256-bit: about 128-bit against a quantum attacker. Safe.
@@ -115,6 +127,6 @@ password is deliberately expensive.
     theory); there are no users yet, so the owner's test libraries are the only ones.
   - Password guessing goes through Argon2id (128 MiB per try); running that inside a
     quantum computer is not realistic.
-- **When sync between devices comes (v0.2 cloud folder needs no key exchange; v0.3 server
-  or P2P may):** any key exchange must be post-quantum (ML-KEM, possibly hybrid with
-  X25519), never classical alone.
+- **If a key exchange is ever added** (for example forward secrecy in device-to-device
+  sync, or a server): it must be post-quantum (ML-KEM, possibly hybrid with X25519), never
+  classical alone.

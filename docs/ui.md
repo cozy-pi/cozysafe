@@ -438,10 +438,13 @@ everywhere, easy to hit with a thumb.
   that have items, in the fixed order Overview · Library · (+) · Files · Notes (owner
   2026-10-24). Voice has no tab: it opens from the overview and from +. An empty vault
   shows its icon, one line, and big add tiles.
-- **The + sits in the middle of the bar by default** (Settings can float it left or
-  right): a little smaller than the bar, filled with the ink, so it stands out. It always
-  offers every way to add, three to a row (add photos, take a photo, record a video,
-  note, voice memo, file); it never does one thing at once.
+- **The + sits in the middle of the bar by default** (Settings → Add button position:
+  Left · Middle · Right): a little smaller than the bar, filled with the ink, so it stands
+  out. It always offers every way to add (add photos, take a photo, record a video, note,
+  voice memo, file); it never does one thing at once. In the middle the ways sit side by
+  side in **one row** just above the +, scrolling sideways when they do not fit and
+  centred when they do (`AddRow`, owner 2026-10-24: two rows looked uneven); with + on an
+  edge they stack straight up that edge (`AddColumn`, no rolling loop for so few ways).
 - **Bottom bar: the app's own by default**; on iOS 26 Debug can switch to the system's
   (`NativeVaultBar`, UIKit tab bar + glass lock). Change one, change the other.
 - **Hold the home tab to lock** (owner 2026-10-22), no lock button by default.
@@ -449,6 +452,11 @@ everywhere, easy to hit with a thumb.
   height), the page dark and blurred behind, name + date under it, one glass bar of four
   icons; swipe down closes.
 - **Settings rows: a name, no note** (owner 2026-10-21). Pick a name that says enough.
+- **Sync page** (Settings → Sync, 0.1.44–0.1.53): a line saying nothing connects by
+  itself, then one card with Show a code · Scan a code · Type a code, a Google Drive row
+  with a short note (phones only), and the connection log. Every connection first opens
+  the Allow card (`allowConnection`), which names where it goes; only Allow goes on.
+  The first screen of a new install offers "I have a vault on Google Drive" (phones only).
 - **Tap opens, long press opens the item's menu, everywhere** (owner 2026-10-22, like the
   iPhone's Files app): home, lists, grid, search, groups, trash. `showItemMenu`
   (lib/widgets/item_menu.dart) at the finger: Open · Select · Rename · Group · Info · Send
@@ -470,14 +478,16 @@ everywhere, easy to hit with a thumb.
   words in bold, photos as a grid, a group found by name opens in the vault. Note text in
   results follows "Hide note text". No search history is kept.
 - **Appearance**: Settings → Display → Automatic / Light / Dark (pref `appearance`).
-- **The main action: + opens the add column** (owner's design, 2026-10-21, 0.1.11). Every
+- **The main action: + opens the add column** (owner's design, 2026-10-21, 0.1.11; today
+  only when + sits on an edge, see the bottom bar above). Every
   way to add stacks above the button (note, photos from device, take photo, record video,
   voice, file); the current section's ways sit nearest the thumb and are filled, the rest
   follow in a fixed order. The page dims and + turns into ×. One hand: put the finger on
   +, slide up to a way (it grows and gets a backdrop, a light tick on each) and let go.
   Voice has the same + (Record nearest the thumb, 2026-10-21: one structure everywhere);
   while recording the button is the red stop. The section a way fills opens.
-- **The add column moves and loops** (0.1.12): ways pop out of + one after another with
+- **The add column moves and loops** (0.1.12; the loop is gone since the column holds only
+  a few ways): ways pop out of + one after another with
   a small overshoot, + turns into ×, closing plays it backwards. Dragging the column down
   rolls it in a loop, so any way comes to the thumb. + sits `Ui.actionLift` above the
   safe area (30 clear of the bottom bar) so a big thumb does not hit the lock.
@@ -495,8 +505,8 @@ everywhere, easy to hit with a thumb.
   the vault's icon comes forward from small and soft to sharp; the vault screen takes over
   with the same icon in place, holds it briefly and fades it (about 1.8 s in all). A dial
   thinning over the icon was tried and looked muddy.
-- **Add column loop**: a thin line with room above and below where the loop starts; no ↻,
-  no dimmed repeats.
+- **Add column loop** (0.1.12, no longer shown): a thin line with room above and below
+  where the loop starts; no ↻, no dimmed repeats.
 - **Where content appears** (owner 2026-10-21, "too far from the eye"): reading, or choosing
   among many → a page (`pushPage`: security, all groups, groups for a selection, icons,
   colours); a few choices → a menu at the row (auto-lock); actions with a thumb button →
@@ -508,7 +518,8 @@ everywhere, easy to hit with a thumb.
 - **Open group**: filled chip with ✓ and ×, "Group · section" above the title; empty in
   this section → buttons to the sections where it has something.
 - **Settings**: About group (version, build date, commit, licence); hidden debug (seven
-  taps on the version, owner check); add button position as an inline Left | Right.
+  taps on the version, owner check); add button position as an inline Left | Middle |
+  Right on the row itself.
 - **Tapping an item does it, in place; no sheets popping up from the bottom.** Sheets are
   only for making or choosing something (groups, settings values). A voice memo opens in
   its row with Send · Rename · Delete; Recently deleted selects on tap, with Restore and

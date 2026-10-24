@@ -201,3 +201,30 @@ first-preview key file). Restore accepts only the exact path shapes a library
 has, writes into a staging folder, and moves it into place only when the whole
 file checked out.
 
+
+## Since v0.1 (2026-10-21 to 2026-10-24)
+
+What changed after the text above; the sections above are kept as decided.
+
+- **Recovery Key** (the Secret Key as people see it, was the Emergency Kit): 256 random
+  bits shown as 24 BIP39 words (`cs-crypto/src/secret_key_text.rs`). Libraries made before
+  2026-10-21 keep their 128-bit `CS1-` key, which still reads. It still stays in this
+  device's keystore only (`synchronizable: false`); key sync through iCloud Keychain or
+  Google Password Manager is not built.
+- **The Recovery Key can be changed** (`Library::change_secret_key`, `finish_key_change`):
+  only the vault's Master Key wrap changes; no item is re-encrypted. Crash-safe order:
+  the vault keeps its old wrap beside the new one and the library accepts both keys, then
+  the keystore takes the new key, then opening with it drops the old ones. Backups made
+  before keep needing the old key. Deleting the last vault forgets the key on the device
+  (`reset_if_empty`), so the next vault starts with a new one.
+- **PIN:** new PINs have at least 6 digits (4–5 digit PINs from before keep working). The
+  app does not forget the PIN after 5 wrong tries: from the fifth it makes you wait 1, 5,
+  15, then 60 minutes (`secret_key_store.dart`); `forget_pin` exists but the app does not
+  call it (see `docs/security.md`, "How strong is it?").
+- **Vault password:** at least 8 characters; its zxcvbn strength is shown, a weak one is
+  allowed (no longer refused below score 3).
+- **Sync** (ADR 0003) carries only sealed files. The place keeps the vault's newest lock
+  (header, library salt, Argon2 cost, key fingerprint), which with the Recovery Key and
+  the vault password lets a new device join; an older lock is removed, so an old password
+  or key stops opening the copy there. P2P keys are derived from the Master Key; there is
+  no key exchange.

@@ -7,13 +7,13 @@
   "nav_dl": "Unduh",
   "nav_src": "Kode sumber",
   "h1": "Brankas pribadi untuk catatan, foto, dan file Anda.",
-  "lead": "Semuanya dienkripsi di perangkat Anda sebelum disimpan. Tanpa akun, tanpa server: aplikasinya hanya terhubung ke perangkat Anda sendiri di Wi-Fi yang sama saat Anda menyinkronkan. Tanpa kata sandi Anda, tidak ada yang bisa membukanya, termasuk kami.",
+  "lead": "Semuanya dienkripsi di perangkat Anda sebelum disimpan. Tanpa akun, tanpa server: aplikasinya hanya terhubung saat Anda memulai sinkronisasi, ke perangkat Anda sendiri di Wi-Fi yang sama atau ke Google Drive Anda sendiri, dan hanya mengirim data terenkripsi. Tanpa kata sandi Anda, tidak ada yang bisa membukanya, termasuk kami.",
   "btn": "Unduh",
   "btn_for": "Unduh untuk {p}",
   "btn_src": "Lihat kode sumber",
   "unlock": "Buka kunci",
   "unlock_bio": "Buka kunci dengan Face ID",
-  "note": "<strong>Pratinjau.</strong> Cozy Safe berjalan di satu perangkat; sinkronisasi antarperangkat belum tersedia. Sering-seringlah menggunakan <em>Cadangkan ke file</em>, dan untuk sementara jangan simpan satu-satunya salinan hal penting di sini.",
+  "note": "<strong>Pratinjau.</strong> Sinkronisasi antarperangkat Anda masih baru. Sering-seringlah menggunakan <em>Cadangkan ke file</em>, dan untuk sementara jangan simpan satu-satunya salinan hal penting di sini.",
   "h_how": "Cara Cozy Safe melindungi Anda",
   "p_how": "Data Anda tidak pernah meninggalkan perangkat dalam keadaan tidak terenkripsi, dan kode yang melakukannya terbuka untuk umum.",
   "c1h": "Dienkripsi di perangkat Anda",
@@ -30,7 +30,7 @@
   ],
   "l2h": "Yang tidak bisa dilakukannya",
   "l2": [
-   "Belum ada sinkronisasi antarperangkat: sering-seringlah mencadangkan ke file.",
+   "Sinkronisasi masih baru, dan sinkronisasi Google Drive untuk saat ini hanya berfungsi di iPhone: sering-seringlah mencadangkan ke file.",
    "Tidak bisa melindungi perangkat yang sudah terinfeksi malware.",
    "Siapa pun yang tahu kata sandinya bisa membuka brankas."
   ],
@@ -61,7 +61,7 @@
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
   "c4h": "Tanpa server, tanpa akun",
-  "c4p": "Cozy Safe tidak terhubung ke server mana pun. Satu-satunya koneksi yang dibuatnya adalah ke perangkat Anda sendiri di Wi-Fi yang sama, saat Anda memulai sinkronisasi dan mengizinkannya, dan semua yang dikirim terenkripsi.",
+  "c4p": "Cozy Safe tidak punya server sendiri. Aplikasinya hanya terhubung saat Anda memulai sinkronisasi dan mengizinkannya: ke perangkat Anda sendiri di Wi-Fi yang sama, atau ke Google Drive Anda sendiri. Semua yang dikirim terenkripsi.",
   "c5h": "Tetap tertutup di layar",
   "c5p": "Kata sandi dan Kunci Pemulihan tetap tersembunyi sampai Anda mengetuk Tampilkan, teks yang disalin dihapus setelah 60 detik, dan brankas langsung terkunci begitu Anda meninggalkan aplikasi.",
   "c6h": "Cadangan di tangan Anda",
@@ -92,7 +92,7 @@
     "Ke mana data Anda bisa pergi, hanya jika Anda memilihnya",
     [
      "Cadangan adalah satu file terenkripsi yang disimpan di tempat pilihan Anda (misalnya iCloud Drive, Google Drive, atau Dropbox). Hanya data terenkripsi yang ditulis ke sana; penyedia yang Anda pilih tidak bisa membacanya.",
-     "Sinkronisasi dengan perangkat Anda yang lain: saat Anda memulai dan mengizinkannya, data brankas yang terenkripsi dikirim lewat Wi-Fi Anda langsung ke perangkat Anda sendiri. Tidak ada yang melewati kami atau server mana pun.",
+     "Sinkronisasi, hanya saat Anda memulai dan mengizinkannya: data brankas yang terenkripsi dikirim lewat Wi-Fi Anda langsung ke perangkat Anda sendiri, atau, setelah Anda masuk dengan Google, ke folder \"Cozy Safe\" di Google Drive Anda sendiri. Aplikasi hanya bisa melihat file yang dibuatnya di sana, dan Google hanya melihat file terenkripsi. Tidak ada yang melewati kami.",
      "Saat Anda membagikan, mengekspor, atau membuka item di aplikasi lain, aplikasi itu menerima salinan yang tidak terenkripsi dan menanganinya sesuai ketentuannya sendiri."
     ]
    ],
@@ -101,7 +101,7 @@
     [
      "Kamera: hanya untuk mengambil foto langsung ke dalam brankas, saat Anda membuka kamera. Foto tidak disimpan ke galeri foto Anda.",
      "Biometrik: hanya jika Anda mengaktifkan buka kunci dengan Face ID, Touch ID, atau sidik jari. Data biometrik Anda tidak pernah meninggalkan perangkat keras aman di perangkat dan tidak pernah dapat diakses oleh aplikasi.",
-     "Jaringan lokal (iPhone) / internet (Android) / jaringan (macOS): hanya untuk sinkronisasi dengan perangkat Anda yang lain di Wi-Fi yang sama, saat Anda memulainya."
+     "Jaringan lokal (iPhone) / internet (Android) / jaringan (macOS): hanya untuk sinkronisasi, saat Anda memulainya: dengan perangkat Anda yang lain di Wi-Fi yang sama, atau dengan Google Drive Anda."
     ]
    ],
    [

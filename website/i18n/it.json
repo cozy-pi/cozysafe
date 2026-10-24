@@ -7,13 +7,13 @@
   "nav_dl": "Download",
   "nav_src": "Codice sorgente",
   "h1": "Una cassaforte privata per note, foto e file.",
-  "lead": "Tutto viene cifrato sul tuo dispositivo prima di essere salvato. Nessun account, nessun server: l'app si collega solo a un tuo dispositivo sulla stessa Wi-Fi quando sincronizzi. Senza la tua password nessuno può aprirlo, nemmeno noi.",
+  "lead": "Tutto viene cifrato sul tuo dispositivo prima di essere salvato. Nessun account, nessun server: l'app si collega solo quando avvii una sincronizzazione, a un tuo dispositivo sulla stessa Wi-Fi o al tuo Google Drive, e invia solo dati cifrati. Senza la tua password nessuno può aprirlo, nemmeno noi.",
   "btn": "Scarica",
   "btn_for": "Scarica per {p}",
   "btn_src": "Vedi il codice",
   "unlock": "Sblocca",
   "unlock_bio": "Sblocca con Face ID",
-  "note": "<strong>Anteprima.</strong> Cozy Safe funziona su un solo dispositivo; la sincronizzazione tra dispositivi non c'è ancora. Usa spesso <em>Backup su file</em> e per ora non tenere qui l'unica copia di qualcosa di importante.",
+  "note": "<strong>Anteprima.</strong> La sincronizzazione tra i tuoi dispositivi è una novità. Usa spesso <em>Backup su file</em> e per ora non tenere qui l'unica copia di qualcosa di importante.",
   "h_how": "Come ti protegge Cozy Safe",
   "p_how": "I tuoi dati non lasciano mai il dispositivo in chiaro, e il codice che se ne occupa è pubblico.",
   "c1h": "Cifrato sul tuo dispositivo",
@@ -30,7 +30,7 @@
   ],
   "l2h": "Cosa non può fare",
   "l2": [
-   "Non c'è ancora sincronizzazione tra dispositivi: fai spesso il backup su file.",
+   "La sincronizzazione è nuova, e quella con Google Drive per ora funziona solo su iPhone: fai spesso il backup su file.",
    "Non può proteggere un dispositivo che contiene già malware.",
    "Chiunque conosca la password può aprire la cassaforte."
   ],
@@ -61,7 +61,7 @@
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
   "c4h": "Nessun server, nessun account",
-  "c4p": "Cozy Safe non comunica con alcun server. L'unica connessione che stabilisce è con un tuo dispositivo sulla stessa Wi-Fi, quando avvii una sincronizzazione e la autorizzi, e tutto ciò che viene inviato è cifrato.",
+  "c4p": "Cozy Safe non ha un server proprio. Si collega solo quando avvii una sincronizzazione e la autorizzi: a un tuo dispositivo sulla stessa Wi-Fi o al tuo Google Drive. Tutto ciò che viene inviato è cifrato.",
   "c5h": "Riservato sullo schermo",
   "c5p": "Le password e la Chiave di recupero restano nascoste finché non tocchi Mostra, il testo copiato viene cancellato dopo 60 secondi e la cassaforte si blocca appena esci dall'app.",
   "c6h": "Backup sotto il tuo controllo",
@@ -92,7 +92,7 @@
     "Dove possono andare i tuoi dati, solo se lo scegli tu",
     [
      "Un backup è un unico file cifrato, salvato dove scegli tu (ad esempio iCloud Drive, Google Drive o Dropbox). Lì vengono scritti solo dati cifrati; il fornitore scelto non può leggerli.",
-     "Sincronizzazione con l'altro tuo dispositivo: quando la avvii e la autorizzi, i dati cifrati della cassaforte passano dalla tua Wi-Fi direttamente al tuo dispositivo. Niente passa da noi o da un server.",
+     "Sincronizzazione, solo quando la avvii e la autorizzi: i dati cifrati della cassaforte passano dalla tua Wi-Fi direttamente al tuo dispositivo oppure, dopo l'accesso con Google, in una cartella «Cozy Safe» del tuo Google Drive. L'app vede solo i file che ha creato lì, e Google vede solo file cifrati. Niente passa da noi.",
      "Quando condividi, esporti o apri un elemento in un'altra app, quell'app riceve una copia non cifrata e la gestisce secondo le proprie condizioni."
     ]
    ],
@@ -101,7 +101,7 @@
     [
      "Fotocamera: solo per scattare foto direttamente in una cassaforte, quando apri la fotocamera. Le foto non vengono salvate nella tua libreria foto.",
      "Biometria: solo se attivi lo sblocco con Face ID, Touch ID o impronta digitale. I tuoi dati biometrici non lasciano mai l'hardware sicuro del dispositivo e non sono mai accessibili all'app.",
-     "Rete locale (iPhone) / internet (Android) / rete (macOS): solo per sincronizzare con l'altro tuo dispositivo sulla stessa Wi-Fi, quando la avvii."
+     "Rete locale (iPhone) / internet (Android) / rete (macOS): solo per la sincronizzazione, quando la avvii: con l'altro tuo dispositivo sulla stessa Wi-Fi o con il tuo Google Drive."
     ]
    ],
    [

@@ -7,13 +7,13 @@
   "nav_dl": "Download",
   "nav_src": "Quellcode",
   "h1": "Ein privater Tresor für Ihre Notizen, Fotos und Dateien.",
-  "lead": "Alles wird auf Ihrem Gerät verschlüsselt, bevor es gespeichert wird. Kein Konto, kein Server: Die App verbindet sich nur beim Synchronisieren mit Ihrem eigenen Gerät im selben WLAN. Ohne Ihr Passwort kann es niemand öffnen, auch wir nicht.",
+  "lead": "Alles wird auf Ihrem Gerät verschlüsselt, bevor es gespeichert wird. Kein Konto, kein Server: Die App verbindet sich nur, wenn Sie eine Synchronisierung starten, mit Ihrem eigenen Gerät im selben WLAN oder mit Ihrem eigenen Google Drive, und sendet nur verschlüsselte Daten. Ohne Ihr Passwort kann es niemand öffnen, auch wir nicht.",
   "btn": "Herunterladen",
   "btn_for": "Für {p} herunterladen",
   "btn_src": "Quellcode ansehen",
   "unlock": "Entsperren",
   "unlock_bio": "Mit Face ID entsperren",
-  "note": "<strong>Vorschau.</strong> Cozy Safe läuft auf einem Gerät; eine Synchronisierung zwischen Geräten gibt es noch nicht. Nutzen Sie regelmäßig <em>In Datei sichern</em> und bewahren Sie hier noch nicht die einzige Kopie von etwas Wichtigem auf.",
+  "note": "<strong>Vorschau.</strong> Die Synchronisierung zwischen Ihren Geräten ist neu. Nutzen Sie regelmäßig <em>In Datei sichern</em> und bewahren Sie hier noch nicht die einzige Kopie von etwas Wichtigem auf.",
   "h_how": "So schützt Sie Cozy Safe",
   "p_how": "Ihre Daten verlassen Ihr Gerät nie unverschlüsselt, und der Code dafür ist öffentlich.",
   "c1h": "Verschlüsselt auf Ihrem Gerät",
@@ -30,7 +30,7 @@
   ],
   "l2h": "Was es nicht kann",
   "l2": [
-   "Noch keine Synchronisierung zwischen Geräten: Sichern Sie regelmäßig in eine Datei.",
+   "Die Synchronisierung ist neu, und die Synchronisierung über Google Drive funktioniert vorerst nur auf dem iPhone: Sichern Sie regelmäßig in eine Datei.",
    "Es kann kein Gerät schützen, auf dem bereits Schadsoftware ist.",
    "Wer das Passwort kennt, kann den Tresor öffnen."
   ],
@@ -61,7 +61,7 @@
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
   "c4h": "Kein Server, kein Konto",
-  "c4p": "Cozy Safe verbindet sich mit keinem Server. Die einzige Verbindung geht zu Ihrem eigenen Gerät im selben WLAN, wenn Sie eine Synchronisierung starten und erlauben, und alles Gesendete ist verschlüsselt.",
+  "c4p": "Cozy Safe hat keinen eigenen Server. Es verbindet sich nur, wenn Sie eine Synchronisierung starten und erlauben: mit Ihrem eigenen Gerät im selben WLAN oder mit Ihrem eigenen Google Drive. Alles Gesendete ist verschlüsselt.",
   "c5h": "Diskret auf dem Bildschirm",
   "c5p": "Passwörter und der Wiederherstellungsschlüssel bleiben verborgen, bis Sie auf Anzeigen tippen, kopierter Text wird nach 60 Sekunden gelöscht, und der Tresor sperrt sich, sobald Sie die App verlassen.",
   "c6h": "Backups in Ihrer Hand",
@@ -92,7 +92,7 @@
     "Wohin Ihre Daten gelangen können, nur wenn Sie es wählen",
     [
      "Ein Backup ist eine einzelne verschlüsselte Datei, gespeichert an einem Ort Ihrer Wahl (zum Beispiel iCloud Drive, Google Drive oder Dropbox). Dort werden nur verschlüsselte Daten gespeichert; der gewählte Anbieter kann sie nicht lesen.",
-     "Synchronisierung mit Ihrem anderen Gerät: Wenn Sie sie starten und erlauben, gehen die verschlüsselten Daten des Tresors über Ihr WLAN direkt zu Ihrem eigenen Gerät. Nichts läuft über uns oder einen Server.",
+     "Synchronisierung, nur wenn Sie sie starten und erlauben: Die verschlüsselten Daten des Tresors gehen über Ihr WLAN direkt zu Ihrem eigenen Gerät oder, nachdem Sie sich bei Google angemeldet haben, in einen Ordner „Cozy Safe“ in Ihrem eigenen Google Drive. Die App sieht dort nur die Dateien, die sie selbst angelegt hat, und Google sieht nur verschlüsselte Dateien. Nichts läuft über uns.",
      "Wenn Sie ein Element teilen, exportieren oder in einer anderen App öffnen, erhält diese App eine unverschlüsselte Kopie und verarbeitet sie nach ihren eigenen Bestimmungen."
     ]
    ],
@@ -101,7 +101,7 @@
     [
      "Kamera: nur um Fotos direkt in einen Tresor aufzunehmen, wenn Sie die Kamera öffnen. Fotos werden nicht in Ihrer Fotomediathek gespeichert.",
      "Biometrie: nur wenn Sie das Entsperren per Face ID, Touch ID oder Fingerabdruck aktivieren. Ihre biometrischen Daten verlassen nie die sichere Hardware des Geräts und sind für die App nie zugänglich.",
-     "Lokales Netzwerk (iPhone) / Internet (Android) / Netzwerk (macOS): nur zum Synchronisieren mit Ihrem anderen Gerät im selben WLAN, wenn Sie es starten."
+     "Lokales Netzwerk (iPhone) / Internet (Android) / Netzwerk (macOS): nur zum Synchronisieren, wenn Sie es starten: mit Ihrem anderen Gerät im selben WLAN oder mit Ihrem Google Drive."
     ]
    ],
    [

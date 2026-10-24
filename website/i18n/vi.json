@@ -7,13 +7,13 @@
   "nav_dl": "Tải về",
   "nav_src": "Mã nguồn",
   "h1": "Két riêng cho ghi chú, ảnh và giấy tờ của bạn.",
-  "lead": "Mọi thứ được mã hoá ngay trên máy trước khi lưu. Không tài khoản, không máy chủ: app chỉ kết nối với máy của chính bạn trong cùng Wi-Fi khi đồng bộ. Không có mật khẩu của bạn thì không ai mở được, kể cả chúng tôi.",
+  "lead": "Mọi thứ được mã hoá ngay trên máy trước khi lưu. Không tài khoản, không máy chủ: app chỉ kết nối khi bạn bắt đầu đồng bộ, tới máy của chính bạn trong cùng Wi-Fi hoặc Google Drive của chính bạn, và chỉ gửi dữ liệu đã mã hoá. Không có mật khẩu của bạn thì không ai mở được, kể cả chúng tôi.",
   "btn": "Tải về",
   "btn_for": "Tải cho {p}",
   "btn_src": "Xem mã nguồn",
   "unlock": "Mở két",
   "unlock_bio": "Mở bằng Face ID",
-  "note": "<strong>Bản thử nghiệm.</strong> Cozy Safe dùng trên một máy; đồng bộ giữa các máy chưa có. Hãy <em>Sao lưu ra file</em> thường xuyên, và tạm thời đừng cất bản duy nhất của thứ gì quan trọng vào đây.",
+  "note": "<strong>Bản thử nghiệm.</strong> Đồng bộ giữa các máy của bạn mới có. Hãy <em>Sao lưu ra file</em> thường xuyên, và tạm thời đừng cất bản duy nhất của thứ gì quan trọng vào đây.",
   "h_how": "Cozy Safe giữ an toàn cho bạn thế nào",
   "p_how": "Dữ liệu không bao giờ rời máy ở dạng chưa mã hoá, và đoạn mã làm việc đó ai cũng đọc được.",
   "c1h": "Mã hoá ngay trên máy",
@@ -30,7 +30,7 @@
   ],
   "l2h": "Những gì app không làm được",
   "l2": [
-   "Chưa có đồng bộ giữa các máy: hãy sao lưu ra tệp thường xuyên.",
+   "Đồng bộ mới có, và đồng bộ qua Google Drive hiện chỉ chạy trên iPhone: hãy sao lưu ra tệp thường xuyên.",
    "Không bảo vệ được máy đã nhiễm mã độc.",
    "Ai biết mật khẩu thì mở được két."
   ],
@@ -61,7 +61,7 @@
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
   "c4h": "Không máy chủ, không tài khoản",
-  "c4p": "Cozy Safe không kết nối máy chủ nào. App chỉ kết nối với máy khác của bạn trong cùng Wi-Fi, khi bạn bắt đầu đồng bộ và cho phép. Mọi thứ gửi đi đều được mã hoá.",
+  "c4p": "Cozy Safe không có máy chủ riêng. App chỉ kết nối khi bạn bắt đầu đồng bộ và cho phép: tới máy khác của bạn trong cùng Wi-Fi, hoặc Google Drive của bạn. Mọi thứ gửi đi đều được mã hoá.",
   "c5h": "Kín đáo trên màn hình",
   "c5p": "Mật khẩu và Khoá khôi phục bị che cho tới khi bạn bấm Xem, chữ đã sao chép bị xoá sau 60 giây, và két tự khoá ngay khi bạn rời app.",
   "c6h": "Sao lưu do bạn giữ",
@@ -92,7 +92,7 @@
     "Dữ liệu chỉ đi ra ngoài khi bạn chọn",
     [
      "Bản sao lưu là một tệp đã mã hoá, lưu ở nơi bạn chọn (ví dụ iCloud Drive, Google Drive hay Dropbox). Chỉ dữ liệu đã mã hoá được ghi ra đó; nhà cung cấp bạn chọn không đọc được.",
-     "Đồng bộ với máy khác của bạn: khi bạn bắt đầu và cho phép, dữ liệu đã mã hoá của két đi qua Wi-Fi thẳng tới máy của chính bạn. Không có gì đi qua chúng tôi hay máy chủ nào.",
+     "Đồng bộ, chỉ khi bạn bắt đầu và cho phép: dữ liệu đã mã hoá của két đi qua Wi-Fi thẳng tới máy của chính bạn, hoặc, sau khi bạn đăng nhập Google, vào thư mục \"Cozy Safe\" trong Google Drive của chính bạn. App chỉ thấy các file nó tạo ở đó, còn Google chỉ thấy file đã mã hoá. Không có gì đi qua chúng tôi.",
      "Khi bạn chia sẻ, xuất hay mở một mục bằng app khác, app đó nhận bản không mã hoá và xử lý theo điều khoản của họ."
     ]
    ],
@@ -101,7 +101,7 @@
     [
      "Camera: chỉ để chụp ảnh thẳng vào két, khi bạn mở camera. Ảnh không lưu vào thư viện ảnh của máy.",
      "Sinh trắc học: chỉ khi bạn bật mở khoá bằng Face ID, Touch ID hoặc vân tay. Dữ liệu sinh trắc học không rời phần cứng bảo mật của máy và app không bao giờ truy cập được.",
-     "Mạng cục bộ (iPhone) / internet (Android) / mạng (macOS): chỉ để đồng bộ với máy khác của bạn trong cùng Wi-Fi, khi bạn bắt đầu."
+     "Mạng cục bộ (iPhone) / internet (Android) / mạng (macOS): chỉ để đồng bộ, khi bạn bắt đầu: với máy khác của bạn trong cùng Wi-Fi, hoặc với Google Drive của bạn."
     ]
    ],
    [

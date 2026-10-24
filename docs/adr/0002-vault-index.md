@@ -15,7 +15,8 @@ Apple Photos).
 1. **SQLCipher** (whole file encrypted page by page). Needs OpenSSL's libcrypto off
    Apple platforms. Tried on branch `sqlite`: the Android library then imported
    `socket`, `bind`, `accept`, `sendmsg`, `setsockopt`, and `tools/check-rust-symbols`
-   failed. Rejected (docs/supply-chain.md: no network code ships).
+   failed. Rejected (docs/supply-chain.md: no network code ships; since sync, only
+   `cs-net` may use the network, and these imports would come from elsewhere).
 2. **SQLite3 Multiple Ciphers** (same idea, crypto built in, no OpenSSL). No maintained
    Rust binding; we would vendor and maintain its C amalgamation. Kept as a fallback.
 3. **Whole file encrypted by us, SQLite in memory** (KeePass-like). Full SQL, but the
