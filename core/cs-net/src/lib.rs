@@ -98,12 +98,14 @@ pub(crate) mod testkit {
         t: 1,
         p: 1,
     };
-    const PW: &str = "orange kettle whispers at dawn 77";
+    pub(crate) const PW: &str = "orange kettle whispers at dawn 77";
 
     pub(crate) struct Two {
         pub(crate) dirs: (tempfile::TempDir, tempfile::TempDir),
         pub(crate) a: OpenVault,
         pub(crate) b: OpenVault,
+        /// The library's Recovery Key.
+        pub(crate) sk: SecretKey,
     }
 
     fn copy_dir(from: &Path, to: &Path) {
@@ -134,7 +136,7 @@ pub(crate) mod testkit {
             .unlock(PW)
             .unwrap()
             .unwrap();
-        let b = Library::open_or_create(db.path(), FAST, sk)
+        let b = Library::open_or_create(db.path(), FAST, sk.clone())
             .unwrap()
             .unlock(PW)
             .unwrap()
@@ -143,6 +145,7 @@ pub(crate) mod testkit {
             dirs: (da, db),
             a,
             b,
+            sk,
         }
     }
 

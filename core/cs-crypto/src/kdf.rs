@@ -14,6 +14,7 @@ use crate::{Error, Key, Result, SecretKey, KEY_LEN, SALT_LEN};
 const INFO_SECRET_KEY: &[u8] = b"cozysafe/v1/secret-key";
 const INFO_VAULT_KEK: &[u8] = b"cozysafe/v1/vault-kek";
 const INFO_SUBKEY: &[u8] = b"cozysafe/v1/subkey/";
+const INFO_RESTORE_PAIRING: &[u8] = b"cozysafe/v1/p2p-restore";
 
 /// Argon2id cost parameters, stored in the clear in the library header.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -98,6 +99,13 @@ pub fn subkey(master: &Key, label: &str) -> Key {
     info.extend_from_slice(INFO_SUBKEY);
     info.extend_from_slice(label.as_bytes());
     hkdf_expand(master.as_bytes(), None, &info)
+}
+
+/// The key a device with no vault yet pairs with, from the Recovery Key alone: both a
+/// device holding the library and a person typing the 24 words can derive it. It only
+/// lets the new device fetch the sealed vault; opening it still takes the password.
+pub fn restore_pairing_key(secret: &SecretKey) -> Key {
+    hkdf_expand(secret.as_bytes(), None, INFO_RESTORE_PAIRING)
 }
 
 fn hkdf_expand(ikm: &[u8], salt: Option<&[u8]>, info: &[u8]) -> Key {
