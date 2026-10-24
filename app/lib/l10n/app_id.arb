@@ -450,5 +450,7 @@
   "introNoCopy": "Cozy Safe tidak menyimpan salinannya. Jika kata sandi dan 24 kata sama-sama hilang, tidak ada yang bisa membuka cadangan Anda.",
   "introStart": "Mulai",
   "lookLead": "Anda bisa mengubahnya nanti di Pengaturan.",
-  "lookSkip": "Lewati"
+  "lookSkip": "Lewati",
+  "addRowPhotos": "Foto",
+  "addRowCamera": "Kamera"
 }

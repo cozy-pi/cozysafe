@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.38 (2026-10-24)
+
+### Changed
+- The + button shows what it does. In Notes it opens a new note, in Voice it starts
+  recording (a red microphone), in Files it picks files, all at once, with no menu. In
+  the Library and on the overview, + opens a short row of choices just above it:
+  Photos, Camera (the camera takes both photos and videos), Note, Recording, Files.
+- A new note no longer shows the red delete button next to Done.
+
 ## 0.1.37 (2026-10-24)
 
 ### Changed

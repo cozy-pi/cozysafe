@@ -450,5 +450,7 @@
   "introNoCopy": "Cozy Safe bunların kopyasını tutmaz. Hem parolayı hem 24 kelimeyi kaybederseniz yedeklerinizi kimse açamaz.",
   "introStart": "Başla",
   "lookLead": "Bunu daha sonra Ayarlar'dan değiştirebilirsiniz.",
-  "lookSkip": "Atla"
+  "lookSkip": "Atla",
+  "addRowPhotos": "Fotoğraflar",
+  "addRowCamera": "Kamera"
 }

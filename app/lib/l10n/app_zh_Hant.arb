@@ -450,5 +450,7 @@
   "introNoCopy": "Cozy Safe 不保留任何副本。如果密碼和 24 個單字都遺失，任何人都無法打開你的備份。",
   "introStart": "開始",
   "lookLead": "之後可以在設定中更改。",
-  "lookSkip": "略過"
+  "lookSkip": "略過",
+  "addRowPhotos": "照片",
+  "addRowCamera": "相機"
 }

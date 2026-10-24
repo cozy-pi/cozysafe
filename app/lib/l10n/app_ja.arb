@@ -450,5 +450,7 @@
   "introNoCopy": "Cozy Safe はコピーを保管しません。パスワードと24語の両方をなくすと、誰もバックアップを開けません。",
   "introStart": "はじめる",
   "lookLead": "あとで設定から変更できます。",
-  "lookSkip": "スキップ"
+  "lookSkip": "スキップ",
+  "addRowPhotos": "写真",
+  "addRowCamera": "カメラ"
 }
