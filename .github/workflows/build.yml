@@ -132,7 +132,7 @@ jobs:
           path: app/build/linux/x64/release/plugins/rust_lib_cozysafe/cargokit_build
           key: cargokit-linux-${{ hashFiles('app/rust/Cargo.lock', 'core/**/*.rs', 'app/rust/src/**/*.rs') }}
           restore-keys: cargokit-linux-
-      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev
+      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libjpeg-dev liblzma-dev libsecret-1-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev
       - uses: ./.github/actions/flutter-setup
       - working-directory: app
         run: flutter build linux --release ${{ inputs.version && format('--build-name {0} --build-number {1}', inputs.version, inputs.build) || '' }} --dart-define=BUILD_DATE=${{ env.BUILD_DATE }} --dart-define=BUILD_COMMIT=${{ github.sha }}

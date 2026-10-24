@@ -374,7 +374,7 @@ void main() {
     });
   }
   _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library',
-      change: 'Nút trang chủ (biểu tượng két) vào trong thanh như các mục khác, bỏ nút tròn viền trắng; nút + mặc định ở giữa',
+      change: 'MỚI: nút + đứng ngay sau nút Tổng quan, 4 mục kia ở sau',
       marks: [() => find.byKey(const ValueKey('home-tab')), () => find.byKey(const ValueKey('vault-action'))]);
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
