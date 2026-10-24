@@ -35,6 +35,7 @@ core-foundation-sys
 cpufeatures
 crypto-common
 cs-crypto
+cs-net
 cs-photo
 cs-vault
 darling
