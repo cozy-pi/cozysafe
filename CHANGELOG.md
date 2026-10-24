@@ -4,6 +4,20 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.55 (2026-10-24)
+
+### Added
+- A first screen with two choices: Create a new vault, or Restore a vault (from Google
+  Drive or from a backup file).
+- Sync with Google Drive shows what it is doing (checking, bringing in n of m, sending
+  n of m), keeps the screen on, and offers Continue if the phone sleeps or the network
+  drops.
+
+### Changed
+- Making a vault is one thing per step: the 24 words, the password, the PIN (quick
+  open on this phone), then Face ID or fingerprint as its own step. Shorter text.
+- Notes and files have clearly different icons (pen and paper, folder).
+
 ## 0.1.54 (2026-10-24)
 
 ### Added

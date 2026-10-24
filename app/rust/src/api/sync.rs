@@ -25,6 +25,9 @@ pub struct SyncEvent {
     pub sent: u32,
     pub removed: u32,
     pub copies: u32,
+    /// While under way: items done so far and in all.
+    pub done: u32,
+    pub total: u32,
 }
 
 pub enum SyncStep {
@@ -51,6 +54,13 @@ pub enum SyncStep {
     Knock,
     /// Google Drive refused the sign-in (expired or withdrawn): sign in again.
     SignIn,
+    /// Under way: reading the place, bringing items in, sending (see `done`, `total`).
+    Checking,
+    Receiving,
+    Sending,
+    /// The connection dropped mid-way (the phone slept, the network went): what was
+    /// done is kept, the next sync goes on from there.
+    Interrupted,
 }
 
 fn step(kind: SyncStep) -> SyncEvent {
@@ -61,6 +71,8 @@ fn step(kind: SyncStep) -> SyncEvent {
         sent: 0,
         removed: 0,
         copies: 0,
+        done: 0,
+        total: 0,
     }
 }
 
@@ -86,6 +98,21 @@ fn report(r: SyncReport) -> SyncEvent {
         sent: r.sent,
         removed: r.removed,
         copies: r.copies,
+        done: 0,
+        total: 0,
+    }
+}
+
+fn progress_event(p: cs_vault::sync::SyncProgress) -> SyncEvent {
+    use cs_vault::sync::SyncPhase;
+    SyncEvent {
+        done: p.done,
+        total: p.total,
+        ..step(match p.phase {
+            SyncPhase::Checking => SyncStep::Checking,
+            SyncPhase::Receiving => SyncStep::Receiving,
+            SyncPhase::Sending => SyncStep::Sending,
+        })
     }
 }
 
@@ -220,21 +247,36 @@ pub fn p2p_join(code: String, sink: StreamSink<SyncEvent>) {
 /// The person allowed syncing with their Google Drive; `token` is the access token from
 /// their sign-in on this device (scope `drive.file`). Listing Drive happens before the
 /// vault is held; the sync itself holds it.
-pub fn drive_sync(token: String) -> SyncEvent {
+pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
     STOP.store(false, Ordering::Relaxed);
     let token = zeroize::Zeroizing::new(token);
-    let remote =
-        GoogleDrive::new(Permit::google_drive(), token.to_string()).and_then(DriveRemote::open);
+    let _ = sink.add(step(SyncStep::Checking));
+    let remote = GoogleDrive::new(Permit::google_drive(), token.to_string())
+        .and_then(DriveRemote::open)
+        .map(|r| r.stop_on(&STOP));
     let event = match remote {
-        Err(e) => failure(e),
-        Ok(remote) => match with_open(|v| Ok(v.sync(&remote))) {
+        Err(e) => drive_failure(e),
+        Ok(remote) => match with_open(|v| {
+            Ok(v.sync_with(&remote, &|p| {
+                let _ = sink.add(progress_event(p));
+            }))
+        }) {
             Ok(Ok(r)) => report(r),
-            Ok(Err(e)) => failure(e),
+            Ok(Err(e)) => drive_failure(e),
             Err(_) => step(SyncStep::Locked),
         },
     };
     log_event("drive", Some("Google Drive"), &event);
-    event
+    let _ = sink.add(event);
+}
+
+/// A dropped connection mid-way is an interruption (nothing lost), not a failure.
+fn drive_failure(e: cs_vault::Error) -> SyncEvent {
+    match e {
+        cs_vault::Error::Corrupt("drive cancelled") => step(SyncStep::Cancelled),
+        cs_vault::Error::Io(_) => step(SyncStep::Interrupted),
+        e => failure(e),
+    }
 }
 
 /// What came of joining a vault from Google Drive on this device.
@@ -297,12 +339,7 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
         Err(cs_vault::Error::WrongSecretKey) => return join_result(JoinOutcome::WrongWords),
         Err(_) => return join_result(JoinOutcome::Failed),
     };
-    let synced = vault.sync(&remote);
-    let _ = vault.log_connection(&format!(
-        "{}|drive|Google Drive|{}|0|0",
-        now_ms(),
-        if synced.is_ok() { "ok" } else { "failed" }
-    ));
+    // The items come next, through drive_sync, with progress on screen.
     super::vault::use_secret(key);
     JoinResult {
         outcome: JoinOutcome::Joined,
@@ -326,7 +363,13 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         SyncStep::Done => "ok",
         SyncStep::Cancelled => "cancelled",
         SyncStep::Expired => "expired",
-        SyncStep::Connected | SyncStep::Rejected | SyncStep::Knock => return,
+        SyncStep::Connected
+        | SyncStep::Rejected
+        | SyncStep::Knock
+        | SyncStep::Checking
+        | SyncStep::Receiving
+        | SyncStep::Sending => return,
+        SyncStep::Interrupted => "interrupted",
         SyncStep::OtherVault => "othervault",
         SyncStep::Unreachable => "unreachable",
         SyncStep::SignIn | SyncStep::Failed | SyncStep::Locked => "failed",

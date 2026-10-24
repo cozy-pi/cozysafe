@@ -13,6 +13,7 @@ import '../theme.dart';
 import '../widgets/secret.dart';
 import 'consent.dart';
 import 'drive.dart';
+import 'progress.dart';
 
 /// A new device with no vault: open the one kept in Google Drive with the 24 words and
 /// the vault password, no backup file (owner 2026-10-24). Sign in, allow the
@@ -90,6 +91,21 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       }
       // This device keeps the words now, like a device that made the vault.
       await SecretKeyStore.write(Uint8List.fromList(parsed));
+      if (!mounted) return;
+      // The items come down with progress on screen; stopping loses nothing.
+      await Navigator.of(context).push<void>(MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text(l.syncTitle), automaticallyImplyLeading: false),
+          body: SafeArea(
+            top: false,
+            child: SyncProgress(
+              events: sync.driveSync(token: session.token),
+              retry: () => sync.driveSync(token: session.token),
+              onSynced: () {},
+            ),
+          ),
+        ),
+      ));
       if (!mounted) return;
       await Navigator.of(context).push<bool>(
         MaterialPageRoute(builder: (_) => const SetPinScreen(skippable: true, forThisPhone: true)),

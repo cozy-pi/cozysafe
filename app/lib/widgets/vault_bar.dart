@@ -281,10 +281,10 @@ class _CentreTabs extends StatelessWidget {
 
   static IconData _icon(VaultSection s) => switch (s) {
         VaultSection.home => Icons.home_outlined,
-        VaultSection.note => Icons.sticky_note_2_outlined,
+        VaultSection.note => Icons.edit_note_rounded,
         VaultSection.library => Icons.photo_library_outlined,
         VaultSection.audio => Icons.mic_none_rounded,
-        VaultSection.file => Icons.description_outlined,
+        VaultSection.file => Icons.folder_outlined,
       };
 
   @override
@@ -647,7 +647,7 @@ List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool cam
       if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
       if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
-      (AddWhat.file, Icons.description_outlined, l.addFiles),
+      (AddWhat.file, Icons.folder_outlined, l.addFiles),
     ];
 
 /// The ways that fill [section], nearest the + button in the add column.
@@ -679,7 +679,7 @@ List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection se
       if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
       (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
-      (AddWhat.file, Icons.description_outlined, sectionLabel(l, VaultSection.file)),
+      (AddWhat.file, Icons.folder_outlined, sectionLabel(l, VaultSection.file)),
     ];
 
 /// + never does one thing at once any more: it always offers every way ([addRowWays]).

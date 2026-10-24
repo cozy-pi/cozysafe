@@ -9,9 +9,9 @@ import '../theme.dart';
 import '../widgets/pin_pad.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
-import 'new_vault.dart';
 import 'unlock.dart';
 import '../widgets/toast.dart';
+import 'welcome.dart';
 
 /// Delete the open vault, confirmed with its own PIN. In the opposite brightness (light when the app is dark, and the reverse), so it is
 /// never taken for the lock screen. Wrong PINs count towards the same waits as the PIN pad.
@@ -101,7 +101,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
         MaterialPageRoute<void>(
           builder: (_) => any
               ? UnlockScreen(libraryDir: widget.libraryDir, askBiometricNow: false)
-              : NewVaultScreen(libraryDir: widget.libraryDir, first: true),
+              : WelcomeScreen(libraryDir: widget.libraryDir),
         ),
         (_) => false,
       );

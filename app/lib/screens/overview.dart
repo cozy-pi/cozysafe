@@ -23,10 +23,10 @@ Color searchKindColor(VaultSection s) => switch (s) {
 
 IconData searchKindIcon(VaultSection s) => switch (s) {
       VaultSection.home => Icons.home_outlined,
-      VaultSection.note => Icons.sticky_note_2_outlined,
+      VaultSection.note => Icons.edit_note_rounded,
       VaultSection.library => Icons.photo_library_outlined,
       VaultSection.audio => Icons.mic_none_rounded,
-      VaultSection.file => Icons.description_outlined,
+      VaultSection.file => Icons.folder_outlined,
     };
 
 VaultSection? sectionOf(rust.ItemInfo i) => switch (i.kind) {

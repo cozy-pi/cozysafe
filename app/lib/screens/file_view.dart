@@ -33,7 +33,7 @@ import '../widgets/toast.dart';
 
 /// Icon for an item kind / type.
 IconData fileIcon(rust.ItemInfo item) {
-  if (item.kind == ItemKind.note) return Icons.sticky_note_2_outlined;
+  if (item.kind == ItemKind.note) return Icons.edit_note_rounded;
   if (item.kind == ItemKind.video) return Icons.movie_outlined;
   final m = item.mime;
   if (m == 'application/pdf') return Icons.picture_as_pdf_outlined;

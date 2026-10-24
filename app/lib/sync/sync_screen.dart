@@ -85,7 +85,8 @@ class _SyncScreenState extends State<SyncScreen> {
     await pushPage<void>(context,
         title: l.syncTitle,
         builder: (_) => SyncProgress(
-              events: Stream.fromFuture(sync.driveSync(token: token)),
+              events: sync.driveSync(token: token),
+              retry: () => sync.driveSync(token: token),
               onSynced: widget.onSynced,
               waiting: Column(mainAxisSize: MainAxisSize.min, children: [
                 const CircularProgressIndicator(),
