@@ -473,7 +473,7 @@
   "syncAllowTitle": "Diese Verbindung erlauben?",
   "syncAllowHost": "Dieses Gerät wartet 2 Minuten lang unter {address} in deinem WLAN auf ein Gerät, das diesen Tresor hat.",
   "syncAllowJoin": "Dieses Gerät verbindet sich einmal mit {address} in deinem WLAN.",
-  "syncAllowNote": "Alles wird verschlüsselt gesendet. Ein Gerät ohne diesen Tresor kann nicht beitreten.",
+  "syncAllowNote": "Nur ein Gerät mit diesem Tresor und dem einmaligen Code kann beitreten. Alles wird verschlüsselt gesendet.",
   "syncAllow": "Erlauben",
   "syncNoWifi": "Verbinde dich zuerst mit dem WLAN, beide Geräte im selben Netz.",
   "syncWaiting": "Warte auf dein anderes Gerät",

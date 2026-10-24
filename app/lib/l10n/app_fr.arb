@@ -473,7 +473,7 @@
   "syncAllowTitle": "Autoriser cette connexion ?",
   "syncAllowHost": "Cet appareil attendra à l’adresse {address} sur votre Wi‑Fi pendant 2 minutes, pour un appareil qui contient ce coffre.",
   "syncAllowJoin": "Cet appareil se connectera à {address} sur votre Wi‑Fi, une seule fois.",
-  "syncAllowNote": "Tout ce qui est envoyé est chiffré. Un appareil sans ce coffre ne peut pas se joindre.",
+  "syncAllowNote": "Seul un appareil qui contient ce coffre et a le code à usage unique peut se joindre. Tout ce qui est envoyé est chiffré.",
   "syncAllow": "Autoriser",
   "syncNoWifi": "Connectez-vous d’abord au Wi‑Fi, avec les deux appareils sur le même réseau.",
   "syncWaiting": "En attente de votre autre appareil",

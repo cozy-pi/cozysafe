@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.45 (2026-10-24)
+
+### Changed
+- Sync: the question before connecting, and iPhone's local network prompt, now say that
+  the other device needs this vault and the one-time code.
+
 ## 0.1.44 (2026-10-24)
 
 ### Added

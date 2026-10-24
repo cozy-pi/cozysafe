@@ -487,7 +487,7 @@
   "syncAllowTitle": "Cho phép kết nối?",
   "syncAllowHost": "Máy này sẽ chờ ở địa chỉ {address} trên Wi‑Fi của bạn trong 2 phút, cho một máy có cùng két.",
   "syncAllowJoin": "Máy này sẽ kết nối tới {address} trên Wi‑Fi của bạn, một lần.",
-  "syncAllowNote": "Mọi thứ gửi đi đều được mã hoá. Máy không có két này không vào được.",
+  "syncAllowNote": "Chỉ máy có cùng két và có mã tạm thời mới vào được. Mọi thứ gửi đi đều được mã hoá.",
   "syncAllow": "Cho phép",
   "syncNoWifi": "Hãy kết nối Wi‑Fi trước, hai máy cùng một mạng.",
   "syncWaiting": "Đang chờ máy kia",

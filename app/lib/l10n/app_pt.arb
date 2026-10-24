@@ -473,7 +473,7 @@
   "syncAllowTitle": "Permitir esta conexão?",
   "syncAllowHost": "Este dispositivo vai esperar em {address} na sua Wi‑Fi por 2 minutos, por um dispositivo que tenha este cofre.",
   "syncAllowJoin": "Este dispositivo vai se conectar a {address} na sua Wi‑Fi, uma vez.",
-  "syncAllowNote": "Tudo o que é enviado é criptografado. Um dispositivo sem este cofre não consegue entrar.",
+  "syncAllowNote": "Só um dispositivo que tenha este cofre e o código de uso único pode entrar. Tudo o que é enviado é criptografado.",
   "syncAllow": "Permitir",
   "syncNoWifi": "Conecte-se primeiro à Wi‑Fi, com os dois dispositivos na mesma rede.",
   "syncWaiting": "Aguardando seu outro dispositivo",

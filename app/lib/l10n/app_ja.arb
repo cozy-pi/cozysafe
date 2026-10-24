@@ -473,7 +473,7 @@
   "syncAllowTitle": "この接続を許可しますか？",
   "syncAllowHost": "このデバイスはWi‑Fi上の {address} で2分間、この金庫を持つデバイス1台を待ちます。",
   "syncAllowJoin": "このデバイスはWi‑Fi上の {address} に1回接続します。",
-  "syncAllowNote": "送信される内容はすべて暗号化されます。この金庫を持たないデバイスは参加できません。",
+  "syncAllowNote": "この金庫と使い捨てのコードを持つデバイスだけが参加できます。送信される内容はすべて暗号化されます。",
   "syncAllow": "許可",
   "syncNoWifi": "先にWi‑Fiに接続し、両方のデバイスを同じネットワークにしてください。",
   "syncWaiting": "もう一台のデバイスを待っています",

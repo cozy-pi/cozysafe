@@ -473,7 +473,7 @@
   "syncAllowTitle": "Izinkan koneksi ini?",
   "syncAllowHost": "Perangkat ini akan menunggu di {address} di Wi‑Fi Anda selama 2 menit, untuk satu perangkat yang memiliki brankas ini.",
   "syncAllowJoin": "Perangkat ini akan tersambung ke {address} di Wi‑Fi Anda, satu kali.",
-  "syncAllowNote": "Semua yang dikirim dienkripsi. Perangkat tanpa brankas ini tidak bisa bergabung.",
+  "syncAllowNote": "Hanya perangkat yang memiliki brankas ini dan kode sekali pakai yang bisa bergabung. Semua yang dikirim dienkripsi.",
   "syncAllow": "Izinkan",
   "syncNoWifi": "Sambungkan ke Wi‑Fi dulu, dengan kedua perangkat di jaringan yang sama.",
   "syncWaiting": "Menunggu perangkat Anda yang lain",

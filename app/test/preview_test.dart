@@ -354,7 +354,7 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock, change: 'Phím số, khung và nút Face ID nền đặc, không còn trong suốt lộ ảnh nền');
+  _screen('lock', 'Màn khoá', lock);
   // Cold start: the first frames hand over from the system launch screen (dial alone).
   for (final (ms, what) in [(0, 'khung đầu, y như màn khởi động của máy'), (220, 'mặt khoá thu nhỏ, mờ dần'), (420, 'màn khoá hiện ra')]) {
     _screen('launch-$ms', 'Mở app · $ms ms · $what', () => LaunchHandoff(child: lock()), after: 0,
@@ -659,7 +659,9 @@ void main() {
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugAddress = '192.168.1.37';
-  }, act: (t) async {
+  },
+      change: 'Sửa: ghi rõ chỉ máy có cùng két VÀ có mã tạm thời mới vào được',
+      marks: [() => find.byKey(const ValueKey('sync-allow-message'))], act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-show')));
     await t.pumpAndSettle();
   });
@@ -808,7 +810,6 @@ void main() {
     await fillCheck(t);
   });
   _screen('new-vault-password', 'Tạo két · 4. Mật khẩu két: yếu vẫn đi tiếp được', () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'Ô nhập, nút Tiếp (cả lúc chưa bấm được) và nút Quay lại nền đặc',
       setup: useWords, act: (t) async {
     await tapKey(t, 'intro-start');
     await tapKey(t, 'words-done');
@@ -818,7 +819,6 @@ void main() {
     await t.pump();
   });
   _screen('new-vault-pin', 'Tạo két · 5. Mã PIN ít nhất 6 số', () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'Phím số nền đặc',
       setup: useWords, act: (t) async {
     await tapKey(t, 'intro-start');
     await tapKey(t, 'words-done');

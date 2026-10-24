@@ -473,7 +473,7 @@
   "syncAllowTitle": "Bu bağlantıya izin verilsin mi?",
   "syncAllowHost": "Bu cihaz, Wi‑Fi'nizde {address} adresinde 2 dakika boyunca bu kasaya sahip bir cihazı bekleyecek.",
   "syncAllowJoin": "Bu cihaz, Wi‑Fi'nizde {address} adresine bir kez bağlanacak.",
-  "syncAllowNote": "Gönderilen her şey şifrelenir. Bu kasası olmayan bir cihaz katılamaz.",
+  "syncAllowNote": "Yalnızca bu kasaya ve tek kullanımlık koda sahip bir cihaz katılabilir. Gönderilen her şey şifrelenir.",
   "syncAllow": "İzin ver",
   "syncNoWifi": "Önce Wi‑Fi'a bağlanın; iki cihaz da aynı ağda olsun.",
   "syncWaiting": "Diğer cihazınız bekleniyor",

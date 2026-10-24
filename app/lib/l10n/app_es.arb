@@ -473,7 +473,7 @@
   "syncAllowTitle": "¿Permitir esta conexión?",
   "syncAllowHost": "Este dispositivo esperará en {address} en tu Wi‑Fi durante 2 minutos a un dispositivo que tenga esta caja fuerte.",
   "syncAllowJoin": "Este dispositivo se conectará a {address} en tu Wi‑Fi, una vez.",
-  "syncAllowNote": "Todo lo que se envía va cifrado. Un dispositivo sin esta caja fuerte no puede unirse.",
+  "syncAllowNote": "Solo puede unirse un dispositivo que tenga esta caja fuerte y el código de un solo uso. Todo lo que se envía va cifrado.",
   "syncAllow": "Permitir",
   "syncNoWifi": "Conéctate primero a la Wi‑Fi, con ambos dispositivos en la misma red.",
   "syncWaiting": "Esperando a tu otro dispositivo",
