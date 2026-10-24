@@ -512,5 +512,6 @@
   "changeKeyStart": "Yeni kelimeler oluştur",
   "changeKeyApply": "Yeni kelimeleri kullan",
   "changeKeyDone": "Tamam. Eski Kurtarma Anahtarı bu cihazda artık bu kasayı açmıyor.",
-  "changeKeyFailed": "Kurtarma Anahtarı değiştirilemedi. Hiçbir şey değişmedi: eskisi hâlâ çalışıyor."
+  "changeKeyFailed": "Kurtarma Anahtarı değiştirilemedi. Hiçbir şey değişmedi: eskisi hâlâ çalışıyor.",
+  "kitLeadLegacy": "Bu anahtar ve kasa parolanız kasanızı yeni bir telefonda veya yedekten açar. Bu eski tür bir anahtar: aşağıdan 24 kelimeye geçin."
 }

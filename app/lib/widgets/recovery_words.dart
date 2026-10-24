@@ -26,9 +26,10 @@ List<int> pickFourWords({bool fixed = false}) {
 /// The 24 words to write down (new vault, Recovery Key change): masked until Show, Copy
 /// (wiped from the clipboard after 60 s and on lock) and Save, the warning, then [action].
 class RecoveryWordsPanel extends StatelessWidget {
-  const RecoveryWordsPanel({super.key, required this.words, required this.action});
+  const RecoveryWordsPanel({super.key, required this.words, this.action});
   final List<String> words;
-  final Widget action;
+  /// Under the warning; none when the screen pins its own button (the new-vault flow).
+  final Widget? action;
 
   Future<void> _copy(BuildContext context) async {
     final l = AppLocalizations.of(context);
@@ -93,8 +94,7 @@ class RecoveryWordsPanel extends StatelessWidget {
             child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: 14, height: 1.45)),
           ),
         ),
-        const SizedBox(height: 18),
-        action,
+        if (action case final action?) ...[const SizedBox(height: 18), action],
       ],
     );
   }

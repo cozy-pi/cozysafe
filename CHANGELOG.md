@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.52 (2026-10-24)
+
+### Fixed
+- New vault: "I wrote them down" is pinned at the bottom, next to Back, so a small phone
+  no longer has to scroll to find it.
+- Recovery Key page: the Save button no longer wraps on two lines, and a key from before
+  the 24 words gets its own explanation.
+
 ## 0.1.51 (2026-10-24)
 
 ### Changed

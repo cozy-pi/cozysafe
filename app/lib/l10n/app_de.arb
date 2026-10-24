@@ -512,5 +512,6 @@
   "changeKeyStart": "Neue Wörter erstellen",
   "changeKeyApply": "Neue Wörter verwenden",
   "changeKeyDone": "Fertig. Der alte Wiederherstellungsschlüssel öffnet diesen Tresor auf diesem Gerät nicht mehr.",
-  "changeKeyFailed": "Der Wiederherstellungsschlüssel konnte nicht geändert werden. Es hat sich nichts geändert: Der alte funktioniert weiterhin."
+  "changeKeyFailed": "Der Wiederherstellungsschlüssel konnte nicht geändert werden. Es hat sich nichts geändert: Der alte funktioniert weiterhin.",
+  "kitLeadLegacy": "Dieser Schlüssel und dein Tresor-Passwort öffnen deinen Tresor auf einem neuen Handy oder aus einem Backup. Es ist die ältere Art Schlüssel: wechsle unten zu 24 Wörtern."
 }

@@ -702,5 +702,6 @@
   "changeKeyStart": "Make new words",
   "changeKeyApply": "Use the new words",
   "changeKeyDone": "Done. The old Recovery Key no longer opens this vault on this device.",
-  "changeKeyFailed": "The Recovery Key could not be changed. Nothing changed: the old one still works."
+  "changeKeyFailed": "The Recovery Key could not be changed. Nothing changed: the old one still works.",
+  "kitLeadLegacy": "This key and your vault password open your vault on a new phone or from a backup. It is the older kind of key: change it to 24 words below."
 }

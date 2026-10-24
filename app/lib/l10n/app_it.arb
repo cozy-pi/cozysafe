@@ -512,5 +512,6 @@
   "changeKeyStart": "Crea nuove parole",
   "changeKeyApply": "Usa le nuove parole",
   "changeKeyDone": "Fatto. La vecchia chiave di recupero non apre più questa cassaforte su questo dispositivo.",
-  "changeKeyFailed": "Impossibile cambiare la chiave di recupero. Non è cambiato nulla: la vecchia funziona ancora."
+  "changeKeyFailed": "Impossibile cambiare la chiave di recupero. Non è cambiato nulla: la vecchia funziona ancora.",
+  "kitLeadLegacy": "Questa chiave e la password della cassaforte la aprono su un nuovo telefono o da un backup. È il tipo di chiave precedente: passa a 24 parole qui sotto."
 }

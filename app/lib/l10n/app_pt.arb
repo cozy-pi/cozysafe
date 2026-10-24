@@ -512,5 +512,6 @@
   "changeKeyStart": "Criar palavras novas",
   "changeKeyApply": "Usar as palavras novas",
   "changeKeyDone": "Pronto. A chave de recuperação antiga não abre mais este cofre neste dispositivo.",
-  "changeKeyFailed": "Não foi possível alterar a chave de recuperação. Nada mudou: a antiga continua funcionando."
+  "changeKeyFailed": "Não foi possível alterar a chave de recuperação. Nada mudou: a antiga continua funcionando.",
+  "kitLeadLegacy": "Esta chave e a senha do cofre o abrem num celular novo ou a partir de um backup. É o tipo antigo de chave: mude para 24 palavras abaixo."
 }

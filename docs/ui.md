@@ -435,8 +435,13 @@ everywhere, easy to hit with a thumb.
   in the system's destructive red, like "Delete all" in Recently deleted (exception to
   black and white, owner 2026-10-21).
 - **Only what the vault holds.** The bottom capsule offers the home tab and the sections
-  that have items, in the fixed order Overview · Notes · Library · Voice · Files. An empty
-  vault shows its icon, one line, and big add tiles.
+  that have items, in the fixed order Overview · Library · (+) · Files · Notes (owner
+  2026-10-24). Voice has no tab: it opens from the overview and from +. An empty vault
+  shows its icon, one line, and big add tiles.
+- **The + sits in the middle of the bar by default** (Settings can float it left or
+  right): a little smaller than the bar, filled with the ink, so it stands out. It always
+  offers every way to add, three to a row (add photos, take a photo, record a video,
+  note, voice memo, file); it never does one thing at once.
 - **Bottom bar: the app's own by default**; on iOS 26 Debug can switch to the system's
   (`NativeVaultBar`, UIKit tab bar + glass lock). Change one, change the other.
 - **Hold the home tab to lock** (owner 2026-10-22), no lock button by default.

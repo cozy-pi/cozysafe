@@ -526,5 +526,6 @@
   "changeKeyStart": "Tạo 24 từ mới",
   "changeKeyApply": "Dùng 24 từ mới",
   "changeKeyDone": "Xong. Khoá khôi phục cũ không còn mở được két này trên máy này.",
-  "changeKeyFailed": "Không đổi được khoá khôi phục. Chưa có gì thay đổi: khoá cũ vẫn dùng được."
+  "changeKeyFailed": "Không đổi được khoá khôi phục. Chưa có gì thay đổi: khoá cũ vẫn dùng được.",
+  "kitLeadLegacy": "Khoá này cùng mật khẩu két mở được két trên máy mới hoặc từ bản sao lưu. Đây là khoá kiểu cũ: hãy đổi sang 24 từ ở bên dưới."
 }

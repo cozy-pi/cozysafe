@@ -82,7 +82,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
         children: [
           Text(l.kitTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Text(l.kitLead, style: TextStyle(color: c.muted, fontSize: 15, height: 1.5)),
+          Text(_isWords ? l.kitLead : l.kitLeadLegacy, style: TextStyle(color: c.muted, fontSize: 15, height: 1.5)),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -116,7 +116,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
                   builder: (b) => OutlinedButton.icon(
                     onPressed: () => _share(b),
                     icon: const Icon(Icons.ios_share, size: 18),
-                    label: Text(l.kitSave),
+                    label: Text(l.wordsSave), // short: the long name wrapped on two lines
                   ),
                 ),
               ),

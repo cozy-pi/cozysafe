@@ -512,5 +512,6 @@
   "changeKeyStart": "Créer de nouveaux mots",
   "changeKeyApply": "Utiliser les nouveaux mots",
   "changeKeyDone": "Terminé. L'ancienne clé de récupération n'ouvre plus ce coffre sur cet appareil.",
-  "changeKeyFailed": "Impossible de changer la clé de récupération. Rien n'a changé : l'ancienne fonctionne toujours."
+  "changeKeyFailed": "Impossible de changer la clé de récupération. Rien n'a changé : l'ancienne fonctionne toujours.",
+  "kitLeadLegacy": "Cette clé et le mot de passe de votre coffre l'ouvrent sur un nouveau téléphone ou depuis une sauvegarde. C'est l'ancien type de clé : passez à 24 mots ci-dessous."
 }

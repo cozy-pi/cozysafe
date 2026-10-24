@@ -512,5 +512,6 @@
   "changeKeyStart": "生成新单词",
   "changeKeyApply": "使用新单词",
   "changeKeyDone": "完成。在此设备上，旧的恢复密钥已无法打开这个保险箱。",
-  "changeKeyFailed": "无法更换恢复密钥。没有任何改动：旧密钥仍然可用。"
+  "changeKeyFailed": "无法更换恢复密钥。没有任何改动：旧密钥仍然可用。",
+  "kitLeadLegacy": "此密钥加上保险箱密码，可在新手机上或从备份打开保险箱。这是旧式密钥：请在下方换成 24 个单词。"
 }
