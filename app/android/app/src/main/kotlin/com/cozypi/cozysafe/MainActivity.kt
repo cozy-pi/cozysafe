@@ -21,6 +21,10 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
+/** The foreground service that keeps a sync going with the phone locked: off until Google
+ *  Play's declaration is filed (AndroidManifest.xml has its permissions commented out). */
+private const val SYNC_SERVICE = false
+
 class MainActivity : FlutterFragmentActivity() {
     // "cozysafe/originals" (lib/originals.dart): pick photos, videos or files keeping
     // where each came from, so that after they are encrypted into the vault the person can
@@ -67,11 +71,12 @@ class MainActivity : FlutterFragmentActivity() {
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     } else {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        SyncService.stop(this)
+                        if (SYNC_SERVICE) SyncService.stop(this)
                     }
                     result.success(null)
                 }
                 "progress" -> {
+                    if (!SYNC_SERVICE) return@setMethodCallHandler result.success(null)
                     askNotifications()
                     SyncService.show(
                         this,
@@ -174,7 +179,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun onDestroy() {
         // The app is closing (not just turning): no sync is left to keep alive.
-        if (isFinishing) SyncService.stop(this)
+        if (isFinishing && SYNC_SERVICE) SyncService.stop(this)
         super.onDestroy()
     }
 

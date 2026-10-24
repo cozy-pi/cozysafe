@@ -134,6 +134,7 @@ import UniformTypeIdentifiers
           if #available(iOS 26.0, *) { result(true) } else { result(false) }
         } else if call.method == "setSecure" {
           self?.secureOn = (call.arguments as? Bool) ?? true
+          self?.captureChanged()
           self?.applySecure()
           result(nil)
         } else {
@@ -204,7 +205,9 @@ import UniformTypeIdentifiers
   @objc private func captureChanged() {
     for case let scene as UIWindowScene in UIApplication.shared.connectedScenes {
       let key = ObjectIdentifier(scene)
-      if scene.screen.isCaptured {
+      // Covered only while screenshots are blocked: turned off (to record a bug report, or
+      // a store video), recording shows the app like a screenshot does.
+      if scene.screen.isCaptured && secureOn {
         guard captureCovers[key] == nil,
               let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first else { continue }
         let cover = makeCover(window.bounds)
