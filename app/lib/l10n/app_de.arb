@@ -627,5 +627,6 @@
   "formatList": "Liste",
   "formatChecklist": "Checkliste",
   "formatLink": "Link",
-  "doneTyping": "Tastatur ausblenden"
+  "doneTyping": "Tastatur ausblenden",
+  "hideNoteText": "Notiztext ausblenden"
 }

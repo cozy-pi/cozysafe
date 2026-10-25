@@ -627,5 +627,6 @@
   "formatList": "Daftar",
   "formatChecklist": "Daftar periksa",
   "formatLink": "Tautan",
-  "doneTyping": "Sembunyikan keyboard"
+  "doneTyping": "Sembunyikan keyboard",
+  "hideNoteText": "Sembunyikan isi catatan"
 }

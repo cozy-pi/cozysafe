@@ -627,5 +627,6 @@
   "formatList": "リスト",
   "formatChecklist": "チェックリスト",
   "formatLink": "リンク",
-  "doneTyping": "キーボードを閉じる"
+  "doneTyping": "キーボードを閉じる",
+  "hideNoteText": "メモの本文を隠す"
 }

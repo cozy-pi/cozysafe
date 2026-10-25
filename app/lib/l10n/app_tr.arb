@@ -627,5 +627,6 @@
   "formatList": "Liste",
   "formatChecklist": "Yapılacaklar",
   "formatLink": "Bağlantı",
-  "doneTyping": "Klavyeyi gizle"
+  "doneTyping": "Klavyeyi gizle",
+  "hideNoteText": "Not metnini gizle"
 }

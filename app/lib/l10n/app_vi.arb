@@ -641,5 +641,6 @@
   "formatList": "Danh sách",
   "formatChecklist": "Việc cần làm",
   "formatLink": "Liên kết",
-  "doneTyping": "Ẩn bàn phím"
+  "doneTyping": "Ẩn bàn phím",
+  "hideNoteText": "Ẩn nội dung ghi chú"
 }

@@ -627,5 +627,6 @@
   "formatList": "รายการ",
   "formatChecklist": "รายการตรวจสอบ",
   "formatLink": "ลิงก์",
-  "doneTyping": "ซ่อนแป้นพิมพ์"
+  "doneTyping": "ซ่อนแป้นพิมพ์",
+  "hideNoteText": "ซ่อนข้อความในโน้ต"
 }

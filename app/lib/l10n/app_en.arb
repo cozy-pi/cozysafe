@@ -839,5 +839,6 @@
       }
     }
   },
-  "doneTyping": "Done typing"
+  "doneTyping": "Done typing",
+  "hideNoteText": "Hide note text"
 }
