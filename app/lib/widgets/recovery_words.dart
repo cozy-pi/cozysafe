@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../lock_resume.dart';
 import '../screens/emergency_kit.dart' show WordGrid;
 import '../theme.dart';
 import 'secret.dart';
@@ -119,8 +120,16 @@ class RecoveryWordsCheck extends StatefulWidget {
   State<RecoveryWordsCheck> createState() => _RecoveryWordsCheckState();
 }
 
-class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> {
+class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> with VaultLockAware {
   final _answers = List.generate(4, (_) => TextEditingController());
+
+  /// The words typed are not kept while the vault is locked.
+  @override
+  void vaultLocking() => setState(() {
+        for (final c in _answers) {
+          c.clear();
+        }
+      });
 
   @override
   void dispose() {

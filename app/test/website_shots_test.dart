@@ -115,6 +115,7 @@ class _Fake implements RustLibApi {
     if (n.contains('PasswordScore')) return 4;
     if (n.contains('HasVaults')) return true;
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(items);
+    if (n.contains('ListHeld')) return Future<List<ItemInfo>>.value(const []);
     if (n.contains('ListTrash')) return Future<List<ItemInfo>>.value(const []);
     if (n.contains('PurgeExpired')) return Future<int>.value(0);
     if (n.contains('ItemContent')) {

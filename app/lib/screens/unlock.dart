@@ -81,7 +81,9 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       _wasHidden = true;
     } else if (state == AppLifecycleState.resumed && _wasHidden) {
       _wasHidden = false;
-      if (_bioOn && _bioKind != null) _unlockBiometric();
+      // Only when this screen is the one showing: under a New vault or Restore opened from
+      // here, an unlock would wipe what the person was doing there.
+      if (_bioOn && _bioKind != null && (ModalRoute.of(context)?.isCurrent ?? false)) _unlockBiometric();
     }
   }
 

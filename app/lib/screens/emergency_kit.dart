@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../lock_resume.dart';
 import '../theme.dart';
 import '../widgets/secret.dart';
 import 'common.dart';
@@ -27,7 +28,7 @@ class EmergencyKitScreen extends StatefulWidget {
   State<EmergencyKitScreen> createState() => _EmergencyKitScreenState();
 }
 
-class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
+class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockAware {
   final _last = TextEditingController();
 
   /// 24 words for keys made since 2026-10-21; earlier keys are `CS1-XXXX-…`.
@@ -47,6 +48,10 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> {
 
   /// For copying and saving: one numbered word per line.
   String get _plain => _isWords ? [for (final (i, w) in _words.indexed) '${i + 1}. $w'].join('\n') : widget.keyText;
+
+  /// The word typed to go on is not kept while the vault is locked.
+  @override
+  void vaultLocking() => setState(_last.clear);
 
   @override
   void dispose() {

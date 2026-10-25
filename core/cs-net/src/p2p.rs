@@ -360,16 +360,11 @@ fn same(a: &[u8], b: &[u8]) -> bool {
 /// The host answers a probe: a fresh nonce, then for each key it holds (the vault's, and
 /// the 24 words' for a device restoring) a tag that says "same vault" and one that says
 /// "and these digits". Random bytes stand in for a key it does not hold.
-fn answer_probe(
-    prepared: &Prepared,
-    token: &[u8],
-    nj: &[u8],
-    stream: &mut TcpStream,
-) -> Result<()> {
+fn answer_probe(keys: &ProbeKeys, nj: &[u8], stream: &mut TcpStream) -> Result<()> {
     let nh: [u8; NONCE_LEN] = random();
     let mut reply = nh.to_vec();
-    let code = format!("code/{}", hex::encode(token));
-    for pk in [Some(&prepared.key), prepared.restore_key.as_ref()] {
+    let code = format!("code/{}", hex::encode(keys.token));
+    for pk in [Some(&keys.key), keys.restore_key.as_ref()] {
         match pk {
             Some(pk) => {
                 reply.extend(tag(pk, "vault", nj, &nh));
@@ -380,6 +375,17 @@ fn answer_probe(
     }
     write_frame(stream, &reply)
 }
+
+/// What a waiting host needs to answer probes, shared with the threads that read them.
+struct ProbeKeys {
+    key: Key,
+    restore_key: Option<Key>,
+    token: [u8; TOKEN_LEN],
+}
+
+/// Connections read at once (each on its own thread, a few seconds at most): someone
+/// who connects and stays silent cannot hold up the device that came to sync.
+const MAX_READING: usize = 16;
 
 /// A host on the Wi-Fi that holds the same vault (or takes the same 24 words).
 #[derive(Clone, Debug)]
@@ -818,6 +824,14 @@ pub fn host_accept(
 ) -> Result<Session> {
     host.listener.set_nonblocking(true)?;
     let mut failures = 0;
+    let keys = std::sync::Arc::new(ProbeKeys {
+        key: prepared.key.clone(),
+        restore_key: prepared.restore_key.clone(),
+        token: host.code.token,
+    });
+    let reading = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    // Hellos read on their own threads come back here; probes are answered there.
+    let (hellos, came) = std::sync::mpsc::channel::<(TcpStream, Vec<u8>)>();
     let ch = loop {
         if stop.load(Ordering::Relaxed) {
             return Err(Error::Corrupt("p2p cancelled"));
@@ -826,18 +840,38 @@ pub fn host_accept(
             return Err(Error::Corrupt("p2p code expired"));
         }
         match host.listener.accept() {
-            Ok((mut stream, _)) => {
-                stream.set_nonblocking(false)?;
-                stream.set_read_timeout(Some(Duration::from_secs(5)))?;
-                let Ok(hello) = read_frame(&mut stream) else {
-                    continue; // not a Cozy Safe device, or gone
-                };
-                // A device looking for its other device: answer, keep waiting. Probes
-                // do not count as tries (a scan knocks every few seconds).
-                if hello.len() == 2 + NONCE_LEN && hello[..2] == [VERSION, MODE_PROBE] {
-                    let _ = answer_probe(&prepared, &host.code.token, &hello[2..], &mut stream);
-                    continue;
+            Ok((stream, _)) => {
+                if reading.load(Ordering::Relaxed) >= MAX_READING {
+                    continue; // too many at once: this one is dropped
                 }
+                reading.fetch_add(1, Ordering::Relaxed);
+                let (keys, reading, hellos) = (keys.clone(), reading.clone(), hellos.clone());
+                std::thread::spawn(move || {
+                    let mut stream = stream;
+                    let hello = stream
+                        .set_nonblocking(false)
+                        .and_then(|_| stream.set_read_timeout(Some(Duration::from_secs(3))))
+                        .map_err(Error::from)
+                        .and_then(|_| read_frame(&mut stream));
+                    match hello {
+                        // A device looking for its other device: answer here. Probes do
+                        // not count as tries (a scan knocks every few seconds).
+                        Ok(h) if h.len() == 2 + NONCE_LEN && h[..2] == [VERSION, MODE_PROBE] => {
+                            let _ = answer_probe(&keys, &h[2..], &mut stream);
+                        }
+                        Ok(h) => {
+                            let _ = hellos.send((stream, h));
+                        }
+                        Err(_) => {} // not a Cozy Safe device, or gone
+                    }
+                    reading.fetch_sub(1, Ordering::Relaxed);
+                });
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
+            Err(e) => return Err(e.into()),
+        }
+        match came.try_recv() {
+            Ok((stream, hello)) => {
                 on_seen(Seen::Knock);
                 stream.set_read_timeout(Some(Duration::from_secs(20)))?;
                 match handshake_host(&prepared, &host.code.token, &hello, stream) {
@@ -865,10 +899,7 @@ pub fn host_accept(
                     }
                 }
             }
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                std::thread::sleep(Duration::from_millis(50))
-            }
-            Err(e) => return Err(e.into()),
+            Err(_) => std::thread::sleep(Duration::from_millis(50)),
         }
     };
     drop(host.listener); // one session per code
@@ -1222,12 +1253,20 @@ mod tests {
             let r = host_finish(&a, served).unwrap();
             (a, r, seen.into_inner().unwrap())
         });
+        // Someone who connects and says nothing holds up no one.
+        let _silent: Vec<_> = (0..4).map(|_| TcpStream::connect(addr).unwrap()).collect();
+        let started = Instant::now();
         // Another vault sees nothing there; probes do not use up the host's tries.
         for _ in 0..4 {
             assert!(probe_all(&[addr], &pairing_key(&other.a), false).is_empty());
         }
         let found = probe_all(&[addr], &pairing_key(&b), false);
         assert_eq!(found.len(), 1);
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "{:?}",
+            started.elapsed()
+        );
         // The 24 words find it too (a device restoring), a stranger's words do not.
         assert_eq!(
             probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).len(),

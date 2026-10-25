@@ -163,6 +163,11 @@ class _Fake implements RustLibApi {
     if (n.contains('QrMatrix')) return QrMatrix(size: 29, dark: [for (final c in _qrBits.split('')) c == '1']);
     if (n.contains('P2PCodeAddress')) return '192.168.1.37';
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_itemsNow ?? _items);
+    if (n.contains('ListHeld')) {
+      return Future<List<ItemInfo>>.value([
+        _item('t4', 'file', 'Hop-dong-thue-nha-cu.pdf', 420000, deleted: _now - 2 * 86400000),
+      ]);
+    }
     if (n.contains('ListTrash')) {
       return Future<List<ItemInfo>>.value([
         _item('t1', 'photo', 'a.jpg', 900000, deleted: _now - 86400000),

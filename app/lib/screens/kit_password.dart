@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_resume.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -23,10 +24,16 @@ class KitPasswordScreen extends StatefulWidget {
   State<KitPasswordScreen> createState() => _KitPasswordScreenState();
 }
 
-class _KitPasswordScreenState extends State<KitPasswordScreen> {
+class _KitPasswordScreenState extends State<KitPasswordScreen> with VaultLockAware {
   final _pw = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  @override
+  void vaultLocking() => setState(() {
+        _pw.clear();
+        _error = null;
+      });
 
   @override
   void dispose() {

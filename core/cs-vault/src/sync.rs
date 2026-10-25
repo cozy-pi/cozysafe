@@ -381,7 +381,8 @@ pub struct SyncReport {
     pub received: u32,
     /// Items this device sent.
     pub sent: u32,
-    /// Items deleted here because another device deleted them.
+    /// Items another device deleted for good, moved here to Recently deleted (held
+    /// for 30 days, not synced back).
     pub removed: u32,
     /// Notes whose text changed on both sides: the other text was kept as a copy.
     pub copies: u32,
@@ -609,6 +610,7 @@ impl OpenVault {
             }
             self.fetch_blobs(remote, id, &theirs)?;
             self.store_record(id, &theirs)?;
+            self.drop_held(id)?;
             self.index.set_synced(&remote.key(), id, rev)?;
             report.received += 1;
             return Ok(());
@@ -796,7 +798,13 @@ impl OpenVault {
         if changed_here && ours.hlc > hlc {
             return Ok(()); // edited here after: it stays (and goes up again)
         }
-        self.remove_item(id)?;
+        // Kept here for 30 days, not removed (owner 2026-10-25); a tag simply goes.
+        let held = ours.kind != crate::items::kind::TAG;
+        if held {
+            self.hold_item(id, now_ms())?;
+        } else {
+            self.remove_item(id)?;
+        }
         // Kept as a deletion to pass on to the other places, already known here. Our
         // revision is dropped unread there only if it is older than the deletion.
         let rev = if ours.hlc <= hlc {
@@ -806,7 +814,9 @@ impl OpenVault {
         };
         self.index.add_gone(id, hlc, rev)?;
         self.index.gone_sent(&remote.key(), id)?;
-        report.removed += 1;
+        if held {
+            report.removed += 1;
+        }
         Ok(())
     }
 
@@ -1528,6 +1538,69 @@ pub(crate) mod tests {
         t.b.sync(&t.cloud).unwrap();
         t.a.sync(&t.cloud).unwrap();
         assert!(t.a.items().unwrap().is_empty());
+    }
+
+    const DAY: i64 = 24 * 60 * 60 * 1000;
+
+    #[test]
+    fn a_deletion_from_elsewhere_is_held_here_and_not_sent_back() {
+        let t = two();
+        let id = note(&t.a, "Bank", "PIN 4821");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        t.a.delete_item(&id).unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        assert_eq!(t.b.sync(&t.cloud).unwrap().removed, 1);
+        // Out of the vault, kept in Recently deleted as "deleted on another device".
+        assert!(t.b.items().unwrap().is_empty());
+        let held = t.b.held().unwrap();
+        assert_eq!(held.len(), 1);
+        assert_eq!(held[0].id, id);
+        assert!(held[0].deleted_ms.is_some());
+        // Held is not live: syncing again sends nothing back, A stays without it.
+        let again = t.b.sync(&t.cloud).unwrap();
+        assert_eq!((again.sent, again.removed), (0, 0));
+        t.a.sync(&t.cloud).unwrap();
+        assert!(t.a.items().unwrap().is_empty());
+        assert_eq!(t.b.held().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_held_item_restored_comes_back_everywhere_with_its_content() {
+        let t = two();
+        let id = note(&t.a, "Bank", "PIN 4821");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        t.a.delete_item(&id).unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        t.b.restore_held(&id).unwrap();
+        assert!(t.b.held().unwrap().is_empty());
+        assert_eq!(text(&t.b, &id), "PIN 4821");
+        t.b.sync(&t.cloud).unwrap();
+        assert_eq!(t.a.sync(&t.cloud).unwrap().received, 1);
+        assert_eq!(text(&t.a, &id), "PIN 4821");
+    }
+
+    #[test]
+    fn a_held_item_goes_for_good_on_delete_now_or_after_30_days() {
+        let t = two();
+        let one = note(&t.a, "One", "1");
+        let two_ = note(&t.a, "Two", "2");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        t.a.delete_item(&one).unwrap();
+        t.a.delete_item(&two_).unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        assert_eq!(t.b.sync(&t.cloud).unwrap().removed, 2);
+        t.b.purge_held(&one).unwrap();
+        assert_eq!(t.b.held().unwrap().len(), 1);
+        assert!(!t.b.path(&one, "data").unwrap().exists());
+        let held_at = t.b.held().unwrap()[0].deleted_ms.unwrap();
+        assert_eq!(t.b.purge_expired(held_at + 29 * DAY).unwrap(), 0);
+        assert_eq!(t.b.purge_expired(held_at + 30 * DAY).unwrap(), 1);
+        assert!(t.b.held().unwrap().is_empty());
+        assert!(!t.b.path(&two_, "data").unwrap().exists());
     }
 
     #[test]

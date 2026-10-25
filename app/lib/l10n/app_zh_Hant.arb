@@ -604,5 +604,11 @@
   "syncFindLabel": "輸入另一台裝置上顯示的 6 位數字",
   "syncFindWrong": "沒有裝置顯示此代碼。請檢查數字。",
   "syncFindWaiting": "正在尋找顯示此代碼的裝置…",
-  "syncFindQr": "改為掃描 QR 碼"
+  "syncFindQr": "改為掃描 QR 碼",
+  "trashHeldLabel": "已在其他裝置上刪除",
+  "trashHeldNote": "在你的其他裝置上永久刪除的項目會在這裡保留 30 天，且不會同步。",
+  "deleteForGoodOthersKeep": "同步此保險箱的其他裝置會在「最近刪除」中保留它 30 天。",
+  "syncDoneHeld": "{n, plural, other{在另一台裝置上刪除的 {n} 個項目已移到「最近刪除」（保留 30 天）。}}",
+  "syncFindNoneRestore": "正在復原：只有接受這 24 個單字的裝置才會回應。如果你的裝置正在顯示代碼，請檢查這 24 個單字。",
+  "syncFindLocalNetwork": "在 iPhone 上，Cozy Safe 需要區域網路權限：設定 > 隱私權與安全性 > 區域網路。"
 }

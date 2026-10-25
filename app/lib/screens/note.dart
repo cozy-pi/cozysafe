@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../lock_resume.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -36,7 +37,7 @@ class NoteScreen extends StatefulWidget {
   State<NoteScreen> createState() => _NoteScreenState();
 }
 
-class _NoteScreenState extends State<NoteScreen> {
+class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
   final _text = NoteTextController();
   String _loaded = '';
   bool _ready = false;
@@ -58,13 +59,25 @@ class _NoteScreenState extends State<NoteScreen> {
     if (item == null) {
       _ready = true;
     } else {
-      rust.itemContent(id: item.id).then((bytes) {
-        if (!mounted) return;
-        _loaded = _decode(bytes);
-        _text.text = _loaded;
-        setState(() => _ready = true);
-      });
+      _load(item.id);
     }
+  }
+
+  void _load(String id) {
+    rust.itemContent(id: id).then((bytes) {
+      if (!mounted || _ready) return;
+      _loaded = _decode(bytes);
+      _text.text = _loaded;
+      setState(() => _ready = true);
+    }, onError: (Object _) {}); // locked meanwhile: read again once it opens
+  }
+
+  /// The editor stays open under the lock with its text (written before the lock); one
+  /// that had not finished reading the note reads it now.
+  @override
+  void vaultUnlocked() {
+    final item = widget.item;
+    if (!_ready && item != null) _load(item.id);
   }
 
   static String _decode(List<int> bytes) {

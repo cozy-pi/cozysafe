@@ -9,6 +9,7 @@ import '../capture_name.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../lock_resume.dart';
 import '../platform.dart';
 import '../widgets/vault_bar.dart';
 import '../src/rust/api/vault.dart' as rust;
@@ -313,7 +314,7 @@ class CameraView extends StatefulWidget {
   State<CameraView> createState() => CameraViewState();
 }
 
-class CameraViewState extends State<CameraView> {
+class CameraViewState extends State<CameraView> with VaultLockAware {
   CameraController? _controller;
   List<CameraDescription> _cameras = const [];
   int _camera = 0;
@@ -362,7 +363,7 @@ class CameraViewState extends State<CameraView> {
       await c.initialize();
       await c.lockCaptureOrientation(DeviceOrientation.portraitUp);
       await c.startImageStream(_onFrame);
-      if (!mounted) {
+      if (!mounted || vaultLock.locked) {
         await _stop(c);
         return;
       }
@@ -441,6 +442,31 @@ class CameraViewState extends State<CameraView> {
   Future<void> _saveBeforeLock() async {
     final c = _controller;
     if (_recording && c != null) await _finishVideo(c);
+    if (vaultLock.locked) _release();
+  }
+
+  /// The screen stays under the lock; the camera itself lets go (a recording is saved
+  /// first, by [_saveBeforeLock]) and starts again when the vault opens.
+  @override
+  void vaultLocking() {
+    if (_wantShot) {
+      _wantShot = false;
+      _saving = false;
+    }
+    if (!_recording) _release();
+  }
+
+  @override
+  void vaultUnlocked() {
+    if (_controller == null && !_failed && CameraView.debugPreview == null) _start();
+  }
+
+  void _release() {
+    final c = _controller;
+    if (c == null) return;
+    setState(() => _controller = null);
+    widget.onChanged?.call();
+    _stop(c);
   }
 
   Future<void> _startVideo() async {

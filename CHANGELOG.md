@@ -4,6 +4,36 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.65 (2026-10-25)
+
+### Added
+- Items your other device deleted for good are no longer gone here at once: a sync
+  moves them to Recently deleted, marked "Deleted on another device", kept for 30 days
+  and not synced. Restore one and it comes back on every device. The sync result says
+  how many were moved. Deleting for good now says your other devices keep the item for
+  30 days.
+
+### Changed
+- Syncing shows small sealed packets travelling between the two devices along an arch;
+  the receiving one lights up as each lands.
+- Enter a code, when nothing is found: says to check the 24 words when restoring, and on
+  iPhone where to allow Local Network access.
+
+### Fixed
+- A device waiting with a code can no longer be held up by someone on the Wi‑Fi who
+  connects and stays silent.
+- Leaving the app for a moment no longer loses your place: after opening the vault
+  again you are back on the page you were on (a note being written, a photo or video,
+  Recently deleted, search, tags, sync, the Recovery Key and password pages). Shown
+  words are hidden again and typed passwords and PINs are cleared when the vault locks.
+- A Google Drive sync stopped by the vault locking continues by itself once the vault
+  is open again. A sync with another device says the vault locked and can be started
+  again.
+- Face ID no longer pops up over New vault or Restore opened from the lock screen after
+  switching apps, wiping what was half done.
+- A long import stopped by the vault locking could leave the vault screen without the
+  lock screen.
+
 ## 0.1.64 (2026-10-25)
 
 ### Changed

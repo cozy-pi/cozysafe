@@ -29,6 +29,8 @@ class TrashScreen extends StatefulWidget {
 class _TrashScreenState extends State<TrashScreen> {
   static const _days = 30;
   List<rust.ItemInfo>? _items;
+  /// Items another device deleted for good, held here (not synced, owner 2026-10-25).
+  Set<String> _held = const {};
   final Map<String, Future<Uint8List>> _thumbnails = {};
   final Set<String> _picked = {};
   /// Full pictures for the preview, decrypted once per screen.
@@ -111,7 +113,8 @@ class _TrashScreenState extends State<TrashScreen> {
           children: [
             body,
             const SizedBox(height: 12),
-            Text(l.daysLeft(_daysLeft(it)), style: TextStyle(color: c.muted, fontSize: 13.5)),
+            Text(_held.contains(it.id) ? '${l.trashHeldLabel} · ${l.daysLeft(_daysLeft(it))}' : l.daysLeft(_daysLeft(it)),
+                style: TextStyle(color: c.muted, fontSize: 13.5)),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -156,7 +159,14 @@ class _TrashScreenState extends State<TrashScreen> {
   Future<void> _load() async {
     try {
       final items = await rust.listTrash();
-      if (mounted) setState(() => _items = items);
+      final held = await rust.listHeld();
+      final all = [...items, ...held]..sort((a, b) => (b.deletedMs?.toInt() ?? 0).compareTo(a.deletedMs?.toInt() ?? 0));
+      if (mounted) {
+        setState(() {
+          _items = all;
+          _held = {for (final h in held) h.id};
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _items = const []);
     }
@@ -170,7 +180,7 @@ class _TrashScreenState extends State<TrashScreen> {
 
   Future<void> _restore(List<rust.ItemInfo> items) async {
     for (final it in items) {
-      await rust.restoreItem(id: it.id);
+      _held.contains(it.id) ? await rust.restoreHeld(id: it.id) : await rust.restoreItem(id: it.id);
     }
     _endSelect();
     await _load();
@@ -182,7 +192,7 @@ class _TrashScreenState extends State<TrashScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(items.length == 1 ? l.deleteForGoodOne : l.deleteForGoodAll(items.length)),
-        content: Text(l.deleteForGoodBody),
+        content: Text(items.every((i) => _held.contains(i.id)) ? l.deleteForGoodBody : '${l.deleteForGoodBody} ${l.deleteForGoodOthersKeep}'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
           TextButton(
@@ -195,7 +205,7 @@ class _TrashScreenState extends State<TrashScreen> {
     );
     if (ok != true) return;
     for (final it in items) {
-      await rust.deleteItem(id: it.id);
+      _held.contains(it.id) ? await rust.purgeHeld(id: it.id) : await rust.deleteItem(id: it.id);
       _thumbnails.remove(it.id);
     }
     _endSelect();
@@ -247,7 +257,8 @@ class _TrashScreenState extends State<TrashScreen> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                      child: Text('${l.trashNote} ${l.trashTapHint}', style: TextStyle(color: c.muted, fontSize: 14.5)),
+                      child: Text('${l.trashNote} ${l.trashTapHint}${_held.isEmpty ? '' : ' ${l.trashHeldNote}'}',
+                          style: TextStyle(color: c.muted, fontSize: 14.5)),
                     ),
                   ),
                   if (items.isEmpty)
@@ -276,6 +287,17 @@ class _TrashScreenState extends State<TrashScreen> {
                                     : ColoredBox(color: c.soft),
                               ),
                               Positioned(left: 4, bottom: 4, child: _DaysLeft(l.daysLeft(_daysLeft(it)))),
+                              // Deleted on another device: a mark, so it is told apart.
+                              if (_held.contains(it.id))
+                                const Positioned(
+                                  left: 5,
+                                  top: 5,
+                                  child: Icon(Icons.devices_rounded,
+                                      key: ValueKey('trash-held'),
+                                      size: 18,
+                                      color: Colors.white,
+                                      shadows: [Shadow(color: Color(0x88000000), blurRadius: 6)]),
+                                ),
                               if (on) ColoredBox(color: Colors.white.withValues(alpha: .25)),
                               if (_selecting)
                                 Positioned(
@@ -312,7 +334,9 @@ class _TrashScreenState extends State<TrashScreen> {
                                   leading: Icon(fileIcon(it), color: Theme.of(context).colorScheme.primary),
                                   title: Text(it.name.isEmpty ? l.untitledNote : it.name,
                                       maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  subtitle: Text(l.daysLeft(_daysLeft(it))),
+                                  subtitle: Text(_held.contains(it.id)
+                                      ? '${l.trashHeldLabel} · ${l.daysLeft(_daysLeft(it))}'
+                                      : l.daysLeft(_daysLeft(it))),
                                 ),
                             ],
                           ),

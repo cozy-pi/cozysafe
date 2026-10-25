@@ -604,5 +604,11 @@
   "syncFindLabel": "Ketik 6 digit yang tampil di perangkat Anda yang lain",
   "syncFindWrong": "Tidak ada perangkat yang menampilkan kode ini. Periksa digitnya.",
   "syncFindWaiting": "Mencari perangkat yang menampilkan kode ini…",
-  "syncFindQr": "Pindai QR saja"
+  "syncFindQr": "Pindai QR saja",
+  "trashHeldLabel": "Dihapus di perangkat lain",
+  "trashHeldNote": "Item yang dihapus permanen di perangkat Anda yang lain disimpan di sini selama 30 hari dan tidak disinkronkan.",
+  "deleteForGoodOthersKeep": "Perangkat Anda yang lain yang menyinkronkan brankas ini tetap menyimpannya selama 30 hari di Baru dihapus.",
+  "syncDoneHeld": "{n, plural, other{{n} item yang dihapus di perangkat lain dipindahkan ke Baru dihapus (disimpan 30 hari).}}",
+  "syncFindNoneRestore": "Memulihkan: hanya perangkat yang menerima 24 kata ini yang menjawab. Jika perangkat Anda menampilkan kode, periksa kata-katanya.",
+  "syncFindLocalNetwork": "Di iPhone, Cozy Safe memerlukan akses Jaringan Lokal: Pengaturan, Privasi & Keamanan, Jaringan Lokal."
 }

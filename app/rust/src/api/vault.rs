@@ -806,6 +806,22 @@ pub fn list_trash() -> Result<Vec<ItemInfo>, VaultError> {
     with_open(|v| Ok(v.trashed()?.into_iter().map(Into::into).collect()))
 }
 
+/// Items another device deleted for good, held here for 30 days (shown in Recently
+/// deleted, marked, never synced). Their content and preview read like any item's.
+pub fn list_held() -> Result<Vec<ItemInfo>, VaultError> {
+    with_open(|v| Ok(v.held()?.into_iter().map(Into::into).collect()))
+}
+
+/// Bring a held item back here and, at the next sync, everywhere.
+pub fn restore_held(id: String) -> Result<(), VaultError> {
+    with_open(|v| Ok(v.restore_held(&id)?))
+}
+
+/// Delete a held item here for good now.
+pub fn purge_held(id: String) -> Result<(), VaultError> {
+    with_open(|v| Ok(v.purge_held(&id)?))
+}
+
 /// Delete for good what has been in Recently deleted for 30 days (run on opening).
 pub fn purge_expired(now_ms: i64) -> Result<u32, VaultError> {
     with_open(|v| Ok(v.purge_expired(now_ms)? as u32))

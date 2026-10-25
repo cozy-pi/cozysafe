@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../widgets/countdown.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../lock_resume.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -33,7 +34,7 @@ class DeleteVaultScreen extends StatefulWidget {
   State<DeleteVaultScreen> createState() => _DeleteVaultScreenState();
 }
 
-class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
+class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAware {
   String _pin = '';
   String? _error;
   bool _busy = false;
@@ -45,6 +46,11 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
       _error = null;
     });
   }
+
+  /// The PIN typed is not kept while the vault is locked (the countdown, if open,
+  /// closes as Cancel).
+  @override
+  void vaultLocking() => setState(() => _pin = '');
 
   void _back() {
     if (_pin.isNotEmpty) setState(() => _pin = _pin.substring(0, _pin.length - 1));

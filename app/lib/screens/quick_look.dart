@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -69,9 +68,11 @@ class QuickLook extends StatefulWidget {
 class _QuickLookState extends State<QuickLook> {
   late final bool _video = widget.item.kind == ItemKind.video;
   Future<Uint8List>? _bytes;
-  VideoPlayerController? _player;
-  File? _copy;
-  bool _failed = false;
+  /// The video's player; it pauses through a lock and carries on after (video_view.dart).
+  Playback? _playback;
+
+  VideoPlayerController? get _player => _playback?.player;
+  bool get _failed => _playback?.failed ?? false;
 
   @override
   void initState() {
@@ -79,25 +80,7 @@ class _QuickLookState extends State<QuickLook> {
     if (!_video) {
       _bytes = rust.itemContent(id: widget.item.id);
     } else if (QuickLook.debugVideo == null) {
-      _open();
-    }
-  }
-
-  Future<void> _open() async {
-    try {
-      final copy = await playbackCopy(widget.item);
-      _copy = copy;
-      final p = VideoPlayerController.file(copy);
-      await p.initialize();
-      if (!mounted) {
-        await p.dispose();
-        return;
-      }
-      p.addListener(_tick);
-      setState(() => _player = p);
-      await p.play();
-    } catch (_) {
-      if (mounted) setState(() => _failed = true);
+      _playback = Playback(widget.item)..addListener(_tick);
     }
   }
 
@@ -107,10 +90,7 @@ class _QuickLookState extends State<QuickLook> {
 
   @override
   void dispose() {
-    _player?.dispose();
-    try {
-      _copy?.deleteSync();
-    } catch (_) {}
+    _playback?.dispose();
     super.dispose();
   }
 
@@ -124,7 +104,7 @@ class _QuickLookState extends State<QuickLook> {
     final String? deleted;
     if (_video) {
       deleted = await Navigator.of(context).push<String>(MaterialPageRoute(
-        builder: (_) => VideoViewScreen(item: widget.item, vaultId: widget.vaultId, player: _player, copy: _copy),
+        builder: (_) => VideoViewScreen(item: widget.item, vaultId: widget.vaultId, playback: _playback),
       ));
     } else {
       final i = widget.photos.indexWhere((p) => p.id == widget.item.id);

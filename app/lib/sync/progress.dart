@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_resume.dart';
 import '../platform.dart';
 import '../screens/file_view.dart' show fileSize;
 import '../src/rust/api/sync.dart' as sync;
@@ -12,7 +14,8 @@ import 'awake.dart';
 /// The live part of a session: [waiting] until the other device proves it holds this
 /// vault, then the number to compare while it syncs, then the result. Leaving before
 /// the end cancels. A Google Drive run stopped while the app was away (phone locked)
-/// continues by itself when the person comes back.
+/// continues by itself when the person comes back, and one stopped by the vault locking
+/// continues once it opens again; a session with another device cannot wait, and says so.
 /// Who is on the other end, to draw and name it.
 enum SyncPlace { drive, device }
 
@@ -40,7 +43,8 @@ class SyncProgress extends StatefulWidget {
   State<SyncProgress> createState() => _SyncProgressState();
 }
 
-class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+class _SyncProgressState extends State<SyncProgress>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin, VaultLockAware {
   StreamSubscription<sync.SyncEvent>? _sub;
   sync.SyncEvent? _last;
   int? _check;
@@ -73,6 +77,9 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
   bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;
 
   bool _started = false;
+  /// The vault locked in the middle of the run: it was stopped, and continues once the
+  /// same vault opens again.
+  bool _stoppedByLock = false;
   /// The app left the screen (phone locked, another app) since the last automatic
   /// Continue; iOS stops a sync soon after.
   bool _wasAway = false;
@@ -135,10 +142,38 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
       // The stream itself broke (the app was suspended mid-way): the same as an
       // interruption, which the engine's journal makes safe to continue.
       if (!mounted) return;
-      setState(() => _last = sync.SyncEvent(kind: sync.SyncStep.interrupted, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0));
+      setState(() => _last = _step(sync.SyncStep.interrupted));
       Awake.set(false);
       _autoContinue();
     });
+  }
+
+  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
+
+  /// The page stays under the lock, but the run needs the open vault: stop it now (it
+  /// holds the vault, which could not lock meanwhile). Google Drive picks up after, from
+  /// the engine's journal; a session with another device ends ("open it and try again").
+  @override
+  void vaultLocking() {
+    if (_over) return;
+    _sub?.cancel();
+    _sub = null;
+    sync.p2PCancel();
+    Awake.set(false);
+    final again = widget.retry != null;
+    setState(() {
+      _stoppedByLock = again;
+      _knock = false;
+      _last = _step(again ? sync.SyncStep.interrupted : sync.SyncStep.locked);
+    });
+  }
+
+  @override
+  void vaultUnlocked() {
+    if (!_stoppedByLock || widget.retry == null) return;
+    _stoppedByLock = false;
+    _wasAway = false;
+    _continue();
   }
 
   void _continue() {
@@ -161,7 +196,7 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
   /// for any other interruption.
   void _autoContinue() {
     final back = _backAt;
-    if (!mounted || !_wasAway || !_canContinue || back == null) return;
+    if (!mounted || !_wasAway || !_canContinue || back == null || vaultLock.locked) return;
     if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
     if (DateTime.now().difference(back) > const Duration(seconds: 30)) return;
     _wasAway = false;
@@ -364,7 +399,11 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
             color: const Color(0xFF34C759),
             title: l.syncDone,
             lines: [
-              if (e.received == 0 && e.sent == 0) l.syncNothingNew else l.syncDoneCounts(e.received.toString(), e.sent.toString()),
+              if (e.received == 0 && e.sent == 0 && e.removed == 0)
+                l.syncNothingNew
+              else if (e.received > 0 || e.sent > 0)
+                l.syncDoneCounts(e.received.toString(), e.sent.toString()),
+              if (e.removed > 0) l.syncDoneHeld(e.removed),
               if (e.moved > 0) l.syncDriveMoved(e.moved),
               if (e.copies > 0) l.syncDoneCopies(e.copies.toString()),
             ],
@@ -459,51 +498,123 @@ class _Ends extends StatelessWidget {
   const _Ends({required this.flow, required this.place, required this.direction});
   final Animation<double> flow;
   final SyncPlace place;
-  /// 1: from this phone to the other end; -1: back; 0: looking (the dots pulse).
+  /// 1: from this phone to the other end; -1: back; 0: looking (both ends breathe).
   final int direction;
 
   @override
   Widget build(BuildContext context) {
     final ink = Theme.of(context).colorScheme.onSurface;
     final c = CsColors.of(context);
-    Widget end(IconData icon, Color tint) => Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(color: tint.withValues(alpha: .14), shape: BoxShape.circle),
-          child: Icon(icon, size: 38, color: tint),
-        );
     const blue = Color(0xFF0A84FF);
     const green = Color(0xFF30D158);
-    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-      end(Icons.smartphone_rounded, ink),
-      SizedBox(
-        width: 96,
-        height: 20,
-        child: AnimatedBuilder(
-          animation: flow,
-          builder: (context, _) => Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              for (var i = 0; i < 5; i++)
-                Builder(builder: (context) {
-                  // Each dot lights up in turn along the direction of travel.
-                  final pos = direction >= 0 ? i / 5 : (4 - i) / 5;
-                  final phase = (flow.value - pos) % 1.0;
-                  final lit = direction == 0 ? (0.5 + 0.5 * (1 - (flow.value * 2 - 1).abs())) : (1 - phase).clamp(0.0, 1.0);
-                  return Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color.lerp(c.border, place == SyncPlace.drive ? blue : green, lit),
-                    ),
-                  );
-                }),
-            ],
+    final tint = place == SyncPlace.drive ? blue : green;
+    final still = MediaQuery.disableAnimationsOf(context);
+    Widget end(IconData icon, Color color, double scale, double ring) => Transform.scale(
+          scale: scale,
+          child: Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .14),
+              shape: BoxShape.circle,
+              // A ring that flares as something lands.
+              border: Border.all(color: color.withValues(alpha: .55 * ring), width: 2.5),
+            ),
+            child: Icon(icon, size: 38, color: color),
           ),
-        ),
-      ),
-      place == SyncPlace.drive ? end(Icons.cloud_rounded, blue) : end(Icons.phone_android_rounded, green),
-    ]);
+        );
+    return AnimatedBuilder(
+      animation: flow,
+      builder: (context, _) {
+        final t = still ? 0.0 : flow.value;
+        // How freshly a packet landed on the receiving end (1 just now, fading).
+        var land = 0.0;
+        if (direction != 0 && !still) {
+          for (var i = 0; i < _FlowPainter.packets; i++) {
+            final phase = (t + i / _FlowPainter.packets) % 1.0;
+            if (phase < .18) land = math.max(land, 1 - phase / .18);
+          }
+        }
+        final breathe = direction == 0 && !still ? math.sin(t * 2 * math.pi) : 0.0;
+        final here = direction < 0 ? land : 0.0;
+        final there = direction > 0 ? land : 0.0;
+        return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          end(Icons.smartphone_rounded, ink, 1 + .05 * here + .025 * breathe, here),
+          SizedBox(
+            width: 112,
+            height: 64,
+            child: CustomPaint(painter: _FlowPainter(t: t, direction: direction, color: tint, track: c.border)),
+          ),
+          end(place == SyncPlace.drive ? Icons.cloud_rounded : Icons.phone_android_rounded, tint,
+              1 + .05 * there - .025 * breathe, there),
+        ]);
+      },
+    );
   }
+}
+
+/// The way between the two ends: a dotted arch, and small sealed packets travelling along
+/// it in the direction of the sync, in from nothing and out as they land. While looking,
+/// a light runs back and forth along the arch instead.
+class _FlowPainter extends CustomPainter {
+  _FlowPainter({required this.t, required this.direction, required this.color, required this.track});
+  static const packets = 3;
+  final double t;
+  final int direction;
+  final Color color;
+  final Color track;
+
+  Offset _at(Size size, double p) =>
+      Offset(size.width * p, size.height * .62 - math.sin(math.pi * p) * size.height * .38);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final dot = Paint()..color = track;
+    for (var i = 0; i <= 10; i++) {
+      canvas.drawCircle(_at(size, i / 10), 1.6, dot);
+    }
+    if (direction == 0) {
+      // Back and forth, eased: looking for what changed.
+      final at = _at(size, Curves.easeInOut.transform(1 - (t * 2 - 1).abs()));
+      canvas.drawCircle(
+          at,
+          6,
+          Paint()
+            ..color = color.withValues(alpha: .35)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
+      canvas.drawCircle(at, 3.5, Paint()..color = color);
+      return;
+    }
+    for (var i = 0; i < packets; i++) {
+      final phase = (t + i / packets) % 1.0;
+      final eased = Curves.easeInOutCubic.transform(phase);
+      final p = direction > 0 ? eased : 1 - eased;
+      final at = _at(size, p);
+      final fade = math.sin(math.pi * phase).clamp(0.0, 1.0);
+      canvas.save();
+      canvas.translate(at.dx, at.dy);
+      // Tilted along the arch.
+      canvas.rotate((direction > 0 ? 1 : -1) * (.5 - p) * .7);
+      canvas.scale(.7 + .3 * fade);
+      final card = RRect.fromRectAndRadius(const Rect.fromLTWH(-6, -7.5, 12, 15), const Radius.circular(3));
+      canvas.drawRRect(
+          card.shift(const Offset(0, 1.5)),
+          Paint()
+            ..color = color.withValues(alpha: .25 * fade)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+      canvas.drawRRect(card, Paint()..color = color.withValues(alpha: fade));
+      // Two lines of content, sealed.
+      final line = Paint()
+        ..color = Colors.white.withValues(alpha: .9 * fade)
+        ..strokeWidth = 1.4
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(const Offset(-3, -2.5), const Offset(3, -2.5), line);
+      canvas.drawLine(const Offset(-3, 1), const Offset(1.5, 1), line);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FlowPainter old) =>
+      old.t != t || old.direction != direction || old.color != color || old.track != track;
 }
