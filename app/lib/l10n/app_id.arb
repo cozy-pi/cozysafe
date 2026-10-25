@@ -619,5 +619,6 @@
   "syncLastDays": "{n, plural, other{{n} hari yang lalu}}",
   "syncLocalTitle": "Jaringan lokal",
   "syncLocalNote": "Dua perangkat di Wi‑Fi yang sama, terhubung langsung, tanpa internet.",
-  "syncDriveNow": "Sinkronkan sekarang"
+  "syncDriveNow": "Sinkronkan sekarang",
+  "previewEdit": "Edit"
 }

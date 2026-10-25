@@ -619,5 +619,6 @@
   "syncLastDays": "{n, plural, other{{n} gün önce}}",
   "syncLocalTitle": "Yerel ağ",
   "syncLocalNote": "Aynı Wi‑Fi'daki iki cihaz, doğrudan birbirine bağlanır, internet olmadan.",
-  "syncDriveNow": "Şimdi eşitle"
+  "syncDriveNow": "Şimdi eşitle",
+  "previewEdit": "Düzenle"
 }

@@ -619,5 +619,6 @@
   "syncLastDays": "{n, plural, other{{n} 天前}}",
   "syncLocalTitle": "區域網路",
   "syncLocalNote": "同一 Wi‑Fi 下的兩台裝置直接相連，不經過網際網路。",
-  "syncDriveNow": "立即同步"
+  "syncDriveNow": "立即同步",
+  "previewEdit": "編輯"
 }

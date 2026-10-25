@@ -619,5 +619,6 @@
   "syncLastDays": "{n, plural, =1{Hace 1 día} other{Hace {n} días}}",
   "syncLocalTitle": "Red local",
   "syncLocalNote": "Dos dispositivos en la misma Wi‑Fi, conectados directamente, sin internet.",
-  "syncDriveNow": "Sincronizar ahora"
+  "syncDriveNow": "Sincronizar ahora",
+  "previewEdit": "Editar"
 }

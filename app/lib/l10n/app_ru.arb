@@ -619,5 +619,6 @@
   "syncLastDays": "{n, plural, one{{n} день назад} few{{n} дня назад} many{{n} дней назад} other{{n} дня назад}}",
   "syncLocalTitle": "Локальная сеть",
   "syncLocalNote": "Два устройства в одной сети Wi‑Fi, напрямую друг с другом, без интернета.",
-  "syncDriveNow": "Синхронизировать сейчас"
+  "syncDriveNow": "Синхронизировать сейчас",
+  "previewEdit": "Изменить"
 }

@@ -83,16 +83,18 @@ Future<void> clearPlaybackCopies() async {
   } catch (_) {}
 }
 
-/// A video decrypted into the playback folder and its player. When the vault locks, the
-/// player stops and the copy is deleted (the page stays under the lock); when the same
-/// vault opens again, it is decrypted again and carries on from where it was.
+/// A video (or a recording) decrypted into the playback folder and its player. When the
+/// vault locks, the player stops and the copy is deleted (the page stays under the lock);
+/// when the same vault opens again, it is decrypted again and carries on from where it was.
 class Playback extends ChangeNotifier {
-  Playback(this.item) {
+  Playback(this.item, {this.fallbackExt = '.mp4'}) {
     vaultLock.addListener(_lockChanged);
     _open(_round);
   }
 
   final rust.ItemInfo item;
+  /// The copy's extension when the name has none (players go by it).
+  final String fallbackExt;
   VideoPlayerController? _player;
   File? _copy;
   bool _failed = false;
@@ -110,7 +112,7 @@ class Playback extends ChangeNotifier {
     File? copy;
     VideoPlayerController? p;
     try {
-      copy = await playbackCopy(item);
+      copy = await playbackCopy(item, fallbackExt: fallbackExt);
       p = VideoPlayerController.file(copy);
       await p.initialize();
       if (_at > Duration.zero) await p.seekTo(_at);
@@ -338,8 +340,9 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                             const SizedBox(width: 16),
                             GlassPill(
                               child: TextButton.icon(
+                                key: const ValueKey('video-delete'),
                                 onPressed: _delete,
-                                style: glassButton,
+                                style: glassDelete,
                                 icon: const Icon(Icons.delete_outline),
                                 label: glassLabel(l.delete),
                               ),

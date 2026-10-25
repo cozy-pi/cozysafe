@@ -633,5 +633,6 @@
   "syncLastDays": "{n, plural, other{{n} ngày trước}}",
   "syncLocalTitle": "Mạng nội bộ",
   "syncLocalNote": "Hai máy cùng Wi‑Fi, nối thẳng với nhau, không qua internet.",
-  "syncDriveNow": "Đồng bộ ngay"
+  "syncDriveNow": "Đồng bộ ngay",
+  "previewEdit": "Sửa"
 }

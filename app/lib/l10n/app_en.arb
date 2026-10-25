@@ -824,5 +824,6 @@
   "@syncLastDays": {"placeholders": {"n": {"type": "int"}}},
   "syncLocalTitle": "Local network",
   "syncLocalNote": "Two devices on the same Wi‑Fi, straight to each other, no internet.",
-  "syncDriveNow": "Sync now"
+  "syncDriveNow": "Sync now",
+  "previewEdit": "Edit"
 }

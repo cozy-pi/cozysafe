@@ -619,5 +619,6 @@
   "syncLastDays": "{n, plural, other{{n}일 전}}",
   "syncLocalTitle": "로컬 네트워크",
   "syncLocalNote": "같은 Wi‑Fi에 있는 두 기기를 인터넷 없이 직접 연결합니다.",
-  "syncDriveNow": "지금 동기화"
+  "syncDriveNow": "지금 동기화",
+  "previewEdit": "편집"
 }

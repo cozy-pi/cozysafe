@@ -619,5 +619,6 @@
   "syncLastDays": "{n, plural, other{{n}日前}}",
   "syncLocalTitle": "ローカルネットワーク",
   "syncLocalNote": "同じWi‑Fiにある2台を、インターネットを使わずに直接つなぎます。",
-  "syncDriveNow": "今すぐ同期"
+  "syncDriveNow": "今すぐ同期",
+  "previewEdit": "編集"
 }

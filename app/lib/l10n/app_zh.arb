@@ -619,5 +619,6 @@
   "syncLastDays": "{n, plural, other{{n} 天前}}",
   "syncLocalTitle": "局域网",
   "syncLocalNote": "同一 Wi‑Fi 下的两台设备直接相连，不经过互联网。",
-  "syncDriveNow": "立即同步"
+  "syncDriveNow": "立即同步",
+  "previewEdit": "编辑"
 }
