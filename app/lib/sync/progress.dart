@@ -364,7 +364,11 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
             color: const Color(0xFF34C759),
             title: l.syncDone,
             lines: [
-              if (e.received == 0 && e.sent == 0) l.syncNothingNew else l.syncDoneCounts(e.received.toString(), e.sent.toString()),
+              if (e.received == 0 && e.sent == 0 && e.removed == 0)
+                l.syncNothingNew
+              else if (e.received > 0 || e.sent > 0)
+                l.syncDoneCounts(e.received.toString(), e.sent.toString()),
+              if (e.removed > 0) l.syncDoneHeld(e.removed),
               if (e.moved > 0) l.syncDriveMoved(e.moved),
               if (e.copies > 0) l.syncDoneCopies(e.copies.toString()),
             ],

@@ -568,9 +568,18 @@ impl OpenVault {
         self.listed(true)
     }
 
-    /// Delete for good what has been in Recently deleted for 30 days. Returns how many.
+    /// Delete for good what has been in Recently deleted for 30 days, held items too.
+    /// Returns how many.
     pub fn purge_expired(&self, now_ms: i64) -> Result<usize> {
         let mut n = 0;
+        for m in self.held()? {
+            if m.deleted_ms
+                .is_some_and(|d| now_ms - d >= TRASH_DAYS * DAY_MS)
+            {
+                self.purge_held(&m.id)?;
+                n += 1;
+            }
+        }
         for m in self.trashed()? {
             if m.deleted_ms
                 .is_some_and(|d| now_ms - d >= TRASH_DAYS * DAY_MS)
@@ -580,6 +589,101 @@ impl OpenVault {
             }
         }
         Ok(n)
+    }
+
+    // ---------- held: deleted for good on another device, kept here ----------
+    //
+    // When a sync brings a deletion for good, the item is not removed here at once
+    // (owner 2026-10-25: a trash emptied by mistake, or a phone in someone else's
+    // hands, must not empty every device). Its record moves to `<id>.held`, sealed
+    // under its own role so it can never pass for a live record, and its content stays.
+    // To sync it is gone: no `.meta`, no index row, the deletion is known. It shows in
+    // Recently deleted as "deleted on another device" for 30 days. Restoring it makes
+    // a new revision, newer than the deletion, so it comes back on every device too.
+
+    /// Move a live item to held (a sync applying a deletion for good from elsewhere).
+    pub(crate) fn hold_item(&self, id: &str, now_ms: i64) -> Result<()> {
+        let mut record = self.record(id)?;
+        record.deleted_ms = Some(now_ms);
+        let json = serde_json::to_vec(&record).expect("serialisable");
+        let sealed = wrap::seal(&self.master_key, &json, &self.item_aad(id, "held"));
+        write_atomic(&self.new_path(id, "held")?, &sealed)?;
+        // Content into the bucket beside it (a move into buckets cut short may have
+        // left it flat), then the record goes: the item is no longer live.
+        for ext in ["data", "thumb"] {
+            let flat = self.flat_path(id, ext)?;
+            if flat.exists() && !self.path(id, ext)?.exists() {
+                fs::rename(&flat, self.path(id, ext)?)?;
+            }
+        }
+        crate::remove_if_exists(&self.flat_path(id, "meta")?)?;
+        crate::remove_if_exists(&self.path(id, "meta")?)?;
+        self.index.remove(id)?;
+        Ok(())
+    }
+
+    fn held_record(&self, id: &str) -> Result<ItemRecord> {
+        let sealed = fs::read(self.path(id, "held")?).map_err(|_| Error::NoSuchItem)?;
+        let json = wrap::open(&self.master_key, &sealed, &self.item_aad(id, "held"))?;
+        serde_json::from_slice::<ItemRecord>(&json)
+            .map(ItemRecord::upgraded)
+            .map_err(|_| Error::Corrupt("item meta"))
+    }
+
+    /// Items deleted for good on another device and kept here, latest first. Their
+    /// `deleted_ms` is when they arrived here.
+    pub fn held(&self) -> Result<Vec<ItemMeta>> {
+        let mut out = Vec::new();
+        for b in fs::read_dir(self.items_dir())
+            .into_iter()
+            .flatten()
+            .flatten()
+        {
+            let n = b.file_name().to_string_lossy().into_owned();
+            if !is_bucket(&n) || !b.path().is_dir() {
+                continue;
+            }
+            for e in fs::read_dir(b.path()).into_iter().flatten().flatten() {
+                let name = e.file_name().to_string_lossy().into_owned();
+                let Some(id) = name.strip_suffix(".held") else {
+                    continue;
+                };
+                // Damaged entries are skipped, not fatal (as listing always did).
+                if let Ok(record) = self.held_record(id) {
+                    out.push(meta(id.to_owned(), record));
+                }
+            }
+        }
+        out.sort_by(|a, b| b.deleted_ms.cmp(&a.deleted_ms).then(a.id.cmp(&b.id)));
+        Ok(out)
+    }
+
+    /// Bring a held item back: a new revision, newer than the deletion, so the other
+    /// devices take it back too.
+    pub fn restore_held(&self, id: &str) -> Result<()> {
+        let mut record = self.held_record(id)?;
+        record.deleted_ms = None;
+        self.write_record(id, &record)?;
+        self.index.forget_gone(id)?;
+        crate::remove_if_exists(&self.path(id, "held")?)?;
+        Ok(())
+    }
+
+    /// Delete a held item here for good (Recently deleted → Delete now, or 30 days).
+    pub fn purge_held(&self, id: &str) -> Result<()> {
+        // The record first: content with no record is never shown.
+        crate::remove_if_exists(&self.path(id, "held")?)?;
+        for ext in ["data", "thumb"] {
+            crate::remove_if_exists(&self.path(id, ext)?)?;
+            crate::remove_if_exists(&self.flat_path(id, ext)?)?;
+        }
+        Ok(())
+    }
+
+    /// A newer revision of a held item came from elsewhere (edited there after the
+    /// deletion): the live item replaces what was held.
+    pub(crate) fn drop_held(&self, id: &str) -> Result<()> {
+        crate::remove_if_exists(&self.path(id, "held")?)
     }
 
     /// Items in the vault (not in Recently deleted), newest first.
@@ -662,7 +766,11 @@ impl OpenVault {
     }
 
     fn record_and_key(&self, id: &str) -> Result<(ItemRecord, Key)> {
-        let record = self.record(id)?;
+        // A held item can still be looked at from Recently deleted.
+        let record = match self.record(id) {
+            Err(Error::NoSuchItem) => self.held_record(id)?,
+            other => other?,
+        };
         let dek = self.unwrap_dek(id, &record)?;
         Ok((record, dek))
     }

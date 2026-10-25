@@ -805,5 +805,10 @@
   "syncFindLabel": "Type the 6 digits shown on your other device",
   "syncFindWrong": "No device shows this code. Check the digits.",
   "syncFindWaiting": "Looking for the device showing this code…",
-  "syncFindQr": "Scan a QR instead"
+  "syncFindQr": "Scan a QR instead",
+  "trashHeldLabel": "Deleted on another device",
+  "trashHeldNote": "Items deleted for good on your other device are kept here for 30 days and are not synced.",
+  "deleteForGoodOthersKeep": "Your other devices that sync this vault keep it for 30 days in Recently deleted.",
+  "syncDoneHeld": "{n, plural, =1{1 item deleted on the other device moved to Recently deleted (kept 30 days).} other{{n} items deleted on the other device moved to Recently deleted (kept 30 days).}}",
+  "@syncDoneHeld": {"placeholders": {"n": {"type": "int"}}}
 }

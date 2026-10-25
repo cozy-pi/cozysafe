@@ -183,7 +183,16 @@ fn files(dir: &Path) -> Result<Vec<(String, PathBuf)>> {
                 names.insert(e.file_name().to_string_lossy().into_owned(), e.path());
             }
         }
+        // Only live items: the content of one held from another device's deletion (no
+        // `.meta`, only `.held`) stays out, as does the held record itself.
+        let live: std::collections::HashSet<String> = names
+            .keys()
+            .filter_map(|n| n.strip_suffix(".meta").map(str::to_owned))
+            .collect();
         for (n, path) in names {
+            if n.split_once('.').is_some_and(|(id, _)| !live.contains(id)) {
+                continue;
+            }
             let rel = format!("{VAULTS_DIR}/{v}/{ITEMS_DIR}/{n}");
             if allowed(&rel).is_some() && path.is_file() {
                 out.push((rel, path));
