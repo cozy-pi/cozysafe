@@ -260,7 +260,6 @@
   "stopRecording": "停止並儲存",
   "addFiles": "加入檔案",
   "select": "選取",
-  "hideNoteText": "隱藏筆記內容",
   "foundInText": "在內文中找到",
   "trashTapHint": "輕點一項即可預覽。輕點「選擇」可選多項。",
   "deleteForGoodShort": "永久刪除",
@@ -627,6 +626,5 @@
   "formatHeading": "標題",
   "formatList": "清單",
   "formatChecklist": "待辦清單",
-  "formatLink": "連結",
-  "noteTapToShow": "輕點以顯示"
+  "formatLink": "連結"
 }

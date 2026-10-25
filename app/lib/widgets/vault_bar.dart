@@ -78,10 +78,6 @@ double actionLift() =>
 const revealIconPref = 'reveal-icon';
 bool revealIconOn() => Prefs.read(revealIconPref) != '0';
 
-/// Notes list and search show only titles unless this is on: someone beside you should
-/// not read a password off the list (docs/security.md, secrets on screen).
-const notePreviewsPref = 'note-previews';
-bool notePreviews() => Prefs.read(notePreviewsPref) == '1';
 
 /// Thumbnails blurred in lists, for crowded places (Settings → Display; persona review
 /// 2026-10-21). Opening an item still shows it clearly.

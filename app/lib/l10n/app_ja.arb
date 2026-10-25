@@ -260,7 +260,6 @@
   "stopRecording": "停止して保存",
   "addFiles": "ファイルを追加",
   "select": "選択",
-  "hideNoteText": "メモの本文を隠す",
   "foundInText": "本文に一致",
   "trashTapHint": "項目をタップするとプレビューします。複数選ぶには「選択」をタップします。",
   "deleteForGoodShort": "完全に削除",
@@ -627,6 +626,5 @@
   "formatHeading": "見出し",
   "formatList": "リスト",
   "formatChecklist": "チェックリスト",
-  "formatLink": "リンク",
-  "noteTapToShow": "タップして表示"
+  "formatLink": "リンク"
 }

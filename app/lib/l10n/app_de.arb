@@ -260,7 +260,6 @@
   "stopRecording": "Stoppen und speichern",
   "addFiles": "Dateien hinzufügen",
   "select": "Auswählen",
-  "hideNoteText": "Notiztext ausblenden",
   "foundInText": "Im Text gefunden",
   "trashTapHint": "Tippe auf ein Objekt, um es anzusehen. Mit „Auswählen“ wählst du mehrere.",
   "deleteForGoodShort": "Endgültig löschen",
@@ -627,6 +626,5 @@
   "formatHeading": "Überschrift",
   "formatList": "Liste",
   "formatChecklist": "Checkliste",
-  "formatLink": "Link",
-  "noteTapToShow": "Zum Anzeigen tippen"
+  "formatLink": "Link"
 }

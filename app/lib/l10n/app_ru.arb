@@ -260,7 +260,6 @@
   "stopRecording": "Остановить и сохранить",
   "addFiles": "Добавить файлы",
   "select": "Выбрать",
-  "hideNoteText": "Скрывать текст заметок",
   "foundInText": "Найдено в тексте",
   "trashTapHint": "Нажмите на объект, чтобы посмотреть его. «Выбрать» — чтобы отметить несколько.",
   "deleteForGoodShort": "Удалить навсегда",
@@ -627,6 +626,5 @@
   "formatHeading": "Заголовок",
   "formatList": "Список",
   "formatChecklist": "Чек-лист",
-  "formatLink": "Ссылка",
-  "noteTapToShow": "Нажмите, чтобы показать"
+  "formatLink": "Ссылка"
 }

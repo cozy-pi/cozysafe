@@ -260,7 +260,6 @@
   "stopRecording": "Durdur ve kaydet",
   "addFiles": "Dosya ekle",
   "select": "Seç",
-  "hideNoteText": "Not metnini gizle",
   "foundInText": "Metinde bulundu",
   "trashTapHint": "Görmek için bir öğeye dokunun. Birden fazlası için Seç'e dokunun.",
   "deleteForGoodShort": "Kalıcı olarak sil",
@@ -627,6 +626,5 @@
   "formatHeading": "Başlık",
   "formatList": "Liste",
   "formatChecklist": "Yapılacaklar",
-  "formatLink": "Bağlantı",
-  "noteTapToShow": "Görmek için dokunun"
+  "formatLink": "Bağlantı"
 }

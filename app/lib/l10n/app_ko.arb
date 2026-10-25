@@ -260,7 +260,6 @@
   "stopRecording": "중지 및 저장",
   "addFiles": "파일 추가",
   "select": "선택",
-  "hideNoteText": "메모 내용 숨기기",
   "foundInText": "본문에서 찾음",
   "trashTapHint": "항목을 탭하면 미리 봅니다. 여러 개를 고르려면 선택을 누르세요.",
   "deleteForGoodShort": "영구 삭제",
@@ -627,6 +626,5 @@
   "formatHeading": "제목",
   "formatList": "목록",
   "formatChecklist": "체크리스트",
-  "formatLink": "링크",
-  "noteTapToShow": "탭하여 보기"
+  "formatLink": "링크"
 }

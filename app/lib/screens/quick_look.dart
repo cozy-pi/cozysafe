@@ -125,7 +125,6 @@ class _QuickLookState extends State<QuickLook> {
 
   /// "Hide note text" is on and the person tapped the note: its text shows until the
   /// preview closes (next time it is hidden again).
-  bool _reveal = false;
   Future<ui.Image?>? _pdfPage;
   ui.Image? _pdfImage;
 
@@ -524,14 +523,12 @@ class _QuickLookState extends State<QuickLook> {
     var rest = after.join('\n').trimRight();
     if (rest.length > 4000) rest = rest.substring(0, 4000);
     final ink = Theme.of(context).colorScheme.onSurface;
-    final c = CsColors.of(context);
-    final shown = notePreviews() || _reveal;
     final card = _card(
       box,
       paper: true,
       _lines(
         box,
-        interactive: shown,
+        interactive: true,
         Column(
           key: const ValueKey('quick-note'),
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,10 +536,7 @@ class _QuickLookState extends State<QuickLook> {
             Text(head.isEmpty ? AppLocalizations.of(context).untitledNote : head,
                 style: NoteTextController.title.copyWith(fontSize: 21, color: ink)),
             const SizedBox(height: 8),
-            // "Hide note text" (Settings): someone beside you should not read it off
-            // the preview either; a tap on the note (or Edit) shows it.
-            if (shown)
-              MarkdownLite(
+            MarkdownLite(
                 text: rest,
                 fontSize: 15.5,
                 selectable: false,
@@ -550,39 +544,11 @@ class _QuickLookState extends State<QuickLook> {
                 onToggle: _trash ? null : (i) => _toggle(first + 1 + i),
                 onLink: (url) => confirmOpenLink(context, url),
               )
-            else
-              for (final w in const [1.0, .92, .97, .6, .85, .4])
-                FractionallySizedBox(
-                  widthFactor: w,
-                  child: Container(
-                    height: 10,
-                    margin: const EdgeInsets.symmetric(vertical: 7),
-                    decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(5)),
-                  ),
-                ),
-            if (!shown)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Row(
-                  children: [
-                    Icon(Icons.visibility_outlined, size: 18, color: c.muted),
-                    const SizedBox(width: 6),
-                    Text(AppLocalizations.of(context).noteTapToShow,
-                        key: const ValueKey('note-tap-to-show'), style: TextStyle(fontSize: 15, color: c.muted)),
-                  ],
-                ),
-              ),
           ],
         ),
       ),
     );
-    if (shown) return card;
-    return GestureDetector(
-      key: const ValueKey('note-reveal'),
-      behavior: HitTestBehavior.opaque,
-      onTap: () => setState(() => _reveal = true),
-      child: card,
-    );
+    return card;
   }
 
   Widget _text(BoxConstraints box) => _card(

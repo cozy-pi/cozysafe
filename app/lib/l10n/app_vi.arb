@@ -274,7 +274,6 @@
   "stopRecording": "Dừng và lưu",
   "addFiles": "Thêm tệp",
   "select": "Chọn",
-  "hideNoteText": "Ẩn nội dung ghi chú",
   "foundInText": "Có trong nội dung",
   "trashTapHint": "Chạm một mục để xem trước. Bấm Chọn để chọn nhiều mục.",
   "deleteForGoodShort": "Xoá hẳn",
@@ -641,6 +640,5 @@
   "formatHeading": "Tiêu đề",
   "formatList": "Danh sách",
   "formatChecklist": "Việc cần làm",
-  "formatLink": "Liên kết",
-  "noteTapToShow": "Chạm để xem"
+  "formatLink": "Liên kết"
 }

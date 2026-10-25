@@ -635,20 +635,6 @@ void main() {
       },
       change: 'Tên miền có chữ ngoài ASCII hiện dạng xn-- để không bị giả mạo',
       marks: [() => find.byKey(const ValueKey('card'))]);
-  _screen('note-hidden', 'Ghi chú có định dạng · đang bật “Ẩn nội dung ghi chú”', home, section: 'note',
-      setup: () => _itemsNow = [..._items, _formatted],
-      act: (t) => openRow(t, 'Chuẩn bị đi Đà Lạt'),
-      change: 'Chỉ tiêu đề và các vạch xám, thêm dòng “Chạm để xem”; nền sau nhẹ hơn, thấy trang bên dưới',
-      marks: [() => find.byKey(const ValueKey('note-tap-to-show'))]);
-  _screen('note-hidden-revealed', 'Ghi chú đang ẩn nội dung · sau khi chạm', home, section: 'note',
-      setup: () => _itemsNow = [..._items, _formatted],
-      act: (t) async {
-        await openRow(t, 'Chuẩn bị đi Đà Lạt');
-        await t.tap(find.byKey(const ValueKey('note-reveal')));
-        await t.pump();
-      },
-      change: 'Chạm vào ghi chú: hiện nội dung có định dạng cho tới khi đóng khung xem trước (lần sau lại ẩn)',
-      marks: [() => find.byKey(const ValueKey('quick-note'))]);
   _screen('note-format-bar', 'Sửa ghi chú · thanh định dạng trên bàn phím',
       () => _FakeKeyboard(child: NoteScreen(item: _formatted)),
       act: (t) async {

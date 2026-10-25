@@ -15,12 +15,13 @@ Dates are UTC.
   their xn-- form so a fake look-alike site stands out. Only web pages open.
 - While editing a note, a small bar over the keyboard adds Bold, Italic, Heading, List,
   To-do and Link marks for you; the marks show lightly as you type.
-- With "Hide note text" on, a note's preview says "Tap to show"; a tap shows the note
-  until the preview closes (hidden again next time).
 
 ### Changed
 - The page behind an opened item is lighter and less blurred, so you can still see where
   you are.
+- "Hide note text" is gone: you open a note on purpose, so it always shows, and lists
+  show a note's first lines again. "Blur thumbnails" stays, for photos someone beside
+  you could see.
 - An opened item's buttons now sit in the bottom bar's place, the same size and shape,
   instead of a second row above it.
 - The code for syncing with a nearby device is 3 digits instead of 6. It was never what

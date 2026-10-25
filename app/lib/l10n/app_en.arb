@@ -395,7 +395,6 @@
   "stopRecording": "Stop and save",
   "addFiles": "Add files",
   "select": "Select",
-  "hideNoteText": "Hide note text",
   "foundInText": "Found in the text",
   "trashTapHint": "Tap an item to look at it. Select picks several.",
   "deleteForGoodShort": "Delete for good",
@@ -839,6 +838,5 @@
         "type": "String"
       }
     }
-  },
-  "noteTapToShow": "Tap to show"
+  }
 }

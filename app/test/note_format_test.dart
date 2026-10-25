@@ -11,7 +11,6 @@ import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/widgets/format_bar.dart';
-import 'package:cozysafe/widgets/vault_bar.dart' show notePreviewsPref;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -215,7 +214,6 @@ void main() {
     setUpAll(() => RustLib.initMock(api: _fake = _Fake()));
     setUp(() {
       Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
-      Prefs.write(notePreviewsPref, '1');
       _fake
         ..saved.clear()
         ..note = 'Groceries\n- [ ] milk\n- [x] eggs\nRecipe: https://bücher.de/kuchen.';
@@ -263,21 +261,6 @@ void main() {
       await t.tap(find.byKey(const ValueKey('link-cancel')));
       await t.pumpAndSettle();
       expect(find.byKey(const ValueKey('link-card')), findsNothing);
-    });
-
-    testWidgets('"Hide note text" hides the boxes and links until the note is tapped', (t) async {
-      Prefs.write(notePreviewsPref, '0');
-      await t.pumpWidget(app());
-      await settle(t);
-      expect(find.byKey(const ValueKey('check-0')), findsNothing);
-      expect(find.textContaining('bücher'), findsNothing);
-      expect(find.text('Tap to show'), findsOneWidget);
-      await t.tap(find.byKey(const ValueKey('note-reveal')));
-      await t.pump();
-      expect(find.byKey(const ValueKey('check-0')), findsOneWidget);
-      expect(find.text('Tap to show'), findsNothing);
-      // Shown for this preview only: the setting is unchanged.
-      expect(Prefs.read(notePreviewsPref), '0');
     });
   });
 }

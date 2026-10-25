@@ -260,7 +260,6 @@
   "stopRecording": "Parar e salvar",
   "addFiles": "Adicionar arquivos",
   "select": "Selecionar",
-  "hideNoteText": "Ocultar o texto das notas",
   "foundInText": "Encontrado no texto",
   "trashTapHint": "Toque em um item para vê-lo. Selecionar escolhe vários.",
   "deleteForGoodShort": "Excluir para sempre",
@@ -627,6 +626,5 @@
   "formatHeading": "Título",
   "formatList": "Lista",
   "formatChecklist": "Lista de tarefas",
-  "formatLink": "Link",
-  "noteTapToShow": "Toque para ver"
+  "formatLink": "Link"
 }

@@ -260,7 +260,6 @@
   "stopRecording": "หยุดและบันทึก",
   "addFiles": "เพิ่มไฟล์",
   "select": "เลือก",
-  "hideNoteText": "ซ่อนข้อความในโน้ต",
   "foundInText": "พบในข้อความ",
   "trashTapHint": "แตะรายการเพื่อดูตัวอย่าง แตะ เลือก เพื่อเลือกหลายรายการ",
   "deleteForGoodShort": "ลบอย่างถาวร",
@@ -627,6 +626,5 @@
   "formatHeading": "หัวข้อ",
   "formatList": "รายการ",
   "formatChecklist": "รายการตรวจสอบ",
-  "formatLink": "ลิงก์",
-  "noteTapToShow": "แตะเพื่อดู"
+  "formatLink": "ลิงก์"
 }

@@ -260,7 +260,6 @@
   "stopRecording": "Berhenti dan simpan",
   "addFiles": "Tambah file",
   "select": "Pilih",
-  "hideNoteText": "Sembunyikan isi catatan",
   "foundInText": "Ditemukan di teks",
   "trashTapHint": "Ketuk item untuk melihatnya. Pilih untuk memilih beberapa.",
   "deleteForGoodShort": "Hapus permanen",
@@ -627,6 +626,5 @@
   "formatHeading": "Judul",
   "formatList": "Daftar",
   "formatChecklist": "Daftar periksa",
-  "formatLink": "Tautan",
-  "noteTapToShow": "Ketuk untuk melihat"
+  "formatLink": "Tautan"
 }
