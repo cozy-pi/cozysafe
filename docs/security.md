@@ -33,8 +33,10 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
 ## Secrets on screen
 
 - **Never shown by default.** The Secret Key (Emergency Kit) is masked (`SecretText`):
-  always the same 16 dots (the mask does not tell the key's length), a Show button, hidden again after 30 seconds and whenever the
-  app leaves the foreground.
+  always the same 16 dots (the mask does not tell the key's length), a Show button, hidden again after 30 seconds, whenever the
+  app leaves the foreground and when the vault locks. The page itself stays under the
+  lock screen (opening the vault comes back to it); passwords and PINs typed on such a
+  page are cleared on lock (`lib/lock_resume.dart`).
 - **Password and key fields are hidden while typed** (`SecretField`), with an eye to
   show them; this includes a suggested passphrase, which appears hidden.
 - **Note text stays out of lists.** The notes list and search show titles and dates only;

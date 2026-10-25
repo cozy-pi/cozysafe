@@ -8,7 +8,6 @@ import '../biometric.dart';
 import '../build_info.dart';
 import '../debug_log.dart';
 import '../item_kind.dart';
-import '../lock_resume.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
@@ -250,7 +249,6 @@ class _DebugScreenState extends State<DebugScreen> {
               title: Text(l.vaultManagerTitle, style: const TextStyle(fontSize: 15.5)),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                settings: keepOnLock,
                 builder: (_) => VaultManagerScreen(libraryDir: '${Prefs.dir}${Platform.pathSeparator}library'),
               )),
             ),

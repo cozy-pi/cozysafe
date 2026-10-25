@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_resume.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import 'consent.dart';
@@ -52,7 +53,7 @@ class ScanCodePage extends StatefulWidget {
   State<ScanCodePage> createState() => _ScanCodePageState();
 }
 
-class _ScanCodePageState extends State<ScanCodePage> {
+class _ScanCodePageState extends State<ScanCodePage> with VaultLockAware {
   CameraController? _camera;
   bool _none = false;
   bool _reading = false;
@@ -73,7 +74,7 @@ class _ScanCodePageState extends State<ScanCodePage> {
       // 720p frame takes ~10 ms).
       final c = CameraController(back, ResolutionPreset.high, enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
       await c.initialize();
-      if (!mounted) {
+      if (!mounted || vaultLock.locked) {
         await c.dispose();
         return;
       }
@@ -113,6 +114,19 @@ class _ScanCodePageState extends State<ScanCodePage> {
     } finally {
       _reading = false;
     }
+  }
+
+  /// The page stays under the lock; the camera lets go meanwhile and starts again after.
+  @override
+  void vaultLocking() {
+    final c = _camera;
+    setState(() => _camera = null);
+    c?.dispose();
+  }
+
+  @override
+  void vaultUnlocked() {
+    if (_camera == null && !_none && ScanCodePage.debugPreview == null) _open();
   }
 
   @override

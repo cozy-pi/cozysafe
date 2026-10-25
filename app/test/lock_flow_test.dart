@@ -1,11 +1,15 @@
 // Flows that can lock someone out of their vault if they break: PIN, wrong tries,
 // waits after wrong tries, password fallback, type-to-unlock, an add action picked while locked, setting a PIN,
-// the Emergency Kit confirmation. The Rust core is replaced by a fake with state.
+// the Emergency Kit confirmation, pages kept under the lock. The Rust core is replaced by a fake with state.
 
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:cozysafe/biometric.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
+import 'package:cozysafe/lock_resume.dart';
+import 'package:cozysafe/screens/kit_password.dart';
+import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/secret_key_store.dart';
 import 'package:cozysafe/screens/set_pin.dart';
@@ -27,6 +31,10 @@ class _Fake implements RustLibApi {
   bool anyPassword = true;
   String? enabledPin;
   int unlockCalls = 0;
+  bool biometric = false;
+  int biometricCalls = 0;
+  int notesAdded = 0;
+  int notesUpdated = 0;
 
   T _arg<T>(Invocation c, String name) => c.namedArguments[Symbol(name)] as T;
 
@@ -42,7 +50,24 @@ class _Fake implements RustLibApi {
     if (name.contains('ListItems')) return Future<List<ItemInfo>>.value(const []);
     if (name.contains('ListTrash')) return Future<List<ItemInfo>>.value(const []);
     if (name.contains('PurgeExpired')) return Future<int>.value(0);
-    if (name.contains('HasBiometricUnlock')) return false;
+    if (name.contains('HasBiometricUnlock')) return biometric;
+    if (name.contains('UnlockWithBiometric')) {
+      biometricCalls++;
+      return Future<VaultInfo?>.value(null);
+    }
+    if (name.contains('ForgetBiometricUnlock')) return Future<void>.value();
+    final note = ItemInfo(
+      id: 'n1', kind: 'note', name: '', mime: 'text/plain', createdMs: 0,
+      sizeBytes: BigInt.zero, tagIds: const [], isFavorite: false, modifiedMs: 0,
+    );
+    if (name.contains('AddNote')) {
+      notesAdded++;
+      return Future<ItemInfo>.value(note);
+    }
+    if (name.contains('UpdateNote')) {
+      notesUpdated++;
+      return Future<ItemInfo>.value(note);
+    }
     if (name.contains('BiometricEnabled')) return false;
     if (name.contains('PinLengths')) return Uint32List.fromList(pinLength == 0 ? [] : [pinLength]);
     if (name.contains('AnyPassword')) return anyPassword;
@@ -106,7 +131,12 @@ void main() {
       ..pinLength = 4
       ..anyPassword = true
       ..enabledPin = null
-      ..unlockCalls = 0;
+      ..unlockCalls = 0
+      ..biometric = false
+      ..biometricCalls = 0
+      ..notesAdded = 0
+      ..notesUpdated = 0;
+    BiometricUnlock.debugKind = null;
     FlutterSecureStorage.setMockInitialValues({
       'pin-device-key': base64Encode(List.filled(16, 7)),
       'pin-fails': '0',
@@ -279,5 +309,97 @@ void main() {
     await t.ensureVisible(find.widgetWithText(FilledButton, "I've saved it"));
     await t.tap(find.widgetWithText(FilledButton, "I've saved it"));
     expect(done, isTrue);
+  });
+
+  Future<void> leaveAndComeBack(WidgetTester t) async {
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await _settle(t);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await _settle(t);
+  }
+
+  testWidgets('a note being written stays open with its text through a lock, written once', (t) async {
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    await _tapDigits(t, _pin);
+    await _settle(t);
+    Navigator.of(t.element(find.byType(VaultHomeScreen))).push(MaterialPageRoute<void>(builder: (_) => const NoteScreen()));
+    await _settle(t);
+    await t.enterText(find.byType(TextField), 'Shopping list');
+    await t.pump();
+    await leaveAndComeBack(t);
+    // Written before the key went, then the lock over the editor.
+    expect(_fake.notesAdded, 1);
+    expect(find.byType(UnlockScreen), findsOneWidget);
+    await _tapDigits(t, _pin);
+    await _settle(t);
+    expect(find.byType(UnlockScreen), findsNothing);
+    expect(find.byType(NoteScreen), findsOneWidget);
+    expect(find.text('Shopping list'), findsOneWidget);
+    // More typing updates the same note, never a second one.
+    await t.enterText(find.byType(TextField), 'Shopping list\nmilk');
+    await t.pump(const Duration(seconds: 2));
+    await _settle(t);
+    expect(_fake.notesAdded, 1);
+    expect(_fake.notesUpdated, 1);
+  });
+
+  testWidgets('shown words are hidden again when the vault locks', (t) async {
+    const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
+    addTearDown(() => vaultLock.set(false));
+    await _pump(t, _app(const EmergencyKitScreen(keyText: words, confirm: false)));
+    await t.pump();
+    expect(find.text('bounce'), findsNothing);
+    await t.ensureVisible(find.byKey(const ValueKey('secret-show')));
+    await t.tap(find.byKey(const ValueKey('secret-show')));
+    await t.pump();
+    expect(find.text('bounce'), findsOneWidget);
+    vaultLock.set(true);
+    await t.pump();
+    expect(find.text('bounce'), findsNothing);
+    vaultLock.set(false);
+    await t.pump();
+    expect(find.text('bounce'), findsNothing);
+  });
+
+  testWidgets('a password typed before the lock is gone after it', (t) async {
+    addTearDown(() => vaultLock.set(false));
+    await _pump(t, _app(const KitPasswordScreen(libraryDir: 'lib')));
+    await t.pump();
+    await t.enterText(find.byType(TextField), _password);
+    await t.pump();
+    vaultLock.set(true);
+    await t.pump();
+    vaultLock.set(false);
+    await t.pump();
+    expect(t.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
+  });
+
+  testWidgets('Face ID is not asked on return while something covers the lock screen', (t) async {
+    _fake.biometric = true;
+    BiometricUnlock.debugKind = BiometricKind.face;
+    FlutterSecureStorage.setMockInitialValues({
+      'pin-device-key': base64Encode(List.filled(16, 7)),
+      'pin-fails': '0',
+      'vault-unlock-key': base64Encode(List.filled(32, 5)),
+    });
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib', askBiometricNow: false)));
+    await _settle(t);
+    // A New vault or Restore opened from the lock screen, half done.
+    Navigator.of(t.element(find.byType(UnlockScreen)))
+        .push(MaterialPageRoute<void>(builder: (_) => const Scaffold(body: Text('half done'))));
+    await _settle(t);
+    await leaveAndComeBack(t);
+    expect(_fake.biometricCalls, 0);
+    expect(find.text('half done'), findsOneWidget);
+    // On the lock screen itself, coming back asks.
+    Navigator.of(t.element(find.text('half done'))).pop();
+    await _settle(t);
+    await leaveAndComeBack(t);
+    expect(_fake.biometricCalls, 1);
   });
 }

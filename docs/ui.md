@@ -163,6 +163,13 @@ flows (internal mockup)
 - Locking: by hand (animation), on leaving the app (immediately, 60 s grace when
   the app itself opened the camera, a picker or the share sheet), after 2 minutes
   without a touch. Face ID is not asked again right after locking by hand.
+- Opening the same vault again comes back to exactly the page the person was on (owner
+  2026-10-25), the Recovery Key and password pages too: every page stays under the lock
+  screen; only dialogs, sheets, cards and menus close, as Cancel. On lock, shown words
+  are masked again, typed passwords and PINs are cleared, players and cameras stop (and
+  start again after), a Google Drive sync stops and continues after; a sync with another
+  device ends and says so (`lib/lock_resume.dart`). Face ID is asked on return only when
+  the lock screen is on top, never under New vault or Restore opened from it.
 - With a vault password, the lock screen asks for it once every 14 days instead
   of Face ID, so it is not forgotten.
 

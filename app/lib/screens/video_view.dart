@@ -9,6 +9,7 @@ import 'package:video_player/video_player.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../lock_resume.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'file_view.dart';
@@ -19,15 +20,14 @@ import 'glass.dart';
 /// when the screen closes, when the vault locks, and at every app start
 /// ([clearPlaybackCopies]). Pops with the id when the video was deleted.
 class VideoViewScreen extends StatefulWidget {
-  const VideoViewScreen({super.key, required this.item, required this.vaultId, this.player, this.copy});
+  const VideoViewScreen({super.key, required this.item, required this.vaultId, this.playback});
 
   final rust.ItemInfo item;
   final String vaultId;
 
   /// Full screen from the quick look: its player (and decrypted copy) carry on here and
   /// stay the quick look's to dispose; the corner button goes back to it.
-  final VideoPlayerController? player;
-  final File? copy;
+  final Playback? playback;
 
   /// The platforms with a video player; elsewhere videos open in another app.
   static bool get supported => Device.iOS || Device.android || Device.macOS;
@@ -83,67 +83,118 @@ Future<void> clearPlaybackCopies() async {
   } catch (_) {}
 }
 
-class _VideoViewScreenState extends State<VideoViewScreen> {
+/// A video decrypted into the playback folder and its player. When the vault locks, the
+/// player stops and the copy is deleted (the page stays under the lock); when the same
+/// vault opens again, it is decrypted again and carries on from where it was.
+class Playback extends ChangeNotifier {
+  Playback(this.item) {
+    vaultLock.addListener(_lockChanged);
+    _open(_round);
+  }
+
+  final rust.ItemInfo item;
   VideoPlayerController? _player;
   File? _copy;
   bool _failed = false;
+  bool _disposed = false;
+  /// Each lock starts a new round: an opening from before it is thrown away.
+  int _round = 0;
+  Duration _at = Duration.zero;
+  bool _playing = true;
+
+  VideoPlayerController? get player => _player;
+  File? get copy => _copy;
+  bool get failed => _failed;
+
+  Future<void> _open(int round) async {
+    File? copy;
+    VideoPlayerController? p;
+    try {
+      copy = await playbackCopy(item);
+      p = VideoPlayerController.file(copy);
+      await p.initialize();
+      if (_at > Duration.zero) await p.seekTo(_at);
+      if (round != _round) {
+        await p.dispose();
+        _delete(copy);
+        return;
+      }
+      _copy = copy;
+      _player = p..addListener(notifyListeners);
+      notifyListeners();
+      if (_playing) await p.play();
+    } catch (_) {
+      if (round != _round) {
+        await p?.dispose();
+        _delete(copy);
+        return;
+      }
+      _failed = true;
+      notifyListeners();
+    }
+  }
+
+  void _lockChanged() {
+    if (_disposed) return;
+    if (!vaultLock.locked) {
+      if (_player == null && !_failed) _open(_round);
+      return;
+    }
+    _round++;
+    final p = _player;
+    if (p != null) {
+      _at = p.value.position;
+      _playing = p.value.isPlaying;
+      p.removeListener(notifyListeners);
+    }
+    _player = null;
+    _failed = false;
+    _delete(_copy);
+    _copy = null;
+    notifyListeners();
+    p?.dispose();
+  }
+
+  static void _delete(File? f) {
+    try {
+      f?.deleteSync();
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _round++;
+    vaultLock.removeListener(_lockChanged);
+    _player?.removeListener(notifyListeners);
+    _player?.dispose();
+    _delete(_copy);
+    super.dispose();
+  }
+}
+
+class _VideoViewScreenState extends State<VideoViewScreen> {
+  late final Playback _playback = widget.playback ?? Playback(widget.item);
   bool _bars = true;
+
+  VideoPlayerController? get _player => _playback.player;
+  File? get _copy => _playback.copy;
+  bool get _failed => _playback.failed;
 
   @override
   void initState() {
     super.initState();
-    final shared = widget.player;
-    if (shared == null) {
-      _open();
-      return;
-    }
-    _player = shared;
-    _copy = widget.copy;
-    shared.addListener(_tick);
+    _playback.addListener(_tick);
   }
 
   void _tick() {
     if (mounted) setState(() {});
   }
 
-  Future<void> _open() async {
-    try {
-      final dir = await _playbackDir();
-      await dir.create(recursive: true);
-      final dot = widget.item.name.lastIndexOf('.');
-      final ext = dot < 0 ? '.mp4' : widget.item.name.substring(dot);
-      final copy = File('${dir.path}${Platform.pathSeparator}${widget.item.id}$ext');
-      await rust.exportItem(id: widget.item.id, path: copy.path);
-      _copy = copy;
-      final p = VideoPlayerController.file(copy);
-      await p.initialize();
-      if (!mounted) {
-        await p.dispose();
-        return;
-      }
-      p.addListener(() {
-        if (mounted) setState(() {});
-      });
-      setState(() => _player = p);
-      await p.play();
-    } catch (_) {
-      if (mounted) setState(() => _failed = true);
-    }
-  }
-
   @override
   void dispose() {
-    if (widget.player != null) {
-      widget.player!.removeListener(_tick);
-      return super.dispose();
-    }
-    _player?.dispose();
-    final copy = _copy;
-    if (copy != null) {
-      try {
-        copy.deleteSync();
-      } catch (_) {}
-    }
+    _playback.removeListener(_tick);
+    if (widget.playback == null) _playback.dispose();
     super.dispose();
   }
 
@@ -212,10 +263,10 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                           GlassPill(
                             child: IconButton(
                               key: const ValueKey('media-exit-full'),
-                              tooltip: widget.player != null ? l.exitFullScreen : l.close,
+                              tooltip: widget.playback != null ? l.exitFullScreen : l.close,
                               onPressed: () => Navigator.of(context).pop(),
                               icon: Icon(
-                                widget.player != null ? Icons.fullscreen_exit_rounded : Icons.close,
+                                widget.playback != null ? Icons.fullscreen_exit_rounded : Icons.close,
                                 color: Colors.white,
                                 size: 26,
                               ),

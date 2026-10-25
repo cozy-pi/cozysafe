@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_resume.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import '../widgets/vault_bar.dart' show pushPage;
@@ -37,7 +38,7 @@ class FindDevicePage extends StatefulWidget {
 
 enum _Look { first, found, none }
 
-class _FindDevicePageState extends State<FindDevicePage> {
+class _FindDevicePageState extends State<FindDevicePage> with VaultLockAware {
   final _text = TextEditingController();
   final _focus = FocusNode();
   _Look _look = _Look.first;
@@ -46,6 +47,8 @@ class _FindDevicePageState extends State<FindDevicePage> {
   bool _failed = false;
   bool _going = false;
   bool _closed = false;
+  /// Each lock ends the looking under way; the vault opening again starts a new one.
+  int _round = 0;
 
   @override
   void initState() {
@@ -74,24 +77,41 @@ class _FindDevicePageState extends State<FindDevicePage> {
   /// Look again every few seconds while the page is open: the other device may only now
   /// be showing its code.
   Future<void> _loop() async {
-    while (!_closed && !_going) {
+    final round = _round;
+    bool stale() => _closed || round != _round || vaultLock.locked;
+    while (!stale() && !_going) {
       try {
         final words = widget.words;
         final n = words == null
             ? await sync.p2PScan(ip: widget.address)
             : await sync.p2PScanRestore(ip: widget.address, words: words);
-        if (_closed) return;
+        if (stale()) return;
         setState(() {
           _found = n;
           _look = n > 0 ? _Look.found : _Look.none;
         });
         if (_text.text.length == 6) _try();
       } catch (_) {
-        if (mounted) setState(() => _failed = true);
+        if (mounted && !stale()) setState(() => _failed = true);
         return;
       }
       await Future<void>.delayed(const Duration(seconds: 2));
     }
+  }
+
+  /// Looking needs the open vault: it stops with the lock and starts again after, the
+  /// digits typed staying.
+  @override
+  void vaultLocking() => _round++;
+
+  @override
+  void vaultUnlocked() {
+    if (FindDevicePage.debugFound != null || _going) return;
+    setState(() {
+      _failed = false;
+      _look = _Look.first;
+    });
+    _loop();
   }
 
   void _changed(String v) {
