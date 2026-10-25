@@ -3,10 +3,10 @@
 //! call makes the one [`Permit`] it needs. Nothing here runs unless called.
 
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Mutex;
 
-use cs_net::drive::{DriveRemote, GoogleDrive};
+use cs_net::drive::{DrivePhase, DriveRemote, DriveSetup, GoogleDrive};
 use cs_net::p2p::{self, PairCode};
 use cs_net::Permit;
 use cs_vault::sync::SyncReport;
@@ -31,6 +31,9 @@ pub struct SyncEvent {
     /// While under way: bytes moved in this step so far, and (sending) in all, or 0.
     pub bytes: u64,
     pub bytes_total: u64,
+    /// [`SyncStep::Done`] of a Google Drive sync: files of an earlier layout moved into
+    /// place in Drive first (0 elsewhere).
+    pub moved: u32,
 }
 
 pub enum SyncStep {
@@ -76,6 +79,14 @@ pub enum SyncStep {
     PeerWrongPassword,
     /// Host: the other phone stopped (an error or Cancel there).
     PeerStopped,
+    /// Google Drive, before the sync: listing what is there (`done` so far, no total).
+    DriveListing,
+    /// Google Drive, before the sync: making the folders files move into (`done`,
+    /// `total`).
+    DriveFolders,
+    /// Google Drive, before the sync: moving files of an earlier layout into their
+    /// folders (`done`, `total`).
+    DriveMoving,
 }
 
 fn step(kind: SyncStep) -> SyncEvent {
@@ -90,6 +101,7 @@ fn step(kind: SyncStep) -> SyncEvent {
         total: 0,
         bytes: 0,
         bytes_total: 0,
+        moved: 0,
     }
 }
 
@@ -106,6 +118,9 @@ pub struct Hosting {
 static MIRROR: Mutex<Option<PathBuf>> = Mutex::new(None);
 /// Set by Cancel.
 static STOP: AtomicBool = AtomicBool::new(false);
+/// Files a join moved into place in Drive (no screen of its own shows progress), told
+/// with the result of the sync that follows it.
+static JOIN_MOVED: AtomicU32 = AtomicU32::new(0);
 
 fn report(r: SyncReport) -> SyncEvent {
     SyncEvent {
@@ -119,6 +134,7 @@ fn report(r: SyncReport) -> SyncEvent {
         total: 0,
         bytes: 0,
         bytes_total: 0,
+        moved: 0,
     }
 }
 
@@ -134,6 +150,18 @@ fn progress_event(p: cs_vault::sync::SyncProgress) -> SyncEvent {
             SyncPhase::Receiving => SyncStep::Receiving,
             SyncPhase::Sending => SyncStep::Sending,
             SyncPhase::Removing => SyncStep::Removing,
+        })
+    }
+}
+
+fn setup_event(s: DriveSetup) -> SyncEvent {
+    SyncEvent {
+        done: s.done,
+        total: s.total,
+        ..step(match s.phase {
+            DrivePhase::Listing => SyncStep::DriveListing,
+            DrivePhase::Folders => SyncStep::DriveFolders,
+            DrivePhase::Moving => SyncStep::DriveMoving,
         })
     }
 }
@@ -347,7 +375,11 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
     let token = zeroize::Zeroizing::new(token);
     let _ = sink.add(step(SyncStep::Checking));
     let remote = GoogleDrive::new(Permit::google_drive(), token.to_string())
-        .and_then(DriveRemote::open)
+        .and_then(|api| {
+            DriveRemote::open_with(api, &|s| {
+                let _ = sink.add(setup_event(s));
+            })
+        })
         .map(|r| r.stop_on(&STOP));
     let event = match remote {
         Err(e) => drive_failure(e),
@@ -356,7 +388,10 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
                 let _ = sink.add(progress_event(p));
             }))
         }) {
-            Ok(Ok(r)) => report(r),
+            Ok(Ok(r)) => SyncEvent {
+                moved: remote.moved() + JOIN_MOVED.swap(0, Ordering::Relaxed),
+                ..report(r)
+            },
             Ok(Err(e)) => drive_failure(e),
             Err(_) => step(SyncStep::Locked),
         },
@@ -412,8 +447,11 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
     let Some(key) = cs_crypto::SecretKey::from_text(&words) else {
         return join_result(JoinOutcome::WrongWords);
     };
+    // Its screen shows a busy button, not steps: what opening moved is told with the
+    // result of the sync that follows.
+    JOIN_MOVED.store(0, Ordering::Relaxed);
     let remote = match GoogleDrive::new(Permit::google_drive(), token.to_string())
-        .and_then(DriveRemote::open)
+        .and_then(|api| DriveRemote::open_with(api, &|_| {}))
     {
         Ok(r) => r,
         Err(cs_vault::Error::Corrupt("drive not signed in")) => {
@@ -440,10 +478,13 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
     // come next, through drive_sync, with progress on screen.
     super::vault::use_secret(key);
     match super::vault::unlock(dir.to_string_lossy().into_owned(), password.to_string()) {
-        Ok(Some(vault)) => JoinResult {
-            outcome: JoinOutcome::Joined,
-            vault: Some(vault),
-        },
+        Ok(Some(vault)) => {
+            JOIN_MOVED.store(remote.moved(), Ordering::Relaxed);
+            JoinResult {
+                outcome: JoinOutcome::Joined,
+                vault: Some(vault),
+            }
+        }
         _ => join_result(JoinOutcome::Failed),
     }
 }
@@ -470,7 +511,10 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         | SyncStep::Checking
         | SyncStep::Receiving
         | SyncStep::Sending
-        | SyncStep::Removing => return,
+        | SyncStep::Removing
+        | SyncStep::DriveListing
+        | SyncStep::DriveFolders
+        | SyncStep::DriveMoving => return,
         SyncStep::Interrupted => "interrupted",
         SyncStep::OtherVault => "othervault",
         SyncStep::Unreachable => "unreachable",
