@@ -610,5 +610,6 @@
   "deleteForGoodOthersKeep": "同步此保险箱的其他设备会在“最近删除”中保留它 30 天。",
   "syncDoneHeld": "{n, plural, other{在另一台设备上删除的 {n} 项已移到“最近删除”（保留 30 天）。}}",
   "syncFindNoneRestore": "正在恢复：只有接受这 24 个单词的设备才会响应。如果你的设备正在显示代码，请检查这 24 个单词。",
-  "syncFindLocalNetwork": "在 iPhone 上，Cozy Safe 需要本地网络权限：设置 > 隐私与安全性 > 本地网络。"
+  "syncFindLocalNetwork": "在 iPhone 上，Cozy Safe 需要本地网络权限：设置 > 隐私与安全性 > 本地网络。",
+  "previewEdit": "编辑"
 }

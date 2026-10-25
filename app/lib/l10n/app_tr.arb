@@ -610,5 +610,6 @@
   "deleteForGoodOthersKeep": "Bu kasayı senkronize eden diğer cihazlarınız onu Son silinenler'de 30 gün saklar.",
   "syncDoneHeld": "{n, plural, =1{Diğer cihazda silinen 1 öğe Son silinenler'e taşındı (30 gün saklanır).} other{Diğer cihazda silinen {n} öğe Son silinenler'e taşındı (30 gün saklanır).}}",
   "syncFindNoneRestore": "Geri yükleniyor: yalnızca bu 24 kelimeyi kabul eden cihaz yanıt verir. Cihazınız kod gösteriyorsa kelimeleri kontrol edin.",
-  "syncFindLocalNetwork": "iPhone'da Cozy Safe'in Yerel Ağ erişimine ihtiyacı var: Ayarlar, Gizlilik ve Güvenlik, Yerel Ağ."
+  "syncFindLocalNetwork": "iPhone'da Cozy Safe'in Yerel Ağ erişimine ihtiyacı var: Ayarlar, Gizlilik ve Güvenlik, Yerel Ağ.",
+  "previewEdit": "Düzenle"
 }

@@ -812,5 +812,6 @@
   "syncDoneHeld": "{n, plural, =1{1 item deleted on the other device moved to Recently deleted (kept 30 days).} other{{n} items deleted on the other device moved to Recently deleted (kept 30 days).}}",
   "@syncDoneHeld": {"placeholders": {"n": {"type": "int"}}},
   "syncFindNoneRestore": "Restoring: only a device that takes these 24 words answers. If yours is showing a code, check the words.",
-  "syncFindLocalNetwork": "On iPhone, Cozy Safe needs Local Network access: Settings, Privacy & Security, Local Network."
+  "syncFindLocalNetwork": "On iPhone, Cozy Safe needs Local Network access: Settings, Privacy & Security, Local Network.",
+  "previewEdit": "Edit"
 }

@@ -610,5 +610,6 @@
   "deleteForGoodOthersKeep": "この金庫を同期しているほかのデバイスでは、「最近削除した項目」に30日間残ります。",
   "syncDoneHeld": "{n, plural, other{ほかのデバイスで削除された {n} 件の項目を「最近削除した項目」に移動しました（30日間保管）。}}",
   "syncFindNoneRestore": "復元中：この24語を受け付けるデバイスだけが応答します。もう一台にコードが表示されている場合は、24語を確認してください。",
-  "syncFindLocalNetwork": "iPhoneでは、Cozy Safeにローカルネットワークへのアクセスが必要です：設定 > プライバシーとセキュリティ > ローカルネットワーク。"
+  "syncFindLocalNetwork": "iPhoneでは、Cozy Safeにローカルネットワークへのアクセスが必要です：設定 > プライバシーとセキュリティ > ローカルネットワーク。",
+  "previewEdit": "編集"
 }

@@ -610,5 +610,6 @@
   "deleteForGoodOthersKeep": "Gli altri dispositivi che sincronizzano questa cassaforte lo conservano per 30 giorni in Eliminati di recente.",
   "syncDoneHeld": "{n, plural, =1{1 elemento eliminato sull'altro dispositivo è stato spostato in Eliminati di recente (conservato 30 giorni).} other{{n} elementi eliminati sull'altro dispositivo sono stati spostati in Eliminati di recente (conservati 30 giorni).}}",
   "syncFindNoneRestore": "Ripristino: risponde solo un dispositivo che accetta queste 24 parole. Se il tuo mostra un codice, controlla le parole.",
-  "syncFindLocalNetwork": "Su iPhone, Cozy Safe ha bisogno dell’accesso alla rete locale: Impostazioni, Privacy e sicurezza, Rete locale."
+  "syncFindLocalNetwork": "Su iPhone, Cozy Safe ha bisogno dell’accesso alla rete locale: Impostazioni, Privacy e sicurezza, Rete locale.",
+  "previewEdit": "Modifica"
 }

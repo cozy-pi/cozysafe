@@ -610,5 +610,6 @@
   "deleteForGoodOthersKeep": "同步此保險箱的其他裝置會在「最近刪除」中保留它 30 天。",
   "syncDoneHeld": "{n, plural, other{在另一台裝置上刪除的 {n} 個項目已移到「最近刪除」（保留 30 天）。}}",
   "syncFindNoneRestore": "正在復原：只有接受這 24 個單字的裝置才會回應。如果你的裝置正在顯示代碼，請檢查這 24 個單字。",
-  "syncFindLocalNetwork": "在 iPhone 上，Cozy Safe 需要區域網路權限：設定 > 隱私權與安全性 > 區域網路。"
+  "syncFindLocalNetwork": "在 iPhone 上，Cozy Safe 需要區域網路權限：設定 > 隱私權與安全性 > 區域網路。",
+  "previewEdit": "編輯"
 }

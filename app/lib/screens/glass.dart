@@ -12,6 +12,10 @@ final glassButton = TextButton.styleFrom(
   shape: const StadiumBorder(),
 );
 
+/// Delete over a photo or video: red like Delete everywhere else (owner 2026-10-25), the
+/// dark theme's red, which reads on the dark glass.
+final glassDelete = glassButton.copyWith(foregroundColor: const WidgetStatePropertyAll(Color(0xFFFF453A)));
+
 /// Dark frosted glass behind a control over a photo or video, so it reads on any picture.
 class GlassPill extends StatelessWidget {
   const GlassPill({super.key, required this.child});

@@ -4,6 +4,22 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.66 (2026-10-25)
+
+### Changed
+- Every item now opens the same way: big, over the page you are on, with its name, date
+  and size underneath and one row of buttons: Close, Open, Send, More and Delete (in red).
+  Open goes further: full screen for a photo or video, Edit for a note, the reader for a
+  PDF or text file, another app for any other file.
+- A note shows its first lines on a page (only its title when "Hide note text" is on), a
+  PDF its first page, a text file its first lines, any other file its icon, kind and size.
+- A recording opens the same way, also in Voice, and plays inside with a big play button.
+- A photo shows its thumbnail at once and turns sharp when the full photo is ready; a video
+  shows its still with a spinning ring while it gets ready to play.
+- Recently deleted uses the same view, with Close, Restore and Delete for good, and how
+  many days are left.
+- Delete is red everywhere, also in full screen and in the PDF, picture and file pages.
+
 ## 0.1.65 (2026-10-25)
 
 ### Added

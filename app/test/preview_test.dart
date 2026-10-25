@@ -48,7 +48,6 @@ import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/privacy.dart';
 import 'package:cozysafe/screens/overview.dart';
-import 'package:cozysafe/screens/recorder.dart';
 import 'package:cozysafe/widgets/brand.dart';
 import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
@@ -69,7 +68,12 @@ ItemInfo _item(String id, String kind, String name, int sizeBytes,
       id: id.padRight(32, '_'),
       kind: kind,
       name: name,
-      mime: kind == ItemKind.photo ? 'image/jpeg' : (name.endsWith('.pdf') ? 'application/pdf' : 'text/plain'),
+      mime: switch (kind) {
+        ItemKind.photo => 'image/jpeg',
+        ItemKind.audio => 'audio/mp4',
+        ItemKind.file => mimeOf(name),
+        _ => 'text/plain',
+      },
       createdMs: _now - ago,
       sizeBytes: BigInt.from(sizeBytes),
       deletedMs: deleted,
@@ -182,6 +186,9 @@ class _Fake implements RustLibApi {
       final m = media.indexWhere((x) => x.id == full);
       if (m >= 0) return Future<Uint8List>.value(_photos[m % _photos.length] ?? _thumbnails[0]);
       final id = full.replaceAll('_', '');
+      // Deleted photos and a picture added from Files.
+      final picture = {'t1': 5, 't2': 7, 'f6': 3}[id];
+      if (picture != null) return Future<Uint8List>.value(_photos[picture] ?? _thumbnails[1]);
       return Future<Uint8List>.value(Uint8List.fromList(utf8.encode(_noteText[id] ?? '')));
     }
     if (n.contains('ItemThumbnail')) {
@@ -315,7 +322,8 @@ void _screen(String name, String caption, Widget Function() home,
       ChangeKeyScreen.debugStep = null;
       ScanCodePage.debugPreview = null;
       VaultHomeScreen.debugReveal = false;
-      debugRecordingStill = false;
+      QuickLook.debugStillAudio = false;
+      QuickLook.debugPdfPage = null;
       setup?.call();
       // Real shadows: tests otherwise draw every elevation as a solid black outline.
       debugDisableShadows = false;
@@ -472,7 +480,7 @@ void main() {
   });
   _screen('home-recording', 'Trang chủ · chạm một bản ghi âm', home, section: 'home',
       setup: () {
-        debugRecordingStill = true;
+        QuickLook.debugStillAudio = true;
         // Recordings and notes only, so a recording is among the newest on home.
         _itemsNow = _items.where((i) => i.kind == ItemKind.audio || i.kind == ItemKind.note || i.kind == ItemKind.tag).toList();
       },
@@ -573,7 +581,45 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
-      act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
+      setup: () => QuickLook.debugStillAudio = true,
+      act: (t) => t.tap(find.text('Cuộc họp với luật sư')),
+      change: 'Bản ghi mở trong khung xem trước chung (nút phát lớn, thanh tiến độ), không phát ngay trong dòng nữa');
+  Future<void> openRow(WidgetTester t, String text) async {
+    final row = find.text(text, skipOffstage: false).first;
+    await t.scrollUntilVisible(row, 200, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+    await t.tap(row);
+    for (var i = 0; i < 6; i++) {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+      await t.pump(const Duration(milliseconds: 100));
+    }
+  }
+  _screen('quick-note', 'Ghi chú · chạm một ghi chú (đang bật “Ẩn nội dung ghi chú”)', home, section: 'note',
+      act: (t) => openRow(t, 'Thuốc của mẹ'),
+      change: 'Ghi chú mở trong khung xem trước chung; nội dung bị che vì đang ẩn nội dung ghi chú; nút ✎ Sửa mở trình soạn');
+  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', home, section: 'note',
+      setup: () => Prefs.write('note-previews', '1'),
+      act: (t) => openRow(t, 'Thuốc của mẹ'),
+      change: 'Vài chục dòng đầu trên nền giấy');
+  _screen('quick-pdf', 'Tệp · chạm một PDF', home, section: 'file',
+      setup: () => QuickLook.debugPdfPage = const _FakePdfPage(),
+      act: (t) => openRow(t, 'Hop-dong-thue-nha-2026.pdf'),
+      change: 'PDF hiện trang đầu; nút ⤢ Mở vào trang đọc đầy đủ');
+  _screen('quick-pdf-icon', 'Tệp · chạm một PDF lớn (chỉ biểu tượng)', home, section: 'file',
+      act: (t) => openRow(t, 'So-do-nha-scan.pdf'));
+  _screen('quick-file', 'Tệp · chạm một tệp .docx', home, section: 'file',
+      act: (t) => openRow(t, 'Di-chuc-nhap.docx'),
+      change: 'Tệp khác: biểu tượng lớn, đuôi tệp, dung lượng; nút Mở bằng ứng dụng khác');
+  _screen('quick-image-file', 'Tệp · chạm một ảnh thêm từ Tệp', home, section: 'file',
+      act: (t) => openRow(t, 'CCCD-mat-truoc.jpg'));
+  _screen('quick-text', 'Tệp · chạm một tệp .md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'),
+      act: (t) async {
+    QuickLook.show(t.element(find.byType(FileViewScreen)), _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v');
+    for (var i = 0; i < 6; i++) {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+      await t.pump(const Duration(milliseconds: 100));
+    }
+  }, change: 'Tệp văn bản: những dòng đầu, vẽ như trang đọc');
   _screen('files', 'Tệp', home, section: 'file');
   _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'));
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
@@ -835,6 +881,14 @@ void main() {
           await t.pump(const Duration(milliseconds: 100));
         }
       });
+  _screen('trash-preview-file', 'Đã xoá · chạm tệp bị xoá ở máy khác', () => const TrashScreen(),
+      act: (t) async {
+        await t.tap(find.text('Hop-dong-thue-nha-cu.pdf'));
+        for (var i = 0; i < 6; i++) {
+          await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+          await t.pump(const Duration(milliseconds: 100));
+        }
+      }, change: 'Cùng khung xem trước: × · Khôi phục · Xoá vĩnh viễn (đỏ), còn N ngày, “Đã xoá trên máy khác”');
   _screen('trash-menu', 'Đã xoá · bấm giữ 1 ảnh', () => const TrashScreen(),
       act: (t) async {
         await t.longPress(find.byType(Image).first);
@@ -947,4 +1001,40 @@ void main() {
 void _leftCamera() {
   debugCamera = true;
   Prefs.write('action-side', 'left');
+}
+
+/// A PDF's first page for the renders (tests have no PDF engine): a white sheet with a
+/// heading and lines of text.
+class _FakePdfPage extends StatelessWidget {
+  const _FakePdfPage();
+
+  @override
+  Widget build(BuildContext context) => AspectRatio(
+        aspectRatio: 1 / 1.414,
+        child: ColoredBox(
+          color: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(34, 40, 34, 30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Center(
+                  child: Text('HỢP ĐỒNG THUÊ NHÀ',
+                      style: TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: .5)),
+                ),
+                const SizedBox(height: 6),
+                const Center(child: Text('Số: 18/2026/HĐTN', style: TextStyle(color: Colors.black54, fontSize: 11))),
+                const SizedBox(height: 22),
+                for (final w in const [1.0, .96, .9, .98, .7, 0.0, 1.0, .93, .97, .88, .6, 0.0, 1.0, .95, .91, .99, .8, .5])
+                  w == 0
+                      ? const SizedBox(height: 14)
+                      : FractionallySizedBox(
+                          widthFactor: w,
+                          child: Container(height: 5, margin: const EdgeInsets.symmetric(vertical: 4), color: const Color(0x22000000)),
+                        ),
+              ],
+            ),
+          ),
+        ),
+      );
 }

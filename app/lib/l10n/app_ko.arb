@@ -610,5 +610,6 @@
   "deleteForGoodOthersKeep": "이 금고를 동기화하는 다른 기기에서는 최근 삭제된 항목에 30일 동안 보관됩니다.",
   "syncDoneHeld": "{n, plural, other{다른 기기에서 삭제된 항목 {n}개를 최근 삭제된 항목으로 옮겼습니다(30일 동안 보관).}}",
   "syncFindNoneRestore": "복원 중: 이 24개 단어를 받는 기기만 응답합니다. 다른 기기에 코드가 표시되어 있다면 단어를 확인하세요.",
-  "syncFindLocalNetwork": "iPhone에서는 Cozy Safe에 로컬 네트워크 접근 권한이 필요합니다: 설정, 개인정보 보호 및 보안, 로컬 네트워크."
+  "syncFindLocalNetwork": "iPhone에서는 Cozy Safe에 로컬 네트워크 접근 권한이 필요합니다: 설정, 개인정보 보호 및 보안, 로컬 네트워크.",
+  "previewEdit": "편집"
 }

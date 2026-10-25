@@ -610,5 +610,6 @@
   "deleteForGoodOthersKeep": "Seus outros dispositivos que sincronizam este cofre o mantêm por 30 dias em Excluídos recentemente.",
   "syncDoneHeld": "{n, plural, =1{1 item excluído no outro dispositivo foi movido para Excluídos recentemente (mantido por 30 dias).} other{{n} itens excluídos no outro dispositivo foram movidos para Excluídos recentemente (mantidos por 30 dias).}}",
   "syncFindNoneRestore": "Restaurando: só responde um dispositivo que aceite estas 24 palavras. Se o seu está mostrando um código, confira as palavras.",
-  "syncFindLocalNetwork": "No iPhone, o Cozy Safe precisa de acesso à Rede Local: Ajustes, Privacidade e Segurança, Rede Local."
+  "syncFindLocalNetwork": "No iPhone, o Cozy Safe precisa de acesso à Rede Local: Ajustes, Privacidade e Segurança, Rede Local.",
+  "previewEdit": "Editar"
 }
