@@ -622,5 +622,7 @@
   "trashHeldLabel": "Đã xoá trên máy khác",
   "trashHeldNote": "Mục bị xoá hẳn trên máy khác được giữ ở đây 30 ngày và không được đồng bộ.",
   "deleteForGoodOthersKeep": "Các máy khác đồng bộ két này vẫn giữ mục đó 30 ngày trong Đã xoá gần đây.",
-  "syncDoneHeld": "{n, plural, other{{n} mục bị xoá ở máy kia đã chuyển vào Đã xoá gần đây (giữ 30 ngày).}}"
+  "syncDoneHeld": "{n, plural, other{{n} mục bị xoá ở máy kia đã chuyển vào Đã xoá gần đây (giữ 30 ngày).}}",
+  "syncFindNoneRestore": "Đang khôi phục: chỉ máy nhận đúng 24 từ này mới trả lời. Nếu máy kia đang hiện mã, hãy kiểm tra lại 24 từ.",
+  "syncFindLocalNetwork": "Trên iPhone, Cozy Safe cần quyền Mạng cục bộ: Cài đặt, Quyền riêng tư & Bảo mật, Mạng cục bộ."
 }

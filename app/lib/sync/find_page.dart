@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/sync.dart' as sync;
+import '../platform.dart';
 import '../theme.dart';
 import '../widgets/vault_bar.dart' show pushPage;
 import 'join_page.dart';
@@ -131,6 +132,14 @@ class _FindDevicePageState extends State<FindDevicePage> {
       _Look.found => (Icons.devices_rounded, l.syncFindFound(_found)),
       _Look.none => (Icons.wifi_off_rounded, l.syncFindNone),
     };
+    // Nothing found: the two likely reasons a person can fix (words typed wrong when
+    // restoring; iPhone's Local Network access refused).
+    final hints = _look == _Look.none && !_failed
+        ? [
+            if (widget.words != null) l.syncFindNoneRestore,
+            if (Device.iOS) l.syncFindLocalNetwork,
+          ]
+        : const <String>[];
     final String? note = _wrong
         ? l.syncFindWrong
         : (full && _look != _Look.found && !_failed)
@@ -160,6 +169,11 @@ class _FindDevicePageState extends State<FindDevicePage> {
             Expanded(child: Text(status, style: const TextStyle(fontSize: 15, height: 1.3, fontWeight: FontWeight.w600))),
           ]),
         ),
+        for (final h in hints)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+            child: Text(h, style: TextStyle(color: c.muted, fontSize: 14, height: 1.35)),
+          ),
         const SizedBox(height: 28),
         Text(l.syncFindLabel, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
         const SizedBox(height: 14),
