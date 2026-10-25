@@ -792,5 +792,8 @@
   "vaultManagerDeleteBody": "Everything in it is erased from this device and cannot be brought back. Copies in Google Drive or in backup files are not touched. Type {word} to confirm.",
   "@vaultManagerDeleteBody": {"placeholders": {"word": {}}},
   "vaultManagerDeleteWord": "DELETE",
-  "vaultManagerDeleted": "Vault deleted."
+  "vaultManagerDeleted": "Vault deleted.",
+  "countdownNote": "It cannot be undone. Tap Cancel to keep it.",
+  "driveSignInFailed": "Couldn't sign in to Google.",
+  "driveSoon": "Google Drive on Android comes in an update soon. For now, sync with a nearby device or use a backup file."
 }

@@ -4,6 +4,8 @@ import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import 'file_view.dart' show fileSize;
+import '../widgets/countdown.dart';
 import '../widgets/toast.dart';
 
 /// Debug → Vaults on this device (owner 2026-10-25). Everyday use never lists vaults, so
@@ -68,7 +70,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
             TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(l.cancel)),
             FilledButton(
               key: const ValueKey('vault-delete-confirm'),
-              style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+              style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
               onPressed: typed.text.trim().toUpperCase() == l.vaultManagerDeleteWord.toUpperCase()
                   ? () => Navigator.of(ctx).pop(true)
                   : null,
@@ -80,6 +82,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
     );
     typed.dispose();
     if (yes != true || !mounted) return;
+    if (!await confirmCountdown(context, title: l.vaultManagerDeleteTitle) || !mounted) return;
     try {
       final done = await rust.deleteVaultUnopened(dir: widget.libraryDir, vaultId: slot.id);
       if (!mounted) return;
@@ -127,6 +130,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                               const SizedBox(height: 3),
                               Text(
                                 [
+                                  fileSize(s.sizeBytes),
                                   if (s.isOpen) l.vaultManagerOpen,
                                   if (s.hasPassword) l.vaultManagerPassword,
                                   if (s.hasPin) l.vaultManagerPin,
@@ -140,7 +144,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                             IconButton(
                               key: ValueKey('vault-delete-${s.id}'),
                               tooltip: l.vaultManagerDelete,
-                              icon: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
+                              icon: const Icon(Icons.delete_outline_rounded, color: dangerRed),
                               onPressed: () => _delete(s),
                             ),
                         ]),

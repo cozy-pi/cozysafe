@@ -593,5 +593,8 @@
   "syncDriveFolders": "Google Drive にフォルダを作成中",
   "syncDriveMoving": "ファイルをフォルダに移動中",
   "syncDriveMoved": "{n, plural, other{Google Drive のファイル {n} 個を整理しました。}}",
-  "syncNothingNew": "送受信する新しいものはありません。"
+  "syncNothingNew": "送受信する新しいものはありません。",
+  "countdownNote": "元に戻すことはできません。残す場合は「キャンセル」をタップしてください。",
+  "driveSignInFailed": "Google にログインできませんでした。",
+  "driveSoon": "Android 版の Google ドライブは近日中のアップデートで対応予定です。それまでは、近くのデバイスと同期するか、バックアップファイルをご利用ください。"
 }

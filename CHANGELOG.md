@@ -11,6 +11,27 @@ Dates are UTC.
   files, making folders (n of m), moving files into them (n of m); folders are made only
   for files that need them, up to 4 at once. The result says how many files were
   rearranged, or that there was nothing new to send or receive.
+- Google Drive sync works on Android: sign-in with a Google account (no Google Drive app
+  needed).
+
+## 0.1.63 (2026-10-25)
+
+### Changed
+- Messages show at the top of the screen and slide down; a swipe up closes them. They no
+  longer cover the bottom bar.
+- With + in the middle (the default), all six ways fit on one row; a screen too narrow
+  for them fades at the right edge and the row nudges sideways on opening.
+- Deleting a vault: a red button, then a 10-second countdown with Cancel.
+- Debug → Vaults on this device shows the size of each vault.
+- A sync counts only what will change here: items already on this device, items deleted
+  for good and deletions of items no longer here are not counted (it showed 848 for a
+  vault of about 90 items).
+- Google sign-in that fails says so, with a code, instead of the nearby-sync message; on
+  Android, where Google Drive is not ready yet, the app says so before trying.
+
+### Fixed
+- With + on the left or right, the column of ways to add scrolls again: with all six
+  ways a small screen hid the top ones.
 
 ## 0.1.62 (2026-10-25)
 

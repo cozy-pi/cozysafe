@@ -593,5 +593,8 @@
   "syncDriveFolders": "Creando carpetas en Google Drive",
   "syncDriveMoving": "Moviendo archivos a carpetas",
   "syncDriveMoved": "{n, plural, =1{Se reorganizó 1 archivo en Google Drive.} other{Se reorganizaron {n} archivos en Google Drive.}}",
-  "syncNothingNew": "Nada nuevo que enviar o recibir."
+  "syncNothingNew": "Nada nuevo que enviar o recibir.",
+  "countdownNote": "No se puede deshacer. Toca Cancelar para conservarla.",
+  "driveSignInFailed": "No se pudo iniciar sesión en Google.",
+  "driveSoon": "Google Drive en Android llegará pronto en una actualización. Por ahora, sincroniza con un dispositivo cercano o usa un archivo de copia de seguridad."
 }

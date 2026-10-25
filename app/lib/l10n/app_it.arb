@@ -593,5 +593,8 @@
   "syncDriveFolders": "Creazione delle cartelle in Google Drive",
   "syncDriveMoving": "Spostamento dei file nelle cartelle",
   "syncDriveMoved": "{n, plural, =1{1 file riorganizzato in Google Drive.} other{{n} file riorganizzati in Google Drive.}}",
-  "syncNothingNew": "Niente di nuovo da inviare o ricevere."
+  "syncNothingNew": "Niente di nuovo da inviare o ricevere.",
+  "countdownNote": "L'operazione non può essere annullata. Tocca Annulla per conservarla.",
+  "driveSignInFailed": "Impossibile accedere a Google.",
+  "driveSoon": "Google Drive su Android arriverà presto con un aggiornamento. Per ora, sincronizza con un dispositivo vicino o usa un file di backup."
 }

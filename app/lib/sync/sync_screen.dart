@@ -72,11 +72,15 @@ class _SyncScreenState extends State<SyncScreen> {
   /// Google Drive: sign in, ask, then one sync (the vault's sealed files only).
   Future<void> _drive() async {
     final l = AppLocalizations.of(context);
+    if (!driveReady) {
+      showToast(context, l.driveSoon, icon: Icons.cloud_off_rounded);
+      return;
+    }
     DriveSession? session;
     try {
       session = await driveSignIn();
-    } catch (_) {
-      if (mounted) showToast(context, l.syncFailed, icon: Icons.error_outline_rounded);
+    } catch (e) {
+      if (mounted) showToast(context, '${l.driveSignInFailed} (${driveErrorCode(e)})', icon: Icons.error_outline_rounded);
       return;
     }
     if (session == null || !mounted) return;

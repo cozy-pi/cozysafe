@@ -593,5 +593,8 @@
   "syncDriveFolders": "Membuat folder di Google Drive",
   "syncDriveMoving": "Memindahkan file ke folder",
   "syncDriveMoved": "{n, plural, =1{1 file di Google Drive telah ditata ulang.} other{{n} file di Google Drive telah ditata ulang.}}",
-  "syncNothingNew": "Tidak ada yang baru untuk dikirim atau diterima."
+  "syncNothingNew": "Tidak ada yang baru untuk dikirim atau diterima.",
+  "countdownNote": "Tindakan ini tidak dapat dibatalkan. Ketuk Batal untuk menyimpannya.",
+  "driveSignInFailed": "Tidak dapat masuk ke Google.",
+  "driveSoon": "Google Drive di Android akan hadir dalam pembaruan mendatang. Untuk sementara, sinkronkan dengan perangkat terdekat atau gunakan file cadangan."
 }

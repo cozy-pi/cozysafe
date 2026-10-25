@@ -814,6 +814,8 @@ pub fn purge_expired(now_ms: i64) -> Result<u32, VaultError> {
 /// A vault on this device as the Debug page lists it: names stay sealed until opened.
 pub struct VaultSlot {
     pub id: String,
+    /// Sealed files on this device, in bytes.
+    pub size_bytes: u64,
     pub has_password: bool,
     pub has_pin: bool,
     pub has_biometric: bool,
@@ -829,6 +831,7 @@ pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
         .map(|s| VaultSlot {
             is_open: open.as_deref() == Some(s.id.as_str()),
             id: s.id,
+            size_bytes: s.size_bytes,
             has_password: s.has_password,
             has_pin: s.has_pin,
             has_biometric: s.has_biometric,

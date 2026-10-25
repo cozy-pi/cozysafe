@@ -52,6 +52,7 @@ import 'package:cozysafe/widgets/brand.dart';
 import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
 import 'package:cozysafe/widgets/toast.dart';
+import 'package:cozysafe/widgets/countdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -296,6 +297,7 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugDrive = false;
       SyncProgress.debugRate = null;
       SecondPlaceNudge.debugShow = false;
+      debugHoldToasts = true;
       VaultManagerScreen.debugSlots = null;
       NewVaultScreen.debugBiometricStep = false;
       RestoreSourceScreen.debugDrive = false;
@@ -455,7 +457,7 @@ void main() {
   _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
-  });
+  }, change: 'Thông báo chụp màn hình cũng hiện ở trên');
   _screen('shot-saved', 'Vừa chụp màn hình · không chặn', home, section: 'library', setup: () => Prefs.write('block-screenshots', '0'),
       act: (t) async {
     PrivacyCover.onScreenshot?.call();
@@ -490,16 +492,14 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  },
-      change: 'Thứ tự mới: Thêm ảnh → Quay video → Chụp ảnh → Ghi chú → Ghi âm → Tệp');
+  }, change: 'Đủ 6 nút trên một hàng, không còn nút bị giấu bên phải');
   _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  },
-      change: 'Thứ tự mới: Thêm ảnh → Quay video → Chụp ảnh → Ghi chú → Ghi âm → Tệp');
+  });
   _screen('home-add', 'Trang chủ · nút bên trái (Cài đặt) · bấm +', home, section: 'home',
       setup: () {
     debugCamera = true;
@@ -635,7 +635,7 @@ void main() {
   _screen('message', 'Thông báo nổi', home, section: 'library', act: (t) async {
     showToast(t.element(find.byType(VaultHomeScreen)), 'Đã chuyển vào Đã xoá gần đây',
         icon: Icons.delete_outline_rounded, actionLabel: 'Hoàn tác', besideAction: true, onAction: () {});
-  });
+  }, change: 'MỚI: thông báo hiện ở TRÊN CÙNG, trượt xuống, vuốt lên để tắt (trước nằm dưới, đè lên thanh menu)');
   Widget search() => SearchScreen(items: _items, thumbnail: (id) async => _photos.isEmpty ? _thumbnails[0]! : _photos.values.elementAt(id.hashCode % _photos.length));
   Future<void> typeSearch(WidgetTester t, String text) async {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
@@ -849,13 +849,19 @@ void main() {
     await t.pump();
   }
 
+  _screen('delete-countdown', 'Xoá két · 10 giây đếm ngược', () => const SizedBox.expand(key: ValueKey('host')),
+      act: (t) async {
+    confirmCountdown(t.element(find.byKey(const ValueKey('host'))), title: 'Xoá vĩnh viễn két này?');
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 3200));
+  }, change: 'MỚI: đếm ngược 10 giây, chỉ nút Huỷ dừng được');
   _screen('vault-manager', 'Debug · Két trên máy này', () => const VaultManagerScreen(libraryDir: ''),
       setup: () => VaultManagerScreen.debugSlots = [
-            VaultSlot(id: 'e0a966aed6bec8151ebb59139e5aa773', hasPassword: true, hasPin: true, hasBiometric: true, isOpen: true),
-            VaultSlot(id: '3fa9c1d2e4b5a6978877665544332211', hasPassword: true, hasPin: true, hasBiometric: false, isOpen: false),
-            VaultSlot(id: '9b3ad0e1f2c4475a8e61d39b2f0c18d3', hasPassword: false, hasPin: true, hasBiometric: false, isOpen: false),
+            VaultSlot(id: 'e0a966aed6bec8151ebb59139e5aa773', sizeBytes: BigInt.from(1843 << 20), hasPassword: true, hasPin: true, hasBiometric: true, isOpen: true),
+            VaultSlot(id: '3fa9c1d2e4b5a6978877665544332211', sizeBytes: BigInt.from(37 << 20), hasPassword: true, hasPin: true, hasBiometric: false, isOpen: false),
+            VaultSlot(id: '9b3ad0e1f2c4475a8e61d39b2f0c18d3', sizeBytes: BigInt.from(212 << 10), hasPassword: false, hasPin: true, hasBiometric: false, isOpen: false),
           ],
-      change: 'MỚI (chỉ khi bật Debug): mọi két trên máy; két quên mật khẩu xoá được không cần mở (xác nhận chủ máy + gõ XOÁ)');
+      change: 'Nút xoá màu đỏ; sau khi gõ XOÁ còn 10 giây đếm ngược để Huỷ');
   _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''));
   _screen('restore-keys', 'Khôi phục · 1. Dán 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: ''));
   _screen('restore-source', 'Khôi phục · 2. Két đang ở đâu?', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake'),

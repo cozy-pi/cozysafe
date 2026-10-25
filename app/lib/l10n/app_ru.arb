@@ -593,5 +593,8 @@
   "syncDriveFolders": "Создание папок в Google Drive",
   "syncDriveMoving": "Перемещение файлов в папки",
   "syncDriveMoved": "{n, plural, one{Упорядочен {n} файл в Google Drive.} few{Упорядочено {n} файла в Google Drive.} many{Упорядочено {n} файлов в Google Drive.} other{Упорядочено {n} файла в Google Drive.}}",
-  "syncNothingNew": "Нечего отправлять или получать."
+  "syncNothingNew": "Нечего отправлять или получать.",
+  "countdownNote": "Это действие нельзя отменить. Нажмите «Отмена», чтобы сохранить сейф.",
+  "driveSignInFailed": "Не удалось войти в Google.",
+  "driveSoon": "Google Диск на Android появится в одном из ближайших обновлений. А пока синхронизируйте с устройством рядом или используйте файл резервной копии."
 }
