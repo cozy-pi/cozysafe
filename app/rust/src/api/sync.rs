@@ -70,6 +70,12 @@ pub enum SyncStep {
     WrongWords,
     /// Restoring: the words are right, the vault password is not.
     WrongPassword,
+    /// Host: the phone restoring typed 24 words that are not this vault's.
+    PeerWrongWords,
+    /// Host: the phone restoring typed the wrong vault password.
+    PeerWrongPassword,
+    /// Host: the other phone stopped (an error or Cancel there).
+    PeerStopped,
 }
 
 fn step(kind: SyncStep) -> SyncEvent {
@@ -137,6 +143,9 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
         _ if STOP.load(Ordering::Relaxed) => SyncStep::Cancelled,
         cs_vault::Error::Corrupt("p2p code expired") => SyncStep::Expired,
         cs_vault::Error::Corrupt("drive not signed in") => SyncStep::SignIn,
+        cs_vault::Error::Corrupt("p2p restore wrong words") => SyncStep::PeerWrongWords,
+        cs_vault::Error::Corrupt("p2p restore wrong password") => SyncStep::PeerWrongPassword,
+        cs_vault::Error::Corrupt("p2p peer stopped") => SyncStep::PeerStopped,
         cs_vault::Error::Corrupt(
             "p2p host not proven" | "p2p joiner not proven" | "p2p too many failed tries",
         ) => SyncStep::OtherVault,
@@ -202,7 +211,7 @@ fn forget_mirror() {
 /// Wait for the joiner, serve it, then take its changes in. The vault stays free while
 /// waiting and serving.
 pub fn p2p_host_run(sink: StreamSink<SyncEvent>) {
-    let served = p2p::host_session(
+    let served = p2p::host_session_with(
         &STOP,
         &|check| {
             let _ = sink.add(SyncEvent {
@@ -216,9 +225,16 @@ pub fn p2p_host_run(sink: StreamSink<SyncEvent>) {
                 p2p::Seen::Rejected => SyncStep::Rejected,
             }));
         },
+        &|p| {
+            let _ = sink.add(progress_event(p));
+        },
     );
     let event = match served {
-        Ok(served) => match with_open(|v| Ok(p2p::host_finish(v, served)?)) {
+        Ok(served) => match with_open(|v| {
+            Ok(p2p::host_finish_with(v, served, &|p| {
+                let _ = sink.add(progress_event(p));
+            })?)
+        }) {
             Ok(r) => report(r),
             Err(_) => step(SyncStep::Locked),
         },
@@ -246,12 +262,20 @@ pub fn p2p_join(code: String, sink: StreamSink<SyncEvent>) {
     };
     let peer = c.ip_text();
     let joined = with_open(|v| {
-        Ok(p2p::join(v, Permit::connect_for(&c), &c, &|check| {
-            let _ = sink.add(SyncEvent {
-                check,
-                ..step(SyncStep::Connected)
-            });
-        }))
+        Ok(p2p::join_with(
+            v,
+            Permit::connect_for(&c),
+            &c,
+            &|check| {
+                let _ = sink.add(SyncEvent {
+                    check,
+                    ..step(SyncStep::Connected)
+                });
+            },
+            &|p| {
+                let _ = sink.add(progress_event(p));
+            },
+        ))
     });
     let event = match joined {
         Ok(Ok(r)) => report(r),
@@ -454,7 +478,10 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         | SyncStep::Failed
         | SyncStep::Locked
         | SyncStep::WrongWords
-        | SyncStep::WrongPassword => "failed",
+        | SyncStep::WrongPassword
+        | SyncStep::PeerWrongWords
+        | SyncStep::PeerWrongPassword
+        | SyncStep::PeerStopped => "failed",
     };
     let (received, sent) = (event.received, event.sent);
     record(format!(

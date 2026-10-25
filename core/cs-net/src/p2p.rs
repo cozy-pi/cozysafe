@@ -23,8 +23,8 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use cs_crypto::{kdf, wrap, Key, SecretKey};
-use cs_vault::sync::SyncProgress;
 use cs_vault::sync::{FolderRemote, Remote, SyncReport};
+use cs_vault::sync::{SyncPhase, SyncProgress};
 use cs_vault::{Error, Library, OpenVault, Result};
 
 use crate::Permit;
@@ -282,12 +282,24 @@ fn handshake_host(
     let hello_key = kdf::subkey(pk, &format!("hello/{}", hex::encode(token)));
     let nj = &hello[2..];
     let nh: [u8; NONCE_LEN] = random();
-    let mut reply = nh.to_vec();
-    reply.extend(wrap::seal(&hello_key, b"", &proof_aad("host", nj, &nh)));
-    write_frame(&mut stream, &reply)?;
-    let proof_j = read_frame(&mut stream)?;
-    wrap::open(&hello_key, &proof_j, &proof_aad("joiner", &nh, nj))
-        .map_err(|_| Error::Corrupt("p2p joiner not proven"))?;
+    // Past the hello, a Cozy Safe device is on the other end: a failure from here says
+    // who it is (its words are another library's, or it holds another vault).
+    let proven = (|| {
+        let mut reply = nh.to_vec();
+        reply.extend(wrap::seal(&hello_key, b"", &proof_aad("host", nj, &nh)));
+        write_frame(&mut stream, &reply)?;
+        let proof_j = read_frame(&mut stream)?;
+        wrap::open(&hello_key, &proof_j, &proof_aad("joiner", &nh, nj))
+            .map_err(|_| Error::Corrupt("p2p joiner not proven"))?;
+        Ok::<_, Error>(())
+    })();
+    if proven.is_err() {
+        return Err(Error::Corrupt(if mode == MODE_RESTORE {
+            "p2p restore wrong words"
+        } else {
+            "p2p joiner not proven"
+        }));
+    }
     Ok((session(pk, token, nj, &nh, stream, true), mode))
 }
 
@@ -310,6 +322,11 @@ const OP_GET: u8 = 2;
 const OP_PUT: u8 = 3;
 const OP_EXISTS: u8 = 4;
 const OP_DONE: u8 = 9;
+/// The joiner stops and says why (owner 2026-10-25: the host kept waiting after the
+/// other phone failed): the host ends the session and shows the reason.
+const OP_ABORT: u8 = 8;
+const ABORT_STOPPED: u8 = 0;
+const ABORT_WRONG_PASSWORD: u8 = 1;
 
 /// The host's folder, seen by the joiner through the channel.
 pub struct ChannelRemote {
@@ -323,6 +340,13 @@ impl ChannelRemote {
         msg.extend_from_slice(path.as_bytes());
         ch.send(&msg)?;
         Ok(ch)
+    }
+
+    /// Tell the host we stop, and why, so it ends too (best effort: the channel may be gone).
+    fn abort(self, reason: u8) {
+        if let Ok(mut ch) = self.ch.into_inner() {
+            let _ = ch.send(&[OP_ABORT, reason]);
+        }
     }
 
     /// Tell the host the sync is over (it then takes our changes in).
@@ -387,14 +411,39 @@ impl Remote for ChannelRemote {
 
 /// Answer the joiner's requests from `folder`, only inside this vault's part of it,
 /// until it says it is done.
-fn serve(ch: &mut Channel, folder: &FolderRemote, vault_id: &str) -> Result<()> {
+fn serve(
+    ch: &mut Channel,
+    folder: &FolderRemote,
+    vault_id: &str,
+    progress: &dyn Fn(SyncProgress),
+) -> Result<()> {
     let prefix = format!("{vault_id}/");
+    // Files and bytes that crossed, for the speed on the host's screen (the total is
+    // the other phone's to know).
+    let (mut done, mut bytes) = (0u32, 0u64);
+    let mut tell = |phase, n: u64| {
+        done += 1;
+        bytes += n;
+        progress(SyncProgress {
+            phase,
+            done,
+            total: 0,
+            bytes,
+            bytes_total: 0,
+        });
+    };
     loop {
         let msg = ch.recv()?;
         let (&op, path) = msg.split_first().ok_or(Error::Corrupt("p2p request"))?;
         if op == OP_DONE {
             ch.send(&[1])?;
             return Ok(());
+        }
+        if op == OP_ABORT {
+            return Err(Error::Corrupt(match path.first() {
+                Some(&ABORT_WRONG_PASSWORD) => "p2p restore wrong password",
+                _ => "p2p peer stopped",
+            }));
         }
         let path = std::str::from_utf8(path).map_err(|_| Error::Corrupt("p2p path"))?;
         if path != vault_id && !path.starts_with(&prefix) {
@@ -411,20 +460,24 @@ fn serve(ch: &mut Channel, folder: &FolderRemote, vault_id: &str) -> Result<()> 
                 Some(mut f) => {
                     ch.send(&[1])?;
                     let mut buf = vec![0u8; CHUNK];
+                    let mut sent = 0u64;
                     loop {
                         let n = f.read(&mut buf)?;
                         if n == 0 {
                             break;
                         }
                         ch.send(&buf[..n])?;
+                        sent += n as u64;
                     }
                     ch.send(&[])?;
+                    tell(SyncPhase::Sending, sent);
                 }
                 None => ch.send(&[0])?,
             },
             OP_PUT => {
                 // Into a temporary file as it comes, then into place.
                 let tmp = folder.scratch()?;
+                let mut got = 0u64;
                 {
                     let mut f = std::fs::File::create(&tmp)?;
                     loop {
@@ -433,9 +486,11 @@ fn serve(ch: &mut Channel, folder: &FolderRemote, vault_id: &str) -> Result<()> 
                             break;
                         }
                         f.write_all(&chunk)?;
+                        got += chunk.len() as u64;
                     }
                     f.sync_all()?;
                 }
+                tell(SyncPhase::Receiving, got);
                 // Never overwrite (the folder only ever gains immutable files).
                 if !folder.exists(path)? {
                     let mut f = std::fs::File::open(&tmp)?;
@@ -583,8 +638,16 @@ pub fn host_accept(
                         }
                         break ch;
                     }
-                    Err(_) => {
+                    // A Cozy Safe device that could not prove itself: stop and say so
+                    // (the person sees why on both phones). Anything else that connects
+                    // (not a Cozy Safe hello) is ignored, up to a few times.
+                    Err(
+                        e @ Error::Corrupt("p2p restore wrong words" | "p2p joiner not proven"),
+                    ) => {
                         on_seen(Seen::Rejected);
+                        return Err(e);
+                    }
+                    Err(_) => {
                         failures += 1;
                         if failures >= MAX_FAILURES {
                             return Err(Error::Corrupt("p2p too many failed tries"));
@@ -610,10 +673,15 @@ pub fn host_accept(
 
 impl Session {
     /// Step 3 (no vault): answer the joiner until it is done.
-    pub fn serve(mut self) -> Result<Served> {
+    pub fn serve(self) -> Result<Served> {
+        self.serve_with(&|_| ())
+    }
+
+    /// [`Session::serve`], telling `progress` the files and bytes that crossed.
+    pub fn serve_with(mut self, progress: &dyn Fn(SyncProgress)) -> Result<Served> {
         let folder = FolderRemote::with_key(&self.mirror, HOST_KEY);
         set_live(self.ch.stream.try_clone().ok());
-        let served = serve(&mut self.ch, &folder, &self.vault_id);
+        let served = serve(&mut self.ch, &folder, &self.vault_id, progress);
         set_live(None);
         served?;
         Ok(Served {
@@ -629,7 +697,16 @@ pub struct Served {
 
 /// Step 4 (vault): take the joiner's changes in.
 pub fn host_finish(vault: &OpenVault, served: Served) -> Result<SyncReport> {
-    vault.sync(&FolderRemote::with_key(&served.mirror, HOST_KEY))
+    host_finish_with(vault, served, &|_| ())
+}
+
+/// [`host_finish`], with progress.
+pub fn host_finish_with(
+    vault: &OpenVault,
+    served: Served,
+    progress: &dyn Fn(SyncProgress),
+) -> Result<SyncReport> {
+    vault.sync_with(&FolderRemote::with_key(&served.mirror, HOST_KEY), progress)
 }
 
 /// The waiting host for an app that must not hold sockets itself (cackle allows `net`
@@ -666,6 +743,16 @@ pub fn host_session(
     on_check: &dyn Fn(u16),
     on_seen: &dyn Fn(Seen),
 ) -> Result<Served> {
+    host_session_with(stop, on_check, on_seen, &|_| ())
+}
+
+/// [`host_session`], with the files and bytes served.
+pub fn host_session_with(
+    stop: &AtomicBool,
+    on_check: &dyn Fn(u16),
+    on_seen: &dyn Fn(Seen),
+    progress: &dyn Fn(SyncProgress),
+) -> Result<Served> {
     let (host, prepared) = PENDING
         .lock()
         .unwrap_or_else(|p| p.into_inner())
@@ -673,7 +760,7 @@ pub fn host_session(
         .ok_or(Error::Corrupt("p2p code expired"))?;
     let session = host_accept(host, prepared, stop, on_seen)?;
     on_check(session.check);
-    session.serve()
+    session.serve_with(progress)
 }
 
 /// Stop listening (Cancel before anyone joined).
@@ -703,8 +790,19 @@ pub fn join(
     code: &PairCode,
     on_check: &dyn Fn(u16),
 ) -> Result<SyncReport> {
+    join_with(vault, permit, code, on_check, &|_| ())
+}
+
+/// [`join`], telling `progress` how far the sync is.
+pub fn join_with(
+    vault: &OpenVault,
+    permit: Permit,
+    code: &PairCode,
+    on_check: &dyn Fn(u16),
+    progress: &dyn Fn(SyncProgress),
+) -> Result<SyncReport> {
     set_live(None);
-    let report = join_inner(vault, permit, code, on_check);
+    let report = join_inner(vault, permit, code, on_check, progress);
     set_live(None);
     report
 }
@@ -714,6 +812,7 @@ fn join_inner(
     permit: Permit,
     code: &PairCode,
     on_check: &dyn Fn(u16),
+    progress: &dyn Fn(SyncProgress),
 ) -> Result<SyncReport> {
     if permit.connect_to() != Some(code.addr) {
         return Err(Error::Corrupt("permit is for another address"));
@@ -728,9 +827,16 @@ fn join_inner(
     on_check(ch.check);
     vault.forget_sync_place(JOIN_KEY)?;
     let remote = ChannelRemote { ch: Mutex::new(ch) };
-    let report = vault.sync(&remote)?;
-    remote.done()?;
-    Ok(report)
+    match vault.sync_with(&remote, progress) {
+        Ok(report) => {
+            remote.done()?;
+            Ok(report)
+        }
+        Err(e) => {
+            remote.abort(ABORT_STOPPED);
+            Err(e)
+        }
+    }
 }
 
 /// Restore onto this device (`dir`, no vault in it) the vault of the device showing
@@ -782,12 +888,24 @@ fn restore_inner(
     on_check(ch.check);
     let id = String::from_utf8(ch.recv()?).map_err(|_| Error::Corrupt("p2p vault id"))?;
     let remote = ChannelRemote { ch: Mutex::new(ch) };
-    let Some(vault) = Library::join(dir, &remote, &id, secret, password)? else {
-        remote.done()?;
-        return Ok(false);
+    let vault = match Library::join(dir, &remote, &id, secret, password) {
+        Ok(Some(vault)) => vault,
+        Ok(None) => {
+            remote.abort(ABORT_WRONG_PASSWORD);
+            return Ok(false);
+        }
+        Err(e) => {
+            remote.abort(ABORT_STOPPED);
+            return Err(e);
+        }
     };
-    vault.forget_sync_place(JOIN_KEY)?;
-    vault.sync_with(&remote, progress)?;
+    let synced = vault
+        .forget_sync_place(JOIN_KEY)
+        .and_then(|_| vault.sync_with(&remote, progress).map(|_| ()));
+    if let Err(e) = synced {
+        remote.abort(ABORT_STOPPED);
+        return Err(e);
+    }
     remote.done()?;
     Ok(true)
 }
@@ -857,18 +975,20 @@ mod tests {
         let crate::testkit::Two { dirs, a, .. } = t;
         let m = mirror.path().to_path_buf();
         let host_side = std::thread::spawn(move || {
-            serve_one(&a, h, &m, &|_| panic!("no check for strangers")).is_err()
+            serve_one(&a, h, &m, &|_| panic!("no check for strangers")).err()
         });
-        for _ in 0..MAX_FAILURES {
-            // The app tells the person it is another vault, not a network problem.
-            let e = join(&other.a, Permit::connect(code.addr), &code, &|_| {
-                panic!("not proven")
-            })
-            .unwrap_err();
-            assert!(matches!(e, Error::Corrupt("p2p host not proven")), "{e:?}");
-        }
-        // Three failures: the host stops listening.
-        assert!(host_side.join().unwrap());
+        // The app tells the person it is another vault, not a network problem.
+        let e = join(&other.a, Permit::connect(code.addr), &code, &|_| {
+            panic!("not proven")
+        })
+        .unwrap_err();
+        assert!(matches!(e, Error::Corrupt("p2p host not proven")), "{e:?}");
+        // The host stops at once and says why (it does not keep waiting).
+        let e = host_side.join().unwrap().expect("the host stops");
+        assert!(
+            matches!(e, Error::Corrupt("p2p joiner not proven")),
+            "{e:?}"
+        );
         drop(dirs);
     }
 
@@ -928,7 +1048,7 @@ mod tests {
         let (mut h, mut j) = pair();
         let folder_dir = tempfile::tempdir().unwrap();
         let folder = FolderRemote::new(folder_dir.path());
-        let server = std::thread::spawn(move || serve(&mut h, &folder, "abcd"));
+        let server = std::thread::spawn(move || serve(&mut h, &folder, "abcd", &|_| ()));
         let mut msg = vec![OP_GET];
         msg.extend_from_slice(b"other-vault/records/x");
         j.send(&msg).unwrap();
@@ -958,7 +1078,7 @@ mod tests {
         sk: &SecretKey,
         words: SecretKey,
         password: &str,
-    ) -> (Result<bool>, tempfile::TempDir) {
+    ) -> (Result<bool>, Result<()>, tempfile::TempDir) {
         let mirror = tempfile::tempdir().unwrap();
         let fresh = tempfile::tempdir().unwrap();
         let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
@@ -976,10 +1096,9 @@ mod tests {
             &|_| (),
             &|_| (),
         );
-        if got.is_ok() {
-            server.join().unwrap().unwrap();
-        }
-        (got, fresh)
+        // The host always ends: served, or told why the other phone stopped.
+        let hosted = server.join().unwrap().map(|_| ());
+        (got, hosted, fresh)
     }
 
     #[test]
@@ -987,8 +1106,9 @@ mod tests {
         let t = crate::testkit::two();
         let id = crate::testkit::note(&t.a, "bank", "PIN 4821");
         let sk = t.sk.clone();
-        let (got, dir) = restore_from(&t, &sk, sk.clone(), &t.pw);
+        let (got, hosted, dir) = restore_from(&t, &sk, sk.clone(), &t.pw);
         assert!(got.unwrap());
+        hosted.unwrap();
         let v = crate::testkit::open(dir.path(), &sk, &t.pw);
         assert_eq!(v.id, t.a.id);
         assert_eq!(crate::testkit::text(&v, &id), "PIN 4821");
@@ -999,13 +1119,22 @@ mod tests {
         let t = crate::testkit::two();
         let sk = t.sk.clone();
         let wrong: String = t.pw.chars().rev().collect();
-        let (got, dir) = restore_from(&t, &sk, sk.clone(), &wrong);
+        let (got, hosted, dir) = restore_from(&t, &sk, sk.clone(), &wrong);
         assert!(!got.unwrap());
         assert!(!Library::has_vaults(dir.path()));
+        // The old phone is told, and stops: it does not keep waiting.
+        assert!(
+            matches!(hosted, Err(Error::Corrupt("p2p restore wrong password"))),
+            "{hosted:?}"
+        );
         let other = SecretKey::from_bytes([7; cs_crypto::SECRET_KEY_LEN]);
-        let (got, dir) = restore_from(&t, &sk, other, &t.pw);
+        let (got, hosted, dir) = restore_from(&t, &sk, other, &t.pw);
         assert!(matches!(got, Err(Error::WrongSecretKey)));
         assert!(!Library::has_vaults(dir.path()));
+        assert!(
+            matches!(hosted, Err(Error::Corrupt("p2p restore wrong words"))),
+            "{hosted:?}"
+        );
     }
 
     #[test]
