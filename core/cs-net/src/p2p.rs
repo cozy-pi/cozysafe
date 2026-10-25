@@ -1607,10 +1607,7 @@ mod tests {
         let sk = t.sk.clone();
         let (got, hosted, dir) = restore_asking(&t, &sk, sk.clone(), &t.pw, false);
         // Turned down: the new phone is told the other stopped, and gets nothing.
-        assert!(
-            matches!(got, Err(Error::Corrupt("p2p peer stopped"))),
-            "{got:?}"
-        );
+        assert!(matches!(got, Err(Error::Corrupt("p2p peer stopped"))));
         assert!(
             matches!(hosted, Err(Error::Corrupt("p2p restore declined"))),
             "{hosted:?}"

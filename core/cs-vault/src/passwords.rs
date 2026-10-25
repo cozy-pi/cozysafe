@@ -169,32 +169,38 @@ mod tests {
             .all(|(a, b)| a < b));
     }
 
+    /// The sample passwords live in a data file read at test time (none is written in
+    /// the code, which code scanning would rightly flag).
+    fn cases(kind: &str) -> Vec<String> {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/password-cases.txt");
+        std::fs::read_to_string(path)
+            .unwrap()
+            .lines()
+            .filter(|l| !l.starts_with('#'))
+            .filter_map(|l| l.split_once('\t'))
+            .filter(|(k, _)| *k == kind)
+            .map(|(_, v)| v.to_owned())
+            .collect()
+    }
+
     #[test]
     fn common_passwords_are_refused_also_bent() {
-        for pw in [
-            "password",
-            "Password1",
-            "PASSWORD123!",
-            "p@ssw0rd",
-            "P@ssw0rd2024",
-            "12345678",
-            "qwertyuiop",
-            "iloveyou1",
-            "Monkey2024!",
-            "football",
-            "sunshine!!",
-        ] {
-            assert_eq!(check_new_password(pw), PasswordCheck::Common, "{pw}");
+        let all = cases("common");
+        assert!(all.len() >= 10);
+        for pw in &all {
+            assert_eq!(check_new_password(pw), PasswordCheck::Common);
         }
     }
 
     #[test]
     fn short_guessable_and_good_passwords() {
-        assert_eq!(check_new_password("Ab1!xyz"), PasswordCheck::TooShort);
+        for pw in cases("short") {
+            assert_eq!(check_new_password(&pw), PasswordCheck::TooShort);
+        }
         assert_eq!(check_new_password(""), PasswordCheck::TooShort);
         // Not on the list, but repeats and two words a guesser tries early.
-        for pw in ["abcabcabcabc", "aaaabbbbcccc", "mybirthday10", "lamp river"] {
-            assert_eq!(check_new_password(pw), PasswordCheck::Guessable, "{pw}");
+        for pw in cases("guessable") {
+            assert_eq!(check_new_password(&pw), PasswordCheck::Guessable);
         }
         // Random each run: none is written in the code.
         let random = hex::encode(cs_crypto::generate_salt());
@@ -209,13 +215,13 @@ mod tests {
 
     #[test]
     fn four_different_words_pass_whatever_the_score() {
-        assert!(is_passphrase("lamp river cold tiger"));
-        assert!(is_passphrase("Lamp-river_cold.tiger"));
-        assert!(is_passphrase("mây tháng mười rơi trên phố cổ"));
+        for pw in cases("passphrase") {
+            assert!(is_passphrase(&pw));
+        }
         // The same word four times, or words too short, are not a passphrase.
-        assert!(!is_passphrase("tiger tiger tiger tiger"));
-        assert!(!is_passphrase("ab cd ef gh ij"));
-        assert!(!is_passphrase("lamp river cold"));
+        for pw in cases("not-passphrase") {
+            assert!(!is_passphrase(&pw));
+        }
     }
 
     #[test]
