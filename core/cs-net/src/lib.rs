@@ -173,6 +173,17 @@ pub(crate) mod testkit {
     }
 
     /// Open the vault in `dir` the usual way.
+    /// 24 words that are surely not `sk` (the test library's key is one random byte
+    /// repeated, so a fixed "stranger" would be it once in 256 runs).
+    pub(crate) fn other_words(sk: &SecretKey) -> SecretKey {
+        let seven = SecretKey::from_bytes([7; cs_crypto::SECRET_KEY_LEN]);
+        if &seven == sk {
+            SecretKey::from_bytes([8; cs_crypto::SECRET_KEY_LEN])
+        } else {
+            seven
+        }
+    }
+
     pub(crate) fn open(dir: &Path, sk: &SecretKey, pw: &str) -> OpenVault {
         Library::open_or_create(dir, FAST, sk.clone())
             .unwrap()

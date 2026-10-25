@@ -1272,7 +1272,7 @@ mod tests {
             probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).len(),
             1
         );
-        let stranger = SecretKey::from_bytes([7; cs_crypto::SECRET_KEY_LEN]);
+        let stranger = crate::testkit::other_words(&sk);
         assert!(probe_all(&[addr], &kdf::restore_pairing_key(&stranger), true).is_empty());
         // Wrong digits match nothing (and reach nobody); the right ones give the code.
         let wrong = format!("{:06}", (digits.parse::<u32>().unwrap() + 1) % 1_000_000);
@@ -1460,7 +1460,7 @@ mod tests {
             matches!(hosted, Err(Error::Corrupt("p2p restore wrong password"))),
             "{hosted:?}"
         );
-        let other = SecretKey::from_bytes([7; cs_crypto::SECRET_KEY_LEN]);
+        let other = crate::testkit::other_words(&sk);
         let (got, hosted, dir) = restore_from(&t, &sk, other, &t.pw);
         assert!(matches!(got, Err(Error::WrongSecretKey)));
         assert!(!Library::has_vaults(dir.path()));
