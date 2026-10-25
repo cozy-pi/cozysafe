@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.63 (2026-10-25)
+
+### Fixed
+- With + on the left or right, the column of ways to add scrolls again: with all six
+  ways a small screen hid the top ones.
+
 ## 0.1.62 (2026-10-25)
 
 ### Added

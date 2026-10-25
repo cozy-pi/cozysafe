@@ -1036,10 +1036,11 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
                 key: const ValueKey('add-column'),
                 controller: w.scroll,
                 reverse: true, // nearest way at the bottom, by the button
-                // A few ways only (2–5, owner 2026-10-24): all on screen, no rolling loop
-                // (with two ways the loop showed a repeat and slid one under the ×).
+                // No rolling loop (with two ways the loop showed a repeat and slid one
+                // under the ×). Every way is offered now (six), more than a small screen
+                // holds beside the button: the column scrolls (owner 2026-10-25).
                 itemCount: n,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: const ClampingScrollPhysics(),
                 clipBehavior: Clip.none,
                 // Bottom: room for the fade, so only ways rolled past it fade out.
                 padding: const EdgeInsets.only(bottom: _fade),
