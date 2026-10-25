@@ -4,6 +4,17 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.66 (2026-10-25)
+
+### Changed
+- Settings: Sync is first, with when this vault last synced. The Sync page has two
+  blocks: Local network (Show a code, Enter a code) and Google Drive (Sync now).
+
+### Fixed
+- A photo, PDF or file still loading when the vault locked loads again after opening
+  the vault, instead of a read error.
+- iPhone photos (HEIC) open on Android (Android 9 and later).
+
 ## 0.1.65 (2026-10-25)
 
 ### Added

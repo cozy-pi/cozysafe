@@ -457,7 +457,7 @@
   "addRowAddPhotos": "加入照片",
   "syncTitle": "同步",
   "syncRow": "與附近的裝置同步",
-  "syncLead": "讓此保險箱與你在同一 Wi‑Fi 下的另一支手機或電腦保持一致。兩台裝置都必須有此保險箱：相同的 24 個單字和密碼。",
+  "syncLead": "讓此保險箱在你的另一支手機或電腦上保持一致：透過區域網路，或透過 Google Drive。兩台裝置都必須有此保險箱：相同的 24 個單字和密碼。",
   "syncByHand": "不會自動連線：每次都由你開始並允許。",
   "syncShowCode": "顯示代碼",
   "syncScanCode": "掃描代碼",
@@ -610,5 +610,14 @@
   "deleteForGoodOthersKeep": "同步此保險箱的其他裝置會在「最近刪除」中保留它 30 天。",
   "syncDoneHeld": "{n, plural, other{在另一台裝置上刪除的 {n} 個項目已移到「最近刪除」（保留 30 天）。}}",
   "syncFindNoneRestore": "正在復原：只有接受這 24 個單字的裝置才會回應。如果你的裝置正在顯示代碼，請檢查這 24 個單字。",
-  "syncFindLocalNetwork": "在 iPhone 上，Cozy Safe 需要區域網路權限：設定 > 隱私權與安全性 > 區域網路。"
+  "syncFindLocalNetwork": "在 iPhone 上，Cozy Safe 需要區域網路權限：設定 > 隱私權與安全性 > 區域網路。",
+  "syncSettingsRow": "區域網路、Google Drive",
+  "syncLastNever": "從未同步",
+  "syncLastJustNow": "剛剛",
+  "syncLastMinutes": "{n, plural, other{{n} 分鐘前}}",
+  "syncLastHours": "{n, plural, other{{n} 小時前}}",
+  "syncLastDays": "{n, plural, other{{n} 天前}}",
+  "syncLocalTitle": "區域網路",
+  "syncLocalNote": "同一 Wi‑Fi 下的兩台裝置直接相連，不經過網際網路。",
+  "syncDriveNow": "立即同步"
 }

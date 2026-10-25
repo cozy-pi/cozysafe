@@ -457,7 +457,7 @@
   "addRowAddPhotos": "Fotoğraf ekle",
   "syncTitle": "Eşitle",
   "syncRow": "Yakındaki bir cihazla eşitle",
-  "syncLead": "Bu kasayı aynı Wi‑Fi'daki diğer telefonunuz veya bilgisayarınızla güncelleyin. İkisinde de bu kasa olmalı: aynı 24 kelime ve parola.",
+  "syncLead": "Bu kasayı diğer telefonunuzda veya bilgisayarınızda aynı tutun: yerel ağınız üzerinden veya Google Drive aracılığıyla. İkisinde de bu kasa olmalı: aynı 24 kelime ve parola.",
   "syncByHand": "Hiçbir şey kendiliğinden bağlanmaz: her seferinde siz başlatır ve izin verirsiniz.",
   "syncShowCode": "Kod göster",
   "syncScanCode": "Kod tara",
@@ -610,5 +610,14 @@
   "deleteForGoodOthersKeep": "Bu kasayı senkronize eden diğer cihazlarınız onu Son silinenler'de 30 gün saklar.",
   "syncDoneHeld": "{n, plural, =1{Diğer cihazda silinen 1 öğe Son silinenler'e taşındı (30 gün saklanır).} other{Diğer cihazda silinen {n} öğe Son silinenler'e taşındı (30 gün saklanır).}}",
   "syncFindNoneRestore": "Geri yükleniyor: yalnızca bu 24 kelimeyi kabul eden cihaz yanıt verir. Cihazınız kod gösteriyorsa kelimeleri kontrol edin.",
-  "syncFindLocalNetwork": "iPhone'da Cozy Safe'in Yerel Ağ erişimine ihtiyacı var: Ayarlar, Gizlilik ve Güvenlik, Yerel Ağ."
+  "syncFindLocalNetwork": "iPhone'da Cozy Safe'in Yerel Ağ erişimine ihtiyacı var: Ayarlar, Gizlilik ve Güvenlik, Yerel Ağ.",
+  "syncSettingsRow": "Yerel ağ, Google Drive",
+  "syncLastNever": "Hiç eşitlenmedi",
+  "syncLastJustNow": "Az önce",
+  "syncLastMinutes": "{n, plural, other{{n} dakika önce}}",
+  "syncLastHours": "{n, plural, other{{n} saat önce}}",
+  "syncLastDays": "{n, plural, other{{n} gün önce}}",
+  "syncLocalTitle": "Yerel ağ",
+  "syncLocalNote": "Aynı Wi‑Fi'daki iki cihaz, doğrudan birbirine bağlanır, internet olmadan.",
+  "syncDriveNow": "Şimdi eşitle"
 }

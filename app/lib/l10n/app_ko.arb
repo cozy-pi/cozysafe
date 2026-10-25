@@ -457,7 +457,7 @@
   "addRowAddPhotos": "사진 추가",
   "syncTitle": "동기화",
   "syncRow": "근처 기기와 동기화",
-  "syncLead": "같은 Wi‑Fi에 있는 다른 휴대폰이나 컴퓨터와 이 금고를 최신 상태로 맞춥니다. 두 기기 모두 이 금고(같은 24개 단어와 비밀번호)가 있어야 합니다.",
+  "syncLead": "다른 휴대폰이나 컴퓨터와 이 금고를 똑같이 유지합니다. 로컬 네트워크 또는 Google Drive를 통해 동기화합니다. 두 기기 모두 이 금고(같은 24개 단어와 비밀번호)가 있어야 합니다.",
   "syncByHand": "저절로 연결되지 않습니다. 매번 직접 시작하고 허용합니다.",
   "syncShowCode": "코드 보여주기",
   "syncScanCode": "코드 스캔",
@@ -610,5 +610,14 @@
   "deleteForGoodOthersKeep": "이 금고를 동기화하는 다른 기기에서는 최근 삭제된 항목에 30일 동안 보관됩니다.",
   "syncDoneHeld": "{n, plural, other{다른 기기에서 삭제된 항목 {n}개를 최근 삭제된 항목으로 옮겼습니다(30일 동안 보관).}}",
   "syncFindNoneRestore": "복원 중: 이 24개 단어를 받는 기기만 응답합니다. 다른 기기에 코드가 표시되어 있다면 단어를 확인하세요.",
-  "syncFindLocalNetwork": "iPhone에서는 Cozy Safe에 로컬 네트워크 접근 권한이 필요합니다: 설정, 개인정보 보호 및 보안, 로컬 네트워크."
+  "syncFindLocalNetwork": "iPhone에서는 Cozy Safe에 로컬 네트워크 접근 권한이 필요합니다: 설정, 개인정보 보호 및 보안, 로컬 네트워크.",
+  "syncSettingsRow": "로컬 네트워크, Google Drive",
+  "syncLastNever": "동기화한 적 없음",
+  "syncLastJustNow": "방금",
+  "syncLastMinutes": "{n, plural, other{{n}분 전}}",
+  "syncLastHours": "{n, plural, other{{n}시간 전}}",
+  "syncLastDays": "{n, plural, other{{n}일 전}}",
+  "syncLocalTitle": "로컬 네트워크",
+  "syncLocalNote": "같은 Wi‑Fi에 있는 두 기기를 인터넷 없이 직접 연결합니다.",
+  "syncDriveNow": "지금 동기화"
 }

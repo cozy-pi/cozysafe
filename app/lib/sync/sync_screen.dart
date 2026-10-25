@@ -146,16 +146,18 @@ class _SyncScreenState extends State<SyncScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        // Two ways, each in its own block (owner 2026-10-25): the local network (two
+        // devices on one Wi-Fi, no internet) and Google Drive.
+        _Header(title: l.syncLocalTitle, note: l.syncLocalNote),
         _Card(children: [
           _Action(key: const ValueKey('sync-show'), icon: Icons.pin_outlined, color: const Color(0xFF007AFF), title: l.syncShowCode, onTap: _show),
           _Action(key: const ValueKey('sync-enter'), icon: Icons.dialpad_rounded, color: const Color(0xFF34C759), title: l.syncEnterCode, onTap: _enter),
         ]),
         // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
         if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
-          const SizedBox(height: 24),
+          const _Header(title: 'Google Drive'),
           _Card(children: [
-            _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), title: l.syncDriveRow, onTap: _drive),
+            _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), title: l.syncDriveNow, onTap: _drive),
           ]),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
@@ -175,6 +177,28 @@ class _SyncScreenState extends State<SyncScreen> {
         else
           _Card(children: [for (final line in _log) _LogRow(line: line)]),
       ],
+    );
+  }
+}
+
+/// A block's name over its card, with a line on what it is.
+class _Header extends StatelessWidget {
+  const _Header({required this.title, this.note});
+  final String title;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 24, 4, 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        if (note != null) ...[
+          const SizedBox(height: 2),
+          Text(note!, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.3)),
+        ],
+      ]),
     );
   }
 }

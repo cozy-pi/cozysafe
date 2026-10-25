@@ -457,7 +457,7 @@
   "addRowAddPhotos": "Aggiungi foto",
   "syncTitle": "Sincronizza",
   "syncRow": "Sincronizza con un dispositivo vicino",
-  "syncLead": "Aggiorna questa cassaforte con l’altro telefono o computer sulla stessa Wi‑Fi. Entrambi devono avere questa cassaforte: le stesse 24 parole e la stessa password.",
+  "syncLead": "Mantieni questa cassaforte uguale sull’altro telefono o computer: tramite la rete locale o tramite Google Drive. Entrambi devono avere questa cassaforte: le stesse 24 parole e la stessa password.",
   "syncByHand": "Niente si collega da solo: ogni volta sei tu ad avviare e a consentire.",
   "syncShowCode": "Mostra un codice",
   "syncScanCode": "Scansiona un codice",
@@ -610,5 +610,14 @@
   "deleteForGoodOthersKeep": "Gli altri dispositivi che sincronizzano questa cassaforte lo conservano per 30 giorni in Eliminati di recente.",
   "syncDoneHeld": "{n, plural, =1{1 elemento eliminato sull'altro dispositivo è stato spostato in Eliminati di recente (conservato 30 giorni).} other{{n} elementi eliminati sull'altro dispositivo sono stati spostati in Eliminati di recente (conservati 30 giorni).}}",
   "syncFindNoneRestore": "Ripristino: risponde solo un dispositivo che accetta queste 24 parole. Se il tuo mostra un codice, controlla le parole.",
-  "syncFindLocalNetwork": "Su iPhone, Cozy Safe ha bisogno dell’accesso alla rete locale: Impostazioni, Privacy e sicurezza, Rete locale."
+  "syncFindLocalNetwork": "Su iPhone, Cozy Safe ha bisogno dell’accesso alla rete locale: Impostazioni, Privacy e sicurezza, Rete locale.",
+  "syncSettingsRow": "Rete locale, Google Drive",
+  "syncLastNever": "Mai",
+  "syncLastJustNow": "Proprio ora",
+  "syncLastMinutes": "{n, plural, =1{1 minuto fa} other{{n} minuti fa}}",
+  "syncLastHours": "{n, plural, =1{1 ora fa} other{{n} ore fa}}",
+  "syncLastDays": "{n, plural, =1{1 giorno fa} other{{n} giorni fa}}",
+  "syncLocalTitle": "Rete locale",
+  "syncLocalNote": "Due dispositivi sulla stessa Wi‑Fi, collegati direttamente, senza internet.",
+  "syncDriveNow": "Sincronizza ora"
 }

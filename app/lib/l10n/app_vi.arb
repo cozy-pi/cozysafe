@@ -471,7 +471,7 @@
   "addRowAddPhotos": "Thêm ảnh",
   "syncTitle": "Đồng bộ",
   "syncRow": "Đồng bộ với máy gần đây",
-  "syncLead": "Cập nhật két này với điện thoại hoặc máy tính khác của bạn trên cùng Wi‑Fi. Hai máy phải có cùng két: cùng 24 từ và mật khẩu.",
+  "syncLead": "Giữ két này giống nhau trên điện thoại hoặc máy tính khác của bạn: qua mạng nội bộ, hoặc qua Google Drive. Hai máy phải có cùng két: cùng 24 từ và mật khẩu.",
   "syncByHand": "Không có gì tự kết nối: lần nào cũng do bạn bắt đầu và cho phép.",
   "syncShowCode": "Hiện mã",
   "syncScanCode": "Quét mã",
@@ -624,5 +624,14 @@
   "deleteForGoodOthersKeep": "Các máy khác đồng bộ két này vẫn giữ mục đó 30 ngày trong Đã xoá gần đây.",
   "syncDoneHeld": "{n, plural, other{{n} mục bị xoá ở máy kia đã chuyển vào Đã xoá gần đây (giữ 30 ngày).}}",
   "syncFindNoneRestore": "Đang khôi phục: chỉ máy nhận đúng 24 từ này mới trả lời. Nếu máy kia đang hiện mã, hãy kiểm tra lại 24 từ.",
-  "syncFindLocalNetwork": "Trên iPhone, Cozy Safe cần quyền Mạng cục bộ: Cài đặt, Quyền riêng tư & Bảo mật, Mạng cục bộ."
+  "syncFindLocalNetwork": "Trên iPhone, Cozy Safe cần quyền Mạng cục bộ: Cài đặt, Quyền riêng tư & Bảo mật, Mạng cục bộ.",
+  "syncSettingsRow": "Mạng nội bộ, Google Drive",
+  "syncLastNever": "Chưa đồng bộ",
+  "syncLastJustNow": "Vừa xong",
+  "syncLastMinutes": "{n, plural, other{{n} phút trước}}",
+  "syncLastHours": "{n, plural, other{{n} giờ trước}}",
+  "syncLastDays": "{n, plural, other{{n} ngày trước}}",
+  "syncLocalTitle": "Mạng nội bộ",
+  "syncLocalNote": "Hai máy cùng Wi‑Fi, nối thẳng với nhau, không qua internet.",
+  "syncDriveNow": "Đồng bộ ngay"
 }

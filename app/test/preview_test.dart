@@ -299,6 +299,7 @@ void _screen(String name, String caption, Widget Function() home,
       DebugScreen.debugNetworkBlocked = null;
       _itemsNow = null;
       SyncScreen.debugLog = null;
+      SettingsScreen.debugSyncLog = null;
       SyncScreen.debugAddress = null;
       SyncScreen.debugDrive = false;
       SyncProgress.debugRate = null;
@@ -664,7 +665,8 @@ void main() {
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
-  _screen('settings', 'Cài đặt', () => settings(vault));
+  _screen('settings', 'Cài đặt: Đồng bộ lên đầu, kèm lần cuối', () => settings(vault),
+      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('kit-row')), 200, scrollable: find.byType(Scrollable).first);
@@ -677,7 +679,7 @@ void main() {
     '${_now - 86400000}|host|-|ok|0|5',
     '${_now - 2 * 86400000}|host|-|expired|0|0',
   ];
-  _screen('sync', 'Đồng bộ: hiện mã / quét mã / nhập mã, và các lần kết nối gần đây', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync', 'Đồng bộ: Mạng nội bộ (hiện mã / nhập mã), Google Drive, các lần kết nối gần đây', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;

@@ -457,7 +457,7 @@
   "addRowAddPhotos": "写真を追加",
   "syncTitle": "同期",
   "syncRow": "近くのデバイスと同期",
-  "syncLead": "同じWi‑Fiにあるもう一台のスマートフォンやパソコンと、この金庫を最新の状態にします。両方にこの金庫（同じ24個の単語とパスワード）が必要です。",
+  "syncLead": "もう一台のスマートフォンやパソコンと、この金庫を同じ状態に保ちます。ローカルネットワーク経由、またはGoogle Drive経由で同期できます。両方にこの金庫（同じ24個の単語とパスワード）が必要です。",
   "syncByHand": "自動では接続しません。毎回、あなたが開始して許可します。",
   "syncShowCode": "コードを表示",
   "syncScanCode": "コードをスキャン",
@@ -610,5 +610,14 @@
   "deleteForGoodOthersKeep": "この金庫を同期しているほかのデバイスでは、「最近削除した項目」に30日間残ります。",
   "syncDoneHeld": "{n, plural, other{ほかのデバイスで削除された {n} 件の項目を「最近削除した項目」に移動しました（30日間保管）。}}",
   "syncFindNoneRestore": "復元中：この24語を受け付けるデバイスだけが応答します。もう一台にコードが表示されている場合は、24語を確認してください。",
-  "syncFindLocalNetwork": "iPhoneでは、Cozy Safeにローカルネットワークへのアクセスが必要です：設定 > プライバシーとセキュリティ > ローカルネットワーク。"
+  "syncFindLocalNetwork": "iPhoneでは、Cozy Safeにローカルネットワークへのアクセスが必要です：設定 > プライバシーとセキュリティ > ローカルネットワーク。",
+  "syncSettingsRow": "ローカルネットワーク、Google Drive",
+  "syncLastNever": "未同期",
+  "syncLastJustNow": "たった今",
+  "syncLastMinutes": "{n, plural, other{{n}分前}}",
+  "syncLastHours": "{n, plural, other{{n}時間前}}",
+  "syncLastDays": "{n, plural, other{{n}日前}}",
+  "syncLocalTitle": "ローカルネットワーク",
+  "syncLocalNote": "同じWi‑Fiにある2台を、インターネットを使わずに直接つなぎます。",
+  "syncDriveNow": "今すぐ同期"
 }

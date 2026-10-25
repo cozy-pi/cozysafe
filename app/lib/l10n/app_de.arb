@@ -457,7 +457,7 @@
   "addRowAddPhotos": "Fotos hinzufügen",
   "syncTitle": "Synchronisieren",
   "syncRow": "Mit einem Gerät in der Nähe synchronisieren",
-  "syncLead": "Bring diesen Tresor mit deinem anderen Handy oder Computer im selben WLAN auf den neuesten Stand. Beide müssen diesen Tresor haben: dieselben 24 Wörter und dasselbe Passwort.",
+  "syncLead": "Halte diesen Tresor auf deinem anderen Handy oder Computer gleich: über dein lokales Netzwerk oder über Google Drive. Beide müssen diesen Tresor haben: dieselben 24 Wörter und dasselbe Passwort.",
   "syncByHand": "Nichts verbindet sich von selbst: Du startest es jedes Mal und erlaubst es.",
   "syncShowCode": "Code zeigen",
   "syncScanCode": "Code scannen",
@@ -610,5 +610,14 @@
   "deleteForGoodOthersKeep": "Deine anderen Geräte, die diesen Tresor synchronisieren, behalten es 30 Tage lang in „Zuletzt gelöscht“.",
   "syncDoneHeld": "{n, plural, =1{1 auf dem anderen Gerät gelöschtes Element wurde nach „Zuletzt gelöscht“ verschoben (30 Tage aufbewahrt).} other{{n} auf dem anderen Gerät gelöschte Elemente wurden nach „Zuletzt gelöscht“ verschoben (30 Tage aufbewahrt).}}",
   "syncFindNoneRestore": "Wiederherstellung: Nur ein Gerät, das diese 24 Wörter annimmt, antwortet. Wenn deins einen Code zeigt, prüfe die Wörter.",
-  "syncFindLocalNetwork": "Auf dem iPhone braucht Cozy Safe Zugriff auf das lokale Netzwerk: Einstellungen, Datenschutz & Sicherheit, Lokales Netzwerk."
+  "syncFindLocalNetwork": "Auf dem iPhone braucht Cozy Safe Zugriff auf das lokale Netzwerk: Einstellungen, Datenschutz & Sicherheit, Lokales Netzwerk.",
+  "syncSettingsRow": "Lokales Netzwerk, Google Drive",
+  "syncLastNever": "Nie",
+  "syncLastJustNow": "Gerade eben",
+  "syncLastMinutes": "{n, plural, =1{Vor 1 Minute} other{Vor {n} Minuten}}",
+  "syncLastHours": "{n, plural, =1{Vor 1 Stunde} other{Vor {n} Stunden}}",
+  "syncLastDays": "{n, plural, =1{Vor 1 Tag} other{Vor {n} Tagen}}",
+  "syncLocalTitle": "Lokales Netzwerk",
+  "syncLocalNote": "Zwei Geräte im selben WLAN, direkt miteinander verbunden, ohne Internet.",
+  "syncDriveNow": "Jetzt synchronisieren"
 }

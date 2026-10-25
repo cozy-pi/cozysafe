@@ -639,7 +639,7 @@
   "@addRowAddPhotos": {"description": "In the library, + offers this: pick photos and videos from the device. Short, under a round button."},
   "syncTitle": "Sync",
   "syncRow": "Sync with a nearby device",
-  "syncLead": "Bring this vault up to date with your other phone or computer on the same Wi‑Fi. Both must hold this vault: the same 24 words and password.",
+  "syncLead": "Keep this vault the same on your other phone or computer: over your local network, or through Google Drive. Both must hold this vault: the same 24 words and password.",
   "syncByHand": "Nothing connects on its own: each time, you start it and allow it.",
   "syncShowCode": "Show a code",
   "syncScanCode": "Scan a code",
@@ -812,5 +812,17 @@
   "syncDoneHeld": "{n, plural, =1{1 item deleted on the other device moved to Recently deleted (kept 30 days).} other{{n} items deleted on the other device moved to Recently deleted (kept 30 days).}}",
   "@syncDoneHeld": {"placeholders": {"n": {"type": "int"}}},
   "syncFindNoneRestore": "Restoring: only a device that takes these 24 words answers. If yours is showing a code, check the words.",
-  "syncFindLocalNetwork": "On iPhone, Cozy Safe needs Local Network access: Settings, Privacy & Security, Local Network."
+  "syncFindLocalNetwork": "On iPhone, Cozy Safe needs Local Network access: Settings, Privacy & Security, Local Network.",
+  "syncSettingsRow": "Local network, Google Drive",
+  "syncLastNever": "Never",
+  "syncLastJustNow": "Just now",
+  "syncLastMinutes": "{n, plural, =1{1 minute ago} other{{n} minutes ago}}",
+  "@syncLastMinutes": {"placeholders": {"n": {"type": "int"}}},
+  "syncLastHours": "{n, plural, =1{1 hour ago} other{{n} hours ago}}",
+  "@syncLastHours": {"placeholders": {"n": {"type": "int"}}},
+  "syncLastDays": "{n, plural, =1{1 day ago} other{{n} days ago}}",
+  "@syncLastDays": {"placeholders": {"n": {"type": "int"}}},
+  "syncLocalTitle": "Local network",
+  "syncLocalNote": "Two devices on the same Wi‑Fi, straight to each other, no internet.",
+  "syncDriveNow": "Sync now"
 }

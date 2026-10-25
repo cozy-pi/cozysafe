@@ -457,7 +457,7 @@
   "addRowAddPhotos": "Añadir fotos",
   "syncTitle": "Sincronizar",
   "syncRow": "Sincronizar con un dispositivo cercano",
-  "syncLead": "Pon al día esta caja fuerte con tu otro teléfono u ordenador en la misma Wi‑Fi. Ambos deben tener esta caja fuerte: las mismas 24 palabras y la misma contraseña.",
+  "syncLead": "Mantén esta caja fuerte igual en tu otro teléfono u ordenador: por tu red local o a través de Google Drive. Ambos deben tener esta caja fuerte: las mismas 24 palabras y la misma contraseña.",
   "syncByHand": "Nada se conecta solo: cada vez, tú lo inicias y lo permites.",
   "syncShowCode": "Mostrar un código",
   "syncScanCode": "Escanear un código",
@@ -610,5 +610,14 @@
   "deleteForGoodOthersKeep": "Tus otros dispositivos que sincronizan esta caja fuerte lo conservan 30 días en Eliminado recientemente.",
   "syncDoneHeld": "{n, plural, =1{1 elemento eliminado en el otro dispositivo se movió a Eliminado recientemente (se guarda 30 días).} other{{n} elementos eliminados en el otro dispositivo se movieron a Eliminado recientemente (se guardan 30 días).}}",
   "syncFindNoneRestore": "Restaurando: solo responde un dispositivo que acepte estas 24 palabras. Si el tuyo muestra un código, revisa las palabras.",
-  "syncFindLocalNetwork": "En el iPhone, Cozy Safe necesita acceso a la red local: Ajustes, Privacidad y seguridad, Red local."
+  "syncFindLocalNetwork": "En el iPhone, Cozy Safe necesita acceso a la red local: Ajustes, Privacidad y seguridad, Red local.",
+  "syncSettingsRow": "Red local, Google Drive",
+  "syncLastNever": "Nunca",
+  "syncLastJustNow": "Justo ahora",
+  "syncLastMinutes": "{n, plural, =1{Hace 1 minuto} other{Hace {n} minutos}}",
+  "syncLastHours": "{n, plural, =1{Hace 1 hora} other{Hace {n} horas}}",
+  "syncLastDays": "{n, plural, =1{Hace 1 día} other{Hace {n} días}}",
+  "syncLocalTitle": "Red local",
+  "syncLocalNote": "Dos dispositivos en la misma Wi‑Fi, conectados directamente, sin internet.",
+  "syncDriveNow": "Sincronizar ahora"
 }

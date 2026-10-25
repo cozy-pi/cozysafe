@@ -457,7 +457,7 @@
   "addRowAddPhotos": "添加照片",
   "syncTitle": "同步",
   "syncRow": "与附近的设备同步",
-  "syncLead": "让此保险箱与你在同一 Wi‑Fi 下的另一部手机或电脑保持一致。两台设备都必须有此保险箱：相同的 24 个单词和密码。",
+  "syncLead": "让此保险箱在你的另一部手机或电脑上保持一致：通过局域网，或通过 Google Drive。两台设备都必须有此保险箱：相同的 24 个单词和密码。",
   "syncByHand": "不会自动连接：每次都由你发起并允许。",
   "syncShowCode": "显示代码",
   "syncScanCode": "扫描代码",
@@ -610,5 +610,14 @@
   "deleteForGoodOthersKeep": "同步此保险箱的其他设备会在“最近删除”中保留它 30 天。",
   "syncDoneHeld": "{n, plural, other{在另一台设备上删除的 {n} 项已移到“最近删除”（保留 30 天）。}}",
   "syncFindNoneRestore": "正在恢复：只有接受这 24 个单词的设备才会响应。如果你的设备正在显示代码，请检查这 24 个单词。",
-  "syncFindLocalNetwork": "在 iPhone 上，Cozy Safe 需要本地网络权限：设置 > 隐私与安全性 > 本地网络。"
+  "syncFindLocalNetwork": "在 iPhone 上，Cozy Safe 需要本地网络权限：设置 > 隐私与安全性 > 本地网络。",
+  "syncSettingsRow": "局域网、Google Drive",
+  "syncLastNever": "从未同步",
+  "syncLastJustNow": "刚刚",
+  "syncLastMinutes": "{n, plural, other{{n} 分钟前}}",
+  "syncLastHours": "{n, plural, other{{n} 小时前}}",
+  "syncLastDays": "{n, plural, other{{n} 天前}}",
+  "syncLocalTitle": "局域网",
+  "syncLocalNote": "同一 Wi‑Fi 下的两台设备直接相连，不经过互联网。",
+  "syncDriveNow": "立即同步"
 }
