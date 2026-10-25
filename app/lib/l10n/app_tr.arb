@@ -572,5 +572,9 @@
   "syncRemovingDevice": "Silinen öğeler diğer cihazdan kaldırılıyor",
   "syncRemovingWhat": "Kalıcı olarak silinenler oradan da kaldırılır.",
   "changeKeyOtherVault": "Bu cihazdaki başka bir kasa da aynı 24 kelimeyi kullanıyor. Yeni anahtarın onu da açması için o kasanın parolasını girin.",
-  "changeKeyOtherPassword": "Diğer kasanın parolası"
+  "changeKeyOtherPassword": "Diğer kasanın parolası",
+  "syncPeerWrongWords": "Diğer cihazda bu kasaya ait olmayan 24 kelime girildi. Hiçbir şey gönderilmedi.",
+  "syncPeerWrongPassword": "Diğer cihazda yanlış kasa parolası girildi. Hiçbir şey gönderilmedi.",
+  "syncPeerStopped": "Diğer cihaz eşitlemeyi durdurdu.",
+  "syncItemsSoFar": "{done} öğe"
 }

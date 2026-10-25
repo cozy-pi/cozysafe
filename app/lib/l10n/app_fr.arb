@@ -572,5 +572,9 @@
   "syncRemovingDevice": "Retrait des éléments supprimés de l’autre appareil",
   "syncRemovingWhat": "Ce qui a été supprimé définitivement y est aussi retiré.",
   "changeKeyOtherVault": "Un autre coffre sur cet appareil utilise les mêmes 24 mots. Saisissez son mot de passe pour que la nouvelle clé l'ouvre aussi.",
-  "changeKeyOtherPassword": "Mot de passe de l'autre coffre"
+  "changeKeyOtherPassword": "Mot de passe de l'autre coffre",
+  "syncPeerWrongWords": "L’autre appareil a saisi 24 mots qui ne sont pas ceux de ce coffre. Rien n’a été envoyé.",
+  "syncPeerWrongPassword": "L’autre appareil a saisi un mauvais mot de passe du coffre. Rien n’a été envoyé.",
+  "syncPeerStopped": "L’autre appareil a arrêté la synchronisation.",
+  "syncItemsSoFar": "{done} éléments"
 }

@@ -572,5 +572,9 @@
   "syncRemovingDevice": "正在从另一台设备移除已删除的项目",
   "syncRemovingWhat": "永久删除的内容也会从那里移除。",
   "changeKeyOtherVault": "此设备上的另一个保险箱使用相同的 24 个单词。请输入它的密码，让新密钥也能打开它。",
-  "changeKeyOtherPassword": "另一个保险箱的密码"
+  "changeKeyOtherPassword": "另一个保险箱的密码",
+  "syncPeerWrongWords": "另一台设备输入的 24 个单词不属于这个保险箱。没有发送任何内容。",
+  "syncPeerWrongPassword": "另一台设备输入的保险箱密码不正确。没有发送任何内容。",
+  "syncPeerStopped": "另一台设备已停止同步。",
+  "syncItemsSoFar": "{done} 项"
 }

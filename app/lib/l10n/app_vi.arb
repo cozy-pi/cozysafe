@@ -586,5 +586,9 @@
   "syncRemovingDevice": "Đang dọn máy kia",
   "syncRemovingWhat": "Xoá ở đó những mục bạn đã xoá hẳn.",
   "changeKeyOtherVault": "Một két khác trên máy này dùng chung 24 từ. Nhập mật khẩu của két đó để khoá mới mở được cả nó.",
-  "changeKeyOtherPassword": "Mật khẩu của két kia"
+  "changeKeyOtherPassword": "Mật khẩu của két kia",
+  "syncPeerWrongWords": "Máy kia nhập 24 từ không phải của két này. Chưa gửi gì.",
+  "syncPeerWrongPassword": "Máy kia nhập sai mật khẩu két. Chưa gửi gì.",
+  "syncPeerStopped": "Máy kia đã dừng đồng bộ.",
+  "syncItemsSoFar": "{done} mục"
 }

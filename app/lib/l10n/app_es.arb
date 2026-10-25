@@ -572,5 +572,9 @@
   "syncRemovingDevice": "Quitando del otro dispositivo los elementos eliminados",
   "syncRemovingWhat": "Lo que se eliminó para siempre también se quita de allí.",
   "changeKeyOtherVault": "Otra caja fuerte de este dispositivo usa las mismas 24 palabras. Escribe su contraseña para que la nueva clave también la abra.",
-  "changeKeyOtherPassword": "Contraseña de la otra caja fuerte"
+  "changeKeyOtherPassword": "Contraseña de la otra caja fuerte",
+  "syncPeerWrongWords": "El otro dispositivo escribió 24 palabras que no son de esta caja fuerte. No se envió nada.",
+  "syncPeerWrongPassword": "El otro dispositivo escribió una contraseña incorrecta de la caja fuerte. No se envió nada.",
+  "syncPeerStopped": "El otro dispositivo detuvo la sincronización.",
+  "syncItemsSoFar": "{done} elementos"
 }

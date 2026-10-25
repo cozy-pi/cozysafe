@@ -249,9 +249,9 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
         borderRadius: BorderRadius.circular(4),
       ),
       const SizedBox(height: 10),
-      if (e.total > 0)
+      if (e.total > 0 || e.done > 0)
         Row(children: [
-          Text(l.syncItems(e.done, e.total), key: const ValueKey('sync-items'), style: small),
+          Text(e.total > 0 ? l.syncItems(e.done, e.total) : l.syncItemsSoFar(e.done), key: const ValueKey('sync-items'), style: small),
           const Spacer(),
           if (e.kind != sync.SyncStep.removing)
           Text(
@@ -331,6 +331,9 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
         sync.SyncStep.unreachable => _Status(icon: Icons.wifi_off_rounded, color: const Color(0xFFFF3B30), title: l.syncUnreachable),
         sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: const Color(0xFFFF3B30), title: l.syncFailed),
         sync.SyncStep.signIn => _Status(icon: Icons.account_circle_outlined, color: const Color(0xFFFF9500), title: l.syncSignInAgain),
+        sync.SyncStep.peerWrongWords => _Status(icon: Icons.key_off_outlined, color: const Color(0xFFFF9500), title: l.syncPeerWrongWords),
+        sync.SyncStep.peerWrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.syncPeerWrongPassword),
+        sync.SyncStep.peerStopped => _Status(icon: Icons.stop_circle_outlined, color: const Color(0xFFFF9500), title: l.syncPeerStopped),
         sync.SyncStep.wrongWords => _Status(icon: Icons.key_off_outlined, color: const Color(0xFFFF9500), title: l.restoreWrongWords),
         sync.SyncStep.wrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.wrongPassword),
         sync.SyncStep.interrupted => _Status(icon: Icons.pause_circle_outline_rounded, color: const Color(0xFFFF9500), title: l.syncInterrupted),

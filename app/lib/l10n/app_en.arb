@@ -767,5 +767,10 @@
   "syncRemovingDevice": "Removing deleted items from the other device",
   "syncRemovingWhat": "What you deleted for good is taken off there too.",
   "changeKeyOtherVault": "Another vault on this device uses the same 24 words. Type its password so the new key opens it too.",
-  "changeKeyOtherPassword": "Password of the other vault"
+  "changeKeyOtherPassword": "Password of the other vault",
+  "syncPeerWrongWords": "The other phone typed 24 words that are not this vault's. Nothing was sent.",
+  "syncPeerWrongPassword": "The other phone typed the wrong vault password. Nothing was sent.",
+  "syncPeerStopped": "The other phone stopped the sync.",
+  "syncItemsSoFar": "{done} items",
+  "@syncItemsSoFar": {"placeholders": {"done": {"type": "int"}}}
 }

@@ -572,5 +572,9 @@
   "syncRemovingDevice": "Gelöschte Elemente werden vom anderen Gerät entfernt",
   "syncRemovingWhat": "Was endgültig gelöscht wurde, wird auch dort entfernt.",
   "changeKeyOtherVault": "Ein anderer Tresor auf diesem Gerät nutzt dieselben 24 Wörter. Geben Sie sein Passwort ein, damit der neue Schlüssel auch ihn öffnet.",
-  "changeKeyOtherPassword": "Passwort des anderen Tresors"
+  "changeKeyOtherPassword": "Passwort des anderen Tresors",
+  "syncPeerWrongWords": "Das andere Gerät hat 24 Wörter eingegeben, die nicht zu diesem Tresor gehören. Es wurde nichts gesendet.",
+  "syncPeerWrongPassword": "Das andere Gerät hat das falsche Tresor-Passwort eingegeben. Es wurde nichts gesendet.",
+  "syncPeerStopped": "Das andere Gerät hat die Synchronisierung beendet.",
+  "syncItemsSoFar": "{done} Elemente"
 }

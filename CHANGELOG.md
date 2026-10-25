@@ -4,6 +4,17 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.62 (2026-10-25)
+
+### Added
+- Sync with a nearby phone shows progress on both phones, like Google Drive: items,
+  MB, speed and time left on the phone that scanned; items, MB and speed on the phone
+  that showed the code.
+
+### Fixed
+- When the other phone fails (wrong 24 words, wrong password) or stops, the phone that
+  showed the code says why and stops, instead of waiting.
+
 ## 0.1.60 (2026-10-25)
 
 ### Fixed

@@ -572,5 +572,9 @@
   "syncRemovingDevice": "もう一台から削除した項目を消去中",
   "syncRemovingWhat": "完全に削除したものは、そちらからも消去されます。",
   "changeKeyOtherVault": "この端末の別の金庫も同じ24語を使っています。新しいキーでその金庫も開けるように、そのパスワードを入力してください。",
-  "changeKeyOtherPassword": "もう一つの金庫のパスワード"
+  "changeKeyOtherPassword": "もう一つの金庫のパスワード",
+  "syncPeerWrongWords": "もう一台のデバイスで入力された24語は、この金庫のものではありません。何も送信されていません。",
+  "syncPeerWrongPassword": "もう一台のデバイスで入力された金庫のパスワードが違います。何も送信されていません。",
+  "syncPeerStopped": "もう一台のデバイスが同期を中止しました。",
+  "syncItemsSoFar": "{done} 件"
 }
