@@ -608,5 +608,7 @@
   "trashHeldLabel": "Supprimé sur un autre appareil",
   "trashHeldNote": "Les éléments supprimés définitivement sur votre autre appareil sont conservés ici 30 jours et ne sont pas synchronisés.",
   "deleteForGoodOthersKeep": "Vos autres appareils qui synchronisent ce coffre le conservent 30 jours dans Supprimés récemment.",
-  "syncDoneHeld": "{n, plural, =1{1 élément supprimé sur l’autre appareil a été déplacé dans Supprimés récemment (conservé 30 jours).} other{{n} éléments supprimés sur l’autre appareil ont été déplacés dans Supprimés récemment (conservés 30 jours).}}"
+  "syncDoneHeld": "{n, plural, =1{1 élément supprimé sur l’autre appareil a été déplacé dans Supprimés récemment (conservé 30 jours).} other{{n} éléments supprimés sur l’autre appareil ont été déplacés dans Supprimés récemment (conservés 30 jours).}}",
+  "syncFindNoneRestore": "Restauration : seul un appareil qui accepte ces 24 mots répond. Si le vôtre affiche un code, vérifiez les mots.",
+  "syncFindLocalNetwork": "Sur iPhone, Cozy Safe a besoin de l’accès au réseau local : Réglages, Confidentialité et sécurité, Réseau local."
 }

@@ -608,5 +608,7 @@
   "trashHeldLabel": "Eliminado en otro dispositivo",
   "trashHeldNote": "Los elementos eliminados para siempre en tu otro dispositivo se guardan aquí 30 días y no se sincronizan.",
   "deleteForGoodOthersKeep": "Tus otros dispositivos que sincronizan esta caja fuerte lo conservan 30 días en Eliminado recientemente.",
-  "syncDoneHeld": "{n, plural, =1{1 elemento eliminado en el otro dispositivo se movió a Eliminado recientemente (se guarda 30 días).} other{{n} elementos eliminados en el otro dispositivo se movieron a Eliminado recientemente (se guardan 30 días).}}"
+  "syncDoneHeld": "{n, plural, =1{1 elemento eliminado en el otro dispositivo se movió a Eliminado recientemente (se guarda 30 días).} other{{n} elementos eliminados en el otro dispositivo se movieron a Eliminado recientemente (se guardan 30 días).}}",
+  "syncFindNoneRestore": "Restaurando: solo responde un dispositivo que acepte estas 24 palabras. Si el tuyo muestra un código, revisa las palabras.",
+  "syncFindLocalNetwork": "En el iPhone, Cozy Safe necesita acceso a la red local: Ajustes, Privacidad y seguridad, Red local."
 }

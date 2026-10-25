@@ -608,5 +608,7 @@
   "trashHeldLabel": "Auf einem anderen Gerät gelöscht",
   "trashHeldNote": "Elemente, die auf deinem anderen Gerät endgültig gelöscht wurden, bleiben hier 30 Tage lang und werden nicht synchronisiert.",
   "deleteForGoodOthersKeep": "Deine anderen Geräte, die diesen Tresor synchronisieren, behalten es 30 Tage lang in „Zuletzt gelöscht“.",
-  "syncDoneHeld": "{n, plural, =1{1 auf dem anderen Gerät gelöschtes Element wurde nach „Zuletzt gelöscht“ verschoben (30 Tage aufbewahrt).} other{{n} auf dem anderen Gerät gelöschte Elemente wurden nach „Zuletzt gelöscht“ verschoben (30 Tage aufbewahrt).}}"
+  "syncDoneHeld": "{n, plural, =1{1 auf dem anderen Gerät gelöschtes Element wurde nach „Zuletzt gelöscht“ verschoben (30 Tage aufbewahrt).} other{{n} auf dem anderen Gerät gelöschte Elemente wurden nach „Zuletzt gelöscht“ verschoben (30 Tage aufbewahrt).}}",
+  "syncFindNoneRestore": "Wiederherstellung: Nur ein Gerät, das diese 24 Wörter annimmt, antwortet. Wenn deins einen Code zeigt, prüfe die Wörter.",
+  "syncFindLocalNetwork": "Auf dem iPhone braucht Cozy Safe Zugriff auf das lokale Netzwerk: Einstellungen, Datenschutz & Sicherheit, Lokales Netzwerk."
 }
