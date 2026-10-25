@@ -7,11 +7,12 @@ import '../platform.dart';
 const driveScope = 'https://www.googleapis.com/auth/drive.file';
 
 /// The Web OAuth client of the Google Cloud project `cozy-safe`: Android's sign-in needs it
-/// as `serverClientId` (iOS reads GIDClientID from Info.plist). Empty until it is made.
-const _serverClientId = '';
+/// as `serverClientId` (iOS reads GIDClientID from Info.plist). Not a secret: a client
+/// id only names the app to Google; the Android clients beside it are tied to the
+/// package name and the signing keys.
+const _serverClientId = '521746667657-095mlmivp3aj7ot62kd7tnml25ia1mhh.apps.googleusercontent.com';
 
-/// Whether Google sign-in can work on this device: Android needs the Web client above,
-/// not made yet (owner 2026-10-25: it failed with the nearby-sync message).
+/// Whether Google sign-in can work on this device: Android needs the Web client above.
 bool get driveReady => !Device.android || _serverClientId.isNotEmpty;
 
 /// A short name for why sign-in failed, shown after the sentence.

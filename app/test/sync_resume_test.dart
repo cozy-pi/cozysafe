@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 SyncEvent ev(SyncStep k, {int done = 0, int total = 0}) =>
-    SyncEvent(kind: k, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: done, total: total, bytes: BigInt.zero, bytesTotal: BigInt.zero);
+    SyncEvent(kind: k, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: done, total: total, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
 
 Widget app(Widget child) => MaterialApp(
       theme: buildTheme(Brightness.light),

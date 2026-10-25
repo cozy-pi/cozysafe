@@ -21,12 +21,12 @@
 //! rest (never released). Opening moves them into place, one rename each, no bytes sent
 //! again.
 
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::io::{Read, Write};
 use std::ops::Bound;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{mpsc, Mutex};
 
 use cs_vault::bucket_of;
 use cs_vault::sync::Remote;
@@ -77,8 +77,9 @@ pub struct Move {
 pub trait DriveApi: Send + Sync {
     /// The app's folder, made if missing.
     fn folder(&self) -> Result<String>;
-    /// Every file and folder the app can see (its own: `drive.file`), not in the bin.
-    fn tree(&self) -> Result<Vec<Node>>;
+    /// Every file and folder the app can see (its own: `drive.file`), not in the bin;
+    /// `listed` hears how many so far, page by page.
+    fn tree(&self, listed: &dyn Fn(u32)) -> Result<Vec<Node>>;
     /// A new folder named `name` in `parent`; its id.
     fn make_folder(&self, parent: &str, name: &str) -> Result<String>;
     /// The file's bytes into `out`; false if it is gone.
@@ -103,6 +104,24 @@ pub trait DriveApi: Send + Sync {
     }
 }
 
+/// What [`DriveRemote::open_with`] is doing, for the screen.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DrivePhase {
+    /// Listing what the app has in Drive: `done` files and folders so far, `total` 0.
+    Listing,
+    /// Making the folders files are about to move into: `done` of `total`.
+    Folders,
+    /// Moving files of an earlier layout into place: `done` of `total`.
+    Moving,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DriveSetup {
+    pub phase: DrivePhase,
+    pub done: u32,
+    pub total: u32,
+}
+
 /// Per vault, the path after `<vault>/` → the file's id. Sorted, so a directory lists
 /// as a range; boxed strings, as small as they come (about 170 bytes a file).
 type Files = BTreeMap<Box<str>, Box<str>>;
@@ -120,6 +139,8 @@ pub struct DriveRemote<A: DriveApi> {
     uploading: Mutex<HashSet<String>>,
     /// Set by Cancel: the next request ends the sync (what was done is kept).
     stop: Option<&'static AtomicBool>,
+    /// Files of an earlier layout moved into place on open.
+    moved: u32,
 }
 
 /// A vault's id, as the app makes them: 32 lowercase hex digits.
@@ -199,8 +220,20 @@ fn folder_ok(path: &str) -> bool {
 
 impl<A: DriveApi> DriveRemote<A> {
     pub fn open(api: A) -> Result<Self> {
+        Self::open_with(api, &|_| {})
+    }
+
+    /// [`DriveRemote::open`], telling `progress` how the listing, the folders and the
+    /// moves of an earlier layout go.
+    pub fn open_with(api: A, progress: &dyn Fn(DriveSetup)) -> Result<Self> {
         let root = api.folder()?;
-        let nodes = api.tree()?;
+        let nodes = api.tree(&|done| {
+            progress(DriveSetup {
+                phase: DrivePhase::Listing,
+                done,
+                total: 0,
+            })
+        })?;
         // Folder paths, level by level (three at most); a path's folder is the first by
         // id, should two devices have made one at once.
         let mut paths: HashMap<&str, String> = HashMap::new();
@@ -271,29 +304,37 @@ impl<A: DriveApi> DriveRemote<A> {
             }
         }
         drop(nodes);
-        let remote = DriveRemote {
+        let mut remote = DriveRemote {
             api,
             root,
             folders: Mutex::new(folders),
             index: Mutex::new(index),
             uploading: Mutex::new(HashSet::new()),
             stop: None,
+            moved: 0,
         };
-        remote.gather(astray)?;
+        remote.moved = remote.gather(astray, progress)?;
         Ok(remote)
+    }
+
+    /// How many files of an earlier layout opening moved into place.
+    pub fn moved(&self) -> u32 {
+        self.moved
     }
 
     /// Bring `astray` files (sync path, id, folder, where the layout puts it) into place:
     /// moved, or deleted when the right place has that file already (files never change,
     /// so the copies are the same). Each move is one rename, so a move cut short leaves
-    /// every file in one place or the other, and the next open goes on.
+    /// every file in one place or the other, and the next open goes on. The folders the
+    /// moves need are made first, a few at once; how many files moved.
     #[allow(clippy::type_complexity)]
     fn gather(
         &self,
         astray: Vec<(String, String, String, Option<(String, String)>)>,
-    ) -> Result<()> {
-        let mut moves = Vec::new();
-        let mut paths = Vec::new();
+        progress: &dyn Fn(DriveSetup),
+    ) -> Result<u32> {
+        // (file id, folder it leaves, folder path it goes to, name there, sync path)
+        let mut wanted = Vec::new();
         let mut copies = Vec::new();
         let mut seen = HashSet::new();
         for (path, id, from, home) in astray {
@@ -304,6 +345,13 @@ impl<A: DriveApi> DriveRemote<A> {
                 copies.push(id);
                 continue;
             }
+            wanted.push((id, from, folder, name, path));
+        }
+        let needed: BTreeSet<&str> = wanted.iter().map(|w| w.2.as_str()).collect();
+        self.make_folders(&needed, progress)?;
+        let mut moves = Vec::with_capacity(wanted.len());
+        let mut paths = Vec::with_capacity(wanted.len());
+        for (id, from, folder, name, path) in wanted {
             moves.push(Move {
                 id,
                 from,
@@ -312,19 +360,141 @@ impl<A: DriveApi> DriveRemote<A> {
             });
             paths.push(path);
         }
-        if !moves.is_empty() {
-            let moved = self.api.move_many(&moves)?;
-            if moved.len() != moves.len() {
+        let total = moves.len() as u32;
+        let mut done = 0;
+        let mut count = 0;
+        if total > 0 {
+            progress(DriveSetup {
+                phase: DrivePhase::Moving,
+                done,
+                total,
+            });
+        }
+        for (chunk, paths) in moves.chunks(BATCH).zip(paths.chunks(BATCH)) {
+            let moved = self.api.move_many(chunk)?;
+            if moved.len() != chunk.len() {
                 return Err(Error::Corrupt("drive move answer"));
             }
-            for ((m, path), ok) in moves.into_iter().zip(paths).zip(moved) {
+            for ((m, path), ok) in chunk.iter().zip(paths).zip(moved) {
                 if ok {
-                    self.know(&path, &m.id);
+                    self.know(path, &m.id);
+                    count += 1;
                 }
             }
+            done += chunk.len() as u32;
+            progress(DriveSetup {
+                phase: DrivePhase::Moving,
+                done,
+                total,
+            });
         }
         if !copies.is_empty() {
             self.api.delete_many(&copies)?;
+        }
+        Ok(count)
+    }
+
+    /// Make the folders at `paths` under "Cozy Safe" that are missing, with the ones
+    /// above them: level by level (a folder needs its parent's id), up to [`AT_ONCE`]
+    /// at once through the kept connections. Only these, so no folder is made that no
+    /// file goes into. Opening runs alone, so nothing else makes folders meanwhile; one
+    /// already known is never made again.
+    fn make_folders(&self, paths: &BTreeSet<&str>, progress: &dyn Fn(DriveSetup)) -> Result<()> {
+        // Every missing folder, its parents too, by depth.
+        let mut levels: BTreeMap<usize, BTreeSet<String>> = BTreeMap::new();
+        {
+            let folders = self.folders.lock().unwrap_or_else(|p| p.into_inner());
+            for path in paths {
+                let mut at = String::new();
+                for (depth, part) in path.split('/').enumerate() {
+                    if depth > 0 {
+                        at.push('/');
+                    }
+                    at.push_str(part);
+                    if !folders.contains_key(&at) {
+                        levels.entry(depth).or_default().insert(at.clone());
+                    }
+                }
+            }
+        }
+        let total: u32 = levels.values().map(|l| l.len() as u32).sum();
+        if total == 0 {
+            return Ok(());
+        }
+        let mut done = 0;
+        progress(DriveSetup {
+            phase: DrivePhase::Folders,
+            done,
+            total,
+        });
+        for level in levels.into_values() {
+            // (path, parent id, name), parents all known by now.
+            let jobs: Vec<(String, String, String)> = {
+                let folders = self.folders.lock().unwrap_or_else(|p| p.into_inner());
+                level
+                    .into_iter()
+                    .filter(|p| !folders.contains_key(p))
+                    .map(|p| {
+                        let (parent, name) = match p.rsplit_once('/') {
+                            Some((above, name)) => (folders.get(above).cloned(), name.to_owned()),
+                            None => (Some(self.root.clone()), p.clone()),
+                        };
+                        Ok((p, parent.ok_or(Error::Corrupt("drive folder"))?, name))
+                    })
+                    .collect::<Result<_>>()?
+            };
+            let next = AtomicUsize::new(0);
+            let failed = AtomicBool::new(false);
+            let (tx, rx) = mpsc::channel::<(usize, Result<String>)>();
+            let mut first_error = None;
+            std::thread::scope(|scope| {
+                for _ in 0..AT_ONCE.min(jobs.len()) {
+                    let tx = tx.clone();
+                    let (jobs, next, failed) = (&jobs, &next, &failed);
+                    scope.spawn(move || loop {
+                        if failed.load(Ordering::Relaxed) {
+                            return;
+                        }
+                        let n = next.fetch_add(1, Ordering::Relaxed);
+                        let Some((_, parent, name)) = jobs.get(n) else {
+                            return;
+                        };
+                        let made = self.api.make_folder(parent, name);
+                        if made.is_err() {
+                            failed.store(true, Ordering::Relaxed);
+                        }
+                        if tx.send((n, made)).is_err() {
+                            return;
+                        }
+                    });
+                }
+                drop(tx);
+                // Each folder is known as soon as it is made (kept even if another
+                // fails), and counted here, on the caller's thread.
+                for (n, made) in rx {
+                    match made {
+                        Ok(id) => {
+                            self.folders
+                                .lock()
+                                .unwrap_or_else(|p| p.into_inner())
+                                .entry(jobs[n].0.clone())
+                                .or_insert(id);
+                            done += 1;
+                            progress(DriveSetup {
+                                phase: DrivePhase::Folders,
+                                done,
+                                total,
+                            });
+                        }
+                        Err(e) => {
+                            first_error.get_or_insert(e);
+                        }
+                    }
+                }
+            });
+            if let Some(e) = first_error {
+                return Err(e);
+            }
         }
         Ok(())
     }
@@ -616,8 +786,9 @@ impl GoogleDrive {
         serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("drive json"))
     }
 
-    /// Every file and folder matching the query `q`, page by page.
-    fn list(&self, q: &str) -> Result<Vec<Node>> {
+    /// Every file and folder matching the query `q`, page by page; `listed` hears how
+    /// many so far after each page.
+    fn list(&self, q: &str, listed: &dyn Fn(u32)) -> Result<Vec<Node>> {
         let mut out = Vec::new();
         let mut page = String::new();
         loop {
@@ -630,6 +801,7 @@ impl GoogleDrive {
             }
             let v = self.json("GET", &path, None)?;
             out.extend(nodes_of(&v));
+            listed(out.len() as u32);
             match v["nextPageToken"].as_str() {
                 Some(t) => page = t.to_owned(),
                 None => return Ok(out),
@@ -939,8 +1111,8 @@ impl DriveApi for GoogleDrive {
             .ok_or(Error::Corrupt("drive folder"))
     }
 
-    fn tree(&self) -> Result<Vec<Node>> {
-        self.list(TREE_QUERY)
+    fn tree(&self, listed: &dyn Fn(u32)) -> Result<Vec<Node>> {
+        self.list(TREE_QUERY, listed)
     }
 
     fn make_folder(&self, parent: &str, name: &str) -> Result<String> {
@@ -1202,8 +1374,12 @@ mod tests {
         fn folder(&self) -> Result<String> {
             Ok("F".into())
         }
-        fn tree(&self) -> Result<Vec<Node>> {
-            Ok(self.state().nodes.iter().map(|(n, _)| n.clone()).collect())
+        fn tree(&self, listed: &dyn Fn(u32)) -> Result<Vec<Node>> {
+            let nodes: Vec<Node> = self.state().nodes.iter().map(|(n, _)| n.clone()).collect();
+            // Two pages, as Drive gives a long listing.
+            listed(nodes.len() as u32 / 2);
+            listed(nodes.len() as u32);
+            Ok(nodes)
         }
         fn make_folder(&self, parent: &str, name: &str) -> Result<String> {
             Ok(self.add(parent, name, Vec::new(), true))
@@ -1450,6 +1626,7 @@ mod tests {
         assert_eq!(now, placed);
         assert_eq!(drive.state().uploads, uploads);
         assert_eq!(drive.state().moves, placed.len());
+        assert_eq!(r.moved() as usize, placed.len());
         assert_eq!(r.vault_ids(), vec![t.a.id.clone()]);
         t.b.sync(&r).unwrap();
         for (i, id) in ids.iter().enumerate() {
@@ -1468,6 +1645,79 @@ mod tests {
     #[test]
     fn files_flat_in_the_vault_folder_move_into_place() {
         earlier_layout_moves(true);
+    }
+
+    #[test]
+    fn opening_tells_how_the_listing_folders_and_moves_go() {
+        let t = two();
+        let drive = Fake::default();
+        let ids: Vec<String> = (0..60)
+            .map(|i| note(&t.a, &format!("N{i}"), &format!("text {i}")))
+            .collect();
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        let placed = drive.layout();
+        let folders = drive.folders();
+        // More than one batch of moves.
+        assert!(placed.len() > BATCH);
+        drive.flatten(false);
+        assert!(drive.folders().is_empty());
+        let seen = Mutex::new(Vec::new());
+        let r = DriveRemote::open_with(drive.clone(), &|s| seen.lock().unwrap().push(s)).unwrap();
+        let seen = seen.into_inner().unwrap();
+        assert_eq!(r.moved() as usize, placed.len());
+        assert_eq!(drive.layout(), placed);
+        // The same folders as before, each made once, none empty.
+        assert_eq!(drive.folders(), folders);
+        let layout = drive.layout();
+        for f in drive.folders() {
+            assert!(
+                layout
+                    .iter()
+                    .any(|(at, _, _)| *at == f || at.starts_with(&format!("{f}/"))),
+                "{f} is empty"
+            );
+        }
+        // Phases in order, counts going up, each ending at its total.
+        let of = |phase| -> Vec<DriveSetup> {
+            seen.iter().copied().filter(|s| s.phase == phase).collect()
+        };
+        let order: Vec<DrivePhase> = seen.iter().map(|s| s.phase).collect();
+        let mut sorted = order.clone();
+        sorted.sort_by_key(|p| *p as u8);
+        assert_eq!(order, sorted);
+        let listing = of(DrivePhase::Listing);
+        assert!(listing.len() >= 2 && listing.iter().all(|s| s.total == 0));
+        assert_eq!(listing.last().unwrap().done as usize, placed.len());
+        for (phase, total) in [
+            (DrivePhase::Folders, folders.len()),
+            (DrivePhase::Moving, placed.len()),
+        ] {
+            let steps = of(phase);
+            assert_eq!(steps[0].done, 0, "{phase:?}");
+            assert!(steps.iter().all(|s| s.total as usize == total), "{phase:?}");
+            assert_eq!(steps.last().unwrap().done as usize, total, "{phase:?}");
+            assert!(steps.windows(2).all(|w| w[0].done < w[1].done), "{phase:?}");
+        }
+        assert_eq!(of(DrivePhase::Folders).len(), folders.len() + 1);
+        assert_eq!(
+            of(DrivePhase::Moving).len(),
+            placed.len().div_ceil(BATCH) + 1
+        );
+        // Opened again: nothing to make or move.
+        let seen = Mutex::new(Vec::new());
+        let again =
+            DriveRemote::open_with(drive.clone(), &|s| seen.lock().unwrap().push(s)).unwrap();
+        assert_eq!(again.moved(), 0);
+        assert!(seen
+            .into_inner()
+            .unwrap()
+            .iter()
+            .all(|s| s.phase == DrivePhase::Listing));
+        t.b.sync(&again).unwrap();
+        for (i, id) in ids.iter().enumerate() {
+            assert_eq!(text(&t.b, id), format!("text {i}"));
+        }
     }
 
     #[test]
