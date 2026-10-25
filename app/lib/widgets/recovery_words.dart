@@ -25,12 +25,11 @@ List<int> pickFourWords({bool fixed = false}) {
 }
 
 /// The 24 words to write down (new vault, Recovery Key change): masked until Show, Copy
-/// (wiped from the clipboard after 60 s and on lock) and Save, the warning, then [action].
+/// (wiped from the clipboard after 60 s and on lock) and Save, then the warning. The
+/// screen pins its own button at the bottom.
 class RecoveryWordsPanel extends StatelessWidget {
-  const RecoveryWordsPanel({super.key, required this.words, this.action});
+  const RecoveryWordsPanel({super.key, required this.words});
   final List<String> words;
-  /// Under the warning; none when the screen pins its own button (the new-vault flow).
-  final Widget? action;
 
   Future<void> _copy(BuildContext context) async {
     final l = AppLocalizations.of(context);
@@ -95,25 +94,25 @@ class RecoveryWordsPanel extends StatelessWidget {
             child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: 14, height: 1.45)),
           ),
         ),
-        if (action case final action?) ...[const SizedBox(height: 18), action],
       ],
     );
   }
 }
 
-/// Four of the 24 words typed back ([ask]: their positions). [action] gets whether all
-/// four are right; [onShowAgain] goes back to the words.
+/// Four of the 24 words typed back ([ask]: their positions). [onValid] hears whether all
+/// four are right, for the screen's button pinned at the bottom; [onShowAgain] goes back
+/// to the words.
 class RecoveryWordsCheck extends StatefulWidget {
   const RecoveryWordsCheck({
     super.key,
     required this.words,
     required this.ask,
-    required this.action,
+    required this.onValid,
     required this.onShowAgain,
   });
   final List<String> words;
   final List<int> ask;
-  final Widget Function(bool ok) action;
+  final ValueChanged<bool> onValid;
   final VoidCallback onShowAgain;
 
   @override
@@ -125,11 +124,14 @@ class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> with VaultLockA
 
   /// The words typed are not kept while the vault is locked.
   @override
-  void vaultLocking() => setState(() {
-        for (final c in _answers) {
-          c.clear();
-        }
-      });
+  void vaultLocking() {
+    setState(() {
+      for (final c in _answers) {
+        c.clear();
+      }
+    });
+    widget.onValid(false);
+  }
 
   @override
   void dispose() {
@@ -163,13 +165,13 @@ class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> with VaultLockA
               labelText: l.wordNumber(widget.ask[i] + 1),
               suffixIcon: _answers[i].text.isNotEmpty && _ok(i) ? const Icon(Icons.check_rounded) : null,
             ),
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) {
+              setState(() {});
+              widget.onValid([for (var i = 0; i < 4; i++) _ok(i)].every((x) => x));
+            },
           ),
           const SizedBox(height: 10),
         ],
-        const SizedBox(height: 8),
-        widget.action([for (var i = 0; i < 4; i++) _ok(i)].every((x) => x)),
-        const SizedBox(height: 4),
         TextButton(onPressed: widget.onShowAgain, child: Text(l.wordsShowAgain)),
       ],
     );

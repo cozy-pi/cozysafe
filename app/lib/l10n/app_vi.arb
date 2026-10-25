@@ -640,5 +640,6 @@
   "formatHeading": "Tiêu đề",
   "formatList": "Danh sách",
   "formatChecklist": "Việc cần làm",
-  "formatLink": "Liên kết"
+  "formatLink": "Liên kết",
+  "doneTyping": "Ẩn bàn phím"
 }

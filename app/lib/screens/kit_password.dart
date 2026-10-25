@@ -5,6 +5,7 @@ import '../lock_resume.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/bottom_bar.dart';
 import '../widgets/secret.dart';
 import 'common.dart';
 
@@ -80,8 +81,15 @@ class _KitPasswordScreenState extends State<KitPasswordScreen> with VaultLockAwa
     final c = CsColors.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l.showKit)),
-      body: SafeArea(
-        top: false,
+      body: PinnedAction(
+        padding: 20,
+        actions: [
+          FilledButton(
+            key: const ValueKey('kit-password-go'),
+            onPressed: _busy || _pw.text.isEmpty ? null : _check,
+            child: BusyLabel(busy: _busy, idle: l.kitPasswordGo, working: l.checking),
+          ),
+        ],
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [
@@ -95,12 +103,6 @@ class _KitPasswordScreenState extends State<KitPasswordScreen> with VaultLockAwa
               errorText: _error,
               onChanged: (_) => setState(() => _error = null),
               onSubmitted: (_) => _check(),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              key: const ValueKey('kit-password-go'),
-              onPressed: _busy || _pw.text.isEmpty ? null : _check,
-              child: BusyLabel(busy: _busy, idle: l.kitPasswordGo, working: l.checking),
             ),
           ],
         ),

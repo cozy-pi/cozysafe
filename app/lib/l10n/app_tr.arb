@@ -626,5 +626,6 @@
   "formatHeading": "Başlık",
   "formatList": "Liste",
   "formatChecklist": "Yapılacaklar",
-  "formatLink": "Bağlantı"
+  "formatLink": "Bağlantı",
+  "doneTyping": "Klavyeyi gizle"
 }

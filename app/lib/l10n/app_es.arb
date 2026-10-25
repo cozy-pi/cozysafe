@@ -626,5 +626,6 @@
   "formatHeading": "Título",
   "formatList": "Lista",
   "formatChecklist": "Lista de tareas",
-  "formatLink": "Enlace"
+  "formatLink": "Enlace",
+  "doneTyping": "Ocultar teclado"
 }

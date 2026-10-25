@@ -626,5 +626,6 @@
   "formatHeading": "Titolo",
   "formatList": "Elenco",
   "formatChecklist": "Lista di controllo",
-  "formatLink": "Link"
+  "formatLink": "Link",
+  "doneTyping": "Nascondi tastiera"
 }

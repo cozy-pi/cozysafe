@@ -626,5 +626,6 @@
   "formatHeading": "見出し",
   "formatList": "リスト",
   "formatChecklist": "チェックリスト",
-  "formatLink": "リンク"
+  "formatLink": "リンク",
+  "doneTyping": "キーボードを閉じる"
 }

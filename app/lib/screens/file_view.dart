@@ -18,6 +18,7 @@ import '../l10n/app_localizations.dart';
 import '../debug_log.dart';
 import '../lock_guard.dart';
 import '../originals.dart' show PickedBatch, PickedCopy;
+import '../widgets/bottom_bar.dart';
 import '../widgets/vault_bar.dart';
 import 'quick_look.dart';
 import 'video_view.dart';
@@ -395,6 +396,27 @@ class _FileViewScreenState extends State<FileViewScreen> {
         icon: const Icon(Icons.more_horiz),
       );
 
+  /// The actions at the bottom, in the vault bar's place (owner 2026-10-25: buttons within
+  /// the thumb's reach); back and the name stay on top. [first] leads (Send, or Open with
+  /// for a file the app does not draw).
+  Widget _bar(AppLocalizations l, {List<Widget>? first}) => BottomBar(
+        children: [
+          ...first ??
+              [BarIcon(key: const ValueKey('file-send'), icon: Icons.ios_share, tooltip: l.sendOut, onTap: _busy ? null : _open)],
+          BarIcon(
+              key: const ValueKey('file-delete'),
+              icon: Icons.delete_outline,
+              tooltip: l.delete,
+              onTap: _busy ? null : (_) => _delete(),
+              color: recordRed(context)),
+          BarIcon(
+              key: const ValueKey('file-more'),
+              icon: Icons.more_horiz,
+              tooltip: l.more,
+              onTap: _busy ? null : (_) => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id))),
+        ],
+      );
+
   /// Pictures up to this size are decrypted into memory and shown here.
   static const _imageInMemory = 60 << 20;
   Future<Uint8List>? _imageBytes;
@@ -404,20 +426,10 @@ class _FileViewScreenState extends State<FileViewScreen> {
         appBar: AppBar(
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
-          title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)),
-          actions: [
-            Builder(
-              builder: (b) => IconButton(
-                  onPressed: _busy ? null : () => _open(b), icon: const Icon(Icons.ios_share), tooltip: l.sendOut),
-            ),
-            IconButton(
-                key: const ValueKey('file-delete'),
-                onPressed: _busy ? null : _delete,
-                icon: const Icon(Icons.delete_outline, color: Color(0xFFFF453A)),
-                tooltip: l.delete),
-            _more(l),
-          ],
+          title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, color: Colors.white)),
         ),
+        // Dark glass over the black page, whatever the app's theme.
+        bottomNavigationBar: Theme(data: buildTheme(Brightness.dark), child: Builder(builder: (_) => _bar(l))),
         body: FutureBuilder<Uint8List>(
           future: _imageBytes ??= photoBytes(widget.item.id),
           builder: (context, snap) {
@@ -559,22 +571,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
   Widget _pdfView(AppLocalizations l) => Scaffold(
         appBar: AppBar(
           title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-          actions: [
-            Builder(
-              builder: (b) => IconButton(
-                tooltip: l.sendOut,
-                onPressed: _busy ? null : () => _open(b),
-                icon: const Icon(Icons.ios_share),
-              ),
-            ),
-            IconButton(
-                key: const ValueKey('file-delete'),
-                tooltip: l.delete,
-                onPressed: _busy ? null : _delete,
-                icon: Icon(Icons.delete_outline, color: recordRed(context))),
-            _more(l),
-          ],
         ),
+        bottomNavigationBar: _bar(l),
         // Up to [_pdfInMemory] the PDF is decrypted into memory only. A bigger one would not
         // fit on a small phone, so it is decrypted (in 64 KB chunks) to the app's private
         // playback folder, read from there, and deleted when this screen closes, on lock
@@ -627,13 +625,15 @@ class _FileViewScreenState extends State<FileViewScreen> {
     final c = CsColors.of(context);
     final when = dateOf(widget.item.createdMs);
     return Scaffold(
-      appBar: AppBar(actions: [
-        IconButton(
-            key: const ValueKey('file-delete'),
-            onPressed: _busy ? null : _delete,
-            icon: Icon(Icons.delete_outline, color: recordRed(context)),
-            tooltip: l.delete),
-        _more(l),
+      appBar: AppBar(),
+      // Open with leads the bar; Open as text beside it.
+      bottomNavigationBar: _bar(l, first: [
+        BarIcon(key: const ValueKey('file-open-with'), icon: Icons.open_in_new, tooltip: l.openWith, onTap: _busy ? null : _open),
+        BarIcon(
+            key: const ValueKey('open-as-text'),
+            icon: Icons.notes_rounded,
+            tooltip: l.openAsText,
+            onTap: (_) => setState(() => _asText = true)),
       ]),
       body: SafeArea(
         child: Center(
@@ -653,24 +653,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 const SizedBox(height: 4),
                 Text('${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
                     style: TextStyle(color: c.muted)),
-                const SizedBox(height: 24),
-                Builder(
-                  builder: (b) => FilledButton.icon(
-                    onPressed: _busy ? null : () => _open(b),
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text(l.openWith),
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 20),
                 Text(l.openWithNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 13)),
-                const SizedBox(height: 12),
-                // Any file can be looked at as text inside the app, without leaving it.
-                TextButton.icon(
-                  key: const ValueKey('open-as-text'),
-                  onPressed: () => setState(() => _asText = true),
-                  icon: const Icon(Icons.notes_rounded),
-                  label: Text(l.openAsText),
-                ),
               ],
             ),
           ),

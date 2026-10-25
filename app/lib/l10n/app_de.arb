@@ -626,5 +626,6 @@
   "formatHeading": "Überschrift",
   "formatList": "Liste",
   "formatChecklist": "Checkliste",
-  "formatLink": "Link"
+  "formatLink": "Link",
+  "doneTyping": "Tastatur ausblenden"
 }

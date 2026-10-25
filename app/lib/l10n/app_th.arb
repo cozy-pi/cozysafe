@@ -626,5 +626,6 @@
   "formatHeading": "หัวข้อ",
   "formatList": "รายการ",
   "formatChecklist": "รายการตรวจสอบ",
-  "formatLink": "ลิงก์"
+  "formatLink": "ลิงก์",
+  "doneTyping": "ซ่อนแป้นพิมพ์"
 }

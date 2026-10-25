@@ -96,10 +96,13 @@ abstract final class NoteFormat {
 }
 
 /// The small bar over the keyboard while a note is edited: Bold · Italic · Heading ·
-/// List · Checklist · Link, each typing its Markdown marks at the selection.
+/// List · Checklist · Link, each typing its Markdown marks at the selection, then Done
+/// typing, which puts the keyboard away. It scrolls sideways on a narrow phone.
 class NoteFormatBar extends StatelessWidget {
-  const NoteFormatBar({super.key, required this.controller});
+  const NoteFormatBar({super.key, required this.controller, this.onDoneTyping});
   final TextEditingController controller;
+  /// Hides the keyboard; the note's own buttons come back at the bottom.
+  final VoidCallback? onDoneTyping;
 
   void _apply(TextEditingValue Function(TextEditingValue) f) {
     // The keyboard may be composing a word (Vietnamese Telex): it is finished first.
@@ -119,10 +122,12 @@ class NoteFormatBar extends StatelessWidget {
           style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
           icon: Icon(icon, color: ink),
         );
+    final done = onDoneTyping;
     return Glass(
       key: const ValueKey('format-bar'),
       radius: 28,
-      child: Padding(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -133,6 +138,17 @@ class NoteFormatBar extends StatelessWidget {
             button('list', Icons.format_list_bulleted_rounded, l.formatList, (v) => NoteFormat.line(v, '- ')),
             button('checklist', Icons.checklist_rounded, l.formatChecklist, (v) => NoteFormat.line(v, '- [ ] ')),
             button('link', Icons.link_rounded, l.formatLink, NoteFormat.link),
+            if (done != null) ...[
+              Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 2), color: ink.withValues(alpha: .15)),
+              IconButton(
+                key: const ValueKey('format-done-typing'),
+                tooltip: l.doneTyping,
+                onPressed: done,
+                iconSize: 24,
+                style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
+                icon: Icon(Icons.keyboard_hide_rounded, color: ink),
+              ),
+            ],
           ],
         ),
       ),

@@ -147,6 +147,7 @@ class VaultBadge extends StatelessWidget {
 Future<int?> showAllIcons(BuildContext context, int selected) => showCard<int>(
       context,
       title: AppLocalizations.of(context).pickIconHint,
+      closeButton: true,
       builder: (context) => SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
         child: _IconGrid(selected: selected, onPick: (i) => Navigator.pop(context, i)),
@@ -156,6 +157,7 @@ Future<int?> showAllIcons(BuildContext context, int selected) => showCard<int>(
 Future<int?> showAllColors(BuildContext context, int selected) => showCard<int>(
       context,
       title: AppLocalizations.of(context).pickColorTitle,
+      closeButton: true,
       builder: (context) => Padding(
         padding: const EdgeInsets.fromLTRB(18, 4, 18, 20),
         child: _ColorRow(selected: selected, onPick: (i) => Navigator.pop(context, i)),

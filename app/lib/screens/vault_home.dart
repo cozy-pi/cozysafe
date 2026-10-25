@@ -1041,6 +1041,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     await showCard<void>(
       context,
       title: l.info,
+      closeButton: true,
       builder: (context) => Padding(
         key: const ValueKey('item-info'),
         padding: const EdgeInsets.fromLTRB(22, 4, 22, 20),
@@ -1858,6 +1859,21 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         color: _recordingNow || (!_adding && _directAdd == AddWhat.voice) ? recordRed(context) : null);
   }
 
+  /// Everything on show is selected (Select all then reads Deselect all).
+  bool get _allShownSelected {
+    final items = _items;
+    if (items == null) return false;
+    final ids = _shown(items).map((i) => i.id).toSet();
+    return ids.isNotEmpty && _selected.containsAll(ids);
+  }
+
+  void _toggleSelectAll() {
+    final items = _items;
+    if (items == null) return;
+    final ids = _shown(items).map((i) => i.id).toSet();
+    setState(() => _allShownSelected ? _selected.removeAll(ids) : _selected.addAll(ids));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -1878,28 +1894,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final barW = MediaQuery.sizeOf(context).width - 20 - leftOfBar;
     final centreX = 10 + leftOfBar + barW * centrePlusShare(barSections(sections).length < 2 ? const [] : barSections(sections));
 
+    // Selecting: only the count on top; Done and Select all sit in the bar at the bottom
+    // with the actions (owner 2026-10-25: every button within the thumb's reach).
     final header = selecting
         ? Padding(
-            padding: const EdgeInsets.fromLTRB(18, 10, 8, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(_selected.isEmpty ? l.selectItems : l.selectedCount(_selected.length),
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                ),
-                if (_items != null)
-                  Builder(builder: (context) {
-                    final ids = _shown(_items!).map((i) => i.id).toSet();
-                    final all = ids.isNotEmpty && _selected.containsAll(ids);
-                    return TextButton(
-                      key: const ValueKey('select-all'),
-                      onPressed: () => setState(() => all ? _selected.removeAll(ids) : _selected.addAll(ids)),
-                      child: Text(all ? l.deselectAll : l.selectAll),
-                    );
-                  }),
-                TextButton(key: const ValueKey('select-done'), onPressed: () => setState(_endSelect), child: Text(l.done)),
-              ],
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+            child: SizedBox(
+              height: Ui.tap,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(_selected.isEmpty ? l.selectItems : l.selectedCount(_selected.length),
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              ),
             ),
           )
         : _header(context);
@@ -1956,6 +1963,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         bottomNavigationBar: selecting
             ? _SelectionBar(
                 enabled: _selected.isNotEmpty,
+                onDone: () => setState(_endSelect),
+                allSelected: _allShownSelected,
+                onSelectAll: _toggleSelectAll,
                 onSend: _sendSelected,
                 onTag: _tagSelected,
                 onRename: _renamable == null ? null : _renameSelected,
@@ -2267,7 +2277,21 @@ class _TagSheetState extends State<_TagSheet> {
 
 /// While items are selected the dock gives way to what can be done with them.
 class _SelectionBar extends StatelessWidget {
-  const _SelectionBar({required this.onSend, required this.onTag, required this.onDelete, this.onRename, this.enabled = true});
+  const _SelectionBar({
+    required this.onDone,
+    required this.onSelectAll,
+    required this.allSelected,
+    required this.onSend,
+    required this.onTag,
+    required this.onDelete,
+    this.onRename,
+    this.enabled = true,
+  });
+  /// Leaves Select mode; first, on the left, where the back arrow would be.
+  final VoidCallback onDone;
+  final VoidCallback onSelectAll;
+  /// Everything shown is selected: the button reads Deselect all.
+  final bool allSelected;
   /// Nothing chosen yet (Select mode just opened): the actions wait, dimmed.
   final bool enabled;
   final VoidCallback onSend;
@@ -2283,11 +2307,12 @@ class _SelectionBar extends StatelessWidget {
     // Frosted glass like the bottom bar, so no bright slab lights up a dark room; Delete
     // in the system's destructive red (owner 2026-10-21).
     final ink = Theme.of(context).colorScheme.onSurface;
-    Widget action(IconData icon, String label, VoidCallback onTap, {Color? color}) => Expanded(
+    Widget action(IconData icon, String label, VoidCallback onTap, {Color? color, Key? key, bool always = false}) => Expanded(
           child: Opacity(
-            opacity: enabled ? 1 : .35,
+            opacity: enabled || always ? 1 : .35,
             child: InkWell(
-            onTap: enabled ? onTap : null,
+            key: key,
+            onTap: enabled || always ? onTap : null,
             customBorder: const StadiumBorder(),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -2296,7 +2321,12 @@ class _SelectionBar extends StatelessWidget {
                 children: [
                   Icon(icon, color: color ?? ink),
                   const SizedBox(height: 3),
-                  Text(label, style: TextStyle(color: color ?? ink, fontSize: 13, fontWeight: FontWeight.w600)),
+                  // Six buttons on a narrow phone: a long label shrinks rather than wraps.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(label,
+                        maxLines: 1, style: TextStyle(color: color ?? ink, fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
                 ],
               ),
             ),
@@ -2311,6 +2341,9 @@ class _SelectionBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           child: Row(
             children: [
+              action(Icons.check_rounded, l.done, onDone, key: const ValueKey('select-done'), always: true),
+              action(allSelected ? Icons.deselect_rounded : Icons.select_all_rounded, allSelected ? l.deselectAll : l.selectAll,
+                  onSelectAll, key: const ValueKey('select-all'), always: true),
               action(Icons.ios_share, l.sendOut, onSend),
               action(Icons.sell_outlined, l.tagAction, onTag),
               if (onRename case final rename?) action(Icons.edit_outlined, l.rename, rename),

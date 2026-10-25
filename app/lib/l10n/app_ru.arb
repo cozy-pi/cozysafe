@@ -626,5 +626,6 @@
   "formatHeading": "Заголовок",
   "formatList": "Список",
   "formatChecklist": "Чек-лист",
-  "formatLink": "Ссылка"
+  "formatLink": "Ссылка",
+  "doneTyping": "Скрыть клавиатуру"
 }

@@ -1303,9 +1303,12 @@ Future<T?> pushPage<T>(BuildContext context, {required String title, required Wi
 
 /// Short content in a card in the middle of the screen, at eye level, the vault dimmed
 /// and blurred behind (owner 2026-10-21: a page for a few lines felt empty, a sheet at
-/// the bottom too far from the eye). A tap outside or × closes. Long scrolling lists
-/// stay pages ([pushPage]); actions for the thumb stay bottom sheets.
-Future<T?> showCard<T>(BuildContext context, {String? title, required WidgetBuilder builder}) => showGeneralDialog<T>(
+/// the bottom too far from the eye). A tap outside closes; no × on top (owner 2026-10-25:
+/// every button within the thumb's reach): a card without buttons of its own sets
+/// [closeButton] for a Close at its bottom. Long scrolling lists stay pages ([pushPage]);
+/// actions for the thumb stay bottom sheets.
+Future<T?> showCard<T>(BuildContext context, {String? title, bool closeButton = false, required WidgetBuilder builder}) =>
+    showGeneralDialog<T>(
       context: context,
       barrierDismissible: true,
       barrierLabel: AppLocalizations.of(context).close,
@@ -1342,23 +1345,21 @@ Future<T?> showCard<T>(BuildContext context, {String? title, required WidgetBuil
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(22, 14, 10, 4),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(title ?? '',
-                                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.2)),
-                              ),
-                              IconButton(
-                                key: const ValueKey('card-close'),
-                                tooltip: AppLocalizations.of(context).close,
-                                onPressed: () => Navigator.of(context).pop(),
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                            ],
-                          ),
+                          padding: const EdgeInsets.fromLTRB(22, 20, 22, 10),
+                          child: Text(title ?? '',
+                              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.2)),
                         ),
                         Flexible(child: builder(context)),
+                        if (closeButton)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(22, 0, 22, 18),
+                            child: OutlinedButton(
+                              key: const ValueKey('card-close'),
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ui.circle), shape: const StadiumBorder()),
+                              child: Text(AppLocalizations.of(context).close),
+                            ),
+                          ),
                       ],
                     ),
                   ),

@@ -626,5 +626,6 @@
   "formatHeading": "標題",
   "formatList": "清單",
   "formatChecklist": "待辦清單",
-  "formatLink": "連結"
+  "formatLink": "連結",
+  "doneTyping": "收起鍵盤"
 }

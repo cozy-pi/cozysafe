@@ -24,6 +24,11 @@ Dates are UTC.
   you could see.
 - An opened item's buttons now sit in the bottom bar's place, the same size and shape,
   instead of a second row above it.
+- Buttons moved to the bottom of the screen, where your thumb reaches: Done, Send and
+  Delete in a note (while typing, the format bar gets a button that hides the keyboard),
+  Send, Delete and More on an opened file, Select and Done in Recently deleted and when
+  choosing items, the search box, Close on info cards, and the main button of every
+  form (Next, Save, Unlock, Delete vault…), which stays just above the keyboard.
 - The code for syncing with a nearby device is 3 digits instead of 6. It was never what
   keeps others out (only a device with this vault can pair); it picks which device.
 - Syncing says simply "Sending data" or "Receiving data".

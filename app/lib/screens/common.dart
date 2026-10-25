@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../widgets/bottom_bar.dart';
 
 String vaultErrorText(AppLocalizations l, rust.VaultError e) => switch (e) {
       rust.VaultError.weakPassword => l.errorWeakPassword,
@@ -19,26 +20,29 @@ String vaultErrorText(AppLocalizations l, rust.VaultError e) => switch (e) {
 /// A centred, width-limited, scrollable column: phones fill the width, desktops
 /// get a comfortable reading column, and the keyboard never hides the button.
 class FormColumn extends StatelessWidget {
-  const FormColumn({super.key, required this.children});
+  const FormColumn({super.key, required this.children, this.actions = const []});
 
   final List<Widget> children;
+  /// The form's main button (and a quieter one under it), pinned to the bottom above
+  /// the keyboard ([PinnedAction]) rather than under the fields.
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
+    final form = Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
           ),
         ),
       ),
     );
+    if (actions.isEmpty) return SafeArea(child: form);
+    return SafeArea(bottom: false, child: PinnedAction(actions: actions, child: form));
   }
 }
 

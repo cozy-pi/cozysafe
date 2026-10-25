@@ -20,11 +20,13 @@ import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/screens/kit_password.dart';
 import 'package:cozysafe/screens/change_key.dart';
 import 'package:cozysafe/screens/debug.dart';
+import 'package:cozysafe/screens/delete_vault.dart';
 import 'package:cozysafe/screens/file_view.dart';
 import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/security_info.dart';
+import 'package:cozysafe/screens/set_pin.dart';
 import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/trash.dart';
 import 'package:cozysafe/screens/unlock.dart';
@@ -48,6 +50,7 @@ import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/privacy.dart';
 import 'package:cozysafe/screens/overview.dart';
+import 'package:cozysafe/widgets/bottom_bar.dart';
 import 'package:cozysafe/widgets/brand.dart';
 import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
@@ -1049,6 +1052,83 @@ void main() {
   });
   _screen('new-vault-second', 'Két thứ hai: dùng chung 24 từ, bỏ qua bước ghi từ', () => const NewVaultScreen(libraryDir: '', first: false),
       setup: () => NewVaultScreen.debugWords = words);
+
+  // Every action button at the bottom, within the thumb's reach (2026-10-25).
+  const bottomNote = 'Nút hành động xuống dưới, trong tầm ngón cái';
+  _screen('bottom-note', 'Sửa ghi chú · bàn phím đóng: Xong · Gửi · Xoá ở dưới',
+      () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('note-done'))]);
+  _screen('bottom-note-typing', 'Sửa ghi chú · bàn phím mở: định dạng + ẩn bàn phím',
+      () => _FakeKeyboard(child: NoteScreen(item: _formatted)),
+      act: (t) async {
+        t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
+        t.view.padding = const FakeViewPadding(top: 59 * 2);
+        await t.pump();
+        final r = t.getRect(find.byType(TextField));
+        await t.tapAt(r.topLeft + const Offset(150, 108));
+        await t.pump();
+      },
+      change: 'Một thanh trên bàn phím; nút cuối ẩn bàn phím', marks: [() => find.byKey(const ValueKey('format-done-typing'))]);
+  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'),
+      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+  _screen('bottom-file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'),
+      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+  _screen('bottom-trash', 'Đã xoá gần đây · Chọn ở thanh dưới', () => const TrashScreen(),
+      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+  _screen('bottom-trash-select', 'Đã xoá · bấm Chọn', () => const TrashScreen(),
+      act: (t) async {
+        await t.tap(find.byKey(const ValueKey('trash-select')));
+        await t.pump();
+        await t.tap(find.byKey(ValueKey('trash-${'t1'.padRight(32, '_')}')));
+        await t.pump();
+      },
+      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+  _screen('bottom-select', 'Thư viện · đang chọn: Xong và Chọn tất cả ở thanh dưới', home, section: 'library', act: (t) async {
+    await t.tap(find.byKey(const ValueKey('select-button')));
+    await t.pump();
+  }, change: bottomNote, marks: [() => find.byKey(const ValueKey('select-done')), () => find.byKey(const ValueKey('select-all'))]);
+  _screen('bottom-set-pin', 'Đặt mã PIN cho máy này · Tiếp + Để sau ở dưới',
+      () => const SetPinScreen(skippable: true, forThisPhone: true),
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('pin-not-now'))]);
+  _screen('bottom-icons', 'Tạo két · ⋯ biểu tượng: nút Đóng ở dưới, bỏ ×', () => Builder(builder: (context) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => showAllIcons(context, 0));
+        return const Scaffold();
+      }), change: bottomNote, marks: [() => find.byKey(const ValueKey('card-close'))]);
+  _screen('bottom-search', 'Tìm kiếm · ô tìm ở dưới, trên bàn phím',
+      () => _FakeKeyboard(child: SearchScreen(items: _items, thumbnail: (_) async => _thumbnails[0]!)),
+      act: (t) async {
+        t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
+        t.view.padding = const FakeViewPadding(top: 59 * 2);
+        await t.pump();
+        await t.enterText(find.byKey(const ValueKey('search-field')), 'thuoc');
+        await t.pump();
+      },
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('search-field'))]);
+  _screen('bottom-lock-password', 'Màn khoá · dùng mật khẩu: Mở khoá ở dưới', lock, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('more-button')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Dùng mật khẩu'));
+    await t.pump();
+  }, change: bottomNote, marks: [() => find.byKey(const ValueKey('unlock-password-go'))]);
+  _screen('bottom-backup-password', 'Mật khẩu sao lưu · Lưu ở dưới, bàn phím mở',
+      () => const _FakeKeyboard(child: BackupPasswordScreen(libraryDir: '', change: false)),
+      act: (t) async {
+        t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
+        t.view.padding = const FakeViewPadding(top: 59 * 2);
+        await t.pump();
+      },
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('backup-password-save'))]);
+  _screen('bottom-kit-password', 'Khoá khôi phục · nhập mật khẩu: nút ở dưới', () => const KitPasswordScreen(libraryDir: ''),
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('kit-password-go'))]);
+  _screen('bottom-delete-vault', 'Xoá két · nút đỏ ở dưới',
+      () => const DeleteVaultScreen(libraryDir: '', vault: vault, sizeText: '214 MB · 86 mục'),
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('delete-vault-go'))]);
+  _screen('bottom-new-vault-password', 'Tạo két · 3. Mật khẩu: Tiếp ở hàng dưới', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords, act: (t) async {
+    await tapKey(t, 'words-done');
+    await fillCheck(t);
+    await tapKey(t, 'check-done');
+  }, change: bottomNote, marks: [() => find.byKey(const ValueKey('password-next'))]);
 }
 
 void _leftCamera() {

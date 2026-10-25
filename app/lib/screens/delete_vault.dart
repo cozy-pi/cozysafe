@@ -12,6 +12,7 @@ import '../widgets/pin_pad.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'unlock.dart';
+import '../widgets/bottom_bar.dart';
 import '../widgets/toast.dart';
 import 'welcome.dart';
 
@@ -141,8 +142,19 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
     final ink = Theme.of(context).colorScheme.onSurface;
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.transparent, foregroundColor: ink),
+      // Delete, red, pinned at the bottom (owner 2026-10-25: buttons within the thumb's reach).
       body: SafeArea(
-        child: Center(
+        bottom: false,
+        child: PinnedAction(
+          actions: [
+            FilledButton(
+              key: const ValueKey('delete-vault-go'),
+              style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
+              onPressed: _pin.length >= 4 && !_busy ? _confirm : null,
+              child: Text(l.deleteVaultAction),
+            ),
+          ],
+          child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: ConstrainedBox(
@@ -177,19 +189,11 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
                   SizedBox(height: 20, child: PinDots(filled: _pin.length, color: ink)),
                   const SizedBox(height: 16),
                   PinPad(onDigit: _digit, onDelete: _back, enabled: !_busy),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: 240,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
-                      onPressed: _pin.length >= 4 && !_busy ? _confirm : null,
-                      child: Text(l.deleteVaultAction),
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
+        ),
         ),
       ),
     );

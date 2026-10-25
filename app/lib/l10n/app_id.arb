@@ -626,5 +626,6 @@
   "formatHeading": "Judul",
   "formatList": "Daftar",
   "formatChecklist": "Daftar periksa",
-  "formatLink": "Tautan"
+  "formatLink": "Tautan",
+  "doneTyping": "Sembunyikan keyboard"
 }

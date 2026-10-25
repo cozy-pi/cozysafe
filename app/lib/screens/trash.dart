@@ -7,13 +7,14 @@ import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'file_view.dart';
 import 'quick_look.dart';
+import '../widgets/bottom_bar.dart';
 import '../widgets/item_menu.dart';
 import '../widgets/vault_bar.dart';
 import '../item_kind.dart';
 
 /// Recently deleted: items stay here, still encrypted, for 30 days, then go for good.
 /// A tap shows the item (owner 2026-10-22), a long press offers Restore or Delete for
-/// good; Select picks several, and the bottom bar acts on them (with nothing selected,
+/// good; Select (in the bottom bar) picks several, and the bar acts on them (with nothing selected,
 /// on everything). The vault reloads when it closes.
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -140,14 +141,6 @@ class _TrashScreenState extends State<TrashScreen> {
               : _picked.isEmpty
                   ? l.selectItems
                   : l.selectedCount(_picked.length)),
-          actions: [
-            if (_selecting)
-              TextButton(key: const ValueKey('trash-done'), onPressed: () => setState(_endSelect), child: Text(l.done))
-            else if (items != null && items.isNotEmpty)
-              TextButton(
-                  key: const ValueKey('trash-select'), onPressed: () => setState(() => _selectMode = true), child: Text(l.select)),
-            const SizedBox(width: 8),
-          ],
         ),
         body: items == null
             ? const Center(child: CircularProgressIndicator())
@@ -246,38 +239,29 @@ class _TrashScreenState extends State<TrashScreen> {
               ),
         // Glass like the vault's selection bar: Restore, and Delete for good in red, apart.
         // Nothing selected: they act on everything.
+        // Glass like the vault's selection bar: Select (Done while selecting), Restore,
+        // and Delete for good in red. Nothing selected: they act on everything.
         bottomNavigationBar: (items == null || items.isEmpty)
             ? null
-            : Padding(
-                padding: EdgeInsets.fromLTRB(10, 0, 10, Ui.edge + MediaQuery.paddingOf(context).bottom),
-                child: Glass(
-                  radius: Ui.bar / 2,
-                  child: SizedBox(
-                    height: Ui.bar,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            key: const ValueKey('restore'),
-                            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
-                            onPressed: () => _restore(_picked.isEmpty ? items : items.where((i) => _picked.contains(i.id)).toList()),
-                            child: Text(_picked.isEmpty ? l.restoreAll : l.restore,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                          ),
-                        ),
-                        Expanded(
-                          child: TextButton(
-                            key: const ValueKey('delete-all'),
-                            style: TextButton.styleFrom(foregroundColor: recordRed(context)),
-                            onPressed: () => _deleteForGood(_picked.isEmpty ? items : items.where((i) => _picked.contains(i.id)).toList()),
-                            child: Text(_picked.isEmpty ? l.deleteAll : l.deleteForGoodShort,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                          ),
-                        ),
-                      ],
-                    ),
+            : BottomBar(
+                children: [
+                  if (_selecting)
+                    BarText(key: const ValueKey('trash-done'), label: l.done, expand: false, onTap: () => setState(_endSelect))
+                  else
+                    BarText(
+                        key: const ValueKey('trash-select'), label: l.select, expand: false, onTap: () => setState(() => _selectMode = true)),
+                  BarText(
+                    key: const ValueKey('restore'),
+                    label: _picked.isEmpty ? l.restoreAll : l.restore,
+                    onTap: () => _restore(_picked.isEmpty ? items : items.where((i) => _picked.contains(i.id)).toList()),
                   ),
-                ),
+                  BarText(
+                    key: const ValueKey('delete-all'),
+                    label: _picked.isEmpty ? l.deleteAll : l.deleteForGoodShort,
+                    color: recordRed(context),
+                    onTap: () => _deleteForGood(_picked.isEmpty ? items : items.where((i) => _picked.contains(i.id)).toList()),
+                  ),
+                ],
               ),
       ),
     ));

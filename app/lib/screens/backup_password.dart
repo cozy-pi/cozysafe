@@ -93,6 +93,13 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
     return Scaffold(
       appBar: AppBar(),
       body: FormColumn(
+        actions: [
+          FilledButton(
+            key: const ValueKey('backup-password-save'),
+            onPressed: _ready ? _save : null,
+            child: BusyLabel(busy: _busy, idle: l.save, working: l.saving),
+          ),
+        ],
         children: [
           Text(widget.change ? l.changePasswordTitle : l.backupPasswordTitle,
               style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
@@ -128,11 +135,6 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
             const SizedBox(height: 12),
             Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
           ],
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _ready ? _save : null,
-            child: BusyLabel(busy: _busy, idle: l.save, working: l.saving),
-          ),
         ],
       ),
     );

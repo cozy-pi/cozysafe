@@ -838,5 +838,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "doneTyping": "Done typing"
 }

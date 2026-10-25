@@ -92,6 +92,19 @@ class _RestoreScreenState extends State<RestoreScreen> {
     return Scaffold(
       appBar: widget.needFile ? AppBar() : null,
       body: FormColumn(
+        actions: [
+          if (_needFile)
+            FilledButton.icon(
+              onPressed: _busy ? null : _pickBackup,
+              icon: const Icon(Icons.file_open_outlined),
+              label: BusyLabel(busy: _busy, idle: l.restorePick, working: l.restoring),
+            )
+          else
+            FilledButton(
+              onPressed: _busy || _key.text.trim().isEmpty ? null : _useKey,
+              child: BusyLabel(busy: _busy, idle: l.restoreContinue, working: l.restoring),
+            ),
+        ],
         children: [
           if (!widget.needFile) ...[const BrandHeader(), const SizedBox(height: 28)],
           Text(l.restoreTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
@@ -100,14 +113,8 @@ class _RestoreScreenState extends State<RestoreScreen> {
             _needFile ? l.restoreLeadFile : l.restoreLeadKey,
             style: TextStyle(color: c.muted, fontSize: 15, height: 1.5),
           ),
-          const SizedBox(height: 24),
-          if (_needFile)
-            FilledButton.icon(
-              onPressed: _busy ? null : _pickBackup,
-              icon: const Icon(Icons.file_open_outlined),
-              label: BusyLabel(busy: _busy, idle: l.restorePick, working: l.restoring),
-            )
-          else ...[
+          if (!_needFile) ...[
+            const SizedBox(height: 24),
             SecretField(
               controller: _key,
               enabled: !_busy,
@@ -118,11 +125,6 @@ class _RestoreScreenState extends State<RestoreScreen> {
               hint: l.recoveryWordsHint,
               onChanged: (_) => setState(() => _error = null),
               onSubmitted: (_) => _useKey(),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _busy || _key.text.trim().isEmpty ? null : _useKey,
-              child: BusyLabel(busy: _busy, idle: l.restoreContinue, working: l.restoring),
             ),
           ],
           if (_error != null) ...[
