@@ -505,6 +505,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             _Row(
+              icon: Icons.notes_rounded,
+              color: _Mau.bacHa,
+              // "Hide", on by default (owner 2026-10-21): the safe state is the on state,
+              // like "Blur thumbnails". The pref keeps its old meaning (1 = show text).
+              key: const ValueKey('hide-note-text-row'),
+              title: l.hideNoteText,
+              trailing: _Switch(
+                value: !notePreviews(),
+                // Showing more is weaker: turning "hide" off asks for the owner.
+                onChanged: (hide) => hide
+                    ? setState(() => Prefs.write(notePreviewsPref, '0'))
+                    : _guarded(() async => setState(() => Prefs.write(notePreviewsPref, '1'))),
+              ),
+            ),
+            _Row(
               key: const ValueKey('blur-row'),
               icon: Icons.blur_on_rounded,
               color: _Mau.ngoc,
@@ -788,7 +803,7 @@ abstract final class _Mau {
   static const tim = Color(0xFFAF52DE), xam = Color(0xFF8E8E93), xanhLa = Color(0xFF34C759),
       cham = Color(0xFF5856D6), cam = Color(0xFFFF9500), xanh = Color(0xFF007AFF),
       doTuoi = Color(0xFFFF3B30), ngoc = Color(0xFF30B0C7), hong = Color(0xFFFF2D55), troi = Color(0xFF32ADE6),
-      vang = Color(0xFFFFB300); // brown (nau) dropped: owner found it ugly
+      vang = Color(0xFFFFB300), bacHa = Color(0xFF00C7BE); // brown (nau) dropped: owner found it ugly
 }
 
 class _Row extends StatelessWidget {

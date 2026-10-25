@@ -627,5 +627,6 @@
   "formatList": "Список",
   "formatChecklist": "Чек-лист",
   "formatLink": "Ссылка",
-  "doneTyping": "Скрыть клавиатуру"
+  "doneTyping": "Скрыть клавиатуру",
+  "hideNoteText": "Скрывать текст заметок"
 }

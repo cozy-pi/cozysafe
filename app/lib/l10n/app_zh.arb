@@ -627,5 +627,6 @@
   "formatList": "列表",
   "formatChecklist": "待办清单",
   "formatLink": "链接",
-  "doneTyping": "收起键盘"
+  "doneTyping": "收起键盘",
+  "hideNoteText": "隐藏笔记内容"
 }

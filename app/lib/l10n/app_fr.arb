@@ -627,5 +627,6 @@
   "formatList": "Liste",
   "formatChecklist": "Liste de tâches",
   "formatLink": "Lien",
-  "doneTyping": "Masquer le clavier"
+  "doneTyping": "Masquer le clavier",
+  "hideNoteText": "Masquer le texte des notes"
 }

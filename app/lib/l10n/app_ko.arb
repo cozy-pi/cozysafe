@@ -627,5 +627,6 @@
   "formatList": "목록",
   "formatChecklist": "체크리스트",
   "formatLink": "링크",
-  "doneTyping": "키보드 숨기기"
+  "doneTyping": "키보드 숨기기",
+  "hideNoteText": "메모 내용 숨기기"
 }

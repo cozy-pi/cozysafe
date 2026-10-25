@@ -342,7 +342,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final media = s == VaultSection.library;
     // The words around the match only when note text may show (Settings → Display);
     // otherwise just that it matched inside.
-    final under = snippet;
+    final under = snippet == null ? null : (notePreviews() ? snippet : l.foundInText);
     return InkWell(
       onTap: () => Navigator.of(context).pop(it),
       onLongPress: () => Navigator.of(context).pop(SearchMenu(it)),
@@ -376,7 +376,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   MarkedText(_shownName(l, it), q,
                       maxLines: 1, style: TextStyle(fontSize: 15.5, fontWeight: q.isEmpty ? FontWeight.w600 : FontWeight.w400)),
                   const SizedBox(height: 3),
-                  if (under != null)
+                  if (under != null && notePreviews())
                     MarkedText(under, q, maxLines: 2, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.3))
                   else
                     Text(under ?? date, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: 13.5)),
