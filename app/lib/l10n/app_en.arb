@@ -20,7 +20,7 @@
   "acknowledge": "I understand and will back up this vault",
   "createButton": "Create vault",
   "creating": "Creating vault…",
-  "errorWeakPassword": "This password is too weak.",
+  "errorWeakPassword": "This password is too easy to guess. Use 4 random words, or tap Suggest a password.",
   "errorPasswordInUse": "Another vault already uses this password. Choose a different one.",
   "errorEmptyName": "Give the vault a name.",
   "errorStorage": "Couldn't save the vault. Check free space and try again.",
@@ -617,7 +617,6 @@
   "strengthLabelFair": "Fair",
   "strengthLabelGood": "Good",
   "strengthLabelStrong": "Strong",
-  "strengthLabelWeakNote": "You can use it, but it is only safe while your 24 words are kept safe.",
   "introLead": "Three things keep your vault safe. Here is what each one does.",
   "introPinTitle": "PIN",
   "introPinBody": "Opens the vault every day, on this phone only. Face ID can stand in for it.",
@@ -839,5 +838,17 @@
       }
     }
   },
-  "doneTyping": "Done typing"
+  "doneTyping": "Done typing",
+  "errorWeakKdf": "These vault files were changed to make them easier to break, so nothing was opened. Restore from a backup or from your other device.",
+  "passwordCommon": "Too common",
+  "passwordCommonFix": "This is one of the most used passwords, even with a number or symbol added. Try 4 random words, or tap Suggest a password.",
+  "passwordGuessable": "Too easy to guess. Make it longer, or use 4 random words (Suggest a password does it for you).",
+  "syncHelpRestore": "Help a new device restore",
+  "syncHelpRestoreNote": "Only to set up a new phone with your 24 words. You will be asked before it gets anything.",
+  "syncRestoreAllowTitle": "Allow this new device?",
+  "syncRestoreAllowNote": "Allow only if it is your phone and it shows this same number. It gets a copy of this vault; opening it still needs the password.",
+  "syncRestoreAllowYes": "Allow",
+  "syncRestoreAllowNo": "Don't allow",
+  "restoreTapAllow": "On your other device, tap Allow.",
+  "changeNoReencrypt": "This does not re-encrypt what is already in the vault: only the key that opens it changes. Re-encrypting everything is planned."
 }

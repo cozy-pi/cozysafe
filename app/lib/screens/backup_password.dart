@@ -54,8 +54,8 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
     _changed();
   }
 
-  /// 8 characters is the only rule; the strength is shown, not enforced (owner 2026-10-23).
-  bool get _ready => !_busy && _pw.text.characters.length >= rust.minPasswordLength() && _pw.text == _again.text;
+  /// Long enough, not a common password, hard to guess or four words (PasswordStrength).
+  bool get _ready => !_busy && PasswordStrength.acceptable(_pw.text) && _pw.text == _again.text;
 
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
@@ -105,6 +105,10 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
               style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Text(l.backupPasswordLead, style: TextStyle(color: c.muted, fontSize: 15, height: 1.5)),
+          if (widget.change) ...[
+            const SizedBox(height: 8),
+            Text(l.changeNoReencrypt, key: const ValueKey('change-no-reencrypt'), style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.4)),
+          ],
           const SizedBox(height: 18),
           Align(
             alignment: Alignment.centerLeft,

@@ -9,9 +9,11 @@
 //! the host syncs that folder back in to take the joiner's changes.
 //!
 //! A device with no vault yet (restoring) joins the same way with a key from the 24
-//! words instead ([`kdf::restore_pairing_key`]); the host then tells it the vault's id,
-//! and it opens the vault's lock with the words and the password ([`Library::join`])
-//! before the ordinary sync brings the items.
+//! words instead ([`kdf::restore_pairing_key`]), but only when the person on the host
+//! turned "Help a new device restore" on, and then only once they allowed that device,
+//! comparing the number both screens show ([`Session::allow`]). The host then tells it
+//! the vault's id, and it opens the vault's lock with the words and the password
+//! ([`Library::join`]) before the ordinary sync brings the items.
 //!
 //! Nothing is advertised on the network: no Bonjour, no broadcast. To spare the person
 //! the QR, the host listens on a fixed port ([`PORT`]) and shows three digits; the other
@@ -26,7 +28,7 @@ use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use cs_crypto::{kdf, wrap, Key, SecretKey};
@@ -59,6 +61,8 @@ const MAX_FRAME: usize = (1 << 20) + 64;
 const CHUNK: usize = 1 << 20;
 /// How long a code works (time to pick up the other phone and type the digits).
 pub const CODE_LIFETIME: Duration = Duration::from_secs(300);
+/// How long a restoring device waits for the person on the host to allow it.
+pub const ALLOW_WAIT: Duration = Duration::from_secs(180);
 /// Failed handshakes before the host stops listening.
 const MAX_FAILURES: u32 = 3;
 /// A session with no request for this long ends.
@@ -316,9 +320,11 @@ fn handshake_host(
     let mode = hello[1];
     let pk = match mode {
         MODE_SYNC => &prepared.key,
+        // Only while the person has "Help a new device restore" on.
         MODE_RESTORE => prepared
             .restore_key
             .as_ref()
+            .filter(|_| prepared.restore_on.load(Ordering::Relaxed))
             .ok_or(Error::Corrupt("p2p hello"))?,
         _ => return Err(Error::Corrupt("p2p hello")),
     };
@@ -363,13 +369,18 @@ fn same(a: &[u8], b: &[u8]) -> bool {
 }
 
 /// The host answers a probe: a fresh nonce, then for each key it holds (the vault's, and
-/// the 24 words' for a device restoring) a tag that says "same vault" and one that says
-/// "and these digits". Random bytes stand in for a key it does not hold.
+/// the 24 words' for a device restoring, while the person allows that) a tag that says
+/// "same vault" and one that says "and these digits". Random bytes stand in for a key it
+/// does not hold or use.
 fn answer_probe(keys: &ProbeKeys, nj: &[u8], stream: &mut TcpStream) -> Result<()> {
     let nh: [u8; NONCE_LEN] = random();
     let mut reply = nh.to_vec();
     let code = format!("code/{}", hex::encode(keys.token));
-    for pk in [Some(&keys.key), keys.restore_key.as_ref()] {
+    let restore = keys
+        .restore_key
+        .as_ref()
+        .filter(|_| keys.restore_on.load(Ordering::Relaxed));
+    for pk in [Some(&keys.key), restore] {
         match pk {
             Some(pk) => {
                 reply.extend(tag(pk, "vault", nj, &nh));
@@ -385,6 +396,7 @@ fn answer_probe(keys: &ProbeKeys, nj: &[u8], stream: &mut TcpStream) -> Result<(
 struct ProbeKeys {
     key: Key,
     restore_key: Option<Key>,
+    restore_on: Arc<AtomicBool>,
     token: [u8; TOKEN_LEN],
 }
 
@@ -777,6 +789,9 @@ pub struct Prepared {
     key: Key,
     /// From the Recovery Key, to let a device with no vault restore this one.
     restore_key: Option<Key>,
+    /// Whether it may, now: the person turns "Help a new device restore" on and off
+    /// while the host waits ([`host_help_restore`]).
+    restore_on: Arc<AtomicBool>,
     vault_id: String,
     mirror: PathBuf,
 }
@@ -795,6 +810,7 @@ pub fn host_prepare(
     Ok(Prepared {
         key: pairing_key(vault),
         restore_key: secret.map(kdf::restore_pairing_key),
+        restore_on: Arc::new(AtomicBool::new(secret.is_some())),
         vault_id: vault.id.clone(),
         mirror: mirror.to_path_buf(),
     })
@@ -807,6 +823,10 @@ pub struct Session {
     mirror: PathBuf,
     /// The number both screens show.
     pub check: u16,
+    restoring: bool,
+    /// Served only once true: at once for the same vault, after [`Session::allow`] for a
+    /// restoring device.
+    allowed: bool,
 }
 
 /// Step 2 (no vault): wait for the joiner until the code expires, three failed tries,
@@ -829,15 +849,16 @@ pub fn host_accept(
 ) -> Result<Session> {
     host.listener.set_nonblocking(true)?;
     let mut failures = 0;
-    let keys = std::sync::Arc::new(ProbeKeys {
+    let keys = Arc::new(ProbeKeys {
         key: prepared.key.clone(),
         restore_key: prepared.restore_key.clone(),
+        restore_on: prepared.restore_on.clone(),
         token: host.code.token,
     });
     let reading = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
     // Hellos read on their own threads come back here; probes are answered there.
     let (hellos, came) = std::sync::mpsc::channel::<(TcpStream, Vec<u8>)>();
-    let ch = loop {
+    let (ch, mode) = loop {
         if stop.load(Ordering::Relaxed) {
             return Err(Error::Corrupt("p2p cancelled"));
         }
@@ -880,13 +901,7 @@ pub fn host_accept(
                 on_seen(Seen::Knock);
                 stream.set_read_timeout(Some(Duration::from_secs(20)))?;
                 match handshake_host(&prepared, &host.code.token, &hello, stream) {
-                    Ok((mut ch, mode)) => {
-                        // A restoring device does not know which vault yet.
-                        if mode == MODE_RESTORE {
-                            ch.send(prepared.vault_id.as_bytes())?;
-                        }
-                        break ch;
-                    }
+                    Ok((ch, mode)) => break (ch, mode),
                     // A Cozy Safe device that could not prove itself: stop and say so
                     // (the person sees why on both phones). Anything else that connects
                     // (not a Cozy Safe hello) is ignored, up to a few times.
@@ -914,10 +929,33 @@ pub fn host_accept(
         ch,
         vault_id: prepared.vault_id,
         mirror: prepared.mirror,
+        restoring: mode == MODE_RESTORE,
+        allowed: mode != MODE_RESTORE,
     })
 }
 
 impl Session {
+    /// A restoring device (24 words, no vault): the person allows it ([`Session::allow`])
+    /// or not ([`Session::refuse`]) before anything is served.
+    pub fn restoring(&self) -> bool {
+        self.restoring
+    }
+
+    /// The person allowed the restoring device: tell it which vault (it does not know
+    /// yet), then [`Session::serve`].
+    pub fn allow(&mut self) -> Result<()> {
+        if self.restoring && !self.allowed {
+            self.ch.send(self.vault_id.as_bytes())?;
+            self.allowed = true;
+        }
+        Ok(())
+    }
+
+    /// The person did not allow it: tell it we stopped (it shows so), serve nothing.
+    pub fn refuse(mut self) {
+        let _ = self.ch.send(&[OP_ABORT, ABORT_STOPPED]);
+    }
+
     /// Step 3 (no vault): answer the joiner until it is done.
     pub fn serve(self) -> Result<Served> {
         self.serve_with(&|_| ())
@@ -925,6 +963,9 @@ impl Session {
 
     /// [`Session::serve`], telling `progress` the files and bytes that crossed.
     pub fn serve_with(mut self, progress: &dyn Fn(SyncProgress)) -> Result<Served> {
+        if !self.allowed {
+            return Err(Error::Corrupt("p2p restore not allowed"));
+        }
         let folder = FolderRemote::with_key(&self.mirror, HOST_KEY);
         set_live(self.ch.stream.try_clone().ok());
         let served = serve(&mut self.ch, &folder, &self.vault_id, progress);
@@ -958,6 +999,8 @@ pub fn host_finish_with(
 /// The waiting host for an app that must not hold sockets itself (cackle allows `net`
 /// to this crate only): [`host_open`], then [`host_session`] on a worker thread.
 static PENDING: Mutex<Option<(Host, Prepared)>> = Mutex::new(None);
+/// "Help a new device restore" of the host opened last, for [`host_help_restore`].
+static HELP: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
 
 /// What the host shows.
 pub struct Shown {
@@ -970,14 +1013,22 @@ pub struct Shown {
 }
 
 /// Steps 1 and the listener: copy the vault into `mirror` and start waiting at the
-/// permitted address. Replaces any host still pending.
+/// permitted address. Replaces any host still pending. With `secret` (the library's
+/// Recovery Key), a new device may restore while `help_restore` is on (the person's
+/// choice, [`host_help_restore`]); while it is off, probes from a restoring device get
+/// random bytes and its hello is refused.
 pub fn host_open(
     vault: &OpenVault,
     secret: Option<&SecretKey>,
+    help_restore: bool,
     permit: Permit,
     mirror: &Path,
 ) -> Result<Shown> {
     let prepared = host_prepare(vault, secret, mirror)?;
+    prepared
+        .restore_on
+        .store(help_restore && secret.is_some(), Ordering::Relaxed);
+    *HELP.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.restore_on.clone());
     let host = host(permit)?;
     let shown = Shown {
         typed: host.code.typed(),
@@ -989,13 +1040,16 @@ pub fn host_open(
     Ok(shown)
 }
 
-/// Steps 2 and 3 (no vault) for the pending host; then [`host_finish`].
+/// Steps 2 and 3 (no vault) for the pending host; then [`host_finish`]. A restoring
+/// device is served only if `allow` (shown the check number, it asks the person) says
+/// yes; else it is told we stopped.
 pub fn host_session(
     stop: &AtomicBool,
     on_check: &dyn Fn(u16),
     on_seen: &dyn Fn(Seen),
+    allow: &dyn Fn(u16) -> bool,
 ) -> Result<Served> {
-    host_session_with(stop, on_check, on_seen, &|_| ())
+    host_session_with(stop, on_check, on_seen, allow, &|_| ())
 }
 
 /// [`host_session`], with the files and bytes served.
@@ -1003,6 +1057,7 @@ pub fn host_session_with(
     stop: &AtomicBool,
     on_check: &dyn Fn(u16),
     on_seen: &dyn Fn(Seen),
+    allow: &dyn Fn(u16) -> bool,
     progress: &dyn Fn(SyncProgress),
 ) -> Result<Served> {
     let (host, prepared) = PENDING
@@ -1011,8 +1066,33 @@ pub fn host_session_with(
         .take()
         .ok_or(Error::Corrupt("p2p code expired"))?;
     let session = host_accept(host, prepared, stop, on_seen)?;
+    let session = allowed(session, allow)?;
     on_check(session.check);
     session.serve_with(progress)
+}
+
+/// A restoring device goes on only if the person allows it; the same vault at once.
+fn allowed(mut session: Session, allow: &dyn Fn(u16) -> bool) -> Result<Session> {
+    if session.restoring() {
+        // The socket is live meanwhile, so Cancel can end the wait.
+        set_live(session.ch.stream.try_clone().ok());
+        let yes = allow(session.check);
+        set_live(None);
+        if !yes {
+            session.refuse();
+            return Err(Error::Corrupt("p2p restore declined"));
+        }
+        session.allow()?;
+    }
+    Ok(session)
+}
+
+/// Turn "Help a new device restore" on or off for the host waiting now (no effect when
+/// it was opened without the Recovery Key). A device already let in is not affected.
+pub fn host_help_restore(on: bool) {
+    if let Some(flag) = HELP.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+        flag.store(on, Ordering::Relaxed);
+    }
 }
 
 /// Stop listening (Cancel before anyone joined).
@@ -1138,7 +1218,14 @@ fn restore_inner(
         Err(e) => return Err(e),
     };
     on_check(ch.check);
-    let id = String::from_utf8(ch.recv()?).map_err(|_| Error::Corrupt("p2p vault id"))?;
+    // The person on the host allows this device first (or not): wait for them.
+    ch.stream.set_read_timeout(Some(ALLOW_WAIT))?;
+    let first = ch.recv()?;
+    ch.stream.set_read_timeout(Some(Duration::from_secs(60)))?;
+    if first.first() == Some(&OP_ABORT) && first.len() == 2 {
+        return Err(Error::Corrupt("p2p peer stopped"));
+    }
+    let id = String::from_utf8(first).map_err(|_| Error::Corrupt("p2p vault id"))?;
     let remote = ChannelRemote { ch: Mutex::new(ch) };
     let vault = match Library::join(dir, &remote, &id, secret, password) {
         Ok(Some(vault)) => vault,
@@ -1352,6 +1439,7 @@ mod tests {
         let prepared = Prepared {
             key: pk.clone(),
             restore_key: None,
+            restore_on: Arc::new(AtomicBool::new(false)),
             vault_id: String::new(),
             mirror: PathBuf::new(),
         };
@@ -1410,12 +1498,23 @@ mod tests {
     }
 
     /// Host a restore for `t.a` (whose library key is `sk`), restore into a fresh folder
-    /// with `words` and `password`.
+    /// with `words` and `password`; the person on the host allows it.
     fn restore_from(
         t: &crate::testkit::Two,
         sk: &SecretKey,
         words: SecretKey,
         password: &str,
+    ) -> (Result<bool>, Result<()>, tempfile::TempDir) {
+        restore_asking(t, sk, words, password, true)
+    }
+
+    /// [`restore_from`], the person on the host answering `allow`.
+    fn restore_asking(
+        t: &crate::testkit::Two,
+        sk: &SecretKey,
+        words: SecretKey,
+        password: &str,
+        allow: bool,
     ) -> (Result<bool>, Result<()>, tempfile::TempDir) {
         let mirror = tempfile::tempdir().unwrap();
         let fresh = tempfile::tempdir().unwrap();
@@ -1423,7 +1522,9 @@ mod tests {
         let code = h.code.clone();
         let prepared = host_prepare(&t.a, Some(sk), mirror.path()).unwrap();
         let server = std::thread::spawn(move || {
-            host_accept(h, prepared, &AtomicBool::new(false), &|_| ()).and_then(|s| s.serve())
+            host_accept(h, prepared, &AtomicBool::new(false), &|_| ())
+                .and_then(|s| allowed(s, &|_| allow))
+                .and_then(|s| s.serve())
         });
         let got = restore(
             fresh.path(),
@@ -1498,6 +1599,98 @@ mod tests {
         assert!(got.is_err());
         cancel_live();
         drop(server);
+    }
+
+    #[test]
+    fn a_restoring_device_waits_for_the_host_to_allow_it() {
+        let t = crate::testkit::two();
+        let sk = t.sk.clone();
+        let (got, hosted, dir) = restore_asking(&t, &sk, sk.clone(), &t.pw, false);
+        // Turned down: the new phone is told the other stopped, and gets nothing.
+        assert!(
+            matches!(got, Err(Error::Corrupt("p2p peer stopped"))),
+            "{got:?}"
+        );
+        assert!(
+            matches!(hosted, Err(Error::Corrupt("p2p restore declined"))),
+            "{hosted:?}"
+        );
+        assert!(!Library::has_vaults(dir.path()));
+        // Allowed: it restores.
+        let (got, hosted, _dir) = restore_asking(&t, &sk, sk.clone(), &t.pw, true);
+        assert!(got.unwrap());
+        hosted.unwrap();
+    }
+
+    #[test]
+    fn a_restoring_session_is_not_served_before_it_is_allowed() {
+        let t = crate::testkit::two();
+        let mirror = tempfile::tempdir().unwrap();
+        let fresh = tempfile::tempdir().unwrap();
+        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
+        let code = h.code.clone();
+        let prepared = host_prepare(&t.a, Some(&t.sk), mirror.path()).unwrap();
+        let server = std::thread::spawn(move || {
+            let s = host_accept(h, prepared, &AtomicBool::new(false), &|_| ()).unwrap();
+            assert!(s.restoring());
+            s.serve().map(|_| ())
+        });
+        let got = restore(
+            fresh.path(),
+            Permit::connect(code.addr),
+            &code,
+            t.sk.clone(),
+            &t.pw,
+            &|_| (),
+            &|_| (),
+        );
+        assert!(matches!(
+            server.join().unwrap(),
+            Err(Error::Corrupt("p2p restore not allowed"))
+        ));
+        assert!(got.is_err());
+        assert!(!Library::has_vaults(fresh.path()));
+    }
+
+    #[test]
+    fn with_restore_off_the_words_find_nothing() {
+        let t = two();
+        let mirror = tempfile::tempdir().unwrap();
+        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
+        let addr = h.code.addr;
+        let code = h.code.clone();
+        let crate::testkit::Two { a, b, sk, pw, .. } = t;
+        // Restore off: the Recovery Key is there, the person has not turned it on.
+        let prepared = host_prepare(&a, Some(&sk), mirror.path()).unwrap();
+        prepared.restore_on.store(false, Ordering::Relaxed);
+        let flag = prepared.restore_on.clone();
+        let stop = std::sync::Arc::new(AtomicBool::new(false));
+        let s2 = stop.clone();
+        let server = std::thread::spawn(move || host_accept(h, prepared, &s2, &|_| ()).map(|_| ()));
+        assert!(probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).is_empty());
+        // The same vault still finds it.
+        assert_eq!(probe_all(&[addr], &pairing_key(&b), false).len(), 1);
+        // A restoring device that has the code anyway (the QR) is refused.
+        let fresh = tempfile::tempdir().unwrap();
+        let got = restore(
+            fresh.path(),
+            Permit::connect(code.addr),
+            &code,
+            sk.clone(),
+            &pw,
+            &|_| (),
+            &|_| (),
+        );
+        assert!(got.is_err());
+        assert!(!Library::has_vaults(fresh.path()));
+        // Turned on while waiting: now the words find it.
+        flag.store(true, Ordering::Relaxed);
+        assert_eq!(
+            probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).len(),
+            1
+        );
+        stop.store(true, Ordering::Relaxed);
+        assert!(server.join().unwrap().is_err());
     }
 
     #[test]

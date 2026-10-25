@@ -75,6 +75,9 @@ pub enum VaultError {
     BadBackup,
     /// Restoring needs an empty library; this device already has vaults.
     LibraryExists,
+    /// The library, backup or sync place asks for a password-hashing cost below the
+    /// least any release uses: its files were changed by someone. Nothing is opened.
+    WeakKdf,
     Storage,
 }
 
@@ -89,10 +92,18 @@ impl From<cs_vault::Error> for VaultError {
             cs_vault::Error::WrongSecretKey => VaultError::WrongSecretKey,
             cs_vault::Error::BadBackup => VaultError::BadBackup,
             cs_vault::Error::LibraryExists => VaultError::LibraryExists,
+            cs_vault::Error::Crypto(cs_crypto::Error::KdfTooWeak) => VaultError::WeakKdf,
             _ => VaultError::Storage,
         }
     }
 }
+
+// The shipping app never opens a library below the phone floor: fails to build if the
+// tests-only `test-kdf` feature of cs-crypto ever reaches it.
+const _: () = assert!(
+    KdfParams::ACCEPTED_FLOOR.m_kib == KdfParams::PHONE_FLOOR.m_kib
+        && KdfParams::ACCEPTED_FLOOR.t == KdfParams::PHONE_FLOOR.t
+);
 
 /// Argon2id cost for a library created on this device (ADR 0001 floors).
 fn params_for_this_device() -> KdfParams {
@@ -108,7 +119,8 @@ pub fn has_vaults(dir: String) -> bool {
     Library::has_vaults(Path::new(&dir))
 }
 
-/// 0 (trivial) … 4 (very strong); a vault needs at least `min_password_score()`.
+/// 0 (trivial) … 4 (very strong); a new password needs `min_password_score()` unless it
+/// is a phrase of four words or more ([`password_problem`]).
 #[flutter_rust_bridge::frb(sync)]
 pub fn password_score(password: String) -> u8 {
     let password = Zeroizing::new(password);
@@ -120,10 +132,32 @@ pub fn min_password_score() -> u8 {
     cs_vault::MIN_PASSWORD_SCORE
 }
 
-/// A vault password needs at least this many characters; nothing else is enforced.
+/// A vault password needs at least this many characters (and see [`password_problem`]).
 #[flutter_rust_bridge::frb(sync)]
 pub fn min_password_length() -> u32 {
     cs_vault::MIN_PASSWORD_LEN as u32
+}
+
+/// Why a new password would be refused, to say so while it is typed.
+pub enum PasswordProblem {
+    None,
+    TooShort,
+    /// One of the most common passwords (maybe with a number or symbol added).
+    Common,
+    /// Easy to guess, and not a phrase of four words or more.
+    Guessable,
+}
+
+/// What [`create_vault`] and [`set_password`] would say of this new password.
+#[flutter_rust_bridge::frb(sync)]
+pub fn password_problem(password: String) -> PasswordProblem {
+    let password = Zeroizing::new(password);
+    match cs_vault::check_new_password(&password) {
+        cs_vault::PasswordCheck::Ok => PasswordProblem::None,
+        cs_vault::PasswordCheck::TooShort => PasswordProblem::TooShort,
+        cs_vault::PasswordCheck::Common => PasswordProblem::Common,
+        cs_vault::PasswordCheck::Guessable => PasswordProblem::Guessable,
+    }
 }
 
 /// A new or changed PIN needs at least this many digits.

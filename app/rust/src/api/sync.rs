@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::Mutex;
+use std::sync::{Condvar, Mutex};
 
 use cs_net::drive::{DrivePhase, DriveRemote, DriveSetup, GoogleDrive};
 use cs_net::p2p::{self, PairCode};
@@ -58,6 +58,9 @@ pub enum SyncStep {
     Rejected,
     /// Host only, not the end: a device has just connected and is proving the vault.
     Knock,
+    /// Host only, not the end: a new device restoring with the 24 words asks to be let
+    /// in; `check` is the number its screen shows. Answer with [`p2p_host_answer`].
+    AskRestore,
     /// Google Drive refused the sign-in (expired or withdrawn): sign in again.
     SignIn,
     /// Under way: reading the place, bringing items in, sending (see `done`, `total`).
@@ -174,6 +177,8 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
     step(match e {
         _ if STOP.load(Ordering::Relaxed) => SyncStep::Cancelled,
         cs_vault::Error::Corrupt("p2p code expired") => SyncStep::Expired,
+        // The person turned the restoring device away.
+        cs_vault::Error::Corrupt("p2p restore declined") => SyncStep::Cancelled,
         cs_vault::Error::Corrupt("drive not signed in") => SyncStep::SignIn,
         cs_vault::Error::Corrupt("p2p restore wrong words") => SyncStep::PeerWrongWords,
         cs_vault::Error::Corrupt("p2p restore wrong password") => SyncStep::PeerWrongPassword,
@@ -215,16 +220,19 @@ pub fn p2p_local_address(ip: String) -> bool {
 }
 
 /// The person allowed waiting for a nearby device on `ip`. Copies the vault, sealed,
-/// into `mirror` (a private folder, emptied first) and opens the listener.
-pub fn p2p_host_start(ip: String, mirror: String) -> Result<Hosting, VaultError> {
+/// into `mirror` (a private folder, emptied first) and opens the listener. A new device
+/// restoring with the 24 words may ask to join only when `help_restore` (the person
+/// turned it on, off by default).
+pub fn p2p_host_start(ip: String, mirror: String, help_restore: bool) -> Result<Hosting, VaultError> {
     STOP.store(false, Ordering::Relaxed);
     let permit = Permit::listen_on(&ip).ok_or(VaultError::Storage)?;
     let dir = Path::new(&mirror);
     let _ = std::fs::remove_dir_all(dir);
     std::fs::create_dir_all(dir).map_err(|_| VaultError::Storage)?;
-    // With the library's words, a device restoring this vault may join as well.
+    // With the library's words, a device restoring this vault may ask to join as well,
+    // while the person has "Help a new device restore" on ([`p2p_host_help_restore`]).
     let secret = super::vault::secret().ok();
-    let shown = with_open(|v| Ok(p2p::host_open(v, secret.as_ref(), permit, dir)?))?;
+    let shown = with_open(|v| Ok(p2p::host_open(v, secret.as_ref(), help_restore, permit, dir)?))?;
     *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
     Ok(Hosting {
         typed: shown.typed,
@@ -242,8 +250,49 @@ fn forget_mirror() {
     }
 }
 
+/// "Help a new device restore" turned on or off while waiting (off by default).
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_host_help_restore(on: bool) {
+    p2p::host_help_restore(on);
+}
+
+/// The person's answer to [`SyncStep::AskRestore`], waited for by [`p2p_host_run`].
+static ANSWER: Mutex<Option<bool>> = Mutex::new(None);
+static ANSWERED: Condvar = Condvar::new();
+
+/// Allow (true) or turn away (false) the new device that asked to restore.
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_host_answer(allow: bool) {
+    *ANSWER.lock().unwrap_or_else(|p| p.into_inner()) = Some(allow);
+    ANSWERED.notify_all();
+}
+
+/// Ask the screen whether the restoring device showing `check` may come in, and wait for
+/// the answer (no answer in [`p2p::ALLOW_WAIT`], or Cancel, is no).
+fn ask_restore(sink: &StreamSink<SyncEvent>, check: u16) -> bool {
+    let mut answer = ANSWER.lock().unwrap_or_else(|p| p.into_inner());
+    *answer = None;
+    let _ = sink.add(SyncEvent {
+        check,
+        ..step(SyncStep::AskRestore)
+    });
+    let until = std::time::Instant::now() + p2p::ALLOW_WAIT;
+    loop {
+        if let Some(a) = answer.take() {
+            return a;
+        }
+        if STOP.load(Ordering::Relaxed) || std::time::Instant::now() > until {
+            return false;
+        }
+        answer = ANSWERED
+            .wait_timeout(answer, std::time::Duration::from_millis(200))
+            .unwrap_or_else(|p| p.into_inner())
+            .0;
+    }
+}
+
 /// Wait for the joiner, serve it, then take its changes in. The vault stays free while
-/// waiting and serving.
+/// waiting, asking and serving.
 pub fn p2p_host_run(sink: StreamSink<SyncEvent>) {
     let served = p2p::host_session_with(
         &STOP,
@@ -259,6 +308,7 @@ pub fn p2p_host_run(sink: StreamSink<SyncEvent>) {
                 p2p::Seen::Rejected => SyncStep::Rejected,
             }));
         },
+        &|check| ask_restore(&sink, check),
         &|p| {
             let _ = sink.add(progress_event(p));
         },
@@ -555,6 +605,7 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         SyncStep::Connected
         | SyncStep::Rejected
         | SyncStep::Knock
+        | SyncStep::AskRestore
         | SyncStep::Checking
         | SyncStep::Receiving
         | SyncStep::Sending

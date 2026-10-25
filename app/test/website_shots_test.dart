@@ -112,6 +112,7 @@ class _Fake implements RustLibApi {
     if (n.contains('MinPasswordScore')) return 3;
     if (n.contains('MinPasswordLength')) return 8;
     if (n.contains('MinPinLength')) return 6;
+    if (n.contains('PasswordProblem')) return PasswordProblem.none;
     if (n.contains('PasswordScore')) return 4;
     if (n.contains('HasVaults')) return true;
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(items);
