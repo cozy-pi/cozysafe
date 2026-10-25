@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "Perangkat lain mengetik 24 kata yang bukan milik brankas ini. Tidak ada yang dikirim.",
   "syncPeerWrongPassword": "Perangkat lain mengetik kata sandi brankas yang salah. Tidak ada yang dikirim.",
   "syncPeerStopped": "Perangkat lain menghentikan sinkronisasi.",
-  "syncItemsSoFar": "{done} item"
+  "syncItemsSoFar": "{done} item",
+  "vaultManagerTitle": "Brankas di perangkat ini",
+  "vaultManagerLead": "Hanya tampil saat Debug aktif. Nama brankas yang belum dibuka tetap terenkripsi; masing-masing dibuka dengan kata sandi atau PIN-nya sendiri.",
+  "vaultManagerOpen": "Sedang dibuka",
+  "vaultManagerPassword": "Kata sandi",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / sidik jari",
+  "vaultManagerDelete": "Hapus tanpa membuka",
+  "vaultManagerDeleteTitle": "Hapus brankas ini selamanya?",
+  "vaultManagerDeleteBody": "Semua isinya dihapus dari perangkat ini dan tidak bisa dikembalikan. Salinan di Google Drive atau di file cadangan tidak tersentuh. Ketik {word} untuk konfirmasi.",
+  "vaultManagerDeleteWord": "HAPUS",
+  "vaultManagerDeleted": "Brankas dihapus."
 }

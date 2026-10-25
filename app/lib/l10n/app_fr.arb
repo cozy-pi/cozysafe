@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "L’autre appareil a saisi 24 mots qui ne sont pas ceux de ce coffre. Rien n’a été envoyé.",
   "syncPeerWrongPassword": "L’autre appareil a saisi un mauvais mot de passe du coffre. Rien n’a été envoyé.",
   "syncPeerStopped": "L’autre appareil a arrêté la synchronisation.",
-  "syncItemsSoFar": "{done} éléments"
+  "syncItemsSoFar": "{done} éléments",
+  "vaultManagerTitle": "Coffres sur cet appareil",
+  "vaultManagerLead": "Visible uniquement en mode Debug. Les noms des coffres non ouverts restent chiffrés ; chacun s'ouvre avec son propre mot de passe ou code PIN.",
+  "vaultManagerOpen": "Ouvert actuellement",
+  "vaultManagerPassword": "Mot de passe",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / empreinte",
+  "vaultManagerDelete": "Supprimer sans ouvrir",
+  "vaultManagerDeleteTitle": "Supprimer définitivement ce coffre ?",
+  "vaultManagerDeleteBody": "Tout son contenu est effacé de cet appareil et ne pourra pas être récupéré. Les copies dans Google Drive ou dans les fichiers de sauvegarde ne sont pas touchées. Saisissez {word} pour confirmer.",
+  "vaultManagerDeleteWord": "SUPPRIMER",
+  "vaultManagerDeleted": "Coffre supprimé."
 }

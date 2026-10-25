@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "อุปกรณ์อีกเครื่องพิมพ์คำ 24 คำที่ไม่ใช่ของตู้นิรภัยนี้ ไม่มีการส่งข้อมูลใด",
   "syncPeerWrongPassword": "อุปกรณ์อีกเครื่องพิมพ์รหัสผ่านตู้นิรภัยไม่ถูกต้อง ไม่มีการส่งข้อมูลใด",
   "syncPeerStopped": "อุปกรณ์อีกเครื่องหยุดการซิงค์แล้ว",
-  "syncItemsSoFar": "{done} รายการ"
+  "syncItemsSoFar": "{done} รายการ",
+  "vaultManagerTitle": "ตู้นิรภัยบนอุปกรณ์นี้",
+  "vaultManagerLead": "แสดงเฉพาะเมื่อเปิด Debug ชื่อของตู้นิรภัยที่ยังไม่ได้เปิดจะยังถูกเข้ารหัสไว้ แต่ละตู้เปิดได้ด้วยรหัสผ่านหรือ PIN ของตัวเองเท่านั้น",
+  "vaultManagerOpen": "เปิดอยู่ตอนนี้",
+  "vaultManagerPassword": "รหัสผ่าน",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / ลายนิ้วมือ",
+  "vaultManagerDelete": "ลบโดยไม่ต้องเปิด",
+  "vaultManagerDeleteTitle": "ลบตู้นิรภัยนี้อย่างถาวรใช่ไหม",
+  "vaultManagerDeleteBody": "ทุกอย่างในตู้จะถูกลบออกจากอุปกรณ์นี้และกู้คืนไม่ได้ สำเนาใน Google Drive หรือในไฟล์สำรองข้อมูลจะไม่ได้รับผลกระทบ พิมพ์ {word} เพื่อยืนยัน",
+  "vaultManagerDeleteWord": "ลบ",
+  "vaultManagerDeleted": "ลบตู้นิรภัยแล้ว"
 }

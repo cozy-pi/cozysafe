@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "На другом устройстве ввели 24 слова, которые не подходят к этому сейфу. Ничего не отправлено.",
   "syncPeerWrongPassword": "На другом устройстве ввели неверный пароль сейфа. Ничего не отправлено.",
   "syncPeerStopped": "Другое устройство остановило синхронизацию.",
-  "syncItemsSoFar": "Объекты: {done}"
+  "syncItemsSoFar": "Объекты: {done}",
+  "vaultManagerTitle": "Сейфы на этом устройстве",
+  "vaultManagerLead": "Видно только при включённом Debug. Названия закрытых сейфов остаются зашифрованными; каждый открывается только своим паролем или PIN-кодом.",
+  "vaultManagerOpen": "Сейчас открыт",
+  "vaultManagerPassword": "Пароль",
+  "vaultManagerPin": "PIN-код",
+  "vaultManagerBiometric": "Face ID / отпечаток пальца",
+  "vaultManagerDelete": "Удалить, не открывая",
+  "vaultManagerDeleteTitle": "Удалить этот сейф навсегда?",
+  "vaultManagerDeleteBody": "Всё его содержимое будет стёрто с этого устройства без возможности восстановления. Копии в Google Drive и в файлах резервных копий не затрагиваются. Введите {word} для подтверждения.",
+  "vaultManagerDeleteWord": "УДАЛИТЬ",
+  "vaultManagerDeleted": "Сейф удалён."
 }

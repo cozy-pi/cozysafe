@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "O outro dispositivo digitou 24 palavras que não são deste cofre. Nada foi enviado.",
   "syncPeerWrongPassword": "O outro dispositivo digitou a senha errada do cofre. Nada foi enviado.",
   "syncPeerStopped": "O outro dispositivo interrompeu a sincronização.",
-  "syncItemsSoFar": "{done} itens"
+  "syncItemsSoFar": "{done} itens",
+  "vaultManagerTitle": "Cofres neste dispositivo",
+  "vaultManagerLead": "Só aparece com o Debug ativado. Os nomes dos cofres que não estão abertos continuam criptografados; cada um abre com a própria senha ou PIN.",
+  "vaultManagerOpen": "Aberto agora",
+  "vaultManagerPassword": "Senha",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / digital",
+  "vaultManagerDelete": "Excluir sem abrir",
+  "vaultManagerDeleteTitle": "Excluir este cofre para sempre?",
+  "vaultManagerDeleteBody": "Tudo o que há nele é apagado deste dispositivo e não pode ser recuperado. Cópias no Google Drive ou em arquivos de backup não são afetadas. Digite {word} para confirmar.",
+  "vaultManagerDeleteWord": "EXCLUIR",
+  "vaultManagerDeleted": "Cofre excluído."
 }

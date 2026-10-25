@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "El otro dispositivo escribió 24 palabras que no son de esta caja fuerte. No se envió nada.",
   "syncPeerWrongPassword": "El otro dispositivo escribió una contraseña incorrecta de la caja fuerte. No se envió nada.",
   "syncPeerStopped": "El otro dispositivo detuvo la sincronización.",
-  "syncItemsSoFar": "{done} elementos"
+  "syncItemsSoFar": "{done} elementos",
+  "vaultManagerTitle": "Cajas fuertes en este dispositivo",
+  "vaultManagerLead": "Solo se muestra con Debug activado. Los nombres de las cajas fuertes que no están abiertas siguen cifrados; cada una se abre con su propia contraseña o PIN.",
+  "vaultManagerOpen": "Abierta ahora",
+  "vaultManagerPassword": "Contraseña",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / huella dactilar",
+  "vaultManagerDelete": "Eliminar sin abrir",
+  "vaultManagerDeleteTitle": "¿Eliminar esta caja fuerte para siempre?",
+  "vaultManagerDeleteBody": "Todo su contenido se borra de este dispositivo y no se puede recuperar. Las copias en Google Drive o en archivos de copia de seguridad no se tocan. Escribe {word} para confirmar.",
+  "vaultManagerDeleteWord": "ELIMINAR",
+  "vaultManagerDeleted": "Caja fuerte eliminada."
 }

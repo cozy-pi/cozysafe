@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "Diğer cihazda bu kasaya ait olmayan 24 kelime girildi. Hiçbir şey gönderilmedi.",
   "syncPeerWrongPassword": "Diğer cihazda yanlış kasa parolası girildi. Hiçbir şey gönderilmedi.",
   "syncPeerStopped": "Diğer cihaz eşitlemeyi durdurdu.",
-  "syncItemsSoFar": "{done} öğe"
+  "syncItemsSoFar": "{done} öğe",
+  "vaultManagerTitle": "Bu cihazdaki kasalar",
+  "vaultManagerLead": "Yalnızca Debug açıkken görünür. Açık olmayan kasaların adları şifreli kalır; her biri yalnızca kendi parolası veya PIN'i ile açılır.",
+  "vaultManagerOpen": "Şu anda açık",
+  "vaultManagerPassword": "Parola",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / parmak izi",
+  "vaultManagerDelete": "Açmadan sil",
+  "vaultManagerDeleteTitle": "Bu kasa kalıcı olarak silinsin mi?",
+  "vaultManagerDeleteBody": "İçindeki her şey bu cihazdan silinir ve geri getirilemez. Google Drive'daki veya yedek dosyalarındaki kopyalara dokunulmaz. Onaylamak için {word} yazın.",
+  "vaultManagerDeleteWord": "SIL",
+  "vaultManagerDeleted": "Kasa silindi."
 }

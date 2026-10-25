@@ -811,6 +811,46 @@ pub fn purge_expired(now_ms: i64) -> Result<u32, VaultError> {
     with_open(|v| Ok(v.purge_expired(now_ms)? as u32))
 }
 
+/// A vault on this device as the Debug page lists it: names stay sealed until opened.
+pub struct VaultSlot {
+    pub id: String,
+    pub has_password: bool,
+    pub has_pin: bool,
+    pub has_biometric: bool,
+    /// The vault open now.
+    pub is_open: bool,
+}
+
+/// Every vault on this device (Debug → Vaults on this device).
+pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
+    let open = OPEN.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(|v| v.id.clone());
+    Ok(Library::vault_slots(Path::new(&dir))?
+        .into_iter()
+        .map(|s| VaultSlot {
+            is_open: open.as_deref() == Some(s.id.as_str()),
+            id: s.id,
+            has_password: s.has_password,
+            has_pin: s.has_pin,
+            has_biometric: s.has_biometric,
+        })
+        .collect())
+}
+
+/// Delete a vault whose password and PIN are forgotten, without opening it; never the
+/// open one. The app asks the phone's owner first (Face ID or the phone's passcode).
+pub fn delete_vault_unopened(dir: String, vault_id: String) -> Result<bool, VaultError> {
+    let open = OPEN.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(|v| v.id.clone());
+    if open.as_deref() == Some(vault_id.as_str()) {
+        return Ok(false);
+    }
+    Library::destroy_unopened(Path::new(&dir), &vault_id).map_err(|e| {
+        debug_line(|| format!("delete unopened vault: {e}"));
+        VaultError::from(e)
+    })?;
+    debug_line(|| "delete unopened vault: done".into());
+    Ok(true)
+}
+
 /// Delete the open vault from this device, confirmed by its PIN: the PIN must open
 /// this very vault. Locks it. Returns false (nothing deleted) for any other PIN.
 pub fn delete_vault(dir: String, pin: String, device_key: Vec<u8>) -> Result<bool, VaultError> {

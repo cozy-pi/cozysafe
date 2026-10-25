@@ -772,5 +772,17 @@
   "syncPeerWrongPassword": "The other phone typed the wrong vault password. Nothing was sent.",
   "syncPeerStopped": "The other phone stopped the sync.",
   "syncItemsSoFar": "{done} items",
-  "@syncItemsSoFar": {"placeholders": {"done": {"type": "int"}}}
+  "@syncItemsSoFar": {"placeholders": {"done": {"type": "int"}}},
+  "vaultManagerTitle": "Vaults on this device",
+  "vaultManagerLead": "Shown only with Debug on. The names of vaults that are not open stay sealed; each one opens with its own password or PIN.",
+  "vaultManagerOpen": "Open now",
+  "vaultManagerPassword": "Password",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / fingerprint",
+  "vaultManagerDelete": "Delete without opening",
+  "vaultManagerDeleteTitle": "Delete this vault for good?",
+  "vaultManagerDeleteBody": "Everything in it is erased from this device and cannot be brought back. Copies in Google Drive or in backup files are not touched. Type {word} to confirm.",
+  "@vaultManagerDeleteBody": {"placeholders": {"word": {}}},
+  "vaultManagerDeleteWord": "DELETE",
+  "vaultManagerDeleted": "Vault deleted."
 }

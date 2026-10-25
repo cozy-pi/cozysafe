@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "Das andere Gerät hat 24 Wörter eingegeben, die nicht zu diesem Tresor gehören. Es wurde nichts gesendet.",
   "syncPeerWrongPassword": "Das andere Gerät hat das falsche Tresor-Passwort eingegeben. Es wurde nichts gesendet.",
   "syncPeerStopped": "Das andere Gerät hat die Synchronisierung beendet.",
-  "syncItemsSoFar": "{done} Elemente"
+  "syncItemsSoFar": "{done} Elemente",
+  "vaultManagerTitle": "Tresore auf diesem Gerät",
+  "vaultManagerLead": "Nur sichtbar, wenn Debug aktiviert ist. Die Namen nicht geöffneter Tresore bleiben verschlüsselt; jeder öffnet sich nur mit seinem eigenen Passwort oder seiner PIN.",
+  "vaultManagerOpen": "Jetzt geöffnet",
+  "vaultManagerPassword": "Passwort",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / Fingerabdruck",
+  "vaultManagerDelete": "Ohne Öffnen löschen",
+  "vaultManagerDeleteTitle": "Diesen Tresor endgültig löschen?",
+  "vaultManagerDeleteBody": "Sein gesamter Inhalt wird von diesem Gerät gelöscht und lässt sich nicht wiederherstellen. Kopien in Google Drive oder in Backup-Dateien bleiben unberührt. Geben Sie zur Bestätigung {word} ein.",
+  "vaultManagerDeleteWord": "LOESCHEN",
+  "vaultManagerDeleted": "Tresor gelöscht."
 }

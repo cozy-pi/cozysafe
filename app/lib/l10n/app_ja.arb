@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "もう一台のデバイスで入力された24語は、この金庫のものではありません。何も送信されていません。",
   "syncPeerWrongPassword": "もう一台のデバイスで入力された金庫のパスワードが違います。何も送信されていません。",
   "syncPeerStopped": "もう一台のデバイスが同期を中止しました。",
-  "syncItemsSoFar": "{done} 件"
+  "syncItemsSoFar": "{done} 件",
+  "vaultManagerTitle": "この端末の金庫",
+  "vaultManagerLead": "Debug がオンのときだけ表示されます。開いていない金庫の名前は暗号化されたままで、それぞれ自分のパスワードまたは PIN でのみ開けます。",
+  "vaultManagerOpen": "現在開いています",
+  "vaultManagerPassword": "パスワード",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / 指紋",
+  "vaultManagerDelete": "開かずに削除",
+  "vaultManagerDeleteTitle": "この金庫を完全に削除しますか？",
+  "vaultManagerDeleteBody": "中身はすべてこの端末から消去され、元に戻せません。Google Drive やバックアップファイル内のコピーには影響しません。確認のため {word} と入力してください。",
+  "vaultManagerDeleteWord": "削除",
+  "vaultManagerDeleted": "金庫を削除しました。"
 }

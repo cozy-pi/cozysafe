@@ -590,5 +590,16 @@
   "syncPeerWrongWords": "Máy kia nhập 24 từ không phải của két này. Chưa gửi gì.",
   "syncPeerWrongPassword": "Máy kia nhập sai mật khẩu két. Chưa gửi gì.",
   "syncPeerStopped": "Máy kia đã dừng đồng bộ.",
-  "syncItemsSoFar": "{done} mục"
+  "syncItemsSoFar": "{done} mục",
+  "vaultManagerTitle": "Két trên máy này",
+  "vaultManagerLead": "Chỉ hiện khi bật Debug. Tên của két chưa mở vẫn được niêm phong; mỗi két mở bằng mật khẩu hoặc PIN riêng.",
+  "vaultManagerOpen": "Đang mở",
+  "vaultManagerPassword": "Mật khẩu",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / vân tay",
+  "vaultManagerDelete": "Xoá mà không cần mở",
+  "vaultManagerDeleteTitle": "Xoá vĩnh viễn két này?",
+  "vaultManagerDeleteBody": "Mọi thứ trong két bị xoá khỏi máy này và không thể lấy lại. Bản trên Google Drive hoặc file sao lưu không bị đụng tới. Gõ {word} để xác nhận.",
+  "vaultManagerDeleteWord": "XOÁ",
+  "vaultManagerDeleted": "Đã xoá két."
 }

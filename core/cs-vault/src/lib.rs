@@ -231,6 +231,50 @@ pub const CONNECTION_LOG_LEN: usize = 50;
 
 impl Library {
     /// Whether a library with at least one vault exists in `dir`.
+    /// The vaults on this device, as far as can be told without opening them: an id and
+    /// which ways open each (names and icons are sealed with each vault's own key). For
+    /// the Debug page only: in everyday use the app never lists vaults, so a second vault
+    /// stays unseen.
+    pub fn vault_slots(dir: &Path) -> Result<Vec<VaultSlot>> {
+        let entries = match fs::read_dir(dir.join(VAULTS_DIR)) {
+            Ok(d) => d,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(e) => return Err(e.into()),
+        };
+        let mut slots = Vec::new();
+        for entry in entries {
+            let entry = entry?;
+            let Some(id) = id_name(&entry.file_name().to_string_lossy()) else {
+                continue;
+            };
+            let Some(header) = read_header(&entry.path()) else {
+                continue;
+            };
+            slots.push(VaultSlot {
+                has_password: header.has_password(),
+                has_pin: entry.path().join(pin::PIN_FILE).is_file(),
+                has_biometric: entry.path().join(BIOMETRIC_FILE).is_file(),
+                id,
+            });
+        }
+        slots.sort_by(|a, b| a.id.cmp(&b.id));
+        Ok(slots)
+    }
+
+    /// Delete a vault without opening it (its password and PIN forgotten): its folder,
+    /// header first as [`OpenVault::destroy`] does. Nothing in it can be brought back.
+    /// The caller makes sure it is not the open one and that the owner confirmed.
+    pub fn destroy_unopened(dir: &Path, vault_id: &str) -> Result<()> {
+        let id = id_name(vault_id).ok_or(Error::Corrupt("vault id"))?;
+        let vault_dir = dir.join(VAULTS_DIR).join(&id);
+        if !vault_dir.join(HEADER_FILE).is_file() {
+            return Err(Error::Corrupt("no such vault"));
+        }
+        fs::remove_file(vault_dir.join(HEADER_FILE))?;
+        fs::remove_dir_all(&vault_dir)?;
+        Ok(())
+    }
+
     pub fn has_vaults(dir: &Path) -> bool {
         fs::read_dir(dir.join(VAULTS_DIR))
             .map(|mut it| {
@@ -728,6 +772,15 @@ impl Library {
     }
 }
 
+/// A vault on this device, seen from outside ([`Library::vault_slots`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VaultSlot {
+    pub id: String,
+    pub has_password: bool,
+    pub has_pin: bool,
+    pub has_biometric: bool,
+}
+
 /// What came of [`Library::change_secret_key_all`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyChange {
@@ -1072,6 +1125,30 @@ pub(crate) mod tests {
             Library::open_or_create(tmp.path(), FAST, old),
             Err(Error::WrongSecretKey)
         ));
+    }
+
+    #[test]
+    fn a_forgotten_vault_is_listed_and_deleted_without_opening_it() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
+        let a = l.create_vault("A", pw_a()).unwrap();
+        let b = l.create_vault("B", pw_b()).unwrap();
+        let (a_id, b_id) = (a.id.clone(), b.id.clone());
+        drop((a, b));
+        let slots = Library::vault_slots(tmp.path()).unwrap();
+        assert_eq!(slots.len(), 2);
+        assert!(slots.iter().all(|s| s.has_password && !s.has_pin));
+        for bad in ["../x", "", &b_id.to_uppercase()] {
+            assert!(Library::destroy_unopened(tmp.path(), bad).is_err());
+        }
+        Library::destroy_unopened(tmp.path(), &b_id).unwrap();
+        let left = Library::vault_slots(tmp.path()).unwrap();
+        assert_eq!(
+            left.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(),
+            [a_id.as_str()]
+        );
+        assert!(l.unlock(pw_b()).unwrap().is_none());
+        assert!(l.unlock(pw_a()).unwrap().is_some());
     }
 
     fn id_of(dir: &Path) -> String {

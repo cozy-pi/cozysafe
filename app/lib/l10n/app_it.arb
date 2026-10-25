@@ -576,5 +576,16 @@
   "syncPeerWrongWords": "L’altro dispositivo ha inserito 24 parole che non sono di questa cassaforte. Non è stato inviato nulla.",
   "syncPeerWrongPassword": "L’altro dispositivo ha inserito la password sbagliata della cassaforte. Non è stato inviato nulla.",
   "syncPeerStopped": "L’altro dispositivo ha interrotto la sincronizzazione.",
-  "syncItemsSoFar": "{done} elementi"
+  "syncItemsSoFar": "{done} elementi",
+  "vaultManagerTitle": "Casseforti su questo dispositivo",
+  "vaultManagerLead": "Visibile solo con Debug attivo. I nomi delle casseforti non aperte restano cifrati; ognuna si apre con la propria password o il proprio PIN.",
+  "vaultManagerOpen": "Aperta ora",
+  "vaultManagerPassword": "Password",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / impronta digitale",
+  "vaultManagerDelete": "Elimina senza aprire",
+  "vaultManagerDeleteTitle": "Eliminare definitivamente questa cassaforte?",
+  "vaultManagerDeleteBody": "Tutto il suo contenuto viene cancellato da questo dispositivo e non può essere recuperato. Le copie in Google Drive o nei file di backup non vengono toccate. Digita {word} per confermare.",
+  "vaultManagerDeleteWord": "ELIMINA",
+  "vaultManagerDeleted": "Cassaforte eliminata."
 }
