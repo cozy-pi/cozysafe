@@ -666,7 +666,7 @@ class _QuickLookState extends State<QuickLook> {
     // The vault's bar (when kept), then the buttons above it.
     final barRoom = safeBottom + (widget.bar == null ? 0 : Ui.edge + Ui.bar + 8);
     final bottomRoom = barRoom + 10 + Ui.tap + 8 + 10;
-    final box = BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: (size.height - bottomRoom) * .7);
+    final box = BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: (size.height - bottomRoom) * .78);
     final c = CsColors.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final trash = widget.trash;
@@ -733,48 +733,7 @@ class _QuickLookState extends State<QuickLook> {
       child: ClipRRect(borderRadius: BorderRadius.circular(20), child: media),
     );
 
-    return Material(
-      type: MaterialType.transparency,
-      child: Stack(
-      children: [
-        // The page goes dark and soft behind, so only the item speaks; tap to close.
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: ColoredBox(color: page.withValues(alpha: dark ? .82 : .72)),
-            ),
-          ),
-        ),
-        // The item in the room above the buttons and the bar.
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: bottomRoom,
-          child: Center(
-          child: GestureDetector(
-            // Swipe down to put it away, as in Photos.
-            onVerticalDragEnd: (d) {
-              if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: still
-                      ? boxed
-                      : TweenAnimationBuilder<double>(
-                          tween: Tween(begin: .92, end: 1),
-                          duration: const Duration(milliseconds: 240),
-                          curve: Curves.easeOutCubic,
-                          builder: (context, s, child) => Transform.scale(scale: s, child: child),
-                          child: boxed,
-                        ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
+    final Widget titleBlock = SizedBox(
                   width: box.maxWidth,
                   child: Column(
                     children: [
@@ -802,7 +761,55 @@ class _QuickLookState extends State<QuickLook> {
                       ],
                     ],
                   ),
+                );
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
+      children: [
+        // The page goes dark and soft behind, so only the item speaks; tap to close.
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: ColoredBox(color: page.withValues(alpha: dark ? .82 : .72)),
+            ),
+          ),
+        ),
+        // The item in the middle of the room between the status bar and the buttons, as
+        // much space above as below (owner 2026-10-25: centred on the whole screen it
+        // looked high; resting on the buttons left a hole on top).
+        Positioned(
+          left: 0,
+          right: 0,
+          top: MediaQuery.paddingOf(context).top,
+          bottom: bottomRoom - 10,
+          child: Center(
+          child: GestureDetector(
+            // Swipe down to put it away, as in Photos.
+            onVerticalDragEnd: (d) {
+              if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // The same block, unseen, above: the picture itself sits in the middle,
+                // as much space above it as below (owner 2026-10-25).
+                ExcludeSemantics(child: Visibility.maintain(visible: false, child: titleBlock)),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: still
+                      ? boxed
+                      : TweenAnimationBuilder<double>(
+                          tween: Tween(begin: .92, end: 1),
+                          duration: const Duration(milliseconds: 240),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, s, child) => Transform.scale(scale: s, child: child),
+                          child: boxed,
+                        ),
                 ),
+                const SizedBox(height: 14),
+                titleBlock,
               ],
             ),
           ),
