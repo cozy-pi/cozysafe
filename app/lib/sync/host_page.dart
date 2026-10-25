@@ -29,6 +29,7 @@ class _HostSyncPageState extends State<HostSyncPage> {
   sync.Hosting? _hosting;
   Stream<sync.SyncEvent>? _events;
   bool _failed = false;
+  bool _qr = false;
   late DateTime _until;
   Timer? _tick;
 
@@ -81,15 +82,17 @@ class _HostSyncPageState extends State<HostSyncPage> {
       waiting: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          QrView(key: const ValueKey('sync-qr'), text: h.qr),
-          const SizedBox(height: 18),
-          SelectableText(
-            h.typed,
-            key: const ValueKey('sync-typed'),
+          Text(h.findable ? l.syncDigitsLead : l.syncDigitsNotFindable,
+              textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+          const SizedBox(height: 14),
+          // The six digits, big, in two groups of three to read out or copy by eye.
+          if (h.findable && h.digits.length == 6) Text(
+            '${h.digits.substring(0, 3)} ${h.digits.substring(3)}',
+            key: const ValueKey('sync-digits'),
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: 2, fontFamily: 'monospace'),
+            style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w800, letterSpacing: 6, fontFeatures: [FontFeature.tabularFigures()]),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(l.syncCodeWorks(time), style: TextStyle(color: c.muted, fontSize: 14)),
           const SizedBox(height: 22),
           Row(
@@ -100,8 +103,17 @@ class _HostSyncPageState extends State<HostSyncPage> {
               Flexible(child: Text(l.syncWaiting, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(l.syncScanHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14, height: 1.3)),
+          const SizedBox(height: 18),
+          // The QR, for networks where the other device cannot find this one.
+          if (_qr || !h.findable)
+            QrView(key: const ValueKey('sync-qr'), text: h.qr)
+          else
+            TextButton.icon(
+              key: const ValueKey('sync-show-qr'),
+              icon: const Icon(Icons.qr_code_2_rounded),
+              label: Text(l.syncDigitsQr),
+              onPressed: () => setState(() => _qr = true),
+            ),
         ],
       ),
     );
