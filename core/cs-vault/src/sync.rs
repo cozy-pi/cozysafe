@@ -468,38 +468,61 @@ impl OpenVault {
                 todo.push((device.clone(), n, entry));
             }
         }
-        let total = todo
-            .iter()
-            .map(|(_, _, e)| e.items.len() + e.gone.len())
-            .sum::<usize>() as u32;
+        // Counted: only what will change here (owner 2026-10-25: 848 shown for 90 items).
+        // An entry naming a revision this device has, an item it deleted for good, or a
+        // deletion of an item it no longer holds is still read, but not counted.
+        let mut total = 0u32;
+        for (_, _, e) in &todo {
+            for (id, rev) in &e.items {
+                total += self.would_take(id, rev)? as u32;
+            }
+            for (id, _) in &e.gone {
+                total += self.sealed_record(id)?.is_some() as u32;
+            }
+        }
         let mut done = 0u32;
         for (device, n, entry) in todo {
             for (id, rev) in entry.items {
+                let counted = self.would_take(&id, &rev)?;
                 self.take(remote, &id, &rev, report)?;
-                done += 1;
-                progress(SyncProgress {
-                    phase: SyncPhase::Receiving,
-                    done,
-                    total,
-                    bytes: remote.bytes(),
-                    bytes_total: 0,
-                });
+                if counted {
+                    done += 1;
+                    progress(SyncProgress {
+                        phase: SyncPhase::Receiving,
+                        done,
+                        total,
+                        bytes: remote.bytes(),
+                        bytes_total: 0,
+                    });
+                }
             }
             for (id, hlc) in entry.gone {
+                let counted = self.sealed_record(&id)?.is_some();
                 self.take_gone(remote, &id, hlc, report)?;
-                done += 1;
-                progress(SyncProgress {
-                    phase: SyncPhase::Receiving,
-                    done,
-                    total,
-                    bytes: remote.bytes(),
-                    bytes_total: 0,
-                });
+                if counted {
+                    done += 1;
+                    progress(SyncProgress {
+                        phase: SyncPhase::Receiving,
+                        done,
+                        total,
+                        bytes: remote.bytes(),
+                        bytes_total: 0,
+                    });
+                }
             }
             self.index
                 .meta_set(&format!("{}:cursor:{device}", remote.key()), &n.to_string())?;
         }
         Ok(())
+    }
+
+    /// Whether a journal entry's revision would change this device: not a revision it
+    /// already has, nor an item it deleted for good (judged here, without the place).
+    fn would_take(&self, id: &str, rev: &str) -> Result<bool> {
+        if let Some(sealed) = self.sealed_record(id)? {
+            return Ok(self.open_record(id, &sealed)?.rev != rev);
+        }
+        Ok(self.index.gone_hlc(id)?.is_none())
     }
 
     fn remote_record(
@@ -2140,6 +2163,31 @@ pub(crate) mod tests {
         let v: serde_json::Value = serde_json::from_str(&body).unwrap();
         let h: serde_json::Value = serde_json::from_str(&mine).unwrap();
         assert_eq!(v["vault"], h);
+    }
+
+    #[test]
+    fn only_what_changes_here_is_counted_as_coming_in() {
+        let t = two();
+        let ids: Vec<String> = (0..10).map(|i| note(&t.a, &format!("N{i}"), "x")).collect();
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        for id in &ids[..7] {
+            t.b.delete_item(id).unwrap();
+        }
+        t.b.sync(&t.cloud).unwrap();
+        // B reads A's journal again from the start (its place forgotten): every entry names
+        // an item B already has or deleted for good, so nothing is counted.
+        t.b.forget_sync_place(&t.cloud.key()).unwrap();
+        let seen = std::sync::Mutex::new(Vec::new());
+        t.b.sync_with(&t.cloud, &|p| seen.lock().unwrap().push(p))
+            .unwrap();
+        let seen = seen.into_inner().unwrap();
+        assert!(seen
+            .iter()
+            .filter(|p| p.phase == SyncPhase::Receiving)
+            .all(|p| p.total == 0));
+        assert!(t.b.sealed_record(&ids[0]).unwrap().is_none());
+        assert_eq!(text(&t.b, &ids[9]), "x");
     }
 
     #[test]

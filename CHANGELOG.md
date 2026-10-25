@@ -13,6 +13,11 @@ Dates are UTC.
   for them fades at the right edge and the row nudges sideways on opening.
 - Deleting a vault: a red button, then a 10-second countdown with Cancel.
 - Debug → Vaults on this device shows the size of each vault.
+- A sync counts only what will change here: items already on this device, items deleted
+  for good and deletions of items no longer here are not counted (it showed 848 for a
+  vault of about 90 items).
+- Google sign-in that fails says so, with a code, instead of the nearby-sync message; on
+  Android, where Google Drive is not ready yet, the app says so before trying.
 
 ### Fixed
 - With + on the left or right, the column of ways to add scrolls again: with all six

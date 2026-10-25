@@ -588,5 +588,7 @@
   "vaultManagerDeleteBody": "Sein gesamter Inhalt wird von diesem Gerät gelöscht und lässt sich nicht wiederherstellen. Kopien in Google Drive oder in Backup-Dateien bleiben unberührt. Geben Sie zur Bestätigung {word} ein.",
   "vaultManagerDeleteWord": "LOESCHEN",
   "vaultManagerDeleted": "Tresor gelöscht.",
-  "countdownNote": "Das lässt sich nicht rückgängig machen. Tippen Sie auf „Abbrechen“, um ihn zu behalten."
+  "countdownNote": "Das lässt sich nicht rückgängig machen. Tippen Sie auf „Abbrechen“, um ihn zu behalten.",
+  "driveSignInFailed": "Anmeldung bei Google fehlgeschlagen.",
+  "driveSoon": "Google Drive für Android kommt mit einem der nächsten Updates. Synchronisieren Sie bis dahin mit einem Gerät in der Nähe oder verwenden Sie eine Backup-Datei."
 }

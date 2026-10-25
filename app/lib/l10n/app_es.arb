@@ -588,5 +588,7 @@
   "vaultManagerDeleteBody": "Todo su contenido se borra de este dispositivo y no se puede recuperar. Las copias en Google Drive o en archivos de copia de seguridad no se tocan. Escribe {word} para confirmar.",
   "vaultManagerDeleteWord": "ELIMINAR",
   "vaultManagerDeleted": "Caja fuerte eliminada.",
-  "countdownNote": "No se puede deshacer. Toca Cancelar para conservarla."
+  "countdownNote": "No se puede deshacer. Toca Cancelar para conservarla.",
+  "driveSignInFailed": "No se pudo iniciar sesión en Google.",
+  "driveSoon": "Google Drive en Android llegará pronto en una actualización. Por ahora, sincroniza con un dispositivo cercano o usa un archivo de copia de seguridad."
 }

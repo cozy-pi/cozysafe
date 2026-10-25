@@ -588,5 +588,7 @@
   "vaultManagerDeleteBody": "Tutto il suo contenuto viene cancellato da questo dispositivo e non può essere recuperato. Le copie in Google Drive o nei file di backup non vengono toccate. Digita {word} per confermare.",
   "vaultManagerDeleteWord": "ELIMINA",
   "vaultManagerDeleted": "Cassaforte eliminata.",
-  "countdownNote": "L'operazione non può essere annullata. Tocca Annulla per conservarla."
+  "countdownNote": "L'operazione non può essere annullata. Tocca Annulla per conservarla.",
+  "driveSignInFailed": "Impossibile accedere a Google.",
+  "driveSoon": "Google Drive su Android arriverà presto con un aggiornamento. Per ora, sincronizza con un dispositivo vicino o usa un file di backup."
 }

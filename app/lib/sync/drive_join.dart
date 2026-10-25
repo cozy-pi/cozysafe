@@ -54,14 +54,18 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
   Future<void> _signIn() async {
     final l = AppLocalizations.of(context);
     setState(() => _error = null);
+    if (!driveReady) {
+      setState(() => _error = l.driveSoon);
+      return;
+    }
     try {
       final s = await driveSignIn();
       if (s == null || !mounted) return;
       if (!await allowConnection(context, l.syncAllowDrive(s.email)) || !mounted) return;
       setState(() => _session = s);
       if (widget.words != null) await _open();
-    } catch (_) {
-      if (mounted) setState(() => _error = l.syncFailed);
+    } catch (e) {
+      if (mounted) setState(() => _error = '${l.driveSignInFailed} (${driveErrorCode(e)})');
     }
   }
 
