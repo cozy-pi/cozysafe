@@ -572,5 +572,16 @@
   "syncRemovingDevice": "Removendo do outro dispositivo os itens excluídos",
   "syncRemovingWhat": "O que foi excluído para sempre também é removido de lá.",
   "changeKeyOtherVault": "Outro cofre neste dispositivo usa as mesmas 24 palavras. Digite a senha dele para que a nova chave também o abra.",
-  "changeKeyOtherPassword": "Senha do outro cofre"
+  "changeKeyOtherPassword": "Senha do outro cofre",
+  "vaultManagerTitle": "Cofres neste dispositivo",
+  "vaultManagerLead": "Só aparece com o Debug ativado. Os nomes dos cofres que não estão abertos continuam criptografados; cada um abre com a própria senha ou PIN.",
+  "vaultManagerOpen": "Aberto agora",
+  "vaultManagerPassword": "Senha",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / digital",
+  "vaultManagerDelete": "Excluir sem abrir",
+  "vaultManagerDeleteTitle": "Excluir este cofre para sempre?",
+  "vaultManagerDeleteBody": "Tudo o que há nele é apagado deste dispositivo e não pode ser recuperado. Cópias no Google Drive ou em arquivos de backup não são afetadas. Digite {word} para confirmar.",
+  "vaultManagerDeleteWord": "EXCLUIR",
+  "vaultManagerDeleted": "Cofre excluído."
 }

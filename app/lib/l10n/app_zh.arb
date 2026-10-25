@@ -572,5 +572,16 @@
   "syncRemovingDevice": "正在从另一台设备移除已删除的项目",
   "syncRemovingWhat": "永久删除的内容也会从那里移除。",
   "changeKeyOtherVault": "此设备上的另一个保险箱使用相同的 24 个单词。请输入它的密码，让新密钥也能打开它。",
-  "changeKeyOtherPassword": "另一个保险箱的密码"
+  "changeKeyOtherPassword": "另一个保险箱的密码",
+  "vaultManagerTitle": "此设备上的保险箱",
+  "vaultManagerLead": "仅在开启 Debug 时显示。未打开的保险箱名称仍保持加密；每个保险箱只能用它自己的密码或 PIN 码打开。",
+  "vaultManagerOpen": "当前已打开",
+  "vaultManagerPassword": "密码",
+  "vaultManagerPin": "PIN 码",
+  "vaultManagerBiometric": "Face ID / 指纹",
+  "vaultManagerDelete": "不打开直接删除",
+  "vaultManagerDeleteTitle": "要永久删除这个保险箱吗？",
+  "vaultManagerDeleteBody": "其中的所有内容都会从此设备上清除，且无法恢复。Google Drive 或备份文件中的副本不受影响。输入 {word} 以确认。",
+  "vaultManagerDeleteWord": "删除",
+  "vaultManagerDeleted": "保险箱已删除。"
 }

@@ -22,7 +22,7 @@ use crate::{
     Library, OpenVault, Result, VAULTS_DIR,
 };
 
-const PIN_FILE: &str = "pin";
+pub(crate) const PIN_FILE: &str = "pin";
 /// For a new or changed PIN (owner 2026-10-23: at least 6). PINs set earlier with 4 or 5
 /// digits still unlock: only setting one checks this.
 pub const MIN_PIN_LEN: usize = 6;

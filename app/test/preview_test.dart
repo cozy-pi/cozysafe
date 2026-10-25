@@ -32,6 +32,7 @@ import 'package:cozysafe/screens/quick_look.dart';
 import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/screens/welcome.dart';
 import 'package:cozysafe/screens/restore_flow.dart';
+import 'package:cozysafe/screens/vault_manager.dart';
 import 'package:cozysafe/widgets/second_place.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/api/sync.dart';
@@ -295,6 +296,7 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugDrive = false;
       SyncProgress.debugRate = null;
       SecondPlaceNudge.debugShow = false;
+      VaultManagerScreen.debugSlots = null;
       NewVaultScreen.debugBiometricStep = false;
       RestoreSourceScreen.debugDrive = false;
       DriveJoinScreen.debugAccount = null;
@@ -843,6 +845,13 @@ void main() {
     await t.pump();
   }
 
+  _screen('vault-manager', 'Debug · Két trên máy này', () => const VaultManagerScreen(libraryDir: ''),
+      setup: () => VaultManagerScreen.debugSlots = [
+            VaultSlot(id: 'e0a966aed6bec8151ebb59139e5aa773', hasPassword: true, hasPin: true, hasBiometric: true, isOpen: true),
+            VaultSlot(id: '3fa9c1d2e4b5a6978877665544332211', hasPassword: true, hasPin: true, hasBiometric: false, isOpen: false),
+            VaultSlot(id: '9b3ad0e1f2c4475a8e61d39b2f0c18d3', hasPassword: false, hasPin: true, hasBiometric: false, isOpen: false),
+          ],
+      change: 'MỚI (chỉ khi bật Debug): mọi két trên máy; két quên mật khẩu xoá được không cần mở (xác nhận chủ máy + gõ XOÁ)');
   _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''));
   _screen('restore-keys', 'Khôi phục · 1. Dán 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: ''));
   _screen('restore-source', 'Khôi phục · 2. Két đang ở đâu?', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake'),

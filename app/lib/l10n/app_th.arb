@@ -572,5 +572,16 @@
   "syncRemovingDevice": "กำลังนำรายการที่ลบแล้วออกจากอุปกรณ์อีกเครื่อง",
   "syncRemovingWhat": "สิ่งที่ลบอย่างถาวรแล้วจะถูกนำออกจากที่นั่นด้วย",
   "changeKeyOtherVault": "ตู้นิรภัยอีกตู้ในอุปกรณ์นี้ใช้ 24 คำเดียวกัน ใส่รหัสผ่านของตู้นั้นเพื่อให้คีย์ใหม่เปิดตู้นั้นได้ด้วย",
-  "changeKeyOtherPassword": "รหัสผ่านของตู้นิรภัยอีกตู้"
+  "changeKeyOtherPassword": "รหัสผ่านของตู้นิรภัยอีกตู้",
+  "vaultManagerTitle": "ตู้นิรภัยบนอุปกรณ์นี้",
+  "vaultManagerLead": "แสดงเฉพาะเมื่อเปิด Debug ชื่อของตู้นิรภัยที่ยังไม่ได้เปิดจะยังถูกเข้ารหัสไว้ แต่ละตู้เปิดได้ด้วยรหัสผ่านหรือ PIN ของตัวเองเท่านั้น",
+  "vaultManagerOpen": "เปิดอยู่ตอนนี้",
+  "vaultManagerPassword": "รหัสผ่าน",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / ลายนิ้วมือ",
+  "vaultManagerDelete": "ลบโดยไม่ต้องเปิด",
+  "vaultManagerDeleteTitle": "ลบตู้นิรภัยนี้อย่างถาวรใช่ไหม",
+  "vaultManagerDeleteBody": "ทุกอย่างในตู้จะถูกลบออกจากอุปกรณ์นี้และกู้คืนไม่ได้ สำเนาใน Google Drive หรือในไฟล์สำรองข้อมูลจะไม่ได้รับผลกระทบ พิมพ์ {word} เพื่อยืนยัน",
+  "vaultManagerDeleteWord": "ลบ",
+  "vaultManagerDeleted": "ลบตู้นิรภัยแล้ว"
 }
