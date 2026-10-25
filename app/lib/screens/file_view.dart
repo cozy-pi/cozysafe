@@ -21,6 +21,7 @@ import '../originals.dart' show PickedBatch, PickedCopy;
 import '../widgets/vault_bar.dart';
 import 'quick_look.dart';
 import 'video_view.dart';
+import '../widgets/link_card.dart';
 import '../widgets/text_styles.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
@@ -495,7 +496,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
                           child: Text(l.textTruncated, style: TextStyle(color: c.muted, fontSize: 13)),
                         ),
                       switch (kind) {
-                        TextKind.markdown => MarkdownLite(text: text),
+                        TextKind.markdown => MarkdownLite(text: text, onLink: (url) => confirmOpenLink(context, url)),
                         TextKind.prose => ProseText(text: text),
                         TextKind.json => CodeCard(text: text, json: true),
                         TextKind.code => CodeCard(text: text),

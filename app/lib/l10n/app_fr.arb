@@ -620,5 +620,13 @@
   "syncLocalTitle": "Réseau local",
   "syncLocalNote": "Deux appareils sur le même Wi‑Fi, reliés directement, sans internet.",
   "syncDriveNow": "Synchroniser maintenant",
-  "previewEdit": "Modifier"
+  "previewEdit": "Modifier",
+  "noteLinkTitle": "Ouvrir {host} dans le navigateur ?",
+  "formatBold": "Gras",
+  "formatItalic": "Italique",
+  "formatHeading": "Titre",
+  "formatList": "Liste",
+  "formatChecklist": "Liste de tâches",
+  "formatLink": "Lien",
+  "noteTapToShow": "Touchez pour afficher"
 }

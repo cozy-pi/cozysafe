@@ -61,6 +61,20 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
   so the older guards stay: while the screen is recorded or mirrored the app is covered
   (page colour and dial), and after a screenshot the app warns that it is in Photos,
   unencrypted. Turning the switch off (owner check) allows screenshots for bug reports.
+- **Links in notes ask first, and only reach the web** (0.1.67). A web address in a
+  note (`http://`, `https://`, `www.`; `lib/note_format.dart`) is underlined and does
+  nothing until tapped; the tap opens a card naming the host and the full address, with
+  Cancel and Open (`confirmOpenLink`). An international host is shown in its punycode
+  form (`bücher.de` → `xn--bcher-kva.de`, RFC 3492 in Dart), so a look-alike with a
+  Cyrillic letter cannot pass for the real site. Only http and https with a host ever
+  leave the app, as plain ASCII; `javascript:`, `file:`, `intent:`, `data:` and app
+  schemes are refused in Dart (`safeLink`) and again natively (`openExternal` on the
+  `cozysafe/privacy` channel, `MainActivity.kt` and `AppDelegate.swift`; Android also
+  limits it to browsable apps). Our own pages keep their own door (`openUrl`,
+  `https://safe.cozypi.com` only). The app fetches nothing for a link (no previews, no
+  network); leaving for the browser gives the same 60 seconds before the vault locks as
+  the share sheet. With "Hide note text" on, the preview shows neither text, links nor
+  boxes until the note itself is tapped ("Tap to show"), and only until it closes.
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
   the clipboard after 60 seconds and when the vault locks.

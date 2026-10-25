@@ -4,6 +4,18 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-25 — Note formatting, links that ask first
+
+**Owner:** notes stay plain text on disk; formatting is only how they are read. The item
+preview draws the app's own Markdown (headings, bold, italic, lists) plus checklist boxes
+(`- [ ]`, `- [x]`), which can be ticked there and are saved like an edit, and web
+addresses. A tapped address opens nothing by itself: a card names the real host
+(international names as `xn--…`) and the full address, Cancel or Open. Only http and
+https go to the browser, through a new native door next to the one for our own pages
+(docs/security.md, links in notes); no link previews, no network. The editor gets a
+small format bar over the keyboard (Bold, Italic, Heading, List, Checklist, Link) that
+types the marks. Markdown files in the vault use the same links.
+
 ## 2026-10-24 — Google Drive sync, item by item, newest lock only
 
 **Owner:** sync with Google Drive like P2P (same engine, item by item: only what changed

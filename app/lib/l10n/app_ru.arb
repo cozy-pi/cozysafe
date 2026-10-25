@@ -620,5 +620,13 @@
   "syncLocalTitle": "Локальная сеть",
   "syncLocalNote": "Два устройства в одной сети Wi‑Fi, напрямую друг с другом, без интернета.",
   "syncDriveNow": "Синхронизировать сейчас",
-  "previewEdit": "Изменить"
+  "previewEdit": "Изменить",
+  "noteLinkTitle": "Открыть {host} в браузере?",
+  "formatBold": "Жирный",
+  "formatItalic": "Курсив",
+  "formatHeading": "Заголовок",
+  "formatList": "Список",
+  "formatChecklist": "Чек-лист",
+  "formatLink": "Ссылка",
+  "noteTapToShow": "Нажмите, чтобы показать"
 }

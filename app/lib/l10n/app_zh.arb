@@ -620,5 +620,13 @@
   "syncLocalTitle": "局域网",
   "syncLocalNote": "同一 Wi‑Fi 下的两台设备直接相连，不经过互联网。",
   "syncDriveNow": "立即同步",
-  "previewEdit": "编辑"
+  "previewEdit": "编辑",
+  "noteLinkTitle": "在浏览器中打开 {host}？",
+  "formatBold": "粗体",
+  "formatItalic": "斜体",
+  "formatHeading": "标题",
+  "formatList": "列表",
+  "formatChecklist": "待办清单",
+  "formatLink": "链接",
+  "noteTapToShow": "轻点以显示"
 }

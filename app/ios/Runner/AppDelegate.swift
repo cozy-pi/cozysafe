@@ -129,6 +129,14 @@ import UniformTypeIdentifiers
           guard let text = call.arguments as? String, let url = URL(string: text),
                 url.scheme == "https", url.host == "safe.cozypi.com" else { return result(false) }
           UIApplication.shared.open(url) { ok in result(ok) }
+        } else if call.method == "openExternal" {
+          // A link tapped in a note, after the person confirmed its host (lib/links.dart,
+          // docs/security.md): http or https with a host, nothing else (no file:,
+          // javascript: or app schemes).
+          guard let text = call.arguments as? String, let url = URL(string: text),
+                let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
+                let host = url.host, !host.isEmpty else { return result(false) }
+          UIApplication.shared.open(url) { ok in result(ok) }
         } else if call.method == "liquidGlass" {
           // The system's own bottom bar has Liquid Glass from iOS 26 (lib/widgets/native_bar.dart).
           if #available(iOS 26.0, *) { result(true) } else { result(false) }

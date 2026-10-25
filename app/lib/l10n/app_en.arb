@@ -825,5 +825,20 @@
   "syncLocalTitle": "Local network",
   "syncLocalNote": "Two devices on the same Wi‑Fi, straight to each other, no internet.",
   "syncDriveNow": "Sync now",
-  "previewEdit": "Edit"
+  "previewEdit": "Edit",
+  "noteLinkTitle": "Open {host} in the browser?",
+  "formatBold": "Bold",
+  "formatItalic": "Italic",
+  "formatHeading": "Heading",
+  "formatList": "List",
+  "formatChecklist": "Checklist",
+  "formatLink": "Link",
+  "@noteLinkTitle": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "noteTapToShow": "Tap to show"
 }

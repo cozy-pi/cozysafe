@@ -53,6 +53,7 @@ import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
 import 'package:cozysafe/widgets/toast.dart';
 import 'package:cozysafe/widgets/countdown.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -131,7 +132,11 @@ final _items = [
   _item('f8', ItemKind.file, 'Ghi-am-cuoc-hop.m4a', 9300000, ago: _day * 64, tags: ['t8']),
 ];
 
+/// A note with Markdown marks (format bar, checklist, links), shown only in its own shots.
+final _formatted = _item('n9', ItemKind.note, 'Chuẩn bị đi Đà Lạt', 400, ago: 60000);
+
 const _noteText = {
+  'n9': 'Chuẩn bị đi Đà Lạt\n## Hành lý\n- [x] **Hộ chiếu** và căn cước\n- [x] Sạc dự phòng\n- [ ] Áo khoác ấm\n- [ ] Thuốc say xe\n## Đặt chỗ\nKhách sạn: *nhận phòng sau 14h*, mã đặt **DL-58213**\nVé xe: https://vexere.com/vi-VN/ve-xe-sai-gon-da-lat\nBản đồ: www.google.com/maps.\nQuà cho bạn: https://bücher.de/geschenke',
   'j1': '{"router":{"ssid":"TP-Link_5G_BaNgoai","password":"hoaMai2024@","channel":36},"camera":{"app":"EZVIZ","device":"F7K2Q9","admin":true}}',
   'm1': '# Gia hạn hộ chiếu\n\nMang theo **bản gốc** và nộp ở *Phòng Quản lý xuất nhập cảnh*.\n\n## Giấy tờ\n\n- Hộ chiếu cũ\n- Căn cước công dân\n- 2 ảnh 4x6 nền trắng\n- Tờ khai `TK01` điền sẵn\n\n## Lệ phí\n\n1. Nộp 200.000 đ tại quầy\n2. Giữ biên lai để nhận hộ chiếu\n\n> Hẹn lấy sau 8 ngày làm việc.\n\n```\nSĐT tổng đài: 1900 1234\nMã hồ sơ: HC-2026-55821\n```',
   'tx1': 'Wifi nhà ngoại đổi mật khẩu ngày 12/10.\n\nMạng 5G: TP-Link_5G_BaNgoai\nMật khẩu mới: hoaMai2024@\n\nNếu camera cổng mất kết nối thì rút điện 10 giây rồi cắm lại, đợi đèn xanh.',
@@ -598,6 +603,66 @@ void main() {
   _screen('quick-note', 'Ghi chú · chạm một ghi chú (đang bật “Ẩn nội dung ghi chú”)', home, section: 'note',
       act: (t) => openRow(t, 'Thuốc của mẹ'),
       change: 'Ghi chú mở trong khung xem trước chung; nội dung bị che vì đang ẩn nội dung ghi chú; nút ✎ Sửa mở trình soạn');
+  _screen('note-format', 'Ghi chú có định dạng · chạm để xem trước', home, section: 'note',
+      setup: () {
+        Prefs.write('note-previews', '1');
+        _itemsNow = [..._items, _formatted];
+      },
+      act: (t) => openRow(t, 'Chuẩn bị đi Đà Lạt'),
+      change: 'Tiêu đề, chữ đậm/nghiêng, danh sách việc có ô đánh dấu (chạm để tích), liên kết gạch chân',
+      marks: [() => find.byKey(const ValueKey('quick-note'))]);
+  _screen('note-link-card', 'Ghi chú · chạm một liên kết', home, section: 'note',
+      setup: () {
+        Prefs.write('note-previews', '1');
+        _itemsNow = [..._items, _formatted];
+      },
+      act: (t) async {
+        await openRow(t, 'Chuẩn bị đi Đà Lạt');
+        _tapLink(t, 'https://vexere.com/vi-VN/ve-xe-sai-gon-da-lat');
+        await t.pumpAndSettle();
+      },
+      change: 'Hỏi trước khi mở trình duyệt, nêu đúng tên miền; địa chỉ đầy đủ chữ nhỏ bên dưới',
+      marks: [() => find.byKey(const ValueKey('card'))]);
+  _screen('note-link-idn', 'Ghi chú · liên kết tên miền quốc tế', home, section: 'note',
+      setup: () {
+        Prefs.write('note-previews', '1');
+        _itemsNow = [..._items, _formatted];
+      },
+      act: (t) async {
+        await openRow(t, 'Chuẩn bị đi Đà Lạt');
+        _tapLink(t, 'https://bücher.de/geschenke');
+        await t.pumpAndSettle();
+      },
+      change: 'Tên miền có chữ ngoài ASCII hiện dạng xn-- để không bị giả mạo',
+      marks: [() => find.byKey(const ValueKey('card'))]);
+  _screen('note-hidden', 'Ghi chú có định dạng · đang bật “Ẩn nội dung ghi chú”', home, section: 'note',
+      setup: () => _itemsNow = [..._items, _formatted],
+      act: (t) => openRow(t, 'Chuẩn bị đi Đà Lạt'),
+      change: 'Chỉ tiêu đề và các vạch xám, thêm dòng “Chạm để xem”; nền sau nhẹ hơn, thấy trang bên dưới',
+      marks: [() => find.byKey(const ValueKey('note-tap-to-show'))]);
+  _screen('note-hidden-revealed', 'Ghi chú đang ẩn nội dung · sau khi chạm', home, section: 'note',
+      setup: () => _itemsNow = [..._items, _formatted],
+      act: (t) async {
+        await openRow(t, 'Chuẩn bị đi Đà Lạt');
+        await t.tap(find.byKey(const ValueKey('note-reveal')));
+        await t.pump();
+      },
+      change: 'Chạm vào ghi chú: hiện nội dung có định dạng cho tới khi đóng khung xem trước (lần sau lại ẩn)',
+      marks: [() => find.byKey(const ValueKey('quick-note'))]);
+  _screen('note-format-bar', 'Sửa ghi chú · thanh định dạng trên bàn phím',
+      () => _FakeKeyboard(child: NoteScreen(item: _formatted)),
+      act: (t) async {
+        // The keyboard is up: it covers the home indicator's room, as on the phone.
+        t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
+        t.view.padding = const FakeViewPadding(top: 59 * 2);
+        await t.pump();
+        // The cursor on "Áo khoác ấm".
+        final r = t.getRect(find.byType(TextField));
+        await t.tapAt(r.topLeft + const Offset(150, 108));
+        await t.pump();
+      },
+      change: 'Đậm · Nghiêng · Tiêu đề · Danh sách · Việc cần làm · Liên kết; dấu Markdown hiện nhạt',
+      marks: [() => find.byKey(const ValueKey('format-bar'))]);
   _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
       act: (t) => openRow(t, 'Thuốc của mẹ'),
@@ -1007,6 +1072,72 @@ void _leftCamera() {
 
 /// A PDF's first page for the renders (tests have no PDF engine): a white sheet with a
 /// heading and lines of text.
+/// Taps the link whose text is [text] in the rich text on screen.
+void _tapLink(WidgetTester t, String text) {
+  for (final rich in t.widgetList<RichText>(find.byType(RichText))) {
+    TapGestureRecognizer? hit;
+    rich.text.visitChildren((span) {
+      if (span is TextSpan && span.text == text && span.recognizer is TapGestureRecognizer) {
+        hit = span.recognizer as TapGestureRecognizer;
+        return false;
+      }
+      return true;
+    });
+    if (hit != null) return hit!.onTap!();
+  }
+  throw StateError('no link "$text"');
+}
+
+/// A keyboard's place at the bottom, for the editor shots (a grey board with keys).
+class _FakeKeyboard extends StatelessWidget {
+  const _FakeKeyboard({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final h = MediaQuery.viewInsetsOf(context).bottom;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final key = dark ? const Color(0xFF6B6B6B) : Colors.white;
+    return Stack(
+      children: [
+        child,
+        if (h > 0)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: h,
+            child: ColoredBox(
+              color: dark ? const Color(0xFF2B2B2B) : const Color(0xFFD1D3D9),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 10, 4, 40),
+                child: Column(
+                  children: [
+                    for (final n in [10, 9, 9, 5])
+                      Expanded(
+                        child: Row(
+                          children: [
+                            for (var i = 0; i < n; i++)
+                              Expanded(
+                                flex: n == 5 && i == 2 ? 5 : 1,
+                                child: Container(
+                                  margin: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(color: key, borderRadius: BorderRadius.circular(6)),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _FakePdfPage extends StatelessWidget {
   const _FakePdfPage();
 

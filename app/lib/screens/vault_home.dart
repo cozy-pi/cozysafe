@@ -753,32 +753,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final result = await QuickLook.show(context, item,
         // Photos and videos: the full-screen view swipes through both.
         photos: media.where((m) => m.kind == ItemKind.photo || VideoViewScreen.supported).toList(),
-        vaultId: _vault.id,
-        // The bar stays under the preview: a tab closes it and goes there; in the middle
-        // the + closes it and offers the ways (owner 2026-10-24).
-        bar: (ctx) => VaultBar(
-              section: _section,
-              sections: barSections(_sections),
-              home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
-              onSection: (s) => Navigator.of(ctx).pop(QuickLook.sectionFor(s.name)),
-              centre: actionSide() == ActionSide.center
-                  ? ActionButton(
-                      icon: Icons.add,
-                      solid: true,
-                      size: centrePlusSize,
-                      tooltip: AppLocalizations.of(ctx).addToVault,
-                      onTap: () => Navigator.of(ctx).pop(QuickLook.addRequest))
-                  : null,
-            ));
+        vaultId: _vault.id);
     if (!mounted || _locked) return;
-    // The bar under the preview: another section, or the +.
-    final goTo = QuickLook.sectionTarget(result);
-    if (goTo != null) {
-      final s = VaultSection.values.where((v) => v.name == goTo).firstOrNull;
-      if (s != null) _pickSection(s);
-      return;
+    // A box ticked in the preview: its write ends first (Edit reads the note), then the
+    // list and the note's line under its title catch up.
+    if (QuickLook.edited.remove(item.id)) {
+      await QuickLook.lastSave?.catchError((Object _) {});
+      if (!mounted || _locked) return;
+      _previews.remove(item.id);
+      _reload();
     }
-    if (result == QuickLook.addRequest) return _mainAction();
     if (result == QuickLook.editRequest) return _openNote(item);
     // ⋯ in a viewer: that item's menu (it may be another photo, swiped to).
     final target = QuickLook.menuTarget(result);

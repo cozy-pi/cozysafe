@@ -634,5 +634,13 @@
   "syncLocalTitle": "Mạng nội bộ",
   "syncLocalNote": "Hai máy cùng Wi‑Fi, nối thẳng với nhau, không qua internet.",
   "syncDriveNow": "Đồng bộ ngay",
-  "previewEdit": "Sửa"
+  "previewEdit": "Sửa",
+  "noteLinkTitle": "Mở {host} trong trình duyệt?",
+  "formatBold": "Đậm",
+  "formatItalic": "Nghiêng",
+  "formatHeading": "Tiêu đề",
+  "formatList": "Danh sách",
+  "formatChecklist": "Việc cần làm",
+  "formatLink": "Liên kết",
+  "noteTapToShow": "Chạm để xem"
 }
