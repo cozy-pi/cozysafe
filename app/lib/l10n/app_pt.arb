@@ -587,5 +587,11 @@
   "vaultManagerDeleteTitle": "Excluir este cofre para sempre?",
   "vaultManagerDeleteBody": "Tudo o que há nele é apagado deste dispositivo e não pode ser recuperado. Cópias no Google Drive ou em arquivos de backup não são afetadas. Digite {word} para confirmar.",
   "vaultManagerDeleteWord": "EXCLUIR",
-  "vaultManagerDeleted": "Cofre excluído."
+  "vaultManagerDeleted": "Cofre excluído.",
+  "syncDriveListing": "Lendo o Google Drive",
+  "syncDriveFiles": "{n, plural, =1{1 arquivo} other{{n} arquivos}}",
+  "syncDriveFolders": "Criando pastas no Google Drive",
+  "syncDriveMoving": "Movendo arquivos para as pastas",
+  "syncDriveMoved": "{n, plural, =1{1 arquivo reorganizado no Google Drive.} other{{n} arquivos reorganizados no Google Drive.}}",
+  "syncNothingNew": "Nada de novo para enviar ou receber."
 }

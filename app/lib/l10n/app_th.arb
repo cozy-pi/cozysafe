@@ -587,5 +587,11 @@
   "vaultManagerDeleteTitle": "ลบตู้นิรภัยนี้อย่างถาวรใช่ไหม",
   "vaultManagerDeleteBody": "ทุกอย่างในตู้จะถูกลบออกจากอุปกรณ์นี้และกู้คืนไม่ได้ สำเนาใน Google Drive หรือในไฟล์สำรองข้อมูลจะไม่ได้รับผลกระทบ พิมพ์ {word} เพื่อยืนยัน",
   "vaultManagerDeleteWord": "ลบ",
-  "vaultManagerDeleted": "ลบตู้นิรภัยแล้ว"
+  "vaultManagerDeleted": "ลบตู้นิรภัยแล้ว",
+  "syncDriveListing": "กำลังอ่าน Google Drive",
+  "syncDriveFiles": "{n, plural, other{{n} ไฟล์}}",
+  "syncDriveFolders": "กำลังสร้างโฟลเดอร์ใน Google Drive",
+  "syncDriveMoving": "กำลังย้ายไฟล์เข้าโฟลเดอร์",
+  "syncDriveMoved": "{n, plural, other{จัดเรียงไฟล์ {n} ไฟล์ใน Google Drive แล้ว}}",
+  "syncNothingNew": "ไม่มีอะไรใหม่ให้ส่งหรือรับ"
 }

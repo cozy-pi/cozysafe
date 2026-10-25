@@ -587,5 +587,11 @@
   "vaultManagerDeleteTitle": "이 금고를 영구히 삭제할까요?",
   "vaultManagerDeleteBody": "안의 모든 내용이 이 기기에서 지워지며 되돌릴 수 없습니다. Google Drive나 백업 파일에 있는 사본은 영향을 받지 않습니다. 확인하려면 {word}를 입력하세요.",
   "vaultManagerDeleteWord": "삭제",
-  "vaultManagerDeleted": "금고를 삭제했습니다."
+  "vaultManagerDeleted": "금고를 삭제했습니다.",
+  "syncDriveListing": "Google Drive 읽는 중",
+  "syncDriveFiles": "{n, plural, other{파일 {n}개}}",
+  "syncDriveFolders": "Google Drive에 폴더 만드는 중",
+  "syncDriveMoving": "파일을 폴더로 옮기는 중",
+  "syncDriveMoved": "{n, plural, other{Google Drive의 파일 {n}개를 정리했습니다.}}",
+  "syncNothingNew": "보내거나 받을 새 항목이 없습니다."
 }

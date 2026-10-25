@@ -587,5 +587,11 @@
   "vaultManagerDeleteTitle": "Bu kasa kalıcı olarak silinsin mi?",
   "vaultManagerDeleteBody": "İçindeki her şey bu cihazdan silinir ve geri getirilemez. Google Drive'daki veya yedek dosyalarındaki kopyalara dokunulmaz. Onaylamak için {word} yazın.",
   "vaultManagerDeleteWord": "SIL",
-  "vaultManagerDeleted": "Kasa silindi."
+  "vaultManagerDeleted": "Kasa silindi.",
+  "syncDriveListing": "Google Drive okunuyor",
+  "syncDriveFiles": "{n, plural, =1{1 dosya} other{{n} dosya}}",
+  "syncDriveFolders": "Google Drive'da klasörler oluşturuluyor",
+  "syncDriveMoving": "Dosyalar klasörlere taşınıyor",
+  "syncDriveMoved": "{n, plural, =1{Google Drive'daki 1 dosya yeniden düzenlendi.} other{Google Drive'daki {n} dosya yeniden düzenlendi.}}",
+  "syncNothingNew": "Gönderilecek veya alınacak yeni bir şey yok."
 }

@@ -587,5 +587,11 @@
   "vaultManagerDeleteTitle": "要永久删除这个保险箱吗？",
   "vaultManagerDeleteBody": "其中的所有内容都会从此设备上清除，且无法恢复。Google Drive 或备份文件中的副本不受影响。输入 {word} 以确认。",
   "vaultManagerDeleteWord": "删除",
-  "vaultManagerDeleted": "保险箱已删除。"
+  "vaultManagerDeleted": "保险箱已删除。",
+  "syncDriveListing": "正在读取 Google Drive",
+  "syncDriveFiles": "{n, plural, other{{n} 个文件}}",
+  "syncDriveFolders": "正在 Google Drive 中创建文件夹",
+  "syncDriveMoving": "正在将文件移入文件夹",
+  "syncDriveMoved": "{n, plural, other{已整理 Google Drive 中的 {n} 个文件。}}",
+  "syncNothingNew": "没有需要发送或接收的新内容。"
 }

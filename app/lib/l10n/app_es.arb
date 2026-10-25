@@ -587,5 +587,11 @@
   "vaultManagerDeleteTitle": "¿Eliminar esta caja fuerte para siempre?",
   "vaultManagerDeleteBody": "Todo su contenido se borra de este dispositivo y no se puede recuperar. Las copias en Google Drive o en archivos de copia de seguridad no se tocan. Escribe {word} para confirmar.",
   "vaultManagerDeleteWord": "ELIMINAR",
-  "vaultManagerDeleted": "Caja fuerte eliminada."
+  "vaultManagerDeleted": "Caja fuerte eliminada.",
+  "syncDriveListing": "Leyendo Google Drive",
+  "syncDriveFiles": "{n, plural, =1{1 archivo} other{{n} archivos}}",
+  "syncDriveFolders": "Creando carpetas en Google Drive",
+  "syncDriveMoving": "Moviendo archivos a carpetas",
+  "syncDriveMoved": "{n, plural, =1{Se reorganizó 1 archivo en Google Drive.} other{Se reorganizaron {n} archivos en Google Drive.}}",
+  "syncNothingNew": "Nada nuevo que enviar o recibir."
 }
