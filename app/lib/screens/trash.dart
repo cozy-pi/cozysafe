@@ -1,16 +1,12 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'file_view.dart';
-import 'video_view.dart';
+import 'quick_look.dart';
 import '../widgets/item_menu.dart';
 import '../widgets/vault_bar.dart';
 import '../item_kind.dart';
@@ -33,8 +29,6 @@ class _TrashScreenState extends State<TrashScreen> {
   Set<String> _held = const {};
   final Map<String, Future<Uint8List>> _thumbnails = {};
   final Set<String> _picked = {};
-  /// Full pictures for the preview, decrypted once per screen.
-  final Map<String, Future<Uint8List>> _full = {};
   bool _selectMode = false;
   bool get _selecting => _selectMode || _picked.isNotEmpty;
   void _endSelect() {
@@ -42,110 +36,15 @@ class _TrashScreenState extends State<TrashScreen> {
     _picked.clear();
   }
 
-  /// What was deleted, before deciding: the picture, the note's first lines, or the
-  /// file's name and size, with Restore and Delete for good.
+  /// What was deleted, before deciding: the same preview as in the vault (the picture,
+  /// the video, the note's first lines, the recording, the file), with Restore and Delete
+  /// for good, and how long it stays.
   Future<void> _preview(rust.ItemInfo it) async {
-    final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
-    final size = MediaQuery.sizeOf(context);
-    Widget body;
-    if (it.kind == ItemKind.photo || it.kind == ItemKind.video) {
-      body = ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: size.height * .45),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          // The thumbnail at once; a photo's full picture replaces it when decrypted.
-          child: FutureBuilder<Uint8List>(
-            future: _thumbnails[it.id] ??= rust.itemThumbnail(id: it.id),
-            builder: (context, thumb) {
-              final small = thumb.hasData && thumb.data!.isNotEmpty
-                  ? Image.memory(thumb.data!, fit: BoxFit.contain, gaplessPlayback: true)
-                  : const SizedBox(height: 200);
-              if (it.kind == ItemKind.video) {
-                return VideoViewScreen.supported ? _TrashVideo(item: it, still: small) : small;
-              }
-              if (it.sizeBytes > BigInt.from(60 << 20)) return small;
-              return FutureBuilder<Uint8List>(
-                future: _full[it.id] ??= rust.itemContent(id: it.id),
-                builder: (context, full) => full.hasData && full.data!.isNotEmpty
-                    ? Image.memory(full.data!,
-                        fit: BoxFit.contain,
-                        gaplessPlayback: true,
-                        cacheWidth: (size.width * MediaQuery.devicePixelRatioOf(context)).round())
-                    : small,
-              );
-            },
-          ),
-        ),
-      );
-    } else if (it.kind == ItemKind.note) {
-      body = FutureBuilder<Uint8List>(
-        future: rust.itemContent(id: it.id),
-        builder: (context, snap) {
-          final full = snap.hasData ? utf8.decode(snap.data!, allowMalformed: true).trim() : '';
-          return ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: size.height * .4),
-            child: SingleChildScrollView(
-              child: Text(full.length > 2000 ? '${full.substring(0, 2000)}…' : full,
-                  style: const TextStyle(fontSize: 15.5, height: 1.45)),
-            ),
-          );
-        },
-      );
-    } else {
-      body = Row(
-        children: [
-          Icon(fileIcon(it), size: 40, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 14),
-          Expanded(child: Text(fileSize(it.sizeBytes), style: TextStyle(color: c.muted))),
-        ],
-      );
-    }
-    final pick = await showCard<int>(
-      context,
-      title: it.name.isEmpty ? l.untitledNote : it.name,
-      builder: (context) => Padding(
-        key: const ValueKey('trash-preview'),
-        padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            body,
-            const SizedBox(height: 12),
-            Text(_held.contains(it.id) ? '${l.trashHeldLabel} · ${l.daysLeft(_daysLeft(it))}' : l.daysLeft(_daysLeft(it)),
-                style: TextStyle(color: c.muted, fontSize: 13.5)),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(1),
-                    style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, Ui.circle),
-                        shape: const StadiumBorder(),
-                        foregroundColor: recordRed(context)),
-                    child: Text(l.deleteForGoodShort),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton(
-                    key: const ValueKey('preview-restore'),
-                    onPressed: () => Navigator.of(context).pop(0),
-                    style: FilledButton.styleFrom(minimumSize: const Size(0, Ui.circle), shape: const StadiumBorder()),
-                    child: Text(l.restore),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-    if (!mounted || pick == null) return;
-    if (pick == 0) await _restore([it]);
-    if (pick == 1) await _deleteForGood([it]);
+    final pick = await QuickLook.show(context, it,
+        vaultId: '', trash: TrashLook(daysLeft: _daysLeft(it), held: _held.contains(it.id)));
+    if (!mounted) return;
+    if (pick == QuickLook.restoreRequest) await _restore([it]);
+    if (pick == QuickLook.purgeRequest) await _deleteForGood([it]);
   }
 
   void _open(rust.ItemInfo it) => _selecting ? _toggle(it) : _preview(it);
@@ -397,87 +296,4 @@ class _DaysLeft extends StatelessWidget {
           child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
         ),
       );
-}
-
-/// A deleted video in the preview: its still with a play button; a tap decrypts it into
-/// the private playback folder and plays it there (owner 2026-10-23: videos in the trash
-/// could not be watched). The copy is deleted when the preview closes.
-class _TrashVideo extends StatefulWidget {
-  const _TrashVideo({required this.item, required this.still});
-
-  final rust.ItemInfo item;
-  final Widget still;
-
-  @override
-  State<_TrashVideo> createState() => _TrashVideoState();
-}
-
-class _TrashVideoState extends State<_TrashVideo> {
-  VideoPlayerController? _player;
-  File? _copy;
-  bool _opening = false;
-
-  Future<void> _tap() async {
-    final p = _player;
-    if (p != null) {
-      p.value.isPlaying ? await p.pause() : await p.play();
-      return;
-    }
-    if (_opening) return;
-    setState(() => _opening = true);
-    try {
-      final copy = await playbackCopy(widget.item);
-      _copy = copy;
-      final player = VideoPlayerController.file(copy);
-      await player.initialize();
-      if (!mounted) {
-        await player.dispose();
-        return;
-      }
-      player.addListener(() {
-        if (mounted) setState(() {});
-      });
-      setState(() => _player = player);
-      await player.play();
-    } catch (_) {
-      if (mounted) setState(() => _opening = false);
-    }
-  }
-
-  @override
-  void dispose() {
-    _player?.dispose();
-    try {
-      _copy?.deleteSync();
-    } catch (_) {}
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = _player;
-    final playing = p?.value.isPlaying ?? false;
-    return GestureDetector(
-      key: const ValueKey('trash-video'),
-      onTap: _tap,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          if (p != null) AspectRatio(aspectRatio: p.value.aspectRatio, child: VideoPlayer(p)) else widget.still,
-          if (!playing)
-            Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(color: Color(0x8C000000), shape: BoxShape.circle),
-              child: _opening && p == null
-                  ? const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                    )
-                  : const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 34),
-            ),
-        ],
-      ),
-    );
-  }
 }

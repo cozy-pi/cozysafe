@@ -10,6 +10,7 @@ import '../appearance.dart';
 import '../language.dart';
 import '../links.dart';
 import '../platform.dart';
+import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'common.dart' show fadeRoute;
@@ -100,6 +101,9 @@ class SettingsScreen extends StatefulWidget {
   final Future<void> Function() onOpenTrash;
   final Future<void> Function() onNewVault;
 
+  /// For the mockup renders: the connection log without a vault.
+  static List<String>? debugSyncLog;
+
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
@@ -116,6 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _measure();
+    _loadLastSync();
     if (widget.canBiometric) {
       BiometricUnlock.available().then((k) {
         if (mounted && k != null) setState(() => _bioKind = k);
@@ -300,6 +305,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() {});
   }
 
+  /// When this vault last synced fully, anywhere (from the connection log).
+  DateTime? _lastSync;
+
+  Future<void> _loadLastSync() async {
+    if (kIsWeb) return;
+    try {
+      final log = SettingsScreen.debugSyncLog ?? await sync.connectionLog();
+      int? newest;
+      for (final line in log) {
+        final p = line.split('|');
+        final ms = p.isNotEmpty ? int.tryParse(p[0]) : null;
+        if (p.length > 3 && p[3] == 'ok' && ms != null && (newest == null || ms > newest)) newest = ms;
+      }
+      if (mounted) setState(() => _lastSync = newest == null ? null : DateTime.fromMillisecondsSinceEpoch(newest));
+    } catch (_) {}
+  }
+
+  String _lastSyncText(AppLocalizations l) {
+    final at = _lastSync;
+    if (at == null) return l.syncLastNever;
+    final ago = DateTime.now().difference(at);
+    if (ago.inMinutes < 1) return l.syncLastJustNow;
+    if (ago.inHours < 1) return l.syncLastMinutes(ago.inMinutes);
+    if (ago.inDays < 1) return l.syncLastHours(ago.inHours);
+    return l.syncLastDays(ago.inDays);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -312,6 +344,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
           _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), byKind: _byKind),
+          // First (owner 2026-10-25): syncing is done often and keeps a copy elsewhere.
+          if (!kIsWeb)
+            _Group(title: l.syncTitle, rows: [
+              _Row(
+                key: const ValueKey('sync-row'),
+                icon: Icons.sync_rounded,
+                color: _Mau.xanhLa,
+                title: l.syncSettingsRow,
+                value: _lastSyncText(l),
+                onTap: () async {
+                  await pushPage<void>(context,
+                      title: l.syncTitle,
+                      builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: () => widget.onSynced?.call()));
+                  _loadLastSync();
+                },
+              ),
+            ]),
           _Group(title: l.settingsThisVault, rows: [
             _Row(
               icon: Icons.palette_outlined,
@@ -412,16 +461,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Text(l.backupNow),
               ),
             ),
-            if (!kIsWeb)
-              _Row(
-                key: const ValueKey('sync-row'),
-                icon: Icons.sync_rounded,
-                color: _Mau.xanhLa,
-                title: l.syncRow,
-                onTap: () => pushPage<void>(context,
-                    title: l.syncTitle,
-                    builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: () => widget.onSynced?.call())),
-              ),
           ]),
           _Group(title: l.settingsDisplay, rows: [
             _Row(

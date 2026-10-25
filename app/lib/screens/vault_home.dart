@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../item_bytes.dart';
 import '../biometric.dart';
 import '../lock_resume.dart';
 import '../l10n/app_localizations.dart';
@@ -746,86 +747,49 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
     if (_selecting) return _toggle(item.id);
     if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
-    if (item.kind == ItemKind.note) return _openNote(item);
-    if (item.kind == ItemKind.audio) {
-      // Voice opens its own row; anywhere else it plays in a card over the page you
-      // are on, never a jump to another tab (owner 2026-10-21).
-      if (_section == VaultSection.audio) {
-        _recorder.currentState?.openRow(item.id);
-        return;
-      }
-      final pick = await showRecording(context, item);
-      if (pick != null && mounted) await _audioActions(item, pick);
-      return;
-    }
-    final String? deleted;
-    if (item.kind == ItemKind.photo || (item.kind == ItemKind.video && VideoViewScreen.supported)) {
-      // A card over the vault, a little bigger than the thumbnail; full screen on request.
-      deleted = await QuickLook.show(context, item,
-          // Photos and videos: the full-screen view swipes through both.
-          photos: media.where((m) => m.kind == ItemKind.photo || VideoViewScreen.supported).toList(),
-          vaultId: _vault.id,
-          // The bar stays under the preview: a tab closes it and goes there; in the middle
-          // the + closes it and offers the ways (owner 2026-10-24).
-          bar: (ctx) => VaultBar(
-                section: _section,
-                sections: barSections(_sections),
-                home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
-                onSection: (s) => Navigator.of(ctx).pop(QuickLook.sectionFor(s.name)),
-                centre: actionSide() == ActionSide.center
-                    ? ActionButton(
-                        icon: Icons.add,
-                        solid: true,
-                        size: centrePlusSize,
-                        tooltip: AppLocalizations.of(ctx).addToVault,
-                        onTap: () => Navigator.of(ctx).pop(QuickLook.addRequest))
-                    : null,
-              ));
-
-    } else {
-      LockGuard.allowAway();
-      deleted = await Navigator.of(context)
-          .push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: item, vaultId: _vault.id)));
-      LockGuard.clear();
-    }
+    // Every kind opens the same way: big, over the page you are on, never a jump to
+    // another tab (owner 2026-10-21, one design 2026-10-25). Open in its bar goes further:
+    // full screen, the note's editor, the file's own page.
+    final result = await QuickLook.show(context, item,
+        // Photos and videos: the full-screen view swipes through both.
+        photos: media.where((m) => m.kind == ItemKind.photo || VideoViewScreen.supported).toList(),
+        vaultId: _vault.id,
+        // The bar stays under the preview: a tab closes it and goes there; in the middle
+        // the + closes it and offers the ways (owner 2026-10-24).
+        bar: (ctx) => VaultBar(
+              section: _section,
+              sections: barSections(_sections),
+              home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
+              onSection: (s) => Navigator.of(ctx).pop(QuickLook.sectionFor(s.name)),
+              centre: actionSide() == ActionSide.center
+                  ? ActionButton(
+                      icon: Icons.add,
+                      solid: true,
+                      size: centrePlusSize,
+                      tooltip: AppLocalizations.of(ctx).addToVault,
+                      onTap: () => Navigator.of(ctx).pop(QuickLook.addRequest))
+                  : null,
+            ));
+    if (!mounted || _locked) return;
     // The bar under the preview: another section, or the +.
-    final goTo = QuickLook.sectionTarget(deleted);
+    final goTo = QuickLook.sectionTarget(result);
     if (goTo != null) {
       final s = VaultSection.values.where((v) => v.name == goTo).firstOrNull;
-      if (s != null && mounted) _pickSection(s);
+      if (s != null) _pickSection(s);
       return;
     }
-    if (deleted == QuickLook.addRequest) {
-      if (mounted) await _mainAction();
-      return;
-    }
+    if (result == QuickLook.addRequest) return _mainAction();
+    if (result == QuickLook.editRequest) return _openNote(item);
     // ⋯ in a viewer: that item's menu (it may be another photo, swiped to).
-    final target = QuickLook.menuTarget(deleted);
+    final target = QuickLook.menuTarget(result);
     if (target != null) {
       final it = (_items ?? const <rust.ItemInfo>[]).where((i) => i.id == target).firstOrNull;
-      if (it != null && mounted && !_locked) await _itemMenu(it, media);
+      if (it != null) await _itemMenu(it, media);
       return;
     }
-    if (!_locked && deleted != null) {
+    if (result != null) {
       _reload();
-      _trashed([deleted]);
-    }
-  }
-
-  /// A recording's buttons, from its open row: 0 rename, 1 send, 2 delete.
-  Future<void> _audioActions(rust.ItemInfo item, int pick) async {
-    if (pick == 0) {
-      await _rename(item);
-    } else if (pick == 1) {
-      setState(() => _selected
-        ..clear()
-        ..add(item.id));
-      await _sendSelected();
-      if (mounted) setState(_endSelect);
-    } else {
-      await rust.trashItem(id: item.id, nowMs: nowMs());
-      _reload();
-      _trashed([item.id]);
+      _trashed([result]);
     }
   }
 
@@ -1575,6 +1539,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           selected: _selected,
           selecting: _selecting,
           onToggleSelect: _toggle,
+          onOpen: (it) => _openItem(it, const []),
           onMenu: (it) => _itemMenu(it, const []),
         ),
       VaultSection.library => _library(context, shown),
@@ -2742,7 +2707,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
 
   rust.ItemInfo get _item => widget.items[_index];
 
-  Future<Uint8List> _load(String id) => _content[id] ??= rust.itemContent(id: id);
+  Future<Uint8List> _load(String id) => _content[id] ??= photoBytes(id);
 
   /// Width photos are decoded at: 1.5× the screen's (at most 3000 px, ~20 MB as a
   /// bitmap), sharp enough to zoom, without a very large photo's full bitmap in memory.
@@ -2958,8 +2923,9 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                           const SizedBox(width: 16),
                           GlassPill(
                             child: TextButton.icon(
+                              key: const ValueKey('photo-delete'),
                               onPressed: _delete,
-                              style: glassButton,
+                              style: glassDelete,
                               icon: const Icon(Icons.delete_outline),
                               label: glassLabel(l.delete),
                             ),

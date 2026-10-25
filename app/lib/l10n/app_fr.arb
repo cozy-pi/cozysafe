@@ -457,7 +457,7 @@
   "addRowAddPhotos": "Ajouter des photos",
   "syncTitle": "Synchroniser",
   "syncRow": "Synchroniser avec un appareil à proximité",
-  "syncLead": "Mettez ce coffre à jour avec votre autre téléphone ou ordinateur sur le même Wi‑Fi. Les deux doivent contenir ce coffre : les mêmes 24 mots et le même mot de passe.",
+  "syncLead": "Gardez ce coffre identique sur votre autre téléphone ou ordinateur : via votre réseau local ou via Google Drive. Les deux doivent contenir ce coffre : les mêmes 24 mots et le même mot de passe.",
   "syncByHand": "Rien ne se connecte tout seul : à chaque fois, c’est vous qui lancez et autorisez.",
   "syncShowCode": "Afficher un code",
   "syncScanCode": "Scanner un code",
@@ -610,5 +610,15 @@
   "deleteForGoodOthersKeep": "Vos autres appareils qui synchronisent ce coffre le conservent 30 jours dans Supprimés récemment.",
   "syncDoneHeld": "{n, plural, =1{1 élément supprimé sur l’autre appareil a été déplacé dans Supprimés récemment (conservé 30 jours).} other{{n} éléments supprimés sur l’autre appareil ont été déplacés dans Supprimés récemment (conservés 30 jours).}}",
   "syncFindNoneRestore": "Restauration : seul un appareil qui accepte ces 24 mots répond. Si le vôtre affiche un code, vérifiez les mots.",
-  "syncFindLocalNetwork": "Sur iPhone, Cozy Safe a besoin de l’accès au réseau local : Réglages, Confidentialité et sécurité, Réseau local."
+  "syncFindLocalNetwork": "Sur iPhone, Cozy Safe a besoin de l’accès au réseau local : Réglages, Confidentialité et sécurité, Réseau local.",
+  "syncSettingsRow": "Réseau local, Google Drive",
+  "syncLastNever": "Jamais",
+  "syncLastJustNow": "À l’instant",
+  "syncLastMinutes": "{n, plural, =1{Il y a 1 minute} other{Il y a {n} minutes}}",
+  "syncLastHours": "{n, plural, =1{Il y a 1 heure} other{Il y a {n} heures}}",
+  "syncLastDays": "{n, plural, =1{Il y a 1 jour} other{Il y a {n} jours}}",
+  "syncLocalTitle": "Réseau local",
+  "syncLocalNote": "Deux appareils sur le même Wi‑Fi, reliés directement, sans internet.",
+  "syncDriveNow": "Synchroniser maintenant",
+  "previewEdit": "Modifier"
 }

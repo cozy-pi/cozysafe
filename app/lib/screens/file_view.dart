@@ -13,13 +13,13 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
+import '../item_bytes.dart';
 import '../l10n/app_localizations.dart';
 import '../debug_log.dart';
 import '../lock_guard.dart';
 import '../originals.dart' show PickedBatch, PickedCopy;
 import '../widgets/vault_bar.dart';
 import 'quick_look.dart';
-import 'recorder.dart';
 import 'video_view.dart';
 import '../widgets/text_styles.dart';
 import '../platform.dart';
@@ -394,16 +394,6 @@ class _FileViewScreenState extends State<FileViewScreen> {
         icon: const Icon(Icons.more_horiz),
       );
 
-  /// The same player card as a recording opened from the home page.
-  Future<void> _play() async {
-    final pick = await showRecording(context, widget.item);
-    if (!mounted || pick == null) return;
-    if (pick == 2) return _delete();
-    if (pick == 1) setState(() => _busy = true);
-    if (pick == 1) await shareItem(context, widget.item, widget.vaultId);
-    if (mounted) setState(() => _busy = false);
-  }
-
   /// Pictures up to this size are decrypted into memory and shown here.
   static const _imageInMemory = 60 << 20;
   Future<Uint8List>? _imageBytes;
@@ -419,12 +409,16 @@ class _FileViewScreenState extends State<FileViewScreen> {
               builder: (b) => IconButton(
                   onPressed: _busy ? null : () => _open(b), icon: const Icon(Icons.ios_share), tooltip: l.sendOut),
             ),
-            IconButton(onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline), tooltip: l.delete),
+            IconButton(
+                key: const ValueKey('file-delete'),
+                onPressed: _busy ? null : _delete,
+                icon: const Icon(Icons.delete_outline, color: Color(0xFFFF453A)),
+                tooltip: l.delete),
             _more(l),
           ],
         ),
         body: FutureBuilder<Uint8List>(
-          future: _imageBytes ??= rust.itemContent(id: widget.item.id),
+          future: _imageBytes ??= photoBytes(widget.item.id),
           builder: (context, snap) {
             if (snap.hasError) {
               return Center(child: Text(l.videoFailed, style: const TextStyle(color: Colors.white)));
@@ -572,7 +566,11 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 icon: const Icon(Icons.ios_share),
               ),
             ),
-            IconButton(tooltip: l.delete, onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline)),
+            IconButton(
+                key: const ValueKey('file-delete'),
+                tooltip: l.delete,
+                onPressed: _busy ? null : _delete,
+                icon: Icon(Icons.delete_outline, color: recordRed(context))),
             _more(l),
           ],
         ),
@@ -582,7 +580,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
         // and at every start, like videos.
         body: widget.item.sizeBytes > BigInt.from(_pdfInMemory)
             ? FutureBuilder<File>(
-                future: _pdfCopy ??= playbackCopy(widget.item, fallbackExt: '.pdf'),
+                future: _pdfCopy ??= readThroughLock(() => playbackCopy(widget.item, fallbackExt: '.pdf')),
                 builder: (context, snap) {
                   if (snap.hasError) return Center(child: Text(l.errorStorage));
                   final f = snap.data;
@@ -591,7 +589,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 },
               )
             : FutureBuilder<Uint8List>(
-                future: _bytes ??= rust.itemContent(id: widget.item.id),
+                future: _bytes ??= itemBytes(widget.item.id),
                 builder: (context, snap) {
                   if (snap.hasError) return Center(child: Text(l.errorStorage));
                   final data = snap.data;
@@ -629,7 +627,11 @@ class _FileViewScreenState extends State<FileViewScreen> {
     final when = dateOf(widget.item.createdMs);
     return Scaffold(
       appBar: AppBar(actions: [
-        IconButton(onPressed: _busy ? null : _delete, icon: const Icon(Icons.delete_outline), tooltip: l.delete),
+        IconButton(
+            key: const ValueKey('file-delete'),
+            onPressed: _busy ? null : _delete,
+            icon: Icon(Icons.delete_outline, color: recordRed(context)),
+            tooltip: l.delete),
         _more(l),
       ]),
       body: SafeArea(
@@ -651,18 +653,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 Text('${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
                     style: TextStyle(color: c.muted)),
                 const SizedBox(height: 24),
-                // Music or a recording added from Files plays right here.
-                if (widget.item.mime.startsWith('audio/')) ...[
-                  FilledButton.icon(
-                    key: const ValueKey('file-play'),
-                    onPressed: _busy ? null : _play,
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: Text(l.play),
-                  ),
-                  const SizedBox(height: 8),
-                ],
                 Builder(
-                  builder: (b) => (widget.item.mime.startsWith('audio/') ? OutlinedButton.icon : FilledButton.icon)(
+                  builder: (b) => FilledButton.icon(
                     onPressed: _busy ? null : () => _open(b),
                     icon: const Icon(Icons.open_in_new),
                     label: Text(l.openWith),
