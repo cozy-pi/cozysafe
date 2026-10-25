@@ -21,6 +21,8 @@ Dates are UTC.
 ### Changed
 - The page behind an opened item is lighter and less blurred, so you can still see where
   you are.
+- An opened item's buttons now sit in the bottom bar's place, the same size and shape,
+  instead of a second row above it.
 
 ## 0.1.66 (2026-10-25)
 
