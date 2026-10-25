@@ -240,7 +240,7 @@ mod tests {
         };
         assert!(matches!(weak.check(), Err(Error::KdfTooWeak)));
         assert!(matches!(
-            derive_root(&crate::generate_salt(), &sk(1), &[0; 16], weak),
+            derive_root(&crate::rand_u32().to_le_bytes(), &sk(1), &[0; 16], weak),
             Err(Error::KdfTooWeak)
         ));
         let one_pass_less = KdfParams {

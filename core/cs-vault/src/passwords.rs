@@ -197,7 +197,7 @@ mod tests {
         for pw in cases("short") {
             assert_eq!(check_new_password(&pw), PasswordCheck::TooShort);
         }
-        assert_eq!(check_new_password(""), PasswordCheck::TooShort);
+        assert_eq!(check_new_password(&String::new()), PasswordCheck::TooShort);
         // Not on the list, but repeats and two words a guesser tries early.
         for pw in cases("guessable") {
             assert_eq!(check_new_password(&pw), PasswordCheck::Guessable);
