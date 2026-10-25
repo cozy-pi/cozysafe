@@ -41,6 +41,21 @@ impl KdfParams {
         p: 4,
     };
 
+    /// The least accepted when *opening*, joining or restoring: a library.json, a cloud
+    /// lock or a backup that names a lower cost was tampered with (every release made
+    /// its libraries at [`KdfParams::PHONE_FLOOR`] or above), and a cheaper Argon2 would
+    /// make guessing the password cheaper. Tests build with the `test-kdf` feature to
+    /// run in milliseconds; the app crate asserts at compile time that it has the real one.
+    #[cfg(not(any(test, feature = "test-kdf")))]
+    pub const ACCEPTED_FLOOR: KdfParams = KdfParams::PHONE_FLOOR;
+    /// Test builds only (the `test-kdf` feature): tiny parameters, so tests run fast.
+    #[cfg(any(test, feature = "test-kdf"))]
+    pub const ACCEPTED_FLOOR: KdfParams = KdfParams {
+        m_kib: 8,
+        t: 1,
+        p: 1,
+    };
+
     /// Upper bounds when *opening*, so a hostile header cannot make the app
     /// allocate unbounded memory or spin for minutes.
     const MAX_M_KIB: u32 = 4 * 1024 * 1024;
@@ -53,6 +68,12 @@ impl KdfParams {
         self.m_kib >= floor.m_kib && self.t >= floor.t
     }
 
+    /// [`Error::KdfTooWeak`] below [`KdfParams::ACCEPTED_FLOOR`], [`Error::KdfParams`]
+    /// above the upper bounds: what every library, lock and backup is checked with.
+    pub fn check(&self) -> Result<()> {
+        self.to_argon2().map(|_| ())
+    }
+
     fn to_argon2(self) -> Result<Params> {
         if self.m_kib > Self::MAX_M_KIB
             || self.t == 0
@@ -61,6 +82,9 @@ impl KdfParams {
             || self.p > Self::MAX_P
         {
             return Err(Error::KdfParams);
+        }
+        if !self.meets(&Self::ACCEPTED_FLOOR) {
+            return Err(Error::KdfTooWeak);
         }
         Params::new(self.m_kib, self.t, self.p, Some(KEY_LEN)).map_err(|_| Error::KdfParams)
     }
@@ -204,5 +228,29 @@ mod tests {
     fn floors() {
         assert!(KdfParams::DESKTOP_FLOOR.meets(&KdfParams::PHONE_FLOOR));
         assert!(!FAST.meets(&KdfParams::PHONE_FLOOR));
+        // The phone floor is what real builds accept at the least.
+        assert!(KdfParams::PHONE_FLOOR.meets(&KdfParams::ACCEPTED_FLOOR));
     }
+
+    #[test]
+    fn a_cost_under_the_floor_is_refused() {
+        let weak = KdfParams {
+            m_kib: 4,
+            ..ACCEPTED
+        };
+        assert!(matches!(weak.check(), Err(Error::KdfTooWeak)));
+        assert!(matches!(
+            derive_root(b"pw", &sk(1), &[0; 16], weak),
+            Err(Error::KdfTooWeak)
+        ));
+        let one_pass_less = KdfParams {
+            t: KdfParams::PHONE_FLOOR.t - 1,
+            ..KdfParams::PHONE_FLOOR
+        };
+        assert!(!one_pass_less.meets(&KdfParams::PHONE_FLOOR));
+        KdfParams::PHONE_FLOOR.check().unwrap();
+        KdfParams::DESKTOP_FLOOR.check().unwrap();
+    }
+
+    const ACCEPTED: KdfParams = KdfParams::ACCEPTED_FLOOR;
 }

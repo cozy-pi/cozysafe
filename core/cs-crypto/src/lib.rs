@@ -40,6 +40,9 @@ pub enum Error {
     Version(u8),
     #[error("key derivation parameters out of range")]
     KdfParams,
+    /// Argon2 cost below [`kdf::KdfParams::ACCEPTED_FLOOR`]: refused, never derived with.
+    #[error("key derivation cost below the minimum")]
+    KdfTooWeak,
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }
@@ -123,15 +126,29 @@ impl SecretKey {
 
     /// A short public fingerprint stored beside the library, so a wrong Secret Key
     /// (typed from an Emergency Kit, or a mix-up between libraries) is told apart from
-    /// a wrong password. 64 bits of a one-way function of the random key.
+    /// a wrong password. 16 bits of a one-way function of the random key: enough to
+    /// catch a mix-up, too little to confirm a guessed key. It is a hint, never a check:
+    /// opening is the AEAD unwrap, which a wrong key that matches by chance still fails.
     pub fn fingerprint(&self) -> String {
         let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, self.as_bytes());
-        let mut out = [0u8; 8];
+        // Libraries before 0.1.68 kept 8 bytes; these two are their first two.
+        let mut out = [0u8; FINGERPRINT_HEX / 2];
         hk.expand(b"cozysafe/v1/secret-key-fingerprint", &mut out)
-            .expect("8 bytes is a valid HKDF output length");
+            .expect("2 bytes is a valid HKDF output length");
         out.iter().map(|b| format!("{b:02x}")).collect()
     }
+
+    /// Whether `stored` (a fingerprint from a library, lock or backup) is this key's:
+    /// the 16-hex ones from before 0.1.68 are compared by their first 4 characters.
+    pub fn fingerprint_matches(&self, stored: &str) -> bool {
+        stored.len() >= FINGERPRINT_HEX
+            && stored.is_char_boundary(FINGERPRINT_HEX)
+            && stored[..FINGERPRINT_HEX].eq_ignore_ascii_case(&self.fingerprint())
+    }
 }
+
+/// Hex characters of a Secret Key fingerprint ([`SecretKey::fingerprint`]).
+pub const FINGERPRINT_HEX: usize = 4;
 
 impl std::fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -149,4 +166,30 @@ pub fn generate_salt() -> [u8; SALT_LEN] {
     let mut s = [0u8; SALT_LEN];
     OsRng.fill_bytes(&mut s);
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fingerprints_are_four_hex_and_old_long_ones_still_match() {
+        let k = SecretKey::from_bytes([7; SECRET_KEY_LEN]);
+        let fp = k.fingerprint();
+        assert_eq!(fp.len(), FINGERPRINT_HEX);
+        assert!(fp.bytes().all(|b| b.is_ascii_hexdigit()));
+        // What 0.1.67 stored: 8 bytes of the same HKDF output.
+        let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, k.as_bytes());
+        let mut long = [0u8; 8];
+        hk.expand(b"cozysafe/v1/secret-key-fingerprint", &mut long)
+            .unwrap();
+        let long: String = long.iter().map(|b| format!("{b:02x}")).collect();
+        assert!(long.starts_with(&fp));
+        assert!(k.fingerprint_matches(&long));
+        assert!(k.fingerprint_matches(&fp));
+        assert!(k.fingerprint_matches(&fp.to_uppercase()));
+        assert!(!k.fingerprint_matches(&fp[..3]));
+        assert!(!k.fingerprint_matches(""));
+        assert!(!SecretKey::from_bytes([8; SECRET_KEY_LEN]).fingerprint_matches(&long));
+    }
 }

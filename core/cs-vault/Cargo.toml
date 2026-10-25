@@ -22,4 +22,5 @@ zxcvbn = "3"
 rusqlite = { version = "0.40", features = ["bundled"] }
 
 [dev-dependencies]
+cs-crypto = { path = "../cs-crypto", features = ["test-kdf"] }
 tempfile = "3"

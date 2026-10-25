@@ -6,6 +6,11 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+# Tests only: lowers the least accepted Argon2 cost (kdf::KdfParams::ACCEPTED_FLOOR) so
+# test libraries open in milliseconds. Enabled from dev-dependencies, never by the app.
+test-kdf = []
+
 [dependencies]
 argon2 = { version = "0.5", default-features = false, features = ["alloc", "zeroize"] }
 chacha20poly1305 = { version = "0.10", features = ["stream"] }

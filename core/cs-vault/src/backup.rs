@@ -57,7 +57,7 @@ pub fn import<R: Read>(input: R, dir: &Path) -> Result<u32> {
     let staging = staging_dir(dir);
     let _ = fs::remove_dir_all(&staging);
     fs::create_dir_all(&staging)?;
-    match read_into(input, &staging) {
+    match read_into(input, &staging).and_then(|n| check_library(&staging).map(|_| n)) {
         Ok(n) if staging.join(LIBRARY_FILE).is_file() => {
             if dir.exists() {
                 fs::remove_dir_all(dir)?; // empty or leftover without a library
@@ -74,6 +74,17 @@ pub fn import<R: Read>(input: R, dir: &Path) -> Result<u32> {
             Err(e)
         }
     }
+}
+
+/// The restored library's header, if it came: readable, and an Argon2 cost no lower
+/// than the floor (a backup naming less was tampered with).
+fn check_library(dir: &Path) -> Result<()> {
+    if !dir.join(LIBRARY_FILE).is_file() {
+        return Ok(()); // refused as not a backup by the caller
+    }
+    let header = crate::read_library_header(dir).map_err(|_| Error::BadBackup)?;
+    cs_crypto::kdf::KdfParams::from(header.kdf).check()?;
+    Ok(())
 }
 
 fn staging_dir(dir: &Path) -> PathBuf {
@@ -226,7 +237,7 @@ fn is_hex_id(s: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::items::NewItem;
     use crate::tests::sk;
@@ -319,5 +330,32 @@ mod tests {
         evil.extend(1u32.to_be_bytes());
         assert!(matches!(import(&evil[..], &target), Err(Error::BadBackup)));
         assert!(!b.path().join("evil").exists() && !target.exists());
+    }
+
+    /// Lower `library.json`'s Argon2 memory under the floor, as a tampered copy would.
+    pub(crate) fn weaken(dir: &Path) {
+        let path = dir.join(LIBRARY_FILE);
+        let mut v: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        v["kdf"]["m_kib"] = serde_json::json!(KdfParams::ACCEPTED_FLOOR.m_kib / 2);
+        fs::write(path, serde_json::to_vec(&v).unwrap()).unwrap();
+    }
+
+    #[test]
+    fn a_backup_with_a_lowered_argon2_cost_is_refused() {
+        let a = tempfile::tempdir().unwrap();
+        Library::open_or_create(a.path(), FAST, sk())
+            .unwrap()
+            .create_vault("A", pw())
+            .unwrap();
+        weaken(a.path());
+        let mut file = Vec::new();
+        export(a.path(), &mut file).unwrap();
+        let b = tempfile::tempdir().unwrap();
+        let target = b.path().join("library");
+        assert!(matches!(
+            import(&file[..], &target),
+            Err(Error::Crypto(cs_crypto::Error::KdfTooWeak))
+        ));
+        assert!(!target.exists() && !staging_dir(&target).exists());
     }
 }
