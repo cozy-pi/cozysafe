@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../item_bytes.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -66,7 +67,7 @@ class _TrashScreenState extends State<TrashScreen> {
               }
               if (it.sizeBytes > BigInt.from(60 << 20)) return small;
               return FutureBuilder<Uint8List>(
-                future: _full[it.id] ??= rust.itemContent(id: it.id),
+                future: _full[it.id] ??= photoBytes(it.id),
                 builder: (context, full) => full.hasData && full.data!.isNotEmpty
                     ? Image.memory(full.data!,
                         fit: BoxFit.contain,
@@ -80,7 +81,7 @@ class _TrashScreenState extends State<TrashScreen> {
       );
     } else if (it.kind == ItemKind.note) {
       body = FutureBuilder<Uint8List>(
-        future: rust.itemContent(id: it.id),
+        future: itemBytes(it.id),
         builder: (context, snap) {
           final full = snap.hasData ? utf8.decode(snap.data!, allowMalformed: true).trim() : '';
           return ConstrainedBox(

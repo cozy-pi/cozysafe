@@ -13,6 +13,7 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
+import '../item_bytes.dart';
 import '../l10n/app_localizations.dart';
 import '../debug_log.dart';
 import '../lock_guard.dart';
@@ -424,7 +425,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
           ],
         ),
         body: FutureBuilder<Uint8List>(
-          future: _imageBytes ??= rust.itemContent(id: widget.item.id),
+          future: _imageBytes ??= photoBytes(widget.item.id),
           builder: (context, snap) {
             if (snap.hasError) {
               return Center(child: Text(l.videoFailed, style: const TextStyle(color: Colors.white)));
@@ -582,7 +583,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
         // and at every start, like videos.
         body: widget.item.sizeBytes > BigInt.from(_pdfInMemory)
             ? FutureBuilder<File>(
-                future: _pdfCopy ??= playbackCopy(widget.item, fallbackExt: '.pdf'),
+                future: _pdfCopy ??= readThroughLock(() => playbackCopy(widget.item, fallbackExt: '.pdf')),
                 builder: (context, snap) {
                   if (snap.hasError) return Center(child: Text(l.errorStorage));
                   final f = snap.data;
@@ -591,7 +592,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 },
               )
             : FutureBuilder<Uint8List>(
-                future: _bytes ??= rust.itemContent(id: widget.item.id),
+                future: _bytes ??= itemBytes(widget.item.id),
                 builder: (context, snap) {
                   if (snap.hasError) return Center(child: Text(l.errorStorage));
                   final data = snap.data;

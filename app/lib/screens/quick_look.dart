@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../item_bytes.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
@@ -78,7 +79,7 @@ class _QuickLookState extends State<QuickLook> {
   void initState() {
     super.initState();
     if (!_video) {
-      _bytes = rust.itemContent(id: widget.item.id);
+      _bytes = photoBytes(widget.item.id);
     } else if (QuickLook.debugVideo == null) {
       _playback = Playback(widget.item)..addListener(_tick);
     }

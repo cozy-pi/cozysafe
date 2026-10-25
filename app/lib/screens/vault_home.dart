@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../item_bytes.dart';
 import '../biometric.dart';
 import '../lock_resume.dart';
 import '../l10n/app_localizations.dart';
@@ -2742,7 +2743,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
 
   rust.ItemInfo get _item => widget.items[_index];
 
-  Future<Uint8List> _load(String id) => _content[id] ??= rust.itemContent(id: id);
+  Future<Uint8List> _load(String id) => _content[id] ??= photoBytes(id);
 
   /// Width photos are decoded at: 1.5× the screen's (at most 3000 px, ~20 MB as a
   /// bitmap), sharp enough to zoom, without a very large photo's full bitmap in memory.

@@ -133,6 +133,18 @@ class MainActivity : FlutterFragmentActivity() {
         // directly (lib/screens/file_view.dart imageThumbnail): several at once, off the UI
         // thread. Pixels stay in memory; the JPEG goes back to Dart and is sealed there.
         MethodChannel(messenger, "cozysafe/media").setMethodCallHandler { call, result ->
+            if (call.method == "decode") {
+                // A photo to show that Flutter may not decode here (an iPhone's HEIC): the
+                // platform decodes it in memory and hands back a JPEG; nothing is written.
+                val bytes = call.argument<ByteArray>("bytes") ?: return@setMethodCallHandler result.success(null)
+                val max = call.argument<Int>("maxSide") ?: 4096
+                val main = android.os.Handler(android.os.Looper.getMainLooper())
+                thumbnailPool.execute {
+                    val jpeg = try { decodedJpeg(bytes, max) } catch (_: Throwable) { null }
+                    main.post { result.success(jpeg) }
+                }
+                return@setMethodCallHandler
+            }
             if (call.method != "thumbnail") return@setMethodCallHandler result.notImplemented()
             val path = call.argument<String>("path") ?: return@setMethodCallHandler result.success(null)
             val side = call.argument<Int>("shortSide") ?: 320
@@ -285,6 +297,24 @@ class MainActivity : FlutterFragmentActivity() {
     /// A JPEG whose shorter side is about [side] pixels, upright. ImageDecoder (Android 9+)
     /// decodes straight at the target size; older phones subsample with BitmapFactory and
     /// turn the picture by its EXIF orientation.
+    /// [bytes] (a picture in memory) as a JPEG at most [maxSide] px on its longer side,
+    /// turned upright. Android 9+ (ImageDecoder reads HEIF); null before that.
+    private fun decodedJpeg(bytes: ByteArray, maxSide: Int): ByteArray? {
+        if (Build.VERSION.SDK_INT < 28) return null
+        val source = android.graphics.ImageDecoder.createSource(java.nio.ByteBuffer.wrap(bytes))
+        val bitmap = android.graphics.ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+            val w = info.size.width
+            val h = info.size.height
+            val scale = maxSide.toFloat() / maxOf(w, h)
+            if (scale < 1f) decoder.setTargetSize(maxOf(1, (w * scale).toInt()), maxOf(1, (h * scale).toInt()))
+            decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+        }
+        val out = java.io.ByteArrayOutputStream()
+        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, out)
+        bitmap.recycle()
+        return out.toByteArray()
+    }
+
     private fun thumbnailJpeg(path: String, side: Int): ByteArray? {
         val bitmap: android.graphics.Bitmap = if (Build.VERSION.SDK_INT >= 28) {
             val source = android.graphics.ImageDecoder.createSource(java.io.File(path))
