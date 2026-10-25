@@ -572,5 +572,16 @@
   "syncRemovingDevice": "Menghapus item yang sudah dihapus dari perangkat lain",
   "syncRemovingWhat": "Yang sudah dihapus permanen juga dihapus di sana.",
   "changeKeyOtherVault": "Brankas lain di perangkat ini memakai 24 kata yang sama. Masukkan kata sandinya agar kunci baru juga bisa membukanya.",
-  "changeKeyOtherPassword": "Kata sandi brankas lain"
+  "changeKeyOtherPassword": "Kata sandi brankas lain",
+  "vaultManagerTitle": "Brankas di perangkat ini",
+  "vaultManagerLead": "Hanya tampil saat Debug aktif. Nama brankas yang belum dibuka tetap terenkripsi; masing-masing dibuka dengan kata sandi atau PIN-nya sendiri.",
+  "vaultManagerOpen": "Sedang dibuka",
+  "vaultManagerPassword": "Kata sandi",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / sidik jari",
+  "vaultManagerDelete": "Hapus tanpa membuka",
+  "vaultManagerDeleteTitle": "Hapus brankas ini selamanya?",
+  "vaultManagerDeleteBody": "Semua isinya dihapus dari perangkat ini dan tidak bisa dikembalikan. Salinan di Google Drive atau di file cadangan tidak tersentuh. Ketik {word} untuk konfirmasi.",
+  "vaultManagerDeleteWord": "HAPUS",
+  "vaultManagerDeleted": "Brankas dihapus."
 }

@@ -572,5 +572,16 @@
   "syncRemovingDevice": "Удаление удалённых объектов с другого устройства",
   "syncRemovingWhat": "То, что удалено навсегда, удаляется и там.",
   "changeKeyOtherVault": "Другой сейф на этом устройстве использует те же 24 слова. Введите его пароль, чтобы новый ключ открывал и его.",
-  "changeKeyOtherPassword": "Пароль другого сейфа"
+  "changeKeyOtherPassword": "Пароль другого сейфа",
+  "vaultManagerTitle": "Сейфы на этом устройстве",
+  "vaultManagerLead": "Видно только при включённом Debug. Названия закрытых сейфов остаются зашифрованными; каждый открывается только своим паролем или PIN-кодом.",
+  "vaultManagerOpen": "Сейчас открыт",
+  "vaultManagerPassword": "Пароль",
+  "vaultManagerPin": "PIN-код",
+  "vaultManagerBiometric": "Face ID / отпечаток пальца",
+  "vaultManagerDelete": "Удалить, не открывая",
+  "vaultManagerDeleteTitle": "Удалить этот сейф навсегда?",
+  "vaultManagerDeleteBody": "Всё его содержимое будет стёрто с этого устройства без возможности восстановления. Копии в Google Drive и в файлах резервных копий не затрагиваются. Введите {word} для подтверждения.",
+  "vaultManagerDeleteWord": "УДАЛИТЬ",
+  "vaultManagerDeleted": "Сейф удалён."
 }

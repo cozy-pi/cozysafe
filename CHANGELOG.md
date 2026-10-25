@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.61 (2026-10-25)
+
+### Added
+- Debug → Vaults on this device: every vault here (names sealed until opened), and a
+  way to delete one whose password and PIN are forgotten, without opening it (the
+  phone's owner confirms, then types DELETE). Everyday use still never lists vaults.
+
 ## 0.1.60 (2026-10-25)
 
 ### Fixed

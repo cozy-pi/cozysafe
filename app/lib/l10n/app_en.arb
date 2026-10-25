@@ -767,5 +767,17 @@
   "syncRemovingDevice": "Removing deleted items from the other device",
   "syncRemovingWhat": "What you deleted for good is taken off there too.",
   "changeKeyOtherVault": "Another vault on this device uses the same 24 words. Type its password so the new key opens it too.",
-  "changeKeyOtherPassword": "Password of the other vault"
+  "changeKeyOtherPassword": "Password of the other vault",
+  "vaultManagerTitle": "Vaults on this device",
+  "vaultManagerLead": "Shown only with Debug on. The names of vaults that are not open stay sealed; each one opens with its own password or PIN.",
+  "vaultManagerOpen": "Open now",
+  "vaultManagerPassword": "Password",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / fingerprint",
+  "vaultManagerDelete": "Delete without opening",
+  "vaultManagerDeleteTitle": "Delete this vault for good?",
+  "vaultManagerDeleteBody": "Everything in it is erased from this device and cannot be brought back. Copies in Google Drive or in backup files are not touched. Type {word} to confirm.",
+  "@vaultManagerDeleteBody": {"placeholders": {"word": {}}},
+  "vaultManagerDeleteWord": "DELETE",
+  "vaultManagerDeleted": "Vault deleted."
 }

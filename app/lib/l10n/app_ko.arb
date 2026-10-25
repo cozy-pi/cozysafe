@@ -572,5 +572,16 @@
   "syncRemovingDevice": "다른 기기에서 삭제한 항목 지우는 중",
   "syncRemovingWhat": "영구 삭제한 항목은 그곳에서도 지워집니다.",
   "changeKeyOtherVault": "이 기기의 다른 금고도 같은 24개 단어를 사용합니다. 새 키로 그 금고도 열 수 있도록 해당 비밀번호를 입력하세요.",
-  "changeKeyOtherPassword": "다른 금고의 비밀번호"
+  "changeKeyOtherPassword": "다른 금고의 비밀번호",
+  "vaultManagerTitle": "이 기기의 금고",
+  "vaultManagerLead": "Debug가 켜져 있을 때만 표시됩니다. 열려 있지 않은 금고의 이름은 암호화된 상태로 유지되며, 각 금고는 자체 비밀번호나 PIN으로만 열립니다.",
+  "vaultManagerOpen": "지금 열려 있음",
+  "vaultManagerPassword": "비밀번호",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / 지문",
+  "vaultManagerDelete": "열지 않고 삭제",
+  "vaultManagerDeleteTitle": "이 금고를 영구히 삭제할까요?",
+  "vaultManagerDeleteBody": "안의 모든 내용이 이 기기에서 지워지며 되돌릴 수 없습니다. Google Drive나 백업 파일에 있는 사본은 영향을 받지 않습니다. 확인하려면 {word}를 입력하세요.",
+  "vaultManagerDeleteWord": "삭제",
+  "vaultManagerDeleted": "금고를 삭제했습니다."
 }

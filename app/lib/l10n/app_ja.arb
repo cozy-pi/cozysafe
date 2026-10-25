@@ -572,5 +572,16 @@
   "syncRemovingDevice": "もう一台から削除した項目を消去中",
   "syncRemovingWhat": "完全に削除したものは、そちらからも消去されます。",
   "changeKeyOtherVault": "この端末の別の金庫も同じ24語を使っています。新しいキーでその金庫も開けるように、そのパスワードを入力してください。",
-  "changeKeyOtherPassword": "もう一つの金庫のパスワード"
+  "changeKeyOtherPassword": "もう一つの金庫のパスワード",
+  "vaultManagerTitle": "この端末の金庫",
+  "vaultManagerLead": "Debug がオンのときだけ表示されます。開いていない金庫の名前は暗号化されたままで、それぞれ自分のパスワードまたは PIN でのみ開けます。",
+  "vaultManagerOpen": "現在開いています",
+  "vaultManagerPassword": "パスワード",
+  "vaultManagerPin": "PIN",
+  "vaultManagerBiometric": "Face ID / 指紋",
+  "vaultManagerDelete": "開かずに削除",
+  "vaultManagerDeleteTitle": "この金庫を完全に削除しますか？",
+  "vaultManagerDeleteBody": "中身はすべてこの端末から消去され、元に戻せません。Google Drive やバックアップファイル内のコピーには影響しません。確認のため {word} と入力してください。",
+  "vaultManagerDeleteWord": "削除",
+  "vaultManagerDeleted": "金庫を削除しました。"
 }
