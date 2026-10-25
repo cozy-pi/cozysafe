@@ -78,6 +78,22 @@ included, for network APIs. A package with hits must be listed in
 `tools/allow/network-ok.txt` with the reason it is acceptable (web-only code, a
 feature the app does not call, build-time only).
 
+## Bundled data
+
+**Common passwords** (2026-10-25), for the new-password check (docs/security.md,
+passwords). Source: SecLists,
+`Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt` at commit
+`c205c36a445bff37f8e58a9ec829105cd4975c58`; the downloaded file's SHA-256 is
+`1472aafa2561df5e3293aee252aee3ca660c12b399a283cf808bb01b39be388b`. The list is not
+kept as text: `core/cs-vault/data/common-passwords.bin` is a sorted table of the first
+4 bytes of the SHA-256 of each normalised entry, built by the ignored test
+`make_blocklist` in `core/cs-vault` from that file at that commit (its SHA-256 checked
+first). The app ships only the table.
+
+Attribution: SecLists is MIT licensed, Copyright (c) 2018 Daniel Miessler (the MIT
+notice is in the SecLists repository, `LICENSE`). The underlying list is Mark
+Burnett's "10 million passwords" set, which he released into the public domain.
+
 ## Signing and store keys stay out of build jobs
 
 The machines that build the apps run thousands of lines of other people's code (Gradle,
@@ -108,9 +124,11 @@ validate a build with Apple instead of uploading it (`upload: false`).
   string-built class names, or a binary it downloads. The allowlist (every new
   package is reviewed) and the OS layers are the answer to that, not the scan.
 - **Prebuilt native binaries are not inspected.** PDFium (`pdfrx`) is downloaded
-  as a binary at build time: `pdfium_dart`'s build hook fetches it from GitHub over
-  HTTPS with no checksum (Android, Linux, Windows); `pdfium_flutter`'s Apple
-  package pins a SHA-256. The Flutter engine and the Dart VM contain socket code of their own (that
+  as a binary at build time from GitHub over HTTPS. It is pinned, not inspected: our
+  copy of `pdfium_dart`'s build hook (`third_party/pdfium_dart/hook/build.dart`, used
+  through `dependency_overrides`) holds the SHA-256 of every archive of release
+  chromium/7811 and refuses a download that differs or has no pinned value;
+  `pdfium_flutter`'s Apple package pins a SHA-256 too. The Flutter engine and the Dart VM contain socket code of their own (that
   is what the Dart guard and the OS layers are for).
 - **The Dart guard covers `dart:io` only.** `RawSocket` and `RawDatagramSocket` have
   no override hook; the source scan looks for them instead.

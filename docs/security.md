@@ -18,7 +18,6 @@ time, wherever it is opened from:
 | Change PIN | `settings.dart` (`_guarded`) |
 | Auto-lock time | `settings.dart` (`_guarded`) |
 | Block screenshots (off only: turning it on only makes the vault safer) | `settings.dart` (`_guarded`) |
-| Hide note text: turning it off (lists and search would show it) | `settings.dart` (`_guarded`) |
 | Back up to a file | `vault_home.dart` `_backup` |
 | Backup password (set or change) | `vault_home.dart` `_password` (also the reminder banner) |
 | Recovery Key (shows the 24 words): Face ID, **then the vault password** (`KitPasswordScreen`, wrong tries share the lock screen's waits) | `vault_home.dart` `_showKit` |
@@ -39,9 +38,9 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
   page are cleared on lock (`lib/lock_resume.dart`).
 - **Password and key fields are hidden while typed** (`SecretField`), with an eye to
   show them; this includes a suggested passphrase, which appears hidden.
-- **Note text stays out of lists.** The notes list and search show titles and dates only;
-  search says "Found in the text" instead of quoting it. Settings → Display can show it
-  (owner check to turn on).
+- **Note text shows in lists** (0.1.67: "Hide note text" was removed). Lists show a
+  note's first lines, and search quotes a few words around the match. Opening a note is
+  done on purpose; thumbnails stay blurred for photos someone beside you could see.
 - **Text files are read in memory.** txt, md, json and other text files open inside the
   app from decrypted bytes, never written to a file; copying from them is wiped like
   any copy (`file_view.dart`, `_textView`).
@@ -73,8 +72,7 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
   limits it to browsable apps). Our own pages keep their own door (`openUrl`,
   `https://safe.cozypi.com` only). The app fetches nothing for a link (no previews, no
   network); leaving for the browser gives the same 60 seconds before the vault locks as
-  the share sheet. With "Hide note text" on, the preview shows neither text, links nor
-  boxes until the note itself is tapped ("Tap to show"), and only until it closes.
+  the share sheet.
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
   the clipboard after 60 seconds and when the vault locks.
@@ -90,7 +88,7 @@ Key as people see it (it was the Emergency Kit); "vault password" was the backup
 | Random key | 128 bits | 256 bits | 256 bits as 24 BIP39 words (libraries before 21 Oct 2026: 128 bits) |
 | Opens with | the words alone | the words alone | Recovery Key **and** vault password **and** the files |
 | Cost per guess | low (PBKDF2, 2048 rounds) | low | Argon2id, 128 MiB × 3 passes on phones (512 MiB on computers) |
-| Extra password | optional ("25th word") | optional | mandatory, zxcvbn score ≥ 3 |
+| Extra password | optional ("25th word") | optional | mandatory: 8+ characters, not a common password, zxcvbn score ≥ 3 or 4+ words |
 
 By case:
 
@@ -103,11 +101,13 @@ By case:
 - **Recovery Key and backup both leak:** only the password remains; a password at the
   minimum score is our estimate of weeks to years for one machine (not measured).
 - **The real weak spot today is the PIN on the phone**, not the Recovery Key: wrong-PIN
-  waits exist only in the app, the PIN copy is not removed after many tries (`forget_pin`
-  exists but the app never calls it), and the device key is not bound to the secure
-  hardware. An attacker who extracts the keychain/keystore could try all PINs offline.
-  Planned: remove the PIN copy after 10 wrong tries; bind the device key to the Secure
-  Enclave / StrongBox.
+  waits exist only in the app (4 free tries, then 1, 5, 15 minutes, then 1 hour each,
+  counted in the keystore by `PinStore.addFail`), the PIN copy is not removed after many
+  tries (`forget_pin` exists but the app never calls it), and the device key (32 random
+  bytes, one per device, shared by every vault's PIN) is a plain keystore item, not bound
+  to the secure hardware. An attacker who extracts the keychain/keystore could try all
+  PINs offline. Planned: wipe the PIN copy after a number of wrong tries; bind the device
+  key to the Secure Enclave / StrongBox.
 
 Compared with a hardware wallet (Ledger, Trezor): the same 24 BIP39 words once the
 Recovery Key is 256-bit. A hardware wallet keeps its key inside a secure chip that never
@@ -118,11 +118,53 @@ In short: the key alone is as strong as a 12-word wallet (24-word after the move
 break than a Bitcoin wallet, because two independent secrets are needed and guessing the
 password is deliberately expensive.
 
+## Passwords (2026-10-25)
+
+A new password (new vault, setting or changing one) is checked as NIST SP 800-63B rev 4
+(section 3.1.1.2) asks: at least 8 characters; not one of the 100,000 most common
+passwords (a bundled list, compared case-insensitively, also after removing a short run
+of digits or symbols at the end and undoing simple leetspeak such as 0→o, 3→e, @→a,
+$→s); and either zxcvbn score 3 or a passphrase of at least 4 different words of 3 or
+more characters. The app says why a password is refused and suggests 4 random words
+("Suggest a password" fills 5). A password already in use is never checked when
+unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.md).
+
+## What is on disk, and what is not
+
+- **Sealed:** item names, kinds, tags, note text and file contents (each item's record
+  and blobs, XChaCha20-Poly1305).
+- **In the clear in `vault.db`** (the SQLite index, `core/cs-vault/src/db.rs`): each
+  item's id, when it was created, modified and deleted (ms), and its size. The files on
+  disk show times and sizes anyway.
+- **Not built:** size padding (Padmé), so sizes are exact within a few bytes; a
+  monotonic header revision against rollback; locked memory (`mlock`). Keys are wiped
+  from memory when dropped (`zeroize`), but may be paged out before that.
+- **Key changes:** changing the password or the Recovery Key re-wraps only the vault's
+  Master Key. Items are not re-encrypted; rotating item keys is planned.
+- **The Secret Key fingerprint** in `library.json`, cloud locks and backups is 16 bits
+  (4 hex characters; older 16-hex values are compared by their first 4). It only tells a
+  wrong Recovery Key from a wrong password and is never used to unlock.
+- **Argon2 cost** is fixed per library (128 MiB × 3 passes on phones, 512 MiB × 3 passes,
+  4 lanes on computers). A library, sync lock or backup naming less than the phone floor
+  is refused, so a tampered file cannot make guessing cheaper.
+
+## OS backups
+
+The library is kept out of the system's own backups (2026-10-25). iOS: the library
+folder (Application Support) is marked excluded from iCloud and iTunes backup
+(`NSURLIsExcludedFromBackupKey`, set at start). Android: `allowBackup="false"`, plus
+`dataExtractionRules` (Android 12 and later) and `fullBackupContent` that exclude
+everything, so neither cloud backup nor device-to-device transfer copies it. The files
+are sealed, but a cloud copy would outlive a deleted vault and be one more place to
+attack. Moving a vault is done by the app's own backup file or sync.
+
 ## Quantum computers
 
 - Shor's algorithm breaks public-key cryptography (RSA, elliptic curves: signatures, key
-  exchange). **Cozy Safe uses none**: no server, no sync, no key exchange. (Bitcoin signs
-  with elliptic curves, so exposed public keys are at risk; Cozy Safe has no such part.)
+  exchange). **The vault uses none**: no server and no key exchange; P2P sync keys come
+  from the vault's Master Key or the Recovery Key by HKDF. (Google Drive is reached over
+  TLS, but what goes there is already sealed. Bitcoin signs with elliptic curves, so
+  exposed public keys are at risk; Cozy Safe has no such part.)
 - Grover's algorithm halves the strength of symmetric keys. Everything here is symmetric:
   XChaCha20-Poly1305, HKDF-SHA256, Argon2id.
   - Master Keys and item keys are 256-bit: about 128-bit against a quantum attacker. Safe.
