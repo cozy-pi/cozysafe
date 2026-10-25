@@ -55,6 +55,17 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
     sync.SyncStep.receiving,
     sync.SyncStep.sending,
     sync.SyncStep.removing,
+    sync.SyncStep.driveListing,
+    sync.SyncStep.driveFolders,
+    sync.SyncStep.driveMoving,
+  };
+
+  /// Getting Google Drive ready before the sync: reading it, making folders, moving the
+  /// files of an earlier layout into them.
+  static const _driveSetup = {
+    sync.SyncStep.driveListing,
+    sync.SyncStep.driveFolders,
+    sync.SyncStep.driveMoving,
   };
 
   bool get _over => _last != null && !_running.contains(_last!.kind);
@@ -124,7 +135,7 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
       // The stream itself broke (the app was suspended mid-way): the same as an
       // interruption, which the engine's journal makes safe to continue.
       if (!mounted) return;
-      setState(() => _last = sync.SyncEvent(kind: sync.SyncStep.interrupted, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero));
+      setState(() => _last = sync.SyncEvent(kind: sync.SyncStep.interrupted, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0));
       Awake.set(false);
       _autoContinue();
     });
@@ -190,6 +201,9 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
     sync.SyncStep.sending => l.syncSending(e.done.toString(), e.total.toString()),
     sync.SyncStep.checking => l.syncChecking,
     sync.SyncStep.removing => l.syncRemoving,
+    sync.SyncStep.driveListing => l.syncDriveListing,
+    sync.SyncStep.driveFolders => l.syncDriveFolders,
+    sync.SyncStep.driveMoving => l.syncDriveMoving,
     _ => l.syncWorking,
   };
 
@@ -204,7 +218,37 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
     return ((b1 - b0) / secs, (i1 - i0) / secs);
   }
 
+  /// Reading Google Drive, making its folders, moving files into them: a count, no bytes.
+  Widget _driveSetupBody(AppLocalizations l, CsColors c, sync.SyncEvent e) {
+    final title = switch (e.kind) {
+      sync.SyncStep.driveFolders => l.syncDriveFolders,
+      sync.SyncStep.driveMoving => l.syncDriveMoving,
+      _ => l.syncDriveListing,
+    };
+    final count = e.kind == sync.SyncStep.driveListing ? l.syncDriveFiles(e.done) : '${e.done} / ${e.total}';
+    final small = TextStyle(color: c.muted, fontSize: 14, fontFeatures: const [FontFeature.tabularFigures()]);
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      _Ends(flow: _flow, place: widget.place, direction: e.kind == sync.SyncStep.driveListing ? 0 : 1),
+      const SizedBox(height: 26),
+      Text(title, key: const ValueKey('sync-progress'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 22),
+      LinearProgressIndicator(
+        value: e.total > 0 ? (e.done / e.total).clamp(0, 1) : null,
+        minHeight: 8,
+        backgroundColor: c.border,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      const SizedBox(height: 10),
+      Text(count, key: const ValueKey('sync-items'), style: small),
+      if (Device.iOS || (Device.android && !Awake.androidSyncService)) ...[
+        const SizedBox(height: 18),
+        Text(l.syncKeepOpen, key: const ValueKey('sync-keep-open'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14)),
+      ],
+    ]);
+  }
+
   Widget _runningBody(AppLocalizations l, CsColors c, sync.SyncEvent e) {
+    if (_driveSetup.contains(e.kind)) return _driveSetupBody(l, c, e);
     final drive = widget.place == SyncPlace.drive;
     final title = switch (e.kind) {
       sync.SyncStep.sending => drive ? l.syncSendingDrive : l.syncSendingDevice,
@@ -320,7 +364,8 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
             color: const Color(0xFF34C759),
             title: l.syncDone,
             lines: [
-              l.syncDoneCounts(e.received.toString(), e.sent.toString()),
+              if (e.received == 0 && e.sent == 0) l.syncNothingNew else l.syncDoneCounts(e.received.toString(), e.sent.toString()),
+              if (e.moved > 0) l.syncDriveMoved(e.moved),
               if (e.copies > 0) l.syncDoneCopies(e.copies.toString()),
             ],
           ),
@@ -337,7 +382,13 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
         sync.SyncStep.wrongWords => _Status(icon: Icons.key_off_outlined, color: const Color(0xFFFF9500), title: l.restoreWrongWords),
         sync.SyncStep.wrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.wrongPassword),
         sync.SyncStep.interrupted => _Status(icon: Icons.pause_circle_outline_rounded, color: const Color(0xFFFF9500), title: l.syncInterrupted),
-        sync.SyncStep.checking || sync.SyncStep.receiving || sync.SyncStep.sending || sync.SyncStep.removing =>
+        sync.SyncStep.checking ||
+        sync.SyncStep.receiving ||
+        sync.SyncStep.sending ||
+        sync.SyncStep.removing ||
+        sync.SyncStep.driveListing ||
+        sync.SyncStep.driveFolders ||
+        sync.SyncStep.driveMoving =>
           _runningBody(l, c, e),
         // Never the last word (handled above); kept for an exhaustive switch.
         sync.SyncStep.rejected || sync.SyncStep.knock => _Status(icon: null, title: l.syncWorking),

@@ -588,6 +588,12 @@
   "vaultManagerDeleteBody": "ทุกอย่างในตู้จะถูกลบออกจากอุปกรณ์นี้และกู้คืนไม่ได้ สำเนาใน Google Drive หรือในไฟล์สำรองข้อมูลจะไม่ได้รับผลกระทบ พิมพ์ {word} เพื่อยืนยัน",
   "vaultManagerDeleteWord": "ลบ",
   "vaultManagerDeleted": "ลบตู้นิรภัยแล้ว",
+  "syncDriveListing": "กำลังอ่าน Google Drive",
+  "syncDriveFiles": "{n, plural, other{{n} ไฟล์}}",
+  "syncDriveFolders": "กำลังสร้างโฟลเดอร์ใน Google Drive",
+  "syncDriveMoving": "กำลังย้ายไฟล์เข้าโฟลเดอร์",
+  "syncDriveMoved": "{n, plural, other{จัดเรียงไฟล์ {n} ไฟล์ใน Google Drive แล้ว}}",
+  "syncNothingNew": "ไม่มีอะไรใหม่ให้ส่งหรือรับ",
   "countdownNote": "การดำเนินการนี้ย้อนกลับไม่ได้ แตะยกเลิกเพื่อเก็บไว้",
   "driveSignInFailed": "ลงชื่อเข้าใช้ Google ไม่สำเร็จ",
   "driveSoon": "Google ไดรฟ์บน Android จะมาในอัปเดตเร็วๆ นี้ ระหว่างนี้ ให้ซิงค์กับอุปกรณ์ใกล้เคียงหรือใช้ไฟล์สำรอง"
