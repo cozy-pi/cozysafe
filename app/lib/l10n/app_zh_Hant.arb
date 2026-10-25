@@ -587,5 +587,8 @@
   "vaultManagerDeleteTitle": "要永久刪除這個保險箱嗎？",
   "vaultManagerDeleteBody": "其中的所有內容都會從此裝置上清除，且無法復原。Google Drive 或備份檔案中的副本不受影響。輸入 {word} 以確認。",
   "vaultManagerDeleteWord": "刪除",
-  "vaultManagerDeleted": "保險箱已刪除。"
+  "vaultManagerDeleted": "保險箱已刪除。",
+  "countdownNote": "此動作無法復原。輕點「取消」即可保留。",
+  "driveSignInFailed": "無法登入 Google。",
+  "driveSoon": "Android 版 Google 雲端硬碟將在近期更新中推出。目前請與附近的裝置同步，或使用備份檔案。"
 }

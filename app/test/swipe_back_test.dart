@@ -10,6 +10,8 @@ void main() {
     const allowed = {
       // Encrypting an import: closing it mid-way would lose track of the files.
       'lib/screens/vault_home.dart': 1,
+      // The countdown before deleting a vault: only Cancel stops it, on purpose.
+      'lib/widgets/countdown.dart': 1,
     };
     final found = <String, int>{};
     for (final f in Directory('lib').listSync(recursive: true).whereType<File>()) {

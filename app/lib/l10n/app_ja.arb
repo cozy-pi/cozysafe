@@ -587,5 +587,8 @@
   "vaultManagerDeleteTitle": "この金庫を完全に削除しますか？",
   "vaultManagerDeleteBody": "中身はすべてこの端末から消去され、元に戻せません。Google Drive やバックアップファイル内のコピーには影響しません。確認のため {word} と入力してください。",
   "vaultManagerDeleteWord": "削除",
-  "vaultManagerDeleted": "金庫を削除しました。"
+  "vaultManagerDeleted": "金庫を削除しました。",
+  "countdownNote": "元に戻すことはできません。残す場合は「キャンセル」をタップしてください。",
+  "driveSignInFailed": "Google にログインできませんでした。",
+  "driveSoon": "Android 版の Google ドライブは近日中のアップデートで対応予定です。それまでは、近くのデバイスと同期するか、バックアップファイルをご利用ください。"
 }

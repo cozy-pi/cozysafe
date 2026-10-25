@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../widgets/countdown.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../secret_key_store.dart';
@@ -61,6 +62,12 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
           _pin = '';
           _error = l.pinWait(m <= 60 ? 1 : (m / 60).ceil());
         });
+        return;
+      }
+      // Ten seconds to change one's mind (owner 2026-10-25).
+      if (!mounted) return;
+      if (!await confirmCountdown(context, title: l.deleteVaultTitle) || !mounted) {
+        if (mounted) setState(() => _busy = false);
         return;
       }
       final device = await PinStore.deviceKey();
@@ -168,7 +175,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> {
                   SizedBox(
                     width: 240,
                     child: FilledButton(
-                      style: FilledButton.styleFrom(),
+                      style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
                       onPressed: _pin.length >= 4 && !_busy ? _confirm : null,
                       child: Text(l.deleteVaultAction),
                     ),

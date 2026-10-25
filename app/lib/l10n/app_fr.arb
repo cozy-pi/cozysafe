@@ -587,5 +587,8 @@
   "vaultManagerDeleteTitle": "Supprimer définitivement ce coffre ?",
   "vaultManagerDeleteBody": "Tout son contenu est effacé de cet appareil et ne pourra pas être récupéré. Les copies dans Google Drive ou dans les fichiers de sauvegarde ne sont pas touchées. Saisissez {word} pour confirmer.",
   "vaultManagerDeleteWord": "SUPPRIMER",
-  "vaultManagerDeleted": "Coffre supprimé."
+  "vaultManagerDeleted": "Coffre supprimé.",
+  "countdownNote": "Cette action est irréversible. Touchez Annuler pour le conserver.",
+  "driveSignInFailed": "Impossible de se connecter à Google.",
+  "driveSoon": "Google Drive sur Android arrive bientôt dans une mise à jour. En attendant, synchronisez avec un appareil à proximité ou utilisez un fichier de sauvegarde."
 }

@@ -760,6 +760,8 @@ class AddRow extends StatefulWidget {
 
   /// Room each way takes in the row.
   static const width = 80.0;
+  /// The narrowest a way gets so that all of them fit side by side.
+  static const minWidth = 52.0;
 
   @override
   State<AddRow> createState() => _AddRowState();
@@ -771,6 +773,23 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
     duration: const Duration(milliseconds: 360),
     reverseDuration: const Duration(milliseconds: 200),
   )..forward();
+  final _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _hint();
+  }
+
+  /// Ways past the right edge (a very narrow screen): the row slides a little on opening
+  /// and back, so the person sees it scrolls (owner 2026-10-25: hidden ways went unseen).
+  Future<void> _hint() async {
+    await Future<void>.delayed(const Duration(milliseconds: 420));
+    if (!mounted || !_scroll.hasClients || _scroll.position.maxScrollExtent <= 0) return;
+    await _scroll.animateTo(48, duration: const Duration(milliseconds: 320), curve: Curves.easeOut);
+    if (!mounted || !_scroll.hasClients) return;
+    await _scroll.animateTo(0, duration: const Duration(milliseconds: 420), curve: Curves.easeOutBack);
+  }
 
   @override
   void didUpdateWidget(AddRow old) {
@@ -782,6 +801,7 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _c.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -803,11 +823,17 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
           left: 0,
           right: 0,
           bottom: w.bottom,
-          // One row, side by side, scrolling sideways when it does not fit (owner
-          // 2026-10-24: two rows looked uneven); centred when it does.
+          // One row, side by side (owner 2026-10-24: two rows looked uneven). The ways
+          // share the width so all of them show (owner 2026-10-25: the last ones hid off
+          // the right edge and people did not know they were there); only a screen too
+          // narrow for even the smallest buttons scrolls.
           child: LayoutBuilder(
-            builder: (context, box) => SingleChildScrollView(
+            builder: (context, box) {
+              final each = ((box.maxWidth - 24) / w.ways.length).clamp(AddRow.minWidth, AddRow.width);
+              final overflows = each * w.ways.length + 24 > box.maxWidth;
+              final row = SingleChildScrollView(
               key: const ValueKey('add-row'),
+              controller: _scroll,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: ConstrainedBox(
@@ -831,12 +857,25 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
                             ),
                           );
                         },
-                        child: addWayButton(context, what, icon, label, hovered: w.hovered == what, onTap: () => w.onPick(what)),
+                        child: addWayButton(context, what, icon, label,
+                            hovered: w.hovered == what, onTap: () => w.onPick(what), width: each),
                       ),
                   ],
                 ),
               ),
-            ),
+            );
+              // More to the right: the right edge fades, the last way half shows.
+              return !overflows
+                  ? row
+                  : ShaderMask(
+                      blendMode: BlendMode.dstIn,
+                      shaderCallback: (r) => const LinearGradient(
+                        colors: [Colors.white, Colors.white, Colors.transparent],
+                        stops: [0, .85, 1],
+                      ).createShader(r),
+                      child: row,
+                    );
+            },
           ),
         ),
       ],
@@ -847,7 +886,8 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
 /// One way to add as a round button with its word under it, findable under a sliding
 /// finger ([AddColumn.wayAt]). Used by [AddRow].
 Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String label,
-    {required bool hovered, required VoidCallback onTap}) {
+    {required bool hovered, required VoidCallback onTap, double width = AddRow.width}) {
+  final circle = (width - 4).clamp(44.0, Ui.bar);
   final page = Theme.of(context).scaffoldBackgroundColor;
   final ink = Theme.of(context).colorScheme.onSurface;
   return MetaData(
@@ -862,7 +902,7 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: SizedBox(
-          width: AddRow.width,
+          width: width,
           child: AnimatedScale(
             scale: hovered ? 1.14 : 1,
             duration: const Duration(milliseconds: 120),
@@ -870,8 +910,8 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: Ui.bar,
-                  height: Ui.bar,
+                  width: circle,
+                  height: circle,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: hovered ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
@@ -1036,10 +1076,11 @@ class _AddColumnState extends State<AddColumn> with SingleTickerProviderStateMix
                 key: const ValueKey('add-column'),
                 controller: w.scroll,
                 reverse: true, // nearest way at the bottom, by the button
-                // A few ways only (2–5, owner 2026-10-24): all on screen, no rolling loop
-                // (with two ways the loop showed a repeat and slid one under the ×).
+                // No rolling loop (with two ways the loop showed a repeat and slid one
+                // under the ×). Every way is offered now (six), more than a small screen
+                // holds beside the button: the column scrolls (owner 2026-10-25).
                 itemCount: n,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: const ClampingScrollPhysics(),
                 clipBehavior: Clip.none,
                 // Bottom: room for the fade, so only ways rolled past it fade out.
                 padding: const EdgeInsets.only(bottom: _fade),

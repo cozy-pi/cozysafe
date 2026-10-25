@@ -587,5 +587,8 @@
   "vaultManagerDeleteTitle": "Bu kasa kalıcı olarak silinsin mi?",
   "vaultManagerDeleteBody": "İçindeki her şey bu cihazdan silinir ve geri getirilemez. Google Drive'daki veya yedek dosyalarındaki kopyalara dokunulmaz. Onaylamak için {word} yazın.",
   "vaultManagerDeleteWord": "SIL",
-  "vaultManagerDeleted": "Kasa silindi."
+  "vaultManagerDeleted": "Kasa silindi.",
+  "countdownNote": "Bu işlem geri alınamaz. Saklamak için İptal'e dokunun.",
+  "driveSignInFailed": "Google'da oturum açılamadı.",
+  "driveSoon": "Android için Google Drive yakında bir güncellemeyle gelecek. Şimdilik yakındaki bir cihazla eşitleyin veya bir yedek dosyası kullanın."
 }

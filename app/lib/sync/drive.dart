@@ -1,5 +1,7 @@
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../platform.dart';
+
 /// Only the files Cozy Safe itself makes in the person's Drive (non-sensitive scope:
 /// the app sees nothing else there).
 const driveScope = 'https://www.googleapis.com/auth/drive.file';
@@ -7,6 +9,13 @@ const driveScope = 'https://www.googleapis.com/auth/drive.file';
 /// The Web OAuth client of the Google Cloud project `cozy-safe`: Android's sign-in needs it
 /// as `serverClientId` (iOS reads GIDClientID from Info.plist). Empty until it is made.
 const _serverClientId = '';
+
+/// Whether Google sign-in can work on this device: Android needs the Web client above,
+/// not made yet (owner 2026-10-25: it failed with the nearby-sync message).
+bool get driveReady => !Device.android || _serverClientId.isNotEmpty;
+
+/// A short name for why sign-in failed, shown after the sentence.
+String driveErrorCode(Object e) => e is GoogleSignInException ? e.code.name : e.runtimeType.toString();
 
 Future<void>? _ready;
 
