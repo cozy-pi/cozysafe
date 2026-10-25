@@ -425,16 +425,6 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                       style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600, fontSize: 13),
                     ),
                   ],
-                  if (_mode == _Mode.password) ...[
-                    const SizedBox(height: 12),
-                    ListenableBuilder(
-                      listenable: _password,
-                      builder: (context, _) => FilledButton(
-                        onPressed: _busy || _password.text.isEmpty ? null : () => _attempt(quiet: false),
-                        child: BusyLabel(busy: _busy, idle: l.unlockButton, working: l.unlocking),
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 6),
                 ],
               ),
@@ -509,6 +499,26 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                 ),
                 // The lock screen only opens vaults (adding while locked is gone):
                 // ⋯ for everything else under the left thumb, biometrics in the middle.
+                // Typing the password: Unlock over that row, above the keyboard while it
+                // is up (owner 2026-10-25: every button within the thumb's reach).
+                if (_mode == _Mode.password)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 8, 28, 0),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ListenableBuilder(
+                          listenable: _password,
+                          builder: (context, _) => FilledButton(
+                            key: const ValueKey('unlock-password-go'),
+                            onPressed: _busy || _password.text.isEmpty ? null : () => _attempt(quiet: false),
+                            child: BusyLabel(busy: _busy, idle: l.unlockButton, working: l.unlocking),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 SafeArea(
                   top: false,
                   child: Padding(

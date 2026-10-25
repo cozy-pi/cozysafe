@@ -10,14 +10,17 @@ import '../item_bytes.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../note_format.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/link_card.dart';
 import '../widgets/text_styles.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart';
 import 'common.dart';
 import 'file_view.dart';
+import 'note.dart' show noteTitle;
 import 'vault_home.dart' show PhotoViewerScreen;
 import 'video_view.dart';
 
@@ -40,28 +43,19 @@ class TrashLook {
 /// 2026-10-22, one design for every kind 2026-10-25): a photo, a video that plays right
 /// there, a note's first lines on a page, a recording with its player, a PDF's first page,
 /// a text file's first lines, or any other file's icon and size. Under it: its name, date
-/// and size, then one glass bar: Close, Open (full screen, Edit, the file's own page or
-/// another app; none for a recording), Send, More and Delete. A tap outside or a swipe
+/// and size, and the buttons in the vault bar's place: Close, Open (full screen, Edit, the
+/// file's own page or another app; none for a recording), Send, More and Delete. A tap outside or a swipe
 /// down closes. Pops with the id when the item was deleted, or with one of the requests
 /// below.
 class QuickLook extends StatefulWidget {
-  const QuickLook({super.key, required this.item, this.photos = const [], required this.vaultId, this.bar, this.trash});
+  const QuickLook({super.key, required this.item, this.photos = const [], required this.vaultId, this.trash});
 
   final rust.ItemInfo item;
   /// The photos and videos around it, for swiping in full screen.
   final List<rust.ItemInfo> photos;
   final String vaultId;
-  /// The vault's own bottom bar, kept on screen under the preview (owner 2026-10-24); its
-  /// taps close the preview with [sectionFor] (a section) or [addRequest] (the +).
-  final Widget Function(BuildContext context)? bar;
   /// Set when the item is in Recently deleted: the bar is Close, Restore, Delete for good.
   final TrashLook? trash;
-
-  static const sectionRequest = '\u0000section';
-  static String sectionFor(String name) => '$sectionRequest:$name';
-  static String? sectionTarget(String? result) =>
-      result != null && result.startsWith('$sectionRequest:') ? result.substring(sectionRequest.length + 1) : null;
-  static const addRequest = '\u0000add';
 
   /// Popped by ⋯ in any viewer, with the item's id: the vault shows that item's menu
   /// (Rename, Group, Info…) over itself. The full-screen viewers return it through here.
@@ -78,6 +72,11 @@ class QuickLook extends StatefulWidget {
   static const restoreRequest = '\u0000restore';
   static const purgeRequest = '\u0000purge';
 
+  /// Notes whose checklist boxes were ticked here: the vault reloads them after.
+  static final Set<String> edited = {};
+  /// The last of those writes, for whoever reads the note next.
+  static Future<void>? lastSave;
+
   /// For the mockup renders: a still in place of the video player.
   static Widget? debugVideo;
   /// For the mockup renders: a recording without a player (tests have none).
@@ -87,7 +86,7 @@ class QuickLook extends StatefulWidget {
 
   /// Opens over the current screen, the page still visible behind.
   static Future<String?> show(BuildContext context, rust.ItemInfo item,
-      {List<rust.ItemInfo> photos = const [], required String vaultId, Widget Function(BuildContext)? bar, TrashLook? trash}) {
+      {List<rust.ItemInfo> photos = const [], required String vaultId, TrashLook? trash}) {
     final still = MediaQuery.disableAnimationsOf(context);
     return Navigator.of(context).push<String>(PageRouteBuilder(
       opaque: false,
@@ -96,7 +95,7 @@ class QuickLook extends StatefulWidget {
       barrierColor: Colors.transparent,
       transitionDuration: Duration(milliseconds: still ? 0 : 260),
       reverseTransitionDuration: Duration(milliseconds: still ? 0 : 180),
-      pageBuilder: (_, _, _) => QuickLook(item: item, photos: photos, vaultId: vaultId, bar: bar, trash: trash),
+      pageBuilder: (_, _, _) => QuickLook(item: item, photos: photos, vaultId: vaultId, trash: trash),
       transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
     ));
   }
@@ -118,6 +117,14 @@ class _QuickLookState extends State<QuickLook> {
 
   Future<Uint8List>? _thumb;
   Future<Uint8List>? _bytes;
+
+  /// A note's whole text once read (null while reading); a ticked box changes it here
+  /// first, then on disk.
+  String? _noteText;
+  bool _noteFailed = false;
+
+  /// "Hide note text" is on and the person tapped the note: its text shows until the
+  /// preview closes (next time it is hidden again).
   Future<ui.Image?>? _pdfPage;
   ui.Image? _pdfImage;
 
@@ -166,7 +173,11 @@ class _QuickLookState extends State<QuickLook> {
       case _Look.audio:
         if (!_trash && !QuickLook.debugStillAudio) _startPlayer();
       case _Look.note:
-        _bytes = itemBytes(id);
+        itemBytes(id).then((b) {
+          if (mounted) setState(() => _noteText = utf8.decode(b, allowMalformed: true));
+        }, onError: (Object _) {
+          if (mounted) setState(() => _noteFailed = true);
+        });
       case _Look.text:
         // Only the start is decrypted: a 1 GB log never sits in memory.
         _bytes = readThroughLock(() => rust.itemContentHead(id: id, max: 16 << 10));
@@ -274,6 +285,28 @@ class _QuickLookState extends State<QuickLook> {
         }
     }
     if (result != null && mounted) Navigator.of(context).pop(result);
+  }
+
+  /// A box ticked or cleared in the preview: that line's "[ ]" and "[x]" swap in the
+  /// note's text, which is saved as the editor saves it (through a lock, once it opens).
+  Future<void> _toggle(int line) async {
+    final before = _noteText;
+    final after = before == null ? null : toggleChecklist(before, line);
+    if (after == null) return;
+    setState(() => _noteText = after);
+    final id = widget.item.id;
+    final write = (QuickLook.lastSave ?? Future<void>.value())
+        .catchError((Object _) {})
+        .then((_) => readThroughLock(() => rust.updateNote(id: id, title: noteTitle(after), text: after)));
+    QuickLook.lastSave = write;
+    QuickLook.edited.add(id);
+    try {
+      await write;
+    } catch (_) {
+      if (!mounted) return;
+      if (_noteText == after) setState(() => _noteText = before);
+      showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+    }
   }
 
   Future<void> _delete() async {
@@ -442,8 +475,8 @@ class _QuickLookState extends State<QuickLook> {
   }
 
   /// The first lines, cut by the box and fading out at its bottom; not selectable here
-  /// (Open shows the whole text).
-  Widget _lines(BoxConstraints box, Widget text) => ConstrainedBox(
+  /// (Open shows the whole text). A note's boxes and links take taps ([interactive]).
+  Widget _lines(BoxConstraints box, Widget text, {bool interactive = false}) => ConstrainedBox(
         constraints: BoxConstraints(minHeight: 200, maxHeight: box.maxHeight - 20),
         child: ShaderMask(
           blendMode: BlendMode.dstIn,
@@ -454,6 +487,7 @@ class _QuickLookState extends State<QuickLook> {
             stops: [0, r.height <= 40 ? 0 : (r.height - 40) / r.height, 1],
           ).createShader(r),
           child: IgnorePointer(
+            ignoring: !interactive,
             child: SingleChildScrollView(
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 36),
@@ -469,48 +503,53 @@ class _QuickLookState extends State<QuickLook> {
     return cut.length > 4000 ? cut.substring(0, 4000) : cut;
   }
 
-  Widget _note(BoxConstraints box) => _card(
+  Widget _note(BoxConstraints box) {
+    final full = _noteText;
+    if (full == null) {
+      return _card(
+          box,
+          paper: true,
+          SizedBox(
+              height: 200,
+              child: Center(
+                  child: _noteFailed ? Text(AppLocalizations.of(context).errorStorage) : const CircularProgressIndicator())));
+    }
+    // The title is the first line with something on it; the lines after it are drawn
+    // as Markdown, and a box's line is counted in the whole text so a tick lands on it.
+    final lines = full.split('\n');
+    final first = lines.indexWhere((x) => x.trim().isNotEmpty);
+    final head = first < 0 ? '' : lines[first].trim().replaceFirst(RegExp(r'^#{1,6} '), '');
+    final after = first < 0 ? const <String>[] : lines.skip(first + 1).take(_maxLines - 1).toList();
+    var rest = after.join('\n').trimRight();
+    if (rest.length > 4000) rest = rest.substring(0, 4000);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final card = _card(
+      box,
+      paper: true,
+      _lines(
         box,
-        paper: true,
-        FutureBuilder<Uint8List>(
-          future: _bytes,
-          builder: (context, snap) {
-            if (!snap.hasData) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
-            final text = _head(utf8.decode(snap.data!, allowMalformed: true).trim());
-            final nl = text.indexOf('\n');
-            final head = nl < 0 ? text : text.substring(0, nl);
-            final rest = nl < 0 ? '' : text.substring(nl + 1);
-            final ink = Theme.of(context).colorScheme.onSurface;
-            final c = CsColors.of(context);
-            return _lines(
-              box,
-              Column(
-                key: const ValueKey('quick-note'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(head.isEmpty ? AppLocalizations.of(context).untitledNote : head,
-                      style: NoteTextController.title.copyWith(fontSize: 21, color: ink)),
-                  const SizedBox(height: 8),
-                  // "Hide note text" (Settings): someone beside you should not read it off
-                  // the preview either; Edit shows it.
-                  if (notePreviews())
-                    Text(rest, style: NoteTextController.body.copyWith(fontSize: 15.5, color: ink))
-                  else
-                    for (final w in const [1.0, .92, .97, .6, .85, .4])
-                      FractionallySizedBox(
-                        widthFactor: w,
-                        child: Container(
-                          height: 10,
-                          margin: const EdgeInsets.symmetric(vertical: 7),
-                          decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(5)),
-                        ),
-                      ),
-                ],
-              ),
-            );
-          },
+        interactive: true,
+        Column(
+          key: const ValueKey('quick-note'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(head.isEmpty ? AppLocalizations.of(context).untitledNote : head,
+                style: NoteTextController.title.copyWith(fontSize: 21, color: ink)),
+            const SizedBox(height: 8),
+            MarkdownLite(
+                text: rest,
+                fontSize: 15.5,
+                selectable: false,
+                // From Recently deleted the note is only read.
+                onToggle: _trash ? null : (i) => _toggle(first + 1 + i),
+                onLink: (url) => confirmOpenLink(context, url),
+              )
+          ],
         ),
-      );
+      ),
+    );
+    return card;
+  }
 
   Widget _text(BoxConstraints box) => _card(
         box,
@@ -663,9 +702,12 @@ class _QuickLookState extends State<QuickLook> {
     final fade = Duration(milliseconds: still ? 0 : 220);
     // Big: the width less a margin, up to about two thirds of the height.
     final safeBottom = MediaQuery.paddingOf(context).bottom;
-    // The vault's bar (when kept), then the buttons above it.
-    final barRoom = safeBottom + (widget.bar == null ? 0 : Ui.edge + Ui.bar + 8);
-    final bottomRoom = barRoom + 10 + Ui.tap + 8 + 10;
+    // The buttons take the vault bar's place and size exactly (owner 2026-10-25: a second
+    // bar stacked over the vault's looked cluttered); the vault bar is taller with the +
+    // in its middle.
+    final barHeight = actionSide() == ActionSide.center ? Ui.bar + 8 : Ui.bar;
+    final barBottom = safeBottom + Ui.edge;
+    final bottomRoom = barBottom + barHeight;
     final box = BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: (size.height - bottomRoom) * .78);
     final c = CsColors.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -770,9 +812,10 @@ class _QuickLookState extends State<QuickLook> {
         Positioned.fill(
           child: GestureDetector(
             onTap: () => Navigator.of(context).pop(),
+            // Light enough to see the page under it (owner 2026-10-25: it was nearly opaque).
             child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: ColoredBox(color: page.withValues(alpha: dark ? .82 : .72)),
+              filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: ColoredBox(color: page.withValues(alpha: dark ? .55 : .45)),
             ),
           ),
         ),
@@ -783,7 +826,7 @@ class _QuickLookState extends State<QuickLook> {
           left: 0,
           right: 0,
           top: MediaQuery.paddingOf(context).top,
-          bottom: bottomRoom - 10,
+          bottom: bottomRoom,
           child: Center(
           child: GestureDetector(
             // Swipe down to put it away, as in Photos.
@@ -815,30 +858,22 @@ class _QuickLookState extends State<QuickLook> {
           ),
           ),
         ),
-        // The buttons at the bottom, within the thumb's reach, just above the bar
-        // (owner 2026-10-24: in the middle of the screen they were a stretch).
+        // The buttons where the vault bar is, the same glass, width and height, spread
+        // evenly; the same for every kind of item.
         Positioned(
-          left: 0,
-          right: 0,
-          bottom: barRoom + 10,
-          child: Center(
-            child: // One small glass bar, the same for every kind of item.
-                Glass(
-                  radius: 28,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final (i, t) in tools.indexed) ...[if (i > 0) const SizedBox(width: 10), t],
-                      ],
-                    ),
-                  ),
-                ),
+          left: 10,
+          right: 10,
+          bottom: barBottom,
+          height: barHeight,
+          child: Glass(
+            key: const ValueKey('quick-bar'),
+            radius: Ui.bar / 2,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: tools,
+            ),
           ),
         ),
-        if (widget.bar case final bar?)
-          Positioned(left: 10, right: 10, bottom: safeBottom + Ui.edge, child: bar(context)),
       ],
       ),
     );

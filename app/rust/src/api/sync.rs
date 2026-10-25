@@ -111,7 +111,7 @@ pub struct Hosting {
     pub typed: String,
     /// The QR's text.
     pub qr: String,
-    /// The six digits to type on the other device.
+    /// The digits to type on the other device (three).
     pub digits: String,
     /// Whether the other device can find this one on the Wi-Fi (else the QR only).
     pub findable: bool,
@@ -305,7 +305,7 @@ pub fn p2p_scan_restore(ip: String, words: String) -> Result<u32, VaultError> {
     look(&ip, p2p::Looker::for_words(&key))
 }
 
-/// The code of the device found that shows these six digits (to pass to [`p2p_join`] or
+/// The code of the device found that shows these digits (to pass to [`p2p_join`] or
 /// [`p2p_restore`]), or none: wrong digits, or that device is not found (yet).
 #[flutter_rust_bridge::frb(sync)]
 pub fn p2p_find(digits: String) -> Option<String> {

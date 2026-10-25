@@ -24,10 +24,10 @@ void main() {
     FindDevicePage.debugFound = 1;
     await t.pumpWidget(_app());
     expect(find.text('Found your other device'), findsOneWidget);
-    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '48291');
+    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '48');
     await t.pump();
     expect(find.byKey(const ValueKey('sync-find-note')), findsNothing);
-    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '482913');
+    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '482');
     await t.pump();
     expect(find.text('No device shows this code. Check the digits.'), findsOneWidget);
   });
@@ -36,9 +36,9 @@ void main() {
     FindDevicePage.debugFound = 0;
     await t.pumpWidget(_app());
     expect(find.textContaining('No device found yet'), findsOneWidget);
-    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '48 29a13');
+    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '4 8a2');
     await t.pump();
-    // Only digits are taken, up to six.
+    // Only digits are taken, up to three.
     expect(find.text('Looking for the device showing this code…'), findsOneWidget);
   });
 }

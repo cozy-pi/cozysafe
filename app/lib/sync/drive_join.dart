@@ -143,11 +143,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
     return Scaffold(
       appBar: AppBar(),
       body: FormColumn(
-        children: [
-          Text(l.joinDriveTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(l.joinDriveLead, style: TextStyle(color: c.muted, fontSize: 15, height: 1.5)),
-          const SizedBox(height: 24),
+        actions: [
           if (account == null)
             FilledButton.icon(
               key: const ValueKey('join-sign-in'),
@@ -155,14 +151,29 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
               icon: const Icon(Icons.account_circle_outlined),
               label: Text(l.joinSignIn),
             )
-          else ...[
+          else
+            FilledButton(
+              key: const ValueKey('join-open'),
+              onPressed: _busy ||
+                      (widget.words == null && (_words.text.trim().isEmpty || _password.text.isEmpty))
+                  ? null
+                  : _open,
+              child: BusyLabel(busy: _busy, idle: l.joinOpen, working: l.restoring),
+            ),
+        ],
+        children: [
+          Text(l.joinDriveTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(l.joinDriveLead, style: TextStyle(color: c.muted, fontSize: 15, height: 1.5)),
+          const SizedBox(height: 24),
+          if (account != null) ...[
             Row(children: [
               const Icon(Icons.cloud_done_outlined, size: 20, color: Color(0xFF34A853)),
               const SizedBox(width: 8),
               Expanded(child: Text(account, style: const TextStyle(fontWeight: FontWeight.w600))),
             ]),
-            const SizedBox(height: 16),
             if (widget.words == null) ...[
+            const SizedBox(height: 16),
             SecretField(
               key: const ValueKey('join-words'),
               controller: _words,
@@ -182,16 +193,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
               onChanged: (_) => setState(() => _error = null),
               onSubmitted: (_) => _open(),
             ),
-            const SizedBox(height: 16),
             ],
-            FilledButton(
-              key: const ValueKey('join-open'),
-              onPressed: _busy ||
-                      (widget.words == null && (_words.text.trim().isEmpty || _password.text.isEmpty))
-                  ? null
-                  : _open,
-              child: BusyLabel(busy: _busy, idle: l.joinOpen, working: l.restoring),
-            ),
           ],
           if (_error != null) ...[
             const SizedBox(height: 16),

@@ -4,6 +4,37 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.67 (2026-10-25)
+
+### Added
+- Notes show their formatting in the preview: headings (`# `), **bold**, *italic*, lists
+  (`- `) and to-do lists (`- [ ] task`, `- [x] done`). What you type is kept as plain text.
+- Tick a to-do box right in the preview; the note is saved at once.
+- Web addresses in notes (https://…, www.…) are underlined. Tapping one first asks
+  "Open … in the browser?" with the real site name; names with foreign letters show in
+  their xn-- form so a fake look-alike site stands out. Only web pages open.
+- While editing a note, a small bar over the keyboard adds Bold, Italic, Heading, List,
+  To-do and Link marks for you; the marks show lightly as you type.
+
+### Changed
+- The page behind an opened item is lighter and less blurred, so you can still see where
+  you are.
+- "Hide note text" is gone: you open a note on purpose, so it always shows, and lists
+  show a note's first lines again. "Blur thumbnails" stays, for photos someone beside
+  you could see.
+- An opened item's buttons now sit in the bottom bar's place, the same size and shape,
+  instead of a second row above it.
+- Buttons moved to the bottom of the screen, where your thumb reaches: Done, Send and
+  Delete in a note (while typing, the format bar gets a button that hides the keyboard),
+  Send, Delete and More on an opened file, Select and Done in Recently deleted and when
+  choosing items, the search box, Close on info cards, and the main button of every
+  form (Next, Save, Unlock, Delete vault…), which stays just above the keyboard.
+- The code for syncing with a nearby device is 3 digits instead of 6. It was never what
+  keeps others out (only a device with this vault can pair); it picks which device.
+- Syncing says simply "Sending data" or "Receiving data".
+- While syncing, your device is blue and the other end (device or Google Drive) green;
+  the data travelling takes the colour of the side sending it.
+
 ## 0.1.66 (2026-10-25)
 
 ### Changed

@@ -67,6 +67,13 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
     return Scaffold(
       appBar: AppBar(),
       body: FormColumn(
+        actions: [
+          FilledButton(
+            key: const ValueKey('restore-next'),
+            onPressed: _words.text.trim().isEmpty || _password.text.isEmpty ? null : _next,
+            child: Text(l.restoreContinue),
+          ),
+        ],
         children: [
           Text(l.restoreTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
@@ -88,12 +95,6 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
             label: l.backupPasswordLabel,
             onChanged: (_) => setState(() => _error = null),
             onSubmitted: (_) => _next(),
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            key: const ValueKey('restore-next'),
-            onPressed: _words.text.trim().isEmpty || _password.text.isEmpty ? null : _next,
-            child: Text(l.restoreContinue),
           ),
           if (_error != null) ...[
             const SizedBox(height: 16),

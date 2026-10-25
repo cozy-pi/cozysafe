@@ -20,11 +20,13 @@ import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/screens/kit_password.dart';
 import 'package:cozysafe/screens/change_key.dart';
 import 'package:cozysafe/screens/debug.dart';
+import 'package:cozysafe/screens/delete_vault.dart';
 import 'package:cozysafe/screens/file_view.dart';
 import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/security_info.dart';
+import 'package:cozysafe/screens/set_pin.dart';
 import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/trash.dart';
 import 'package:cozysafe/screens/unlock.dart';
@@ -48,11 +50,13 @@ import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/privacy.dart';
 import 'package:cozysafe/screens/overview.dart';
+import 'package:cozysafe/widgets/bottom_bar.dart';
 import 'package:cozysafe/widgets/brand.dart';
 import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
 import 'package:cozysafe/widgets/toast.dart';
 import 'package:cozysafe/widgets/countdown.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -131,7 +135,11 @@ final _items = [
   _item('f8', ItemKind.file, 'Ghi-am-cuoc-hop.m4a', 9300000, ago: _day * 64, tags: ['t8']),
 ];
 
+/// A note with Markdown marks (format bar, checklist, links), shown only in its own shots.
+final _formatted = _item('n9', ItemKind.note, 'Chuẩn bị đi Đà Lạt', 400, ago: 60000);
+
 const _noteText = {
+  'n9': 'Chuẩn bị đi Đà Lạt\n## Hành lý\n- [x] **Hộ chiếu** và căn cước\n- [x] Sạc dự phòng\n- [ ] Áo khoác ấm\n- [ ] Thuốc say xe\n## Đặt chỗ\nKhách sạn: *nhận phòng sau 14h*, mã đặt **DL-58213**\nVé xe: https://vexere.com/vi-VN/ve-xe-sai-gon-da-lat\nBản đồ: www.google.com/maps.\nQuà cho bạn: https://bücher.de/geschenke',
   'j1': '{"router":{"ssid":"TP-Link_5G_BaNgoai","password":"hoaMai2024@","channel":36},"camera":{"app":"EZVIZ","device":"F7K2Q9","admin":true}}',
   'm1': '# Gia hạn hộ chiếu\n\nMang theo **bản gốc** và nộp ở *Phòng Quản lý xuất nhập cảnh*.\n\n## Giấy tờ\n\n- Hộ chiếu cũ\n- Căn cước công dân\n- 2 ảnh 4x6 nền trắng\n- Tờ khai `TK01` điền sẵn\n\n## Lệ phí\n\n1. Nộp 200.000 đ tại quầy\n2. Giữ biên lai để nhận hộ chiếu\n\n> Hẹn lấy sau 8 ngày làm việc.\n\n```\nSĐT tổng đài: 1900 1234\nMã hồ sơ: HC-2026-55821\n```',
   'tx1': 'Wifi nhà ngoại đổi mật khẩu ngày 12/10.\n\nMạng 5G: TP-Link_5G_BaNgoai\nMật khẩu mới: hoaMai2024@\n\nNếu camera cổng mất kết nối thì rút điện 10 giây rồi cắm lại, đợi đèn xanh.',
@@ -598,6 +606,52 @@ void main() {
   _screen('quick-note', 'Ghi chú · chạm một ghi chú (đang bật “Ẩn nội dung ghi chú”)', home, section: 'note',
       act: (t) => openRow(t, 'Thuốc của mẹ'),
       change: 'Ghi chú mở trong khung xem trước chung; nội dung bị che vì đang ẩn nội dung ghi chú; nút ✎ Sửa mở trình soạn');
+  _screen('note-format', 'Ghi chú có định dạng · chạm để xem trước', home, section: 'note',
+      setup: () {
+        Prefs.write('note-previews', '1');
+        _itemsNow = [..._items, _formatted];
+      },
+      act: (t) => openRow(t, 'Chuẩn bị đi Đà Lạt'),
+      change: 'Tiêu đề, chữ đậm/nghiêng, danh sách việc có ô đánh dấu (chạm để tích), liên kết gạch chân',
+      marks: [() => find.byKey(const ValueKey('quick-note'))]);
+  _screen('note-link-card', 'Ghi chú · chạm một liên kết', home, section: 'note',
+      setup: () {
+        Prefs.write('note-previews', '1');
+        _itemsNow = [..._items, _formatted];
+      },
+      act: (t) async {
+        await openRow(t, 'Chuẩn bị đi Đà Lạt');
+        _tapLink(t, 'https://vexere.com/vi-VN/ve-xe-sai-gon-da-lat');
+        await t.pumpAndSettle();
+      },
+      change: 'Hỏi trước khi mở trình duyệt, nêu đúng tên miền; địa chỉ đầy đủ chữ nhỏ bên dưới',
+      marks: [() => find.byKey(const ValueKey('card'))]);
+  _screen('note-link-idn', 'Ghi chú · liên kết tên miền quốc tế', home, section: 'note',
+      setup: () {
+        Prefs.write('note-previews', '1');
+        _itemsNow = [..._items, _formatted];
+      },
+      act: (t) async {
+        await openRow(t, 'Chuẩn bị đi Đà Lạt');
+        _tapLink(t, 'https://bücher.de/geschenke');
+        await t.pumpAndSettle();
+      },
+      change: 'Tên miền có chữ ngoài ASCII hiện dạng xn-- để không bị giả mạo',
+      marks: [() => find.byKey(const ValueKey('card'))]);
+  _screen('note-format-bar', 'Sửa ghi chú · thanh định dạng trên bàn phím',
+      () => _FakeKeyboard(child: NoteScreen(item: _formatted)),
+      act: (t) async {
+        // The keyboard is up: it covers the home indicator's room, as on the phone.
+        t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
+        t.view.padding = const FakeViewPadding(top: 59 * 2);
+        await t.pump();
+        // The cursor on "Áo khoác ấm".
+        final r = t.getRect(find.byType(TextField));
+        await t.tapAt(r.topLeft + const Offset(150, 108));
+        await t.pump();
+      },
+      change: 'Đậm · Nghiêng · Tiêu đề · Danh sách · Việc cần làm · Liên kết; dấu Markdown hiện nhạt',
+      marks: [() => find.byKey(const ValueKey('format-bar'))]);
   _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
       act: (t) => openRow(t, 'Thuốc của mẹ'),
@@ -738,12 +792,12 @@ void main() {
     await t.tap(find.byKey(const ValueKey('sync-show')));
     await t.pumpAndSettle();
   });
-  _screen('sync-host', 'Máy này hiện mã 6 số (QR khi cần), mã dùng được 5 phút, một lần', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482913', findable: true, seconds: 107));
+  _screen('sync-host', 'Máy này hiện mã 3 số (QR khi cần), mã dùng được 5 phút, một lần', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
+      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 107));
   _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
   _screen('sync-host-qr', 'Máy này hiện mã: đã bấm Hiện mã QR', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482913', findable: true, seconds: 241),
+      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 241),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-show-qr')));
     await t.pump(const Duration(milliseconds: 300));
@@ -756,12 +810,12 @@ void main() {
     await t.tap(find.byKey(const ValueKey('sync-enter')));
     await t.pumpAndSettle();
   });
-  _screen('sync-find', 'Máy kia: đã thấy máy của bạn, nhập 6 số', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
+  _screen('sync-find', 'Máy kia: đã thấy máy của bạn, nhập 3 số', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
       setup: () => FindDevicePage.debugFound = 1);
   _screen('sync-find-typing', 'Máy kia: đang nhập mã', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
       setup: () => FindDevicePage.debugFound = 1,
       act: (t) async {
-    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '4829');
+    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '48');
     await t.pump();
   });
   _screen('sync-find-none', 'Máy kia: chưa thấy máy nào', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
@@ -784,14 +838,14 @@ void main() {
   _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
   _screen('sync-knock', 'Máy hiện mã: máy kia vừa chạm tới, đang chứng minh cùng két', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
       setup: () {
-    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482913', findable: true, seconds: 74);
+    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 74);
     HostSyncPage.debugEvents = Stream.value(ev(SyncStep.knock));
   });
   _screen('sync-other-vault', 'Máy kia có két khác', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.otherVault)), onSynced: () {})));
   _screen('sync-unreachable', 'Không tới được máy kia', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.unreachable)), onSynced: () {})));
   _screen('sync-rejected', 'Máy hiện mã: một máy két khác vừa thử vào', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
       setup: () {
-    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482913', findable: true, seconds: 74);
+    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 74);
     HostSyncPage.debugEvents = Stream.value(ev(SyncStep.rejected));
   });
   _screen('sync-signin', 'Google Drive: phiên đăng nhập hết hạn', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.signIn)), onSynced: () {})));
@@ -998,6 +1052,83 @@ void main() {
   });
   _screen('new-vault-second', 'Két thứ hai: dùng chung 24 từ, bỏ qua bước ghi từ', () => const NewVaultScreen(libraryDir: '', first: false),
       setup: () => NewVaultScreen.debugWords = words);
+
+  // Every action button at the bottom, within the thumb's reach (2026-10-25).
+  const bottomNote = 'Nút hành động xuống dưới, trong tầm ngón cái';
+  _screen('bottom-note', 'Sửa ghi chú · bàn phím đóng: Xong · Gửi · Xoá ở dưới',
+      () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('note-done'))]);
+  _screen('bottom-note-typing', 'Sửa ghi chú · bàn phím mở: định dạng + ẩn bàn phím',
+      () => _FakeKeyboard(child: NoteScreen(item: _formatted)),
+      act: (t) async {
+        t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
+        t.view.padding = const FakeViewPadding(top: 59 * 2);
+        await t.pump();
+        final r = t.getRect(find.byType(TextField));
+        await t.tapAt(r.topLeft + const Offset(150, 108));
+        await t.pump();
+      },
+      change: 'Một thanh trên bàn phím; nút cuối ẩn bàn phím', marks: [() => find.byKey(const ValueKey('format-done-typing'))]);
+  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'),
+      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+  _screen('bottom-file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'),
+      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+  _screen('bottom-trash', 'Đã xoá gần đây · Chọn ở thanh dưới', () => const TrashScreen(),
+      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+  _screen('bottom-trash-select', 'Đã xoá · bấm Chọn', () => const TrashScreen(),
+      act: (t) async {
+        await t.tap(find.byKey(const ValueKey('trash-select')));
+        await t.pump();
+        await t.tap(find.byKey(ValueKey('trash-${'t1'.padRight(32, '_')}')));
+        await t.pump();
+      },
+      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+  _screen('bottom-select', 'Thư viện · đang chọn: Xong và Chọn tất cả ở thanh dưới', home, section: 'library', act: (t) async {
+    await t.tap(find.byKey(const ValueKey('select-button')));
+    await t.pump();
+  }, change: bottomNote, marks: [() => find.byKey(const ValueKey('select-done')), () => find.byKey(const ValueKey('select-all'))]);
+  _screen('bottom-set-pin', 'Đặt mã PIN cho máy này · Tiếp + Để sau ở dưới',
+      () => const SetPinScreen(skippable: true, forThisPhone: true),
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('pin-not-now'))]);
+  _screen('bottom-icons', 'Tạo két · ⋯ biểu tượng: nút Đóng ở dưới, bỏ ×', () => Builder(builder: (context) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => showAllIcons(context, 0));
+        return const Scaffold();
+      }), change: bottomNote, marks: [() => find.byKey(const ValueKey('card-close'))]);
+  _screen('bottom-search', 'Tìm kiếm · ô tìm ở dưới, trên bàn phím',
+      () => _FakeKeyboard(child: SearchScreen(items: _items, thumbnail: (_) async => _thumbnails[0]!)),
+      act: (t) async {
+        t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
+        t.view.padding = const FakeViewPadding(top: 59 * 2);
+        await t.pump();
+        await t.enterText(find.byKey(const ValueKey('search-field')), 'thuoc');
+        await t.pump();
+      },
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('search-field'))]);
+  _screen('bottom-lock-password', 'Màn khoá · dùng mật khẩu: Mở khoá ở dưới', lock, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('more-button')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Dùng mật khẩu'));
+    await t.pump();
+  }, change: bottomNote, marks: [() => find.byKey(const ValueKey('unlock-password-go'))]);
+  _screen('bottom-backup-password', 'Mật khẩu sao lưu · Lưu ở dưới, bàn phím mở',
+      () => const _FakeKeyboard(child: BackupPasswordScreen(libraryDir: '', change: false)),
+      act: (t) async {
+        t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
+        t.view.padding = const FakeViewPadding(top: 59 * 2);
+        await t.pump();
+      },
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('backup-password-save'))]);
+  _screen('bottom-kit-password', 'Khoá khôi phục · nhập mật khẩu: nút ở dưới', () => const KitPasswordScreen(libraryDir: ''),
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('kit-password-go'))]);
+  _screen('bottom-delete-vault', 'Xoá két · nút đỏ ở dưới',
+      () => const DeleteVaultScreen(libraryDir: '', vault: vault, sizeText: '214 MB · 86 mục'),
+      change: bottomNote, marks: [() => find.byKey(const ValueKey('delete-vault-go'))]);
+  _screen('bottom-new-vault-password', 'Tạo két · 3. Mật khẩu: Tiếp ở hàng dưới', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords, act: (t) async {
+    await tapKey(t, 'words-done');
+    await fillCheck(t);
+    await tapKey(t, 'check-done');
+  }, change: bottomNote, marks: [() => find.byKey(const ValueKey('password-next'))]);
 }
 
 void _leftCamera() {
@@ -1007,6 +1138,72 @@ void _leftCamera() {
 
 /// A PDF's first page for the renders (tests have no PDF engine): a white sheet with a
 /// heading and lines of text.
+/// Taps the link whose text is [text] in the rich text on screen.
+void _tapLink(WidgetTester t, String text) {
+  for (final rich in t.widgetList<RichText>(find.byType(RichText))) {
+    TapGestureRecognizer? hit;
+    rich.text.visitChildren((span) {
+      if (span is TextSpan && span.text == text && span.recognizer is TapGestureRecognizer) {
+        hit = span.recognizer as TapGestureRecognizer;
+        return false;
+      }
+      return true;
+    });
+    if (hit != null) return hit!.onTap!();
+  }
+  throw StateError('no link "$text"');
+}
+
+/// A keyboard's place at the bottom, for the editor shots (a grey board with keys).
+class _FakeKeyboard extends StatelessWidget {
+  const _FakeKeyboard({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final h = MediaQuery.viewInsetsOf(context).bottom;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final key = dark ? const Color(0xFF6B6B6B) : Colors.white;
+    return Stack(
+      children: [
+        child,
+        if (h > 0)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: h,
+            child: ColoredBox(
+              color: dark ? const Color(0xFF2B2B2B) : const Color(0xFFD1D3D9),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 10, 4, 40),
+                child: Column(
+                  children: [
+                    for (final n in [10, 9, 9, 5])
+                      Expanded(
+                        child: Row(
+                          children: [
+                            for (var i = 0; i < n; i++)
+                              Expanded(
+                                flex: n == 5 && i == 2 ? 5 : 1,
+                                child: Container(
+                                  margin: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(color: key, borderRadius: BorderRadius.circular(6)),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _FakePdfPage extends StatelessWidget {
   const _FakePdfPage();
 

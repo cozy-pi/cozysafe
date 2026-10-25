@@ -7,6 +7,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../lock_resume.dart';
+import '../widgets/bottom_bar.dart';
 import '../widgets/recovery_words.dart';
 import '../widgets/secret.dart';
 
@@ -64,6 +65,8 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
 
   /// A password is asked on the check step: this vault's again after a lock, or another's.
   bool get _asking => _passwords.isEmpty || _other;
+  /// The four words typed back are right.
+  bool _checkOk = false;
 
   @override
   void dispose() {
@@ -170,22 +173,9 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
           ),
           const SizedBox(height: 14),
           note,
-          const SizedBox(height: 22),
-          _button(
-            const ValueKey('change-start'),
-            l.changeKeyStart,
-            () => setState(() => _step = _Step.words),
-          ),
         ],
       ),
-      _Step.words => RecoveryWordsPanel(
-        words: _words,
-        action: _button(
-          const ValueKey('words-done'),
-          l.wordsWritten,
-          () => setState(() => _step = _Step.check),
-        ),
-      ),
+      _Step.words => RecoveryWordsPanel(words: _words),
       _Step.check => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -219,14 +209,11 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
           RecoveryWordsCheck(
             words: _words,
             ask: _ask,
-            action: (ok) => _button(
-              const ValueKey('change-apply'),
-              _busy ? l.checking : l.changeKeyApply,
-              ok && !_busy && (!_asking || _typed.text.isNotEmpty)
-                  ? _apply
-                  : null,
-            ),
-            onShowAgain: () => setState(() => _step = _Step.words),
+            onValid: (ok) => setState(() => _checkOk = ok),
+            onShowAgain: () => setState(() {
+              _checkOk = false;
+              _step = _Step.words;
+            }),
           ),
         ],
       ),
@@ -250,18 +237,39 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
           ),
           const SizedBox(height: 16),
           note,
-          const SizedBox(height: 22),
-          _button(const ValueKey('change-backup'), l.backupNow, () async {
-            Navigator.of(context).pop();
-            await widget.onBackup();
-          }),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l.close),
-          ),
         ],
       ),
+    };
+    // Each step's button pinned at the bottom (owner 2026-10-25: within the thumb's reach).
+    final actions = switch (_step) {
+      _Step.intro => [
+        _button(const ValueKey('change-start'), l.changeKeyStart, () => setState(() => _step = _Step.words)),
+      ],
+      _Step.words => [
+        _button(const ValueKey('words-done'), l.wordsWritten, () => setState(() {
+          _checkOk = false;
+          _step = _Step.check;
+        })),
+      ],
+      _Step.check => [
+        _button(
+          const ValueKey('change-apply'),
+          _busy ? l.checking : l.changeKeyApply,
+          _checkOk && !_busy && (!_asking || _typed.text.isNotEmpty) ? _apply : null,
+        ),
+      ],
+      _Step.done => [
+        _button(const ValueKey('change-backup'), l.backupNow, () async {
+          Navigator.of(context).pop();
+          await widget.onBackup();
+        }),
+        const SizedBox(height: 4),
+        TextButton(
+          key: const ValueKey('change-close'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.close),
+        ),
+      ],
     };
     // Back goes one step back (the same words), and leaves only from the first step or
     // the end; never while the key is being changed (owner 2026-10-25: Back on the check
@@ -285,8 +293,9 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
                 )
               : null,
         ),
-        body: SafeArea(
-          top: false,
+        body: PinnedAction(
+          padding: 20,
+          actions: actions,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [body],

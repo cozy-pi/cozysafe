@@ -421,16 +421,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
             const SizedBox(height: 14),
             SizedBox(
               height: 46,
-              child: _step == _Step.pin
-                  ? FilledButton(
-                      key: const ValueKey('pin-next'),
-                      style: FilledButton.styleFrom(minimumSize: const Size(180, 46)),
-                      onPressed: _pin.length >= _minPin ? _next : null,
-                      child: Text(l.pinNext),
-                    )
-                  : _busy
-                      ? Center(child: SizedBox.square(dimension: 24, child: CircularProgressIndicator(color: ink)))
-                      : null,
+              child: _step != _Step.pin && _busy
+                  ? Center(child: SizedBox.square(dimension: 24, child: CircularProgressIndicator(color: ink)))
+                  : null,
             ),
           ],
         ),
@@ -527,40 +520,47 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                     ),
                   ),
                 ),
-                // Back and Cancel under the thumbs, large, instead of a small arrow in
-                // the top corner. The very first vault has nothing to cancel back to;
-                // once the vault exists, the look can be skipped.
+                // Back and each step's main button under the thumbs, large, instead of a
+                // small arrow in the top corner and a button under the fields (owner
+                // 2026-10-25: every button within the thumb's reach). The very first
+                // vault has nothing to cancel back to; once the vault exists, the look
+                // can be skipped.
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
                   child: Row(
                     children: [
-                      if (_canGoBack)
+                      // Face ID's question: its No where Back would be.
+                      if (_step == _Step.biometric)
+                        _BottomButton(
+                          key: const ValueKey('bio-no'),
+                          label: l.biometricOfferNo,
+                          onTap: _busy ? null : () => _biometricAnswer(false),
+                        )
+                      else if (_canGoBack)
                         _BottomButton(
                           key: const ValueKey('new-vault-back'),
                           icon: Icons.arrow_back,
                           label: l.back,
                           onTap: _back,
-                        ),
-                      const Spacer(),
-                      if (_step == _Step.words)
-                        FilledButton(
-                          key: const ValueKey('words-done'),
-                          style: FilledButton.styleFrom(minimumSize: const Size(0, 52), shape: const StadiumBorder()),
-                          onPressed: () => _go(_Step.check),
-                          child: Text(l.wordsWritten),
                         )
-                      else if (_vault != null && (_step == _Step.icon || _step == _Step.color))
-                        _BottomButton(
-                          key: const ValueKey('new-vault-skip'),
-                          label: l.lookSkip,
-                          onTap: _busy ? null : () => _enter(save: _step == _Step.color),
-                        )
-                      else if (!widget.first)
+                      else if (!widget.first && _vault == null)
                         _BottomButton(
                           key: const ValueKey('new-vault-cancel'),
                           label: l.cancel,
                           onTap: _busy ? null : () => Navigator.of(context).maybePop(),
                         ),
+                      if (_primaryButton(l) case final primary?) ...[
+                        const SizedBox(width: 12),
+                        Expanded(child: Align(alignment: Alignment.centerRight, child: primary)),
+                      ] else ...[
+                        const Spacer(),
+                        if (_vault != null && (_step == _Step.icon || _step == _Step.color))
+                        _BottomButton(
+                          key: const ValueKey('new-vault-skip'),
+                          label: l.lookSkip,
+                          onTap: _busy ? null : () => _enter(save: _step == _Step.color),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -582,27 +582,38 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       children: [
         const SizedBox(height: 8),
         BiometricGlyph(kind: _bioKind ?? BiometricKind.face, size: 72, color: ink),
-        const SizedBox(height: 28),
-        _primary(const ValueKey('bio-yes'), l.biometricOfferYes, _busy ? null : () => _biometricAnswer(true)),
-        const SizedBox(height: 6),
-        TextButton(
-          key: const ValueKey('bio-no'),
-          onPressed: _busy ? null : () => _biometricAnswer(false),
-          child: Text(l.biometricOfferNo),
-        ),
       ],
     );
   }
 
-  Widget _primary(Key key, String label, VoidCallback? onTap) => SizedBox(
-        width: double.infinity,
-        child: FilledButton(
+  /// The step's main button, at the right of the bottom row (null: none on this step;
+  /// the PIN confirmation goes on by itself, the look by a tap on a tile).
+  Widget? _primaryButton(AppLocalizations l) {
+    Widget button(Key key, String label, VoidCallback? onTap) => FilledButton(
           key: key,
-          style: FilledButton.styleFrom(minimumSize: const Size(0, 50), shape: const StadiumBorder()),
+          style: FilledButton.styleFrom(minimumSize: const Size(140, 52), shape: const StadiumBorder()),
           onPressed: onTap,
-          child: Text(label),
-        ),
-      );
+          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        );
+    return switch (_step) {
+      _Step.intro => button(const ValueKey('intro-start'), l.introStart,
+          _words == null && NewVaultScreen.debugWords == null && widget.first ? null : () => _go(_steps[1])),
+      _Step.words => button(const ValueKey('words-done'), l.wordsWritten, () {
+          _checkOk = false;
+          _go(_Step.check);
+        }),
+      _Step.check => button(const ValueKey('check-done'), l.pinNext, _checkOk ? () => _go(_Step.password) : null),
+      // Back here after the vault was made (password taken): this sets it at once.
+      _Step.password => button(const ValueKey('password-next'), l.pinNext,
+          !_passwordOk || _busy ? null : () => _vault != null ? _givePassword(l) : _go(_Step.pin)),
+      _Step.pin => button(const ValueKey('pin-next'), l.pinNext, _pin.length >= _minPin ? _next : null),
+      _Step.biometric => button(const ValueKey('bio-yes'), l.biometricOfferYes, _busy ? null : () => _biometricAnswer(true)),
+      _ => null,
+    };
+  }
+
+  /// The four words typed back are right.
+  bool _checkOk = false;
 
   /// What each key is for, before any of them is made.
   Widget _intro(AppLocalizations l) {
@@ -645,21 +656,18 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         const SizedBox(height: 12),
         Text(l.introNoCopy,
             textAlign: TextAlign.center, style: TextStyle(color: ink.withValues(alpha: .78), fontSize: 13, height: 1.4)),
-        const SizedBox(height: 18),
-        _primary(const ValueKey('intro-start'), l.introStart,
-            _words == null && NewVaultScreen.debugWords == null && widget.first ? null : () => _go(_steps[1])),
       ],
     );
   }
 
   // "I wrote them down" sits in the bottom row, always in sight: on a small Android
-  // phone it was below the fold (owner 2026-10-24).
+  // phone it was below the fold (owner 2026-10-24). So does every step's main button.
   Widget _wordsBody(AppLocalizations l) => RecoveryWordsPanel(words: _words ?? const []);
 
   Widget _checkBody(AppLocalizations l) => RecoveryWordsCheck(
         words: _words ?? const [],
         ask: _ask,
-        action: (ok) => _primary(const ValueKey('check-done'), l.pinNext, ok ? () => _go(_Step.password) : null),
+        onValid: (ok) => setState(() => _checkOk = ok),
         onShowAgain: () => _go(_Step.words),
       );
 
@@ -697,13 +705,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           const SizedBox(height: 12),
           Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
         ],
-        const SizedBox(height: 18),
-        // Back here after the vault was made (password taken): this sets it at once.
-        _primary(
-          const ValueKey('password-next'),
-          l.pinNext,
-          !_passwordOk || _busy ? null : () => _vault != null ? _givePassword(l) : _go(_Step.pin),
-        ),
       ],
     );
   }

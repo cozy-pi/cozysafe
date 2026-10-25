@@ -113,33 +113,47 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Row(
               children: [
                 GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: () => Navigator.of(context).maybePop()),
-                const SizedBox(width: 10),
-                Expanded(child: _field(context, l)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(l.search,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -.2)),
+                ),
               ],
             ),
           ),
         ),
       ),
-      body: browsing
-          ? _browse(context, l)
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (counts.isNotEmpty || _kind != null) _chips(context, l, hits.length, counts),
-                Expanded(
-                  child: shown.isEmpty && groupHits.isEmpty
-                      ? _nothing(context, l)
-                      : _results(context, l, q, shown, _kind == null ? groupHits : const []),
-                ),
-              ],
-            ),
+      // The field and the section chips at the bottom, riding above the keyboard, the
+      // results above them (owner 2026-10-25: every control within the thumb's reach).
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: browsing
+                ? _browse(context, l)
+                : shown.isEmpty && groupHits.isEmpty
+                    ? _nothing(context, l)
+                    : _results(context, l, q, shown, _kind == null ? groupHits : const []),
+          ),
+          if (!browsing && (counts.isNotEmpty || _kind != null)) _chips(context, l, hits.length, counts),
+          Padding(
+            padding: EdgeInsets.fromLTRB(10, 0, 10, Ui.edge + MediaQuery.paddingOf(context).bottom),
+            child: _field(context, l),
+          ),
+        ],
+      ),
     ));
   }
 
+  /// The vault bar's height and shape. Solid, not glass: nothing scrolls under it, and
+  /// the blur only smeared the chips above into it.
   Widget _field(BuildContext context, AppLocalizations l) {
     final ink = Theme.of(context).colorScheme.onSurface;
+    final none = OutlineInputBorder(borderRadius: BorderRadius.circular(Ui.bar / 2), borderSide: BorderSide.none);
     return SizedBox(
-      height: Ui.circle,
+      height: Ui.bar,
       child: TextField(
         key: const ValueKey('search-field'),
         controller: _query,
@@ -160,9 +174,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   onPressed: () => setState(_query.clear),
                   icon: Icon(Icons.cancel, color: ink.withValues(alpha: .45)),
                 ),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(Ui.circle / 2), borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Ui.circle / 2), borderSide: BorderSide.none),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Ui.circle / 2), borderSide: BorderSide.none),
+          border: none,
+          enabledBorder: none,
+          focusedBorder: none,
         ),
         onChanged: (_) => setState(() {}),
       ),
@@ -208,7 +222,7 @@ class _SearchScreenState extends State<SearchScreen> {
       height: Ui.chip + 12,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(14, 2, 6, 10),
+        padding: const EdgeInsets.fromLTRB(14, 2, 6, 8),
         children: [
           chip(l.searchAll, _query.text.trim().isEmpty ? null : all, _kind == null, () => setState(() => _kind = null)),
           for (final e in counts.entries)
@@ -328,7 +342,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final media = s == VaultSection.library;
     // The words around the match only when note text may show (Settings → Display);
     // otherwise just that it matched inside.
-    final under = snippet == null ? null : (notePreviews() ? snippet : l.foundInText);
+    final under = snippet;
     return InkWell(
       onTap: () => Navigator.of(context).pop(it),
       onLongPress: () => Navigator.of(context).pop(SearchMenu(it)),
@@ -362,7 +376,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   MarkedText(_shownName(l, it), q,
                       maxLines: 1, style: TextStyle(fontSize: 15.5, fontWeight: q.isEmpty ? FontWeight.w600 : FontWeight.w400)),
                   const SizedBox(height: 3),
-                  if (under != null && notePreviews())
+                  if (under != null)
                     MarkedText(under, q, maxLines: 2, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.3))
                   else
                     Text(under ?? date, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: 13.5)),

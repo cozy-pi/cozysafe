@@ -9,10 +9,18 @@ import '../lock_resume.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/bottom_bar.dart';
+import '../widgets/format_bar.dart';
 import '../widgets/toast.dart';
 import '../widgets/text_styles.dart';
 import 'file_view.dart' show shareById;
 import '../widgets/vault_bar.dart';
+
+/// A note's title for the list: its first line, at most 80 characters.
+String noteTitle(String text) {
+  final first = text.trimLeft().split('\n').first.trim();
+  return first.length > 80 ? '${first.substring(0, 80)}…' : first;
+}
 
 /// A note: plain text, saved as you type (a moment after you stop), when you leave,
 /// and before the vault locks, so locking never loses what was typed. The list shows
@@ -39,6 +47,8 @@ class NoteScreen extends StatefulWidget {
 
 class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
   final _text = NoteTextController();
+  /// The format bar shows over the keyboard while the text has the focus.
+  final _focus = FocusNode();
   String _loaded = '';
   bool _ready = false;
   bool _saving = false;
@@ -54,6 +64,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
     super.initState();
     LockGuard.beforeLock = _saveNow;
     _text.addListener(_typed);
+    _focus.addListener(_focusChanged);
     final item = widget.item;
     _id = item?.id;
     if (item == null) {
@@ -93,12 +104,12 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
     _autosave?.cancel();
     if (LockGuard.beforeLock == _saveNow) LockGuard.beforeLock = null;
     _text.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
-  static String _title(String text) {
-    final first = text.trimLeft().split('\n').first.trim();
-    return first.length > 80 ? '${first.substring(0, 80)}…' : first;
+  void _focusChanged() {
+    if (mounted) setState(() {});
   }
 
   void _typed() {
@@ -121,12 +132,12 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
     try {
       final id = _id;
       if (id == null) {
-        final id = (await rust.addNote(title: _title(text), text: text, createdMs: nowMs())).id;
+        final id = (await rust.addNote(title: noteTitle(text), text: text, createdMs: nowMs())).id;
         _id = id;
         final tagId = widget.tagId;
         if (tagId != null) await rust.setTag(itemIds: [id], tagId: tagId, tagged: true);
       } else {
-        await rust.updateNote(id: id, title: _title(text), text: text);
+        await rust.updateNote(id: id, title: noteTitle(text), text: text);
       }
       _loaded = text;
       _wrote = true;
@@ -140,7 +151,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
     await _saveNow();
     final id = _id;
     if (id == null || !mounted) return;
-    final title = _title(_text.text);
+    final title = noteTitle(_text.text);
     await shareById(context, id, 'text/plain', '${title.isEmpty ? 'note' : title}.txt', widget.vaultId);
   }
 
@@ -210,48 +221,16 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
       },
       child: Scaffold(
         body: SafeArea(
+          bottom: false,
           child: Column(
             children: [
-              // The vault's header language: a round glass back, and Done as the one filled
-              // button, both Ui.circle tall (docs/ui.md, design language).
+              // Only the round glass back on top (docs/ui.md, design language); Done, Send
+              // and Delete sit at the bottom, within the thumb's reach (owner 2026-10-25).
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
                 child: Row(
                   children: [
                     GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: _saving ? null : _saveAndLeave),
-                    const Spacer(),
-                    // A new note has nothing to delete yet: no red button beside Done
-                    // (owner's testers 2026-10-24: afraid of losing what they typed).
-                    if (widget.item != null)
-                    GlassButton(
-                      key: const ValueKey('note-delete'),
-                      icon: null,
-                      tooltip: AppLocalizations.of(context).delete,
-                      onTap: _saving ? null : _delete,
-                      child: Icon(Icons.delete_outline, color: recordRed(context), size: 22),
-                    ),
-                    if (widget.item != null) const SizedBox(width: 8),
-                    // Send the note as a text file ("Title.txt"); saved first.
-                    GlassButton(
-                      key: const ValueKey('note-send'),
-                      icon: Icons.ios_share,
-                      tooltip: l.sendOut,
-                      onTap: _saving ? null : _send,
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      height: Ui.circle,
-                      child: FilledButton(
-                        key: const ValueKey('note-done'),
-                        onPressed: _saving ? null : _saveAndLeave,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, Ui.circle),
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          shape: const StadiumBorder(),
-                        ),
-                        child: Text(l.done, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -262,6 +241,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                   padding: const EdgeInsets.fromLTRB(24, 6, 24, 12),
                   child: TextField(
                     controller: _text,
+                    focusNode: _focus,
                     contextMenuBuilder: _menu,
                     autofocus: widget.item == null,
                     maxLines: null,
@@ -280,6 +260,48 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                   ),
                 ),
               ),
+              // While typing, one bar over the keyboard: Bold, Italic, Heading, List,
+              // Checklist, Link (they type Markdown marks, the preview draws them), then
+              // Done typing, which puts the keyboard away.
+              if (_ready && _focus.hasFocus)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(10, 0, 10, 8 + MediaQuery.paddingOf(context).bottom),
+                  child: Center(child: NoteFormatBar(controller: _text, onDoneTyping: _focus.unfocus)),
+                )
+              else
+                // Otherwise the note's buttons, where the vault bar is: Done saves and
+                // leaves, like Back.
+                BottomBar(
+                  children: [
+                    FilledButton(
+                      key: const ValueKey('note-done'),
+                      onPressed: _saving ? null : _saveAndLeave,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        shape: const StadiumBorder(),
+                      ),
+                      child: Text(l.done, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                    ),
+                    // Send the note as a text file ("Title.txt"); saved first.
+                    BarIcon(
+                      key: const ValueKey('note-send'),
+                      icon: Icons.ios_share,
+                      tooltip: l.sendOut,
+                      onTap: _saving ? null : (_) => _send(),
+                    ),
+                    // A new note has nothing to delete yet: no red button (owner's
+                    // testers 2026-10-24: afraid of losing what they typed).
+                    if (widget.item != null)
+                      BarIcon(
+                        key: const ValueKey('note-delete'),
+                        icon: Icons.delete_outline,
+                        tooltip: l.delete,
+                        onTap: _saving ? null : (_) => _delete(),
+                        color: recordRed(context),
+                      ),
+                  ],
+                ),
             ],
           ),
         ),
