@@ -27,6 +27,8 @@ Dates are UTC.
 - The code for syncing with a nearby device is 3 digits instead of 6. It was never what
   keeps others out (only a device with this vault can pair); it picks which device.
 - Syncing says simply "Sending data" or "Receiving data".
+- While syncing, your device is blue and the other end (device or Google Drive) green;
+  the data travelling takes the colour of the side sending it.
 
 ## 0.1.66 (2026-10-25)
 

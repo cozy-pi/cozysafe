@@ -503,11 +503,14 @@ class _Ends extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ink = Theme.of(context).colorScheme.onSurface;
     final c = CsColors.of(context);
     const blue = Color(0xFF0A84FF);
     const green = Color(0xFF30D158);
-    final tint = place == SyncPlace.drive ? blue : green;
+    // This phone blue, the other end green (owner 2026-10-25: black looked dull); what
+    // travels takes the colour of the side sending it.
+    const mine = blue;
+    const theirs = green;
+    final packets = direction > 0 ? mine : theirs;
     final still = MediaQuery.disableAnimationsOf(context);
     Widget end(IconData icon, Color color, double scale, double ring) => Transform.scale(
           scale: scale,
@@ -539,13 +542,13 @@ class _Ends extends StatelessWidget {
         final here = direction < 0 ? land : 0.0;
         final there = direction > 0 ? land : 0.0;
         return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          end(Icons.smartphone_rounded, ink, 1 + .05 * here + .025 * breathe, here),
+          end(Icons.smartphone_rounded, mine, 1 + .05 * here + .025 * breathe, here),
           SizedBox(
             width: 112,
             height: 64,
-            child: CustomPaint(painter: _FlowPainter(t: t, direction: direction, color: tint, track: c.border)),
+            child: CustomPaint(painter: _FlowPainter(t: t, direction: direction, color: packets, track: c.border)),
           ),
-          end(place == SyncPlace.drive ? Icons.cloud_rounded : Icons.phone_android_rounded, tint,
+          end(place == SyncPlace.drive ? Icons.cloud_rounded : Icons.phone_android_rounded, theirs,
               1 + .05 * there - .025 * breathe, there),
         ]);
       },
