@@ -4,6 +4,27 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.69 (2026-10-25)
+
+### Security
+- New passwords must be harder to guess: not one of the 100,000 most used passwords
+  (also with a number or symbol added), and either strong enough or four different
+  words. The screen says why a password is refused and how to fix it ("Suggest a
+  password" always works). Passwords you already use keep working.
+- A vault whose files were changed to make the password easier to crack (lower
+  password-hashing cost) no longer opens; the same goes for a backup or a Google Drive
+  copy changed that way.
+- Restoring a new phone from your other phone now needs your OK there: turn on "Help a
+  new device restore" on the waiting screen (off by default), then tap Allow when the
+  same number shows on both phones.
+- The short key fingerprint stored next to your vault (it tells a wrong Recovery Key
+  from a wrong password) is now 4 characters instead of 16, so it says less about your
+  key. Older ones still work and are shortened the next time the vault opens.
+- Your vaults are kept out of iCloud and computer backups on iPhone, and out of Google
+  backups and phone-to-phone transfers on Android.
+- Changing the password or the Recovery Key now says plainly that items already in the
+  vault are not encrypted again (only the key that opens the vault changes).
+
 ## 0.1.68 (2026-10-25)
 
 ### Changed

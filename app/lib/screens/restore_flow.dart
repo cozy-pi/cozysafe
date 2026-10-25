@@ -176,6 +176,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
         body: SafeArea(
           top: false,
           child: SyncProgress(
+            restoring: true,
             events: sync.p2PRestore(dir: widget.libraryDir, code: code, words: widget.words, password: widget.password),
             onSynced: () {},
           ),

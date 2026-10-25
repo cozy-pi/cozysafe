@@ -31,6 +31,8 @@ class _HostSyncPageState extends State<HostSyncPage> {
   Stream<sync.SyncEvent>? _events;
   bool _failed = false;
   bool _qr = false;
+  /// "Help a new device restore": off unless the person turns it on, for this wait only.
+  bool _helpRestore = false;
   late DateTime _until;
   Timer? _tick;
 
@@ -42,7 +44,7 @@ class _HostSyncPageState extends State<HostSyncPage> {
 
   Future<void> _start() async {
     try {
-      final h = HostSyncPage.debugHosting ?? await sync.p2PHostStart(ip: widget.address, mirror: widget.mirror);
+      final h = HostSyncPage.debugHosting ?? await sync.p2PHostStart(ip: widget.address, mirror: widget.mirror, helpRestore: _helpRestore);
       if (!mounted) {
         sync.p2PCancel();
         return;
@@ -105,6 +107,20 @@ class _HostSyncPageState extends State<HostSyncPage> {
             ],
           ),
           const SizedBox(height: 18),
+          // A new phone with only the 24 words may restore from this one, if the person says
+          // so here (and then allows it, comparing a number).
+          SwitchListTile.adaptive(
+            key: const ValueKey('sync-help-restore'),
+            contentPadding: EdgeInsets.zero,
+            value: _helpRestore,
+            title: Text(l.syncHelpRestore, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            subtitle: Text(l.syncHelpRestoreNote, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.35)),
+            onChanged: (on) {
+              setState(() => _helpRestore = on);
+              if (HostSyncPage.debugHosting == null) sync.p2PHostHelpRestore(on_: on);
+            },
+          ),
+          const SizedBox(height: 10),
           // The QR, for networks where the other device cannot find this one.
           if (_qr || !h.findable)
             QrView(key: const ValueKey('sync-qr'), text: h.qr)

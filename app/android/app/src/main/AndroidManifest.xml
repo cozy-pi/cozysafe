@@ -21,6 +21,7 @@
         android:localeConfig="@xml/locales_config"
         android:allowBackup="false"
         android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="Cozy Safe"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

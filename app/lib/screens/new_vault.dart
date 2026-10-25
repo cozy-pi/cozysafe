@@ -165,8 +165,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   // ---------- password ----------
 
-  bool get _passwordOk =>
-      _pw.text.characters.length >= rust.minPasswordLength() && _pw.text == _pwAgain.text;
+  bool get _passwordOk => PasswordStrength.acceptable(_pw.text) && _pw.text == _pwAgain.text;
 
   void _suggest() => setState(() {
         _pw.text = rust.suggestPassphrase();

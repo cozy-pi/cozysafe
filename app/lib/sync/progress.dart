@@ -27,6 +27,7 @@ class SyncProgress extends StatefulWidget {
     this.waiting,
     this.retry,
     this.place = SyncPlace.device,
+    this.restoring = false,
   });
   final Stream<sync.SyncEvent> events;
   final SyncPlace place;
@@ -38,6 +39,8 @@ class SyncProgress extends StatefulWidget {
   /// The vault changed: the screens behind reload.
   final VoidCallback onSynced;
   final Widget? waiting;
+  /// This device restores with the 24 words: the other one must allow it first.
+  final bool restoring;
 
   @override
   State<SyncProgress> createState() => _SyncProgressState();
@@ -52,8 +55,11 @@ class _SyncProgressState extends State<SyncProgress>
   bool _rejected = false;
   /// A device has just connected and is proving the vault (host only).
   bool _knock = false;
+  /// The person answered "Allow this new device?" (host only): the buttons stop.
+  bool _answered = false;
 
   static const _running = {
+    sync.SyncStep.askRestore,
     sync.SyncStep.connected,
     sync.SyncStep.checking,
     sync.SyncStep.receiving,
@@ -123,7 +129,8 @@ class _SyncProgressState extends State<SyncProgress>
       setState(() {
         if (_last?.kind != e.kind) _samples.clear();
         _last = e;
-        if (e.kind == sync.SyncStep.connected) _check = e.check;
+        if (e.kind == sync.SyncStep.connected || e.kind == sync.SyncStep.askRestore) _check = e.check;
+        if (e.kind == sync.SyncStep.askRestore) _answered = false;
         _samples.add((DateTime.now(), e.bytes.toInt(), e.done));
         // A few seconds back is enough for a steady figure.
         final from = DateTime.now().subtract(const Duration(seconds: 4));
@@ -241,6 +248,53 @@ class _SyncProgressState extends State<SyncProgress>
     sync.SyncStep.driveMoving => l.syncDriveMoving,
     _ => l.syncWorking,
   };
+
+  /// A new device restoring with the 24 words asks to come in (host): the number its
+  /// screen shows, and Allow or Don't allow. Nothing is served before Allow.
+  Widget _allowCard(AppLocalizations l, CsColors c) {
+    void answer(bool allow) {
+      setState(() => _answered = true);
+      try {
+        sync.p2PHostAnswer(allow: allow);
+      } catch (_) {} // the mockup renders run without the Rust side
+    }
+
+    return Column(
+      key: const ValueKey('sync-allow-card'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.phonelink_lock_rounded, size: 44, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(height: 14),
+        Text(l.syncRestoreAllowTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 18),
+        Text(
+          (_check ?? 0).toString().padLeft(4, '0'),
+          key: const ValueKey('sync-allow-check'),
+          style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w800, letterSpacing: 10, fontFeatures: [FontFeature.tabularFigures()]),
+        ),
+        const SizedBox(height: 8),
+        Text(l.syncRestoreAllowNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+        const SizedBox(height: 24),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton(
+              key: const ValueKey('sync-allow-no'),
+              onPressed: _answered ? null : () => answer(false),
+              child: Text(l.syncRestoreAllowNo),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: FilledButton(
+              key: const ValueKey('sync-allow-yes'),
+              onPressed: _answered ? null : () => answer(true),
+              child: Text(l.syncRestoreAllowYes),
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
 
   /// Bytes and items a second over the recent samples, or null before there is enough.
   (double, double)? get _rate {
@@ -376,6 +430,7 @@ class _SyncProgressState extends State<SyncProgress>
       ]);
     } else {
       body = switch (e.kind) {
+        sync.SyncStep.askRestore => _allowCard(l, c),
         sync.SyncStep.connected => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -388,6 +443,13 @@ class _SyncProgressState extends State<SyncProgress>
               ),
               const SizedBox(height: 8),
               Text(l.syncCheckNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+              if (widget.restoring) ...[
+                const SizedBox(height: 10),
+                Text(l.restoreTapAllow,
+                    key: const ValueKey('sync-tap-allow'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.35)),
+              ],
               const SizedBox(height: 28),
               const SizedBox(width: 160, child: LinearProgressIndicator()),
               const SizedBox(height: 10),

@@ -56,19 +56,19 @@ impl Library {
         }
         let lock: Lock =
             serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("vault lock"))?;
-        let fp = secret_key.fingerprint();
         let lib = &lock.library;
-        if lib.secret_key.as_deref() != Some(fp.as_str())
-            && lib.prev_secret_key.as_deref() != Some(fp.as_str())
-        {
+        let fits = |f: &Option<String>| {
+            f.as_deref()
+                .is_some_and(|f| secret_key.fingerprint_matches(f))
+        };
+        if !fits(&lib.secret_key) && !fits(&lib.prev_secret_key) {
             return Err(Error::WrongSecretKey);
         }
         let lib_salt = decode_array::<SALT_LEN>(&lib.salt, "library salt")?;
-        let params = kdf::KdfParams {
-            m_kib: lib.kdf.m_kib,
-            t: lib.kdf.t,
-            p: lib.kdf.p,
-        };
+        // The cost comes from the sync place: one under the floor was tampered with.
+        let params = kdf::KdfParams::from(lib.kdf);
+        params.check()?;
+        let fp = secret_key.fingerprint();
         let root = kdf::derive_root(password.as_bytes(), &secret_key, &lib_salt, params)?;
         let salt = decode_array::<SALT_LEN>(&lock.vault.salt, "vault salt")?;
         let kek = kdf::vault_kek(&root, &salt);
@@ -247,5 +247,37 @@ mod tests {
         for bad in ["../x", "", "ABCDEF", &"a".repeat(33)] {
             assert!(Library::join(fresh.path(), &t.cloud, bad, crate::tests::sk(), "x").is_err());
         }
+    }
+
+    #[test]
+    fn a_lock_with_a_lowered_argon2_cost_is_refused() {
+        let t = two();
+        t.a.sync(&t.cloud).unwrap();
+        let dir = format!("{}/lock", t.a.id);
+        let newest = t.cloud.list(&dir).unwrap().into_iter().max().unwrap();
+        let mut bytes = Vec::new();
+        t.cloud.get(&format!("{dir}/{newest}"), &mut bytes).unwrap();
+        let mut lock: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        lock["library"]["kdf"]["m_kib"] =
+            serde_json::json!(kdf::KdfParams::ACCEPTED_FLOOR.m_kib / 2);
+        let tampered = serde_json::to_vec(&lock).unwrap();
+        t.cloud
+            .put(
+                &format!("{dir}/9999999999999-tampered.json"),
+                &mut &tampered[..],
+            )
+            .unwrap();
+        let fresh = tempfile::tempdir().unwrap();
+        assert!(matches!(
+            Library::join(
+                fresh.path(),
+                &t.cloud,
+                &t.a.id,
+                crate::tests::sk(),
+                crate::sync::tests::pw()
+            ),
+            Err(Error::Crypto(cs_crypto::Error::KdfTooWeak))
+        ));
+        assert!(!Library::has_vaults(fresh.path()));
     }
 }

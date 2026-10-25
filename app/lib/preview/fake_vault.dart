@@ -139,6 +139,13 @@ class FakeVault implements RustLibApi {
         return true;
       case 'MinPasswordScore':
         return 3;
+      case 'PasswordProblem':
+        final pw = a<String>('password');
+        return pw.length < 8
+            ? PasswordProblem.tooShort
+            : pw.length < 12
+                ? PasswordProblem.guessable
+                : PasswordProblem.none;
       case 'PasswordScore':
         return (a<String>('password').length ~/ 6).clamp(0, 4);
       case 'SuggestPassphrase':

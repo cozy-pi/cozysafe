@@ -4,6 +4,19 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-25 — Security round (0.1.68)
+
+New passwords follow NIST SP 800-63B rev 4: 8+ characters, not among the 100,000 most
+common (bundled as truncated hashes), and zxcvbn score 3 or 4+ different words; this
+replaces "strength shown, never blocked" (2026-10-23). Passwords in use are never
+checked on unlock. Opening, joining and restoring refuse an Argon2 cost below the phone
+floor. The Secret Key fingerprint is cut to 16 bits (a hint, never a check). A P2P host
+serves a restoring device only after "Help a new device restore" is turned on and Allow
+is tapped. The library is kept out of iOS and Android system backups. Still planned:
+binding the Argon2 cost into the wraps (format v2), size padding, a header revision
+against rollback, PIN wipe after wrong tries, rotating item keys. Details:
+docs/security.md, ADR 0001, ADR 0003, docs/supply-chain.md (bundled data).
+
 ## 2026-10-25 — Note formatting, links that ask first
 
 **Owner:** notes stay plain text on disk; formatting is only how they are read. The item

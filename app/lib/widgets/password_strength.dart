@@ -4,13 +4,18 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 
-/// How strong a vault password is, shown and never enforced (owner 2026-10-23): four
-/// bars and a word, from the same zxcvbn score the vault uses. The only rule is the
-/// length ([rust.minPasswordLength]); a weak password gets a note on what keeps it safe.
+/// How strong a new vault password is: four bars and a word, from the same zxcvbn score
+/// the vault uses, and why it would be refused (2026-10-25, NIST SP 800-63B): under
+/// [rust.minPasswordLength] characters, one of the most common passwords, or easy to
+/// guess without being a phrase of four words. The way out is said with it.
 class PasswordStrength extends StatelessWidget {
   const PasswordStrength({super.key, required this.password});
 
   final String password;
+
+  /// Whether [password] may be saved as a new password (the vault checks it again).
+  static bool acceptable(String password) =>
+      password.isNotEmpty && rust.passwordProblem(password: password) == rust.PasswordProblem.none;
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +28,18 @@ class PasswordStrength extends StatelessWidget {
     final bars = short ? 0 : score.clamp(1, 4);
     final strong = Theme.of(context).colorScheme.primary;
     final color = switch (bars) { 0 || 1 => recordRed(context), 2 => c.warnInk, _ => strong };
+    final problem = short ? rust.PasswordProblem.tooShort : rust.passwordProblem(password: password);
+    final common = problem == rust.PasswordProblem.common;
     final word = short
         ? l.passwordMinLength(min)
-        : switch (bars) { 1 => l.strengthLabelWeak, 2 => l.strengthLabelFair, 3 => l.strengthLabelGood, _ => l.strengthLabelStrong };
+        : common
+            ? l.passwordCommon
+            : switch (bars) { 1 => l.strengthLabelWeak, 2 => l.strengthLabelFair, 3 => l.strengthLabelGood, _ => l.strengthLabelStrong };
+    final why = switch (problem) {
+      rust.PasswordProblem.common => l.passwordCommonFix,
+      rust.PasswordProblem.guessable => l.passwordGuessable,
+      _ => null,
+    };
     return Column(
       key: const ValueKey('password-strength'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,7 +53,7 @@ class PasswordStrength extends StatelessWidget {
                   duration: const Duration(milliseconds: 160),
                   height: 4,
                   decoration: BoxDecoration(
-                    color: i < bars ? color : c.border,
+                    color: i < (common ? 1 : bars) ? (common ? recordRed(context) : color) : c.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -48,10 +62,12 @@ class PasswordStrength extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        Text(word, style: TextStyle(color: short ? c.muted : color, fontSize: 13, fontWeight: FontWeight.w600)),
-        if (!short && bars <= 2) ...[
+        Text(word,
+            key: const ValueKey('password-strength-word'),
+            style: TextStyle(color: short ? c.muted : (common ? recordRed(context) : color), fontSize: 13, fontWeight: FontWeight.w600)),
+        if (!short && why != null) ...[
           const SizedBox(height: 4),
-          Text(l.strengthLabelWeakNote, style: TextStyle(color: c.muted, fontSize: 13, height: 1.4)),
+          Text(why, key: const ValueKey('password-refused'), style: TextStyle(color: c.muted, fontSize: 13, height: 1.4)),
         ],
       ],
     );

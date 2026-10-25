@@ -43,7 +43,22 @@ import UniformTypeIdentifiers
     // iOS cannot stop a screenshot; after one, Dart says where it went (Photos, unencrypted).
     center.addObserver(self, selector: #selector(screenshotTaken),
                        name: UIApplication.userDidTakeScreenshotNotification, object: nil)
+    excludeLibraryFromBackup()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  /// The vaults live under Application Support (lib/main.dart). Sealed as they are, they
+  /// stay out of iCloud and computer backups: a copy there would outlive a vault deleted
+  /// here and be one more place to attack (docs/security.md, OS backups). Set on the
+  /// folder at every start, before Dart creates anything in it; what is made inside later
+  /// is excluded with it.
+  private func excludeLibraryFromBackup() {
+    let fm = FileManager.default
+    guard var dir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+    try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+    var values = URLResourceValues()
+    values.isExcludedFromBackup = true
+    try? dir.setResourceValues(values)
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {

@@ -170,6 +170,13 @@ class _Fake implements RustLibApi {
     if (n.contains('MinPasswordScore')) return 3;
     if (n.contains('MinPasswordLength')) return 8;
     if (n.contains('MinPinLength')) return 6;
+    if (n.contains('PasswordProblem')) {
+      final pw = call.namedArguments[#password] as String;
+      if (pw.length < 8) return PasswordProblem.tooShort;
+      // A common one with a year added, for the "password refused" mockup.
+      if (pw.toLowerCase().startsWith('sunshine')) return PasswordProblem.common;
+      return pw.length < 12 ? PasswordProblem.guessable : PasswordProblem.none;
+    }
     if (n.contains('PasswordScore')) return (call.namedArguments[#password] as String).length < 12 ? 1 : 4;
     if (n.contains('HasVaults')) return true;
     if (n.contains('QrMatrix')) return QrMatrix(size: 29, dark: [for (final c in _qrBits.split('')) c == '1']);
@@ -841,6 +848,24 @@ void main() {
     HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 74);
     HostSyncPage.debugEvents = Stream.value(ev(SyncStep.knock));
   });
+  _screen('sync-host-help-restore', 'Máy hiện mã: bật "Giúp máy mới khôi phục" (mặc định tắt)', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
+      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 162),
+      change: 'Mới: máy mới chỉ khôi phục được khi bạn bật công tắc này',
+      marks: [() => find.byKey(const ValueKey('sync-help-restore'))],
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-help-restore')));
+    await t.pump(const Duration(milliseconds: 300));
+  });
+  _screen('sync-allow-restore', 'Máy hiện mã: máy mới xin khôi phục — Cho phép hay Không cho', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
+      change: 'Mới: hỏi trước khi gửi két cho máy mới, kèm số để đối chiếu',
+      marks: [() => find.byKey(const ValueKey('sync-allow-card'))],
+      setup: () {
+    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 96);
+    HostSyncPage.debugEvents = Stream.value(ev(SyncStep.askRestore, check: 4821));
+  });
+  _screen('sync-restore-connected', 'Máy mới (khôi phục): đã kết nối, chờ máy kia cho phép', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})),
+      change: 'Mới: nhắc chạm Cho phép trên máy kia',
+      marks: [() => find.byKey(const ValueKey('sync-tap-allow'))]);
   _screen('sync-other-vault', 'Máy kia có két khác', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.otherVault)), onSynced: () {})));
   _screen('sync-unreachable', 'Không tới được máy kia', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.unreachable)), onSynced: () {})));
   _screen('sync-rejected', 'Máy hiện mã: một máy két khác vừa thử vào', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
@@ -973,6 +998,23 @@ void main() {
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
+  _screen('password-common', 'Mật khẩu: bị từ chối vì quá phổ biến (kể cả thêm số)', () => const BackupPasswordScreen(libraryDir: '', change: false),
+      change: 'Mới: mật khẩu phổ biến không dùng được, kèm cách sửa',
+      marks: [() => find.byKey(const ValueKey('password-strength'))],
+      act: (t) async {
+    await t.enterText(find.byType(TextField).first, 'Sunshine2024!');
+    await t.pump();
+  });
+  _screen('password-guessable', 'Mật khẩu: bị từ chối vì quá dễ đoán', () => const BackupPasswordScreen(libraryDir: '', change: false),
+      change: 'Mới: mật khẩu dễ đoán không dùng được; 4 từ ngẫu nhiên thì được',
+      marks: [() => find.byKey(const ValueKey('password-strength'))],
+      act: (t) async {
+    await t.enterText(find.byType(TextField).first, 'lamp river');
+    await t.pump();
+  });
+  _screen('change-password', 'Đổi mật khẩu: một dòng nói không mã hoá lại nội dung', () => const BackupPasswordScreen(libraryDir: '', change: true),
+      change: 'Mới: dòng "không mã hoá lại những gì đã có"',
+      marks: [() => find.byKey(const ValueKey('change-no-reencrypt'))]);
   void useWords() => NewVaultScreen.debugWords = words;
   Future<void> tapKey(WidgetTester t, String key) async {
     await t.ensureVisible(find.byKey(ValueKey(key)));

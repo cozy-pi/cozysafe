@@ -36,6 +36,8 @@ pub mod db;
 pub mod items;
 pub mod join;
 pub mod passphrase;
+pub mod passwords;
+pub use passwords::{check_new_password, PasswordCheck};
 pub mod pin;
 pub mod sync;
 pub use items::ItemMeta;
@@ -48,19 +50,16 @@ pub(crate) const HEADER_FILE: &str = "header.json";
 /// Master Key wrapped by a key that lives in the platform keystore behind biometrics.
 const BIOMETRIC_FILE: &str = "biometric";
 
-/// zxcvbn score (0–4) from which the app calls a password strong. Shown, never enforced
-/// (owner 2026-10-23): a backup also needs the 24 words.
+/// zxcvbn score (0–4) a new password needs, unless it is a passphrase of
+/// [`passwords::MIN_WORDS`] words ([`check_new_password`]).
 pub const MIN_PASSWORD_SCORE: u8 = 3;
-/// The only rule a vault password has: at least this many characters.
+/// A new password needs at least this many characters (and see [`check_new_password`]).
 pub const MIN_PASSWORD_LEN: usize = 8;
-
-fn long_enough(password: &str) -> bool {
-    password.chars().count() >= MIN_PASSWORD_LEN
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("password too short")]
+    /// A new password that [`check_new_password`] refuses.
+    #[error("password too short or too easy to guess")]
     WeakPassword,
     #[error("another vault already uses this password")]
     PasswordInUse,
@@ -331,16 +330,25 @@ impl Library {
         }
 
         let mut header = read_library_header(dir)?;
-        let fp = secret_key.fingerprint();
+        // A cost under the floor means a tampered library.json: refused before any
+        // password is tried with it.
+        let params = KdfParams::from(header.kdf);
+        params.check()?;
+        let fits = |f: &Option<String>| {
+            f.as_deref()
+                .is_some_and(|f| secret_key.fingerprint_matches(f))
+        };
+        let (current, prev) = (fits(&header.secret_key), fits(&header.prev_secret_key));
         match &header.secret_key {
-            // The new key of a change that has reached the device: the old one goes.
-            Some(f) if *f == fp && header.prev_secret_key.is_some() => {
+            // The new key of a change that has reached the device: the old one goes. Not
+            // when the old key's 16 bits match too (one change in 65536): which one the
+            // device holds cannot be told, so both stay accepted.
+            Some(_) if current && header.prev_secret_key.is_some() && !prev => {
                 finish_key_change(dir, &mut header)?;
             }
             // The old key of a change the device has not taken up yet: still fine.
-            Some(_) if header.prev_secret_key.as_deref() == Some(fp.as_str()) => {}
-            Some(f) if *f != fp => return Err(Error::WrongSecretKey),
-            Some(_) => {}
+            Some(_) if current || prev => {}
+            Some(_) => return Err(Error::WrongSecretKey),
             None => {
                 // Older library: record the fingerprint now.
                 header.secret_key = Some(secret_key.fingerprint());
@@ -350,24 +358,30 @@ impl Library {
                 )?;
             }
         }
+        // Fingerprints from before 0.1.68 (16 hex) are cut to the 4 now written.
+        if shorten_fingerprints(&mut header) {
+            write_atomic(
+                &header_path,
+                &serde_json::to_vec_pretty(&header).expect("serialisable"),
+            )?;
+        }
         let salt = decode_array::<SALT_LEN>(&header.salt, "library salt")?;
         Ok(Library {
             dir: dir.to_path_buf(),
-            params: KdfParams {
-                m_kib: header.kdf.m_kib,
-                t: header.kdf.t,
-                p: header.kdf.p,
-            },
+            params,
             salt,
             secret_key,
         })
     }
 
     /// Whether `secret_key` belongs to the library in `dir` (true when the library
-    /// predates fingerprints and cannot tell).
+    /// predates fingerprints and cannot tell). A hint only: a key that matches by chance
+    /// still opens nothing.
     pub fn secret_key_fits(dir: &Path, secret_key: &SecretKey) -> bool {
         match read_library_header(dir) {
-            Ok(h) => h.secret_key.is_none_or(|f| f == secret_key.fingerprint()),
+            Ok(h) => h
+                .secret_key
+                .is_none_or(|f| secret_key.fingerprint_matches(&f)),
             Err(_) => false,
         }
     }
@@ -397,13 +411,14 @@ impl Library {
         Ok(())
     }
 
-    /// Create a vault. Refuses passwords under 8 characters and passwords another vault already opens with.
+    /// Create a vault. Refuses passwords [`check_new_password`] refuses and passwords another
+    /// vault already opens with.
     pub fn create_vault(&self, name: &str, password: &str) -> Result<OpenVault> {
         let name = name.trim();
         if name.is_empty() {
             return Err(Error::EmptyName);
         }
-        if !long_enough(password) {
+        if check_new_password(password) != PasswordCheck::Ok {
             return Err(Error::WeakPassword);
         }
         let root = kdf::derive_root(
@@ -620,7 +635,7 @@ impl Library {
     /// re-encrypted, so it is instant whatever the vault's size. A password that already
     /// opens another vault is refused (the password picks the vault).
     pub fn set_password(&self, vault: &OpenVault, password: &str) -> Result<()> {
-        if !long_enough(password) {
+        if check_new_password(password) != PasswordCheck::Ok {
             return Err(Error::WeakPassword);
         }
         let root = kdf::derive_root(
@@ -807,6 +822,22 @@ pub enum KeyChange {
     WrongPassword,
     /// This many vaults that open by password were not given theirs.
     OthersNeeded(usize),
+}
+
+/// Cut fingerprints written before 0.1.68 (8 bytes) to the 2 bytes written now: their
+/// first characters are exactly the new fingerprint. True if anything changed.
+fn shorten_fingerprints(header: &mut LibraryHeader) -> bool {
+    let mut changed = false;
+    for f in [&mut header.secret_key, &mut header.prev_secret_key]
+        .into_iter()
+        .flatten()
+    {
+        if f.len() > cs_crypto::FINGERPRINT_HEX && f.is_char_boundary(cs_crypto::FINGERPRINT_HEX) {
+            f.truncate(cs_crypto::FINGERPRINT_HEX);
+            changed = true;
+        }
+    }
+    changed
 }
 
 /// The end of a Secret Key change: the old key no longer opens anything here.
@@ -1418,5 +1449,64 @@ pub(crate) mod tests {
         a.destroy().unwrap();
         assert!(lib.unlock(pw_a()).unwrap().is_none());
         assert!(lib.unlock(pw_b()).unwrap().is_some());
+    }
+
+    #[test]
+    fn a_library_with_a_lowered_argon2_cost_does_not_open() {
+        let tmp = tempfile::tempdir().unwrap();
+        lib(tmp.path()).create_vault("A", pw_a()).unwrap();
+        crate::backup::tests::weaken(tmp.path());
+        assert!(matches!(
+            Library::open_or_create(tmp.path(), FAST, sk()),
+            Err(Error::Crypto(cs_crypto::Error::KdfTooWeak))
+        ));
+    }
+
+    #[test]
+    fn fingerprints_are_short_and_old_long_ones_still_open() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = lib(tmp.path()).create_vault("A", pw_a()).unwrap();
+        let id = v.id.clone();
+        drop(v);
+        let header = read_library_header(tmp.path()).unwrap();
+        assert_eq!(
+            header.secret_key.as_deref(),
+            Some(sk().fingerprint().as_str())
+        );
+        assert_eq!(sk().fingerprint().len(), cs_crypto::FINGERPRINT_HEX);
+
+        // A library from 0.1.67: the same fingerprint, 16 hex long.
+        let path = tmp.path().join(LIBRARY_FILE);
+        let mut v: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        v["secret_key"] = serde_json::json!(format!("{}a1b2c3d4e5f6", sk().fingerprint()));
+        fs::write(&path, serde_json::to_vec(&v).unwrap()).unwrap();
+        assert!(Library::secret_key_fits(tmp.path(), &sk()));
+        let opened = lib(tmp.path()).unlock(pw_a()).unwrap().unwrap();
+        assert_eq!(opened.id, id);
+        // Opening cut it to the 4 characters written now.
+        let header = read_library_header(tmp.path()).unwrap();
+        assert_eq!(
+            header.secret_key.as_deref(),
+            Some(sk().fingerprint().as_str())
+        );
+    }
+
+    #[test]
+    fn a_wrong_key_whose_fingerprint_matches_by_chance_still_opens_nothing() {
+        let tmp = tempfile::tempdir().unwrap();
+        lib(tmp.path()).create_vault("A", pw_a()).unwrap();
+        // Find another key with the same 16 bits (about 65536 tries, no Argon2 involved).
+        let other = (0u32..)
+            .map(|i| {
+                let mut b = [0u8; SECRET_KEY_LEN];
+                b[..4].copy_from_slice(&i.to_be_bytes());
+                b[31] = 1;
+                SecretKey::from_bytes(b)
+            })
+            .find(|k| k.fingerprint() == sk().fingerprint())
+            .unwrap();
+        assert!(Library::secret_key_fits(tmp.path(), &other));
+        let l = Library::open_or_create(tmp.path(), FAST, other).unwrap();
+        assert!(l.unlock(pw_a()).unwrap().is_none(), "the unwrap decides");
     }
 }

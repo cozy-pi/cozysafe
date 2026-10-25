@@ -173,6 +173,12 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
           ),
           const SizedBox(height: 14),
           note,
+          const SizedBox(height: 12),
+          Text(
+            l.changeNoReencrypt,
+            key: const ValueKey('change-no-reencrypt'),
+            style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.4),
+          ),
         ],
       ),
       _Step.words => RecoveryWordsPanel(words: _words),
