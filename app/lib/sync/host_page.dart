@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
+import 'find_page.dart' show codeDigits;
 import 'progress.dart';
 import 'qr_view.dart';
 
@@ -85,12 +86,12 @@ class _HostSyncPageState extends State<HostSyncPage> {
           Text(h.findable ? l.syncDigitsLead : l.syncDigitsNotFindable,
               textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
           const SizedBox(height: 14),
-          // The six digits, big, in two groups of three to read out or copy by eye.
-          if (h.findable && h.digits.length == 6) Text(
-            '${h.digits.substring(0, 3)} ${h.digits.substring(3)}',
+          // The three digits, big, to read out or copy by eye.
+          if (h.findable && h.digits.length == codeDigits) Text(
+            h.digits,
             key: const ValueKey('sync-digits'),
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w800, letterSpacing: 6, fontFeatures: [FontFeature.tabularFigures()]),
+            style: const TextStyle(fontSize: 64, fontWeight: FontWeight.w800, letterSpacing: 14, fontFeatures: [FontFeature.tabularFigures()]),
           ),
           const SizedBox(height: 4),
           Text(l.syncCodeWorks(time), style: TextStyle(color: c.muted, fontSize: 14)),

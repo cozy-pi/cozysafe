@@ -11,6 +11,9 @@ import '../theme.dart';
 import '../widgets/vault_bar.dart' show pushPage;
 import 'join_page.dart';
 
+/// Digits the other device shows (core/cs-net p2p::CODE_DIGITS; owner 2026-10-25: three).
+const codeDigits = 3;
+
 /// What to do with the code of the device found (the person already allowed it).
 typedef OnFound = Future<void> Function(BuildContext context, String code);
 
@@ -91,7 +94,7 @@ class _FindDevicePageState extends State<FindDevicePage> with VaultLockAware {
           _found = n;
           _look = n > 0 ? _Look.found : _Look.none;
         });
-        if (_text.text.length == 6) _try();
+        if (_text.text.length == codeDigits) _try();
       } catch (_) {
         if (mounted && !stale()) setState(() => _failed = true);
         return;
@@ -117,7 +120,7 @@ class _FindDevicePageState extends State<FindDevicePage> with VaultLockAware {
 
   void _changed(String v) {
     if (_wrong) setState(() => _wrong = false);
-    if (v.length == 6) _try();
+    if (v.length == codeDigits) _try();
     setState(() {});
   }
 
@@ -145,7 +148,7 @@ class _FindDevicePageState extends State<FindDevicePage> with VaultLockAware {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final ink = Theme.of(context).colorScheme.onSurface;
-    final full = _text.text.length == 6;
+    final full = _text.text.length == codeDigits;
     final (IconData icon, String status) = switch (_look) {
       _ when _failed => (Icons.error_outline_rounded, l.syncFailed),
       _Look.first => (Icons.wifi_find_rounded, l.syncFindSearching),
@@ -245,12 +248,11 @@ class _DigitBoxes extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            for (var i = 0; i < 6; i++) ...[
-              if (i == 3) const SizedBox(width: 14),
+            for (var i = 0; i < codeDigits; i++) ...[
               Container(
-                width: 44,
-                height: 56,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 64,
+                height: 76,
+                margin: const EdgeInsets.symmetric(horizontal: 6),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
@@ -265,7 +267,7 @@ class _DigitBoxes extends StatelessWidget {
                   ),
                 ),
                 child: Text(i < v.length ? v[i] : '',
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, fontFeatures: [FontFeature.tabularFigures()])),
+                    style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700, fontFeatures: [FontFeature.tabularFigures()])),
               ),
             ],
           ],
@@ -283,7 +285,7 @@ class _DigitBoxes extends StatelessWidget {
               autocorrect: false,
               enableSuggestions: false,
               showCursor: false,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(codeDigits)],
               onChanged: onChanged,
             ),
           ),

@@ -14,7 +14,7 @@
 //! before the ordinary sync brings the items.
 //!
 //! Nothing is advertised on the network: no Bonjour, no broadcast. To spare the person
-//! the QR, the host listens on a fixed port ([`PORT`]) and shows six digits; the other
+//! the QR, the host listens on a fixed port ([`PORT`]) and shows three digits; the other
 //! device, once the person allowed it, knocks at that port on each address of its own
 //! Wi-Fi (`a.b.c.1`–`254`) with a probe ([`Looker::scan`]). Only a host holding the same vault
 //! can answer a probe in a way the joiner accepts, and only one showing the digits typed
@@ -42,6 +42,11 @@ const MODE_SYNC: u8 = 1;
 const MODE_RESTORE: u8 = 2;
 /// Not a session: a device looking for its other device on the Wi-Fi.
 const MODE_PROBE: u8 = 3;
+/// Digits the host shows (owner 2026-10-25: three are enough). They are not what keeps
+/// strangers out — only a device with the vault's key can pair — they pick which waiting
+/// device to join, and a wrong code is caught on the joiner without reaching the host.
+pub const CODE_DIGITS: usize = 3;
+const CODE_SPACE: u64 = 10u64.pow(CODE_DIGITS as u32);
 /// The port a host listens on when it is free, so a nearby device can find it.
 pub const PORT: u16 = 47823;
 /// Bytes of each tag in a probe's answer.
@@ -52,7 +57,7 @@ const NONCE_LEN: usize = 32;
 /// Largest frame on the wire, sealed (1 MiB of payload).
 const MAX_FRAME: usize = (1 << 20) + 64;
 const CHUNK: usize = 1 << 20;
-/// How long a code works (time to pick up the other phone and type six digits).
+/// How long a code works (time to pick up the other phone and type the digits).
 pub const CODE_LIFETIME: Duration = Duration::from_secs(300);
 /// Failed handshakes before the host stops listening.
 const MAX_FAILURES: u32 = 3;
@@ -90,12 +95,12 @@ impl PairCode {
         b
     }
 
-    /// The six digits the host shows: the token is made from them ([`token_of`]).
+    /// The digits the host shows: the token is made from them ([`token_of`]).
     pub fn digits(&self) -> Option<String> {
         let mut b = [0u8; 8];
         b[3..].copy_from_slice(&self.token);
         let n = u64::from_be_bytes(b);
-        (n < 1_000_000).then(|| format!("{n:06}"))
+        (n < CODE_SPACE).then(|| format!("{n:0w$}", w = CODE_DIGITS))
     }
 
     /// The code to type: 18 letters and digits in three groups ("4K9M2Q-…").
@@ -157,20 +162,20 @@ impl PairCode {
     }
 }
 
-/// The token for six typed digits ("048213"), if that is what they are.
+/// The token for the typed digits ("048"), if that is what they are.
 pub fn token_of(digits: &str) -> Option<[u8; TOKEN_LEN]> {
     let d = digits.trim();
-    if d.len() != 6 || !d.bytes().all(|b| b.is_ascii_digit()) {
+    if d.len() != CODE_DIGITS || !d.bytes().all(|b| b.is_ascii_digit()) {
         return None;
     }
     let n: u64 = d.parse().ok()?;
     n.to_be_bytes()[3..].try_into().ok()
 }
 
-/// Six random digits as a token: with the vault key they only bind the session and pick
-/// the host (the key, not the digits, keeps strangers out).
+/// Random digits as a token: with the vault key they only bind the session and pick the
+/// host (the key, not the digits, keeps strangers out).
 fn random_token() -> [u8; TOKEN_LEN] {
-    let n = u64::from_be_bytes(random::<8>()) % 1_000_000;
+    let n = u64::from_be_bytes(random::<8>()) % CODE_SPACE;
     n.to_be_bytes()[3..].try_into().unwrap_or([0; TOKEN_LEN])
 }
 
@@ -486,8 +491,8 @@ impl Looker {
         Ok(probe_all(&targets, &self.pk, self.restoring))
     }
 
-    /// The host among `found` that shows these six digits, as a code to join with. None
-    /// when the digits are not six digits or no host shows them (nothing is sent: a
+    /// The host among `found` that shows these digits, as a code to join with. None
+    /// when they are not [`CODE_DIGITS`] digits or no host shows them (nothing is sent: a
     /// wrong code never reaches the other device).
     pub fn find(&self, found: &[Found], digits: &str) -> Option<PairCode> {
         find_with(found, &self.pk, digits)
@@ -958,7 +963,7 @@ static PENDING: Mutex<Option<(Host, Prepared)>> = Mutex::new(None);
 pub struct Shown {
     pub typed: String,
     pub qr: String,
-    /// The six digits to type on the other device.
+    /// The digits to type on the other device ([`CODE_DIGITS`]).
     pub digits: String,
     /// Whether the host has [`PORT`], so a nearby device can find it (else QR only).
     pub findable: bool,
@@ -1213,7 +1218,7 @@ mod tests {
     }
 
     #[test]
-    fn six_digits_make_the_token() {
+    fn the_digits_make_the_token() {
         for _ in 0..50 {
             let t = random_token();
             let c = PairCode {
@@ -1221,13 +1226,13 @@ mod tests {
                 token: t,
             };
             let d = c.digits().unwrap();
-            assert_eq!(d.len(), 6);
+            assert_eq!(d.len(), CODE_DIGITS);
             assert_eq!(token_of(&d), Some(t));
         }
-        assert_eq!(token_of("12345"), None);
-        assert_eq!(token_of("12a456"), None);
-        assert_eq!(token_of("1234567"), None);
-        assert_eq!(token_of(" 004821 "), token_of("004821"));
+        assert_eq!(token_of("12"), None);
+        assert_eq!(token_of("1a3"), None);
+        assert_eq!(token_of("1234"), None);
+        assert_eq!(token_of(" 048 "), token_of("048"));
     }
 
     #[test]
@@ -1275,7 +1280,7 @@ mod tests {
         let stranger = crate::testkit::other_words(&sk);
         assert!(probe_all(&[addr], &kdf::restore_pairing_key(&stranger), true).is_empty());
         // Wrong digits match nothing (and reach nobody); the right ones give the code.
-        let wrong = format!("{:06}", (digits.parse::<u32>().unwrap() + 1) % 1_000_000);
+        let wrong = format!("{:03}", (digits.parse::<u64>().unwrap() + 1) % CODE_SPACE);
         assert!(Looker::for_vault(&b).find(&found, &wrong).is_none());
         assert!(Looker::for_vault(&other.a).find(&found, &digits).is_none());
         let code = Looker::for_vault(&b).find(&found, &digits).unwrap();

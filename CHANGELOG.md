@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.67 (2026-10-25)
+
+### Changed
+- The code for syncing with a nearby device is 3 digits instead of 6. It was never what
+  keeps others out (only a device with this vault can pair); it picks which device.
+- Syncing says simply "Sending data" or "Receiving data".
+
 ## 0.1.66 (2026-10-25)
 
 ### Changed
