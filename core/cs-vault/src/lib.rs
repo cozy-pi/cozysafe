@@ -251,6 +251,7 @@ impl Library {
                 continue;
             };
             slots.push(VaultSlot {
+                size_bytes: dir_size(&entry.path()),
                 has_password: header.has_password(),
                 has_pin: entry.path().join(pin::PIN_FILE).is_file(),
                 has_biometric: entry.path().join(BIOMETRIC_FILE).is_file(),
@@ -772,10 +773,27 @@ impl Library {
     }
 }
 
+/// The bytes under `dir`, folders included (0 for what cannot be read).
+fn dir_size(dir: &Path) -> u64 {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return 0;
+    };
+    entries
+        .flatten()
+        .map(|e| match e.file_type() {
+            Ok(t) if t.is_dir() => dir_size(&e.path()),
+            Ok(_) => e.metadata().map_or(0, |m| m.len()),
+            Err(_) => 0,
+        })
+        .sum()
+}
+
 /// A vault on this device, seen from outside ([`Library::vault_slots`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VaultSlot {
     pub id: String,
+    /// What it takes on this device (sealed files), in bytes.
+    pub size_bytes: u64,
     pub has_password: bool,
     pub has_pin: bool,
     pub has_biometric: bool,
@@ -1137,7 +1155,9 @@ pub(crate) mod tests {
         drop((a, b));
         let slots = Library::vault_slots(tmp.path()).unwrap();
         assert_eq!(slots.len(), 2);
-        assert!(slots.iter().all(|s| s.has_password && !s.has_pin));
+        assert!(slots
+            .iter()
+            .all(|s| s.has_password && !s.has_pin && s.size_bytes > 0));
         for bad in ["../x", "", &b_id.to_uppercase()] {
             assert!(Library::destroy_unopened(tmp.path(), bad).is_err());
         }

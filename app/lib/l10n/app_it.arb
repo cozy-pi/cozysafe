@@ -587,5 +587,6 @@
   "vaultManagerDeleteTitle": "Eliminare definitivamente questa cassaforte?",
   "vaultManagerDeleteBody": "Tutto il suo contenuto viene cancellato da questo dispositivo e non può essere recuperato. Le copie in Google Drive o nei file di backup non vengono toccate. Digita {word} per confermare.",
   "vaultManagerDeleteWord": "ELIMINA",
-  "vaultManagerDeleted": "Cassaforte eliminata."
+  "vaultManagerDeleted": "Cassaforte eliminata.",
+  "countdownNote": "L'operazione non può essere annullata. Tocca Annulla per conservarla."
 }

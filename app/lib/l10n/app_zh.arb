@@ -587,5 +587,6 @@
   "vaultManagerDeleteTitle": "要永久删除这个保险箱吗？",
   "vaultManagerDeleteBody": "其中的所有内容都会从此设备上清除，且无法恢复。Google Drive 或备份文件中的副本不受影响。输入 {word} 以确认。",
   "vaultManagerDeleteWord": "删除",
-  "vaultManagerDeleted": "保险箱已删除。"
+  "vaultManagerDeleted": "保险箱已删除。",
+  "countdownNote": "此操作无法撤销。轻点“取消”可保留。"
 }

@@ -587,5 +587,6 @@
   "vaultManagerDeleteTitle": "ลบตู้นิรภัยนี้อย่างถาวรใช่ไหม",
   "vaultManagerDeleteBody": "ทุกอย่างในตู้จะถูกลบออกจากอุปกรณ์นี้และกู้คืนไม่ได้ สำเนาใน Google Drive หรือในไฟล์สำรองข้อมูลจะไม่ได้รับผลกระทบ พิมพ์ {word} เพื่อยืนยัน",
   "vaultManagerDeleteWord": "ลบ",
-  "vaultManagerDeleted": "ลบตู้นิรภัยแล้ว"
+  "vaultManagerDeleted": "ลบตู้นิรภัยแล้ว",
+  "countdownNote": "การดำเนินการนี้ย้อนกลับไม่ได้ แตะยกเลิกเพื่อเก็บไว้"
 }

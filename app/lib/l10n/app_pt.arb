@@ -587,5 +587,6 @@
   "vaultManagerDeleteTitle": "Excluir este cofre para sempre?",
   "vaultManagerDeleteBody": "Tudo o que há nele é apagado deste dispositivo e não pode ser recuperado. Cópias no Google Drive ou em arquivos de backup não são afetadas. Digite {word} para confirmar.",
   "vaultManagerDeleteWord": "EXCLUIR",
-  "vaultManagerDeleted": "Cofre excluído."
+  "vaultManagerDeleted": "Cofre excluído.",
+  "countdownNote": "Não é possível desfazer. Toque em Cancelar para mantê-lo."
 }

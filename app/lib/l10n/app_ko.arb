@@ -587,5 +587,6 @@
   "vaultManagerDeleteTitle": "이 금고를 영구히 삭제할까요?",
   "vaultManagerDeleteBody": "안의 모든 내용이 이 기기에서 지워지며 되돌릴 수 없습니다. Google Drive나 백업 파일에 있는 사본은 영향을 받지 않습니다. 확인하려면 {word}를 입력하세요.",
   "vaultManagerDeleteWord": "삭제",
-  "vaultManagerDeleted": "금고를 삭제했습니다."
+  "vaultManagerDeleted": "금고를 삭제했습니다.",
+  "countdownNote": "되돌릴 수 없습니다. 유지하려면 취소를 탭하세요."
 }

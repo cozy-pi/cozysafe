@@ -587,5 +587,6 @@
   "vaultManagerDeleteTitle": "Hapus brankas ini selamanya?",
   "vaultManagerDeleteBody": "Semua isinya dihapus dari perangkat ini dan tidak bisa dikembalikan. Salinan di Google Drive atau di file cadangan tidak tersentuh. Ketik {word} untuk konfirmasi.",
   "vaultManagerDeleteWord": "HAPUS",
-  "vaultManagerDeleted": "Brankas dihapus."
+  "vaultManagerDeleted": "Brankas dihapus.",
+  "countdownNote": "Tindakan ini tidak dapat dibatalkan. Ketuk Batal untuk menyimpannya."
 }

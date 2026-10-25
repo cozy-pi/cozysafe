@@ -601,5 +601,6 @@
   "vaultManagerDeleteTitle": "Xoá vĩnh viễn két này?",
   "vaultManagerDeleteBody": "Mọi thứ trong két bị xoá khỏi máy này và không thể lấy lại. Bản trên Google Drive hoặc file sao lưu không bị đụng tới. Gõ {word} để xác nhận.",
   "vaultManagerDeleteWord": "XOÁ",
-  "vaultManagerDeleted": "Đã xoá két."
+  "vaultManagerDeleted": "Đã xoá két.",
+  "countdownNote": "Không thể hoàn tác. Bấm Huỷ để giữ lại."
 }

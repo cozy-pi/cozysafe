@@ -784,5 +784,6 @@
   "vaultManagerDeleteBody": "Everything in it is erased from this device and cannot be brought back. Copies in Google Drive or in backup files are not touched. Type {word} to confirm.",
   "@vaultManagerDeleteBody": {"placeholders": {"word": {}}},
   "vaultManagerDeleteWord": "DELETE",
-  "vaultManagerDeleted": "Vault deleted."
+  "vaultManagerDeleted": "Vault deleted.",
+  "countdownNote": "It cannot be undone. Tap Cancel to keep it."
 }

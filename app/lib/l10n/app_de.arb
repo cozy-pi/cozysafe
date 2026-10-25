@@ -587,5 +587,6 @@
   "vaultManagerDeleteTitle": "Diesen Tresor endgültig löschen?",
   "vaultManagerDeleteBody": "Sein gesamter Inhalt wird von diesem Gerät gelöscht und lässt sich nicht wiederherstellen. Kopien in Google Drive oder in Backup-Dateien bleiben unberührt. Geben Sie zur Bestätigung {word} ein.",
   "vaultManagerDeleteWord": "LOESCHEN",
-  "vaultManagerDeleted": "Tresor gelöscht."
+  "vaultManagerDeleted": "Tresor gelöscht.",
+  "countdownNote": "Das lässt sich nicht rückgängig machen. Tippen Sie auf „Abbrechen“, um ihn zu behalten."
 }
