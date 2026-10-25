@@ -10,14 +10,17 @@ import '../item_bytes.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
+import '../note_format.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/link_card.dart';
 import '../widgets/text_styles.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart';
 import 'common.dart';
 import 'file_view.dart';
+import 'note.dart' show noteTitle;
 import 'vault_home.dart' show PhotoViewerScreen;
 import 'video_view.dart';
 
@@ -78,6 +81,11 @@ class QuickLook extends StatefulWidget {
   static const restoreRequest = '\u0000restore';
   static const purgeRequest = '\u0000purge';
 
+  /// Notes whose checklist boxes were ticked here: the vault reloads them after.
+  static final Set<String> edited = {};
+  /// The last of those writes, for whoever reads the note next.
+  static Future<void>? lastSave;
+
   /// For the mockup renders: a still in place of the video player.
   static Widget? debugVideo;
   /// For the mockup renders: a recording without a player (tests have none).
@@ -118,6 +126,15 @@ class _QuickLookState extends State<QuickLook> {
 
   Future<Uint8List>? _thumb;
   Future<Uint8List>? _bytes;
+
+  /// A note's whole text once read (null while reading); a ticked box changes it here
+  /// first, then on disk.
+  String? _noteText;
+  bool _noteFailed = false;
+
+  /// "Hide note text" is on and the person tapped the note: its text shows until the
+  /// preview closes (next time it is hidden again).
+  bool _reveal = false;
   Future<ui.Image?>? _pdfPage;
   ui.Image? _pdfImage;
 
@@ -166,7 +183,11 @@ class _QuickLookState extends State<QuickLook> {
       case _Look.audio:
         if (!_trash && !QuickLook.debugStillAudio) _startPlayer();
       case _Look.note:
-        _bytes = itemBytes(id);
+        itemBytes(id).then((b) {
+          if (mounted) setState(() => _noteText = utf8.decode(b, allowMalformed: true));
+        }, onError: (Object _) {
+          if (mounted) setState(() => _noteFailed = true);
+        });
       case _Look.text:
         // Only the start is decrypted: a 1 GB log never sits in memory.
         _bytes = readThroughLock(() => rust.itemContentHead(id: id, max: 16 << 10));
@@ -274,6 +295,28 @@ class _QuickLookState extends State<QuickLook> {
         }
     }
     if (result != null && mounted) Navigator.of(context).pop(result);
+  }
+
+  /// A box ticked or cleared in the preview: that line's "[ ]" and "[x]" swap in the
+  /// note's text, which is saved as the editor saves it (through a lock, once it opens).
+  Future<void> _toggle(int line) async {
+    final before = _noteText;
+    final after = before == null ? null : toggleChecklist(before, line);
+    if (after == null) return;
+    setState(() => _noteText = after);
+    final id = widget.item.id;
+    final write = (QuickLook.lastSave ?? Future<void>.value())
+        .catchError((Object _) {})
+        .then((_) => readThroughLock(() => rust.updateNote(id: id, title: noteTitle(after), text: after)));
+    QuickLook.lastSave = write;
+    QuickLook.edited.add(id);
+    try {
+      await write;
+    } catch (_) {
+      if (!mounted) return;
+      if (_noteText == after) setState(() => _noteText = before);
+      showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+    }
   }
 
   Future<void> _delete() async {
@@ -442,8 +485,8 @@ class _QuickLookState extends State<QuickLook> {
   }
 
   /// The first lines, cut by the box and fading out at its bottom; not selectable here
-  /// (Open shows the whole text).
-  Widget _lines(BoxConstraints box, Widget text) => ConstrainedBox(
+  /// (Open shows the whole text). A note's boxes and links take taps ([interactive]).
+  Widget _lines(BoxConstraints box, Widget text, {bool interactive = false}) => ConstrainedBox(
         constraints: BoxConstraints(minHeight: 200, maxHeight: box.maxHeight - 20),
         child: ShaderMask(
           blendMode: BlendMode.dstIn,
@@ -454,6 +497,7 @@ class _QuickLookState extends State<QuickLook> {
             stops: [0, r.height <= 40 ? 0 : (r.height - 40) / r.height, 1],
           ).createShader(r),
           child: IgnorePointer(
+            ignoring: !interactive,
             child: SingleChildScrollView(
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 36),
@@ -469,48 +513,86 @@ class _QuickLookState extends State<QuickLook> {
     return cut.length > 4000 ? cut.substring(0, 4000) : cut;
   }
 
-  Widget _note(BoxConstraints box) => _card(
+  Widget _note(BoxConstraints box) {
+    final full = _noteText;
+    if (full == null) {
+      return _card(
+          box,
+          paper: true,
+          SizedBox(
+              height: 200,
+              child: Center(
+                  child: _noteFailed ? Text(AppLocalizations.of(context).errorStorage) : const CircularProgressIndicator())));
+    }
+    // The title is the first line with something on it; the lines after it are drawn
+    // as Markdown, and a box's line is counted in the whole text so a tick lands on it.
+    final lines = full.split('\n');
+    final first = lines.indexWhere((x) => x.trim().isNotEmpty);
+    final head = first < 0 ? '' : lines[first].trim().replaceFirst(RegExp(r'^#{1,6} '), '');
+    final after = first < 0 ? const <String>[] : lines.skip(first + 1).take(_maxLines - 1).toList();
+    var rest = after.join('\n').trimRight();
+    if (rest.length > 4000) rest = rest.substring(0, 4000);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final c = CsColors.of(context);
+    final shown = notePreviews() || _reveal;
+    final card = _card(
+      box,
+      paper: true,
+      _lines(
         box,
-        paper: true,
-        FutureBuilder<Uint8List>(
-          future: _bytes,
-          builder: (context, snap) {
-            if (!snap.hasData) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
-            final text = _head(utf8.decode(snap.data!, allowMalformed: true).trim());
-            final nl = text.indexOf('\n');
-            final head = nl < 0 ? text : text.substring(0, nl);
-            final rest = nl < 0 ? '' : text.substring(nl + 1);
-            final ink = Theme.of(context).colorScheme.onSurface;
-            final c = CsColors.of(context);
-            return _lines(
-              box,
-              Column(
-                key: const ValueKey('quick-note'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(head.isEmpty ? AppLocalizations.of(context).untitledNote : head,
-                      style: NoteTextController.title.copyWith(fontSize: 21, color: ink)),
-                  const SizedBox(height: 8),
-                  // "Hide note text" (Settings): someone beside you should not read it off
-                  // the preview either; Edit shows it.
-                  if (notePreviews())
-                    Text(rest, style: NoteTextController.body.copyWith(fontSize: 15.5, color: ink))
-                  else
-                    for (final w in const [1.0, .92, .97, .6, .85, .4])
-                      FractionallySizedBox(
-                        widthFactor: w,
-                        child: Container(
-                          height: 10,
-                          margin: const EdgeInsets.symmetric(vertical: 7),
-                          decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(5)),
-                        ),
-                      ),
-                ],
+        interactive: shown,
+        Column(
+          key: const ValueKey('quick-note'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(head.isEmpty ? AppLocalizations.of(context).untitledNote : head,
+                style: NoteTextController.title.copyWith(fontSize: 21, color: ink)),
+            const SizedBox(height: 8),
+            // "Hide note text" (Settings): someone beside you should not read it off
+            // the preview either; a tap on the note (or Edit) shows it.
+            if (shown)
+              MarkdownLite(
+                text: rest,
+                fontSize: 15.5,
+                selectable: false,
+                // From Recently deleted the note is only read.
+                onToggle: _trash ? null : (i) => _toggle(first + 1 + i),
+                onLink: (url) => confirmOpenLink(context, url),
+              )
+            else
+              for (final w in const [1.0, .92, .97, .6, .85, .4])
+                FractionallySizedBox(
+                  widthFactor: w,
+                  child: Container(
+                    height: 10,
+                    margin: const EdgeInsets.symmetric(vertical: 7),
+                    decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(5)),
+                  ),
+                ),
+            if (!shown)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility_outlined, size: 18, color: c.muted),
+                    const SizedBox(width: 6),
+                    Text(AppLocalizations.of(context).noteTapToShow,
+                        key: const ValueKey('note-tap-to-show'), style: TextStyle(fontSize: 15, color: c.muted)),
+                  ],
+                ),
               ),
-            );
-          },
+          ],
         ),
-      );
+      ),
+    );
+    if (shown) return card;
+    return GestureDetector(
+      key: const ValueKey('note-reveal'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _reveal = true),
+      child: card,
+    );
+  }
 
   Widget _text(BoxConstraints box) => _card(
         box,
@@ -770,9 +852,10 @@ class _QuickLookState extends State<QuickLook> {
         Positioned.fill(
           child: GestureDetector(
             onTap: () => Navigator.of(context).pop(),
+            // Light enough to see the page under it (owner 2026-10-25: it was nearly opaque).
             child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: ColoredBox(color: page.withValues(alpha: dark ? .82 : .72)),
+              filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: ColoredBox(color: page.withValues(alpha: dark ? .55 : .45)),
             ),
           ),
         ),

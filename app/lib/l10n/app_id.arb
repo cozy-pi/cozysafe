@@ -620,5 +620,13 @@
   "syncLocalTitle": "Jaringan lokal",
   "syncLocalNote": "Dua perangkat di Wi‑Fi yang sama, terhubung langsung, tanpa internet.",
   "syncDriveNow": "Sinkronkan sekarang",
-  "previewEdit": "Edit"
+  "previewEdit": "Edit",
+  "noteLinkTitle": "Buka {host} di browser?",
+  "formatBold": "Tebal",
+  "formatItalic": "Miring",
+  "formatHeading": "Judul",
+  "formatList": "Daftar",
+  "formatChecklist": "Daftar periksa",
+  "formatLink": "Tautan",
+  "noteTapToShow": "Ketuk untuk melihat"
 }

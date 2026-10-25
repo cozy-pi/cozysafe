@@ -102,6 +102,21 @@ class MainActivity : FlutterFragmentActivity() {
                 } catch (e: Exception) {
                     result.success(false)
                 }
+            } else if (call.method == "openExternal") {
+                // A link tapped in a note, after the person confirmed its host (lib/links.dart,
+                // docs/security.md): http or https with a host, nothing else (no intent:,
+                // file:, javascript: or app schemes), and only to a browsable app.
+                val uri = Uri.parse(call.arguments as? String ?: "")
+                val scheme = uri.scheme?.lowercase()
+                if ((scheme != "https" && scheme != "http") || uri.host.isNullOrEmpty()) {
+                    return@setMethodCallHandler result.success(false)
+                }
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE))
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.success(false)
+                }
             } else if (call.method == "setSecure") {
                 if (call.arguments == true) {
                     window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)

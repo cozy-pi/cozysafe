@@ -620,5 +620,13 @@
   "syncLocalTitle": "ローカルネットワーク",
   "syncLocalNote": "同じWi‑Fiにある2台を、インターネットを使わずに直接つなぎます。",
   "syncDriveNow": "今すぐ同期",
-  "previewEdit": "編集"
+  "previewEdit": "編集",
+  "noteLinkTitle": "{host} をブラウザで開きますか？",
+  "formatBold": "太字",
+  "formatItalic": "斜体",
+  "formatHeading": "見出し",
+  "formatList": "リスト",
+  "formatChecklist": "チェックリスト",
+  "formatLink": "リンク",
+  "noteTapToShow": "タップして表示"
 }

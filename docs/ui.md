@@ -512,6 +512,11 @@ everywhere, easy to hit with a thumb.
 - **Reading text** (0.1.14): book-like body (17.5, line height 1.6); Markdown drawn by the
   app (`MarkdownLite`, no library); JSON and code in a soft card, JSON keys strong; a
   note's first line large and bold as it is typed (`NoteTextController`).
+- **Note formatting** (0.1.67, owner 2026-10-25): notes stay plain text; the preview draws
+  their Markdown (headings, bold, italic, lists, checklist boxes to tick, underlined web
+  addresses). While editing, a glass bar over the keyboard (Bold · Italic · Heading ·
+  List · Checklist · Link, 48 px each) types the marks, and the editor shows them lightly.
+  A tapped address asks first in a card (docs/security.md, links in notes).
 - **Open group**: filled chip with ✓ and ×, "Group · section" above the title; empty in
   this section → buttons to the sections where it has something.
 - **Settings**: About group (version, build date, commit, licence); hidden debug (seven

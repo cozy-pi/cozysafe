@@ -620,5 +620,13 @@
   "syncLocalTitle": "เครือข่ายเฉพาะที่",
   "syncLocalNote": "อุปกรณ์สองเครื่องใน Wi‑Fi เดียวกัน เชื่อมต่อกันโดยตรง ไม่ผ่านอินเทอร์เน็ต",
   "syncDriveNow": "ซิงค์ตอนนี้",
-  "previewEdit": "แก้ไข"
+  "previewEdit": "แก้ไข",
+  "noteLinkTitle": "เปิด {host} ในเบราว์เซอร์ไหม",
+  "formatBold": "ตัวหนา",
+  "formatItalic": "ตัวเอียง",
+  "formatHeading": "หัวข้อ",
+  "formatList": "รายการ",
+  "formatChecklist": "รายการตรวจสอบ",
+  "formatLink": "ลิงก์",
+  "noteTapToShow": "แตะเพื่อดู"
 }

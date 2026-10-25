@@ -620,5 +620,13 @@
   "syncLocalTitle": "로컬 네트워크",
   "syncLocalNote": "같은 Wi‑Fi에 있는 두 기기를 인터넷 없이 직접 연결합니다.",
   "syncDriveNow": "지금 동기화",
-  "previewEdit": "편집"
+  "previewEdit": "편집",
+  "noteLinkTitle": "브라우저에서 {host}을(를) 열까요?",
+  "formatBold": "굵게",
+  "formatItalic": "기울임",
+  "formatHeading": "제목",
+  "formatList": "목록",
+  "formatChecklist": "체크리스트",
+  "formatLink": "링크",
+  "noteTapToShow": "탭하여 보기"
 }

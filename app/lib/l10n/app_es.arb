@@ -620,5 +620,13 @@
   "syncLocalTitle": "Red local",
   "syncLocalNote": "Dos dispositivos en la misma Wi‑Fi, conectados directamente, sin internet.",
   "syncDriveNow": "Sincronizar ahora",
-  "previewEdit": "Editar"
+  "previewEdit": "Editar",
+  "noteLinkTitle": "¿Abrir {host} en el navegador?",
+  "formatBold": "Negrita",
+  "formatItalic": "Cursiva",
+  "formatHeading": "Título",
+  "formatList": "Lista",
+  "formatChecklist": "Lista de tareas",
+  "formatLink": "Enlace",
+  "noteTapToShow": "Toca para ver"
 }

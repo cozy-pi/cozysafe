@@ -4,6 +4,24 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.67 (2026-10-25)
+
+### Added
+- Notes show their formatting in the preview: headings (`# `), **bold**, *italic*, lists
+  (`- `) and to-do lists (`- [ ] task`, `- [x] done`). What you type is kept as plain text.
+- Tick a to-do box right in the preview; the note is saved at once.
+- Web addresses in notes (https://…, www.…) are underlined. Tapping one first asks
+  "Open … in the browser?" with the real site name; names with foreign letters show in
+  their xn-- form so a fake look-alike site stands out. Only web pages open.
+- While editing a note, a small bar over the keyboard adds Bold, Italic, Heading, List,
+  To-do and Link marks for you; the marks show lightly as you type.
+- With "Hide note text" on, a note's preview says "Tap to show"; a tap shows the note
+  until the preview closes (hidden again next time).
+
+### Changed
+- The page behind an opened item is lighter and less blurred, so you can still see where
+  you are.
+
 ## 0.1.66 (2026-10-25)
 
 ### Changed

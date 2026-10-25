@@ -771,6 +771,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   : null,
             ));
     if (!mounted || _locked) return;
+    // A box ticked in the preview: its write ends first (Edit reads the note), then the
+    // list and the note's line under its title catch up.
+    if (QuickLook.edited.remove(item.id)) {
+      await QuickLook.lastSave?.catchError((Object _) {});
+      if (!mounted || _locked) return;
+      _previews.remove(item.id);
+      _reload();
+    }
     // The bar under the preview: another section, or the +.
     final goTo = QuickLook.sectionTarget(result);
     if (goTo != null) {

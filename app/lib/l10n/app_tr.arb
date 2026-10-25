@@ -620,5 +620,13 @@
   "syncLocalTitle": "Yerel ağ",
   "syncLocalNote": "Aynı Wi‑Fi'daki iki cihaz, doğrudan birbirine bağlanır, internet olmadan.",
   "syncDriveNow": "Şimdi eşitle",
-  "previewEdit": "Düzenle"
+  "previewEdit": "Düzenle",
+  "noteLinkTitle": "{host} tarayıcıda açılsın mı?",
+  "formatBold": "Kalın",
+  "formatItalic": "İtalik",
+  "formatHeading": "Başlık",
+  "formatList": "Liste",
+  "formatChecklist": "Yapılacaklar",
+  "formatLink": "Bağlantı",
+  "noteTapToShow": "Görmek için dokunun"
 }
