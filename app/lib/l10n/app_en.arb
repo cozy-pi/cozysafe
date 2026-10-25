@@ -850,5 +850,6 @@
   "syncRestoreAllowYes": "Allow",
   "syncRestoreAllowNo": "Don't allow",
   "restoreTapAllow": "On your other device, tap Allow.",
-  "changeNoReencrypt": "This does not re-encrypt what is already in the vault: only the key that opens it changes. Re-encrypting everything is planned."
+  "changeNoReencrypt": "This does not re-encrypt what is already in the vault: only the key that opens it changes. Re-encrypting everything is planned.",
+  "hideNoteText": "Hide note text"
 }

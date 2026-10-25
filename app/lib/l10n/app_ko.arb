@@ -638,5 +638,6 @@
   "syncRestoreAllowYes": "허용",
   "syncRestoreAllowNo": "허용 안 함",
   "restoreTapAllow": "다른 기기에서 허용을 누르세요.",
-  "changeNoReencrypt": "금고에 이미 있는 내용은 다시 암호화되지 않습니다. 금고를 여는 키만 바뀝니다. 전체 재암호화는 계획 중입니다."
+  "changeNoReencrypt": "금고에 이미 있는 내용은 다시 암호화되지 않습니다. 금고를 여는 키만 바뀝니다. 전체 재암호화는 계획 중입니다.",
+  "hideNoteText": "메모 내용 숨기기"
 }

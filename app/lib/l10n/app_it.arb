@@ -638,5 +638,6 @@
   "syncRestoreAllowYes": "Consenti",
   "syncRestoreAllowNo": "Non consentire",
   "restoreTapAllow": "Sull’altro dispositivo, tocca Consenti.",
-  "changeNoReencrypt": "Questo non cifra di nuovo ciò che è già nella cassaforte: cambia solo la chiave che la apre. Cifrare di nuovo tutto è previsto."
+  "changeNoReencrypt": "Questo non cifra di nuovo ciò che è già nella cassaforte: cambia solo la chiave che la apre. Cifrare di nuovo tutto è previsto.",
+  "hideNoteText": "Nascondi il testo delle note"
 }

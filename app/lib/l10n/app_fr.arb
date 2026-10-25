@@ -638,5 +638,6 @@
   "syncRestoreAllowYes": "Autoriser",
   "syncRestoreAllowNo": "Ne pas autoriser",
   "restoreTapAllow": "Sur votre autre appareil, touchez Autoriser.",
-  "changeNoReencrypt": "Cela ne rechiffre pas ce qui est déjà dans le coffre : seule la clé qui l’ouvre change. Tout rechiffrer est prévu."
+  "changeNoReencrypt": "Cela ne rechiffre pas ce qui est déjà dans le coffre : seule la clé qui l’ouvre change. Tout rechiffrer est prévu.",
+  "hideNoteText": "Masquer le texte des notes"
 }

@@ -1246,7 +1246,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   notes
                       ? _NoteRow(
                           item: it,
-                          preview: _preview(it.id),
+                          preview: notePreviews() ? _preview(it.id) : null,
                           selected: _selected.contains(it.id),
                           selecting: _selecting,
                           onTap: () => _openItem(it, const []),

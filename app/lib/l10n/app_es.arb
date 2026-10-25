@@ -638,5 +638,6 @@
   "syncRestoreAllowYes": "Permitir",
   "syncRestoreAllowNo": "No permitir",
   "restoreTapAllow": "En tu otro dispositivo, toca Permitir.",
-  "changeNoReencrypt": "Esto no vuelve a cifrar lo que ya hay en la caja fuerte: solo cambia la llave que la abre. Volver a cifrarlo todo está previsto."
+  "changeNoReencrypt": "Esto no vuelve a cifrar lo que ya hay en la caja fuerte: solo cambia la llave que la abre. Volver a cifrarlo todo está previsto.",
+  "hideNoteText": "Ocultar el texto de las notas"
 }

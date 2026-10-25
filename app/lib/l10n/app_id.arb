@@ -638,5 +638,6 @@
   "syncRestoreAllowYes": "Izinkan",
   "syncRestoreAllowNo": "Jangan izinkan",
   "restoreTapAllow": "Di perangkat Anda yang lain, ketuk Izinkan.",
-  "changeNoReencrypt": "Ini tidak mengenkripsi ulang isi brankas: hanya kunci pembukanya yang berubah. Enkripsi ulang semuanya sudah direncanakan."
+  "changeNoReencrypt": "Ini tidak mengenkripsi ulang isi brankas: hanya kunci pembukanya yang berubah. Enkripsi ulang semuanya sudah direncanakan.",
+  "hideNoteText": "Sembunyikan isi catatan"
 }

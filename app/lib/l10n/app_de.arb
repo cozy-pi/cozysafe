@@ -638,5 +638,6 @@
   "syncRestoreAllowYes": "Zulassen",
   "syncRestoreAllowNo": "Nicht zulassen",
   "restoreTapAllow": "Tippe auf deinem anderen Gerät auf Zulassen.",
-  "changeNoReencrypt": "Dabei wird der Inhalt des Tresors nicht neu verschlüsselt: Nur der Schlüssel, der ihn öffnet, ändert sich. Alles neu zu verschlüsseln ist geplant."
+  "changeNoReencrypt": "Dabei wird der Inhalt des Tresors nicht neu verschlüsselt: Nur der Schlüssel, der ihn öffnet, ändert sich. Alles neu zu verschlüsseln ist geplant.",
+  "hideNoteText": "Notiztext ausblenden"
 }

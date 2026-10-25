@@ -652,5 +652,6 @@
   "syncRestoreAllowYes": "Cho phép",
   "syncRestoreAllowNo": "Không cho",
   "restoreTapAllow": "Trên máy kia, chạm Cho phép.",
-  "changeNoReencrypt": "Việc này không mã hoá lại những gì đã có trong két: chỉ khoá mở két thay đổi. Mã hoá lại toàn bộ đang được lên kế hoạch."
+  "changeNoReencrypt": "Việc này không mã hoá lại những gì đã có trong két: chỉ khoá mở két thay đổi. Mã hoá lại toàn bộ đang được lên kế hoạch.",
+  "hideNoteText": "Ẩn nội dung ghi chú"
 }

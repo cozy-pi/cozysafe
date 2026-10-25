@@ -38,9 +38,10 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
   page are cleared on lock (`lib/lock_resume.dart`).
 - **Password and key fields are hidden while typed** (`SecretField`), with an eye to
   show them; this includes a suggested passphrase, which appears hidden.
-- **Note text shows in lists** (0.1.67: "Hide note text" was removed). Lists show a
-  note's first lines, and search quotes a few words around the match. Opening a note is
-  done on purpose; thumbnails stay blurred for photos someone beside you could see.
+- **Note text is hidden in lists** ("Hide note text", on by default; turning it off asks
+  for the owner): lists and search show a note's title only, so someone beside you
+  cannot read it off the list. Opening a note is done on purpose, so an opened note
+  always shows in full (0.1.68; 0.1.67 briefly removed the setting).
 - **Text files are read in memory.** txt, md, json and other text files open inside the
   app from decrypted bytes, never written to a file; copying from them is wiped like
   any copy (`file_view.dart`, `_textView`).

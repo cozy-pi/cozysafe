@@ -4,7 +4,7 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.1.68 (2026-10-25)
+## 0.1.69 (2026-10-25)
 
 ### Security
 - New passwords must be harder to guess: not one of the 100,000 most used passwords
@@ -25,6 +25,12 @@ Dates are UTC.
 - Changing the password or the Recovery Key now says plainly that items already in the
   vault are not encrypted again (only the key that opens the vault changes).
 
+## 0.1.68 (2026-10-25)
+
+### Changed
+- "Hide note text" is back (on by default) for the lists and search only: someone beside
+  you sees a note's title, not its lines. An opened note always shows in full.
+
 ## 0.1.67 (2026-10-25)
 
 ### Added
@@ -40,9 +46,7 @@ Dates are UTC.
 ### Changed
 - The page behind an opened item is lighter and less blurred, so you can still see where
   you are.
-- "Hide note text" is gone: you open a note on purpose, so it always shows, and lists
-  show a note's first lines again. "Blur thumbnails" stays, for photos someone beside
-  you could see.
+- An opened note always shows in full ("Tap to show" is gone).
 - An opened item's buttons now sit in the bottom bar's place, the same size and shape,
   instead of a second row above it.
 - Buttons moved to the bottom of the screen, where your thumb reaches: Done, Send and

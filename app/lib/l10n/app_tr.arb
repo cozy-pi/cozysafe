@@ -638,5 +638,6 @@
   "syncRestoreAllowYes": "İzin ver",
   "syncRestoreAllowNo": "İzin verme",
   "restoreTapAllow": "Diğer cihazınızda İzin ver'e dokunun.",
-  "changeNoReencrypt": "Bu, kasada zaten olanları yeniden şifrelemez: yalnızca kasayı açan anahtar değişir. Her şeyi yeniden şifrelemek planlanıyor."
+  "changeNoReencrypt": "Bu, kasada zaten olanları yeniden şifrelemez: yalnızca kasayı açan anahtar değişir. Her şeyi yeniden şifrelemek planlanıyor.",
+  "hideNoteText": "Not metnini gizle"
 }

@@ -638,5 +638,6 @@
   "syncRestoreAllowYes": "許可",
   "syncRestoreAllowNo": "許可しない",
   "restoreTapAllow": "もう一台の端末で「許可」をタップしてください。",
-  "changeNoReencrypt": "金庫の中身は暗号化し直されません。変わるのは金庫を開ける鍵だけです。すべてを暗号化し直す機能は予定しています。"
+  "changeNoReencrypt": "金庫の中身は暗号化し直されません。変わるのは金庫を開ける鍵だけです。すべてを暗号化し直す機能は予定しています。",
+  "hideNoteText": "メモの本文を隠す"
 }

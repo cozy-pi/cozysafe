@@ -638,5 +638,6 @@
   "syncRestoreAllowYes": "Permitir",
   "syncRestoreAllowNo": "Não permitir",
   "restoreTapAllow": "No seu outro aparelho, toque em Permitir.",
-  "changeNoReencrypt": "Isso não recriptografa o que já está no cofre: só muda a chave que o abre. Recriptografar tudo está planejado."
+  "changeNoReencrypt": "Isso não recriptografa o que já está no cofre: só muda a chave que o abre. Recriptografar tudo está planejado.",
+  "hideNoteText": "Ocultar o texto das notas"
 }
