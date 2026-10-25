@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_resume.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -24,11 +25,19 @@ class BackupPasswordScreen extends StatefulWidget {
   State<BackupPasswordScreen> createState() => _BackupPasswordScreenState();
 }
 
-class _BackupPasswordScreenState extends State<BackupPasswordScreen> {
+class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultLockAware {
   final _pw = TextEditingController();
   final _again = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  /// The page stays under the lock; what was typed on it does not.
+  @override
+  void vaultLocking() => setState(() {
+        _pw.clear();
+        _again.clear();
+        _error = null;
+      });
 
   @override
   void dispose() {

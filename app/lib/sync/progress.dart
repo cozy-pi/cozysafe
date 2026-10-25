@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_resume.dart';
 import '../platform.dart';
 import '../screens/file_view.dart' show fileSize;
 import '../src/rust/api/sync.dart' as sync;
@@ -13,7 +14,8 @@ import 'awake.dart';
 /// The live part of a session: [waiting] until the other device proves it holds this
 /// vault, then the number to compare while it syncs, then the result. Leaving before
 /// the end cancels. A Google Drive run stopped while the app was away (phone locked)
-/// continues by itself when the person comes back.
+/// continues by itself when the person comes back, and one stopped by the vault locking
+/// continues once it opens again; a session with another device cannot wait, and says so.
 /// Who is on the other end, to draw and name it.
 enum SyncPlace { drive, device }
 
@@ -41,7 +43,8 @@ class SyncProgress extends StatefulWidget {
   State<SyncProgress> createState() => _SyncProgressState();
 }
 
-class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+class _SyncProgressState extends State<SyncProgress>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin, VaultLockAware {
   StreamSubscription<sync.SyncEvent>? _sub;
   sync.SyncEvent? _last;
   int? _check;
@@ -74,6 +77,9 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
   bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;
 
   bool _started = false;
+  /// The vault locked in the middle of the run: it was stopped, and continues once the
+  /// same vault opens again.
+  bool _stoppedByLock = false;
   /// The app left the screen (phone locked, another app) since the last automatic
   /// Continue; iOS stops a sync soon after.
   bool _wasAway = false;
@@ -136,10 +142,38 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
       // The stream itself broke (the app was suspended mid-way): the same as an
       // interruption, which the engine's journal makes safe to continue.
       if (!mounted) return;
-      setState(() => _last = sync.SyncEvent(kind: sync.SyncStep.interrupted, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0));
+      setState(() => _last = _step(sync.SyncStep.interrupted));
       Awake.set(false);
       _autoContinue();
     });
+  }
+
+  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
+
+  /// The page stays under the lock, but the run needs the open vault: stop it now (it
+  /// holds the vault, which could not lock meanwhile). Google Drive picks up after, from
+  /// the engine's journal; a session with another device ends ("open it and try again").
+  @override
+  void vaultLocking() {
+    if (_over) return;
+    _sub?.cancel();
+    _sub = null;
+    sync.p2PCancel();
+    Awake.set(false);
+    final again = widget.retry != null;
+    setState(() {
+      _stoppedByLock = again;
+      _knock = false;
+      _last = _step(again ? sync.SyncStep.interrupted : sync.SyncStep.locked);
+    });
+  }
+
+  @override
+  void vaultUnlocked() {
+    if (!_stoppedByLock || widget.retry == null) return;
+    _stoppedByLock = false;
+    _wasAway = false;
+    _continue();
   }
 
   void _continue() {
@@ -162,7 +196,7 @@ class _SyncProgressState extends State<SyncProgress> with WidgetsBindingObserver
   /// for any other interruption.
   void _autoContinue() {
     final back = _backAt;
-    if (!mounted || !_wasAway || !_canContinue || back == null) return;
+    if (!mounted || !_wasAway || !_canContinue || back == null || vaultLock.locked) return;
     if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
     if (DateTime.now().difference(back) > const Duration(seconds: 30)) return;
     _wasAway = false;

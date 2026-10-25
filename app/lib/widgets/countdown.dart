@@ -32,7 +32,8 @@ class _CountdownState extends State<_Countdown> with SingleTickerProviderStateMi
   late final _t = AnimationController(vsync: this, duration: Duration(seconds: widget.seconds))
     ..addListener(() => setState(() {}))
     ..forward().whenComplete(() {
-      if (mounted && !_cancelled) Navigator.of(context).pop(true);
+      // Only while on top: closed by a lock, its last frames must not pop the lock screen.
+      if (mounted && !_cancelled && (ModalRoute.of(context)?.isCurrent ?? false)) Navigator.of(context).pop(true);
     });
   bool _cancelled = false;
 

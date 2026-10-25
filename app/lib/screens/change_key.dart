@@ -22,13 +22,14 @@ class ChangeKeyScreen extends StatefulWidget {
   const ChangeKeyScreen({
     super.key,
     required this.libraryDir,
-    required this.password,
+    this.password,
     required this.onBackup,
   });
   final String libraryDir;
 
-  /// The vault password, typed just before (Face ID, then the password).
-  final String password;
+  /// The vault password, typed just before (Face ID, then the password); null when the
+  /// vault locked since, and it is asked again on the check step.
+  final String? password;
   final Future<void> Function() onBackup;
 
   /// For the mockup renders: these words instead of a new key, and the step to show.
@@ -41,7 +42,7 @@ class ChangeKeyScreen extends StatefulWidget {
 
 enum _Step { intro, words, check, done }
 
-class _ChangeKeyScreenState extends State<ChangeKeyScreen> {
+class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
   late _Step _step = _Step.values[ChangeKeyScreen.debugStep ?? 0];
   late final List<int> _key = rust.newSecretKey();
   late final List<String> _words =
@@ -55,7 +56,7 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> {
   /// The passwords of the vaults to move: this vault's (typed before), then any other
   /// vault here that shares the key (owner 2026-10-25: with two vaults it refused).
   /// Dropped when the vault locks; the page itself stays under the lock with its words.
-  late final List<String> _passwords = [widget.password];
+  late final List<String> _passwords = [?widget.password];
   final _typed = TextEditingController();
 
   /// Another vault here needs its password too.
@@ -65,24 +66,18 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> {
   bool get _asking => _passwords.isEmpty || _other;
 
   @override
-  void initState() {
-    super.initState();
-    vaultLocks.addListener(_locked);
-  }
-
-  @override
   void dispose() {
-    vaultLocks.removeListener(_locked);
     _typed.clear();
     _typed.dispose();
     _passwords.clear();
     super.dispose();
   }
 
-  void _locked() {
+  @override
+  void vaultLocking() {
     _passwords.clear();
     _typed.clear();
-    if (mounted) setState(() => _other = false);
+    setState(() => _other = false);
   }
 
   Future<void> _apply() async {

@@ -5,7 +5,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../debug_log.dart';
 import '../biometric.dart';
-import '../lock_resume.dart';
 import '../l10n/app_localizations.dart';
 import '../appearance.dart';
 import '../language.dart';
@@ -274,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// What protects the vault, explained with drawings: its own page (long content).
   Future<void> _showSecurity() =>
-      Navigator.of(context).push<void>(MaterialPageRoute(settings: keepOnLock, builder: (_) => const SecurityInfoScreen()));
+      Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => const SecurityInfoScreen()));
 
   Future<void> _deleteVault() async {
     // The PIN confirms it; a vault opened with its password on this phone gets one first.
@@ -294,7 +293,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final picked = await pushPage<String>(
       context,
       title: l.language,
-      keep: true,
       builder: (context) => _LanguageList(chosen: AppLanguage.chosen, system: l.languageSystem, systemNote: l.languageSystemNote),
     );
     if (picked == null || !mounted) return;
@@ -422,7 +420,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l.syncRow,
                 onTap: () => pushPage<void>(context,
                     title: l.syncTitle,
-                    keep: true,
                     builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: () => widget.onSynced?.call())),
               ),
           ]),
@@ -600,7 +597,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: _Mau.doTuoi,
                     title: l.debugMode,
                     onTap: () async {
-                      await Navigator.of(context).push<bool>(MaterialPageRoute(settings: keepOnLock, builder: (_) => const DebugScreen()));
+                      await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const DebugScreen()));
                       if (mounted) setState(() {});
                     },
                   ),

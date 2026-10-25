@@ -139,6 +139,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (mounted) setState(() => _canBio = k != null);
     });
     LockGuard.onActivity = _touch;
+    // A vault opening here: pages another vault kept under the lock are gone.
+    vaultLock.reset();
     // iOS says when a screenshot was taken (it can't stop one): blocked, it came out black,
     // so say why and how to allow one; not blocked, it sits in Photos unencrypted. A card in
     // the middle that stays until closed (owner 2026-10-22: the toast was small and quick).
@@ -224,6 +226,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _idleTimer?.cancel();
     final nav = Navigator.of(context);
     void go() async {
+      // The pages kept under the lock let go first: a sync stops (it holds the vault),
+      // players pause, typed passwords and shown words go.
+      vaultLock.set(true);
       // Unsaved note text is written before the key is dropped.
       // A recording in progress is saved before the key goes.
       try {
@@ -239,9 +244,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       LockGuard.clearCopied();
       clearPlaybackCopies();
       _thumbnails.clear();
-      // The lock covers the pages kept for after (Settings), not the rest: what showed
-      // vault content closes, and the item names go until the vault opens again.
-      vaultLocks.value++;
+      // The lock covers the pages; what floats over them closes (as Cancel), and the item
+      // names go until the vault opens again.
       nav.popUntil(keptOnLock);
       if (mounted) setState(() => _items = null);
       final opened = await nav.push<rust.VaultInfo>(
@@ -257,6 +261,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         _vault = opened;
         _locked = false;
       });
+      vaultLock.set(false);
       _reload();
       _touch();
     }
@@ -414,14 +419,20 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       final done = ValueNotifier<int>(0);
       var cancel = false;
       final nav = Navigator.of(context);
+      // The sheet's own route: locking closes it and puts the lock screen on top, and the
+      // end of the import must not close that instead.
+      Route<dynamic>? sheetRoute;
       final sheet = showModalBottomSheet<void>(
         context: context,
         isDismissible: false,
         enableDrag: false,
-        builder: (context) => _ImportSheet(total: batch.count, done: done, onCancel: () {
-          cancel = true;
-          Originals.stopCopying(); // what is still being copied is not wanted any more
-        }),
+        builder: (context) {
+          sheetRoute ??= ModalRoute.of(context);
+          return _ImportSheet(total: batch.count, done: done, onCancel: () {
+            cancel = true;
+            Originals.stopCopying(); // what is still being copied is not wanted any more
+          });
+        },
       );
       final List<(rust.ItemInfo, String?)> picked;
       try {
@@ -430,7 +441,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           LockGuard.activity(); // a long import is not idleness
         }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(l, kind, DateTime.now(), ext));
       } finally {
-        if (mounted) nav.pop();
+        final r = sheetRoute;
+        if (r != null && r.isCurrent) {
+          nav.pop();
+        } else if (r != null && r.isActive) {
+          nav.removeRoute(r);
+        } else if (r == null && mounted && !_locked) {
+          nav.pop(); // over before the sheet was even drawn
+        }
         await sheet;
         done.dispose();
       }
@@ -451,9 +469,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         await Originals.release();
       }
     } on rust.VaultError catch (e) {
-      if (mounted) _snack(vaultErrorText(l, e));
+      // Stopped by the lock: nothing to say over the lock screen.
+      if (mounted && !_locked) _snack(vaultErrorText(l, e));
     } catch (_) {
-      if (mounted) _snack(l.errorStorage);
+      if (mounted && !_locked) _snack(l.errorStorage);
     } finally {
       LockGuard.clear();
     }
@@ -588,20 +607,31 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     // Face ID, then the vault password too: the 24 words are half of what opens the vault
     // anywhere (owner 2026-10-24).
-    final password = await KitPasswordScreen.ask(context, widget.libraryDir);
+    String? password = await KitPasswordScreen.ask(context, widget.libraryDir);
     if (password == null || !mounted) return;
     final key = await SecretKeyStore.read();
     if (key == null || !mounted) return;
+    // The page stays under the lock, the password typed for it does not: a Recovery Key
+    // change after that asks for it again.
+    void drop() {
+      if (vaultLock.locked) password = null;
+    }
+    vaultLock.addListener(drop);
+    try {
+      await _pushKit(key, () => password);
+    } finally {
+      vaultLock.removeListener(drop);
+    }
+  }
+
+  Future<void> _pushKit(Uint8List key, String? Function() password) async {
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (kit) => EmergencyKitScreen(
         keyText: rust.secretKeyText(key: key),
         confirm: false,
         // A new Recovery Key replaces this page (it would show the old one).
         onChange: () => Navigator.of(kit).pushReplacement(MaterialPageRoute<void>(
-          // Kept under the lock: its new words are not in use yet, and locking must not
-          // make the person write down another set (owner 2026-10-25).
-          settings: keepOnLock,
-          builder: (_) => ChangeKeyScreen(libraryDir: widget.libraryDir, password: password, onBackup: _backup),
+          builder: (_) => ChangeKeyScreen(libraryDir: widget.libraryDir, password: password(), onBackup: _backup),
         )),
       ),
     ));
@@ -645,7 +675,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _openSettings() async {
     final l = AppLocalizations.of(context);
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      settings: keepOnLock,
       builder: (_) => SettingsScreen(
         libraryDir: widget.libraryDir,
         vault: () => _vault,

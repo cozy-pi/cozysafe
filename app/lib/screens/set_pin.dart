@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_resume.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../widgets/pin_pad.dart';
@@ -26,7 +27,7 @@ class SetPinScreen extends StatefulWidget {
   State<SetPinScreen> createState() => _SetPinScreenState();
 }
 
-class _SetPinScreenState extends State<SetPinScreen> {
+class _SetPinScreenState extends State<SetPinScreen> with VaultLockAware {
   static const _max = 256;
   static int get _min => rust.minPinLength();
   String _pin = '';
@@ -51,6 +52,10 @@ class _SetPinScreenState extends State<SetPinScreen> {
       setState(() => _pin = _pin.substring(0, _pin.length - 1));
     }
   }
+
+  /// Digits typed are not kept while the vault is locked: start over after.
+  @override
+  void vaultLocking() => _restart();
 
   void _restart() => setState(() {
     _first = null;

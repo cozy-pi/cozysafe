@@ -22,6 +22,17 @@ Dates are UTC.
 ### Fixed
 - A device waiting with a code can no longer be held up by someone on the Wi‑Fi who
   connects and stays silent.
+- Leaving the app for a moment no longer loses your place: after opening the vault
+  again you are back on the page you were on (a note being written, a photo or video,
+  Recently deleted, search, tags, sync, the Recovery Key and password pages). Shown
+  words are hidden again and typed passwords and PINs are cleared when the vault locks.
+- A Google Drive sync stopped by the vault locking continues by itself once the vault
+  is open again. A sync with another device says the vault locked and can be started
+  again.
+- Face ID no longer pops up over New vault or Restore opened from the lock screen after
+  switching apps, wiping what was half done.
+- A long import stopped by the vault locking could leave the vault screen without the
+  lock screen.
 
 ## 0.1.64 (2026-10-25)
 

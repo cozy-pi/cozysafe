@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_resume.dart';
 import '../theme.dart';
 
 /// A secret shown for people (the Secret Key): hidden until "Show" is tapped, hidden again
@@ -21,7 +22,7 @@ class SecretText extends StatefulWidget {
   State<SecretText> createState() => _SecretTextState();
 }
 
-class _SecretTextState extends State<SecretText> with WidgetsBindingObserver {
+class _SecretTextState extends State<SecretText> with WidgetsBindingObserver, VaultLockAware {
   static const _showFor = Duration(seconds: 30);
   bool _shown = false;
   Timer? _hide;
@@ -42,6 +43,12 @@ class _SecretTextState extends State<SecretText> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed && _shown) _set(false);
+  }
+
+  /// Shown when the vault locked: hidden again behind the lock (the page stays).
+  @override
+  void vaultLocking() {
+    if (_shown) _set(false);
   }
 
   void _set(bool shown) {
