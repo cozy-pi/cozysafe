@@ -13,7 +13,14 @@
 //! and it opens the vault's lock with the words and the password ([`Library::join`])
 //! before the ordinary sync brings the items.
 //!
-//! Nothing is advertised on the network: no Bonjour, no broadcast.
+//! Nothing is advertised on the network: no Bonjour, no broadcast. To spare the person
+//! the QR, the host listens on a fixed port ([`PORT`]) and shows six digits; the other
+//! device, once the person allowed it, knocks at that port on each address of its own
+//! Wi-Fi (`a.b.c.1`–`254`) with a probe ([`Looker::scan`]). Only a host holding the same vault
+//! can answer a probe in a way the joiner accepts, and only one showing the digits typed
+//! matches ([`Looker::find`]): a stranger on the network learns nothing from a probe, and
+//! a wrong code never reaches the host. The QR stays for networks where the knock does
+//! not get through.
 
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
@@ -33,14 +40,20 @@ const VERSION: u8 = 1;
 /// What the joiner comes for, in its hello: sync a vault both hold, or restore it.
 const MODE_SYNC: u8 = 1;
 const MODE_RESTORE: u8 = 2;
+/// Not a session: a device looking for its other device on the Wi-Fi.
+const MODE_PROBE: u8 = 3;
+/// The port a host listens on when it is free, so a nearby device can find it.
+pub const PORT: u16 = 47823;
+/// Bytes of each tag in a probe's answer.
+const TAG_LEN: usize = 16;
 /// Bytes of one-time token in the code (with the vault key, it only binds the session).
 pub const TOKEN_LEN: usize = 5;
 const NONCE_LEN: usize = 32;
 /// Largest frame on the wire, sealed (1 MiB of payload).
 const MAX_FRAME: usize = (1 << 20) + 64;
 const CHUNK: usize = 1 << 20;
-/// How long a code works.
-pub const CODE_LIFETIME: Duration = Duration::from_secs(120);
+/// How long a code works (time to pick up the other phone and type six digits).
+pub const CODE_LIFETIME: Duration = Duration::from_secs(300);
 /// Failed handshakes before the host stops listening.
 const MAX_FAILURES: u32 = 3;
 /// A session with no request for this long ends.
@@ -75,6 +88,14 @@ impl PairCode {
         b[4..6].copy_from_slice(&self.addr.port().to_be_bytes());
         b[6..].copy_from_slice(&self.token);
         b
+    }
+
+    /// The six digits the host shows: the token is made from them ([`token_of`]).
+    pub fn digits(&self) -> Option<String> {
+        let mut b = [0u8; 8];
+        b[3..].copy_from_slice(&self.token);
+        let n = u64::from_be_bytes(b);
+        (n < 1_000_000).then(|| format!("{n:06}"))
     }
 
     /// The code to type: 18 letters and digits in three groups ("4K9M2Q-…").
@@ -134,6 +155,23 @@ impl PairCode {
             token: b[6..].try_into().ok()?,
         })
     }
+}
+
+/// The token for six typed digits ("048213"), if that is what they are.
+pub fn token_of(digits: &str) -> Option<[u8; TOKEN_LEN]> {
+    let d = digits.trim();
+    if d.len() != 6 || !d.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let n: u64 = d.parse().ok()?;
+    n.to_be_bytes()[3..].try_into().ok()
+}
+
+/// Six random digits as a token: with the vault key they only bind the session and pick
+/// the host (the key, not the digits, keeps strangers out).
+fn random_token() -> [u8; TOKEN_LEN] {
+    let n = u64::from_be_bytes(random::<8>()) % 1_000_000;
+    n.to_be_bytes()[3..].try_into().unwrap_or([0; TOKEN_LEN])
 }
 
 /// The pairing key: only a device holding this vault can have it.
@@ -264,9 +302,9 @@ fn handshake_join(pk: &Key, mode: u8, token: &[u8], mut stream: TcpStream) -> Re
 fn handshake_host(
     prepared: &Prepared,
     token: &[u8],
+    hello: &[u8],
     mut stream: TcpStream,
 ) -> Result<(Channel, u8)> {
-    let hello = read_frame(&mut stream)?;
     if hello.len() != 2 + NONCE_LEN || hello[0] != VERSION {
         return Err(Error::Corrupt("p2p hello"));
     }
@@ -301,6 +339,165 @@ fn handshake_host(
         }));
     }
     Ok((session(pk, token, nj, &nh, stream, true), mode))
+}
+
+// ---------- finding the host on the Wi-Fi ----------
+
+fn tag(pk: &Key, what: &str, nj: &[u8], nh: &[u8]) -> [u8; TAG_LEN] {
+    let k = kdf::subkey(
+        pk,
+        &format!("probe/{what}/{}/{}", hex::encode(nj), hex::encode(nh)),
+    );
+    let mut out = [0u8; TAG_LEN];
+    out.copy_from_slice(&k.as_bytes()[..TAG_LEN]);
+    out
+}
+
+fn same(a: &[u8], b: &[u8]) -> bool {
+    a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+/// The host answers a probe: a fresh nonce, then for each key it holds (the vault's, and
+/// the 24 words' for a device restoring) a tag that says "same vault" and one that says
+/// "and these digits". Random bytes stand in for a key it does not hold.
+fn answer_probe(
+    prepared: &Prepared,
+    token: &[u8],
+    nj: &[u8],
+    stream: &mut TcpStream,
+) -> Result<()> {
+    let nh: [u8; NONCE_LEN] = random();
+    let mut reply = nh.to_vec();
+    let code = format!("code/{}", hex::encode(token));
+    for pk in [Some(&prepared.key), prepared.restore_key.as_ref()] {
+        match pk {
+            Some(pk) => {
+                reply.extend(tag(pk, "vault", nj, &nh));
+                reply.extend(tag(pk, &code, nj, &nh));
+            }
+            None => reply.extend(random::<{ 2 * TAG_LEN }>()),
+        }
+    }
+    write_frame(stream, &reply)
+}
+
+/// A host on the Wi-Fi that holds the same vault (or takes the same 24 words).
+#[derive(Clone, Debug)]
+pub struct Found {
+    pub addr: SocketAddrV4,
+    nj: [u8; NONCE_LEN],
+    nh: [u8; NONCE_LEN],
+    code_tag: [u8; TAG_LEN],
+}
+
+/// Knock at `addr` with a probe; the host if it proves the key `pk`.
+fn probe(addr: SocketAddrV4, pk: &Key, restoring: bool) -> Option<Found> {
+    let mut stream =
+        TcpStream::connect_timeout(&SocketAddr::V4(addr), Duration::from_millis(700)).ok()?;
+    stream.set_read_timeout(Some(Duration::from_secs(2))).ok()?;
+    stream
+        .set_write_timeout(Some(Duration::from_secs(2)))
+        .ok()?;
+    let nj: [u8; NONCE_LEN] = random();
+    let mut hello = vec![VERSION, MODE_PROBE];
+    hello.extend_from_slice(&nj);
+    write_frame(&mut stream, &hello).ok()?;
+    let reply = read_frame(&mut stream).ok()?;
+    if reply.len() != NONCE_LEN + 4 * TAG_LEN {
+        return None;
+    }
+    let nh: [u8; NONCE_LEN] = reply[..NONCE_LEN].try_into().ok()?;
+    let at = NONCE_LEN + if restoring { 2 * TAG_LEN } else { 0 };
+    let (vault_tag, code_tag) = (
+        &reply[at..at + TAG_LEN],
+        &reply[at + TAG_LEN..at + 2 * TAG_LEN],
+    );
+    same(vault_tag, &tag(pk, "vault", &nj, &nh)).then(|| Found {
+        addr,
+        nj,
+        nh,
+        code_tag: code_tag.try_into().unwrap_or([0; TAG_LEN]),
+    })
+}
+
+/// Knock at each of `targets` (half a network at once, each given under a second to
+/// connect: a whole /24 in about two seconds); the hosts that prove `pk`.
+fn probe_all(targets: &[SocketAddrV4], pk: &Key, restoring: bool) -> Vec<Found> {
+    let mut found = Vec::new();
+    for chunk in targets.chunks(128) {
+        let got: Vec<Found> = std::thread::scope(|s| {
+            let hands: Vec<_> = chunk
+                .iter()
+                .map(|&a| s.spawn(move || probe(a, pk, restoring)))
+                .collect();
+            hands
+                .into_iter()
+                .filter_map(|h| h.join().ok().flatten())
+                .collect()
+        });
+        found.extend(got);
+    }
+    found
+}
+
+/// What a device looking for its other device proves: the vault's pairing key, or the
+/// 24 words' when it has no vault yet. Made from the vault in a moment, so the vault is
+/// not held while the Wi-Fi is searched.
+pub struct Looker {
+    pk: Key,
+    restoring: bool,
+}
+
+impl Looker {
+    pub fn for_vault(vault: &OpenVault) -> Looker {
+        Looker {
+            pk: pairing_key(vault),
+            restoring: false,
+        }
+    }
+
+    pub fn for_words(secret: &SecretKey) -> Looker {
+        Looker {
+            pk: kdf::restore_pairing_key(secret),
+            restoring: true,
+        }
+    }
+
+    /// Look on the permitted Wi-Fi: every address of this device's network
+    /// (`a.b.c.1`–`254`, not its own) at [`PORT`]. A few seconds.
+    pub fn scan(&self, permit: Permit) -> Result<Vec<Found>> {
+        let own = permit
+            .scan_from()
+            .ok_or(Error::Corrupt("permit is not for looking"))?;
+        if !on_local_network(own) || own.is_loopback() {
+            return Err(Error::Corrupt("p2p address is not on a local network"));
+        }
+        let [a, b, c, me] = own.octets();
+        let targets: Vec<SocketAddrV4> = (1..=254u8)
+            .filter(|&d| d != me)
+            .map(|d| SocketAddrV4::new(Ipv4Addr::new(a, b, c, d), PORT))
+            .collect();
+        Ok(probe_all(&targets, &self.pk, self.restoring))
+    }
+
+    /// The host among `found` that shows these six digits, as a code to join with. None
+    /// when the digits are not six digits or no host shows them (nothing is sent: a
+    /// wrong code never reaches the other device).
+    pub fn find(&self, found: &[Found], digits: &str) -> Option<PairCode> {
+        find_with(found, &self.pk, digits)
+    }
+}
+
+fn find_with(found: &[Found], pk: &Key, digits: &str) -> Option<PairCode> {
+    let token = token_of(digits)?;
+    let what = format!("code/{}", hex::encode(token));
+    found
+        .iter()
+        .find(|f| same(&f.code_tag, &tag(pk, &what, &f.nj, &f.nh)))
+        .map(|f| PairCode {
+            addr: f.addr,
+            token,
+        })
 }
 
 fn random<const N: usize>() -> [u8; N] {
@@ -548,13 +745,16 @@ pub fn host(permit: Permit) -> Result<Host> {
     if !on_local_network(ip) {
         return Err(Error::Corrupt("p2p address is not on a local network"));
     }
-    let listener = TcpListener::bind(SocketAddrV4::new(ip, 0))?;
+    // The fixed port lets a nearby device find this one; if something else has it, any
+    // port (the QR still works).
+    let listener = TcpListener::bind(SocketAddrV4::new(ip, PORT))
+        .or_else(|_| TcpListener::bind(SocketAddrV4::new(ip, 0)))?;
     let port = listener.local_addr()?.port();
     Ok(Host {
         listener,
         code: PairCode {
             addr: SocketAddrV4::new(ip, port),
-            token: random(),
+            token: random_token(),
         },
         deadline: Instant::now() + CODE_LIFETIME,
     })
@@ -626,11 +826,21 @@ pub fn host_accept(
             return Err(Error::Corrupt("p2p code expired"));
         }
         match host.listener.accept() {
-            Ok((stream, _)) => {
-                on_seen(Seen::Knock);
+            Ok((mut stream, _)) => {
                 stream.set_nonblocking(false)?;
+                stream.set_read_timeout(Some(Duration::from_secs(5)))?;
+                let Ok(hello) = read_frame(&mut stream) else {
+                    continue; // not a Cozy Safe device, or gone
+                };
+                // A device looking for its other device: answer, keep waiting. Probes
+                // do not count as tries (a scan knocks every few seconds).
+                if hello.len() == 2 + NONCE_LEN && hello[..2] == [VERSION, MODE_PROBE] {
+                    let _ = answer_probe(&prepared, &host.code.token, &hello[2..], &mut stream);
+                    continue;
+                }
+                on_seen(Seen::Knock);
                 stream.set_read_timeout(Some(Duration::from_secs(20)))?;
-                match handshake_host(&prepared, &host.code.token, stream) {
+                match handshake_host(&prepared, &host.code.token, &hello, stream) {
                     Ok((mut ch, mode)) => {
                         // A restoring device does not know which vault yet.
                         if mode == MODE_RESTORE {
@@ -717,6 +927,10 @@ static PENDING: Mutex<Option<(Host, Prepared)>> = Mutex::new(None);
 pub struct Shown {
     pub typed: String,
     pub qr: String,
+    /// The six digits to type on the other device.
+    pub digits: String,
+    /// Whether the host has [`PORT`], so a nearby device can find it (else QR only).
+    pub findable: bool,
 }
 
 /// Steps 1 and the listener: copy the vault into `mirror` and start waiting at the
@@ -732,6 +946,8 @@ pub fn host_open(
     let shown = Shown {
         typed: host.code.typed(),
         qr: host.code.qr(),
+        digits: host.code.digits().unwrap_or_default(),
+        findable: host.code.addr.port() == PORT,
     };
     *PENDING.lock().unwrap_or_else(|p| p.into_inner()) = Some((host, prepared));
     Ok(shown)
@@ -966,6 +1182,84 @@ mod tests {
     }
 
     #[test]
+    fn six_digits_make_the_token() {
+        for _ in 0..50 {
+            let t = random_token();
+            let c = PairCode {
+                addr: SocketAddrV4::new(Ipv4Addr::LOCALHOST, PORT),
+                token: t,
+            };
+            let d = c.digits().unwrap();
+            assert_eq!(d.len(), 6);
+            assert_eq!(token_of(&d), Some(t));
+        }
+        assert_eq!(token_of("12345"), None);
+        assert_eq!(token_of("12a456"), None);
+        assert_eq!(token_of("1234567"), None);
+        assert_eq!(token_of(" 004821 "), token_of("004821"));
+    }
+
+    #[test]
+    fn a_probe_finds_only_the_same_vault_and_only_with_the_right_digits() {
+        let t = two();
+        let other = two();
+        let from_a = note(&t.a, "From A", "aaa");
+        let mirror = tempfile::tempdir().unwrap();
+        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
+        let addr = h.code.addr;
+        let digits = h.code.digits().unwrap();
+        let crate::testkit::Two { dirs, a, b, sk, .. } = t;
+        let m = mirror.path().to_path_buf();
+        let secret = sk.clone();
+        let host_side = std::thread::spawn(move || {
+            let prepared = host_prepare(&a, Some(&secret), &m).unwrap();
+            let seen = Mutex::new(Vec::new());
+            let session = host_accept(h, prepared, &AtomicBool::new(false), &|s| {
+                seen.lock().unwrap().push(s)
+            })
+            .unwrap();
+            let served = session.serve().unwrap();
+            let r = host_finish(&a, served).unwrap();
+            (a, r, seen.into_inner().unwrap())
+        });
+        // Another vault sees nothing there; probes do not use up the host's tries.
+        for _ in 0..4 {
+            assert!(probe_all(&[addr], &pairing_key(&other.a), false).is_empty());
+        }
+        let found = probe_all(&[addr], &pairing_key(&b), false);
+        assert_eq!(found.len(), 1);
+        // The 24 words find it too (a device restoring), a stranger's words do not.
+        assert_eq!(
+            probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).len(),
+            1
+        );
+        let stranger = SecretKey::from_bytes([7; cs_crypto::SECRET_KEY_LEN]);
+        assert!(probe_all(&[addr], &kdf::restore_pairing_key(&stranger), true).is_empty());
+        // Wrong digits match nothing (and reach nobody); the right ones give the code.
+        let wrong = format!("{:06}", (digits.parse::<u32>().unwrap() + 1) % 1_000_000);
+        assert!(Looker::for_vault(&b).find(&found, &wrong).is_none());
+        assert!(Looker::for_vault(&other.a).find(&found, &digits).is_none());
+        let code = Looker::for_vault(&b).find(&found, &digits).unwrap();
+        assert_eq!(code.addr, addr);
+        let joined = join(&b, Permit::connect(code.addr), &code, &|_| ()).unwrap();
+        let (a, _hosted, seen) = host_side.join().unwrap();
+        assert_eq!(joined.received, 1);
+        assert_eq!(text(&b, &from_a), "aaa");
+        // Only the real session knocked: the probes stayed quiet.
+        assert_eq!(seen, vec![Seen::Knock]);
+        drop((a, dirs));
+    }
+
+    #[test]
+    fn a_scan_needs_its_permit_and_a_local_network() {
+        let t = two();
+        let look = Looker::for_vault(&t.a);
+        assert!(look.scan(Permit::listen(Ipv4Addr::LOCALHOST)).is_err());
+        assert!(Permit::scan_on("8.8.8.8").is_none());
+        assert!(look.scan(Permit::scan_on("127.0.0.1").unwrap()).is_err());
+    }
+
+    #[test]
     fn a_device_without_the_vault_cannot_join() {
         let t = two();
         let other = two(); // a different vault: another Master Key
@@ -1018,9 +1312,9 @@ mod tests {
             mirror: PathBuf::new(),
         };
         let h = std::thread::spawn(move || {
-            handshake_host(&prepared, &token, l.accept().unwrap().0)
-                .unwrap()
-                .0
+            let mut s = l.accept().unwrap().0;
+            let hello = read_frame(&mut s).unwrap();
+            handshake_host(&prepared, &token, &hello, s).unwrap().0
         });
         let j = handshake_join(&pk, MODE_SYNC, &token, TcpStream::connect(addr).unwrap()).unwrap();
         (h.join().unwrap(), j)

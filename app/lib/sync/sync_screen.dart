@@ -9,6 +9,7 @@ import '../widgets/vault_bar.dart' show pushPage;
 import '../platform.dart';
 import 'consent.dart';
 import 'drive.dart';
+import 'find_page.dart';
 import 'progress.dart';
 import 'host_page.dart';
 import 'join_page.dart';
@@ -102,13 +103,23 @@ class _SyncScreenState extends State<SyncScreen> {
     _loadLog();
   }
 
-  Future<void> _scan() async {
-    await pushPage<void>(context, title: AppLocalizations.of(context).syncScanCode, builder: (_) => ScanCodePage(onSynced: _synced));
-    _loadLog();
-  }
-
-  Future<void> _type() async {
-    await pushPage<void>(context, title: AppLocalizations.of(context).syncTypeCode, builder: (_) => TypeCodePage(onSynced: _synced));
+  /// The other device shows six digits: ask once to look on this Wi-Fi, then find it.
+  Future<void> _enter() async {
+    final l = AppLocalizations.of(context);
+    final address = SyncScreen.debugAddress ?? await localAddress();
+    if (!mounted) return;
+    if (address == null) {
+      showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
+      return;
+    }
+    if (!await allowConnection(context, l.syncAllowFind(address)) || !mounted) return;
+    await pushPage<void>(context,
+        title: l.syncEnterCode,
+        builder: (_) => FindDevicePage(
+              address: address,
+              onFound: (context, code) => joinWithCode(context, code, onSynced: _synced, ask: false),
+              onScanned: (context, code) => joinWithCode(context, code, onSynced: _synced),
+            ));
     _loadLog();
   }
 
@@ -137,9 +148,8 @@ class _SyncScreenState extends State<SyncScreen> {
         ),
         const SizedBox(height: 20),
         _Card(children: [
-          _Action(key: const ValueKey('sync-show'), icon: Icons.qr_code_2_rounded, color: const Color(0xFF007AFF), title: l.syncShowCode, onTap: _show),
-          _Action(key: const ValueKey('sync-scan'), icon: Icons.qr_code_scanner_rounded, color: const Color(0xFF34C759), title: l.syncScanCode, onTap: _scan),
-          _Action(key: const ValueKey('sync-type'), icon: Icons.keyboard_outlined, color: const Color(0xFF8E8E93), title: l.syncTypeCode, onTap: _type),
+          _Action(key: const ValueKey('sync-show'), icon: Icons.pin_outlined, color: const Color(0xFF007AFF), title: l.syncShowCode, onTap: _show),
+          _Action(key: const ValueKey('sync-enter'), icon: Icons.dialpad_rounded, color: const Color(0xFF34C759), title: l.syncEnterCode, onTap: _enter),
         ]),
         // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
         if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[

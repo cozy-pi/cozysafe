@@ -30,6 +30,9 @@ enum Kind {
     Connect(SocketAddrV4),
     /// Talk to Google Drive's API ([`https::HOST`]) and nothing else, for one session.
     Drive,
+    /// Knock at [`p2p::PORT`] on the other addresses of this device's network
+    /// (`a.b.c.1`–`254`), to find its other device; one look.
+    Scan(Ipv4Addr),
 }
 
 impl Permit {
@@ -53,6 +56,15 @@ impl Permit {
         p2p::on_local_network(ip).then(|| Permit::listen(ip))
     }
 
+    /// Granted after the person allowed looking for their other device on the Wi-Fi this
+    /// device has `ip` on (as text), if it is a local network address.
+    pub fn scan_on(ip: &str) -> Option<Permit> {
+        let ip: Ipv4Addr = ip.parse().ok()?;
+        p2p::on_local_network(ip).then_some(Permit {
+            kind: Kind::Scan(ip),
+        })
+    }
+
     /// [`Permit::connect`] to the device showing `code`.
     pub fn connect_for(code: &p2p::PairCode) -> Permit {
         Permit::connect(code.addr)
@@ -70,14 +82,21 @@ impl Permit {
     pub(crate) fn listen_ip(&self) -> Option<Ipv4Addr> {
         match self.kind {
             Kind::Listen(ip) => Some(ip),
-            Kind::Connect(_) | Kind::Drive => None,
+            Kind::Connect(_) | Kind::Drive | Kind::Scan(_) => None,
         }
     }
 
     pub(crate) fn connect_to(&self) -> Option<SocketAddrV4> {
         match self.kind {
             Kind::Connect(a) => Some(a),
-            Kind::Listen(_) | Kind::Drive => None,
+            Kind::Listen(_) | Kind::Drive | Kind::Scan(_) => None,
+        }
+    }
+
+    pub(crate) fn scan_from(&self) -> Option<Ipv4Addr> {
+        match self.kind {
+            Kind::Scan(ip) => Some(ip),
+            _ => None,
         }
     }
 }

@@ -37,6 +37,7 @@ import 'package:cozysafe/widgets/second_place.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/api/sync.dart';
 import 'package:cozysafe/sync/drive_join.dart';
+import 'package:cozysafe/sync/find_page.dart';
 import 'package:cozysafe/sync/host_page.dart';
 import 'package:cozysafe/sync/join_page.dart';
 import 'package:cozysafe/sync/progress.dart';
@@ -304,6 +305,7 @@ void _screen(String name, String caption, Widget Function() home,
       DriveJoinScreen.debugAccount = null;
       HostSyncPage.debugHosting = null;
       HostSyncPage.debugEvents = null;
+      FindDevicePage.debugFound = null;
       ChangeKeyScreen.debugWords = null;
       ChangeKeyScreen.debugStep = null;
       ScanCodePage.debugPreview = null;
@@ -683,11 +685,34 @@ void main() {
     await t.tap(find.byKey(const ValueKey('sync-show')));
     await t.pumpAndSettle();
   });
-  _screen('sync-host', 'Máy này hiện mã: QR + mã gõ tay, mã chỉ dùng được 2 phút, một lần', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 107));
+  _screen('sync-host', 'Máy này hiện mã 6 số (QR khi cần), mã dùng được 5 phút, một lần', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
+      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482913', findable: true, seconds: 107));
   _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
-  _screen('sync-type', 'Máy kia: nhập mã 18 ký tự', () => page('Nhập mã', TypeCodePage(onSynced: () {})));
+  _screen('sync-host-qr', 'Máy này hiện mã: đã bấm Hiện mã QR', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
+      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482913', findable: true, seconds: 241),
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-show-qr')));
+    await t.pump(const Duration(milliseconds: 300));
+  });
+  _screen('sync-find-allow', 'Máy kia · bấm Nhập mã → hỏi cho phép tìm trên Wi‑Fi', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () {
+    SyncScreen.debugLog = syncLog;
+    SyncScreen.debugAddress = '192.168.1.52';
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-enter')));
+    await t.pumpAndSettle();
+  });
+  _screen('sync-find', 'Máy kia: đã thấy máy của bạn, nhập 6 số', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
+      setup: () => FindDevicePage.debugFound = 1);
+  _screen('sync-find-typing', 'Máy kia: đang nhập mã', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
+      setup: () => FindDevicePage.debugFound = 1,
+      act: (t) async {
+    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '4829');
+    await t.pump();
+  });
+  _screen('sync-find-none', 'Máy kia: chưa thấy máy nào', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
+      setup: () => FindDevicePage.debugFound = 0);
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0, int moved = 0}) =>
       SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal), moved: moved);
   _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})));
@@ -706,14 +731,14 @@ void main() {
   _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
   _screen('sync-knock', 'Máy hiện mã: máy kia vừa chạm tới, đang chứng minh cùng két', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
       setup: () {
-    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 74);
+    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482913', findable: true, seconds: 74);
     HostSyncPage.debugEvents = Stream.value(ev(SyncStep.knock));
   });
   _screen('sync-other-vault', 'Máy kia có két khác', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.otherVault)), onSynced: () {})));
   _screen('sync-unreachable', 'Không tới được máy kia', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.unreachable)), onSynced: () {})));
   _screen('sync-rejected', 'Máy hiện mã: một máy két khác vừa thử vào', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
       setup: () {
-    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, seconds: 74);
+    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482913', findable: true, seconds: 74);
     HostSyncPage.debugEvents = Stream.value(ev(SyncStep.rejected));
   });
   _screen('sync-signin', 'Google Drive: phiên đăng nhập hết hạn', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.signIn)), onSynced: () {})));

@@ -111,6 +111,10 @@ pub struct Hosting {
     pub typed: String,
     /// The QR's text.
     pub qr: String,
+    /// The six digits to type on the other device.
+    pub digits: String,
+    /// Whether the other device can find this one on the Wi-Fi (else the QR only).
+    pub findable: bool,
     pub seconds: u32,
 }
 
@@ -225,6 +229,8 @@ pub fn p2p_host_start(ip: String, mirror: String) -> Result<Hosting, VaultError>
     Ok(Hosting {
         typed: shown.typed,
         qr: shown.qr,
+        digits: shown.digits,
+        findable: shown.findable,
         seconds: p2p::CODE_LIFETIME.as_secs() as u32,
     })
 }
@@ -271,6 +277,47 @@ pub fn p2p_host_run(sink: StreamSink<SyncEvent>) {
     forget_mirror();
     log_event("host", None, &event);
     let _ = sink.add(event);
+}
+
+/// What the last look on the Wi-Fi found, and the key it proved, for [`p2p_find`].
+static LOOK: Mutex<Option<(p2p::Looker, Vec<p2p::Found>)>> = Mutex::new(None);
+
+fn look(ip: &str, looker: p2p::Looker) -> Result<u32, VaultError> {
+    let permit = Permit::scan_on(ip).ok_or(VaultError::Storage)?;
+    let found = looker.scan(permit).map_err(|_| VaultError::Storage)?;
+    let n = found.len() as u32;
+    *LOOK.lock().unwrap_or_else(|p| p.into_inner()) = Some((looker, found));
+    Ok(n)
+}
+
+/// The person allowed looking for their other device on the Wi-Fi where this device has
+/// `ip`. How many devices holding this vault are waiting there (a few seconds; the vault
+/// is only held for a moment).
+pub fn p2p_scan(ip: String) -> Result<u32, VaultError> {
+    let looker = with_open(|v| Ok(p2p::Looker::for_vault(v)))?;
+    look(&ip, looker)
+}
+
+/// [`p2p_scan`] for a new device restoring with the 24 words.
+pub fn p2p_scan_restore(ip: String, words: String) -> Result<u32, VaultError> {
+    let words = zeroize::Zeroizing::new(words);
+    let key = cs_crypto::SecretKey::from_text(&words).ok_or(VaultError::Storage)?;
+    look(&ip, p2p::Looker::for_words(&key))
+}
+
+/// The code of the device found that shows these six digits (to pass to [`p2p_join`] or
+/// [`p2p_restore`]), or none: wrong digits, or that device is not found (yet).
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_find(digits: String) -> Option<String> {
+    let guard = LOOK.lock().unwrap_or_else(|p| p.into_inner());
+    let (looker, found) = guard.as_ref()?;
+    looker.find(found, &digits).map(|c| c.qr())
+}
+
+/// Forget the last look (the page closed).
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_look_done() {
+    LOOK.lock().unwrap_or_else(|p| p.into_inner()).take();
 }
 
 /// The address a typed or scanned code points at (for the question to the person), or

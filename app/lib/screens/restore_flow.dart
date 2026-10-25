@@ -10,8 +10,9 @@ import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../sync/consent.dart';
 import '../sync/drive_join.dart';
-import '../sync/join_page.dart';
+import '../sync/find_page.dart';
 import '../sync/progress.dart';
+import '../sync/wifi.dart';
 import '../theme.dart';
 import '../widgets/secret.dart';
 import '../widgets/toast.dart';
@@ -137,26 +138,36 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
     );
   }
 
-  Future<void> _fromDevice() => pushPage<void>(
-        context,
-        title: l10n.restoreFromDevice,
-        builder: (_) => Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
-            child: Text(l10n.restoreScanLead,
-                textAlign: TextAlign.center, style: TextStyle(color: CsColors.of(context).muted, fontSize: 15, height: 1.4)),
-          ),
-          Expanded(child: ScanCodePage(onSynced: () {}, onCode: _restoreWithCode)),
-        ]),
-      );
+  /// The old device shows six digits: ask once to look on this Wi-Fi, then find it with
+  /// the 24 words (no vault here yet).
+  Future<void> _fromDevice() async {
+    final address = await localAddress();
+    if (!mounted) return;
+    if (address == null) {
+      showToast(context, l10n.syncNoWifi, icon: Icons.wifi_off_rounded);
+      return;
+    }
+    if (!await allowConnection(context, l10n.syncAllowFind(address)) || !mounted) return;
+    await pushPage<void>(
+      context,
+      title: l10n.restoreFromDevice,
+      builder: (_) => FindDevicePage(
+        address: address,
+        words: widget.words,
+        lead: l10n.restoreScanLead,
+        onFound: (context, code) => _restoreWithCode(context, code, ask: false),
+        onScanned: _restoreWithCode,
+      ),
+    );
+  }
 
   AppLocalizations get l10n => AppLocalizations.of(context);
 
-  Future<void> _restoreWithCode(BuildContext context, String code) async {
+  Future<void> _restoreWithCode(BuildContext context, String code, {bool ask = true}) async {
     final l = AppLocalizations.of(context);
     final address = sync.p2PCodeAddress(code: code);
     if (address == null) return;
-    if (!await allowConnection(context, l.syncAllowJoin(address))) return;
+    if (ask && !await allowConnection(context, l.syncAllowJoin(address))) return;
     if (!context.mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => Scaffold(

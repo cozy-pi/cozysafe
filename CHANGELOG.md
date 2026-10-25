@@ -13,6 +13,11 @@ Dates are UTC.
   rearranged, or that there was nothing new to send or receive.
 - Google Drive sync works on Android: sign-in with a Google account (no Google Drive app
   needed).
+- Sync with a nearby device is simpler: one device taps Show a code and shows six
+  digits; the other taps Enter a code, finds it on the same Wi‑Fi by itself and takes
+  the six digits. A wrong code is caught at once, without bothering the other device.
+  The QR code stays for networks where the device cannot be found. Restoring from
+  another device works the same way. The code works for 5 minutes (was 2).
 
 ## 0.1.63 (2026-10-25)
 

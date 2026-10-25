@@ -7,18 +7,18 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
-import '../widgets/vault_bar.dart' show pushPage;
 import 'consent.dart';
 import 'progress.dart';
 
 /// A code read or typed: name the address it points at, ask, then connect.
-Future<void> joinWithCode(BuildContext context, String code, {required VoidCallback onSynced}) async {
+/// [ask] false: the person already allowed it (looking for their device on this Wi-Fi).
+Future<void> joinWithCode(BuildContext context, String code, {required VoidCallback onSynced, bool ask = true}) async {
   final l = AppLocalizations.of(context);
   final address = sync.p2PCodeAddress(code: code);
   if (address == null) return;
-  if (!await allowConnection(context, l.syncAllowJoin(address))) return;
+  if (ask && !await allowConnection(context, l.syncAllowJoin(address))) return;
   if (!context.mounted) return;
-  await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+  final route = MaterialPageRoute<void>(
     builder: (context) => Scaffold(
       appBar: AppBar(title: Text(l.syncRow)),
       body: SafeArea(
@@ -30,77 +30,14 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
         ),
       ),
     ),
-  ));
+  );
+  // From the QR page it takes that page's place; from the digits it stacks, so Back
+  // after the sync comes back to the sync screen either way.
+  await (ask ? Navigator.of(context).pushReplacement(route) : Navigator.of(context).push(route));
 }
 
 /// What to do with a code read or typed (sync by default; a restore passes its own).
 typedef OnCode = Future<void> Function(BuildContext context, String code);
-
-/// Type the code the other device shows.
-class TypeCodePage extends StatefulWidget {
-  const TypeCodePage({super.key, required this.onSynced, this.onCode});
-  final VoidCallback onSynced;
-  final OnCode? onCode;
-
-  @override
-  State<TypeCodePage> createState() => _TypeCodePageState();
-}
-
-class _TypeCodePageState extends State<TypeCodePage> {
-  final _text = TextEditingController();
-  bool _bad = false;
-
-  @override
-  void dispose() {
-    _text.dispose();
-    super.dispose();
-  }
-
-  void _go() {
-    final code = _text.text.trim();
-    if (sync.p2PCodeAddress(code: code) == null) {
-      setState(() => _bad = true);
-      return;
-    }
-    final onCode = widget.onCode;
-    if (onCode != null) {
-      onCode(context, code);
-    } else {
-      joinWithCode(context, code, onSynced: widget.onSynced);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      children: [
-        TextField(
-          key: const ValueKey('sync-code-field'),
-          controller: _text,
-          autofocus: true,
-          autocorrect: false,
-          enableSuggestions: false,
-          textCapitalization: TextCapitalization.characters,
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9A-Za-z\- ]')), LengthLimitingTextInputFormatter(24)],
-          style: const TextStyle(fontSize: 20, letterSpacing: 2, fontFamily: 'monospace'),
-          decoration: InputDecoration(
-            hintText: l.syncCodeHint,
-            hintStyle: const TextStyle(fontSize: 16, letterSpacing: 0, fontFamily: null),
-            errorText: _bad ? l.syncCodeBad : null,
-          ),
-          onChanged: (_) {
-            if (_bad) setState(() => _bad = false);
-          },
-          onSubmitted: (_) => _go(),
-        ),
-        const SizedBox(height: 18),
-        FilledButton(key: const ValueKey('sync-connect'), onPressed: _go, child: Text(l.syncConnect)),
-      ],
-    );
-  }
-}
 
 /// Read the code with the camera; only Cozy Safe pairing codes are taken.
 class ScanCodePage extends StatefulWidget {
@@ -230,16 +167,6 @@ class _ScanCodePageState extends State<ScanCodePage> {
           ),
           const SizedBox(height: 14),
           Text(l.syncPointCamera, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              key: const ValueKey('sync-type-instead'),
-              icon: const Icon(Icons.keyboard_outlined),
-              label: Text(l.syncTypeCode),
-              onPressed: () => pushPage<void>(context, title: l.syncTypeCode, builder: (_) => TypeCodePage(onSynced: widget.onSynced, onCode: widget.onCode)),
-            ),
-          ),
         ],
       ),
     );
