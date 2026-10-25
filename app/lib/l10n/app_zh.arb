@@ -604,5 +604,9 @@
   "syncFindLabel": "输入另一台设备上显示的 6 位数字",
   "syncFindWrong": "没有设备显示此代码。请检查数字。",
   "syncFindWaiting": "正在查找显示此代码的设备…",
-  "syncFindQr": "改为扫描二维码"
+  "syncFindQr": "改为扫描二维码",
+  "trashHeldLabel": "已在其他设备上删除",
+  "trashHeldNote": "在你的其他设备上永久删除的项目会在这里保留 30 天，且不会同步。",
+  "deleteForGoodOthersKeep": "同步此保险箱的其他设备会在“最近删除”中保留它 30 天。",
+  "syncDoneHeld": "{n, plural, other{在另一台设备上删除的 {n} 项已移到“最近删除”（保留 30 天）。}}"
 }

@@ -604,5 +604,9 @@
   "syncFindLabel": "Escribe los 6 dígitos que muestra tu otro dispositivo",
   "syncFindWrong": "Ningún dispositivo muestra este código. Revisa los dígitos.",
   "syncFindWaiting": "Buscando el dispositivo que muestra este código…",
-  "syncFindQr": "Escanear un QR"
+  "syncFindQr": "Escanear un QR",
+  "trashHeldLabel": "Eliminado en otro dispositivo",
+  "trashHeldNote": "Los elementos eliminados para siempre en tu otro dispositivo se guardan aquí 30 días y no se sincronizan.",
+  "deleteForGoodOthersKeep": "Tus otros dispositivos que sincronizan esta caja fuerte lo conservan 30 días en Eliminado recientemente.",
+  "syncDoneHeld": "{n, plural, =1{1 elemento eliminado en el otro dispositivo se movió a Eliminado recientemente (se guarda 30 días).} other{{n} elementos eliminados en el otro dispositivo se movieron a Eliminado recientemente (se guardan 30 días).}}"
 }

@@ -604,5 +604,9 @@
   "syncFindLabel": "もう一台に表示された6桁の数字を入力",
   "syncFindWrong": "このコードを表示しているデバイスはありません。数字を確認してください。",
   "syncFindWaiting": "このコードを表示しているデバイスを探しています…",
-  "syncFindQr": "代わりにQRをスキャン"
+  "syncFindQr": "代わりにQRをスキャン",
+  "trashHeldLabel": "別のデバイスで削除",
+  "trashHeldNote": "ほかのデバイスで完全に削除された項目は、ここに30日間保管され、同期されません。",
+  "deleteForGoodOthersKeep": "この金庫を同期しているほかのデバイスでは、「最近削除した項目」に30日間残ります。",
+  "syncDoneHeld": "{n, plural, other{ほかのデバイスで削除された {n} 件の項目を「最近削除した項目」に移動しました（30日間保管）。}}"
 }

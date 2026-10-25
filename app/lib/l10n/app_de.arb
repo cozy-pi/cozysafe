@@ -604,5 +604,9 @@
   "syncFindLabel": "Gib die 6 Ziffern ein, die dein anderes Gerät zeigt",
   "syncFindWrong": "Kein Gerät zeigt diesen Code. Prüfe die Ziffern.",
   "syncFindWaiting": "Suche das Gerät, das diesen Code zeigt…",
-  "syncFindQr": "Stattdessen QR scannen"
+  "syncFindQr": "Stattdessen QR scannen",
+  "trashHeldLabel": "Auf einem anderen Gerät gelöscht",
+  "trashHeldNote": "Elemente, die auf deinem anderen Gerät endgültig gelöscht wurden, bleiben hier 30 Tage lang und werden nicht synchronisiert.",
+  "deleteForGoodOthersKeep": "Deine anderen Geräte, die diesen Tresor synchronisieren, behalten es 30 Tage lang in „Zuletzt gelöscht“.",
+  "syncDoneHeld": "{n, plural, =1{1 auf dem anderen Gerät gelöschtes Element wurde nach „Zuletzt gelöscht“ verschoben (30 Tage aufbewahrt).} other{{n} auf dem anderen Gerät gelöschte Elemente wurden nach „Zuletzt gelöscht“ verschoben (30 Tage aufbewahrt).}}"
 }
