@@ -3,9 +3,9 @@
 An open-source, cross-platform encrypted vault for photos, documents, files and
 notes. Everything is encrypted on your device before it is saved.
 
-> **Status: preview.** It works on one device; sync between devices is not built
-> yet. Don't keep your only copy of something important in it yet, and use
-> **Back up to a file** often. Decisions and what is next: [`docs/decisions.md`](docs/decisions.md).
+> **Status: preview.** Sync works (with a device on the same Wi‑Fi, or through your
+> Google Drive on phones), but the app is young. Don't keep your only copy of something
+> important in it yet, and use **Back up to a file** often. Decisions and what is next: [`docs/decisions.md`](docs/decisions.md).
 
 Website and downloads: <https://safe.cozypi.com>
 
@@ -22,7 +22,7 @@ Cozy Safe does about it; the details are in the linked documents.
 | **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing the PIN or auto-lock, backups, the Recovery Key, showing note text, deleting a vault ([rules](docs/security.md)) |
 | **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; each vault has its own PIN and only its icon and colour tell it apart |
 | **something is left behind on the device** | encodes camera photos in memory (never the photo library, no location data); videos, voice memos and files being played or sent exist only as copies in the app's private temporary folder, deleted when done, on lock and at every start |
-| **a library tries to send data out** | no internet service at all: only one part of the app can open a connection, only to a device on your Wi‑Fi, only when you allow it; network calls switched off everywhere else, no name lookups, and every library reviewed before it gets in ([below](#no-library-can-send-your-data-out)) |
+| **a library tries to send data out** | no server of ours and no analytics: only one part of the app can open a connection, only when you allow it, only to a device on your Wi‑Fi or to Google Drive's API (if you turn Drive sync on), and only encrypted files ever leave; network calls switched off everywhere else, and every library reviewed before it gets in ([below](#no-library-can-send-your-data-out)) |
 | **someone tampers with a build** | builds in the open on GitHub, with every third-party action pinned to an exact commit; signing and store keys never reach the jobs that run other people's build code; every release file carries a build-provenance attestation, and the macOS app is notarized by Apple ([supply chain](docs/supply-chain.md)) |
 
 How it stays that way:
@@ -69,24 +69,27 @@ support@cozypi.com.
 
 ## No library can send your data out
 
-Cozy Safe uses no server and no internet service: no account, no ads, no analytics, no
-crash reports. The one thing that touches the network is **syncing with your other device
-on the same Wi‑Fi**, and only when you start it: you allow each connection by hand, it
-goes to one address on your local network, and everything sent is encrypted with your
-vault's keys. A vault app is only as safe as every library inside it, and libraries do
+Cozy Safe has no server of its own: no account with us, no ads, no analytics, no crash
+reports. Only two things touch the network, and only when you start them: **syncing with
+your other device on the same Wi‑Fi** (one address on your local network) and **syncing
+through your Google Drive** (one host, `www.googleapis.com`, over TLS 1.3 with the
+`drive.file` scope, so the app sees only the files it made). You allow each connection
+by hand, and everything sent is already encrypted with your vault's keys. A link in a
+note opens in your browser only after you confirm it. A vault app is only as safe as every library inside it, and libraries do
 get hijacked, so this is checked on every build, in layers (details and limits:
 [supply chain](docs/supply-chain.md)):
 
 - **One crate holds all network code** (`core/cs-net`). Every connection needs a permit the
   app only makes after you tap Allow, and it refuses any address outside your local network.
   cackle forbids the network to every other Rust crate.
-- **No name lookups:** the compiled Rust core must not import any DNS function, so it can
-  only reach an address you scanned or typed, never a host on the internet by name.
+- **No other hosts:** the only internet host the Rust core can reach is Google Drive's
+  API, fixed in the code with its own bundled root certificates; local sync reaches only
+  addresses on your own network.
 - **Inside the app:** Dart's HTTP client and sockets are switched off when the app starts.
 - **Android:** the app needs the internet permission for any socket, even a local one;
   CI fails if any other network permission (network state, Wi‑Fi control) sneaks in.
-  While a sync runs it also uses a foreground service and a notification (no network
-  access), so locking the phone does not stop it.
+  The screen stays on while a sync runs; a background service that would keep it going
+  with the phone locked waits for Google Play's approval.
 - **macOS:** the app runs in Apple's sandbox; only the client and server network
   permissions sync needs are allowed.
 - **Every library is reviewed before it gets in.** CI keeps a list of every Dart and Rust
@@ -95,7 +98,8 @@ get hijacked, so this is checked on every build, in layers (details and limits:
   down with its reason. Rust crates are also checked by cackle and cargo-deny.
 - **Honest limits:** no phone or computer can limit an app to the local network, so a
   native library determined to connect out is stopped by the checks above, not by the OS.
-  The PDF engine (PDFium) is a prebuilt binary downloaded at build time.
+  The PDF engine (PDFium) is a prebuilt binary downloaded at build time, checked against
+  a pinned SHA-256.
 
 ## What works today
 
@@ -108,8 +112,16 @@ get hijacked, so this is checked on every build, in layers (details and limits:
   file**, with a PDF viewer inside the app.
 - **Groups:** put anything in one or more groups ("Passport": the photo, the scan and the
   note) and open a group from any section.
-- **Quick look:** tap a photo or video to play it in a frame over the vault; full screen
-  only if you ask. **Share** any item (a temporary copy, deleted right after).
+- **One way to open anything:** tap any item (photo, video, note, recording, PDF, file) and
+  it opens over the page, centred, with one bar of buttons where the bottom bar is:
+  Close, Open, Send, More, Delete. Every action button in the app sits at the bottom,
+  within thumb reach. **Share** any item (a temporary copy, deleted right after).
+- **Notes with formatting:** headings, bold, italic, lists and to-do boxes you can tick in
+  the preview, links that ask before opening; a format bar over the keyboard. Notes stay
+  plain text.
+- **Leave and come back:** switching apps locks the vault at once, and after unlocking you
+  are back on the page you were on; revealed words are hidden again and a Google Drive
+  sync carries on.
 - **Text files open as text:** Markdown, JSON and code files are shown formatted.
 - **Remove the originals:** after adding photos or files from the device, the app offers
   to delete the unencrypted originals (the system asks first).
@@ -125,10 +137,16 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 - **Simple to start:** an empty vault offers big tiles to add the first thing; the bottom
   bar shows the overview, library, +, files and notes, and + always offers every way to
   add (photos, camera, video, note, voice memo, file).
-- **Sync with your other device on the same Wi‑Fi:** one shows a QR or typed code, the
-  other scans or types it. You allow every connection by hand, naming the address; the
-  code works once, for 2 minutes; both screens show a number to compare. Notes edited on
-  both keep both texts. A sealed log lists every connection.
+- **Sync with your other device on the same Wi‑Fi:** one shows a 3-digit code, the other
+  finds it on the network by itself and takes the code (a QR works too). Only a device
+  holding the same vault can answer; the code works once, for 5 minutes. Both devices end
+  up the same; notes edited on both keep both texts.
+- **Sync through Google Drive** (iPhone, Android): a sealed copy in a "Cozy Safe" folder,
+  only encrypted files, with progress in MB and time left.
+- **Nothing lost by mistake:** an item deleted for good on another device is kept here in
+  Recently deleted for 30 days, not synced back; restore it and it returns everywhere.
+- **A new device from the 24 words and password alone:** from Google Drive or from your
+  other device nearby, no backup file needed. A sealed log lists every connection.
 - **Back up to one encrypted file** (every vault with a vault password) and restore it
   on a new device with your **Recovery Key** (24 words) and the **vault password**.
 - **See or change the Recovery Key:** behind Face ID **and** the vault password. Change it
@@ -137,8 +155,9 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 - **15 languages**, light and dark. Pick one in Settings → Language, or in the
   system's settings for the app (iPhone, Android 13+); the two stay the same.
 
-Not yet: Google Drive sync (in progress) and joining a vault on a new device from the
-24 words and password alone. Until then, a new device starts from **Back up to a file**.
+Not yet: Google Drive on computers, keeping a sync going with an Android phone locked
+(waiting for Google Play), and the security work listed in
+[`docs/decisions.md`](docs/decisions.md).
 
 ## Install
 
