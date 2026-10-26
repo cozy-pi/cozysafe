@@ -892,5 +892,12 @@
   "@syncDriveRepaired": {"placeholders": {"count": {"type": "int"}}},
   "syncDriveUnrepaired": "{count, plural, =1{1 item has no good copy on this device to send again. Sync from another device that has it.} other{{count} items have no good copy on this device to send again. Sync from another device that has them.}}",
   "@syncDriveUnrepaired": {"placeholders": {"count": {"type": "int"}}},
-  "pinWiped": "10 wrong PINs: the PIN was removed. Open with your password, then set a PIN again."
+  "pinWiped": "10 wrong PINs: the PIN was removed. Open with your password, then set a PIN again.",
+  "keyCheckRow": "Check your 24 words and password",
+  "keyCheckGo": "Check",
+  "keyCheckWordsOk": "Right: these are this vault's 24 words.",
+  "keyCheckWordsBad": "No match. Check each word and their order.",
+  "keyCheckPasswordOk": "Right password.",
+  "keyCheckPasswordBad": "Wrong password.",
+  "keyCheckNote": "Only compared: nothing is shown, kept or changed."
 }

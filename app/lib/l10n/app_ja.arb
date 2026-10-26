@@ -672,5 +672,12 @@
   "syncDriveFull": "Google ドライブがいっぱいです。空き容量を作ってからもう一度お試しください。",
   "syncDriveRepaired": "{count, plural, other{Google ドライブで {count} 個のファイルが失われたか壊れていました。送り直しました。}}",
   "syncDriveUnrepaired": "{count, plural, other{{count} 件の項目はこの端末に正しいコピーがありません。持っている別の端末から同期してください。}}",
-  "pinWiped": "PIN を 10 回間違えたため PIN を削除しました。パスワードで開いてから PIN を設定し直してください。"
+  "pinWiped": "PIN を 10 回間違えたため PIN を削除しました。パスワードで開いてから PIN を設定し直してください。",
+  "keyCheckRow": "24 個の単語とパスワードを確認",
+  "keyCheckGo": "確認",
+  "keyCheckWordsOk": "正しい: この金庫の 24 個の単語です。",
+  "keyCheckWordsBad": "一致しません。各単語と順番を確認してください。",
+  "keyCheckPasswordOk": "パスワードは正しいです。",
+  "keyCheckPasswordBad": "パスワードが違います。",
+  "keyCheckNote": "照合するだけです。表示・保存・変更は行いません。"
 }

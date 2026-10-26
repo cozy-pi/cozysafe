@@ -28,6 +28,7 @@ import '../widgets/vault_bar.dart';
 import 'delete_vault.dart';
 import 'file_view.dart';
 import 'error_report.dart';
+import 'key_check.dart';
 import 'set_pin.dart';
 import 'tour.dart';
 import '../sync/sync_screen.dart';
@@ -667,6 +668,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l.showKit,
                 onTap: widget.onShowKit,
               ),
+            // Type them back to know they still open this vault (owner 2026-10-26).
+            _Row(
+              key: const ValueKey('key-check-row'),
+              icon: Icons.fact_check_outlined,
+              color: _Mau.xanhLa,
+              title: l.keyCheckRow,
+              onTap: () => pushPage<void>(context,
+                  title: l.keyCheckRow,
+                  builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword)),
+            ),
             _Row(
               icon: Icons.key_outlined,
               color: _Mau.vang,

@@ -672,5 +672,12 @@
   "syncDriveFull": "Google Drive ist voll. Dort Speicher freigeben und erneut versuchen.",
   "syncDriveRepaired": "{count, plural, =1{Google Drive hatte 1 Datei verloren oder beschädigt. Erneut gesendet.} other{Google Drive hatte {count} Dateien verloren oder beschädigt. Erneut gesendet.}}",
   "syncDriveUnrepaired": "{count, plural, =1{Für 1 Eintrag gibt es hier keine gute Kopie. Synchronisieren Sie von einem Gerät, das ihn hat.} other{Für {count} Einträge gibt es hier keine gute Kopie. Synchronisieren Sie von einem Gerät, das sie hat.}}",
-  "pinWiped": "10 falsche PINs: Die PIN wurde entfernt. Mit dem Passwort öffnen und erneut eine PIN festlegen."
+  "pinWiped": "10 falsche PINs: Die PIN wurde entfernt. Mit dem Passwort öffnen und erneut eine PIN festlegen.",
+  "keyCheckRow": "24 Wörter und Passwort prüfen",
+  "keyCheckGo": "Prüfen",
+  "keyCheckWordsOk": "Richtig: Das sind die 24 Wörter dieses Tresors.",
+  "keyCheckWordsBad": "Keine Übereinstimmung. Jedes Wort und die Reihenfolge prüfen.",
+  "keyCheckPasswordOk": "Richtiges Passwort.",
+  "keyCheckPasswordBad": "Falsches Passwort.",
+  "keyCheckNote": "Nur verglichen: Nichts wird angezeigt, gespeichert oder geändert."
 }

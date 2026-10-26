@@ -672,5 +672,12 @@
   "syncDriveFull": "Google Drive penuh. Kosongkan ruang di sana, lalu coba lagi.",
   "syncDriveRepaired": "{count, plural, other{Google Drive kehilangan atau merusak {count} file. Sudah dikirim ulang.}}",
   "syncDriveUnrepaired": "{count, plural, other{{count} item tidak punya salinan baik di perangkat ini. Sinkronkan dari perangkat lain yang memilikinya.}}",
-  "pinWiped": "10 PIN salah: PIN dihapus. Buka dengan kata sandi, lalu atur PIN lagi."
+  "pinWiped": "10 PIN salah: PIN dihapus. Buka dengan kata sandi, lalu atur PIN lagi.",
+  "keyCheckRow": "Periksa 24 kata dan kata sandi",
+  "keyCheckGo": "Periksa",
+  "keyCheckWordsOk": "Benar: ini 24 kata brankas ini.",
+  "keyCheckWordsBad": "Tidak cocok. Periksa setiap kata dan urutannya.",
+  "keyCheckPasswordOk": "Kata sandi benar.",
+  "keyCheckPasswordBad": "Kata sandi salah.",
+  "keyCheckNote": "Hanya dicocokkan: tidak ada yang ditampilkan, disimpan, atau diubah."
 }

@@ -672,5 +672,12 @@
   "syncDriveFull": "Google Drive est plein. Libérez de l'espace puis réessayez.",
   "syncDriveRepaired": "{count, plural, =1{Google Drive avait perdu ou abîmé 1 fichier. Renvoyé.} other{Google Drive avait perdu ou abîmé {count} fichiers. Renvoyés.}}",
   "syncDriveUnrepaired": "{count, plural, =1{1 élément n'a pas de bonne copie ici. Synchronisez depuis un appareil qui l'a.} other{{count} éléments n'ont pas de bonne copie ici. Synchronisez depuis un appareil qui les a.}}",
-  "pinWiped": "10 codes PIN faux : le code PIN a été supprimé. Ouvrez avec votre mot de passe, puis définissez un nouveau PIN."
+  "pinWiped": "10 codes PIN faux : le code PIN a été supprimé. Ouvrez avec votre mot de passe, puis définissez un nouveau PIN.",
+  "keyCheckRow": "Vérifier vos 24 mots et votre mot de passe",
+  "keyCheckGo": "Vérifier",
+  "keyCheckWordsOk": "Correct : ce sont les 24 mots de ce coffre.",
+  "keyCheckWordsBad": "Pas de correspondance. Vérifiez chaque mot et leur ordre.",
+  "keyCheckPasswordOk": "Bon mot de passe.",
+  "keyCheckPasswordBad": "Mauvais mot de passe.",
+  "keyCheckNote": "Seulement comparé : rien n'est affiché, conservé ni modifié."
 }

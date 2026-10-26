@@ -43,6 +43,8 @@ Dates are UTC.
   is useless for guessing PINs elsewhere. Waits after wrong PINs cannot be shortened by
   changing the date and time. After 10 wrong PINs in a row the PIN is removed and the
   vault opens with its password (a vault without a password keeps its PIN).
+- Settings → Check your 24 words and password: type them back to know they still open
+  this vault. They are only compared, never shown or kept.
 - An error log, always on: every failure is kept as a short code and a time (never
   names, content, keys or addresses), the last 200. Settings → Report a problem lists
   them, with Copy details and Feedback. A failed sync shows its code and Copy details.

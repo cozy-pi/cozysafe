@@ -686,5 +686,12 @@
   "syncDriveFull": "Google Drive đã đầy. Giải phóng dung lượng ở đó rồi thử lại.",
   "syncDriveRepaired": "{count, plural, other{Google Drive bị thiếu hoặc hỏng {count} tệp. Đã gửi lại.}}",
   "syncDriveUnrepaired": "{count, plural, other{{count} mục không có bản tốt trên máy này để gửi lại. Hãy đồng bộ từ máy khác còn bản tốt.}}",
-  "pinWiped": "Sai PIN 10 lần: đã xoá PIN. Mở bằng mật khẩu rồi đặt lại PIN."
+  "pinWiped": "Sai PIN 10 lần: đã xoá PIN. Mở bằng mật khẩu rồi đặt lại PIN.",
+  "keyCheckRow": "Kiểm tra 24 từ và mật khẩu",
+  "keyCheckGo": "Kiểm tra",
+  "keyCheckWordsOk": "Đúng: đây là 24 từ của két này.",
+  "keyCheckWordsBad": "Không khớp. Kiểm tra từng từ và thứ tự.",
+  "keyCheckPasswordOk": "Đúng mật khẩu.",
+  "keyCheckPasswordBad": "Sai mật khẩu.",
+  "keyCheckNote": "Chỉ so khớp: không hiện, không lưu, không đổi gì."
 }

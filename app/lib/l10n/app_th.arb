@@ -672,5 +672,12 @@
   "syncDriveFull": "Google Drive เต็มแล้ว ล้างพื้นที่แล้วลองอีกครั้ง",
   "syncDriveRepaired": "{count, plural, other{Google Drive ทำไฟล์หายหรือเสียหาย {count} ไฟล์ ส่งใหม่แล้ว}}",
   "syncDriveUnrepaired": "{count, plural, other{มี {count} รายการที่ไม่มีสำเนาที่ดีในอุปกรณ์นี้ ซิงค์จากอุปกรณ์อื่นที่มีอยู่}}",
-  "pinWiped": "ใส่ PIN ผิด 10 ครั้ง: ลบ PIN แล้ว เปิดด้วยรหัสผ่าน แล้วตั้ง PIN ใหม่"
+  "pinWiped": "ใส่ PIN ผิด 10 ครั้ง: ลบ PIN แล้ว เปิดด้วยรหัสผ่าน แล้วตั้ง PIN ใหม่",
+  "keyCheckRow": "ตรวจสอบ 24 คำและรหัสผ่าน",
+  "keyCheckGo": "ตรวจสอบ",
+  "keyCheckWordsOk": "ถูกต้อง: นี่คือ 24 คำของตู้เซฟนี้",
+  "keyCheckWordsBad": "ไม่ตรงกัน ตรวจสอบแต่ละคำและลำดับ",
+  "keyCheckPasswordOk": "รหัสผ่านถูกต้อง",
+  "keyCheckPasswordBad": "รหัสผ่านไม่ถูกต้อง",
+  "keyCheckNote": "แค่เทียบเท่านั้น ไม่แสดง ไม่เก็บ ไม่เปลี่ยนแปลงอะไร"
 }

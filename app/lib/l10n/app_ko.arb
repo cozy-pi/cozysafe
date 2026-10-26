@@ -672,5 +672,12 @@
   "syncDriveFull": "Google Drive 용량이 가득 찼습니다. 공간을 확보한 뒤 다시 시도하세요.",
   "syncDriveRepaired": "{count, plural, other{Google Drive에서 파일 {count}개가 없어졌거나 손상되었습니다. 다시 보냈습니다.}}",
   "syncDriveUnrepaired": "{count, plural, other{항목 {count}개는 이 기기에 정상 사본이 없습니다. 사본이 있는 다른 기기에서 동기화하세요.}}",
-  "pinWiped": "PIN을 10번 틀려 PIN이 삭제되었습니다. 비밀번호로 연 다음 PIN을 다시 설정하세요."
+  "pinWiped": "PIN을 10번 틀려 PIN이 삭제되었습니다. 비밀번호로 연 다음 PIN을 다시 설정하세요.",
+  "keyCheckRow": "24개 단어와 비밀번호 확인",
+  "keyCheckGo": "확인",
+  "keyCheckWordsOk": "맞습니다: 이 금고의 24개 단어입니다.",
+  "keyCheckWordsBad": "일치하지 않습니다. 각 단어와 순서를 확인하세요.",
+  "keyCheckPasswordOk": "비밀번호가 맞습니다.",
+  "keyCheckPasswordBad": "비밀번호가 틀렸습니다.",
+  "keyCheckNote": "비교만 합니다. 아무것도 표시, 저장, 변경하지 않습니다."
 }

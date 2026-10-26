@@ -672,5 +672,12 @@
   "syncDriveFull": "Google 云端硬盘已满。请先释放空间再试。",
   "syncDriveRepaired": "{count, plural, other{Google 云端硬盘丢失或损坏了 {count} 个文件，已重新发送。}}",
   "syncDriveUnrepaired": "{count, plural, other{有 {count} 个项目在本设备上没有完好的副本。请从拥有它们的其他设备同步。}}",
-  "pinWiped": "PIN 错误 10 次：已移除 PIN。请用密码打开，然后重新设置 PIN。"
+  "pinWiped": "PIN 错误 10 次：已移除 PIN。请用密码打开，然后重新设置 PIN。",
+  "keyCheckRow": "检查 24 个单词和密码",
+  "keyCheckGo": "检查",
+  "keyCheckWordsOk": "正确：这是此保险箱的 24 个单词。",
+  "keyCheckWordsBad": "不匹配。请检查每个单词及其顺序。",
+  "keyCheckPasswordOk": "密码正确。",
+  "keyCheckPasswordBad": "密码错误。",
+  "keyCheckNote": "仅作比对：不会显示、保存或更改任何内容。"
 }
