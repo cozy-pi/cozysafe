@@ -535,3 +535,20 @@ everywhere, easy to hit with a thumb.
   inside a group the header drops Settings to make room.
 - **Recently deleted** says that tapping an item restores or deletes it.
 - Persona review that led to these (2026-10-21) and what is left: `docs/decisions.md`.
+
+## Quick tour (mockup 2026-10-26, waiting for the owner)
+
+- After a vault is created (PIN, Face ID and the look done), once the vault has opened, a
+  page of cards (`lib/screens/tour.dart`): Add · Tap, hold, select · Stay safe · Keep a
+  second copy · Worth a look. Swipe or Next; dots show where you are; Skip on the left of
+  the bottom row on every card but the last (Done). Pictures are the app's own pieces (the
+  + bar and its row of ways, the preview's bar, the item menu, the Select pill, Settings
+  tiles), never drawings.
+- "Keep a second copy" has a full-width "Set up sync now" (Settings, then Sync on top, so
+  Back lands in Settings) and "Later" as the way on.
+- "Worth a look" rows are Settings rows (same tile and colour, `SettingsSpot`): a tap opens
+  Settings scrolled to that row, lit for a moment.
+- After a restore (backup file, another device, Google Drive) only Add, Tap/hold/select and
+  Worth a look: the person just used the 24 words and the password, and the vault came from
+  its second copy.
+- Settings → About → Quick tour opens it again.

@@ -42,6 +42,7 @@ import '../widgets/native_bar.dart';
 import 'overview.dart';
 import 'search.dart';
 import 'settings.dart';
+import 'tour.dart';
 import 'trash.dart';
 import 'unlock.dart';
 import 'video_view.dart';
@@ -62,10 +63,12 @@ class VaultHomeScreen extends StatefulWidget {
   static bool debugReveal = true;
 
 
-  const VaultHomeScreen({super.key, required this.libraryDir, required this.vault});
+  const VaultHomeScreen({super.key, required this.libraryDir, required this.vault, this.tour});
 
   final String libraryDir;
   final rust.VaultInfo vault;
+  /// Just made or restored here: the quick tour shows once the vault has opened.
+  final TourKind? tour;
 
   @override
   State<VaultHomeScreen> createState() => _VaultHomeScreenState();
@@ -155,6 +158,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _touch();
     if (_revealOn) _reveal.forward();
+    if (widget.tour case final kind?) {
+      // After the vault's icon has come and gone, so the tour opens on the vault itself.
+      Future<void>.delayed(Duration(milliseconds: _revealOn ? 1500 : 400), () => _showTour(kind));
+    }
+  }
+
+  /// The quick tour; a setting picked there opens in Settings (Sync: its page).
+  Future<void> _showTour(TourKind kind) async {
+    if (!mounted || _locked) return;
+    final spot = await showTour(context, kind: kind, icon: _vault.icon, color: _vault.color);
+    if (spot != null && mounted && !_locked) _openSettings(focus: spot);
   }
 
   /// Which vault just opened: on the plain page, its icon comes in as the unlock effect
@@ -673,7 +687,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!_locked && changed != false) _reload();
   }
 
-  Future<void> _openSettings() async {
+  Future<void> _openSettings({SettingsSpot? focus}) async {
     final l = AppLocalizations.of(context);
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => SettingsScreen(
@@ -690,6 +704,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         onOpenTrash: _openTrash,
         onNewVault: _newVault,
         onSynced: _reload,
+        focus: focus,
       ),
     ));
     if (!_locked) {

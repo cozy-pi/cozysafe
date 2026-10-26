@@ -4,6 +4,18 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.72 (2026-10-26)
+
+### Added
+- A short tour right after you create a vault: how to add things (the + button), how to
+  open them (tap to open, hold for more, Select to pick many), what keeps the vault safe
+  (it locks when you leave the app; your 24 words and password are the only way back on a
+  new phone), and why to keep a second copy, with a "Set up sync now" button. The last card
+  lists the settings worth a look; tap one to go straight to it. Skip it any time.
+- After restoring a vault on a new device, a shorter tour of three cards (adding, opening,
+  settings).
+- Settings → About → Quick tour shows the tour again.
+
 ## 0.1.69 (2026-10-25)
 
 ### Security
