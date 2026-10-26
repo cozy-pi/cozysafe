@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.75 (2026-10-26)
+
+### Fixed
+- A sync no longer gets cut because the vault locked itself for lack of touches: while a
+  sync waits or runs, the auto-lock waits too, and the screen stays on (also while waiting
+  for a nearby device). Leaving the app still locks as set.
+
 ## 0.1.74 (2026-10-26)
 
 ### Added
