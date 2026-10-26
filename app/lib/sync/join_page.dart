@@ -18,7 +18,7 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
   final l = AppLocalizations.of(context);
   final address = sync.p2PCodeAddress(code: code);
   if (address == null) return;
-  if (!await allowConnection(context, l.syncAllowJoin(address))) return;
+  if (!await allowConnection(context, l.syncAllowJoin)) return;
   final name = await deviceName();
   if (!context.mounted) return;
   final route = MaterialPageRoute<void>(
@@ -29,7 +29,7 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
         child: SyncProgress(
           events: sync.p2PJoin(code: code, name: name),
           onSynced: onSynced,
-          waiting: Builder(builder: (context) => _Connecting(address: address)),
+          waiting: const _Connecting(),
         ),
       ),
     ),
@@ -190,8 +190,7 @@ class _ScanCodePageState extends State<ScanCodePage> with VaultLockAware {
 
 /// Right after Allow, until the other device has proved the vault.
 class _Connecting extends StatelessWidget {
-  const _Connecting({required this.address});
-  final String address;
+  const _Connecting();
 
   @override
   Widget build(BuildContext context) => Column(
@@ -199,7 +198,7 @@ class _Connecting extends StatelessWidget {
         children: [
           const CircularProgressIndicator(),
           const SizedBox(height: 18),
-          Text(AppLocalizations.of(context).syncConnectingTo(address),
+          Text(AppLocalizations.of(context).syncConnectingTo,
               textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
         ],
       );

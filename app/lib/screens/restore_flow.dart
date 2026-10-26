@@ -153,7 +153,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
       showToast(context, l10n.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    if (!await allowConnection(context, l10n.syncAllowFindRestore(address)) || !mounted) return;
+    if (!await allowConnection(context, l10n.syncAllowFindRestore) || !mounted) return;
     final name = await deviceName();
     if (!mounted) return;
     final l = l10n;
@@ -191,7 +191,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
     final l = AppLocalizations.of(context);
     final address = sync.p2PCodeAddress(code: code);
     if (address == null) return;
-    if (!await allowConnection(context, l.syncAllowJoin(address))) return;
+    if (!await allowConnection(context, l.syncAllowJoin)) return;
     final name = await deviceName();
     if (!context.mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(

@@ -1,5 +1,5 @@
-// Nearby sync pairs like Bluetooth (owner 2026-10-26): both screens ask "Sync with …?"
-// next to the same number, several devices are listed by name, and a Cancel on the other
+// Nearby sync pairs like Bluetooth (owner 2026-10-26): both screens name the other
+// device next to the same number and sync by themselves after 5 seconds unless cancelled, several devices are listed by name, and a Cancel on the other
 // device is said so.
 
 import 'package:cozysafe/l10n/app_localizations.dart';
@@ -52,28 +52,43 @@ void main() {
   setUpAll(() => RustLib.initMock(api: _fake = _Fake()));
   setUp(() => _fake.answers.clear());
 
-  testWidgets('the card names the other device and shows the number to compare', (t) async {
+  testWidgets('the card names the other device, shows the number and counts down', (t) async {
     await t.pumpWidget(app(Stream.value(ev(SyncStep.confirm, name: 'iPhone 15 Pro Max', check: 47))));
     await t.pump();
-    expect(find.text('Sync with iPhone 15 Pro Max?'), findsOneWidget);
+    expect(find.text('Connected to iPhone 15 Pro Max'), findsOneWidget);
     // Three digits, as on the other screen.
     expect(find.text('Code: 047'), findsOneWidget);
-    expect(find.text('Check that the other device shows the same number.'), findsOneWidget);
-    expect(find.byKey(const ValueKey('sync-confirm-yes')), findsOneWidget);
+    expect(find.text('Syncing in 5 s'), findsOneWidget);
+    // Cancel is the one button: no Sync to tap (owner 2026-10-26).
     expect(find.byKey(const ValueKey('sync-confirm-no')), findsOneWidget);
+    expect(find.byKey(const ValueKey('sync-confirm-yes')), findsNothing);
+    await t.pump(const Duration(seconds: 1));
+    expect(find.text('Syncing in 4 s'), findsOneWidget);
+    expect(_fake.answers, isEmpty);
   });
 
-  testWidgets('after Sync it waits for the other device; the buttons go', (t) async {
+  testWidgets('after 5 seconds it says yes by itself and waits for the other device', (t) async {
     await t.pumpWidget(app(Stream.value(ev(SyncStep.confirm, name: 'iPad', check: 472))));
     await t.pump();
-    await t.tap(find.byKey(const ValueKey('sync-confirm-yes')));
-    await t.pump();
+    for (var i = 0; i < 5; i++) {
+      await t.pump(const Duration(seconds: 1));
+    }
     expect(_fake.answers, [true]);
     expect(find.text('Waiting for iPad…'), findsOneWidget);
-    expect(find.text('Tap Sync on the other device too.'), findsOneWidget);
-    expect(find.byKey(const ValueKey('sync-confirm-yes')), findsNothing);
+    expect(find.byKey(const ValueKey('sync-confirm-no')), findsNothing);
     // Cancel stays, to stop waiting.
     expect(find.byKey(const ValueKey('sync-cancel')), findsOneWidget);
+  });
+
+  testWidgets('Cancel during the count says no, and the count stops', (t) async {
+    await t.pumpWidget(app(Stream.value(ev(SyncStep.confirm, name: 'iPad', check: 472))));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('sync-confirm-no')));
+    await t.pump();
+    for (var i = 0; i < 6; i++) {
+      await t.pump(const Duration(seconds: 1));
+    }
+    expect(_fake.answers, [false]);
   });
 
   testWidgets('a Cancel on the other device is said so', (t) async {
@@ -105,8 +120,14 @@ void main() {
   testWidgets('a new device asking to restore is named, with the number', (t) async {
     await t.pumpWidget(app(Stream.value(ev(SyncStep.askRestore, name: 'iPhone 16', check: 318))));
     await t.pump();
-    expect(find.text('Let iPhone 16 restore this vault?'), findsOneWidget);
+    expect(find.text('Connected to iPhone 16'), findsOneWidget);
     expect(find.text('Code: 318'), findsOneWidget);
+    // Same as a sync: it goes on by itself; the handshake, not a tap, keeps the vault safe.
+    expect(find.text('Syncing in 5 s'), findsOneWidget);
+    for (var i = 0; i < 5; i++) {
+      await t.pump(const Duration(seconds: 1));
+    }
+    expect(_fake.answers, [true]);
   });
 
   test('device names: the model, the maker once', () {

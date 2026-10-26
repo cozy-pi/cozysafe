@@ -63,7 +63,7 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    if (!await allowConnection(context, l.syncAllowNearby(address)) || !mounted) return;
+    if (!await allowConnection(context, l.syncAllowNearby) || !mounted) return;
     await pushPage<void>(context,
         title: l.syncRow,
         builder: (_) => NearbyPage(address: address, mirror: '${widget.libraryDir}-sync', onSynced: _synced));
@@ -227,12 +227,12 @@ class _LogRow extends StatelessWidget {
     final day = when.year == DateTime.now().year ? DateFormat.MMMd(tag) : DateFormat.yMMMd(tag);
     final date = '${day.format(when)} ${DateFormat.Hm(tag).format(when)}';
     // Since 0.1.73 the other device's name; before, its address (or "-" when this one
-    // showed the code).
-    final address = RegExp(r'^[0-9.]+$').hasMatch(p[2]);
+    // showed the code). An address is never shown: it says nothing to the person.
+    final address = RegExp(r'^[0-9.:a-fA-F]+$').hasMatch(p[2]) && !RegExp(r'^[a-zA-Z]+$').hasMatch(p[2]);
     final title = switch (p[1]) {
       'drive' => l.syncLogDrive,
       _ when p[2] == '-' => p[1] == 'host' ? l.syncLogHost : l.syncLogNearby,
-      _ when address => l.syncLogJoin(p[2]),
+      _ when address => l.syncLogNearby,
       _ => p[2],
     };
     final (outcome, ok) = switch (p[3]) {

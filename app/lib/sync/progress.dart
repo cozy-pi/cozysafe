@@ -65,6 +65,13 @@ class _SyncProgressState extends State<SyncProgress>
   List<String> _peerIds = const [];
   /// The person picked one of several: it is connecting.
   bool _picked = false;
+  /// Seconds left before "Sync with …?" or "Let … restore?" answers itself (owner
+  /// 2026-10-26: the number shows, the sync starts on its own, Cancel stops it). Safety
+  /// is in the handshake, not in the tap: only a device with the 24 words gets the lock,
+  /// and only one that proves the Master Key gets an item (ADR 0003).
+  static const autoSeconds = 5;
+  int _left = 0;
+  Timer? _auto;
 
   static const _running = {
     sync.SyncStep.askRestore,
@@ -145,12 +152,17 @@ class _SyncProgressState extends State<SyncProgress>
       }
       setState(() {
         if (_last?.kind != e.kind) _samples.clear();
+        final asks = (e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) && _last?.kind != e.kind;
+        if (e.kind != sync.SyncStep.askRestore && e.kind != sync.SyncStep.confirm) _stopCountDown();
         _last = e;
         if (e.kind == sync.SyncStep.connected || e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) {
           _check = e.check;
           _name = e.name;
         }
-        if (e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) _answered = false;
+        if (asks) {
+          _answered = false;
+          _countDown();
+        }
         _samples.add((DateTime.now(), e.bytes.toInt(), e.done));
         // A few seconds back is enough for a steady figure.
         final from = DateTime.now().subtract(const Duration(seconds: 4));
@@ -252,6 +264,7 @@ class _SyncProgressState extends State<SyncProgress>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _flow.dispose();
+    _auto?.cancel();
     if (!_over) sync.p2PCancel();
     Awake.set(false);
     _sub?.cancel();
@@ -269,12 +282,32 @@ class _SyncProgressState extends State<SyncProgress>
     _ => l.syncWorking,
   };
 
-  /// A new device restoring with the 24 words asks to come in (host): the number its
-  /// screen shows, and Allow or Don't allow. Nothing is served before Allow.
+  /// A new device restoring with the 24 words asks to come in (host): its name and the
+  /// number its screen shows; it goes on by itself after [autoSeconds] unless cancelled.
   /// The number both screens show, to compare.
   String get _number => (_check ?? 0).toString().padLeft(3, '0');
 
+  void _countDown() {
+    _auto?.cancel();
+    _left = autoSeconds;
+    _auto = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return t.cancel();
+      if (_left <= 1) {
+        t.cancel();
+        _answer(true);
+      } else {
+        setState(() => _left--);
+      }
+    });
+  }
+
+  void _stopCountDown() {
+    _auto?.cancel();
+    _auto = null;
+  }
+
   void _answer(bool yes) {
+    _stopCountDown();
     setState(() => _answered = true);
     try {
       sync.p2PAnswer(yes: yes);
@@ -288,12 +321,13 @@ class _SyncProgressState extends State<SyncProgress>
       children: [
         Icon(Icons.phonelink_lock_rounded, size: 44, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 14),
-        Text(_name.isEmpty ? l.syncRestoreAllowTitle : l.syncRestoreAllowName(_name),
+        Text(_name.isEmpty ? l.syncRestoreAllowTitle : l.syncConnectedTo(_name),
             textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const SizedBox(height: 18),
         _Number(key: const ValueKey('sync-allow-check'), text: l.syncConfirmNumber(_number)),
         const SizedBox(height: 8),
         Text(l.syncConfirmHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+        if (!_answered) _autoLine(l, c),
         if (_answered) ...[
           const SizedBox(height: 24),
           const SizedBox(width: 160, child: LinearProgressIndicator()),
@@ -302,8 +336,8 @@ class _SyncProgressState extends State<SyncProgress>
     );
   }
 
-  /// Connected to a device that proved this vault: "Sync with …?" next to the number both
-  /// screens show; the buttons are at the bottom. After Sync, it waits for the other.
+  /// Connected to a device that proved this vault: its name and the number both screens
+  /// show; the sync starts by itself after [autoSeconds], Cancel at the bottom stops it.
   Widget _confirmCard(AppLocalizations l, CsColors c) {
     final name = _name.isEmpty ? 'Cozy Safe' : _name;
     return Column(
@@ -312,13 +346,15 @@ class _SyncProgressState extends State<SyncProgress>
       children: [
         Icon(deviceIcon(_name), size: 52, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 14),
-        Text(_answered ? l.syncConfirmWaiting(name) : l.syncConfirmTitle(name),
+        Text(_answered ? l.syncConfirmWaiting(name) : l.syncConnectedTo(name),
             key: const ValueKey('sync-confirm-title'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.25)),
         const SizedBox(height: 22),
         _Number(key: const ValueKey('sync-check'), text: l.syncConfirmNumber(_number)),
         const SizedBox(height: 12),
-        Text(_answered ? l.syncConfirmWaitingNote : l.syncConfirmHint,
-            textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+        if (!_answered) ...[
+          Text(l.syncConfirmHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+          _autoLine(l, c),
+        ],
         if (_answered) ...[
           const SizedBox(height: 24),
           const SizedBox(width: 160, child: LinearProgressIndicator()),
@@ -326,6 +362,13 @@ class _SyncProgressState extends State<SyncProgress>
       ],
     );
   }
+
+  /// "Syncing in 5 s", counting down.
+  Widget _autoLine(AppLocalizations l, CsColors c) => Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Text(l.syncAutoIn(_left), key: const ValueKey('sync-auto'),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
+      );
 
   /// Several devices with this vault: the person picks one (names come from a sealed
   /// handshake with each; "Another device with this vault" until then).
@@ -528,13 +571,6 @@ class _SyncProgressState extends State<SyncProgress>
               _Number(key: const ValueKey('sync-check'), text: l.syncConfirmNumber(_number)),
               const SizedBox(height: 8),
               Text(l.syncConfirmHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
-              if (widget.restoring) ...[
-                const SizedBox(height: 10),
-                Text(l.restoreTapAllow,
-                    key: const ValueKey('sync-tap-allow'),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.35)),
-              ],
               const SizedBox(height: 28),
               const SizedBox(width: 160, child: LinearProgressIndicator()),
               if (!widget.restoring) ...[
@@ -587,44 +623,16 @@ class _SyncProgressState extends State<SyncProgress>
       child: Column(
         children: [
           Expanded(child: Center(child: SingleChildScrollView(child: body))),
-          if (e?.kind == sync.SyncStep.askRestore && !_answered)
-            // A new device restoring: Allow or Don't allow, at the bottom as for Sync.
-            Row(children: [
-              Expanded(
-                child: OutlinedButton(
-                  key: const ValueKey('sync-allow-no'),
-                  onPressed: () => _answer(false),
-                  child: Text(l.syncRestoreAllowNo),
-                ),
+          if ((e?.kind == sync.SyncStep.askRestore || e?.kind == sync.SyncStep.confirm) && !_answered)
+            // It goes on by itself; Cancel is the one button, within the thumb's reach.
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                key: const ValueKey('sync-confirm-no'),
+                onPressed: () => _answer(false),
+                child: Text(l.cancel),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  key: const ValueKey('sync-allow-yes'),
-                  onPressed: () => _answer(true),
-                  child: Text(l.syncRestoreAllowYes),
-                ),
-              ),
-            ])
-          else if (e?.kind == sync.SyncStep.confirm && !_answered)
-            // Both buttons within the thumb's reach; Sync only counts once both said it.
-            Row(children: [
-              Expanded(
-                child: OutlinedButton(
-                  key: const ValueKey('sync-confirm-no'),
-                  onPressed: () => _answer(false),
-                  child: Text(l.cancel),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  key: const ValueKey('sync-confirm-yes'),
-                  onPressed: () => _answer(true),
-                  child: Text(l.syncConfirmYes),
-                ),
-              ),
-            ])
+            )
           else
           SizedBox(
             width: double.infinity,
