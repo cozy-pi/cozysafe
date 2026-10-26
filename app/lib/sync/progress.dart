@@ -384,7 +384,15 @@ class _SyncProgressState extends State<SyncProgress>
       const SizedBox(height: 10),
       if (e.total > 0 || e.done > 0)
         Row(children: [
-          Text(e.total > 0 ? l.syncItems(e.done, e.total) : l.syncItemsSoFar(e.done), key: const ValueKey('sync-items'), style: small),
+          Text(
+              // While looking, what counts is the other devices' change lists read so far.
+              e.kind == sync.SyncStep.checking && e.total > 0
+                  ? '${e.done} / ${e.total}'
+                  : e.total > 0
+                      ? l.syncItems(e.done, e.total)
+                      : l.syncItemsSoFar(e.done),
+              key: const ValueKey('sync-items'),
+              style: small),
           const Spacer(),
           if (e.kind != sync.SyncStep.removing)
           Text(

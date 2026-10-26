@@ -36,6 +36,7 @@ pub struct SyncEvent {
     pub moved: u32,
 }
 
+#[derive(Debug)]
 pub enum SyncStep {
     /// The other device proved it holds this vault.
     Connected,
@@ -471,18 +472,35 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
     STOP.store(false, Ordering::Relaxed);
     let token = zeroize::Zeroizing::new(token);
     let _ = sink.add(step(SyncStep::Checking));
+    // How long each step takes, in Debug's log (owner 2026-10-26: "Looking at Google
+    // Drive" was slow after a while without syncing; the log says where the time goes).
+    let started = std::time::Instant::now();
+    let last = Mutex::new(String::new());
+    let mark = |what: String| {
+        let mut l = last.lock().unwrap_or_else(|p| p.into_inner());
+        if *l != what {
+            let ms = started.elapsed().as_millis();
+            super::vault::debug_line(|| format!("drive: {what} from {ms} ms"));
+            *l = what;
+        }
+    };
     let remote = GoogleDrive::new(Permit::google_drive(), token.to_string())
         .and_then(|api| {
             DriveRemote::open_with(api, &|s| {
-                let _ = sink.add(setup_event(s));
+                let e = setup_event(s);
+                mark(format!("{:?}", e.kind));
+                let _ = sink.add(e);
             })
         })
         .map(|r| r.stop_on(&STOP));
+    mark("opened".into());
     let event = match remote {
         Err(e) => drive_failure(e),
         Ok(remote) => match with_open(|v| {
             Ok(v.sync_with(&remote, &|p| {
-                let _ = sink.add(progress_event(p));
+                let e = progress_event(p);
+                mark(format!("{:?}", e.kind));
+                let _ = sink.add(e);
             }))
         }) {
             Ok(Ok(r)) => SyncEvent {
@@ -493,6 +511,7 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
             Err(_) => step(SyncStep::Locked),
         },
     };
+    mark(format!("end {:?}", event.kind));
     log_event("drive", Some("Google Drive"), &event);
     let _ = sink.add(event);
 }

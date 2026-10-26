@@ -19,7 +19,7 @@ static SECRET: Mutex<Option<SecretKey>> = Mutex::new(None);
 /// `None` (nothing kept) unless the app's debug mode turns it on.
 static DEBUG_LOG: Mutex<Option<std::collections::VecDeque<String>>> = Mutex::new(None);
 
-fn debug_line(line: impl FnOnce() -> String) {
+pub(crate) fn debug_line(line: impl FnOnce() -> String) {
     let mut log = DEBUG_LOG.lock().unwrap_or_else(|p| p.into_inner());
     if let Some(q) = log.as_mut() {
         if q.len() >= 500 {
