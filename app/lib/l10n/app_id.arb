@@ -647,7 +647,6 @@
   "trashEmptyTitle": "Tidak ada yang dihapus",
   "trashEmptyBody": "Yang Anda hapus tetap di sini selama 30 hari, jadi masih bisa dikembalikan.",
   "trashHint": "Ketuk item untuk melihatnya. Tahan lalu seret untuk memilih beberapa.",
-  "tourRow": "Tur singkat",
   "tourSkip": "Lewati",
   "tourNext": "Berikutnya",
   "tourLater": "Nanti",
@@ -668,5 +667,14 @@
   "tipLockTitle": "Terkunci sendiri",
   "tipLockBody": "Keluar dari aplikasi mengunci brankas. Kapan terkunci jika tidak dipakai diatur di Pengaturan.",
   "tipLockButtonBody": "Keluar dari aplikasi mengunci brankas. Ketuk di sini untuk menguncinya sekarang.",
-  "tipLockHoldBody": "Keluar dari aplikasi mengunci brankas. Tahan di sini untuk menguncinya sekarang."
+  "tipLockHoldBody": "Keluar dari aplikasi mengunci brankas. Tahan di sini untuk menguncinya sekarang.",
+  "settingsHelp": "Bantuan & panduan",
+  "userGuide": "Panduan pengguna",
+  "lockOnLeave": "Kunci begitu saya keluar dari aplikasi",
+  "autoLockNoteAway": "Waktu di luar aplikasi juga dihitung.",
+  "tipLockAwayBody": "Brankas terkunci setelah beberapa menit tidak dipakai, juga saat Anda berada di luar aplikasi. Ubah di Pengaturan.",
+  "tipSyncBody": "Simpan brankas di perangkat lain atau di Google Drive, agar tidak ikut hilang saat ponsel hilang.",
+  "tipSecurityBody": "Cara brankas dibuka dan dikunci, serta apa yang tetap tersembunyi di layar. Apa pun yang membuatnya kurang aman meminta konfirmasi bahwa itu Anda.",
+  "tipBackupBody": "Satu file terenkripsi berisi seluruh brankas. Membukanya di ponsel baru perlu 24 kata dan kata sandi Anda.",
+  "tipGuideBody": "Lihat lagi tips ini kapan saja."
 }

@@ -647,7 +647,6 @@
   "trashEmptyTitle": "Silinen bir şey yok",
   "trashEmptyBody": "Sildikleriniz 30 gün burada kalır, böylece geri alabilirsiniz.",
   "trashHint": "Görmek için bir öğeye dokunun. Birkaçını seçmek için basılı tutup sürükleyin.",
-  "tourRow": "Kısa tur",
   "tourSkip": "Atla",
   "tourNext": "İleri",
   "tourLater": "Sonra",
@@ -668,5 +667,14 @@
   "tipLockTitle": "Kendiliğinden kilitlenir",
   "tipLockBody": "Uygulamadan çıkınca kasa kilitlenir. Kullanılmadığında ne zaman kilitleneceğini Ayarlar'da seçersiniz.",
   "tipLockButtonBody": "Uygulamadan çıkınca kasa kilitlenir. Hemen kilitlemek için buraya dokunun.",
-  "tipLockHoldBody": "Uygulamadan çıkınca kasa kilitlenir. Hemen kilitlemek için burayı basılı tutun."
+  "tipLockHoldBody": "Uygulamadan çıkınca kasa kilitlenir. Hemen kilitlemek için burayı basılı tutun.",
+  "settingsHelp": "Yardım ve kılavuz",
+  "userGuide": "Kullanım kılavuzu",
+  "lockOnLeave": "Uygulamadan çıkınca hemen kilitle",
+  "autoLockNoteAway": "Uygulama dışında geçen süre de sayılır.",
+  "tipLockAwayBody": "Kasa birkaç dakika kullanılmayınca kilitlenir; uygulamanın dışındayken de. Bunu Ayarlar'dan değiştirin.",
+  "tipSyncBody": "Kasayı diğer cihazlarınızda veya Google Drive'da tutun; telefonu kaybetmek kasayı kaybetmek olmasın.",
+  "tipSecurityBody": "Kasanın nasıl açılıp kilitlendiği ve ekranda neyin gizli kaldığı. Daha az güvenli yapan her değişiklik önce siz olduğunuzu doğrular.",
+  "tipBackupBody": "Kasanın tamamını içeren tek bir şifreli dosya. Yeni bir telefonda açmak için 24 kelimeniz ve parolanız gerekir.",
+  "tipGuideBody": "Bu ipuçlarına istediğiniz zaman yeniden bakın."
 }

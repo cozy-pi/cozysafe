@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderAbstractViewport;
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -25,6 +28,7 @@ import '../widgets/vault_bar.dart';
 import 'delete_vault.dart';
 import 'file_view.dart';
 import 'set_pin.dart';
+import 'tour.dart';
 import '../sync/sync_screen.dart';
 
 /// Per-device choices, kept next to the library (not secret).
@@ -40,6 +44,14 @@ abstract final class Settings {
   }
 
   static set autoLockMinutes(int m) => Prefs.write(_autoLock, '$m');
+
+  static const _lockOnLeave = 'lock-on-leave';
+
+  /// Leaving the app locks the vault at once (on by default). Off, the vault locks once
+  /// the app has been away for [autoLockMinutes] (vault_home.dart, AwayClock); turning it
+  /// off asks for the owner (docs/security.md).
+  static bool get lockOnLeave => Prefs.read(_lockOnLeave) != '0';
+  static set lockOnLeave(bool on) => Prefs.write(_lockOnLeave, on ? '1' : '0');
 
   /// Keep the vault out of screenshots and recordings: Android FLAG_SECURE (and the
   /// recent-apps preview), iPhone a secure layer (AppDelegate.swift). On by default.
@@ -115,12 +127,19 @@ class SettingsScreen extends StatefulWidget {
     required this.onNewVault,
     this.onSynced,
     this.focus,
+    this.guideFrom,
     this.onTour,
   });
 
-  /// Quick tour: its tips are on the vault's page, so Settings closes and the vault's
-  /// page runs it.
+  /// User guide: its first tips are on the vault's page, so Settings closes and the
+  /// vault's page runs it; it comes back here for the rest ([guideFrom]).
   final VoidCallback? onTour;
+
+  /// The User guide goes on here after this many tips on the vault's page.
+  final int? guideFrom;
+
+  /// How many User guide tips are in Settings ([_SettingsScreenState._guideTips]).
+  static int get guideTipCount => kIsWeb ? 3 : 4;
 
   /// Opened from the quick tour: scroll to this setting and light it up (Sync: open it).
   final SettingsSpot? focus;
@@ -151,6 +170,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   int _minutes = Settings.autoLockMinutes;
   bool _secure = Settings.blockScreenshots;
+  bool _lockOnLeave = Settings.lockOnLeave;
   final Map<String, BigInt> _byKind = {};
   int _count = 0;
 
@@ -162,6 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _measure();
     _loadLastSync();
     if (widget.focus case final spot?) WidgetsBinding.instance.addPostFrameCallback((_) => _goTo(spot));
+    if (widget.guideFrom case final from?) WidgetsBinding.instance.addPostFrameCallback((_) => _guide(from));
     if (widget.canBiometric) {
       BiometricUnlock.available().then((k) {
         if (mounted && k != null) setState(() => _bioKind = k);
@@ -307,7 +328,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           enabled: false,
           child: SizedBox(
             width: 200,
-            child: Text(l.autoLockNote, style: TextStyle(color: CsColors.of(context).muted, fontSize: 12.5)),
+            child: Text(_lockOnLeave ? l.autoLockNote : l.autoLockNoteAway, style: TextStyle(color: CsColors.of(context).muted, fontSize: 12.5)),
           ),
         ),
       ],
@@ -406,21 +427,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _goTo(SettingsSpot spot) async {
     if (!mounted) return;
     if (spot == SettingsSpot.sync) return _openSync();
-    // Rows far down are not built yet: move down a screen at a time until it is.
-    var row = _spotKeys[spot]!.currentContext;
+    final row = await _build(_spotKeys[spot]!);
+    if (row == null || !row.mounted || !mounted) return;
+    setState(() => _lit = spot);
+    await Scrollable.ensureVisible(row, alignment: .4, duration: const Duration(milliseconds: 400), curve: Curves.easeOutCubic);
+    await Future<void>.delayed(const Duration(milliseconds: 1600));
+    if (mounted && _lit == spot) setState(() => _lit = null);
+  }
+
+  /// [key]'s widget, built: rows far down are not built yet, so the list moves down a
+  /// screen at a time until it is.
+  Future<BuildContext?> _build(GlobalKey key) async {
+    var row = key.currentContext;
     for (var i = 0; row == null && i < 12 && _scroll.hasClients; i++) {
       final p = _scroll.position;
       if (p.pixels >= p.maxScrollExtent) break;
       _scroll.jumpTo((p.pixels + p.viewportDimension).clamp(0, p.maxScrollExtent));
       await WidgetsBinding.instance.endOfFrame;
-      if (!mounted) return;
-      row = _spotKeys[spot]!.currentContext;
+      if (!mounted) return null;
+      row = key.currentContext;
     }
-    if (row == null || !row.mounted) return;
-    setState(() => _lit = spot);
-    await Scrollable.ensureVisible(row, alignment: .4, duration: const Duration(milliseconds: 400), curve: Curves.easeOutCubic);
-    await Future<void>.delayed(const Duration(milliseconds: 1600));
-    if (mounted && _lit == spot) setState(() => _lit = null);
+    return row != null && row.mounted ? row : null;
+  }
+
+  /// What the User guide points at in Settings.
+  final _syncGroupKey = GlobalKey(debugLabel: 'sync-group');
+  final _securityGroupKey = GlobalKey(debugLabel: 'security-group');
+  final _backupGroupKey = GlobalKey(debugLabel: 'backup-group');
+  final _guideRowKey = GlobalKey(debugLabel: 'guide-row');
+
+  /// Brings [key]'s widget into view with its top a third of the way down the list,
+  /// so the tip's bubble fits above it (a tall group runs on below the screen).
+  Future<void> _bringUp(GlobalKey key) async {
+    final row = await _build(key);
+    final box = row?.findRenderObject();
+    if (box is! RenderBox || !_scroll.hasClients) return;
+    final p = _scroll.position;
+    final top = RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset;
+    _scroll.jumpTo((top - p.viewportDimension * .3).clamp(p.minScrollExtent, p.maxScrollExtent));
+  }
+
+  /// Where [key]'s widget is on screen, cut to the list's own window.
+  Rect? _visibleRect(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject();
+    final list = _scroll.hasClients ? _scroll.position.context.notificationContext?.findRenderObject() : null;
+    if (box is! RenderBox || !box.attached || !box.hasSize) return null;
+    final r = box.localToGlobal(Offset.zero) & box.size;
+    if (list is! RenderBox || !list.hasSize) return r;
+    final shown = r.intersect(list.localToGlobal(Offset.zero) & list.size);
+    return shown.isEmpty ? null : shown;
+  }
+
+  /// The User guide's tips here, after those on the vault's page (owner 2026-10-26).
+  List<TourTip> _guideTips(AppLocalizations l) {
+    TourTip tip(String id, GlobalKey key, String title, String body) =>
+        TourTip(id: id, target: () => _visibleRect(key), prepare: () => _bringUp(key), title: title, body: body);
+    return [
+      if (!kIsWeb) tip('sync', _syncGroupKey, l.syncTitle, l.tipSyncBody),
+      tip('security', _securityGroupKey, l.settingsSecurity, l.tipSecurityBody),
+      tip('backup', _backupGroupKey, l.settingsBackupData, l.tipBackupBody),
+      tip('guide', _guideRowKey, l.userGuide, l.tipGuideBody),
+    ];
+  }
+
+  /// Runs the rest of the User guide once Settings has slid in.
+  Future<void> _guide(int from) async {
+    final route = ModalRoute.of(context)?.animation;
+    if (route != null && !route.isCompleted) {
+      final done = Completer<void>();
+      void listen(AnimationStatus s) {
+        if (s == AnimationStatus.completed && !done.isCompleted) done.complete();
+      }
+      route.addStatusListener(listen);
+      await done.future.timeout(const Duration(seconds: 2), onTimeout: () {});
+      route.removeStatusListener(listen);
+    }
+    if (!mounted) return;
+    final tips = _guideTips(AppLocalizations.of(context));
+    await showCoachTour(context, tips, first: from, total: from + tips.length);
   }
 
   /// A row the tour can reach: keyed to be found, lit while [_lit].
@@ -451,7 +535,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), byKind: _byKind),
           // First (owner 2026-10-25): syncing is done often and keeps a copy elsewhere.
           if (!kIsWeb)
-            _Group(title: l.syncTitle, rows: [
+            _Group(boxKey: _syncGroupKey, title: l.syncTitle, rows: [
               _Row(
                 key: const ValueKey('sync-row'),
                 icon: SettingsSpot.sync.icon,
@@ -461,6 +545,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: _openSync,
               ),
             ]),
+          // Help near the top, where people look for it (owner 2026-10-26), not under About.
+          _Group(title: l.settingsHelp, rows: [
+            // The guide again: tips on the vault's page, then here.
+            if (widget.onTour != null)
+              KeyedSubtree(
+                key: _guideRowKey,
+                child: _Row(
+                  key: const ValueKey('guide-row'),
+                  icon: Icons.school_outlined,
+                  color: _Mau.vang,
+                  title: l.userGuide,
+                  onTap: _tour,
+                ),
+              ),
+            // Feedback lives on the website; the app only opens it (owner 2026-10-21).
+            _Row(
+              key: const ValueKey('feedback-row'),
+              icon: Icons.chat_bubble_outline_rounded,
+              color: _Mau.xanh,
+              title: l.feedback,
+              onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
+            ),
+          ]),
           _Group(title: l.settingsThisVault, rows: [
             _Row(
               icon: Icons.palette_outlined,
@@ -486,9 +593,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => _then(widget.onOpenTrash),
             ),
           ]),
-          // One Security group (owner 2026-10-21): how it opens every day, how it opens on
-          // a new phone, and what keeps it private while open.
-          _Group(title: l.settingsSecurity, rows: [
+          // Every security setting in one group (owner 2026-10-26): how it opens, when it
+          // locks, what stays hidden on screen, then how it opens on a new phone. Turning
+          // any of them weaker asks for the owner first (docs/security.md).
+          _Group(boxKey: _securityGroupKey, title: l.settingsSecurity, rows: [
             if (widget.canBiometric)
               _Row(
                 icon: Icons.face_retouching_natural,
@@ -519,7 +627,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => _guarded(_pickAutoLock),
               ),
             ),
+            // On: leaving the app locks at once. Off: away counts towards the time above.
+            _Row(
+              key: const ValueKey('lock-on-leave-row'),
+              icon: Icons.exit_to_app_rounded,
+              color: _Mau.troi,
+              title: l.lockOnLeave,
+              trailing: _Switch(
+                value: _lockOnLeave,
+                onChanged: (on) {
+                  void apply() {
+                    setState(() => _lockOnLeave = on);
+                    Settings.lockOnLeave = on;
+                  }
 
+                  on ? apply() : _guarded(() async => apply());
+                },
+              ),
+            ),
+            _Row(
+              key: const ValueKey('hold-home-row'),
+              icon: Icons.lock_outline_rounded,
+              color: _Mau.tim,
+              title: l.holdHomeTitle,
+              trailing: _Switch(
+                value: holdHomeLocks(),
+                onChanged: (on) => setState(() => Prefs.write(holdHomePref, on ? '1' : '0')),
+              ),
+            ),
+            if (Device.android || Device.iOS || Settings.debugIOS)
+              _Row(
+                key: const ValueKey('screenshots-row'),
+                icon: Icons.visibility_off_outlined,
+                color: _Mau.hong,
+                title: l.blockScreenshots,
+                trailing: _Switch(
+                  value: _secure,
+                  // Turning it on only makes the vault safer: no Face ID for that
+                  // (owner 2026-10-24). Turning it off still asks.
+                  onChanged: (v) {
+                    void apply() {
+                      setState(() => _secure = v);
+                      Settings.setBlockScreenshots(v);
+                    }
+
+                    v ? apply() : _guarded(() async => apply());
+                  },
+                ),
+              ),
+            _spot(
+              SettingsSpot.blurThumbs,
+              _Row(
+                key: const ValueKey('blur-row'),
+                icon: SettingsSpot.blurThumbs.icon,
+                color: SettingsSpot.blurThumbs.color,
+                title: l.blurThumbs,
+                trailing: _Switch(
+                  value: blurThumbnails(),
+                  // Turning it on protects more; turning it off asks for the owner.
+                  onChanged: (v) => v
+                      ? setState(() => Prefs.write(blurThumbsPref, '1'))
+                      : _guarded(() async => setState(() => Prefs.write(blurThumbsPref, '0'))),
+                ),
+              ),
+            ),
+            _spot(
+              SettingsSpot.hideNoteText,
+              _Row(
+                icon: SettingsSpot.hideNoteText.icon,
+                color: SettingsSpot.hideNoteText.color,
+                // "Hide", on by default (owner 2026-10-21): the safe state is the on state,
+                // like "Blur thumbnails". The pref keeps its old meaning (1 = show text).
+                key: const ValueKey('hide-note-text-row'),
+                title: l.hideNoteText,
+                trailing: _Switch(
+                  value: !notePreviews(),
+                  // Showing more is weaker: turning "hide" off asks for the owner.
+                  onChanged: (hide) => hide
+                      ? setState(() => Prefs.write(notePreviewsPref, '0'))
+                      : _guarded(() async => setState(() => Prefs.write(notePreviewsPref, '1'))),
+                ),
+              ),
+            ),
             if (vault.hasPassword)
               _Row(
                 key: const ValueKey('kit-row'),
@@ -544,7 +733,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           // Only the backup here (owner 2026-10-21): the Recovery Key and the password,
           // which open it on a new phone, live under Security; the backup sheet names them.
-          _Group(title: l.settingsBackupData, rows: [
+          _Group(boxKey: _backupGroupKey, title: l.settingsBackupData, rows: [
             _Row(
               icon: Icons.cloud_upload_outlined,
               color: _Mau.xanh,
@@ -565,6 +754,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ]),
+          // How it looks and where things are: nothing here protects the vault.
           _Group(title: l.settingsDisplay, rows: [
             _spot(
               SettingsSpot.appearance,
@@ -603,70 +793,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) => setState(() => Prefs.write(actionSidePref, v.name)),
               ),
             ),
-            _Row(
-              key: const ValueKey('hold-home-row'),
-              icon: Icons.lock_outline_rounded,
-              color: _Mau.tim,
-              title: l.holdHomeTitle,
-              trailing: _Switch(
-                value: holdHomeLocks(),
-                onChanged: (on) => setState(() => Prefs.write(holdHomePref, on ? '1' : '0')),
-              ),
-            ),
-            _spot(
-              SettingsSpot.hideNoteText,
-              _Row(
-                icon: SettingsSpot.hideNoteText.icon,
-                color: SettingsSpot.hideNoteText.color,
-                // "Hide", on by default (owner 2026-10-21): the safe state is the on state,
-                // like "Blur thumbnails". The pref keeps its old meaning (1 = show text).
-                key: const ValueKey('hide-note-text-row'),
-                title: l.hideNoteText,
-                trailing: _Switch(
-                  value: !notePreviews(),
-                  // Showing more is weaker: turning "hide" off asks for the owner.
-                  onChanged: (hide) => hide
-                      ? setState(() => Prefs.write(notePreviewsPref, '0'))
-                      : _guarded(() async => setState(() => Prefs.write(notePreviewsPref, '1'))),
-                ),
-              ),
-            ),
-            _spot(
-              SettingsSpot.blurThumbs,
-              _Row(
-                key: const ValueKey('blur-row'),
-                icon: SettingsSpot.blurThumbs.icon,
-                color: SettingsSpot.blurThumbs.color,
-                title: l.blurThumbs,
-                trailing: _Switch(
-                  value: blurThumbnails(),
-                  // Turning it on protects more; turning it off asks for the owner.
-                  onChanged: (v) => v
-                      ? setState(() => Prefs.write(blurThumbsPref, '1'))
-                      : _guarded(() async => setState(() => Prefs.write(blurThumbsPref, '0'))),
-                ),
-              ),
-            ),
-            // With the other privacy-on-screen switches (owner 2026-10-21).
-            if (Device.android || Device.iOS || Settings.debugIOS)
-              _Row(
-                icon: Icons.visibility_off_outlined,
-              color: _Mau.hong,
-                title: l.blockScreenshots,
-                trailing: _Switch(
-                  value: _secure,
-                  // Turning it on only makes the vault safer: no Face ID for that
-                  // (owner 2026-10-24). Turning it off still asks.
-                  onChanged: (v) {
-                    void apply() {
-                      setState(() => _secure = v);
-                      Settings.setBlockScreenshots(v);
-                    }
-
-                    v ? apply() : _guarded(() async => apply());
-                  },
-                ),
-              ),
           ]),
           // One vault in the app (decisions 2026-10-24); another one only in debug mode, for
           // testing (the core keeps several).
@@ -736,22 +862,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: buildCommit.isEmpty ? l.aboutLocal : buildCommitShort,
                 ),
                 _Row(icon: Icons.gavel_rounded, color: _Mau.xam, title: l.aboutLicense, value: 'GPL-3.0'),
-                // The basics again, as shown after the vault was made.
-                if (widget.onTour != null) _Row(
-                  key: const ValueKey('tour-row'),
-                  icon: Icons.school_outlined,
-                  color: _Mau.vang,
-                  title: l.tourRow,
-                  onTap: _tour,
-                ),
-                // Feedback lives on the website; the app only opens it (owner 2026-10-21).
-                _Row(
-                  key: const ValueKey('feedback-row'),
-                  icon: Icons.chat_bubble_outline_rounded,
-                  color: _Mau.xanh,
-                  title: l.feedback,
-                  onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
-                ),
                 if (debugModeOn())
                   _Row(
                     key: _debugRowKey,
@@ -882,9 +992,11 @@ class _VaultCard extends StatelessWidget {
 }
 
 class _Group extends StatelessWidget {
-  const _Group({required this.title, required this.rows});
+  const _Group({required this.title, required this.rows, this.boxKey});
   final String title;
   final List<Widget> rows;
+  /// On the title and its rows (not the space above): what the User guide lights up.
+  final Key? boxKey;
 
   @override
   Widget build(BuildContext context) {
@@ -893,6 +1005,7 @@ class _Group extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 22),
       child: Column(
+        key: boxKey,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(

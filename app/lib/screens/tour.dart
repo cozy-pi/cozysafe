@@ -7,7 +7,9 @@ import '../theme.dart';
 /// device (owner 2026-10-25). A restored vault came from its second copy and was opened
 /// with its 24 words and password a minute ago, so the tips about locking and a second
 /// copy would tell the person what they just did: they get the ones about using it.
-enum TourKind { created, restored }
+/// [guide] is the User guide (Settings, owner 2026-10-26): every tip on the vault's page,
+/// then on into Settings for its own tips (settings.dart).
+enum TourKind { created, restored, guide }
 
 /// One stop of the quick tour: a real widget on the vault's page, and what to say about it.
 class TourTip {
@@ -18,6 +20,7 @@ class TourTip {
     required this.body,
     this.note,
     this.action,
+    this.prepare,
   });
 
   /// Names the bubble in tests (`tip-<id>`).
@@ -30,30 +33,38 @@ class TourTip {
   final String? note;
   /// A button above the others (its label); the tour ends with [TourEnd.action].
   final String? action;
+  /// Run before the tip shows, to bring its widget into view (a row far down Settings).
+  final Future<void> Function()? prepare;
 }
 
-/// How the tour ended: Skip, Done or Later ([done]), or the tip's own button ([action]);
-/// null after Back.
-enum TourEnd { done, action }
+/// How the tour ended: Done or Later ([done]), Skip ([skipped]), or the tip's own button
+/// ([action]); null after Back.
+enum TourEnd { done, skipped, action }
 
 /// Coach marks over the real page (owner 2026-10-26: tips on the screen itself, not
 /// picture cards): the page dims, the widget being explained stays lit in a cut-out, and
 /// a bubble with an arrow says what it does. Next / Skip in the bubble; a tap anywhere
 /// else does nothing, so a stray touch neither skips nor runs ahead. Back ends it.
-Future<TourEnd?> showCoachTour(BuildContext context, List<TourTip> tips) =>
+///
+/// A tour that goes on on another page (the User guide: the vault's page, then Settings)
+/// counts on: [first] tips came before these, [total] in all.
+Future<TourEnd?> showCoachTour(BuildContext context, List<TourTip> tips, {int first = 0, int? total}) =>
     Navigator.of(context).push<TourEnd>(PageRouteBuilder<TourEnd>(
       opaque: false,
       transitionDuration: const Duration(milliseconds: 220),
       reverseTransitionDuration: const Duration(milliseconds: 180),
-      pageBuilder: (_, _, _) => CoachTour(tips: tips),
+      pageBuilder: (_, _, _) => CoachTour(tips: tips, first: first, total: total),
       transitionsBuilder: (context, animation, _, child) => MediaQuery.disableAnimationsOf(context)
           ? child
           : FadeTransition(opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut), child: child),
     ));
 
 class CoachTour extends StatefulWidget {
-  const CoachTour({super.key, required this.tips});
+  const CoachTour({super.key, required this.tips, this.first = 0, this.total});
   final List<TourTip> tips;
+  /// Tips shown before these, on another page; [total] counts them all.
+  final int first;
+  final int? total;
 
   /// For the mockup renders: open on this tip (0-based).
   static int debugStart = 0;
@@ -68,17 +79,31 @@ class _CoachTourState extends State<CoachTour> {
   Rect? _hole;
   /// What [_hole] was measured for: the tip and the screen's size.
   (int, Size)? _measured;
+  /// Being measured now (its widget may first scroll into view).
+  (int, Size)? _measuring;
+
+  int get _total => widget.total ?? widget.first + widget.tips.length;
 
   void _next() {
     if (_at >= widget.tips.length - 1) return Navigator.of(context).pop(TourEnd.done);
     setState(() => _at++);
   }
 
-  void _measure() {
+  Future<void> _measure() async {
     if (!mounted) return;
-    final hole = widget.tips[_at].target()?.inflate(_pad);
-    _measured = (_at, MediaQuery.sizeOf(context));
-    if (hole != _hole) setState(() => _hole = hole);
+    final at = _at;
+    final key = (at, MediaQuery.sizeOf(context));
+    if (_measuring == key) return;
+    _measuring = key;
+    if (widget.tips[at].prepare case final prepare?) {
+      await prepare();
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || _at != at) return;
+    }
+    final hole = widget.tips[at].target()?.inflate(_pad);
+    _measured = key;
+    _measuring = null;
+    setState(() => _hole = hole);
   }
 
   @override
@@ -138,7 +163,10 @@ class _CoachTourState extends State<CoachTour> {
   Widget _bubble(BuildContext context, TourTip tip, Color color) {
     final l = AppLocalizations.of(context);
     final muted = CsColors.of(context).muted;
+    // The last of these tips; the last of all only if no page follows.
     final last = _at == widget.tips.length - 1;
+    final end = widget.first + _at == _total - 1;
+    final n = widget.first + _at + 1;
     const tall = Size(64, Ui.tap);
     return Material(
       key: ValueKey('tip-${tip.id}'),
@@ -168,11 +196,11 @@ class _CoachTourState extends State<CoachTour> {
                   const SizedBox(width: 10),
                   // Where we are: 2/6.
                   Semantics(
-                    label: l.tourStep(_at + 1, widget.tips.length),
+                    label: l.tourStep(n, _total),
                     excludeSemantics: true,
                     child: Padding(
                       padding: const EdgeInsets.only(top: 2),
-                      child: Text('${_at + 1}/${widget.tips.length}',
+                      child: Text('$n/$_total',
                           key: const ValueKey('tip-count'),
                           style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: muted)),
                     ),
@@ -219,12 +247,12 @@ class _CoachTourState extends State<CoachTour> {
             const SizedBox(height: 4),
             Row(
               children: [
-                // Skip on every tip but the last, where Done or Later ends it anyway.
-                if (!last)
+                // Skip on every tip but the very last, where Done or Later ends it anyway.
+                if (!end)
                   TextButton(
                     key: const ValueKey('tip-skip'),
                     style: TextButton.styleFrom(minimumSize: tall, foregroundColor: muted),
-                    onPressed: () => Navigator.of(context).pop(TourEnd.done),
+                    onPressed: () => Navigator.of(context).pop(TourEnd.skipped),
                     child: Text(l.tourSkip),
                   ),
                 const Spacer(),
@@ -240,7 +268,7 @@ class _CoachTourState extends State<CoachTour> {
                     key: const ValueKey('tip-next'),
                     style: FilledButton.styleFrom(minimumSize: const Size(88, Ui.tap), shape: const StadiumBorder()),
                     onPressed: _next,
-                    child: Text(last ? l.tourDone : l.tourNext),
+                    child: Text(end ? l.tourDone : l.tourNext),
                   ),
               ],
             ),

@@ -647,7 +647,6 @@
   "trashEmptyTitle": "Nichts gelöscht",
   "trashEmptyBody": "Was Sie löschen, bleibt 30 Tage hier, damit Sie es zurückholen können.",
   "trashHint": "Tippen Sie auf ein Element, um es anzusehen. Halten und ziehen, um mehrere auszuwählen.",
-  "tourRow": "Kurze Einführung",
   "tourSkip": "Überspringen",
   "tourNext": "Weiter",
   "tourLater": "Später",
@@ -668,5 +667,14 @@
   "tipLockTitle": "Sperrt sich selbst",
   "tipLockBody": "Wenn Sie die App verlassen, wird der Tresor gesperrt. Wann er bei Nichtnutzung sperrt, legen Sie in den Einstellungen fest.",
   "tipLockButtonBody": "Wenn Sie die App verlassen, wird der Tresor gesperrt. Tippen Sie hier, um ihn jetzt zu sperren.",
-  "tipLockHoldBody": "Wenn Sie die App verlassen, wird der Tresor gesperrt. Halten Sie hier, um ihn jetzt zu sperren."
+  "tipLockHoldBody": "Wenn Sie die App verlassen, wird der Tresor gesperrt. Halten Sie hier, um ihn jetzt zu sperren.",
+  "settingsHelp": "Hilfe & Anleitung",
+  "userGuide": "Bedienungsanleitung",
+  "lockOnLeave": "Sperren, sobald ich die App verlasse",
+  "autoLockNoteAway": "Die Zeit außerhalb der App zählt mit.",
+  "tipLockAwayBody": "Der Tresor sperrt nach einigen Minuten ohne Nutzung, auch wenn Sie die App verlassen haben. Ändern Sie das in den Einstellungen.",
+  "tipSyncBody": "Halten Sie den Tresor auf Ihren anderen Geräten oder in Google Drive, damit er mit einem verlorenen Telefon nicht verloren geht.",
+  "tipSecurityBody": "Wie sich der Tresor öffnet und sperrt und was auf dem Bildschirm verborgen bleibt. Alles, was ihn weniger sicher macht, fragt zuerst, ob Sie es sind.",
+  "tipBackupBody": "Eine verschlüsselte Datei mit dem ganzen Tresor. Zum Öffnen auf einem neuen Telefon brauchen Sie Ihre 24 Wörter und Ihr Passwort.",
+  "tipGuideBody": "Diese Tipps jederzeit noch einmal ansehen."
 }

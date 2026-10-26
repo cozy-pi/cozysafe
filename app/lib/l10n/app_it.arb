@@ -647,7 +647,6 @@
   "trashEmptyTitle": "Niente eliminato",
   "trashEmptyBody": "Ciò che elimini resta qui per 30 giorni, così puoi recuperarlo.",
   "trashHint": "Tocca un elemento per vederlo. Tieni premuto e trascina per selezionarne diversi.",
-  "tourRow": "Tour rapido",
   "tourSkip": "Salta",
   "tourNext": "Avanti",
   "tourLater": "Più tardi",
@@ -668,5 +667,14 @@
   "tipLockTitle": "Si blocca da sola",
   "tipLockBody": "Uscire dall’app blocca la cassaforte. Quando si blocca se non la usi lo scegli in Impostazioni.",
   "tipLockButtonBody": "Uscire dall’app blocca la cassaforte. Tocca qui per bloccarla subito.",
-  "tipLockHoldBody": "Uscire dall’app blocca la cassaforte. Tieni premuto qui per bloccarla subito."
+  "tipLockHoldBody": "Uscire dall’app blocca la cassaforte. Tieni premuto qui per bloccarla subito.",
+  "settingsHelp": "Aiuto e guida",
+  "userGuide": "Guida all'uso",
+  "lockOnLeave": "Blocca appena esco dall'app",
+  "autoLockNoteAway": "Conta anche il tempo fuori dall'app.",
+  "tipLockAwayBody": "La cassaforte si blocca dopo qualche minuto di inattività, anche mentre sei fuori dall'app. Puoi cambiarlo in Impostazioni.",
+  "tipSyncBody": "Tieni la cassaforte sugli altri dispositivi o su Google Drive, così perdere il telefono non la fa perdere.",
+  "tipSecurityBody": "Come si apre e si blocca la cassaforte e cosa resta nascosto sullo schermo. Tutto ciò che la rende meno sicura chiede prima di confermare che sei tu.",
+  "tipBackupBody": "Un file cifrato con tutta la cassaforte. Per aprirlo su un nuovo telefono servono le tue 24 parole e la password.",
+  "tipGuideBody": "Rivedi questi suggerimenti quando vuoi."
 }

@@ -17,6 +17,7 @@ time, wherever it is opened from:
 | Face ID / fingerprint on or off | `vault_home.dart` `_toggleBiometric` |
 | Change PIN | `settings.dart` (`_guarded`) |
 | Auto-lock time | `settings.dart` (`_guarded`) |
+| Lock as soon as I leave the app (off only; on by default) | `settings.dart` (`_guarded`) |
 | Block screenshots (off only: turning it on only makes the vault safer) | `settings.dart` (`_guarded`) |
 | Back up to a file | `vault_home.dart` `_backup` |
 | Backup password (set or change) | `vault_home.dart` `_password` (also the reminder banner) |
@@ -28,6 +29,24 @@ time, wherever it is opened from:
 A new security setting gets the same check in the same commit, and a row in this table.
 Limit: on a device with no biometrics and no passcode support (`local_auth` reports it
 unsupported, e.g. Linux), the system check cannot run and is skipped.
+
+## Leaving the app
+
+- **Leaving locks at once** by default (`vault_home.dart`, `didChangeAppLifecycleState`),
+  except for 60 s when the app itself opened a picker, the camera or the share sheet
+  (`LockGuard.allowAway`).
+- **"Lock as soon as I leave the app" off** (owner check to turn off): the vault stays
+  open in the background and locks once it has been away for the auto-lock time, counted
+  from the moment it left, not from the last touch. Time away is the longer of a
+  monotonic clock (moving the phone's date and time cannot change it) and the wall clock
+  (which keeps counting while the phone sleeps): setting the clock back can only make it
+  lock sooner (`AwayClock`, `lib/lock_guard.dart`). If the app still runs at that mark,
+  it locks then; otherwise it locks on return, before anything shows.
+- **The app switcher never shows the vault**, whatever this setting: iOS covers the
+  window whenever the app is not active (AppDelegate); Android hides it from Recents with
+  FLAG_SECURE and, on Android 13+, `setRecentsScreenshotEnabled(false)` even when
+  screenshots are allowed (MainActivity). Android 12 and older with screenshots allowed
+  can still show a Recents preview.
 
 ## Secrets on screen
 
@@ -52,7 +71,7 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
 - **Big files are not loaded whole.** Text previews decrypt only their first 1 MB
   (`item_content_head`); photos decode at screen size; PDFs over 40 MB open from a private
   temporary copy deleted on close, on lock and at start.
-- **Thumbnails are blurred** in lists by default, for crowded places (Settings → Display);
+- **Thumbnails are blurred** in lists by default, for crowded places (Settings → Security);
   opening an item shows it clearly. Turning it off asks for the owner.
 - **Screen capture.** Android: screenshots and recordings show black (FLAG_SECURE, on by
   default). iOS has no official switch: the app window's layer sits inside a secure text

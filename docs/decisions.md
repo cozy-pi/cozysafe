@@ -4,6 +4,18 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-26 — User guide, one Security group, lock on leaving optional (0.1.72, mockup)
+
+Owner requests, rendered for approval before release. A "Help & guide" group sits under
+Sync near the top of Settings (User guide, Feedback); the User guide runs the vault-page
+tips, then goes on in Settings (Sync, Security, Back up, the guide row), counting on. No
+"?" in the vault header (crowded in sections; the tour points at Settings). Opening
+Settings alone shows no tips. Every protection is in one Security group; Display keeps
+appearance, language and the add button side. New "Lock as soon as I leave the app" (on
+by default; off asks for the owner): off, the vault locks after the auto-lock time
+counted from leaving, on the longer of a monotonic and the wall clock (docs/security.md,
+Leaving the app). Android 13+ hides the app from Recents always.
+
 ## 2026-10-26 — Every delete asks; Recently deleted redone; hold and drag to select (0.1.71, mockup)
 
 Owner requests, built and rendered for approval before release. Every delete asks first
@@ -304,7 +316,7 @@ not been reviewed by native speakers yet.
 
 ## 2026-10-21 — Thumbnails blurred by default
 
-"Blur thumbnails" (Settings → Display) is on unless the person turns it off; turning it
+"Blur thumbnails" (Settings → Security since 0.1.72) is on unless the person turns it off; turning it
 off asks for the owner check, as before. A pref already set to off stays off.
 
 ## 2026-10-21 — Overview tab, search, appearance

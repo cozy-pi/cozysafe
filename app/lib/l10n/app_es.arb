@@ -647,7 +647,6 @@
   "trashEmptyTitle": "Nada eliminado",
   "trashEmptyBody": "Lo que eliminas se queda aquí 30 días, para que puedas recuperarlo.",
   "trashHint": "Toca un elemento para verlo. Mantén pulsado y arrastra para seleccionar varios.",
-  "tourRow": "Recorrido rápido",
   "tourSkip": "Omitir",
   "tourNext": "Siguiente",
   "tourLater": "Más tarde",
@@ -668,5 +667,14 @@
   "tipLockTitle": "Se bloquea sola",
   "tipLockBody": "Al salir de la app, la caja fuerte se bloquea. En Ajustes eliges cuándo se bloquea si no la usas.",
   "tipLockButtonBody": "Al salir de la app, la caja fuerte se bloquea. Toca aquí para bloquearla ya.",
-  "tipLockHoldBody": "Al salir de la app, la caja fuerte se bloquea. Mantén pulsado aquí para bloquearla ya."
+  "tipLockHoldBody": "Al salir de la app, la caja fuerte se bloquea. Mantén pulsado aquí para bloquearla ya.",
+  "settingsHelp": "Ayuda y guía",
+  "userGuide": "Guía de uso",
+  "lockOnLeave": "Bloquear al salir de la app",
+  "autoLockNoteAway": "El tiempo fuera de la app también cuenta.",
+  "tipLockAwayBody": "La caja fuerte se bloquea tras unos minutos sin uso, también mientras estás fuera de la app. Cámbialo en Ajustes.",
+  "tipSyncBody": "Guarda la caja fuerte en tus otros dispositivos o en Google Drive, para no perderla si pierdes el teléfono.",
+  "tipSecurityBody": "Cómo se abre y se bloquea la caja fuerte, y qué queda oculto en pantalla. Todo lo que la hace menos segura pide confirmar que eres tú.",
+  "tipBackupBody": "Un archivo cifrado con toda la caja fuerte. Para abrirlo en un teléfono nuevo necesitas tus 24 palabras y tu contraseña.",
+  "tipGuideBody": "Vuelve a ver estos consejos cuando quieras."
 }

@@ -861,7 +861,6 @@
   "trashEmptyTitle": "Nothing deleted",
   "trashEmptyBody": "What you delete stays here for 30 days, so you can bring it back.",
   "trashHint": "Tap an item to look at it. Hold one and drag to select several.",
-  "tourRow": "Quick tour",
   "tourSkip": "Skip",
   "tourNext": "Next",
   "tourLater": "Later",
@@ -883,5 +882,14 @@
   "tipLockTitle": "Locks by itself",
   "tipLockBody": "Leaving the app locks the vault, and so do a few minutes without use. Change that in Settings.",
   "tipLockButtonBody": "Leaving the app locks the vault. Tap here to lock it now.",
-  "tipLockHoldBody": "Leaving the app locks the vault. Hold here to lock it now."
+  "tipLockHoldBody": "Leaving the app locks the vault. Hold here to lock it now.",
+  "settingsHelp": "Help & guide",
+  "userGuide": "User guide",
+  "lockOnLeave": "Lock as soon as I leave the app",
+  "autoLockNoteAway": "Time away from the app counts too.",
+  "tipLockAwayBody": "The vault locks after a few minutes without use, also while you are away from the app. Change that in Settings.",
+  "tipSyncBody": "Keep the vault on your other devices or in Google Drive, so losing a phone does not lose it.",
+  "tipSecurityBody": "How the vault opens and locks, and what stays hidden on screen. Anything that makes it less safe asks it's you first.",
+  "tipBackupBody": "One encrypted file with the whole vault. Opening it on a new phone takes your 24 words and password.",
+  "tipGuideBody": "See these tips again any time."
 }

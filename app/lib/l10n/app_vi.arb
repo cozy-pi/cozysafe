@@ -661,7 +661,6 @@
   "trashEmptyTitle": "Chưa xoá gì",
   "trashEmptyBody": "Thứ bạn xoá sẽ nằm ở đây 30 ngày, để còn lấy lại được.",
   "trashHint": "Chạm để xem. Bấm giữ rồi kéo để chọn nhiều mục.",
-  "tourRow": "Hướng dẫn nhanh",
   "tourSkip": "Bỏ qua",
   "tourNext": "Tiếp",
   "tourLater": "Để sau",
@@ -682,5 +681,14 @@
   "tipLockTitle": "Tự khoá",
   "tipLockBody": "Rời khỏi app là két tự khoá, để không vài phút cũng vậy. Chỉnh trong Cài đặt.",
   "tipLockButtonBody": "Rời khỏi app là két tự khoá. Chạm vào đây để khoá ngay.",
-  "tipLockHoldBody": "Rời khỏi app là két tự khoá. Giữ vào đây để khoá ngay."
+  "tipLockHoldBody": "Rời khỏi app là két tự khoá. Giữ vào đây để khoá ngay.",
+  "settingsHelp": "Trợ giúp",
+  "userGuide": "Hướng dẫn sử dụng",
+  "lockOnLeave": "Khoá ngay khi rời ứng dụng",
+  "autoLockNoteAway": "Thời gian rời ứng dụng cũng được tính.",
+  "tipLockAwayBody": "Để không vài phút là két tự khoá, kể cả khi bạn rời ứng dụng. Chỉnh trong Cài đặt.",
+  "tipSyncBody": "Giữ két trên máy khác hoặc Google Drive, mất máy cũng không mất két.",
+  "tipSecurityBody": "Cách mở và khoá két, những gì được che trên màn hình. Thay đổi nào làm két kém an toàn hơn đều phải xác nhận là bạn.",
+  "tipBackupBody": "Một tệp mã hoá chứa cả két. Mở trên máy mới cần 24 từ và mật khẩu.",
+  "tipGuideBody": "Xem lại các gợi ý này bất cứ lúc nào."
 }
