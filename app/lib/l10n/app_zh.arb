@@ -639,5 +639,12 @@
   "syncRestoreAllowNo": "不允许",
   "restoreTapAllow": "请在另一台设备上点按“允许”。",
   "changeNoReencrypt": "这不会重新加密保险箱里已有的内容：只有打开它的钥匙会变。重新加密全部内容已在计划中。",
-  "hideNoteText": "隐藏笔记内容"
+  "hideNoteText": "隐藏笔记内容",
+  "confirmTrashTitle": "{count, plural, =1{移到“最近删除”？} other{将 {count} 项移到“最近删除”？}}",
+  "confirmTrashBody": "{count, plural, other{30 天内可在“最近删除”中恢复。}}",
+  "infoDeleted": "删除时间",
+  "infoKeptUntil": "保留至",
+  "trashEmptyTitle": "没有删除的项目",
+  "trashEmptyBody": "删除的内容会在这里保留 30 天，方便找回。",
+  "trashHint": "轻点项目即可查看。按住并拖动可选择多项。"
 }

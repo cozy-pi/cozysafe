@@ -639,5 +639,12 @@
   "syncRestoreAllowNo": "İzin verme",
   "restoreTapAllow": "Diğer cihazınızda İzin ver'e dokunun.",
   "changeNoReencrypt": "Bu, kasada zaten olanları yeniden şifrelemez: yalnızca kasayı açan anahtar değişir. Her şeyi yeniden şifrelemek planlanıyor.",
-  "hideNoteText": "Not metnini gizle"
+  "hideNoteText": "Not metnini gizle",
+  "confirmTrashTitle": "{count, plural, =1{Son silinenlere taşınsın mı?} other{{count} öğe Son silinenlere taşınsın mı?}}",
+  "confirmTrashBody": "{count, plural, other{30 gün boyunca Son silinenlerden geri yükleyebilirsiniz.}}",
+  "infoDeleted": "Silinme",
+  "infoKeptUntil": "Saklanma sonu",
+  "trashEmptyTitle": "Silinen bir şey yok",
+  "trashEmptyBody": "Sildikleriniz 30 gün burada kalır, böylece geri alabilirsiniz.",
+  "trashHint": "Görmek için bir öğeye dokunun. Birkaçını seçmek için basılı tutup sürükleyin."
 }

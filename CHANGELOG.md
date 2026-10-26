@@ -4,6 +4,30 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.71 (2026-10-26)
+
+### Changed
+- Every delete now asks first, in the same card at the bottom of the screen: deleting an
+  item (from its menu, the preview, the photo, video or file page, the note editor or the
+  selection bar), deleting a group, and deleting for good. The card says how many items
+  ("Move 3 items to Recently deleted?") or which one. Undo still appears after.
+- Recently deleted is laid out like the vault: photos and videos as thumbnails, then notes,
+  recordings and files, each with the days it has left. Items deleted on another device are
+  marked. An empty page says what it is for.
+- Recently deleted no longer has "Restore all" or "Delete all". Tap Select, pick what you
+  want, then Restore or Delete for good; Select all is in the same bar.
+- In Recently deleted, holding an item and its preview offer the same three actions, in
+  the same order: Restore, Info, Delete for good. Info shows when it was deleted and until
+  when it is kept.
+
+### Added
+- Hold an item, then drag across others to select them all at once, as in Photos on
+  iPhone. Drag back to unselect. Works in the vault's photos, notes, recordings and files,
+  and in Recently deleted. Holding still and letting go still opens the item's menu.
+
+### Fixed
+- Videos in Recently deleted show their thumbnail instead of a plain icon.
+
 ## 0.1.70 (2026-10-26)
 
 ### Fixed

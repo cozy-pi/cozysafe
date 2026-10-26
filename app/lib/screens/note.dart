@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/confirm_delete.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
@@ -159,6 +160,9 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
   /// Undo brings back all of it.
   Future<void> _delete() async {
     if (_saving) return;
+    final l = AppLocalizations.of(context);
+    final title = noteTitle(_text.text);
+    if (!await confirmTrash(context, count: 1, name: title.isEmpty ? l.untitledNote : title) || !mounted || _saving) return;
     final nav = Navigator.of(context);
     setState(() => _saving = true);
     try {

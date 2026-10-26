@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../widgets/drag_select.dart';
 import '../widgets/selectable_row.dart';
 import '../theme.dart';
 import 'video_view.dart';
@@ -32,6 +33,8 @@ class RecorderView extends StatefulWidget {
     this.onToggleSelect,
     this.onOpen,
     this.onMenu,
+    this.drag,
+    this.onOrder,
     this.tagId,
     this.bottomPad = 16,
   });
@@ -55,6 +58,10 @@ class RecorderView extends StatefulWidget {
   final ValueChanged<rust.ItemInfo>? onOpen;
   /// A long press: the recording's menu (Open, Rename, Group, Info…).
   final ValueChanged<rust.ItemInfo>? onMenu;
+  /// Hold a recording, then drag across others to select them (lib/widgets/drag_select.dart).
+  final DragSelect? drag;
+  /// The listed recordings' ids, in order, for [drag].
+  final ValueChanged<List<String>>? onOrder;
 
   static bool get supported => Device.iOS || Device.android;
 
@@ -207,6 +214,7 @@ class RecorderViewState extends State<RecorderView> {
       );
     }
     final list = widget.items.where((i) => i.kind == ItemKind.audio).toList();
+    widget.onOrder?.call([for (final it in list) it.id]);
     if (list.isEmpty) {
       return Center(
         child: Padding(
@@ -235,7 +243,12 @@ class RecorderViewState extends State<RecorderView> {
             children: [
               for (final (i, it) in list.indexed) ...[
                 if (i > 0) Divider(height: 1, indent: 62, color: c.border.withValues(alpha: .6)),
-                _row(context, it),
+                DragSelectItem(
+                  id: it.id,
+                  drag: widget.drag,
+                  onMenu: widget.onMenu == null ? null : () => widget.onMenu!(it),
+                  child: _row(context, it),
+                ),
               ],
             ],
           ),
@@ -261,7 +274,8 @@ class RecorderViewState extends State<RecorderView> {
       onTap: selecting && select != null
           ? () => select(it.id)
           : () => open?.call(it),
-      onLongPress: widget.onMenu == null ? null : () => widget.onMenu!(it),
+      // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
+      onLongPress: null,
       child: AnimatedSize(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,

@@ -399,7 +399,7 @@ name) are kept.
   No black slab in light mode, no white slab in dark mode; dark-mode filled buttons
   elsewhere are a soft grey.
 - **Destructive actions are red** (owner 2026-10-21): Delete in the selection bar and
-  "Delete all" in Recently deleted use the system red, apart from the safe choice.
+  Delete for good in Recently deleted use the system red, apart from the safe choice.
 - Deleting a vault uses the opposite brightness (light when the app is dark, and the
   reverse) instead of red, so it is never taken for the lock screen.
 - Security rules (owner check, hidden secrets): `docs/security.md`.
@@ -439,8 +439,9 @@ everywhere, easy to hit with a thumb.
   on `SelectableRow` (`lib/widgets/selectable_row.dart`), never their own `InkWell`;
   `test/selection_test.dart` fails on a list row that handles a long press itself.
 - **Selection bar**: frosted glass like the bottom bar (no bright slab in dark mode); Delete
-  in the system's destructive red, like "Delete all" in Recently deleted (exception to
-  black and white, owner 2026-10-21).
+  in the system's destructive red, like Delete for good in Recently deleted (exception to
+  black and white, owner 2026-10-21). One component for both (`SelectionBar`,
+  `lib/widgets/selection_bar.dart`): Done · Select all · the actions.
 - **Only what the vault holds.** The bottom capsule offers the home tab and the sections
   that have items, in the fixed order Overview · Library · (+) · Files · Notes (owner
   2026-10-24). Voice has no tab: it opens from the overview and from +. An empty vault
@@ -459,7 +460,8 @@ everywhere, easy to hit with a thumb.
 - **Tap opens, long press opens the item's menu, everywhere** (owner 2026-10-22, like the
   iPhone's Files app): home, lists, grid, search, groups, trash. `showItemMenu`
   (lib/widgets/item_menu.dart) at the finger: Open · Select · Rename · Group · Info · Send
-  · Delete (groups: Open · Rename · Delete; trash: Restore · Delete for good). Many items:
+  · Delete (groups: Open · Rename · Delete; trash: Restore · Info · Delete for good, the
+  same entries, icons and order as the trash preview's bar). Many items:
   the Select button (empty select mode, Select All, Done) and the selection bar.
   `test/selection_test.dart` fails on a long press that does anything else.
 - **A tap never changes tab by itself**: a recording opened from home or search plays in
@@ -523,8 +525,7 @@ everywhere, easy to hit with a thumb.
   taps on the version, owner check); add button position as an inline Left | Right.
 - **Tapping an item does it, in place; no sheets popping up from the bottom.** Sheets are
   only for making or choosing something (groups, settings values). A voice memo opens in
-  its row with Send · Rename · Delete; Recently deleted selects on tap, with Restore and
-  Delete for good (red) in a glass bar, acting on everything when nothing is selected.
+  its row with Send · Rename · Delete; Recently deleted: see "Deleting" below.
 - **Close where the thumb is.** The camera's close sits in the bottom row with the shutter
   and flip; swiping down closes too; the last shot is a small thumbnail in the
   viewfinder's corner.
@@ -533,5 +534,30 @@ everywhere, easy to hit with a thumb.
   title. Search uses the same back and a rounded field with a magnifier.
 - **Select** is a glass pill at the top of any section with items (long press still works);
   inside a group the header drops Settings to make room.
-- **Recently deleted** says that tapping an item restores or deletes it.
+- **Recently deleted** says how long items stay and how to select several.
 - Persona review that led to these (2026-10-21) and what is left: `docs/decisions.md`.
+
+## Deleting and Recently deleted (approved 2026-10-26, 0.1.71)
+
+- **Every delete asks first**, everywhere, with one component (`confirmDelete` and its
+  helpers `confirmTrash` / `confirmDeleteForGood`, `lib/widgets/confirm_delete.dart`): a card
+  at the bottom, the page dimmed and blurred behind like the item menu; a red icon, the title
+  with the count ("Move 3 items to Recently deleted?") or the item's name under it, one line
+  on what happens, the red button that does it, Cancel under it. A tap outside cancels.
+  Used by the item menu, the selection bar, the preview, the full-screen photo and video
+  viewers, the file page, the note editor, Delete group, and Delete for good. Moving to
+  Recently deleted still offers Undo after. Deleting a vault keeps its own PIN + countdown.
+- **Recently deleted** is laid out like the vault: a line on top (items go for good after 30
+  days; tap to look; hold and drag to select), then by kind with a count: photos and videos
+  as a 3-column grid of thumbnails (videos with their play mark and length), notes,
+  recordings and files as rows with their kind, name, size and days left. Items deleted on
+  another device carry a devices mark. No "Restore all" / "Delete all" (owner: too easy to
+  hit). The bottom bar has Select; while selecting, the vault's selection bar with Restore
+  and Delete for good, acting on the selection only. An empty page says what it is for.
+- **Hold, then drag to select a run** (`lib/widgets/drag_select.dart`), in the vault's grids
+  and lists and in Recently deleted, as in the iPhone's Photos: once the finger moves after a
+  long press, select mode starts and every item from the first to the one under the finger
+  is selected (dragging back gives the others their old state; starting on a selected item
+  deselects); the list scrolls by itself near its edges; a tick per change. Held still, the
+  item gives a little under the finger and its menu opens when the finger lifts (or after
+  0.65 s): a menu opened at once would end the touch, so no drag could follow.
