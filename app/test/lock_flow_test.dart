@@ -2,6 +2,7 @@
 // waits after wrong tries, password fallback, type-to-unlock, an add action picked while locked, setting a PIN,
 // the Emergency Kit confirmation, pages kept under the lock. The Rust core is replaced by a fake with state.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -19,8 +20,12 @@ import 'package:cozysafe/screens/set_pin.dart';
 import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/unlock.dart';
 import 'package:cozysafe/screens/vault_home.dart';
+import 'package:cozysafe/src/rust/api/sync.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
+import 'package:cozysafe/sync/awake.dart';
+import 'package:cozysafe/sync/progress.dart';
+import 'package:cozysafe/sync/status.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -38,12 +43,17 @@ class _Fake implements RustLibApi {
   int biometricCalls = 0;
   int notesAdded = 0;
   int notesUpdated = 0;
+  int syncCancels = 0;
 
   T _arg<T>(Invocation c, String name) => c.namedArguments[Symbol(name)] as T;
 
   @override
   dynamic noSuchMethod(Invocation call) {
     final name = call.memberName.toString();
+    if (name.contains('P2PCancel')) {
+      syncCancels++;
+      return null;
+    }
     if (name.contains('MinPasswordLength')) return 8;
     if (name.contains('MinPinLength')) return 6;
     final vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: anyPassword);
@@ -140,7 +150,8 @@ void main() {
       ..biometric = false
       ..biometricCalls = 0
       ..notesAdded = 0
-      ..notesUpdated = 0;
+      ..notesUpdated = 0
+      ..syncCancels = 0;
     BiometricUnlock.debugKind = null;
     FlutterSecureStorage.setMockInitialValues({
       'pin-device-key': base64Encode(List.filled(16, 7)),
@@ -251,6 +262,52 @@ void main() {
     await _settle(t);
     expect(find.byType(UnlockScreen), findsNothing);
     expect(find.byType(SettingsScreen), findsOneWidget);
+  });
+
+  testWidgets('a sync keeps going behind the lock screen, which shows how far it is', (t) async {
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    await _tapDigits(t, _pin);
+    await _settle(t);
+    final events = StreamController<SyncEvent>();
+    // The sync page animates without end: pump a while instead of settling.
+    Future<void> busy() async {
+      for (var i = 0; i < 8; i++) {
+        await t.pump(const Duration(milliseconds: 300));
+      }
+    }
+    SyncEvent ev(SyncStep k, int done, int total) => SyncEvent(kind: k, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: done, total: total, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
+    final nav = t.state<NavigatorState>(find.byType(Navigator).first);
+    nav.push(MaterialPageRoute<void>(
+        builder: (_) => Scaffold(body: SyncProgress(place: SyncPlace.drive, events: events.stream, onSynced: () {}, retry: () => const Stream.empty()))));
+    await busy();
+    events.add(ev(SyncStep.receiving, 2, 5));
+    await t.pump();
+    // What locking does (vault_home.dart _lock): the pages are told, the lock screen covers them.
+    vaultLock.set(true);
+    nav.push(PageRouteBuilder<VaultInfo>(
+        transitionDuration: Duration.zero,
+        pageBuilder: (_, _, _) => const UnlockScreen(libraryDir: 'lib', askBiometricNow: false, resumeVaultId: 'v1')));
+    await busy();
+    expect(find.byType(UnlockScreen), findsOneWidget);
+    expect(find.text('Syncing 40%'), findsOneWidget);
+    expect(_fake.syncCancels, 0);
+    expect(Awake.busy, isTrue, reason: 'the screen stays on');
+    events.add(ev(SyncStep.sending, 3, 4));
+    await busy();
+    expect(find.text('Syncing 75%'), findsOneWidget);
+    events.add(ev(SyncStep.done, 0, 0));
+    await busy();
+    expect(find.text('Up to date'), findsOneWidget);
+    expect(Awake.busy, isFalse);
+    // Opening again: back on the finished sync, nothing left on the lock screen.
+    await _tapDigits(t, _pin);
+    await busy();
+    vaultLock.set(false);
+    await busy();
+    expect(find.byType(UnlockScreen), findsNothing);
+    expect(syncStatus.value, isNull);
+    expect(find.byKey(const ValueKey('sync-close')), findsOneWidget);
   });
 
   testWidgets('setting a PIN needs the same digits twice', (t) async {

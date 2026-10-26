@@ -473,6 +473,7 @@
   "syncConnected": "Verbunden",
   "syncCheckNote": "Das andere Gerät zeigt dieselbe Zahl. Wenn nicht, tippe auf Abbrechen.",
   "syncWorking": "Wird synchronisiert",
+  "lockSyncPercent": "Wird synchronisiert: {percent} %",
   "syncDone": "Auf dem neuesten Stand",
   "syncDoneCounts": "{received} empfangen, {sent} gesendet",
   "syncDoneCopies": "{n} Notizen wurden auf beiden Geräten geändert: Beide Texte bleiben erhalten.",

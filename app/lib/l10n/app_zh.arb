@@ -473,6 +473,7 @@
   "syncConnected": "已连接",
   "syncCheckNote": "另一台设备会显示相同的数字。如果不同，请点按取消。",
   "syncWorking": "正在同步",
+  "lockSyncPercent": "正在同步 {percent}%",
   "syncDone": "已是最新",
   "syncDoneCounts": "收到 {received}，发送 {sent}",
   "syncDoneCopies": "有 {n} 条笔记在两台设备上都被修改过：两份内容都已保留。",

@@ -48,6 +48,34 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
   screenshots are allowed (MainActivity). Android 12 and older with screenshots allowed
   can still show a Recents preview.
 
+## A sync finishing behind the lock (0.1.76)
+
+Owner 2026-10-26: "Even if the vault locks, the screen must stay on and the sync must keep
+running."
+
+- **Locking in the app** (idle lock, Hold Home, the lock button) while Google Drive or a
+  nearby device is moving items: the lock screen shows as always (PIN, Face ID or the
+  password to come back) and the sync goes on underneath, its progress on the lock screen
+  ("Syncing 40%", cloud or device icon, then "Up to date"). The screen stays on until the
+  sync ends.
+- **What stays in memory, and who can reach it.** The vault's slot for the app
+  (`app/rust/src/slot.rs`, `OPEN` in `vault.rs`) empties at once: every call the screens
+  make (list, open, add, settings) answers Locked, and so does one that was waiting on the
+  sync when the lock came. The running sync keeps its own handle (`SyncHold`): the
+  Master Key and index stay in memory only for that sync, and only that code path can
+  use them. When it ends (done, error, Cancel) the handle goes and the key is wiped
+  (zeroize on drop), before the screen hears the end. Opening the same vault again while
+  it runs hands the held one back (never two copies writing one index).
+- **Why that is acceptable.** Nothing new is exposed to someone holding the phone: the
+  screen shows no names or items, only a percentage, and the key was already in memory
+  for the sync before the lock. The window is bounded by the sync itself and by Cancel.
+  Stopping it would have meant starting over (nearby) or a half-done Drive run.
+- **Leaving the app is unchanged:** it locks at once and the sync stops (the system
+  suspends it anyway), the vault is dropped as the run notices the stop; Google Drive
+  continues after the vault opens again, a nearby session must start over. Leaving while
+  a sync runs behind the lock does the same. A nearby session still waiting for the other
+  device, or for an answer on this screen, stops when the vault locks.
+
 ## Secrets on screen
 
 - **Never shown by default.** The Secret Key (Emergency Kit) is masked (`SecretText`):

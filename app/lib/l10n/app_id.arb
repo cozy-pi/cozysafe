@@ -473,6 +473,7 @@
   "syncConnected": "Tersambung",
   "syncCheckNote": "Perangkat lain menampilkan angka yang sama. Jika tidak, ketuk Batal.",
   "syncWorking": "Menyinkronkan",
+  "lockSyncPercent": "Menyinkronkan {percent}%",
   "syncDone": "Sudah terbaru",
   "syncDoneCounts": "{received} diterima, {sent} dikirim",
   "syncDoneCopies": "{n} catatan diubah di kedua perangkat: kedua teks disimpan.",

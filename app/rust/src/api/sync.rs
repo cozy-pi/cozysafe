@@ -12,7 +12,7 @@ use cs_net::p2p::{self, PairCode};
 use cs_net::Permit;
 use cs_vault::sync::SyncReport;
 
-use super::vault::{with_open, VaultError};
+use super::vault::{hold_for_sync, with_open, SyncHold, VaultError};
 use crate::frb_generated::StreamSink;
 
 /// What a session tells the screen as it goes (a flat struct: no generated Dart
@@ -215,8 +215,17 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
     })
 }
 
-fn record(line: String) {
-    let _ = with_open(|v| v.log_connection(&line).map_err(Into::into));
+/// One line in the vault's connection log: through the sync's own hold when it has one
+/// (the vault may have locked meanwhile), else through the open vault.
+fn record(hold: Option<&SyncHold>, line: String) {
+    match hold {
+        Some(h) => {
+            let _ = h.with(|v| v.log_connection(&line));
+        }
+        None => {
+            let _ = with_open(|v| v.log_connection(&line).map_err(Into::into));
+        }
+    }
 }
 
 fn now_ms() -> u128 {
@@ -232,22 +241,17 @@ pub fn p2p_local_address(ip: String) -> bool {
     p2p::local_address(&ip)
 }
 
-/// The vault for the moments a session needs it, through the app's one open vault.
+/// The vault for the moments a session needs it, through the session's own hold: the
+/// vault locking on this device does not stop a session under way.
 #[flutter_rust_bridge::frb(ignore)]
-struct OpenNow;
+struct Held<'a>(&'a SyncHold);
 
-impl p2p::Access for OpenNow {
+impl p2p::Access for Held<'_> {
     fn with(
         &self,
         f: &mut dyn FnMut(&cs_vault::OpenVault) -> cs_vault::Result<()>,
     ) -> cs_vault::Result<()> {
-        let mut inner = Ok(());
-        with_open(|v| {
-            inner = f(v);
-            Ok(())
-        })
-        .map_err(|_| cs_vault::Error::Corrupt("vault locked"))?;
-        inner
+        self.0.with(|v| f(v))
     }
 }
 
@@ -330,7 +334,12 @@ fn picked() -> Option<p2p::Token> {
 
 /// Show `event` and wait for the person's answer: no answer in `limit`, Cancel, or the
 /// other device saying no (`gone`) is no.
-fn ask(sink: &StreamSink<SyncEvent>, event: SyncEvent, limit: Duration, gone: &dyn Fn() -> bool) -> bool {
+fn ask(
+    sink: &StreamSink<SyncEvent>,
+    event: SyncEvent,
+    limit: Duration,
+    gone: &dyn Fn() -> bool,
+) -> bool {
     let mut answer = ANSWER.lock().unwrap_or_else(|p| p.into_inner());
     *answer = None;
     let _ = sink.add(event);
@@ -351,7 +360,10 @@ fn ask(sink: &StreamSink<SyncEvent>, event: SyncEvent, limit: Duration, gone: &d
 
 fn found_event(peers: &[p2p::Peer]) -> SyncEvent {
     SyncEvent {
-        peers: peers.iter().map(|p| p.name.clone().unwrap_or_default()).collect(),
+        peers: peers
+            .iter()
+            .map(|p| p.name.clone().unwrap_or_default())
+            .collect(),
         peer_ids: peers.iter().map(|p| p2p::token_text(&p.token)).collect(),
         ..step(SyncStep::Found)
     }
@@ -367,15 +379,29 @@ fn named(kind: SyncStep, name: &str, check: u16) -> SyncEvent {
 
 /// Run `f` with the questions and news of a pairing going to `sink`; the other device's
 /// name, once known, goes to the log.
-fn with_ask<T>(sink: &StreamSink<SyncEvent>, peer: &Mutex<String>, f: impl FnOnce(&p2p::Ask) -> T) -> T {
+fn with_ask<T>(
+    sink: &StreamSink<SyncEvent>,
+    peer: &Mutex<String>,
+    f: impl FnOnce(&p2p::Ask) -> T,
+) -> T {
     let remember = |name: &str| *peer.lock().unwrap_or_else(|p| p.into_inner()) = name.to_owned();
     let confirm = |name: &str, check: u16, gone: &dyn Fn() -> bool| {
         remember(name);
-        ask(sink, named(SyncStep::Confirm, name, check), p2p::CONFIRM_WAIT, gone)
+        ask(
+            sink,
+            named(SyncStep::Confirm, name, check),
+            p2p::CONFIRM_WAIT,
+            gone,
+        )
     };
     let allow = |name: &str, check: u16| {
         remember(name);
-        ask(sink, named(SyncStep::AskRestore, name, check), p2p::ALLOW_WAIT, &|| false)
+        ask(
+            sink,
+            named(SyncStep::AskRestore, name, check),
+            p2p::ALLOW_WAIT,
+            &|| false,
+        )
     };
     let a = p2p::Ask {
         seen: &|seen| {
@@ -399,15 +425,19 @@ fn with_ask<T>(sink: &StreamSink<SyncEvent>, peer: &Mutex<String>, f: impl FnOnc
 
 /// Wait for the other device and look for it on the Wi-Fi where this device has `ip`,
 /// then (both people said Sync) sync with it. The vault stays free while waiting, asking
-/// and serving.
+/// and serving; the session holds it to the end, so a lock meanwhile does not cut it.
 pub fn p2p_wait_run(ip: String, sink: StreamSink<SyncEvent>) {
     *PICK.lock().unwrap_or_else(|p| p.into_inner()) = None;
     let waiting = PENDING.lock().unwrap_or_else(|p| p.into_inner()).take();
+    let hold = hold_for_sync();
     let peer = Mutex::new(String::new());
-    let event = match waiting {
-        None => step(SyncStep::Expired),
-        Some(w) => {
-            let paired = with_ask(&sink, &peer, |a| w.run(&OpenNow, &|| Permit::scan_on(&ip), a, &STOP));
+    let event = match (waiting, &hold) {
+        (None, _) => step(SyncStep::Expired),
+        (Some(_), None) => step(SyncStep::Locked),
+        (Some(w), Some(h)) => {
+            let paired = with_ask(&sink, &peer, |a| {
+                w.run(&Held(h), &|| Permit::scan_on(&ip), a, &STOP)
+            });
             match paired {
                 Ok(p) => {
                     *peer.lock().unwrap_or_else(|p| p.into_inner()) = p.name.clone();
@@ -420,7 +450,9 @@ pub fn p2p_wait_run(ip: String, sink: StreamSink<SyncEvent>) {
     forget_mirror();
     HELP.lock().unwrap_or_else(|p| p.into_inner()).take();
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
-    log_event("nearby", Some(&name), &event);
+    log_event(hold.as_ref(), "nearby", Some(&name), &event);
+    // Locked meanwhile: the vault goes now, before the screen hears the end.
+    drop(hold);
     let _ = sink.add(event);
 }
 
@@ -440,9 +472,13 @@ pub fn p2p_join(code: String, name: String, sink: StreamSink<SyncEvent>) {
         let _ = sink.add(step(SyncStep::Failed));
         return;
     };
+    let Some(hold) = hold_for_sync() else {
+        let _ = sink.add(step(SyncStep::Locked));
+        return;
+    };
     let peer = Mutex::new(String::new());
     let joined = with_ask(&sink, &peer, |a| {
-        p2p::join_code(&OpenNow, Permit::connect_for(&c), &c, &name, a, &STOP)
+        p2p::join_code(&Held(&hold), Permit::connect_for(&c), &c, &name, a, &STOP)
     });
     let event = match joined {
         Ok(p) => {
@@ -452,12 +488,18 @@ pub fn p2p_join(code: String, name: String, sink: StreamSink<SyncEvent>) {
         Err(e) => failure(e),
     };
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
-    log_event("nearby", Some(&name), &event);
+    log_event(Some(&hold), "nearby", Some(&name), &event);
+    drop(hold);
     let _ = sink.add(event);
 }
 
 /// What came of a restore: the vault opened here the usual way, or why not.
-fn restored(dir: &Path, key: cs_crypto::SecretKey, password: &str, r: cs_vault::Result<bool>) -> SyncEvent {
+fn restored(
+    dir: &Path,
+    key: cs_crypto::SecretKey,
+    password: &str,
+    r: cs_vault::Result<bool>,
+) -> SyncEvent {
     match r {
         // Opened the usual way, from this device's folder with the two secrets.
         Ok(true) => {
@@ -527,7 +569,7 @@ pub fn p2p_restore_nearby(
     // Half a restore (lock opened, items cut short) is still a vault here; the next sync
     // goes on. Nothing is left when the words or password were wrong.
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
-    log_event("restore", Some(&name), &event);
+    log_event(None, "restore", Some(&name), &event);
     let _ = sink.add(event);
 }
 
@@ -544,7 +586,10 @@ pub fn p2p_restore(
     STOP.store(false, Ordering::Relaxed);
     let password = zeroize::Zeroizing::new(password);
     let words = zeroize::Zeroizing::new(words);
-    let (Some(c), Some(key)) = (PairCode::parse(&code), cs_crypto::SecretKey::from_text(&words)) else {
+    let (Some(c), Some(key)) = (
+        PairCode::parse(&code),
+        cs_crypto::SecretKey::from_text(&words),
+    ) else {
         let _ = sink.add(step(SyncStep::Failed));
         return;
     };
@@ -571,16 +616,21 @@ pub fn p2p_restore(
     );
     let event = restored(dir, key, &password, r);
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
-    log_event("restore", Some(&name), &event);
+    log_event(None, "restore", Some(&name), &event);
     let _ = sink.add(event);
 }
 
 /// The person allowed syncing with their Google Drive; `token` is the access token from
-/// their sign-in on this device (scope `drive.file`). Listing Drive happens before the
-/// vault is held; the sync itself holds it.
+/// their sign-in on this device (scope `drive.file`). The run keeps its own hold on the
+/// vault from start to end, so the vault locking meanwhile does not stop it; the vault
+/// itself stays free while Drive is listed.
 pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
     STOP.store(false, Ordering::Relaxed);
     let token = zeroize::Zeroizing::new(token);
+    let Some(hold) = hold_for_sync() else {
+        let _ = sink.add(step(SyncStep::Locked));
+        return;
+    };
     let _ = sink.add(step(SyncStep::Checking));
     // How long each step takes, in Debug's log (owner 2026-10-26: "Looking at Google
     // Drive" was slow after a while without syncing; the log says where the time goes).
@@ -606,23 +656,24 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
     mark("opened".into());
     let event = match remote {
         Err(e) => drive_failure(e),
-        Ok(remote) => match with_open(|v| {
-            Ok(v.sync_with(&remote, &|p| {
+        Ok(remote) => match hold.with(|v| {
+            v.sync_with(&remote, &|p| {
                 let e = progress_event(p);
                 mark(format!("{:?}", e.kind));
                 let _ = sink.add(e);
-            }))
+            })
         }) {
-            Ok(Ok(r)) => SyncEvent {
+            Ok(r) => SyncEvent {
                 moved: remote.moved() + JOIN_MOVED.swap(0, Ordering::Relaxed),
                 ..report(r)
             },
-            Ok(Err(e)) => drive_failure(e),
-            Err(_) => step(SyncStep::Locked),
+            Err(e) => drive_failure(e),
         },
     };
     mark(format!("end {:?}", event.kind));
-    log_event("drive", Some("Google Drive"), &event);
+    log_event(Some(&hold), "drive", Some("Google Drive"), &event);
+    // Locked meanwhile: the vault goes now, before the screen hears the end.
+    drop(hold);
     let _ = sink.add(event);
 }
 
@@ -726,7 +777,7 @@ pub fn p2p_cancel() {
 
 /// One log line: `<ms>|<nearby|restore|drive>|<the other device's name, or ->|<ok|cancelled|expired|failed|…>|<received>|<sent>`.
 /// Lines from before 0.1.73 say `host` or `join` and an address.
-fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
+fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &SyncEvent) {
     // A name from the other device: cleaned (no `|`, no control characters) again here.
     let peer = peer.map(p2p::clean_name).filter(|p| !p.is_empty());
     let peer = peer.as_deref().unwrap_or("-");
@@ -761,10 +812,10 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         | SyncStep::PeerStopped => "failed",
     };
     let (received, sent) = (event.received, event.sent);
-    record(format!(
-        "{}|{side}|{peer}|{outcome}|{received}|{sent}",
-        now_ms()
-    ));
+    record(
+        hold,
+        format!("{}|{side}|{peer}|{outcome}|{received}|{sent}", now_ms()),
+    );
 }
 
 /// The connections this vault made, newest first, in [`log_event`]'s format.

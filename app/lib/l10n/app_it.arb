@@ -473,6 +473,7 @@
   "syncConnected": "Connesso",
   "syncCheckNote": "L’altro dispositivo mostra lo stesso numero. Se non è così, tocca Annulla.",
   "syncWorking": "Sincronizzazione",
+  "lockSyncPercent": "Sincronizzazione {percent}%",
   "syncDone": "Aggiornato",
   "syncDoneCounts": "{received} ricevuti, {sent} inviati",
   "syncDoneCopies": "{n} note sono state modificate su entrambi i dispositivi: si conservano entrambi i testi.",

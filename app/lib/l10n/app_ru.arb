@@ -473,6 +473,7 @@
   "syncConnected": "Подключено",
   "syncCheckNote": "Другое устройство показывает то же число. Если нет, нажмите Отмена.",
   "syncWorking": "Синхронизация",
+  "lockSyncPercent": "Синхронизация {percent} %",
   "syncDone": "Всё актуально",
   "syncDoneCounts": "Получено {received}, отправлено {sent}",
   "syncDoneCopies": "Заметки ({n}) изменены на обоих устройствах: сохранены оба текста.",

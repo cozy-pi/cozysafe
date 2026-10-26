@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.76 (2026-10-26)
+
+### Changed
+- A sync keeps running when the vault locks while you use the app (auto-lock, Hold Home,
+  the lock button): the lock screen shows as usual, with a small line showing how far the
+  sync is ("Syncing 40%", then "Up to date"), and the screen stays on until it ends. The
+  vault stays locked for everything else, and its key is wiped as soon as the sync ends
+  (docs/security.md). Leaving the app still locks and stops the sync, as before.
+
 ## 0.1.75 (2026-10-26)
 
 ### Fixed

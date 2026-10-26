@@ -473,6 +473,7 @@
   "syncConnected": "เชื่อมต่อแล้ว",
   "syncCheckNote": "อุปกรณ์อีกเครื่องแสดงตัวเลขเดียวกัน ถ้าไม่ตรง ให้แตะยกเลิก",
   "syncWorking": "กำลังซิงค์",
+  "lockSyncPercent": "กำลังซิงค์ {percent}%",
   "syncDone": "เป็นปัจจุบันแล้ว",
   "syncDoneCounts": "รับ {received} ส่ง {sent}",
   "syncDoneCopies": "โน้ต {n} รายการถูกแก้ไขในทั้งสองเครื่อง: เก็บข้อความไว้ทั้งสองแบบ",

@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../prefs.dart';
+import '../sync/status.dart';
 import '../widgets/pin_pad.dart';
 import '../widgets/brand.dart';
 import '../widgets/vault_bar.dart';
@@ -480,6 +481,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
                                   const SizedBox(height: 12),
+                                  // A sync that went on as the vault locked: how far it is.
+                                  const _SyncBehindLock(),
                                   card,
                                   if (_mode == _Mode.pin) ...[
                                     // Breathing room so the "Use password" link and the
@@ -695,6 +698,63 @@ class _ShakeOnChangeState extends State<_ShakeOnChange> with SingleTickerProvide
       child: widget.child,
     );
   }
+}
+
+/// A sync still running behind the lock (lib/sync/status.dart): its kind, how far it is,
+/// and "Up to date" once done. Nothing when no sync runs.
+class _SyncBehindLock extends StatelessWidget {
+  const _SyncBehindLock();
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<SyncStatus?>(
+        valueListenable: syncStatus,
+        builder: (context, s, _) {
+          if (s == null) return const SizedBox.shrink();
+          final l = AppLocalizations.of(context);
+          final c = CsColors.of(context);
+          final ink = Theme.of(context).colorScheme.onSurface;
+          final f = s.fraction;
+          final text = s.finished ? l.syncDone : (f == null ? l.syncWorking : l.lockSyncPercent((f * 100).floor().toString()));
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 18),
+            child: Container(
+              key: const ValueKey('lock-sync'),
+              width: 230,
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+              decoration: BoxDecoration(
+                color: solidTint(context, ink.withValues(alpha: .08)),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(
+                    s.finished ? Icons.check_circle_rounded : (s.drive ? Icons.cloud_sync_rounded : Icons.phonelink_ring_rounded),
+                    size: 20,
+                    color: s.finished ? const Color(0xFF34C759) : ink,
+                    semanticLabel: s.drive ? l.syncDriveRow : l.syncRow,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(text,
+                        key: const ValueKey('lock-sync-text'),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: ink, fontSize: 15, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()])),
+                  ),
+                ]),
+                if (!s.finished) ...[
+                  const SizedBox(height: 9),
+                  LinearProgressIndicator(
+                    value: f,
+                    minHeight: 5,
+                    backgroundColor: c.border,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ],
+              ]),
+            ),
+          );
+        },
+      );
 }
 
 /// A round, translucent button for the bottom of the lock screen.

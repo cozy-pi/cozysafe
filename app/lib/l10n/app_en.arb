@@ -658,6 +658,8 @@
   "syncConnected": "Connected",
   "syncCheckNote": "The other device shows the same number. If it does not, tap Cancel.",
   "syncWorking": "Syncing",
+  "lockSyncPercent": "Syncing {percent}%",
+  "@lockSyncPercent": {"placeholders": {"percent": {}}},
   "syncDone": "Up to date",
   "syncDoneCounts": "{received} brought in, {sent} sent",
   "@syncDoneCounts": {"placeholders": {"received": {}, "sent": {}}},

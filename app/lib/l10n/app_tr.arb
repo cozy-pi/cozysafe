@@ -473,6 +473,7 @@
   "syncConnected": "Bağlandı",
   "syncCheckNote": "Diğer cihaz aynı sayıyı gösterir. Göstermiyorsa İptal'e dokunun.",
   "syncWorking": "Eşitleniyor",
+  "lockSyncPercent": "Eşitleniyor %{percent}",
   "syncDone": "Güncel",
   "syncDoneCounts": "{received} alındı, {sent} gönderildi",
   "syncDoneCopies": "{n} not iki cihazda da değiştirilmiş: iki metin de saklandı.",

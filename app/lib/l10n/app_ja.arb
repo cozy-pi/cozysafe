@@ -473,6 +473,7 @@
   "syncConnected": "接続しました",
   "syncCheckNote": "もう一台にも同じ数字が表示されます。違う場合はキャンセルをタップしてください。",
   "syncWorking": "同期中",
+  "lockSyncPercent": "同期中 {percent}%",
   "syncDone": "最新の状態です",
   "syncDoneCounts": "受信 {received}、送信 {sent}",
   "syncDoneCopies": "{n} 件のメモが両方のデバイスで変更されていました。両方のテキストを残します。",
