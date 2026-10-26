@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../debug_log.dart';
 import '../biometric.dart';
+import '../key_backup.dart';
 import '../l10n/app_localizations.dart';
 import '../appearance.dart';
 import '../language.dart';
@@ -15,6 +16,7 @@ import '../links.dart';
 import '../platform.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
+import '../secret_key_store.dart';
 import '../theme.dart';
 import 'common.dart' show fadeRoute;
 import 'debug.dart';
@@ -226,6 +228,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _guarded(Future<void> Function() action) async {
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     await action();
+  }
+
+  Future<void> _keyBackupOn() async {
+    final l = AppLocalizations.of(context);
+    final yes = await showCard<bool>(context, title: l.keyBackupTitle, builder: (context) {
+      final c = CsColors.of(context);
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(l.keyBackupBody, style: TextStyle(color: c.muted, fontSize: 15, height: 1.4)),
+          const SizedBox(height: 18),
+          Row(children: [
+            Expanded(child: OutlinedButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.cancel))),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton(
+                key: const ValueKey('key-backup-yes'),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(l.keyBackupOn),
+              ),
+            ),
+          ]),
+        ]),
+      );
+    });
+    if (yes != true || !mounted) return;
+    final key = await SecretKeyStore.read();
+    if (key != null) await KeyBackup.turnOn(key);
+    if (mounted) setState(() {});
   }
 
   // Seven taps on the version turn on debug mode, after the owner check (docs/security.md).
@@ -678,6 +709,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: l.keyCheckRow,
                   builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword)),
             ),
+            // Off unless turned on; turning it on is weaker, so it asks for the owner and
+            // says the trade (owner 2026-10-26).
+            if (KeyBackup.supported)
+              _Row(
+                key: const ValueKey('key-backup-row'),
+                icon: Icons.cloud_outlined,
+                color: _Mau.troi,
+                title: l.keyBackupRow,
+                trailing: _Switch(
+                  value: KeyBackup.on,
+                  onChanged: (on) => on
+                      ? _guarded(_keyBackupOn)
+                      : KeyBackup.turnOff().then((_) {
+                          if (mounted) setState(() {});
+                        }),
+                ),
+              ),
             _Row(
               icon: Icons.key_outlined,
               color: _Mau.vang,

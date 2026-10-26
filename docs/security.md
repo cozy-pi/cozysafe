@@ -120,6 +120,12 @@ By case:
   attacked at all (2¹²⁸).
 - **Recovery Key and backup both leak:** only the password remains; a password at the
   minimum score is our estimate of weeks to years for one machine (not measured).
+- **The 24 words in iCloud Keychain** (iPhone, off by default, owner 2026-10-26): a
+  copy of the Recovery Key as a synchronizable keychain item (`lib/key_backup.dart`),
+  end-to-end encrypted by Apple. On, it trades the two independent secrets for one plus
+  the Apple account: whoever takes the account has the words and still needs the vault
+  password. Turning it on asks for the owner; turning it off deletes the copy; a new
+  Recovery Key replaces it. The PIN's device key never goes there.
 - **The error log** (Settings → Report a problem) keeps the last 200 failures as a time,
   a place and a fixed code (`drive-full`, `io-timed-out`), in a plain file beside the
   preferences: no names, content, keys, paths or network data, so it can be copied into

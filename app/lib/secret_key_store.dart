@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'hw_key.dart';
+import 'key_backup.dart';
 
 /// This device's Secret Key in the platform keystore (ADR 0001): Keychain on Apple
 /// devices (this device only, readable after the first unlock since boot), the Android
@@ -46,6 +47,8 @@ class SecretKeyStore {
     if (back == null || !listEquals(back, key)) {
       throw StateError('The keystore did not keep the Secret Key');
     }
+    // A new Recovery Key replaces the iCloud Keychain copy, when that is on.
+    if (KeyBackup.on) await KeyBackup.turnOn(key);
   }
 
   /// Forget the key (the last vault on this device was deleted): a new vault starts
@@ -53,6 +56,7 @@ class SecretKeyStore {
   static Future<void> delete() async {
     await _storage.delete(key: _name);
     if (await read() != null) throw StateError('The keystore still holds the Secret Key');
+    await KeyBackup.turnOff();
   }
 }
 

@@ -679,5 +679,10 @@
   "keyCheckWordsBad": "Keine Übereinstimmung. Jedes Wort und die Reihenfolge prüfen.",
   "keyCheckPasswordOk": "Richtiges Passwort.",
   "keyCheckPasswordBad": "Falsches Passwort.",
-  "keyCheckNote": "Nur verglichen: Nichts wird angezeigt, gespeichert oder geändert."
+  "keyCheckNote": "Nur verglichen: Nichts wird angezeigt, gespeichert oder geändert.",
+  "keyBackupRow": "24 Wörter im iCloud-Schlüsselbund behalten",
+  "keyBackupTitle": "24 Wörter im iCloud-Schlüsselbund behalten?",
+  "keyBackupBody": "Ein neues iPhone mit Ihrem Apple-Account fragt dann nur nach dem Tresorpasswort. Wer Ihren Apple-Account übernimmt, hat die Wörter auch, braucht aber noch das Passwort.",
+  "keyBackupOn": "Behalten",
+  "keyBackupFound": "Aus dem iCloud-Schlüsselbund ausgefüllt."
 }

@@ -679,5 +679,10 @@
   "keyCheckWordsBad": "Tidak cocok. Periksa setiap kata dan urutannya.",
   "keyCheckPasswordOk": "Kata sandi benar.",
   "keyCheckPasswordBad": "Kata sandi salah.",
-  "keyCheckNote": "Hanya dicocokkan: tidak ada yang ditampilkan, disimpan, atau diubah."
+  "keyCheckNote": "Hanya dicocokkan: tidak ada yang ditampilkan, disimpan, atau diubah.",
+  "keyBackupRow": "Simpan 24 kata di iCloud Keychain",
+  "keyBackupTitle": "Simpan 24 kata di iCloud Keychain?",
+  "keyBackupBody": "iPhone baru dengan akun Apple Anda lalu hanya meminta kata sandi brankas. Siapa pun yang mengambil alih akun Apple Anda juga mendapat kata-katanya, dan tetap perlu kata sandi.",
+  "keyBackupOn": "Simpan",
+  "keyBackupFound": "Diisi dari iCloud Keychain."
 }

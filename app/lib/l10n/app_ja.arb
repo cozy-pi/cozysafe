@@ -679,5 +679,10 @@
   "keyCheckWordsBad": "一致しません。各単語と順番を確認してください。",
   "keyCheckPasswordOk": "パスワードは正しいです。",
   "keyCheckPasswordBad": "パスワードが違います。",
-  "keyCheckNote": "照合するだけです。表示・保存・変更は行いません。"
+  "keyCheckNote": "照合するだけです。表示・保存・変更は行いません。",
+  "keyBackupRow": "24 個の単語を iCloud キーチェーンに保管",
+  "keyBackupTitle": "24 個の単語を iCloud キーチェーンに保管しますか？",
+  "keyBackupBody": "同じ Apple アカウントの新しい iPhone では金庫のパスワードだけで済みます。Apple アカウントを乗っ取られると単語も渡りますが、パスワードは依然として必要です。",
+  "keyBackupOn": "保管する",
+  "keyBackupFound": "iCloud キーチェーンから入力しました。"
 }

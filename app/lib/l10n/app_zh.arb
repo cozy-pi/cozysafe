@@ -679,5 +679,10 @@
   "keyCheckWordsBad": "不匹配。请检查每个单词及其顺序。",
   "keyCheckPasswordOk": "密码正确。",
   "keyCheckPasswordBad": "密码错误。",
-  "keyCheckNote": "仅作比对：不会显示、保存或更改任何内容。"
+  "keyCheckNote": "仅作比对：不会显示、保存或更改任何内容。",
+  "keyBackupRow": "将 24 个单词保存在 iCloud 钥匙串中",
+  "keyBackupTitle": "要将 24 个单词保存在 iCloud 钥匙串中吗？",
+  "keyBackupBody": "使用同一 Apple 账号的新 iPhone 只需输入保险箱密码。若有人盗取你的 Apple 账号，也会拿到这些单词，但仍需要密码。",
+  "keyBackupOn": "保存",
+  "keyBackupFound": "已从 iCloud 钥匙串填入。"
 }

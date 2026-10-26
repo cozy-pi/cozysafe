@@ -45,6 +45,9 @@ Dates are UTC.
   vault opens with its password (a vault without a password keeps its PIN).
 - Settings → Check your 24 words and password: type them back to know they still open
   this vault. They are only compared, never shown or kept.
+- iPhone: Settings → Keep the 24 words in iCloud Keychain, off unless you turn it on (it
+  asks for Face ID and says the trade). A new iPhone with your Apple account then fills
+  the words in by itself and asks only for the password. Android comes later.
 - An error log, always on: every failure is kept as a short code and a time (never
   names, content, keys or addresses), the last 200. Settings → Report a problem lists
   them, with Copy details and Feedback. A failed sync shows its code and Copy details.

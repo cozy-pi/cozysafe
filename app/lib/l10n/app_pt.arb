@@ -679,5 +679,10 @@
   "keyCheckWordsBad": "Não coincide. Verifique cada palavra e a ordem.",
   "keyCheckPasswordOk": "Palavra-passe correta.",
   "keyCheckPasswordBad": "Palavra-passe errada.",
-  "keyCheckNote": "Apenas comparado: nada é mostrado, guardado ou alterado."
+  "keyCheckNote": "Apenas comparado: nada é mostrado, guardado ou alterado.",
+  "keyBackupRow": "Guardar as 24 palavras no Porta-chaves do iCloud",
+  "keyBackupTitle": "Guardar as 24 palavras no Porta-chaves do iCloud?",
+  "keyBackupBody": "Um iPhone novo com a sua conta Apple pedirá apenas a palavra-passe do cofre. Quem tomar a sua conta Apple fica também com as palavras e continua a precisar da palavra-passe.",
+  "keyBackupOn": "Guardar",
+  "keyBackupFound": "Preenchido a partir do Porta-chaves do iCloud."
 }

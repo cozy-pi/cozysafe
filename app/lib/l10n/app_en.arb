@@ -899,5 +899,10 @@
   "keyCheckWordsBad": "No match. Check each word and their order.",
   "keyCheckPasswordOk": "Right password.",
   "keyCheckPasswordBad": "Wrong password.",
-  "keyCheckNote": "Only compared: nothing is shown, kept or changed."
+  "keyCheckNote": "Only compared: nothing is shown, kept or changed.",
+  "keyBackupRow": "Keep the 24 words in iCloud Keychain",
+  "keyBackupTitle": "Keep the 24 words in iCloud Keychain?",
+  "keyBackupBody": "A new iPhone with your Apple account then asks only for the vault password. Whoever takes over your Apple account gets the words too, and still needs the password.",
+  "keyBackupOn": "Keep",
+  "keyBackupFound": "Filled in from iCloud Keychain."
 }

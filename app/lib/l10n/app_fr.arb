@@ -679,5 +679,10 @@
   "keyCheckWordsBad": "Pas de correspondance. Vérifiez chaque mot et leur ordre.",
   "keyCheckPasswordOk": "Bon mot de passe.",
   "keyCheckPasswordBad": "Mauvais mot de passe.",
-  "keyCheckNote": "Seulement comparé : rien n'est affiché, conservé ni modifié."
+  "keyCheckNote": "Seulement comparé : rien n'est affiché, conservé ni modifié.",
+  "keyBackupRow": "Garder les 24 mots dans le trousseau iCloud",
+  "keyBackupTitle": "Garder les 24 mots dans le trousseau iCloud ?",
+  "keyBackupBody": "Un nouvel iPhone avec votre compte Apple ne demandera que le mot de passe du coffre. Qui s'empare de votre compte Apple a aussi les mots, et il lui faut encore le mot de passe.",
+  "keyBackupOn": "Garder",
+  "keyBackupFound": "Rempli depuis le trousseau iCloud."
 }

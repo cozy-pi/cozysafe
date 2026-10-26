@@ -679,5 +679,10 @@
   "keyCheckWordsBad": "Eşleşmiyor. Her kelimeyi ve sırasını kontrol edin.",
   "keyCheckPasswordOk": "Parola doğru.",
   "keyCheckPasswordBad": "Parola yanlış.",
-  "keyCheckNote": "Yalnızca karşılaştırılır: hiçbir şey gösterilmez, saklanmaz veya değiştirilmez."
+  "keyCheckNote": "Yalnızca karşılaştırılır: hiçbir şey gösterilmez, saklanmaz veya değiştirilmez.",
+  "keyBackupRow": "24 kelimeyi iCloud Anahtar Zinciri'nde tut",
+  "keyBackupTitle": "24 kelime iCloud Anahtar Zinciri'nde tutulsun mu?",
+  "keyBackupBody": "Apple hesabınızla yeni bir iPhone yalnızca kasa parolasını sorar. Apple hesabınızı ele geçiren kelimeleri de alır, yine de parolaya ihtiyaç duyar.",
+  "keyBackupOn": "Tut",
+  "keyBackupFound": "iCloud Anahtar Zinciri'nden dolduruldu."
 }

@@ -27,7 +27,9 @@ import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/security_info.dart';
 import 'package:cozysafe/screens/set_pin.dart';
+import 'package:cozysafe/key_backup.dart';
 import 'package:cozysafe/screens/error_report.dart';
+import 'package:cozysafe/screens/key_check.dart';
 import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/tour.dart';
 import 'package:cozysafe/screens/trash.dart';
@@ -338,6 +340,8 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugDrive = false;
       SyncScreen.debugAccount = null;
       ErrorReportScreen.debugEntries = null;
+      KeyBackup.debugSupported = null;
+      KeyCheckScreen.debugResults = null;
       SyncProgress.debugRate = null;
       SecondPlaceNudge.debugShow = false;
       debugHoldToasts = true;
@@ -938,6 +942,29 @@ void main() {
       change: 'Mới: mỗi lần đồng bộ kiểm mọi tệp trên Drive, thiếu/hỏng thì tự gửi lại và báo',
       marks: [() => find.textContaining('Đã gửi lại')]);
   _screen('sync-drive-failed-code', 'Google Drive lỗi khác: mã lỗi để gửi kèm góp ý', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(failed(SyncStep.failed, 'drive-rate-limited')), onSynced: () {})));
+  _screen('settings-keys', 'Cài đặt · nhóm khoá của két: thêm Kiểm tra 24 từ và mật khẩu, Giữ 24 từ trong iCloud Keychain (tắt mặc định)', () => settings(vault),
+      change: 'Mới: tự kiểm tra 24 từ/mật khẩu; tuỳ chọn giữ 24 từ trong iCloud Keychain',
+      marks: [() => find.byKey(const ValueKey('key-check-row')), () => find.byKey(const ValueKey('key-backup-row'))],
+      setup: () {
+    SettingsScreen.debugSyncLog = const [];
+    KeyBackup.debugSupported = true;
+  }, act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('key-backup-row')), 200, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 220));
+    await t.pumpAndSettle();
+  });
+  _screen('key-backup-ask', 'Bật Giữ 24 từ trong iCloud Keychain: hỏi lại, nói rõ đánh đổi', () => settings(vault),
+      setup: () {
+    SettingsScreen.debugSyncLog = const [];
+    KeyBackup.debugSupported = true;
+  }, act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('key-backup-row')), 200, scrollable: find.byType(Scrollable).first);
+    await t.pumpAndSettle();
+    await t.tap(find.descendant(of: find.byKey(const ValueKey('key-backup-row')), matching: find.byType(Switch)));
+    await t.pumpAndSettle();
+  });
+  _screen('key-check', 'Kiểm tra 24 từ và mật khẩu: chỉ so khớp, không hiện, không lưu', () => page('Kiểm tra 24 từ và mật khẩu', const KeyCheckScreen(libraryDir: '', hasPassword: true)),
+      change: 'Mới', setup: () => KeyCheckScreen.debugResults = (words: true, password: false));
   _screen('report-problem', 'Cài đặt → Báo lỗi: các lỗi gần đây (chỉ mã và giờ), Góp ý, Sao chép chi tiết', () => page('Báo lỗi', const ErrorReportScreen()),
       change: 'Mới: nhật ký lỗi luôn bật, chỉ có mã lỗi',
       setup: () => ErrorReportScreen.debugEntries = [

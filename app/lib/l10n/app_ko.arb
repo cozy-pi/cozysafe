@@ -679,5 +679,10 @@
   "keyCheckWordsBad": "일치하지 않습니다. 각 단어와 순서를 확인하세요.",
   "keyCheckPasswordOk": "비밀번호가 맞습니다.",
   "keyCheckPasswordBad": "비밀번호가 틀렸습니다.",
-  "keyCheckNote": "비교만 합니다. 아무것도 표시, 저장, 변경하지 않습니다."
+  "keyCheckNote": "비교만 합니다. 아무것도 표시, 저장, 변경하지 않습니다.",
+  "keyBackupRow": "24개 단어를 iCloud 키체인에 보관",
+  "keyBackupTitle": "24개 단어를 iCloud 키체인에 보관할까요?",
+  "keyBackupBody": "같은 Apple 계정의 새 iPhone에서는 금고 비밀번호만 입력하면 됩니다. Apple 계정을 탈취한 사람도 단어를 갖게 되지만 여전히 비밀번호가 필요합니다.",
+  "keyBackupOn": "보관",
+  "keyBackupFound": "iCloud 키체인에서 채웠습니다."
 }

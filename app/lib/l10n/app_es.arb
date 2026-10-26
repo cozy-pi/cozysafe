@@ -679,5 +679,10 @@
   "keyCheckWordsBad": "No coincide. Revisa cada palabra y su orden.",
   "keyCheckPasswordOk": "Contraseña correcta.",
   "keyCheckPasswordBad": "Contraseña incorrecta.",
-  "keyCheckNote": "Solo se compara: no se muestra, guarda ni cambia nada."
+  "keyCheckNote": "Solo se compara: no se muestra, guarda ni cambia nada.",
+  "keyBackupRow": "Guardar las 24 palabras en el Llavero de iCloud",
+  "keyBackupTitle": "¿Guardar las 24 palabras en el Llavero de iCloud?",
+  "keyBackupBody": "Un iPhone nuevo con tu cuenta de Apple solo pedirá la contraseña de la caja fuerte. Quien se haga con tu cuenta de Apple tendrá también las palabras y aún necesitará la contraseña.",
+  "keyBackupOn": "Guardar",
+  "keyBackupFound": "Rellenado desde el Llavero de iCloud."
 }

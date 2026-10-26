@@ -693,5 +693,10 @@
   "keyCheckWordsBad": "Không khớp. Kiểm tra từng từ và thứ tự.",
   "keyCheckPasswordOk": "Đúng mật khẩu.",
   "keyCheckPasswordBad": "Sai mật khẩu.",
-  "keyCheckNote": "Chỉ so khớp: không hiện, không lưu, không đổi gì."
+  "keyCheckNote": "Chỉ so khớp: không hiện, không lưu, không đổi gì.",
+  "keyBackupRow": "Giữ 24 từ trong iCloud Keychain",
+  "keyBackupTitle": "Giữ 24 từ trong iCloud Keychain?",
+  "keyBackupBody": "iPhone mới cùng tài khoản Apple khi đó chỉ cần mật khẩu két. Ai chiếm được tài khoản Apple của bạn cũng có 24 từ, nhưng vẫn cần mật khẩu.",
+  "keyBackupOn": "Giữ",
+  "keyBackupFound": "Đã điền từ iCloud Keychain."
 }
