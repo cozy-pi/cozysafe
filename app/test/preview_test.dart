@@ -335,6 +335,7 @@ void _screen(String name, String caption, Widget Function() home,
       SettingsScreen.debugSyncLog = null;
       SyncScreen.debugAddress = null;
       SyncScreen.debugDrive = false;
+      SyncScreen.debugAccount = null;
       SyncProgress.debugRate = null;
       SecondPlaceNudge.debugShow = false;
       debugHoldToasts = true;
@@ -787,8 +788,8 @@ void main() {
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
-  _screen('settings', 'Cài đặt: nhóm Sao lưu & đồng bộ ở đầu (Đồng bộ kèm lần cuối, Sao lưu ra tệp)', () => settings(vault),
-      change: 'Mới: Sao lưu ra tệp chung nhóm với Đồng bộ',
+  _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', () => settings(vault),
+      change: 'Mới: bỏ tên nhóm; dung lượng gọn như iPhone (thanh màu + tên loại)',
       marks: [() => find.byKey(const ValueKey('sync-row')), () => find.byKey(const ValueKey('backup-now'))],
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
@@ -803,10 +804,31 @@ void main() {
     '${_now - 86400000}|nearby|iPad|cancelled|0|0',
     '${_now - 2 * 86400000}|join|192.168.1.21|ok|0|5',
   ];
-  _screen('sync', 'Đồng bộ: Mạng nội bộ (một nút: Đồng bộ với máy gần đây), Google Drive, các lần kết nối gần đây', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (Đăng nhập lại, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      change: 'Mới: Đăng nhập lại / Gỡ tài khoản Google; lịch sử kết nối thành một dòng',
+      marks: [() => find.byKey(const ValueKey('sync-drive-again')), () => find.byKey(const ValueKey('sync-drive-remove')), () => find.byKey(const ValueKey('sync-log'))],
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
+    SyncScreen.debugAccount = 'ban.do@gmail.com';
+  });
+  _screen('sync-log', 'Đồng bộ · bấm Các lần kết nối gần đây: danh sách + một dòng giải thích (chỉ tên máy, không địa chỉ IP)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      change: 'Mới: không còn hiện địa chỉ IP',
+      setup: () {
+    SyncScreen.debugLog = syncLog;
+    SyncScreen.debugDrive = true;
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-log')));
+    await t.pumpAndSettle();
+  });
+  _screen('sync-drive-remove', 'Đồng bộ · bấm Gỡ tài khoản: hỏi lại, tệp trên Drive vẫn còn', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () {
+    SyncScreen.debugLog = syncLog;
+    SyncScreen.debugDrive = true;
+    SyncScreen.debugAccount = 'ban.do@gmail.com';
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-drive-remove')));
+    await t.pumpAndSettle();
   });
   _screen('sync-allow', 'Đồng bộ · bấm Đồng bộ với máy gần đây → hỏi cho phép tìm và chờ trên Wi‑Fi', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
@@ -850,18 +872,20 @@ void main() {
     NearbyPage.debugHosting = hosting;
     NearbyPage.debugEvents = Stream.value(found(['']));
   });
-  _screen('sync-nearby-confirm', 'Hai máy đã kết nối: "Đồng bộ với iPhone 15 Pro Max?" + mã 472, cả hai cùng bấm Đồng bộ', nearby,
-      change: 'Mới: đối chiếu số như ghép Bluetooth, cả hai máy cùng đồng ý',
-      marks: [() => find.byKey(const ValueKey('sync-confirm-card')), () => find.byKey(const ValueKey('sync-confirm-yes'))],
+  _screen('sync-nearby-confirm', 'Hai máy đã kết nối: tên máy + mã 472, tự đồng bộ sau 5 giây, chỉ còn nút Huỷ', nearby,
+      change: 'Mới: không còn nút Đồng bộ — đếm ngược 5 giây rồi tự chạy',
+      marks: [() => find.byKey(const ValueKey('sync-auto')), () => find.byKey(const ValueKey('sync-confirm-no'))],
       setup: () {
     NearbyPage.debugHosting = hosting;
     NearbyPage.debugEvents = Stream.value(named(SyncStep.confirm, 'iPhone 15 Pro Max', 472));
   });
-  _screen('sync-nearby-confirm-waiting', 'Đã bấm Đồng bộ: chờ máy kia cũng bấm', nearby, setup: () {
+  _screen('sync-nearby-confirm-waiting', 'Hết 5 giây: máy này đã sẵn sàng, chờ máy kia', nearby, setup: () {
     NearbyPage.debugHosting = hosting;
     NearbyPage.debugEvents = Stream.value(named(SyncStep.confirm, 'iPhone 15 Pro Max', 472));
   }, act: (t) async {
-    await t.tap(find.byKey(const ValueKey('sync-confirm-yes')));
+    for (var i = 0; i < 5; i++) {
+      await t.pump(const Duration(seconds: 1));
+    }
     await t.pump(const Duration(milliseconds: 300));
   });
   _screen('sync-nearby-pick', 'Thấy hai máy có két này: chọn máy muốn đồng bộ', nearby,
@@ -879,9 +903,9 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -400));
     await t.pump();
   });
-  _screen('sync-allow-restore', 'Máy cũ (đang chờ đồng bộ, không cần bật gì): iPhone 16 xin khôi phục — đối chiếu mã, Cho phép hay Không cho', nearby,
-      change: 'Mới: bỏ công tắc "Giúp máy mới khôi phục"; máy cũ chỉ cần mở màn chờ, vẫn phải đối chiếu mã và bấm Cho phép',
-      marks: [() => find.byKey(const ValueKey('sync-allow-card')), () => find.byKey(const ValueKey('sync-allow-yes'))],
+  _screen('sync-allow-restore', 'Máy cũ (đang chờ đồng bộ, không cần bật gì): iPhone 16 khôi phục — tên máy + mã, tự tiếp tục sau 5 giây, có nút Huỷ', nearby,
+      change: 'Mới: bỏ công tắc "Giúp máy mới khôi phục" và nút Cho phép; máy mới vẫn phải có 24 từ và mật khẩu',
+      marks: [() => find.byKey(const ValueKey('sync-allow-card')), () => find.byKey(const ValueKey('sync-auto'))],
       setup: () {
     NearbyPage.debugHosting = hosting;
     NearbyPage.debugEvents = Stream.value(named(SyncStep.askRestore, 'iPhone 16', 318));
@@ -892,8 +916,7 @@ void main() {
         onSynced: () {},
         waiting: Builder(builder: (context) => NearbyLooking(lead: AppLocalizations.of(context).restoreNearbyLead, restoring: true, onScan: () {})),
       )));
-  _screen('sync-restore-connected', 'Máy mới (khôi phục): đã kết nối với máy cũ, chờ máy đó cho phép', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(named(SyncStep.connected, 'iPhone 15 Pro Max', 318)), onSynced: () {})),
-      marks: [() => find.byKey(const ValueKey('sync-tap-allow'))]);
+  _screen('sync-restore-connected', 'Máy mới (khôi phục): đã kết nối với máy cũ, cùng mã — không phải bấm gì', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(named(SyncStep.connected, 'iPhone 15 Pro Max', 318)), onSynced: () {})));
   _screen('sync-peer-wrong-password', 'Máy cũ: máy mới nhập sai mật khẩu — máy cũ dừng, chỉ mới gửi ổ khoá của két', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.peerWrongPassword)), onSynced: () {})));
   _screen('restore-wrong-password', 'Máy mới: sai mật khẩu', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.wrongPassword)), onSynced: () {})));
   _screen('sync-device-sending', 'Máy gần đây: đang gửi — ổ khoá trên đường truyền', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.sending, done: 21, total: 90, bytes: 64 << 20, bytesTotal: 230 << 20)), onSynced: () {})),
@@ -998,14 +1021,14 @@ void main() {
       setup: () => SettingsScreen.debugSyncLog = const [],
       change: 'Mới: Hướng dẫn sử dụng ở gần đầu Cài đặt, không còn nằm dưới Thông tin',
       marks: [() => find.byKey(const ValueKey('guide-row'))]);
-  _screen('settings-security-group', 'Cài đặt · Bảo mật: mọi công tắc bảo mật trong một nhóm',
+  _screen('settings-security-group', 'Cài đặt · hai nhóm bảo mật: khoá của két (Face ID, PIN, mật khẩu, 24 từ) tách khỏi nhóm che màn hình (tự khoá, chặn chụp, làm mờ, ẩn chữ)',
       () => settings(vault),
       setup: () => SettingsScreen.debugSyncLog = const [],
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('lock-on-leave-row')), 200, scrollable: find.byType(Scrollable).first);
     await t.drag(find.byType(Scrollable).first, const Offset(0, 260));
     await t.pumpAndSettle();
-  }, change: 'Mới: Khoá ngay khi rời ứng dụng; chặn chụp màn hình, làm mờ ảnh nhỏ, ẩn chữ ghi chú chuyển vào Bảo mật',
+  }, change: 'Mới: tách nhóm khoá của két và nhóm che màn hình, không tên nhóm',
       marks: [() => find.byKey(const ValueKey('lock-on-leave-row'))]);
   _screen('settings-lock-on-leave-off', 'Cài đặt · tắt “Khoá ngay khi rời ứng dụng” (máy hỏi Face ID/mật mã trước, như mọi cài đặt bảo mật)',
       () => settings(vault),

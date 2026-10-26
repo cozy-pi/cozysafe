@@ -244,9 +244,10 @@ class _Action extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: Text(title, style: TextStyle(fontSize: 15.5, color: chevron ? null : color))),
           if (detail case final d?)
-            Flexible(
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 190),
               child: Padding(
-                padding: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.only(left: 8, right: 2),
                 child: Text(d, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: 14)),
               ),
             ),
