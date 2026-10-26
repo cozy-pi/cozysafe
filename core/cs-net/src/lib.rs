@@ -31,8 +31,12 @@ enum Kind {
     /// Talk to Google Drive's API ([`https::HOST`]) and nothing else, for one session.
     Drive,
     /// Knock at [`p2p::PORT`] on the other addresses of this device's network
-    /// (`a.b.c.1`–`254`), to find its other device; one look.
+    /// (`a.b.c.1`–`254`), to find its other device; one look, and connecting to a device
+    /// it found there.
     Scan(Ipv4Addr),
+    /// Tests: knock at exactly these (devices on this computer, at their own ports).
+    #[cfg(test)]
+    Targets(Vec<SocketAddrV4>),
 }
 
 impl Permit {
@@ -82,14 +86,30 @@ impl Permit {
     pub(crate) fn listen_ip(&self) -> Option<Ipv4Addr> {
         match self.kind {
             Kind::Listen(ip) => Some(ip),
-            Kind::Connect(_) | Kind::Drive | Kind::Scan(_) => None,
+            _ => None,
         }
     }
 
     pub(crate) fn connect_to(&self) -> Option<SocketAddrV4> {
         match self.kind {
             Kind::Connect(a) => Some(a),
-            Kind::Listen(_) | Kind::Drive | Kind::Scan(_) => None,
+            _ => None,
+        }
+    }
+
+    /// Tests: a look at exactly `targets`.
+    #[cfg(test)]
+    pub(crate) fn scan_at(targets: Vec<SocketAddrV4>) -> Permit {
+        Permit {
+            kind: Kind::Targets(targets),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn scan_list(&self) -> Option<&[SocketAddrV4]> {
+        match &self.kind {
+            Kind::Targets(t) => Some(t),
+            _ => None,
         }
     }
 
@@ -170,6 +190,14 @@ pub(crate) mod testkit {
             sk,
             pw: pw.to_owned(),
         }
+    }
+
+    /// A third device holding the same vault as `t`.
+    pub(crate) fn third(t: &Two) -> (tempfile::TempDir, OpenVault) {
+        let d = tempfile::tempdir().unwrap();
+        copy_dir(t.dirs.0.path(), d.path());
+        let v = open(d.path(), &t.sk, &t.pw);
+        (d, v)
     }
 
     /// Open the vault in `dir` the usual way.
