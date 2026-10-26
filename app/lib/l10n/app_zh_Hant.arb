@@ -639,5 +639,12 @@
   "syncRestoreAllowNo": "不允許",
   "restoreTapAllow": "請在另一台裝置上點一下「允許」。",
   "changeNoReencrypt": "這不會重新加密保險箱裡已有的內容：只有開啟它的鑰匙會變。重新加密全部內容已在規劃中。",
-  "hideNoteText": "隱藏筆記內容"
+  "hideNoteText": "隱藏筆記內容",
+  "confirmTrashTitle": "{count, plural, =1{要移到「最近刪除」嗎？} other{要將 {count} 個項目移到「最近刪除」嗎？}}",
+  "confirmTrashBody": "{count, plural, other{30 天內可在「最近刪除」中還原。}}",
+  "infoDeleted": "刪除時間",
+  "infoKeptUntil": "保留至",
+  "trashEmptyTitle": "沒有刪除的項目",
+  "trashEmptyBody": "刪除的內容會在這裡保留 30 天，方便找回。",
+  "trashHint": "輕點項目即可查看。按住並拖曳可選取多個項目。"
 }

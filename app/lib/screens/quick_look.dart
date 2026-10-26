@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:video_player/video_player.dart';
 
+import '../widgets/confirm_delete.dart';
 import '../item_bytes.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
@@ -20,6 +21,7 @@ import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart';
 import 'common.dart';
 import 'file_view.dart';
+import 'item_info.dart';
 import 'note.dart' show noteTitle;
 import 'vault_home.dart' show PhotoViewerScreen;
 import 'video_view.dart';
@@ -27,8 +29,8 @@ import 'video_view.dart';
 /// What the preview shows inside its box, and what its Open button does.
 enum _Look { photo, video, note, audio, pdf, text, image, file }
 
-/// An item opened from Recently deleted: the preview offers Restore and Delete for good
-/// instead of the vault's buttons.
+/// An item opened from Recently deleted: the preview offers Restore, Info and Delete for
+/// good (asked first) instead of the vault's buttons, as its long-press menu does.
 class TrashLook {
   const TrashLook({required this.daysLeft, this.held = false});
 
@@ -54,7 +56,7 @@ class QuickLook extends StatefulWidget {
   /// The photos and videos around it, for swiping in full screen.
   final List<rust.ItemInfo> photos;
   final String vaultId;
-  /// Set when the item is in Recently deleted: the bar is Close, Restore, Delete for good.
+  /// Set when the item is in Recently deleted: the bar is Close, Restore, Info, Delete for good.
   final TrashLook? trash;
 
   /// Popped by ⋯ in any viewer, with the item's id: the vault shows that item's menu
@@ -311,6 +313,7 @@ class _QuickLookState extends State<QuickLook> {
 
   Future<void> _delete() async {
     final l = AppLocalizations.of(context);
+    if (!await confirmTrash(context, count: 1, name: _title) || !mounted) return;
     try {
       await rust.trashItem(id: widget.item.id, nowMs: nowMs());
       if (mounted) Navigator.of(context).pop(widget.item.id);
@@ -751,10 +754,17 @@ class _QuickLookState extends State<QuickLook> {
     final tools = trash != null
         ? [
             tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, (_) => Navigator.of(context).pop()),
+            // The same actions, icons and order as the long-press menu in Recently deleted.
             tool(const ValueKey('preview-restore'), Icons.restore_rounded, l.restore,
                 (_) => Navigator.of(context).pop(QuickLook.restoreRequest)),
-            tool(const ValueKey('preview-purge'), Icons.delete_forever_outlined, l.deleteForGoodShort,
-                (_) => Navigator.of(context).pop(QuickLook.purgeRequest), color: red),
+            tool(const ValueKey('preview-info'), Icons.info_outline, l.info,
+                (_) => showItemInfo(context, widget.item, held: trash.held)),
+            tool(const ValueKey('preview-purge'), Icons.delete_forever_outlined, l.deleteForGoodShort, (_) async {
+              final nav = Navigator.of(context);
+              if (await confirmDeleteForGood(context, count: 1, name: _title, othersKeep: !trash.held)) {
+                nav.pop(QuickLook.purgeRequest);
+              }
+            }, color: red),
           ]
         : [
             tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, (_) => Navigator.of(context).pop()),

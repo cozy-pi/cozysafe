@@ -13,6 +13,7 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
+import '../widgets/confirm_delete.dart';
 import '../item_bytes.dart';
 import '../l10n/app_localizations.dart';
 import '../debug_log.dart';
@@ -380,8 +381,9 @@ class _FileViewScreenState extends State<FileViewScreen> {
     if (mounted) setState(() => _busy = false);
   }
 
-  /// No question: it goes to Recently deleted and the vault offers Undo.
+  /// Asks first, then it goes to Recently deleted and the vault offers Undo.
   Future<void> _delete() async {
+    if (!await confirmTrash(context, count: 1, name: widget.item.name) || !mounted) return;
     await rust.trashItem(id: widget.item.id, nowMs: nowMs());
     if (mounted) Navigator.of(context).pop(widget.item.id);
   }

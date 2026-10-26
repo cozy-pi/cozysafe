@@ -851,5 +851,14 @@
   "syncRestoreAllowNo": "Don't allow",
   "restoreTapAllow": "On your other device, tap Allow.",
   "changeNoReencrypt": "This does not re-encrypt what is already in the vault: only the key that opens it changes. Re-encrypting everything is planned.",
-  "hideNoteText": "Hide note text"
+  "hideNoteText": "Hide note text",
+  "confirmTrashTitle": "{count, plural, =1{Move to Recently deleted?} other{Move {count} items to Recently deleted?}}",
+  "@confirmTrashTitle": {"placeholders": {"count": {"type": "int"}}},
+  "confirmTrashBody": "{count, plural, =1{You can restore it from Recently deleted for 30 days.} other{You can restore them from Recently deleted for 30 days.}}",
+  "@confirmTrashBody": {"placeholders": {"count": {"type": "int"}}},
+  "infoDeleted": "Deleted",
+  "infoKeptUntil": "Kept until",
+  "trashEmptyTitle": "Nothing deleted",
+  "trashEmptyBody": "What you delete stays here for 30 days, so you can bring it back.",
+  "trashHint": "Tap an item to look at it. Hold one and drag to select several."
 }

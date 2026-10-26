@@ -41,8 +41,8 @@ class MenuPointer extends StatelessWidget {
 Future<void> showItemMenu(BuildContext context, {String? title, required List<MenuEntry> entries}) async {
   HapticFeedback.mediumImpact();
   final at = _lastDown;
-  final picked = await showGeneralDialog<MenuEntry>(
-    context: context,
+  final nav = Navigator.of(context, rootNavigator: true);
+  final route = RawDialogRoute<MenuEntry>(
     barrierDismissible: true,
     barrierLabel: MaterialLocalizations.of(context).closeButtonLabel,
     barrierColor: Colors.transparent,
@@ -53,7 +53,24 @@ Future<void> showItemMenu(BuildContext context, {String? title, required List<Me
       child: ScaleTransition(scale: Tween(begin: .96, end: 1.0).animate(a), child: child),
     ),
   );
+  _open = (nav, route);
+  final picked = await nav.push(route);
+  if (identical(_open?.$2, route)) _open = null;
   picked?.onTap();
+}
+
+/// The menu on screen, if any, so a drag that starts from the long press can put it away.
+(NavigatorState, Route<MenuEntry>)? _open;
+
+/// Close the item menu without choosing (the finger went on to drag-select, lib/widgets/
+/// drag_select.dart). Nothing happens when no menu is open.
+void dismissItemMenu() {
+  final open = _open;
+  _open = null;
+  if (open == null) return;
+  final (nav, route) = open;
+  if (!nav.mounted || !route.isActive) return;
+  route.isCurrent ? nav.pop() : nav.removeRoute(route);
 }
 
 class _Menu extends StatelessWidget {

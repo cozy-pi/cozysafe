@@ -639,5 +639,12 @@
   "syncRestoreAllowNo": "Ne pas autoriser",
   "restoreTapAllow": "Sur votre autre appareil, touchez Autoriser.",
   "changeNoReencrypt": "Cela ne rechiffre pas ce qui est déjà dans le coffre : seule la clé qui l’ouvre change. Tout rechiffrer est prévu.",
-  "hideNoteText": "Masquer le texte des notes"
+  "hideNoteText": "Masquer le texte des notes",
+  "confirmTrashTitle": "{count, plural, =1{Déplacer vers Supprimés récemment ?} other{Déplacer {count} éléments vers Supprimés récemment ?}}",
+  "confirmTrashBody": "{count, plural, =1{Vous pouvez le restaurer depuis Supprimés récemment pendant 30 jours.} other{Vous pouvez les restaurer depuis Supprimés récemment pendant 30 jours.}}",
+  "infoDeleted": "Supprimé",
+  "infoKeptUntil": "Conservé jusqu'au",
+  "trashEmptyTitle": "Rien de supprimé",
+  "trashEmptyBody": "Ce que vous supprimez reste ici 30 jours, pour pouvoir le récupérer.",
+  "trashHint": "Touchez un élément pour le voir. Maintenez puis glissez pour en sélectionner plusieurs."
 }
