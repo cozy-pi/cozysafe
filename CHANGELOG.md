@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.73 (2026-10-26)
+
+### Fixed
+- Syncing after a while without it is much faster: the other devices' change lists are
+  read several at once, and items already up to date here are no longer fetched again.
+  "Looking at Google Drive" now counts what it has read.
+- Debug's log notes how long each step of a Google Drive sync takes.
+
 ## 0.1.72 (2026-10-26)
 
 ### Changed

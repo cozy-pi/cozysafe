@@ -23,6 +23,7 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::Mutex;
 
 use cs_crypto::wrap;
 use serde::{Deserialize, Serialize};
@@ -437,7 +438,9 @@ impl OpenVault {
         let me = device_id(&self.index)?;
         let base = self.sync_dir();
         // First every new journal entry (small), so the screen knows how much is coming.
-        let mut todo: Vec<(String, u64, Entry)> = Vec::new();
+        // Fetched several at once (owner 2026-10-26: a device that had not synced for a
+        // while sat on "Looking at Google Drive", reading them one by one).
+        let mut wanted: Vec<(String, u64)> = Vec::new();
         let mut devices = remote.list(&format!("{base}/log"))?;
         devices.sort();
         for device in devices.into_iter().filter(|d| *d != me) {
@@ -457,16 +460,47 @@ impl OpenVault {
                 .filter(|n| *n > cursor)
                 .collect();
             entries.sort_unstable();
-            for n in entries {
-                let mut sealed = Capped::new(MAX_SMALL);
-                if !remote.get(&format!("{base}/log/{device}/{n}"), &mut sealed)? {
-                    break;
-                }
-                let sealed = sealed.0;
-                let json = wrap::open(&self.master_key, &sealed, &self.log_aad(&device, n))?;
-                let entry: Entry =
-                    serde_json::from_slice(&json).map_err(|_| Error::Corrupt("sync log"))?;
-                todo.push((device.clone(), n, entry));
+            wanted.extend(entries.into_iter().map(|n| (device.clone(), n)));
+        }
+        let fetched: Vec<Mutex<Option<Entry>>> = wanted.iter().map(|_| Mutex::new(None)).collect();
+        // The closure runs on several threads: no `self` in it (the index is single-threaded).
+        let (master_key, vault_id) = (&self.master_key, self.id.as_str());
+        let read = |i: &usize| -> Result<()> {
+            let (device, n) = &wanted[*i];
+            let mut sealed = Capped::new(MAX_SMALL);
+            if !remote.get(&format!("{base}/log/{device}/{n}"), &mut sealed)? {
+                return Ok(()); // not there (yet): this device's entries stop before it
+            }
+            let aad = crate::aad(vault_id, &format!("sync/log/{device}/{n}"));
+            let json = wrap::open(master_key, &sealed.0, &aad)?;
+            let entry: Entry =
+                serde_json::from_slice(&json).map_err(|_| Error::Corrupt("sync log"))?;
+            *fetched[*i].lock().unwrap_or_else(|p| p.into_inner()) = Some(entry);
+            Ok(())
+        };
+        let jobs: Vec<usize> = (0..wanted.len()).collect();
+        let mut read_so_far = 0u32;
+        each_at_once(remote.parallel(), &jobs, &read, |_| {
+            read_so_far += 1;
+            progress(SyncProgress {
+                phase: SyncPhase::Checking,
+                done: read_so_far,
+                total: jobs.len() as u32,
+                bytes: 0,
+                bytes_total: 0,
+            });
+            Ok(())
+        })?;
+        // In order per device, up to the first entry missing (as when read one by one).
+        let mut todo: Vec<(String, u64, Entry)> = Vec::new();
+        let mut stopped: Option<String> = None;
+        for ((device, n), slot) in wanted.into_iter().zip(fetched) {
+            if stopped.as_deref() == Some(device.as_str()) {
+                continue;
+            }
+            match slot.into_inner().unwrap_or_else(|p| p.into_inner()) {
+                Some(entry) => todo.push((device, n, entry)),
+                None => stopped = Some(device),
             }
         }
         // Counted: only what will change here (owner 2026-10-25: 848 shown for 90 items).
@@ -591,6 +625,14 @@ impl OpenVault {
         rev: &str,
         report: &mut SyncReport,
     ) -> Result<()> {
+        // Already this revision here: nothing to read (a device catching up reads many
+        // entries naming revisions it already has).
+        if let Some(sealed) = self.sealed_record(id)? {
+            if self.open_record(id, &sealed)?.rev == rev {
+                self.index.set_synced(&remote.key(), id, rev)?;
+                return Ok(());
+            }
+        }
         let Some((theirs, _)) = self.remote_record(remote, id, rev)? else {
             return Ok(()); // not uploaded yet, or cleaned up: a later entry will name it
         };
