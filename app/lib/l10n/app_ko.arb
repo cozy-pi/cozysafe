@@ -662,5 +662,12 @@
   "driveRemove": "계정 제거",
   "driveRemoveTitle": "이 기기에서 {account}을(를) 제거할까요?",
   "driveRemoveBody": "Google Drive의 파일은 그대로 남습니다. 다시 로그인할 때까지 Cozy Safe는 접근할 수 없습니다.",
-  "syncLogNote": "이 기기에만 저장됩니다."
+  "syncLogNote": "이 기기에만 저장됩니다.",
+  "errorCode": "오류 코드: {code}",
+  "copyDetails": "세부 정보 복사",
+  "detailsCopied": "복사됨",
+  "reportProblem": "문제 신고",
+  "errorLogEmpty": "아직 오류가 없습니다.",
+  "errorLogNote": "오류 코드와 시간만 있으며 금고 내용은 절대 없습니다. 복사해서 의견과 함께 보내 주세요.",
+  "syncDriveFull": "Google Drive 용량이 가득 찼습니다. 공간을 확보한 뒤 다시 시도하세요."
 }

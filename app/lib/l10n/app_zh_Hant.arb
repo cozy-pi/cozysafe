@@ -662,5 +662,12 @@
   "driveRemove": "移除帳號",
   "driveRemoveTitle": "要從本裝置移除 {account} 嗎？",
   "driveRemoveBody": "你在 Google 雲端硬碟上的檔案會保留。在你重新登入前，Cozy Safe 無法存取。",
-  "syncLogNote": "僅儲存在本裝置上。"
+  "syncLogNote": "僅儲存在本裝置上。",
+  "errorCode": "錯誤代碼：{code}",
+  "copyDetails": "複製詳細資料",
+  "detailsCopied": "已複製",
+  "reportProblem": "回報問題",
+  "errorLogEmpty": "目前沒有錯誤。",
+  "errorLogNote": "只有錯誤代碼和時間，絕不包含保險箱內容。複製後隨意見回饋一起傳送。",
+  "syncDriveFull": "Google 雲端硬碟已滿。請先釋出空間再試一次。"
 }

@@ -662,5 +662,12 @@
   "driveRemove": "Hapus akun",
   "driveRemoveTitle": "Hapus {account} dari perangkat ini?",
   "driveRemoveBody": "File Anda di Google Drive tetap ada. Cozy Safe kehilangan akses sampai Anda masuk lagi.",
-  "syncLogNote": "Hanya disimpan di perangkat ini."
+  "syncLogNote": "Hanya disimpan di perangkat ini.",
+  "errorCode": "Kode galat: {code}",
+  "copyDetails": "Salin detail",
+  "detailsCopied": "Disalin",
+  "reportProblem": "Laporkan masalah",
+  "errorLogEmpty": "Belum ada galat.",
+  "errorLogNote": "Hanya kode galat dan waktu, tidak pernah isi brankas Anda. Salin dan kirim bersama masukan Anda.",
+  "syncDriveFull": "Google Drive penuh. Kosongkan ruang di sana, lalu coba lagi."
 }

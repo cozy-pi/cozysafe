@@ -662,5 +662,12 @@
   "driveRemove": "Hesabı kaldır",
   "driveRemoveTitle": "{account} bu cihazdan kaldırılsın mı?",
   "driveRemoveBody": "Google Drive'daki dosyalarınız kalır. Yeniden oturum açana kadar Cozy Safe erişemez.",
-  "syncLogNote": "Yalnızca bu cihazda tutulur."
+  "syncLogNote": "Yalnızca bu cihazda tutulur.",
+  "errorCode": "Hata kodu: {code}",
+  "copyDetails": "Ayrıntıları kopyala",
+  "detailsCopied": "Kopyalandı",
+  "reportProblem": "Sorun bildir",
+  "errorLogEmpty": "Henüz hata yok.",
+  "errorLogNote": "Yalnızca hata kodları ve saatler, kasanızın içeriği asla. Kopyalayıp geri bildiriminizle gönderin.",
+  "syncDriveFull": "Google Drive dolu. Orada yer açıp yeniden deneyin."
 }

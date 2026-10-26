@@ -38,7 +38,7 @@ SyncEvent ev(SyncStep k, {String name = '', int check = 0, List<String> peers = 
     total: 0,
     bytes: BigInt.zero,
     bytesTotal: BigInt.zero,
-    moved: 0);
+    moved: 0, code: '');
 
 Widget app(Stream<SyncEvent> events) => MaterialApp(
       theme: buildTheme(Brightness.light),

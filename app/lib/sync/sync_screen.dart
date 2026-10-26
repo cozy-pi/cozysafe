@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../error_log.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
@@ -84,6 +85,7 @@ class _SyncScreenState extends State<SyncScreen> {
     try {
       session = await driveSignIn();
     } catch (e) {
+      ErrorLog.add('drive-sign-in', driveErrorCode(e));
       if (mounted) showToast(context, '${l.driveSignInFailed} (${driveErrorCode(e)})', icon: Icons.error_outline_rounded);
       return;
     }

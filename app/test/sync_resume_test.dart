@@ -23,7 +23,7 @@ class _Fake implements RustLibApi {
 late _Fake _fake;
 
 SyncEvent ev(SyncStep k, {int done = 0, int total = 0}) =>
-    SyncEvent(kind: k, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: done, total: total, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
+    SyncEvent(kind: k, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: done, total: total, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, code: '');
 
 Widget app(Widget child) => MaterialApp(
       theme: buildTheme(Brightness.light),

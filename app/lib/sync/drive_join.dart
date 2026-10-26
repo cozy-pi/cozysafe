@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../error_log.dart';
 import '../l10n/app_localizations.dart';
 import '../screens/common.dart';
 import '../screens/set_pin.dart';
@@ -66,6 +67,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       setState(() => _session = s);
       if (widget.words != null) await _open();
     } catch (e) {
+      ErrorLog.add('drive-sign-in', driveErrorCode(e));
       if (mounted) setState(() => _error = '${l.driveSignInFailed} (${driveErrorCode(e)})');
     }
   }

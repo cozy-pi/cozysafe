@@ -676,5 +676,12 @@
   "driveRemove": "Gỡ tài khoản",
   "driveRemoveTitle": "Gỡ {account} khỏi máy này?",
   "driveRemoveBody": "Tệp trên Google Drive vẫn còn. Cozy Safe mất quyền truy cập cho tới khi bạn đăng nhập lại.",
-  "syncLogNote": "Chỉ lưu trên máy này."
+  "syncLogNote": "Chỉ lưu trên máy này.",
+  "errorCode": "Mã lỗi: {code}",
+  "copyDetails": "Sao chép chi tiết",
+  "detailsCopied": "Đã sao chép",
+  "reportProblem": "Báo lỗi",
+  "errorLogEmpty": "Chưa có lỗi nào.",
+  "errorLogNote": "Chỉ có mã lỗi và thời gian, không bao giờ có nội dung két. Sao chép rồi gửi kèm góp ý.",
+  "syncDriveFull": "Google Drive đã đầy. Giải phóng dung lượng ở đó rồi thử lại."
 }

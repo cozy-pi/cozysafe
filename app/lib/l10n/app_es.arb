@@ -662,5 +662,12 @@
   "driveRemove": "Quitar cuenta",
   "driveRemoveTitle": "¿Quitar {account} de este dispositivo?",
   "driveRemoveBody": "Tus archivos en Google Drive se quedan. Cozy Safe pierde el acceso hasta que vuelvas a iniciar sesión.",
-  "syncLogNote": "Solo se guarda en este dispositivo."
+  "syncLogNote": "Solo se guarda en este dispositivo.",
+  "errorCode": "Código de error: {code}",
+  "copyDetails": "Copiar detalles",
+  "detailsCopied": "Copiado",
+  "reportProblem": "Informar de un problema",
+  "errorLogEmpty": "Sin errores por ahora.",
+  "errorLogNote": "Solo códigos de error y horas, nunca lo que hay en tu caja fuerte. Cópialos y envíalos con tus comentarios.",
+  "syncDriveFull": "Google Drive está lleno. Libera espacio y vuelve a intentarlo."
 }

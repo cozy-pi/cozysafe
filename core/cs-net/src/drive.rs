@@ -47,6 +47,8 @@ const AT_ONCE: usize = https::POOL;
 const BATCH: usize = 100;
 /// Largest answer to a batch read (100 short answers come to a few tens of KiB).
 const MAX_BATCH_ANSWER: usize = 1 << 20;
+/// Read at most this much of a failed answer, for Google's reason.
+const ERROR_ANSWER: usize = 64 << 10;
 /// Separates the parts of a batch request. Drive ids are letters, digits, '-' and '_',
 /// and no line of a part starts with "--", so it never occurs inside one.
 const BOUNDARY: &str = "cozysafe_batch_9c1e4b";
@@ -767,6 +769,10 @@ impl GoogleDrive {
     }
 
     fn json(&self, method: &str, path: &str, body: Option<&Value>) -> Result<Value> {
+        again(|| self.json_once(method, path, body))
+    }
+
+    fn json_once(&self, method: &str, path: &str, body: Option<&Value>) -> Result<Value> {
         let r = self.http.request(
             method,
             path,
@@ -782,7 +788,7 @@ impl GoogleDrive {
         )?;
         let status = r.status;
         let bytes = r.bytes()?;
-        status_ok(status)?;
+        answer_ok(status, &bytes)?;
         serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("drive json"))
     }
 
@@ -812,6 +818,10 @@ impl GoogleDrive {
     /// Up to [`BATCH`] calls in one request to Google's batch endpoint (same host); the
     /// status of each, in order.
     fn batch(&self, parts: &[Part]) -> Result<Vec<u16>> {
+        again(|| self.batch_once(parts))
+    }
+
+    fn batch_once(&self, parts: &[Part]) -> Result<Vec<u16>> {
         let kind = format!("multipart/mixed; boundary={BOUNDARY}");
         let r = self.http.request(
             "POST",
@@ -823,17 +833,87 @@ impl GoogleDrive {
         let status = r.status;
         let answer_kind = r.header("Content-Type").unwrap_or("").to_owned();
         let body = r.bytes_max(MAX_BATCH_ANSWER)?;
-        status_ok(status)?;
+        answer_ok(status, &body)?;
         batch_statuses(&answer_kind, &body, parts.len())
     }
 }
 
+/// Google's answer to a failed call, as one of a few fixed codes (never the answer's own
+/// text: it is network data). 403 is not always the sign-in (owner 2026-10-26: Drive
+/// failed and nobody could tell why): Google says why in `error.errors[0].reason`.
+fn drive_error(status: u16, body: &[u8]) -> Error {
+    Error::Corrupt(match status {
+        401 => "drive not signed in",
+        429 => "drive rate limited",
+        403 => match reason(body).as_deref() {
+            Some(
+                "rateLimitExceeded"
+                | "userRateLimitExceeded"
+                | "sharingRateLimitExceeded"
+                | "dailyLimitExceeded",
+            ) => "drive rate limited",
+            Some("storageQuotaExceeded" | "quotaExceeded") => "drive full",
+            Some("authError" | "insufficientPermissions" | "insufficientFilePermissions") => {
+                "drive not signed in"
+            }
+            _ => "drive forbidden",
+        },
+        404 => "drive not found",
+        500..=599 => "drive server error",
+        _ => "drive request failed",
+    })
+}
+
+/// `error.errors[0].reason` of a Drive error answer, if it has one.
+fn reason(body: &[u8]) -> Option<String> {
+    let v: Value = serde_json::from_slice(body).ok()?;
+    v["error"]["errors"][0]["reason"]
+        .as_str()
+        .map(str::to_owned)
+}
+
 fn status_ok(status: u16) -> Result<()> {
+    answer_ok(status, &[])
+}
+
+/// Ok for 2xx, else what [`drive_error`] makes of the answer.
+fn answer_ok(status: u16, body: &[u8]) -> Result<()> {
     match status {
         200..=299 => Ok(()),
-        401 | 403 => Err(Error::Corrupt("drive not signed in")),
-        _ => Err(Error::Corrupt("drive request failed")),
+        s => Err(drive_error(s, body)),
     }
+}
+
+/// Worth trying again after a pause: Google asked to slow down, or had a passing fault.
+fn passing(e: &Error) -> bool {
+    matches!(
+        e,
+        Error::Corrupt("drive rate limited" | "drive server error")
+    )
+}
+
+/// Tries before giving up on a passing fault, and the first pause (doubled each time,
+/// with a little jitter so the four connections do not come back at once).
+const TRIES: u32 = 4;
+const FIRST_PAUSE_MS: u64 = if cfg!(test) { 1 } else { 600 };
+
+/// Runs `f`, again after a pause when it fails with a passing fault ([`passing`]).
+fn again<T>(mut f: impl FnMut() -> Result<T>) -> Result<T> {
+    let mut pause = FIRST_PAUSE_MS;
+    for _ in 1..TRIES {
+        match f() {
+            Err(e) if passing(&e) => {
+                let jitter = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| u64::from(d.subsec_millis()) % 250)
+                    .unwrap_or(0);
+                std::thread::sleep(std::time::Duration::from_millis(pause + jitter));
+                pause *= 2;
+            }
+            r => return r,
+        }
+    }
+    f()
 }
 
 /// A Drive file or folder id: letters, digits, '-' and '_' only, so it can go into a
@@ -1132,17 +1212,23 @@ impl DriveApi for GoogleDrive {
     }
 
     fn download(&self, id: &str, out: &mut dyn Write) -> Result<bool> {
-        let r = self.http.request(
-            "GET",
-            &format!("/drive/v3/files/{}?alt=media", https::encode(id)),
-            &self.token,
-            &[],
-            Body::None,
-        )?;
+        // Only the answer's status is tried again: once bytes went to `out`, a failure ends it.
+        let r = again(|| {
+            let r = self.http.request(
+                "GET",
+                &format!("/drive/v3/files/{}?alt=media", https::encode(id)),
+                &self.token,
+                &[],
+                Body::None,
+            )?;
+            match r.status {
+                200..=299 | 404 => Ok(r),
+                s => Err(drive_error(s, &r.bytes_max(ERROR_ANSWER)?)),
+            }
+        })?;
         if r.status == 404 {
             return Ok(false);
         }
-        status_ok(r.status)?;
         r.copy_to(out)?;
         Ok(true)
     }
@@ -1151,17 +1237,22 @@ impl DriveApi for GoogleDrive {
         // Resumable upload: the metadata first, then the bytes to the URL Drive gives,
         // which must be on the same host.
         let meta = serde_json::json!({ "name": name, "parents": [folder] });
-        let r = self.http.request(
-            "POST",
-            "/upload/drive/v3/files?uploadType=resumable&fields=id",
-            &self.token,
-            &[("X-Upload-Content-Length", len.to_string())],
-            Body::Bytes(
-                "application/json; charset=UTF-8",
-                serde_json::to_vec(&meta).expect("json"),
-            ),
-        )?;
-        status_ok(r.status)?;
+        let r = again(|| {
+            let r = self.http.request(
+                "POST",
+                "/upload/drive/v3/files?uploadType=resumable&fields=id",
+                &self.token,
+                &[("X-Upload-Content-Length", len.to_string())],
+                Body::Bytes(
+                    "application/json; charset=UTF-8",
+                    serde_json::to_vec(&meta).expect("json"),
+                ),
+            )?;
+            match r.status {
+                200..=299 => Ok(r),
+                s => Err(drive_error(s, &r.bytes_max(ERROR_ANSWER)?)),
+            }
+        })?;
         let at = r
             .header("Location")
             .ok_or(Error::Corrupt("drive upload url"))?
@@ -1172,21 +1263,24 @@ impl DriveApi for GoogleDrive {
             .ok_or(Error::Corrupt("drive upload url on another host"))?;
         // Small ones (records, journal entries) from memory, so the request can be sent
         // again if a kept connection turns out closed; files stream.
-        let body = if len <= SMALL_UPLOAD {
+        // Small ones from memory can be sent again after a passing fault; a stream cannot.
+        let put = |body: Body| -> Result<Value> {
+            let r = self.http.request("PUT", path, &self.token, &[], body)?;
+            let status = r.status;
+            let bytes = r.bytes()?;
+            answer_ok(status, &bytes)?;
+            serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("drive json"))
+        };
+        let v = if len <= SMALL_UPLOAD {
             let mut b = Vec::new();
             src.take(len).read_to_end(&mut b)?;
             if b.len() as u64 != len {
                 return Err(Error::Corrupt("drive upload short"));
             }
-            Body::Bytes("application/octet-stream", b)
+            again(|| put(Body::Bytes("application/octet-stream", b.clone())))?
         } else {
-            Body::Stream("application/octet-stream", len, src)
+            put(Body::Stream("application/octet-stream", len, src))?
         };
-        let r = self.http.request("PUT", path, &self.token, &[], body)?;
-        let status = r.status;
-        let v: Value =
-            serde_json::from_slice(&r.bytes()?).map_err(|_| Error::Corrupt("drive json"))?;
-        status_ok(status)?;
         v["id"]
             .as_str()
             .map(str::to_owned)
@@ -1986,6 +2080,11 @@ mod tests {
         let forbidden = answer(&[("1", "204 No Content"), ("2", "403 Forbidden")]);
         assert!(matches!(
             batch_check(KIND, &forbidden, 2),
+            Err(Error::Corrupt("drive forbidden"))
+        ));
+        let signed_out = answer(&[("1", "204 No Content"), ("2", "401 Unauthorized")]);
+        assert!(matches!(
+            batch_check(KIND, &signed_out, 2),
             Err(Error::Corrupt("drive not signed in"))
         ));
         assert!(batch_check(KIND, &answer(&[("1", "200 OK")]), 1).is_err());
@@ -2021,11 +2120,72 @@ mod tests {
         );
         let deleted_answer = answer(&[("1", "204 No Content")]);
         assert!(moved(batch_statuses(KIND, &deleted_answer, 1).unwrap()).is_err());
-        let forbidden = answer(&[("1", "200 OK"), ("2", "403 Forbidden")]);
+        let forbidden = answer(&[("1", "200 OK"), ("2", "401 Unauthorized")]);
         assert!(matches!(
             moved(batch_statuses(KIND, &forbidden, 2).unwrap()),
             Err(Error::Corrupt("drive not signed in"))
         ));
         assert!(batch_statuses(KIND, &answer(&[("1", "200 OK")]), 2).is_err());
+    }
+
+    #[test]
+    fn a_failed_answer_says_why_in_a_fixed_code() {
+        let why = |r: &str| {
+            format!(
+                r#"{{"error":{{"errors":[{{"domain":"usageLimits","reason":"{r}"}}],"code":403}}}}"#
+            )
+        };
+        let code = |status, body: &str| match drive_error(status, body.as_bytes()) {
+            Error::Corrupt(c) => c,
+            _ => unreachable!(),
+        };
+        assert_eq!(code(401, ""), "drive not signed in");
+        assert_eq!(
+            code(403, &why("userRateLimitExceeded")),
+            "drive rate limited"
+        );
+        assert_eq!(code(403, &why("rateLimitExceeded")), "drive rate limited");
+        assert_eq!(code(403, &why("storageQuotaExceeded")), "drive full");
+        assert_eq!(
+            code(403, &why("insufficientPermissions")),
+            "drive not signed in"
+        );
+        // A reason it does not know, or none: not taken for a sign-in problem any more.
+        assert_eq!(code(403, &why("somethingNew")), "drive forbidden");
+        assert_eq!(code(403, "not json"), "drive forbidden");
+        assert_eq!(code(429, ""), "drive rate limited");
+        assert_eq!(code(503, ""), "drive server error");
+        assert_eq!(code(404, ""), "drive not found");
+        assert_eq!(code(400, ""), "drive request failed");
+    }
+
+    #[test]
+    fn passing_faults_are_tried_again_then_given_up() {
+        let tries = std::cell::Cell::new(0);
+        let r: Result<()> = again(|| {
+            tries.set(tries.get() + 1);
+            Err(Error::Corrupt("drive server error"))
+        });
+        assert!(r.is_err());
+        assert_eq!(tries.get(), TRIES);
+        // Not a passing fault: once.
+        tries.set(0);
+        let r: Result<()> = again(|| {
+            tries.set(tries.get() + 1);
+            Err(Error::Corrupt("drive full"))
+        });
+        assert!(r.is_err());
+        assert_eq!(tries.get(), 1);
+        // Recovers on the second try.
+        tries.set(0);
+        let r = again(|| {
+            tries.set(tries.get() + 1);
+            if tries.get() < 2 {
+                Err(Error::Corrupt("drive rate limited"))
+            } else {
+                Ok(7)
+            }
+        });
+        assert_eq!(r.unwrap(), 7);
     }
 }

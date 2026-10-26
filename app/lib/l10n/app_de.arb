@@ -662,5 +662,12 @@
   "driveRemove": "Konto entfernen",
   "driveRemoveTitle": "{account} von diesem Gerät entfernen?",
   "driveRemoveBody": "Ihre Dateien in Google Drive bleiben. Cozy Safe hat keinen Zugriff mehr, bis Sie sich erneut anmelden.",
-  "syncLogNote": "Nur auf diesem Gerät gespeichert."
+  "syncLogNote": "Nur auf diesem Gerät gespeichert.",
+  "errorCode": "Fehlercode: {code}",
+  "copyDetails": "Details kopieren",
+  "detailsCopied": "Kopiert",
+  "reportProblem": "Problem melden",
+  "errorLogEmpty": "Bisher keine Fehler.",
+  "errorLogNote": "Nur Fehlercodes und Zeiten, nie der Inhalt Ihres Tresors. Kopieren und mit Ihrem Feedback senden.",
+  "syncDriveFull": "Google Drive ist voll. Dort Speicher freigeben und erneut versuchen."
 }

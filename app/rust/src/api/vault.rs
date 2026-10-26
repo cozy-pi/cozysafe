@@ -83,6 +83,7 @@ pub enum VaultError {
 
 impl From<cs_vault::Error> for VaultError {
     fn from(e: cs_vault::Error) -> Self {
+        super::errors::note("vault", &super::sync::error_code(&e));
         match e {
             cs_vault::Error::WeakPassword => VaultError::WeakPassword,
             cs_vault::Error::PasswordInUse => VaultError::PasswordInUse,
@@ -267,14 +268,24 @@ pub fn change_secret_key(
         debug_line(|| format!("key change: {e}"));
         VaultError::from(e)
     };
-    let secret = secret().inspect_err(|_| debug_line(|| "key change: no Recovery Key in use".into()))?;
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret).map_err(logged)?;
-    let change = library.change_secret_key_all(&refs, &new_key).map_err(logged)?;
+    let secret =
+        secret().inspect_err(|_| debug_line(|| "key change: no Recovery Key in use".into()))?;
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret)
+        .map_err(logged)?;
+    let change = library
+        .change_secret_key_all(&refs, &new_key)
+        .map_err(logged)?;
     debug_line(|| format!("key change: {change:?} ({} password(s))", refs.len()));
     Ok(match change {
-        cs_vault::KeyChange::Changed => KeyChangeResult { step: KeyChangeStep::Changed },
-        cs_vault::KeyChange::WrongPassword => KeyChangeResult { step: KeyChangeStep::WrongPassword },
-        cs_vault::KeyChange::OthersNeeded(_) => KeyChangeResult { step: KeyChangeStep::OtherVault },
+        cs_vault::KeyChange::Changed => KeyChangeResult {
+            step: KeyChangeStep::Changed,
+        },
+        cs_vault::KeyChange::WrongPassword => KeyChangeResult {
+            step: KeyChangeStep::WrongPassword,
+        },
+        cs_vault::KeyChange::OthersNeeded(_) => KeyChangeResult {
+            step: KeyChangeStep::OtherVault,
+        },
     })
 }
 
@@ -297,10 +308,12 @@ pub struct KeyChangeResult {
 pub fn finish_secret_key_change(dir: String, new_key: Vec<u8>) -> Result<(), VaultError> {
     let new_key = Zeroizing::new(new_key);
     let key = key_from(&new_key).ok_or(VaultError::Storage)?;
-    Library::open_or_create(Path::new(&dir), params_for_this_device(), key.clone()).map_err(|e| {
-        debug_line(|| format!("key change finish: {e}"));
-        VaultError::from(e)
-    })?;
+    Library::open_or_create(Path::new(&dir), params_for_this_device(), key.clone()).map_err(
+        |e| {
+            debug_line(|| format!("key change finish: {e}"));
+            VaultError::from(e)
+        },
+    )?;
     *SECRET.lock().unwrap_or_else(|p| p.into_inner()) = Some(key);
     Ok(())
 }
@@ -510,7 +523,10 @@ pub fn lock() {
 /// The vault open now, if any (e.g. right after a restore from another device).
 #[flutter_rust_bridge::frb(sync)]
 pub fn open_vault_info() -> Option<VaultInfo> {
-    OPEN.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(info_of)
+    OPEN.lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .as_ref()
+        .map(info_of)
 }
 
 pub(crate) fn set_open(vault: OpenVault) -> VaultInfo {
@@ -875,7 +891,11 @@ pub struct VaultSlot {
 
 /// Every vault on this device (Debug → Vaults on this device).
 pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
-    let open = OPEN.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(|v| v.id.clone());
+    let open = OPEN
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .as_ref()
+        .map(|v| v.id.clone());
     Ok(Library::vault_slots(Path::new(&dir))?
         .into_iter()
         .map(|s| VaultSlot {
@@ -892,7 +912,11 @@ pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
 /// Delete a vault whose password and PIN are forgotten, without opening it; never the
 /// open one. The app asks the phone's owner first (Face ID or the phone's passcode).
 pub fn delete_vault_unopened(dir: String, vault_id: String) -> Result<bool, VaultError> {
-    let open = OPEN.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(|v| v.id.clone());
+    let open = OPEN
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .as_ref()
+        .map(|v| v.id.clone());
     if open.as_deref() == Some(vault_id.as_str()) {
         return Ok(false);
     }

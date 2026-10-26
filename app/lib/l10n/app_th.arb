@@ -662,5 +662,12 @@
   "driveRemove": "นำบัญชีออก",
   "driveRemoveTitle": "นำ {account} ออกจากอุปกรณ์นี้ไหม",
   "driveRemoveBody": "ไฟล์ของคุณบน Google Drive ยังอยู่ Cozy Safe จะเข้าถึงไม่ได้จนกว่าคุณจะลงชื่อเข้าใช้อีกครั้ง",
-  "syncLogNote": "เก็บไว้ในอุปกรณ์นี้เท่านั้น"
+  "syncLogNote": "เก็บไว้ในอุปกรณ์นี้เท่านั้น",
+  "errorCode": "รหัสข้อผิดพลาด: {code}",
+  "copyDetails": "คัดลอกรายละเอียด",
+  "detailsCopied": "คัดลอกแล้ว",
+  "reportProblem": "รายงานปัญหา",
+  "errorLogEmpty": "ยังไม่มีข้อผิดพลาด",
+  "errorLogNote": "มีแค่รหัสข้อผิดพลาดและเวลา ไม่มีเนื้อหาในตู้เซฟของคุณ คัดลอกแล้วส่งพร้อมความคิดเห็น",
+  "syncDriveFull": "Google Drive เต็มแล้ว ล้างพื้นที่แล้วลองอีกครั้ง"
 }

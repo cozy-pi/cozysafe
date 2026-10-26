@@ -662,5 +662,12 @@
   "driveRemove": "アカウントを削除",
   "driveRemoveTitle": "この端末から {account} を削除しますか？",
   "driveRemoveBody": "Google ドライブのファイルは残ります。もう一度サインインするまで Cozy Safe はアクセスできません。",
-  "syncLogNote": "この端末にのみ保存されます。"
+  "syncLogNote": "この端末にのみ保存されます。",
+  "errorCode": "エラーコード: {code}",
+  "copyDetails": "詳細をコピー",
+  "detailsCopied": "コピーしました",
+  "reportProblem": "問題を報告",
+  "errorLogEmpty": "エラーはまだありません。",
+  "errorLogNote": "エラーコードと時刻のみで、金庫の中身は含まれません。コピーしてフィードバックと一緒に送ってください。",
+  "syncDriveFull": "Google ドライブがいっぱいです。空き容量を作ってからもう一度お試しください。"
 }

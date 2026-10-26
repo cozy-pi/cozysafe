@@ -27,6 +27,7 @@ import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
 import 'delete_vault.dart';
 import 'file_view.dart';
+import 'error_report.dart';
 import 'set_pin.dart';
 import 'tour.dart';
 import '../sync/sync_screen.dart';
@@ -600,6 +601,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: _Mau.xanh,
               title: l.feedback,
               onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
+            ),
+            // What went wrong, as codes to copy (owner 2026-10-26).
+            _Row(
+              key: const ValueKey('report-row'),
+              icon: Icons.bug_report_outlined,
+              color: _Mau.cam,
+              title: l.reportProblem,
+              onTap: () => pushPage<void>(context, title: l.reportProblem, builder: (_) => const ErrorReportScreen()),
             ),
           ]),
           _Group(rows: [

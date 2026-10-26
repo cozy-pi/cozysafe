@@ -662,5 +662,12 @@
   "driveRemove": "移除账号",
   "driveRemoveTitle": "要从本设备移除 {account} 吗？",
   "driveRemoveBody": "你在 Google 云端硬盘上的文件会保留。在你重新登录前，Cozy Safe 无法访问。",
-  "syncLogNote": "仅保存在本设备上。"
+  "syncLogNote": "仅保存在本设备上。",
+  "errorCode": "错误代码：{code}",
+  "copyDetails": "复制详情",
+  "detailsCopied": "已复制",
+  "reportProblem": "报告问题",
+  "errorLogEmpty": "暂无错误。",
+  "errorLogNote": "只有错误代码和时间，绝不包含保险箱内容。复制后随反馈一起发送。",
+  "syncDriveFull": "Google 云端硬盘已满。请先释放空间再试。"
 }

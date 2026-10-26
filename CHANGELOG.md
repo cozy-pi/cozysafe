@@ -31,6 +31,12 @@ Dates are UTC.
 - Recently deleted: one left edge for everything; the photo grid sits inside it with
   rounded corners, like the cards below.
 - Recent connections are behind one row in Sync, one short line each.
+- Google Drive errors say what happened: Drive full, too many requests, Google's servers.
+  "Too many requests" and server faults are tried again by themselves after a pause
+  (up to 4 times) before the sync stops. A 403 is no longer always "sign in again".
+- An error log, always on: every failure is kept as a short code and a time (never
+  names, content, keys or addresses), the last 200. Settings → Report a problem lists
+  them, with Copy details and Feedback. A failed sync shows its code and Copy details.
 
 ## 0.1.75 (2026-10-26)
 

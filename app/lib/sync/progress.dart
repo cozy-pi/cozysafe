@@ -2,13 +2,17 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
+import '../error_log.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_resume.dart';
 import '../platform.dart';
 import '../screens/file_view.dart' show fileSize;
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
+import '../widgets/toast.dart';
 import 'awake.dart';
 
 /// The live part of a session: [waiting] until the other device proves it holds this
@@ -187,7 +191,7 @@ class _SyncProgressState extends State<SyncProgress>
     });
   }
 
-  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
+  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, code: '');
 
   /// The page stays under the lock, but the run needs the open vault: stop it now (it
   /// holds the vault, which could not lock meanwhile). Google Drive picks up after, from
@@ -361,6 +365,18 @@ class _SyncProgressState extends State<SyncProgress>
         ],
       ],
     );
+  }
+
+  Future<void> _copyDetails(sync.SyncEvent e) async {
+    final l = AppLocalizations.of(context);
+    var version = '';
+    try {
+      final p = await PackageInfo.fromPlatform();
+      version = '${p.version} (${p.buildNumber})';
+    } catch (_) {}
+    final where = widget.place == SyncPlace.drive ? 'Google Drive' : 'nearby';
+    await Clipboard.setData(ClipboardData(text: ErrorLog.report(version: version, now: '$where ${e.kind.name} ${e.code}')));
+    if (mounted) showToast(context, l.detailsCopied, icon: Icons.check_rounded);
   }
 
   /// "Syncing in 5 s", counting down.
@@ -602,6 +618,7 @@ class _SyncProgressState extends State<SyncProgress>
         sync.SyncStep.signIn => _Status(icon: Icons.account_circle_outlined, color: const Color(0xFFFF9500), title: l.syncSignInAgain),
         sync.SyncStep.peerWrongWords => _Status(icon: Icons.key_off_outlined, color: const Color(0xFFFF9500), title: l.syncPeerWrongWords),
         sync.SyncStep.peerWrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.syncPeerWrongPassword),
+        sync.SyncStep.driveFull => _Status(icon: Icons.cloud_off_rounded, color: const Color(0xFFFF9500), title: l.syncDriveFull),
         sync.SyncStep.peerStopped => _Status(icon: Icons.stop_circle_outlined, color: const Color(0xFFFF9500), title: l.syncPeerStopped),
         sync.SyncStep.wrongWords => _Status(icon: Icons.key_off_outlined, color: const Color(0xFFFF9500), title: l.restoreWrongWords),
         sync.SyncStep.wrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.wrongPassword),
@@ -617,6 +634,20 @@ class _SyncProgressState extends State<SyncProgress>
         // Never the last word (handled above); kept for an exhaustive switch.
         sync.SyncStep.rejected || sync.SyncStep.knock || sync.SyncStep.found => _Status(icon: null, title: l.syncWorking),
       };
+      // What went wrong, as a code to copy (owner 2026-10-26: errors nobody could tell).
+      if (_over && e.code.isNotEmpty) {
+        body = Column(mainAxisSize: MainAxisSize.min, children: [
+          body,
+          const SizedBox(height: 18),
+          Text(l.errorCode(e.code), key: const ValueKey('sync-error-code'), style: TextStyle(color: c.muted, fontSize: 13)),
+          TextButton.icon(
+            key: const ValueKey('sync-copy-details'),
+            onPressed: () => _copyDetails(e),
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            label: Text(l.copyDetails),
+          ),
+        ]);
+      }
     }
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),

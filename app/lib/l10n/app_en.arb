@@ -879,5 +879,13 @@
   "driveRemoveTitle": "Remove {account} from this device?",
   "@driveRemoveTitle": {"placeholders": {"account": {}}},
   "driveRemoveBody": "Your files on Google Drive stay. Cozy Safe loses access until you sign in again.",
-  "syncLogNote": "Kept on this device only."
+  "syncLogNote": "Kept on this device only.",
+  "errorCode": "Error code: {code}",
+  "@errorCode": {"placeholders": {"code": {}}},
+  "copyDetails": "Copy details",
+  "detailsCopied": "Copied",
+  "reportProblem": "Report a problem",
+  "errorLogEmpty": "No errors so far.",
+  "errorLogNote": "Only error codes and times, never what is in your vault. Copy them and send them with your feedback.",
+  "syncDriveFull": "Google Drive is full. Free up space there, then try again."
 }

@@ -120,6 +120,11 @@ By case:
   attacked at all (2¹²⁸).
 - **Recovery Key and backup both leak:** only the password remains; a password at the
   minimum score is our estimate of weeks to years for one machine (not measured).
+- **The error log** (Settings → Report a problem) keeps the last 200 failures as a time,
+  a place and a fixed code (`drive-full`, `io-timed-out`), in a plain file beside the
+  preferences: no names, content, keys, paths or network data, so it can be copied into
+  a message. The core notes its codes (`api/errors.rs`), Dart reduces every word to
+  letters, digits and '-' before writing (`error_log.dart`).
 - **The real weak spot today is the PIN on the phone**, not the Recovery Key: wrong-PIN
   waits exist only in the app (4 free tries, then 1, 5, 15 minutes, then 1 hour each,
   counted in the keystore by `PinStore.addFail`), the PIN copy is not removed after many
