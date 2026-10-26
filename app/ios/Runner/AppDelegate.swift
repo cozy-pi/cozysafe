@@ -67,6 +67,22 @@ import UniformTypeIdentifiers
       registrar.register(TabBarFactory(messenger: registrar.messenger()), withId: "cozysafe/tabbar")
       let channel = FlutterMethodChannel(name: "cozysafe/privacy", binaryMessenger: registrar.messenger())
       privacyChannel = channel
+      // The model's id ("iPhone16,2"), for the name nearby sync shows the other device
+      // (lib/sync/device_name.dart). Not the device's own name: that needs an entitlement
+      // and often holds the owner's name.
+      let device = FlutterMethodChannel(name: "cozysafe/device", binaryMessenger: registrar.messenger())
+      device.setMethodCallHandler { call, result in
+        guard call.method == "model" else { return result(FlutterMethodNotImplemented) }
+        if let simulated = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] {
+          return result(simulated)
+        }
+        var info = utsname()
+        uname(&info)
+        let id = withUnsafeBytes(of: &info.machine) { raw in
+          String(decoding: raw.prefix(while: { $0 != 0 }), as: UTF8.self)
+        }
+        result(id)
+      }
       // While a sync runs (lib/sync/awake.dart): the screen stays on, and if the person
       // still leaves the app, iOS lends it some time to finish the item under way.
       let awake = FlutterMethodChannel(name: "cozysafe/awake", binaryMessenger: registrar.messenger())

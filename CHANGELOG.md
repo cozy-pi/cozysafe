@@ -4,6 +4,24 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.73 (2026-10-26)
+
+### Changed
+- Syncing with a nearby device works like pairing Bluetooth: open Sync, Sync with a
+  nearby device on both devices and wait. They find each other on the Wi‑Fi by
+  themselves; no code to type.
+- Both screens then ask "Sync with iPhone 15 Pro Max?" (the other device's name) next to
+  the same 3-digit number. Check the numbers match and tap Sync on both; the sync starts
+  only when both said yes. Cancel on either device stops both, and the other says so.
+- Several of your devices waiting at once: the screen lists them by name, and you pick
+  one.
+- Restoring a new phone from your old one: open the same screen on the old phone and
+  turn on "Help a new device restore"; the new phone finds it by itself, and the old
+  phone asks "Let iPhone 16 restore this vault?" with the number.
+- A QR code stays for networks where the devices cannot find each other ("Use a QR code
+  instead").
+- Recent connections name the other device instead of its address.
+
 ## 0.1.69 (2026-10-25)
 
 ### Security

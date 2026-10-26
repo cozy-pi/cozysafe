@@ -9,15 +9,17 @@ import '../lock_resume.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import 'consent.dart';
+import 'device_name.dart';
 import 'progress.dart';
 
-/// A code read or typed: name the address it points at, ask, then connect.
-/// [ask] false: the person already allowed it (looking for their device on this Wi-Fi).
-Future<void> joinWithCode(BuildContext context, String code, {required VoidCallback onSynced, bool ask = true}) async {
+/// A QR read (devices that cannot find each other on this network): name the address it
+/// points at, ask, then connect; both people then confirm as usual.
+Future<void> joinWithCode(BuildContext context, String code, {required VoidCallback onSynced}) async {
   final l = AppLocalizations.of(context);
   final address = sync.p2PCodeAddress(code: code);
   if (address == null) return;
-  if (ask && !await allowConnection(context, l.syncAllowJoin(address))) return;
+  if (!await allowConnection(context, l.syncAllowJoin(address))) return;
+  final name = await deviceName();
   if (!context.mounted) return;
   final route = MaterialPageRoute<void>(
     builder: (context) => Scaffold(
@@ -25,16 +27,15 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
       body: SafeArea(
         top: false,
         child: SyncProgress(
-          events: sync.p2PJoin(code: code),
+          events: sync.p2PJoin(code: code, name: name),
           onSynced: onSynced,
           waiting: Builder(builder: (context) => _Connecting(address: address)),
         ),
       ),
     ),
   );
-  // From the QR page it takes that page's place; from the digits it stacks, so Back
-  // after the sync comes back to the sync screen either way.
-  await (ask ? Navigator.of(context).pushReplacement(route) : Navigator.of(context).push(route));
+  // It takes the QR page's place, so Back after the sync comes back to the sync screen.
+  await Navigator.of(context).pushReplacement(route);
 }
 
 /// What to do with a code read or typed (sync by default; a restore passes its own).

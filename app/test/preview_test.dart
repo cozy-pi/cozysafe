@@ -39,9 +39,8 @@ import 'package:cozysafe/widgets/second_place.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/api/sync.dart';
 import 'package:cozysafe/sync/drive_join.dart';
-import 'package:cozysafe/sync/find_page.dart';
-import 'package:cozysafe/sync/host_page.dart';
 import 'package:cozysafe/sync/join_page.dart';
+import 'package:cozysafe/sync/nearby_page.dart';
 import 'package:cozysafe/sync/progress.dart';
 import 'package:cozysafe/sync/qr_view.dart';
 import 'package:cozysafe/sync/sync_screen.dart';
@@ -159,8 +158,7 @@ final Map<int, Uint8List> _photos = {};
 final _thumbnails = <int, Uint8List>{};
 
 /// A real pairing code (192.168.1.37:51234) and its QR, from the Rust encoder.
-const _qrTyped = '60N00J-BJ120X-DWG3A2';
-const _qrText = 'cozysafe:p2p:1:60N00JBJ120XDWG3A2';
+const _qrText = 'cozysafe:p2p:2:60N00JBJ120XDWG3A2';
 const _qrBits = '1111111000011001111010111111110000010000000000110001000001101110101000101010110010111011011101011100000111000101110110111010100101110000101011101100000101010111110100010000011111111010101010101010111111100000000110111010001000000000101111100111001101110011111001110110001011001100010101010110001010010010000110011011000001001011100001010100110110110110111110010000011011010111100101100100011110001001110001100000110001011100100100011000000110101001100001000001100110101011010100111000110100101101100000011100001010010100111000111011010001101001101100010110100110100110011111011001101001100111100100011111101100000000010000111101010001101111111110001111111000101010100100000101011110000111000110001011101011101011100011111011010111010111011000000010101011101110101010001111000011110101000001000100100100110000001011111110110110010000011001100';
 
 class _Fake implements RustLibApi {
@@ -331,9 +329,10 @@ void _screen(String name, String caption, Widget Function() home,
       NewVaultScreen.debugBiometricStep = false;
       RestoreSourceScreen.debugDrive = false;
       DriveJoinScreen.debugAccount = null;
-      HostSyncPage.debugHosting = null;
-      HostSyncPage.debugEvents = null;
-      FindDevicePage.debugFound = null;
+      NearbyPage.debugHosting = null;
+      NearbyPage.debugEvents = null;
+      NearbyPage.debugQr = false;
+      NearbyPage.debugNothingYet = false;
       ChangeKeyScreen.debugWords = null;
       ChangeKeyScreen.debugStep = null;
       ScanCodePage.debugPreview = null;
@@ -782,53 +781,27 @@ void main() {
   });
   Widget page(String title, Widget body) => Scaffold(appBar: AppBar(title: Text(title)), body: SafeArea(top: false, child: body));
   final syncLog = [
-    '${_now - 3600000}|join|192.168.1.21|ok|12|3',
-    '${_now - 86400000}|host|-|ok|0|5',
-    '${_now - 2 * 86400000}|host|-|expired|0|0',
+    '${_now - 3600000}|nearby|iPhone 15 Pro Max|ok|12|3',
+    '${_now - 86400000}|nearby|iPad|cancelled|0|0',
+    '${_now - 2 * 86400000}|join|192.168.1.21|ok|0|5',
   ];
-  _screen('sync', 'Đồng bộ: Mạng nội bộ (hiện mã / nhập mã), Google Drive, các lần kết nối gần đây', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync', 'Đồng bộ: Mạng nội bộ (một nút: Đồng bộ với máy gần đây), Google Drive, các lần kết nối gần đây', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
   });
-  _screen('sync-allow', 'Đồng bộ · bấm Hiện mã → hỏi cho phép, ghi rõ địa chỉ', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync-allow', 'Đồng bộ · bấm Đồng bộ với máy gần đây → hỏi cho phép tìm và chờ trên Wi‑Fi', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugAddress = '192.168.1.37';
   }, act: (t) async {
-    await t.tap(find.byKey(const ValueKey('sync-show')));
+    await t.tap(find.byKey(const ValueKey('sync-nearby')));
     await t.pumpAndSettle();
   });
-  _screen('sync-host', 'Máy này hiện mã 3 số (QR khi cần), mã dùng được 5 phút, một lần', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 107));
   _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
-  _screen('sync-host-qr', 'Máy này hiện mã: đã bấm Hiện mã QR', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 241),
-      act: (t) async {
-    await t.tap(find.byKey(const ValueKey('sync-show-qr')));
-    await t.pump(const Duration(milliseconds: 300));
-  });
-  _screen('sync-find-allow', 'Máy kia · bấm Nhập mã → hỏi cho phép tìm trên Wi‑Fi', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
-      setup: () {
-    SyncScreen.debugLog = syncLog;
-    SyncScreen.debugAddress = '192.168.1.52';
-  }, act: (t) async {
-    await t.tap(find.byKey(const ValueKey('sync-enter')));
-    await t.pumpAndSettle();
-  });
-  _screen('sync-find', 'Máy kia: đã thấy máy của bạn, nhập 3 số', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
-      setup: () => FindDevicePage.debugFound = 1);
-  _screen('sync-find-typing', 'Máy kia: đang nhập mã', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
-      setup: () => FindDevicePage.debugFound = 1,
-      act: (t) async {
-    await t.enterText(find.byKey(const ValueKey('sync-digits-field')), '48');
-    await t.pump();
-  });
-  _screen('sync-find-none', 'Máy kia: chưa thấy máy nào', () => page('Nhập mã', FindDevicePage(address: '192.168.1.52', onFound: (a, b) async {}, onScanned: (a, b) async {})),
-      setup: () => FindDevicePage.debugFound = 0);
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0, int moved = 0}) =>
-      SyncEvent(kind: k, check: check, received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal), moved: moved);
+      SyncEvent(kind: k, check: check, name: '', peers: const [], peerIds: const [], received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal), moved: moved);
   _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})));
   _screen('sync-drive-folders', 'Google Drive: tạo thư mục (bản cập nhật thư mục, lần đầu)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveFolders, done: 212, total: 517)), onSynced: () {})));
   _screen('sync-drive-moving', 'Google Drive: dời tệp cũ vào thư mục', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveMoving, done: 1400, total: 2986)), onSynced: () {})));
@@ -841,38 +814,77 @@ void main() {
   _screen('sync-device-progress', 'Máy gần đây: đang nhận', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.receiving, done: 64, total: 90, bytes: 210 << 20)), onSynced: () {})),
       setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3));
   _screen('sync-interrupted', 'Bị gián đoạn (máy ngủ, mất mạng): bấm Tiếp tục', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.interrupted)), onSynced: () {}, retry: () => const Stream.empty())));
-  _screen('sync-connected', 'Đã kết nối: hai máy hiện cùng một số để đối chiếu', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})));
-  _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
-  _screen('sync-knock', 'Máy hiện mã: máy kia vừa chạm tới, đang chứng minh cùng két', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      setup: () {
-    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 74);
-    HostSyncPage.debugEvents = Stream.value(ev(SyncStep.knock));
+  const hosting = Hosting(qr: _qrText, findable: true, seconds: 274);
+  Widget nearby() => page('Đồng bộ với máy gần đây', NearbyPage(address: '192.168.1.37', mirror: '', onSynced: () {}));
+  SyncEvent named(SyncStep k, String name, int check) =>
+      SyncEvent(kind: k, check: check, name: name, peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
+  SyncEvent found(List<String> names) =>
+      SyncEvent(kind: SyncStep.found, check: 0, name: '', peers: names, peerIds: [for (var i = 0; i < names.length; i++) 'a$i'], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
+  _screen('sync-nearby-waiting', 'Máy gần đây: cả hai máy mở màn hình này và chờ — tự tìm nhau, không cần nhập mã', nearby,
+      change: 'Mới: không còn Hiện mã / Nhập mã; hai máy tự tìm nhau',
+      marks: [() => find.byKey(const ValueKey('sync-find-status'))],
+      setup: () => NearbyPage.debugHosting = hosting);
+  _screen('sync-nearby-none', 'Máy gần đây: chờ một lúc chưa thấy máy nào — gợi ý cách sửa', nearby, setup: () {
+    NearbyPage.debugHosting = hosting;
+    NearbyPage.debugNothingYet = true;
   });
-  _screen('sync-host-help-restore', 'Máy hiện mã: bật "Giúp máy mới khôi phục" (mặc định tắt)', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      setup: () => HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 162),
-      change: 'Mới: máy mới chỉ khôi phục được khi bạn bật công tắc này',
+  _screen('sync-nearby-found-one', 'Máy gần đây: đã thấy máy kia, đang kết nối', nearby, setup: () {
+    NearbyPage.debugHosting = hosting;
+    NearbyPage.debugEvents = Stream.value(found(['']));
+  });
+  _screen('sync-nearby-confirm', 'Hai máy đã kết nối: "Đồng bộ với iPhone 15 Pro Max?" + mã 472, cả hai cùng bấm Đồng bộ', nearby,
+      change: 'Mới: đối chiếu số như ghép Bluetooth, cả hai máy cùng đồng ý',
+      marks: [() => find.byKey(const ValueKey('sync-confirm-card')), () => find.byKey(const ValueKey('sync-confirm-yes'))],
+      setup: () {
+    NearbyPage.debugHosting = hosting;
+    NearbyPage.debugEvents = Stream.value(named(SyncStep.confirm, 'iPhone 15 Pro Max', 472));
+  });
+  _screen('sync-nearby-confirm-waiting', 'Đã bấm Đồng bộ: chờ máy kia cũng bấm', nearby, setup: () {
+    NearbyPage.debugHosting = hosting;
+    NearbyPage.debugEvents = Stream.value(named(SyncStep.confirm, 'iPhone 15 Pro Max', 472));
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-confirm-yes')));
+    await t.pump(const Duration(milliseconds: 300));
+  });
+  _screen('sync-nearby-pick', 'Thấy hai máy có két này: chọn máy muốn đồng bộ', nearby,
+      change: 'Mới: nhiều máy thì liệt kê tên để chọn',
+      marks: [() => find.byKey(const ValueKey('sync-pick'))],
+      setup: () {
+    NearbyPage.debugHosting = hosting;
+    NearbyPage.debugEvents = Stream.value(found(['iPad', 'Google Pixel 8']));
+  });
+  _screen('sync-peer-cancelled', 'Máy kia bấm Huỷ: máy này báo ngay', () => page('Đồng bộ', SyncProgress(events: Stream.value(named(SyncStep.peerCancelled, '', 0)), onSynced: () {})));
+  _screen('sync-nearby-qr', 'Mạng chặn tìm nhau: bấm "Dùng mã QR" → hiện mã của máy này + nút Quét mã', nearby, setup: () {
+    NearbyPage.debugHosting = hosting;
+    NearbyPage.debugQr = true;
+  }, act: (t) async {
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -400));
+    await t.pump();
+  });
+  _screen('sync-nearby-help-restore', 'Máy cũ: bật "Giúp máy mới khôi phục" ngay trên màn hình chờ', nearby,
       marks: [() => find.byKey(const ValueKey('sync-help-restore'))],
+      setup: () => NearbyPage.debugHosting = hosting,
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-help-restore')));
     await t.pump(const Duration(milliseconds: 300));
   });
-  _screen('sync-allow-restore', 'Máy hiện mã: máy mới xin khôi phục — Cho phép hay Không cho', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      change: 'Mới: hỏi trước khi gửi két cho máy mới, kèm số để đối chiếu',
+  _screen('sync-allow-restore', 'Máy cũ: iPhone 16 xin khôi phục — Cho phép hay Không cho, kèm mã', nearby,
       marks: [() => find.byKey(const ValueKey('sync-allow-card'))],
       setup: () {
-    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 96);
-    HostSyncPage.debugEvents = Stream.value(ev(SyncStep.askRestore, check: 4821));
+    NearbyPage.debugHosting = hosting;
+    NearbyPage.debugEvents = Stream.value(named(SyncStep.askRestore, 'iPhone 16', 318));
   });
-  _screen('sync-restore-connected', 'Máy mới (khôi phục): đã kết nối, chờ máy kia cho phép', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.connected, check: 4821)), onSynced: () {})),
-      change: 'Mới: nhắc chạm Cho phép trên máy kia',
+  _screen('restore-nearby-looking', 'Máy mới (khôi phục): đang tìm máy cũ trên Wi‑Fi', () => page('Từ máy khác', SyncProgress(
+        restoring: true,
+        events: const Stream.empty(),
+        onSynced: () {},
+        waiting: Builder(builder: (context) => NearbyLooking(lead: AppLocalizations.of(context).restoreNearbyLead, restoring: true, onScan: () {})),
+      )));
+  _screen('sync-restore-connected', 'Máy mới (khôi phục): đã kết nối với máy cũ, chờ máy đó cho phép', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(named(SyncStep.connected, 'iPhone 15 Pro Max', 318)), onSynced: () {})),
       marks: [() => find.byKey(const ValueKey('sync-tap-allow'))]);
+  _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
   _screen('sync-other-vault', 'Máy kia có két khác', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.otherVault)), onSynced: () {})));
   _screen('sync-unreachable', 'Không tới được máy kia', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.unreachable)), onSynced: () {})));
-  _screen('sync-rejected', 'Máy hiện mã: một máy két khác vừa thử vào', () => page('Hiện mã', HostSyncPage(address: '192.168.1.37', mirror: '', onSynced: () {})),
-      setup: () {
-    HostSyncPage.debugHosting = Hosting(typed: _qrTyped, qr: _qrText, digits: '482', findable: true, seconds: 74);
-    HostSyncPage.debugEvents = Stream.value(ev(SyncStep.rejected));
-  });
   _screen('sync-signin', 'Google Drive: phiên đăng nhập hết hạn', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.signIn)), onSynced: () {})));
   _screen('sync-failed', 'Không kết nối được', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.failed)), onSynced: () {})));
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
