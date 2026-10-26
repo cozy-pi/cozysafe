@@ -195,8 +195,11 @@ attack. Moving a vault is done by the app's own backup file or sync.
   gave it) crosses only inside the sealed channel, after both proved the vault; a probe's
   answer holds no name and no stable id. Names from the other device are cleaned before
   they are shown or logged.
-- **A new phone restoring** is found only while "Help a new device restore" is on, and
-  served only after Allow (same number on both screens).
+- **A new phone restoring** (24 words and password only) finds a device waiting on its
+  nearby screen; nothing is sent before the person there taps Allow (same number on both
+  screens). Then it gets only the vault's lock, and must prove it opened it (a key
+  confirmation from the Master Key over this session) before a single item is served. A
+  wrong password stops both devices with the lock alone sent.
 
 ## Quantum computers
 

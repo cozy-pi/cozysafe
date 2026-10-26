@@ -34,8 +34,9 @@ common (bundled as truncated hashes), and zxcvbn score 3 or 4+ different words; 
 replaces "strength shown, never blocked" (2026-10-23). Passwords in use are never
 checked on unlock. Opening, joining and restoring refuse an Argon2 cost below the phone
 floor. The Secret Key fingerprint is cut to 16 bits (a hint, never a check). A P2P host
-serves a restoring device only after "Help a new device restore" is turned on and Allow
-is tapped. The library is kept out of iOS and Android system backups. Still planned:
+serves a restoring device only after Allow is tapped (same number on both screens; no
+switch to turn on since 2026-10-26), and only the vault's lock until it proves the Master
+Key. The library is kept out of iOS and Android system backups. Still planned:
 binding the Argon2 cost into the wraps (format v2), size padding, a header revision
 against rollback, PIN wipe after wrong tries, rotating item keys. Details:
 docs/security.md, ADR 0001, ADR 0003, docs/supply-chain.md (bundled data).

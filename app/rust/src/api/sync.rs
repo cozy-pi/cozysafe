@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 use cs_net::drive::{DrivePhase, DriveRemote, DriveSetup, GoogleDrive};
@@ -253,21 +253,14 @@ impl p2p::Access for OpenNow {
 
 /// The device waiting now, from [`p2p_wait_start`] to [`p2p_wait_run`].
 static PENDING: Mutex<Option<p2p::Waiting>> = Mutex::new(None);
-/// "Help a new device restore" of the device waiting now.
-static HELP: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
 
 /// The person allowed looking for their other device on the Wi-Fi where this device has
 /// `ip`. Copies the vault, sealed, into `mirror` (a private folder, emptied first) and
 /// opens the listener; [`p2p_wait_run`] then waits and looks. `name` is this device's
 /// ("iPhone 15 Pro Max"), told to the other only once it proved the vault. A new device
-/// restoring with the 24 words may ask to join only while `help_restore` (off by
-/// default, [`p2p_wait_help_restore`]).
-pub fn p2p_wait_start(
-    ip: String,
-    mirror: String,
-    help_restore: bool,
-    name: String,
-) -> Result<Hosting, VaultError> {
+/// restoring with the 24 words may ask to join; the person allows it or not
+/// ([`SyncStep::AskRestore`]), and it gets the lock only until it proves the Master Key.
+pub fn p2p_wait_start(ip: String, mirror: String, name: String) -> Result<Hosting, VaultError> {
     STOP.store(false, Ordering::Relaxed);
     let permit = Permit::listen_on(&ip).ok_or(VaultError::Storage)?;
     let dir = Path::new(&mirror);
@@ -278,9 +271,6 @@ pub fn p2p_wait_start(
     let prepared = with_open(|v| Ok(p2p::host_prepare(v, secret.as_ref(), &name, dir)?))?;
     *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
     let waiting = p2p::wait(prepared, permit, p2p::PORT)?;
-    let help = waiting.help_restore();
-    help.store(help_restore && secret.is_some(), Ordering::Relaxed);
-    *HELP.lock().unwrap_or_else(|p| p.into_inner()) = Some(help);
     let shown = Hosting {
         qr: waiting.code.qr(),
         findable: waiting.findable(),
@@ -294,14 +284,6 @@ fn forget_mirror() {
     if let Some(dir) = MIRROR.lock().unwrap_or_else(|p| p.into_inner()).take() {
         // The copy was sealed, but it has done its job.
         let _ = std::fs::remove_dir_all(dir);
-    }
-}
-
-/// "Help a new device restore" turned on or off while waiting (off by default).
-#[flutter_rust_bridge::frb(sync)]
-pub fn p2p_wait_help_restore(on: bool) {
-    if let Some(flag) = HELP.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
-        flag.store(on, Ordering::Relaxed);
     }
 }
 
@@ -418,7 +400,6 @@ pub fn p2p_wait_run(ip: String, sink: StreamSink<SyncEvent>) {
         }
     };
     forget_mirror();
-    HELP.lock().unwrap_or_else(|p| p.into_inner()).take();
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
     log_event("nearby", Some(&name), &event);
     let _ = sink.add(event);
