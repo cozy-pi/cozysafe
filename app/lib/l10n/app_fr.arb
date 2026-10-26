@@ -657,5 +657,10 @@
   "tipSecurityBody": "Comment le coffre s'ouvre et se verrouille, et ce qui reste masqué à l'écran. Tout ce qui le rend moins sûr demande d'abord de confirmer que c'est vous.",
   "tipBackupBody": "Un fichier chiffré avec tout le coffre. Pour l'ouvrir sur un nouveau téléphone, il faut vos 24 mots et votre mot de passe.",
   "tipGuideBody": "Revoir ces conseils à tout moment.",
-  "syncAutoIn": "Synchronisation dans {seconds} s"
+  "syncAutoIn": "Synchronisation dans {seconds} s",
+  "driveSignInAgain": "Se reconnecter",
+  "driveRemove": "Retirer le compte",
+  "driveRemoveTitle": "Retirer {account} de cet appareil ?",
+  "driveRemoveBody": "Vos fichiers sur Google Drive restent. Cozy Safe perd l'accès jusqu'à votre prochaine connexion.",
+  "syncLogNote": "Conservé sur cet appareil uniquement."
 }

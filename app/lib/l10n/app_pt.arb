@@ -657,5 +657,10 @@
   "tipSecurityBody": "Como o cofre abre e bloqueia, e o que fica oculto na tela. Tudo que o deixa menos seguro pede antes para confirmar que é você.",
   "tipBackupBody": "Um arquivo criptografado com o cofre inteiro. Para abri-lo em um celular novo, você precisa das 24 palavras e da senha.",
   "tipGuideBody": "Veja estas dicas de novo quando quiser.",
-  "syncAutoIn": "Sincronizando em {seconds} s"
+  "syncAutoIn": "Sincronizando em {seconds} s",
+  "driveSignInAgain": "Iniciar sessão novamente",
+  "driveRemove": "Remover conta",
+  "driveRemoveTitle": "Remover {account} deste dispositivo?",
+  "driveRemoveBody": "Os seus ficheiros no Google Drive ficam. O Cozy Safe perde o acesso até voltar a iniciar sessão.",
+  "syncLogNote": "Guardado apenas neste dispositivo."
 }

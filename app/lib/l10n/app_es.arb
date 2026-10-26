@@ -657,5 +657,10 @@
   "tipSecurityBody": "Cómo se abre y se bloquea la caja fuerte, y qué queda oculto en pantalla. Todo lo que la hace menos segura pide confirmar que eres tú.",
   "tipBackupBody": "Un archivo cifrado con toda la caja fuerte. Para abrirlo en un teléfono nuevo necesitas tus 24 palabras y tu contraseña.",
   "tipGuideBody": "Vuelve a ver estos consejos cuando quieras.",
-  "syncAutoIn": "Sincronizando en {seconds} s"
+  "syncAutoIn": "Sincronizando en {seconds} s",
+  "driveSignInAgain": "Volver a iniciar sesión",
+  "driveRemove": "Quitar cuenta",
+  "driveRemoveTitle": "¿Quitar {account} de este dispositivo?",
+  "driveRemoveBody": "Tus archivos en Google Drive se quedan. Cozy Safe pierde el acceso hasta que vuelvas a iniciar sesión.",
+  "syncLogNote": "Solo se guarda en este dispositivo."
 }

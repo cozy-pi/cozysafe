@@ -657,5 +657,10 @@
   "tipSecurityBody": "保險箱如何開啟和鎖定，以及畫面上隱藏哪些內容。任何降低安全性的變更都會先確認是你本人。",
   "tipBackupBody": "一個包含整個保險箱的加密檔案。在新手機上開啟需要你的 24 個單字和密碼。",
   "tipGuideBody": "隨時可以再次查看這些提示。",
-  "syncAutoIn": "{seconds} 秒後同步"
+  "syncAutoIn": "{seconds} 秒後同步",
+  "driveSignInAgain": "重新登入",
+  "driveRemove": "移除帳號",
+  "driveRemoveTitle": "要從本裝置移除 {account} 嗎？",
+  "driveRemoveBody": "你在 Google 雲端硬碟上的檔案會保留。在你重新登入前，Cozy Safe 無法存取。",
+  "syncLogNote": "僅儲存在本裝置上。"
 }

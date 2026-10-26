@@ -657,5 +657,10 @@
   "tipSecurityBody": "金庫の開け方とロックのしかた、画面で隠すもの。安全性を下げる変更には、まず本人確認が必要です。",
   "tipBackupBody": "金庫全体を1つの暗号化ファイルに。新しいスマホで開くには24個の単語とパスワードが必要です。",
   "tipGuideBody": "このヒントはいつでも見直せます。",
-  "syncAutoIn": "{seconds} 秒後に同期します"
+  "syncAutoIn": "{seconds} 秒後に同期します",
+  "driveSignInAgain": "もう一度サインイン",
+  "driveRemove": "アカウントを削除",
+  "driveRemoveTitle": "この端末から {account} を削除しますか？",
+  "driveRemoveBody": "Google ドライブのファイルは残ります。もう一度サインインするまで Cozy Safe はアクセスできません。",
+  "syncLogNote": "この端末にのみ保存されます。"
 }

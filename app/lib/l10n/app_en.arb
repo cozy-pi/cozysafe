@@ -873,5 +873,11 @@
   "tipBackupBody": "One encrypted file with the whole vault. Opening it on a new phone takes your 24 words and password.",
   "tipGuideBody": "See these tips again any time.",
   "syncAutoIn": "Syncing in {seconds} s",
-  "@syncAutoIn": {"placeholders": {"seconds": {}}}
+  "@syncAutoIn": {"placeholders": {"seconds": {}}},
+  "driveSignInAgain": "Sign in again",
+  "driveRemove": "Remove account",
+  "driveRemoveTitle": "Remove {account} from this device?",
+  "@driveRemoveTitle": {"placeholders": {"account": {}}},
+  "driveRemoveBody": "Your files on Google Drive stay. Cozy Safe loses access until you sign in again.",
+  "syncLogNote": "Kept on this device only."
 }

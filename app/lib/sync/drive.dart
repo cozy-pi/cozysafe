@@ -56,9 +56,24 @@ Future<DriveSession?> driveSignIn() async {
   }
 }
 
-/// Forget the Google account on this device (the Drive folder stays).
-Future<void> driveSignOut() async {
+/// The Google account Drive was last allowed with here, if any (for Settings → Sync).
+String? get driveAccount {
+  final a = Prefs.read(_accountPref);
+  return a == null || a.isEmpty ? null : a;
+}
+
+/// Forget the Google account on this device (the Drive folder stays). [revoke] also takes
+/// back Cozy Safe's access at Google ("Remove account"); without it, the next sign-in
+/// offers the account picker again ("Sign in again").
+Future<void> driveSignOut({bool revoke = false}) async {
   Prefs.write(_accountPref, '');
   await _init();
-  await GoogleSignIn.instance.signOut();
+  final g = GoogleSignIn.instance;
+  if (revoke) {
+    try {
+      await g.disconnect();
+      return;
+    } catch (_) {} // offline: at least forget it here
+  }
+  await g.signOut();
 }

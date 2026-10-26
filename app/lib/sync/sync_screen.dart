@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
+import '../widgets/confirm_delete.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show pushPage;
 import '../platform.dart';
@@ -27,6 +28,8 @@ class SyncScreen extends StatefulWidget {
   static String? debugAddress;
   /// For the mockup renders: show Google Drive on any platform.
   static bool debugDrive = false;
+  /// For the mockup renders: a signed-in Google account.
+  static String? debugAccount;
 
   @override
   State<SyncScreen> createState() => _SyncScreenState();
@@ -85,6 +88,7 @@ class _SyncScreenState extends State<SyncScreen> {
       return;
     }
     if (session == null || !mounted) return;
+    setState(() {}); // the account rows
     if (!await allowConnection(context, l.syncAllowDrive(session.email)) || !mounted) return;
     final token = session.token;
     await pushPage<void>(context,
@@ -106,7 +110,6 @@ class _SyncScreenState extends State<SyncScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
@@ -116,46 +119,80 @@ class _SyncScreenState extends State<SyncScreen> {
           padding: EdgeInsets.only(top: 12),
           child: SyncLink(key: ValueKey('sync-hero'), moving: false),
         ),
-        // Two ways, each in its own block (owner 2026-10-25): the local network (two
-        // devices on one Wi-Fi, no internet) and Google Drive.
-        _Header(title: l.syncLocalTitle),
+        // Groups without names, apart by a gap, as in the iPhone's Settings (owner
+        // 2026-10-26): the rows say what they do.
+        const SizedBox(height: 24),
         _Card(children: [
           _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncRow, onTap: _nearby),
         ]),
         // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
         if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
-          const _Header(title: 'Google Drive'),
+          const SizedBox(height: 24),
           _Card(children: [
-            _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), title: l.syncDriveNow, onTap: _drive),
+            _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), title: l.syncDriveRow, onTap: _drive),
+            if (_account case final account?) ...[
+              _Action(key: const ValueKey('sync-drive-again'), icon: Icons.account_circle_outlined, color: const Color(0xFF8E8E93), title: l.driveSignInAgain, detail: account, onTap: _signInAgain),
+              _Action(key: const ValueKey('sync-drive-remove'), icon: Icons.person_remove_outlined, color: const Color(0xFFFF3B30), title: l.driveRemove, onTap: _remove, chevron: false),
+            ],
           ]),
         ],
         const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 7),
-          child: Text(l.syncLog, style: TextStyle(color: c.muted, fontSize: 13, fontWeight: FontWeight.w600)),
-        ),
-        if (_log.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-            child: Text(l.syncLogEmpty, style: TextStyle(color: c.muted)),
-          )
-        else
-          _Card(indent: 46, children: [for (final line in _log) _LogRow(line: line)]),
+        // The log behind one row (owner 2026-10-26): most people never need it.
+        _Card(children: [
+          _Action(key: const ValueKey('sync-log'), icon: Icons.history_rounded, color: const Color(0xFF8E8E93), title: l.syncLog, detail: _log.isEmpty ? null : '${_log.length}', onTap: _openLog),
+        ]),
       ],
     );
   }
-}
 
-/// A block's name over its card.
-class _Header extends StatelessWidget {
-  const _Header({required this.title});
-  final String title;
+  String? get _account => SyncScreen.debugAccount ?? driveAccount;
 
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 24, 4, 8),
-        child: Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-      );
+  /// Forget the account here, then sign in with the account picker.
+  Future<void> _signInAgain() async {
+    try {
+      await driveSignOut();
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {});
+    await _drive();
+  }
+
+  /// Remove the Google account: asks first; the files on Drive stay.
+  Future<void> _remove() async {
+    final l = AppLocalizations.of(context);
+    final account = _account;
+    if (account == null) return;
+    final ok = await confirmDelete(context,
+        title: l.driveRemoveTitle(account), body: l.driveRemoveBody, action: l.driveRemove, icon: Icons.person_remove_outlined);
+    if (!ok) return;
+    try {
+      await driveSignOut(revoke: true);
+    } catch (_) {}
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openLog() => pushPage<void>(context,
+      title: AppLocalizations.of(context).syncLog,
+      builder: (context) {
+        final l = AppLocalizations.of(context);
+        final c = CsColors.of(context);
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          children: [
+            if (_log.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                child: Text(l.syncLogEmpty, style: TextStyle(color: c.muted)),
+              )
+            else
+              _Card(indent: 46, children: [for (final line in _log) _LogRow(line: line)]),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+              child: Text(l.syncLogNote, style: TextStyle(color: c.muted, fontSize: 13)),
+            ),
+          ],
+        );
+      });
 }
 
 class _Card extends StatelessWidget {
@@ -181,11 +218,14 @@ class _Card extends StatelessWidget {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({super.key, required this.icon, required this.color, required this.title, required this.onTap});
+  const _Action({super.key, required this.icon, required this.color, required this.title, required this.onTap, this.detail, this.chevron = true});
   final IconData icon;
   final Color color;
   final String title;
   final VoidCallback onTap;
+  /// Muted, on the right before the chevron (an account, a count).
+  final String? detail;
+  final bool chevron;
 
   @override
   Widget build(BuildContext context) {
@@ -202,8 +242,15 @@ class _Action extends StatelessWidget {
             child: Icon(icon, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(title, style: const TextStyle(fontSize: 15.5))),
-          Icon(Icons.chevron_right, color: c.muted, size: 20),
+          Expanded(child: Text(title, style: TextStyle(fontSize: 15.5, color: chevron ? null : color))),
+          if (detail case final d?)
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(d, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: 14)),
+              ),
+            ),
+          if (chevron) Icon(Icons.chevron_right, color: c.muted, size: 20),
         ]),
       ),
     );

@@ -657,5 +657,10 @@
   "tipSecurityBody": "Wie sich der Tresor öffnet und sperrt und was auf dem Bildschirm verborgen bleibt. Alles, was ihn weniger sicher macht, fragt zuerst, ob Sie es sind.",
   "tipBackupBody": "Eine verschlüsselte Datei mit dem ganzen Tresor. Zum Öffnen auf einem neuen Telefon brauchen Sie Ihre 24 Wörter und Ihr Passwort.",
   "tipGuideBody": "Diese Tipps jederzeit noch einmal ansehen.",
-  "syncAutoIn": "Synchronisierung in {seconds} s"
+  "syncAutoIn": "Synchronisierung in {seconds} s",
+  "driveSignInAgain": "Erneut anmelden",
+  "driveRemove": "Konto entfernen",
+  "driveRemoveTitle": "{account} von diesem Gerät entfernen?",
+  "driveRemoveBody": "Ihre Dateien in Google Drive bleiben. Cozy Safe hat keinen Zugriff mehr, bis Sie sich erneut anmelden.",
+  "syncLogNote": "Nur auf diesem Gerät gespeichert."
 }
