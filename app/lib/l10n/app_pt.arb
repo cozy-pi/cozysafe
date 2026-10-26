@@ -671,5 +671,6 @@
   "errorLogNote": "Apenas códigos de erro e horas, nunca o conteúdo do seu cofre. Copie-os e envie-os com o seu comentário.",
   "syncDriveFull": "O Google Drive está cheio. Liberte espaço e tente novamente.",
   "syncDriveRepaired": "{count, plural, =1{O Google Drive perdeu ou danificou 1 ficheiro. Enviado de novo.} other{O Google Drive perdeu ou danificou {count} ficheiros. Enviados de novo.}}",
-  "syncDriveUnrepaired": "{count, plural, =1{1 item não tem uma cópia boa aqui. Sincronize a partir de outro dispositivo que a tenha.} other{{count} itens não têm uma cópia boa aqui. Sincronize a partir de outro dispositivo que a tenha.}}"
+  "syncDriveUnrepaired": "{count, plural, =1{1 item não tem uma cópia boa aqui. Sincronize a partir de outro dispositivo que a tenha.} other{{count} itens não têm uma cópia boa aqui. Sincronize a partir de outro dispositivo que a tenha.}}",
+  "pinWiped": "10 PIN errados: o PIN foi removido. Abra com a sua palavra-passe e defina um PIN novamente."
 }

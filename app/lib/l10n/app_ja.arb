@@ -671,5 +671,6 @@
   "errorLogNote": "エラーコードと時刻のみで、金庫の中身は含まれません。コピーしてフィードバックと一緒に送ってください。",
   "syncDriveFull": "Google ドライブがいっぱいです。空き容量を作ってからもう一度お試しください。",
   "syncDriveRepaired": "{count, plural, other{Google ドライブで {count} 個のファイルが失われたか壊れていました。送り直しました。}}",
-  "syncDriveUnrepaired": "{count, plural, other{{count} 件の項目はこの端末に正しいコピーがありません。持っている別の端末から同期してください。}}"
+  "syncDriveUnrepaired": "{count, plural, other{{count} 件の項目はこの端末に正しいコピーがありません。持っている別の端末から同期してください。}}",
+  "pinWiped": "PIN を 10 回間違えたため PIN を削除しました。パスワードで開いてから PIN を設定し直してください。"
 }

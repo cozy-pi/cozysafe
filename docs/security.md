@@ -125,14 +125,20 @@ By case:
   preferences: no names, content, keys, paths or network data, so it can be copied into
   a message. The core notes its codes (`api/errors.rs`), Dart reduces every word to
   letters, digits and '-' before writing (`error_log.dart`).
-- **The real weak spot today is the PIN on the phone**, not the Recovery Key: wrong-PIN
-  waits exist only in the app (4 free tries, then 1, 5, 15 minutes, then 1 hour each,
-  counted in the keystore by `PinStore.addFail`), the PIN copy is not removed after many
-  tries (`forget_pin` exists but the app never calls it), and the device key (32 random
-  bytes, one per device, shared by every vault's PIN) is a plain keystore item, not bound
-  to the secure hardware. An attacker who extracts the keychain/keystore could try all
-  PINs offline. Planned: wipe the PIN copy after a number of wrong tries; bind the device
-  key to the Secure Enclave / StrongBox.
+- **The PIN on the phone** (since 0.1.76, owner 2026-10-26): the device key (32 random
+  bytes, one per device, shared by every vault's PIN) is kept only wrapped by a key made
+  inside the phone's secure hardware (`lib/hw_key.dart`: a Secure Enclave P-256 key with
+  ECIES on iPhone, an Android Keystore AES-GCM key, StrongBox where there is one), so a
+  copy of the keychain/keystore taken off the phone cannot be used to try PINs: every
+  guess has to go through this phone's chip. Keys from before move in on first use;
+  where there is no such hardware (simulators, desktops) the key stays as before. Waits
+  after wrong PINs (4 free tries, then 1, 5, 15 minutes, then 1 hour each) keep the time
+  left, which goes down only while the app runs and by the smaller of the wall clock and
+  a monotonic one: moving the date cannot shorten them. At 10 wrong PINs in a row the PIN
+  copies are removed (`forget_pin`) when the vault has a password to open with; a vault
+  without one keeps its PIN and the waits. Still not like a hardware wallet: the attempt
+  count is kept by the app, so someone with the unlocked phone and full control of it
+  could try PINs there, slowly (each costs an Argon2id run).
 
 Compared with a hardware wallet (Ledger, Trezor): the same 24 BIP39 words once the
 Recovery Key is 256-bit. A hardware wallet keeps its key inside a secure chip that never

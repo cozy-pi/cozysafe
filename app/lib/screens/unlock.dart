@@ -123,16 +123,19 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     if (!mounted) return;
     setState(() => _waitUntil = until);
     if (until == null) return;
-    _waitTick = Timer.periodic(const Duration(seconds: 1), (_) {
+    // Asks the store each second: the time left goes down there, on a clock that
+    // moving the phone's date cannot speed up.
+    _waitTick = Timer.periodic(const Duration(seconds: 1), (_) async {
+      final now = await PinStore.waitUntil();
       if (!mounted) return;
-      if (DateTime.now().isAfter(until)) {
+      if (now == null) {
         _waitTick?.cancel();
         setState(() {
           _waitUntil = null;
           _error = null;
         });
       } else {
-        setState(() {});
+        setState(() => _waitUntil = now);
       }
     });
   }
@@ -200,6 +203,10 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     final tried = _pin;
     setState(() => _busy = true);
     try {
+      if (await PinStore.waitUntil() case final until?) {
+        setState(() => _pin = '');
+        return _startWait(until);
+      }
       final device = await PinStore.deviceKey();
       final vault = device == null
           ? null
@@ -211,6 +218,21 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       if (!last) return; // a longer PIN may still match
       final wait = await PinStore.addFail();
       HapticFeedback.heavyImpact();
+      if (_anyPassword && await PinStore.fails() >= PinStore.wipeAt) {
+        // Too many: the PIN goes; the password opens the vault (owner 2026-10-26). A
+        // vault without a password keeps its PIN (only the waits): wiping it would lock
+        // the person out.
+        await PinStore.wipe(widget.libraryDir, rust.forgetPin);
+        if (!mounted) return;
+        setState(() {
+          _shake++;
+          _pin = '';
+          _lengths = const [];
+          _mode = _Mode.password;
+          _error = l.pinWiped;
+        });
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _shake++;

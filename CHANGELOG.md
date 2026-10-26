@@ -38,6 +38,11 @@ Dates are UTC.
   the SHA-256 Google lists with each file (no extra request). A file lost or damaged
   there is sent again from this phone, and the end of the sync says how many. An item
   whose copy here is not right either is counted apart: sync it from a device that has it.
+- The PIN is much harder to attack: its device key is kept inside the phone's secure
+  chip (Secure Enclave on iPhone, the Android Keystore), so a copy of the phone's storage
+  is useless for guessing PINs elsewhere. Waits after wrong PINs cannot be shortened by
+  changing the date and time. After 10 wrong PINs in a row the PIN is removed and the
+  vault opens with its password (a vault without a password keeps its PIN).
 - An error log, always on: every failure is kept as a short code and a time (never
   names, content, keys or addresses), the last 200. Settings → Report a problem lists
   them, with Copy details and Feedback. A failed sync shows its code and Copy details.

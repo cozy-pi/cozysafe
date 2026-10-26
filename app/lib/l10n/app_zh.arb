@@ -671,5 +671,6 @@
   "errorLogNote": "只有错误代码和时间，绝不包含保险箱内容。复制后随反馈一起发送。",
   "syncDriveFull": "Google 云端硬盘已满。请先释放空间再试。",
   "syncDriveRepaired": "{count, plural, other{Google 云端硬盘丢失或损坏了 {count} 个文件，已重新发送。}}",
-  "syncDriveUnrepaired": "{count, plural, other{有 {count} 个项目在本设备上没有完好的副本。请从拥有它们的其他设备同步。}}"
+  "syncDriveUnrepaired": "{count, plural, other{有 {count} 个项目在本设备上没有完好的副本。请从拥有它们的其他设备同步。}}",
+  "pinWiped": "PIN 错误 10 次：已移除 PIN。请用密码打开，然后重新设置 PIN。"
 }

@@ -891,5 +891,6 @@
   "syncDriveRepaired": "{count, plural, =1{Google Drive had lost or damaged 1 file. Sent again.} other{Google Drive had lost or damaged {count} files. Sent again.}}",
   "@syncDriveRepaired": {"placeholders": {"count": {"type": "int"}}},
   "syncDriveUnrepaired": "{count, plural, =1{1 item has no good copy on this device to send again. Sync from another device that has it.} other{{count} items have no good copy on this device to send again. Sync from another device that has them.}}",
-  "@syncDriveUnrepaired": {"placeholders": {"count": {"type": "int"}}}
+  "@syncDriveUnrepaired": {"placeholders": {"count": {"type": "int"}}},
+  "pinWiped": "10 wrong PINs: the PIN was removed. Open with your password, then set a PIN again."
 }

@@ -671,5 +671,6 @@
   "errorLogNote": "มีแค่รหัสข้อผิดพลาดและเวลา ไม่มีเนื้อหาในตู้เซฟของคุณ คัดลอกแล้วส่งพร้อมความคิดเห็น",
   "syncDriveFull": "Google Drive เต็มแล้ว ล้างพื้นที่แล้วลองอีกครั้ง",
   "syncDriveRepaired": "{count, plural, other{Google Drive ทำไฟล์หายหรือเสียหาย {count} ไฟล์ ส่งใหม่แล้ว}}",
-  "syncDriveUnrepaired": "{count, plural, other{มี {count} รายการที่ไม่มีสำเนาที่ดีในอุปกรณ์นี้ ซิงค์จากอุปกรณ์อื่นที่มีอยู่}}"
+  "syncDriveUnrepaired": "{count, plural, other{มี {count} รายการที่ไม่มีสำเนาที่ดีในอุปกรณ์นี้ ซิงค์จากอุปกรณ์อื่นที่มีอยู่}}",
+  "pinWiped": "ใส่ PIN ผิด 10 ครั้ง: ลบ PIN แล้ว เปิดด้วยรหัสผ่าน แล้วตั้ง PIN ใหม่"
 }

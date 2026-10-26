@@ -671,5 +671,6 @@
   "errorLogNote": "Uniquement des codes d'erreur et des heures, jamais le contenu de votre coffre. Copiez-les et joignez-les à votre avis.",
   "syncDriveFull": "Google Drive est plein. Libérez de l'espace puis réessayez.",
   "syncDriveRepaired": "{count, plural, =1{Google Drive avait perdu ou abîmé 1 fichier. Renvoyé.} other{Google Drive avait perdu ou abîmé {count} fichiers. Renvoyés.}}",
-  "syncDriveUnrepaired": "{count, plural, =1{1 élément n'a pas de bonne copie ici. Synchronisez depuis un appareil qui l'a.} other{{count} éléments n'ont pas de bonne copie ici. Synchronisez depuis un appareil qui les a.}}"
+  "syncDriveUnrepaired": "{count, plural, =1{1 élément n'a pas de bonne copie ici. Synchronisez depuis un appareil qui l'a.} other{{count} éléments n'ont pas de bonne copie ici. Synchronisez depuis un appareil qui les a.}}",
+  "pinWiped": "10 codes PIN faux : le code PIN a été supprimé. Ouvrez avec votre mot de passe, puis définissez un nouveau PIN."
 }
