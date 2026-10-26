@@ -15,6 +15,7 @@ import '../widgets/secret.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
+import 'tour.dart' show TourKind;
 import 'vault_home.dart';
 
 /// Create a vault (owner 2026-10-23): what each key is for → (first vault on this
@@ -320,7 +321,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       onCovered: () => nav.pushAndRemoveUntil(
         PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
-          pageBuilder: (_, _, _) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault),
+          // A short tour of the basics once the vault is open (owner 2026-10-25).
+          pageBuilder: (_, _, _) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, tour: TourKind.created),
         ),
         (_) => false,
       ),
@@ -530,20 +532,20 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                     children: [
                       // Face ID's question: its No where Back would be.
                       if (_step == _Step.biometric)
-                        _BottomButton(
+                        StepButton(
                           key: const ValueKey('bio-no'),
                           label: l.biometricOfferNo,
                           onTap: _busy ? null : () => _biometricAnswer(false),
                         )
                       else if (_canGoBack)
-                        _BottomButton(
+                        StepButton(
                           key: const ValueKey('new-vault-back'),
                           icon: Icons.arrow_back,
                           label: l.back,
                           onTap: _back,
                         )
                       else if (!widget.first && _vault == null)
-                        _BottomButton(
+                        StepButton(
                           key: const ValueKey('new-vault-cancel'),
                           label: l.cancel,
                           onTap: _busy ? null : () => Navigator.of(context).maybePop(),
@@ -554,7 +556,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                       ] else ...[
                         const Spacer(),
                         if (_vault != null && (_step == _Step.icon || _step == _Step.color))
-                        _BottomButton(
+                        StepButton(
                           key: const ValueKey('new-vault-skip'),
                           label: l.lookSkip,
                           onTap: _busy ? null : () => _enter(save: _step == _Step.color),
@@ -803,9 +805,9 @@ class _Wait implements Exception {
   final Duration left;
 }
 
-/// A large, thumb-height text button for the bottom of the steps.
-class _BottomButton extends StatelessWidget {
-  const _BottomButton({super.key, this.icon, required this.label, required this.onTap});
+/// A large, thumb-height text button for the bottom of the steps (and of the quick tour).
+class StepButton extends StatelessWidget {
+  const StepButton({super.key, this.icon, required this.label, required this.onTap});
   final IconData? icon;
   final String label;
   final VoidCallback? onTap;

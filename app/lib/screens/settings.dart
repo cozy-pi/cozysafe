@@ -25,6 +25,7 @@ import '../widgets/vault_bar.dart';
 import 'delete_vault.dart';
 import 'file_view.dart';
 import 'set_pin.dart';
+import 'tour.dart';
 import '../sync/sync_screen.dart';
 
 /// Per-device choices, kept next to the library (not secret).
@@ -64,6 +65,37 @@ abstract final class Settings {
   }
 }
 
+/// A setting the quick tour can take the person to (tour.dart), with its row's symbol and
+/// colour, so the tour shows the same tile as Settings.
+enum SettingsSpot {
+  sync(Icons.sync_rounded, _Mau.xanhLa),
+  autoLock(Icons.timer_outlined, _Mau.cam),
+  blurThumbs(Icons.blur_on_rounded, _Mau.ngoc),
+  hideNoteText(Icons.notes_rounded, _Mau.bacHa),
+  appearance(Icons.contrast_rounded, _Mau.cham),
+  language(Icons.translate_rounded, _Mau.xanh);
+
+  const SettingsSpot(this.icon, this.color);
+  final IconData icon;
+  final Color color;
+}
+
+/// A setting's symbol: white on its own colour, as at the start of each row.
+class SettingTile extends StatelessWidget {
+  const SettingTile({super.key, required this.icon, required this.color, this.glyph});
+  final IconData icon;
+  final Color color;
+  final Widget? glyph;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+        child: Center(child: glyph ?? Icon(icon, color: Colors.white, size: 18)),
+      );
+}
+
 /// Everything about the open vault in one place, laid out like the system's own
 /// Settings: the vault's card on top, grouped rows with a coloured symbol each, and
 /// Delete on its own at the end (docs/ui.md, review 6; approved mockup).
@@ -83,7 +115,11 @@ class SettingsScreen extends StatefulWidget {
     required this.onOpenTrash,
     required this.onNewVault,
     this.onSynced,
+    this.focus,
   });
+
+  /// Opened from the quick tour: scroll to this setting and light it up (Sync: open it).
+  final SettingsSpot? focus;
 
   final String libraryDir;
   /// Items came in from another device: the vault screen reloads.
@@ -121,6 +157,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _measure();
     _loadLastSync();
+    if (widget.focus case final spot?) WidgetsBinding.instance.addPostFrameCallback((_) => _goTo(spot));
     if (widget.canBiometric) {
       BiometricUnlock.available().then((k) {
         if (mounted && k != null) setState(() => _bioKind = k);
@@ -332,6 +369,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return l.syncLastDays(ago.inDays);
   }
 
+  Future<void> _openSync() async {
+    final l = AppLocalizations.of(context);
+    await pushPage<void>(context,
+        title: l.syncTitle,
+        builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: () => widget.onSynced?.call()));
+    _loadLastSync();
+  }
+
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// Rows the quick tour points at, found to scroll to them.
+  late final _spotKeys = {
+    for (final s in SettingsSpot.values)
+      s: switch (s) {
+        SettingsSpot.autoLock => _autoLockKey,
+        SettingsSpot.appearance => _appearanceKey,
+        _ => GlobalKey(debugLabel: 'spot-${s.name}'),
+      },
+  };
+  /// The row just reached from the tour, lit up for a moment.
+  SettingsSpot? _lit;
+
+  /// Takes the person to [spot]: Sync opens; any other row scrolls into the middle and
+  /// lights up, so it is easy to see which one to change.
+  Future<void> _goTo(SettingsSpot spot) async {
+    if (!mounted) return;
+    if (spot == SettingsSpot.sync) return _openSync();
+    // Rows far down are not built yet: move down a screen at a time until it is.
+    var row = _spotKeys[spot]!.currentContext;
+    for (var i = 0; row == null && i < 12 && _scroll.hasClients; i++) {
+      final p = _scroll.position;
+      if (p.pixels >= p.maxScrollExtent) break;
+      _scroll.jumpTo((p.pixels + p.viewportDimension).clamp(0, p.maxScrollExtent));
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      row = _spotKeys[spot]!.currentContext;
+    }
+    if (row == null || !row.mounted) return;
+    setState(() => _lit = spot);
+    await Scrollable.ensureVisible(row, alignment: .4, duration: const Duration(milliseconds: 400), curve: Curves.easeOutCubic);
+    await Future<void>.delayed(const Duration(milliseconds: 1600));
+    if (mounted && _lit == spot) setState(() => _lit = null);
+  }
+
+  /// A row the tour can reach: keyed to be found, lit while [_lit].
+  Widget _spot(SettingsSpot spot, Widget row) => AnimatedContainer(
+        key: spot == SettingsSpot.autoLock || spot == SettingsSpot.appearance ? null : _spotKeys[spot],
+        duration: const Duration(milliseconds: 250),
+        color: _lit == spot ? Theme.of(context).colorScheme.onSurface.withValues(alpha: .12) : Colors.transparent,
+        child: row,
+      );
+
+  Future<void> _tour() async {
+    final v = widget.vault();
+    final spot = await showTour(context, icon: v.icon, color: v.color);
+    if (spot != null && mounted) _goTo(spot);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -341,6 +442,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l.settings)),
       body: ListView(
+        controller: _scroll,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
           _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), byKind: _byKind),
@@ -349,16 +451,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _Group(title: l.syncTitle, rows: [
               _Row(
                 key: const ValueKey('sync-row'),
-                icon: Icons.sync_rounded,
-                color: _Mau.xanhLa,
+                icon: SettingsSpot.sync.icon,
+                color: SettingsSpot.sync.color,
                 title: l.syncSettingsRow,
                 value: _lastSyncText(l),
-                onTap: () async {
-                  await pushPage<void>(context,
-                      title: l.syncTitle,
-                      builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: () => widget.onSynced?.call()));
-                  _loadLastSync();
-                },
+                onTap: _openSync,
               ),
             ]),
           _Group(title: l.settingsThisVault, rows: [
@@ -408,13 +505,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: l.change,
               onTap: () => _guarded(() => Navigator.of(context).push<bool>(fadeRoute((_) => const SetPinScreen()))),
             ),
-            _Row(
-              key: _autoLockKey,
-              icon: Icons.timer_outlined,
-              color: _Mau.cam,
-              title: l.autoLock,
-              value: l.afterMinutes(_minutes),
-              onTap: () => _guarded(_pickAutoLock),
+            _spot(
+              SettingsSpot.autoLock,
+              _Row(
+                key: _autoLockKey,
+                icon: SettingsSpot.autoLock.icon,
+                color: SettingsSpot.autoLock.color,
+                title: l.autoLock,
+                value: l.afterMinutes(_minutes),
+                onTap: () => _guarded(_pickAutoLock),
+              ),
             ),
 
             if (vault.hasPassword)
@@ -463,24 +563,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ]),
           _Group(title: l.settingsDisplay, rows: [
-            _Row(
-              key: _appearanceKey,
-              icon: Icons.contrast_rounded,
-              color: _Mau.cham,
-              title: l.appearance,
-              value: _appearanceName(l, Appearance.mode.value),
-              onTap: _pickAppearance,
+            _spot(
+              SettingsSpot.appearance,
+              _Row(
+                key: _appearanceKey,
+                icon: SettingsSpot.appearance.icon,
+                color: SettingsSpot.appearance.color,
+                title: l.appearance,
+                value: _appearanceName(l, Appearance.mode.value),
+                onTap: _pickAppearance,
+              ),
             ),
             // Same list as Settings → Cozy Safe → Language on iPhone and Android 13+.
-            _Row(
-              key: const ValueKey('language-row'),
-              icon: Icons.translate_rounded,
-              color: _Mau.xanh,
-              title: l.language,
-              value: AppLanguage.chosen == null
-                  ? l.languageSystem
-                  : languages.firstWhere((x) => x.code == AppLanguage.chosen).name,
-              onTap: _pickLanguage,
+            _spot(
+              SettingsSpot.language,
+              _Row(
+                key: const ValueKey('language-row'),
+                icon: SettingsSpot.language.icon,
+                color: SettingsSpot.language.color,
+                title: l.language,
+                value: AppLanguage.chosen == null
+                    ? l.languageSystem
+                    : languages.firstWhere((x) => x.code == AppLanguage.chosen).name,
+                onTap: _pickLanguage,
+              ),
             ),
             // Left, middle or right right on the row: no sheet to open (owner 2026-10-24).
             _Row(
@@ -504,32 +610,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (on) => setState(() => Prefs.write(holdHomePref, on ? '1' : '0')),
               ),
             ),
-            _Row(
-              icon: Icons.notes_rounded,
-              color: _Mau.bacHa,
-              // "Hide", on by default (owner 2026-10-21): the safe state is the on state,
-              // like "Blur thumbnails". The pref keeps its old meaning (1 = show text).
-              key: const ValueKey('hide-note-text-row'),
-              title: l.hideNoteText,
-              trailing: _Switch(
-                value: !notePreviews(),
-                // Showing more is weaker: turning "hide" off asks for the owner.
-                onChanged: (hide) => hide
-                    ? setState(() => Prefs.write(notePreviewsPref, '0'))
-                    : _guarded(() async => setState(() => Prefs.write(notePreviewsPref, '1'))),
+            _spot(
+              SettingsSpot.hideNoteText,
+              _Row(
+                icon: SettingsSpot.hideNoteText.icon,
+                color: SettingsSpot.hideNoteText.color,
+                // "Hide", on by default (owner 2026-10-21): the safe state is the on state,
+                // like "Blur thumbnails". The pref keeps its old meaning (1 = show text).
+                key: const ValueKey('hide-note-text-row'),
+                title: l.hideNoteText,
+                trailing: _Switch(
+                  value: !notePreviews(),
+                  // Showing more is weaker: turning "hide" off asks for the owner.
+                  onChanged: (hide) => hide
+                      ? setState(() => Prefs.write(notePreviewsPref, '0'))
+                      : _guarded(() async => setState(() => Prefs.write(notePreviewsPref, '1'))),
+                ),
               ),
             ),
-            _Row(
-              key: const ValueKey('blur-row'),
-              icon: Icons.blur_on_rounded,
-              color: _Mau.ngoc,
-              title: l.blurThumbs,
-              trailing: _Switch(
-                value: blurThumbnails(),
-                // Turning it on protects more; turning it off asks for the owner.
-                onChanged: (v) => v
-                    ? setState(() => Prefs.write(blurThumbsPref, '1'))
-                    : _guarded(() async => setState(() => Prefs.write(blurThumbsPref, '0'))),
+            _spot(
+              SettingsSpot.blurThumbs,
+              _Row(
+                key: const ValueKey('blur-row'),
+                icon: SettingsSpot.blurThumbs.icon,
+                color: SettingsSpot.blurThumbs.color,
+                title: l.blurThumbs,
+                trailing: _Switch(
+                  value: blurThumbnails(),
+                  // Turning it on protects more; turning it off asks for the owner.
+                  onChanged: (v) => v
+                      ? setState(() => Prefs.write(blurThumbsPref, '1'))
+                      : _guarded(() async => setState(() => Prefs.write(blurThumbsPref, '0'))),
+                ),
               ),
             ),
             // With the other privacy-on-screen switches (owner 2026-10-21).
@@ -621,6 +733,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: buildCommit.isEmpty ? l.aboutLocal : buildCommitShort,
                 ),
                 _Row(icon: Icons.gavel_rounded, color: _Mau.xam, title: l.aboutLicense, value: 'GPL-3.0'),
+                // The basics again, as shown after the vault was made.
+                _Row(
+                  key: const ValueKey('tour-row'),
+                  icon: Icons.school_outlined,
+                  color: _Mau.vang,
+                  title: l.tourRow,
+                  onTap: _tour,
+                ),
                 // Feedback lives on the website; the app only opens it (owner 2026-10-21).
                 _Row(
                   key: const ValueKey('feedback-row'),
@@ -843,12 +963,7 @@ class _Row extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
           child: Row(
             children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
-                child: Center(child: glyph ?? Icon(icon, color: Colors.white, size: 18)),
-              ),
+              SettingTile(icon: icon, color: color, glyph: glyph),
               const SizedBox(width: 12),
               // Just a name, no note under it (owner 2026-10-21): the name says enough.
               Expanded(child: Text(title, style: const TextStyle(fontSize: 15.5))),
