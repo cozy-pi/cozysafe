@@ -4,6 +4,31 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.74 (2026-10-26)
+
+### Added
+- A quick tour right after you create a vault, shown as tips on the vault itself: the
+  page dims, the button being explained stays lit, and a small bubble says what it does.
+  It shows where to add things, how to open them (tap, hold for the menu, hold and drag
+  to pick many), the tabs, Settings, how the vault locks itself, and why to keep a second
+  copy, with a "Set up sync now" button and a reminder that your 24 words and password are
+  the only way back on a new phone. Next and Skip are in the bubble.
+- After restoring a vault on a new device, a shorter tour: adding, opening, the tabs and
+  Settings.
+- Settings → Help & guide → User guide, near the top of Settings: runs the tips on the
+  vault again, then goes on in Settings with Sync, Security, Back up your data and where to
+  find the guide. Feedback moved to the same group.
+- Settings → Security → "Lock as soon as I leave the app", on by default. Turned off
+  (asks for Face ID or the passcode), leaving the app no longer locks the vault at once:
+  it locks after the auto-lock time, counted from when you left, on a clock that changing
+  the phone's time cannot hold back. The app switcher still shows a cover, not the vault.
+
+### Changed
+- Settings: every security switch is in one Security group (Face ID, PIN, auto-lock, lock
+  on leaving, hold Home to lock, block screenshots, blur thumbnails, hide note text,
+  Recovery Key, vault password). Display keeps appearance, language and the add button.
+- Android 13 and later: Recent apps never show the vault, even with screenshots allowed.
+
 ## 0.1.73 (2026-10-26)
 
 ### Fixed

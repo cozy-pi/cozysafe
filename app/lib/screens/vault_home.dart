@@ -46,6 +46,7 @@ import '../widgets/native_bar.dart';
 import 'overview.dart';
 import 'search.dart';
 import 'settings.dart';
+import 'tour.dart';
 import 'trash.dart';
 import 'unlock.dart';
 import 'video_view.dart';
@@ -66,10 +67,12 @@ class VaultHomeScreen extends StatefulWidget {
   static bool debugReveal = true;
 
 
-  const VaultHomeScreen({super.key, required this.libraryDir, required this.vault});
+  const VaultHomeScreen({super.key, required this.libraryDir, required this.vault, this.tour});
 
   final String libraryDir;
   final rust.VaultInfo vault;
+  /// Just made or restored here: the quick tour shows once the vault has opened.
+  final TourKind? tour;
 
   @override
   State<VaultHomeScreen> createState() => _VaultHomeScreenState();
@@ -107,6 +110,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   final _addColumnKey = GlobalKey();
   ScrollController _addScroll = ScrollController();
   final _actionKey = GlobalKey();
+  /// What the quick tour points at (tour.dart).
+  final _settingsKey = GlobalKey();
+  final _tabsKey = GlobalKey();
+  final _barKey = GlobalKey();
+  final _lockKey = GlobalKey();
+  final _contentKey = GlobalKey();
+  final _tilesKey = GlobalKey();
+  /// Settings → Quick tour was tapped: the tour runs here once Settings has closed.
+  bool _tourAgain = false;
   final _recorder = GlobalKey<RecorderViewState>();
   bool _recordingNow = false;
   static const _tintApp = false;
@@ -142,7 +154,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   bool _canBio = false;
   bool _bioOn = false;
   Timer? _idleTimer;
-  DateTime? _awayAt;
+  /// Out of the app with the vault still open: for a picker or the share sheet, or with
+  /// "Lock as soon as I leave the app" off. Measured on [AwayClock].
+  AwayClock? _away;
+  /// Locks at the auto-lock time while away, if the app still runs then.
+  Timer? _awayTimer;
 
   @override
   void initState() {
@@ -170,7 +186,136 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _touch();
     if (_revealOn) _reveal.forward();
+    if (widget.tour case final kind?) {
+      // After the vault's icon has come and gone, so the tour opens on the vault itself.
+      Future<void>.delayed(Duration(milliseconds: _revealOn ? 1500 : 400), () => _showTour(kind));
+    }
   }
+
+  /// The quick tour: tips over this page, each pointing at the real thing (owner
+  /// 2026-10-26). "Set up sync now" opens Settings, then Sync on top of it.
+  Future<void> _showTour(TourKind kind) async {
+    // The items first: an empty vault has the add tiles where the + would be.
+    for (var i = 0; i < 20 && mounted && _items == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    if (!mounted || _locked || _items == null) return;
+    // Back on the vault's own page, out of whatever was open.
+    if (_adding) _closeAdd();
+    setState(() {
+      _endSelect();
+      _tagId = null;
+    });
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    final tips = _tourTips(AppLocalizations.of(context), kind);
+    // The User guide goes on into Settings, counting on (6/9 there).
+    final guide = kind == TourKind.guide;
+    final end = await showCoachTour(context, tips, total: guide ? tips.length + SettingsScreen.guideTipCount : null);
+    if (!mounted || _locked) return;
+    if (end == TourEnd.action) _openSettings(focus: SettingsSpot.sync);
+    if (end == TourEnd.done && guide) _openSettings(guideFrom: tips.length);
+  }
+
+  /// Where [key]'s widget is on screen, if it is.
+  static Rect? _rectOf(GlobalKey key) => _boxRect(key.currentContext);
+
+  static Rect? _boxRect(BuildContext? context) {
+    final box = context?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  /// The first item showing in the content (a row, a tile), for "tap, hold, drag".
+  Rect? _firstItemRect() {
+    final area = _rectOf(_contentKey);
+    final root = _contentKey.currentContext;
+    if (area == null || root == null) return null;
+    Rect? found;
+    void visit(Element e) {
+      if (found != null) return;
+      final w = e.widget;
+      if (w is OverviewRow || w is _MediaTile || w is _NoteRow || w is _FileRow || w is _FileTile) {
+        final r = _boxRect(e);
+        // Fully on screen and clear of the floating bar at the bottom.
+        if (r != null && r.top >= area.top && r.bottom <= area.bottom - _bottomRoom) {
+          found = r;
+          return;
+        }
+      }
+      e.visitChildren(visit);
+    }
+    root.visitChildElements(visit);
+    return found;
+  }
+
+  /// The home tab in the bar, where holding locks.
+  Rect? _homeTabRect() {
+    Rect? found;
+    void visit(Element e) {
+      if (found != null) return;
+      if (e.widget.key == const ValueKey('home-tab')) {
+        found = _boxRect(e);
+        return;
+      }
+      e.visitChildren(visit);
+    }
+    _barKey.currentContext?.visitChildElements(visit);
+    return found;
+  }
+
+  List<TourTip> _tourTips(AppLocalizations l, TourKind kind) {
+    final empty = _empty;
+    final sections = _sections;
+    Rect? tilesOr(GlobalKey key) => empty ? _rectOf(_tilesKey) : _rectOf(key);
+    // An empty vault's bar is just the lock: no tabs to show yet.
+    final tabs = empty ? null : (_rectOf(_tabsKey) ?? (nativeBarOn() ? _rectOf(_barKey) : null));
+    final lockButton = _rectOf(_lockKey);
+    final holdHome = lockButton == null && _noLockButton(sections) && !nativeBarOn() ? _homeTabRect() : null;
+    return [
+      TourTip(
+          id: 'add', target: () => tilesOr(_actionKey), title: l.tipAddTitle, body: l.tipAddBody),
+      TourTip(
+          id: 'items',
+          target: () => empty ? _rectOf(_tilesKey) : (_firstItemRect() ?? _rectOf(_contentKey)),
+          title: l.tipItemsTitle,
+          body: empty ? l.tipItemsEmptyBody : l.tipItemsBody),
+      if (tabs != null)
+        TourTip(
+            id: 'tabs',
+            target: () => _rectOf(_tabsKey) ?? _rectOf(_barKey),
+            title: l.tipBarTitle,
+            body: l.tipBarBody),
+      TourTip(
+          id: 'settings', target: () => _rectOf(_settingsKey), title: l.settings, body: l.tipSettingsBody),
+      if (kind != TourKind.restored) ...[
+        // The lock: its button, else the home tab that locks when held, else Settings
+        // (where Auto-lock is). With "Lock as soon as I leave" off, leaving does not lock
+        // at once: that tip points at Settings and says so.
+        if (!Settings.lockOnLeave)
+          TourTip(id: 'lock', target: () => _rectOf(_settingsKey), title: l.tipLockTitle, body: l.tipLockAwayBody)
+        else if (lockButton != null)
+          TourTip(id: 'lock', target: () => _rectOf(_lockKey), title: l.tipLockTitle, body: l.tipLockButtonBody)
+        else if (holdHome != null)
+          TourTip(id: 'lock', target: _homeTabRect, title: l.tipLockTitle, body: l.tipLockHoldBody)
+        else
+          TourTip(id: 'lock', target: () => _rectOf(_settingsKey), title: l.tipLockTitle, body: l.tipLockBody),
+        // In the User guide, Sync comes next in Settings: no button for it here.
+        TourTip(
+          id: 'copy',
+          target: () => _rectOf(_settingsKey),
+          title: l.tourCopyTitle,
+          body: l.tourCopyBody,
+          note: l.tourSafeKeys,
+          action: kind == TourKind.guide ? null : l.tourCopyNow,
+        ),
+      ],
+    ];
+  }
+
+  /// Settings → User guide: Settings closes, the guide runs over this page, then on into
+  /// Settings.
+  void _replayTour() => _tourAgain = true;
 
   /// Which vault just opened: on the plain page, its icon comes in as the unlock effect
   /// ends, holds, fades; only then does the content show (docs/ui.md). Vaults have no name.
@@ -184,6 +329,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _addScroll.dispose();
     _reveal.dispose();
     _idleTimer?.cancel();
+    _awayTimer?.cancel();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
     if (LockGuard.onActivity == _touch) LockGuard.onActivity = null;
     final mine = _color;
@@ -205,20 +351,37 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     });
   }
 
+  Duration get _awayLimit => Duration(minutes: Settings.autoLockMinutes);
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
-      if (LockGuard.away) {
-        _awayAt ??= DateTime.now();
-      } else {
-        _lock(animate: false);
+      if (_locked || _away != null) return;
+      final leaveLocks = Settings.lockOnLeave;
+      // Leaving locks at once (the default), unless the app itself sent the person out.
+      if (leaveLocks && !LockGuard.away) return _lock(animate: false);
+      _away = AwayClock.start();
+      // "Lock as soon as I leave" off: the auto-lock time runs from now, not from the
+      // last touch. The app switcher still shows the cover, not the vault.
+      if (!leaveLocks) {
+        _idleTimer?.cancel();
+        _awayTimer?.cancel();
+        _awayTimer = Timer(_awayLimit, () {
+          if (mounted && _away != null) _lock(animate: false);
+        });
       }
-    } else if (state == AppLifecycleState.resumed && _awayAt != null) {
-      final gone = DateTime.now().difference(_awayAt!);
-      _awayAt = null;
+    } else if (state == AppLifecycleState.resumed && _away != null) {
+      final gone = _away!.elapsed;
+      _away = null;
+      _awayTimer?.cancel();
       LockGuard.clear();
-      if (gone > const Duration(seconds: 60)) _lock(animate: false);
-      _touch();
+      // Back in time: the vault shows again. Too late: it locks before anything shows.
+      final tooLong = Settings.lockOnLeave ? gone > const Duration(seconds: 60) : gone >= _awayLimit;
+      if (tooLong) {
+        _lock(animate: false);
+      } else {
+        _touch();
+      }
     }
   }
 
@@ -241,6 +404,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (_locked) return;
     _locked = true;
     _idleTimer?.cancel();
+    _awayTimer?.cancel();
+    _away = null;
     final nav = Navigator.of(context);
     void go() async {
       // The pages kept under the lock let go first: a sync stops (it holds the vault),
@@ -689,7 +854,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!_locked && changed != false) _reload();
   }
 
-  Future<void> _openSettings() async {
+  /// [guideFrom]: the User guide goes on in Settings after that many tips here.
+  Future<void> _openSettings({SettingsSpot? focus, int? guideFrom}) async {
     final l = AppLocalizations.of(context);
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => SettingsScreen(
@@ -706,11 +872,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         onOpenTrash: _openTrash,
         onNewVault: _newVault,
         onSynced: _reload,
+        focus: focus,
+        guideFrom: guideFrom,
+        onTour: _replayTour,
       ),
     ));
     if (!_locked) {
       _touch(); // the auto-lock time may have changed
       setState(() {}); // and the side of the main action
+      if (_tourAgain) {
+        _tourAgain = false;
+        _showTour(TourKind.guide);
+      }
     }
   }
 
@@ -1472,7 +1645,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       return _Welcome(
         vault: _vault,
         bottomPad: _bottomRoom,
-        tiles: AddTiles(camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio), onPick: _add),
+        tiles: AddTiles(key: _tilesKey, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio), onPick: _add),
       );
     }
     final shown = _shown(items);
@@ -1645,12 +1818,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           // Inside a group the header is crowded; Settings is one Back away.
           if (open == null) ...[
             const SizedBox(width: 8),
-            GlassButton(
-              key: const ValueKey('settings-button'),
-              icon: Icons.settings_outlined,
-              tooltip: l.settings,
-              size: Ui.circle,
-              onTap: _openSettings,
+            KeyedSubtree(
+              key: _settingsKey,
+              child: GlassButton(
+                key: const ValueKey('settings-button'),
+                icon: Icons.settings_outlined,
+                tooltip: l.settings,
+                size: Ui.circle,
+                onTap: _openSettings,
+              ),
             ),
           ],
         ],
@@ -1957,6 +2133,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       removeBottom: true,
                       // A short fade when the section or the open group changes.
                       child: DragSelectArea(
+                        key: _contentKey,
                         drag: _drag,
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 150),
@@ -1994,6 +2171,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   right: 0,
                   bottom: bottom + Ui.edge - 4 - NativeVaultBar.marginBottom,
                   child: NativeVaultBar(
+                    key: _barKey,
                     section: _section,
                     sections: barSections(sections),
                     onSection: _pickSection,
@@ -2008,6 +2186,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 right: 10,
                 bottom: bottom + Ui.edge,
                 child: VaultBar(
+                  key: _barKey,
+                  tabsKey: _tabsKey,
                   section: _section,
                   sections: barSections(sections),
                   home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
@@ -2020,13 +2200,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   onHoldHome: _noLockButton(sections) ? _holdHome : null,
                   lock: _noLockButton(sections)
                       ? null
-                      : GlassButton(
-                          key: const ValueKey('lock-button'),
-                          tooltip: l.lockVault,
-                          size: Ui.bar,
-                          icon: null,
-                          onTap: _lock,
-                          child: LockGlyph(size: 26, color: Theme.of(context).colorScheme.onSurface),
+                      : KeyedSubtree(
+                          key: _lockKey,
+                          child: GlassButton(
+                            key: const ValueKey('lock-button'),
+                            tooltip: l.lockVault,
+                            size: Ui.bar,
+                            icon: null,
+                            onTap: _lock,
+                            child: LockGlyph(size: 26, color: Theme.of(context).colorScheme.onSurface),
+                          ),
                         ),
                 ),
               ),
