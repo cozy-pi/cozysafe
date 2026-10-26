@@ -640,11 +640,18 @@
   "syncConfirmNumber": "Kod: {code}",
   "syncConfirmHint": "Diğer cihazın da aynı sayıyı gösterdiğini kontrol edin.",
   "syncConfirmYes": "Eşitle",
-  "syncConfirmWaiting": "Bağlantı bekleniyor…",
+  "syncConfirmWaiting": "{device} bekleniyor…",
   "syncConfirmWaitingNote": "Diğer cihazda da Eşitle'ye dokunun.",
   "syncPeerCancelled": "Diğer cihazda iptal edildi.",
   "syncRestoreAllowName": "{device} bu kasayı geri yükleyebilsin mi?",
   "syncConnectedTo": "{device} cihazına bağlandı",
   "restoreNearbyLead": "Eski cihazınızda: Ayarlar, Eşitle, Yakındaki bir cihazla eşitle, ardından Yeni bir cihazın geri yüklemesine yardım et'i açın.",
-  "syncLogNearby": "Yakındaki cihaz"
+  "syncLogNearby": "Yakındaki cihaz",
+  "confirmTrashTitle": "{count, plural, =1{Son silinenlere taşınsın mı?} other{{count} öğe Son silinenlere taşınsın mı?}}",
+  "confirmTrashBody": "{count, plural, other{30 gün boyunca Son silinenlerden geri yükleyebilirsiniz.}}",
+  "infoDeleted": "Silinme",
+  "infoKeptUntil": "Saklanma sonu",
+  "trashEmptyTitle": "Silinen bir şey yok",
+  "trashEmptyBody": "Sildikleriniz 30 gün burada kalır, böylece geri alabilirsiniz.",
+  "trashHint": "Görmek için bir öğeye dokunun. Birkaçını seçmek için basılı tutup sürükleyin."
 }

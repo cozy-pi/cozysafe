@@ -640,11 +640,18 @@
   "syncConfirmNumber": "Kode: {code}",
   "syncConfirmHint": "Pastikan perangkat lain menampilkan angka yang sama.",
   "syncConfirmYes": "Sinkronkan",
-  "syncConfirmWaiting": "Menunggu koneksi…",
+  "syncConfirmWaiting": "Menunggu {device}…",
   "syncConfirmWaitingNote": "Ketuk juga Sinkronkan di perangkat lain.",
   "syncPeerCancelled": "Dibatalkan di perangkat lain.",
   "syncRestoreAllowName": "Izinkan {device} memulihkan brankas ini?",
   "syncConnectedTo": "Tersambung ke {device}",
   "restoreNearbyLead": "Di perangkat lama Anda: Pengaturan, Sinkronkan, Sinkronkan dengan perangkat terdekat, lalu aktifkan Bantu perangkat baru memulihkan.",
-  "syncLogNearby": "Perangkat terdekat"
+  "syncLogNearby": "Perangkat terdekat",
+  "confirmTrashTitle": "{count, plural, =1{Pindahkan ke Baru dihapus?} other{Pindahkan {count} item ke Baru dihapus?}}",
+  "confirmTrashBody": "{count, plural, =1{Anda bisa memulihkannya dari Baru dihapus selama 30 hari.} other{Anda bisa memulihkannya dari Baru dihapus selama 30 hari.}}",
+  "infoDeleted": "Dihapus",
+  "infoKeptUntil": "Disimpan sampai",
+  "trashEmptyTitle": "Tidak ada yang dihapus",
+  "trashEmptyBody": "Yang Anda hapus tetap di sini selama 30 hari, jadi masih bisa dikembalikan.",
+  "trashHint": "Ketuk item untuk melihatnya. Tahan lalu seret untuk memilih beberapa."
 }

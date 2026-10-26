@@ -640,11 +640,18 @@
   "syncConfirmNumber": "Code: {code}",
   "syncConfirmHint": "Prüfe, ob das andere Gerät dieselbe Zahl zeigt.",
   "syncConfirmYes": "Synchronisieren",
-  "syncConfirmWaiting": "Warte auf Verbindung…",
+  "syncConfirmWaiting": "Warte auf {device}…",
   "syncConfirmWaitingNote": "Tippe auch auf dem anderen Gerät auf Synchronisieren.",
   "syncPeerCancelled": "Auf dem anderen Gerät abgebrochen.",
   "syncRestoreAllowName": "{device} diesen Tresor wiederherstellen lassen?",
   "syncConnectedTo": "Verbunden mit {device}",
   "restoreNearbyLead": "Auf deinem alten Gerät: Einstellungen, Synchronisieren, Mit einem Gerät in der Nähe synchronisieren, dann Neuem Gerät beim Wiederherstellen helfen einschalten.",
-  "syncLogNearby": "Gerät in der Nähe"
+  "syncLogNearby": "Gerät in der Nähe",
+  "confirmTrashTitle": "{count, plural, =1{In „Zuletzt gelöscht“ verschieben?} other{{count} Elemente in „Zuletzt gelöscht“ verschieben?}}",
+  "confirmTrashBody": "{count, plural, =1{Sie können es 30 Tage lang aus „Zuletzt gelöscht“ wiederherstellen.} other{Sie können sie 30 Tage lang aus „Zuletzt gelöscht“ wiederherstellen.}}",
+  "infoDeleted": "Gelöscht",
+  "infoKeptUntil": "Aufbewahrt bis",
+  "trashEmptyTitle": "Nichts gelöscht",
+  "trashEmptyBody": "Was Sie löschen, bleibt 30 Tage hier, damit Sie es zurückholen können.",
+  "trashHint": "Tippen Sie auf ein Element, um es anzusehen. Halten und ziehen, um mehrere auszuwählen."
 }

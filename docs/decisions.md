@@ -4,6 +4,17 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-26 — Every delete asks; Recently deleted redone; hold and drag to select (0.1.71, mockup)
+
+Owner requests, built and rendered for approval before release. Every delete asks first
+in one bottom card (count in the title, red button, Cancel); Undo after moving to Recently
+deleted stays. Recently deleted drops "Restore all" and "Delete all", groups items by kind
+like the vault (videos now in the grid with their thumbnail), and its long-press menu and
+preview bar are the same: Restore · Info · Delete for good (trash items are read-only: no
+Send). Hold, then drag selects a run of items in the vault and in Recently deleted; the
+item menu then opens on lift (or after 0.65 s held still), since a menu opened at once ends
+the touch. Details: docs/ui.md, "Deleting and Recently deleted".
+
 ## 2026-10-25 — Security round (0.1.68)
 
 New passwords follow NIST SP 800-63B rev 4: 8+ characters, not among the 100,000 most

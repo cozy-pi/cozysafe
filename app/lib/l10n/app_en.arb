@@ -854,7 +854,8 @@
   "@syncConfirmNumber": {"placeholders": {"code": {}}},
   "syncConfirmHint": "Check that the other device shows the same number.",
   "syncConfirmYes": "Sync",
-  "syncConfirmWaiting": "Waiting for a connection…",
+  "syncConfirmWaiting": "Waiting for {device}…",
+  "@syncConfirmWaiting": {"placeholders": {"device": {}}},
   "syncConfirmWaitingNote": "Tap Sync on the other device too.",
   "syncPeerCancelled": "Cancelled on the other device.",
   "syncRestoreAllowName": "Let {device} restore this vault?",
@@ -862,5 +863,14 @@
   "syncConnectedTo": "Connected to {device}",
   "@syncConnectedTo": {"placeholders": {"device": {}}},
   "restoreNearbyLead": "On your old device: Settings, Sync, Sync with a nearby device, then turn on Help a new device restore.",
-  "syncLogNearby": "Nearby device"
+  "syncLogNearby": "Nearby device",
+  "confirmTrashTitle": "{count, plural, =1{Move to Recently deleted?} other{Move {count} items to Recently deleted?}}",
+  "@confirmTrashTitle": {"placeholders": {"count": {"type": "int"}}},
+  "confirmTrashBody": "{count, plural, =1{You can restore it from Recently deleted for 30 days.} other{You can restore them from Recently deleted for 30 days.}}",
+  "@confirmTrashBody": {"placeholders": {"count": {"type": "int"}}},
+  "infoDeleted": "Deleted",
+  "infoKeptUntil": "Kept until",
+  "trashEmptyTitle": "Nothing deleted",
+  "trashEmptyBody": "What you delete stays here for 30 days, so you can bring it back.",
+  "trashHint": "Tap an item to look at it. Hold one and drag to select several."
 }

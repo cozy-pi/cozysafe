@@ -640,11 +640,18 @@
   "syncConfirmNumber": "Código: {code}",
   "syncConfirmHint": "Comprueba que el otro dispositivo muestra el mismo número.",
   "syncConfirmYes": "Sincronizar",
-  "syncConfirmWaiting": "Esperando conexión…",
+  "syncConfirmWaiting": "Esperando a {device}…",
   "syncConfirmWaitingNote": "Toca Sincronizar también en el otro dispositivo.",
   "syncPeerCancelled": "Cancelado en el otro dispositivo.",
   "syncRestoreAllowName": "¿Dejar que {device} restaure esta bóveda?",
   "syncConnectedTo": "Conectado a {device}",
   "restoreNearbyLead": "En tu dispositivo antiguo: Ajustes, Sincronizar, Sincronizar con un dispositivo cercano, y activa Ayudar a restaurar un dispositivo nuevo.",
-  "syncLogNearby": "Dispositivo cercano"
+  "syncLogNearby": "Dispositivo cercano",
+  "confirmTrashTitle": "{count, plural, =1{¿Mover a Eliminado recientemente?} other{¿Mover {count} elementos a Eliminado recientemente?}}",
+  "confirmTrashBody": "{count, plural, =1{Puedes restaurarlo desde Eliminado recientemente durante 30 días.} other{Puedes restaurarlos desde Eliminado recientemente durante 30 días.}}",
+  "infoDeleted": "Eliminado",
+  "infoKeptUntil": "Se guarda hasta",
+  "trashEmptyTitle": "Nada eliminado",
+  "trashEmptyBody": "Lo que eliminas se queda aquí 30 días, para que puedas recuperarlo.",
+  "trashHint": "Toca un elemento para verlo. Mantén pulsado y arrastra para seleccionar varios."
 }

@@ -640,11 +640,18 @@
   "syncConfirmNumber": "코드: {code}",
   "syncConfirmHint": "다른 기기에도 같은 숫자가 표시되는지 확인하세요.",
   "syncConfirmYes": "동기화",
-  "syncConfirmWaiting": "연결을 기다리는 중…",
+  "syncConfirmWaiting": "{device} 기다리는 중…",
   "syncConfirmWaitingNote": "다른 기기에서도 동기화를 누르세요.",
   "syncPeerCancelled": "다른 기기에서 취소했습니다.",
   "syncRestoreAllowName": "{device}에서 이 금고를 복원하도록 허용할까요?",
   "syncConnectedTo": "{device}에 연결됨",
   "restoreNearbyLead": "이전 기기에서: 설정, 동기화, 근처 기기와 동기화를 연 다음 새 기기 복원 돕기를 켜세요.",
-  "syncLogNearby": "근처 기기"
+  "syncLogNearby": "근처 기기",
+  "confirmTrashTitle": "{count, plural, =1{최근 삭제된 항목으로 옮길까요?} other{항목 {count}개를 최근 삭제된 항목으로 옮길까요?}}",
+  "confirmTrashBody": "{count, plural, other{30일 동안 최근 삭제된 항목에서 복원할 수 있습니다.}}",
+  "infoDeleted": "삭제한 날짜",
+  "infoKeptUntil": "보관 기한",
+  "trashEmptyTitle": "삭제한 항목 없음",
+  "trashEmptyBody": "삭제한 항목은 30일 동안 여기에 남아 있어 되돌릴 수 있습니다.",
+  "trashHint": "항목을 탭하면 볼 수 있습니다. 길게 누른 채 드래그하면 여러 개를 선택합니다."
 }

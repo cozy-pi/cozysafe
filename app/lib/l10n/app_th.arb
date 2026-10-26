@@ -640,11 +640,18 @@
   "syncConfirmNumber": "รหัส: {code}",
   "syncConfirmHint": "ตรวจสอบว่าอุปกรณ์อีกเครื่องแสดงตัวเลขเดียวกัน",
   "syncConfirmYes": "ซิงค์",
-  "syncConfirmWaiting": "กำลังรอการเชื่อมต่อ…",
+  "syncConfirmWaiting": "กำลังรอ {device}…",
   "syncConfirmWaitingNote": "แตะ ซิงค์ บนอุปกรณ์อีกเครื่องด้วย",
   "syncPeerCancelled": "อุปกรณ์อีกเครื่องยกเลิกแล้ว",
   "syncRestoreAllowName": "ให้ {device} กู้คืนตู้เซฟนี้ไหม",
   "syncConnectedTo": "เชื่อมต่อกับ {device} แล้ว",
   "restoreNearbyLead": "บนเครื่องเดิม: การตั้งค่า > ซิงค์ > ซิงค์กับอุปกรณ์ใกล้เคียง แล้วเปิด ช่วยอุปกรณ์ใหม่กู้คืน",
-  "syncLogNearby": "อุปกรณ์ใกล้เคียง"
+  "syncLogNearby": "อุปกรณ์ใกล้เคียง",
+  "confirmTrashTitle": "{count, plural, =1{ย้ายไปที่ที่เพิ่งลบไหม} other{ย้าย {count} รายการไปที่ที่เพิ่งลบไหม}}",
+  "confirmTrashBody": "{count, plural, other{กู้คืนได้จากที่เพิ่งลบภายใน 30 วัน}}",
+  "infoDeleted": "วันที่ลบ",
+  "infoKeptUntil": "เก็บไว้ถึง",
+  "trashEmptyTitle": "ยังไม่มีรายการที่ลบ",
+  "trashEmptyBody": "สิ่งที่คุณลบจะอยู่ที่นี่ 30 วัน เพื่อให้กู้คืนได้",
+  "trashHint": "แตะรายการเพื่อดู กดค้างแล้วลากเพื่อเลือกหลายรายการ"
 }

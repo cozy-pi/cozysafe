@@ -640,11 +640,18 @@
   "syncConfirmNumber": "代码：{code}",
   "syncConfirmHint": "请确认另一台设备显示相同的数字。",
   "syncConfirmYes": "同步",
-  "syncConfirmWaiting": "正在等待连接…",
+  "syncConfirmWaiting": "正在等待 {device}…",
   "syncConfirmWaitingNote": "也请在另一台设备上点按“同步”。",
   "syncPeerCancelled": "已在另一台设备上取消。",
   "syncRestoreAllowName": "允许 {device} 恢复此保险库？",
   "syncConnectedTo": "已连接到 {device}",
   "restoreNearbyLead": "在旧设备上：设置 > 同步 > 与附近的设备同步，然后打开“帮助新设备恢复”。",
-  "syncLogNearby": "附近的设备"
+  "syncLogNearby": "附近的设备",
+  "confirmTrashTitle": "{count, plural, =1{移到“最近删除”？} other{将 {count} 项移到“最近删除”？}}",
+  "confirmTrashBody": "{count, plural, other{30 天内可在“最近删除”中恢复。}}",
+  "infoDeleted": "删除时间",
+  "infoKeptUntil": "保留至",
+  "trashEmptyTitle": "没有删除的项目",
+  "trashEmptyBody": "删除的内容会在这里保留 30 天，方便找回。",
+  "trashHint": "轻点项目即可查看。按住并拖动可选择多项。"
 }

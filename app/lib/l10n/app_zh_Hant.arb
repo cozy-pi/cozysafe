@@ -640,11 +640,18 @@
   "syncConfirmNumber": "代碼：{code}",
   "syncConfirmHint": "請確認另一台裝置顯示相同的數字。",
   "syncConfirmYes": "同步",
-  "syncConfirmWaiting": "正在等待連線…",
+  "syncConfirmWaiting": "正在等待 {device}…",
   "syncConfirmWaitingNote": "也請在另一台裝置上點一下「同步」。",
   "syncPeerCancelled": "已在另一台裝置上取消。",
   "syncRestoreAllowName": "允許 {device} 還原此保險庫？",
   "syncConnectedTo": "已連線到 {device}",
   "restoreNearbyLead": "在舊裝置上：設定 > 同步 > 與附近的裝置同步，然後開啟「協助新裝置還原」。",
-  "syncLogNearby": "附近的裝置"
+  "syncLogNearby": "附近的裝置",
+  "confirmTrashTitle": "{count, plural, =1{要移到「最近刪除」嗎？} other{要將 {count} 個項目移到「最近刪除」嗎？}}",
+  "confirmTrashBody": "{count, plural, other{30 天內可在「最近刪除」中還原。}}",
+  "infoDeleted": "刪除時間",
+  "infoKeptUntil": "保留至",
+  "trashEmptyTitle": "沒有刪除的項目",
+  "trashEmptyBody": "刪除的內容會在這裡保留 30 天，方便找回。",
+  "trashHint": "輕點項目即可查看。按住並拖曳可選取多個項目。"
 }

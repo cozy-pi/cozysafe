@@ -654,11 +654,18 @@
   "syncConfirmNumber": "Mã: {code}",
   "syncConfirmHint": "Kiểm tra máy kia cũng hiện số này.",
   "syncConfirmYes": "Đồng bộ",
-  "syncConfirmWaiting": "Đang chờ kết nối…",
+  "syncConfirmWaiting": "Đang chờ {device}…",
   "syncConfirmWaitingNote": "Chạm Đồng bộ trên máy kia nữa.",
   "syncPeerCancelled": "Máy kia đã huỷ.",
   "syncRestoreAllowName": "Cho {device} khôi phục két này?",
   "syncConnectedTo": "Đã kết nối với {device}",
   "restoreNearbyLead": "Trên máy cũ: Cài đặt, Đồng bộ, Đồng bộ với máy gần đây, rồi bật Giúp máy mới khôi phục.",
-  "syncLogNearby": "Máy gần đây"
+  "syncLogNearby": "Máy gần đây",
+  "confirmTrashTitle": "{count, plural, =1{Chuyển vào Đã xoá gần đây?} other{Chuyển {count} mục vào Đã xoá gần đây?}}",
+  "confirmTrashBody": "{count, plural, other{Vẫn khôi phục được trong 30 ngày, ở mục Đã xoá gần đây.}}",
+  "infoDeleted": "Ngày xoá",
+  "infoKeptUntil": "Giữ đến",
+  "trashEmptyTitle": "Chưa xoá gì",
+  "trashEmptyBody": "Thứ bạn xoá sẽ nằm ở đây 30 ngày, để còn lấy lại được.",
+  "trashHint": "Chạm để xem. Bấm giữ rồi kéo để chọn nhiều mục."
 }

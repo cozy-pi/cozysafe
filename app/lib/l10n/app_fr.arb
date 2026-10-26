@@ -640,11 +640,18 @@
   "syncConfirmNumber": "Code : {code}",
   "syncConfirmHint": "Vérifiez que l’autre appareil affiche le même nombre.",
   "syncConfirmYes": "Synchroniser",
-  "syncConfirmWaiting": "En attente de connexion…",
+  "syncConfirmWaiting": "En attente de {device}…",
   "syncConfirmWaitingNote": "Touchez aussi Synchroniser sur l’autre appareil.",
   "syncPeerCancelled": "Annulé sur l’autre appareil.",
   "syncRestoreAllowName": "Laisser {device} restaurer ce coffre ?",
   "syncConnectedTo": "Connecté à {device}",
   "restoreNearbyLead": "Sur votre ancien appareil : Réglages, Synchroniser, Synchroniser avec un appareil à proximité, puis activez Aider un nouvel appareil à restaurer.",
-  "syncLogNearby": "Appareil à proximité"
+  "syncLogNearby": "Appareil à proximité",
+  "confirmTrashTitle": "{count, plural, =1{Déplacer vers Supprimés récemment ?} other{Déplacer {count} éléments vers Supprimés récemment ?}}",
+  "confirmTrashBody": "{count, plural, =1{Vous pouvez le restaurer depuis Supprimés récemment pendant 30 jours.} other{Vous pouvez les restaurer depuis Supprimés récemment pendant 30 jours.}}",
+  "infoDeleted": "Supprimé",
+  "infoKeptUntil": "Conservé jusqu'au",
+  "trashEmptyTitle": "Rien de supprimé",
+  "trashEmptyBody": "Ce que vous supprimez reste ici 30 jours, pour pouvoir le récupérer.",
+  "trashHint": "Touchez un élément pour le voir. Maintenez puis glissez pour en sélectionner plusieurs."
 }

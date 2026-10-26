@@ -143,6 +143,7 @@ const _noteText = {
   'm1': '# Gia hạn hộ chiếu\n\nMang theo **bản gốc** và nộp ở *Phòng Quản lý xuất nhập cảnh*.\n\n## Giấy tờ\n\n- Hộ chiếu cũ\n- Căn cước công dân\n- 2 ảnh 4x6 nền trắng\n- Tờ khai `TK01` điền sẵn\n\n## Lệ phí\n\n1. Nộp 200.000 đ tại quầy\n2. Giữ biên lai để nhận hộ chiếu\n\n> Hẹn lấy sau 8 ngày làm việc.\n\n```\nSĐT tổng đài: 1900 1234\nMã hồ sơ: HC-2026-55821\n```',
   'tx1': 'Wifi nhà ngoại đổi mật khẩu ngày 12/10.\n\nMạng 5G: TP-Link_5G_BaNgoai\nMật khẩu mới: hoaMai2024@\n\nNếu camera cổng mất kết nối thì rút điện 10 giây rồi cắm lại, đợi đèn xanh.',
   'n1': 'Wifi nhà bà ngoại\nTên mạng: TP-Link_5G_BaNgoai\nMật khẩu: hoaMai2024@',
+  'x5': 'Mật khẩu wifi cũ\nTên mạng: TP-Link_BaNgoai\nMật khẩu: matKhauCu2023',
   'n2': 'Tài khoản ngân hàng\nVietcombank 0011 0023 4567 — Nguyễn Văn A, chi nhánh Hoàn Kiếm.\nTechcombank 1903 2211 4455 66 — tài khoản phụ, chỉ nhận lương.\nMB 0909 123 456 — tài khoản tiết kiệm của con.',
   'n3': 'Thuốc của mẹ\nSáng: Amlodipine 5mg sau ăn.\nTối: Metformin 500mg sau ăn.\nTái khám ngày 3/11, mang sổ khám và kết quả xét nghiệm lần trước.',
   'n4': 'Hộ chiếu và visa\nHộ chiếu C1234567, cấp 12/3/2021, hết hạn 12/3/2031.\nVisa Nhật Bản nhiều lần, hết hạn 5/2027.',
@@ -151,6 +152,25 @@ const _noteText = {
   'n7': 'Mã két sắt\n4 vòng trái dừng 27, 2 vòng phải dừng 9.',
   'n8': 'Thông tin bảo hiểm xe\nBảo Việt, số hợp đồng BV-2026-118834, hết hạn 31/12/2026. Hotline giám định 1900 558 899.',
 };
+
+/// Recently deleted: every kind, a video with its thumbnail, and items deleted for good on
+/// another device (held here).
+final _trash = [
+  _item('x1', ItemKind.photo, 'IMG_4721.HEIC', 2300000, ago: _day * 40, deleted: _now - _day),
+  _item('x2', ItemKind.video, 'Đi chợ Tết.MOV', 48000000, ago: _day * 60, duration: 64000, deleted: _now - 3 * _day),
+  _item('x3', ItemKind.photo, 'IMG_4702.HEIC', 2100000, ago: _day * 90, deleted: _now - 18 * _day),
+  _item('x5', ItemKind.note, 'Mật khẩu wifi cũ', 180, ago: _day * 70, deleted: _now - 5 * _day),
+  _item('x6', ItemKind.audio, 'Ghi âm 12-10-2026 09.14.22.m4a', 1400000, ago: _day * 14, duration: 95000, deleted: _now - 9 * _day),
+  _item('t3', ItemKind.file, 'Bao-gia-sua-nha.pdf', 300000, ago: _day * 120, deleted: _now - 27 * _day),
+];
+final _trashHeld = [
+  _item('x4', ItemKind.photo, 'IMG_4655.HEIC', 1900000, ago: _day * 100, deleted: _now - 2 * _day),
+  _item('t4', ItemKind.file, 'Hop-dong-thue-nha-cu.pdf', 420000, ago: _day * 200, deleted: _now - 2 * _day),
+];
+/// Recently deleted is empty in this shot.
+bool _noTrash = false;
+/// Which sample photo each deleted photo or video shows.
+const _trashPictures = {'x1': 5, 'x2': 6, 'x3': 7, 'x4': 2};
 
 final Map<int, Uint8List> _photos = {};
 
@@ -180,18 +200,8 @@ class _Fake implements RustLibApi {
     if (n.contains('QrMatrix')) return QrMatrix(size: 29, dark: [for (final c in _qrBits.split('')) c == '1']);
     if (n.contains('P2PCodeAddress')) return '192.168.1.37';
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_itemsNow ?? _items);
-    if (n.contains('ListHeld')) {
-      return Future<List<ItemInfo>>.value([
-        _item('t4', 'file', 'Hop-dong-thue-nha-cu.pdf', 420000, deleted: _now - 2 * 86400000),
-      ]);
-    }
-    if (n.contains('ListTrash')) {
-      return Future<List<ItemInfo>>.value([
-        _item('t1', 'photo', 'a.jpg', 900000, deleted: _now - 86400000),
-        _item('t2', 'photo', 'b.jpg', 900000, deleted: _now - 18 * 86400000),
-        _item('t3', 'file', 'Bao-gia-sua-nha.pdf', 300000, deleted: _now - 27 * 86400000),
-      ]);
-    }
+    if (n.contains('ListHeld')) return Future<List<ItemInfo>>.value(_noTrash ? const [] : _trashHeld);
+    if (n.contains('ListTrash')) return Future<List<ItemInfo>>.value(_noTrash ? const [] : _trash);
     if (n.contains('PurgeExpired')) return Future<int>.value(0);
     if (n.contains('ItemContent')) {
       final full = call.namedArguments[#id] as String;
@@ -199,15 +209,16 @@ class _Fake implements RustLibApi {
       final m = media.indexWhere((x) => x.id == full);
       if (m >= 0) return Future<Uint8List>.value(_photos[m % _photos.length] ?? _thumbnails[0]);
       final id = full.replaceAll('_', '');
-      // Deleted photos and a picture added from Files.
-      final picture = {'t1': 5, 't2': 7, 'f6': 3}[id];
+      // Deleted photos and videos, and a picture added from Files.
+      final picture = {..._trashPictures, 'f6': 3}[id];
       if (picture != null) return Future<Uint8List>.value(_photos[picture] ?? _thumbnails[1]);
       return Future<Uint8List>.value(Uint8List.fromList(utf8.encode(_noteText[id] ?? '')));
     }
     if (n.contains('ItemThumbnail')) {
       final id = call.namedArguments[#id] as String;
       final bare = id.replaceAll('_', '');
-      if (bare == 't1' || bare == 't2') return Future<Uint8List>.value(_photos[bare == 't1' ? 5 : 7] ?? _thumbnails[1]);
+      // Recently deleted: photos and videos (held ones too) have their thumbnails.
+      if (_trashPictures[bare] case final p?) return Future<Uint8List>.value(_photos[p] ?? _thumbnails[p % 4]);
       final it = _items.where((x) => x.id == id).firstOrNull;
       if (it == null || (it.kind != 'photo' && it.kind != 'video')) return Future<Uint8List>.value(Uint8List(0));
       final media = _items.where((x) => x.kind == 'photo' || x.kind == 'video').toList();
@@ -318,6 +329,7 @@ void _screen(String name, String caption, Widget Function() home,
       NewVaultScreen.debugWords = null;
       DebugScreen.debugNetworkBlocked = null;
       _itemsNow = null;
+      _noTrash = false;
       SyncScreen.debugLog = null;
       SettingsScreen.debugSyncLog = null;
       SyncScreen.debugAddress = null;
@@ -958,35 +970,135 @@ void main() {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-tech')), 300, scrollable: find.byType(Scrollable).first);
     await t.scrollUntilVisible(find.textContaining('kiểm toán'), 300, scrollable: find.byType(Scrollable).first);
   });
-  _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
-  _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 1 ảnh', () => const TrashScreen(),
+  Future<void> showInTrash(WidgetTester t, String text) =>
+      t.scrollUntilVisible(find.text(text), 200, scrollable: find.byType(Scrollable).first);
+  Future<void> settleTrash(WidgetTester t) async {
+    for (var i = 0; i < 6; i++) {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+      await t.pump(const Duration(milliseconds: 100));
+    }
+  }
+  const trashChange = 'LÀM LẠI: chia theo loại như trong két (ảnh/video dạng lưới có ảnh nhỏ — cả video; ghi chú, ghi âm, '
+      'tệp dạng dòng), mỗi mục còn bao nhiêu ngày, mục bị xoá ở máy khác có dấu; BỎ “Khôi phục tất cả” và “Xoá tất cả”; '
+      'dưới cùng chỉ còn nút Chọn';
+  _screen('trash', 'Đã xoá gần đây', () => const TrashScreen(), change: trashChange, marks: [
+    () => find.byKey(const ValueKey('trash-lead')),
+    () => find.byKey(const ValueKey('trash-video-mark')),
+    () => find.byKey(const ValueKey('trash-select')),
+  ]);
+  _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 2 mục', () => const TrashScreen(),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-select')));
         await t.pump();
         await t.tap(find.byType(Image).first);
         await t.pump();
-      });
+        await t.tap(find.text('Mật khẩu wifi cũ'));
+        await t.pump();
+      },
+      change: 'Thanh chọn giống trong két: Xong · Chọn tất cả · Khôi phục · Xoá vĩnh viễn (đỏ), chỉ tác động lên mục đã chọn',
+      marks: [() => find.byKey(const ValueKey('trash-restore')), () => find.byKey(const ValueKey('trash-purge'))]);
+  _screen('trash-drag', 'Đã xoá · bấm giữ 1 ảnh rồi quẹt sang mục khác', () => const TrashScreen(),
+      act: (t) async {
+        final from = t.getCenter(find.byType(Image).first);
+        final g = await t.startGesture(from);
+        await t.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+        await g.moveBy(const Offset(40, 0));
+        await t.pump();
+        await g.moveTo(t.getCenter(find.byType(Image).at(3)));
+        await t.pump();
+        await g.up();
+      },
+      change: 'MỚI: bấm giữ rồi quẹt để chọn liền một dải mục, quẹt ngược lại thì bỏ chọn');
   _screen('trash-preview', 'Đã xoá · chạm 1 ảnh', () => const TrashScreen(),
       act: (t) async {
         await t.tap(find.byType(Image).first);
-        for (var i = 0; i < 6; i++) {
-          await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
-          await t.pump(const Duration(milliseconds: 100));
-        }
+        await settleTrash(t);
+      },
+      change: 'Thanh dưới cùng thứ tự, biểu tượng và chữ như menu bấm giữ: × · Khôi phục · Thông tin · Xoá vĩnh viễn',
+      marks: [() => find.byKey(const ValueKey('preview-info'))]);
+  _screen('trash-preview-video', 'Đã xoá · chạm 1 video (có ảnh nhỏ)', () => const TrashScreen(),
+      act: (t) async {
+        await t.tap(find.byKey(const ValueKey('trash-video-mark')));
+        await settleTrash(t);
       });
   _screen('trash-preview-file', 'Đã xoá · chạm tệp bị xoá ở máy khác', () => const TrashScreen(),
       act: (t) async {
+        await showInTrash(t, 'Hop-dong-thue-nha-cu.pdf');
+        await t.pump();
         await t.tap(find.text('Hop-dong-thue-nha-cu.pdf'));
-        for (var i = 0; i < 6; i++) {
-          await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
-          await t.pump(const Duration(milliseconds: 100));
-        }
-      }, change: 'Cùng khung xem trước: × · Khôi phục · Xoá vĩnh viễn (đỏ), còn N ngày, “Đã xoá trên máy khác”');
+        await settleTrash(t);
+      });
   _screen('trash-menu', 'Đã xoá · bấm giữ 1 ảnh', () => const TrashScreen(),
       act: (t) async {
         await t.longPress(find.byType(Image).first);
         await t.pumpAndSettle();
-      });
+      },
+      change: 'Menu bấm giữ: Khôi phục · Thông tin · Xoá vĩnh viễn (đỏ) — giống thanh của khung xem trước',
+      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+  _screen('trash-info', 'Đã xoá · bấm giữ → Thông tin', () => const TrashScreen(),
+      act: (t) async {
+        await showInTrash(t, 'Hop-dong-thue-nha-cu.pdf');
+        await t.pump();
+        await t.longPress(find.text('Hop-dong-thue-nha-cu.pdf'));
+        await t.pumpAndSettle();
+        await t.tap(find.byKey(const ValueKey('menu-info')));
+        await t.pumpAndSettle();
+      },
+      change: 'MỚI: Thông tin có ngày xoá (và “Đã xoá trên máy khác”) và giữ đến ngày nào');
+  _screen('trash-purge-confirm', 'Đã xoá · chọn 2 mục → Xoá vĩnh viễn', () => const TrashScreen(),
+      act: (t) async {
+        await t.tap(find.byKey(const ValueKey('trash-select')));
+        await t.pump();
+        await t.tap(find.byType(Image).first);
+        await t.tap(find.text('Mật khẩu wifi cũ'));
+        await t.pump();
+        await t.tap(find.byKey(const ValueKey('trash-purge')));
+        await t.pumpAndSettle();
+      },
+      change: 'Hỏi lại bằng cùng một thẻ ở dưới cùng như mọi lần xoá',
+      marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
+  _screen('trash-empty', 'Đã xoá gần đây · trống', () => const TrashScreen(), setup: () => _noTrash = true, change: 'MỚI: màn trống nói rõ mục đã xoá nằm đây 30 ngày');
+  _screen('delete-confirm-one', 'Thư viện · bấm giữ 1 ảnh → Xoá', home, section: 'library', act: (t) async {
+    await t.longPress(find.byType(Image).at(2));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('menu-delete')));
+    await t.pumpAndSettle();
+  }, change: 'MỚI: mọi lần xoá đều hỏi lại (thẻ ở dưới cùng, nút đỏ), xoá xong vẫn có Hoàn tác',
+      marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
+  _screen('delete-confirm-many', 'Thư viện · chọn 3 ảnh → Xoá', home, section: 'library', act: (t) async {
+    await t.tap(find.byKey(const ValueKey('select-button')));
+    await t.pump();
+    for (final i in [1, 2, 4]) {
+      await t.tap(find.byType(Image).at(i));
+      await t.pump();
+    }
+    await t.tap(find.byKey(const ValueKey('select-delete')));
+    await t.pumpAndSettle();
+  }, change: 'MỚI: tiêu đề nói số mục: “Chuyển 3 mục vào Đã xoá gần đây?”',
+      marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
+  _screen('delete-confirm-note', 'Sửa ghi chú · bấm Xoá', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('note-delete')));
+    await t.pumpAndSettle();
+  }, change: 'MỚI: xoá trong ghi chú cũng hỏi lại');
+  _screen('delete-confirm-tag', 'Bấm giữ chip nhóm → Xoá nhóm', home, section: 'library', act: (t) async {
+    await t.longPress(find.text('Du lịch').first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Xoá nhóm'));
+    await t.pumpAndSettle();
+  }, change: 'Xoá nhóm dùng cùng thẻ hỏi lại (trước là hộp thoại giữa màn hình)');
+  _screen('drag-select', 'Thư viện · bấm giữ 1 ảnh rồi quẹt qua 6 ảnh', home, section: 'library', act: (t) async {
+    final g = await t.startGesture(t.getCenter(find.byType(Image).at(1)));
+    await t.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+    await g.moveBy(const Offset(30, 0));
+    await t.pump();
+    await g.moveTo(t.getCenter(find.byType(Image).at(4)));
+    await t.pump();
+    await g.moveTo(t.getCenter(find.byType(Image).at(6)));
+    await t.pump();
+    await g.up();
+  }, change: 'MỚI: bấm giữ rồi quẹt để chọn liền nhiều ảnh (như Ảnh trên iPhone); quẹt ngược lại thì bỏ chọn; '
+      'giữ yên rồi thả thì vẫn mở menu', marks: [() => find.byKey(const ValueKey('select-done'))]);
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
   _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
@@ -1133,7 +1245,7 @@ void main() {
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-select')));
         await t.pump();
-        await t.tap(find.byKey(ValueKey('trash-${'t1'.padRight(32, '_')}')));
+        await t.tap(find.byKey(ValueKey('trash-${'x1'.padRight(32, '_')}')));
         await t.pump();
       },
       change: bottomNote, marks: [() => find.byType(BottomBar)]);

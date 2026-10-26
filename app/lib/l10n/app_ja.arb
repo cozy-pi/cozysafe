@@ -640,11 +640,18 @@
   "syncConfirmNumber": "コード：{code}",
   "syncConfirmHint": "もう一台にも同じ番号が表示されていることを確認してください。",
   "syncConfirmYes": "同期",
-  "syncConfirmWaiting": "接続を待っています…",
+  "syncConfirmWaiting": "{device}を待っています…",
   "syncConfirmWaitingNote": "もう一台でも「同期」をタップしてください。",
   "syncPeerCancelled": "もう一台の端末でキャンセルされました。",
   "syncRestoreAllowName": "{device}にこの金庫の復元を許可しますか？",
   "syncConnectedTo": "{device}に接続しました",
   "restoreNearbyLead": "以前の端末で：設定 > 同期 > 近くのデバイスと同期 を開き、「新しい端末の復元を手伝う」をオンにしてください。",
-  "syncLogNearby": "近くの端末"
+  "syncLogNearby": "近くの端末",
+  "confirmTrashTitle": "{count, plural, =1{「最近削除した項目」に移動しますか？} other{{count}件の項目を「最近削除した項目」に移動しますか？}}",
+  "confirmTrashBody": "{count, plural, other{30日間は「最近削除した項目」から復元できます。}}",
+  "infoDeleted": "削除日",
+  "infoKeptUntil": "保管期限",
+  "trashEmptyTitle": "削除した項目はありません",
+  "trashEmptyBody": "削除したものは30日間ここに残り、元に戻せます。",
+  "trashHint": "項目をタップすると表示します。長押ししてドラッグすると複数選択できます。"
 }
