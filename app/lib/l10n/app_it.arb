@@ -639,5 +639,12 @@
   "syncRestoreAllowNo": "Non consentire",
   "restoreTapAllow": "Sull’altro dispositivo, tocca Consenti.",
   "changeNoReencrypt": "Questo non cifra di nuovo ciò che è già nella cassaforte: cambia solo la chiave che la apre. Cifrare di nuovo tutto è previsto.",
-  "hideNoteText": "Nascondi il testo delle note"
+  "hideNoteText": "Nascondi il testo delle note",
+  "confirmTrashTitle": "{count, plural, =1{Spostare in Eliminati di recente?} other{Spostare {count} elementi in Eliminati di recente?}}",
+  "confirmTrashBody": "{count, plural, =1{Puoi ripristinarlo da Eliminati di recente per 30 giorni.} other{Puoi ripristinarli da Eliminati di recente per 30 giorni.}}",
+  "infoDeleted": "Eliminato",
+  "infoKeptUntil": "Conservato fino al",
+  "trashEmptyTitle": "Niente eliminato",
+  "trashEmptyBody": "Ciò che elimini resta qui per 30 giorni, così puoi recuperarlo.",
+  "trashHint": "Tocca un elemento per vederlo. Tieni premuto e trascina per selezionarne diversi."
 }

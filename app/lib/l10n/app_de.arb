@@ -639,5 +639,12 @@
   "syncRestoreAllowNo": "Nicht zulassen",
   "restoreTapAllow": "Tippe auf deinem anderen Gerät auf Zulassen.",
   "changeNoReencrypt": "Dabei wird der Inhalt des Tresors nicht neu verschlüsselt: Nur der Schlüssel, der ihn öffnet, ändert sich. Alles neu zu verschlüsseln ist geplant.",
-  "hideNoteText": "Notiztext ausblenden"
+  "hideNoteText": "Notiztext ausblenden",
+  "confirmTrashTitle": "{count, plural, =1{In „Zuletzt gelöscht“ verschieben?} other{{count} Elemente in „Zuletzt gelöscht“ verschieben?}}",
+  "confirmTrashBody": "{count, plural, =1{Sie können es 30 Tage lang aus „Zuletzt gelöscht“ wiederherstellen.} other{Sie können sie 30 Tage lang aus „Zuletzt gelöscht“ wiederherstellen.}}",
+  "infoDeleted": "Gelöscht",
+  "infoKeptUntil": "Aufbewahrt bis",
+  "trashEmptyTitle": "Nichts gelöscht",
+  "trashEmptyBody": "Was Sie löschen, bleibt 30 Tage hier, damit Sie es zurückholen können.",
+  "trashHint": "Tippen Sie auf ein Element, um es anzusehen. Halten und ziehen, um mehrere auszuwählen."
 }

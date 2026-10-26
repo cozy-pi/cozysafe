@@ -38,6 +38,10 @@ import 'quick_look.dart';
 import 'note.dart';
 import 'recorder.dart';
 import '../widgets/item_menu.dart';
+import '../widgets/confirm_delete.dart';
+import '../widgets/drag_select.dart';
+import '../widgets/selection_bar.dart';
+import 'item_info.dart';
 import '../widgets/native_bar.dart';
 import 'overview.dart';
 import 'search.dart';
@@ -120,6 +124,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _selectMode = false;
     _selected.clear();
   }
+  /// The items of the section on show, in their order, for a hold-and-drag selection.
+  List<String> _dragOrder = const [];
+  /// Hold an item, then drag across others: they are selected (lib/widgets/drag_select.dart).
+  late final _drag = DragSelect(
+    order: () => _dragOrder,
+    selected: () => _selected,
+    onBegin: () => setState(() => _selectMode = true),
+    onChanged: (next) => setState(() => _selected
+      ..clear()
+      ..addAll(next)),
+  );
   /// Note previews (second line on), decrypted on demand, in memory only.
   final Map<String, Future<String>> _previews = {};
 
@@ -165,6 +180,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   @override
   void dispose() {
     PrivacyCover.onScreenshot = null;
+    _drag.dispose();
     _addScroll.dispose();
     _reveal.dispose();
     _idleTimer?.cancel();
@@ -852,6 +868,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<void> _deleteSelected() async {
     final ids = _selected.toList();
+    if (ids.isEmpty) return;
+    final one = ids.length == 1 ? (_items ?? const <rust.ItemInfo>[]).where((i) => i.id == ids.first).firstOrNull : null;
+    final l = AppLocalizations.of(context);
+    if (!await confirmTrash(context, count: ids.length, name: one == null ? null : _shownName(l, one)) || !mounted) return;
     final now = nowMs();
     for (final id in ids) {
       try {
@@ -984,6 +1004,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       MenuEntry(Icons.info_outline, l.info, () => _info(item), key: const ValueKey('menu-info')),
       MenuEntry(Icons.ios_share, l.sendOut, () => _onlyThis(item, _sendSelected), key: const ValueKey('menu-send')),
       MenuEntry(Icons.delete_outline, l.delete, () async {
+        if (!await confirmTrash(context, count: 1, name: _shownName(l, item)) || !mounted) return;
         await rust.trashItem(id: item.id, nowMs: nowMs());
         _reload();
         _trashed([item.id]);
@@ -1001,69 +1022,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     ]);
   }
 
-  String _shownName(AppLocalizations l, rust.ItemInfo it) => it.name.isEmpty
-      ? l.untitledNote
-      : it.kind == ItemKind.audio
-          ? it.name.replaceAll(RegExp(r'\.m4a$'), '')
-          : it.name;
+  String _shownName(AppLocalizations l, rust.ItemInfo it) => shownName(l, it);
 
   /// What an item is: name, kind, size, when it was added, its length, its groups.
-  Future<void> _info(rust.ItemInfo item) async {
-    final l = AppLocalizations.of(context);
-    final ml = MaterialLocalizations.of(context);
-    final added = dateOf(item.createdMs);
-    final dot = item.name.lastIndexOf('.');
-    final ext = dot > 0 ? item.name.substring(dot + 1).toUpperCase() : '';
-    final kind = switch (item.kind) {
-      ItemKind.photo => '${l.kindPhotos}${ext.isEmpty ? '' : ' · $ext'}',
-      ItemKind.video => '${l.cameraVideo}${ext.isEmpty ? '' : ' · $ext'}',
-      ItemKind.note => l.modeNote,
-      ItemKind.audio => l.modeAudio,
-      _ => ext.isEmpty ? l.modeFile : '${l.modeFile} · $ext',
-    };
-    final ms = item.durationMs?.toInt();
-    final groups = [for (final id in item.tagIds) ?_tags[id]?.name]..sort();
-    String clock(int ms) {
-      final d = Duration(milliseconds: ms);
-      final mm = (d.inSeconds % 3600 ~/ 60).toString().padLeft(d.inHours > 0 ? 2 : 1, '0');
-      final ss = (d.inSeconds % 60).toString().padLeft(2, '0');
-      return d.inHours > 0 ? '${d.inHours}:$mm:$ss' : '$mm:$ss';
-    }
-    final rows = <(String, String)>[
-      (l.infoName, _shownName(l, item)),
-      (l.infoKind, kind),
-      (l.infoSize, fileSize(item.sizeBytes)),
-      (l.infoAdded, '${ml.formatShortDate(added)}, ${ml.formatTimeOfDay(TimeOfDay.fromDateTime(added), alwaysUse24HourFormat: true)}'),
-      if (ms != null && ms > 0) (l.infoLength, clock(ms)),
-      (l.infoGroups, groups.isEmpty ? l.infoNoGroup : groups.join(', ')),
-    ];
-    final c = CsColors.of(context);
-    await showCard<void>(
-      context,
-      title: l.info,
-      closeButton: true,
-      builder: (context) => Padding(
-        key: const ValueKey('item-info'),
-        padding: const EdgeInsets.fromLTRB(22, 4, 22, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final (k, v) in rows)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 7),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(width: 110, child: Text(k, style: TextStyle(color: c.muted, fontSize: 15))),
-                    Expanded(child: SelectableText(v, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<void> _info(rust.ItemInfo item) =>
+      showItemInfo(context, item, groups: [for (final id in item.tagIds) ?_tags[id]?.name]..sort());
 
   // ---------- search ----------
 
@@ -1114,6 +1077,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     for (final it in media) {
       groups.putIfAbsent(_dateGroup(context, it.createdMs.toInt()), () => []).add(it);
     }
+    _dragOrder = [for (final g in groups.values) for (final it in g) it.id];
     return GestureDetector(
       // Pinch to fit more or fewer per row: 3, 4, 5 or 7.
       onScaleStart: (_) => _scaleStart = 1,
@@ -1141,14 +1105,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               delegate: SliverChildBuilderDelegate(
                 (context, i) {
                   final it = e.value[i];
-                  return _MediaTile(
+                  return DragSelectItem(
                     key: ValueKey(it.id),
-                    item: it,
-                    thumbnail: _thumbnail(it.id),
-                    selected: _selected.contains(it.id),
-                    selecting: _selecting,
-                    onTap: () => _openItem(it, media),
-                    onLongPress: () => _itemMenu(it, media),
+                    id: it.id,
+                    drag: _drag,
+                    onMenu: () => _itemMenu(it, media),
+                    child: _MediaTile(
+                      item: it,
+                      thumbnail: _thumbnail(it.id),
+                      selected: _selected.contains(it.id),
+                      selecting: _selecting,
+                      onTap: () => _openItem(it, media),
+                    ),
                   );
                 },
                 childCount: e.value.length,
@@ -1210,6 +1178,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ? _Empty(icon: Icons.edit_note_rounded, title: l.emptyNotesTitle, body: l.emptyNotesBody)
           : _Empty(icon: Icons.folder_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody);
     }
+    _dragOrder = [for (final it in list) it.id];
     if (!notes && _filesAsGrid) {
       return Scrollbar(
         child: GridView.builder(
@@ -1220,12 +1189,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           itemCount: list.length,
           itemBuilder: (context, i) {
             final it = list[i];
-            return _FileTile(
-              item: it,
-              selected: _selected.contains(it.id),
-              selecting: _selecting,
-              onTap: () => _openItem(it, list.where(_isMedia).toList()),
-              onLongPress: () => _itemMenu(it, list.where(_isMedia).toList()),
+            return DragSelectItem(
+              id: it.id,
+              drag: _drag,
+              onMenu: () => _itemMenu(it, list.where(_isMedia).toList()),
+              child: _FileTile(
+                item: it,
+                selected: _selected.contains(it.id),
+                selecting: _selecting,
+                onTap: () => _openItem(it, list.where(_isMedia).toList()),
+              ),
             );
           },
         ),
@@ -1243,23 +1216,26 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               children: [
                 for (final (i, it) in list.indexed) ...[
                   if (i > 0) Divider(height: 1, indent: notes ? 16 : 70, color: c.border.withValues(alpha: .6)),
-                  notes
-                      ? _NoteRow(
-                          item: it,
-                          preview: notePreviews() ? _preview(it.id) : null,
-                          selected: _selected.contains(it.id),
-                          selecting: _selecting,
-                          onTap: () => _openItem(it, const []),
-                          onLongPress: () => _itemMenu(it, const []),
-                        )
-                      : _FileRow(
-                          item: it,
-                          thumbnail: _isMedia(it) ? _thumbnail(it.id) : null,
-                          selected: _selected.contains(it.id),
-                          selecting: _selecting,
-                          onTap: () => _openItem(it, list.where(_isMedia).toList()),
-                          onLongPress: () => _itemMenu(it, list.where(_isMedia).toList()),
-                        ),
+                  DragSelectItem(
+                    id: it.id,
+                    drag: _drag,
+                    onMenu: () => _itemMenu(it, notes ? const [] : list.where(_isMedia).toList()),
+                    child: notes
+                        ? _NoteRow(
+                            item: it,
+                            preview: notePreviews() ? _preview(it.id) : null,
+                            selected: _selected.contains(it.id),
+                            selecting: _selecting,
+                            onTap: () => _openItem(it, const []),
+                          )
+                        : _FileRow(
+                            item: it,
+                            thumbnail: _isMedia(it) ? _thumbnail(it.id) : null,
+                            selected: _selected.contains(it.id),
+                            selecting: _selecting,
+                            onTap: () => _openItem(it, list.where(_isMedia).toList()),
+                          ),
+                  ),
                 ],
               ],
             ),
@@ -1413,18 +1389,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<void> _deleteTag(rust.ItemInfo tag) async {
     final l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.deleteTagTitle(tag.name)),
-        content: Text(l.deleteTagBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(l.delete)),
-        ],
-      ),
-    );
-    if (ok != true) return;
+    final ok = await confirmDelete(context,
+        title: l.deleteTagTitle(tag.name), body: l.deleteTagBody, action: l.deleteTag, icon: Icons.sell_outlined);
+    if (!ok || !mounted) return;
     await rust.deleteTag(tagId: tag.id);
     if (_tagId == tag.id) setState(() => _tagId = null);
     _reload();
@@ -1526,6 +1493,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           onToggleSelect: _toggle,
           onOpen: (it) => _openItem(it, const []),
           onMenu: (it) => _itemMenu(it, const []),
+          drag: _drag,
+          onOrder: (ids) => _dragOrder = ids,
         ),
       VaultSection.library => _library(context, shown),
     };
@@ -1987,9 +1956,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       context: context,
                       removeBottom: true,
                       // A short fade when the section or the open group changes.
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 150),
-                        child: KeyedSubtree(key: ValueKey('${_section.name}/$_tagId'), child: _content(context)),
+                      child: DragSelectArea(
+                        drag: _drag,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 150),
+                          child: KeyedSubtree(key: ValueKey('${_section.name}/$_tagId'), child: _content(context)),
+                        ),
                       ),
                     ),
                   ),
@@ -2303,55 +2275,17 @@ class _SelectionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final bottom = MediaQuery.paddingOf(context).bottom;
-    // Frosted glass like the bottom bar, so no bright slab lights up a dark room; Delete
-    // in the system's destructive red (owner 2026-10-21).
-    final ink = Theme.of(context).colorScheme.onSurface;
-    Widget action(IconData icon, String label, VoidCallback onTap, {Color? color, Key? key, bool always = false}) => Expanded(
-          child: Opacity(
-            opacity: enabled || always ? 1 : .35,
-            child: InkWell(
-            key: key,
-            onTap: enabled || always ? onTap : null,
-            customBorder: const StadiumBorder(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, color: color ?? ink),
-                  const SizedBox(height: 3),
-                  // Six buttons on a narrow phone: a long label shrinks rather than wraps.
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(label,
-                        maxLines: 1, style: TextStyle(color: color ?? ink, fontSize: 13, fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          ),
-        );
-    return Padding(
-      padding: EdgeInsets.fromLTRB(10, 0, 10, Ui.edge + bottom),
-      child: Glass(
-        radius: Ui.bar / 2 + 6,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          child: Row(
-            children: [
-              action(Icons.check_rounded, l.done, onDone, key: const ValueKey('select-done'), always: true),
-              action(allSelected ? Icons.deselect_rounded : Icons.select_all_rounded, allSelected ? l.deselectAll : l.selectAll,
-                  onSelectAll, key: const ValueKey('select-all'), always: true),
-              action(Icons.ios_share, l.sendOut, onSend),
-              action(Icons.sell_outlined, l.tagAction, onTag),
-              if (onRename case final rename?) action(Icons.edit_outlined, l.rename, rename),
-              action(Icons.delete_outline, l.delete, onDelete, color: recordRed(context)),
-            ],
-          ),
-        ),
-      ),
+    return SelectionBar(
+      onDone: onDone,
+      onSelectAll: onSelectAll,
+      allSelected: allSelected,
+      enabled: enabled,
+      actions: [
+        SelectionAction(Icons.ios_share, l.sendOut, onSend),
+        SelectionAction(Icons.sell_outlined, l.tagAction, onTag),
+        if (onRename case final rename?) SelectionAction(Icons.edit_outlined, l.rename, rename),
+        SelectionAction(Icons.delete_outline, l.delete, onDelete, color: recordRed(context), key: const ValueKey('select-delete')),
+      ],
     );
   }
 }
@@ -2374,7 +2308,6 @@ class _NoteRow extends StatelessWidget {
     required this.selected,
     required this.selecting,
     required this.onTap,
-    required this.onLongPress,
   });
   final rust.ItemInfo item;
   /// null: the text stays hidden (Settings → Display).
@@ -2382,7 +2315,6 @@ class _NoteRow extends StatelessWidget {
   final bool selected;
   final bool selecting;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -2393,7 +2325,8 @@ class _NoteRow extends StatelessWidget {
       selected: selected,
       selecting: selecting,
       onTap: onTap,
-      onLongPress: onLongPress,
+      // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
+      onLongPress: null,
       padding: const EdgeInsets.fromLTRB(16, 11, 12, 11),
         child: Row(
           children: [
@@ -2449,7 +2382,6 @@ class _FileRow extends StatelessWidget {
     required this.selected,
     required this.selecting,
     required this.onTap,
-    required this.onLongPress,
   });
   final rust.ItemInfo item;
   /// A photo's or video's preview, when one shows up among files.
@@ -2457,7 +2389,6 @@ class _FileRow extends StatelessWidget {
   final bool selected;
   final bool selecting;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -2469,7 +2400,8 @@ class _FileRow extends StatelessWidget {
       selected: selected,
       selecting: selecting,
       onTap: onTap,
-      onLongPress: onLongPress,
+      // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
+      onLongPress: null,
         child: Row(
           children: [
             Container(
@@ -2521,13 +2453,11 @@ class _FileTile extends StatelessWidget {
     required this.selected,
     required this.selecting,
     required this.onTap,
-    required this.onLongPress,
   });
   final rust.ItemInfo item;
   final bool selected;
   final bool selecting;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -2537,7 +2467,8 @@ class _FileTile extends StatelessWidget {
     final ext = dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     return InkWell(
       onTap: onTap,
-      onLongPress: onLongPress,
+      // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
+      onLongPress: null,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
@@ -2620,13 +2551,11 @@ class _Empty extends StatelessWidget {
 /// their length; selected ones a tick.
 class _MediaTile extends StatelessWidget {
   const _MediaTile({
-    super.key,
     required this.item,
     required this.thumbnail,
     required this.selected,
     required this.selecting,
     required this.onTap,
-    required this.onLongPress,
   });
 
   final rust.ItemInfo item;
@@ -2634,7 +2563,6 @@ class _MediaTile extends StatelessWidget {
   final bool selected;
   final bool selecting;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
 
   static String _length(int ms) {
     final s = (ms / 1000).round();
@@ -2647,7 +2575,8 @@ class _MediaTile extends StatelessWidget {
     final duration = item.durationMs;
     return GestureDetector(
       onTap: onTap,
-      onLongPress: onLongPress,
+      // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
+      onLongPress: null,
       child: ColoredBox(
         color: c.soft,
         child: Stack(
@@ -2761,9 +2690,10 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
     super.dispose();
   }
 
-  /// No question: it goes to Recently deleted and the vault offers Undo.
+  /// Asks first, then it goes to Recently deleted and the vault offers Undo.
   Future<void> _delete() async {
     final l = AppLocalizations.of(context);
+    if (!await confirmTrash(context, count: 1, name: _item.name) || !mounted) return;
     try {
       await rust.trashItem(id: _item.id, nowMs: nowMs());
       if (mounted) Navigator.of(context).pop(_item.id);

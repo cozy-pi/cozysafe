@@ -653,5 +653,12 @@
   "syncRestoreAllowNo": "Không cho",
   "restoreTapAllow": "Trên máy kia, chạm Cho phép.",
   "changeNoReencrypt": "Việc này không mã hoá lại những gì đã có trong két: chỉ khoá mở két thay đổi. Mã hoá lại toàn bộ đang được lên kế hoạch.",
-  "hideNoteText": "Ẩn nội dung ghi chú"
+  "hideNoteText": "Ẩn nội dung ghi chú",
+  "confirmTrashTitle": "{count, plural, =1{Chuyển vào Đã xoá gần đây?} other{Chuyển {count} mục vào Đã xoá gần đây?}}",
+  "confirmTrashBody": "{count, plural, other{Vẫn khôi phục được trong 30 ngày, ở mục Đã xoá gần đây.}}",
+  "infoDeleted": "Ngày xoá",
+  "infoKeptUntil": "Giữ đến",
+  "trashEmptyTitle": "Chưa xoá gì",
+  "trashEmptyBody": "Thứ bạn xoá sẽ nằm ở đây 30 ngày, để còn lấy lại được.",
+  "trashHint": "Chạm để xem. Bấm giữ rồi kéo để chọn nhiều mục."
 }
