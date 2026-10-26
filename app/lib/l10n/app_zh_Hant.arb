@@ -459,6 +459,7 @@
   "syncNoWifi": "請先連上 Wi‑Fi，並讓兩台裝置在同一網路中。",
   "syncConnected": "已連線",
   "syncWorking": "正在同步",
+  "lockSyncPercent": "正在同步 {percent}%",
   "syncDone": "已是最新",
   "syncDoneCounts": "收到 {received}，傳送 {sent}",
   "syncDoneCopies": "有 {n} 則筆記在兩台裝置上都被修改過：兩份內容都已保留。",

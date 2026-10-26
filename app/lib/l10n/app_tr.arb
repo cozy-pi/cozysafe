@@ -459,6 +459,7 @@
   "syncNoWifi": "Önce Wi‑Fi'a bağlanın; iki cihaz da aynı ağda olsun.",
   "syncConnected": "Bağlandı",
   "syncWorking": "Eşitleniyor",
+  "lockSyncPercent": "Eşitleniyor %{percent}",
   "syncDone": "Güncel",
   "syncDoneCounts": "{received} alındı, {sent} gönderildi",
   "syncDoneCopies": "{n} not iki cihazda da değiştirilmiş: iki metin de saklandı.",

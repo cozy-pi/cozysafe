@@ -459,6 +459,7 @@
   "syncNoWifi": "Verbinde dich zuerst mit dem WLAN, beide Geräte im selben Netz.",
   "syncConnected": "Verbunden",
   "syncWorking": "Wird synchronisiert",
+  "lockSyncPercent": "Wird synchronisiert: {percent} %",
   "syncDone": "Auf dem neuesten Stand",
   "syncDoneCounts": "{received} empfangen, {sent} gesendet",
   "syncDoneCopies": "{n} Notizen wurden auf beiden Geräten geändert: Beide Texte bleiben erhalten.",

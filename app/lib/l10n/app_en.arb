@@ -642,6 +642,8 @@
   "syncNoWifi": "Connect to Wi‑Fi first, with both devices on the same network.",
   "syncConnected": "Connected",
   "syncWorking": "Syncing",
+  "lockSyncPercent": "Syncing {percent}%",
+  "@lockSyncPercent": {"placeholders": {"percent": {}}},
   "syncDone": "Up to date",
   "syncDoneCounts": "{received} brought in, {sent} sent",
   "@syncDoneCounts": {"placeholders": {"received": {}, "sent": {}}},

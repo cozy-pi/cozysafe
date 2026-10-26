@@ -47,6 +47,7 @@ import 'package:cozysafe/sync/join_page.dart';
 import 'package:cozysafe/sync/nearby_page.dart';
 import 'package:cozysafe/sync/progress.dart';
 import 'package:cozysafe/sync/qr_view.dart';
+import 'package:cozysafe/sync/status.dart';
 import 'package:cozysafe/sync/sync_screen.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
@@ -341,8 +342,10 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugAccount = null;
       ErrorReportScreen.debugEntries = null;
       KeyBackup.debugSupported = null;
+      syncStatus.value = null;
       KeyCheckScreen.debugResults = null;
       SyncProgress.debugRate = null;
+      syncStatus.value = null;
       SecondPlaceNudge.debugShow = false;
       debugHoldToasts = true;
       VaultManagerScreen.debugSlots = null;
@@ -444,6 +447,18 @@ void main() {
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
+  // A sync that went on as the vault locked (owner 2026-10-26): how far it is.
+  const syncBehind = 'Mới: két khoá giữa lúc đồng bộ thì đồng bộ vẫn chạy tiếp, màn khoá hiện tiến độ, màn hình không tắt';
+  final syncLine = [() => find.byKey(const ValueKey('lock-sync'))];
+  _screen('lock-sync-drive', 'Màn khoá · đồng bộ Google Drive vẫn chạy (40%)', lock,
+      setup: () => syncStatus.value = const SyncStatus(drive: true, kind: SyncStep.receiving, done: 12, total: 30, bytes: 40, bytesTotal: 100),
+      change: syncBehind, marks: syncLine);
+  _screen('lock-sync-nearby', 'Màn khoá · đồng bộ với máy bên cạnh vẫn chạy (75%)', lock,
+      setup: () => syncStatus.value = const SyncStatus(drive: false, kind: SyncStep.sending, done: 3, total: 4),
+      change: syncBehind, marks: syncLine);
+  _screen('lock-sync-done', 'Màn khoá · đồng bộ xong sau khi khoá', lock,
+      setup: () => syncStatus.value = const SyncStatus(drive: true, kind: SyncStep.done),
+      change: syncBehind, marks: syncLine);
   // The unlock animation (playVaultSpin), frozen at four moments of its 1.15 s: the vault's
   // icon behind the dial, blurred at first, sharp when the dial has gone.
   for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay, màu két hắt quanh mép'), (950, 'cửa két mở vụt qua, biểu tượng hiện'), (1100, 'biểu tượng nét')]) {
@@ -965,6 +980,10 @@ void main() {
   });
   _screen('key-check', 'Kiểm tra 24 từ và mật khẩu: chỉ so khớp, không hiện, không lưu', () => page('Kiểm tra 24 từ và mật khẩu', const KeyCheckScreen(libraryDir: '', hasPassword: true)),
       change: 'Mới', setup: () => KeyCheckScreen.debugResults = (words: true, password: false));
+  _screen('lock-sync', 'Két tự khoá giữa lúc đồng bộ Google Drive: màn khoá như thường, thêm dòng "Đang đồng bộ 40%", màn hình vẫn sáng, đồng bộ chạy tiếp', lock,
+      change: 'Mới: khoá không cắt ngang đồng bộ',
+      marks: [() => find.byKey(const ValueKey('lock-sync'))],
+      setup: () => syncStatus.value = const SyncStatus(drive: true, kind: SyncStep.receiving, done: 40, total: 100));
   _screen('report-problem', 'Cài đặt → Báo lỗi: các lỗi gần đây (chỉ mã và giờ), Góp ý, Sao chép chi tiết', () => page('Báo lỗi', const ErrorReportScreen()),
       change: 'Mới: nhật ký lỗi luôn bật, chỉ có mã lỗi',
       setup: () => ErrorReportScreen.debugEntries = [

@@ -40,6 +40,9 @@ jobs:
       - name: Rust side of the app
         working-directory: app/rust
         run: cargo clippy --locked -- -D warnings
+      - name: Rust side of the app, tests (a sync behind the lock)
+        working-directory: app/rust
+        run: cargo test --locked
       - name: Compiled Rust library does no name lookups
         working-directory: app/rust
         run: |

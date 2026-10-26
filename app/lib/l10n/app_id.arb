@@ -459,6 +459,7 @@
   "syncNoWifi": "Sambungkan ke Wi‑Fi dulu, dengan kedua perangkat di jaringan yang sama.",
   "syncConnected": "Tersambung",
   "syncWorking": "Menyinkronkan",
+  "lockSyncPercent": "Menyinkronkan {percent}%",
   "syncDone": "Sudah terbaru",
   "syncDoneCounts": "{received} diterima, {sent} dikirim",
   "syncDoneCopies": "{n} catatan diubah di kedua perangkat: kedua teks disimpan.",

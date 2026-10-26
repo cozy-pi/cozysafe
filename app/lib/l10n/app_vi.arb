@@ -473,6 +473,7 @@
   "syncNoWifi": "Hãy kết nối Wi‑Fi trước, hai máy cùng một mạng.",
   "syncConnected": "Đã kết nối",
   "syncWorking": "Đang đồng bộ",
+  "lockSyncPercent": "Đang đồng bộ {percent}%",
   "syncDone": "Đã đồng bộ xong",
   "syncDoneCounts": "Nhận {received} mục, gửi {sent} mục",
   "syncDoneCopies": "{n} ghi chú bị sửa ở cả hai máy: giữ cả hai bản.",

@@ -459,6 +459,7 @@
   "syncNoWifi": "เชื่อมต่อ Wi‑Fi ก่อน โดยให้ทั้งสองเครื่องอยู่ในเครือข่ายเดียวกัน",
   "syncConnected": "เชื่อมต่อแล้ว",
   "syncWorking": "กำลังซิงค์",
+  "lockSyncPercent": "กำลังซิงค์ {percent}%",
   "syncDone": "เป็นปัจจุบันแล้ว",
   "syncDoneCounts": "รับ {received} ส่ง {sent}",
   "syncDoneCopies": "โน้ต {n} รายการถูกแก้ไขในทั้งสองเครื่อง: เก็บข้อความไว้ทั้งสองแบบ",

@@ -459,6 +459,7 @@
   "syncNoWifi": "Prima connettiti alla Wi‑Fi, con entrambi i dispositivi sulla stessa rete.",
   "syncConnected": "Connesso",
   "syncWorking": "Sincronizzazione",
+  "lockSyncPercent": "Sincronizzazione {percent}%",
   "syncDone": "Aggiornato",
   "syncDoneCounts": "{received} ricevuti, {sent} inviati",
   "syncDoneCopies": "{n} note sono state modificate su entrambi i dispositivi: si conservano entrambi i testi.",

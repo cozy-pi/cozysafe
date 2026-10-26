@@ -459,6 +459,7 @@
   "syncNoWifi": "先にWi‑Fiに接続し、両方のデバイスを同じネットワークにしてください。",
   "syncConnected": "接続しました",
   "syncWorking": "同期中",
+  "lockSyncPercent": "同期中 {percent}%",
   "syncDone": "最新の状態です",
   "syncDoneCounts": "受信 {received}、送信 {sent}",
   "syncDoneCopies": "{n} 件のメモが両方のデバイスで変更されていました。両方のテキストを残します。",

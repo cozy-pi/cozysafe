@@ -459,6 +459,7 @@
   "syncNoWifi": "Сначала подключитесь к Wi‑Fi, оба устройства — в одной сети.",
   "syncConnected": "Подключено",
   "syncWorking": "Синхронизация",
+  "lockSyncPercent": "Синхронизация {percent} %",
   "syncDone": "Всё актуально",
   "syncDoneCounts": "Получено {received}, отправлено {sent}",
   "syncDoneCopies": "Заметки ({n}) изменены на обоих устройствах: сохранены оба текста.",

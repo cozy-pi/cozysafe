@@ -14,12 +14,15 @@ import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import '../widgets/toast.dart';
 import 'awake.dart';
+import 'status.dart';
 
 /// The live part of a session: [waiting] until the other device proves it holds this
 /// vault, then the number to compare while it syncs, then the result. Leaving before
-/// the end cancels. A Google Drive run stopped while the app was away (phone locked)
-/// continues by itself when the person comes back, and one stopped by the vault locking
-/// continues once it opens again; a session with another device cannot wait, and says so.
+/// the end cancels. The vault locking in the app does not stop a run under way: it goes
+/// on behind the lock screen, which shows how far it is (lib/sync/status.dart). A Google
+/// Drive run stopped while the app was away (phone locked) continues by itself when the
+/// person comes back, and one stopped by leaving the app continues once the vault opens
+/// again; a session with another device cannot wait, and says so.
 /// Who is on the other end, to draw and name it.
 enum SyncPlace { drive, device }
 
@@ -102,9 +105,34 @@ class _SyncProgressState extends State<SyncProgress>
 
   bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;
 
+  /// Moving items (or about to, the person having said Sync): what goes on behind the
+  /// lock screen when the vault locks.
+  static const _moving = {
+    sync.SyncStep.connected,
+    sync.SyncStep.checking,
+    sync.SyncStep.receiving,
+    sync.SyncStep.sending,
+    sync.SyncStep.removing,
+    sync.SyncStep.driveListing,
+    sync.SyncStep.driveFolders,
+    sync.SyncStep.driveMoving,
+  };
+
+  /// The run keeps going when the vault locks in the app: all of a Google Drive run; a
+  /// session with another device once it moves items, not while it still waits for the
+  /// other device or for an answer only this screen can give.
+  bool get _keepsGoing {
+    if (widget.restoring || _over) return false;
+    if (widget.place == SyncPlace.drive) return true;
+    final k = _last?.kind;
+    if (k == null) return false;
+    return _moving.contains(k) || (_answered && (k == sync.SyncStep.confirm || k == sync.SyncStep.askRestore));
+  }
+
   bool _started = false;
-  /// The vault locked in the middle of the run: it was stopped, and continues once the
-  /// same vault opens again.
+  /// The run was stopped by the vault locking as the app was left (or by leaving it
+  /// while it went on behind the lock), or was cut behind the lock: it continues once
+  /// the same vault opens again.
   bool _stoppedByLock = false;
   /// The app left the screen (phone locked, another app) since the last automatic
   /// Continue; iOS stops a sync soon after.
@@ -179,31 +207,72 @@ class _SyncProgressState extends State<SyncProgress>
       } else {
         _notify(e);
       }
+      _publish();
       if (e.kind == sync.SyncStep.done) widget.onSynced();
-      if (e.kind == sync.SyncStep.interrupted) _autoContinue();
+      if (e.kind == sync.SyncStep.interrupted) _interrupted();
     }, onError: (Object _) {
       // The stream itself broke (the app was suspended mid-way): the same as an
       // interruption, which the engine's journal makes safe to continue.
       if (!mounted) return;
       setState(() => _last = _step(sync.SyncStep.interrupted));
       Awake.set(false);
-      _autoContinue();
+      _publish();
+      _interrupted();
     });
+  }
+
+  /// Cut behind the lock: it continues once the vault opens again; else as on return.
+  void _interrupted() {
+    if (vaultLock.locked && widget.retry != null) {
+      _stoppedByLock = true;
+      return;
+    }
+    _autoContinue();
+  }
+
+  /// What the lock screen shows of this run: how far it is while it runs, and "Up to
+  /// date" when it finished behind the lock; nothing otherwise.
+  void _publish() {
+    final e = _last;
+    if (e == null || widget.restoring) return;
+    final show = !_over || (e.kind == sync.SyncStep.done && vaultLock.locked);
+    syncStatus.value = show
+        ? SyncStatus(
+            drive: widget.place == SyncPlace.drive,
+            kind: e.kind,
+            done: e.done,
+            total: e.total,
+            bytes: e.bytes.toInt(),
+            bytesTotal: e.bytesTotal.toInt(),
+          )
+        : null;
   }
 
   static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: '');
 
-  /// The page stays under the lock, but the run needs the open vault: stop it now (it
-  /// holds the vault, which could not lock meanwhile). Google Drive picks up after, from
-  /// the engine's journal; a session with another device ends ("open it and try again").
+  /// The page stays under the lock. Locked in the app (idle, Hold Home…) with items
+  /// moving: the run keeps going behind the lock screen, the screen stays on, and the
+  /// vault, out of the app's reach, stays with the run until it ends (docs/security.md).
+  /// Locked by leaving the app, or still waiting for the other device: stopped, as the
+  /// system would suspend it anyway.
   @override
   void vaultLocking() {
     if (_over) return;
+    final state = WidgetsBinding.instance.lifecycleState;
+    final leaving = state == AppLifecycleState.hidden || state == AppLifecycleState.paused;
+    if (_keepsGoing && !leaving) return _publish();
+    _stopForLock();
+  }
+
+  /// Stop the run for the lock. Google Drive picks up after, from the engine's journal;
+  /// a session with another device ends ("open it and try again").
+  void _stopForLock() {
     _sub?.cancel();
     _sub = null;
     sync.p2PCancel();
     Awake.set(false);
     final again = widget.retry != null;
+    syncStatus.value = null;
     setState(() {
       _stoppedByLock = again;
       _knock = false;
@@ -213,6 +282,8 @@ class _SyncProgressState extends State<SyncProgress>
 
   @override
   void vaultUnlocked() {
+    // Finished behind the lock: this page tells the rest now.
+    if (_over) syncStatus.value = null;
     if (!_stoppedByLock || widget.retry == null) return;
     _stoppedByLock = false;
     _wasAway = false;
@@ -228,6 +299,8 @@ class _SyncProgressState extends State<SyncProgress>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
       _wasAway = true;
+      // Going on behind the lock, then the app is left: stopped as if it had locked now.
+      if (vaultLock.locked && !_over && _sub != null) _stopForLock();
     } else if (state == AppLifecycleState.resumed) {
       _backAt = DateTime.now();
       _autoContinue();
@@ -272,6 +345,13 @@ class _SyncProgressState extends State<SyncProgress>
     if (!_over) sync.p2PCancel();
     Awake.set(false);
     _sub?.cancel();
+    // Not now: the lock screen listening must not rebuild while the tree is torn down.
+    final shown = syncStatus.value;
+    if (shown != null) {
+      Future.microtask(() {
+        if (identical(syncStatus.value, shown)) syncStatus.value = null;
+      });
+    }
     super.dispose();
   }
 

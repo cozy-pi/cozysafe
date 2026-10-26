@@ -412,8 +412,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _away = null;
     final nav = Navigator.of(context);
     void go() async {
-      // The pages kept under the lock let go first: a sync stops (it holds the vault),
-      // players pause, typed passwords and shown words go.
+      // The pages kept under the lock let go first: players pause, typed passwords and
+      // shown words go. A sync moving items goes on with its own hold on the vault, out of
+      // the app's reach, and the lock screen shows how far it is.
       vaultLock.set(true);
       // Unsaved note text is written before the key is dropped.
       // A recording in progress is saved before the key goes.

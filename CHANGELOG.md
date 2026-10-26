@@ -7,6 +7,11 @@ Dates are UTC.
 ## 0.1.76 (unreleased)
 
 ### Changed
+- A sync keeps running when the vault locks while you use the app (auto-lock, Hold Home,
+  the lock button): the lock screen shows as usual, with a small line showing how far the
+  sync is ("Syncing 40%", then "Up to date"), and the screen stays on until it ends. The
+  vault stays locked for everything else, and its key is wiped as soon as the sync ends
+  (docs/security.md). Leaving the app still locks and stops the sync, as before.
 - Nearby sync starts by itself: both screens name the other device and show the same
   number, count down 5 seconds, and go. Cancel stops it. No Sync or Allow to tap.
 - Restoring from a nearby device needs no switch on the old phone any more: open Sync
