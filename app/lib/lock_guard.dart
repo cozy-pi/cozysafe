@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart';
 
 /// What keeps an open vault open. The vault screen locks after 2 minutes with no
@@ -42,5 +43,31 @@ abstract final class LockGuard {
       final now = await Clipboard.getData(Clipboard.kTextPlain);
       if (now?.text == mine) await Clipboard.setData(const ClipboardData(text: ''));
     } catch (_) {}
+  }
+}
+
+/// How long the app has been away (Settings → "Lock as soon as I leave the app" off: the
+/// vault locks once this reaches the auto-lock time). Two clocks, and the longer one
+/// counts: a monotonic one, which moving the phone's date and time cannot change, and
+/// the wall clock, which keeps counting while the phone sleeps (the monotonic one may
+/// not). Setting the date back can therefore only make the vault lock sooner.
+class AwayClock {
+  AwayClock.start()
+      : _mono = monotonic(),
+        _wall = wall();
+
+  static final _running = Stopwatch()..start();
+  @visibleForTesting
+  static Duration Function() monotonic = () => _running.elapsed;
+  @visibleForTesting
+  static DateTime Function() wall = DateTime.now;
+
+  final Duration _mono;
+  final DateTime _wall;
+
+  Duration get elapsed {
+    final mono = monotonic() - _mono;
+    final wallGone = wall().difference(_wall);
+    return wallGone > mono ? wallGone : mono;
   }
 }

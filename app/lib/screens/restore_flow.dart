@@ -23,6 +23,7 @@ import 'new_vault.dart';
 import 'restore.dart';
 import 'set_pin.dart';
 import 'unlock.dart';
+import 'tour.dart' show TourKind;
 import 'vault_home.dart';
 import 'welcome.dart';
 
@@ -135,7 +136,8 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
     );
     if (!mounted) return;
     await Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault)),
+      MaterialPageRoute<void>(
+          builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, tour: TourKind.restored)),
       (_) => false,
     );
   }

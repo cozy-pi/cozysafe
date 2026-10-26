@@ -28,6 +28,7 @@ import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/security_info.dart';
 import 'package:cozysafe/screens/set_pin.dart';
 import 'package:cozysafe/screens/settings.dart';
+import 'package:cozysafe/screens/tour.dart';
 import 'package:cozysafe/screens/trash.dart';
 import 'package:cozysafe/screens/unlock.dart';
 import 'package:cozysafe/screens/quick_look.dart';
@@ -351,6 +352,7 @@ void _screen(String name, String caption, Widget Function() home,
       VaultHomeScreen.debugReveal = false;
       QuickLook.debugStillAudio = false;
       QuickLook.debugPdfPage = null;
+      CoachTour.debugStart = 0;
       setup?.call();
       // Real shadows: tests otherwise draw every elevation as a solid black outline.
       debugDisableShadows = false;
@@ -398,7 +400,7 @@ void main() {
   });
 
   const vault = VaultInfo(id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true);
-  Widget settings(VaultInfo v) => SettingsScreen(
+  Widget settings(VaultInfo v, {int? guideFrom}) => SettingsScreen(
         libraryDir: '',
         vault: () => v,
         canBiometric: true,
@@ -411,6 +413,8 @@ void main() {
         onChangeIdentity: () async {},
         onOpenTrash: () async {},
         onNewVault: () async {},
+        onTour: () {},
+        guideFrom: guideFrom,
       );
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
@@ -935,6 +939,119 @@ void main() {
     await t.pump();
   }
   _screen('settings-about', 'Cài đặt · Thông tin', () => settings(vault), act: toAbout);
+  // The quick tour (owner 2026-10-26): tips over the real vault page, after a vault is
+  // made (it is empty then), again from Settings (a vault with things in it), and the
+  // shorter one after a restore.
+  Future<void> tourOpen(WidgetTester t) async {
+    for (var i = 0; i < 6; i++) {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+      await t.pump(const Duration(milliseconds: 100));
+    }
+  }
+  const madeTips = [
+    ('add', 'các ô thêm (két còn trống)'),
+    ('items', 'chạm mở · giữ ra menu · giữ rồi kéo để chọn nhiều'),
+    ('settings', 'nút Cài đặt'),
+    ('lock', 'nút khoá: rời app là két tự khoá'),
+    ('copy', 'bản thứ hai + 24 từ và mật khẩu · Cài đồng bộ ngay / Để sau'),
+  ];
+  for (final (i, (name, caption)) in madeTips.indexed) {
+    _screen('tip-made-${i + 1}-$name', 'Hướng dẫn nhanh sau khi tạo két · ${i + 1}/${madeTips.length}: $caption',
+        () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.created),
+        section: 'library',
+        setup: () {
+          CoachTour.debugStart = i;
+          debugCamera = true; // a phone: Take photo and Record video are offered
+          _itemsNow = const [];
+        },
+        act: tourOpen,
+        change: 'Mới: hướng dẫn bằng gợi ý ngay trên màn hình thật',
+        marks: [() => find.byKey(ValueKey('tip-$name'))]);
+  }
+  const fullTips = [
+    ('add', 'nút +'),
+    ('items', 'một mục: chạm mở · giữ ra menu · giữ rồi kéo'),
+    ('tabs', 'các thẻ ở thanh dưới'),
+    ('settings', 'nút Cài đặt'),
+    ('lock', 'thẻ Tổng quan: giữ để khoá ngay'),
+    ('copy', 'bản thứ hai + 24 từ và mật khẩu, không có nút: bấm Tiếp sang Cài đặt'),
+  ];
+  for (final (i, (name, caption)) in fullTips.indexed) {
+    _screen('tip-guide-${i + 1}-$name', 'Hướng dẫn sử dụng (Cài đặt → Hướng dẫn sử dụng, két đã có đồ) · ${i + 1}/10: $caption',
+        () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.guide),
+        setup: () => CoachTour.debugStart = i,
+        act: tourOpen,
+        change: 'Mới: gợi ý chỉ vào đúng nút thật',
+        marks: [() => find.byKey(ValueKey('tip-$name'))]);
+  }
+  _screen('tip-restored-1-add', 'Sau khi khôi phục: bản ngắn 4 gợi ý (thêm, mở, các thẻ, Cài đặt)',
+      () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.restored),
+      act: tourOpen,
+      change: 'Khôi phục xong: bản ngắn',
+      marks: [() => find.byKey(const ValueKey('tip-add'))]);
+  // User guide (owner 2026-10-26): near the top of Settings; it runs the vault tips, then
+  // goes on in Settings, counting on.
+  _screen('settings-top', 'Cài đặt · đầu trang: nhóm Trợ giúp (Hướng dẫn sử dụng, Góp ý) ngay dưới Đồng bộ',
+      () => settings(vault),
+      setup: () => SettingsScreen.debugSyncLog = const [],
+      change: 'Mới: Hướng dẫn sử dụng ở gần đầu Cài đặt, không còn nằm dưới Thông tin',
+      marks: [() => find.byKey(const ValueKey('guide-row'))]);
+  _screen('settings-security-group', 'Cài đặt · Bảo mật: mọi công tắc bảo mật trong một nhóm',
+      () => settings(vault),
+      setup: () => SettingsScreen.debugSyncLog = const [],
+      act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('lock-on-leave-row')), 200, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 260));
+    await t.pumpAndSettle();
+  }, change: 'Mới: Khoá ngay khi rời ứng dụng; chặn chụp màn hình, làm mờ ảnh nhỏ, ẩn chữ ghi chú chuyển vào Bảo mật',
+      marks: [() => find.byKey(const ValueKey('lock-on-leave-row'))]);
+  _screen('settings-lock-on-leave-off', 'Cài đặt · tắt “Khoá ngay khi rời ứng dụng” (máy hỏi Face ID/mật mã trước, như mọi cài đặt bảo mật)',
+      () => settings(vault),
+      setup: () => SettingsScreen.debugSyncLog = const [],
+      act: (t) async {
+    final row = find.byKey(const ValueKey('lock-on-leave-row'));
+    await t.scrollUntilVisible(row, 200, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 200));
+    await t.pumpAndSettle();
+    await t.tap(find.descendant(of: row, matching: find.byType(Switch)));
+    await t.pumpAndSettle();
+  }, change: 'Tắt: rời app không khoá ngay; két khoá sau thời gian Tự khoá, tính từ lúc rời app',
+      marks: [() => find.byKey(const ValueKey('lock-on-leave-row'))]);
+  _screen('autolock-menu-away', 'Cài đặt · Tự khoá khi đã tắt “Khoá ngay khi rời ứng dụng”', () => settings(vault),
+      setup: () {
+    SettingsScreen.debugSyncLog = const [];
+    Prefs.write('lock-on-leave', '0');
+  }, act: (t) async {
+    await t.scrollUntilVisible(find.text('Tự khoá khi không dùng'), 200, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 300));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Tự khoá khi không dùng'));
+  }, change: 'Ghi chú đổi theo: thời gian rời ứng dụng cũng được tính');
+  _screen('tip-lock-away', 'Gợi ý Tự khoá khi đã tắt “Khoá ngay khi rời ứng dụng”: chỉ vào Cài đặt',
+      () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.guide),
+      setup: () {
+    CoachTour.debugStart = 4;
+    Prefs.write('lock-on-leave', '0');
+  }, act: tourOpen,
+      change: 'Lời gợi ý đổi theo cài đặt',
+      marks: [() => find.byKey(const ValueKey('tip-lock'))]);
+  const settingsTips = [
+    ('sync', 'nhóm Đồng bộ'),
+    ('security', 'nhóm Bảo mật'),
+    ('backup', 'Sao lưu dữ liệu'),
+    ('guide', 'dòng Hướng dẫn sử dụng: xem lại bất cứ lúc nào'),
+  ];
+  for (final (i, (name, caption)) in settingsTips.indexed) {
+    _screen('tip-guide-${i + 7}-$name', 'Hướng dẫn sử dụng trong Cài đặt · ${i + 7}/10: $caption',
+        () => settings(vault, guideFrom: 6),
+        setup: () {
+          CoachTour.debugStart = i;
+          SettingsScreen.debugSyncLog = const [];
+        },
+        act: tourOpen,
+        change: 'Mới: gợi ý trên trang Cài đặt',
+        marks: [() => find.byKey(ValueKey('tip-$name'))]);
+  }
   _screen('settings-debug-taps', 'Cài đặt · chạm 5 lần vào Phiên bản', () => settings(vault), act: (t) async {
     await toAbout(t);
     for (var i = 0; i < 5; i++) {

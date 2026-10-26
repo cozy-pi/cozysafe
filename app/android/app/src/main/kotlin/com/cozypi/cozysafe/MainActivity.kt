@@ -46,6 +46,9 @@ class MainActivity : FlutterFragmentActivity() {
         // Hide the vault from the recent-apps preview and from screenshots
         // (docs/ui.md, review 2). Settings can turn it off ("cozysafe/privacy").
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        // Recent apps never show the vault, even with screenshots allowed: with "Lock as
+        // soon as I leave the app" off it stays open behind that preview (Android 13+).
+        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(false)
         // The system photo picker: no permission to read the whole library.
         pickMedia = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(100)) { deliver(it) }
         pickDocs = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { deliver(it) }

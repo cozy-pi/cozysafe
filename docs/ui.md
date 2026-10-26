@@ -163,6 +163,10 @@ flows (internal mockup)
 - Locking: by hand (animation), on leaving the app (immediately, 60 s grace when
   the app itself opened the camera, a picker or the share sheet), after 2 minutes
   without a touch. Face ID is not asked again right after locking by hand.
+  Settings → Security → "Lock as soon as I leave the app" (on by default; 2026-10-26):
+  off, leaving does not lock; the auto-lock time runs from the moment the app left
+  (`AwayClock`, lib/lock_guard.dart) and the vault locks at that mark if the app still
+  runs, or on return before anything shows.
 - Opening the same vault again comes back to exactly the page the person was on (owner
   2026-10-25), the Recovery Key and password pages too: every page stays under the lock
   screen; only dialogs, sheets, cards and menus close, as Cancel. On lock, shown words
@@ -244,10 +248,12 @@ deniability).
   The lock screen keeps the brand green, so it never shows which vault colours exist.
 - **Settings** looks like the system's own: the vault card on top (its icon on its
   colour, size split by photos / files / notes, last backup), then grouped rows with a
-  white symbol on its own colour: Unlock (Face ID for this vault, PIN, auto-lock as a
-  pick list), Backup (Back up now only; the sheet names what opens a backup), Security (how the
-  vault is protected, block screenshots on Android), and Delete this vault alone at the
-  end.
+  white symbol on its own colour. Order since 2026-10-26: Sync · Help & guide (User guide,
+  Feedback) · This vault · **Security, every protection in one group** (Face ID, PIN,
+  auto-lock, lock as soon as I leave, hold Home to lock, block screenshots, blur
+  thumbnails, hide note text, Recovery Key, vault password, how the vault is protected) ·
+  Back up your data · Display (appearance, language, add button side: nothing that
+  protects) · Delete this vault alone · About.
 - **Checking the build against the mockups**: `flutter test test/preview_test.dart
   --update-goldens --dart-define=PREVIEW=true` renders the real screens (fake vault
   data) to `app/test/preview/*.png` in a few seconds.
@@ -391,7 +397,7 @@ name) are kept.
 - **Main action on the left or right** (Settings → Display → Add button; left by default,
   under the left thumb). Messages move to the other side of it.
 - Notes list: title, then when it was made (time today, weekday this week, else the
-  date). The first words show only with Settings → Display → Hide note text turned off (0.1.10;
+  date). The first words show only with Settings → Security → Hide note text turned off (0.1.10;
   `docs/security.md`). Sections and groups change with a short fade.
 - **Settings may use colour, softly** (owner 2026-10-21): the storage bar in one colour per
   kind (photos blue, videos purple, notes yellow, voice orange, files green), the storage
@@ -561,3 +567,39 @@ everywhere, easy to hit with a thumb.
   deselects); the list scrolls by itself near its edges; a tick per change. Held still, the
   item gives a little under the finger and its menu opens when the finger lifts (or after
   0.65 s): a menu opened at once would end the touch, so no drag could follow.
+
+## Quick tour (mockup 2026-10-26, waiting for the owner)
+
+- Tips on the real vault page (coach marks, `lib/screens/tour.dart`), not picture cards
+  (owner 2026-10-26). The page dims; the widget being explained stays lit in a rounded
+  window with a thin light ring; a bubble with an arrow points at it: a short title, one
+  line, the count (2/6) at the top right, Skip on the left and Next on the right of its
+  bottom row (48 px targets). Done on the last tip, no Skip there.
+- A tap on the dim does nothing (no accidental skip, no running ahead); Back skips.
+- The bubble sits below the widget when it fits, else above (the side with more room when
+  neither does), inside the safe area, at most 380 wide; its arrow stays under the
+  widget's middle. The window slides from one widget to the next (no slide with reduced
+  motion). Light: white bubble; dark: a deep bubble with a faint edge.
+- After a vault is created: Add (the +; in an empty vault the add tiles) · Open and pick
+  (the first item showing: tap, hold for the menu, hold and drag to pick many; an empty
+  vault: the tiles, "what you add shows up here") · Sections (the tabs; left out while the
+  vault is empty and the bar has none) · Settings (sync, backup, security) · Locks by
+  itself (the lock button; else the home tab, "hold here to lock now"; else Settings) ·
+  Keep a second copy (points at Settings, with the 24 words and password as the only way
+  back on a new phone, "Set up sync now" opens Settings then Sync, and Later).
+- After a restore: Add · Open and pick · Sections · Settings.
+- **User guide** (owner 2026-10-26): Settings → Help & guide → User guide, the second
+  group from the top (under Sync), closes Settings and runs every tip on the vault page,
+  then opens Settings again and goes on there, counting on (6/9): Sync (the group) ·
+  Security (the group; a tall group is scrolled so its top third shows under the bubble,
+  the window cut to the list) · Back up your data · User guide (the row: "see these tips
+  again any time"), then Done. "Keep a second copy" has no button in the guide, Sync comes
+  next. Skip anywhere ends the guide; opening Settings alone shows no tips (no surprise
+  while someone goes there to change something). Tips on a far row bring it into view
+  first (`TourTip.prepare`).
+- No "?" in the vault header: it already holds Select, Sort, Search and Settings in a
+  section, and a fifth round button cuts the title on small phones; the tour points at
+  Settings, and the guide is the second group there.
+- With "Lock as soon as I leave the app" off, the lock tip points at Settings: "locks
+  after a few minutes without use, also while you are away".
+- Whatever was open on the page (selection, a group, the add column) closes first.
