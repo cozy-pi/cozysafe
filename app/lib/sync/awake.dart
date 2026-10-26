@@ -12,10 +12,19 @@ abstract final class Awake {
 
   static const _channel = MethodChannel('cozysafe/awake');
 
-  static Future<void> set(bool on) async {
+  /// Who is keeping the vault busy with a sync now (the waiting page, the sync itself).
+  static final _holders = <String>{};
+
+  /// A sync is waiting or running: the vault must not lock itself for lack of touches
+  /// (owner 2026-10-26: a nearby sync was cut when the idle lock fired mid-way).
+  static bool get busy => _holders.isNotEmpty;
+
+  /// Keep the screen on while [who] is busy; off once nobody is.
+  static Future<void> set(bool on, {String who = 'sync'}) async {
+    on ? _holders.add(who) : _holders.remove(who);
     if (kIsWeb) return;
     try {
-      await _channel.invokeMethod<void>('set', on);
+      await _channel.invokeMethod<void>('set', _holders.isNotEmpty);
     } catch (_) {
       // Desktop and tests have no such channel: nothing to keep awake.
     }

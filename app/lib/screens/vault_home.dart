@@ -18,6 +18,7 @@ import '../lock_guard.dart';
 import '../platform.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../sync/awake.dart';
 import '../theme.dart';
 import '../originals.dart';
 import '../prefs.dart';
@@ -201,7 +202,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   void _touch() {
     _idleTimer?.cancel();
     _idleTimer = Timer(Duration(minutes: Settings.autoLockMinutes), () {
-      if (mounted && !LockGuard.away) _lock();
+      if (!mounted) return;
+      // A sync waiting or running counts as use: nobody touches the phone while it works.
+      if (Awake.busy) return _touch();
+      if (!LockGuard.away) _lock();
     });
   }
 

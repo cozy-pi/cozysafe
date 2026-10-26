@@ -8,6 +8,7 @@ import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import 'device_name.dart';
 import 'join_page.dart';
+import 'awake.dart';
 import 'progress.dart';
 import 'qr_view.dart';
 
@@ -45,6 +46,8 @@ class _NearbyPageState extends State<NearbyPage> {
   @override
   void initState() {
     super.initState();
+    // Waiting counts as a sync: the screen stays on and the vault does not lock itself.
+    Awake.set(true, who: 'nearby');
     _start();
   }
 
@@ -68,6 +71,7 @@ class _NearbyPageState extends State<NearbyPage> {
 
   @override
   void dispose() {
+    Awake.set(false, who: 'nearby');
     if (_events == null && NearbyPage.debugHosting == null) sync.p2PCancel();
     super.dispose();
   }
@@ -146,10 +150,12 @@ class _NearbyLookingState extends State<NearbyLooking> {
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+    Awake.set(true, who: 'looking');
   }
 
   @override
   void dispose() {
+    Awake.set(false, who: 'looking');
     _tick?.cancel();
     super.dispose();
   }
