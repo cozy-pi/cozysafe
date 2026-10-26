@@ -4,6 +4,15 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-27 — Nearby sync goes by itself; Settings like the iPhone's (0.1.76, mockup)
+
+**Owner:** after the two names and the same number, a nearby sync (and a restore) counts
+5 seconds and starts; Cancel stops it. A restoring phone that holds the 24 words and the
+password has the same rights as the old one, so a tap there added nothing (ADR 0003,
+points 8 and 9). No network address is shown anywhere. Settings and Sync have groups
+without names, set apart by a gap; the vault's keys apart from what shields the screen.
+Google Drive gains Sign in again and Remove account (revokes at Google, files stay).
+
 ## 2026-10-26 — User guide, one Security group, lock on leaving optional (0.1.72, mockup)
 
 Owner requests, rendered for approval before release. A "Help & guide" group sits under
