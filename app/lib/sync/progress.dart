@@ -328,7 +328,7 @@ class _SyncProgressState extends State<SyncProgress>
       children: [
         Icon(deviceIcon(_name), size: 52, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 14),
-        Text(_answered ? l.syncConfirmWaiting(name) : l.syncConfirmTitle(name),
+        Text(_answered ? l.syncConfirmWaiting : l.syncConfirmTitle(name),
             key: const ValueKey('sync-confirm-title'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.25)),
         const SizedBox(height: 22),
         _Number(key: const ValueKey('sync-check'), text: l.syncConfirmNumber(_number)),
