@@ -191,7 +191,7 @@ class _SyncProgressState extends State<SyncProgress>
     });
   }
 
-  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, code: '');
+  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: '');
 
   /// The page stays under the lock, but the run needs the open vault: stop it now (it
   /// holds the vault, which could not lock meanwhile). Google Drive picks up after, from
@@ -607,6 +607,10 @@ class _SyncProgressState extends State<SyncProgress>
               if (e.removed > 0) l.syncDoneHeld(e.removed),
               if (e.moved > 0) l.syncDriveMoved(e.moved),
               if (e.copies > 0) l.syncDoneCopies(e.copies.toString()),
+              // Drive's own checksums found files it lost or damaged (owner 2026-10-26:
+              // say so).
+              if (e.repaired > 0) l.syncDriveRepaired(e.repaired),
+              if (e.unrepaired > 0) l.syncDriveUnrepaired(e.unrepaired),
             ],
           ),
         sync.SyncStep.expired => _Status(icon: Icons.timer_off_outlined, title: l.syncExpired),

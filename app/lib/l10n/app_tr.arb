@@ -669,5 +669,7 @@
   "reportProblem": "Sorun bildir",
   "errorLogEmpty": "Henüz hata yok.",
   "errorLogNote": "Yalnızca hata kodları ve saatler, kasanızın içeriği asla. Kopyalayıp geri bildiriminizle gönderin.",
-  "syncDriveFull": "Google Drive dolu. Orada yer açıp yeniden deneyin."
+  "syncDriveFull": "Google Drive dolu. Orada yer açıp yeniden deneyin.",
+  "syncDriveRepaired": "{count, plural, other{Google Drive {count} dosyayı kaybetmiş veya bozmuştu. Yeniden gönderildi.}}",
+  "syncDriveUnrepaired": "{count, plural, other{{count} öğenin bu cihazda sağlam kopyası yok. Onlara sahip başka bir cihazdan eşitleyin.}}"
 }

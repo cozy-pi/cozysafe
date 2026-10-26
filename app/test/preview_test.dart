@@ -843,7 +843,7 @@ void main() {
   _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0, int moved = 0}) =>
-      SyncEvent(kind: k, check: check, name: '', peers: const [], peerIds: const [], received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal), moved: moved, code: '');
+      SyncEvent(kind: k, check: check, name: '', peers: const [], peerIds: const [], received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal), moved: moved, repaired: 0, unrepaired: 0, code: '');
   _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})));
   _screen('sync-drive-folders', 'Google Drive: tạo thư mục (bản cập nhật thư mục, lần đầu)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveFolders, done: 212, total: 517)), onSynced: () {})));
   _screen('sync-drive-moving', 'Google Drive: dời tệp cũ vào thư mục', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveMoving, done: 1400, total: 2986)), onSynced: () {})));
@@ -859,9 +859,9 @@ void main() {
   const hosting = Hosting(qr: _qrText, findable: true, seconds: 274);
   Widget nearby() => page('Đồng bộ với máy gần đây', NearbyPage(address: '192.168.1.37', mirror: '', onSynced: () {}));
   SyncEvent named(SyncStep k, String name, int check) =>
-      SyncEvent(kind: k, check: check, name: name, peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, code: '');
+      SyncEvent(kind: k, check: check, name: name, peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: '');
   SyncEvent found(List<String> names) =>
-      SyncEvent(kind: SyncStep.found, check: 0, name: '', peers: names, peerIds: [for (var i = 0; i < names.length; i++) 'a$i'], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, code: '');
+      SyncEvent(kind: SyncStep.found, check: 0, name: '', peers: names, peerIds: [for (var i = 0; i < names.length; i++) 'a$i'], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: '');
   _screen('sync-nearby-waiting', 'Máy gần đây: cả hai máy mở màn hình này và chờ — tự tìm nhau, không cần nhập mã', nearby,
       change: 'Mới: không còn Hiện mã / Nhập mã; hai máy tự tìm nhau',
       marks: [() => find.byKey(const ValueKey('sync-find-status'))],
@@ -930,10 +930,13 @@ void main() {
   _screen('sync-unreachable', 'Không tới được máy kia', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.unreachable)), onSynced: () {})));
   _screen('sync-signin', 'Google Drive: phiên đăng nhập hết hạn', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.signIn)), onSynced: () {})));
   _screen('sync-failed', 'Không kết nối được', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.failed)), onSynced: () {})));
-  SyncEvent failed(SyncStep k, String code) => SyncEvent(kind: k, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, code: code);
+  SyncEvent failed(SyncStep k, String code) => SyncEvent(kind: k, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: code);
   _screen('sync-drive-full', 'Google Drive đầy: nói rõ, kèm mã lỗi và Sao chép chi tiết', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(failed(SyncStep.driveFull, 'drive-full')), onSynced: () {})),
       change: 'Mới: lỗi Google Drive có tên (đầy, giới hạn, máy chủ) + mã lỗi',
       marks: [() => find.byKey(const ValueKey('sync-error-code')), () => find.byKey(const ValueKey('sync-copy-details'))]);
+  _screen('sync-drive-repaired', 'Google Drive: đồng bộ xong, phát hiện 3 tệp trên Drive bị thiếu/hỏng (theo mã băm của chính Google) và đã gửi lại', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(SyncEvent(kind: SyncStep.done, check: 0, name: '', peers: const [], peerIds: const [], received: 2, sent: 1, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 3, unrepaired: 0, code: '')), onSynced: () {})),
+      change: 'Mới: mỗi lần đồng bộ kiểm mọi tệp trên Drive, thiếu/hỏng thì tự gửi lại và báo',
+      marks: [() => find.textContaining('Đã gửi lại')]);
   _screen('sync-drive-failed-code', 'Google Drive lỗi khác: mã lỗi để gửi kèm góp ý', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(failed(SyncStep.failed, 'drive-rate-limited')), onSynced: () {})));
   _screen('report-problem', 'Cài đặt → Báo lỗi: các lỗi gần đây (chỉ mã và giờ), Góp ý, Sao chép chi tiết', () => page('Báo lỗi', const ErrorReportScreen()),
       change: 'Mới: nhật ký lỗi luôn bật, chỉ có mã lỗi',

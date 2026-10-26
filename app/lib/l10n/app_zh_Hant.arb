@@ -669,5 +669,7 @@
   "reportProblem": "回報問題",
   "errorLogEmpty": "目前沒有錯誤。",
   "errorLogNote": "只有錯誤代碼和時間，絕不包含保險箱內容。複製後隨意見回饋一起傳送。",
-  "syncDriveFull": "Google 雲端硬碟已滿。請先釋出空間再試一次。"
+  "syncDriveFull": "Google 雲端硬碟已滿。請先釋出空間再試一次。",
+  "syncDriveRepaired": "{count, plural, other{Google 雲端硬碟遺失或損壞了 {count} 個檔案，已重新傳送。}}",
+  "syncDriveUnrepaired": "{count, plural, other{有 {count} 個項目在本裝置上沒有完好的副本。請從擁有它們的其他裝置同步。}}"
 }

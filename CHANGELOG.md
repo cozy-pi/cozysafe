@@ -34,6 +34,10 @@ Dates are UTC.
 - Google Drive errors say what happened: Drive full, too many requests, Google's servers.
   "Too many requests" and server faults are tried again by themselves after a pause
   (up to 4 times) before the sync stops. A 403 is no longer always "sign in again".
+- Every Google Drive sync checks that Drive still holds every file it relies on, from
+  the SHA-256 Google lists with each file (no extra request). A file lost or damaged
+  there is sent again from this phone, and the end of the sync says how many. An item
+  whose copy here is not right either is counted apart: sync it from a device that has it.
 - An error log, always on: every failure is kept as a short code and a time (never
   names, content, keys or addresses), the last 200. Settings → Report a problem lists
   them, with Copy details and Feedback. A failed sync shows its code and Copy details.

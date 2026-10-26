@@ -4,6 +4,15 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-27 — Drive errors named, an error log, Drive checked each sync (0.1.76)
+
+**Owner 2026-10-26:** Drive sync failed "and we don't know why": errors need logs. A 403
+is split by Google's reason (rate limit, full, sign-in); rate limits and server faults
+are tried again (4 tries, from 0.6 s, doubling). Every failure is kept as a fixed code in
+an always-on log (Settings → Report a problem, Copy details). Each Drive sync checks the
+files it relies on against the SHA-256 Google lists and sends lost or damaged ones again,
+saying how many (ADR 0003, "Checking what the place holds").
+
 ## 2026-10-27 — Nearby sync goes by itself; Settings like the iPhone's (0.1.76, mockup)
 
 **Owner:** after the two names and the same number, a nearby sync (and a restore) counts

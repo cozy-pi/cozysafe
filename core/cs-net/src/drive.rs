@@ -61,6 +61,8 @@ pub struct Node {
     /// Its folder (the first, should it have several).
     pub parent: String,
     pub folder: bool,
+    /// The SHA-256 Google keeps of the file's bytes (lowercase hex), when it gave one.
+    pub sha256: Option<String>,
 }
 
 /// A file going into another folder under another name; its bytes stay where they are.
@@ -143,6 +145,8 @@ pub struct DriveRemote<A: DriveApi> {
     stop: Option<&'static AtomicBool>,
     /// Files of an earlier layout moved into place on open.
     moved: u32,
+    /// File id → the SHA-256 Google listed for it on open (files sent since have none yet).
+    sums: HashMap<Box<str>, Box<str>>,
 }
 
 /// A vault's id, as the app makes them: 32 lowercase hex digits.
@@ -305,6 +309,10 @@ impl<A: DriveApi> DriveRemote<A> {
                 astray.push((path, n.id.clone(), n.parent.clone(), home));
             }
         }
+        let sums = nodes
+            .iter()
+            .filter_map(|n| Some((n.id.as_str().into(), n.sha256.as_deref()?.into())))
+            .collect();
         drop(nodes);
         let mut remote = DriveRemote {
             api,
@@ -314,6 +322,7 @@ impl<A: DriveApi> DriveRemote<A> {
             uploading: Mutex::new(HashSet::new()),
             stop: None,
             moved: 0,
+            sums,
         };
         remote.moved = remote.gather(astray, progress)?;
         Ok(remote)
@@ -669,6 +678,18 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
         true
     }
 
+    fn listed(&self, path: &str) -> Option<cs_vault::sync::Listed> {
+        use cs_vault::sync::Listed;
+        check(path).ok()?;
+        Some(match self.id(path) {
+            None => Listed::Missing,
+            Some(id) => match self.sums.get(id.as_str()) {
+                Some(h) => Listed::Sha256(h.to_string()),
+                None => Listed::Unknown,
+            },
+        })
+    }
+
     fn remove(&self, path: &str) -> Result<()> {
         check(path)?;
         match self.forget(path) {
@@ -799,7 +820,7 @@ impl GoogleDrive {
         let mut page = String::new();
         loop {
             let mut path = format!(
-                "/drive/v3/files?q={}&fields=nextPageToken,files(id,name,parents,mimeType)&pageSize=1000&spaces=drive",
+                "/drive/v3/files?q={}&fields=nextPageToken,files(id,name,parents,mimeType,sha256Checksum)&pageSize=1000&spaces=drive",
                 https::encode(q)
             );
             if !page.is_empty() {
@@ -962,6 +983,10 @@ fn nodes_of(page: &Value) -> Vec<Node> {
                 name: f["name"].as_str()?.to_owned(),
                 parent: parent.to_owned(),
                 folder: f["mimeType"].as_str() == Some(FOLDER_MIME),
+                sha256: f["sha256Checksum"]
+                    .as_str()
+                    .filter(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()))
+                    .map(str::to_ascii_lowercase),
             })
         })
         .collect()
@@ -1381,6 +1406,7 @@ mod tests {
                 name: name.to_owned(),
                 parent: parent.to_owned(),
                 folder,
+                sha256: None,
             };
             self.state().nodes.push((node, bytes));
             id
@@ -1469,7 +1495,19 @@ mod tests {
             Ok("F".into())
         }
         fn tree(&self, listed: &dyn Fn(u32)) -> Result<Vec<Node>> {
-            let nodes: Vec<Node> = self.state().nodes.iter().map(|(n, _)| n.clone()).collect();
+            // Google lists each file's SHA-256 with it.
+            let nodes: Vec<Node> = self
+                .state()
+                .nodes
+                .iter()
+                .map(|(n, b)| Node {
+                    sha256: (!n.folder).then(|| {
+                        use sha2::Digest;
+                        hex::encode(sha2::Sha256::digest(b))
+                    }),
+                    ..n.clone()
+                })
+                .collect();
             // Two pages, as Drive gives a long listing.
             listed(nodes.len() as u32 / 2);
             listed(nodes.len() as u32);
@@ -1603,6 +1641,45 @@ mod tests {
             // Long markers: three random bytes can spell "aaa" by chance.
             assert!(!b.windows(10).any(|w| w == b"plain text"));
         }
+    }
+
+    #[test]
+    fn files_drive_lost_or_damaged_are_sent_again() {
+        let t = two();
+        let drive = Fake::default();
+        let one = note(&t.a, "One", "the first note");
+        let two_ = note(&t.a, "Two", "the second note");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        // Drive loses one item's content and damages the other's.
+        {
+            let mut s = drive.state();
+            let at = |s: &State, id: &str| {
+                s.nodes
+                    .iter()
+                    .position(|(n, _)| n.name.starts_with(id) && n.name.ends_with(".data"))
+                    .unwrap()
+            };
+            let lost = at(&s, &one);
+            s.nodes.remove(lost);
+            let damaged = at(&s, &two_);
+            s.nodes[damaged].1[0] ^= 1;
+        }
+        // The next sync from A sees both from Drive's own checksums and mends them.
+        let report =
+            t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+                .unwrap();
+        assert_eq!((report.repaired, report.unrepaired), (2, 0));
+        // B reads both back intact.
+        t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        assert_eq!(text(&t.b, &one), "the first note");
+        assert_eq!(text(&t.b, &two_), "the second note");
+        // Nothing left to mend.
+        let again =
+            t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+                .unwrap();
+        assert_eq!((again.repaired, again.unrepaired), (0, 0));
     }
 
     #[test]
@@ -1937,13 +2014,15 @@ mod tests {
                     id: "a1".into(),
                     name: "Cozy Safe".into(),
                     parent: "root".into(),
-                    folder: true
+                    folder: true,
+                    sha256: None
                 },
                 Node {
                     id: "b2".into(),
                     name: "x.data".into(),
                     parent: "a1".into(),
-                    folder: false
+                    folder: false,
+                    sha256: None
                 },
             ]
         );

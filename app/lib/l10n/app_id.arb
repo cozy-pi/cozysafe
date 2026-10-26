@@ -669,5 +669,7 @@
   "reportProblem": "Laporkan masalah",
   "errorLogEmpty": "Belum ada galat.",
   "errorLogNote": "Hanya kode galat dan waktu, tidak pernah isi brankas Anda. Salin dan kirim bersama masukan Anda.",
-  "syncDriveFull": "Google Drive penuh. Kosongkan ruang di sana, lalu coba lagi."
+  "syncDriveFull": "Google Drive penuh. Kosongkan ruang di sana, lalu coba lagi.",
+  "syncDriveRepaired": "{count, plural, other{Google Drive kehilangan atau merusak {count} file. Sudah dikirim ulang.}}",
+  "syncDriveUnrepaired": "{count, plural, other{{count} item tidak punya salinan baik di perangkat ini. Sinkronkan dari perangkat lain yang memilikinya.}}"
 }

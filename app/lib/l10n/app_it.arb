@@ -669,5 +669,7 @@
   "reportProblem": "Segnala un problema",
   "errorLogEmpty": "Nessun errore finora.",
   "errorLogNote": "Solo codici di errore e orari, mai il contenuto della cassaforte. Copiali e inviali con il tuo feedback.",
-  "syncDriveFull": "Google Drive è pieno. Libera spazio e riprova."
+  "syncDriveFull": "Google Drive è pieno. Libera spazio e riprova.",
+  "syncDriveRepaired": "{count, plural, =1{Google Drive aveva perso o danneggiato 1 file. Inviato di nuovo.} other{Google Drive aveva perso o danneggiato {count} file. Inviati di nuovo.}}",
+  "syncDriveUnrepaired": "{count, plural, =1{1 elemento non ha una copia buona qui. Sincronizza da un altro dispositivo che ce l'ha.} other{{count} elementi non hanno una copia buona qui. Sincronizza da un altro dispositivo che li ha.}}"
 }

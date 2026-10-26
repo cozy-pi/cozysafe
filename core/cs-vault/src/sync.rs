@@ -73,6 +73,21 @@ pub trait Remote: Sync {
     fn parallel(&self) -> usize {
         1
     }
+    /// What the place says about the file at `path` without reading it: Google Drive
+    /// lists each file's SHA-256 with its name, so a sync checks every file it relies on
+    /// at no extra request (owner 2026-10-26). `None`: this place cannot tell.
+    fn listed(&self, _path: &str) -> Option<Listed> {
+        None
+    }
+}
+
+/// [`Remote::listed`]: a file the place does not have, one it has without a checksum
+/// (just sent, Google computes it later), or one with its SHA-256 (lowercase hex).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Listed {
+    Missing,
+    Unknown,
+    Sha256(String),
 }
 
 /// A folder on this device: tests, desktops, and any folder a sync client mirrors.
@@ -369,6 +384,10 @@ impl Remote for Counted<'_> {
     fn parallel(&self) -> usize {
         self.inner.parallel()
     }
+
+    fn listed(&self, path: &str) -> Option<Listed> {
+        self.inner.listed(path)
+    }
 }
 
 /// Items per journal entry while sending, so a long first sync that stops half-way has
@@ -387,6 +406,11 @@ pub struct SyncReport {
     pub removed: u32,
     /// Notes whose text changed on both sides: the other text was kept as a copy.
     pub copies: u32,
+    /// Files the place should hold but lost or holds damaged (by its own checksum), sent
+    /// again from this device.
+    pub repaired: u32,
+    /// The same, for items whose copy here is not right either: nothing good to send.
+    pub unrepaired: u32,
 }
 
 impl OpenVault {
@@ -935,6 +959,7 @@ impl OpenVault {
         // First what has changed here since this place last heard, so the screen knows
         // how much is going.
         let mut todo: Vec<(String, ItemRecord, Vec<u8>)> = Vec::new();
+        let mut held: Vec<(String, ItemRecord, Vec<u8>)> = Vec::new();
         for id in self.index.ids()? {
             let Some(sealed) = self.sealed_record(&id)? else {
                 continue;
@@ -956,10 +981,14 @@ impl OpenVault {
                 sealed = self.store_record(&id, &record)?;
             }
             if self.index.synced_rev(&rk, &id)?.as_deref() == Some(record.rev.as_str()) {
+                // The place has this revision: check it still holds every file of it.
+                held.push((id, record, sealed));
                 continue;
             }
             todo.push((id, record, sealed));
         }
+        self.mend_place(remote, &base, &held, report)?;
+        drop(held);
         let gone = self.index.gone_unsent(&rk)?;
         // Deletions are counted apart (Removing): they are not items going up.
         let total = todo.len() as u32;
@@ -1033,6 +1062,72 @@ impl OpenVault {
             });
         }
         self.collect_garbage(remote, now_ms(), progress)
+    }
+
+    /// Every file of the revisions the place holds, checked against what the place lists
+    /// (a missing file, or one whose SHA-256 is not the one sealed in the record): sent
+    /// again from here when the copy here is right. Places that cannot tell are skipped;
+    /// a file without a checksum yet (just sent) counts as fine.
+    fn mend_place(
+        &self,
+        remote: &Counted<'_>,
+        base: &str,
+        held: &[(String, ItemRecord, Vec<u8>)],
+        report: &mut SyncReport,
+    ) -> Result<()> {
+        // A place that lists nothing about its files: nothing to check.
+        let Some((first, r, _)) = held.first() else {
+            return Ok(());
+        };
+        if remote
+            .listed(&format!("{base}/records/{first}/{}", r.rev))
+            .is_none()
+        {
+            return Ok(());
+        }
+        for (id, record, sealed) in held {
+            let mut bad = false;
+            let mut good_here = true;
+            let mut files = Vec::new();
+            for (ext, want) in [("data", &record.data_hash), ("thumb", &record.thumb_hash)] {
+                if ext == "thumb" && !record.has_thumbnail() {
+                    continue;
+                }
+                let path = format!("{base}/blobs/{id}.{}.{ext}", record.data_rev);
+                let wrong = match remote.listed(&path) {
+                    Some(Listed::Missing) => true,
+                    Some(Listed::Sha256(h)) => !want.is_empty() && h != *want,
+                    _ => false,
+                };
+                if wrong {
+                    bad = true;
+                    let local = self.read_path(id, ext)?;
+                    if want.is_empty() || crate::items::file_sha256_hex(&local)? != *want {
+                        good_here = false;
+                    }
+                    files.push((path, local));
+                }
+            }
+            let record_path = format!("{base}/records/{id}/{}", record.rev);
+            let record_missing = remote.listed(&record_path) == Some(Listed::Missing);
+            if !bad && !record_missing {
+                continue;
+            }
+            if !good_here {
+                report.unrepaired += 1;
+                continue;
+            }
+            for (path, local) in &files {
+                // Files never change once written: the damaged one goes first.
+                remote.remove(path)?;
+                remote.put_file(path, local)?;
+            }
+            if record_missing {
+                remote.put(&record_path, &mut &sealed[..])?;
+            }
+            report.repaired += 1;
+        }
+        Ok(())
     }
 
     /// Take old revisions off the place (at most once a day): the record of a revision

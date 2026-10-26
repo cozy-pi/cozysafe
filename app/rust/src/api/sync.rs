@@ -43,6 +43,10 @@ pub struct SyncEvent {
     /// [`SyncStep::Done`] of a Google Drive sync: files of an earlier layout moved into
     /// place in Drive first (0 elsewhere).
     pub moved: u32,
+    /// [`SyncStep::Done`] of a Google Drive sync: files Drive had lost or damaged (by its
+    /// own checksums), sent again; and items with no good copy here to send.
+    pub repaired: u32,
+    pub unrepaired: u32,
     /// A failure: a short fixed code saying what went wrong ("drive-rate-limited",
     /// "io-timed-out"), for the error log and "Copy details". Never names, paths or
     /// network data. Empty otherwise.
@@ -131,6 +135,8 @@ fn step(kind: SyncStep) -> SyncEvent {
         bytes: 0,
         bytes_total: 0,
         moved: 0,
+        repaired: 0,
+        unrepaired: 0,
         code: String::new(),
     }
 }
@@ -189,6 +195,8 @@ fn report(r: SyncReport) -> SyncEvent {
         sent: r.sent,
         removed: r.removed,
         copies: r.copies,
+        repaired: r.repaired,
+        unrepaired: r.unrepaired,
         ..step(SyncStep::Done)
     }
 }

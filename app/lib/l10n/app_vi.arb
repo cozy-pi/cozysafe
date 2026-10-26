@@ -683,5 +683,7 @@
   "reportProblem": "Báo lỗi",
   "errorLogEmpty": "Chưa có lỗi nào.",
   "errorLogNote": "Chỉ có mã lỗi và thời gian, không bao giờ có nội dung két. Sao chép rồi gửi kèm góp ý.",
-  "syncDriveFull": "Google Drive đã đầy. Giải phóng dung lượng ở đó rồi thử lại."
+  "syncDriveFull": "Google Drive đã đầy. Giải phóng dung lượng ở đó rồi thử lại.",
+  "syncDriveRepaired": "{count, plural, other{Google Drive bị thiếu hoặc hỏng {count} tệp. Đã gửi lại.}}",
+  "syncDriveUnrepaired": "{count, plural, other{{count} mục không có bản tốt trên máy này để gửi lại. Hãy đồng bộ từ máy khác còn bản tốt.}}"
 }
