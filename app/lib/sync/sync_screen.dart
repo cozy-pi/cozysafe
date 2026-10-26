@@ -9,10 +9,8 @@ import '../widgets/vault_bar.dart' show pushPage;
 import '../platform.dart';
 import 'consent.dart';
 import 'drive.dart';
-import 'find_page.dart';
+import 'nearby_page.dart';
 import 'progress.dart';
-import 'host_page.dart';
-import 'join_page.dart';
 import 'wifi.dart';
 
 /// Settings → Sync: bring this vault up to date with the person's other device on the
@@ -55,7 +53,9 @@ class _SyncScreenState extends State<SyncScreen> {
     _loadLog();
   }
 
-  Future<void> _show() async {
+  /// Both devices open this and wait: ask once to look and wait on this Wi-Fi, then they
+  /// find each other and both people confirm (docs/adr/0003-sync.md).
+  Future<void> _nearby() async {
     final l = AppLocalizations.of(context);
     final address = SyncScreen.debugAddress ?? await localAddress();
     if (!mounted) return;
@@ -63,10 +63,10 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    if (!await allowConnection(context, l.syncAllowHost(address)) || !mounted) return;
+    if (!await allowConnection(context, l.syncAllowNearby(address)) || !mounted) return;
     await pushPage<void>(context,
-        title: l.syncShowCode,
-        builder: (_) => HostSyncPage(address: address, mirror: '${widget.libraryDir}-sync', onSynced: widget.onSynced));
+        title: l.syncRow,
+        builder: (_) => NearbyPage(address: address, mirror: '${widget.libraryDir}-sync', onSynced: _synced));
     _loadLog();
   }
 
@@ -103,26 +103,6 @@ class _SyncScreenState extends State<SyncScreen> {
     _loadLog();
   }
 
-  /// The other device shows six digits: ask once to look on this Wi-Fi, then find it.
-  Future<void> _enter() async {
-    final l = AppLocalizations.of(context);
-    final address = SyncScreen.debugAddress ?? await localAddress();
-    if (!mounted) return;
-    if (address == null) {
-      showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
-      return;
-    }
-    if (!await allowConnection(context, l.syncAllowFind(address)) || !mounted) return;
-    await pushPage<void>(context,
-        title: l.syncEnterCode,
-        builder: (_) => FindDevicePage(
-              address: address,
-              onFound: (context, code) => joinWithCode(context, code, onSynced: _synced, ask: false),
-              onScanned: (context, code) => joinWithCode(context, code, onSynced: _synced),
-            ));
-    _loadLog();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -150,8 +130,7 @@ class _SyncScreenState extends State<SyncScreen> {
         // devices on one Wi-Fi, no internet) and Google Drive.
         _Header(title: l.syncLocalTitle, note: l.syncLocalNote),
         _Card(children: [
-          _Action(key: const ValueKey('sync-show'), icon: Icons.pin_outlined, color: const Color(0xFF007AFF), title: l.syncShowCode, onTap: _show),
-          _Action(key: const ValueKey('sync-enter'), icon: Icons.dialpad_rounded, color: const Color(0xFF34C759), title: l.syncEnterCode, onTap: _enter),
+          _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncRow, onTap: _nearby),
         ]),
         // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
         if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
@@ -268,10 +247,14 @@ class _LogRow extends StatelessWidget {
     final when = DateTime.fromMillisecondsSinceEpoch(int.tryParse(p[0]) ?? 0);
     final tag = Localizations.localeOf(context).toLanguageTag();
     final date = '${DateFormat.yMMMd(tag).format(when)} ${DateFormat.Hm(tag).format(when)}';
+    // Since 0.1.73 the other device's name; before, its address (or "-" when this one
+    // showed the code).
+    final address = RegExp(r'^[0-9.]+$').hasMatch(p[2]);
     final title = switch (p[1]) {
-      'join' || 'restore' => l.syncLogJoin(p[2]),
       'drive' => l.syncLogDrive,
-      _ => l.syncLogHost,
+      _ when p[2] == '-' => p[1] == 'host' ? l.syncLogHost : l.syncLogNearby,
+      _ when address => l.syncLogJoin(p[2]),
+      _ => p[2],
     };
     final (outcome, ok) = switch (p[3]) {
       'ok' => (l.syncLogCounts(p[4], p[5]), true),

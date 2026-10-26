@@ -1,34 +1,41 @@
 //! Sync with another device on the same Wi-Fi, no cloud (docs/adr/0003-sync.md, "P2P
 //! security").
 //!
-//! The host opens a listener on its Wi-Fi address and shows a code (QR or typed) with
-//! that address, the port and a one-time token. The joiner connects; both prove they
-//! hold the same vault (keys derived from its Master Key) before anything else, then
-//! talk through sealed, numbered frames. The host serves a folder it has just synced the
-//! vault into, so the sync itself is the ordinary one ([`OpenVault::sync`]); afterwards
-//! the host syncs that folder back in to take the joiner's changes.
+//! Both devices open the same screen and wait ([`Waiting::run`]): each listens on its
+//! Wi-Fi address and, every few seconds, knocks at [`PORT`] on each address of its own
+//! network (`a.b.c.1`–`254`) with a probe. Only a device holding the same vault can answer
+//! a probe in a way the other accepts; a stranger on the network learns nothing from one.
+//! Each waiting device has a random id (its token); of two that found each other, the one
+//! with the lower id connects and the other serves, so there is never a second session.
 //!
-//! A device with no vault yet (restoring) joins the same way with a key from the 24
-//! words instead ([`kdf::restore_pairing_key`]), but only when the person on the host
-//! turned "Help a new device restore" on, and then only once they allowed that device,
-//! comparing the number both screens show ([`Session::allow`]). The host then tells it
-//! the vault's id, and it opens the vault's lock with the words and the password
-//! ([`Library::join`]) before the ordinary sync brings the items.
+//! Once connected, both prove they hold the vault (keys derived from its Master Key),
+//! then talk through sealed, numbered frames. Only then does each tell the other its name
+//! ("iPhone 15 Pro Max"), and both screens ask "Sync with …?" next to the same 3-digit
+//! number, as Bluetooth pairing does; nothing is served until both people tapped Sync
+//! ([`agree`]). The serving device serves a folder it has just synced the vault into, so
+//! the sync itself is the ordinary one ([`OpenVault::sync`]); afterwards it syncs that
+//! folder back in to take the other's changes.
 //!
-//! Nothing is advertised on the network: no Bonjour, no broadcast. To spare the person
-//! the QR, the host listens on a fixed port ([`PORT`]) and shows three digits; the other
-//! device, once the person allowed it, knocks at that port on each address of its own
-//! Wi-Fi (`a.b.c.1`–`254`) with a probe ([`Looker::scan`]). Only a host holding the same vault
-//! can answer a probe in a way the joiner accepts, and only one showing the digits typed
-//! matches ([`Looker::find`]): a stranger on the network learns nothing from a probe, and
-//! a wrong code never reaches the host. The QR stays for networks where the knock does
-//! not get through.
+//! Several devices with the vault found: none connects on its own. Each learns the
+//! others' names through a short handshake of the same kind (sealed, after the proof), and
+//! the person picks one; if the picked device holds the lower id, it is asked to connect.
+//!
+//! A device with no vault yet (restoring) looks the same way with a key from the 24 words
+//! instead ([`kdf::restore_pairing_key`]), but only finds devices whose person turned
+//! "Help a new device restore" on, and is served only once that person allowed it,
+//! comparing the number both screens show ([`Session::allow`]). It then learns the vault's
+//! id, and opens the vault's lock with the words and the password ([`Library::join`])
+//! before the ordinary sync brings the items.
+//!
+//! Nothing is advertised on the network: no Bonjour, no broadcast. A QR code (address,
+//! port and token) stays for networks where the knock does not get through.
 
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use cs_crypto::{kdf, wrap, Key, SecretKey};
@@ -38,44 +45,58 @@ use cs_vault::{Error, Library, OpenVault, Result};
 
 use crate::Permit;
 
-const VERSION: u8 = 1;
+/// 2 since 0.1.73 (pairing by comparing a number): earlier versions are refused.
+const VERSION: u8 = 2;
 /// What the joiner comes for, in its hello: sync a vault both hold, or restore it.
 const MODE_SYNC: u8 = 1;
 const MODE_RESTORE: u8 = 2;
 /// Not a session: a device looking for its other device on the Wi-Fi.
 const MODE_PROBE: u8 = 3;
-/// Digits the host shows (owner 2026-10-25: three are enough). They are not what keeps
-/// strangers out — only a device with the vault's key can pair — they pick which waiting
-/// device to join, and a wrong code is caught on the joiner without reaching the host.
-pub const CODE_DIGITS: usize = 3;
-const CODE_SPACE: u64 = 10u64.pow(CODE_DIGITS as u32);
-/// The port a host listens on when it is free, so a nearby device can find it.
+/// Not a session: a short handshake that only swaps names (several devices found, the
+/// list names them), and may ask the other to connect (the person picked it here).
+const MODE_INTRO: u8 = 4;
+/// [`MODE_INTRO`] for a device restoring (the 24 words' key).
+const MODE_INTRO_RESTORE: u8 = 5;
+/// Digits of the number both screens show (owner 2026-10-26: three, like the old code).
+pub const CHECK_DIGITS: usize = 3;
+const CHECK_SPACE: u16 = 1000;
+/// The port a waiting device listens on when it is free, so a nearby device can find it.
 pub const PORT: u16 = 47823;
 /// Bytes of each tag in a probe's answer.
 const TAG_LEN: usize = 16;
-/// Bytes of one-time token in the code (with the vault key, it only binds the session).
+/// Bytes of a waiting device's random id. It binds the session (with the vault key) and
+/// says which of two devices connects (the lower).
 pub const TOKEN_LEN: usize = 5;
+pub type Token = [u8; TOKEN_LEN];
 const NONCE_LEN: usize = 32;
 /// Largest frame on the wire, sealed (1 MiB of payload).
 const MAX_FRAME: usize = (1 << 20) + 64;
 const CHUNK: usize = 1 << 20;
-/// How long a code works (time to pick up the other phone and type the digits).
-pub const CODE_LIFETIME: Duration = Duration::from_secs(300);
-/// How long a restoring device waits for the person on the host to allow it.
+/// How long a device waits for its other device (time to pick up the other phone).
+pub const WAIT_LIFETIME: Duration = Duration::from_secs(300);
+/// How long a restoring device waits for the person on the other device to allow it.
 pub const ALLOW_WAIT: Duration = Duration::from_secs(180);
-/// Failed handshakes before the host stops listening.
+/// How long both people have to tap Sync once the devices are connected.
+pub const CONFIRM_WAIT: Duration = Duration::from_secs(120);
+/// Longest device name kept (characters); longer ones are cut.
+pub const NAME_MAX: usize = 40;
+/// Time between two looks on the Wi-Fi.
+const LOOK_EVERY: Duration = Duration::from_secs(3);
+/// Failed handshakes before the waiting device stops.
 const MAX_FAILURES: u32 = 3;
 /// A session with no request for this long ends.
 const IDLE: Duration = Duration::from_secs(600);
 /// The place names for this device's sync state (fresh each session).
 const HOST_KEY: &str = "p2p-host";
 const JOIN_KEY: &str = "p2p-join";
+/// One person's answer to "Sync with …?", sent to the other: `[OP_CONFIRM, 1 or 0]`.
+const OP_CONFIRM: u8 = 10;
 
-/// What the host shows: where to connect and the one-time token.
+/// Where a waiting device listens and its id: what the QR code carries.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PairCode {
     pub addr: SocketAddrV4,
-    pub token: [u8; TOKEN_LEN],
+    pub token: Token,
 }
 
 const ALPHABET: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford, no I L O U
@@ -99,15 +120,7 @@ impl PairCode {
         b
     }
 
-    /// The digits the host shows: the token is made from them ([`token_of`]).
-    pub fn digits(&self) -> Option<String> {
-        let mut b = [0u8; 8];
-        b[3..].copy_from_slice(&self.token);
-        let n = u64::from_be_bytes(b);
-        (n < CODE_SPACE).then(|| format!("{n:0w$}", w = CODE_DIGITS))
-    }
-
-    /// The code to type: 18 letters and digits in three groups ("4K9M2Q-…").
+    /// The code as text: 18 letters and digits in three groups ("4K9M2Q-…").
     pub fn typed(&self) -> String {
         let b = self.bytes();
         let mut bits: u128 = 0;
@@ -166,21 +179,30 @@ impl PairCode {
     }
 }
 
-/// The token for the typed digits ("048"), if that is what they are.
-pub fn token_of(digits: &str) -> Option<[u8; TOKEN_LEN]> {
-    let d = digits.trim();
-    if d.len() != CODE_DIGITS || !d.bytes().all(|b| b.is_ascii_digit()) {
-        return None;
-    }
-    let n: u64 = d.parse().ok()?;
-    n.to_be_bytes()[3..].try_into().ok()
+/// A device's id as text, for the screen to name the one the person picks.
+pub fn token_text(token: &Token) -> String {
+    hex::encode(token)
 }
 
-/// Random digits as a token: with the vault key they only bind the session and pick the
-/// host (the key, not the digits, keeps strangers out).
-fn random_token() -> [u8; TOKEN_LEN] {
-    let n = u64::from_be_bytes(random::<8>()) % CODE_SPACE;
-    n.to_be_bytes()[3..].try_into().unwrap_or([0; TOKEN_LEN])
+/// [`token_text`] read back.
+pub fn token_from_text(text: &str) -> Option<Token> {
+    hex::decode(text).ok()?.try_into().ok()
+}
+
+/// A device name as it may be shown and logged: no control or direction characters (a
+/// name must not make the text around it read otherwise), no `|` (the log's separator),
+/// at most [`NAME_MAX`] characters. Names come from the other device: never trusted.
+pub fn clean_name(text: &str) -> String {
+    let kept: String = text
+        .chars()
+        .filter(|&c| {
+            !c.is_control()
+                && c != '|'
+                && !matches!(c, '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')
+        })
+        .take(NAME_MAX)
+        .collect();
+    kept.trim().to_owned()
 }
 
 /// The pairing key: only a device holding this vault can have it.
@@ -197,7 +219,7 @@ pub struct Channel {
     recv_n: u64,
     send_dir: &'static str,
     recv_dir: &'static str,
-    /// The 4-digit number both screens show, to compare.
+    /// The 3-digit number both screens show, to compare.
     pub check: u16,
 }
 
@@ -222,6 +244,15 @@ fn read_frame(stream: &mut TcpStream) -> Result<Vec<u8>> {
     Ok(buf)
 }
 
+/// Open frame number `n` coming in `dir`. A replayed, reordered, cut or forged frame
+/// fails here, and ends the session.
+fn open_frame(key: &Key, dir: &str, n: u64, sealed: &[u8]) -> Result<Vec<u8>> {
+    let aad = format!("cozysafe/p2p/v1/frame/{dir}/{n}");
+    wrap::open(key, sealed, aad.as_bytes())
+        .map(|p| p.to_vec())
+        .map_err(|_| Error::Corrupt("p2p frame"))
+}
+
 impl Channel {
     pub fn send(&mut self, msg: &[u8]) -> Result<()> {
         let aad = format!("cozysafe/p2p/v1/frame/{}/{}", self.send_dir, self.send_n);
@@ -232,12 +263,40 @@ impl Channel {
 
     pub fn recv(&mut self) -> Result<Vec<u8>> {
         let sealed = read_frame(&mut self.stream)?;
-        let aad = format!("cozysafe/p2p/v1/frame/{}/{}", self.recv_dir, self.recv_n);
-        // A replayed, reordered, cut or forged frame fails here, and ends the session.
-        let plain = wrap::open(&self.recv_key, &sealed, aad.as_bytes())
-            .map_err(|_| Error::Corrupt("p2p frame"))?;
+        let plain = open_frame(&self.recv_key, self.recv_dir, self.recv_n, &sealed)?;
         self.recv_n += 1;
-        Ok(plain.to_vec())
+        Ok(plain)
+    }
+
+    /// The receiving side on its own (another handle on the same socket), to read on
+    /// another thread while this one sends; [`Channel::rejoin`] takes it back.
+    fn split_recv(&self) -> Result<RecvHalf> {
+        Ok(RecvHalf {
+            stream: self.stream.try_clone()?,
+            key: self.recv_key.clone(),
+            n: self.recv_n,
+            dir: self.recv_dir,
+        })
+    }
+
+    fn rejoin(&mut self, half: RecvHalf) {
+        self.recv_n = half.n;
+    }
+}
+
+struct RecvHalf {
+    stream: TcpStream,
+    key: Key,
+    n: u64,
+    dir: &'static str,
+}
+
+impl RecvHalf {
+    fn recv(&mut self) -> Result<Vec<u8>> {
+        let sealed = read_frame(&mut self.stream)?;
+        let plain = open_frame(&self.key, self.dir, self.n, &sealed)?;
+        self.n += 1;
+        Ok(plain)
     }
 }
 
@@ -252,7 +311,7 @@ fn session(pk: &Key, token: &[u8], nj: &[u8], nh: &[u8], stream: TcpStream, host
     let to_host = kdf::subkey(pk, &format!("session/to-host/{tail}"));
     let check_key = kdf::subkey(pk, &format!("session/check/{tail}"));
     let c = check_key.as_bytes();
-    let check = (u16::from_be_bytes([c[0], c[1]])) % 10000;
+    let check = (u16::from_be_bytes([c[0], c[1]])) % CHECK_SPACE;
     if host {
         Channel {
             stream,
@@ -309,7 +368,7 @@ fn handshake_join(pk: &Key, mode: u8, token: &[u8], mut stream: TcpStream) -> Re
 
 /// Host side of the handshake: the joiner's hello says which key it proves.
 fn handshake_host(
-    prepared: &Prepared,
+    keys: &Keys,
     token: &[u8],
     hello: &[u8],
     mut stream: TcpStream,
@@ -318,13 +377,14 @@ fn handshake_host(
         return Err(Error::Corrupt("p2p hello"));
     }
     let mode = hello[1];
+    let restoring = matches!(mode, MODE_RESTORE | MODE_INTRO_RESTORE);
     let pk = match mode {
-        MODE_SYNC => &prepared.key,
+        MODE_SYNC | MODE_INTRO => &keys.key,
         // Only while the person has "Help a new device restore" on.
-        MODE_RESTORE => prepared
+        MODE_RESTORE | MODE_INTRO_RESTORE => keys
             .restore_key
             .as_ref()
-            .filter(|_| prepared.restore_on.load(Ordering::Relaxed))
+            .filter(|_| keys.restore_on.load(Ordering::Relaxed))
             .ok_or(Error::Corrupt("p2p hello"))?,
         _ => return Err(Error::Corrupt("p2p hello")),
     };
@@ -343,7 +403,7 @@ fn handshake_host(
         Ok::<_, Error>(())
     })();
     if proven.is_err() {
-        return Err(Error::Corrupt(if mode == MODE_RESTORE {
+        return Err(Error::Corrupt(if restoring {
             "p2p restore wrong words"
         } else {
             "p2p joiner not proven"
@@ -352,7 +412,76 @@ fn handshake_host(
     Ok((session(pk, token, nj, &nh, stream, true), mode))
 }
 
-// ---------- finding the host on the Wi-Fi ----------
+/// After the handshake, the joiner says its name and hears the other's: inside the
+/// sealed channel only, never in a probe's answer.
+fn swap_names_join(ch: &mut Channel, mine: &str) -> Result<String> {
+    ch.send(mine.as_bytes())?;
+    Ok(clean_name(&String::from_utf8_lossy(&ch.recv()?)))
+}
+
+fn swap_names_host(ch: &mut Channel, mine: &str) -> Result<String> {
+    let theirs = clean_name(&String::from_utf8_lossy(&ch.recv()?));
+    ch.send(mine.as_bytes())?;
+    Ok(theirs)
+}
+
+/// Both people must say yes. `decide` asks the person on this device ("Sync with …?") and
+/// returns their answer; it gets a function that turns true once the other device said
+/// no (or went), to stop asking. This device's answer goes to the other either way; the
+/// session goes on only when both said yes. Read on a thread meanwhile, so a Cancel
+/// there shows here at once.
+fn agree(ch: &mut Channel, decide: &dyn Fn(&dyn Fn() -> bool) -> bool) -> Result<()> {
+    let mut half = ch.split_recv()?;
+    half.stream
+        .set_read_timeout(Some(CONFIRM_WAIT + Duration::from_secs(15)))?;
+    // None: not yet; Some(None): the other end went; Some(Some(yes)): its answer.
+    let said: Arc<Mutex<Option<Option<bool>>>> = Arc::new(Mutex::new(None));
+    let reader = {
+        let said = said.clone();
+        std::thread::spawn(move || {
+            let answer = match half.recv() {
+                Ok(m) if m == [OP_CONFIRM, 1] => Some(true),
+                Ok(m) if m == [OP_CONFIRM, 0] => Some(false),
+                _ => None,
+            };
+            *said.lock().unwrap_or_else(|p| p.into_inner()) = Some(answer);
+            half
+        })
+    };
+    let theirs = || *said.lock().unwrap_or_else(|p| p.into_inner());
+    let mine = decide(&|| matches!(theirs(), Some(None | Some(false))));
+    // What the other had said when this person answered: whose "no" came first.
+    let before = theirs();
+    let told = ch.send(&[OP_CONFIRM, mine as u8]);
+    if !mine {
+        // The other answers or closes soon after hearing no; read that first (closing
+        // with its answer unread would reset the connection and lose our "no" there),
+        // then unblock the reader. The session ends here.
+        let until = Instant::now() + Duration::from_secs(3);
+        while theirs().is_none() && Instant::now() < until {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let _ = ch.stream.shutdown(std::net::Shutdown::Both);
+        let _ = reader.join();
+        return Err(Error::Corrupt(match before {
+            Some(Some(false)) => "p2p peer cancelled",
+            Some(None) => "p2p peer stopped",
+            _ => "p2p cancelled",
+        }));
+    }
+    told?;
+    let half = reader.join().map_err(|_| Error::Corrupt("p2p channel"))?;
+    match theirs() {
+        Some(Some(true)) => {
+            ch.rejoin(half);
+            Ok(())
+        }
+        Some(Some(false)) => Err(Error::Corrupt("p2p peer cancelled")),
+        _ => Err(Error::Corrupt("p2p peer stopped")),
+    }
+}
+
+// ---------- finding the other device on the Wi-Fi ----------
 
 fn tag(pk: &Key, what: &str, nj: &[u8], nh: &[u8]) -> [u8; TAG_LEN] {
     let k = kdf::subkey(
@@ -368,14 +497,28 @@ fn same(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 
-/// The host answers a probe: a fresh nonce, then for each key it holds (the vault's, and
-/// the 24 words' for a device restoring, while the person allows that) a tag that says
-/// "same vault" and one that says "and these digits". Random bytes stand in for a key it
-/// does not hold or use.
-fn answer_probe(keys: &ProbeKeys, nj: &[u8], stream: &mut TcpStream) -> Result<()> {
+fn xor(a: &[u8; TAG_LEN], b: &[u8; TAG_LEN]) -> [u8; TAG_LEN] {
+    let mut out = [0u8; TAG_LEN];
+    for i in 0..TAG_LEN {
+        out[i] = a[i] ^ b[i];
+    }
+    out
+}
+
+/// The token in a 16-byte block, the rest zero (checked on the way back).
+fn token_block(token: &Token) -> [u8; TAG_LEN] {
+    let mut b = [0u8; TAG_LEN];
+    b[..TOKEN_LEN].copy_from_slice(token);
+    b
+}
+
+/// A waiting device answers a probe: a fresh nonce, then for each key it holds (the
+/// vault's, and the 24 words' for a device restoring, while the person allows that) a
+/// tag that says "same vault" and its token hidden under a second tag. Random bytes stand
+/// in for a key it does not hold or use. No name: names only cross a sealed channel.
+fn answer_probe(keys: &Keys, nj: &[u8], stream: &mut TcpStream) -> Result<()> {
     let nh: [u8; NONCE_LEN] = random();
     let mut reply = nh.to_vec();
-    let code = format!("code/{}", hex::encode(keys.token));
     let restore = keys
         .restore_key
         .as_ref()
@@ -384,7 +527,7 @@ fn answer_probe(keys: &ProbeKeys, nj: &[u8], stream: &mut TcpStream) -> Result<(
         match pk {
             Some(pk) => {
                 reply.extend(tag(pk, "vault", nj, &nh));
-                reply.extend(tag(pk, &code, nj, &nh));
+                reply.extend(xor(&tag(pk, "token", nj, &nh), &token_block(&keys.token)));
             }
             None => reply.extend(random::<{ 2 * TAG_LEN }>()),
         }
@@ -392,29 +535,36 @@ fn answer_probe(keys: &ProbeKeys, nj: &[u8], stream: &mut TcpStream) -> Result<(
     write_frame(stream, &reply)
 }
 
-/// What a waiting host needs to answer probes, shared with the threads that read them.
-struct ProbeKeys {
+/// What a waiting device needs to answer probes and short handshakes, shared with the
+/// threads that read them.
+struct Keys {
     key: Key,
+    /// From the Recovery Key, to let a device with no vault restore this one.
     restore_key: Option<Key>,
+    /// Whether it may, now: the person turns "Help a new device restore" on and off
+    /// while the device waits.
     restore_on: Arc<AtomicBool>,
-    token: [u8; TOKEN_LEN],
+    token: Token,
+    name: String,
+    /// Devices that asked to be connected to (their person picked this one), by token.
+    calls: Mutex<Vec<Token>>,
 }
 
 /// Connections read at once (each on its own thread, a few seconds at most): someone
 /// who connects and stays silent cannot hold up the device that came to sync.
 const MAX_READING: usize = 16;
 
-/// A host on the Wi-Fi that holds the same vault (or takes the same 24 words).
-#[derive(Clone, Debug)]
-pub struct Found {
+/// A device on the Wi-Fi that holds the same vault (or takes the same 24 words). Its
+/// name is known only after a sealed handshake with it ([`Looker::round`]).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Peer {
     pub addr: SocketAddrV4,
-    nj: [u8; NONCE_LEN],
-    nh: [u8; NONCE_LEN],
-    code_tag: [u8; TAG_LEN],
+    pub token: Token,
+    pub name: Option<String>,
 }
 
-/// Knock at `addr` with a probe; the host if it proves the key `pk`.
-fn probe(addr: SocketAddrV4, pk: &Key, restoring: bool) -> Option<Found> {
+/// Knock at `addr` with a probe; the device there if it proves the key `pk`.
+fn probe(addr: SocketAddrV4, pk: &Key, restoring: bool) -> Option<Peer> {
     let mut stream =
         TcpStream::connect_timeout(&SocketAddr::V4(addr), Duration::from_millis(700)).ok()?;
     stream.set_read_timeout(Some(Duration::from_secs(2))).ok()?;
@@ -431,24 +581,28 @@ fn probe(addr: SocketAddrV4, pk: &Key, restoring: bool) -> Option<Found> {
     }
     let nh: [u8; NONCE_LEN] = reply[..NONCE_LEN].try_into().ok()?;
     let at = NONCE_LEN + if restoring { 2 * TAG_LEN } else { 0 };
-    let (vault_tag, code_tag) = (
-        &reply[at..at + TAG_LEN],
-        &reply[at + TAG_LEN..at + 2 * TAG_LEN],
-    );
-    same(vault_tag, &tag(pk, "vault", &nj, &nh)).then(|| Found {
+    let vault_tag = &reply[at..at + TAG_LEN];
+    let hidden: [u8; TAG_LEN] = reply[at + TAG_LEN..at + 2 * TAG_LEN].try_into().ok()?;
+    if !same(vault_tag, &tag(pk, "vault", &nj, &nh)) {
+        return None;
+    }
+    let block = xor(&tag(pk, "token", &nj, &nh), &hidden);
+    if block[TOKEN_LEN..].iter().any(|&b| b != 0) {
+        return None;
+    }
+    Some(Peer {
         addr,
-        nj,
-        nh,
-        code_tag: code_tag.try_into().unwrap_or([0; TAG_LEN]),
+        token: block[..TOKEN_LEN].try_into().ok()?,
+        name: None,
     })
 }
 
 /// Knock at each of `targets` (half a network at once, each given under a second to
-/// connect: a whole /24 in about two seconds); the hosts that prove `pk`.
-fn probe_all(targets: &[SocketAddrV4], pk: &Key, restoring: bool) -> Vec<Found> {
+/// connect: a whole /24 in about two seconds); the devices that prove `pk`.
+fn probe_all(targets: &[SocketAddrV4], pk: &Key, restoring: bool) -> Vec<Peer> {
     let mut found = Vec::new();
     for chunk in targets.chunks(128) {
-        let got: Vec<Found> = std::thread::scope(|s| {
+        let got: Vec<Peer> = std::thread::scope(|s| {
             let hands: Vec<_> = chunk
                 .iter()
                 .map(|&a| s.spawn(move || probe(a, pk, restoring)))
@@ -463,9 +617,83 @@ fn probe_all(targets: &[SocketAddrV4], pk: &Key, restoring: bool) -> Vec<Found> 
     found
 }
 
+/// The short handshake with a device found: prove the key both ways, then swap names
+/// (sealed). With `call`, also ask it to connect to us (`me`): the person picked it here
+/// and it holds the lower id. Its name, or none if it did not prove the key.
+fn intro(
+    peer: &Peer,
+    pk: &Key,
+    restoring: bool,
+    me: Token,
+    call: bool,
+    name: &str,
+) -> Option<String> {
+    let stream =
+        TcpStream::connect_timeout(&SocketAddr::V4(peer.addr), Duration::from_millis(1500)).ok()?;
+    stream.set_read_timeout(Some(Duration::from_secs(3))).ok()?;
+    stream
+        .set_write_timeout(Some(Duration::from_secs(3)))
+        .ok()?;
+    let mode = if restoring {
+        MODE_INTRO_RESTORE
+    } else {
+        MODE_INTRO
+    };
+    let mut ch = handshake_join(pk, mode, &peer.token, stream).ok()?;
+    let mut msg = vec![call as u8];
+    msg.extend_from_slice(&me);
+    msg.extend_from_slice(name.as_bytes());
+    ch.send(&msg).ok()?;
+    let theirs = ch.recv().ok()?;
+    Some(clean_name(&String::from_utf8_lossy(&theirs)))
+}
+
+/// The other side of [`intro`], on the thread that read its hello.
+fn answer_intro(keys: &Keys, hello: &[u8], stream: TcpStream) -> Result<()> {
+    let (mut ch, mode) = handshake_host(keys, &keys.token, hello, stream)?;
+    let msg = ch.recv()?;
+    ch.send(keys.name.as_bytes())?;
+    if mode == MODE_INTRO && msg.len() > TOKEN_LEN && msg[0] == 1 {
+        let caller: Token = msg[1..1 + TOKEN_LEN]
+            .try_into()
+            .map_err(|_| Error::Corrupt("p2p intro"))?;
+        let mut calls = keys.calls.lock().unwrap_or_else(|p| p.into_inner());
+        if calls.len() < 16 && !calls.contains(&caller) {
+            calls.push(caller);
+        }
+    }
+    Ok(())
+}
+
+/// The addresses a look may knock at: every address of this device's network
+/// (`a.b.c.1`–`254`, not its own) at [`PORT`].
+fn targets(permit: &Permit) -> Result<Vec<SocketAddrV4>> {
+    #[cfg(test)]
+    if let Some(list) = permit.scan_list() {
+        return Ok(list.to_vec());
+    }
+    let own = permit
+        .scan_from()
+        .ok_or(Error::Corrupt("permit is not for looking"))?;
+    if !on_local_network(own) || own.is_loopback() {
+        return Err(Error::Corrupt("p2p address is not on a local network"));
+    }
+    let [a, b, c, me] = own.octets();
+    Ok((1..=254u8)
+        .filter(|&d| d != me)
+        .map(|d| SocketAddrV4::new(Ipv4Addr::new(a, b, c, d), PORT))
+        .collect())
+}
+
+/// Whether a look under `permit` may also connect to `addr` (a device it found there).
+fn covers(permit: &Permit, addr: SocketAddrV4) -> bool {
+    targets(permit).is_ok_and(|t| t.contains(&addr))
+}
+
 /// What a device looking for its other device proves: the vault's pairing key, or the
 /// 24 words' when it has no vault yet. Made from the vault in a moment, so the vault is
 /// not held while the Wi-Fi is searched.
+#[derive(Clone)]
 pub struct Looker {
     pk: Key,
     restoring: bool,
@@ -486,41 +714,41 @@ impl Looker {
         }
     }
 
-    /// Look on the permitted Wi-Fi: every address of this device's network
-    /// (`a.b.c.1`–`254`, not its own) at [`PORT`]. A few seconds.
-    pub fn scan(&self, permit: Permit) -> Result<Vec<Found>> {
-        let own = permit
-            .scan_from()
-            .ok_or(Error::Corrupt("permit is not for looking"))?;
-        if !on_local_network(own) || own.is_loopback() {
-            return Err(Error::Corrupt("p2p address is not on a local network"));
+    /// Look on the permitted Wi-Fi. A few seconds.
+    pub fn scan(&self, permit: Permit) -> Result<Vec<Peer>> {
+        Ok(probe_all(&targets(&permit)?, &self.pk, self.restoring))
+    }
+
+    /// One look, never finding `me` (this device's own listener), and, when there are
+    /// several, the names of those not in `known` (one short handshake each).
+    fn round(
+        &self,
+        permit: Permit,
+        me: Option<Token>,
+        known: &HashMap<Token, String>,
+        name: &str,
+    ) -> Vec<Peer> {
+        let mut peers = self.scan(permit).unwrap_or_default();
+        peers.retain(|p| Some(p.token) != me);
+        peers.sort_by_key(|p| p.token);
+        peers.dedup_by_key(|p| p.token);
+        for p in &mut peers {
+            p.name = known.get(&p.token).cloned();
         }
-        let [a, b, c, me] = own.octets();
-        let targets: Vec<SocketAddrV4> = (1..=254u8)
-            .filter(|&d| d != me)
-            .map(|d| SocketAddrV4::new(Ipv4Addr::new(a, b, c, d), PORT))
-            .collect();
-        Ok(probe_all(&targets, &self.pk, self.restoring))
+        if peers.len() >= 2 {
+            for p in peers.iter_mut().filter(|p| p.name.is_none()) {
+                p.name = intro(
+                    p,
+                    &self.pk,
+                    self.restoring,
+                    me.unwrap_or_default(),
+                    false,
+                    name,
+                );
+            }
+        }
+        peers
     }
-
-    /// The host among `found` that shows these digits, as a code to join with. None
-    /// when they are not [`CODE_DIGITS`] digits or no host shows them (nothing is sent: a
-    /// wrong code never reaches the other device).
-    pub fn find(&self, found: &[Found], digits: &str) -> Option<PairCode> {
-        find_with(found, &self.pk, digits)
-    }
-}
-
-fn find_with(found: &[Found], pk: &Key, digits: &str) -> Option<PairCode> {
-    let token = token_of(digits)?;
-    let what = format!("code/{}", hex::encode(token));
-    found
-        .iter()
-        .find(|f| same(&f.code_tag, &tag(pk, &what, &f.nj, &f.nh)))
-        .map(|f| PairCode {
-            addr: f.addr,
-            token,
-        })
 }
 
 fn random<const N: usize>() -> [u8; N] {
@@ -726,13 +954,6 @@ fn serve(
 
 // ---------- the two sides ----------
 
-/// A host waiting for one device to join.
-pub struct Host {
-    listener: TcpListener,
-    pub code: PairCode,
-    deadline: Instant,
-}
-
 /// Whether `ip` (as text) is an address on a home or office network.
 pub fn local_address(ip: &str) -> bool {
     ip.parse::<Ipv4Addr>().is_ok_and(on_local_network)
@@ -759,48 +980,74 @@ pub fn on_local_network(ip: Ipv4Addr) -> bool {
     ip.is_private() || ip.is_link_local() || ip.is_loopback()
 }
 
-/// Start listening on the permitted Wi-Fi address, on a random port, for
-/// [`CODE_LIFETIME`]. Show [`Host::code`] to the other device.
-pub fn host(permit: Permit) -> Result<Host> {
-    let ip = permit
-        .listen_ip()
-        .ok_or(Error::Corrupt("permit is not for listening"))?;
-    if !on_local_network(ip) {
-        return Err(Error::Corrupt("p2p address is not on a local network"));
-    }
-    // The fixed port lets a nearby device find this one; if something else has it, any
-    // port (the QR still works).
-    let listener = TcpListener::bind(SocketAddrV4::new(ip, PORT))
-        .or_else(|_| TcpListener::bind(SocketAddrV4::new(ip, 0)))?;
-    let port = listener.local_addr()?.port();
-    Ok(Host {
-        listener,
-        code: PairCode {
-            addr: SocketAddrV4::new(ip, port),
-            token: random_token(),
-        },
-        deadline: Instant::now() + CODE_LIFETIME,
-    })
+/// The open vault, only for the moments it is needed: the app keeps it free while
+/// waiting, while the people decide and while the other device works.
+pub trait Access {
+    fn with(&self, f: &mut dyn FnMut(&OpenVault) -> Result<()>) -> Result<()>;
 }
 
-/// The host's side, in steps, so the vault is only needed at the start and the end
-/// (the app keeps it free while waiting and while the other device works).
+impl Access for OpenVault {
+    fn with(&self, f: &mut dyn FnMut(&OpenVault) -> Result<()>) -> Result<()> {
+        f(self)
+    }
+}
+
+/// What the waiting device sees before a session starts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Seen {
+    /// A device connected; it is proving it holds the vault.
+    Knock,
+    /// It could not, and was turned away.
+    Rejected,
+}
+
+/// "Sync with `name`?" next to the number; the third argument turns true once the other
+/// person said no. True for Sync.
+pub type Confirm<'a> = dyn Fn(&str, u16, &dyn Fn() -> bool) -> bool + 'a;
+
+/// What the person sees and says while two devices pair.
+pub struct Ask<'a> {
+    pub seen: &'a dyn Fn(Seen),
+    /// The devices with this vault found on the Wi-Fi, each time that changes (with
+    /// names when there are several: the person picks one).
+    pub found: &'a dyn Fn(&[Peer]),
+    /// Several found: the token of the one the person picked, if they did (asked again
+    /// until it answers).
+    pub picked: &'a dyn Fn() -> Option<Token>,
+    /// Connected to the device named so, which proved the vault: "Sync with …?", with
+    /// the number both screens show. True for Sync. The function it gets turns true once
+    /// the other person said no (or the other device went): stop asking then.
+    pub confirm: &'a Confirm<'a>,
+    /// A new device (named so) restoring with the 24 words asks to come in: allow it?
+    pub allow: &'a dyn Fn(&str, u16) -> bool,
+    pub progress: &'a dyn Fn(SyncProgress),
+}
+
+/// Two devices paired and synced.
+#[derive(Debug)]
+pub struct Paired {
+    /// The other device's name, as it said it (cleaned).
+    pub name: String,
+    pub report: SyncReport,
+    /// Whether this device served (the other connected to it).
+    pub hosted: bool,
+}
+
+/// The waiting device's side, prepared from the vault in a moment.
 pub struct Prepared {
-    key: Key,
-    /// From the Recovery Key, to let a device with no vault restore this one.
-    restore_key: Option<Key>,
-    /// Whether it may, now: the person turns "Help a new device restore" on and off
-    /// while the host waits ([`host_help_restore`]).
-    restore_on: Arc<AtomicBool>,
+    keys: Arc<Keys>,
     vault_id: String,
     mirror: PathBuf,
 }
 
-/// Step 1 (vault): sync the vault into `mirror` (an empty private folder). With the
-/// library's Recovery Key, a device restoring with the 24 words may join too.
+/// Sync the vault into `mirror` (an empty private folder) for the other device to read,
+/// and make the keys a waiting device answers with. `name` is this device's, told to the
+/// other only inside a sealed channel. With the library's Recovery Key, a device
+/// restoring with the 24 words may come too, while the person has that on.
 pub fn host_prepare(
     vault: &OpenVault,
     secret: Option<&SecretKey>,
+    name: &str,
     mirror: &Path,
 ) -> Result<Prepared> {
     let folder = FolderRemote::with_key(mirror, HOST_KEY);
@@ -808,107 +1055,192 @@ pub fn host_prepare(
     vault.forget_sync_place(HOST_KEY)?;
     vault.sync(&folder)?;
     Ok(Prepared {
-        key: pairing_key(vault),
-        restore_key: secret.map(kdf::restore_pairing_key),
-        restore_on: Arc::new(AtomicBool::new(secret.is_some())),
+        keys: Arc::new(Keys {
+            key: pairing_key(vault),
+            restore_key: secret.map(kdf::restore_pairing_key),
+            restore_on: Arc::new(AtomicBool::new(secret.is_some())),
+            token: random(),
+            name: clean_name(name),
+            calls: Mutex::new(Vec::new()),
+        }),
         vault_id: vault.id.clone(),
         mirror: mirror.to_path_buf(),
     })
 }
 
-/// A joiner proven to hold the vault.
-pub struct Session {
-    ch: Channel,
-    vault_id: String,
-    mirror: PathBuf,
-    /// The number both screens show.
-    pub check: u16,
-    restoring: bool,
-    /// Served only once true: at once for the same vault, after [`Session::allow`] for a
-    /// restoring device.
-    allowed: bool,
-}
-
-/// Step 2 (no vault): wait for the joiner until the code expires, three failed tries,
-/// or `stop` is set (the person tapped Cancel).
-/// What the waiting host sees before a session starts.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Seen {
-    /// A device connected; it is proving it holds the vault.
-    Knock,
-    /// It could not, and was turned away (the host keeps waiting).
-    Rejected,
-}
-
-/// `on_seen` is told as devices come and are turned away.
-pub fn host_accept(
-    host: Host,
+/// A device waiting on the local network for its other device.
+pub struct Waiting {
+    listener: TcpListener,
+    /// Where it listens and its id: the QR code.
+    pub code: PairCode,
+    deadline: Instant,
     prepared: Prepared,
-    stop: &AtomicBool,
-    on_seen: &dyn Fn(Seen),
-) -> Result<Session> {
-    host.listener.set_nonblocking(true)?;
-    let mut failures = 0;
-    let keys = Arc::new(ProbeKeys {
-        key: prepared.key.clone(),
-        restore_key: prepared.restore_key.clone(),
-        restore_on: prepared.restore_on.clone(),
-        token: host.code.token,
-    });
-    let reading = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    // Hellos read on their own threads come back here; probes are answered there.
-    let (hellos, came) = std::sync::mpsc::channel::<(TcpStream, Vec<u8>)>();
-    let (ch, mode) = loop {
-        if stop.load(Ordering::Relaxed) {
-            return Err(Error::Corrupt("p2p cancelled"));
-        }
-        if Instant::now() > host.deadline {
-            return Err(Error::Corrupt("p2p code expired"));
-        }
-        match host.listener.accept() {
-            Ok((stream, _)) => {
-                if reading.load(Ordering::Relaxed) >= MAX_READING {
-                    continue; // too many at once: this one is dropped
-                }
-                reading.fetch_add(1, Ordering::Relaxed);
-                let (keys, reading, hellos) = (keys.clone(), reading.clone(), hellos.clone());
-                std::thread::spawn(move || {
-                    let mut stream = stream;
-                    let hello = stream
-                        .set_nonblocking(false)
-                        .and_then(|_| stream.set_read_timeout(Some(Duration::from_secs(3))))
-                        .map_err(Error::from)
-                        .and_then(|_| read_frame(&mut stream));
-                    match hello {
-                        // A device looking for its other device: answer here. Probes do
-                        // not count as tries (a scan knocks every few seconds).
-                        Ok(h) if h.len() == 2 + NONCE_LEN && h[..2] == [VERSION, MODE_PROBE] => {
-                            let _ = answer_probe(&keys, &h[2..], &mut stream);
-                        }
-                        Ok(h) => {
-                            let _ = hellos.send((stream, h));
-                        }
-                        Err(_) => {} // not a Cozy Safe device, or gone
-                    }
-                    reading.fetch_sub(1, Ordering::Relaxed);
-                });
+}
+
+/// Start listening on the permitted Wi-Fi address at `port` ([`PORT`] in the app, so the
+/// other device can find this one; any port if it is taken, and then only the QR works).
+pub fn wait(prepared: Prepared, permit: Permit, port: u16) -> Result<Waiting> {
+    let ip = permit
+        .listen_ip()
+        .ok_or(Error::Corrupt("permit is not for listening"))?;
+    if !on_local_network(ip) {
+        return Err(Error::Corrupt("p2p address is not on a local network"));
+    }
+    let listener = TcpListener::bind(SocketAddrV4::new(ip, port))
+        .or_else(|_| TcpListener::bind(SocketAddrV4::new(ip, 0)))?;
+    let port = listener.local_addr()?.port();
+    Ok(Waiting {
+        listener,
+        code: PairCode {
+            addr: SocketAddrV4::new(ip, port),
+            token: prepared.keys.token,
+        },
+        deadline: Instant::now() + WAIT_LIFETIME,
+        prepared,
+    })
+}
+
+/// Read one waiting connection's first frame, on its own thread: a probe or an intro is
+/// answered there; a session's hello goes back to the waiting loop.
+fn accept_some(
+    listener: &TcpListener,
+    keys: &Arc<Keys>,
+    reading: &Arc<AtomicUsize>,
+    hellos: &mpsc::Sender<(TcpStream, Vec<u8>)>,
+) -> Result<bool> {
+    let stream = match listener.accept() {
+        Ok((stream, _)) => stream,
+        Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => return Ok(false),
+        Err(e) => return Err(e.into()),
+    };
+    if reading.load(Ordering::Relaxed) >= MAX_READING {
+        return Ok(true); // too many at once: this one is dropped
+    }
+    reading.fetch_add(1, Ordering::Relaxed);
+    let (keys, reading, hellos) = (keys.clone(), reading.clone(), hellos.clone());
+    std::thread::spawn(move || {
+        let mut stream = stream;
+        let hello = stream
+            .set_nonblocking(false)
+            .and_then(|_| stream.set_read_timeout(Some(Duration::from_secs(3))))
+            .and_then(|_| stream.set_write_timeout(Some(Duration::from_secs(3))))
+            .map_err(Error::from)
+            .and_then(|_| read_frame(&mut stream));
+        match hello {
+            // A device looking for its other device: answer here. Probes and intros do
+            // not count as tries (a look knocks every few seconds).
+            Ok(h) if h.len() == 2 + NONCE_LEN && h[0] == VERSION && h[1] == MODE_PROBE => {
+                let _ = answer_probe(&keys, &h[2..], &mut stream);
             }
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
-            Err(e) => return Err(e.into()),
+            Ok(h)
+                if h.len() == 2 + NONCE_LEN
+                    && h[0] == VERSION
+                    && matches!(h[1], MODE_INTRO | MODE_INTRO_RESTORE) =>
+            {
+                let _ = answer_intro(&keys, &h, stream);
+            }
+            Ok(h) => {
+                let _ = hellos.send((stream, h));
+            }
+            Err(_) => {} // not a Cozy Safe device, or gone
         }
-        match came.try_recv() {
-            Ok((stream, hello)) => {
-                on_seen(Seen::Knock);
+        reading.fetch_sub(1, Ordering::Relaxed);
+    });
+    Ok(true)
+}
+
+/// Whom to connect to now, if anyone: the device the person picked, one that asked
+/// (its person picked this one), or the only one found when this device holds the lower
+/// id. The other, with the higher id, waits to be connected to: never two sessions.
+fn target(
+    me: Token,
+    peers: &[Peer],
+    picked: Option<Token>,
+    calls: &mut Vec<Token>,
+) -> Option<Peer> {
+    let find = |t: &Token| peers.iter().find(|p| &p.token == t).cloned();
+    if let Some(p) = picked.as_ref().and_then(find) {
+        return Some(p);
+    }
+    if let Some(i) = calls
+        .iter()
+        .position(|t| find(t).is_some_and(|p| me < p.token))
+    {
+        return find(&calls.remove(i));
+    }
+    match peers {
+        [only] if me < only.token => Some(only.clone()),
+        _ => None,
+    }
+}
+
+impl Waiting {
+    /// Whether the device has [`PORT`], so the other can find it (else the QR only).
+    pub fn findable(&self) -> bool {
+        self.code.addr.port() == PORT
+    }
+
+    /// "Help a new device restore", to turn on and off while waiting (no effect without
+    /// the Recovery Key). A device already let in is not affected.
+    pub fn help_restore(&self) -> Arc<AtomicBool> {
+        self.prepared.keys.restore_on.clone()
+    }
+
+    /// Wait for the other device and look for it (`look` gives a permit for each look,
+    /// or none to skip it), until the two pair and sync, the wait runs out, three failed
+    /// tries, or `stop` is set (the person tapped Cancel).
+    pub fn run(
+        self,
+        vault: &dyn Access,
+        look: &dyn Fn() -> Option<Permit>,
+        ask: &Ask,
+        stop: &AtomicBool,
+    ) -> Result<Paired> {
+        let Waiting {
+            listener,
+            code: _,
+            deadline,
+            prepared,
+        } = self;
+        listener.set_nonblocking(true)?;
+        let keys = prepared.keys.clone();
+        let me = keys.token;
+        let looker = Arc::new(Looker {
+            pk: keys.key.clone(),
+            restoring: false,
+        });
+        let reading = Arc::new(AtomicUsize::new(0));
+        // Hellos read on their own threads come back here.
+        let (hellos, came) = mpsc::channel::<(TcpStream, Vec<u8>)>();
+        let mut round: Option<std::thread::JoinHandle<Vec<Peer>>> = None;
+        let mut next_look = Instant::now();
+        let mut peers: Vec<Peer> = Vec::new();
+        let mut names: HashMap<Token, String> = HashMap::new();
+        let mut calls: Vec<Token> = Vec::new();
+        let mut failures = 0;
+        loop {
+            if stop.load(Ordering::Relaxed) {
+                return Err(Error::Corrupt("p2p cancelled"));
+            }
+            if Instant::now() > deadline {
+                return Err(Error::Corrupt("p2p code expired"));
+            }
+            let mut busy = accept_some(&listener, &keys, &reading, &hellos)?;
+            // A device came to sync (or to restore).
+            if let Ok((stream, hello)) = came.try_recv() {
+                (ask.seen)(Seen::Knock);
                 stream.set_read_timeout(Some(Duration::from_secs(20)))?;
-                match handshake_host(&prepared, &host.code.token, &hello, stream) {
-                    Ok((ch, mode)) => break (ch, mode),
-                    // A Cozy Safe device that could not prove itself: stop and say so
-                    // (the person sees why on both phones). Anything else that connects
-                    // (not a Cozy Safe hello) is ignored, up to a few times.
+                match handshake_host(&keys, &me, &hello, stream) {
+                    Ok((ch, mode)) => {
+                        drop(listener); // one session
+                        return host_side(ch, mode, prepared, vault, ask, stop);
+                    }
+                    // A Cozy Safe device that could not prove itself (it came by the QR,
+                    // since a look never finds this one for it): stop and say so.
                     Err(
                         e @ Error::Corrupt("p2p restore wrong words" | "p2p joiner not proven"),
                     ) => {
-                        on_seen(Seen::Rejected);
+                        (ask.seen)(Seen::Rejected);
                         return Err(e);
                     }
                     Err(_) => {
@@ -918,20 +1250,186 @@ pub fn host_accept(
                         }
                     }
                 }
+                busy = true;
             }
-            Err(_) => std::thread::sleep(Duration::from_millis(50)),
+            // A look finished: who is there now.
+            if round.as_ref().is_some_and(|h| h.is_finished()) {
+                let got = round.take().and_then(|h| h.join().ok()).unwrap_or_default();
+                for p in &got {
+                    if let Some(n) = &p.name {
+                        names.insert(p.token, n.clone());
+                    }
+                }
+                if got != peers {
+                    (ask.found)(&got);
+                }
+                peers = got;
+            }
+            if round.is_none() && Instant::now() >= next_look {
+                next_look = Instant::now() + LOOK_EVERY;
+                if let Some(permit) = look() {
+                    let (looker, known, name) = (looker.clone(), names.clone(), keys.name.clone());
+                    round = Some(std::thread::spawn(move || {
+                        looker.round(permit, Some(me), &known, &name)
+                    }));
+                }
+            }
+            for t in std::mem::take(&mut *keys.calls.lock().unwrap_or_else(|p| p.into_inner())) {
+                if !calls.contains(&t) {
+                    calls.push(t);
+                }
+            }
+            let picked = if peers.len() >= 2 {
+                (ask.picked)()
+            } else {
+                None
+            };
+            if let Some(p) = target(me, &peers, picked, &mut calls) {
+                // Only where the person allowed looking.
+                if look().is_some_and(|permit| covers(&permit, p.addr)) {
+                    if me < p.token {
+                        match connect_join(&looker.pk, p.addr, &p.token) {
+                            Ok(ch) => {
+                                drop(listener);
+                                return join_side(ch, &keys.name, vault, ask, stop);
+                            }
+                            // Gone meanwhile: the next look tells.
+                            Err(_) => peers.retain(|x| x.token != p.token),
+                        }
+                    } else {
+                        // It holds the lower id: ask it to connect to this one.
+                        let _ = intro(&p, &looker.pk, false, me, true, &keys.name);
+                    }
+                }
+                busy = true;
+            }
+            if !busy {
+                std::thread::sleep(Duration::from_millis(50));
+            }
         }
-    };
-    drop(host.listener); // one session per code
-    ch.stream.set_read_timeout(Some(IDLE))?;
-    Ok(Session {
-        check: ch.check,
-        ch,
-        vault_id: prepared.vault_id,
-        mirror: prepared.mirror,
-        restoring: mode == MODE_RESTORE,
-        allowed: mode != MODE_RESTORE,
+    }
+}
+
+/// Connect to the device at `addr` and prove the vault (`pk`).
+fn connect_join(pk: &Key, addr: SocketAddrV4, token: &Token) -> Result<Channel> {
+    let stream = TcpStream::connect_timeout(&SocketAddr::V4(addr), Duration::from_secs(10))?;
+    stream.set_read_timeout(Some(Duration::from_secs(60)))?;
+    handshake_join(pk, MODE_SYNC, token, stream)
+}
+
+/// Ask both people ("Sync with `name`?"); Cancel ends the wait.
+fn confirm(ch: &mut Channel, name: &str, ask: &Ask, stop: &AtomicBool) -> Result<()> {
+    let check = ch.check;
+    agree(ch, &|peer_no| {
+        !stop.load(Ordering::Relaxed) && (ask.confirm)(name, check, peer_no)
     })
+}
+
+/// The device that connected: names, both people say yes, then the sync (the vault held
+/// only for that).
+fn join_side(
+    ch: Channel,
+    name: &str,
+    vault: &dyn Access,
+    ask: &Ask,
+    stop: &AtomicBool,
+) -> Result<Paired> {
+    set_live(ch.stream.try_clone().ok());
+    let paired = (|| {
+        let mut ch = ch;
+        let theirs = swap_names_join(&mut ch, name)?;
+        confirm(&mut ch, &theirs, ask, stop)?;
+        ch.stream.set_read_timeout(Some(Duration::from_secs(60)))?;
+        let mut ch = Some(ch);
+        let mut report = None;
+        vault.with(&mut |v| {
+            let ch = ch.take().ok_or(Error::Corrupt("p2p channel"))?;
+            report = Some(sync_over(v, ch, ask.progress)?);
+            Ok(())
+        })?;
+        Ok(Paired {
+            name: theirs,
+            report: report.ok_or(Error::Corrupt("p2p channel"))?,
+            hosted: false,
+        })
+    })();
+    set_live(None);
+    paired
+}
+
+/// The device connected to: names, then both people say yes (or, for a new device
+/// restoring, this person allows it), then it serves, then takes the other's changes in.
+fn host_side(
+    ch: Channel,
+    mode: u8,
+    prepared: Prepared,
+    vault: &dyn Access,
+    ask: &Ask,
+    stop: &AtomicBool,
+) -> Result<Paired> {
+    set_live(ch.stream.try_clone().ok());
+    let paired = (|| {
+        let mut ch = ch;
+        let theirs = swap_names_host(&mut ch, &prepared.keys.name)?;
+        let restoring = mode == MODE_RESTORE;
+        if !restoring {
+            confirm(&mut ch, &theirs, ask, stop)?;
+        }
+        ch.stream.set_read_timeout(Some(IDLE))?;
+        let session = Session {
+            check: ch.check,
+            ch,
+            vault_id: prepared.vault_id,
+            mirror: prepared.mirror,
+            restoring,
+            allowed: !restoring,
+        };
+        let session = allowed(session, &|check| (ask.allow)(&theirs, check))?;
+        let mut served = Some(session.serve_with(ask.progress)?);
+        let mut report = None;
+        vault.with(&mut |v| {
+            let served = served.take().ok_or(Error::Corrupt("p2p channel"))?;
+            report = Some(host_finish_with(v, served, ask.progress)?);
+            Ok(())
+        })?;
+        Ok(Paired {
+            name: theirs,
+            report: report.ok_or(Error::Corrupt("p2p channel"))?,
+            hosted: true,
+        })
+    })();
+    set_live(None);
+    paired
+}
+
+/// The connecting device syncs with the other's folder through the channel, then says
+/// done (or why it stopped).
+fn sync_over(v: &OpenVault, ch: Channel, progress: &dyn Fn(SyncProgress)) -> Result<SyncReport> {
+    v.forget_sync_place(JOIN_KEY)?;
+    let remote = ChannelRemote { ch: Mutex::new(ch) };
+    match v.sync_with(&remote, progress) {
+        Ok(report) => {
+            remote.done()?;
+            Ok(report)
+        }
+        Err(e) => {
+            remote.abort(ABORT_STOPPED);
+            Err(e)
+        }
+    }
+}
+
+/// A device proven to hold the vault (or the 24 words), connected to this one.
+pub struct Session {
+    ch: Channel,
+    vault_id: String,
+    mirror: PathBuf,
+    /// The number both screens show.
+    pub check: u16,
+    restoring: bool,
+    /// Served only once true: after both said yes for the same vault, after
+    /// [`Session::allow`] for a restoring device.
+    allowed: bool,
 }
 
 impl Session {
@@ -956,7 +1454,7 @@ impl Session {
         let _ = self.ch.send(&[OP_ABORT, ABORT_STOPPED]);
     }
 
-    /// Step 3 (no vault): answer the joiner until it is done.
+    /// Answer the other device until it is done.
     pub fn serve(self) -> Result<Served> {
         self.serve_with(&|_| ())
     }
@@ -977,12 +1475,12 @@ impl Session {
     }
 }
 
-/// The joiner is done; its changes wait in the mirror.
+/// The other device is done; its changes wait in the mirror.
 pub struct Served {
     mirror: PathBuf,
 }
 
-/// Step 4 (vault): take the joiner's changes in.
+/// Take the other device's changes in.
 pub fn host_finish(vault: &OpenVault, served: Served) -> Result<SyncReport> {
     host_finish_with(vault, served, &|_| ())
 }
@@ -994,81 +1492,6 @@ pub fn host_finish_with(
     progress: &dyn Fn(SyncProgress),
 ) -> Result<SyncReport> {
     vault.sync_with(&FolderRemote::with_key(&served.mirror, HOST_KEY), progress)
-}
-
-/// The waiting host for an app that must not hold sockets itself (cackle allows `net`
-/// to this crate only): [`host_open`], then [`host_session`] on a worker thread.
-static PENDING: Mutex<Option<(Host, Prepared)>> = Mutex::new(None);
-/// "Help a new device restore" of the host opened last, for [`host_help_restore`].
-static HELP: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
-
-/// What the host shows.
-pub struct Shown {
-    pub typed: String,
-    pub qr: String,
-    /// The digits to type on the other device ([`CODE_DIGITS`]).
-    pub digits: String,
-    /// Whether the host has [`PORT`], so a nearby device can find it (else QR only).
-    pub findable: bool,
-}
-
-/// Steps 1 and the listener: copy the vault into `mirror` and start waiting at the
-/// permitted address. Replaces any host still pending. With `secret` (the library's
-/// Recovery Key), a new device may restore while `help_restore` is on (the person's
-/// choice, [`host_help_restore`]); while it is off, probes from a restoring device get
-/// random bytes and its hello is refused.
-pub fn host_open(
-    vault: &OpenVault,
-    secret: Option<&SecretKey>,
-    help_restore: bool,
-    permit: Permit,
-    mirror: &Path,
-) -> Result<Shown> {
-    let prepared = host_prepare(vault, secret, mirror)?;
-    prepared
-        .restore_on
-        .store(help_restore && secret.is_some(), Ordering::Relaxed);
-    *HELP.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.restore_on.clone());
-    let host = host(permit)?;
-    let shown = Shown {
-        typed: host.code.typed(),
-        qr: host.code.qr(),
-        digits: host.code.digits().unwrap_or_default(),
-        findable: host.code.addr.port() == PORT,
-    };
-    *PENDING.lock().unwrap_or_else(|p| p.into_inner()) = Some((host, prepared));
-    Ok(shown)
-}
-
-/// Steps 2 and 3 (no vault) for the pending host; then [`host_finish`]. A restoring
-/// device is served only if `allow` (shown the check number, it asks the person) says
-/// yes; else it is told we stopped.
-pub fn host_session(
-    stop: &AtomicBool,
-    on_check: &dyn Fn(u16),
-    on_seen: &dyn Fn(Seen),
-    allow: &dyn Fn(u16) -> bool,
-) -> Result<Served> {
-    host_session_with(stop, on_check, on_seen, allow, &|_| ())
-}
-
-/// [`host_session`], with the files and bytes served.
-pub fn host_session_with(
-    stop: &AtomicBool,
-    on_check: &dyn Fn(u16),
-    on_seen: &dyn Fn(Seen),
-    allow: &dyn Fn(u16) -> bool,
-    progress: &dyn Fn(SyncProgress),
-) -> Result<Served> {
-    let (host, prepared) = PENDING
-        .lock()
-        .unwrap_or_else(|p| p.into_inner())
-        .take()
-        .ok_or(Error::Corrupt("p2p code expired"))?;
-    let session = host_accept(host, prepared, stop, on_seen)?;
-    let session = allowed(session, allow)?;
-    on_check(session.check);
-    session.serve_with(progress)
 }
 
 /// A restoring device goes on only if the person allows it; the same vault at once.
@@ -1087,123 +1510,81 @@ fn allowed(mut session: Session, allow: &dyn Fn(u16) -> bool) -> Result<Session>
     Ok(session)
 }
 
-/// Turn "Help a new device restore" on or off for the host waiting now (no effect when
-/// it was opened without the Recovery Key). A device already let in is not affected.
-pub fn host_help_restore(on: bool) {
-    if let Some(flag) = HELP.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
-        flag.store(on, Ordering::Relaxed);
-    }
-}
-
-/// Stop listening (Cancel before anyone joined).
-pub fn host_close() {
-    PENDING.lock().unwrap_or_else(|p| p.into_inner()).take();
-}
-
-/// All four steps at once (tests, tools).
-pub fn serve_one(
-    vault: &OpenVault,
-    host: Host,
-    mirror: &Path,
-    on_check: &dyn Fn(u16),
-) -> Result<SyncReport> {
-    let prepared = host_prepare(vault, None, mirror)?;
-    let session = host_accept(host, prepared, &AtomicBool::new(false), &|_| ())?;
-    on_check(session.check);
-    let served = session.serve()?;
-    host_finish(vault, served)
-}
-
-/// Join the device showing `code` (the permit must be for that address): prove we hold
-/// the vault, sync, and say done. `on_check` gets the number to compare.
-pub fn join(
-    vault: &OpenVault,
+/// Join the device whose QR was read (the permit must be for that address): prove we
+/// hold the vault, both people say yes, then sync. For networks where looking does not
+/// get through.
+pub fn join_code(
+    vault: &dyn Access,
     permit: Permit,
     code: &PairCode,
-    on_check: &dyn Fn(u16),
-) -> Result<SyncReport> {
-    join_with(vault, permit, code, on_check, &|_| ())
-}
-
-/// [`join`], telling `progress` how far the sync is.
-pub fn join_with(
-    vault: &OpenVault,
-    permit: Permit,
-    code: &PairCode,
-    on_check: &dyn Fn(u16),
-    progress: &dyn Fn(SyncProgress),
-) -> Result<SyncReport> {
-    set_live(None);
-    let report = join_inner(vault, permit, code, on_check, progress);
-    set_live(None);
-    report
-}
-
-fn join_inner(
-    vault: &OpenVault,
-    permit: Permit,
-    code: &PairCode,
-    on_check: &dyn Fn(u16),
-    progress: &dyn Fn(SyncProgress),
-) -> Result<SyncReport> {
+    name: &str,
+    ask: &Ask,
+    stop: &AtomicBool,
+) -> Result<Paired> {
     if permit.connect_to() != Some(code.addr) {
         return Err(Error::Corrupt("permit is for another address"));
     }
     if !on_local_network(*code.addr.ip()) {
         return Err(Error::Corrupt("p2p address is not on a local network"));
     }
-    let stream = TcpStream::connect_timeout(&SocketAddr::V4(code.addr), Duration::from_secs(10))?;
-    stream.set_read_timeout(Some(Duration::from_secs(60)))?;
-    set_live(stream.try_clone().ok());
-    let ch = handshake_join(&pairing_key(vault), MODE_SYNC, &code.token, stream)?;
-    on_check(ch.check);
-    vault.forget_sync_place(JOIN_KEY)?;
-    let remote = ChannelRemote { ch: Mutex::new(ch) };
-    match vault.sync_with(&remote, progress) {
-        Ok(report) => {
-            remote.done()?;
-            Ok(report)
-        }
-        Err(e) => {
-            remote.abort(ABORT_STOPPED);
-            Err(e)
-        }
-    }
+    let mut pk = None;
+    vault.with(&mut |v| {
+        pk = Some(pairing_key(v));
+        Ok(())
+    })?;
+    let pk = pk.ok_or(Error::Corrupt("p2p key"))?;
+    let ch = connect_join(&pk, code.addr, &code.token)?;
+    join_side(ch, &clean_name(name), vault, ask, stop)
 }
 
-/// Restore onto this device (`dir`, no vault in it) the vault of the device showing
-/// `code`, with only the 24 words and the password: pair with a key from the words,
-/// open the vault's lock, then sync its items in. False for a wrong password;
-/// [`Error::WrongSecretKey`] when the host does not take these words. The vault is then
+/// Restore onto this device (`dir`, no vault in it) the vault of the device whose QR was
+/// read, with only the 24 words and the password: pair with a key from the words, open
+/// the vault's lock, then sync its items in. False for a wrong password;
+/// [`Error::WrongSecretKey`] when the other device does not take these words.
+/// `connected` gets the other's name and the number to compare. The vault is then
 /// opened the usual way, from `dir` with the two secrets: nothing that came over the
 /// network is handed back.
+#[allow(clippy::too_many_arguments)]
 pub fn restore(
     dir: &Path,
     permit: Permit,
     code: &PairCode,
     secret: SecretKey,
     password: &str,
-    on_check: &dyn Fn(u16),
+    name: &str,
+    connected: &dyn Fn(&str, u16),
+    progress: &dyn Fn(SyncProgress),
+) -> Result<bool> {
+    if permit.connect_to() != Some(code.addr) {
+        return Err(Error::Corrupt("permit is for another address"));
+    }
+    restore_at(dir, code, secret, password, name, connected, progress)
+}
+
+fn restore_at(
+    dir: &Path,
+    code: &PairCode,
+    secret: SecretKey,
+    password: &str,
+    name: &str,
+    connected: &dyn Fn(&str, u16),
     progress: &dyn Fn(SyncProgress),
 ) -> Result<bool> {
     set_live(None);
-    let out = restore_inner(dir, permit, code, secret, password, on_check, progress);
+    let out = restore_inner(dir, code, secret, password, name, connected, progress);
     set_live(None);
     out
 }
 
 fn restore_inner(
     dir: &Path,
-    permit: Permit,
     code: &PairCode,
     secret: SecretKey,
     password: &str,
-    on_check: &dyn Fn(u16),
+    name: &str,
+    connected: &dyn Fn(&str, u16),
     progress: &dyn Fn(SyncProgress),
 ) -> Result<bool> {
-    if permit.connect_to() != Some(code.addr) {
-        return Err(Error::Corrupt("permit is for another address"));
-    }
     if !on_local_network(*code.addr.ip()) {
         return Err(Error::Corrupt("p2p address is not on a local network"));
     }
@@ -1213,12 +1594,13 @@ fn restore_inner(
     let pk = kdf::restore_pairing_key(&secret);
     let mut ch = match handshake_join(&pk, MODE_RESTORE, &code.token, stream) {
         Ok(ch) => ch,
-        // The host could not prove the same words: these are another library's.
+        // The other could not prove the same words: these are another library's.
         Err(Error::Corrupt("p2p host not proven")) => return Err(Error::WrongSecretKey),
         Err(e) => return Err(e),
     };
-    on_check(ch.check);
-    // The person on the host allows this device first (or not): wait for them.
+    let theirs = swap_names_join(&mut ch, &clean_name(name))?;
+    connected(&theirs, ch.check);
+    // The person on the other device allows this one first (or not): wait for them.
     ch.stream.set_read_timeout(Some(ALLOW_WAIT))?;
     let first = ch.recv()?;
     ch.stream.set_read_timeout(Some(Duration::from_secs(60)))?;
@@ -1249,9 +1631,98 @@ fn restore_inner(
     Ok(true)
 }
 
+/// What the person on a new device sees and says while it looks for the old one.
+pub struct RestoreAsk<'a> {
+    /// The devices that take these words, each time that changes (named when several).
+    pub found: &'a dyn Fn(&[Peer]),
+    /// Several found: the one the person picked.
+    pub picked: &'a dyn Fn() -> Option<Token>,
+    /// Connected: the other's name and the number to compare (its person allows next).
+    pub connected: &'a dyn Fn(&str, u16),
+    pub progress: &'a dyn Fn(SyncProgress),
+}
+
+/// Look on the Wi-Fi (`look` gives a permit for each look) for a device that takes these
+/// 24 words, whose person turned "Help a new device restore" on, and restore from it
+/// ([`restore`]): at once when there is one, the one the person picks when several.
+#[allow(clippy::too_many_arguments)]
+pub fn restore_nearby(
+    dir: &Path,
+    look: &dyn Fn() -> Option<Permit>,
+    secret: SecretKey,
+    password: &str,
+    name: &str,
+    ask: &RestoreAsk,
+    stop: &AtomicBool,
+) -> Result<bool> {
+    let looker = Looker::for_words(&secret);
+    let name = clean_name(name);
+    let deadline = Instant::now() + WAIT_LIFETIME;
+    let mut peers: Vec<Peer> = Vec::new();
+    let mut names: HashMap<Token, String> = HashMap::new();
+    let mut told = false;
+    let mut next_look = Instant::now();
+    loop {
+        if stop.load(Ordering::Relaxed) {
+            return Err(Error::Corrupt("p2p cancelled"));
+        }
+        if Instant::now() > deadline {
+            return Err(Error::Corrupt("p2p code expired"));
+        }
+        let picked = if peers.len() >= 2 {
+            (ask.picked)()
+        } else {
+            None
+        };
+        let to = match (picked, peers.as_slice()) {
+            (Some(t), _) => peers.iter().find(|p| p.token == t).cloned(),
+            (None, [only]) => Some(only.clone()),
+            _ => None,
+        };
+        if let Some(p) = to {
+            if look().is_some_and(|permit| covers(&permit, p.addr)) {
+                let code = PairCode {
+                    addr: p.addr,
+                    token: p.token,
+                };
+                return restore_at(
+                    dir,
+                    &code,
+                    secret,
+                    password,
+                    &name,
+                    ask.connected,
+                    ask.progress,
+                );
+            }
+        }
+        if Instant::now() >= next_look {
+            next_look = Instant::now() + LOOK_EVERY;
+            if let Some(permit) = look() {
+                let got = looker.round(permit, None, &names, &name);
+                for p in &got {
+                    if let Some(n) = &p.name {
+                        names.insert(p.token, n.clone());
+                    }
+                }
+                if got != peers || !told {
+                    (ask.found)(&got);
+                    told = true;
+                }
+                peers = got;
+                if peers.len() == 1 {
+                    continue; // go at once
+                }
+            }
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testkit::{note, text, two, Two};
 
     #[test]
     fn codes_round_trip_and_tolerate_typing() {
@@ -1271,114 +1742,305 @@ mod tests {
         assert_eq!(PairCode::parse(&typed[..typed.len() - 1]), None);
     }
 
-    use crate::testkit::{note, text, two};
+    #[test]
+    fn names_are_cleaned_before_they_are_shown_or_logged() {
+        assert_eq!(clean_name("  iPhone 15 Pro Max "), "iPhone 15 Pro Max");
+        assert_eq!(clean_name("Pix\u{202e}el|9\n\u{2066}"), "Pixel9");
+        assert_eq!(clean_name(&"x".repeat(100)).chars().count(), NAME_MAX);
+        assert_eq!(clean_name("\u{1}\u{7f}"), "");
+    }
+
+    /// A device waiting on this computer, at a random port (tests run side by side).
+    fn waiting(v: &OpenVault, secret: Option<&SecretKey>, name: &str, mirror: &Path) -> Waiting {
+        let prepared = host_prepare(v, secret, name, mirror).unwrap();
+        wait(prepared, Permit::listen(Ipv4Addr::LOCALHOST), 0).unwrap()
+    }
+
+    /// What the person does in a test, and what they were shown.
+    #[derive(Default)]
+    struct Person {
+        /// Their answer to "Sync with …?" (None: wait until the other says no).
+        sync: Option<bool>,
+        allow: bool,
+        pick: Mutex<Option<Token>>,
+        found: Mutex<Vec<Vec<Peer>>>,
+        asked: Mutex<Vec<(String, u16)>>,
+    }
+
+    impl Person {
+        fn says(yes: bool) -> Person {
+            Person {
+                sync: Some(yes),
+                allow: true,
+                ..Person::default()
+            }
+        }
+    }
+
+    fn run_as(
+        w: Waiting,
+        v: &OpenVault,
+        others: Vec<SocketAddrV4>,
+        me: &Person,
+        stop: &AtomicBool,
+    ) -> Result<Paired> {
+        let look = || Some(Permit::scan_at(others.clone()));
+        let confirm = |name: &str, check: u16, peer_no: &dyn Fn() -> bool| {
+            me.asked.lock().unwrap().push((name.to_owned(), check));
+            match me.sync {
+                Some(yes) => yes,
+                None => {
+                    let until = Instant::now() + Duration::from_secs(10);
+                    while !peer_no() && Instant::now() < until {
+                        std::thread::sleep(Duration::from_millis(20));
+                    }
+                    false
+                }
+            }
+        };
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|p| me.found.lock().unwrap().push(p.to_vec()),
+            picked: &|| me.pick.lock().unwrap().take(),
+            confirm: &confirm,
+            allow: &|_, _| me.allow,
+            progress: &|_| (),
+        };
+        w.run(v, &look, &ask, stop)
+    }
 
     #[test]
-    fn two_devices_sync_over_the_wifi() {
+    fn two_devices_find_each_other_and_sync_once_both_say_yes() {
         let t = two();
         let from_a = note(&t.a, "From A", "aaa");
         let from_b = note(&t.b, "From B", "bbb");
-        let mirror = tempfile::tempdir().unwrap();
-        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
-        let code = PairCode::parse(&h.code.typed()).unwrap();
-        let crate::testkit::Two { dirs, a, b, .. } = t;
-        let m = mirror.path().to_path_buf();
-        // The host on its own thread, as in the app.
-        let host_side = std::thread::spawn(move || {
-            let seen = Mutex::new(0u16);
-            let r = serve_one(&a, h, &m, &|c| *seen.lock().unwrap() = c).unwrap();
-            let c = *seen.lock().unwrap();
-            (a, r, c)
-        });
-        let seen = Mutex::new(0u16);
-        let joined = join(&b, Permit::connect(code.addr), &code, &|c| {
-            *seen.lock().unwrap() = c
-        })
-        .unwrap();
-        let (a, hosted, host_check) = host_side.join().unwrap();
-        assert_eq!((joined.received, hosted.received), (1, 1));
-        // Both screens showed the same number.
-        assert_eq!(*seen.lock().unwrap(), host_check);
+        let (ma, mb) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let wa = waiting(&t.a, None, "Phone A", ma.path());
+        let wb = waiting(&t.b, None, "Tablet B", mb.path());
+        let (ca, cb) = (wa.code.clone(), wb.code.clone());
+        let Two { dirs, a, b, .. } = t;
+        let side = |w: Waiting, v: OpenVault, other: SocketAddrV4| {
+            std::thread::spawn(move || {
+                let me = Person::says(true);
+                let r = run_as(w, &v, vec![other], &me, &AtomicBool::new(false));
+                (v, r, me)
+            })
+        };
+        let (ha, hb) = (side(wa, a, cb.addr), side(wb, b, ca.addr));
+        let (a, ra, pa) = ha.join().unwrap();
+        let (b, rb, pb) = hb.join().unwrap();
+        let (ra, rb) = (ra.unwrap(), rb.unwrap());
+        // Each learned the other's name, inside the session.
+        assert_eq!(
+            (ra.name.as_str(), rb.name.as_str()),
+            ("Tablet B", "Phone A")
+        );
+        // The lower id connected, the other served: one session, not two.
+        assert_ne!(ra.hosted, rb.hosted);
+        assert_eq!(ra.hosted, ca.token > cb.token);
+        // Both were asked once, with the same 3-digit number.
+        let (qa, qb) = (
+            pa.asked.lock().unwrap().clone(),
+            pb.asked.lock().unwrap().clone(),
+        );
+        assert_eq!((qa.len(), qb.len()), (1, 1));
+        assert_eq!(qa[0].1, qb[0].1);
+        assert!(qa[0].1 < 1000);
         assert_eq!(text(&b, &from_a), "aaa");
         assert_eq!(text(&a, &from_b), "bbb");
         drop(dirs);
     }
 
-    #[test]
-    fn the_digits_make_the_token() {
-        for _ in 0..50 {
-            let t = random_token();
-            let c = PairCode {
-                addr: SocketAddrV4::new(Ipv4Addr::LOCALHOST, PORT),
-                token: t,
-            };
-            let d = c.digits().unwrap();
-            assert_eq!(d.len(), CODE_DIGITS);
-            assert_eq!(token_of(&d), Some(t));
-        }
-        assert_eq!(token_of("12"), None);
-        assert_eq!(token_of("1a3"), None);
-        assert_eq!(token_of("1234"), None);
-        assert_eq!(token_of(" 048 "), token_of("048"));
+    /// Pair two devices where the people answer `a` and `b`; what each run ended with.
+    fn pair_answering(
+        a_says: Person,
+        b_says: Person,
+    ) -> (Result<Paired>, Result<Paired>, Two, String) {
+        let t = two();
+        let from_a = note(&t.a, "From A", "aaa");
+        let (ma, mb) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let wa = waiting(&t.a, None, "A", ma.path());
+        let wb = waiting(&t.b, None, "B", mb.path());
+        let (aa, ab) = (wa.code.addr, wb.code.addr);
+        let Two { dirs, a, b, sk, pw } = t;
+        let hb = std::thread::spawn(move || {
+            let r = run_as(wb, &b, vec![aa], &b_says, &AtomicBool::new(false));
+            (b, r)
+        });
+        let ra = run_as(wa, &a, vec![ab], &a_says, &AtomicBool::new(false));
+        let (b, rb) = hb.join().unwrap();
+        (ra, rb, Two { dirs, a, b, sk, pw }, from_a)
     }
 
     #[test]
-    fn a_probe_finds_only_the_same_vault_and_only_with_the_right_digits() {
-        let t = two();
-        let other = two();
-        let from_a = note(&t.a, "From A", "aaa");
-        let mirror = tempfile::tempdir().unwrap();
-        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
-        let addr = h.code.addr;
-        let digits = h.code.digits().unwrap();
-        let crate::testkit::Two { dirs, a, b, sk, .. } = t;
-        let m = mirror.path().to_path_buf();
-        let secret = sk.clone();
-        let host_side = std::thread::spawn(move || {
-            let prepared = host_prepare(&a, Some(&secret), &m).unwrap();
-            let seen = Mutex::new(Vec::new());
-            let session = host_accept(h, prepared, &AtomicBool::new(false), &|s| {
-                seen.lock().unwrap().push(s)
-            })
-            .unwrap();
-            let served = session.serve().unwrap();
-            let r = host_finish(&a, served).unwrap();
-            (a, r, seen.into_inner().unwrap())
-        });
-        // Someone who connects and says nothing holds up no one.
-        let _silent: Vec<_> = (0..4).map(|_| TcpStream::connect(addr).unwrap()).collect();
-        let started = Instant::now();
-        // Another vault sees nothing there; probes do not use up the host's tries.
-        for _ in 0..4 {
-            assert!(probe_all(&[addr], &pairing_key(&other.a), false).is_empty());
-        }
-        let found = probe_all(&[addr], &pairing_key(&b), false);
-        assert_eq!(found.len(), 1);
+    fn nothing_is_served_unless_both_say_yes() {
+        let (ra, rb, t, from_a) = pair_answering(Person::says(true), Person::says(false));
         assert!(
-            started.elapsed() < Duration::from_secs(2),
+            matches!(ra, Err(Error::Corrupt("p2p peer cancelled"))),
+            "{ra:?}"
+        );
+        assert!(matches!(rb, Err(Error::Corrupt("p2p cancelled"))), "{rb:?}");
+        // No session reached the sync: B has nothing of A's.
+        assert!(t.b.read_item(&from_a, &mut Vec::new()).is_err());
+    }
+
+    #[test]
+    fn a_cancel_on_one_device_stops_the_other_at_once() {
+        let waiting_one = Person {
+            sync: None,
+            ..Person::default()
+        };
+        let started = Instant::now();
+        let (ra, rb, _t, _) = pair_answering(Person::says(false), waiting_one);
+        assert!(matches!(ra, Err(Error::Corrupt("p2p cancelled"))), "{ra:?}");
+        // The other stopped asking as soon as the "no" came (not after its 10 s wait).
+        assert!(
+            matches!(rb, Err(Error::Corrupt("p2p peer cancelled"))),
+            "{rb:?}"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(8),
             "{:?}",
             started.elapsed()
         );
-        // The 24 words find it too (a device restoring), a stranger's words do not.
+    }
+
+    /// Stop `flag` after `secs` (the person leaves the screen).
+    fn stop_after(flag: &Arc<AtomicBool>, secs: u64) {
+        let flag = flag.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(secs));
+            flag.store(true, Ordering::Relaxed);
+        });
+    }
+
+    #[test]
+    fn a_device_with_another_vault_is_never_found() {
+        let t = two();
+        let other = two();
+        let (ma, mo) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let wa = waiting(&t.a, Some(&t.sk), "Mine", ma.path());
+        let wo = waiting(&other.a, None, "Stranger", mo.path());
+        let (aa, ao) = (wa.code.addr, wo.code.addr);
+        let Two { a, dirs, .. } = t;
+        let stop = Arc::new(AtomicBool::new(false));
+        stop_after(&stop, 4);
+        let s2 = stop.clone();
+        let Two {
+            a: oa, dirs: odirs, ..
+        } = other;
+        let ho = std::thread::spawn(move || {
+            let me = Person::says(true);
+            let r = run_as(wo, &oa, vec![aa], &me, &s2);
+            (r, me)
+        });
+        let me = Person::says(true);
+        let ra = run_as(wa, &a, vec![ao], &me, &stop);
+        let (ro, them) = ho.join().unwrap();
+        assert!(matches!(ra, Err(Error::Corrupt("p2p cancelled"))));
+        assert!(matches!(ro, Err(Error::Corrupt("p2p cancelled"))));
+        // Nobody listed, nobody asked.
+        for p in [&me, &them] {
+            assert!(p.found.lock().unwrap().iter().all(|f| f.is_empty()));
+            assert!(p.asked.lock().unwrap().is_empty());
+        }
+        drop((dirs, odirs));
+    }
+
+    #[test]
+    fn names_cross_only_after_the_handshake() {
+        let t = two();
+        let other = two();
+        let mirror = tempfile::tempdir().unwrap();
+        let name = "Kitchen iPad";
+        let w = waiting(&t.a, None, name, mirror.path());
+        let code = w.code.clone();
+        let Two { a, b, dirs, .. } = t;
+        let stop = Arc::new(AtomicBool::new(false));
+        let s2 = stop.clone();
+        let host = std::thread::spawn(move || run_as(w, &a, vec![], &Person::says(true), &s2));
+        // A probe's answer holds neither the name nor the id in the clear.
+        let mut s = TcpStream::connect(code.addr).unwrap();
+        let mut hello = vec![VERSION, MODE_PROBE];
+        hello.extend_from_slice(&random::<NONCE_LEN>());
+        write_frame(&mut s, &hello).unwrap();
+        let reply = read_frame(&mut s).unwrap();
+        assert!(!reply.windows(name.len()).any(|w| w == name.as_bytes()));
+        assert!(!reply.windows(TOKEN_LEN).any(|w| w == code.token));
+        // The same vault reads the id from it, and gets the name through the handshake.
+        let found = probe_all(&[code.addr], &pairing_key(&b), false);
+        assert_eq!(found.len(), 1);
+        assert_eq!((found[0].token, found[0].name.clone()), (code.token, None));
+        let me: Token = random();
         assert_eq!(
-            probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).len(),
-            1
+            intro(&found[0], &pairing_key(&b), false, me, false, "B").as_deref(),
+            Some(name)
         );
-        let stranger = crate::testkit::other_words(&sk);
-        assert!(probe_all(&[addr], &kdf::restore_pairing_key(&stranger), true).is_empty());
-        // Wrong digits match nothing (and reach nobody); the right ones give the code.
-        let wrong = format!("{:03}", (digits.parse::<u64>().unwrap() + 1) % CODE_SPACE);
-        assert!(Looker::for_vault(&b).find(&found, &wrong).is_none());
-        assert!(Looker::for_vault(&other.a).find(&found, &digits).is_none());
-        let code = Looker::for_vault(&b).find(&found, &digits).unwrap();
-        assert_eq!(code.addr, addr);
-        let joined = join(&b, Permit::connect(code.addr), &code, &|_| ()).unwrap();
-        let (a, _hosted, seen) = host_side.join().unwrap();
-        assert_eq!(joined.received, 1);
+        // Another vault finds nothing, and cannot get the name either.
+        assert!(probe_all(&[code.addr], &pairing_key(&other.a), false).is_empty());
+        assert_eq!(
+            intro(&found[0], &pairing_key(&other.a), false, me, false, "X"),
+            None
+        );
+        stop.store(true, Ordering::Relaxed);
+        assert!(host.join().unwrap().is_err());
+        drop(dirs);
+    }
+
+    #[test]
+    fn several_devices_wait_until_the_person_picks_one() {
+        let t = two();
+        let (dc, c) = crate::testkit::third(&t);
+        let from_a = note(&t.a, "From A", "aaa");
+        let mirrors: Vec<_> = (0..3).map(|_| tempfile::tempdir().unwrap()).collect();
+        let wa = waiting(&t.a, None, "Phone A", mirrors[0].path());
+        let wb = waiting(&t.b, None, "Tablet B", mirrors[1].path());
+        let wc = waiting(&c, None, "Laptop C", mirrors[2].path());
+        let (ca, cb, cc) = (wa.code.clone(), wb.code.clone(), wc.code.clone());
+        let Two { a, b, dirs, .. } = t;
+        let stop_c = Arc::new(AtomicBool::new(false));
+        let sc = stop_c.clone();
+        let pick_b = Person::says(true);
+        *pick_b.pick.lock().unwrap() = Some(cb.token);
+        let side = |w: Waiting,
+                    v: OpenVault,
+                    others: Vec<SocketAddrV4>,
+                    me: Person,
+                    stop: Arc<AtomicBool>| {
+            std::thread::spawn(move || {
+                let r = run_as(w, &v, others, &me, &stop);
+                (v, r, me)
+            })
+        };
+        let never = Arc::new(AtomicBool::new(false));
+        let ha = side(wa, a, vec![cb.addr, cc.addr], pick_b, never.clone());
+        let hb = side(wb, b, vec![ca.addr, cc.addr], Person::says(true), never);
+        let hc = side(wc, c, vec![ca.addr, cb.addr], Person::says(true), sc);
+        let (_a, ra, pa) = ha.join().unwrap();
+        let (b, rb, _pb) = hb.join().unwrap();
+        stop_c.store(true, Ordering::Relaxed);
+        let (_c, rc, pc) = hc.join().unwrap();
+        // A and B paired (whoever connected), C was never asked and kept waiting.
+        assert_eq!(ra.unwrap().name, "Tablet B");
+        assert_eq!(rb.unwrap().name, "Phone A");
+        assert!(matches!(rc, Err(Error::Corrupt("p2p cancelled"))));
+        assert!(pc.asked.lock().unwrap().is_empty());
+        // The list on A named both others before the pick.
+        let lists = pa.found.lock().unwrap();
+        let named: Vec<Vec<Option<String>>> = lists
+            .iter()
+            .map(|l| l.iter().map(|p| p.name.clone()).collect())
+            .collect();
+        assert!(
+            named.iter().any(|l| {
+                l.len() == 2
+                    && l.contains(&Some("Tablet B".into()))
+                    && l.contains(&Some("Laptop C".into()))
+            }),
+            "{named:?}"
+        );
         assert_eq!(text(&b, &from_a), "aaa");
-        // Only the real session knocked: the probes stayed quiet.
-        assert_eq!(seen, vec![Seen::Knock]);
-        drop((a, dirs));
+        drop((dirs, dc));
     }
 
     #[test]
@@ -1388,28 +2050,96 @@ mod tests {
         assert!(look.scan(Permit::listen(Ipv4Addr::LOCALHOST)).is_err());
         assert!(Permit::scan_on("8.8.8.8").is_none());
         assert!(look.scan(Permit::scan_on("127.0.0.1").unwrap()).is_err());
+        assert!(!covers(
+            &Permit::scan_on("192.168.1.5").unwrap(),
+            SocketAddrV4::new(Ipv4Addr::new(192, 168, 2, 9), PORT)
+        ));
+        assert!(covers(
+            &Permit::scan_on("192.168.1.5").unwrap(),
+            SocketAddrV4::new(Ipv4Addr::new(192, 168, 1, 9), PORT)
+        ));
     }
 
     #[test]
-    fn a_device_without_the_vault_cannot_join() {
+    fn the_qr_still_pairs_and_both_still_say_yes() {
+        let t = two();
+        let from_a = note(&t.a, "From A", "aaa");
+        let mirror = tempfile::tempdir().unwrap();
+        let w = waiting(&t.a, None, "Phone A", mirror.path());
+        let code = PairCode::parse(&w.code.qr()).unwrap();
+        let Two { a, b, dirs, .. } = t;
+        let host = std::thread::spawn(move || {
+            let r = run_as(w, &a, vec![], &Person::says(true), &AtomicBool::new(false));
+            (a, r)
+        });
+        let asked = Mutex::new(Vec::new());
+        let confirm = |n: &str, c: u16, _: &dyn Fn() -> bool| {
+            asked.lock().unwrap().push((n.to_owned(), c));
+            true
+        };
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|_| (),
+            picked: &|| None,
+            confirm: &confirm,
+            allow: &|_, _| false,
+            progress: &|_| (),
+        };
+        let joined = join_code(
+            &b,
+            Permit::connect(code.addr),
+            &code,
+            "Tablet B",
+            &ask,
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+        let (_a, hosted) = host.join().unwrap();
+        assert_eq!((joined.name.as_str(), joined.hosted), ("Phone A", false));
+        assert_eq!(hosted.unwrap().name, "Tablet B");
+        assert_eq!(asked.lock().unwrap().len(), 1);
+        assert_eq!(text(&b, &from_a), "aaa");
+        drop(dirs);
+    }
+
+    #[test]
+    fn a_device_without_the_vault_cannot_join_by_the_qr() {
         let t = two();
         let other = two(); // a different vault: another Master Key
-        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
-        let code = h.code.clone();
         let mirror = tempfile::tempdir().unwrap();
-        let crate::testkit::Two { dirs, a, .. } = t;
-        let m = mirror.path().to_path_buf();
-        let host_side = std::thread::spawn(move || {
-            serve_one(&a, h, &m, &|_| panic!("no check for strangers")).err()
+        let w = waiting(&t.a, None, "A", mirror.path());
+        let code = w.code.clone();
+        let Two { dirs, a, .. } = t;
+        let host = std::thread::spawn(move || {
+            let me = Person::says(true);
+            let r = run_as(w, &a, vec![], &me, &AtomicBool::new(false));
+            assert!(
+                me.asked.lock().unwrap().is_empty(),
+                "no question for strangers"
+            );
+            r.err()
         });
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|_| (),
+            picked: &|| None,
+            confirm: &|_, _, _| panic!("not proven"),
+            allow: &|_, _| false,
+            progress: &|_| (),
+        };
         // The app tells the person it is another vault, not a network problem.
-        let e = join(&other.a, Permit::connect(code.addr), &code, &|_| {
-            panic!("not proven")
-        })
+        let e = join_code(
+            &other.a,
+            Permit::connect(code.addr),
+            &code,
+            "X",
+            &ask,
+            &AtomicBool::new(false),
+        )
         .unwrap_err();
         assert!(matches!(e, Error::Corrupt("p2p host not proven")), "{e:?}");
-        // The host stops at once and says why (it does not keep waiting).
-        let e = host_side.join().unwrap().expect("the host stops");
+        // The waiting device stops at once and says why.
+        let e = host.join().unwrap().expect("it stops");
         assert!(
             matches!(e, Error::Corrupt("p2p joiner not proven")),
             "{e:?}"
@@ -1425,8 +2155,18 @@ mod tests {
             token: [0; TOKEN_LEN],
         };
         let wrong = Permit::connect(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 10));
-        assert!(join(&t.a, wrong, &code, &|_| {}).is_err());
-        assert!(host(Permit::connect(code.addr)).is_err());
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|_| (),
+            picked: &|| None,
+            confirm: &|_, _, _| true,
+            allow: &|_, _| false,
+            progress: &|_| (),
+        };
+        assert!(join_code(&t.a, wrong, &code, "", &ask, &AtomicBool::new(false)).is_err());
+        let mirror = tempfile::tempdir().unwrap();
+        let prepared = host_prepare(&t.a, None, "", mirror.path()).unwrap();
+        assert!(wait(prepared, Permit::connect(code.addr), 0).is_err());
     }
 
     fn pair() -> (Channel, Channel) {
@@ -1436,17 +2176,18 @@ mod tests {
         let l = TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = l.local_addr().unwrap();
         let token = [9u8; TOKEN_LEN];
-        let prepared = Prepared {
+        let keys = Keys {
             key: pk.clone(),
             restore_key: None,
             restore_on: Arc::new(AtomicBool::new(false)),
-            vault_id: String::new(),
-            mirror: PathBuf::new(),
+            token,
+            name: String::new(),
+            calls: Mutex::new(Vec::new()),
         };
         let h = std::thread::spawn(move || {
             let mut s = l.accept().unwrap().0;
             let hello = read_frame(&mut s).unwrap();
-            handshake_host(&prepared, &token, &hello, s).unwrap().0
+            handshake_host(&keys, &token, &hello, s).unwrap().0
         });
         let j = handshake_join(&pk, MODE_SYNC, &token, TcpStream::connect(addr).unwrap()).unwrap();
         (h.join().unwrap(), j)
@@ -1482,83 +2223,170 @@ mod tests {
     }
 
     #[test]
+    fn a_session_not_yet_agreed_is_not_served() {
+        let (h, _j) = pair();
+        let mirror = tempfile::tempdir().unwrap();
+        let s = Session {
+            check: h.check,
+            ch: h,
+            vault_id: "abcd".into(),
+            mirror: mirror.path().to_path_buf(),
+            restoring: true,
+            allowed: false,
+        };
+        assert!(matches!(
+            s.serve(),
+            Err(Error::Corrupt("p2p restore not allowed"))
+        ));
+    }
+
+    #[test]
     fn never_listens_or_connects_outside_the_local_network() {
         let public = Ipv4Addr::new(8, 8, 8, 8);
-        assert!(host(Permit::listen(public)).is_err());
         let t = two();
+        let mirror = tempfile::tempdir().unwrap();
+        let prepared = host_prepare(&t.a, None, "", mirror.path()).unwrap();
+        assert!(wait(prepared, Permit::listen(public), 0).is_err());
         let code = PairCode {
             addr: SocketAddrV4::new(public, 443),
             token: [0; TOKEN_LEN],
         };
-        assert!(join(&t.b, Permit::connect(code.addr), &code, &|_| ()).is_err());
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|_| (),
+            picked: &|| None,
+            confirm: &|_, _, _| true,
+            allow: &|_, _| false,
+            progress: &|_| (),
+        };
+        assert!(join_code(
+            &t.b,
+            Permit::connect(code.addr),
+            &code,
+            "",
+            &ask,
+            &AtomicBool::new(false)
+        )
+        .is_err());
         assert!(on_local_network(Ipv4Addr::new(192, 168, 1, 7)));
         assert!(on_local_network(Ipv4Addr::new(10, 0, 0, 2)));
         assert!(on_local_network(Ipv4Addr::new(172, 20, 0, 2)));
         assert!(!on_local_network(Ipv4Addr::new(172, 32, 0, 2)));
     }
 
-    /// Host a restore for `t.a` (whose library key is `sk`), restore into a fresh folder
-    /// with `words` and `password`; the person on the host allows it.
-    fn restore_from(
-        t: &crate::testkit::Two,
-        sk: &SecretKey,
-        words: SecretKey,
-        password: &str,
-    ) -> (Result<bool>, Result<()>, tempfile::TempDir) {
-        restore_asking(t, sk, words, password, true)
-    }
+    /// What the new device got, what the old one ended with, the new device's folder, and
+    /// what the old one was asked (the new device's name and the number).
+    type Restored = (
+        Result<bool>,
+        Result<Paired>,
+        tempfile::TempDir,
+        Option<(String, u16)>,
+    );
 
-    /// [`restore_from`], the person on the host answering `allow`.
+    /// The old device waits with "Help a new device restore" `help` and answers `allow`;
+    /// a new one restores into a fresh folder with `words` and `password`, by the QR or
+    /// (`look`) by looking on the Wi-Fi.
     fn restore_asking(
-        t: &crate::testkit::Two,
-        sk: &SecretKey,
+        t: &Two,
         words: SecretKey,
         password: &str,
+        help: bool,
         allow: bool,
-    ) -> (Result<bool>, Result<()>, tempfile::TempDir) {
+        look: bool,
+    ) -> Restored {
         let mirror = tempfile::tempdir().unwrap();
         let fresh = tempfile::tempdir().unwrap();
-        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
-        let code = h.code.clone();
-        let prepared = host_prepare(&t.a, Some(sk), mirror.path()).unwrap();
-        let server = std::thread::spawn(move || {
-            host_accept(h, prepared, &AtomicBool::new(false), &|_| ())
-                .and_then(|s| allowed(s, &|_| allow))
-                .and_then(|s| s.serve())
-        });
-        let got = restore(
-            fresh.path(),
-            Permit::connect(code.addr),
-            &code,
-            words,
-            password,
-            &|_| (),
-            &|_| (),
+        let w = waiting(&t.a, Some(&t.sk), "Old phone", mirror.path());
+        w.help_restore().store(help, Ordering::Relaxed);
+        let code = w.code.clone();
+        let stop = Arc::new(AtomicBool::new(false));
+        // The new device on its own thread; it stops the old one's wait when it is done.
+        let (dir, pw, s2) = (
+            fresh.path().to_path_buf(),
+            password.to_owned(),
+            stop.clone(),
         );
-        // The host always ends: served, or told why the other phone stopped.
-        let hosted = server.join().unwrap().map(|_| ());
-        (got, hosted, fresh)
+        let new_device = std::thread::spawn(move || {
+            let shown = Mutex::new(None);
+            let connected = |n: &str, c: u16| *shown.lock().unwrap() = Some((n.to_owned(), c));
+            let got = if look {
+                let mine = Arc::new(AtomicBool::new(false));
+                stop_after(&mine, 5);
+                let ask = RestoreAsk {
+                    found: &|_| (),
+                    picked: &|| None,
+                    connected: &connected,
+                    progress: &|_| (),
+                };
+                restore_nearby(
+                    &dir,
+                    &|| Some(Permit::scan_at(vec![code.addr])),
+                    words,
+                    &pw,
+                    "New phone",
+                    &ask,
+                    &mine,
+                )
+            } else {
+                restore(
+                    &dir,
+                    Permit::connect(code.addr),
+                    &code,
+                    words,
+                    &pw,
+                    "New phone",
+                    &connected,
+                    &|_| (),
+                )
+            };
+            s2.store(true, Ordering::Relaxed);
+            (got, shown.into_inner().unwrap())
+        });
+        let asked = Mutex::new(None);
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|_| (),
+            picked: &|| None,
+            confirm: &|_, _, _| true,
+            allow: &|n, c| {
+                *asked.lock().unwrap() = Some((n.to_owned(), c));
+                allow
+            },
+            progress: &|_| (),
+        };
+        // The old device always ends: served, told why the other stopped, or Cancel.
+        let hosted = w.run(&t.a, &|| None, &ask, &stop);
+        let (got, shown) = new_device.join().unwrap();
+        let asked = asked.into_inner().unwrap();
+        // Both screens showed the same number, each naming the other.
+        if let (Some((n, c)), Some((m, d))) = (&shown, &asked) {
+            assert_eq!((n.as_str(), m.as_str(), c), ("Old phone", "New phone", d));
+        }
+        (got, hosted, fresh, asked)
     }
 
     #[test]
     fn a_new_device_restores_with_only_the_words_and_the_password() {
-        let t = crate::testkit::two();
-        let id = crate::testkit::note(&t.a, "bank", "PIN 4821");
+        let t = two();
+        let id = note(&t.a, "bank", "PIN 4821");
         let sk = t.sk.clone();
-        let (got, hosted, dir) = restore_from(&t, &sk, sk.clone(), &t.pw);
-        assert!(got.unwrap());
-        hosted.unwrap();
-        let v = crate::testkit::open(dir.path(), &sk, &t.pw);
-        assert_eq!(v.id, t.a.id);
-        assert_eq!(crate::testkit::text(&v, &id), "PIN 4821");
+        for look in [false, true] {
+            let (got, hosted, dir, asked) = restore_asking(&t, sk.clone(), &t.pw, true, true, look);
+            assert!(got.unwrap());
+            assert!(hosted.unwrap().hosted);
+            assert!(asked.is_some());
+            let v = crate::testkit::open(dir.path(), &sk, &t.pw);
+            assert_eq!(v.id, t.a.id);
+            assert_eq!(text(&v, &id), "PIN 4821");
+        }
     }
 
     #[test]
     fn a_wrong_password_or_other_words_restore_nothing() {
-        let t = crate::testkit::two();
+        let t = two();
         let sk = t.sk.clone();
         let wrong: String = t.pw.chars().rev().collect();
-        let (got, hosted, dir) = restore_from(&t, &sk, sk.clone(), &wrong);
+        let (got, hosted, dir, _) = restore_asking(&t, sk.clone(), &wrong, true, true, false);
         assert!(!got.unwrap());
         assert!(!Library::has_vaults(dir.path()));
         // The old phone is told, and stops: it does not keep waiting.
@@ -1567,7 +2395,7 @@ mod tests {
             "{hosted:?}"
         );
         let other = crate::testkit::other_words(&sk);
-        let (got, hosted, dir) = restore_from(&t, &sk, other, &t.pw);
+        let (got, hosted, dir, _) = restore_asking(&t, other, &t.pw, true, true, false);
         assert!(matches!(got, Err(Error::WrongSecretKey)));
         assert!(!Library::has_vaults(dir.path()));
         assert!(
@@ -1577,128 +2405,88 @@ mod tests {
     }
 
     #[test]
-    fn a_host_without_the_words_turns_a_restoring_device_away() {
-        let t = crate::testkit::two();
-        let mirror = tempfile::tempdir().unwrap();
-        let fresh = tempfile::tempdir().unwrap();
-        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
-        let code = h.code.clone();
-        let prepared = host_prepare(&t.a, None, mirror.path()).unwrap();
-        let server = std::thread::spawn(move || {
-            host_accept(h, prepared, &AtomicBool::new(false), &|_| ()).map(|_| ())
-        });
-        let got = restore(
-            fresh.path(),
-            Permit::connect(code.addr),
-            &code,
-            t.sk.clone(),
-            &t.pw,
-            &|_| (),
-            &|_| (),
-        );
-        assert!(got.is_err());
-        cancel_live();
-        drop(server);
-    }
-
-    #[test]
-    fn a_restoring_device_waits_for_the_host_to_allow_it() {
-        let t = crate::testkit::two();
+    fn a_restoring_device_waits_for_the_old_one_to_allow_it() {
+        let t = two();
         let sk = t.sk.clone();
-        let (got, hosted, dir) = restore_asking(&t, &sk, sk.clone(), &t.pw, false);
+        let (got, hosted, dir, asked) = restore_asking(&t, sk.clone(), &t.pw, true, false, false);
         // Turned down: the new phone is told the other stopped, and gets nothing.
-        assert!(matches!(got, Err(Error::Corrupt("p2p peer stopped"))));
+        assert!(
+            matches!(got, Err(Error::Corrupt("p2p peer stopped"))),
+            "{got:?}"
+        );
         assert!(
             matches!(hosted, Err(Error::Corrupt("p2p restore declined"))),
             "{hosted:?}"
         );
+        assert!(asked.is_some());
         assert!(!Library::has_vaults(dir.path()));
-        // Allowed: it restores.
-        let (got, hosted, _dir) = restore_asking(&t, &sk, sk.clone(), &t.pw, true);
-        assert!(got.unwrap());
-        hosted.unwrap();
     }
 
     #[test]
-    fn a_restoring_session_is_not_served_before_it_is_allowed() {
-        let t = crate::testkit::two();
-        let mirror = tempfile::tempdir().unwrap();
-        let fresh = tempfile::tempdir().unwrap();
-        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
-        let code = h.code.clone();
-        let prepared = host_prepare(&t.a, Some(&t.sk), mirror.path()).unwrap();
-        let server = std::thread::spawn(move || {
-            let s = host_accept(h, prepared, &AtomicBool::new(false), &|_| ()).unwrap();
-            assert!(s.restoring());
-            s.serve().map(|_| ())
-        });
-        let got = restore(
-            fresh.path(),
-            Permit::connect(code.addr),
-            &code,
-            t.sk.clone(),
-            &t.pw,
-            &|_| (),
-            &|_| (),
+    fn with_restore_off_a_new_device_finds_nothing_and_is_refused() {
+        let t = two();
+        let sk = t.sk.clone();
+        // Looking: nothing answers to the words.
+        let (got, hosted, dir, asked) = restore_asking(&t, sk.clone(), &t.pw, false, true, true);
+        assert!(
+            matches!(got, Err(Error::Corrupt("p2p cancelled"))),
+            "{got:?}"
         );
-        assert!(matches!(
-            server.join().unwrap(),
-            Err(Error::Corrupt("p2p restore not allowed"))
-        ));
+        assert!(
+            matches!(hosted, Err(Error::Corrupt("p2p cancelled"))),
+            "{hosted:?}"
+        );
+        assert!(asked.is_none());
+        assert!(!Library::has_vaults(dir.path()));
+        // With the QR anyway: refused.
+        let (got, _hosted, dir, asked) = restore_asking(&t, sk, &t.pw, false, true, false);
         assert!(got.is_err());
-        assert!(!Library::has_vaults(fresh.path()));
+        assert!(asked.is_none());
+        assert!(!Library::has_vaults(dir.path()));
     }
 
     #[test]
-    fn with_restore_off_the_words_find_nothing() {
+    fn probes_from_restoring_devices_follow_the_switch() {
         let t = two();
         let mirror = tempfile::tempdir().unwrap();
-        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
-        let addr = h.code.addr;
-        let code = h.code.clone();
-        let crate::testkit::Two { a, b, sk, pw, .. } = t;
-        // Restore off: the Recovery Key is there, the person has not turned it on.
-        let prepared = host_prepare(&a, Some(&sk), mirror.path()).unwrap();
-        prepared.restore_on.store(false, Ordering::Relaxed);
-        let flag = prepared.restore_on.clone();
-        let stop = std::sync::Arc::new(AtomicBool::new(false));
+        let w = waiting(&t.a, Some(&t.sk), "A", mirror.path());
+        let flag = w.help_restore();
+        flag.store(false, Ordering::Relaxed);
+        let addr = w.code.addr;
+        let Two { a, b, sk, dirs, .. } = t;
+        let stop = Arc::new(AtomicBool::new(false));
         let s2 = stop.clone();
-        let server = std::thread::spawn(move || host_accept(h, prepared, &s2, &|_| ()).map(|_| ()));
+        let host = std::thread::spawn(move || run_as(w, &a, vec![], &Person::says(true), &s2));
+        // Someone who connects and says nothing holds up no one.
+        let _silent: Vec<_> = (0..4).map(|_| TcpStream::connect(addr).unwrap()).collect();
+        let started = Instant::now();
         assert!(probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).is_empty());
-        // The same vault still finds it.
         assert_eq!(probe_all(&[addr], &pairing_key(&b), false).len(), 1);
-        // A restoring device that has the code anyway (the QR) is refused.
-        let fresh = tempfile::tempdir().unwrap();
-        let got = restore(
-            fresh.path(),
-            Permit::connect(code.addr),
-            &code,
-            sk.clone(),
-            &pw,
-            &|_| (),
-            &|_| (),
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "{:?}",
+            started.elapsed()
         );
-        assert!(got.is_err());
-        assert!(!Library::has_vaults(fresh.path()));
-        // Turned on while waiting: now the words find it.
         flag.store(true, Ordering::Relaxed);
         assert_eq!(
             probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).len(),
             1
         );
+        let stranger = crate::testkit::other_words(&sk);
+        assert!(probe_all(&[addr], &kdf::restore_pairing_key(&stranger), true).is_empty());
         stop.store(true, Ordering::Relaxed);
-        assert!(server.join().unwrap().is_err());
+        assert!(host.join().unwrap().is_err());
+        drop(dirs);
     }
 
     #[test]
     fn cancel_stops_the_wait() {
         let t = two();
         let mirror = tempfile::tempdir().unwrap();
-        let h = host(Permit::listen(Ipv4Addr::LOCALHOST)).unwrap();
-        let prepared = host_prepare(&t.a, None, mirror.path()).unwrap();
-        let stop = AtomicBool::new(true);
+        let w = waiting(&t.a, None, "A", mirror.path());
         let started = Instant::now();
-        assert!(host_accept(h, prepared, &stop, &|_| ()).is_err());
+        let r = run_as(w, &t.a, vec![], &Person::says(true), &AtomicBool::new(true));
+        assert!(r.is_err());
         assert!(started.elapsed() < Duration::from_secs(1));
     }
 }

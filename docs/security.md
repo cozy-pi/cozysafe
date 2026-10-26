@@ -159,6 +159,26 @@ everything, so neither cloud backup nor device-to-device transfer copies it. The
 are sealed, but a cloud copy would outlive a deleted vault and be one more place to
 attack. Moving a vault is done by the app's own backup file or sync.
 
+## Syncing with a nearby device
+
+(Details: [ADR 0003](adr/0003-sync.md), "P2P security".)
+
+- **Nothing connects on its own.** The person opens Sync → Sync with a nearby device and
+  allows looking on this Wi-Fi, by address, each time; the wait ends after 5 minutes or
+  when the page closes.
+- **Both people confirm, comparing a number** (0.1.73), like Bluetooth pairing: both
+  screens ask "Sync with iPhone 15 Pro Max?" next to the same 3-digit number, and nothing
+  is served until both tapped Sync; Cancel on either stops both. Strangers are already
+  kept out by the vault's key (they can neither find this device nor finish a
+  handshake); the number makes sure the person syncs with the device they mean, when
+  several hold the vault.
+- **Names only after the proof.** A device's name (its model, never the name its owner
+  gave it) crosses only inside the sealed channel, after both proved the vault; a probe's
+  answer holds no name and no stable id. Names from the other device are cleaned before
+  they are shown or logged.
+- **A new phone restoring** is found only while "Help a new device restore" is on, and
+  served only after Allow (same number on both screens).
+
 ## Quantum computers
 
 - Shor's algorithm breaks public-key cryptography (RSA, elliptic curves: signatures, key
