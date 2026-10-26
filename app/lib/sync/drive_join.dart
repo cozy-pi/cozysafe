@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../screens/common.dart';
 import '../screens/set_pin.dart';
+import '../screens/tour.dart' show TourKind;
 import '../screens/vault_home.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
@@ -124,7 +125,8 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       );
       if (!mounted) return;
       await Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault)),
+        MaterialPageRoute<void>(
+            builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, tour: TourKind.restored)),
         (_) => false,
       );
     } catch (_) {

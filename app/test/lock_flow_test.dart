@@ -3,11 +3,14 @@
 // the Emergency Kit confirmation, pages kept under the lock. The Rust core is replaced by a fake with state.
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cozysafe/biometric.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
+import 'package:cozysafe/lock_guard.dart';
 import 'package:cozysafe/lock_resume.dart';
+import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/screens/kit_password.dart';
 import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
@@ -403,5 +406,138 @@ void main() {
     await _settle(t);
     await leaveAndComeBack(t);
     expect(_fake.biometricCalls, 1);
+  });
+
+  group('Lock as soon as I leave the app', () {
+    // The clocks AwayClock reads, moved by hand: a monotonic one and the wall clock.
+    var mono = Duration.zero;
+    var wall = DateTime(2026, 10, 26, 9);
+    setUp(() {
+      Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
+      mono = Duration.zero;
+      wall = DateTime(2026, 10, 26, 9);
+      AwayClock.monotonic = () => mono;
+      AwayClock.wall = () => wall;
+    });
+    tearDown(() {
+      Prefs.dir = '';
+      AwayClock.monotonic = () => Duration.zero;
+      AwayClock.wall = DateTime.now;
+      debugOwnerConfirmed = false;
+      SettingsScreen.debugSyncLog = null;
+    });
+
+    Future<void> leave(WidgetTester t) async {
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await t.pump();
+    }
+
+    Future<void> comeBack(WidgetTester t) async {
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await _settle(t);
+    }
+
+    Future<void> open(WidgetTester t) async {
+      await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
+      await t.pump();
+      await _tapDigits(t, _pin);
+      await _settle(t);
+      expect(find.byType(VaultHomeScreen), findsOneWidget);
+    }
+
+    testWidgets('on (the default): leaving locks at once', (t) async {
+      expect(Settings.lockOnLeave, isTrue);
+      await open(t);
+      await leave(t);
+      await comeBack(t);
+      expect(find.byType(UnlockScreen), findsOneWidget);
+    });
+
+    testWidgets('off: back within the auto-lock time stays open; away that long locks before anything shows', (t) async {
+      Settings.lockOnLeave = false;
+      Settings.autoLockMinutes = 2;
+      await open(t);
+      await leave(t);
+      mono += const Duration(minutes: 1, seconds: 50);
+      wall = wall.add(const Duration(minutes: 1, seconds: 50));
+      await comeBack(t);
+      expect(find.byType(UnlockScreen), findsNothing);
+      expect(find.byType(VaultHomeScreen), findsOneWidget);
+      // Time away is counted from leaving, not from the last touch.
+      await leave(t);
+      mono += const Duration(minutes: 2);
+      wall = wall.add(const Duration(minutes: 2));
+      await comeBack(t);
+      expect(find.byType(UnlockScreen), findsOneWidget);
+    });
+
+    testWidgets('off: setting the clock back does not keep it open', (t) async {
+      Settings.lockOnLeave = false;
+      Settings.autoLockMinutes = 1;
+      await open(t);
+      await leave(t);
+      mono += const Duration(minutes: 3);
+      wall = wall.subtract(const Duration(hours: 5));
+      await comeBack(t);
+      expect(find.byType(UnlockScreen), findsOneWidget);
+    });
+
+    testWidgets('off: still locks at the auto-lock time while the app runs in the background', (t) async {
+      Settings.lockOnLeave = false;
+      Settings.autoLockMinutes = 1;
+      await open(t);
+      await leave(t);
+      await t.pump(const Duration(minutes: 1));
+      // Both clocks stand still here: only the timer can have locked it.
+      await comeBack(t);
+      expect(find.byType(UnlockScreen), findsOneWidget);
+    });
+
+    testWidgets('turning it off asks for the owner; turning it on does not', (t) async {
+      SettingsScreen.debugSyncLog = const [];
+      // The owner's phone (iPhone 15 Pro Max): the Left | Middle | Right switch needs its width.
+      t.view.physicalSize = const Size(430, 932) * 3;
+      t.view.devicePixelRatio = 3;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(
+          _app(SettingsScreen(
+            libraryDir: 'lib',
+            vault: () => const VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true),
+            canBiometric: false,
+            biometricOn: () => false,
+            onToggleBiometric: () async {},
+            onPassword: () async {},
+            onShowKit: () async {},
+            onBackup: () async {},
+            lastBackup: () => '',
+            onChangeIdentity: () async {},
+            onOpenTrash: () async {},
+            onNewVault: () async {},
+          )));
+      await _settle(t);
+      final row = find.byKey(const ValueKey('lock-on-leave-row'));
+      await t.scrollUntilVisible(row, 200, scrollable: find.byType(Scrollable).first);
+      await t.pumpAndSettle();
+      final toggle = find.descendant(of: row, matching: find.byType(Switch));
+      // The owner check fails (no Face ID here): it stays on.
+      await t.tap(toggle);
+      await _settle(t);
+      expect(Settings.lockOnLeave, isTrue);
+      // Confirmed: it goes off.
+      debugOwnerConfirmed = true;
+      await t.tap(toggle);
+      await _settle(t);
+      expect(Settings.lockOnLeave, isFalse);
+      expect(t.widget<Switch>(toggle).value, isFalse);
+      // On again: no check needed.
+      debugOwnerConfirmed = false;
+      await t.tap(toggle);
+      await _settle(t);
+      expect(Settings.lockOnLeave, isTrue);
+    });
   });
 }

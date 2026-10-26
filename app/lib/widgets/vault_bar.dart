@@ -182,7 +182,11 @@ class VaultBar extends StatelessWidget {
     this.home,
     this.onHoldHome,
     this.centre,
+    this.tabsKey,
   });
+
+  /// On the capsule of tabs (not the lock beside it): the quick tour points at it.
+  final Key? tabsKey;
 
   /// The + in the middle of the bar (Settings → Middle, owner 2026-10-24): the sections
   /// become icons with a small word and share the two sides of it.
@@ -217,6 +221,7 @@ class VaultBar extends StatelessWidget {
           if (lock case final lock?) ...[lock, const SizedBox(width: 4)],
           Expanded(
             child: Glass(
+              key: tabsKey,
               radius: Ui.bar / 2,
               child: SizedBox(
                 height: Ui.bar + 8,
@@ -243,6 +248,7 @@ class VaultBar extends StatelessWidget {
     // need it all.
     final capsule = Flexible(
           child: Glass(
+            key: tabsKey,
             radius: Ui.bar / 2,
             child: SizedBox(
               height: Ui.bar,
