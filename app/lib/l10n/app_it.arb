@@ -684,5 +684,7 @@
   "keyBackupTitle": "Conservare le 24 parole nel Portachiavi iCloud?",
   "keyBackupBody": "Un nuovo iPhone con il tuo account Apple chiederà solo la password della cassaforte. Chi si impossessa del tuo account Apple avrà anche le parole, e gli servirà comunque la password.",
   "keyBackupOn": "Conserva",
-  "keyBackupFound": "Compilato dal Portachiavi iCloud."
+  "keyBackupFound": "Compilato dal Portachiavi iCloud.",
+  "formatUndo": "Annulla",
+  "formatRedo": "Ripeti"
 }

@@ -904,5 +904,7 @@
   "keyBackupTitle": "Keep the 24 words in iCloud Keychain?",
   "keyBackupBody": "A new iPhone with your Apple account then asks only for the vault password. Whoever takes over your Apple account gets the words too, and still needs the password.",
   "keyBackupOn": "Keep",
-  "keyBackupFound": "Filled in from iCloud Keychain."
+  "keyBackupFound": "Filled in from iCloud Keychain.",
+  "formatUndo": "Undo",
+  "formatRedo": "Redo"
 }

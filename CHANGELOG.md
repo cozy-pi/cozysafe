@@ -48,6 +48,8 @@ Dates are UTC.
 - iPhone: Settings → Keep the 24 words in iCloud Keychain, off unless you turn it on (it
   asks for Face ID and says the trade). A new iPhone with your Apple account then fills
   the words in by itself and asks only for the password. Android comes later.
+- Notes: Undo and Redo at the start of the format bar while you type (also Cmd+Z and
+  Shift+Cmd+Z on a keyboard); they step back through formatting too.
 - An error log, always on: every failure is kept as a short code and a time (never
   names, content, keys or addresses), the last 200. Settings → Report a problem lists
   them, with Copy details and Feedback. A failed sync shows its code and Copy details.

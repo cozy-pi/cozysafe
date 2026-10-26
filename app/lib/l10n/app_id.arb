@@ -684,5 +684,7 @@
   "keyBackupTitle": "Simpan 24 kata di iCloud Keychain?",
   "keyBackupBody": "iPhone baru dengan akun Apple Anda lalu hanya meminta kata sandi brankas. Siapa pun yang mengambil alih akun Apple Anda juga mendapat kata-katanya, dan tetap perlu kata sandi.",
   "keyBackupOn": "Simpan",
-  "keyBackupFound": "Diisi dari iCloud Keychain."
+  "keyBackupFound": "Diisi dari iCloud Keychain.",
+  "formatUndo": "Urungkan",
+  "formatRedo": "Ulangi"
 }

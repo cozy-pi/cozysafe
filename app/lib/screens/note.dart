@@ -50,6 +50,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
   final _text = NoteTextController();
   /// The format bar shows over the keyboard while the text has the focus.
   final _focus = FocusNode();
+  final _undo = UndoHistoryController();
   String _loaded = '';
   bool _ready = false;
   bool _saving = false;
@@ -106,6 +107,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
     if (LockGuard.beforeLock == _saveNow) LockGuard.beforeLock = null;
     _text.dispose();
     _focus.dispose();
+    _undo.dispose();
     super.dispose();
   }
 
@@ -245,6 +247,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                   padding: const EdgeInsets.fromLTRB(24, 6, 24, 12),
                   child: TextField(
                     controller: _text,
+                    undoController: _undo,
                     focusNode: _focus,
                     contextMenuBuilder: _menu,
                     autofocus: widget.item == null,
@@ -270,7 +273,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
               if (_ready && _focus.hasFocus)
                 Padding(
                   padding: EdgeInsets.fromLTRB(10, 0, 10, 8 + MediaQuery.paddingOf(context).bottom),
-                  child: Center(child: NoteFormatBar(controller: _text, onDoneTyping: _focus.unfocus)),
+                  child: Center(child: NoteFormatBar(controller: _text, undo: _undo, onDoneTyping: _focus.unfocus)),
                 )
               else
                 // Otherwise the note's buttons, where the vault bar is: Done saves and

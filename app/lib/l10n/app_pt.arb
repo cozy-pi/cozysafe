@@ -684,5 +684,7 @@
   "keyBackupTitle": "Guardar as 24 palavras no Porta-chaves do iCloud?",
   "keyBackupBody": "Um iPhone novo com a sua conta Apple pedirá apenas a palavra-passe do cofre. Quem tomar a sua conta Apple fica também com as palavras e continua a precisar da palavra-passe.",
   "keyBackupOn": "Guardar",
-  "keyBackupFound": "Preenchido a partir do Porta-chaves do iCloud."
+  "keyBackupFound": "Preenchido a partir do Porta-chaves do iCloud.",
+  "formatUndo": "Anular",
+  "formatRedo": "Refazer"
 }

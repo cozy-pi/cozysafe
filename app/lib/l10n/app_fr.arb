@@ -684,5 +684,7 @@
   "keyBackupTitle": "Garder les 24 mots dans le trousseau iCloud ?",
   "keyBackupBody": "Un nouvel iPhone avec votre compte Apple ne demandera que le mot de passe du coffre. Qui s'empare de votre compte Apple a aussi les mots, et il lui faut encore le mot de passe.",
   "keyBackupOn": "Garder",
-  "keyBackupFound": "Rempli depuis le trousseau iCloud."
+  "keyBackupFound": "Rempli depuis le trousseau iCloud.",
+  "formatUndo": "Annuler",
+  "formatRedo": "Rétablir"
 }

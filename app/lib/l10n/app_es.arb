@@ -684,5 +684,7 @@
   "keyBackupTitle": "¿Guardar las 24 palabras en el Llavero de iCloud?",
   "keyBackupBody": "Un iPhone nuevo con tu cuenta de Apple solo pedirá la contraseña de la caja fuerte. Quien se haga con tu cuenta de Apple tendrá también las palabras y aún necesitará la contraseña.",
   "keyBackupOn": "Guardar",
-  "keyBackupFound": "Rellenado desde el Llavero de iCloud."
+  "keyBackupFound": "Rellenado desde el Llavero de iCloud.",
+  "formatUndo": "Deshacer",
+  "formatRedo": "Rehacer"
 }

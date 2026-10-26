@@ -684,5 +684,7 @@
   "keyBackupTitle": "เก็บ 24 คำไว้ในพวงกุญแจ iCloud ไหม",
   "keyBackupBody": "iPhone เครื่องใหม่ที่ใช้บัญชี Apple เดียวกันจะขอแค่รหัสผ่านตู้เซฟ ใครที่ยึดบัญชี Apple ของคุณได้จะได้คำไปด้วย แต่ยังต้องใช้รหัสผ่าน",
   "keyBackupOn": "เก็บ",
-  "keyBackupFound": "กรอกจากพวงกุญแจ iCloud แล้ว"
+  "keyBackupFound": "กรอกจากพวงกุญแจ iCloud แล้ว",
+  "formatUndo": "เลิกทำ",
+  "formatRedo": "ทำซ้ำ"
 }

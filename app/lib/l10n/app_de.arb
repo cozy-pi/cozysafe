@@ -684,5 +684,7 @@
   "keyBackupTitle": "24 Wörter im iCloud-Schlüsselbund behalten?",
   "keyBackupBody": "Ein neues iPhone mit Ihrem Apple-Account fragt dann nur nach dem Tresorpasswort. Wer Ihren Apple-Account übernimmt, hat die Wörter auch, braucht aber noch das Passwort.",
   "keyBackupOn": "Behalten",
-  "keyBackupFound": "Aus dem iCloud-Schlüsselbund ausgefüllt."
+  "keyBackupFound": "Aus dem iCloud-Schlüsselbund ausgefüllt.",
+  "formatUndo": "Widerrufen",
+  "formatRedo": "Wiederholen"
 }

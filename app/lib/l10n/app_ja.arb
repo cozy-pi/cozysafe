@@ -684,5 +684,7 @@
   "keyBackupTitle": "24 個の単語を iCloud キーチェーンに保管しますか？",
   "keyBackupBody": "同じ Apple アカウントの新しい iPhone では金庫のパスワードだけで済みます。Apple アカウントを乗っ取られると単語も渡りますが、パスワードは依然として必要です。",
   "keyBackupOn": "保管する",
-  "keyBackupFound": "iCloud キーチェーンから入力しました。"
+  "keyBackupFound": "iCloud キーチェーンから入力しました。",
+  "formatUndo": "取り消す",
+  "formatRedo": "やり直す"
 }
