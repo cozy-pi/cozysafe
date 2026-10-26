@@ -282,8 +282,6 @@ class _SyncProgressState extends State<SyncProgress>
   }
 
   Widget _allowCard(AppLocalizations l, CsColors c) {
-    void answer(bool allow) => _answer(allow);
-
     return Column(
       key: const ValueKey('sync-allow-card'),
       mainAxisSize: MainAxisSize.min,
@@ -295,25 +293,11 @@ class _SyncProgressState extends State<SyncProgress>
         const SizedBox(height: 18),
         _Number(key: const ValueKey('sync-allow-check'), text: l.syncConfirmNumber(_number)),
         const SizedBox(height: 8),
-        Text(l.syncRestoreAllowNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
-        const SizedBox(height: 24),
-        Row(children: [
-          Expanded(
-            child: OutlinedButton(
-              key: const ValueKey('sync-allow-no'),
-              onPressed: _answered ? null : () => answer(false),
-              child: Text(l.syncRestoreAllowNo),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton(
-              key: const ValueKey('sync-allow-yes'),
-              onPressed: _answered ? null : () => answer(true),
-              child: Text(l.syncRestoreAllowYes),
-            ),
-          ),
-        ]),
+        Text(l.syncConfirmHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+        if (_answered) ...[
+          const SizedBox(height: 24),
+          const SizedBox(width: 160, child: LinearProgressIndicator()),
+        ],
       ],
     );
   }
@@ -460,8 +444,6 @@ class _SyncProgressState extends State<SyncProgress>
       ),
       const SizedBox(height: 26),
       Text(title, key: const ValueKey('sync-progress'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 6),
-      Text(e.kind == sync.SyncStep.removing ? l.syncRemovingWhat : l.syncWhat, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14.5, height: 1.35)),
       const SizedBox(height: 22),
       LinearProgressIndicator(
         value: bytesTotal > 0 ? (bytes / bytesTotal).clamp(0, 1) : (e.total > 0 ? e.done / e.total : null),
@@ -545,7 +527,7 @@ class _SyncProgressState extends State<SyncProgress>
               const SizedBox(height: 18),
               _Number(key: const ValueKey('sync-check'), text: l.syncConfirmNumber(_number)),
               const SizedBox(height: 8),
-              Text(l.syncCheckNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+              Text(l.syncConfirmHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
               if (widget.restoring) ...[
                 const SizedBox(height: 10),
                 Text(l.restoreTapAllow,
@@ -555,8 +537,10 @@ class _SyncProgressState extends State<SyncProgress>
               ],
               const SizedBox(height: 28),
               const SizedBox(width: 160, child: LinearProgressIndicator()),
-              const SizedBox(height: 10),
-              Text(l.syncWorking, style: TextStyle(color: c.muted)),
+              if (!widget.restoring) ...[
+                const SizedBox(height: 10),
+                Text(l.syncWorking, style: TextStyle(color: c.muted)),
+              ],
             ],
           ),
         sync.SyncStep.done => _Status(
@@ -603,7 +587,26 @@ class _SyncProgressState extends State<SyncProgress>
       child: Column(
         children: [
           Expanded(child: Center(child: SingleChildScrollView(child: body))),
-          if (e?.kind == sync.SyncStep.confirm && !_answered)
+          if (e?.kind == sync.SyncStep.askRestore && !_answered)
+            // A new device restoring: Allow or Don't allow, at the bottom as for Sync.
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  key: const ValueKey('sync-allow-no'),
+                  onPressed: () => _answer(false),
+                  child: Text(l.syncRestoreAllowNo),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  key: const ValueKey('sync-allow-yes'),
+                  onPressed: () => _answer(true),
+                  child: Text(l.syncRestoreAllowYes),
+                ),
+              ),
+            ])
+          else if (e?.kind == sync.SyncStep.confirm && !_answered)
             // Both buttons within the thumb's reach; Sync only counts once both said it.
             Row(children: [
               Expanded(
@@ -680,8 +683,10 @@ class _Status extends StatelessWidget {
 /// This phone and the other end (Google Drive or another device), with dots running
 /// the way the items go.
 class _Ends extends StatelessWidget {
-  const _Ends({required this.flow, required this.place, required this.direction});
+  const _Ends({required this.flow, required this.place, required this.direction, this.still = false});
   final Animation<double> flow;
+  /// Drawn at rest (no light, no breathing).
+  final bool still;
   final SyncPlace place;
   /// 1: from this phone to the other end; -1: back; 0: looking (both ends breathe).
   final int direction;
@@ -696,7 +701,7 @@ class _Ends extends StatelessWidget {
     const mine = blue;
     const theirs = green;
     final packets = direction > 0 ? mine : theirs;
-    final still = MediaQuery.disableAnimationsOf(context);
+    final still = this.still || MediaQuery.disableAnimationsOf(context);
     Widget end(IconData icon, Color color, double scale, double ring) => Transform.scale(
           scale: scale,
           child: Container(
@@ -731,7 +736,16 @@ class _Ends extends StatelessWidget {
           SizedBox(
             width: 112,
             height: 64,
-            child: CustomPaint(painter: _FlowPainter(t: t, direction: direction, color: packets, track: c.border)),
+            // The lock sits on top of the arch and the packets pass behind it: encrypted
+            // on the way (owner 2026-10-26: a picture instead of a sentence).
+            child: Stack(clipBehavior: Clip.none, children: [
+              Positioned.fill(child: CustomPaint(painter: _FlowPainter(t: t, direction: direction, color: packets, track: c.border, still: this.still))),
+              Positioned(
+                left: 56 - _PathLock.size / 2,
+                top: 64 * _FlowPainter.top - _PathLock.size / 2,
+                child: const _PathLock(key: ValueKey('sync-path-lock')),
+              ),
+            ]),
           ),
           end(place == SyncPlace.drive ? Icons.cloud_rounded : Icons.phone_android_rounded, theirs,
               1 + .05 * there - .025 * breathe, there),
@@ -741,12 +755,70 @@ class _Ends extends StatelessWidget {
   }
 }
 
+/// A closed padlock in a circle, on the way between the two ends.
+class _PathLock extends StatelessWidget {
+  const _PathLock({super.key});
+  static const size = 30.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        // The page's own colour, so the packets disappear behind it.
+        color: Theme.of(context).scaffoldBackgroundColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: c.border, width: 1.5),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: dark ? .5 : .12), blurRadius: 6, offset: const Offset(0, 1.5))],
+      ),
+      child: Icon(Icons.lock_rounded, size: 16, color: dark ? const Color(0xFFFFD60A) : const Color(0xFFE5A100)),
+    );
+  }
+}
+
+/// This device and the other end with the lock between them, moving on its own: for the
+/// screens around a session (the Sync screen, while waiting).
+class SyncLink extends StatefulWidget {
+  const SyncLink({super.key, this.place = SyncPlace.device, this.moving = true});
+  final SyncPlace place;
+  /// False: still (a picture), true: looking (a light runs along the way).
+  final bool moving;
+
+  @override
+  State<SyncLink> createState() => _SyncLinkState();
+}
+
+class _SyncLinkState extends State<SyncLink> with SingleTickerProviderStateMixin {
+  late final AnimationController _flow = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.moving) _flow.repeat();
+  }
+
+  @override
+  void dispose() {
+    _flow.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _Ends(flow: _flow, place: widget.place, direction: 0, still: !widget.moving);
+}
+
 /// The way between the two ends: a dotted arch, and small sealed packets travelling along
 /// it in the direction of the sync, in from nothing and out as they land. While looking,
 /// a light runs back and forth along the arch instead.
 class _FlowPainter extends CustomPainter {
-  _FlowPainter({required this.t, required this.direction, required this.color, required this.track});
+  _FlowPainter({required this.t, required this.direction, required this.color, required this.track, this.still = false});
+  final bool still;
   static const packets = 3;
+  /// The top of the arch, as a share of the height (where the lock sits).
+  static const top = .24;
   final double t;
   final int direction;
   final Color color;
@@ -761,6 +833,7 @@ class _FlowPainter extends CustomPainter {
     for (var i = 0; i <= 10; i++) {
       canvas.drawCircle(_at(size, i / 10), 1.6, dot);
     }
+    if (still) return;
     if (direction == 0) {
       // Back and forth, eased: looking for what changed.
       final at = _at(size, Curves.easeInOut.transform(1 - (t * 2 - 1).abs()));
@@ -804,7 +877,7 @@ class _FlowPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FlowPainter old) =>
-      old.t != t || old.direction != direction || old.color != color || old.track != track;
+      old.t != t || old.direction != direction || old.color != color || old.track != track || old.still != still;
 }
 
 /// The number both screens show, big, to compare at a glance.

@@ -787,7 +787,9 @@ void main() {
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
-  _screen('settings', 'Cài đặt: Đồng bộ lên đầu, kèm lần cuối', () => settings(vault),
+  _screen('settings', 'Cài đặt: nhóm Sao lưu & đồng bộ ở đầu (Đồng bộ kèm lần cuối, Sao lưu ra tệp)', () => settings(vault),
+      change: 'Mới: Sao lưu ra tệp chung nhóm với Đồng bộ',
+      marks: [() => find.byKey(const ValueKey('sync-row')), () => find.byKey(const ValueKey('backup-now'))],
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
       act: (t) async {
@@ -877,15 +879,9 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -400));
     await t.pump();
   });
-  _screen('sync-nearby-help-restore', 'Máy cũ: bật "Giúp máy mới khôi phục" ngay trên màn hình chờ', nearby,
-      marks: [() => find.byKey(const ValueKey('sync-help-restore'))],
-      setup: () => NearbyPage.debugHosting = hosting,
-      act: (t) async {
-    await t.tap(find.byKey(const ValueKey('sync-help-restore')));
-    await t.pump(const Duration(milliseconds: 300));
-  });
-  _screen('sync-allow-restore', 'Máy cũ: iPhone 16 xin khôi phục — Cho phép hay Không cho, kèm mã', nearby,
-      marks: [() => find.byKey(const ValueKey('sync-allow-card'))],
+  _screen('sync-allow-restore', 'Máy cũ (đang chờ đồng bộ, không cần bật gì): iPhone 16 xin khôi phục — đối chiếu mã, Cho phép hay Không cho', nearby,
+      change: 'Mới: bỏ công tắc "Giúp máy mới khôi phục"; máy cũ chỉ cần mở màn chờ, vẫn phải đối chiếu mã và bấm Cho phép',
+      marks: [() => find.byKey(const ValueKey('sync-allow-card')), () => find.byKey(const ValueKey('sync-allow-yes'))],
       setup: () {
     NearbyPage.debugHosting = hosting;
     NearbyPage.debugEvents = Stream.value(named(SyncStep.askRestore, 'iPhone 16', 318));
@@ -898,6 +894,12 @@ void main() {
       )));
   _screen('sync-restore-connected', 'Máy mới (khôi phục): đã kết nối với máy cũ, chờ máy đó cho phép', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(named(SyncStep.connected, 'iPhone 15 Pro Max', 318)), onSynced: () {})),
       marks: [() => find.byKey(const ValueKey('sync-tap-allow'))]);
+  _screen('sync-peer-wrong-password', 'Máy cũ: máy mới nhập sai mật khẩu — máy cũ dừng, chỉ mới gửi ổ khoá của két', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.peerWrongPassword)), onSynced: () {})));
+  _screen('restore-wrong-password', 'Máy mới: sai mật khẩu', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.wrongPassword)), onSynced: () {})));
+  _screen('sync-device-sending', 'Máy gần đây: đang gửi — ổ khoá trên đường truyền', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.sending, done: 21, total: 90, bytes: 64 << 20, bytesTotal: 230 << 20)), onSynced: () {})),
+      change: 'Mới: ổ khoá giữa đường truyền, gói dữ liệu đi qua sau ổ khoá',
+      marks: [() => find.byKey(const ValueKey('sync-path-lock'))],
+      setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3));
   _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
   _screen('sync-other-vault', 'Máy kia có két khác', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.otherVault)), onSynced: () {})));
   _screen('sync-unreachable', 'Không tới được máy kia', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.unreachable)), onSynced: () {})));
@@ -1038,7 +1040,7 @@ void main() {
   const settingsTips = [
     ('sync', 'nhóm Đồng bộ'),
     ('security', 'nhóm Bảo mật'),
-    ('backup', 'Sao lưu dữ liệu'),
+    ('backup', 'Sao lưu ra tệp'),
     ('guide', 'dòng Hướng dẫn sử dụng: xem lại bất cứ lúc nào'),
   ];
   for (final (i, (name, caption)) in settingsTips.indexed) {
@@ -1253,9 +1255,7 @@ void main() {
     await t.enterText(find.byType(TextField).first, 'lamp river');
     await t.pump();
   });
-  _screen('change-password', 'Đổi mật khẩu: một dòng nói không mã hoá lại nội dung', () => const BackupPasswordScreen(libraryDir: '', change: true),
-      change: 'Mới: dòng "không mã hoá lại những gì đã có"',
-      marks: [() => find.byKey(const ValueKey('change-no-reencrypt'))]);
+  _screen('change-password', 'Đổi mật khẩu', () => const BackupPasswordScreen(libraryDir: '', change: true));
   void useWords() => NewVaultScreen.debugWords = words;
   Future<void> tapKey(WidgetTester t, String key) async {
     await t.ensureVisible(find.byKey(ValueKey(key)));

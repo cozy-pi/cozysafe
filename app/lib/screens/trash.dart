@@ -199,7 +199,7 @@ class _TrashScreenState extends State<TrashScreen> {
                         child: CustomScrollView(
                           key: const ValueKey('trash-list'),
                           slivers: [
-                            SliverToBoxAdapter(child: _Lead(held: _held.isNotEmpty)),
+                            const SliverToBoxAdapter(child: _Lead()),
                             for (final s in _sections)
                               if (bySection[s]!.isNotEmpty) ...[
                                 SliverToBoxAdapter(child: _SectionTitle(sectionLabel(l, s), bySection[s]!.length)),
@@ -243,11 +243,28 @@ class _TrashScreenState extends State<TrashScreen> {
     );
   }
 
-  /// Photos and videos: squares edge to edge, 2 px apart, as in the vault's Library.
+  /// Photos and videos: squares 2 px apart, inside the page's one gutter with the cards'
+  /// rounded corners (owner 2026-10-26: one left edge for the whole page).
   Widget _grid(List<rust.ItemInfo> media) {
     final l = AppLocalizations.of(context);
-    return SliverGrid(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 2, crossAxisSpacing: 2),
+    const cols = 3;
+    final n = media.length;
+    final rows = (n + cols - 1) ~/ cols;
+    const r = Radius.circular(_cardRadius);
+    // The block's outer corners, on the tiles that make them.
+    BorderRadius corners(int i) {
+      final row = i ~/ cols, col = i % cols;
+      return BorderRadius.only(
+        topLeft: i == 0 ? r : Radius.zero,
+        topRight: row == 0 && (col == cols - 1 || i == n - 1) ? r : Radius.zero,
+        bottomLeft: row == rows - 1 && col == 0 ? r : Radius.zero,
+        bottomRight: i == n - 1 || (row == rows - 2 && col == cols - 1 && n % cols != 0) ? r : Radius.zero,
+      );
+    }
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(_gutter, 0, _gutter, 4),
+      sliver: SliverGrid(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: cols, mainAxisSpacing: 2, crossAxisSpacing: 2),
       delegate: SliverChildBuilderDelegate(
         (context, i) {
           final it = media[i];
@@ -256,7 +273,9 @@ class _TrashScreenState extends State<TrashScreen> {
             id: it.id,
             drag: _drag,
             onMenu: () => _menu(it),
-            child: _Tile(
+            child: ClipRRect(
+              borderRadius: corners(i),
+              child: _Tile(
               item: it,
               thumbnail: _thumb(it.id),
               days: l.daysLeft(trashDaysLeft(it)),
@@ -265,9 +284,11 @@ class _TrashScreenState extends State<TrashScreen> {
               selecting: _selecting,
               onTap: () => _open(it),
             ),
+            ),
           );
         },
         childCount: media.length,
+      ),
       ),
     );
   }
@@ -277,10 +298,10 @@ class _TrashScreenState extends State<TrashScreen> {
     final c = CsColors.of(context);
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+        padding: const EdgeInsets.fromLTRB(_gutter, 0, _gutter, 4),
         child: Material(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(_cardRadius),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
@@ -308,30 +329,30 @@ class _TrashScreenState extends State<TrashScreen> {
   }
 }
 
-/// The line on top: what happens here, and how to pick several.
+/// The page's one left edge (as the vault's lists): the lead, the titles, the grid and
+/// the cards all start here.
+const _gutter = 12.0;
+const _cardRadius = 14.0;
+
+/// The line on top: the 30-day rule, in a few words (owner 2026-10-26).
 class _Lead extends StatelessWidget {
-  const _Lead({required this.held});
-  final bool held;
+  const _Lead();
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      padding: const EdgeInsets.fromLTRB(_gutter, 4, _gutter, 0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: Icon(Icons.auto_delete_outlined, size: 20, color: c.muted),
-          ),
-          const SizedBox(width: 10),
+          Icon(Icons.auto_delete_outlined, size: 18, color: c.muted),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               key: const ValueKey('trash-lead'),
-              '${l.trashNote} ${l.trashHint}${held ? ' ${l.trashHeldNote}' : ''}',
-              style: TextStyle(color: c.muted, fontSize: 14.5, height: 1.4),
+              l.trashNote,
+              style: TextStyle(color: c.muted, fontSize: 14, height: 1.3),
             ),
           ),
         ],
@@ -347,7 +368,7 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+        padding: const EdgeInsets.fromLTRB(_gutter, 18, _gutter, 8),
         child: Text.rich(
           TextSpan(children: [
             TextSpan(text: text),

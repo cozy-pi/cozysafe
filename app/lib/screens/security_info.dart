@@ -15,7 +15,9 @@ class SecurityInfoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    Widget section(int i, String title, String body, Widget drawing, Color tint) => Padding(
+    // Title and drawing; words only where a mistake would cost the vault (owner
+    // 2026-10-26: pictures instead of sentences).
+    Widget section(int i, String title, String? body, Widget drawing, Color tint) => Padding(
           key: ValueKey('sec-$i'),
           padding: const EdgeInsets.only(top: 26),
           child: Column(
@@ -29,8 +31,10 @@ class SecurityInfoScreen extends StatelessWidget {
                 decoration: BoxDecoration(color: tint.withValues(alpha: .12), borderRadius: BorderRadius.circular(Ui.radius + 4)),
                 child: drawing,
               ),
-              const SizedBox(height: 12),
-              Text(body, style: TextStyle(fontSize: 16.5, height: 1.55, color: c.muted.withValues(alpha: 1))),
+              if (body != null) ...[
+                const SizedBox(height: 12),
+                Text(body, style: TextStyle(fontSize: 16.5, height: 1.55, color: c.muted.withValues(alpha: 1))),
+              ],
             ],
           ),
         );
@@ -41,17 +45,16 @@ class SecurityInfoScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
         children: [
-          Text(l.secIntro, style: const TextStyle(fontSize: 18, height: 1.5, fontWeight: FontWeight.w600)),
           // Plain words first (owner 2026-10-21: "clear and simple"); the technical
           // details stay folded at the end.
-          section(1, l.sec1Title, l.sec1Body,
+          section(1, l.sec1Title, null,
               _Flow([
                 _Node(Icons.folder_outlined, l.secItem, blue),
                 _Node(Icons.lock_rounded, l.secOwnKey, blue),
                 _Node(Icons.cloud_off_rounded, l.secNoServer, blue, strong: true),
               ]),
               blue),
-          section(2, l.secDailyTitle, l.secDailyBody,
+          section(2, l.secDailyTitle, null,
               _Flow([
                 _Node(Icons.dialpad_rounded, 'PIN', green),
                 const _Or(),
@@ -59,7 +62,7 @@ class SecurityInfoScreen extends StatelessWidget {
                 _Node(Icons.smartphone_rounded, l.secThisPhone, green, strong: true),
               ]),
               green),
-          section(3, l.secRecoverTitle, l.secRecoverBody,
+          section(3, l.secRecoverTitle, null,
               _Flow([
                 _Node(Icons.insert_drive_file_outlined, l.secBackupFile, purple),
                 const _Plus(),
@@ -69,7 +72,7 @@ class SecurityInfoScreen extends StatelessWidget {
                 _Node(Icons.phonelink_setup_rounded, l.secNewPhone, purple, strong: true),
               ]),
               purple),
-          section(4, l.sec5Title, l.sec5Body,
+          section(4, l.sec5Title, null,
               _Flow([
                 _NodeWidget(const LockGlyph(size: 24, color: Colors.white), l.secAutoLock, orange),
                 _Node(Icons.visibility_off_rounded, l.secHidden, orange),
@@ -77,7 +80,7 @@ class SecurityInfoScreen extends StatelessWidget {
                 _Node(Icons.screenshot_monitor_rounded, l.secNoCapture, orange),
               ], arrows: false),
               orange),
-          section(5, l.secKeepTitle, l.secKeepBody,
+          section(5, l.secKeepTitle, l.kitWarning,
               _Flow([_Node(Icons.cloud_off_rounded, l.secNoServer, red), _Node(Icons.key_rounded, l.secKit, red)], arrows: false),
               red),
           const SizedBox(height: 22),

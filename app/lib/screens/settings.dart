@@ -324,13 +324,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(l.minutesLong(m), style: TextStyle(fontWeight: m == _minutes ? FontWeight.w700 : FontWeight.w500)),
             ]),
           ),
-        PopupMenuItem(
-          enabled: false,
-          child: SizedBox(
-            width: 200,
-            child: Text(_lockOnLeave ? l.autoLockNote : l.autoLockNoteAway, style: TextStyle(color: CsColors.of(context).muted, fontSize: 12.5)),
-          ),
-        ),
       ],
     );
     if (picked == null) return;
@@ -360,7 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final picked = await pushPage<String>(
       context,
       title: l.language,
-      builder: (context) => _LanguageList(chosen: AppLanguage.chosen, system: l.languageSystem, systemNote: l.languageSystemNote),
+      builder: (context) => _LanguageList(chosen: AppLanguage.chosen, system: l.languageSystem),
     );
     if (picked == null || !mounted) return;
     await AppLanguage.choose(picked.isEmpty ? null : picked);
@@ -451,9 +444,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// What the User guide points at in Settings.
-  final _syncGroupKey = GlobalKey(debugLabel: 'sync-group');
+  final _syncRowKey = GlobalKey(debugLabel: 'sync-row');
   final _securityGroupKey = GlobalKey(debugLabel: 'security-group');
-  final _backupGroupKey = GlobalKey(debugLabel: 'backup-group');
+  final _backupRowKey = GlobalKey(debugLabel: 'backup-row');
   final _guideRowKey = GlobalKey(debugLabel: 'guide-row');
 
   /// Brings [key]'s widget into view with its top a third of the way down the list,
@@ -483,9 +476,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     TourTip tip(String id, GlobalKey key, String title, String body) =>
         TourTip(id: id, target: () => _visibleRect(key), prepare: () => _bringUp(key), title: title, body: body);
     return [
-      if (!kIsWeb) tip('sync', _syncGroupKey, l.syncTitle, l.tipSyncBody),
+      if (!kIsWeb) tip('sync', _syncRowKey, l.syncTitle, l.tipSyncBody),
       tip('security', _securityGroupKey, l.settingsSecurity, l.tipSecurityBody),
-      tip('backup', _backupGroupKey, l.settingsBackupData, l.tipBackupBody),
+      tip('backup', _backupRowKey, l.backupToFile, l.tipBackupBody),
       tip('guide', _guideRowKey, l.userGuide, l.tipGuideBody),
     ];
   }
@@ -533,18 +526,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
           _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), byKind: _byKind),
-          // First (owner 2026-10-25): syncing is done often and keeps a copy elsewhere.
-          if (!kIsWeb)
-            _Group(boxKey: _syncGroupKey, title: l.syncTitle, rows: [
-              _Row(
-                key: const ValueKey('sync-row'),
-                icon: SettingsSpot.sync.icon,
-                color: SettingsSpot.sync.color,
-                title: l.syncSettingsRow,
-                value: _lastSyncText(l),
-                onTap: _openSync,
+          // First (owner 2026-10-25): syncing is done often and keeps a copy elsewhere. The
+          // backup to a file sits with it (owner 2026-10-26: one "Backup & Sync" group); the
+          // Recovery Key and the password, which open a backup, live under Security.
+          _Group(title: l.settingsBackupSync, rows: [
+            if (!kIsWeb)
+              KeyedSubtree(
+                key: _syncRowKey,
+                child: _Row(
+                  key: const ValueKey('sync-row'),
+                  icon: SettingsSpot.sync.icon,
+                  color: SettingsSpot.sync.color,
+                  title: l.syncTitle,
+                  value: _lastSyncText(l),
+                  onTap: _openSync,
+                ),
               ),
-            ]),
+            _Row(
+              key: _backupRowKey,
+              icon: Icons.cloud_upload_outlined,
+              color: _Mau.xanh,
+              title: l.backupToFile,
+              trailing: FilledButton(
+                key: const ValueKey('backup-now'),
+                style: FilledButton.styleFrom(
+                  // Settings may use colour (owner): a soft tint of the backup blue, low
+                  // contrast in both modes, never a black or white slab.
+                  backgroundColor: _Mau.xanh.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? .22 : .12),
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF64A8FF) : _Mau.xanh,
+                  minimumSize: const Size(0, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  shape: const StadiumBorder(),
+                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                onPressed: () => _then(widget.onBackup),
+                child: Text(l.backupNow),
+              ),
+            ),
+          ]),
           // Help near the top, where people look for it (owner 2026-10-26), not under About.
           _Group(title: l.settingsHelp, rows: [
             // The guide again: tips on the vault's page, then here.
@@ -729,29 +748,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: _Mau.ngoc,
               title: l.securityTitle,
               onTap: _showSecurity,
-            ),
-          ]),
-          // Only the backup here (owner 2026-10-21): the Recovery Key and the password,
-          // which open it on a new phone, live under Security; the backup sheet names them.
-          _Group(boxKey: _backupGroupKey, title: l.settingsBackupData, rows: [
-            _Row(
-              icon: Icons.cloud_upload_outlined,
-              color: _Mau.xanh,
-              title: l.backupShort,
-              trailing: FilledButton(
-                style: FilledButton.styleFrom(
-                  // Settings may use colour (owner): a soft tint of the backup blue, low
-                  // contrast in both modes, never a black or white slab.
-                  backgroundColor: _Mau.xanh.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? .22 : .12),
-                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF64A8FF) : _Mau.xanh,
-                  minimumSize: const Size(0, 34),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  shape: const StadiumBorder(),
-                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
-                ),
-                onPressed: () => _then(widget.onBackup),
-                child: Text(l.backupNow),
-              ),
             ),
           ]),
           // How it looks and where things are: nothing here protects the vault.
@@ -1160,19 +1156,16 @@ class _SideSwitch extends StatelessWidget {
 /// "Same as device", then every language in its own name; a tick on the current one.
 /// Pops the code ('' for the device's).
 class _LanguageList extends StatelessWidget {
-  const _LanguageList({required this.chosen, required this.system, required this.systemNote});
+  const _LanguageList({required this.chosen, required this.system});
   final String? chosen;
   final String system;
-  final String systemNote;
 
   @override
   Widget build(BuildContext context) {
-    final c = CsColors.of(context);
-    Widget row(String code, String name, {String? note}) => ListTile(
+    Widget row(String code, String name) => ListTile(
           key: ValueKey('language-$code'),
           minTileHeight: 52,
           title: Text(name, style: const TextStyle(fontSize: 16)),
-          subtitle: note == null ? null : Text(note, style: TextStyle(color: c.muted)),
           trailing: (code.isEmpty ? chosen == null : chosen == code)
               ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
               : null,
@@ -1181,7 +1174,7 @@ class _LanguageList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        row('', system, note: systemNote),
+        row('', system),
         const Divider(indent: 16, endIndent: 16),
         for (final x in languages) row(x.code, x.name),
       ],

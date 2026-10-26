@@ -95,8 +95,8 @@ class _SyncScreenState extends State<SyncScreen> {
               retry: () => sync.driveSync(token: token),
               onSynced: widget.onSynced,
               waiting: Column(mainAxisSize: MainAxisSize.min, children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 18),
+                const SyncLink(place: SyncPlace.drive),
+                const SizedBox(height: 22),
                 Text(l.syncDriveWorking, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
               ]),
             ));
@@ -110,25 +110,15 @@ class _SyncScreenState extends State<SyncScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Text(l.syncLead, style: const TextStyle(fontSize: 15.5, height: 1.4)),
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.back_hand_outlined, size: 18, color: c.muted),
-              const SizedBox(width: 8),
-              Expanded(child: Text(l.syncByHand, style: TextStyle(color: c.muted, fontSize: 14, height: 1.3))),
-            ],
-          ),
+        // A picture instead of the explanations (owner 2026-10-26: people need to know
+        // only that the data is safe): this device, the lock on the way, the other.
+        const Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: SyncLink(key: ValueKey('sync-hero'), moving: false),
         ),
         // Two ways, each in its own block (owner 2026-10-25): the local network (two
         // devices on one Wi-Fi, no internet) and Google Drive.
-        _Header(title: l.syncLocalTitle, note: l.syncLocalNote),
+        _Header(title: l.syncLocalTitle),
         _Card(children: [
           _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncRow, onTap: _nearby),
         ]),
@@ -138,10 +128,6 @@ class _SyncScreenState extends State<SyncScreen> {
           _Card(children: [
             _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), title: l.syncDriveNow, onTap: _drive),
           ]),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
-            child: Text(l.syncDriveNote, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.35)),
-          ),
         ],
         const SizedBox(height: 24),
         Padding(
@@ -154,37 +140,28 @@ class _SyncScreenState extends State<SyncScreen> {
             child: Text(l.syncLogEmpty, style: TextStyle(color: c.muted)),
           )
         else
-          _Card(children: [for (final line in _log) _LogRow(line: line)]),
+          _Card(indent: 46, children: [for (final line in _log) _LogRow(line: line)]),
       ],
     );
   }
 }
 
-/// A block's name over its card, with a line on what it is.
+/// A block's name over its card.
 class _Header extends StatelessWidget {
-  const _Header({required this.title, this.note});
+  const _Header({required this.title});
   final String title;
-  final String? note;
 
   @override
-  Widget build(BuildContext context) {
-    final c = CsColors.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 24, 4, 8),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        if (note != null) ...[
-          const SizedBox(height: 2),
-          Text(note!, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.3)),
-        ],
-      ]),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 24, 4, 8),
+        child: Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+      );
 }
 
 class _Card extends StatelessWidget {
-  const _Card({required this.children});
+  const _Card({required this.children, this.indent = 56});
   final List<Widget> children;
+  final double indent;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +172,7 @@ class _Card extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(children: [
         for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) Divider(height: 1, thickness: 1, indent: 56, color: c.border.withValues(alpha: .6)),
+          if (i > 0) Divider(height: 1, thickness: 1, indent: indent, color: c.border.withValues(alpha: .6)),
           children[i],
         ],
       ]),
@@ -246,7 +223,9 @@ class _LogRow extends StatelessWidget {
     if (p.length < 6) return const SizedBox.shrink();
     final when = DateTime.fromMillisecondsSinceEpoch(int.tryParse(p[0]) ?? 0);
     final tag = Localizations.localeOf(context).toLanguageTag();
-    final date = '${DateFormat.yMMMd(tag).format(when)} ${DateFormat.Hm(tag).format(when)}';
+    // This year's without the year: the line stays short.
+    final day = when.year == DateTime.now().year ? DateFormat.MMMd(tag) : DateFormat.yMMMd(tag);
+    final date = '${day.format(when)} ${DateFormat.Hm(tag).format(when)}';
     // Since 0.1.73 the other device's name; before, its address (or "-" when this one
     // showed the code).
     final address = RegExp(r'^[0-9.]+$').hasMatch(p[2]);
@@ -264,19 +243,26 @@ class _LogRow extends StatelessWidget {
       'unreachable' => (l.syncLogUnreachable, false),
       _ => (l.syncLogFailed, false),
     };
+    // Compact (owner 2026-10-26): one line each, the outcome at the end.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       child: Row(children: [
         Icon(ok ? Icons.check_circle_outline_rounded : Icons.remove_circle_outline_rounded,
-            color: ok ? const Color(0xFF34C759) : c.muted, size: 26),
-        const SizedBox(width: 16),
+            color: ok ? const Color(0xFF34C759) : c.muted, size: 20),
+        const SizedBox(width: 12),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontSize: 15)),
-            const SizedBox(height: 2),
-            Text('$date · $outcome', style: TextStyle(color: c.muted, fontSize: 13)),
-          ]),
+          child: Text.rich(
+            TextSpan(children: [
+              TextSpan(text: title),
+              TextSpan(text: '  $date', style: TextStyle(color: c.muted, fontSize: 12.5)),
+            ]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 14.5),
+          ),
         ),
+        const SizedBox(width: 8),
+        Text(outcome, style: TextStyle(color: c.muted, fontSize: 12.5)),
       ]),
     );
   }

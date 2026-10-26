@@ -4,6 +4,26 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.75 (2026-10-26)
+
+### Changed
+- Restoring from a nearby device needs no switch on the old phone any more: open Sync
+  with a nearby device there, and the new phone (24 words and password) finds it. The
+  old phone still asks "Let … restore this vault?" next to the same number on both
+  screens, and nothing is sent before Allow.
+- After Allow, the new phone gets only the vault's lock. It must open it with the
+  password and prove so before a single item is sent; with a wrong password it says so,
+  the old phone shows "Wrong password on the other device" and stops.
+- Much less text: the Sync screen, the nearby screens, Google Drive, Settings and the
+  pages under it keep titles, buttons and one short line where a mistake would cost you.
+  A picture says the rest: your device, a lock on the way, the other device.
+- The transfer animation has a lock on the path: what travels passes behind it,
+  encrypted on the way. The waiting screen shows it too.
+- Settings: Backup & Sync is one group at the top (Sync, Back up to a file).
+- Recently deleted: one left edge for everything; the photo grid sits inside it with
+  rounded corners, like the cards below.
+- The list of recent connections is one short line each.
+
 ## 0.1.74 (2026-10-26)
 
 ### Added

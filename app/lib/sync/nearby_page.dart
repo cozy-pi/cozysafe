@@ -16,6 +16,8 @@ import 'qr_view.dart';
 /// the person) and looks for the other; once they find each other and prove they hold
 /// this vault, both ask "Sync with …?" next to the same number, and the sync starts when
 /// both people tap Sync. No code to type; a QR stays for networks that block looking.
+/// A new device restoring with the 24 words finds this one too: the person here allows
+/// it after comparing the number (no switch to turn on first, owner 2026-10-26).
 class NearbyPage extends StatefulWidget {
   const NearbyPage({super.key, required this.address, required this.mirror, required this.onSynced});
   final String address;
@@ -39,8 +41,6 @@ class _NearbyPageState extends State<NearbyPage> {
   sync.Hosting? _hosting;
   Stream<sync.SyncEvent>? _events;
   bool _failed = false;
-  /// "Help a new device restore": off unless the person turns it on, for this wait only.
-  bool _helpRestore = false;
 
   @override
   void initState() {
@@ -52,7 +52,7 @@ class _NearbyPageState extends State<NearbyPage> {
     try {
       final debug = NearbyPage.debugHosting;
       final h = debug ??
-          await sync.p2PWaitStart(ip: widget.address, mirror: widget.mirror, helpRestore: _helpRestore, name: await deviceName());
+          await sync.p2PWaitStart(ip: widget.address, mirror: widget.mirror, name: await deviceName());
       if (!mounted) {
         sync.p2PCancel();
         return;
@@ -87,7 +87,6 @@ class _NearbyPageState extends State<NearbyPage> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     final h = _hosting;
     if (_failed) return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(l.syncFailed, textAlign: TextAlign.center)));
     if (h == null || _events == null) return const Center(child: CircularProgressIndicator());
@@ -100,17 +99,6 @@ class _NearbyPageState extends State<NearbyPage> {
         qr: h.qr,
         qrOnly: !h.findable,
         onScan: _scan,
-        extra: SwitchListTile.adaptive(
-          key: const ValueKey('sync-help-restore'),
-          contentPadding: EdgeInsets.zero,
-          value: _helpRestore,
-          title: Text(l.syncHelpRestore, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          subtitle: Text(l.syncHelpRestoreNote, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.35)),
-          onChanged: (on) {
-            setState(() => _helpRestore = on);
-            if (NearbyPage.debugHosting == null) sync.p2PWaitHelpRestore(on_: on);
-          },
-        ),
       ),
     );
   }
@@ -174,26 +162,21 @@ class _NearbyLookingState extends State<NearbyLooking> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          key: const ValueKey('sync-find-status'),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(14)),
-          child: Row(children: [
-            const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4)),
-            const SizedBox(width: 12),
-            Expanded(child: Text(l.syncFindSearching, style: const TextStyle(fontSize: 15, height: 1.3, fontWeight: FontWeight.w600))),
-          ]),
-        ),
-        const SizedBox(height: 12),
-        Text(widget.lead, key: const ValueKey('sync-nearby-lead'), style: TextStyle(color: c.muted, fontSize: 15, height: 1.4)),
+        // The two devices with the lock between them, a light running along the way.
+        const SyncLink(key: ValueKey('sync-find-link')),
+        const SizedBox(height: 22),
+        Text(l.syncFindSearching,
+            key: const ValueKey('sync-find-status'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.3)),
+        const SizedBox(height: 8),
+        Text(widget.lead, key: const ValueKey('sync-nearby-lead'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.4)),
         if (left != null) ...[
-          const SizedBox(height: 6),
-          Text(left, style: TextStyle(color: c.muted, fontSize: 14)),
+          const SizedBox(height: 4),
+          Text(left, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14, fontFeatures: const [FontFeature.tabularFigures()])),
         ],
         for (final h in hints)
           Padding(
             padding: const EdgeInsets.only(top: 10),
-            child: Text(h, key: const ValueKey('sync-nearby-hint'), style: TextStyle(color: c.muted, fontSize: 14, height: 1.35)),
+            child: Text(h, key: const ValueKey('sync-nearby-hint'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14, height: 1.35)),
           ),
         if (widget.extra != null) ...[const SizedBox(height: 14), widget.extra!],
         const SizedBox(height: 12),

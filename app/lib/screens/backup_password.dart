@@ -4,7 +4,6 @@ import '../l10n/app_localizations.dart';
 import '../lock_resume.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
-import '../theme.dart';
 import '../widgets/secret.dart';
 import '../widgets/password_strength.dart';
 import 'common.dart';
@@ -88,7 +87,6 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(),
@@ -103,12 +101,6 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
         children: [
           Text(widget.change ? l.changePasswordTitle : l.backupPasswordTitle,
               style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(l.backupPasswordLead, style: TextStyle(color: c.muted, fontSize: 15, height: 1.5)),
-          if (widget.change) ...[
-            const SizedBox(height: 8),
-            Text(l.changeNoReencrypt, key: const ValueKey('change-no-reencrypt'), style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.4)),
-          ],
           const SizedBox(height: 18),
           Align(
             alignment: Alignment.centerLeft,
