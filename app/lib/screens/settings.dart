@@ -173,12 +173,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _lockOnLeave = Settings.lockOnLeave;
   final Map<String, BigInt> _byKind = {};
   int _count = 0;
+  /// The last figures per vault, in memory only (sizes and counts are about the vault, so
+  /// never written out): Settings shows them at once while it measures again
+  /// (owner 2026-10-27: the storage line came late).
+  static final _lastSizes = <String, (Map<String, BigInt>, int)>{};
 
   BigInt get _bytes => _byKind.values.fold(BigInt.zero, (a, b) => a + b);
 
   @override
   void initState() {
     super.initState();
+    if (_lastSizes[widget.vault().id] case (final kinds, final count)) {
+      _byKind.addAll(kinds);
+      _count = count;
+    }
     _measure();
     _loadLastSync();
     if (widget.focus case final spot?) WidgetsBinding.instance.addPostFrameCallback((_) => _goTo(spot));
@@ -205,6 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _byKind[i.kind] = (_byKind[i.kind] ?? BigInt.zero) + i.sizeBytes;
         }
       });
+      _lastSizes[widget.vault().id] = (Map.of(_byKind), _count);
     } catch (_) {}
   }
 
@@ -391,7 +400,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l = AppLocalizations.of(context);
     await pushPage<void>(context,
         title: l.syncTitle,
-        builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: () => widget.onSynced?.call()));
+        builder: (_) => SyncScreen(
+            libraryDir: widget.libraryDir,
+            onSynced: () {
+              widget.onSynced?.call();
+              _measure(); // the storage line follows what came in
+            }));
     _loadLastSync();
   }
 
@@ -446,6 +460,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// What the User guide points at in Settings.
   final _syncRowKey = GlobalKey(debugLabel: 'sync-row');
   final _securityGroupKey = GlobalKey(debugLabel: 'security-group');
+  final _shieldGroupKey = GlobalKey(debugLabel: 'shield-group');
   final _backupRowKey = GlobalKey(debugLabel: 'backup-row');
   final _guideRowKey = GlobalKey(debugLabel: 'guide-row');
 
@@ -529,7 +544,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // First (owner 2026-10-25): syncing is done often and keeps a copy elsewhere. The
           // backup to a file sits with it (owner 2026-10-26: one "Backup & Sync" group); the
           // Recovery Key and the password, which open a backup, live under Security.
-          _Group(title: l.settingsBackupSync, rows: [
+          _Group(rows: [
             if (!kIsWeb)
               KeyedSubtree(
                 key: _syncRowKey,
@@ -565,7 +580,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ]),
           // Help near the top, where people look for it (owner 2026-10-26), not under About.
-          _Group(title: l.settingsHelp, rows: [
+          _Group(rows: [
             // The guide again: tips on the vault's page, then here.
             if (widget.onTour != null)
               KeyedSubtree(
@@ -587,7 +602,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
             ),
           ]),
-          _Group(title: l.settingsThisVault, rows: [
+          _Group(rows: [
             _Row(
               icon: Icons.palette_outlined,
               color: _Mau.tim,
@@ -612,10 +627,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => _then(widget.onOpenTrash),
             ),
           ]),
-          // Every security setting in one group (owner 2026-10-26): how it opens, when it
-          // locks, what stays hidden on screen, then how it opens on a new phone. Turning
-          // any of them weaker asks for the owner first (docs/security.md).
-          _Group(boxKey: _securityGroupKey, title: l.settingsSecurity, rows: [
+          // The keys (owner 2026-10-26): how the vault opens here and on a new phone. The
+          // next group shields the screen. Turning any of them weaker asks for the owner
+          // first (docs/security.md).
+          _Group(boxKey: _securityGroupKey, rows: [
             if (widget.canBiometric)
               _Row(
                 icon: Icons.face_retouching_natural,
@@ -635,6 +650,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: l.change,
               onTap: () => _guarded(() => Navigator.of(context).push<bool>(fadeRoute((_) => const SetPinScreen()))),
             ),
+            if (vault.hasPassword)
+              _Row(
+                key: const ValueKey('kit-row'),
+                icon: Icons.medical_services_outlined,
+                color: _Mau.doTuoi,
+                title: l.showKit,
+                onTap: widget.onShowKit,
+              ),
+            _Row(
+              icon: Icons.key_outlined,
+              color: _Mau.vang,
+              title: l.backupPasswordLabel,
+              value: vault.hasPassword ? l.isSet : l.notSet,
+              onTap: () => _then(widget.onPassword),
+            ),
+            _Row(
+              icon: Icons.verified_user_outlined,
+              color: _Mau.ngoc,
+              title: l.securityTitle,
+              onTap: _showSecurity,
+            ),
+          ]),
+          // What shows on screen and when it locks (owner 2026-10-26: apart from the keys above).
+          _Group(boxKey: _shieldGroupKey, rows: [
             _spot(
               SettingsSpot.autoLock,
               _Row(
@@ -728,30 +767,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            if (vault.hasPassword)
-              _Row(
-                key: const ValueKey('kit-row'),
-                icon: Icons.medical_services_outlined,
-                color: _Mau.doTuoi,
-                title: l.showKit,
-                onTap: widget.onShowKit,
-              ),
-            _Row(
-              icon: Icons.key_outlined,
-              color: _Mau.vang,
-              title: l.backupPasswordLabel,
-              value: vault.hasPassword ? l.isSet : l.notSet,
-              onTap: () => _then(widget.onPassword),
-            ),
-            _Row(
-              icon: Icons.verified_user_outlined,
-              color: _Mau.ngoc,
-              title: l.securityTitle,
-              onTap: _showSecurity,
-            ),
           ]),
           // How it looks and where things are: nothing here protects the vault.
-          _Group(title: l.settingsDisplay, rows: [
+          _Group(rows: [
             _spot(
               SettingsSpot.appearance,
               _Row(
@@ -793,7 +811,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // One vault in the app (decisions 2026-10-24); another one only in debug mode, for
           // testing (the core keeps several).
           if (debugModeOn())
-            _Group(title: l.settingsVaults, rows: [
+            _Group(rows: [
               _Row(
                 key: const ValueKey('debug-new-vault'),
                 icon: Icons.add,
@@ -833,7 +851,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : '${p.version} (${p.buildNumber})';
               DateTime? built = DateTime.tryParse(buildDate);
               final ml = MaterialLocalizations.of(context);
-              return _Group(title: l.settingsAbout, rows: [
+              return _Group(rows: [
                 _Row(
                   key: const ValueKey('about-version'),
                   icon: Icons.info_outline_rounded,
@@ -976,7 +994,9 @@ class _VaultCard extends StatelessWidget {
                         height: 8,
                         decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
                     const SizedBox(width: 5),
-                    Text('${names[k]!} ${fileSize(size(k))}', style: TextStyle(color: fg.withValues(alpha: .9), fontSize: 12.5)),
+                    // The name only, as in the iPhone's Storage (owner 2026-10-26): the
+                    // bar shows how much, the total is above.
+                    Text(names[k]!, style: TextStyle(color: fg.withValues(alpha: .9), fontSize: 12.5)),
                   ],
                 ),
             ],
@@ -987,11 +1007,12 @@ class _VaultCard extends StatelessWidget {
   }
 }
 
+/// Groups have no names, as in the iPhone's Settings (owner 2026-10-26): a gap sets them
+/// apart and the rows say what they are.
 class _Group extends StatelessWidget {
-  const _Group({required this.title, required this.rows, this.boxKey});
-  final String title;
+  const _Group({required this.rows, this.boxKey});
   final List<Widget> rows;
-  /// On the title and its rows (not the space above): what the User guide lights up.
+  /// On the rows (not the space above): what the User guide lights up.
   final Key? boxKey;
 
   @override
@@ -999,15 +1020,11 @@ class _Group extends StatelessWidget {
     if (rows.isEmpty) return const SizedBox.shrink();
     final c = CsColors.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 22),
+      padding: const EdgeInsets.only(top: 28),
       child: Column(
         key: boxKey,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 7),
-            child: Text(title, style: TextStyle(color: c.muted, fontSize: 13, fontWeight: FontWeight.w600)),
-          ),
           Material(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(14),
