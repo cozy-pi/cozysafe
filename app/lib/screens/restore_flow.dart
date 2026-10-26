@@ -10,13 +10,14 @@ import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../sync/consent.dart';
 import '../sync/drive_join.dart';
-import '../sync/find_page.dart';
+import '../sync/device_name.dart';
+import '../sync/join_page.dart';
+import '../sync/nearby_page.dart';
 import '../sync/progress.dart';
 import '../sync/wifi.dart';
 import '../theme.dart';
 import '../widgets/secret.dart';
 import '../widgets/toast.dart';
-import '../widgets/vault_bar.dart' show pushPage;
 import 'common.dart';
 import 'new_vault.dart';
 import 'restore.dart';
@@ -139,8 +140,10 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
     );
   }
 
-  /// The old device shows six digits: ask once to look on this Wi-Fi, then find it with
-  /// the 24 words (no vault here yet).
+  /// The old device waits on its Sync screen with "Help a new device restore" on: ask
+  /// once to look on this Wi-Fi, then find it with the 24 words (no vault here yet); its
+  /// person allows this device, comparing a number. The QR stays for networks that block
+  /// looking.
   Future<void> _fromDevice() async {
     final address = await localAddress();
     if (!mounted) return;
@@ -148,27 +151,46 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
       showToast(context, l10n.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    if (!await allowConnection(context, l10n.syncAllowFind(address)) || !mounted) return;
-    await pushPage<void>(
-      context,
-      title: l10n.restoreFromDevice,
-      builder: (_) => FindDevicePage(
-        address: address,
-        words: widget.words,
-        lead: l10n.restoreScanLead,
-        onFound: (context, code) => _restoreWithCode(context, code, ask: false),
-        onScanned: _restoreWithCode,
+    if (!await allowConnection(context, l10n.syncAllowFindRestore(address)) || !mounted) return;
+    final name = await deviceName();
+    if (!mounted) return;
+    final l = l10n;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (context) => Scaffold(
+        appBar: AppBar(title: Text(l.restoreFromDevice)),
+        body: SafeArea(
+          top: false,
+          child: SyncProgress(
+            restoring: true,
+            events: sync.p2PRestoreNearby(dir: widget.libraryDir, ip: address, words: widget.words, password: widget.password, name: name),
+            onSynced: () {},
+            waiting: NearbyLooking(
+              lead: l.restoreNearbyLead,
+              restoring: true,
+              // Looking ends with this page; the scanner takes its place.
+              onScan: () => Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+                builder: (_) => Scaffold(
+                  appBar: AppBar(title: Text(l.syncScanCode)),
+                  body: SafeArea(top: false, child: ScanCodePage(onSynced: () {}, onCode: _restoreWithCode)),
+                ),
+              )),
+            ),
+          ),
+        ),
       ),
-    );
+    ));
+    final vault = rust.openVaultInfo();
+    if (vault != null && mounted) await _opened(vault);
   }
 
   AppLocalizations get l10n => AppLocalizations.of(context);
 
-  Future<void> _restoreWithCode(BuildContext context, String code, {bool ask = true}) async {
+  Future<void> _restoreWithCode(BuildContext context, String code) async {
     final l = AppLocalizations.of(context);
     final address = sync.p2PCodeAddress(code: code);
     if (address == null) return;
-    if (ask && !await allowConnection(context, l.syncAllowJoin(address))) return;
+    if (!await allowConnection(context, l.syncAllowJoin(address))) return;
+    final name = await deviceName();
     if (!context.mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => Scaffold(
@@ -177,7 +199,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
           top: false,
           child: SyncProgress(
             restoring: true,
-            events: sync.p2PRestore(dir: widget.libraryDir, code: code, words: widget.words, password: widget.password),
+            events: sync.p2PRestore(dir: widget.libraryDir, code: code, words: widget.words, password: widget.password, name: name),
             onSynced: () {},
           ),
         ),

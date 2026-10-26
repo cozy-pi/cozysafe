@@ -62,6 +62,13 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
+        // Maker and model ("Google", "Pixel 8"), for the name nearby sync shows the other
+        // device (lib/sync/device_name.dart). Not the device's own name: it often holds
+        // the owner's name.
+        MethodChannel(messenger, "cozysafe/device").setMethodCallHandler { call, result ->
+            if (call.method == "model") result.success(listOf(Build.MANUFACTURER ?: "", Build.MODEL ?: ""))
+            else result.notImplemented()
+        }
         // While a sync runs (lib/sync/awake.dart): the screen stays on, and a foreground
         // service with a notification (SyncService) keeps it going with the phone locked.
         MethodChannel(messenger, "cozysafe/awake").setMethodCallHandler { call, result ->

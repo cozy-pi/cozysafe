@@ -26,7 +26,7 @@ Future<bool> allowConnection(BuildContext context, String message) async {
               children: [
                 Icon(Icons.lock_outline_rounded, size: 18, color: c.muted),
                 const SizedBox(width: 8),
-                Expanded(child: Text(l.syncAllowNote, style: TextStyle(color: c.muted, fontSize: 14, height: 1.3))),
+                Expanded(child: Text(l.syncAllowSafe, style: TextStyle(color: c.muted, fontSize: 14, height: 1.3))),
               ],
             ),
             const SizedBox(height: 18),

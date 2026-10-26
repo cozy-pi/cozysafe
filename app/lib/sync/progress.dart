@@ -55,11 +55,20 @@ class _SyncProgressState extends State<SyncProgress>
   bool _rejected = false;
   /// A device has just connected and is proving the vault (host only).
   bool _knock = false;
-  /// The person answered "Allow this new device?" (host only): the buttons stop.
+  /// The person answered "Allow this new device?" or "Sync with …?": the buttons stop
+  /// (after Sync, the card waits for the other device).
   bool _answered = false;
+  /// The other device's name (after it proved the vault), for the cards.
+  String _name = '';
+  /// Devices with this vault seen while looking: names (empty until known) and ids.
+  List<String> _peers = const [];
+  List<String> _peerIds = const [];
+  /// The person picked one of several: it is connecting.
+  bool _picked = false;
 
   static const _running = {
     sync.SyncStep.askRestore,
+    sync.SyncStep.confirm,
     sync.SyncStep.connected,
     sync.SyncStep.checking,
     sync.SyncStep.receiving,
@@ -119,6 +128,14 @@ class _SyncProgressState extends State<SyncProgress>
     _sub?.cancel();
     _sub = events.listen((e) {
       if (!mounted) return;
+      if (e.kind == sync.SyncStep.found) {
+        setState(() {
+          _peers = e.peers;
+          _peerIds = e.peerIds;
+          if (_peers.length < 2) _picked = false;
+        });
+        return;
+      }
       if (e.kind == sync.SyncStep.rejected || e.kind == sync.SyncStep.knock) {
         setState(() {
           _knock = e.kind == sync.SyncStep.knock;
@@ -129,8 +146,11 @@ class _SyncProgressState extends State<SyncProgress>
       setState(() {
         if (_last?.kind != e.kind) _samples.clear();
         _last = e;
-        if (e.kind == sync.SyncStep.connected || e.kind == sync.SyncStep.askRestore) _check = e.check;
-        if (e.kind == sync.SyncStep.askRestore) _answered = false;
+        if (e.kind == sync.SyncStep.connected || e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) {
+          _check = e.check;
+          _name = e.name;
+        }
+        if (e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) _answered = false;
         _samples.add((DateTime.now(), e.bytes.toInt(), e.done));
         // A few seconds back is enough for a steady figure.
         final from = DateTime.now().subtract(const Duration(seconds: 4));
@@ -155,7 +175,7 @@ class _SyncProgressState extends State<SyncProgress>
     });
   }
 
-  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
+  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
 
   /// The page stays under the lock, but the run needs the open vault: stop it now (it
   /// holds the vault, which could not lock meanwhile). Google Drive picks up after, from
@@ -251,13 +271,18 @@ class _SyncProgressState extends State<SyncProgress>
 
   /// A new device restoring with the 24 words asks to come in (host): the number its
   /// screen shows, and Allow or Don't allow. Nothing is served before Allow.
+  /// The number both screens show, to compare.
+  String get _number => (_check ?? 0).toString().padLeft(3, '0');
+
+  void _answer(bool yes) {
+    setState(() => _answered = true);
+    try {
+      sync.p2PAnswer(yes: yes);
+    } catch (_) {} // the mockup renders run without the Rust side
+  }
+
   Widget _allowCard(AppLocalizations l, CsColors c) {
-    void answer(bool allow) {
-      setState(() => _answered = true);
-      try {
-        sync.p2PHostAnswer(allow: allow);
-      } catch (_) {} // the mockup renders run without the Rust side
-    }
+    void answer(bool allow) => _answer(allow);
 
     return Column(
       key: const ValueKey('sync-allow-card'),
@@ -265,13 +290,10 @@ class _SyncProgressState extends State<SyncProgress>
       children: [
         Icon(Icons.phonelink_lock_rounded, size: 44, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 14),
-        Text(l.syncRestoreAllowTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+        Text(_name.isEmpty ? l.syncRestoreAllowTitle : l.syncRestoreAllowName(_name),
+            textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const SizedBox(height: 18),
-        Text(
-          (_check ?? 0).toString().padLeft(4, '0'),
-          key: const ValueKey('sync-allow-check'),
-          style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w800, letterSpacing: 10, fontFeatures: [FontFeature.tabularFigures()]),
-        ),
+        _Number(key: const ValueKey('sync-allow-check'), text: l.syncConfirmNumber(_number)),
         const SizedBox(height: 8),
         Text(l.syncRestoreAllowNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
         const SizedBox(height: 24),
@@ -292,6 +314,73 @@ class _SyncProgressState extends State<SyncProgress>
             ),
           ),
         ]),
+      ],
+    );
+  }
+
+  /// Connected to a device that proved this vault: "Sync with …?" next to the number both
+  /// screens show; the buttons are at the bottom. After Sync, it waits for the other.
+  Widget _confirmCard(AppLocalizations l, CsColors c) {
+    final name = _name.isEmpty ? 'Cozy Safe' : _name;
+    return Column(
+      key: const ValueKey('sync-confirm-card'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(deviceIcon(_name), size: 52, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(height: 14),
+        Text(_answered ? l.syncConfirmWaiting(name) : l.syncConfirmTitle(name),
+            key: const ValueKey('sync-confirm-title'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.25)),
+        const SizedBox(height: 22),
+        _Number(key: const ValueKey('sync-check'), text: l.syncConfirmNumber(_number)),
+        const SizedBox(height: 12),
+        Text(_answered ? l.syncConfirmWaitingNote : l.syncConfirmHint,
+            textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+        if (_answered) ...[
+          const SizedBox(height: 24),
+          const SizedBox(width: 160, child: LinearProgressIndicator()),
+        ],
+      ],
+    );
+  }
+
+  /// Several devices with this vault: the person picks one (names come from a sealed
+  /// handshake with each; "Another device with this vault" until then).
+  Widget _pickList(AppLocalizations l, CsColors c) {
+    return Column(
+      key: const ValueKey('sync-pick'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.devices_rounded, size: 48, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(height: 14),
+        Text(l.syncFoundPick(_peers.length), textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 1.3)),
+        const SizedBox(height: 18),
+        Material(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: Column(children: [
+            for (var i = 0; i < _peers.length; i++) ...[
+              if (i > 0) Divider(height: 1, thickness: 1, indent: 56, color: c.border.withValues(alpha: .6)),
+              ListTile(
+                key: ValueKey('sync-pick-$i'),
+                enabled: !_picked,
+                leading: Icon(deviceIcon(_peers[i])),
+                title: Text(_peers[i].isEmpty ? l.syncAnotherDevice : _peers[i], style: const TextStyle(fontSize: 16)),
+                trailing: Icon(Icons.chevron_right, color: c.muted),
+                onTap: () {
+                  setState(() => _picked = true);
+                  try {
+                    sync.p2PPick(id: _peerIds[i]);
+                  } catch (_) {} // the mockup renders run without the Rust side
+                },
+              ),
+            ],
+          ]),
+        ),
+        if (_picked) ...[
+          const SizedBox(height: 18),
+          Text(l.syncKnock, style: TextStyle(color: c.muted)),
+        ],
       ],
     );
   }
@@ -418,7 +507,14 @@ class _SyncProgressState extends State<SyncProgress>
     Widget body;
     if (e == null) {
       body = Column(mainAxisSize: MainAxisSize.min, children: [
-        if (_knock) _Status(icon: null, title: l.syncKnock) else widget.waiting ?? _Status(icon: null, title: l.syncWorking),
+        if (_knock)
+          _Status(icon: null, title: l.syncKnock)
+        else if (_peers.length >= 2)
+          _pickList(l, c)
+        else if (_peers.length == 1)
+          _Status(key: const ValueKey('sync-found-one'), icon: null, title: l.syncFoundOne)
+        else
+          widget.waiting ?? _Status(icon: null, title: l.syncWorking),
         if (_rejected) ...[
           const SizedBox(height: 16),
           Row(mainAxisSize: MainAxisSize.min, children: [
@@ -431,16 +527,15 @@ class _SyncProgressState extends State<SyncProgress>
     } else {
       body = switch (e.kind) {
         sync.SyncStep.askRestore => _allowCard(l, c),
+        sync.SyncStep.confirm => _confirmCard(l, c),
+        sync.SyncStep.peerCancelled => _Status(icon: Icons.cancel_outlined, color: const Color(0xFFFF9500), title: l.syncPeerCancelled),
         sync.SyncStep.connected => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(l.syncConnected, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+              Text(_name.isEmpty ? l.syncConnected : l.syncConnectedTo(_name),
+                  textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
               const SizedBox(height: 18),
-              Text(
-                (_check ?? 0).toString().padLeft(4, '0'),
-                key: const ValueKey('sync-check'),
-                style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w800, letterSpacing: 10, fontFeatures: [FontFeature.tabularFigures()]),
-              ),
+              _Number(key: const ValueKey('sync-check'), text: l.syncConfirmNumber(_number)),
               const SizedBox(height: 8),
               Text(l.syncCheckNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
               if (widget.restoring) ...[
@@ -492,7 +587,7 @@ class _SyncProgressState extends State<SyncProgress>
         sync.SyncStep.driveMoving =>
           _runningBody(l, c, e),
         // Never the last word (handled above); kept for an exhaustive switch.
-        sync.SyncStep.rejected || sync.SyncStep.knock => _Status(icon: null, title: l.syncWorking),
+        sync.SyncStep.rejected || sync.SyncStep.knock || sync.SyncStep.found => _Status(icon: null, title: l.syncWorking),
       };
     }
     return Padding(
@@ -500,6 +595,26 @@ class _SyncProgressState extends State<SyncProgress>
       child: Column(
         children: [
           Expanded(child: Center(child: SingleChildScrollView(child: body))),
+          if (e?.kind == sync.SyncStep.confirm && !_answered)
+            // Both buttons within the thumb's reach; Sync only counts once both said it.
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  key: const ValueKey('sync-confirm-no'),
+                  onPressed: () => _answer(false),
+                  child: Text(l.cancel),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  key: const ValueKey('sync-confirm-yes'),
+                  onPressed: () => _answer(true),
+                  child: Text(l.syncConfirmYes),
+                ),
+              ),
+            ])
+          else
           SizedBox(
             width: double.infinity,
             child: _canContinue
@@ -530,7 +645,7 @@ class _SyncProgressState extends State<SyncProgress>
 }
 
 class _Status extends StatelessWidget {
-  const _Status({required this.icon, this.color, required this.title, this.lines = const []});
+  const _Status({super.key, required this.icon, this.color, required this.title, this.lines = const []});
   final IconData? icon;
   final Color? color;
   final String title;
@@ -682,4 +797,26 @@ class _FlowPainter extends CustomPainter {
   @override
   bool shouldRepaint(_FlowPainter old) =>
       old.t != t || old.direction != direction || old.color != color || old.track != track;
+}
+
+/// The number both screens show, big, to compare at a glance.
+class _Number extends StatelessWidget {
+  const _Number({super.key, required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)),
+        child: Text(text,
+            style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: 3, fontFeatures: [FontFeature.tabularFigures()])),
+      );
+}
+
+/// A picture for a device by its name ("iPad", "Mac", "Windows PC"…).
+IconData deviceIcon(String name) {
+  final n = name.toLowerCase();
+  if (n.contains('ipad') || n.contains('tab')) return Icons.tablet_mac_rounded;
+  if (n == 'mac' || n.contains('windows') || n.contains('linux')) return Icons.laptop_mac_rounded;
+  return Icons.smartphone_rounded;
 }
