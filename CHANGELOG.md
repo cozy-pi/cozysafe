@@ -7,14 +7,15 @@ Dates are UTC.
 ## 0.1.72 (2026-10-26)
 
 ### Added
-- A short tour right after you create a vault: how to add things (the + button), how to
-  open them (tap to open, hold for more, Select to pick many), what keeps the vault safe
-  (it locks when you leave the app; your 24 words and password are the only way back on a
-  new phone), and why to keep a second copy, with a "Set up sync now" button. The last card
-  lists the settings worth a look; tap one to go straight to it. Skip it any time.
-- After restoring a vault on a new device, a shorter tour of three cards (adding, opening,
-  settings).
-- Settings → About → Quick tour shows the tour again.
+- A quick tour right after you create a vault, shown as tips on the vault itself: the
+  page dims, the button being explained stays lit, and a small bubble says what it does.
+  It shows where to add things, how to open them (tap, hold for the menu, hold and drag
+  to pick many), the tabs, Settings, how the vault locks itself, and why to keep a second
+  copy, with a "Set up sync now" button and a reminder that your 24 words and password are
+  the only way back on a new phone. Next and Skip are in the bubble.
+- After restoring a vault on a new device, a shorter tour: adding, opening, the tabs and
+  Settings.
+- Settings → About → Quick tour shows the tour again on the vault.
 
 ## 0.1.71 (2026-10-26)
 

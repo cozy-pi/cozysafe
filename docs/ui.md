@@ -564,17 +564,23 @@ everywhere, easy to hit with a thumb.
 
 ## Quick tour (mockup 2026-10-26, waiting for the owner)
 
-- After a vault is created (PIN, Face ID and the look done), once the vault has opened, a
-  page of cards (`lib/screens/tour.dart`): Add · Tap, hold, select · Stay safe · Keep a
-  second copy · Worth a look. Swipe or Next; dots show where you are; Skip on the left of
-  the bottom row on every card but the last (Done). Pictures are the app's own pieces (the
-  + bar and its row of ways, the preview's bar, the item menu, the Select pill, Settings
-  tiles), never drawings.
-- "Keep a second copy" has a full-width "Set up sync now" (Settings, then Sync on top, so
-  Back lands in Settings) and "Later" as the way on.
-- "Worth a look" rows are Settings rows (same tile and colour, `SettingsSpot`): a tap opens
-  Settings scrolled to that row, lit for a moment.
-- After a restore (backup file, another device, Google Drive) only Add, Tap/hold/select and
-  Worth a look: the person just used the 24 words and the password, and the vault came from
-  its second copy.
-- Settings → About → Quick tour opens it again.
+- Tips on the real vault page (coach marks, `lib/screens/tour.dart`), not picture cards
+  (owner 2026-10-26). The page dims; the widget being explained stays lit in a rounded
+  window with a thin light ring; a bubble with an arrow points at it: a short title, one
+  line, the count (2/6) at the top right, Skip on the left and Next on the right of its
+  bottom row (48 px targets). Done on the last tip, no Skip there.
+- A tap on the dim does nothing (no accidental skip, no running ahead); Back skips.
+- The bubble sits below the widget when it fits, else above (the side with more room when
+  neither does), inside the safe area, at most 380 wide; its arrow stays under the
+  widget's middle. The window slides from one widget to the next (no slide with reduced
+  motion). Light: white bubble; dark: a deep bubble with a faint edge.
+- After a vault is created: Add (the +; in an empty vault the add tiles) · Open and pick
+  (the first item showing: tap, hold for the menu, hold and drag to pick many; an empty
+  vault: the tiles, "what you add shows up here") · Sections (the tabs; left out while the
+  vault is empty and the bar has none) · Settings (sync, backup, security) · Locks by
+  itself (the lock button; else the home tab, "hold here to lock now"; else Settings) ·
+  Keep a second copy (points at Settings, with the 24 words and password as the only way
+  back on a new phone, "Set up sync now" opens Settings then Sync, and Later).
+- After a restore: Add · Open and pick · Sections · Settings.
+- Settings → About → Quick tour closes Settings and runs the whole tour on the vault page.
+- Whatever was open on the page (selection, a group, the add column) closes first.

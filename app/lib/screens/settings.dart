@@ -25,7 +25,6 @@ import '../widgets/vault_bar.dart';
 import 'delete_vault.dart';
 import 'file_view.dart';
 import 'set_pin.dart';
-import 'tour.dart';
 import '../sync/sync_screen.dart';
 
 /// Per-device choices, kept next to the library (not secret).
@@ -65,8 +64,8 @@ abstract final class Settings {
   }
 }
 
-/// A setting the quick tour can take the person to (tour.dart), with its row's symbol and
-/// colour, so the tour shows the same tile as Settings.
+/// A setting Settings can open at (the quick tour's "Set up sync now" opens Sync), with
+/// its row's symbol and colour.
 enum SettingsSpot {
   sync(Icons.sync_rounded, _Mau.xanhLa),
   autoLock(Icons.timer_outlined, _Mau.cam),
@@ -116,7 +115,12 @@ class SettingsScreen extends StatefulWidget {
     required this.onNewVault,
     this.onSynced,
     this.focus,
+    this.onTour,
   });
+
+  /// Quick tour: its tips are on the vault's page, so Settings closes and the vault's
+  /// page runs it.
+  final VoidCallback? onTour;
 
   /// Opened from the quick tour: scroll to this setting and light it up (Sync: open it).
   final SettingsSpot? focus;
@@ -427,10 +431,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: row,
       );
 
-  Future<void> _tour() async {
-    final v = widget.vault();
-    final spot = await showTour(context, icon: v.icon, color: v.color);
-    if (spot != null && mounted) _goTo(spot);
+  void _tour() {
+    widget.onTour?.call();
+    Navigator.of(context).pop();
   }
 
   @override
@@ -734,7 +737,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 _Row(icon: Icons.gavel_rounded, color: _Mau.xam, title: l.aboutLicense, value: 'GPL-3.0'),
                 // The basics again, as shown after the vault was made.
-                _Row(
+                if (widget.onTour != null) _Row(
                   key: const ValueKey('tour-row'),
                   icon: Icons.school_outlined,
                   color: _Mau.vang,

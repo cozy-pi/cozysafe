@@ -353,7 +353,7 @@ void _screen(String name, String caption, Widget Function() home,
       VaultHomeScreen.debugReveal = false;
       QuickLook.debugStillAudio = false;
       QuickLook.debugPdfPage = null;
-      TourScreen.debugStart = 0;
+      CoachTour.debugStart = 0;
       setup?.call();
       // Real shadows: tests otherwise draw every elevation as a solid black outline.
       debugDisableShadows = false;
@@ -414,6 +414,7 @@ void main() {
         onChangeIdentity: () async {},
         onOpenTrash: () async {},
         onNewVault: () async {},
+        onTour: () {},
       );
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
@@ -925,52 +926,61 @@ void main() {
     await t.pump();
   }
   _screen('settings-about', 'Cài đặt · Thông tin', () => settings(vault), act: toAbout);
-  // The quick tour (owner 2026-10-25): after a vault is made, again from Settings.
-  const tourCards = [
-    ('add', '1. Thêm: nút + và hàng cách thêm thật'),
-    ('open', '2. Chạm mở · giữ ra menu · Chọn để chọn nhiều'),
-    ('safe', '3. An toàn: tự khoá, PIN/Face ID, 24 từ + mật khẩu'),
-    ('copy', '4. Bản thứ hai: Wi‑Fi (3 số), Google Drive, file sao lưu · Cài đồng bộ ngay'),
-    ('settings', '5. Cài đặt nên xem: chạm để tới đúng dòng'),
-  ];
-  for (final (i, (name, caption)) in tourCards.indexed) {
-    _screen('tour-${i + 1}-$name', 'Hướng dẫn nhanh (sau khi tạo két) · $caption',
-        () => const TourScreen(icon: 'home', color: 'green'),
-        setup: () {
-          TourScreen.debugStart = i;
-          debugCamera = true; // a phone: Take photo and Record video are offered
-        },
-        change: 'Mới: hướng dẫn nhanh, bỏ qua được ở mọi thẻ',
-        marks: [() => find.byKey(ValueKey('tour-$name'))]);
+  // The quick tour (owner 2026-10-26): tips over the real vault page, after a vault is
+  // made (it is empty then), again from Settings (a vault with things in it), and the
+  // shorter one after a restore.
+  Future<void> tourOpen(WidgetTester t) async {
+    for (var i = 0; i < 6; i++) {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+      await t.pump(const Duration(milliseconds: 100));
+    }
   }
-  _screen('tour-restored', 'Hướng dẫn nhanh sau khi khôi phục: chỉ 3 thẻ (thêm, mở, cài đặt)',
-      () => const TourScreen(kind: TourKind.restored, icon: 'home', color: 'green'),
-      setup: () => debugCamera = true,
-      change: 'Khôi phục xong: bản ngắn 3 thẻ', marks: [() => find.byKey(const ValueKey('tour-pages'))]);
-  _screen('settings-tour', 'Cài đặt · Thông tin: dòng “Hướng dẫn nhanh” mở lại hướng dẫn', () => settings(vault),
+  const madeTips = [
+    ('add', 'các ô thêm (két còn trống)'),
+    ('items', 'chạm mở · giữ ra menu · giữ rồi kéo để chọn nhiều'),
+    ('settings', 'nút Cài đặt'),
+    ('lock', 'nút khoá: rời app là két tự khoá'),
+    ('copy', 'bản thứ hai + 24 từ và mật khẩu · Cài đồng bộ ngay / Để sau'),
+  ];
+  for (final (i, (name, caption)) in madeTips.indexed) {
+    _screen('tip-made-${i + 1}-$name', 'Hướng dẫn nhanh sau khi tạo két · ${i + 1}/${madeTips.length}: $caption',
+        () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.created),
+        section: 'library',
+        setup: () {
+          CoachTour.debugStart = i;
+          debugCamera = true; // a phone: Take photo and Record video are offered
+          _itemsNow = const [];
+        },
+        act: tourOpen,
+        change: 'Mới: hướng dẫn bằng gợi ý ngay trên màn hình thật',
+        marks: [() => find.byKey(ValueKey('tip-$name'))]);
+  }
+  const fullTips = [
+    ('add', 'nút +'),
+    ('items', 'một mục: chạm mở · giữ ra menu · giữ rồi kéo'),
+    ('tabs', 'các thẻ ở thanh dưới'),
+    ('settings', 'nút Cài đặt'),
+    ('lock', 'thẻ Tổng quan: giữ để khoá ngay'),
+    ('copy', 'bản thứ hai + 24 từ và mật khẩu'),
+  ];
+  for (final (i, (name, caption)) in fullTips.indexed) {
+    _screen('tip-full-${i + 1}-$name', 'Hướng dẫn nhanh mở lại từ Cài đặt (két đã có đồ) · ${i + 1}/${fullTips.length}: $caption',
+        () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.created),
+        setup: () => CoachTour.debugStart = i,
+        act: tourOpen,
+        change: 'Mới: gợi ý chỉ vào đúng nút thật',
+        marks: [() => find.byKey(ValueKey('tip-$name'))]);
+  }
+  _screen('tip-restored-1-add', 'Sau khi khôi phục: bản ngắn 4 gợi ý (thêm, mở, các thẻ, Cài đặt)',
+      () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.restored),
+      act: tourOpen,
+      change: 'Khôi phục xong: bản ngắn',
+      marks: [() => find.byKey(const ValueKey('tip-add'))]);
+  _screen('settings-tour', 'Cài đặt · Thông tin: dòng “Hướng dẫn nhanh” mở lại hướng dẫn trên màn két', () => settings(vault),
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('tour-row')), 300, scrollable: find.byType(Scrollable).first);
     await t.pump();
   }, change: 'Mới: dòng Hướng dẫn nhanh', marks: [() => find.byKey(const ValueKey('tour-row'))]);
-  Widget settingsAt(SettingsSpot spot) => SettingsScreen(
-        libraryDir: '',
-        vault: () => vault,
-        canBiometric: true,
-        biometricOn: () => true,
-        onToggleBiometric: () async {},
-        onPassword: () async {},
-        onShowKit: () async {},
-        onBackup: () async {},
-        lastBackup: () => 'Lần cuối: 12 ngày trước',
-        onChangeIdentity: () async {},
-        onOpenTrash: () async {},
-        onNewVault: () async {},
-        focus: spot,
-      );
-  _screen('settings-tour-blur', 'Từ hướng dẫn chạm “Làm mờ ảnh thu nhỏ”: Cài đặt cuộn tới dòng đó và làm nổi nó',
-      () => settingsAt(SettingsSpot.blurThumbs),
-      change: 'Dòng được chọn từ hướng dẫn sáng lên một lúc',
-      marks: [() => find.byKey(const ValueKey('blur-row'))]);
   _screen('settings-debug-taps', 'Cài đặt · chạm 5 lần vào Phiên bản', () => settings(vault), act: (t) async {
     await toAbout(t);
     for (var i = 0; i < 5; i++) {

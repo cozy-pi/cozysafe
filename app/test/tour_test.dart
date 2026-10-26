@@ -1,5 +1,6 @@
-// The quick tour after a vault is made: it shows once the new vault opens, Skip closes
-// it, and "Set up sync now" lands on the Sync page (through Settings, so Back goes there).
+// The quick tour after a vault is made: tips over the vault's own page show once the new
+// vault opens, Next moves on, Skip closes it, and "Set up sync now" lands on the Sync page
+// (through Settings, so Back goes there). Settings → Quick tour runs it again.
 // The Rust core is a fake.
 
 import 'dart:convert';
@@ -131,36 +132,41 @@ void main() {
     await t.tap(find.byKey(const ValueKey('new-vault-skip')));
     await _settle(t);
 
-    // The tour covers the vault that just opened.
-    expect(find.byType(VaultHomeScreen, skipOffstage: false), findsOneWidget);
-    expect(find.byType(TourScreen), findsOneWidget);
-    expect(find.byKey(const ValueKey('tour-add')), findsOneWidget);
-    // Skip closes the tour and leaves the vault open.
-    await t.tap(find.byKey(const ValueKey('tour-next')));
+    // The tips cover the vault that just opened, starting at the add tiles (it is empty).
+    expect(find.byType(VaultHomeScreen), findsOneWidget);
+    expect(find.byType(CoachTour), findsOneWidget);
+    expect(find.byKey(const ValueKey('tip-add')), findsOneWidget);
+    expect(find.text('1/5'), findsOneWidget);
+    // A tap on the dim does nothing.
+    await t.tapAt(const Offset(20, 300));
     await _settle(t);
-    expect(find.byKey(const ValueKey('tour-open')), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('tour-skip')));
+    expect(find.byKey(const ValueKey('tip-add')), findsOneWidget);
+    // Next moves on; Skip closes the tour and leaves the vault open.
+    await t.tap(find.byKey(const ValueKey('tip-next')));
     await _settle(t);
-    expect(find.byType(TourScreen), findsNothing);
+    expect(find.byKey(const ValueKey('tip-items')), findsOneWidget);
+    expect(find.text('2/5'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('tip-skip')));
+    await _settle(t);
+    expect(find.byType(CoachTour), findsNothing);
     expect(find.byType(VaultHomeScreen), findsOneWidget);
   });
 
   testWidgets('"Set up sync now" opens the Sync page', (t) async {
     await _pump(t, _app(const VaultHomeScreen(libraryDir: 'lib', vault: _vault, tour: TourKind.created)));
     await _settle(t);
-    expect(find.byType(TourScreen), findsOneWidget);
-    // Swipe to the next card, then Next to the second-copy card.
-    await t.drag(find.byKey(const ValueKey('tour-pages')), const Offset(-300, 0));
+    expect(find.byType(CoachTour), findsOneWidget);
+    // Add → items → Settings → the lock → a second copy.
+    for (final id in ['add', 'items', 'settings', 'lock']) {
+      expect(find.byKey(ValueKey('tip-$id')), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('tip-next')));
+      await _settle(t);
+    }
+    expect(find.byKey(const ValueKey('tip-copy')), findsOneWidget);
+    expect(find.byKey(const ValueKey('tip-skip')), findsNothing); // Later instead
+    await t.tap(find.byKey(const ValueKey('tip-action')));
     await _settle(t);
-    expect(find.byKey(const ValueKey('tour-open')), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('tour-next')));
-    await _settle(t);
-    expect(find.byKey(const ValueKey('tour-keys')), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('tour-next')));
-    await _settle(t);
-    await t.tap(find.byKey(const ValueKey('tour-sync')));
-    await _settle(t);
-    expect(find.byType(TourScreen), findsNothing);
+    expect(find.byType(CoachTour), findsNothing);
     expect(find.byType(SyncScreen), findsOneWidget);
     // Back from Sync is Settings.
     await t.pageBack();
@@ -168,25 +174,30 @@ void main() {
     expect(find.byType(SettingsScreen), findsOneWidget);
   });
 
-  testWidgets('after a restore the tour is the short one, and Settings opens it again', (t) async {
+  testWidgets('after a restore the tour is the short one, and Settings runs it again', (t) async {
     await _pump(t, _app(const VaultHomeScreen(libraryDir: 'lib', vault: _vault, tour: TourKind.restored)));
     await _settle(t);
-    await t.tap(find.byKey(const ValueKey('tour-next')));
+    // Add → items → Settings (an empty vault has no tabs yet), then Done.
+    expect(find.byKey(const ValueKey('tip-add')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('tip-next')));
     await _settle(t);
-    await t.tap(find.byKey(const ValueKey('tour-next')));
+    await t.tap(find.byKey(const ValueKey('tip-next')));
     await _settle(t);
-    // Third and last card: the settings worth a look (no safety or second-copy card).
-    expect(find.byKey(const ValueKey('tour-settings')), findsOneWidget);
-    expect(find.byKey(const ValueKey('tour-skip')), findsNothing);
-    // A setting there opens Settings at that row.
-    await t.tap(find.byKey(const ValueKey('tour-blurThumbs')));
+    expect(find.byKey(const ValueKey('tip-settings')), findsOneWidget);
+    expect(find.byKey(const ValueKey('tip-skip')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('tip-next')));
     await _settle(t);
-    expect(find.byType(SettingsScreen), findsOneWidget);
-    expect(find.byKey(const ValueKey('blur-row')).hitTestable(), findsOneWidget);
-    // Settings → Quick tour shows it again.
+    expect(find.byType(CoachTour), findsNothing);
+    // Settings → Quick tour: Settings closes and the tips start again on the vault.
+    await t.tap(find.byKey(const ValueKey('settings-button')));
+    await _settle(t);
     await t.scrollUntilVisible(find.byKey(const ValueKey('tour-row')), 300, scrollable: find.byType(Scrollable).first);
+    await t.ensureVisible(find.byKey(const ValueKey('tour-row')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('tour-row')));
     await _settle(t);
-    expect(find.byKey(const ValueKey('tour-add')), findsOneWidget);
+    expect(find.byType(SettingsScreen), findsNothing);
+    expect(find.byKey(const ValueKey('tip-add')), findsOneWidget);
+    expect(find.text('1/5'), findsOneWidget); // the whole tour
   });
 }
