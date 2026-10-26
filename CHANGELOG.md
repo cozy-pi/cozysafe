@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.70 (2026-10-26)
+
+### Fixed
+- Android: syncing with Google Drive no longer shows a Google sign-in box every time;
+  after the first time it signs in quietly, as on iPhone.
+
 ## 0.1.69 (2026-10-25)
 
 ### Security

@@ -1,6 +1,10 @@
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../platform.dart';
+import '../prefs.dart';
+
+/// The Google account Drive was last allowed with on this device (its address only).
+const _accountPref = 'drive-account';
 
 /// Only the files Cozy Safe itself makes in the person's Drive (non-sensitive scope:
 /// the app sees nothing else there).
@@ -33,9 +37,18 @@ Future<DriveSession?> driveSignIn() async {
   try {
     await _init();
     final g = GoogleSignIn.instance;
+    // Android: the "quiet" sign-in still shows Credential Manager's sheet every time
+    // (owner 2026-10-25: a Google box at each sync, iPhone shows none). Once Drive was
+    // allowed, ask for the token alone, which shows nothing, with the account remembered.
+    final known = Prefs.read(_accountPref);
+    if (Device.android && known != null && known.isNotEmpty) {
+      final quiet = await g.authorizationClient.authorizationForScopes(const [driveScope]);
+      if (quiet != null) return (email: known, token: quiet.accessToken);
+    }
     final user = await g.attemptLightweightAuthentication() ?? await g.authenticate(scopeHint: const [driveScope]);
     final auth = await user.authorizationClient.authorizationForScopes(const [driveScope]) ??
         await user.authorizationClient.authorizeScopes(const [driveScope]);
+    Prefs.write(_accountPref, user.email);
     return (email: user.email, token: auth.accessToken);
   } on GoogleSignInException catch (e) {
     if (e.code == GoogleSignInExceptionCode.canceled) return null;
@@ -45,6 +58,7 @@ Future<DriveSession?> driveSignIn() async {
 
 /// Forget the Google account on this device (the Drive folder stays).
 Future<void> driveSignOut() async {
+  Prefs.write(_accountPref, '');
   await _init();
   await GoogleSignIn.instance.signOut();
 }
