@@ -364,6 +364,7 @@ impl OpenVault {
             f.inner.sync_all()?;
             (n, f.hex())
         };
+        self.keep_content(id)?;
         fs::rename(&tmp, &data_path)?;
         record.size_bytes = size_bytes;
         record.data_hash = data_hash;
@@ -376,7 +377,7 @@ impl OpenVault {
     /// Seal `record` into the item's `.meta` file, then into the index. Returns the
     /// record as stored (with its modification time). A new item's record is created
     /// unchanged: `modified_ms` stays empty until its first change.
-    fn write_record(&self, id: &str, record: &ItemRecord) -> Result<ItemRecord> {
+    pub(crate) fn write_record(&self, id: &str, record: &ItemRecord) -> Result<ItemRecord> {
         let mut record = record.clone();
         if self.index.sealed_record(id)?.is_some() || self.read_path(id, "meta")?.exists() {
             record.modified_ms = Some(now_ms());
@@ -400,12 +401,19 @@ impl OpenVault {
         Ok(())
     }
 
-    /// Seal `record` as it is into `.meta` and the index (no new revision).
+    /// Seal `record` as it is into `.meta` and the index (no new revision). The record
+    /// it replaces goes into the version history ([`crate::history`]).
     pub(crate) fn store_record(&self, id: &str, record: &ItemRecord) -> Result<Vec<u8>> {
+        let old = self.index.sealed_record(id)?;
         let json = serde_json::to_vec(record).expect("serialisable");
         let sealed = wrap::seal(&self.master_key, &json, &self.item_aad(id, "meta"));
         write_atomic(&self.new_path(id, "meta")?, &sealed)?;
         self.index.upsert(id, &columns(record), &sealed)?;
+        if let Some(old_sealed) = old {
+            if let Ok(old_record) = self.open_record(id, &old_sealed) {
+                self.keep_record(id, &old_record, &old_sealed, record)?;
+            }
+        }
         Ok(sealed)
     }
 
@@ -588,6 +596,7 @@ impl OpenVault {
                 n += 1;
             }
         }
+        self.prune_history(now_ms)?;
         Ok(n)
     }
 
@@ -677,7 +686,7 @@ impl OpenVault {
             crate::remove_if_exists(&self.path(id, ext)?)?;
             crate::remove_if_exists(&self.flat_path(id, ext)?)?;
         }
-        Ok(())
+        self.clear_history(id)
     }
 
     /// A newer revision of a held item came from elsewhere (edited there after the
@@ -754,7 +763,7 @@ impl OpenVault {
             crate::remove_if_exists(&self.path(id, ext)?)?;
             crate::remove_if_exists(&self.flat_path(id, ext)?)?;
         }
-        Ok(())
+        self.clear_history(id)
     }
 
     pub(crate) fn record(&self, id: &str) -> Result<ItemRecord> {
@@ -801,14 +810,14 @@ fn columns(r: &ItemRecord) -> crate::db::Columns {
     }
 }
 
-fn now_ms() -> i64 {
+pub(crate) fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as i64)
         .unwrap_or(0)
 }
 
-fn meta(id: String, r: ItemRecord) -> ItemMeta {
+pub(crate) fn meta(id: String, r: ItemRecord) -> ItemMeta {
     ItemMeta {
         modified_ms: r.modified_ms.unwrap_or(r.created_ms),
         id,

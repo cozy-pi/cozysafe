@@ -4,6 +4,16 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-27 — Version history, on each device (0.1.76, mockup)
+
+**Owner:** keep older versions of every item "like git", so any change can be undone,
+30 days. Settings for how long (Off · 7 · 30 · 90 days, default 30) and how much
+(500 MB · 1 GB · 5 GB · no limit, default 1 GB). Asked whether the setting syncs: no,
+each device has its own (choice a, simpler and less risk). History is local, sealed like
+the items, not synced and not in backups; pruning never touches the current version
+(`core/cs-vault/src/history.rs`, docs/security.md). The note editor's Undo/Redo is the
+in-session half of the same request.
+
 ## 2026-10-27 — Drive errors named, an error log, Drive checked each sync (0.1.76)
 
 **Owner 2026-10-26:** Drive sync failed "and we don't know why": errors need logs. A 403

@@ -201,6 +201,12 @@ unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.m
 - **In the clear in `vault.db`** (the SQLite index, `core/cs-vault/src/db.rs`): each
   item's id, when it was created, modified and deleted (ms), and its size. The files on
   disk show times and sizes anyway.
+- **Version history** (`history/` beside `items/`, `core/cs-vault/src/history.rs`): an
+  item's older records, sealed exactly as they were, and its older content, encrypted as
+  it was. File names hold only a time and random revision ids. Local only: never synced,
+  never in backups. Deleting an item for good deletes its history; Settings → Version
+  history clears it all or turns it off. Until then, an older version of a note stays
+  readable by whoever opens the vault, as the item itself is.
 - **Not built:** size padding (Padmé), so sizes are exact within a few bytes; a
   monotonic header revision against rollback; locked memory (`mlock`). Keys are wiped
   from memory when dropped (`zeroize`), but may be paged out before that.

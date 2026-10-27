@@ -66,6 +66,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cozysafe/screens/history.dart';
+import 'package:cozysafe/src/rust/api/history.dart' show HistoryVersion;
 
 const _enabled = bool.fromEnvironment('PREVIEW');
 final _now = DateTime.now().millisecondsSinceEpoch;
@@ -341,6 +343,11 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugDrive = false;
       SyncScreen.debugAccount = null;
       ErrorReportScreen.debugEntries = null;
+      HistoryScreen.debugVersions = null;
+      HistoryScreen.debugContent = null;
+      HistoryScreen.debugDays = null;
+      HistorySettingsScreen.debugState = null;
+      SettingsScreen.debugHistoryBytes = null;
       KeyBackup.debugSupported = null;
       syncStatus.value = null;
       KeyCheckScreen.debugResults = null;
@@ -980,6 +987,52 @@ void main() {
   });
   _screen('key-check', 'Kiểm tra 24 từ và mật khẩu: chỉ so khớp, không hiện, không lưu', () => page('Kiểm tra 24 từ và mật khẩu', const KeyCheckScreen(libraryDir: '', hasPassword: true)),
       change: 'Mới', setup: () => KeyCheckScreen.debugResults = (words: true, password: false));
+  // Version history (owner 2026-10-27): every item, on this device, 30 days / 1 GB unless changed.
+  final wifi = _item('n1', ItemKind.note, 'Wifi nhà bà ngoại', 120, tags: ['t7']);
+  HistoryVersion ver(String rev, int ago, {String? name, bool here = true, bool same = false, bool gone = false, int size = 96}) =>
+      HistoryVersion(rev: rev, replacedMs: _now - ago, item: _item('n1', ItemKind.note, name ?? 'Wifi nhà bà ngoại', size),
+          thisDevice: here, hasContent: !gone, sameContent: same);
+  void history() {
+    HistoryScreen.debugVersions = [
+      ver('a1', 3600000),
+      ver('a2', _day * 2, here: false),
+      ver('a3', _day * 6, name: 'Wifi nhà ngoại', same: true),
+      ver('a4', _day * 19, size: 64),
+      ver('a5', _day * 27, gone: true),
+    ];
+    HistoryScreen.debugContent = (rev) => Uint8List.fromList(utf8.encode(switch (rev) {
+          'a1' => 'Tên mạng: Nha Ba Ngoai 5G\nMật khẩu: đổi ngày 20/10, ghi trong sổ đỏ\n\nModem để trên tủ lạnh.',
+          _ => 'Tên mạng: Nha Ba Ngoai\nMật khẩu: ghi trong sổ đỏ',
+        }));
+    HistoryScreen.debugDays = 30;
+  }
+  _screen('item-menu-history', 'Ghi chú · bấm giữ: thêm "Lịch sử phiên bản" cho mọi mục', home, section: 'note',
+      change: 'Mới', marks: [() => find.byKey(const ValueKey('menu-history'))],
+      act: (t) async {
+    await t.longPress(find.byType(SelectableRow).first);
+    await t.pumpAndSettle();
+  });
+  _screen('history-list', 'Lịch sử phiên bản của một ghi chú: giờ thay đổi, máy nào sửa, cỡ; bản đã bị dọn để tiết kiệm chỗ thì mờ', () => page('Lịch sử phiên bản', HistoryScreen(item: wifi)),
+      change: 'Mới: giữ bản cũ của mọi mục, mặc định 30 ngày', setup: history);
+  _screen('history-version', 'Mở một bản cũ: xem nội dung, "Khôi phục bản này" (bản hiện tại được giữ lại, nên hoàn tác được)', () => page('Lịch sử phiên bản', HistoryScreen(item: wifi)),
+      setup: history, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('history-a2')));
+    await t.pumpAndSettle();
+  });
+  _screen('history-empty', 'Chưa có bản cũ nào', () => page('Lịch sử phiên bản', HistoryScreen(item: wifi)),
+      setup: () {
+    HistoryScreen.debugVersions = const [];
+    HistoryScreen.debugDays = 30;
+  });
+  _screen('history-settings', 'Cài đặt → Lịch sử phiên bản: giữ bao lâu (Tắt · 7 · 30 · 90 ngày), tối đa bao nhiêu (500 MB · 1 GB · 5 GB · Không giới hạn), Xoá toàn bộ', () => page('Lịch sử phiên bản', const HistorySettingsScreen()),
+      change: 'Mới: cài đặt riêng của từng máy',
+      setup: () => HistorySettingsScreen.debugState = (30, BigInt.from(1 << 30), BigInt.from(186) * BigInt.from(1 << 20)));
+  _screen('settings-history', 'Cài đặt: dòng Lịch sử phiên bản; thanh dung lượng có thêm phần Lịch sử (xám)', () => settings(vault),
+      change: 'Mới', marks: [() => find.byKey(const ValueKey('history-row'))],
+      setup: () {
+    SettingsScreen.debugSyncLog = const [];
+    SettingsScreen.debugHistoryBytes = BigInt.from(186) * BigInt.from(1 << 20);
+  });
   _screen('lock-sync', 'Két tự khoá giữa lúc đồng bộ Google Drive: màn khoá như thường, thêm dòng "Đang đồng bộ 40%", màn hình vẫn sáng, đồng bộ chạy tiếp', lock,
       change: 'Mới: khoá không cắt ngang đồng bộ',
       marks: [() => find.byKey(const ValueKey('lock-sync'))],

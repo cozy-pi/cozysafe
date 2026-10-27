@@ -6,6 +6,16 @@ Dates are UTC.
 
 ## 0.1.76 (unreleased)
 
+### Added
+- Version history: every item keeps its older versions on this device (any change:
+  content, name, groups, favourite). Hold an item → Version history lists them by time
+  and device; open one to see it, and Restore This Version brings it back (the version
+  you had is kept too, so a restore can be undone). Settings → Version history sets how
+  long (Off, 7, 30 or 90 days; 30 unless changed) and how much space (500 MB, 1 GB, 5 GB
+  or no limit; 1 GB unless changed); the oldest go first, the current version never.
+  History stays on this device: not synced, not in backups. Renaming a photo keeps no
+  second copy of it. It shows in the storage line as History.
+
 ### Changed
 - A sync keeps running when the vault locks while you use the app (auto-lock, Hold Home,
   the lock button): the lock screen shows as usual, with a small line showing how far the

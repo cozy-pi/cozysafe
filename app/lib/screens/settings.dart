@@ -28,6 +28,8 @@ import '../prefs.dart';
 import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
 import 'delete_vault.dart';
+import 'history.dart';
+import '../src/rust/api/history.dart' as hist;
 import 'file_view.dart';
 import 'error_report.dart';
 import 'key_check.dart';
@@ -166,6 +168,8 @@ class SettingsScreen extends StatefulWidget {
 
   /// For the mockup renders: the connection log without a vault.
   static List<String>? debugSyncLog;
+  /// For the mockup renders: space version history takes.
+  static BigInt? debugHistoryBytes;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -209,6 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       // Tags are names only: not counted as things kept.
       final all = [...await rust.listItems(), ...await rust.listTrash()].where((i) => i.kind != ItemKind.tag);
+      final history = SettingsScreen.debugHistoryBytes ?? await _historyBytes();
       if (!mounted) return;
       setState(() {
         _count = all.length;
@@ -216,9 +221,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
         for (final i in all) {
           _byKind[i.kind] = (_byKind[i.kind] ?? BigInt.zero) + i.sizeBytes;
         }
+        // Older versions take room too: their own line (owner 2026-10-27).
+        if (history > BigInt.zero) _byKind[_historyKind] = history;
       });
       _lastSizes[widget.vault().id] = (Map.of(_byKind), _count);
     } catch (_) {}
+  }
+
+  Future<BigInt> _historyBytes() async {
+    try {
+      final s = await hist.historySettings();
+      _historyDays = s.days;
+      return await hist.historyBytes();
+    } catch (_) {
+      return BigInt.zero;
+    }
+  }
+
+  /// This device's history setting, for its row.
+  int _historyDays = 30;
+
+  Future<void> _openHistory() async {
+    final l = AppLocalizations.of(context);
+    await pushPage<void>(context, title: l.versionHistory, builder: (_) => HistorySettingsScreen(onChanged: _measure));
+    _measure();
   }
 
   String get _sizeText => AppLocalizations.of(context).storageUsed(fileSize(_bytes), _count);
@@ -667,6 +693,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: l.recentlyDeleted,
               onTap: () => _then(widget.onOpenTrash),
             ),
+            // Older versions of every item, kept on this device (owner 2026-10-27).
+            _Row(
+              key: const ValueKey('history-row'),
+              icon: Icons.history_rounded,
+              color: _Mau.ngoc,
+              title: l.versionHistory,
+              value: historyDaysText(l, _historyDays),
+              onTap: _openHistory,
+            ),
           ]),
           // The keys (owner 2026-10-26): how the vault opens here and on a new phone. The
           // next group shields the screen. Turning any of them weaker asks for the owner
@@ -984,6 +1019,7 @@ class _VaultCard extends StatelessWidget {
     (ItemKind.note, Color(0xFFFFD60A)),
     (ItemKind.audio, Color(0xFFFF9F0A)),
     (ItemKind.file, Color(0xFF30D158)),
+    (_historyKind, Color(0xFF8E8E93)),
   ];
 
   @override
@@ -1000,6 +1036,7 @@ class _VaultCard extends StatelessWidget {
       ItemKind.note: l.kindNotes,
       ItemKind.audio: l.modeAudio,
       ItemKind.file: l.kindFiles,
+      _historyKind: l.kindHistory,
     };
     BigInt size(String k) => byKind[k] ?? BigInt.zero;
     return Container(
@@ -1272,3 +1309,6 @@ String _langCode(BuildContext context) {
   final l = Localizations.localeOf(context);
   return l.scriptCode == 'Hant' ? 'zh_Hant' : l.languageCode;
 }
+
+/// The storage line's key for version history (not an item kind).
+const _historyKind = 'history';

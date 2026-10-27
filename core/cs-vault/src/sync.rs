@@ -607,6 +607,7 @@ impl OpenVault {
 
     /// Fetch a revision's content into place (sealed as it is; nothing is decrypted).
     fn fetch_blobs(&self, remote: &dyn Remote, id: &str, record: &ItemRecord) -> Result<()> {
+        self.keep_content(id)?; // the content it replaces, into the version history
         for ext in ["data", "thumb"] {
             if ext == "thumb" && !record.has_thumbnail() {
                 continue;

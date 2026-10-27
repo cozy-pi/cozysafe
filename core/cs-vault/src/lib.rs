@@ -33,6 +33,7 @@ use zeroize::Zeroizing;
 
 pub mod backup;
 pub mod db;
+pub mod history;
 pub mod items;
 pub mod join;
 pub mod passphrase;

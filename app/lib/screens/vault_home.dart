@@ -58,6 +58,7 @@ import '../widgets/selectable_row.dart';
 import '../widgets/toast.dart';
 import '../widgets/second_place.dart';
 import '../sync/sync_screen.dart';
+import 'history.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -1180,6 +1181,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           () => _toggleFavorite(item), key: const ValueKey('menu-favorite')),
       MenuEntry(Icons.sell_outlined, l.tagAction, () => _onlyThis(item, _tagSelected), key: const ValueKey('menu-group')),
       MenuEntry(Icons.info_outline, l.info, () => _info(item), key: const ValueKey('menu-info')),
+      // Older versions of it, to look at or bring back (owner 2026-10-27).
+      MenuEntry(Icons.history_rounded, l.versionHistory, () => _history(item), key: const ValueKey('menu-history')),
       MenuEntry(Icons.ios_share, l.sendOut, () => _onlyThis(item, _sendSelected), key: const ValueKey('menu-send')),
       MenuEntry(Icons.delete_outline, l.delete, () async {
         if (!await confirmTrash(context, count: 1, name: _shownName(l, item)) || !mounted) return;
@@ -1201,6 +1204,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   String _shownName(AppLocalizations l, rust.ItemInfo it) => shownName(l, it);
+
+  Future<void> _history(rust.ItemInfo item) => pushPage<void>(context,
+      title: AppLocalizations.of(context).versionHistory,
+      builder: (_) => HistoryScreen(item: item, onRestored: (_) => _reload()));
 
   /// What an item is: name, kind, size, when it was added, its length, its groups.
   Future<void> _info(rust.ItemInfo item) =>
