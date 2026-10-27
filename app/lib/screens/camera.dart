@@ -86,7 +86,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         _video ? l.recordVideo : l.takePhoto,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -.5),
+                        style: const TextStyle(fontSize: CsType.title1, fontWeight: FontWeight.w800, letterSpacing: -.5),
                       ),
                     ),
                     if (_recording)
@@ -95,7 +95,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         decoration: BoxDecoration(color: recordRed(context), borderRadius: BorderRadius.circular(10)),
                         child: Text(
                           '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: CsType.subhead,
                               fontFeatures: [FontFeature.tabularFigures()]),
                         ),
                       ),
@@ -194,7 +194,7 @@ class _CameraScreenState extends State<CameraScreen> {
                                       child: Text(
                                         v ? l.cameraVideo : l.photo,
                                         style: TextStyle(
-                                          fontSize: 15,
+                                          fontSize: CsType.subhead,
                                           fontWeight: v == _video ? FontWeight.w700 : FontWeight.w600,
                                           color: v == _video
                                               ? Theme.of(context).colorScheme.primary
@@ -261,7 +261,7 @@ class _CameraScreenState extends State<CameraScreen> {
                       child: (view?.canFlip ?? false) && !_recording
                           ? Center(
                               child: GlassButton(
-                                icon: Icons.cameraswitch_outlined,
+                                icon: Icons.cameraswitch_rounded,
                                 tooltip: l.flipCamera,
                                 size: Ui.bar,
                                 onTap: () => _view.currentState?.flip(),

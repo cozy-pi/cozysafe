@@ -458,7 +458,7 @@
   "addRowAddPhotos": "Thêm ảnh",
   "syncTitle": "Đồng bộ",
   "settingsBackupSync": "Sao lưu & đồng bộ",
-  "syncRow": "Đồng bộ với máy gần đây",
+  "syncRow": "Két của bạn ở máy khác",
   "syncScanCode": "Quét mã",
   "syncLog": "Các lần kết nối gần đây",
   "syncLogEmpty": "Chưa có lần kết nối nào.",
@@ -673,7 +673,6 @@
   "tipBackupBody": "Một tệp mã hoá chứa cả két. Mở trên máy mới cần 24 từ và mật khẩu.",
   "tipGuideBody": "Xem lại các gợi ý này bất cứ lúc nào.",
   "syncAutoIn": "Tự đồng bộ sau {seconds} giây",
-  "driveSignInAgain": "Đăng nhập lại",
   "driveRemove": "Gỡ tài khoản",
   "driveRemoveTitle": "Gỡ {account} khỏi máy này?",
   "driveRemoveBody": "Tệp trên Google Drive vẫn còn. Cozy Safe mất quyền truy cập cho tới khi bạn đăng nhập lại.",
@@ -750,5 +749,8 @@
   "syncTidying": "Đang dọn bản cũ",
   "syncTidyingDrive": "Đang dọn bản cũ trên Google Drive",
   "sortSmallest": "Nhỏ nhất trước",
-  "storageItems": "{count, plural, other{{count} mục}}"
+  "storageItems": "{count, plural, other{{count} mục}}",
+  "syncAuto": "Tự động đồng bộ",
+  "syncWifiOnly": "Chỉ khi có Wi‑Fi",
+  "syncNow": "Đồng bộ ngay"
 }

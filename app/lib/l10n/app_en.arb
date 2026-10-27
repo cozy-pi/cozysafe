@@ -626,7 +626,7 @@
   "@addRowAddPhotos": {"description": "In the library, + offers this: pick photos and videos from the device. Short, under a round button."},
   "syncTitle": "Sync",
   "settingsBackupSync": "Backup & Sync",
-  "syncRow": "Sync with a nearby device",
+  "syncRow": "Your vault on another device",
   "syncScanCode": "Scan a code",
   "syncLog": "Recent connections",
   "syncLogEmpty": "No connections yet.",
@@ -876,7 +876,6 @@
   "tipGuideBody": "See these tips again any time.",
   "syncAutoIn": "Syncing in {seconds} s",
   "@syncAutoIn": {"placeholders": {"seconds": {}}},
-  "driveSignInAgain": "Sign in again",
   "driveRemove": "Remove account",
   "driveRemoveTitle": "Remove {account} from this device?",
   "@driveRemoveTitle": {"placeholders": {"account": {}}},
@@ -962,5 +961,10 @@
   "syncTidyingDrive": "Clearing old versions off Google Drive",
   "sortSmallest": "Smallest First",
   "storageItems": "{count, plural, =1{1 item} other{{count} items}}",
-  "@storageItems": {"placeholders": {"count": {"type": "int"}}}
+  "@storageItems": {"placeholders": {"count": {"type": "int"}}},
+  "syncAuto": "Sync automatically",
+  "syncWifiOnly": "Only on Wi-Fi",
+  "@syncAuto": {"description": "Switch: Google Drive syncs on its own while the vault is open."},
+  "@syncWifiOnly": {"description": "Switch: automatic sync only on Wi-Fi, never on mobile data."},
+  "syncNow": "Sync now"
 }

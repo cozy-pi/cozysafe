@@ -65,7 +65,7 @@ class SelectCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Icon(
-        selected ? Icons.check_circle : Icons.radio_button_unchecked,
+        selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
         key: ValueKey(selected ? 'select-on' : 'select-off'),
         size: 24,
         color: selected ? Theme.of(context).colorScheme.primary : CsColors.of(context).muted,

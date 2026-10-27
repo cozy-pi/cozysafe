@@ -87,7 +87,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
         children: [
           Text(l.kitTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Text(_isWords ? l.kitLead : l.kitLeadLegacy, style: TextStyle(color: c.muted, fontSize: 15, height: 1.5)),
+          Text(_isWords ? l.kitLead : l.kitLeadLegacy, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -102,7 +102,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
               style: const TextStyle(
                 fontFamily: 'monospace',
                 fontFamilyFallback: ['Menlo', 'Consolas', 'Roboto Mono'],
-                fontSize: 18,
+                fontSize: CsType.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
                 height: 1.6,
@@ -113,7 +113,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(onPressed: _copy, icon: const Icon(Icons.copy_outlined, size: 18), label: Text(l.kitCopy)),
+                child: OutlinedButton.icon(onPressed: _copy, icon: const Icon(Icons.copy_rounded, size: 18), label: Text(l.kitCopy)),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -133,7 +133,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
             borderRadius: BorderRadius.circular(14),
             child: Padding(
               padding: const EdgeInsets.all(14),
-              child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: 14, height: 1.45)),
+              child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: CsType.subhead, height: 1.45)),
             ),
           ),
           if (widget.onChange != null) ...[
@@ -195,14 +195,14 @@ class WordGrid extends StatelessWidget {
             child: Row(children: [
               SizedBox(
                 width: 22,
-                child: Text('${i + 1}', style: TextStyle(color: c.muted, fontSize: 12.5, fontFeatures: const [FontFeature.tabularFigures()])),
+                child: Text('${i + 1}', style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontFeatures: const [FontFeature.tabularFigures()])),
               ),
               Expanded(
                 child: Text(shown ? w : '•••••',
                     maxLines: 1,
                     overflow: TextOverflow.fade,
                     softWrap: false,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: shown ? null : c.muted)),
+                    style: TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700, color: shown ? null : c.muted)),
               ),
             ]),
           ),

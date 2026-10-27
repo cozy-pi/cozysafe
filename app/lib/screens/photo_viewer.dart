@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import '../theme.dart' show CsType;
 import 'package:flutter/physics.dart';
 
 import '../item_bytes.dart';
@@ -322,7 +323,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
                         children: [
                           Text(ml.formatMediumDate(when), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                           Text(ml.formatTimeOfDay(TimeOfDay.fromDateTime(when)),
-                              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                              style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
                         ],
                       ),
                     ),
@@ -356,7 +357,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
                     key: const ValueKey('photo-delete'),
                     onPressed: _delete,
                     style: glassDelete,
-                    icon: const Icon(Icons.delete_outline),
+                    icon: const Icon(Icons.delete_rounded),
                     label: glassLabel(l.delete),
                   ),
                 ),

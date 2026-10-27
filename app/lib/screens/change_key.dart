@@ -159,7 +159,7 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
         padding: const EdgeInsets.all(14),
         child: Text(
           l.changeKeyBackupNote,
-          style: TextStyle(color: c.warnInk, fontSize: 14, height: 1.45),
+          style: TextStyle(color: c.warnInk, fontSize: CsType.subhead, height: 1.45),
         ),
       ),
     );
@@ -169,7 +169,7 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
         children: [
           Text(
             l.changeKeyLead,
-            style: const TextStyle(fontSize: 16, height: 1.45),
+            style: const TextStyle(fontSize: CsType.callout, height: 1.45),
           ),
           const SizedBox(height: 14),
           note,
@@ -193,7 +193,7 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
             if (_other) ...[
               Text(
                 l.changeKeyOtherVault,
-                style: const TextStyle(fontSize: 15, height: 1.45),
+                style: const TextStyle(fontSize: CsType.subhead, height: 1.45),
               ),
               const SizedBox(height: 10),
             ],
@@ -230,7 +230,7 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
             l.changeKeyDone,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 17,
+              fontSize: CsType.body,
               fontWeight: FontWeight.w600,
               height: 1.4,
             ),

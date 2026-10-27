@@ -81,8 +81,8 @@ Future<void> showItemInfo(BuildContext context, rust.ItemInfo item, {List<String
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(width: 110, child: Text(k, style: TextStyle(color: c.muted, fontSize: 15))),
-                  Expanded(child: SelectableText(v, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
+                  SizedBox(width: 110, child: Text(k, style: TextStyle(color: c.muted, fontSize: CsType.subhead))),
+                  Expanded(child: SelectableText(v, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w500))),
                 ],
               ),
             ),

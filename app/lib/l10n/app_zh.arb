@@ -444,7 +444,7 @@
   "addRowAddPhotos": "添加照片",
   "syncTitle": "同步",
   "settingsBackupSync": "备份与同步",
-  "syncRow": "与附近的设备同步",
+  "syncRow": "你在其他设备上的保险箱",
   "syncScanCode": "扫描代码",
   "syncLog": "最近的连接",
   "syncLogEmpty": "还没有连接。",
@@ -659,7 +659,6 @@
   "tipBackupBody": "一个包含整个保险箱的加密文件。在新手机上打开需要你的 24 个单词和密码。",
   "tipGuideBody": "随时可以再次查看这些提示。",
   "syncAutoIn": "{seconds} 秒后同步",
-  "driveSignInAgain": "重新登录",
   "driveRemove": "移除账号",
   "driveRemoveTitle": "要从本设备移除 {account} 吗？",
   "driveRemoveBody": "你在 Google 云端硬盘上的文件会保留。在你重新登录前，Cozy Safe 无法访问。",
@@ -736,5 +735,8 @@
   "syncTidying": "正在清理旧版本",
   "syncTidyingDrive": "正在清理 Google 云端硬盘上的旧版本",
   "sortSmallest": "最小优先",
-  "storageItems": "{count, plural, other{{count} 项}}"
+  "storageItems": "{count, plural, other{{count} 项}}",
+  "syncAuto": "自动同步",
+  "syncWifiOnly": "仅限 Wi-Fi",
+  "syncNow": "立即同步"
 }

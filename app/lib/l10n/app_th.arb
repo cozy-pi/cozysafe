@@ -444,7 +444,7 @@
   "addRowAddPhotos": "เพิ่มรูปภาพ",
   "syncTitle": "ซิงค์",
   "settingsBackupSync": "สำรองและซิงค์",
-  "syncRow": "ซิงค์กับอุปกรณ์ใกล้เคียง",
+  "syncRow": "ตู้นิรภัยของคุณในอุปกรณ์อื่น",
   "syncScanCode": "สแกนรหัส",
   "syncLog": "การเชื่อมต่อล่าสุด",
   "syncLogEmpty": "ยังไม่มีการเชื่อมต่อ",
@@ -659,7 +659,6 @@
   "tipBackupBody": "ไฟล์เข้ารหัสไฟล์เดียวที่มีทั้งตู้นิรภัย การเปิดบนโทรศัพท์เครื่องใหม่ต้องใช้คำ 24 คำและรหัสผ่านของคุณ",
   "tipGuideBody": "ดูเคล็ดลับเหล่านี้อีกครั้งได้ทุกเมื่อ",
   "syncAutoIn": "จะซิงค์ใน {seconds} วินาที",
-  "driveSignInAgain": "ลงชื่อเข้าใช้อีกครั้ง",
   "driveRemove": "นำบัญชีออก",
   "driveRemoveTitle": "นำ {account} ออกจากอุปกรณ์นี้ไหม",
   "driveRemoveBody": "ไฟล์ของคุณบน Google Drive ยังอยู่ Cozy Safe จะเข้าถึงไม่ได้จนกว่าคุณจะลงชื่อเข้าใช้อีกครั้ง",
@@ -736,5 +735,8 @@
   "syncTidying": "กำลังล้างเวอร์ชันเก่า",
   "syncTidyingDrive": "กำลังล้างเวอร์ชันเก่าออกจาก Google ไดรฟ์",
   "sortSmallest": "เล็กสุดก่อน",
-  "storageItems": "{count, plural, other{{count} รายการ}}"
+  "storageItems": "{count, plural, other{{count} รายการ}}",
+  "syncAuto": "ซิงค์อัตโนมัติ",
+  "syncWifiOnly": "เฉพาะเมื่อใช้ Wi-Fi",
+  "syncNow": "ซิงค์เลย"
 }

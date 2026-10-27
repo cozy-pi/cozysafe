@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Adicionar fotos",
   "syncTitle": "Sincronizar",
   "settingsBackupSync": "Backup e sincronização",
-  "syncRow": "Sincronizar com um dispositivo próximo",
+  "syncRow": "Seu cofre em outro dispositivo",
   "syncScanCode": "Escanear um código",
   "syncLog": "Conexões recentes",
   "syncLogEmpty": "Nenhuma conexão ainda.",
@@ -659,7 +659,6 @@
   "tipBackupBody": "Um arquivo criptografado com o cofre inteiro. Para abri-lo em um celular novo, você precisa das 24 palavras e da senha.",
   "tipGuideBody": "Veja estas dicas de novo quando quiser.",
   "syncAutoIn": "Sincronizando em {seconds} s",
-  "driveSignInAgain": "Iniciar sessão novamente",
   "driveRemove": "Remover conta",
   "driveRemoveTitle": "Remover {account} deste dispositivo?",
   "driveRemoveBody": "Os seus ficheiros no Google Drive ficam. O Cozy Safe perde o acesso até voltar a iniciar sessão.",
@@ -736,5 +735,8 @@
   "syncTidying": "A limpar versões antigas",
   "syncTidyingDrive": "A limpar versões antigas do Google Drive",
   "sortSmallest": "Menores primeiro",
-  "storageItems": "{count, plural, =1{1 item} other{{count} itens}}"
+  "storageItems": "{count, plural, =1{1 item} other{{count} itens}}",
+  "syncAuto": "Sincronizar automaticamente",
+  "syncWifiOnly": "Apenas com Wi-Fi",
+  "syncNow": "Sincronizar agora"
 }

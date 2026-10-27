@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Fotos hinzufügen",
   "syncTitle": "Synchronisieren",
   "settingsBackupSync": "Sicherung & Synchronisierung",
-  "syncRow": "Mit einem Gerät in der Nähe synchronisieren",
+  "syncRow": "Ihr Tresor auf einem anderen Gerät",
   "syncScanCode": "Code scannen",
   "syncLog": "Letzte Verbindungen",
   "syncLogEmpty": "Noch keine Verbindungen.",
@@ -659,7 +659,6 @@
   "tipBackupBody": "Eine verschlüsselte Datei mit dem ganzen Tresor. Zum Öffnen auf einem neuen Telefon brauchen Sie Ihre 24 Wörter und Ihr Passwort.",
   "tipGuideBody": "Diese Tipps jederzeit noch einmal ansehen.",
   "syncAutoIn": "Synchronisierung in {seconds} s",
-  "driveSignInAgain": "Erneut anmelden",
   "driveRemove": "Konto entfernen",
   "driveRemoveTitle": "{account} von diesem Gerät entfernen?",
   "driveRemoveBody": "Ihre Dateien in Google Drive bleiben. Cozy Safe hat keinen Zugriff mehr, bis Sie sich erneut anmelden.",
@@ -736,5 +735,8 @@
   "syncTidying": "Alte Versionen werden aufgeräumt",
   "syncTidyingDrive": "Alte Versionen werden aus Google Drive entfernt",
   "sortSmallest": "Kleinste zuerst",
-  "storageItems": "{count, plural, =1{1 Element} other{{count} Elemente}}"
+  "storageItems": "{count, plural, =1{1 Element} other{{count} Elemente}}",
+  "syncAuto": "Automatisch synchronisieren",
+  "syncWifiOnly": "Nur über WLAN",
+  "syncNow": "Jetzt synchronisieren"
 }

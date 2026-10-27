@@ -83,9 +83,9 @@ class _SecondPlaceNudgeState extends State<SecondPlaceNudge> {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(l.secondPlaceTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                Text(l.secondPlaceTitle, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 3),
-                Text(l.secondPlaceBody, style: TextStyle(color: c.muted, fontSize: 14, height: 1.35)),
+                Text(l.secondPlaceBody, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.35)),
                 const SizedBox(height: 6),
                 TextButton(
                   key: const ValueKey('second-place-add'),

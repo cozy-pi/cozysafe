@@ -191,7 +191,7 @@ class _CoachTourState extends State<CoachTour> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(tip.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, height: 1.25)),
+                    child: Text(tip.title, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700, height: 1.25)),
                   ),
                   const SizedBox(width: 10),
                   // Where we are: 2/6.
@@ -202,7 +202,7 @@ class _CoachTourState extends State<CoachTour> {
                       padding: const EdgeInsets.only(top: 2),
                       child: Text('$n/$_total',
                           key: const ValueKey('tip-count'),
-                          style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: muted)),
+                          style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: muted)),
                     ),
                   ),
                 ],
@@ -211,7 +211,7 @@ class _CoachTourState extends State<CoachTour> {
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Text(tip.body, style: const TextStyle(fontSize: 15, height: 1.35)),
+              child: Text(tip.body, style: const TextStyle(fontSize: CsType.subhead, height: 1.35)),
             ),
             if (tip.note case final note?) ...[
               const SizedBox(height: 10),
@@ -226,7 +226,7 @@ class _CoachTourState extends State<CoachTour> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(note, style: const TextStyle(fontSize: 14, height: 1.35, fontWeight: FontWeight.w600)),
+                      child: Text(note, style: const TextStyle(fontSize: CsType.subhead, height: 1.35, fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),

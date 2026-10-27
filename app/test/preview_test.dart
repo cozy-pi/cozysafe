@@ -9,6 +9,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show PictureRecorder, ImageByteFormat;
 
+import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
+
 import 'package:cozysafe/links.dart';
 import 'package:cozysafe/widgets/private_thumb.dart';
 import 'package:cozysafe/widgets/selectable_row.dart';
@@ -43,6 +45,7 @@ import 'package:cozysafe/screens/vault_manager.dart';
 import 'package:cozysafe/widgets/second_place.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/api/sync.dart';
+import 'package:cozysafe/sync/auto_sync.dart';
 import 'package:cozysafe/sync/drive_join.dart';
 import 'package:cozysafe/sync/join_page.dart';
 import 'package:cozysafe/sync/nearby_page.dart';
@@ -245,10 +248,21 @@ class _Fake implements RustLibApi {
 Future<void> _loadFonts() async {
   final dir = Directory('${Platform.environment['FLUTTER_ROOT']}/bin/cache/artifacts/material_fonts');
   Future<ByteData> bytes(File f) async => ByteData.view((await f.readAsBytes()).buffer);
+  // The iPhone's own font (SF Pro): the app sets none, so on an iPhone its text is SF.
+  // The Mac's copy stands in; Roboto only where it is missing.
+  final sf = File('/System/Library/Fonts/SFNS.ttf');
   final roboto = FontLoader('Roboto');
-  for (final f in dir.listSync().whereType<File>()) {
-    final n = f.uri.pathSegments.last;
-    if (n.startsWith('Roboto-') && n.endsWith('.ttf')) roboto.addFont(bytes(f));
+  if (sf.existsSync()) {
+    roboto.addFont(bytes(sf));
+    // The names Flutter gives the iPhone's system font when the platform is iOS.
+    for (final name in ['CupertinoSystemDisplay', 'CupertinoSystemText']) {
+      await (FontLoader(name)..addFont(bytes(sf))).load();
+    }
+  } else {
+    for (final f in dir.listSync().whereType<File>()) {
+      final n = f.uri.pathSegments.last;
+      if (n.startsWith('Roboto-') && n.endsWith('.ttf')) roboto.addFont(bytes(f));
+    }
   }
   await roboto.load();
   await (FontLoader('MaterialIcons')..addFont(bytes(File('${dir.path}/MaterialIcons-Regular.otf')))).load();
@@ -356,6 +370,7 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugAddress = null;
       SyncScreen.debugDrive = false;
       SyncScreen.debugAccount = null;
+      SyncScreen.debugSession = null;
       ErrorReportScreen.debugEntries = null;
       HistoryScreen.debugVersions = null;
       HistoryScreen.debugContent = null;
@@ -388,12 +403,15 @@ void _screen(String name, String caption, Widget Function() home,
       setup?.call();
       // Real shadows: tests otherwise draw every elevation as a solid black outline.
       debugDisableShadows = false;
+      // A phone is the owner's iPhone: its back button, switches and title bar.
+      if (size == _phone) debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       try {
         final rects = await _shot(t, '$name-${b.name}', home(), b: b, act: act, after: after, marks: marks, size: size);
         if (rects.isNotEmpty) entry['marks'] = rects;
         await t.pump(const Duration(seconds: 2)); // let an animation started by `act` end
       } finally {
         debugDisableShadows = true;
+        debugDefaultTargetPlatformOverride = null;
       }
     });
   }
@@ -524,7 +542,7 @@ void main() {
   });
   _screen('one-type', 'Chỉ có ghi chú · thanh dưới gọn', home, section: 'note',
       setup: () => _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList());
-  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
+  _screen('note-editor', 'Sửa ghi chú', change: 'Thanh tiêu đề kiểu iPhone; cỡ chữ theo thang iOS', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
   _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
   _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'audio', act: (t) => _tapChip(t, 'Hộ chiếu'));
@@ -536,7 +554,7 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
-  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
+  _screen('home', 'Trang chủ (Tổng quan)', change: 'Cỡ chữ theo thang iOS; icon đặc bo tròn', home, section: 'home');
   // iPad and computer (owner 2026-10-27): three columns, the sync always in sight.
   const ipad = Size(1180, 820), ipadUp = Size(820, 1180), mac = Size(1440, 900), win = Size(1280, 800);
   _screen('wide-ipad-home', 'iPad ngang · Tổng quan: thanh bên (mục, nhóm, đồng bộ, Thêm), nội dung rộng', home,
@@ -660,12 +678,10 @@ void main() {
     Prefs.write('action-side', 'center');
   }, act: (t) => tapThumb(t, 2));
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
-      act: (t) => tapThumb(t, 2),
-      change: 'SỬA: chỉ còn ảnh — bỏ tên, ngày, dung lượng (xem ở ⋯ → Thông tin)');
+      act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
-      act: (t) => tapThumb(t, 5),
-      change: 'SỬA: chỉ còn video — bỏ tên, ngày, dung lượng');
+      act: (t) => tapThumb(t, 5));
   _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
@@ -779,7 +795,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   });
-  _screen('files', 'Tệp', home, section: 'file');
+  _screen('files', 'Tệp', change: 'Cỡ chữ theo thang iOS; icon đặc bo tròn', home, section: 'file');
   _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'));
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
       act: (t) async {
@@ -869,27 +885,25 @@ void main() {
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
-  _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', () => settings(vault),
-      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
-      change: 'SỬA: bấm thẻ dung lượng mở trang Dung lượng; thanh màu có thêm Đã xoá gần đây (đỏ) và Lịch sử', marks: [() => find.byKey(const ValueKey('storage-card'))]);
+  _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', change: 'iPhone: tiêu đề lớn giữ bên trái; NỀN XÁM NHẠT, NHÓM Ô TRẮNG (chế độ sáng); chữ 17; icon đặc', () => settings(vault),
+      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('storage', 'MỚI · bấm thẻ dung lượng: từng phần (ảnh, video, ghi chú, ghi âm, tệp, Đã xoá gần đây, Lịch sử) với số mục + dung lượng, lớn nhất trên cùng; bấm một dòng → tới đúng chỗ quản lý (mục đó / Thùng rác / cài đặt Lịch sử)', () => settings(vault),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('storage-card')));
         await t.pumpAndSettle();
-      },
-      change: 'MỚI', marks: [() => find.byKey(const ValueKey('storage-trash')), () => find.byKey(const ValueKey('storage-history'))]);
+      });
   _screen('sort-menu-library', 'Thư viện · bấm ⇅', home, section: 'library', act: (t) async {
     await t.tap(find.byKey(const ValueKey('sort-button')));
     await t.pumpAndSettle();
-  }, change: 'MỚI: Lớn nhất trước · Nhỏ nhất trước (cả ảnh/video)', marks: [() => find.byKey(const ValueKey('sort-size')), () => find.byKey(const ValueKey('sort-smallest'))]);
+  });
   _screen('library-by-size', 'Thư viện · Lớn nhất trước: một lưới, không chia theo ngày', home, section: 'library',
-      setup: () => Prefs.write('sort-library', 'size'), change: 'MỚI');
+      setup: () => Prefs.write('sort-library', 'size'));
   _screen('mac-settings', 'MacBook · Cài đặt: một cột giữa (trước: kéo căng hết bề ngang)', () => settings(vault), size: const Size(1440, 900),
-      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'], change: 'SỬA (máy tính)');
-  _screen('mac-trash', 'MacBook · Đã xoá gần đây: một cột giữa, ảnh nhỏ lại', () => const Readable(child: TrashScreen()), size: const Size(1440, 900), change: 'SỬA (máy tính)');
-  _screen('mac-home', 'MacBook · Tổng quan: 4 ô loại trên một hàng, cao như trên điện thoại (trước: ô cao ~200px, trống)', home, section: 'home', size: const Size(1440, 900), change: 'SỬA (máy tính)');
+      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+  _screen('mac-trash', 'MacBook · Đã xoá gần đây: một cột giữa, ảnh nhỏ lại', () => const Readable(child: TrashScreen()), size: const Size(1440, 900));
+  _screen('mac-home', 'MacBook · Tổng quan: 4 ô loại trên một hàng, cao như trên điện thoại (trước: ô cao ~200px, trống)', home, section: 'home', size: const Size(1440, 900));
   _screen('mac-files-grid', 'MacBook · Tệp dạng lưới: nhiều cột vừa màn (trước: 3 ô to như tờ giấy)', home, section: 'file', size: const Size(1440, 900),
-      setup: () => Prefs.write('files-view', 'grid'), change: 'SỬA (máy tính)');
+      setup: () => Prefs.write('files-view', 'grid'));
 
   // The whole page in one tall shot, to compare the order (owner 2026-10-27).
   _screen('settings-all', 'Cài đặt · cả trang (ảnh dài): quan trọng lên trên, cùng loại một nhóm', () => settings(vault),
@@ -905,17 +919,37 @@ void main() {
     await t.pumpAndSettle();
   });
   // As pushPage: a readable column on a computer.
-  Widget page(String title, Widget body) => Readable(child: Scaffold(appBar: AppBar(title: Text(title)), body: SafeArea(top: false, child: body)));
+  Widget page(String title, Widget body) =>
+      Readable(child: Builder(builder: (context) => Scaffold(appBar: pageBar(context, title), body: SafeArea(top: false, child: body))));
   final syncLog = [
     '${_now - 3600000}|nearby|iPhone 15 Pro Max|ok|12|3',
     '${_now - 86400000}|nearby|iPad|cancelled|0|0',
     '${_now - 2 * 86400000}|join|192.168.1.21|ok|0|5',
   ];
-  _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (Đăng nhập lại, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (email tài khoản, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', change: 'iPhone: tiêu đề giữa 17; nền xám, ô trắng; chữ 17', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
     SyncScreen.debugAccount = 'ban.do@gmail.com';
+    Prefs.write(AutoSync.pref, '1');
+  });
+  _screen('sync-drive-page', 'Đồng bộ · bấm Google Drive (đã có tài khoản): Đồng bộ ngay · email + Tự động đồng bộ + Chỉ khi có Wi‑Fi · Gỡ tài khoản', change: 'iPhone: tiêu đề giữa; nền xám, ô trắng', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () {
+    SyncScreen.debugLog = syncLog;
+    SyncScreen.debugDrive = true;
+    SyncScreen.debugAccount = 'ban.do@gmail.com';
+    Prefs.write(AutoSync.pref, '1');
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-drive')));
+    await t.pumpAndSettle();
+  });
+  _screen('sync-drive-add', 'Đồng bộ · lần đầu thêm Google Drive: hộp cho phép kèm công tắc Tự động đồng bộ (bật sẵn)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () {
+    SyncScreen.debugDrive = true;
+    SyncScreen.debugSession = (email: 'ban.do@gmail.com', token: '');
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-drive')));
+    await t.pumpAndSettle();
   });
   _screen('sync-log', 'Đồng bộ · bấm Các lần kết nối gần đây: danh sách + một dòng giải thích (chỉ tên máy, không địa chỉ IP)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
@@ -925,12 +959,14 @@ void main() {
     await t.tap(find.byKey(const ValueKey('sync-log')));
     await t.pumpAndSettle();
   });
-  _screen('sync-drive-remove', 'Đồng bộ · bấm Gỡ tài khoản: hỏi lại, tệp trên Drive vẫn còn', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync-drive-remove', 'Đồng bộ · Google Drive · bấm Gỡ tài khoản: hỏi lại, tệp trên Drive vẫn còn', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
     SyncScreen.debugAccount = 'ban.do@gmail.com';
   }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-drive')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('sync-drive-remove')));
     await t.pumpAndSettle();
   });
@@ -1117,7 +1153,7 @@ void main() {
     HistoryScreen.debugVersions = const [];
     HistoryScreen.debugDays = 30;
   });
-  _screen('history-settings', 'Cài đặt → Lịch sử phiên bản: giữ bao lâu (Tắt · 7 · 30 · 90 ngày), tối đa bao nhiêu (500 MB · 1 GB · 5 GB · Không giới hạn), Xoá toàn bộ', () => page('Lịch sử phiên bản', const HistorySettingsScreen()),
+  _screen('history-settings', 'Cài đặt → Lịch sử phiên bản: giữ bao lâu (Tắt · 7 · 30 · 90 ngày), tối đa bao nhiêu (500 MB · 1 GB · 5 GB · Không giới hạn), Xoá toàn bộ', change: 'iPhone: tiêu đề giữa; nền xám, ô trắng', () => page('Lịch sử phiên bản', const HistorySettingsScreen()),
       setup: () => HistorySettingsScreen.debugState = (30, BigInt.from(1 << 30), BigInt.from(186) * BigInt.from(1 << 20)));
   _screen('settings-history', 'Cài đặt: dòng Lịch sử phiên bản; thanh dung lượng có thêm phần Lịch sử (xám)', () => settings(vault),
       setup: () {
@@ -1294,7 +1330,7 @@ void main() {
   _screen('originals-files', 'Vừa cất 2 tệp vào két', () => sheetOver(const DeleteOriginalsSheet(count: 2, photos: false)),
       section: 'file');
   _screen('blur', 'Thư viện · làm mờ ảnh thu nhỏ (mặc định)', home, section: 'library');
-  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen());
+  _screen('security-info', 'Cách két được bảo vệ · đầu trang', change: 'Thanh tiêu đề kiểu iPhone; cỡ chữ theo thang iOS', () => const SecurityInfoScreen());
   _screen('security-info-2', 'Cách két được bảo vệ · giữa trang', () => const SecurityInfoScreen(), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-4')), 300, scrollable: find.byType(Scrollable).first);
     await t.pump();
@@ -1311,7 +1347,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   }
-  _screen('trash', 'Đã xoá gần đây', () => const Readable(child: TrashScreen()));
+  _screen('trash', 'Đã xoá gần đây', change: 'Thanh tiêu đề kiểu iPhone (giữa, 17); icon đặc', () => const Readable(child: TrashScreen()));
   _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 2 mục', () => const Readable(child: TrashScreen()),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-select')));
@@ -1328,7 +1364,7 @@ void main() {
         await t.pump(kLongPressTimeout + const Duration(milliseconds: 50));
         await g.moveBy(const Offset(40, 0));
         await t.pump();
-        await g.moveTo(t.getCenter(find.byType(PrivateThumb).at(3)));
+        await g.moveTo(t.getCenter(find.byType(PrivateThumb).last));
         await t.pump();
         await g.up();
       });
@@ -1429,7 +1465,7 @@ void main() {
   });
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
-  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
+  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', change: 'Thanh tiêu đề kiểu iPhone; cỡ chữ theo thang iOS', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
   _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-7QK2-M9XD-4TRB-PW3H-8ZNA-6CJE-1VFS', confirm: false, onChange: () {}));
   Widget change(int step) => ChangeKeyScreen(libraryDir: '', password: '', onBackup: () async {});
   for (final (i, name, what) in [
@@ -1446,7 +1482,7 @@ void main() {
   _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
   _screen('kit-confirm', 'Khoá khôi phục lần đầu: gõ một từ để xác nhận', () => const EmergencyKitScreen(keyText: words, confirm: true));
-  _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', () => const BackupPasswordScreen(libraryDir: '', change: false),
+  _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', change: 'Thanh tiêu đề kiểu iPhone; cỡ chữ theo thang iOS', () => const BackupPasswordScreen(libraryDir: '', change: false),
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
@@ -1483,7 +1519,7 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 3200));
   });
-  _screen('vault-manager', 'Debug · Két trên máy này', () => const VaultManagerScreen(libraryDir: ''),
+  _screen('vault-manager', 'Debug · Két trên máy này', change: 'Thanh tiêu đề kiểu iPhone; icon két đặc bo tròn', () => const VaultManagerScreen(libraryDir: ''),
       setup: () => VaultManagerScreen.debugSlots = [
             VaultSlot(id: 'e0a966aed6bec8151ebb59139e5aa773', sizeBytes: BigInt.from(1843 << 20), hasPassword: true, hasPin: true, hasBiometric: true, isOpen: true),
             VaultSlot(id: '3fa9c1d2e4b5a6978877665544332211', sizeBytes: BigInt.from(37 << 20), hasPassword: true, hasPin: true, hasBiometric: false, isOpen: false),

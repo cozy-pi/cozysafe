@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Добавить фото",
   "syncTitle": "Синхронизация",
   "settingsBackupSync": "Резервная копия и синхронизация",
-  "syncRow": "Синхронизировать с устройством рядом",
+  "syncRow": "Ваш сейф на другом устройстве",
   "syncScanCode": "Сканировать код",
   "syncLog": "Последние подключения",
   "syncLogEmpty": "Подключений пока нет.",
@@ -659,7 +659,6 @@
   "tipBackupBody": "Один зашифрованный файл со всем сейфом. Чтобы открыть его на новом телефоне, нужны 24 слова и пароль.",
   "tipGuideBody": "Эти подсказки можно посмотреть снова в любое время.",
   "syncAutoIn": "Синхронизация через {seconds} с",
-  "driveSignInAgain": "Войти снова",
   "driveRemove": "Удалить аккаунт",
   "driveRemoveTitle": "Удалить {account} с этого устройства?",
   "driveRemoveBody": "Файлы на Google Диске останутся. Cozy Safe потеряет доступ, пока вы снова не войдёте.",
@@ -736,5 +735,8 @@
   "syncTidying": "Очистка старых версий",
   "syncTidyingDrive": "Удаление старых версий из Google Диска",
   "sortSmallest": "Сначала маленькие",
-  "storageItems": "{count, plural, one{{count} объект} few{{count} объекта} many{{count} объектов} other{{count} объекта}}"
+  "storageItems": "{count, plural, one{{count} объект} few{{count} объекта} many{{count} объектов} other{{count} объекта}}",
+  "syncAuto": "Синхронизировать автоматически",
+  "syncWifiOnly": "Только по Wi-Fi",
+  "syncNow": "Синхронизировать сейчас"
 }

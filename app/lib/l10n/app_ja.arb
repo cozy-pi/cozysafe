@@ -444,7 +444,7 @@
   "addRowAddPhotos": "写真を追加",
   "syncTitle": "同期",
   "settingsBackupSync": "バックアップと同期",
-  "syncRow": "近くのデバイスと同期",
+  "syncRow": "別のデバイスの金庫",
   "syncScanCode": "コードをスキャン",
   "syncLog": "最近の接続",
   "syncLogEmpty": "まだ接続はありません。",
@@ -659,7 +659,6 @@
   "tipBackupBody": "金庫全体を1つの暗号化ファイルに。新しいスマホで開くには24個の単語とパスワードが必要です。",
   "tipGuideBody": "このヒントはいつでも見直せます。",
   "syncAutoIn": "{seconds} 秒後に同期します",
-  "driveSignInAgain": "もう一度サインイン",
   "driveRemove": "アカウントを削除",
   "driveRemoveTitle": "この端末から {account} を削除しますか？",
   "driveRemoveBody": "Google ドライブのファイルは残ります。もう一度サインインするまで Cozy Safe はアクセスできません。",
@@ -736,5 +735,8 @@
   "syncTidying": "古い版を整理中",
   "syncTidyingDrive": "Google ドライブの古い版を整理中",
   "sortSmallest": "小さい順",
-  "storageItems": "{count, plural, other{{count}件}}"
+  "storageItems": "{count, plural, other{{count}件}}",
+  "syncAuto": "自動で同期",
+  "syncWifiOnly": "Wi-Fi接続時のみ",
+  "syncNow": "今すぐ同期"
 }

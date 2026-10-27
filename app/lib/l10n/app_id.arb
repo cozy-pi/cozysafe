@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Tambah foto",
   "syncTitle": "Sinkronkan",
   "settingsBackupSync": "Cadangan & sinkronisasi",
-  "syncRow": "Sinkronkan dengan perangkat terdekat",
+  "syncRow": "Brankas Anda di perangkat lain",
   "syncScanCode": "Pindai kode",
   "syncLog": "Koneksi terbaru",
   "syncLogEmpty": "Belum ada koneksi.",
@@ -659,7 +659,6 @@
   "tipBackupBody": "Satu file terenkripsi berisi seluruh brankas. Membukanya di ponsel baru perlu 24 kata dan kata sandi Anda.",
   "tipGuideBody": "Lihat lagi tips ini kapan saja.",
   "syncAutoIn": "Sinkron dalam {seconds} dtk",
-  "driveSignInAgain": "Masuk lagi",
   "driveRemove": "Hapus akun",
   "driveRemoveTitle": "Hapus {account} dari perangkat ini?",
   "driveRemoveBody": "File Anda di Google Drive tetap ada. Cozy Safe kehilangan akses sampai Anda masuk lagi.",
@@ -736,5 +735,8 @@
   "syncTidying": "Membersihkan versi lama",
   "syncTidyingDrive": "Membersihkan versi lama dari Google Drive",
   "sortSmallest": "Terkecil dulu",
-  "storageItems": "{count, plural, other{{count} item}}"
+  "storageItems": "{count, plural, other{{count} item}}",
+  "syncAuto": "Sinkronkan otomatis",
+  "syncWifiOnly": "Hanya lewat Wi-Fi",
+  "syncNow": "Sinkronkan sekarang"
 }

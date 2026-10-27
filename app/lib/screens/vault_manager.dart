@@ -107,7 +107,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(4, 4, 4, 14),
-                  child: Text(l.vaultManagerLead, style: TextStyle(color: c.muted, fontSize: 14.5, height: 1.4)),
+                  child: Text(l.vaultManagerLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
                 ),
                 for (final s in slots)
                   Padding(
@@ -125,7 +125,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Text(
                                 s.isOpen && (_open?.name.isNotEmpty ?? false) ? _open!.name : '${s.id.substring(0, 8)}…',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 3),
                               Text(
@@ -136,7 +136,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                                   if (s.hasPin) l.vaultManagerPin,
                                   if (s.hasBiometric) l.vaultManagerBiometric,
                                 ].join(' · '),
-                                style: TextStyle(color: c.muted, fontSize: 13.5),
+                                style: TextStyle(color: c.muted, fontSize: CsType.footnote),
                               ),
                             ]),
                           ),

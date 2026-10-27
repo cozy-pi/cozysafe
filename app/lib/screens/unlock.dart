@@ -411,7 +411,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                 children: [
                   Text(
                     _mode == _Mode.pin ? l.pinEnter : (_remind ? l.passwordRemindTitle : l.unlockTitle),
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: ink, letterSpacing: -.3),
+                    style: TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w700, color: ink, letterSpacing: -.3),
                   ),
                   const SizedBox(height: 14),
                   if (_mode == _Mode.pin)
@@ -419,7 +419,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                   else
                     _passwordField(l, ink),
                   if (_mode == _Mode.password && _remind) ...[
-                    Text(l.passwordRemindBody, textAlign: TextAlign.center, style: TextStyle(color: ink.withValues(alpha: .7), fontSize: 13)),
+                    Text(l.passwordRemindBody, textAlign: TextAlign.center, style: TextStyle(color: ink.withValues(alpha: .7), fontSize: CsType.footnote)),
                     const SizedBox(height: 10),
                   ],
                   if (_mode == _Mode.pin)
@@ -436,7 +436,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                           style: TextStyle(
                             color: _waitUntil == null && _error == null ? accent : Theme.of(context).colorScheme.error,
                             fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                            fontSize: CsType.footnote,
                             height: 1.25,
                           ),
                         ),
@@ -447,7 +447,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                     Text(
                       _error!,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600, fontSize: 13),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600, fontSize: CsType.footnote),
                     ),
                   ],
                   const SizedBox(height: 6),
@@ -609,7 +609,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
           if (_mode == _Mode.pin && _anyPassword)
             MenuItemButton(
               style: _menuItem,
-              leadingIcon: const Icon(Icons.key_outlined),
+              leadingIcon: const Icon(Icons.key_rounded),
               onPressed: () => setState(() => _mode = _Mode.password),
               child: Text(l.usePassword),
             ),
@@ -630,7 +630,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
             ),
           MenuItemButton(
             style: _menuItem,
-            leadingIcon: const Icon(Icons.settings_backup_restore),
+            leadingIcon: const Icon(Icons.settings_backup_restore_rounded),
             onPressed: _busy
                 ? null
                 : () => Navigator.of(context).push(MaterialPageRoute<void>(
@@ -674,7 +674,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
         helperText: _checking && !_busy ? l.checking : null,
         suffixIcon: IconButton(
           tooltip: _obscure ? l.showPassword : l.hidePassword,
-          icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+          icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded),
           onPressed: () => setState(() => _obscure = !_obscure),
         ),
       ),
@@ -765,7 +765,7 @@ class _SyncBehindLock extends StatelessWidget {
                     child: Text(text,
                         key: const ValueKey('lock-sync-text'),
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: ink, fontSize: 15, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()])),
+                        style: TextStyle(color: ink, fontSize: CsType.subhead, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()])),
                   ),
                 ]),
                 if (!s.finished) ...[
@@ -835,7 +835,7 @@ class _BiometricButton extends StatelessWidget {
                 children: [
                   BiometricGlyph(kind: kind, size: 24, color: ink),
                   const SizedBox(width: 10),
-                  Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ink)),
+                  Text(label, style: TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600, color: ink)),
                 ],
               ),
             ),

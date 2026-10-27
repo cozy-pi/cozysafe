@@ -85,7 +85,7 @@ Future<bool> confirmDeleteForGood(BuildContext context, {required int count, Str
     name: count == 1 ? name : null,
     body: othersKeep ? '${l.deleteForGoodBody} ${l.deleteForGoodOthersKeep}' : l.deleteForGoodBody,
     action: l.deleteForGoodShort,
-    icon: Icons.delete_forever_outlined,
+    icon: Icons.delete_forever_rounded,
   );
 }
 
@@ -147,7 +147,7 @@ class _ConfirmSheet extends StatelessWidget {
                       const SizedBox(height: 10),
                       Text(title,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.2, height: 1.25)),
+                          style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.2, height: 1.25)),
                       if (name != null && name!.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(name!,
@@ -155,11 +155,11 @@ class _ConfirmSheet extends StatelessWidget {
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ink.withValues(alpha: .8))),
+                            style: TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: ink.withValues(alpha: .8))),
                       ],
                       if (body != null) ...[
                         const SizedBox(height: 8),
-                        Text(body!, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.4)),
+                        Text(body!, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
                       ],
                       const SizedBox(height: 20),
                       FilledButton(
@@ -171,7 +171,7 @@ class _ConfirmSheet extends StatelessWidget {
                           minimumSize: const Size(0, Ui.bar),
                           shape: const StadiumBorder(),
                         ),
-                        child: Text(action, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                        child: Text(action, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
                       ),
                       const SizedBox(height: 6),
                       TextButton(
@@ -182,7 +182,7 @@ class _ConfirmSheet extends StatelessWidget {
                           minimumSize: const Size(0, Ui.bar),
                           shape: const StadiumBorder(),
                         ),
-                        child: Text(l.cancel, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                        child: Text(l.cancel, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w600)),
                       ),
                     ],
                   ),

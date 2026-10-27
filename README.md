@@ -70,11 +70,13 @@ support@cozypi.com.
 ## No library can send your data out
 
 Cozy Safe has no server of its own: no account with us, no ads, no analytics, no crash
-reports. Only two things touch the network, and only when you start them: **syncing with
+reports. Only two things touch the network, and only when you start them (or turn on
+automatic sync with Google Drive): **syncing with
 your other device on the same Wi‑Fi** (one address on your local network) and **syncing
 through your Google Drive** (one host, `www.googleapis.com`, over TLS 1.3 with the
 `drive.file` scope, so the app sees only the files it made). You allow each connection
-by hand, and everything sent is already encrypted with your vault's keys. A link in a
+by hand, or once for automatic sync, which runs only while the vault is open and can be
+limited to Wi-Fi; everything sent is already encrypted with your vault's keys. A link in a
 note opens in your browser only after you confirm it. A vault app is only as safe as every library inside it, and libraries do
 get hijacked, so this is checked on every build, in layers (details and limits:
 [supply chain](docs/supply-chain.md)):

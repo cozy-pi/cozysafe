@@ -62,8 +62,8 @@ class _ErrorReportScreenState extends State<ErrorReportScreen> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
                       child: Row(children: [
-                        Expanded(child: Text(code, style: const TextStyle(fontSize: 14.5, fontFeatures: [FontFeature.tabularFigures()]))),
-                        Text('$place · ${when.format(t)}', style: TextStyle(color: c.muted, fontSize: 12.5)),
+                        Expanded(child: Text(code, style: const TextStyle(fontSize: CsType.subhead, fontFeatures: [FontFeature.tabularFigures()]))),
+                        Text('$place · ${when.format(t)}', style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                       ]),
                     ),
                   ],
@@ -71,7 +71,7 @@ class _ErrorReportScreenState extends State<ErrorReportScreen> {
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
-              child: Text(l.errorLogNote, style: TextStyle(color: c.muted, fontSize: 13)),
+              child: Text(l.errorLogNote, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
             ),
           ],
         ),

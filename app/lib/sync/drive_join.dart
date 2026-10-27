@@ -153,7 +153,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
             FilledButton.icon(
               key: const ValueKey('join-sign-in'),
               onPressed: _signIn,
-              icon: const Icon(Icons.account_circle_outlined),
+              icon: const Icon(Icons.account_circle_rounded),
               label: Text(l.joinSignIn),
             )
           else
@@ -169,11 +169,11 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
         children: [
           Text(l.joinDriveTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Text(l.joinDriveLead, style: TextStyle(color: c.muted, fontSize: 15, height: 1.5)),
+          Text(l.joinDriveLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
           const SizedBox(height: 24),
           if (account != null) ...[
             Row(children: [
-              const Icon(Icons.cloud_done_outlined, size: 20, color: Color(0xFF34A853)),
+              const Icon(Icons.cloud_done_rounded, size: 20, color: Color(0xFF34A853)),
               const SizedBox(width: 8),
               Expanded(child: Text(account, style: const TextStyle(fontWeight: FontWeight.w600))),
             ]),

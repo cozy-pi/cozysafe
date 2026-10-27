@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 
 /// Colours that Material's ColorScheme has no slot for. Values match the
@@ -133,8 +134,48 @@ class VaultPalette {
   late final Color bg, surface, ink, muted, accent, onAccent, dock, soft, border;
 }
 
+/// Text sizes by role, the iPhone's own scale (Apple's Human Interface Guidelines,
+/// default size). New text takes one of these, not a size of its own.
+abstract final class CsType {
+  static const largeTitle = 34.0;
+  static const title1 = 28.0;
+  static const title2 = 22.0;
+  static const title3 = 20.0;
+  /// Bold or semibold 17: a page title in the bar, a heading.
+  static const headline = 17.0;
+  /// A row's name and value, running text.
+  static const body = 17.0;
+  static const callout = 16.0;
+  static const subhead = 15.0;
+  /// The line under a group, a note.
+  static const footnote = 13.0;
+  static const caption1 = 12.0;
+  static const caption2 = 11.0;
+}
+
+/// The big title on the left for a top page (Settings), on every platform.
+TextStyle? largeTitle(BuildContext context) =>
+    Theme.of(context).appBarTheme.titleTextStyle?.copyWith(fontSize: CsType.title3, fontWeight: FontWeight.w700);
+
+/// The phone's grouped list in light mode: a pale grey page and the groups on white, so
+/// each group stands out as a card. Dark mode is already black with grey groups.
+Widget groupedPage(BuildContext context, Widget child) {
+  final t = Theme.of(context);
+  if (t.brightness == Brightness.dark) return child;
+  final grey = t.cardColor;
+  return Theme(
+    data: t.copyWith(
+      scaffoldBackgroundColor: grey,
+      cardColor: t.scaffoldBackgroundColor,
+      appBarTheme: t.appBarTheme.copyWith(backgroundColor: grey),
+    ),
+    child: child,
+  );
+}
+
 ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   final dark = brightness == Brightness.dark;
+  final ios = defaultTargetPlatform == TargetPlatform.iOS;
   final p = vault == null ? null : VaultPalette(vault, brightness);
   // Black and white (docs/ui.md, Black and white): one ink, black or white, and the page
   // the other way round; everything else is that ink at an opacity. No other colour.
@@ -189,10 +230,12 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
       foregroundColor: ink,
       elevation: 0,
       scrolledUnderElevation: 0,
-      centerTitle: false,
+      // iPhone: the title centred at 17 semibold beside ‹, as in the phone's own apps.
+      // A top page that wants the big title on the left sets [largeTitle] itself.
+      centerTitle: ios,
       titleTextStyle: ThemeData(brightness: brightness).textTheme.titleLarge!.copyWith(
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
+        fontSize: ios ? CsType.headline : CsType.title3,
+        fontWeight: ios ? FontWeight.w600 : FontWeight.w700,
         color: ink,
       ),
     ),
@@ -216,7 +259,7 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
         disabledForegroundColor: tone(.38),
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        textStyle: label.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
+        textStyle: label.copyWith(fontSize: CsType.callout, fontWeight: FontWeight.w700),
       ),
     ),
     // The quieter button (Cancel, Not now) as tall as the main one, same corners and
@@ -228,7 +271,7 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
         side: BorderSide(color: colors.border, width: 1.5),
         minimumSize: const Size(64, 52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        textStyle: label.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: label.copyWith(fontSize: CsType.callout, fontWeight: FontWeight.w600),
       ),
     ),
     // Messages float with a margin, rounded, never flush against the bottom bar.

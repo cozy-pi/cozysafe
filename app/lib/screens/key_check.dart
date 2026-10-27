@@ -120,7 +120,7 @@ class _KeyCheckScreenState extends State<KeyCheckScreen> with VaultLockAware {
           _result(_passwordOk, l.keyCheckPasswordOk, l.keyCheckPasswordBad, 'key-check-password-result'),
         ],
         const SizedBox(height: 16),
-        Text(l.keyCheckNote, style: TextStyle(color: c.muted, fontSize: 13)),
+        Text(l.keyCheckNote, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
       ],
     );
   }

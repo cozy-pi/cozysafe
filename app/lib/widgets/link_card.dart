@@ -31,7 +31,7 @@ Future<void> confirmOpenLink(BuildContext context, String url) async {
               key: const ValueKey('link-url'),
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13.5, height: 1.4, color: c.muted)),
+              style: TextStyle(fontSize: CsType.footnote, height: 1.4, color: c.muted)),
           const SizedBox(height: 18),
           Row(
             children: [

@@ -37,14 +37,14 @@ import '../widgets/toast.dart';
 /// Icon for an item kind / type.
 IconData fileIcon(rust.ItemInfo item) {
   if (item.kind == ItemKind.note) return Icons.edit_note_rounded;
-  if (item.kind == ItemKind.video) return Icons.movie_outlined;
+  if (item.kind == ItemKind.video) return Icons.movie_rounded;
   final m = item.mime;
-  if (m == 'application/pdf') return Icons.picture_as_pdf_outlined;
-  if (m.startsWith('image/')) return Icons.image_outlined;
-  if (m.startsWith('video/')) return Icons.movie_outlined;
-  if (m.startsWith('audio/')) return Icons.audiotrack_outlined;
-  if (m.contains('zip') || m.contains('compressed')) return Icons.folder_zip_outlined;
-  return Icons.insert_drive_file_outlined;
+  if (m == 'application/pdf') return Icons.picture_as_pdf_rounded;
+  if (m.startsWith('image/')) return Icons.image_rounded;
+  if (m.startsWith('video/')) return Icons.movie_rounded;
+  if (m.startsWith('audio/')) return Icons.audiotrack_rounded;
+  if (m.contains('zip') || m.contains('compressed')) return Icons.folder_zip_rounded;
+  return Icons.insert_drive_file_rounded;
 }
 
 String fileSize(BigInt bytes) {
@@ -407,7 +407,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
               [BarIcon(key: const ValueKey('file-send'), icon: Icons.ios_share, tooltip: l.sendOut, onTap: _busy ? null : _open)],
           BarIcon(
               key: const ValueKey('file-delete'),
-              icon: Icons.delete_outline,
+              icon: Icons.delete_rounded,
               tooltip: l.delete,
               onTap: _busy ? null : (_) => _delete(),
               color: recordRed(context)),
@@ -428,7 +428,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
         appBar: AppBar(
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
-          title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, color: Colors.white)),
+          title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.callout, color: Colors.white)),
         ),
         // Dark glass over the black page, whatever the app's theme.
         bottomNavigationBar: Theme(data: buildTheme(Brightness.dark), child: Builder(builder: (_) => _bar(l))),
@@ -479,10 +479,10 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(widget.item.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+                      style: const TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w800, letterSpacing: -.3)),
                   const SizedBox(height: 2),
                   Text('$label · ${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
-                      style: TextStyle(color: c.muted, fontSize: 13.5)),
+                      style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                 ],
               ),
             ),
@@ -507,7 +507,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
                       if (cut)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(l.textTruncated, style: TextStyle(color: c.muted, fontSize: 13)),
+                          child: Text(l.textTruncated, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                         ),
                       switch (kind) {
                         TextKind.markdown => MarkdownLite(text: text, onLink: (url) => confirmOpenLink(context, url)),
@@ -540,7 +540,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
                                   onPressed: _busy ? null : () => _open(b),
                                   style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
                                   icon: const Icon(Icons.ios_share, size: 22),
-                                  label: Text(l.sendOut, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
+                                  label: Text(l.sendOut, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600)),
                                 ),
                               ),
                             ),
@@ -548,8 +548,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
                               child: TextButton.icon(
                                 onPressed: _busy ? null : _delete,
                                 style: TextButton.styleFrom(foregroundColor: recordRed(context)),
-                                icon: const Icon(Icons.delete_outline, size: 22),
-                                label: Text(l.delete, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
+                                icon: const Icon(Icons.delete_rounded, size: 22),
+                                label: Text(l.delete, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600)),
                               ),
                             ),
                             _more(l),
@@ -630,7 +630,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
       appBar: AppBar(),
       // Open with leads the bar; Open as text beside it.
       bottomNavigationBar: _bar(l, first: [
-        BarIcon(key: const ValueKey('file-open-with'), icon: Icons.open_in_new, tooltip: l.openWith, onTap: _busy ? null : _open),
+        BarIcon(key: const ValueKey('file-open-with'), icon: Icons.open_in_new_rounded, tooltip: l.openWith, onTap: _busy ? null : _open),
         BarIcon(
             key: const ValueKey('open-as-text'),
             icon: Icons.notes_rounded,
@@ -651,12 +651,12 @@ class _FileViewScreenState extends State<FileViewScreen> {
                   child: Icon(fileIcon(widget.item), size: 48, color: Theme.of(context).colorScheme.primary),
                 ),
                 const SizedBox(height: 16),
-                Text(widget.item.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                Text(widget.item.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text('${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
                     style: TextStyle(color: c.muted)),
                 const SizedBox(height: 20),
-                Text(l.openWithNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 13)),
+                Text(l.openWithNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
               ],
             ),
           ),
@@ -715,7 +715,7 @@ Future<bool> confirmShareOut(BuildContext context, String vaultId) async {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l.shareOutTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(l.shareOutTitle, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Text(l.shareOutBody, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
               SwitchListTile(

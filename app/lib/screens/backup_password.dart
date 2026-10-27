@@ -107,7 +107,7 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
             alignment: Alignment.centerLeft,
             child: FilledButton.tonalIcon(
               onPressed: _busy ? null : _suggest,
-              icon: const Icon(Icons.auto_awesome, size: 18),
+              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
               label: Text(l.suggestPassword),
             ),
           ),

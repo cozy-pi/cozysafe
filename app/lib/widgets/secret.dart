@@ -76,7 +76,7 @@ class _SecretTextState extends State<SecretText> with WidgetsBindingObserver, Va
         TextButton.icon(
           key: const ValueKey('secret-show'),
           onPressed: () => _set(!_shown),
-          icon: Icon(_shown ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
+          icon: Icon(_shown ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18),
           label: Text(_shown ? l.secretHide : l.secretShow),
         ),
       ],
@@ -159,7 +159,7 @@ class _SecretFieldState extends State<SecretField> {
             ),
           IconButton(
             tooltip: _obscure ? l.showPassword : l.hidePassword,
-            icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+            icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),
         ]),

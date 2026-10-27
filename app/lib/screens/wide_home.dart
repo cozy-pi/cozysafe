@@ -125,9 +125,9 @@ class _WideSidebarState extends State<WideSidebar> {
                       child: Text(label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 15, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
+                          style: TextStyle(fontSize: CsType.subhead, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
                     ),
-                    if (trailing != null) Text(trailing, style: TextStyle(color: c.muted, fontSize: 13)),
+                    if (trailing != null) Text(trailing, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                   ]),
                 ),
               ),
@@ -137,7 +137,7 @@ class _WideSidebarState extends State<WideSidebar> {
 
     Widget title(String text) => Padding(
           padding: const EdgeInsets.fromLTRB(22, 18, 20, 6),
-          child: Text(text, style: TextStyle(color: c.muted, fontSize: 13, fontWeight: FontWeight.w600)),
+          child: Text(text, style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
         );
 
     return Column(
@@ -153,7 +153,7 @@ class _WideSidebarState extends State<WideSidebar> {
               child: Text(w.vault.name.isEmpty ? 'Cozy Safe' : w.vault.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+                  style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w800, letterSpacing: -.3)),
             ),
           ]),
         ),
@@ -183,8 +183,8 @@ class _WideSidebarState extends State<WideSidebar> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(l.syncTitle, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
-                      Text(_lastText(l), style: TextStyle(color: c.muted, fontSize: 12.5)),
+                      Text(l.syncTitle, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700)),
+                      Text(_lastText(l), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                     ]),
                   ),
                   Icon(Icons.chevron_right, color: c.muted, size: 20),
@@ -203,7 +203,7 @@ class _WideSidebarState extends State<WideSidebar> {
               if (w.groups.isNotEmpty) ...[
                 title(l.tagAction),
                 for (final (g, n) in w.groups)
-                  row(ValueKey('wide-group-${g.id}'), Icons.sell_outlined, g.name, w.groupId == g.id, () => w.onGroup(g.id),
+                  row(ValueKey('wide-group-${g.id}'), Icons.sell_rounded, g.name, w.groupId == g.id, () => w.onGroup(g.id),
                       trailing: '$n'),
               ],
             ],
@@ -212,7 +212,7 @@ class _WideSidebarState extends State<WideSidebar> {
         const Divider(height: 1),
         const SizedBox(height: 6),
         row(const ValueKey('wide-trash'), Icons.delete_outline_rounded, l.recentlyDeleted, false, w.onTrash),
-        row(const ValueKey('wide-settings'), Icons.settings_outlined, l.settings, false, w.onSettings),
+        row(const ValueKey('wide-settings'), Icons.settings_rounded, l.settings, false, w.onSettings),
         row(const ValueKey('wide-lock'), Icons.lock_outline_rounded, l.lockVault, false, w.onLock),
         const SizedBox(height: 10),
       ],

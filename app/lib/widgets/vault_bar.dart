@@ -100,11 +100,11 @@ VaultSection startSection() {
 
 /// A section's icon, as in the bar (and the wide window's sidebar).
 IconData sectionIcon(VaultSection s) => switch (s) {
-      VaultSection.home => Icons.home_outlined,
+      VaultSection.home => Icons.home_rounded,
       VaultSection.note => Icons.edit_note_rounded,
-      VaultSection.library => Icons.photo_library_outlined,
+      VaultSection.library => Icons.photo_library_rounded,
       VaultSection.audio => Icons.mic_none_rounded,
-      VaultSection.file => Icons.folder_outlined,
+      VaultSection.file => Icons.folder_rounded,
     };
 
 String sectionLabel(AppLocalizations l, VaultSection k) => switch (k) {
@@ -293,11 +293,11 @@ class _CentreTabs extends StatelessWidget {
   final VoidCallback? onHoldHome;
 
   static IconData _icon(VaultSection s) => switch (s) {
-        VaultSection.home => Icons.home_outlined,
+        VaultSection.home => Icons.home_rounded,
         VaultSection.note => Icons.edit_note_rounded,
-        VaultSection.library => Icons.photo_library_outlined,
+        VaultSection.library => Icons.photo_library_rounded,
         VaultSection.audio => Icons.mic_none_rounded,
-        VaultSection.file => Icons.folder_outlined,
+        VaultSection.file => Icons.folder_rounded,
       };
 
   @override
@@ -436,7 +436,7 @@ class _TabsState extends State<_Tabs> {
         }
       });
 
-  static const _style = TextStyle(fontSize: 14, fontWeight: FontWeight.w700);
+  static const _style = TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700);
   static const _pad = 16.0;
 
   @override
@@ -701,12 +701,12 @@ enum AddWhat { note, photo, video, photos, voice, file }
 
 /// Every way to add, in the fixed order (camera and voice only where the device has them).
 List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
-      (AddWhat.photos, Icons.photo_library_outlined, l.addFromDevice),
-      if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
-      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
+      (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
+      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
+      if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, l.newNote),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
-      (AddWhat.file, Icons.folder_outlined, l.addFiles),
+      (AddWhat.file, Icons.folder_rounded, l.addFiles),
     ];
 
 /// The ways that fill [section], nearest the + button in the add column.
@@ -733,12 +733,12 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
 List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
         {required bool camera, required bool voice}) =>
     [
-      (AddWhat.photos, Icons.photo_library_outlined, l.addRowAddPhotos),
-      if (camera) (AddWhat.video, Icons.videocam_outlined, l.recordVideo),
-      if (camera) (AddWhat.photo, Icons.photo_camera_outlined, l.takePhoto),
+      (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
+      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
+      if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
-      (AddWhat.file, Icons.folder_outlined, sectionLabel(l, VaultSection.file)),
+      (AddWhat.file, Icons.folder_rounded, sectionLabel(l, VaultSection.file)),
     ];
 
 /// + never does one thing at once any more: it always offers every way ([addRowWays]).
@@ -968,7 +968,7 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(22, 0, 22, 6),
                     child: Text(l.addToVault,
-                        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.2)),
+                        style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.2)),
                   ),
                   for (final (what, icon, label) in widget.ways)
                     MetaData(
@@ -990,9 +990,9 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                              Text(label, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 2),
-                              Text(addWayNote(l, what), style: TextStyle(fontSize: 13.5, height: 1.3, color: c.muted)),
+                              Text(addWayNote(l, what), style: TextStyle(fontSize: CsType.footnote, height: 1.3, color: c.muted)),
                             ]),
                           ),
                         ]),
@@ -1061,8 +1061,9 @@ class AddCardOverlay extends StatelessWidget {
   }
 }
 
-/// One way to add as a round button with its word under it, findable under a sliding
-/// finger ([AddColumn.wayAt]). Used by [AddRow].
+/// One way to add as a round button, findable under a sliding finger ([AddColumn.wayAt]).
+/// Used by [AddRow]. No word under it (owner 2026-10-27): the card above says what each
+/// does; the word stays for screen readers.
 Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String label,
     {required bool hovered, required VoidCallback onTap, double width = AddRow.width}) {
   final circle = (width - 4).clamp(44.0, Ui.bar);
@@ -1084,27 +1085,17 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
           child: AnimatedScale(
             scale: hovered ? 1.14 : 1,
             duration: const Duration(milliseconds: 120),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: circle,
-                  height: circle,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: hovered ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
-                    boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
-                  ),
-                  child: Icon(icon, size: 26, color: hovered ? page : ink),
+            child: Center(
+              child: Container(
+                width: circle,
+                height: circle,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: hovered ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
+                  boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
                 ),
-                const SizedBox(height: 6),
-                // One line: a long word shrinks rather than wrap (a two-line label put
-                // its button out of line with the others).
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-                ),
-              ],
+                child: Icon(icon, size: 26, color: hovered ? page : ink),
+              ),
             ),
           ),
         ),
@@ -1368,7 +1359,7 @@ class _AddWay extends StatelessWidget {
       ),
       child: Icon(icon, size: 26, color: near ? page : ink),
     );
-    final text = Text(label, style: TextStyle(fontSize: 16.5, fontWeight: near ? FontWeight.w700 : FontWeight.w600));
+    final text = Text(label, style: TextStyle(fontSize: CsType.body, fontWeight: near ? FontWeight.w700 : FontWeight.w600));
     return Semantics(
       button: true,
       label: label,
@@ -1441,7 +1432,7 @@ class AddTiles extends StatelessWidget {
                     Icon(icon, size: 32, color: ink),
                     const SizedBox(height: 8),
                     Text(label, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.2)),
+                        style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.2)),
                   ],
                 ),
               ),
@@ -1476,12 +1467,20 @@ class _LoopMark extends StatelessWidget {
 /// at the bottom edge (owner 2026-10-21; docs/ui.md: read → page, a few choices → a menu
 /// at the row, actions → a bottom sheet).
 /// Like every page, it stays under the lock screen (lib/lock_resume.dart).
-Future<T?> pushPage<T>(BuildContext context, {required String title, required WidgetBuilder builder}) =>
+/// The title bar of a page opened from another: on an iPhone the iPhone's own, the
+/// title centred, 17 semibold, beside the "‹" back (owner 2026-10-27).
+AppBar pageBar(BuildContext context, String title) => AppBar(title: Text(title));
+
+/// [grouped]: a page of grouped rows (Settings-like), on the phone's grey (see [groupedPage]).
+Future<T?> pushPage<T>(BuildContext context, {required String title, bool grouped = false, required WidgetBuilder builder}) =>
     Navigator.of(context).push<T>(MaterialPageRoute(
-      builder: (context) => Readable(child: Scaffold(
-        appBar: AppBar(title: Text(title)),
-        body: SafeArea(top: false, child: builder(context)),
-      )),
+      builder: (context) {
+        Widget page(BuildContext context) => Readable(child: Scaffold(
+              appBar: pageBar(context, title),
+              body: SafeArea(top: false, child: builder(context)),
+            ));
+        return grouped ? groupedPage(context, Builder(builder: page)) : page(context);
+      },
     ));
 
 /// Short content in a card in the middle of the screen, at eye level, the vault dimmed
@@ -1530,7 +1529,7 @@ Future<T?> showCard<T>(BuildContext context, {String? title, bool closeButton = 
                         Padding(
                           padding: const EdgeInsets.fromLTRB(22, 20, 22, 10),
                           child: Text(title ?? '',
-                              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.2)),
+                              style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.2)),
                         ),
                         Flexible(child: builder(context)),
                         if (closeButton)

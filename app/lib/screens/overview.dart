@@ -23,11 +23,11 @@ Color searchKindColor(VaultSection s) => switch (s) {
     };
 
 IconData searchKindIcon(VaultSection s) => switch (s) {
-      VaultSection.home => Icons.home_outlined,
+      VaultSection.home => Icons.home_rounded,
       VaultSection.note => Icons.edit_note_rounded,
-      VaultSection.library => Icons.photo_library_outlined,
+      VaultSection.library => Icons.photo_library_rounded,
       VaultSection.audio => Icons.mic_none_rounded,
-      VaultSection.file => Icons.folder_outlined,
+      VaultSection.file => Icons.folder_rounded,
     };
 
 VaultSection? sectionOf(rust.ItemInfo i) => switch (i.kind) {
@@ -101,7 +101,7 @@ class VaultOverview extends StatelessWidget {
         );
     Widget title(String t) => Padding(
           padding: const EdgeInsets.fromLTRB(6, 18, 6, 10),
-          child: Text(t, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: c.muted)),
+          child: Text(t, style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w700, color: c.muted)),
         );
     return ListView(
       padding: EdgeInsets.fromLTRB(14, 0, 14, bottomPad),
@@ -211,14 +211,14 @@ class OverviewRow extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(name,
-                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600)),
                       ),
                       if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],
                   ),
                   const SizedBox(height: 3),
                   Text(MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs)),
-                      style: TextStyle(color: c.muted, fontSize: 13.5)),
+                      style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                 ],
               ),
             ),
@@ -263,8 +263,8 @@ class KindTile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
-                    Text('$count', style: TextStyle(color: c.muted, fontSize: 13.5)),
+                    Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w700)),
+                    Text('$count', style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                   ],
                 ),
               ),
@@ -301,11 +301,11 @@ class GroupChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.sell_outlined, size: 18, color: c.muted),
+              Icon(Icons.sell_rounded, size: 18, color: c.muted),
               const SizedBox(width: 8),
-              MarkedText(name, query, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600)),
+              MarkedText(name, query, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
               const SizedBox(width: 6),
-              Text('$count', style: TextStyle(color: c.muted, fontSize: 13.5)),
+              Text('$count', style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
             ],
           ),
         ),

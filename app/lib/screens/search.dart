@@ -119,7 +119,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: Text(l.search,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -.2)),
+                      style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700, letterSpacing: -.2)),
                 ),
               ],
             ),
@@ -160,7 +160,7 @@ class _SearchScreenState extends State<SearchScreen> {
         controller: _query,
         autofocus: true,
         textInputAction: TextInputAction.search,
-        style: const TextStyle(fontSize: 17),
+        style: const TextStyle(fontSize: CsType.body),
         textAlignVertical: TextAlignVertical.center,
         decoration: InputDecoration(
           hintText: _kind == null ? l.searchHint : sectionLabel(l, _kind!),
@@ -173,7 +173,7 @@ class _SearchScreenState extends State<SearchScreen> {
               : IconButton(
                   tooltip: l.clear,
                   onPressed: () => setState(_query.clear),
-                  icon: Icon(Icons.cancel, color: ink.withValues(alpha: .45)),
+                  icon: Icon(Icons.cancel_rounded, color: ink.withValues(alpha: .45)),
                 ),
           border: none,
           enabledBorder: none,
@@ -212,7 +212,7 @@ class _SearchScreenState extends State<SearchScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               alignment: Alignment.center,
               child: Text(n == null ? label : '$label  $n',
-                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: on ? cs.surface : cs.onSurface)),
+                  style: TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: on ? cs.surface : cs.onSurface)),
             ),
           ),
         ),
@@ -245,7 +245,7 @@ class _SearchScreenState extends State<SearchScreen> {
             Icon(Icons.search_off_rounded, size: 52, color: c.muted),
             const SizedBox(height: 14),
             Text(l.searchNothingFor(_query.text.trim()),
-                textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             Text(l.searchNothingHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, height: 1.45)),
           ],
@@ -262,7 +262,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final c = CsColors.of(context);
     Widget title(String t) => Padding(
           padding: const EdgeInsets.fromLTRB(6, 10, 6, 8),
-          child: Text(t, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: c.muted)),
+          child: Text(t, style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w700, color: c.muted)),
         );
     return ListView(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
@@ -375,12 +375,12 @@ class _SearchScreenState extends State<SearchScreen> {
                 children: [
                   // Plain weight while searching so the matched words stand out in bold.
                   MarkedText(_shownName(l, it), q,
-                      maxLines: 1, style: TextStyle(fontSize: 15.5, fontWeight: q.isEmpty ? FontWeight.w600 : FontWeight.w400)),
+                      maxLines: 1, style: TextStyle(fontSize: CsType.callout, fontWeight: q.isEmpty ? FontWeight.w600 : FontWeight.w400)),
                   const SizedBox(height: 3),
                   if (under != null && notePreviews())
-                    MarkedText(under, q, maxLines: 2, style: TextStyle(color: c.muted, fontSize: 13.5, height: 1.3))
+                    MarkedText(under, q, maxLines: 2, style: TextStyle(color: c.muted, fontSize: CsType.footnote, height: 1.3))
                   else
-                    Text(under ?? date, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: 13.5)),
+                    Text(under ?? date, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                 ],
               ),
             ),

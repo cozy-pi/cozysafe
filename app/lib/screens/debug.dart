@@ -103,12 +103,12 @@ class _DebugScreenState extends State<DebugScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Text(label, style: const TextStyle(fontSize: 15.5))),
+              Expanded(child: Text(label, style: const TextStyle(fontSize: CsType.callout))),
               const SizedBox(width: 12),
               Flexible(
                 child: Text(value,
                     textAlign: TextAlign.end,
-                    style: TextStyle(fontSize: 15, color: color ?? c.muted, fontFeatures: const [FontFeature.tabularFigures()])),
+                    style: TextStyle(fontSize: CsType.subhead, color: color ?? c.muted, fontFeatures: const [FontFeature.tabularFigures()])),
               ),
             ],
           ),
@@ -120,7 +120,7 @@ class _DebugScreenState extends State<DebugScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(left: 4, bottom: 7),
-                child: Text(title, style: TextStyle(color: c.muted, fontSize: 13, fontWeight: FontWeight.w600)),
+                child: Text(title, style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
               ),
               Material(
                 color: Theme.of(context).cardColor,
@@ -143,7 +143,7 @@ class _DebugScreenState extends State<DebugScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-            child: Text(l.debugNote, style: TextStyle(color: c.muted, fontSize: 13.5)),
+            child: Text(l.debugNote, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
           ),
           group(l.debugBuild, [
             row(l.aboutVersion, pkg == null ? '…' : '${pkg.version} (${pkg.buildNumber})'),
@@ -180,7 +180,7 @@ class _DebugScreenState extends State<DebugScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (lines.isEmpty)
-                      Text(l.debugLogEmpty, style: TextStyle(color: c.muted, fontSize: 14))
+                      Text(l.debugLogEmpty, style: TextStyle(color: c.muted, fontSize: CsType.subhead))
                     else
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxHeight: 260),
@@ -189,7 +189,7 @@ class _DebugScreenState extends State<DebugScreen> {
                           child: SelectableText(
                             lines.join('\n'),
                             key: const ValueKey('debug-log'),
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 11.5, height: 1.35),
+                            style: const TextStyle(fontFamily: 'monospace', fontSize: CsType.caption1, height: 1.35),
                           ),
                         ),
                       ),
@@ -228,7 +228,7 @@ class _DebugScreenState extends State<DebugScreen> {
                 children: [
                   Expanded(
                     child: Text('${l.debugPlayback}: ${_temp == null ? '…' : fileSize(BigInt.from(_temp!))}',
-                        style: const TextStyle(fontSize: 15.5)),
+                        style: const TextStyle(fontSize: CsType.callout)),
                   ),
                   TextButton(
                     onPressed: () async {
@@ -247,7 +247,7 @@ class _DebugScreenState extends State<DebugScreen> {
           group(l.debugTry, [
             ListTile(
               key: const ValueKey('debug-vaults'),
-              title: Text(l.vaultManagerTitle, style: const TextStyle(fontSize: 15.5)),
+              title: Text(l.vaultManagerTitle, style: const TextStyle(fontSize: CsType.callout)),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
                 builder: (_) => Readable(child: VaultManagerScreen(libraryDir: '${Prefs.dir}${Platform.pathSeparator}library')),
@@ -255,7 +255,7 @@ class _DebugScreenState extends State<DebugScreen> {
             ),
             SwitchListTile.adaptive(
               key: const ValueKey('debug-native-bar'),
-              title: Text(l.debugNativeBar, style: const TextStyle(fontSize: 15.5)),
+              title: Text(l.debugNativeBar, style: const TextStyle(fontSize: CsType.callout)),
               subtitle: NativeBar.available ? null : Text(l.debugNativeBarNone, style: TextStyle(color: c.muted)),
               value: nativeBarOn(),
               onChanged: NativeBar.available ? (v) => setState(() => Prefs.write(nativeBarPref, v ? '1' : '0')) : null,
@@ -275,7 +275,7 @@ class _DebugScreenState extends State<DebugScreen> {
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Center(child: Text(l.debugOff, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15))),
+                child: Center(child: Text(l.debugOff, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: CsType.subhead))),
               ),
             ),
           ),

@@ -9,6 +9,7 @@ import '../widgets/confirm_delete.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show pushPage;
 import '../platform.dart';
+import 'auto_sync.dart';
 import 'consent.dart';
 import 'drive.dart';
 import 'nearby_page.dart';
@@ -32,6 +33,8 @@ class SyncScreen extends StatefulWidget {
   static bool debugDrive = false;
   /// For the mockup renders: a signed-in Google account.
   static String? debugAccount;
+  /// For the mockup renders: a signed-in account without Google (tests have none).
+  static DriveSession? debugSession;
 
   @override
   State<SyncScreen> createState() => _SyncScreenState();
@@ -69,6 +72,8 @@ class _SyncScreenState extends State<SyncScreen> {
       return;
     }
     if (!await allowConnection(context, l.syncAllowNearby) || !mounted) return;
+    await AutoSync.idle();
+    if (!mounted) return;
     await pushPage<void>(context,
         title: l.syncRow,
         builder: (_) => NearbyPage(address: address, mirror: '${widget.libraryDir}-sync', onSynced: _synced));
@@ -82,17 +87,38 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.driveSoon, icon: Icons.cloud_off_rounded);
       return;
     }
+    // The account being added now: the card asking to connect also offers automatic
+    // sync, on unless turned off there (owner 2026-10-27).
+    final adding = _account == null;
+    var auto = true;
     DriveSession? session;
     try {
-      session = await driveSignIn();
+      session = SyncScreen.debugSession ?? await driveSignIn();
     } catch (e) {
       ErrorLog.add('drive-sign-in', driveErrorCode(e));
-      if (mounted) showToast(context, '${l.driveSignInFailed} (${driveErrorCode(e)})', icon: Icons.error_outline_rounded);
+      if (mounted) showToast(context, '${l.driveSignInFailed} (${driveErrorCode(e)})', icon: Icons.error_rounded);
       return;
     }
     if (session == null || !mounted) return;
     setState(() {}); // the account rows
-    if (!await allowConnection(context, l.syncAllowDrive(session.email)) || !mounted) return;
+    final below = !adding
+        ? null
+        : StatefulBuilder(
+            // In line with the sentence above it: the icon where the lock is.
+            builder: (context, set) => Row(
+              key: const ValueKey('sync-allow-auto'),
+              children: [
+                Icon(Icons.sync_rounded, size: 20, color: CsColors.of(context).muted),
+                const SizedBox(width: 10),
+                Expanded(child: Text(l.syncAuto, style: const TextStyle(fontSize: CsType.callout))),
+                _Toggle(value: auto, onChanged: (v) => set(() => auto = v)),
+              ],
+            ),
+          );
+    if (!await allowConnection(context, l.syncAllowDrive(session.email), below: below) || !mounted) return;
+    if (adding) setState(() => AutoSync.enabled = auto);
+    await AutoSync.idle();
+    if (!mounted) return;
     final token = session.token;
     await pushPage<void>(context,
         title: l.syncDriveRow,
@@ -104,7 +130,7 @@ class _SyncScreenState extends State<SyncScreen> {
               waiting: Column(mainAxisSize: MainAxisSize.min, children: [
                 const SyncLink(place: SyncPlace.drive),
                 const SizedBox(height: 22),
-                Text(l.syncDriveWorking, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+                Text(l.syncDriveWorking, textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
               ]),
             ));
     _loadLog();
@@ -125,20 +151,25 @@ class _SyncScreenState extends State<SyncScreen> {
         // Groups without names, apart by a gap, as in the iPhone's Settings (owner
         // 2026-10-26): the rows say what they do.
         const SizedBox(height: 24),
+        // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
+        if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
+          // One row (owner 2026-10-27: Drive's options on a page of their own, less to
+          // take in here): with no account it signs in and syncs; with one it opens
+          // that page.
+          _Card(children: [
+            _Action(
+                key: const ValueKey('sync-drive'),
+                icon: Icons.cloud_sync_rounded,
+                color: const Color(0xFF34A853),
+                logo: const DriveLogo(size: 20),
+                title: 'Google Drive',
+                onTap: _account == null ? _drive : _openDrive),
+          ]),
+          const SizedBox(height: 24),
+        ],
         _Card(children: [
           _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncRow, onTap: _nearby),
         ]),
-        // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
-        if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
-          const SizedBox(height: 24),
-          _Card(children: [
-            _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), logo: const DriveLogo(size: 20), title: l.syncDriveRow, onTap: _drive),
-            if (_account case final account?) ...[
-              _Action(key: const ValueKey('sync-drive-again'), icon: Icons.account_circle_outlined, color: const Color(0xFF8E8E93), title: l.driveSignInAgain, detail: account, onTap: _signInAgain),
-              _Action(key: const ValueKey('sync-drive-remove'), icon: Icons.person_remove_outlined, color: const Color(0xFFFF3B30), title: l.driveRemove, onTap: _remove, chevron: false),
-            ],
-          ]),
-        ],
         const SizedBox(height: 24),
         // The log behind one row (owner 2026-10-26): most people never need it.
         _Card(children: [
@@ -150,28 +181,98 @@ class _SyncScreenState extends State<SyncScreen> {
 
   String? get _account => SyncScreen.debugAccount ?? driveAccount;
 
-  /// Forget the account here, then sign in with the account picker.
-  Future<void> _signInAgain() async {
-    try {
-      await driveSignOut();
-    } catch (_) {}
-    if (!mounted) return;
-    setState(() {});
-    await _drive();
+  /// Google Drive's page: sync now; the account, automatic sync, Wi-Fi only; remove.
+  Future<void> _openDrive() async {
+    await pushPage<void>(context,
+        title: 'Google Drive', grouped: true,
+        builder: (context) => StatefulBuilder(builder: (context, set) {
+              final l = AppLocalizations.of(context);
+              final account = _account;
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                children: [
+                  // Whose Drive, under its logo, as an account page on the iPhone (owner
+                  // 2026-10-27). No "Sign in again": to change account, remove it and sync
+                  // again, which asks for one.
+                  Column(key: const ValueKey('sync-drive-account'), children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: CsColors.of(context).border),
+                      ),
+                      alignment: Alignment.center,
+                      child: const DriveLogo(size: 40),
+                    ),
+                    if (account != null) ...[
+                      const SizedBox(height: 10),
+                      Text(account, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: CsColors.of(context).muted, fontSize: CsType.subhead)),
+                    ],
+                  ]),
+                  const SizedBox(height: 24),
+                  _Card(children: [
+                    _Action(key: const ValueKey('sync-drive-now'), icon: Icons.sync_rounded, color: const Color(0xFF007AFF), title: l.syncNow, onTap: _drive),
+                  ]),
+                  const SizedBox(height: 24),
+                  _Card(children: [
+                    // Automatic sync, and whether mobile data may carry it (owner 2026-10-27).
+                    // Not the same symbol as Sync now (owner 2026-10-27): a clock that
+                    // turns, for "by itself, from time to time".
+                    _Action(
+                      key: const ValueKey('sync-auto'),
+                      icon: Icons.update_rounded,
+                      color: const Color(0xFF34A853),
+                      title: l.syncAuto,
+                      chevron: false,
+                      trailing: _Toggle(value: AutoSync.enabled, onChanged: (v) => set(() => AutoSync.enabled = v)),
+                    ),
+                    if (AutoSync.enabled)
+                      _Action(
+                        key: const ValueKey('sync-wifi-only'),
+                        icon: Icons.wifi_rounded,
+                        color: const Color(0xFF007AFF),
+                        title: l.syncWifiOnly,
+                        chevron: false,
+                        trailing: _Toggle(value: AutoSync.wifiOnly, onChanged: (v) => set(() => AutoSync.wifiOnly = v)),
+                      ),
+                  ]),
+                  const SizedBox(height: 24),
+                  _Card(children: [
+                    // Red words only, as the iPhone's Sign Out: no symbol (owner 2026-10-27).
+                    InkWell(
+                      key: const ValueKey('sync-drive-remove'),
+                      onTap: () async {
+                        if (await _remove() && context.mounted) Navigator.of(context).pop();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: Text(l.driveRemove, style: const TextStyle(fontSize: CsType.body, color: Color(0xFFFF3B30))),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ],
+              );
+            }));
+    if (mounted) setState(() {});
   }
 
-  /// Remove the Google account: asks first; the files on Drive stay.
-  Future<void> _remove() async {
+  /// Remove the Google account: asks first; the files on Drive stay. True once removed.
+  Future<bool> _remove() async {
     final l = AppLocalizations.of(context);
     final account = _account;
-    if (account == null) return;
+    if (account == null) return false;
     final ok = await confirmDelete(context,
-        title: l.driveRemoveTitle(account), body: l.driveRemoveBody, action: l.driveRemove, icon: Icons.person_remove_outlined);
-    if (!ok) return;
+        title: l.driveRemoveTitle(account), body: l.driveRemoveBody, action: l.driveRemove, icon: Icons.person_remove_rounded);
+    if (!ok) return false;
     try {
       await driveSignOut(revoke: true);
     } catch (_) {}
     if (mounted) setState(() {});
+    return true;
   }
 
   Future<void> _openLog() => pushPage<void>(context,
@@ -191,7 +292,7 @@ class _SyncScreenState extends State<SyncScreen> {
               _Card(indent: 46, children: [for (final line in _log) _LogRow(line: line)]),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
-              child: Text(l.syncLogNote, style: TextStyle(color: c.muted, fontSize: 13)),
+              child: Text(l.syncLogNote, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
             ),
           ],
         );
@@ -221,16 +322,19 @@ class _Card extends StatelessWidget {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({super.key, required this.icon, required this.color, required this.title, required this.onTap, this.detail, this.chevron = true, this.logo});
+  const _Action({super.key, required this.icon, required this.color, required this.title, this.onTap, this.detail, this.chevron = true, this.logo, this.trailing});
   final IconData icon;
   /// A service's own logo on a white tile instead of [icon] (Google Drive).
   final Widget? logo;
   final Color color;
   final String title;
-  final VoidCallback onTap;
+  /// Null for a line that only shows something (the account).
+  final VoidCallback? onTap;
   /// Muted, on the right before the chevron (an account, a count).
   final String? detail;
   final bool chevron;
+  /// A switch at the end, in place of the chevron.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -238,7 +342,7 @@ class _Action extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
+        padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
         child: Row(children: [
           Container(
             width: 30,
@@ -252,20 +356,36 @@ class _Action extends StatelessWidget {
             child: logo ?? Icon(icon, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(title, style: TextStyle(fontSize: 15.5, color: chevron ? null : color))),
+          Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: CsType.body, color: chevron || onTap == null || trailing != null ? null : color))),
           if (detail case final d?)
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 190),
               child: Padding(
                 padding: const EdgeInsets.only(left: 8, right: 2),
-                child: Text(d, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: 14)),
+                child: Text(d, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: CsType.body)),
               ),
             ),
+          ?trailing,
           if (chevron) Icon(Icons.chevron_right, color: c.muted, size: 20),
         ]),
       ),
     );
   }
+}
+
+/// A switch as in Settings: the iPhone's green with a white knob.
+class _Toggle extends StatelessWidget {
+  const _Toggle({required this.value, required this.onChanged});
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Switch.adaptive(
+        value: value,
+        onChanged: onChanged,
+        activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : const Color(0xFF34C759),
+        activeThumbColor: Colors.white,
+      );
 }
 
 /// One line of the connection log: `<ms>|<host|join>|<address or ->|<outcome>|<in>|<out>`.
@@ -305,22 +425,22 @@ class _LogRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       child: Row(children: [
-        Icon(ok ? Icons.check_circle_outline_rounded : Icons.remove_circle_outline_rounded,
+        Icon(ok ? Icons.check_circle_rounded : Icons.remove_circle_rounded,
             color: ok ? const Color(0xFF34C759) : c.muted, size: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Text.rich(
             TextSpan(children: [
               TextSpan(text: title),
-              TextSpan(text: '  $date', style: TextStyle(color: c.muted, fontSize: 12.5)),
+              TextSpan(text: '  $date', style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
             ]),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14.5),
+            style: const TextStyle(fontSize: CsType.subhead),
           ),
         ),
         const SizedBox(width: 8),
-        Text(outcome, style: TextStyle(color: c.muted, fontSize: 12.5)),
+        Text(outcome, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
       ]),
     );
   }

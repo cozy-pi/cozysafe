@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Aggiungi foto",
   "syncTitle": "Sincronizza",
   "settingsBackupSync": "Backup e sincronizzazione",
-  "syncRow": "Sincronizza con un dispositivo vicino",
+  "syncRow": "La tua cassaforte su un altro dispositivo",
   "syncScanCode": "Scansiona un codice",
   "syncLog": "Connessioni recenti",
   "syncLogEmpty": "Ancora nessuna connessione.",
@@ -659,7 +659,6 @@
   "tipBackupBody": "Un file cifrato con tutta la cassaforte. Per aprirlo su un nuovo telefono servono le tue 24 parole e la password.",
   "tipGuideBody": "Rivedi questi suggerimenti quando vuoi.",
   "syncAutoIn": "Sincronizzazione tra {seconds} s",
-  "driveSignInAgain": "Accedi di nuovo",
   "driveRemove": "Rimuovi account",
   "driveRemoveTitle": "Rimuovere {account} da questo dispositivo?",
   "driveRemoveBody": "I tuoi file su Google Drive restano. Cozy Safe perde l'accesso finché non accedi di nuovo.",
@@ -736,5 +735,8 @@
   "syncTidying": "Pulizia delle versioni vecchie",
   "syncTidyingDrive": "Rimozione delle versioni vecchie da Google Drive",
   "sortSmallest": "Prima i più piccoli",
-  "storageItems": "{count, plural, =1{1 elemento} other{{count} elementi}}"
+  "storageItems": "{count, plural, =1{1 elemento} other{{count} elementi}}",
+  "syncAuto": "Sincronizza automaticamente",
+  "syncWifiOnly": "Solo con Wi-Fi",
+  "syncNow": "Sincronizza ora"
 }

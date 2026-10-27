@@ -182,7 +182,7 @@ class _ScanCodePageState extends State<ScanCodePage> with VaultLockAware {
             ),
           ),
           const SizedBox(height: 14),
-          Text(l.syncPointCamera, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+          Text(l.syncPointCamera, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.35)),
         ],
       ),
     );
@@ -200,7 +200,7 @@ class _Connecting extends StatelessWidget {
           const CircularProgressIndicator(),
           const SizedBox(height: 18),
           Text(AppLocalizations.of(context).syncConnectingTo,
-              textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+              textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
         ],
       );
 }
