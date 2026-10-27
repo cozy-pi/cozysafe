@@ -1344,7 +1344,7 @@ void main() {
         await t.pump(kLongPressTimeout + const Duration(milliseconds: 50));
         await g.moveBy(const Offset(40, 0));
         await t.pump();
-        await g.moveTo(t.getCenter(find.byType(PrivateThumb).at(3)));
+        await g.moveTo(t.getCenter(find.byType(PrivateThumb).last));
         await t.pump();
         await g.up();
       });
