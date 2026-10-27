@@ -22,6 +22,7 @@ import '../theme.dart';
 import '../originals.dart';
 import '../prefs.dart';
 import '../privacy.dart';
+import '../widgets/private_thumb.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
@@ -85,6 +86,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   List<rust.ItemInfo>? _items;
   /// Decrypted previews, in memory only, dropped with this screen.
   final Map<String, Future<Uint8List>> _thumbnails = {};
+  /// Thumbnails already read: a square scrolled back into view shows its picture on its
+  /// first frame instead of an empty one (a flicker all over a fast scroll).
+  final Map<String, Uint8List> _thumbReady = {};
   /// Photos per row; pinch to change, like Photos.
   /// Library columns (pinch), remembered across launches (owner 2026-10-22).
   int _cols = _colSteps.contains(int.tryParse(Prefs.read('library-columns') ?? ''))
@@ -435,6 +439,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       LockGuard.clearCopied();
       clearPlaybackCopies();
       _thumbnails.clear();
+      _thumbReady.clear();
       // The lock covers the pages; what floats over them closes (as Cancel), and the item
       // names go until the vault opens again.
       nav.popUntil(keptOnLock);
@@ -931,7 +936,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   // ---------- content ----------
 
-  Future<Uint8List> _thumbnail(String id) => _thumbnails[id] ??= rust.itemThumbnail(id: id);
+  Future<Uint8List> _thumbnail(String id) => _thumbnails[id] ??= rust.itemThumbnail(id: id)
+    ..then((b) => _thumbReady[id] = b, onError: (_) => Uint8List(0));
 
   /// The note's text after its first line (the title), for the list's two-line preview.
   Future<String> _preview(String id) => _previews[id] ??= rust.itemContent(id: id).then((bytes) {
@@ -1324,6 +1330,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                     child: _MediaTile(
                       item: it,
                       thumbnail: _thumbnail(it.id),
+                      ready: _thumbReady[it.id],
                       selected: _selected.contains(it.id),
                       selecting: _selecting,
                       onTap: () => _openItem(it, media),
@@ -2784,7 +2791,7 @@ class _FileRow extends StatelessWidget {
                   ? FutureBuilder<Uint8List>(
                       future: thumbnail,
                       builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                          ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover))
+                          ? PrivateThumb(snap.data!)
                           : const SizedBox.expand(),
                     )
                   : Center(
@@ -2924,6 +2931,7 @@ class _MediaTile extends StatelessWidget {
   const _MediaTile({
     required this.item,
     required this.thumbnail,
+    this.ready,
     required this.selected,
     required this.selecting,
     required this.onTap,
@@ -2931,6 +2939,8 @@ class _MediaTile extends StatelessWidget {
 
   final rust.ItemInfo item;
   final Future<Uint8List> thumbnail;
+  /// [thumbnail]'s bytes when already read.
+  final Uint8List? ready;
   final bool selected;
   final bool selecting;
   final VoidCallback onTap;
@@ -2955,6 +2965,7 @@ class _MediaTile extends StatelessWidget {
           children: [
             FutureBuilder<Uint8List>(
               future: thumbnail,
+              initialData: ready,
               builder: (context, snap) {
                 final bytes = snap.data;
                 if (bytes == null || bytes.isEmpty) {
@@ -2962,7 +2973,7 @@ class _MediaTile extends StatelessWidget {
                       ? const ColoredBox(color: Color(0xFF2A3133))
                       : const SizedBox.expand();
                 }
-                return privateThumb(Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true));
+                return PrivateThumb(bytes);
               },
             ),
             if (item.kind == ItemKind.video)

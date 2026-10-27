@@ -443,7 +443,7 @@ void main() {
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
   _screen('lock', 'Màn khoá', lock,
-      change: 'Lớp phủ đậm dần từ trên xuống, kín hẳn ở 1/3 dưới màn hình (trước: mờ đều 60–76%). Cũng áp cho màn chào, tạo két, đặt PIN');
+      change: 'SỬA: lớp phủ đậm dần, kín hẳn từ GIỮA màn trở xuống (bản trước: kín ở 1/3 dưới). Cũng áp cho màn chào, tạo két, đặt PIN');
   // Cold start: the first frames hand over from the system launch screen (dial alone).
   for (final (ms, what) in [(0, 'khung đầu, y như màn khởi động của máy'), (220, 'mặt khoá thu nhỏ, mờ dần'), (420, 'màn khoá hiện ra')]) {
     _screen('launch-$ms', 'Mở app · $ms ms · $what', () => LaunchHandoff(child: lock()), after: 0,
@@ -486,7 +486,8 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library');
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library',
+      change: 'Cuộn mượt: ảnh mờ được làm mờ MỘT lần rồi giữ lại (trước: mỗi ô tự làm mờ lại ở mọi khung hình khi cuộn); ô cuộn lại hiện ảnh ngay, không chớp trống. Hãy so độ mờ với trước');
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
@@ -663,7 +664,7 @@ void main() {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await t.pump(const Duration(milliseconds: 100));
     }
-  }, change: 'Toàn màn hình: vuốt ngang mượt hơn, chạm đúp để phóng to, kéo xuống ảnh đi theo tay và bật về êm');
+  });
   _screen('photo-swipe', 'Ảnh toàn màn hình · đang vuốt sang ảnh kế', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
@@ -676,7 +677,7 @@ void main() {
     await g.moveBy(const Offset(160, 0));
     await t.pump();
     await t.pump(const Duration(milliseconds: 250));
-  }, after: 0, change: 'MỚI: dải đen giữa hai ảnh khi vuốt, như app Ảnh');
+  }, after: 0);
   _screen('photo-drag', 'Ảnh toàn màn hình · đang kéo xuống để đóng', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
@@ -689,7 +690,7 @@ void main() {
     await g.moveBy(const Offset(30, 150));
     await t.pump();
     await t.pump(const Duration(milliseconds: 250));
-  }, after: 0, change: 'Ảnh đi theo ngón tay cả ngang lẫn dọc, nền mờ dần; thả tay chưa đủ xa thì bật về êm (trước: nhảy về ngay)');
+  }, after: 0);
   _screen('audio', 'Ghi âm', home, section: 'audio');
   _screen('audio-select', 'Ghi âm · bấm giữ một bản ghi', home, section: 'audio',
       act: (t) async {

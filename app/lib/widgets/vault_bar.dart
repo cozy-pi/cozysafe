@@ -89,10 +89,7 @@ const blurThumbsPref = 'blur-thumbnails';
 /// On unless turned off (owner 2026-10-21: blurred by default).
 bool blurThumbnails() => Prefs.read(blurThumbsPref) != '0';
 
-/// A thumbnail, blurred when [blurThumbnails] is on.
-Widget privateThumb(Widget image) => blurThumbnails()
-    ? ClipRect(child: ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12), child: image))
-    : image;
+/// Drawn by [PrivateThumb] (widgets/private_thumb.dart).
 
 /// The section the vault opens on: the last one used (0.1.6 kept it as `vault-kind`).
 VaultSection startSection() {

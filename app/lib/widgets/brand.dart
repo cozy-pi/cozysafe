@@ -194,10 +194,10 @@ class VaultBackdrop extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              // Deeper down the page, fully covering its bottom third (owner 2026-10-28,
+              // Deeper down the page, fully covering its lower half (owner 2026-10-28,
               // was an even veil): the picture shows on top, the keys sit on plain colour.
               colors: [tint.withValues(alpha: .55), tint.withValues(alpha: .8), tint, tint],
-              stops: const [0, .4, 2 / 3, 1],
+              stops: const [0, .3, .5, 1],
             ),
           ),
         ),

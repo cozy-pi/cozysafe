@@ -5,6 +5,7 @@ import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/private_thumb.dart';
 import '../widgets/bottom_bar.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/drag_select.dart';
@@ -515,7 +516,7 @@ class _Tile extends StatelessWidget {
                       ? const ColoredBox(color: Color(0xFF2A3133), child: Icon(Icons.movie_outlined, color: Colors.white54))
                       : const SizedBox.expand();
                 }
-                return privateThumb(Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true));
+                return PrivateThumb(bytes);
               },
             ),
             // A light shade at the foot so the white marks read on any picture.

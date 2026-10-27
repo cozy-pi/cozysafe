@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/private_thumb.dart';
 import '../widgets/selectable_row.dart';
 import '../widgets/vault_bar.dart';
 import 'file_view.dart';
@@ -188,7 +189,7 @@ class OverviewRow extends StatelessWidget {
                       child: FutureBuilder<Uint8List>(
                         future: thumbnail(item.id),
                         builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                            ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover))
+                            ? PrivateThumb(snap.data!)
                             : ColoredBox(color: c.soft),
                       ),
                     )
