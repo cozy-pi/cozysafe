@@ -659,7 +659,6 @@
   "tipBackupBody": "Un file cifrato con tutta la cassaforte. Per aprirlo su un nuovo telefono servono le tue 24 parole e la password.",
   "tipGuideBody": "Rivedi questi suggerimenti quando vuoi.",
   "syncAutoIn": "Sincronizzazione tra {seconds} s",
-  "driveSignInAgain": "Accedi di nuovo",
   "driveRemove": "Rimuovi account",
   "driveRemoveTitle": "Rimuovere {account} da questo dispositivo?",
   "driveRemoveBody": "I tuoi file su Google Drive restano. Cozy Safe perde l'accesso finché non accedi di nuovo.",

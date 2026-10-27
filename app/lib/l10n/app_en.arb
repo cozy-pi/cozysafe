@@ -876,7 +876,6 @@
   "tipGuideBody": "See these tips again any time.",
   "syncAutoIn": "Syncing in {seconds} s",
   "@syncAutoIn": {"placeholders": {"seconds": {}}},
-  "driveSignInAgain": "Sign in again",
   "driveRemove": "Remove account",
   "driveRemoveTitle": "Remove {account} from this device?",
   "@driveRemoveTitle": {"placeholders": {"account": {}}},

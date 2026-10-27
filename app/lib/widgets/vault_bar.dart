@@ -1061,8 +1061,9 @@ class AddCardOverlay extends StatelessWidget {
   }
 }
 
-/// One way to add as a round button with its word under it, findable under a sliding
-/// finger ([AddColumn.wayAt]). Used by [AddRow].
+/// One way to add as a round button, findable under a sliding finger ([AddColumn.wayAt]).
+/// Used by [AddRow]. No word under it (owner 2026-10-27): the card above says what each
+/// does; the word stays for screen readers.
 Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String label,
     {required bool hovered, required VoidCallback onTap, double width = AddRow.width}) {
   final circle = (width - 4).clamp(44.0, Ui.bar);
@@ -1084,27 +1085,17 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
           child: AnimatedScale(
             scale: hovered ? 1.14 : 1,
             duration: const Duration(milliseconds: 120),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: circle,
-                  height: circle,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: hovered ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
-                    boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
-                  ),
-                  child: Icon(icon, size: 26, color: hovered ? page : ink),
+            child: Center(
+              child: Container(
+                width: circle,
+                height: circle,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: hovered ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
+                  boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
                 ),
-                const SizedBox(height: 6),
-                // One line: a long word shrinks rather than wrap (a two-line label put
-                // its button out of line with the others).
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-                ),
-              ],
+                child: Icon(icon, size: 26, color: hovered ? page : ink),
+              ),
             ),
           ),
         ),

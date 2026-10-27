@@ -659,7 +659,6 @@
   "tipBackupBody": "Kasanın tamamını içeren tek bir şifreli dosya. Yeni bir telefonda açmak için 24 kelimeniz ve parolanız gerekir.",
   "tipGuideBody": "Bu ipuçlarına istediğiniz zaman yeniden bakın.",
   "syncAutoIn": "{seconds} sn içinde eşitlenecek",
-  "driveSignInAgain": "Yeniden oturum aç",
   "driveRemove": "Hesabı kaldır",
   "driveRemoveTitle": "{account} bu cihazdan kaldırılsın mı?",
   "driveRemoveBody": "Google Drive'daki dosyalarınız kalır. Yeniden oturum açana kadar Cozy Safe erişemez.",

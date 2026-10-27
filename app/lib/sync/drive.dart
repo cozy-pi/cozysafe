@@ -64,7 +64,7 @@ String? get driveAccount {
 
 /// Forget the Google account on this device (the Drive folder stays). [revoke] also takes
 /// back Cozy Safe's access at Google ("Remove account"); without it, the next sign-in
-/// offers the account picker again ("Sign in again").
+/// offers the account picker again.
 Future<void> driveSignOut({bool revoke = false}) async {
   Prefs.write(_accountPref, '');
   await _init();

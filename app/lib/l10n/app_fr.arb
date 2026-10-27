@@ -659,7 +659,6 @@
   "tipBackupBody": "Un fichier chiffré avec tout le coffre. Pour l'ouvrir sur un nouveau téléphone, il faut vos 24 mots et votre mot de passe.",
   "tipGuideBody": "Revoir ces conseils à tout moment.",
   "syncAutoIn": "Synchronisation dans {seconds} s",
-  "driveSignInAgain": "Se reconnecter",
   "driveRemove": "Retirer le compte",
   "driveRemoveTitle": "Retirer {account} de cet appareil ?",
   "driveRemoveBody": "Vos fichiers sur Google Drive restent. Cozy Safe perd l'accès jusqu'à votre prochaine connexion.",

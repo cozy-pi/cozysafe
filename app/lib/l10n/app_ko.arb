@@ -659,7 +659,6 @@
   "tipBackupBody": "금고 전체를 담은 암호화된 파일 하나. 새 휴대폰에서 열려면 24개 단어와 비밀번호가 필요해요.",
   "tipGuideBody": "이 안내를 언제든 다시 볼 수 있어요.",
   "syncAutoIn": "{seconds}초 후 동기화",
-  "driveSignInAgain": "다시 로그인",
   "driveRemove": "계정 제거",
   "driveRemoveTitle": "이 기기에서 {account}을(를) 제거할까요?",
   "driveRemoveBody": "Google Drive의 파일은 그대로 남습니다. 다시 로그인할 때까지 Cozy Safe는 접근할 수 없습니다.",

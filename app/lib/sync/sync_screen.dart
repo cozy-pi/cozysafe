@@ -134,7 +134,9 @@ class _SyncScreenState extends State<SyncScreen> {
           _Card(children: [
             _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), logo: const DriveLogo(size: 20), title: l.syncDriveRow, onTap: _drive),
             if (_account case final account?) ...[
-              _Action(key: const ValueKey('sync-drive-again'), icon: Icons.account_circle_outlined, color: const Color(0xFF8E8E93), title: l.driveSignInAgain, detail: account, onTap: _signInAgain),
+              // The account only (owner 2026-10-27: no "Sign in again"; to change
+              // account, remove it and sync again, which asks for one).
+              _Action(key: const ValueKey('sync-drive-account'), icon: Icons.account_circle_outlined, color: const Color(0xFF8E8E93), title: account, onTap: null, chevron: false),
               _Action(key: const ValueKey('sync-drive-remove'), icon: Icons.person_remove_outlined, color: const Color(0xFFFF3B30), title: l.driveRemove, onTap: _remove, chevron: false),
             ],
           ]),
@@ -149,16 +151,6 @@ class _SyncScreenState extends State<SyncScreen> {
   }
 
   String? get _account => SyncScreen.debugAccount ?? driveAccount;
-
-  /// Forget the account here, then sign in with the account picker.
-  Future<void> _signInAgain() async {
-    try {
-      await driveSignOut();
-    } catch (_) {}
-    if (!mounted) return;
-    setState(() {});
-    await _drive();
-  }
 
   /// Remove the Google account: asks first; the files on Drive stay.
   Future<void> _remove() async {
@@ -221,13 +213,14 @@ class _Card extends StatelessWidget {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({super.key, required this.icon, required this.color, required this.title, required this.onTap, this.detail, this.chevron = true, this.logo});
+  const _Action({super.key, required this.icon, required this.color, required this.title, this.onTap, this.detail, this.chevron = true, this.logo});
   final IconData icon;
   /// A service's own logo on a white tile instead of [icon] (Google Drive).
   final Widget? logo;
   final Color color;
   final String title;
-  final VoidCallback onTap;
+  /// Null for a line that only shows something (the account).
+  final VoidCallback? onTap;
   /// Muted, on the right before the chevron (an account, a count).
   final String? detail;
   final bool chevron;
@@ -252,7 +245,7 @@ class _Action extends StatelessWidget {
             child: logo ?? Icon(icon, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(title, style: TextStyle(fontSize: 15.5, color: chevron ? null : color))),
+          Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15.5, color: chevron || onTap == null ? null : color))),
           if (detail case final d?)
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 190),

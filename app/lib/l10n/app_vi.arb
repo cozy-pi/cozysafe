@@ -673,7 +673,6 @@
   "tipBackupBody": "Một tệp mã hoá chứa cả két. Mở trên máy mới cần 24 từ và mật khẩu.",
   "tipGuideBody": "Xem lại các gợi ý này bất cứ lúc nào.",
   "syncAutoIn": "Tự đồng bộ sau {seconds} giây",
-  "driveSignInAgain": "Đăng nhập lại",
   "driveRemove": "Gỡ tài khoản",
   "driveRemoveTitle": "Gỡ {account} khỏi máy này?",
   "driveRemoveBody": "Tệp trên Google Drive vẫn còn. Cozy Safe mất quyền truy cập cho tới khi bạn đăng nhập lại.",

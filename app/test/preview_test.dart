@@ -245,10 +245,17 @@ class _Fake implements RustLibApi {
 Future<void> _loadFonts() async {
   final dir = Directory('${Platform.environment['FLUTTER_ROOT']}/bin/cache/artifacts/material_fonts');
   Future<ByteData> bytes(File f) async => ByteData.view((await f.readAsBytes()).buffer);
+  // The iPhone's own font (SF Pro): the app sets none, so on an iPhone its text is SF.
+  // The Mac's copy stands in; Roboto only where it is missing.
+  final sf = File('/System/Library/Fonts/SFNS.ttf');
   final roboto = FontLoader('Roboto');
-  for (final f in dir.listSync().whereType<File>()) {
-    final n = f.uri.pathSegments.last;
-    if (n.startsWith('Roboto-') && n.endsWith('.ttf')) roboto.addFont(bytes(f));
+  if (sf.existsSync()) {
+    roboto.addFont(bytes(sf));
+  } else {
+    for (final f in dir.listSync().whereType<File>()) {
+      final n = f.uri.pathSegments.last;
+      if (n.startsWith('Roboto-') && n.endsWith('.ttf')) roboto.addFont(bytes(f));
+    }
   }
   await roboto.load();
   await (FontLoader('MaterialIcons')..addFont(bytes(File('${dir.path}/MaterialIcons-Regular.otf')))).load();
@@ -605,7 +612,7 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  });
+  }, change: 'SỬA: bỏ chữ dưới các nút tròn — thẻ phía trên đã nói rõ từng nút', marks: [() => find.byKey(const ValueKey('add-row'))]);
   _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
@@ -660,12 +667,10 @@ void main() {
     Prefs.write('action-side', 'center');
   }, act: (t) => tapThumb(t, 2));
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
-      act: (t) => tapThumb(t, 2),
-      change: 'SỬA: chỉ còn ảnh — bỏ tên, ngày, dung lượng (xem ở ⋯ → Thông tin)');
+      act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
-      act: (t) => tapThumb(t, 5),
-      change: 'SỬA: chỉ còn video — bỏ tên, ngày, dung lượng');
+      act: (t) => tapThumb(t, 5));
   _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
@@ -871,25 +876,24 @@ void main() {
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', () => settings(vault),
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
-      change: 'SỬA: bấm thẻ dung lượng mở trang Dung lượng; thanh màu có thêm Đã xoá gần đây (đỏ) và Lịch sử', marks: [() => find.byKey(const ValueKey('storage-card'))]);
+      change: 'MỌI MÀN: mockup giờ dựng bằng font của iPhone (SF Pro) như trên máy thật — trước dựng bằng Roboto');
   _screen('storage', 'MỚI · bấm thẻ dung lượng: từng phần (ảnh, video, ghi chú, ghi âm, tệp, Đã xoá gần đây, Lịch sử) với số mục + dung lượng, lớn nhất trên cùng; bấm một dòng → tới đúng chỗ quản lý (mục đó / Thùng rác / cài đặt Lịch sử)', () => settings(vault),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('storage-card')));
         await t.pumpAndSettle();
-      },
-      change: 'MỚI', marks: [() => find.byKey(const ValueKey('storage-trash')), () => find.byKey(const ValueKey('storage-history'))]);
+      });
   _screen('sort-menu-library', 'Thư viện · bấm ⇅', home, section: 'library', act: (t) async {
     await t.tap(find.byKey(const ValueKey('sort-button')));
     await t.pumpAndSettle();
-  }, change: 'MỚI: Lớn nhất trước · Nhỏ nhất trước (cả ảnh/video)', marks: [() => find.byKey(const ValueKey('sort-size')), () => find.byKey(const ValueKey('sort-smallest'))]);
+  });
   _screen('library-by-size', 'Thư viện · Lớn nhất trước: một lưới, không chia theo ngày', home, section: 'library',
-      setup: () => Prefs.write('sort-library', 'size'), change: 'MỚI');
+      setup: () => Prefs.write('sort-library', 'size'));
   _screen('mac-settings', 'MacBook · Cài đặt: một cột giữa (trước: kéo căng hết bề ngang)', () => settings(vault), size: const Size(1440, 900),
-      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'], change: 'SỬA (máy tính)');
-  _screen('mac-trash', 'MacBook · Đã xoá gần đây: một cột giữa, ảnh nhỏ lại', () => const Readable(child: TrashScreen()), size: const Size(1440, 900), change: 'SỬA (máy tính)');
-  _screen('mac-home', 'MacBook · Tổng quan: 4 ô loại trên một hàng, cao như trên điện thoại (trước: ô cao ~200px, trống)', home, section: 'home', size: const Size(1440, 900), change: 'SỬA (máy tính)');
+      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+  _screen('mac-trash', 'MacBook · Đã xoá gần đây: một cột giữa, ảnh nhỏ lại', () => const Readable(child: TrashScreen()), size: const Size(1440, 900));
+  _screen('mac-home', 'MacBook · Tổng quan: 4 ô loại trên một hàng, cao như trên điện thoại (trước: ô cao ~200px, trống)', home, section: 'home', size: const Size(1440, 900));
   _screen('mac-files-grid', 'MacBook · Tệp dạng lưới: nhiều cột vừa màn (trước: 3 ô to như tờ giấy)', home, section: 'file', size: const Size(1440, 900),
-      setup: () => Prefs.write('files-view', 'grid'), change: 'SỬA (máy tính)');
+      setup: () => Prefs.write('files-view', 'grid'));
 
   // The whole page in one tall shot, to compare the order (owner 2026-10-27).
   _screen('settings-all', 'Cài đặt · cả trang (ảnh dài): quan trọng lên trên, cùng loại một nhóm', () => settings(vault),
@@ -911,12 +915,12 @@ void main() {
     '${_now - 86400000}|nearby|iPad|cancelled|0|0',
     '${_now - 2 * 86400000}|join|192.168.1.21|ok|0|5',
   ];
-  _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (Đăng nhập lại, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (email tài khoản, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
     SyncScreen.debugAccount = 'ban.do@gmail.com';
-  });
+  }, change: 'SỬA: bỏ dòng “Đăng nhập lại”, chỉ hiện email tài khoản; muốn đổi tài khoản thì Gỡ rồi đồng bộ lại', marks: [() => find.byKey(const ValueKey('sync-drive-account'))]);
   _screen('sync-log', 'Đồng bộ · bấm Các lần kết nối gần đây: danh sách + một dòng giải thích (chỉ tên máy, không địa chỉ IP)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;

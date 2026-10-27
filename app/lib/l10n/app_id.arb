@@ -659,7 +659,6 @@
   "tipBackupBody": "Satu file terenkripsi berisi seluruh brankas. Membukanya di ponsel baru perlu 24 kata dan kata sandi Anda.",
   "tipGuideBody": "Lihat lagi tips ini kapan saja.",
   "syncAutoIn": "Sinkron dalam {seconds} dtk",
-  "driveSignInAgain": "Masuk lagi",
   "driveRemove": "Hapus akun",
   "driveRemoveTitle": "Hapus {account} dari perangkat ini?",
   "driveRemoveBody": "File Anda di Google Drive tetap ada. Cozy Safe kehilangan akses sampai Anda masuk lagi.",
