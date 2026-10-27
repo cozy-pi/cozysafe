@@ -189,17 +189,34 @@ class _SyncScreenState extends State<SyncScreen> {
               final l = AppLocalizations.of(context);
               final account = _account;
               return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 children: [
+                  // Whose Drive, under its logo, as an account page on the iPhone (owner
+                  // 2026-10-27). No "Sign in again": to change account, remove it and sync
+                  // again, which asks for one.
+                  Column(key: const ValueKey('sync-drive-account'), children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: CsColors.of(context).border),
+                      ),
+                      alignment: Alignment.center,
+                      child: const DriveLogo(size: 40),
+                    ),
+                    if (account != null) ...[
+                      const SizedBox(height: 10),
+                      Text(account, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: CsColors.of(context).muted, fontSize: 15)),
+                    ],
+                  ]),
+                  const SizedBox(height: 24),
                   _Card(children: [
                     _Action(key: const ValueKey('sync-drive-now'), icon: Icons.sync_rounded, color: const Color(0xFF34A853), title: l.syncNow, onTap: _drive),
                   ]),
                   const SizedBox(height: 24),
                   _Card(children: [
-                    // The account only (owner 2026-10-27: no "Sign in again"; to change
-                    // account, remove it and sync again, which asks for one).
-                    if (account != null)
-                      _Action(key: const ValueKey('sync-drive-account'), icon: Icons.account_circle_outlined, color: const Color(0xFF8E8E93), title: account, onTap: null, chevron: false),
                     // Automatic sync, and whether mobile data may carry it (owner 2026-10-27).
                     _Action(
                       key: const ValueKey('sync-auto'),

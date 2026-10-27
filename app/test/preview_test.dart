@@ -934,7 +934,7 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-drive')));
     await t.pumpAndSettle();
-  }, change: 'MỚI: trang riêng của Google Drive. Bỏ “Đăng nhập lại”, chỉ hiện email. “Tự động đồng bộ” (bật sẵn), “Chỉ khi có Wi‑Fi” (hiện khi bật tự động)',
+  }, change: 'MỚI: trang riêng của Google Drive — biểu tượng Drive + email ở đầu trang. Bỏ “Đăng nhập lại”. “Tự động đồng bộ” (bật sẵn), “Chỉ khi có Wi‑Fi” (hiện khi bật tự động)',
       marks: [() => find.byKey(const ValueKey('sync-drive-now')), () => find.byKey(const ValueKey('sync-auto')), () => find.byKey(const ValueKey('sync-wifi-only'))]);
   _screen('sync-drive-add', 'Đồng bộ · lần đầu thêm Google Drive: hộp cho phép kèm công tắc Tự động đồng bộ (bật sẵn)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
