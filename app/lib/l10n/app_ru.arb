@@ -735,5 +735,7 @@
   "syncTidying": "Очистка старых версий",
   "syncTidyingDrive": "Удаление старых версий из Google Диска",
   "sortSmallest": "Сначала маленькие",
-  "storageItems": "{count, plural, one{{count} объект} few{{count} объекта} many{{count} объектов} other{{count} объекта}}"
+  "storageItems": "{count, plural, one{{count} объект} few{{count} объекта} many{{count} объектов} other{{count} объекта}}",
+  "syncAuto": "Синхронизировать автоматически",
+  "syncWifiOnly": "Только по Wi-Fi"
 }

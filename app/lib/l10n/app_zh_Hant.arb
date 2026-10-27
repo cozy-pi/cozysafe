@@ -735,5 +735,7 @@
   "syncTidying": "正在清理舊版本",
   "syncTidyingDrive": "正在清理 Google 雲端硬碟上的舊版本",
   "sortSmallest": "最小優先",
-  "storageItems": "{count, plural, other{{count} 個項目}}"
+  "storageItems": "{count, plural, other{{count} 個項目}}",
+  "syncAuto": "自動同步",
+  "syncWifiOnly": "僅限 Wi-Fi"
 }

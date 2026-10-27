@@ -4,6 +4,20 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-27 — Automatic sync with Google Drive (changes "Network only by hand")
+
+**Owner:** Google Drive may sync without a tap. A switch, "Sync automatically", set on
+when the Google account is added (the card that allows the connection carries it, so it
+can be turned off right there) and in Settings → Sync; accounts added before this stay
+by hand until turned on. A second switch, "Only on Wi-Fi", keeps it off mobile data.
+It runs only while a vault is open and unlocked: when it opens or unlocks, about 30 s
+after something changes in it (many changes, one sync), and every 5 minutes for the
+other devices' changes; never with the app closed, never alongside a sync started by
+hand. It signs in to Google quietly and never shows a sign-in screen; when Google needs
+the person, it waits for a tap. Nearby-device sync stays by hand (both devices must be
+open). Still one host, the same `cs-net` permit per run, everything encrypted; turning
+the switch on is the allowing. Code: `app/lib/sync/auto_sync.dart`.
+
 ## 2026-10-27 — Owner feedback round (0.1.77, mockup v14 approved)
 
 **Owner:** + opens a card that explains every way to add (the quick buttons stay); a

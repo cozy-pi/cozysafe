@@ -6,7 +6,7 @@ import '../widgets/vault_bar.dart' show showCard;
 
 /// Ask before every connection, naming where it goes (docs/decisions.md, "Network only
 /// by hand"). Only a tap on Allow returns true; closing the card is a no.
-Future<bool> allowConnection(BuildContext context, String message) async {
+Future<bool> allowConnection(BuildContext context, String message, {Widget? below}) async {
   final l = AppLocalizations.of(context);
   final yes = await showCard<bool>(
     context,
@@ -27,6 +27,7 @@ Future<bool> allowConnection(BuildContext context, String message) async {
                 Expanded(child: Text(message, key: const ValueKey('sync-allow-message'), style: const TextStyle(fontSize: 16, height: 1.35))),
               ],
             ),
+            if (below != null) ...[const SizedBox(height: 10), below],
             const SizedBox(height: 18),
             Row(
               children: [

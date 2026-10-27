@@ -961,5 +961,9 @@
   "syncTidyingDrive": "Clearing old versions off Google Drive",
   "sortSmallest": "Smallest First",
   "storageItems": "{count, plural, =1{1 item} other{{count} items}}",
-  "@storageItems": {"placeholders": {"count": {"type": "int"}}}
+  "@storageItems": {"placeholders": {"count": {"type": "int"}}},
+  "syncAuto": "Sync automatically",
+  "syncWifiOnly": "Only on Wi-Fi",
+  "@syncAuto": {"description": "Switch: Google Drive syncs on its own while the vault is open."},
+  "@syncWifiOnly": {"description": "Switch: automatic sync only on Wi-Fi, never on mobile data."}
 }

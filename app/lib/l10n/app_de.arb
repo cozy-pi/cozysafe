@@ -735,5 +735,7 @@
   "syncTidying": "Alte Versionen werden aufgeräumt",
   "syncTidyingDrive": "Alte Versionen werden aus Google Drive entfernt",
   "sortSmallest": "Kleinste zuerst",
-  "storageItems": "{count, plural, =1{1 Element} other{{count} Elemente}}"
+  "storageItems": "{count, plural, =1{1 Element} other{{count} Elemente}}",
+  "syncAuto": "Automatisch synchronisieren",
+  "syncWifiOnly": "Nur über WLAN"
 }

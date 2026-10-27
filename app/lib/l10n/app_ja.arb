@@ -735,5 +735,7 @@
   "syncTidying": "古い版を整理中",
   "syncTidyingDrive": "Google ドライブの古い版を整理中",
   "sortSmallest": "小さい順",
-  "storageItems": "{count, plural, other{{count}件}}"
+  "storageItems": "{count, plural, other{{count}件}}",
+  "syncAuto": "自動で同期",
+  "syncWifiOnly": "Wi-Fi接続時のみ"
 }

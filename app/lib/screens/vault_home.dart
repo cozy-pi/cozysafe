@@ -56,6 +56,7 @@ import '../widgets/edge_swipe_back.dart';
 import '../widgets/selectable_row.dart';
 import '../widgets/toast.dart';
 import '../widgets/second_place.dart';
+import '../sync/auto_sync.dart';
 import '../sync/sync_screen.dart';
 import 'history.dart';
 import 'wide_home.dart';
@@ -176,6 +177,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     WidgetsBinding.instance.addObserver(this);
     // What has been in Recently deleted for 30 days goes for good, then list.
     rust.purgeExpired(nowMs: nowMs()).catchError((_) => 0).whenComplete(_reload);
+    // Google Drive kept up to date while the vault is open, when turned on.
+    AutoSync.start(onSynced: _reload);
     _bioOn = rust.biometricEnabled();
     BiometricUnlock.available().then((k) {
       if (mounted) setState(() => _canBio = k != null);
@@ -334,6 +337,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   @override
   void dispose() {
+    AutoSync.stop();
     PrivacyCover.onScreenshot = null;
     _drag.dispose();
     _addScroll.dispose();
@@ -417,7 +421,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _reload() async {
     try {
       final items = await rust.listItems();
-      if (mounted) setState(() => _items = items);
+      if (!mounted) return;
+      setState(() => _items = items);
+      AutoSync.seen(items); // a change here: a sync follows shortly
     } on rust.VaultError catch (e) {
       if (!mounted) return;
       if (e == rust.VaultError.locked) return _lock(animate: false);

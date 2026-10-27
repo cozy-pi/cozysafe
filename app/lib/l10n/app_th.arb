@@ -735,5 +735,7 @@
   "syncTidying": "กำลังล้างเวอร์ชันเก่า",
   "syncTidyingDrive": "กำลังล้างเวอร์ชันเก่าออกจาก Google ไดรฟ์",
   "sortSmallest": "เล็กสุดก่อน",
-  "storageItems": "{count, plural, other{{count} รายการ}}"
+  "storageItems": "{count, plural, other{{count} รายการ}}",
+  "syncAuto": "ซิงค์อัตโนมัติ",
+  "syncWifiOnly": "เฉพาะเมื่อใช้ Wi-Fi"
 }

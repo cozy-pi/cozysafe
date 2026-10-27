@@ -23,4 +23,15 @@ Future<String?> localAddress() async {
   }
 }
 
+/// Whether this device is on Wi-Fi now (not mobile data): the Wi-Fi interface has an
+/// address. Reading the interfaces opens no connection.
+Future<bool> onWifi() async {
+  try {
+    final all = await NetworkInterface.list(type: InternetAddressType.IPv4);
+    return all.any((i) => (i.name == 'en0' || i.name.startsWith('wlan')) && i.addresses.any((a) => !a.isLoopback));
+  } catch (_) {
+    return false;
+  }
+}
+
 const _notLocal = ['pdp_ip', 'rmnet', 'ccmni', 'utun', 'ipsec', 'tun', 'ppp', 'bridge', 'awdl', 'llw'];

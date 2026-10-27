@@ -43,6 +43,7 @@ import 'package:cozysafe/screens/vault_manager.dart';
 import 'package:cozysafe/widgets/second_place.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/api/sync.dart';
+import 'package:cozysafe/sync/auto_sync.dart';
 import 'package:cozysafe/sync/drive_join.dart';
 import 'package:cozysafe/sync/join_page.dart';
 import 'package:cozysafe/sync/nearby_page.dart';
@@ -363,6 +364,7 @@ void _screen(String name, String caption, Widget Function() home,
       SyncScreen.debugAddress = null;
       SyncScreen.debugDrive = false;
       SyncScreen.debugAccount = null;
+      SyncScreen.debugSession = null;
       ErrorReportScreen.debugEntries = null;
       HistoryScreen.debugVersions = null;
       HistoryScreen.debugContent = null;
@@ -920,7 +922,17 @@ void main() {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
     SyncScreen.debugAccount = 'ban.do@gmail.com';
-  }, change: 'SỬA: bỏ dòng “Đăng nhập lại”, chỉ hiện email tài khoản; muốn đổi tài khoản thì Gỡ rồi đồng bộ lại', marks: [() => find.byKey(const ValueKey('sync-drive-account'))]);
+    Prefs.write(AutoSync.pref, '1');
+  }, change: 'SỬA: bỏ “Đăng nhập lại”, chỉ hiện email. MỚI: “Tự động đồng bộ” (bật) và “Chỉ khi có Wi‑Fi” (hiện khi bật tự động)',
+      marks: [() => find.byKey(const ValueKey('sync-drive-account')), () => find.byKey(const ValueKey('sync-auto')), () => find.byKey(const ValueKey('sync-wifi-only'))]);
+  _screen('sync-drive-add', 'Đồng bộ · lần đầu thêm Google Drive: hộp cho phép kèm công tắc Tự động đồng bộ (bật sẵn)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () {
+    SyncScreen.debugDrive = true;
+    SyncScreen.debugSession = (email: 'ban.do@gmail.com', token: '');
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-drive')));
+    await t.pumpAndSettle();
+  }, change: 'MỚI: thêm tài khoản Google là bật sẵn Tự động đồng bộ, tắt được ngay tại đây', marks: [() => find.byKey(const ValueKey('sync-allow-auto'))]);
   _screen('sync-log', 'Đồng bộ · bấm Các lần kết nối gần đây: danh sách + một dòng giải thích (chỉ tên máy, không địa chỉ IP)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;

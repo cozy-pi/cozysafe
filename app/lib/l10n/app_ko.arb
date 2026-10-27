@@ -735,5 +735,7 @@
   "syncTidying": "이전 버전 정리 중",
   "syncTidyingDrive": "Google Drive의 이전 버전 정리 중",
   "sortSmallest": "작은 순서",
-  "storageItems": "{count, plural, other{항목 {count}개}}"
+  "storageItems": "{count, plural, other{항목 {count}개}}",
+  "syncAuto": "자동으로 동기화",
+  "syncWifiOnly": "Wi-Fi에서만"
 }

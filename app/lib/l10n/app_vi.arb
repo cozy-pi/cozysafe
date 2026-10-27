@@ -749,5 +749,7 @@
   "syncTidying": "Đang dọn bản cũ",
   "syncTidyingDrive": "Đang dọn bản cũ trên Google Drive",
   "sortSmallest": "Nhỏ nhất trước",
-  "storageItems": "{count, plural, other{{count} mục}}"
+  "storageItems": "{count, plural, other{{count} mục}}",
+  "syncAuto": "Tự động đồng bộ",
+  "syncWifiOnly": "Chỉ khi có Wi‑Fi"
 }

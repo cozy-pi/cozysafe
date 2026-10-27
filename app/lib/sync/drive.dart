@@ -56,6 +56,27 @@ Future<DriveSession?> driveSignIn() async {
   }
 }
 
+/// A token without showing anything (automatic sync): null when Google would need the
+/// person (signed out, access taken back, offline), and the sync waits for a tap.
+Future<DriveSession?> driveSignInQuietly() async {
+  final known = driveAccount;
+  if (known == null) return null;
+  try {
+    await _init();
+    final g = GoogleSignIn.instance;
+    if (Device.android) {
+      final quiet = await g.authorizationClient.authorizationForScopes(const [driveScope]);
+      return quiet == null ? null : (email: known, token: quiet.accessToken);
+    }
+    final user = await g.attemptLightweightAuthentication();
+    if (user == null) return null;
+    final auth = await user.authorizationClient.authorizationForScopes(const [driveScope]);
+    return auth == null ? null : (email: user.email, token: auth.accessToken);
+  } catch (_) {
+    return null;
+  }
+}
+
 /// The Google account Drive was last allowed with here, if any (for Settings → Sync).
 String? get driveAccount {
   final a = Prefs.read(_accountPref);

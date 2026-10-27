@@ -14,6 +14,7 @@ import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import '../widgets/toast.dart';
 import 'awake.dart';
+import 'auto_sync.dart';
 import 'status.dart';
 import '../widgets/drive_logo.dart';
 
@@ -156,6 +157,7 @@ class _SyncProgressState extends State<SyncProgress>
   @override
   void initState() {
     super.initState();
+    AutoSync.hold();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -346,6 +348,7 @@ class _SyncProgressState extends State<SyncProgress>
 
   @override
   void dispose() {
+    AutoSync.release();
     WidgetsBinding.instance.removeObserver(this);
     _flow.dispose();
     _auto?.cancel();

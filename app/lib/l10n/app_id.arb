@@ -735,5 +735,7 @@
   "syncTidying": "Membersihkan versi lama",
   "syncTidyingDrive": "Membersihkan versi lama dari Google Drive",
   "sortSmallest": "Terkecil dulu",
-  "storageItems": "{count, plural, other{{count} item}}"
+  "storageItems": "{count, plural, other{{count} item}}",
+  "syncAuto": "Sinkronkan otomatis",
+  "syncWifiOnly": "Hanya lewat Wi-Fi"
 }

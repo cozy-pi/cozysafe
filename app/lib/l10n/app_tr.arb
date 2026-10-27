@@ -735,5 +735,7 @@
   "syncTidying": "Eski sürümler temizleniyor",
   "syncTidyingDrive": "Eski sürümler Google Drive'dan temizleniyor",
   "sortSmallest": "Önce en küçük",
-  "storageItems": "{count, plural, other{{count} öğe}}"
+  "storageItems": "{count, plural, other{{count} öğe}}",
+  "syncAuto": "Otomatik eşitle",
+  "syncWifiOnly": "Yalnızca Wi-Fi'da"
 }
