@@ -29,6 +29,7 @@ import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
 import 'delete_vault.dart';
 import 'history.dart';
+import 'storage.dart';
 import '../src/rust/api/history.dart' as hist;
 import 'file_view.dart';
 import 'error_report.dart';
@@ -36,6 +37,7 @@ import 'key_check.dart';
 import 'set_pin.dart';
 import 'tour.dart';
 import '../sync/sync_screen.dart';
+import '../widgets/readable.dart';
 
 /// Per-device choices, kept next to the library (not secret).
 abstract final class Settings {
@@ -131,6 +133,7 @@ class SettingsScreen extends StatefulWidget {
     required this.onChangeIdentity,
     required this.onOpenTrash,
     required this.onNewVault,
+    this.onShowKind,
     this.onSynced,
     this.focus,
     this.guideFrom,
@@ -165,6 +168,8 @@ class SettingsScreen extends StatefulWidget {
   final Future<void> Function() onChangeIdentity;
   final Future<void> Function() onOpenTrash;
   final Future<void> Function() onNewVault;
+  /// Storage → a kind of item: Settings closes on that section of the vault.
+  final void Function(String kind)? onShowKind;
 
   /// For the mockup renders: the connection log without a vault.
   static List<String>? debugSyncLog;
@@ -179,22 +184,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _minutes = Settings.autoLockMinutes;
   bool _secure = Settings.blockScreenshots;
   bool _lockOnLeave = Settings.lockOnLeave;
-  final Map<String, BigInt> _byKind = {};
-  int _count = 0;
+  /// What the vault takes, part by part; the card and the Storage page follow it.
+  final _figures = ValueNotifier(const StorageFigures());
   /// The last figures per vault, in memory only (sizes and counts are about the vault, so
   /// never written out): Settings shows them at once while it measures again
   /// (owner 2026-10-27: the storage line came late).
-  static final _lastSizes = <String, (Map<String, BigInt>, int)>{};
-
-  BigInt get _bytes => _byKind.values.fold(BigInt.zero, (a, b) => a + b);
+  static final _lastSizes = <String, StorageFigures>{};
 
   @override
   void initState() {
     super.initState();
-    if (_lastSizes[widget.vault().id] case (final kinds, final count)) {
-      _byKind.addAll(kinds);
-      _count = count;
-    }
+    if (_lastSizes[widget.vault().id] case final last?) _figures.value = last;
     _measure();
     _loadLastSync();
     if (widget.focus case final spot?) WidgetsBinding.instance.addPostFrameCallback((_) => _goTo(spot));
@@ -212,20 +212,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _measure() async {
     try {
       // Tags are names only: not counted as things kept.
-      final all = [...await rust.listItems(), ...await rust.listTrash()].where((i) => i.kind != ItemKind.tag);
+      final items = (await rust.listItems()).where((i) => i.kind != ItemKind.tag);
+      // Recently deleted takes room until it is emptied, held items (deleted for good on
+      // another device, kept here) too: a part of its own (owner 2026-10-28).
+      final trash = [...await rust.listTrash(), ...await rust.listHeld()].where((i) => i.kind != ItemKind.tag).toList();
       final history = SettingsScreen.debugHistoryBytes ?? await _historyBytes();
       if (!mounted) return;
-      setState(() {
-        _count = all.length;
-        _byKind.clear();
-        for (final i in all) {
-          _byKind[i.kind] = (_byKind[i.kind] ?? BigInt.zero) + i.sizeBytes;
-        }
-        // Older versions take room too: their own line (owner 2026-10-27).
-        if (history > BigInt.zero) _byKind[_historyKind] = history;
-      });
-      _lastSizes[widget.vault().id] = (Map.of(_byKind), _count);
+      final bytes = <String, BigInt>{};
+      final counts = <String, int>{};
+      for (final i in items) {
+        bytes[i.kind] = (bytes[i.kind] ?? BigInt.zero) + i.sizeBytes;
+        counts[i.kind] = (counts[i.kind] ?? 0) + 1;
+      }
+      bytes[storageTrash] = trash.fold(BigInt.zero, (a, i) => a + i.sizeBytes);
+      counts[storageTrash] = trash.length;
+      // Older versions take room too: their own line (owner 2026-10-27).
+      bytes[storageHistory] = history;
+      final f = StorageFigures(bytes: bytes, counts: counts);
+      _figures.value = f;
+      _lastSizes[widget.vault().id] = f;
+      setState(() {});
     } catch (_) {}
+  }
+
+  /// Recently deleted, then the figures again at once: emptied items leave the total
+  /// as soon as the page closes (owner 2026-10-28).
+  Future<void> _openTrash() async {
+    await widget.onOpenTrash();
+    await _measure();
+  }
+
+  /// Storage, part by part; each part leads where it is managed.
+  void _openStorage() {
+    final l = AppLocalizations.of(context);
+    pushPage<void>(
+      context,
+      title: l.storage,
+      builder: (page) => StorageScreen(
+        figures: _figures,
+        onOpen: (part) {
+          switch (part) {
+            case storageTrash:
+              _openTrash();
+            case storageHistory:
+              _openHistory();
+            default:
+              if (widget.onShowKind == null) return;
+              widget.onShowKind!(part);
+              Navigator.of(page).pop();
+              Navigator.of(context).pop();
+          }
+        },
+      ),
+    );
   }
 
   Future<BigInt> _historyBytes() async {
@@ -249,7 +288,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _measure();
   }
 
-  String get _sizeText => AppLocalizations.of(context).storageUsed(fileSize(_bytes), _count);
+  String get _sizeText => AppLocalizations.of(context).storageUsed(fileSize(_figures.value.total), _figures.value.count);
 
   /// Security settings changed here ask for the owner first (docs/security.md); the ones
   /// that live in the vault screen (password, backup, kit, biometrics) ask there.
@@ -407,18 +446,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// What protects the vault, explained with drawings: its own page (long content).
   Future<void> _showSecurity() =>
-      Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => const SecurityInfoScreen()));
+      Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => Readable(child: const SecurityInfoScreen())));
 
   Future<void> _deleteVault() async {
     // The PIN confirms it; a vault opened with its password on this phone gets one first.
     if (!rust.pinEnabled()) {
       final set = await Navigator.of(context).push<bool>(
-        fadeRoute((_) => const SetPinScreen(skippable: true, forThisPhone: true)),
+        fadeRoute((_) => Readable(child: const SetPinScreen(skippable: true, forThisPhone: true))),
       );
       if (set != true || !mounted) return;
     }
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => DeleteVaultScreen(libraryDir: widget.libraryDir, vault: widget.vault(), sizeText: _sizeText),
+      builder: (_) => Readable(child: DeleteVaultScreen(libraryDir: widget.libraryDir, vault: widget.vault(), sizeText: _sizeText)),
     ));
   }
 
@@ -479,6 +518,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _scroll.dispose();
+    _figures.dispose();
     super.dispose();
   }
 
@@ -605,7 +645,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         controller: _scroll,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
-          _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), byKind: _byKind),
+          _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), figures: _figures.value, onTap: _openStorage),
           // Most important first, like with like (owner 2026-10-27). Groups still have no
           // names (owner 2026-10-26): the gaps set them apart.
           // 1. A copy elsewhere: syncing is done often (owner 2026-10-25), the backup file with it.
@@ -664,7 +704,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: _Mau.cham,
               title: l.pinTitle,
               value: l.change,
-              onTap: () => _guarded(() => Navigator.of(context).push<bool>(fadeRoute((_) => const SetPinScreen()))),
+              onTap: () => _guarded(() => Navigator.of(context).push<bool>(fadeRoute((_) => Readable(child: const SetPinScreen())))),
             ),
             _Row(
               icon: Icons.key_outlined,
@@ -811,7 +851,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.delete_sweep_outlined,
               color: _Mau.xam,
               title: l.recentlyDeleted,
-              onTap: () => _then(widget.onOpenTrash),
+              onTap: () => _then(_openTrash),
             ),
             // Older versions of every item, kept on this device (owner 2026-10-27).
             _Row(
@@ -992,7 +1032,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: _Mau.doTuoi,
                     title: l.debugMode,
                     onTap: () async {
-                      await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const DebugScreen()));
+                      await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => Readable(child: const DebugScreen())));
                       if (mounted) setState(() {});
                     },
                   ),
@@ -1007,26 +1047,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-/// The vault itself: its icon, how much it holds (a bar split by kind) and the last
-/// backup, on the vault's colour.
+/// The vault itself: its icon, how much it holds (a bar split by part) and the last
+/// backup, on the vault's colour. A tap opens Storage, part by part (owner 2026-10-28).
 class _VaultCard extends StatelessWidget {
-  const _VaultCard({required this.vault, required this.sizeText, required this.lastBackup, required this.byKind});
+  const _VaultCard({required this.vault, required this.sizeText, required this.lastBackup, required this.figures, required this.onTap});
 
   final rust.VaultInfo vault;
   final String sizeText;
   final String lastBackup;
-  final Map<String, BigInt> byKind;
-
-  /// Every kind in the storage bar, each in its own iOS system colour (owner 2026-10-21:
-  /// grey shades were hard to tell apart). Video and voice count too.
-  static const _kinds = [
-    (ItemKind.photo, Color(0xFF0A84FF)),
-    (ItemKind.video, Color(0xFFBF5AF2)),
-    (ItemKind.note, Color(0xFFFFD60A)),
-    (ItemKind.audio, Color(0xFFFF9F0A)),
-    (ItemKind.file, Color(0xFF30D158)),
-    (_historyKind, Color(0xFF8E8E93)),
-  ];
+  final StorageFigures figures;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1035,84 +1065,61 @@ class _VaultCard extends StatelessWidget {
     // white one in dark mode were both too strong (owner 2026-10-21).
     final bg = Theme.of(context).cardColor;
     final fg = Theme.of(context).colorScheme.onSurface;
-    final total = byKind.values.fold(BigInt.zero, (a, b) => a + b);
-    final names = {
-      ItemKind.photo: l.kindPhotos,
-      ItemKind.video: l.cameraVideo,
-      ItemKind.note: l.kindNotes,
-      ItemKind.audio: l.modeAudio,
-      ItemKind.file: l.kindFiles,
-      _historyKind: l.kindHistory,
-    };
-    BigInt size(String k) => byKind[k] ?? BigInt.zero;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('storage-card'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              VaultBadge(icon: vault.icon, color: vault.color, size: 56),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(sizeText, style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text(lastBackup, style: TextStyle(color: fg.withValues(alpha: .85), fontSize: 13)),
-                  ],
-                ),
+              Row(
+                children: [
+                  VaultBadge(icon: vault.icon, color: vault.color, size: 56),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(sizeText, style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 2),
+                        Text(lastBackup, style: TextStyle(color: fg.withValues(alpha: .85), fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: fg.withValues(alpha: .5), size: 22),
+                ],
+              ),
+              const SizedBox(height: 14),
+              StorageBar(figures: figures),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 14,
+                runSpacing: 4,
+                children: [
+                  for (final (k, color) in storageParts)
+                    if (figures.size(k) > BigInt.zero) Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                        const SizedBox(width: 5),
+                        // The name only, as in the iPhone's Storage (owner 2026-10-26): the
+                        // bar shows how much, the total is above; the sizes are one tap away.
+                        Text(storagePartName(l, k), style: TextStyle(color: fg.withValues(alpha: .9), fontSize: 12.5)),
+                      ],
+                    ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: SizedBox(
-              height: 8,
-              width: double.infinity,
-              child: total == BigInt.zero
-                  ? ColoredBox(color: fg.withValues(alpha: .2), child: const SizedBox.expand())
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (final (k, color) in _kinds)
-                          if (size(k) > BigInt.zero)
-                            Expanded(
-                              flex: ((size(k) * BigInt.from(1000)) ~/ total).toInt().clamp(1, 1000),
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 2), // a hairline between kinds
-                                child: ColoredBox(color: color),
-                              ),
-                            ),
-                      ],
-                    ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 14,
-            runSpacing: 4,
-            children: [
-              for (final (k, color) in _kinds)
-                if (size(k) > BigInt.zero) Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                    const SizedBox(width: 5),
-                    // The name only, as in the iPhone's Storage (owner 2026-10-26): the
-                    // bar shows how much, the total is above.
-                    Text(names[k]!, style: TextStyle(color: fg.withValues(alpha: .9), fontSize: 12.5)),
-                  ],
-                ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1316,5 +1323,3 @@ String _langCode(BuildContext context) {
   return l.scriptCode == 'Hant' ? 'zh_Hant' : l.languageCode;
 }
 
-/// The storage line's key for version history (not an item kind).
-const _historyKind = 'history';

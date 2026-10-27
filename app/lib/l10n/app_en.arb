@@ -959,5 +959,8 @@
   "syncRepairing": "Sending missing files again",
   "syncRepairingDrive": "Sending missing files to Google Drive again",
   "syncTidying": "Clearing out old versions",
-  "syncTidyingDrive": "Clearing old versions off Google Drive"
+  "syncTidyingDrive": "Clearing old versions off Google Drive",
+  "sortSmallest": "Smallest First",
+  "storageItems": "{count, plural, =1{1 item} other{{count} items}}",
+  "@storageItems": {"placeholders": {"count": {"type": "int"}}}
 }

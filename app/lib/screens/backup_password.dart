@@ -8,6 +8,7 @@ import '../widgets/secret.dart';
 import '../widgets/password_strength.dart';
 import 'common.dart';
 import 'emergency_kit.dart';
+import '../widgets/readable.dart';
 
 /// The backup password, set when it is needed (first backup, or the nudge in the
 /// vault) and changed the same way. "Suggest a password" fills five random words in one
@@ -68,11 +69,11 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
         final key = await SecretKeyStore.read();
         if (key != null && mounted) {
           await Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (kitContext) => EmergencyKitScreen(
+            builder: (kitContext) => Readable(child: EmergencyKitScreen(
               keyText: rust.secretKeyText(key: key),
               confirm: true,
               onDone: () => Navigator.of(kitContext).pop(),
-            ),
+            )),
           ));
         }
       }

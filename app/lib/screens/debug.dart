@@ -19,6 +19,7 @@ import 'file_view.dart';
 import 'settings.dart';
 import 'vault_manager.dart';
 import 'video_view.dart';
+import '../widgets/readable.dart';
 
 /// Hidden debug mode (docs/security.md, debug): seven taps on the version in Settings →
 /// About, after the owner check. Technical facts and a few safe actions only: it never
@@ -249,7 +250,7 @@ class _DebugScreenState extends State<DebugScreen> {
               title: Text(l.vaultManagerTitle, style: const TextStyle(fontSize: 15.5)),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => VaultManagerScreen(libraryDir: '${Prefs.dir}${Platform.pathSeparator}library'),
+                builder: (_) => Readable(child: VaultManagerScreen(libraryDir: '${Prefs.dir}${Platform.pathSeparator}library')),
               )),
             ),
             SwitchListTile.adaptive(

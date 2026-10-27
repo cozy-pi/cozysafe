@@ -734,5 +734,7 @@
   "syncRepairing": "Reinvio dei file mancanti",
   "syncRepairingDrive": "Reinvio dei file mancanti a Google Drive",
   "syncTidying": "Pulizia delle versioni vecchie",
-  "syncTidyingDrive": "Rimozione delle versioni vecchie da Google Drive"
+  "syncTidyingDrive": "Rimozione delle versioni vecchie da Google Drive",
+  "sortSmallest": "Prima i più piccoli",
+  "storageItems": "{count, plural, =1{1 elemento} other{{count} elementi}}"
 }

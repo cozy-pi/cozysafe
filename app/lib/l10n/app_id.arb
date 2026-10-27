@@ -734,5 +734,7 @@
   "syncRepairing": "Mengirim ulang file yang hilang",
   "syncRepairingDrive": "Mengirim ulang file yang hilang ke Google Drive",
   "syncTidying": "Membersihkan versi lama",
-  "syncTidyingDrive": "Membersihkan versi lama dari Google Drive"
+  "syncTidyingDrive": "Membersihkan versi lama dari Google Drive",
+  "sortSmallest": "Terkecil dulu",
+  "storageItems": "{count, plural, other{{count} item}}"
 }

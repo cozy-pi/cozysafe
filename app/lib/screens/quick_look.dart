@@ -346,6 +346,9 @@ class _QuickLookState extends State<QuickLook> {
     return it.kind == ItemKind.audio ? it.name.replaceAll(RegExp(r'\.m4a$'), '') : it.name;
   }
 
+  /// Photos and videos show the picture alone.
+  bool get _pictureOnly => _look == _Look.photo || _look == _Look.video;
+
   /// Date · size, and the length of a video or a recording when known. A note's size
   /// says nothing to anyone, so a note has its date only.
   String get _info {
@@ -811,19 +814,23 @@ class _QuickLookState extends State<QuickLook> {
                   width: box.maxWidth,
                   child: Column(
                     children: [
-                      Text(_title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Text(_info,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: c.muted)),
-                      if (trash != null) ...[
+                      // A photo or a video speaks for itself: no name, date or size under
+                      // it (owner 2026-10-28); they are in Info (⋯).
+                      if (!_pictureOnly) ...[
+                        Text(_title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 2),
+                        Text(_info,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 13, color: c.muted)),
+                      ],
+                      if (trash != null) ...[
+                        if (!_pictureOnly) const SizedBox(height: 2),
                         Text(
                           key: const ValueKey('preview-days'),
                           trash.held ? '${l.trashHeldLabel} · ${l.daysLeft(trash.daysLeft)}' : l.daysLeft(trash.daysLeft),
