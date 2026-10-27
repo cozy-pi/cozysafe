@@ -4,7 +4,7 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.1.77 (unreleased)
+## 0.1.77 (2026-10-27)
 
 ### Added
 - Android: Settings → Keep the 24 words in your Google account (off unless turned on),
@@ -24,6 +24,12 @@ Dates are UTC.
 - Recently deleted has two parts: what you deleted, and what another device deleted for
   good (kept only on this device, no longer synced). Restore asks first, in blue, with a
   clearer icon (out of the bin).
+- Settings in a new order, most important first and like with like: Backup & Sync, the
+  vault's keys, screen and auto-lock, getting things back (Recently deleted, Version
+  history), the look (with the vault's icon), Help (with How the vault is protected),
+  About.
+- safe.cozypi.com is black like the app, only the logo green; it offers the phone and
+  tablet apps only (the desktop builds stay on the GitHub release page).
 
 ### Fixed
 - Version history: changes made within the same millisecond could list in the wrong
