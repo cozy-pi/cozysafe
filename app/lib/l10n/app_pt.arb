@@ -730,5 +730,9 @@
   "historyKeepUntil": "Guardar versões anteriores até encher",
   "historyRule": "Até o histórico encher este espaço, nada é apagado, por mais antigo que seja. Quando enche, saem primeiro as versões mais antigas com mais de 30 dias; os últimos 30 dias ficam sempre. Só neste dispositivo: não sincronizado, não incluído nas cópias de segurança.",
   "historyEmptyAny": "Ainda não há versões anteriores. Cada vez que isto mudar, a versão anterior é guardada.",
-  "syncPreparing": "A preparar itens para enviar"
+  "syncPreparing": "A preparar itens para enviar",
+  "syncRepairing": "A reenviar ficheiros em falta",
+  "syncRepairingDrive": "A reenviar para o Google Drive ficheiros em falta",
+  "syncTidying": "A limpar versões antigas",
+  "syncTidyingDrive": "A limpar versões antigas do Google Drive"
 }

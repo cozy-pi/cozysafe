@@ -93,6 +93,10 @@ pub enum SyncStep {
     /// Before sending on a first sync: fingerprinting items that never went anywhere
     /// (`done`, `total` items).
     Preparing,
+    /// Sending again files the place lost or damaged (`done`, `total` items).
+    Repairing,
+    /// Taking old revisions off the place, at most once a day (`done`, `total`).
+    Tidying,
     Receiving,
     Sending,
     /// Taking the files of items deleted for good off the place.
@@ -214,6 +218,8 @@ fn progress_event(p: cs_vault::sync::SyncProgress) -> SyncEvent {
         ..step(match p.phase {
             SyncPhase::Checking => SyncStep::Checking,
             SyncPhase::Preparing => SyncStep::Preparing,
+            SyncPhase::Repairing => SyncStep::Repairing,
+            SyncPhase::Tidying => SyncStep::Tidying,
             SyncPhase::Receiving => SyncStep::Receiving,
             SyncPhase::Sending => SyncStep::Sending,
             SyncPhase::Removing => SyncStep::Removing,
@@ -839,6 +845,8 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         | SyncStep::AskRestore
         | SyncStep::Checking
         | SyncStep::Preparing
+        | SyncStep::Repairing
+        | SyncStep::Tidying
         | SyncStep::Receiving
         | SyncStep::Sending
         | SyncStep::Removing

@@ -730,5 +730,9 @@
   "historyKeepUntil": "Garder les anciennes versions jusqu'à saturation",
   "historyRule": "Tant que l'historique n'a pas rempli cet espace, rien n'est supprimé, aussi ancien soit-il. Une fois plein, les versions les plus anciennes de plus de 30 jours partent d'abord ; les 30 derniers jours restent toujours. Uniquement sur cet appareil : ni synchronisé, ni dans les sauvegardes.",
   "historyEmptyAny": "Pas encore de version antérieure. À chaque modification, la version précédente est gardée.",
-  "syncPreparing": "Préparation des éléments à envoyer"
+  "syncPreparing": "Préparation des éléments à envoyer",
+  "syncRepairing": "Renvoi des fichiers manquants",
+  "syncRepairingDrive": "Renvoi des fichiers manquants vers Google Drive",
+  "syncTidying": "Nettoyage des anciennes versions",
+  "syncTidyingDrive": "Suppression des anciennes versions de Google Drive"
 }

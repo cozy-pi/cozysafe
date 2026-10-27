@@ -280,6 +280,10 @@ pub enum SyncPhase {
     Sending,
     /// Taking the files of items deleted for good off the place.
     Removing,
+    /// Sending again files the place lost or damaged (`done`, `total` items).
+    Repairing,
+    /// Taking old revisions off the place, at most once a day (`done`, `total` items).
+    Tidying,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -542,6 +546,17 @@ impl OpenVault {
             }
         }
         let mut done = 0u32;
+        // Bringing in from the first byte (owner 2026-10-27: every step says what it does,
+        // the sync runs in the background).
+        if total > 0 {
+            progress(SyncProgress {
+                phase: SyncPhase::Receiving,
+                done: 0,
+                total,
+                bytes: remote.bytes(),
+                bytes_total: 0,
+            });
+        }
         for (device, n, entry) in todo {
             for (id, rev) in entry.items {
                 let counted = self.would_take(&id, &rev)?;
@@ -1000,7 +1015,7 @@ impl OpenVault {
             }
             todo.push((id, record, sealed));
         }
-        self.mend_place(remote, &base, &held, report)?;
+        self.mend_place(remote, &base, &held, report, progress)?;
         drop(held);
         let gone = self.index.gone_unsent(&rk)?;
         // Deletions are counted apart (Removing): they are not items going up.
@@ -1110,6 +1125,7 @@ impl OpenVault {
         base: &str,
         held: &[(String, ItemRecord, Vec<u8>)],
         report: &mut SyncReport,
+        progress: &dyn Fn(SyncProgress),
     ) -> Result<()> {
         // A place that lists nothing about its files: nothing to check.
         let Some((first, r, _)) = held.first() else {
@@ -1121,6 +1137,10 @@ impl OpenVault {
         {
             return Ok(());
         }
+        // First what needs sending again, so the screen can count it: the record, the
+        // files (where they go, the copy here) and the record's path when it is missing.
+        type Fix<'a> = (&'a [u8], Vec<(String, PathBuf)>, Option<String>);
+        let mut fix: Vec<Fix<'_>> = Vec::new();
         for (id, record, sealed) in held {
             let mut bad = false;
             let mut good_here = true;
@@ -1153,15 +1173,36 @@ impl OpenVault {
                 report.unrepaired += 1;
                 continue;
             }
-            for (path, local) in &files {
+            fix.push((sealed, files, record_missing.then_some(record_path)));
+        }
+        let total = fix.len() as u32;
+        let start = remote.bytes();
+        for (n, (sealed, files, record_path)) in fix.iter().enumerate() {
+            progress(SyncProgress {
+                phase: SyncPhase::Repairing,
+                done: n as u32,
+                total,
+                bytes: remote.bytes() - start,
+                bytes_total: 0,
+            });
+            for (path, local) in files {
                 // Files never change once written: the damaged one goes first.
                 remote.remove(path)?;
                 remote.put_file(path, local)?;
             }
-            if record_missing {
-                remote.put(&record_path, &mut &sealed[..])?;
+            if let Some(record_path) = record_path {
+                remote.put(record_path, &mut &sealed[..])?;
             }
             report.repaired += 1;
+        }
+        if total > 0 {
+            progress(SyncProgress {
+                phase: SyncPhase::Repairing,
+                done: total,
+                total,
+                bytes: remote.bytes() - start,
+                bytes_total: 0,
+            });
         }
         Ok(())
     }
@@ -1192,6 +1233,13 @@ impl OpenVault {
         if now - last < GC_EVERY_MS {
             return Ok(());
         }
+        progress(SyncProgress {
+            phase: SyncPhase::Tidying,
+            done: 0,
+            total: 0,
+            bytes: 0,
+            bytes_total: 0,
+        });
         let base = self.sync_dir();
         let cutoff = now - KEEP_OLD_MS;
         let mut todo = Vec::new();
@@ -1265,7 +1313,7 @@ impl OpenVault {
                     remote.remove_many(&std::mem::take(&mut records))?;
                     remote.remove_many(&std::mem::take(&mut contents))?;
                     progress(SyncProgress {
-                        phase: SyncPhase::Removing,
+                        phase: SyncPhase::Tidying,
                         done: n as u32 + 1,
                         total,
                         bytes: remote.bytes() - start,
@@ -1304,6 +1352,13 @@ impl OpenVault {
             self.index.all_gone()?
         };
         if !todo.is_empty() {
+            progress(SyncProgress {
+                phase: SyncPhase::Removing,
+                done: 0,
+                total: todo.len() as u32,
+                bytes: 0,
+                bytes_total: 0,
+            });
             let blobs = remote.list(&format!("{base}/blobs"))?;
             let total = todo.len() as u32;
             let start = remote.bytes();
@@ -2154,7 +2209,15 @@ pub(crate) mod tests {
         };
         t.a.collect_garbage(&counted, now, &|p| seen.lock().unwrap().push(p))
             .unwrap();
-        seen.into_inner().unwrap()
+        let seen = seen.into_inner().unwrap();
+        // It always says first that it is tidying (owner 2026-10-27), then each batch.
+        if let Some(first) = seen.first() {
+            assert_eq!(
+                (first.phase, first.done, first.total),
+                (SyncPhase::Tidying, 0, 0)
+            );
+        }
+        seen.into_iter().skip(1).collect()
     }
 
     /// The revisions of `id` on the place: (hlc, rev, data_rev), oldest first.
@@ -2212,7 +2275,7 @@ pub(crate) mod tests {
         // When only r1 was superseded (by r2) over 30 days ago: r1 goes, its content
         // stays (r2 uses it).
         let seen = collect(&t, all[2].0 - 1 + KEEP_OLD_MS);
-        assert!(seen.iter().all(|p| p.phase == SyncPhase::Removing) && !seen.is_empty());
+        assert!(seen.iter().all(|p| p.phase == SyncPhase::Tidying) && !seen.is_empty());
         assert_eq!(revisions(&t, &id), all[1..]);
         assert_eq!(contents(&t, &id).len(), 2);
         // Later, r2 and r3 as well, and r1's content; the current revision and its content
@@ -2513,7 +2576,14 @@ pub(crate) mod tests {
         let seen_b = std::sync::Mutex::new(Vec::new());
         t.b.sync_with(&t.cloud, &|p| seen_b.lock().unwrap().push(p))
             .unwrap();
-        let last = *seen_b.into_inner().unwrap().last().unwrap();
+        let seen_b = seen_b.into_inner().unwrap();
+        let receiving: Vec<_> = seen_b
+            .iter()
+            .filter(|p| p.phase == SyncPhase::Receiving)
+            .collect();
+        // Told from the start, before the first item is in.
+        assert_eq!((receiving[0].done, receiving[0].total), (0, n as u32));
+        let last = *receiving.last().unwrap();
         assert_eq!(
             (last.phase, last.done, last.total),
             (SyncPhase::Receiving, n as u32, n as u32)

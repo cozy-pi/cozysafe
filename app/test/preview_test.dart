@@ -892,6 +892,13 @@ void main() {
       () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 0, total: 340, bytes: 38 << 20, bytesTotal: 131 << 20)), onSynced: () {})),
       setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6),
       change: 'SỬA');
+  _screen('sync-drive-repairing', 'Gửi lại tệp bị thiếu/hỏng trên Google Drive: có tên riêng và đếm, không còn là “Đang xem”',
+      () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.repairing, done: 1, total: 3, bytes: 4 << 20)), onSynced: () {})),
+      setup: () => SyncProgress.debugRate = (1.8 * (1 << 20), 2),
+      change: 'MỚI');
+  _screen('sync-drive-tidying', 'Dọn bản cũ trên Google Drive (mỗi ngày một lần): tên riêng, không lẫn với “xoá mục đã xoá”',
+      () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.tidying, done: 12, total: 40)), onSynced: () {})),
+      change: 'MỚI');
   _screen('sync-drive-progress', 'Google Drive: đang gửi lên', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 128, total: 340, bytes: 52 << 20, bytesTotal: 131 << 20)), onSynced: () {})),
       setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6));
   _screen('sync-drive-receiving', 'Google Drive: đang tải về', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.receiving, done: 40, total: 212, bytes: 18 << 20)), onSynced: () {})),

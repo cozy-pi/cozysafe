@@ -18,6 +18,11 @@ Dates are UTC.
   was reading every item and sending the first files. It now says "Getting items ready
   to send" with a count, then "Sending to Google Drive" from the first byte, and the
   sizes and speed move every second while a big file goes up.
+- Every step of a sync says what it does, not only the first time: bringing in is told
+  from the start, files Google Drive lost are "Sending missing files again" with a count,
+  the daily clean-up is "Clearing old versions", and removing deleted items is told
+  before it starts. With a nearby device, the phone being synced with counts items (not
+  their files) and says "Checking" while the other phone only reads lists.
 
 ## 0.1.77 (2026-10-27)
 

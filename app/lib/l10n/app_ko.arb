@@ -730,5 +730,9 @@
   "historyKeepUntil": "가득 찰 때까지 이전 버전 보관",
   "historyRule": "이 공간이 가득 찰 때까지는 아무리 오래되어도 지우지 않습니다. 가득 차면 30일이 지난 가장 오래된 버전부터 지우고, 최근 30일은 항상 남깁니다. 이 기기에만 있으며 동기화되거나 백업되지 않습니다.",
   "historyEmptyAny": "아직 이전 버전이 없습니다. 바뀔 때마다 바로 전 버전이 보관됩니다.",
-  "syncPreparing": "보낼 항목 준비 중"
+  "syncPreparing": "보낼 항목 준비 중",
+  "syncRepairing": "누락된 파일 다시 보내는 중",
+  "syncRepairingDrive": "누락된 파일을 Google Drive로 다시 보내는 중",
+  "syncTidying": "이전 버전 정리 중",
+  "syncTidyingDrive": "Google Drive의 이전 버전 정리 중"
 }
