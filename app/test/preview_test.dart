@@ -266,14 +266,20 @@ Future<void> _thumbnailsReady() async {
   }
 }
 
+/// The owner's phone, the default for every shot.
+const _phone = Size(430, 932);
+
 Future<List<List<double>>> _shot(WidgetTester t, String file, Widget home, {Brightness b = Brightness.light,
-    Future<void> Function(WidgetTester)? act, int after = 6, List<Finder Function()> marks = const []}) async {
-  t.view.physicalSize = const Size(430, 932) * 2; // iPhone 15 Pro Max, the owner's phone
+    Future<void> Function(WidgetTester)? act, int after = 6, List<Finder Function()> marks = const [],
+    Size size = _phone}) async {
+  t.view.physicalSize = size * 2; // iPhone 15 Pro Max, the owner's phone, unless a bigger screen
   t.view.devicePixelRatio = 2;
   // The phone's safe areas (status bar with the Dynamic Island, home indicator), so
   // content sits where it does on the device; the mockup page draws the frame on top.
-  t.view.padding = const FakeViewPadding(top: 59 * 2, bottom: 34 * 2);
-  t.view.viewPadding = const FakeViewPadding(top: 59 * 2, bottom: 34 * 2);
+  // An iPad or a computer window: a thin status bar on top only.
+  final (top, bottom) = size == _phone ? (59.0, 34.0) : (24.0, 0.0);
+  t.view.padding = FakeViewPadding(top: top * 2, bottom: bottom * 2);
+  t.view.viewPadding = FakeViewPadding(top: top * 2, bottom: bottom * 2);
   addTearDown(t.view.reset);
   await t.pumpWidget(MaterialApp(
     debugShowCheckedModeBanner: false,
@@ -321,7 +327,7 @@ final _manifest = <Map<String, Object>>[];
 /// [change] says what is new on this screen, [marks] finds the parts to outline.
 void _screen(String name, String caption, Widget Function() home,
     {String? section, Future<void> Function(WidgetTester)? act, int after = 6, void Function()? setup,
-    String? change, List<Finder Function()> marks = const []}) {
+    String? change, List<Finder Function()> marks = const [], Size size = _phone}) {
   final entry = <String, Object>{'name': name, 'caption': caption, 'change': ?change};
   _manifest.add(entry);
   for (final b in [Brightness.dark, Brightness.light]) {
@@ -375,7 +381,7 @@ void _screen(String name, String caption, Widget Function() home,
       // Real shadows: tests otherwise draw every elevation as a solid black outline.
       debugDisableShadows = false;
       try {
-        final rects = await _shot(t, '$name-${b.name}', home(), b: b, act: act, after: after, marks: marks);
+        final rects = await _shot(t, '$name-${b.name}', home(), b: b, act: act, after: after, marks: marks, size: size);
         if (rects.isNotEmpty) entry['marks'] = rects;
         await t.pump(const Duration(seconds: 2)); // let an animation started by `act` end
       } finally {
@@ -528,6 +534,34 @@ void main() {
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
   _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
+  // iPad and computer (owner 2026-10-27): three columns, the sync always in sight.
+  const ipad = Size(1180, 820), ipadUp = Size(820, 1180), mac = Size(1440, 900), win = Size(1280, 800);
+  _screen('wide-ipad-home', 'iPad ngang · Tổng quan: thanh bên (mục, nhóm, đồng bộ, Thêm), nội dung rộng', home,
+      section: 'home', size: ipad, change: 'MỚI: giao diện cho iPad', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+  _screen('wide-ipad-library', 'iPad ngang · Thư viện: lưới nhiều cột theo bề ngang', home,
+      section: 'library', size: ipad, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+  _screen('wide-ipad-photo', 'iPad ngang · chạm một ảnh: mở ngay ở cột bên phải, không che danh sách', home,
+      section: 'library', size: ipad, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
+      act: (t) async {
+        await t.tap(find.byType(Image).first);
+        await t.pump();
+      });
+  _screen('wide-ipad-portrait', 'iPad dọc · hai cột: thanh bên + nội dung (mục mở ra như trên điện thoại)', home,
+      section: 'note', size: ipadUp, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+  _screen('wide-mac-note', 'MacBook · Ghi chú: chọn một ghi chú, xem ngay bên phải', home,
+      section: 'note', size: mac, change: 'MỚI: giao diện cho máy tính', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
+      act: (t) async {
+        await t.tap(find.text('Thuốc của mẹ').first);
+        await t.pump();
+      });
+  _screen('wide-win-files', 'Cửa sổ Windows · Tệp', home,
+      section: 'file', size: win, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+  _screen('wide-ipad-add', 'iPad · bấm Thêm vào két ở thanh bên', home,
+      section: 'library', size: ipad, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
+      act: (t) async {
+        await t.tap(find.byKey(const ValueKey('wide-add')));
+        await t.pump();
+      });
   _screen('home-nudge', 'Trang chủ: két chỉ ở máy này', home, section: 'home',
       setup: () => SecondPlaceNudge.debugShow = true);
   _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {

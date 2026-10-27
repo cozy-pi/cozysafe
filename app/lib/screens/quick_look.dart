@@ -50,7 +50,7 @@ class TrashLook {
 /// down closes. Pops with the id when the item was deleted, or with one of the requests
 /// below.
 class QuickLook extends StatefulWidget {
-  const QuickLook({super.key, required this.item, this.photos = const [], required this.vaultId, this.trash});
+  const QuickLook({super.key, required this.item, this.photos = const [], required this.vaultId, this.trash, this.onResult});
 
   final rust.ItemInfo item;
   /// The photos and videos around it, for swiping in full screen.
@@ -58,6 +58,9 @@ class QuickLook extends StatefulWidget {
   final String vaultId;
   /// Set when the item is in Recently deleted: the bar is Close, Restore, Info, Delete for good.
   final TrashLook? trash;
+  /// Shown in a pane of a wide window (iPad, computer), not over the page: what a popped
+  /// viewer would return goes here instead, and there is no Close and no dimmed page.
+  final ValueChanged<String?>? onResult;
 
   /// Popped by ⋯ in any viewer, with the item's id: the vault shows that item's menu
   /// (Rename, Group, Info…) over itself. The full-screen viewers return it through here.
@@ -259,7 +262,7 @@ class _QuickLookState extends State<QuickLook> {
     final String? result;
     switch (_look) {
       case _Look.note:
-        Navigator.of(context).pop(QuickLook.editRequest);
+        _done(QuickLook.editRequest);
         return;
       case _Look.video when !_canPlayVideo:
       case _Look.file:
@@ -286,7 +289,7 @@ class _QuickLookState extends State<QuickLook> {
           LockGuard.clear();
         }
     }
-    if (result != null && mounted) Navigator.of(context).pop(result);
+    if (result != null && mounted) _done(result);
   }
 
   /// A box ticked or cleared in the preview: that line's "[ ]" and "[x]" swap in the
@@ -316,7 +319,7 @@ class _QuickLookState extends State<QuickLook> {
     if (!await confirmTrash(context, count: 1, name: _title) || !mounted) return;
     try {
       await rust.trashItem(id: widget.item.id, nowMs: nowMs());
-      if (mounted) Navigator.of(context).pop(widget.item.id);
+      if (mounted) _done(widget.item.id);
     } on rust.VaultError catch (e) {
       if (mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
     }
@@ -696,10 +699,25 @@ class _QuickLookState extends State<QuickLook> {
     );
   }
 
+  bool get embedded => widget.onResult != null;
+
+  /// Close with [result]: back to the page that opened it, or to the wide window's pane.
+  void _done([String? result]) {
+    final onResult = widget.onResult;
+    if (onResult != null) {
+      onResult(result);
+    } else {
+      Navigator.of(context).pop(result);
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => embedded
+      ? LayoutBuilder(builder: (context, c) => _body(context, Size(c.maxWidth, c.maxHeight)))
+      : _body(context, MediaQuery.sizeOf(context));
+
+  Widget _body(BuildContext context, Size size) {
     final l = AppLocalizations.of(context);
-    final size = MediaQuery.sizeOf(context);
     final page = Theme.of(context).scaffoldBackgroundColor;
     final still = MediaQuery.disableAnimationsOf(context);
     final fade = Duration(milliseconds: still ? 0 : 220);
@@ -711,7 +729,9 @@ class _QuickLookState extends State<QuickLook> {
     final barHeight = actionSide() == ActionSide.center ? Ui.bar + 8 : Ui.bar;
     final barBottom = safeBottom + Ui.edge;
     final bottomRoom = barBottom + barHeight;
-    final box = BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: (size.height - bottomRoom) * .78);
+    final box = embedded
+        ? BoxConstraints(maxWidth: (size.width - 32).clamp(0, 720), maxHeight: (size.height - Ui.bar - 120).clamp(0, double.infinity))
+        : BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: (size.height - bottomRoom) * .78);
     final c = CsColors.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final trash = widget.trash;
@@ -753,29 +773,27 @@ class _QuickLookState extends State<QuickLook> {
           };
     final tools = trash != null
         ? [
-            tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, (_) => Navigator.of(context).pop()),
+            if (!embedded) tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, (_) => _done()),
             // The same actions, icons and order as the long-press menu in Recently deleted.
             tool(const ValueKey('preview-restore'), Icons.restore_from_trash_rounded, l.restore, (_) async {
-              final nav = Navigator.of(context);
               if (await confirmRestore(context, count: 1, name: _title, held: trash.held)) {
-                nav.pop(QuickLook.restoreRequest);
+                _done(QuickLook.restoreRequest);
               }
             }, color: restoreBlue),
             tool(const ValueKey('preview-info'), Icons.info_outline, l.info,
                 (_) => showItemInfo(context, widget.item, held: trash.held)),
             tool(const ValueKey('preview-purge'), Icons.delete_forever_outlined, l.deleteForGoodShort, (_) async {
-              final nav = Navigator.of(context);
               if (await confirmDeleteForGood(context, count: 1, name: _title, othersKeep: !trash.held)) {
-                nav.pop(QuickLook.purgeRequest);
+                _done(QuickLook.purgeRequest);
               }
             }, color: red),
           ]
         : [
-            tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, (_) => Navigator.of(context).pop()),
+            if (!embedded) tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, (_) => _done()),
             if (open != null) tool(open.$3, open.$1, open.$2, _open, waits: true),
             tool(const ValueKey('quick-send'), Icons.ios_share, l.sendOut, _send, waits: true),
             tool(const ValueKey('quick-more'), Icons.more_horiz, l.more,
-                (_) => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id))),
+                (_) => _done(QuickLook.menuFor(widget.item.id))),
             tool(const ValueKey('quick-delete'), Icons.delete_outline, l.delete, (_) => _delete(), color: red),
           ];
 
@@ -818,6 +836,28 @@ class _QuickLookState extends State<QuickLook> {
                     ],
                   ),
                 );
+    // In a pane: the item, its name, and its buttons under it; nothing over the page.
+    if (embedded) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Column(
+          children: [
+            Expanded(child: Center(child: boxed)),
+            const SizedBox(height: 14),
+            titleBlock,
+            const SizedBox(height: 10),
+            SizedBox(
+              height: Ui.bar,
+              child: Glass(
+                key: const ValueKey('quick-bar'),
+                radius: Ui.bar / 2,
+                child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: tools),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Material(
       type: MaterialType.transparency,
       child: Stack(
@@ -825,7 +865,7 @@ class _QuickLookState extends State<QuickLook> {
         // The page goes dark and soft behind, so only the item speaks; tap to close.
         Positioned.fill(
           child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: () => _done(),
             // Light enough to see the page under it (owner 2026-10-25: it was nearly opaque).
             child: BackdropFilter(
               filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -845,7 +885,7 @@ class _QuickLookState extends State<QuickLook> {
           child: GestureDetector(
             // Swipe down to put it away, as in Photos.
             onVerticalDragEnd: (d) {
-              if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
+              if ((d.primaryVelocity ?? 0) > 300) _done();
             },
             child: Column(
               mainAxisSize: MainAxisSize.min,
