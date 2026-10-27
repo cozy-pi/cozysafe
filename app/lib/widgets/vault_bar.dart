@@ -902,8 +902,10 @@ String addWayNote(AppLocalizations l, AddWhat what) => switch (what) {
 /// the quick buttons stay): every way to add with its full name and a line on what it
 /// does, in a card at eye level above the row. Tapping a line is the same as its button.
 class AddCard extends StatefulWidget {
-  const AddCard({super.key, required this.open, required this.ways, required this.onPick});
+  const AddCard({super.key, required this.open, required this.ways, required this.onPick, this.hovered});
   final bool open;
+  /// The line under a finger sliding from + (each line is tagged for [AddColumn.wayAt]).
+  final AddWhat? hovered;
   /// The ways with their full names ([addWays]).
   final List<(AddWhat, IconData, String)> ways;
   final ValueChanged<AddWhat> onPick;
@@ -962,10 +964,14 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
                         style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.2)),
                   ),
                   for (final (what, icon, label) in widget.ways)
-                    InkWell(
+                    MetaData(
+                      metaData: what,
+                      behavior: HitTestBehavior.opaque,
+                      child: InkWell(
                       key: ValueKey('add-card-${what.name}'),
                       onTap: () => widget.onPick(what),
-                      child: Padding(
+                      child: Container(
+                        color: widget.hovered == what ? ink.withValues(alpha: .08) : null,
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
                         child: Row(children: [
                           Container(
@@ -985,11 +991,64 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
                         ]),
                       ),
                     ),
+                    ),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// + on an edge (owner 2026-10-27: the column beside the card looked broken): the card
+/// alone, just above +, the page dimmed behind; its lines are the quick buttons, and a
+/// finger sliding up from + picks one as on the column.
+class AddCardOverlay extends StatelessWidget {
+  const AddCardOverlay({
+    super.key,
+    required this.open,
+    required this.ways,
+    required this.bottom,
+    required this.hovered,
+    required this.onPick,
+    required this.onClose,
+    required this.onGone,
+  });
+  final bool open;
+  final List<(AddWhat, IconData, String)> ways;
+  /// The card's bottom above the screen's bottom edge.
+  final double bottom;
+  final AddWhat? hovered;
+  final ValueChanged<AddWhat> onPick;
+  final VoidCallback onClose;
+  final VoidCallback onGone;
+
+  @override
+  Widget build(BuildContext context) {
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: open ? 1 : 0),
+      duration: Duration(milliseconds: open ? 260 : 160),
+      onEnd: () {
+        if (!open) onGone();
+      },
+      builder: (context, t, child) => Stack(children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: onClose,
+            child: ColoredBox(color: page.withValues(alpha: .92 * t)),
+          ),
+        ),
+        child!,
+      ]),
+      child: Positioned(
+        left: 16,
+        right: 16,
+        top: MediaQuery.paddingOf(context).top + 12,
+        bottom: bottom,
+        child: AddCard(open: open, ways: ways, onPick: onPick, hovered: hovered),
       ),
     );
   }

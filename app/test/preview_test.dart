@@ -506,7 +506,7 @@ void main() {
     for (var i = 0; i < 5; i++) {
       await t.pump(const Duration(milliseconds: 100)); // let the ways finish popping out
     }
-    await g.moveTo(t.getCenter(find.byKey(const ValueKey('add-photo')).first));
+    await g.moveTo(t.getCenter(find.byKey(const ValueKey('add-card-photo'))));
     await t.pump(const Duration(milliseconds: 200));
   });
   _screen('empty', 'Két trống · thêm bằng ô lớn', home, section: 'library', setup: () {
