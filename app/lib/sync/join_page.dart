@@ -11,6 +11,7 @@ import '../theme.dart';
 import 'consent.dart';
 import 'device_name.dart';
 import 'progress.dart';
+import '../widgets/readable.dart';
 
 /// A QR read (devices that cannot find each other on this network): name the address it
 /// points at, ask, then connect; both people then confirm as usual.
@@ -22,7 +23,7 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
   final name = await deviceName();
   if (!context.mounted) return;
   final route = MaterialPageRoute<void>(
-    builder: (context) => Scaffold(
+    builder: (context) => Readable(child: Scaffold(
       appBar: AppBar(title: Text(l.syncRow)),
       body: SafeArea(
         top: false,
@@ -32,7 +33,7 @@ Future<void> joinWithCode(BuildContext context, String code, {required VoidCallb
           waiting: const _Connecting(),
         ),
       ),
-    ),
+    )),
   );
   // It takes the QR page's place, so Back after the sync comes back to the sync screen.
   await Navigator.of(context).pushReplacement(route);

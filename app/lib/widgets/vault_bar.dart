@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
+import 'readable.dart';
 
 /// The four sections of a vault, picked in the bottom capsule (docs/ui.md, vault bar;
 /// docs/naming.md). A section shows items of some kinds: Library shows photos and
@@ -89,10 +90,7 @@ const blurThumbsPref = 'blur-thumbnails';
 /// On unless turned off (owner 2026-10-21: blurred by default).
 bool blurThumbnails() => Prefs.read(blurThumbsPref) != '0';
 
-/// A thumbnail, blurred when [blurThumbnails] is on.
-Widget privateThumb(Widget image) => blurThumbnails()
-    ? ClipRect(child: ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12), child: image))
-    : image;
+/// Drawn by [PrivateThumb] (widgets/private_thumb.dart).
 
 /// The section the vault opens on: the last one used (0.1.6 kept it as `vault-kind`).
 VaultSection startSection() {
@@ -1480,10 +1478,10 @@ class _LoopMark extends StatelessWidget {
 /// Like every page, it stays under the lock screen (lib/lock_resume.dart).
 Future<T?> pushPage<T>(BuildContext context, {required String title, required WidgetBuilder builder}) =>
     Navigator.of(context).push<T>(MaterialPageRoute(
-      builder: (context) => Scaffold(
+      builder: (context) => Readable(child: Scaffold(
         appBar: AppBar(title: Text(title)),
         body: SafeArea(top: false, child: builder(context)),
-      ),
+      )),
     ));
 
 /// Short content in a card in the middle of the screen, at eye level, the vault dimmed

@@ -4,6 +4,35 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.79 (2026-10-27)
+
+### Added
+- Storage: tap the vault card in Settings for every part of the vault (each kind, Recently
+  deleted, Version history) with how many items and how much space; each row leads to where
+  that part is managed.
+- Sort by Smallest first, next to Largest first, in the library too (one grid, no date
+  titles).
+- Full-screen photos: double tap to zoom in and out, and a black gap between photos as you
+  swipe, as in Photos.
+
+### Changed
+- The library scrolls smoothly: blurred thumbnails are blurred once and kept, instead of
+  being blurred again on every frame of a scroll. A square scrolled back into view shows its
+  picture at once.
+- Full-screen photos swipe smoothly: a quick flick always turns the page, the photo follows
+  your finger when you drag it down and springs back if you let go early, and the next
+  photos load once a swipe has settled.
+- The lock screen's veil deepens down the page and fully covers its lower half.
+- The sync screen keeps every line in place while it runs, and the speed counts bytes as a
+  file goes up (Google Drive, nearby device) instead of jumping at the end.
+- The preview of a photo or video shows the picture only; name, date and size are in Info.
+- Computers: pages of rows sit in a readable column, Overview shows its kinds in one row,
+  and file tiles fill the window.
+
+### Fixed
+- Computers: a window hidden for a moment (resized, tiled, full screen) no longer locks the
+  vault; hidden for 3 seconds it does.
+
 ## 0.1.78 (2026-10-27)
 
 ### Added

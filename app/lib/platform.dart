@@ -11,6 +11,10 @@ abstract final class Device {
   static bool get macOS => !kIsWeb && Platform.isMacOS;
   static bool get windows => !kIsWeb && Platform.isWindows;
   static bool get linux => !kIsWeb && Platform.isLinux;
+  static bool get desktop => debugDesktop ?? (macOS || windows || linux);
+
+  /// For tests: act as a computer (or not).
+  static bool? debugDesktop;
 }
 
 /// The bridge's 64-bit integers are `int` on phones and computers but `BigInt` on the

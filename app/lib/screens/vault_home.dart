@@ -10,7 +10,6 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../item_bytes.dart';
 import '../biometric.dart';
 import '../lock_resume.dart';
 import '../l10n/app_localizations.dart';
@@ -23,6 +22,7 @@ import '../theme.dart';
 import '../originals.dart';
 import '../prefs.dart';
 import '../privacy.dart';
+import '../widgets/private_thumb.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
@@ -33,7 +33,6 @@ import 'emergency_kit.dart';
 import 'kit_password.dart';
 import 'change_key.dart';
 import 'file_view.dart';
-import 'glass.dart';
 import 'new_vault.dart';
 import 'quick_look.dart';
 import 'note.dart';
@@ -60,6 +59,7 @@ import '../widgets/second_place.dart';
 import '../sync/sync_screen.dart';
 import 'history.dart';
 import 'wide_home.dart';
+import '../widgets/readable.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -87,6 +87,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   List<rust.ItemInfo>? _items;
   /// Decrypted previews, in memory only, dropped with this screen.
   final Map<String, Future<Uint8List>> _thumbnails = {};
+  /// Thumbnails already read: a square scrolled back into view shows its picture on its
+  /// first frame instead of an empty one (a flicker all over a fast scroll).
+  final Map<String, Uint8List> _thumbReady = {};
   /// Photos per row; pinch to change, like Photos.
   /// Library columns (pinch), remembered across launches (owner 2026-10-22).
   int _cols = _colSteps.contains(int.tryParse(Prefs.read('library-columns') ?? ''))
@@ -363,14 +366,28 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Duration get _awayLimit => Duration(minutes: Settings.autoLockMinutes);
 
+  /// A computer's window hidden this long counts as leaving (see didChangeAppLifecycleState).
+  static const _windowGrace = Duration(seconds: 3);
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
       if (_locked || _away != null) return;
       final leaveLocks = Settings.lockOnLeave;
       // Leaving locks at once (the default), unless the app itself sent the person out.
-      if (leaveLocks && !LockGuard.away) return _lock(animate: false);
+      // On a computer the window reports itself hidden for a moment while it is resized,
+      // tiled or made full screen (owner 2026-10-28: every resize asked for the PIN): it
+      // locks once hidden for [_windowGrace].
+      if (leaveLocks && !LockGuard.away && !Device.desktop) return _lock(animate: false);
       _away = AwayClock.start();
+      if (leaveLocks && !LockGuard.away) {
+        _idleTimer?.cancel();
+        _awayTimer?.cancel();
+        _awayTimer = Timer(_windowGrace, () {
+          if (mounted && _away != null) _lock(animate: false);
+        });
+        return;
+      }
       // "Lock as soon as I leave" off: the auto-lock time runs from now, not from the
       // last touch. The app switcher still shows the cover, not the vault.
       if (!leaveLocks) {
@@ -386,7 +403,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       _awayTimer?.cancel();
       LockGuard.clear();
       // Back in time: the vault shows again. Too late: it locks before anything shows.
-      final tooLong = Settings.lockOnLeave ? gone > const Duration(seconds: 60) : gone >= _awayLimit;
+      final tooLong = Settings.lockOnLeave
+          ? gone > (Device.desktop ? _windowGrace : const Duration(seconds: 60))
+          : gone >= _awayLimit;
       if (tooLong) {
         _lock(animate: false);
       } else {
@@ -437,6 +456,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       LockGuard.clearCopied();
       clearPlaybackCopies();
       _thumbnails.clear();
+      _thumbReady.clear();
       // The lock covers the pages; what floats over them closes (as Cancel), and the item
       // names go until the vault opens again.
       nav.popUntil(keptOnLock);
@@ -582,7 +602,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     NoteScreen.lastSave = null;
     NoteScreen.lastDeleted = null;
     final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
-        builder: (_) => NoteScreen(item: item, tagId: item == null ? _tagId : null, vaultId: _vault.id)));
+        builder: (_) => Readable(child: NoteScreen(item: item, tagId: item == null ? _tagId : null, vaultId: _vault.id))));
     // A swipe back pops null and saves behind the pop: wait for it, then reload.
     final pending = NoteScreen.lastSave;
     if (pending != null) {
@@ -703,7 +723,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<bool> _ensurePassword() async {
     if (_vault.hasPassword) return true;
     final info = await Navigator.of(context).push<rust.VaultInfo>(
-      MaterialPageRoute(builder: (_) => BackupPasswordScreen(libraryDir: widget.libraryDir, change: false)),
+      MaterialPageRoute(builder: (_) => Readable(child: BackupPasswordScreen(libraryDir: widget.libraryDir, change: false))),
     );
     if (info != null && mounted) setState(() => _vault = info);
     return info != null;
@@ -714,7 +734,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _password() async {
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     final info = await Navigator.of(context).push<rust.VaultInfo>(
-      MaterialPageRoute(builder: (_) => BackupPasswordScreen(libraryDir: widget.libraryDir, change: _vault.hasPassword)),
+      MaterialPageRoute(builder: (_) => Readable(child: BackupPasswordScreen(libraryDir: widget.libraryDir, change: _vault.hasPassword))),
     );
     if (info != null && mounted) setState(() => _vault = info);
   }
@@ -819,13 +839,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<void> _pushKit(Uint8List key, String? Function() password) async {
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (kit) => EmergencyKitScreen(
+      builder: (kit) => Readable(child: EmergencyKitScreen(
         keyText: rust.secretKeyText(key: key),
         confirm: false,
         // A new Recovery Key replaces this page (it would show the old one).
         onChange: () => Navigator.of(kit).pushReplacement(MaterialPageRoute<void>(
-          builder: (_) => ChangeKeyScreen(libraryDir: widget.libraryDir, password: password(), onBackup: _backup),
-        )),
+          builder: (_) => Readable(child: ChangeKeyScreen(libraryDir: widget.libraryDir, password: password(), onBackup: _backup)),
+  )      )),
       ),
     ));
   }
@@ -860,7 +880,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<void> _openTrash() async {
-    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TrashScreen()));
+    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => Readable(child: const TrashScreen())));
     // A swipe back returns null: reload then too.
     if (!_locked && changed != false) _reload();
   }
@@ -869,7 +889,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _openSettings({SettingsSpot? focus, int? guideFrom}) async {
     final l = AppLocalizations.of(context);
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => SettingsScreen(
+      builder: (_) => Readable(child: SettingsScreen(
         libraryDir: widget.libraryDir,
         vault: () => _vault,
         canBiometric: _canBio,
@@ -882,11 +902,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         onChangeIdentity: _changeIdentity,
         onOpenTrash: _openTrash,
         onNewVault: _newVault,
+        onShowKind: (kind) => _pickSection(switch (kind) {
+          ItemKind.note => VaultSection.note,
+          ItemKind.audio => VaultSection.audio,
+          ItemKind.file => VaultSection.file,
+          _ => VaultSection.library,
+        }),
         onSynced: _reload,
         focus: focus,
         guideFrom: guideFrom,
         onTour: _replayTour,
-      ),
+      )),
     ));
     if (!_locked) {
       _touch(); // the auto-lock time may have changed
@@ -911,7 +937,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // lock screen first flashed it for a moment.)
     final nav = Navigator.of(context);
     final libraryDir = widget.libraryDir;
-    final route = fadeRoute<void>((_) => NewVaultScreen(libraryDir: libraryDir, first: false, avoid: avoid));
+    final route = fadeRoute<void>((_) => Readable(child: NewVaultScreen(libraryDir: libraryDir, first: false, avoid: avoid)));
     nav.push(route);
     void swap(AnimationStatus s) {
       if (s != AnimationStatus.completed) return;
@@ -933,7 +959,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   // ---------- content ----------
 
-  Future<Uint8List> _thumbnail(String id) => _thumbnails[id] ??= rust.itemThumbnail(id: id);
+  Future<Uint8List> _thumbnail(String id) => _thumbnails[id] ??= rust.itemThumbnail(id: id)
+    ..then((b) => _thumbReady[id] = b, onError: (_) => Uint8List(0));
 
   /// The note's text after its first line (the title), for the list's two-line preview.
   Future<String> _preview(String id) => _previews[id] ??= rust.itemContent(id: id).then((bytes) {
@@ -1248,7 +1275,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (items == null) return;
     final result = await Navigator.of(context).push<Object>(
       MaterialPageRoute(
-          builder: (_) => SearchScreen(items: items, thumbnail: _thumbnail)),
+          builder: (_) => Readable(child: SearchScreen(items: items, thumbnail: _thumbnail))),
     );
     if (result == null || !mounted || _locked) return;
     // A long press on a result: its menu, over the vault.
@@ -1287,8 +1314,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           : _Empty(icon: Icons.photo_library_outlined, title: l.emptyPhotosTitle, body: l.emptyPhotosBody);
     }
     final groups = <String, List<rust.ItemInfo>>{};
+    // By size: one grid, no date titles.
+    final bySize = _sort == ItemSort.size || _sort == ItemSort.smallest;
     for (final it in media) {
-      groups.putIfAbsent(_dateGroup(context, it.createdMs.toInt()), () => []).add(it);
+      groups.putIfAbsent(bySize ? '' : _dateGroup(context, it.createdMs.toInt()), () => []).add(it);
     }
     _dragOrder = [for (final g in groups.values) for (final it in g) it.id];
     return GestureDetector(
@@ -1308,7 +1337,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       child: Scrollbar(
         child: CustomScrollView(slivers: [
           for (final e in groups.entries) ...[
-            SliverToBoxAdapter(child: _SectionTitle(e.key)),
+            if (e.key.isNotEmpty) SliverToBoxAdapter(child: _SectionTitle(e.key)),
             SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: _wide ? _wideCols : _cols,
@@ -1326,6 +1355,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                     child: _MediaTile(
                       item: it,
                       thumbnail: _thumbnail(it.id),
+                      ready: _thumbReady[it.id],
                       selected: _selected.contains(it.id),
                       selecting: _selecting,
                       onTap: () => _openItem(it, media),
@@ -1397,8 +1427,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         child: GridView.builder(
           key: const ValueKey('files-grid'),
           padding: EdgeInsets.fromLTRB(12, 4, 12, _bottomRoom),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78),
+          // Three a row on a phone, as many as fit on a computer (owner 2026-10-28: three
+          // tiles across a MacBook were each the size of a page).
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 150, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78),
           itemCount: list.length,
           itemBuilder: (context, i) {
             final it = list[i];
@@ -1488,6 +1520,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ItemSort.oldest => a.createdMs.compareTo(b.createdMs),
           ItemSort.name => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
           ItemSort.size => b.sizeBytes.compareTo(a.sizeBytes),
+          ItemSort.smallest => a.sizeBytes.compareTo(b.sizeBytes),
           ItemSort.edited => b.modifiedMs.compareTo(a.modifiedMs),
         };
     final pinFirst = _section != VaultSection.library;
@@ -1503,8 +1536,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   ItemSort get _sort {
     final saved = Prefs.read('sort-${_section.name}');
     final sort = ItemSort.values.where((v) => v.name == saved).firstOrNull ?? ItemSort.newest;
-    // The library is grouped by date: only newest or oldest first make sense there.
-    if (_section == VaultSection.library && sort != ItemSort.oldest) return ItemSort.newest;
+    // The library is grouped by date, or one grid by size (owner 2026-10-28): name and
+    // last edit mean nothing there.
+    if (_section == VaultSection.library && (sort == ItemSort.name || sort == ItemSort.edited)) return ItemSort.newest;
     return sort;
   }
 
@@ -1516,15 +1550,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     final now = _sort;
     final options = switch (_section) {
-      VaultSection.library => [ItemSort.newest, ItemSort.oldest],
+      VaultSection.library => [ItemSort.newest, ItemSort.oldest, ItemSort.size, ItemSort.smallest],
       VaultSection.note => ItemSort.values,
-      _ => [ItemSort.newest, ItemSort.oldest, ItemSort.name, ItemSort.size],
+      _ => [ItemSort.newest, ItemSort.oldest, ItemSort.name, ItemSort.size, ItemSort.smallest],
     };
     String label(ItemSort s) => switch (s) {
           ItemSort.newest => l.sortNewest,
           ItemSort.oldest => l.sortOldest,
           ItemSort.name => l.sortName,
           ItemSort.size => l.sortSize,
+          ItemSort.smallest => l.sortSmallest,
           ItemSort.edited => l.sortEdited,
         };
     await showItemMenu(context, title: l.sortBy, entries: [
@@ -2786,7 +2821,7 @@ class _FileRow extends StatelessWidget {
                   ? FutureBuilder<Uint8List>(
                       future: thumbnail,
                       builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                          ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover))
+                          ? PrivateThumb(snap.data!)
                           : const SizedBox.expand(),
                     )
                   : Center(
@@ -2926,6 +2961,7 @@ class _MediaTile extends StatelessWidget {
   const _MediaTile({
     required this.item,
     required this.thumbnail,
+    this.ready,
     required this.selected,
     required this.selecting,
     required this.onTap,
@@ -2933,6 +2969,8 @@ class _MediaTile extends StatelessWidget {
 
   final rust.ItemInfo item;
   final Future<Uint8List> thumbnail;
+  /// [thumbnail]'s bytes when already read.
+  final Uint8List? ready;
   final bool selected;
   final bool selecting;
   final VoidCallback onTap;
@@ -2957,6 +2995,7 @@ class _MediaTile extends StatelessWidget {
           children: [
             FutureBuilder<Uint8List>(
               future: thumbnail,
+              initialData: ready,
               builder: (context, snap) {
                 final bytes = snap.data;
                 if (bytes == null || bytes.isEmpty) {
@@ -2964,7 +3003,7 @@ class _MediaTile extends StatelessWidget {
                       ? const ColoredBox(color: Color(0xFF2A3133))
                       : const SizedBox.expand();
                 }
-                return privateThumb(Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true));
+                return PrivateThumb(bytes);
               },
             ),
             if (item.kind == ItemKind.video)
@@ -2999,276 +3038,6 @@ class _MediaTile extends StatelessWidget {
             if (selected) const ColoredBox(color: Color(0x33FFFFFF)),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Photos full screen, decrypted into memory only while shown. Swipe sideways for the
-/// next one, swipe down to close, tap to hide the bars. Pops with the id of a deleted photo.
-class PhotoViewerScreen extends StatefulWidget {
-  const PhotoViewerScreen({super.key, required this.items, required this.initial, required this.vaultId});
-  final String vaultId;
-
-  final List<rust.ItemInfo> items;
-  final int initial;
-
-  @override
-  State<PhotoViewerScreen> createState() => _PhotoViewerScreenState();
-}
-
-class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
-  late final _pages = PageController(initialPage: widget.initial);
-  late int _index = widget.initial;
-  final Map<String, Future<Uint8List>> _content = {};
-  bool _bars = true;
-  double _drag = 0;
-
-  rust.ItemInfo get _item => widget.items[_index];
-
-  Future<Uint8List> _load(String id) => _content[id] ??= photoBytes(id);
-
-  /// Width photos are decoded at: 1.5× the screen's (at most 3000 px, ~20 MB as a
-  /// bitmap), sharp enough to zoom, without a very large photo's full bitmap in memory.
-  int get _decodeWidth =>
-      (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context) * 1.5).round().clamp(1, 3000);
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _around(_index));
-  }
-
-  /// Smooth swiping (owner 2026-10-23): the photos next to this one are decrypted and
-  /// decoded before they slide in, and only the few around it stay in memory (the bytes
-  /// of every photo seen used to be kept until the viewer closed).
-  void _around(int i) {
-    if (!mounted) return;
-    final n = widget.items.length;
-    final keep = {for (var j = i - 2; j <= i + 2; j++) if (j >= 0 && j < n) widget.items[j].id};
-    _content.removeWhere((id, _) => !keep.contains(id));
-    final w = _decodeWidth;
-    for (final j in [i, i + 1, i - 1]) {
-      if (j < 0 || j >= n || widget.items[j].kind != ItemKind.photo) continue;
-      _load(widget.items[j].id).then((bytes) {
-        // The same provider Image.memory(cacheWidth:) makes, so the page finds it decoded.
-        if (mounted) precacheImage(ResizeImage(MemoryImage(bytes), width: w), context, onError: (_, _) {});
-      }, onError: (_) {});
-    }
-  }
-
-  @override
-  void dispose() {
-    _pages.dispose();
-    super.dispose();
-  }
-
-  /// Asks first, then it goes to Recently deleted and the vault offers Undo.
-  Future<void> _delete() async {
-    final l = AppLocalizations.of(context);
-    if (!await confirmTrash(context, count: 1, name: _item.name) || !mounted) return;
-    try {
-      await rust.trashItem(id: _item.id, nowMs: nowMs());
-      if (mounted) Navigator.of(context).pop(_item.id);
-    } on rust.VaultError catch (e) {
-      if (mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
-    }
-  }
-
-  Widget _pageView(BuildContext context) => PageView.builder(
-        allowImplicitScrolling: true, // the pages beside this one are built (and decoded) ahead
-        controller: _pages,
-        itemCount: widget.items.length,
-        onPageChanged: (i) {
-          setState(() => _index = i);
-          _around(i);
-        },
-        itemBuilder: (context, i) => widget.items[i].kind == ItemKind.video
-            ? _videoPage(context, widget.items[i])
-            : _photoPage(context, widget.items[i]),
-      );
-
-  /// The thumbnail at once (no spinner between photos), the full photo over it as soon as
-  /// it is decoded.
-  Widget _photoPage(BuildContext context, rust.ItemInfo item) {
-    final still = FutureBuilder<Uint8List>(
-      future: _thumbnails[item.id] ??= rust.itemThumbnail(id: item.id),
-      builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-          ? Image.memory(snap.data!, fit: BoxFit.contain, gaplessPlayback: true, width: double.infinity, height: double.infinity)
-          : const SizedBox.expand(),
-    );
-    return FutureBuilder<Uint8List>(
-      future: _load(item.id),
-      builder: (context, snap) {
-        if (snap.hasError) {
-          return Center(child: Text(AppLocalizations.of(context).errorStorage, style: const TextStyle(color: Colors.white70)));
-        }
-        final bytes = snap.data;
-        if (bytes == null) return still;
-        return InteractiveViewer(
-          maxScale: 6,
-          child: Center(
-            child: Image.memory(bytes,
-                gaplessPlayback: true,
-                cacheWidth: _decodeWidth,
-                frameBuilder: (context, child, frame, sync) => frame == null && !sync ? still : child),
-          ),
-        );
-      },
-    );
-  }
-
-  /// A video among the photos: its still and a play button; playing opens the video
-  /// player (owner 2026-10-22: swiping goes through videos too).
-  Widget _videoPage(BuildContext context, rust.ItemInfo item) => GestureDetector(
-        onTap: () => _playVideo(item),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned.fill(
-              child: FutureBuilder<Uint8List>(
-                future: _thumbnails[item.id] ??= rust.itemThumbnail(id: item.id),
-                builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                    ? Image.memory(snap.data!, fit: BoxFit.contain, gaplessPlayback: true)
-                    : const SizedBox.expand(),
-              ),
-            ),
-            Container(
-              key: const ValueKey('viewer-play'),
-              width: 72,
-              height: 72,
-              decoration: const BoxDecoration(color: Color(0x99000000), shape: BoxShape.circle),
-              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 46),
-            ),
-          ],
-        ),
-      );
-
-  final Map<String, Future<Uint8List>> _thumbnails = {};
-
-  Future<void> _playVideo(rust.ItemInfo item) async {
-    final result = await Navigator.of(context).push<String>(MaterialPageRoute(
-      builder: (_) => VideoViewScreen(item: item, vaultId: widget.vaultId),
-    ));
-    if (result != null && mounted) Navigator.of(context).pop(result);
-  }
-
-  @override
-  Widget build(BuildContext context) => _fullView(context);
-
-  /// Full screen: black, bars come and go with a tap, swipe down closes.
-  Widget _fullView(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final when = dateOf(_item.createdMs);
-    final ml = MaterialLocalizations.of(context);
-    final fade = (1 - (_drag.abs() / 400)).clamp(0.0, 1.0);
-    return Scaffold(
-      backgroundColor: Colors.black.withValues(alpha: fade),
-      body: Stack(
-        children: [
-          GestureDetector(
-            onTap: () => setState(() => _bars = !_bars),
-            onVerticalDragUpdate: (d) => setState(() => _drag += d.delta.dy),
-            onVerticalDragEnd: (d) {
-              if (_drag > 120 || d.velocity.pixelsPerSecond.dy > 900) {
-                Navigator.of(context).pop();
-              } else {
-                setState(() => _drag = 0);
-              }
-            },
-            child: Transform.translate(
-              offset: Offset(0, _drag),
-              child: Transform.scale(
-                scale: (1 - _drag.abs() / 1500).clamp(.7, 1.0),
-                child: _pageView(context),
-              ),
-            ),
-          ),
-          AnimatedOpacity(
-            opacity: _bars && _drag == 0 ? 1 : 0,
-            duration: const Duration(milliseconds: 180),
-            child: IgnorePointer(
-              ignoring: !_bars,
-              child: Column(
-                children: [
-                  SafeArea(
-                    bottom: false,
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 8),
-                        // Every control sits on dark glass: white on a bright photo vanished.
-                        GlassPill(
-                          child: IconButton(
-                            key: const ValueKey('media-exit-full'),
-                            // Back to the quick look this full screen was opened from.
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 26),
-                            tooltip: l.exitFullScreen,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GlassPill(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(ml.formatMediumDate(when), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                                Text(ml.formatTimeOfDay(TimeOfDay.fromDateTime(when)), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          GlassPill(
-                            child: TextButton.icon(
-                              key: const ValueKey('photo-send'),
-                              onPressed: () => shareItem(context, _item, widget.vaultId),
-                              style: glassButton,
-                              icon: const Icon(Icons.ios_share),
-                              label: glassLabel(l.sendOut),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          GlassPill(
-                            child: TextButton.icon(
-                              key: const ValueKey('photo-delete'),
-                              onPressed: _delete,
-                              style: glassDelete,
-                              icon: const Icon(Icons.delete_outline),
-                              label: glassLabel(l.delete),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          GlassPill(
-                            child: IconButton(
-                              key: const ValueKey('photo-more'),
-                              tooltip: l.more,
-                              color: Colors.white,
-                              onPressed: () => Navigator.of(context).pop(QuickLook.menuFor(_item.id)),
-                              icon: const Icon(Icons.more_horiz),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -3404,4 +3173,4 @@ class DeleteOriginalsSheet extends StatelessWidget {
 }
 
 /// How a section is ordered (the ⇅ menu). Saved per section.
-enum ItemSort { newest, oldest, name, size, edited }
+enum ItemSort { newest, oldest, name, size, smallest, edited }

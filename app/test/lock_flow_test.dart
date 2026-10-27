@@ -27,6 +27,7 @@ import 'package:cozysafe/sync/awake.dart';
 import 'package:cozysafe/sync/progress.dart';
 import 'package:cozysafe/sync/status.dart';
 import 'package:cozysafe/theme.dart';
+import 'package:cozysafe/platform.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -139,6 +140,8 @@ Future<void> _settle(WidgetTester t) async {
 }
 
 void main() {
+  // A phone unless a test says otherwise (tests run on a computer).
+  setUpAll(() => Device.debugDesktop = false);
   setUpAll(() => RustLib.initMock(api: _fake = _Fake()));
 
   setUp(() {
@@ -505,6 +508,35 @@ void main() {
       await _settle(t);
       expect(find.byType(VaultHomeScreen), findsOneWidget);
     }
+
+    // A computer's window goes hidden for a moment while resized, tiled or made full
+    // screen (owner 2026-10-28: every resize asked for the PIN).
+    testWidgets('on, a computer: a window hidden for a moment stays open, hidden longer locks', (t) async {
+      Device.debugDesktop = true;
+      addTearDown(() => Device.debugDesktop = false);
+      await open(t);
+      for (final size in const [Size(1280, 800), Size(390, 844), Size(1440, 900)]) {
+        t.view.physicalSize = size * 3;
+        await leave(t);
+        mono += const Duration(seconds: 1);
+        await comeBack(t);
+        expect(find.byType(UnlockScreen), findsNothing, reason: 'locked at $size');
+      }
+      await leave(t);
+      mono += const Duration(seconds: 4);
+      await comeBack(t);
+      expect(find.byType(UnlockScreen), findsOneWidget);
+    });
+
+    testWidgets('on, a computer: hidden for good still locks by itself', (t) async {
+      Device.debugDesktop = true;
+      addTearDown(() => Device.debugDesktop = false);
+      await open(t);
+      await leave(t);
+      await t.pump(const Duration(seconds: 4));
+      await comeBack(t);
+      expect(find.byType(UnlockScreen), findsOneWidget);
+    });
 
     testWidgets('on (the default): leaving locks at once', (t) async {
       expect(Settings.lockOnLeave, isTrue);

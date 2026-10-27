@@ -42,7 +42,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use cs_crypto::{kdf, wrap, Key, SecretKey};
-use cs_vault::sync::{FolderRemote, Remote, SyncReport};
+use cs_vault::sync::{FolderRemote, Remote, SyncReport, Telling};
 use cs_vault::sync::{SyncPhase, SyncProgress};
 use cs_vault::{Error, Library, OpenVault, Result};
 
@@ -871,6 +871,16 @@ impl Remote for ChannelRemote {
             return Err(Error::Corrupt("p2p put"));
         }
         Ok(())
+    }
+
+    fn put_file_told(&self, path: &str, local: &Path, read: &dyn Fn(u64)) -> Result<()> {
+        self.put(
+            path,
+            &mut Telling {
+                src: &mut std::fs::File::open(local)?,
+                read,
+            },
+        )
     }
 
     fn exists(&self, path: &str) -> Result<bool> {

@@ -27,6 +27,7 @@ import 'unlock.dart';
 import 'tour.dart' show TourKind;
 import 'vault_home.dart';
 import 'welcome.dart';
+import '../widgets/readable.dart';
 
 /// Restore, step 1 (owner 2026-10-24): the two secrets first, pasted or typed, the
 /// same for every way the vault can come back.
@@ -72,7 +73,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       return;
     }
     Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => RestoreSourceScreen(libraryDir: widget.libraryDir, words: _words.text, password: _password.text),
+      builder: (_) => Readable(child: RestoreSourceScreen(libraryDir: widget.libraryDir, words: _words.text, password: _password.text)),
     ));
   }
 
@@ -152,7 +153,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
     if (key != null) await SecretKeyStore.write(Uint8List.fromList(key));
     if (!mounted) return;
     await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const SetPinScreen(skippable: true, forThisPhone: true)),
+      MaterialPageRoute(builder: (_) => Readable(child: const SetPinScreen(skippable: true, forThisPhone: true))),
     );
     if (!mounted) return;
     await Navigator.of(context).pushAndRemoveUntil(
@@ -178,7 +179,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
     if (!mounted) return;
     final l = l10n;
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (context) => Scaffold(
+      builder: (context) => Readable(child: Scaffold(
         appBar: AppBar(title: Text(l.restoreFromDevice)),
         body: SafeArea(
           top: false,
@@ -191,14 +192,14 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
               restoring: true,
               // Looking ends with this page; the scanner takes its place.
               onScan: () => Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-                builder: (_) => Scaffold(
+                builder: (_) => Readable(child: Scaffold(
                   appBar: AppBar(title: Text(l.syncScanCode)),
                   body: SafeArea(top: false, child: ScanCodePage(onSynced: () {}, onCode: _restoreWithCode)),
-                ),
+                )),
               )),
             ),
           ),
-        ),
+ )       ),
       ),
     ));
     final vault = rust.openVaultInfo();
@@ -215,7 +216,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
     final name = await deviceName();
     if (!context.mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => Scaffold(
+      builder: (_) => Readable(child: Scaffold(
         appBar: AppBar(title: Text(l.restoreTitle), automaticallyImplyLeading: false),
         body: SafeArea(
           top: false,
@@ -225,7 +226,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
             onSynced: () {},
           ),
         ),
-      ),
+      )),
     ));
     final vault = rust.openVaultInfo();
     if (vault != null && mounted) await _opened(vault);
@@ -243,7 +244,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
       if (!rust.secretKeyFits(dir: widget.libraryDir, key: key)) {
         // The file is in; these words are not its own. Ask for them again.
         await Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute<void>(builder: (_) => RestoreScreen(libraryDir: widget.libraryDir, needFile: false)),
+          MaterialPageRoute<void>(builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: false))),
           (_) => false,
         );
         return;
@@ -284,7 +285,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
             onPressed: () {
               Navigator.of(ctx).pop();
               Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => NewVaultScreen(libraryDir: widget.libraryDir, first: true),
+                builder: (_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: true)),
               ));
             },
             child: Text(l.welcomeNew),
@@ -320,7 +321,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
             onTap: _busy
                 ? null
                 : () => Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) => DriveJoinScreen(libraryDir: widget.libraryDir, words: widget.words, password: widget.password),
+                      builder: (_) => Readable(child: DriveJoinScreen(libraryDir: widget.libraryDir, words: widget.words, password: widget.password)),
                     )),
           ),
         BigChoice(

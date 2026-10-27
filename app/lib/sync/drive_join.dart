@@ -16,6 +16,7 @@ import '../widgets/secret.dart';
 import 'consent.dart';
 import 'drive.dart';
 import 'progress.dart';
+import '../widgets/readable.dart';
 
 /// A new device with no vault: open the one kept in Google Drive with the 24 words and
 /// the vault password, no backup file (owner 2026-10-24). Sign in, allow the
@@ -108,7 +109,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       if (!mounted) return;
       // The items come down with progress on screen; stopping loses nothing.
       await Navigator.of(context).push<void>(MaterialPageRoute(
-        builder: (_) => Scaffold(
+        builder: (_) => Readable(child: Scaffold(
           appBar: AppBar(title: Text(l.restoreTitle), automaticallyImplyLeading: false),
           body: SafeArea(
             top: false,
@@ -119,11 +120,11 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
               onSynced: () {},
             ),
           ),
-        ),
+        )),
       ));
       if (!mounted) return;
       await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => const SetPinScreen(skippable: true, forThisPhone: true)),
+        MaterialPageRoute(builder: (_) => Readable(child: const SetPinScreen(skippable: true, forThisPhone: true))),
       );
       if (!mounted) return;
       await Navigator.of(context).pushAndRemoveUntil(

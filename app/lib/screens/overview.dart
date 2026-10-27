@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/private_thumb.dart';
 import '../widgets/selectable_row.dart';
 import '../widgets/vault_bar.dart';
 import 'file_view.dart';
@@ -108,14 +109,18 @@ class VaultOverview extends StatelessWidget {
         ?header,
         if (sections.isNotEmpty) ...[
           title(l.searchKinds),
-          GridView.count(
-            crossAxisCount: 2,
+          // Two a row on a phone, all in one row on a computer, each as tall as on the
+          // phone (owner 2026-10-28: on a MacBook four tiles stood 200 px tall, mostly empty).
+          LayoutBuilder(builder: (context, box) => GridView(
             shrinkWrap: true,
             padding: EdgeInsets.zero,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 2.3,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: box.maxWidth >= 560 ? sections.length.clamp(2, 4) : 2,
+              mainAxisExtent: 76,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+            ),
             children: [
               for (final s in sections)
                 KindTile(
@@ -126,7 +131,7 @@ class VaultOverview extends StatelessWidget {
                   onTap: () => onKind(s),
                 ),
             ],
-          ),
+          )),
         ],
         // What the person marked: always on the home page, all of it.
         if (favorites.isNotEmpty) ...[
@@ -188,7 +193,7 @@ class OverviewRow extends StatelessWidget {
                       child: FutureBuilder<Uint8List>(
                         future: thumbnail(item.id),
                         builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                            ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover))
+                            ? PrivateThumb(snap.data!)
                             : ColoredBox(color: c.soft),
                       ),
                     )

@@ -734,5 +734,7 @@
   "syncRepairing": "Eksik dosyalar yeniden gönderiliyor",
   "syncRepairingDrive": "Eksik dosyalar Google Drive'a yeniden gönderiliyor",
   "syncTidying": "Eski sürümler temizleniyor",
-  "syncTidyingDrive": "Eski sürümler Google Drive'dan temizleniyor"
+  "syncTidyingDrive": "Eski sürümler Google Drive'dan temizleniyor",
+  "sortSmallest": "Önce en küçük",
+  "storageItems": "{count, plural, other{{count} öğe}}"
 }

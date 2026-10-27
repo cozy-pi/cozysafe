@@ -11,6 +11,7 @@ import 'join_page.dart';
 import 'awake.dart';
 import 'progress.dart';
 import 'qr_view.dart';
+import '../widgets/readable.dart';
 
 /// Sync with a nearby device (owner 2026-10-26, like Bluetooth pairing): both devices
 /// open this page and wait. Each listens on this Wi-Fi ([address], already allowed by
@@ -81,10 +82,10 @@ class _NearbyPageState extends State<NearbyPage> {
   void _scan() {
     final l = AppLocalizations.of(context);
     Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-      builder: (_) => Scaffold(
+      builder: (_) => Readable(child: Scaffold(
         appBar: AppBar(title: Text(l.syncScanCode)),
         body: SafeArea(top: false, child: ScanCodePage(onSynced: widget.onSynced)),
-      ),
+      )),
     ));
   }
 

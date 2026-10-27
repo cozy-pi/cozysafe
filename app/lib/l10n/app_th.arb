@@ -734,5 +734,7 @@
   "syncRepairing": "กำลังส่งไฟล์ที่หายไปอีกครั้ง",
   "syncRepairingDrive": "กำลังส่งไฟล์ที่หายไปขึ้น Google ไดรฟ์อีกครั้ง",
   "syncTidying": "กำลังล้างเวอร์ชันเก่า",
-  "syncTidyingDrive": "กำลังล้างเวอร์ชันเก่าออกจาก Google ไดรฟ์"
+  "syncTidyingDrive": "กำลังล้างเวอร์ชันเก่าออกจาก Google ไดรฟ์",
+  "sortSmallest": "เล็กสุดก่อน",
+  "storageItems": "{count, plural, other{{count} รายการ}}"
 }

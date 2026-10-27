@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/private_thumb.dart';
 import '../widgets/item_menu.dart';
 import '../widgets/vault_bar.dart';
 import 'file_view.dart';
@@ -299,7 +300,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     child: FutureBuilder<Uint8List>(
                       future: widget.thumbnail(it.id),
                       builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                          ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover))
+                          ? PrivateThumb(snap.data!)
                           : ColoredBox(color: c.soft),
                     ),
                   ),
@@ -358,7 +359,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       child: FutureBuilder<Uint8List>(
                         future: widget.thumbnail(it.id),
                         builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                            ? privateThumb(Image.memory(snap.data!, fit: BoxFit.cover))
+                            ? PrivateThumb(snap.data!)
                             : ColoredBox(color: c.soft),
                       ),
                     )

@@ -78,6 +78,20 @@ BAR = (
 )
 
 
+def screen(name, b, cap, marks=(), size=None):
+    """An iPad or computer screen: its own shape in a thin dark frame, no phone bezel."""
+    if size:
+        sw, sh = size
+        boxes = "".join(
+            f'<span class="mark" style="left:{x * 100 / sw:.2f}%;top:{y * 100 / sh:.2f}%;width:{w * 100 / sw:.2f}%;height:{h * 100 / sh:.2f}%"></span>'
+            for x, y, w, h in marks)
+        return (
+            f'<div class="wide"><div class="scr" style="aspect-ratio:{sw:g}/{sh:g}">'
+            f'<img src="preview/{name}-{b}.png" alt="{cap}, {b}" loading="lazy">{boxes}</div></div>'
+        )
+    return phone(name, b, cap, marks)
+
+
 def phone(name, b, cap, marks=()):
     ink = "on-dark" if top_is_dark(os.path.join(d, f"{name}-{b}.png")) else "on-light"
     # Outlines over what changed: the harness gives each in points on the 430×932 screen.
@@ -127,7 +141,7 @@ for gi, (key, items) in enumerate(groups):
     for s in items:
         name, cap = s["name"], html.escape(s["caption"])
         marks = s.get("marks", [])
-        imgs = "".join(phone(name, b, cap, marks) for b in ("dark", "light") if os.path.exists(os.path.join(d, f"{name}-{b}.png")))
+        imgs = "".join(screen(name, b, cap, marks, s.get("size")) for b in ("dark", "light") if os.path.exists(os.path.join(d, f"{name}-{b}.png")))
         change = s.get("change")
         note = f'<p class="change"><b>Đổi</b> {html.escape(change)}</p>' if change else ""
         rows.append(f'<section id="{name}"{' class="new"' if change else ''}><h3>{cap}</h3>{note}<div class="pair">{imgs}</div></section>')
@@ -180,6 +194,9 @@ details[open] > summary::before {{ rotate:45deg; }}
   background:#1b1b1d; box-shadow:inset 0 0 0 {px(2.5)} #4a4a4f, 0 10px 28px rgba(0,0,0,.28); }}
 .scr {{ position:relative; width:100%; height:100%; border-radius:{px(55)}; overflow:hidden; }}
 .phone img {{ display:block; width:100%; height:100%; }}
+.wide {{ position:relative; width:min(560px, 100%); padding:6px; box-sizing:border-box; border-radius:14px;
+  background:#1b1b1d; box-shadow:inset 0 0 0 1.3px #4a4a4f, 0 10px 28px rgba(0,0,0,.28); }}
+.wide .scr {{ border-radius:8px; height:auto; }} .wide img {{ display:block; width:100%; height:100%; }}
 .mark {{ position:absolute; box-sizing:border-box; border:2.5px solid var(--hl); border-radius:10px;
   box-shadow:0 0 0 2px rgba(0,0,0,.25), 0 0 14px var(--hl); pointer-events:none; }}
 section.new {{ background:var(--hl-bg); border-left:4px solid var(--hl); padding:10px 12px; border-radius:12px; }}

@@ -734,5 +734,7 @@
   "syncRepairing": "누락된 파일 다시 보내는 중",
   "syncRepairingDrive": "누락된 파일을 Google Drive로 다시 보내는 중",
   "syncTidying": "이전 버전 정리 중",
-  "syncTidyingDrive": "Google Drive의 이전 버전 정리 중"
+  "syncTidyingDrive": "Google Drive의 이전 버전 정리 중",
+  "sortSmallest": "작은 순서",
+  "storageItems": "{count, plural, other{항목 {count}개}}"
 }
