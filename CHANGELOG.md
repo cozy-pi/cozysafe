@@ -4,7 +4,7 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.1.76 (unreleased)
+## 0.1.76 (2026-10-27)
 
 ### Added
 - Version history: every item keeps its older versions on this device (any change:
