@@ -933,5 +933,10 @@
   "@historyUsing": {"placeholders": {"size": {"type": "String"}}},
   "historyNote": "Kept only on this device: not synced, not in backups. When it runs out of space, the oldest versions go first.",
   "historyNoPreview": "No preview for this kind of item",
-  "kindHistory": "History"
+  "kindHistory": "History",
+  "keyBackupRowGoogle": "Keep the 24 words in your Google account",
+  "keyBackupTitleGoogle": "Keep the 24 words in your Google account?",
+  "keyBackupBodyGoogle": "A new Android phone restored from your Google account then asks only for the vault password. Whoever takes over your Google account gets the words too, and still needs the password. This phone needs a screen lock.",
+  "keyBackupFoundGoogle": "Filled in from your Google account.",
+  "keyBackupGoogleFailed": "Not kept. Set a screen lock on this phone and sign in to Google, then try again."
 }

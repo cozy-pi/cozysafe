@@ -709,5 +709,10 @@
   "historyUsing": "历史在本设备上占用 {size}。",
   "historyNote": "仅保存在本设备：不同步，也不在备份中。空间不足时，最旧的版本先被删除。",
   "historyNoPreview": "此类项目无法预览",
-  "kindHistory": "历史"
+  "kindHistory": "历史",
+  "keyBackupRowGoogle": "将 24 个单词保存在 Google 账号中",
+  "keyBackupTitleGoogle": "将 24 个单词保存在 Google 账号中？",
+  "keyBackupBodyGoogle": "从你的 Google 账号恢复的新 Android 手机只需输入保险箱密码。若有人盗取你的 Google 账号，也会拿到这些单词，但仍需要密码。此手机需要设置屏幕锁定。",
+  "keyBackupFoundGoogle": "已从你的 Google 账号填入。",
+  "keyBackupGoogleFailed": "未能保存。请设置屏幕锁定并登录 Google，然后重试。"
 }

@@ -709,5 +709,10 @@
   "historyUsing": "記錄在本裝置上佔用 {size}。",
   "historyNote": "僅保存在本裝置：不同步，也不在備份中。空間不足時，最舊的版本先被刪除。",
   "historyNoPreview": "此類項目無法預覽",
-  "kindHistory": "記錄"
+  "kindHistory": "記錄",
+  "keyBackupRowGoogle": "將 24 個單字保存在 Google 帳號中",
+  "keyBackupTitleGoogle": "將 24 個單字保存在 Google 帳號中？",
+  "keyBackupBodyGoogle": "從你的 Google 帳號還原的新 Android 手機只需輸入保險箱密碼。若有人盜取你的 Google 帳號，也會拿到這些單字，但仍需要密碼。此手機需要設定螢幕鎖定。",
+  "keyBackupFoundGoogle": "已從你的 Google 帳號填入。",
+  "keyBackupGoogleFailed": "未能保存。請設定螢幕鎖定並登入 Google，然後再試一次。"
 }

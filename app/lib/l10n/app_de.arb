@@ -709,5 +709,10 @@
   "historyUsing": "Der Verlauf belegt {size} auf diesem Gerät.",
   "historyNote": "Nur auf diesem Gerät: nicht synchronisiert, nicht in Backups. Wird der Platz knapp, gehen die ältesten Versionen zuerst.",
   "historyNoPreview": "Keine Vorschau für diese Art",
-  "kindHistory": "Verlauf"
+  "kindHistory": "Verlauf",
+  "keyBackupRowGoogle": "Die 24 Wörter im Google-Konto aufbewahren",
+  "keyBackupTitleGoogle": "Die 24 Wörter im Google-Konto aufbewahren?",
+  "keyBackupBodyGoogle": "Ein neues Android-Telefon, das aus Ihrem Google-Konto wiederhergestellt wird, fragt dann nur nach dem Tresorpasswort. Wer Ihr Google-Konto übernimmt, hat die Wörter auch, braucht aber noch das Passwort. Dieses Telefon braucht eine Displaysperre.",
+  "keyBackupFoundGoogle": "Aus Ihrem Google-Konto ausgefüllt.",
+  "keyBackupGoogleFailed": "Nicht aufbewahrt. Richten Sie eine Displaysperre ein und melden Sie sich bei Google an, dann erneut versuchen."
 }

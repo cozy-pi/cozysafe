@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.77 (unreleased)
+
+### Added
+- Android: Settings → Keep the 24 words in your Google account (off unless turned on),
+  like the iCloud Keychain option on iPhone. A new Android phone restored from that
+  Google account fills in the words and asks only for the vault password. Kept only
+  when Google encrypts it end to end, which needs a screen lock on the phone.
+
 ## 0.1.76 (2026-10-27)
 
 ### Added

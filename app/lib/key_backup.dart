@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'platform.dart';
@@ -10,11 +11,13 @@ import 'prefs.dart';
 /// off unless turned on in Settings. Apple encrypts the iCloud Keychain end to end; a new
 /// iPhone signed in to the same Apple account then finds the words and asks only for the
 /// vault password. The trade: whoever takes over the Apple account has the words, and
-/// still needs the password. Android (Google Block Store) comes later. Never the PIN's
-/// device key: that one stays in this phone's chip.
+/// still needs the password. On Android the same through Google Block Store
+/// (BlockStore.kt), kept only when Google encrypts it end to end. Never the PIN's device
+/// key: that one stays in this phone's chip.
 abstract final class KeyBackup {
   static const _pref = 'key-backup-icloud';
   static const _name = 'secret-key';
+  static const _android = MethodChannel('cozysafe/blockstore');
 
   static const _storage = FlutterSecureStorage(
     iOptions: IOSOptions(
@@ -28,13 +31,25 @@ abstract final class KeyBackup {
   @visibleForTesting
   static bool? debugSupported;
 
-  static bool get supported => debugSupported ?? Device.iOS;
+  static bool get supported => debugSupported ?? (Device.iOS || Device.android);
+
+  /// For tests and mockups: the Google wording on any platform.
+  @visibleForTesting
+  static bool? debugGoogle;
+
+  /// Google Block Store (Android) rather than the iCloud Keychain.
+  static bool get google => debugGoogle ?? Device.android;
 
   static bool get on => Prefs.read(_pref) == '1';
 
-  /// Keep [key] in the iCloud Keychain; true once it reads back.
+  /// Keep [key] in the iCloud Keychain (Block Store on Android); true once it reads back.
   static Future<bool> turnOn(Uint8List key) async {
     try {
+      if (Device.android) {
+        final ok = await _android.invokeMethod<bool>('store', {'bytes': key}) ?? false;
+        if (ok) Prefs.write(_pref, '1');
+        return ok;
+      }
       await _storage.write(key: _name, value: base64Encode(key));
       final back = await _storage.read(key: _name);
       if (back != base64Encode(key)) return false;
@@ -45,18 +60,23 @@ abstract final class KeyBackup {
     }
   }
 
-  /// Take the words out of the iCloud Keychain (every device signed in loses them).
+  /// Take the words out of the iCloud Keychain or Block Store (every device signed in loses them).
   static Future<void> turnOff() async {
     Prefs.write(_pref, '0');
     try {
+      if (Device.android) {
+        await _android.invokeMethod<bool>('delete');
+        return;
+      }
       await _storage.delete(key: _name);
     } catch (_) {}
   }
 
-  /// On a new phone: the words from the iCloud Keychain, if they are there.
+  /// On a new phone: the words from the iCloud Keychain or Block Store, if they are there.
   static Future<Uint8List?> find() async {
     if (!supported) return null;
     try {
+      if (Device.android) return await _android.invokeMethod<Uint8List>('find');
       final v = await _storage.read(key: _name);
       return v == null ? null : base64Decode(v);
     } catch (_) {

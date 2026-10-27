@@ -349,6 +349,7 @@ void _screen(String name, String caption, Widget Function() home,
       HistorySettingsScreen.debugState = null;
       SettingsScreen.debugHistoryBytes = null;
       KeyBackup.debugSupported = null;
+      KeyBackup.debugGoogle = null;
       syncStatus.value = null;
       KeyCheckScreen.debugResults = null;
       SyncProgress.debugRate = null;
@@ -979,6 +980,31 @@ void main() {
       setup: () {
     SettingsScreen.debugSyncLog = const [];
     KeyBackup.debugSupported = true;
+  }, act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('key-backup-row')), 200, scrollable: find.byType(Scrollable).first);
+    await t.pumpAndSettle();
+    await t.tap(find.descendant(of: find.byKey(const ValueKey('key-backup-row')), matching: find.byType(Switch)));
+    await t.pumpAndSettle();
+  });
+  // Android: the same through Google Block Store (owner 2026-10-27).
+  _screen('settings-keys-google', 'Android · Cài đặt: Giữ 24 từ trong tài khoản Google (Block Store, tắt mặc định)', () => settings(vault),
+      change: 'Mới: Android giữ 24 từ trong tài khoản Google, như iCloud Keychain trên iPhone',
+      marks: [() => find.byKey(const ValueKey('key-backup-row'))],
+      setup: () {
+    SettingsScreen.debugSyncLog = const [];
+    KeyBackup.debugSupported = true;
+    KeyBackup.debugGoogle = true;
+  }, act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('key-backup-row')), 200, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 220));
+    await t.pumpAndSettle();
+  });
+  _screen('key-backup-ask-google', 'Android · Bật Giữ 24 từ trong tài khoản Google: hỏi lại, nói rõ đánh đổi + cần khoá màn hình', () => settings(vault),
+      change: 'Mới',
+      setup: () {
+    SettingsScreen.debugSyncLog = const [];
+    KeyBackup.debugSupported = true;
+    KeyBackup.debugGoogle = true;
   }, act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('key-backup-row')), 200, scrollable: find.byType(Scrollable).first);
     await t.pumpAndSettle();

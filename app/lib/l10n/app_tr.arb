@@ -709,5 +709,10 @@
   "historyUsing": "Geçmiş bu cihazda {size} kullanıyor.",
   "historyNote": "Yalnızca bu cihazda: eşitlenmez, yedeklerde yer almaz. Yer dolunca önce en eski sürümler silinir.",
   "historyNoPreview": "Bu tür için önizleme yok",
-  "kindHistory": "Geçmiş"
+  "kindHistory": "Geçmiş",
+  "keyBackupRowGoogle": "24 kelimeyi Google hesabınızda saklayın",
+  "keyBackupTitleGoogle": "24 kelime Google hesabınızda saklansın mı?",
+  "keyBackupBodyGoogle": "Google hesabınızdan geri yüklenen yeni bir Android telefon yalnızca kasa parolasını sorar. Google hesabınızı ele geçiren kelimeleri de alır, yine de parolaya ihtiyaç duyar. Bu telefonda ekran kilidi olmalı.",
+  "keyBackupFoundGoogle": "Google hesabınızdan dolduruldu.",
+  "keyBackupGoogleFailed": "Saklanamadı. Ekran kilidi ayarlayıp Google'da oturum açın, sonra yeniden deneyin."
 }

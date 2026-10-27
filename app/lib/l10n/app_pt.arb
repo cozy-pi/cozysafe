@@ -709,5 +709,10 @@
   "historyUsing": "O histórico ocupa {size} neste aparelho.",
   "historyNote": "Só neste aparelho: não sincroniza nem vai nos backups. Quando falta espaço, as mais antigas saem primeiro.",
   "historyNoPreview": "Sem pré-visualização para este tipo",
-  "kindHistory": "Histórico"
+  "kindHistory": "Histórico",
+  "keyBackupRowGoogle": "Guardar as 24 palavras na sua conta Google",
+  "keyBackupTitleGoogle": "Guardar as 24 palavras na sua conta Google?",
+  "keyBackupBodyGoogle": "Um telemóvel Android novo restaurado a partir da sua conta Google pedirá apenas a palavra-passe do cofre. Quem tomar a sua conta Google fica também com as palavras e continua a precisar da palavra-passe. Este telemóvel precisa de bloqueio de ecrã.",
+  "keyBackupFoundGoogle": "Preenchido a partir da sua conta Google.",
+  "keyBackupGoogleFailed": "Não foram guardadas. Defina um bloqueio de ecrã e inicie sessão na Google, depois tente de novo."
 }

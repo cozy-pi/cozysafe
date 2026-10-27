@@ -258,12 +258,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _keyBackupOn() async {
     final l = AppLocalizations.of(context);
-    final yes = await showCard<bool>(context, title: l.keyBackupTitle, builder: (context) {
+    final google = KeyBackup.google;
+    final yes = await showCard<bool>(context, title: google ? l.keyBackupTitleGoogle : l.keyBackupTitle, builder: (context) {
       final c = CsColors.of(context);
       return Padding(
         padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(l.keyBackupBody, style: TextStyle(color: c.muted, fontSize: 15, height: 1.4)),
+          Text(google ? l.keyBackupBodyGoogle : l.keyBackupBody, style: TextStyle(color: c.muted, fontSize: 15, height: 1.4)),
           const SizedBox(height: 18),
           Row(children: [
             Expanded(child: OutlinedButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.cancel))),
@@ -281,8 +282,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
     if (yes != true || !mounted) return;
     final key = await SecretKeyStore.read();
-    if (key != null) await KeyBackup.turnOn(key);
-    if (mounted) setState(() {});
+    final ok = key != null && await KeyBackup.turnOn(key);
+    if (!mounted) return;
+    // Block Store keeps nothing without a screen lock (end to end encryption) or Google.
+    if (!ok && google) showToast(context, l.keyBackupGoogleFailed);
+    setState(() {});
   }
 
   // Seven taps on the version turn on debug mode, after the owner check (docs/security.md).
@@ -751,7 +755,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 key: const ValueKey('key-backup-row'),
                 icon: Icons.cloud_outlined,
                 color: _Mau.troi,
-                title: l.keyBackupRow,
+                title: KeyBackup.google ? l.keyBackupRowGoogle : l.keyBackupRow,
                 trailing: _Switch(
                   value: KeyBackup.on,
                   onChanged: (on) => on

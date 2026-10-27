@@ -709,5 +709,10 @@
   "historyUsing": "기록이 이 기기에서 {size}를 사용 중입니다.",
   "historyNote": "이 기기에만 보관: 동기화되지 않고 백업에도 없습니다. 공간이 부족하면 가장 오래된 버전부터 삭제됩니다.",
   "historyNoPreview": "이 유형은 미리보기가 없습니다",
-  "kindHistory": "기록"
+  "kindHistory": "기록",
+  "keyBackupRowGoogle": "24개 단어를 Google 계정에 보관",
+  "keyBackupTitleGoogle": "24개 단어를 Google 계정에 보관할까요?",
+  "keyBackupBodyGoogle": "Google 계정에서 복원한 새 Android 휴대전화에서는 금고 비밀번호만 입력하면 됩니다. Google 계정을 탈취한 사람도 단어를 갖게 되지만 여전히 비밀번호가 필요합니다. 이 휴대전화에 화면 잠금이 있어야 합니다.",
+  "keyBackupFoundGoogle": "Google 계정에서 채웠습니다.",
+  "keyBackupGoogleFailed": "보관하지 못했습니다. 화면 잠금을 설정하고 Google에 로그인한 뒤 다시 시도하세요."
 }

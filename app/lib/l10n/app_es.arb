@@ -709,5 +709,10 @@
   "historyUsing": "El historial ocupa {size} en este dispositivo.",
   "historyNote": "Solo en este dispositivo: no se sincroniza ni va en las copias. Si falta espacio, primero se borran las más antiguas.",
   "historyNoPreview": "Sin vista previa para este tipo",
-  "kindHistory": "Historial"
+  "kindHistory": "Historial",
+  "keyBackupRowGoogle": "Guardar las 24 palabras en tu cuenta de Google",
+  "keyBackupTitleGoogle": "¿Guardar las 24 palabras en tu cuenta de Google?",
+  "keyBackupBodyGoogle": "Un teléfono Android nuevo restaurado desde tu cuenta de Google solo pedirá la contraseña de la caja fuerte. Quien se haga con tu cuenta de Google tendrá también las palabras y aún necesitará la contraseña. Este teléfono necesita bloqueo de pantalla.",
+  "keyBackupFoundGoogle": "Rellenado desde tu cuenta de Google.",
+  "keyBackupGoogleFailed": "No se guardó. Pon un bloqueo de pantalla en este teléfono e inicia sesión en Google, y vuelve a intentarlo."
 }

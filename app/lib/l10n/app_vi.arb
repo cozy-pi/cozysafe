@@ -723,5 +723,10 @@
   "historyUsing": "Lịch sử đang dùng {size} trên máy này.",
   "historyNote": "Chỉ giữ trên máy này: không đồng bộ, không có trong bản sao lưu. Khi hết chỗ, bản cũ nhất bị xoá trước.",
   "historyNoPreview": "Không xem trước được loại này",
-  "kindHistory": "Lịch sử"
+  "kindHistory": "Lịch sử",
+  "keyBackupRowGoogle": "Giữ 24 từ trong tài khoản Google",
+  "keyBackupTitleGoogle": "Giữ 24 từ trong tài khoản Google?",
+  "keyBackupBodyGoogle": "Điện thoại Android mới khôi phục từ tài khoản Google khi đó chỉ cần mật khẩu két. Ai chiếm được tài khoản Google của bạn cũng có 24 từ, nhưng vẫn cần mật khẩu. Máy này cần có khoá màn hình.",
+  "keyBackupFoundGoogle": "Đã điền từ tài khoản Google.",
+  "keyBackupGoogleFailed": "Chưa giữ được. Hãy đặt khoá màn hình cho máy và đăng nhập Google, rồi thử lại."
 }

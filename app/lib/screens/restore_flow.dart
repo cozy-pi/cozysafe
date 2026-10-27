@@ -42,7 +42,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   final _words = TextEditingController();
   final _password = TextEditingController();
   String? _error;
-  /// The words came from the iCloud Keychain (Settings on the old phone).
+  /// The words came from the iCloud Keychain or Block Store (Settings on the old phone).
   bool _found = false;
 
   @override
@@ -108,7 +108,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
           if (_found)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text(l.keyBackupFound, key: const ValueKey('restore-words-found'), style: TextStyle(color: c.muted, fontSize: 13)),
+              child: Text(KeyBackup.google ? l.keyBackupFoundGoogle : l.keyBackupFound, key: const ValueKey('restore-words-found'), style: TextStyle(color: c.muted, fontSize: 13)),
             ),
           const SizedBox(height: 12),
           SecretField(
