@@ -54,7 +54,6 @@ import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/privacy.dart';
 import 'package:cozysafe/screens/overview.dart';
-import 'package:cozysafe/widgets/bottom_bar.dart';
 import 'package:cozysafe/widgets/brand.dart';
 import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
@@ -462,17 +461,12 @@ void main() {
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   // A sync that went on as the vault locked (owner 2026-10-26): how far it is.
-  const syncBehind = 'Mới: két khoá giữa lúc đồng bộ thì đồng bộ vẫn chạy tiếp, màn khoá hiện tiến độ, màn hình không tắt';
-  final syncLine = [() => find.byKey(const ValueKey('lock-sync'))];
   _screen('lock-sync-drive', 'Màn khoá · đồng bộ Google Drive vẫn chạy (40%)', lock,
-      setup: () => syncStatus.value = const SyncStatus(drive: true, kind: SyncStep.receiving, done: 12, total: 30, bytes: 40, bytesTotal: 100),
-      change: syncBehind, marks: syncLine);
+      setup: () => syncStatus.value = const SyncStatus(drive: true, kind: SyncStep.receiving, done: 12, total: 30, bytes: 40, bytesTotal: 100));
   _screen('lock-sync-nearby', 'Màn khoá · đồng bộ với máy bên cạnh vẫn chạy (75%)', lock,
-      setup: () => syncStatus.value = const SyncStatus(drive: false, kind: SyncStep.sending, done: 3, total: 4),
-      change: syncBehind, marks: syncLine);
+      setup: () => syncStatus.value = const SyncStatus(drive: false, kind: SyncStep.sending, done: 3, total: 4));
   _screen('lock-sync-done', 'Màn khoá · đồng bộ xong sau khi khoá', lock,
-      setup: () => syncStatus.value = const SyncStatus(drive: true, kind: SyncStep.done),
-      change: syncBehind, marks: syncLine);
+      setup: () => syncStatus.value = const SyncStatus(drive: true, kind: SyncStep.done));
   // The unlock animation (playVaultSpin), frozen at four moments of its 1.15 s: the vault's
   // icon behind the dial, blurred at first, sharp when the dial has gone.
   for (final (ms, what) in [(250, 'mặt khoá hiện'), (520, 'đang xoay, màu két hắt quanh mép'), (950, 'cửa két mở vụt qua, biểu tượng hiện'), (1100, 'biểu tượng nét')]) {
@@ -537,27 +531,27 @@ void main() {
   // iPad and computer (owner 2026-10-27): three columns, the sync always in sight.
   const ipad = Size(1180, 820), ipadUp = Size(820, 1180), mac = Size(1440, 900), win = Size(1280, 800);
   _screen('wide-ipad-home', 'iPad ngang · Tổng quan: thanh bên (mục, nhóm, đồng bộ, Thêm), nội dung rộng', home,
-      section: 'home', size: ipad, change: 'MỚI: giao diện cho iPad', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+      section: 'home', size: ipad, setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('wide-ipad-library', 'iPad ngang · Thư viện: lưới nhiều cột theo bề ngang', home,
-      section: 'library', size: ipad, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+      section: 'library', size: ipad, setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('wide-ipad-photo', 'iPad ngang · chạm một ảnh: mở ngay ở cột bên phải, không che danh sách', home,
-      section: 'library', size: ipad, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
+      section: 'library', size: ipad, setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
       act: (t) async {
         await t.tap(find.byType(Image).first);
         await t.pump();
       });
   _screen('wide-ipad-portrait', 'iPad dọc · hai cột: thanh bên + nội dung (mục mở ra như trên điện thoại)', home,
-      section: 'note', size: ipadUp, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+      section: 'note', size: ipadUp, setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('wide-mac-note', 'MacBook · Ghi chú: chọn một ghi chú, xem ngay bên phải', home,
-      section: 'note', size: mac, change: 'MỚI: giao diện cho máy tính', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
+      section: 'note', size: mac, setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
       act: (t) async {
         await t.tap(find.text('Thuốc của mẹ').first);
         await t.pump();
       });
   _screen('wide-win-files', 'Cửa sổ Windows · Tệp', home,
-      section: 'file', size: win, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+      section: 'file', size: win, setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('wide-ipad-add', 'iPad · bấm Thêm vào két ở thanh bên', home,
-      section: 'library', size: ipad, change: 'MỚI', setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
+      section: 'library', size: ipad, setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('wide-add')));
         await t.pump();
@@ -567,7 +561,7 @@ void main() {
   _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
-  }, change: 'Thông báo chụp màn hình cũng hiện ở trên');
+  });
   _screen('shot-saved', 'Vừa chụp màn hình · không chặn', home, section: 'library', setup: () => Prefs.write('block-screenshots', '0'),
       act: (t) async {
     PrivacyCover.onScreenshot?.call();
@@ -602,7 +596,7 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  }, change: 'Đủ 6 nút trên một hàng, không còn nút bị giấu bên phải');
+  });
   _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
@@ -677,8 +671,7 @@ void main() {
   });
   _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
       setup: () => QuickLook.debugStillAudio = true,
-      act: (t) => t.tap(find.text('Cuộc họp với luật sư')),
-      change: 'Bản ghi mở trong khung xem trước chung (nút phát lớn, thanh tiến độ), không phát ngay trong dòng nữa');
+      act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
   Future<void> openRow(WidgetTester t, String text) async {
     final row = find.text(text, skipOffstage: false).first;
     await t.scrollUntilVisible(row, 200, scrollable: find.byType(Scrollable).first);
@@ -690,16 +683,13 @@ void main() {
     }
   }
   _screen('quick-note', 'Ghi chú · chạm một ghi chú (đang bật “Ẩn nội dung ghi chú”)', home, section: 'note',
-      act: (t) => openRow(t, 'Thuốc của mẹ'),
-      change: 'Ghi chú mở trong khung xem trước chung; nội dung bị che vì đang ẩn nội dung ghi chú; nút ✎ Sửa mở trình soạn');
+      act: (t) => openRow(t, 'Thuốc của mẹ'));
   _screen('note-format', 'Ghi chú có định dạng · chạm để xem trước', home, section: 'note',
       setup: () {
         Prefs.write('note-previews', '1');
         _itemsNow = [..._items, _formatted];
       },
-      act: (t) => openRow(t, 'Chuẩn bị đi Đà Lạt'),
-      change: 'Tiêu đề, chữ đậm/nghiêng, danh sách việc có ô đánh dấu (chạm để tích), liên kết gạch chân',
-      marks: [() => find.byKey(const ValueKey('quick-note'))]);
+      act: (t) => openRow(t, 'Chuẩn bị đi Đà Lạt'));
   _screen('note-link-card', 'Ghi chú · chạm một liên kết', home, section: 'note',
       setup: () {
         Prefs.write('note-previews', '1');
@@ -709,9 +699,7 @@ void main() {
         await openRow(t, 'Chuẩn bị đi Đà Lạt');
         _tapLink(t, 'https://vexere.com/vi-VN/ve-xe-sai-gon-da-lat');
         await t.pumpAndSettle();
-      },
-      change: 'Hỏi trước khi mở trình duyệt, nêu đúng tên miền; địa chỉ đầy đủ chữ nhỏ bên dưới',
-      marks: [() => find.byKey(const ValueKey('card'))]);
+      });
   _screen('note-link-idn', 'Ghi chú · liên kết tên miền quốc tế', home, section: 'note',
       setup: () {
         Prefs.write('note-previews', '1');
@@ -721,9 +709,7 @@ void main() {
         await openRow(t, 'Chuẩn bị đi Đà Lạt');
         _tapLink(t, 'https://bücher.de/geschenke');
         await t.pumpAndSettle();
-      },
-      change: 'Tên miền có chữ ngoài ASCII hiện dạng xn-- để không bị giả mạo',
-      marks: [() => find.byKey(const ValueKey('card'))]);
+      });
   _screen('note-format-bar', 'Sửa ghi chú · thanh định dạng trên bàn phím',
       () => _FakeKeyboard(child: NoteScreen(item: _formatted)),
       act: (t) async {
@@ -735,22 +721,17 @@ void main() {
         final r = t.getRect(find.byType(TextField));
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
-      },
-      change: 'Đậm · Nghiêng · Tiêu đề · Danh sách · Việc cần làm · Liên kết; dấu Markdown hiện nhạt',
-      marks: [() => find.byKey(const ValueKey('format-bar'))]);
+      });
   _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
-      act: (t) => openRow(t, 'Thuốc của mẹ'),
-      change: 'Vài chục dòng đầu trên nền giấy');
+      act: (t) => openRow(t, 'Thuốc của mẹ'));
   _screen('quick-pdf', 'Tệp · chạm một PDF', home, section: 'file',
       setup: () => QuickLook.debugPdfPage = const _FakePdfPage(),
-      act: (t) => openRow(t, 'Hop-dong-thue-nha-2026.pdf'),
-      change: 'PDF hiện trang đầu; nút ⤢ Mở vào trang đọc đầy đủ');
+      act: (t) => openRow(t, 'Hop-dong-thue-nha-2026.pdf'));
   _screen('quick-pdf-icon', 'Tệp · chạm một PDF lớn (chỉ biểu tượng)', home, section: 'file',
       act: (t) => openRow(t, 'So-do-nha-scan.pdf'));
   _screen('quick-file', 'Tệp · chạm một tệp .docx', home, section: 'file',
-      act: (t) => openRow(t, 'Di-chuc-nhap.docx'),
-      change: 'Tệp khác: biểu tượng lớn, đuôi tệp, dung lượng; nút Mở bằng ứng dụng khác');
+      act: (t) => openRow(t, 'Di-chuc-nhap.docx'));
   _screen('quick-image-file', 'Tệp · chạm một ảnh thêm từ Tệp', home, section: 'file',
       act: (t) => openRow(t, 'CCCD-mat-truoc.jpg'));
   _screen('quick-text', 'Tệp · chạm một tệp .md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'),
@@ -760,7 +741,7 @@ void main() {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await t.pump(const Duration(milliseconds: 100));
     }
-  }, change: 'Tệp văn bản: những dòng đầu, vẽ như trang đọc');
+  });
   _screen('files', 'Tệp', home, section: 'file');
   _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'));
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
@@ -829,7 +810,7 @@ void main() {
   _screen('message', 'Thông báo nổi', home, section: 'library', act: (t) async {
     showToast(t.element(find.byType(VaultHomeScreen)), 'Đã chuyển vào Đã xoá gần đây',
         icon: Icons.delete_outline_rounded, actionLabel: 'Hoàn tác', besideAction: true, onAction: () {});
-  }, change: 'MỚI: thông báo hiện ở TRÊN CÙNG, trượt xuống, vuốt lên để tắt (trước nằm dưới, đè lên thanh menu)');
+  });
   Widget search() => SearchScreen(items: _items, thumbnail: (id) async => _photos.isEmpty ? _thumbnails[0]! : _photos.values.elementAt(id.hashCode % _photos.length));
   Future<void> typeSearch(WidgetTester t, String text) async {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
@@ -852,12 +833,9 @@ void main() {
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', () => settings(vault),
-      change: 'Mới: bỏ tên nhóm; dung lượng gọn như iPhone (thanh màu + tên loại)',
-      marks: [() => find.byKey(const ValueKey('sync-row')), () => find.byKey(const ValueKey('backup-now'))],
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   // The whole page in one tall shot, to compare the order (owner 2026-10-27).
   _screen('settings-all', 'Cài đặt · cả trang (ảnh dài): quan trọng lên trên, cùng loại một nhóm', () => settings(vault),
-      change: 'ĐỀ XUẤT: Sao lưu & đồng bộ · Khoá của két · Che màn hình & tự khoá · Lấy lại (Đã xoá, Lịch sử) · Giao diện · Trợ giúp · Thông tin',
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
       act: (t) async {
     t.view.physicalSize = const Size(430, 2560) * 2;
@@ -876,15 +854,12 @@ void main() {
     '${_now - 2 * 86400000}|join|192.168.1.21|ok|0|5',
   ];
   _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (Đăng nhập lại, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
-      change: 'Mới: Đăng nhập lại / Gỡ tài khoản Google; lịch sử kết nối thành một dòng',
-      marks: [() => find.byKey(const ValueKey('sync-drive-again')), () => find.byKey(const ValueKey('sync-drive-remove')), () => find.byKey(const ValueKey('sync-log'))],
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
     SyncScreen.debugAccount = 'ban.do@gmail.com';
   });
   _screen('sync-log', 'Đồng bộ · bấm Các lần kết nối gần đây: danh sách + một dòng giải thích (chỉ tên máy, không địa chỉ IP)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
-      change: 'Mới: không còn hiện địa chỉ IP',
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
@@ -913,7 +888,8 @@ void main() {
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0, int moved = 0}) =>
       SyncEvent(kind: k, check: check, name: '', peers: const [], peerIds: const [], received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal), moved: moved, repaired: 0, unrepaired: 0, code: '');
-  _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})));
+  _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})),
+      change: 'SỬA: các dòng (số mục · dung lượng · tốc độ · còn lại) giữ chỗ cố định nên khối không co giãn; tốc độ đo cả lúc tệp đang gửi', marks: [() => find.byKey(const ValueKey('sync-items')).last]);
   _screen('sync-drive-folders', 'Google Drive: tạo thư mục (bản cập nhật thư mục, lần đầu)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveFolders, done: 212, total: 517)), onSynced: () {})));
   _screen('sync-drive-moving', 'Google Drive: dời tệp cũ vào thư mục', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveMoving, done: 1400, total: 2986)), onSynced: () {})));
   _screen('sync-drive-done-moved', 'Google Drive: xong, đã sắp xếp lại tệp, không có gì mới', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.done, moved: 2986)), onSynced: () {})));
@@ -921,25 +897,29 @@ void main() {
   // every item and while the first big file went up.
   _screen('sync-drive-preparing', 'Đồng bộ lần đầu: đang chuẩn bị từng mục để gửi (có đếm), thay vì “Đang xem Google Drive”',
       () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.preparing, done: 86, total: 340)), onSynced: () {})),
-      change: 'MỚI');
+      change: 'SỬA: các dòng (số mục · dung lượng · tốc độ · còn lại) giữ chỗ cố định nên khối không co giãn; tốc độ đo cả lúc tệp đang gửi', marks: [() => find.byKey(const ValueKey('sync-items')).last]);
+  _screen('sync-drive-start', 'Vừa bắt đầu gửi: chưa có byte nào, chưa có tốc độ — các dòng vẫn giữ chỗ (so với màn kế bên)',
+      () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 0, total: 340, bytesTotal: 131 << 20)), onSynced: () {})),
+      change: 'MỚI (để so): các dòng (số mục · dung lượng · tốc độ · còn lại) giữ chỗ cố định nên khối không co giãn; tốc độ đo cả lúc tệp đang gửi', marks: [() => find.byKey(const ValueKey('sync-items')).last]);
   _screen('sync-drive-first-file', 'Tệp đầu tiên đang lên: đã là “Đang gửi lên Google Drive”, số byte chạy mỗi giây',
       () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 0, total: 340, bytes: 38 << 20, bytesTotal: 131 << 20)), onSynced: () {})),
       setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6),
-      change: 'SỬA');
+      change: 'SỬA: các dòng (số mục · dung lượng · tốc độ · còn lại) giữ chỗ cố định nên khối không co giãn; tốc độ đo cả lúc tệp đang gửi', marks: [() => find.byKey(const ValueKey('sync-items')).last]);
   _screen('sync-drive-repairing', 'Gửi lại tệp bị thiếu/hỏng trên Google Drive: có tên riêng và đếm, không còn là “Đang xem”',
       () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.repairing, done: 1, total: 3, bytes: 4 << 20)), onSynced: () {})),
-      setup: () => SyncProgress.debugRate = (1.8 * (1 << 20), 2),
-      change: 'MỚI');
+      setup: () => SyncProgress.debugRate = (1.8 * (1 << 20), 2));
   _screen('sync-drive-tidying', 'Dọn bản cũ trên Google Drive (mỗi ngày một lần): tên riêng, không lẫn với “xoá mục đã xoá”',
-      () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.tidying, done: 12, total: 40)), onSynced: () {})),
-      change: 'MỚI');
+      () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.tidying, done: 12, total: 40)), onSynced: () {})));
   _screen('sync-drive-progress', 'Google Drive: đang gửi lên', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 128, total: 340, bytes: 52 << 20, bytesTotal: 131 << 20)), onSynced: () {})),
-      setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6));
+      setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6),
+      change: 'SỬA: các dòng (số mục · dung lượng · tốc độ · còn lại) giữ chỗ cố định nên khối không co giãn; tốc độ đo cả lúc tệp đang gửi', marks: [() => find.byKey(const ValueKey('sync-items')).last]);
   _screen('sync-drive-receiving', 'Google Drive: đang tải về', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.receiving, done: 40, total: 212, bytes: 18 << 20)), onSynced: () {})),
-      setup: () => SyncProgress.debugRate = (3.1 * (1 << 20), 7));
+      setup: () => SyncProgress.debugRate = (3.1 * (1 << 20), 7),
+      change: 'SỬA: các dòng (số mục · dung lượng · tốc độ · còn lại) giữ chỗ cố định nên khối không co giãn; tốc độ đo cả lúc tệp đang gửi', marks: [() => find.byKey(const ValueKey('sync-items')).last]);
   _screen('sync-drive-removing', 'Google Drive: xoá các mục đã xoá', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.removing, done: 312, total: 700)), onSynced: () {})));
   _screen('sync-device-progress', 'Máy gần đây: đang nhận', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.receiving, done: 64, total: 90, bytes: 210 << 20)), onSynced: () {})),
-      setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3));
+      setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3),
+      change: 'SỬA: các dòng (số mục · dung lượng · tốc độ · còn lại) giữ chỗ cố định nên khối không co giãn; tốc độ đo cả lúc tệp đang gửi', marks: [() => find.byKey(const ValueKey('sync-items')).last]);
   _screen('sync-interrupted', 'Bị gián đoạn (máy ngủ, mất mạng): bấm Tiếp tục', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.interrupted)), onSynced: () {}, retry: () => const Stream.empty())));
   const hosting = Hosting(qr: _qrText, findable: true, seconds: 274);
   Widget nearby() => page('Đồng bộ với máy gần đây', NearbyPage(address: '192.168.1.37', mirror: '', onSynced: () {}));
@@ -948,8 +928,6 @@ void main() {
   SyncEvent found(List<String> names) =>
       SyncEvent(kind: SyncStep.found, check: 0, name: '', peers: names, peerIds: [for (var i = 0; i < names.length; i++) 'a$i'], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: '');
   _screen('sync-nearby-waiting', 'Máy gần đây: cả hai máy mở màn hình này và chờ — tự tìm nhau, không cần nhập mã', nearby,
-      change: 'Mới: không còn Hiện mã / Nhập mã; hai máy tự tìm nhau',
-      marks: [() => find.byKey(const ValueKey('sync-find-status'))],
       setup: () => NearbyPage.debugHosting = hosting);
   _screen('sync-nearby-none', 'Máy gần đây: chờ một lúc chưa thấy máy nào — gợi ý cách sửa', nearby, setup: () {
     NearbyPage.debugHosting = hosting;
@@ -960,8 +938,6 @@ void main() {
     NearbyPage.debugEvents = Stream.value(found(['']));
   });
   _screen('sync-nearby-confirm', 'Hai máy đã kết nối: tên máy + mã 472, tự đồng bộ sau 5 giây, chỉ còn nút Huỷ', nearby,
-      change: 'Mới: không còn nút Đồng bộ — đếm ngược 5 giây rồi tự chạy',
-      marks: [() => find.byKey(const ValueKey('sync-auto')), () => find.byKey(const ValueKey('sync-confirm-no'))],
       setup: () {
     NearbyPage.debugHosting = hosting;
     NearbyPage.debugEvents = Stream.value(named(SyncStep.confirm, 'iPhone 15 Pro Max', 472));
@@ -976,8 +952,6 @@ void main() {
     await t.pump(const Duration(milliseconds: 300));
   });
   _screen('sync-nearby-pick', 'Thấy hai máy có két này: chọn máy muốn đồng bộ', nearby,
-      change: 'Mới: nhiều máy thì liệt kê tên để chọn',
-      marks: [() => find.byKey(const ValueKey('sync-pick'))],
       setup: () {
     NearbyPage.debugHosting = hosting;
     NearbyPage.debugEvents = Stream.value(found(['iPad', 'Google Pixel 8']));
@@ -991,8 +965,6 @@ void main() {
     await t.pump();
   });
   _screen('sync-allow-restore', 'Máy cũ (đang chờ đồng bộ, không cần bật gì): iPhone 16 khôi phục — tên máy + mã, tự tiếp tục sau 5 giây, có nút Huỷ', nearby,
-      change: 'Mới: bỏ công tắc "Giúp máy mới khôi phục" và nút Cho phép; máy mới vẫn phải có 24 từ và mật khẩu',
-      marks: [() => find.byKey(const ValueKey('sync-allow-card')), () => find.byKey(const ValueKey('sync-auto'))],
       setup: () {
     NearbyPage.debugHosting = hosting;
     NearbyPage.debugEvents = Stream.value(named(SyncStep.askRestore, 'iPhone 16', 318));
@@ -1007,25 +979,18 @@ void main() {
   _screen('sync-peer-wrong-password', 'Máy cũ: máy mới nhập sai mật khẩu — máy cũ dừng, chỉ mới gửi ổ khoá của két', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.peerWrongPassword)), onSynced: () {})));
   _screen('restore-wrong-password', 'Máy mới: sai mật khẩu', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.wrongPassword)), onSynced: () {})));
   _screen('sync-device-sending', 'Máy gần đây: đang gửi — ổ khoá trên đường truyền', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.sending, done: 21, total: 90, bytes: 64 << 20, bytesTotal: 230 << 20)), onSynced: () {})),
-      change: 'Mới: ổ khoá giữa đường truyền, gói dữ liệu đi qua sau ổ khoá',
-      marks: [() => find.byKey(const ValueKey('sync-path-lock'))],
-      setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3));
+      setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3),
+      change: 'SỬA: các dòng (số mục · dung lượng · tốc độ · còn lại) giữ chỗ cố định nên khối không co giãn; tốc độ đo cả lúc tệp đang gửi', marks: [() => find.byKey(const ValueKey('sync-items')).last]);
   _screen('sync-done', 'Xong', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.done, received: 12, sent: 3, copies: 1)), onSynced: () {})));
   _screen('sync-other-vault', 'Máy kia có két khác', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.otherVault)), onSynced: () {})));
   _screen('sync-unreachable', 'Không tới được máy kia', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.unreachable)), onSynced: () {})));
   _screen('sync-signin', 'Google Drive: phiên đăng nhập hết hạn', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.signIn)), onSynced: () {})));
   _screen('sync-failed', 'Không kết nối được', () => page('Đồng bộ', SyncProgress(events: Stream.value(ev(SyncStep.failed)), onSynced: () {})));
   SyncEvent failed(SyncStep k, String code) => SyncEvent(kind: k, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: code);
-  _screen('sync-drive-full', 'Google Drive đầy: nói rõ, kèm mã lỗi và Sao chép chi tiết', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(failed(SyncStep.driveFull, 'drive-full')), onSynced: () {})),
-      change: 'Mới: lỗi Google Drive có tên (đầy, giới hạn, máy chủ) + mã lỗi',
-      marks: [() => find.byKey(const ValueKey('sync-error-code')), () => find.byKey(const ValueKey('sync-copy-details'))]);
-  _screen('sync-drive-repaired', 'Google Drive: đồng bộ xong, phát hiện 3 tệp trên Drive bị thiếu/hỏng (theo mã băm của chính Google) và đã gửi lại', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(SyncEvent(kind: SyncStep.done, check: 0, name: '', peers: const [], peerIds: const [], received: 2, sent: 1, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 3, unrepaired: 0, code: '')), onSynced: () {})),
-      change: 'Mới: mỗi lần đồng bộ kiểm mọi tệp trên Drive, thiếu/hỏng thì tự gửi lại và báo',
-      marks: [() => find.textContaining('Đã gửi lại')]);
+  _screen('sync-drive-full', 'Google Drive đầy: nói rõ, kèm mã lỗi và Sao chép chi tiết', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(failed(SyncStep.driveFull, 'drive-full')), onSynced: () {})));
+  _screen('sync-drive-repaired', 'Google Drive: đồng bộ xong, phát hiện 3 tệp trên Drive bị thiếu/hỏng (theo mã băm của chính Google) và đã gửi lại', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(SyncEvent(kind: SyncStep.done, check: 0, name: '', peers: const [], peerIds: const [], received: 2, sent: 1, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 3, unrepaired: 0, code: '')), onSynced: () {})));
   _screen('sync-drive-failed-code', 'Google Drive lỗi khác: mã lỗi để gửi kèm góp ý', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(failed(SyncStep.failed, 'drive-rate-limited')), onSynced: () {})));
   _screen('settings-keys', 'Cài đặt · nhóm khoá của két: thêm Kiểm tra 24 từ và mật khẩu, Giữ 24 từ trong iCloud Keychain (tắt mặc định)', () => settings(vault),
-      change: 'Mới: tự kiểm tra 24 từ/mật khẩu; tuỳ chọn giữ 24 từ trong iCloud Keychain',
-      marks: [() => find.byKey(const ValueKey('key-check-row')), () => find.byKey(const ValueKey('key-backup-row'))],
       setup: () {
     SettingsScreen.debugSyncLog = const [];
     KeyBackup.debugSupported = true;
@@ -1046,8 +1011,6 @@ void main() {
   });
   // Android: the same through Google Block Store (owner 2026-10-27).
   _screen('settings-keys-google', 'Android · Cài đặt: Giữ 24 từ trong tài khoản Google (Block Store, tắt mặc định)', () => settings(vault),
-      change: 'Mới: Android giữ 24 từ trong tài khoản Google, như iCloud Keychain trên iPhone',
-      marks: [() => find.byKey(const ValueKey('key-backup-row'))],
       setup: () {
     SettingsScreen.debugSyncLog = const [];
     KeyBackup.debugSupported = true;
@@ -1058,7 +1021,6 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('key-backup-ask-google', 'Android · Bật Giữ 24 từ trong tài khoản Google: hỏi lại, nói rõ đánh đổi + cần khoá màn hình', () => settings(vault),
-      change: 'Mới',
       setup: () {
     SettingsScreen.debugSyncLog = const [];
     KeyBackup.debugSupported = true;
@@ -1069,8 +1031,7 @@ void main() {
     await t.tap(find.descendant(of: find.byKey(const ValueKey('key-backup-row')), matching: find.byType(Switch)));
     await t.pumpAndSettle();
   });
-  _screen('key-check', 'Kiểm tra 24 từ và mật khẩu: chỉ so khớp, không hiện, không lưu', () => page('Kiểm tra 24 từ và mật khẩu', const KeyCheckScreen(libraryDir: '', hasPassword: true)),
-      change: 'Mới', setup: () => KeyCheckScreen.debugResults = (words: true, password: false));
+  _screen('key-check', 'Kiểm tra 24 từ và mật khẩu: chỉ so khớp, không hiện, không lưu', () => page('Kiểm tra 24 từ và mật khẩu', const KeyCheckScreen(libraryDir: '', hasPassword: true)), setup: () => KeyCheckScreen.debugResults = (words: true, password: false));
   // Version history (owner 2026-10-27): every item, on this device, 30 days / 1 GB unless changed.
   final wifi = _item('n1', ItemKind.note, 'Wifi nhà bà ngoại', 120, tags: ['t7']);
   HistoryVersion ver(String rev, int ago, {String? name, bool here = true, bool same = false, bool gone = false, int size = 96}) =>
@@ -1091,13 +1052,11 @@ void main() {
     HistoryScreen.debugDays = 30;
   }
   _screen('item-menu-history', 'Ghi chú · bấm giữ: thêm "Lịch sử phiên bản" cho mọi mục', home, section: 'note',
-      change: 'Mới', marks: [() => find.byKey(const ValueKey('menu-history'))],
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);
     await t.pumpAndSettle();
   });
-  _screen('history-list', 'Lịch sử phiên bản của một ghi chú: giờ thay đổi, máy nào sửa, cỡ; bản đã bị dọn để tiết kiệm chỗ thì mờ', () => page('Lịch sử phiên bản', HistoryScreen(item: wifi)),
-      change: 'Mới: giữ bản cũ của mọi mục, mặc định 30 ngày', setup: history);
+  _screen('history-list', 'Lịch sử phiên bản của một ghi chú: giờ thay đổi, máy nào sửa, cỡ; bản đã bị dọn để tiết kiệm chỗ thì mờ', () => page('Lịch sử phiên bản', HistoryScreen(item: wifi)), setup: history);
   _screen('history-version', 'Mở một bản cũ: xem nội dung, "Khôi phục bản này" (bản hiện tại được giữ lại, nên hoàn tác được)', () => page('Lịch sử phiên bản', HistoryScreen(item: wifi)),
       setup: history, act: (t) async {
     await t.tap(find.byKey(const ValueKey('history-a2')));
@@ -1109,20 +1068,15 @@ void main() {
     HistoryScreen.debugDays = 30;
   });
   _screen('history-settings', 'Cài đặt → Lịch sử phiên bản: giữ bao lâu (Tắt · 7 · 30 · 90 ngày), tối đa bao nhiêu (500 MB · 1 GB · 5 GB · Không giới hạn), Xoá toàn bộ', () => page('Lịch sử phiên bản', const HistorySettingsScreen()),
-      change: 'Mới: cài đặt riêng của từng máy',
       setup: () => HistorySettingsScreen.debugState = (30, BigInt.from(1 << 30), BigInt.from(186) * BigInt.from(1 << 20)));
   _screen('settings-history', 'Cài đặt: dòng Lịch sử phiên bản; thanh dung lượng có thêm phần Lịch sử (xám)', () => settings(vault),
-      change: 'Mới', marks: [() => find.byKey(const ValueKey('history-row'))],
       setup: () {
     SettingsScreen.debugSyncLog = const [];
     SettingsScreen.debugHistoryBytes = BigInt.from(186) * BigInt.from(1 << 20);
   });
   _screen('lock-sync', 'Két tự khoá giữa lúc đồng bộ Google Drive: màn khoá như thường, thêm dòng "Đang đồng bộ 40%", màn hình vẫn sáng, đồng bộ chạy tiếp', lock,
-      change: 'Mới: khoá không cắt ngang đồng bộ',
-      marks: [() => find.byKey(const ValueKey('lock-sync'))],
       setup: () => syncStatus.value = const SyncStatus(drive: true, kind: SyncStep.receiving, done: 40, total: 100));
   _screen('report-problem', 'Cài đặt → Báo lỗi: các lỗi gần đây (chỉ mã và giờ), Góp ý, Sao chép chi tiết', () => page('Báo lỗi', const ErrorReportScreen()),
-      change: 'Mới: nhật ký lỗi luôn bật, chỉ có mã lỗi',
       setup: () => ErrorReportScreen.debugEntries = [
             (DateTime.fromMillisecondsSinceEpoch(_now - 3600000), 'sync', 'drive-rate-limited'),
             (DateTime.fromMillisecondsSinceEpoch(_now - 3700000), 'sync', 'drive-server-error'),
@@ -1190,9 +1144,7 @@ void main() {
           debugCamera = true; // a phone: Take photo and Record video are offered
           _itemsNow = const [];
         },
-        act: tourOpen,
-        change: 'Mới: hướng dẫn bằng gợi ý ngay trên màn hình thật',
-        marks: [() => find.byKey(ValueKey('tip-$name'))]);
+        act: tourOpen);
   }
   const fullTips = [
     ('add', 'nút +'),
@@ -1206,22 +1158,16 @@ void main() {
     _screen('tip-guide-${i + 1}-$name', 'Hướng dẫn sử dụng (Cài đặt → Hướng dẫn sử dụng, két đã có đồ) · ${i + 1}/10: $caption',
         () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.guide),
         setup: () => CoachTour.debugStart = i,
-        act: tourOpen,
-        change: 'Mới: gợi ý chỉ vào đúng nút thật',
-        marks: [() => find.byKey(ValueKey('tip-$name'))]);
+        act: tourOpen);
   }
   _screen('tip-restored-1-add', 'Sau khi khôi phục: bản ngắn 4 gợi ý (thêm, mở, các thẻ, Cài đặt)',
       () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.restored),
-      act: tourOpen,
-      change: 'Khôi phục xong: bản ngắn',
-      marks: [() => find.byKey(const ValueKey('tip-add'))]);
+      act: tourOpen);
   // User guide (owner 2026-10-26): near the top of Settings; it runs the vault tips, then
   // goes on in Settings, counting on.
   _screen('settings-top', 'Cài đặt · đầu trang: nhóm Trợ giúp (Hướng dẫn sử dụng, Góp ý) ngay dưới Đồng bộ',
       () => settings(vault),
-      setup: () => SettingsScreen.debugSyncLog = const [],
-      change: 'Mới: Hướng dẫn sử dụng ở gần đầu Cài đặt, không còn nằm dưới Thông tin',
-      marks: [() => find.byKey(const ValueKey('guide-row'))]);
+      setup: () => SettingsScreen.debugSyncLog = const []);
   _screen('settings-security-group', 'Cài đặt · hai nhóm bảo mật: khoá của két (Face ID, PIN, mật khẩu, 24 từ) tách khỏi nhóm che màn hình (tự khoá, chặn chụp, làm mờ, ẩn chữ)',
       () => settings(vault),
       setup: () => SettingsScreen.debugSyncLog = const [],
@@ -1229,8 +1175,7 @@ void main() {
     await t.scrollUntilVisible(find.byKey(const ValueKey('lock-on-leave-row')), 200, scrollable: find.byType(Scrollable).first);
     await t.drag(find.byType(Scrollable).first, const Offset(0, 260));
     await t.pumpAndSettle();
-  }, change: 'Mới: tách nhóm khoá của két và nhóm che màn hình, không tên nhóm',
-      marks: [() => find.byKey(const ValueKey('lock-on-leave-row'))]);
+  });
   _screen('settings-lock-on-leave-off', 'Cài đặt · tắt “Khoá ngay khi rời ứng dụng” (máy hỏi Face ID/mật mã trước, như mọi cài đặt bảo mật)',
       () => settings(vault),
       setup: () => SettingsScreen.debugSyncLog = const [],
@@ -1241,8 +1186,7 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.descendant(of: row, matching: find.byType(Switch)));
     await t.pumpAndSettle();
-  }, change: 'Tắt: rời app không khoá ngay; két khoá sau thời gian Tự khoá, tính từ lúc rời app',
-      marks: [() => find.byKey(const ValueKey('lock-on-leave-row'))]);
+  });
   _screen('autolock-menu-away', 'Cài đặt · Tự khoá khi đã tắt “Khoá ngay khi rời ứng dụng”', () => settings(vault),
       setup: () {
     SettingsScreen.debugSyncLog = const [];
@@ -1252,15 +1196,13 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, 300));
     await t.pumpAndSettle();
     await t.tap(find.text('Tự khoá khi không dùng'));
-  }, change: 'Ghi chú đổi theo: thời gian rời ứng dụng cũng được tính');
+  });
   _screen('tip-lock-away', 'Gợi ý Tự khoá khi đã tắt “Khoá ngay khi rời ứng dụng”: chỉ vào Cài đặt',
       () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.guide),
       setup: () {
     CoachTour.debugStart = 4;
     Prefs.write('lock-on-leave', '0');
-  }, act: tourOpen,
-      change: 'Lời gợi ý đổi theo cài đặt',
-      marks: [() => find.byKey(const ValueKey('tip-lock'))]);
+  }, act: tourOpen);
   const settingsTips = [
     ('sync', 'nhóm Đồng bộ'),
     ('security', 'nhóm Bảo mật'),
@@ -1274,9 +1216,7 @@ void main() {
           CoachTour.debugStart = i;
           SettingsScreen.debugSyncLog = const [];
         },
-        act: tourOpen,
-        change: 'Mới: gợi ý trên trang Cài đặt',
-        marks: [() => find.byKey(ValueKey('tip-$name'))]);
+        act: tourOpen);
   }
   _screen('settings-debug-taps', 'Cài đặt · chạm 5 lần vào Phiên bản', () => settings(vault), act: (t) async {
     await toAbout(t);
@@ -1321,14 +1261,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   }
-  const trashChange = 'LÀM LẠI: chia theo loại như trong két (ảnh/video dạng lưới có ảnh nhỏ — cả video; ghi chú, ghi âm, '
-      'tệp dạng dòng), mỗi mục còn bao nhiêu ngày, mục bị xoá ở máy khác có dấu; BỎ “Khôi phục tất cả” và “Xoá tất cả”; '
-      'dưới cùng chỉ còn nút Chọn';
-  _screen('trash', 'Đã xoá gần đây', () => const TrashScreen(), change: trashChange, marks: [
-    () => find.byKey(const ValueKey('trash-lead')),
-    () => find.byKey(const ValueKey('trash-video-mark')),
-    () => find.byKey(const ValueKey('trash-select')),
-  ]);
+  _screen('trash', 'Đã xoá gần đây', () => const TrashScreen());
   _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 2 mục', () => const TrashScreen(),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-select')));
@@ -1337,9 +1270,7 @@ void main() {
         await t.pump();
         await t.tap(find.text('Mật khẩu wifi cũ'));
         await t.pump();
-      },
-      change: 'Thanh chọn giống trong két: Xong · Chọn tất cả · Khôi phục · Xoá vĩnh viễn (đỏ), chỉ tác động lên mục đã chọn',
-      marks: [() => find.byKey(const ValueKey('trash-restore')), () => find.byKey(const ValueKey('trash-purge'))]);
+      });
   _screen('trash-drag', 'Đã xoá · bấm giữ 1 ảnh rồi quẹt sang mục khác', () => const TrashScreen(),
       act: (t) async {
         final from = t.getCenter(find.byType(Image).first);
@@ -1350,15 +1281,12 @@ void main() {
         await g.moveTo(t.getCenter(find.byType(Image).at(3)));
         await t.pump();
         await g.up();
-      },
-      change: 'MỚI: bấm giữ rồi quẹt để chọn liền một dải mục, quẹt ngược lại thì bỏ chọn');
+      });
   _screen('trash-preview', 'Đã xoá · chạm 1 ảnh', () => const TrashScreen(),
       act: (t) async {
         await t.tap(find.byType(Image).first);
         await settleTrash(t);
-      },
-      change: 'Thanh dưới cùng thứ tự, biểu tượng và chữ như menu bấm giữ: × · Khôi phục · Thông tin · Xoá vĩnh viễn',
-      marks: [() => find.byKey(const ValueKey('preview-info'))]);
+      });
   _screen('trash-preview-video', 'Đã xoá · chạm 1 video (có ảnh nhỏ)', () => const TrashScreen(),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-video-mark')));
@@ -1375,9 +1303,7 @@ void main() {
       act: (t) async {
         await t.longPress(find.byType(Image).first);
         await t.pumpAndSettle();
-      },
-      change: 'Menu bấm giữ: Khôi phục · Thông tin · Xoá vĩnh viễn (đỏ) — giống thanh của khung xem trước',
-      marks: [() => find.byKey(const ValueKey('item-menu'))]);
+      });
   _screen('trash-info', 'Đã xoá · bấm giữ → Thông tin', () => const TrashScreen(),
       act: (t) async {
         await showInTrash(t, 'Hop-dong-thue-nha-cu.pdf');
@@ -1386,8 +1312,7 @@ void main() {
         await t.pumpAndSettle();
         await t.tap(find.byKey(const ValueKey('menu-info')));
         await t.pumpAndSettle();
-      },
-      change: 'MỚI: Thông tin có ngày xoá (và “Đã xoá trên máy khác”) và giữ đến ngày nào');
+      });
   _screen('trash-purge-confirm', 'Đã xoá · chọn 2 mục → Xoá vĩnh viễn', () => const TrashScreen(),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-select')));
@@ -1397,36 +1322,29 @@ void main() {
         await t.pump();
         await t.tap(find.byKey(const ValueKey('trash-purge')));
         await t.pumpAndSettle();
-      },
-      change: 'Hỏi lại bằng cùng một thẻ ở dưới cùng như mọi lần xoá',
-      marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
+      });
   // Owner 2026-10-27: two parts, and Restore asks first with a clearer icon.
   _screen('trash-held-part', 'Đã xoá · phần thứ hai: “Đã xoá hẳn trên máy khác”, chỉ còn trên máy này, không đồng bộ nữa',
       () => const TrashScreen(),
-      change: 'MỚI: tách hai phần “Bạn đã xoá” và “Đã xoá hẳn trên máy khác”',
       act: (t) async {
         await t.scrollUntilVisible(find.byKey(const ValueKey('trash-part-held')), 200, scrollable: find.byType(Scrollable).first);
         await t.drag(find.byType(Scrollable).first, const Offset(0, -120));
         await t.pumpAndSettle();
-      },
-      marks: [() => find.byKey(const ValueKey('trash-part-held'))]);
+      });
   _screen('trash-restore-confirm', 'Đã xoá · bấm giữ 1 ảnh → Khôi phục: hỏi trước', () => const TrashScreen(),
-      change: 'MỚI: Khôi phục hỏi trước (nút xanh), biểu tượng “lấy ra khỏi thùng rác”',
       act: (t) async {
         await t.longPress(find.byType(Image).first);
         await t.pumpAndSettle();
         await t.tap(find.byKey(const ValueKey('menu-restore')));
         await t.pumpAndSettle();
-      },
-      marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
-  _screen('trash-empty', 'Đã xoá gần đây · trống', () => const TrashScreen(), setup: () => _noTrash = true, change: 'MỚI: màn trống nói rõ mục đã xoá nằm đây 30 ngày');
+      });
+  _screen('trash-empty', 'Đã xoá gần đây · trống', () => const TrashScreen(), setup: () => _noTrash = true);
   _screen('delete-confirm-one', 'Thư viện · bấm giữ 1 ảnh → Xoá', home, section: 'library', act: (t) async {
     await t.longPress(find.byType(Image).at(2));
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('menu-delete')));
     await t.pumpAndSettle();
-  }, change: 'MỚI: mọi lần xoá đều hỏi lại (thẻ ở dưới cùng, nút đỏ), xoá xong vẫn có Hoàn tác',
-      marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
+  });
   _screen('delete-confirm-many', 'Thư viện · chọn 3 ảnh → Xoá', home, section: 'library', act: (t) async {
     await t.tap(find.byKey(const ValueKey('select-button')));
     await t.pump();
@@ -1436,19 +1354,18 @@ void main() {
     }
     await t.tap(find.byKey(const ValueKey('select-delete')));
     await t.pumpAndSettle();
-  }, change: 'MỚI: tiêu đề nói số mục: “Chuyển 3 mục vào Đã xoá gần đây?”',
-      marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
+  });
   _screen('delete-confirm-note', 'Sửa ghi chú · bấm Xoá', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('note-delete')));
     await t.pumpAndSettle();
-  }, change: 'MỚI: xoá trong ghi chú cũng hỏi lại');
+  });
   _screen('delete-confirm-tag', 'Bấm giữ chip nhóm → Xoá nhóm', home, section: 'library', act: (t) async {
     await t.longPress(find.text('Du lịch').first);
     await t.pumpAndSettle();
     await t.tap(find.text('Xoá nhóm'));
     await t.pumpAndSettle();
-  }, change: 'Xoá nhóm dùng cùng thẻ hỏi lại (trước là hộp thoại giữa màn hình)');
+  });
   _screen('drag-select', 'Thư viện · bấm giữ 1 ảnh rồi quẹt qua 6 ảnh', home, section: 'library', act: (t) async {
     final g = await t.startGesture(t.getCenter(find.byType(Image).at(1)));
     await t.pump(kLongPressTimeout + const Duration(milliseconds: 50));
@@ -1459,8 +1376,7 @@ void main() {
     await g.moveTo(t.getCenter(find.byType(Image).at(6)));
     await t.pump();
     await g.up();
-  }, change: 'MỚI: bấm giữ rồi quẹt để chọn liền nhiều ảnh (như Ảnh trên iPhone); quẹt ngược lại thì bỏ chọn; '
-      'giữ yên rồi thả thì vẫn mở menu', marks: [() => find.byKey(const ValueKey('select-done'))]);
+  });
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
   _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
@@ -1485,15 +1401,11 @@ void main() {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
   _screen('password-common', 'Mật khẩu: bị từ chối vì quá phổ biến (kể cả thêm số)', () => const BackupPasswordScreen(libraryDir: '', change: false),
-      change: 'Mới: mật khẩu phổ biến không dùng được, kèm cách sửa',
-      marks: [() => find.byKey(const ValueKey('password-strength'))],
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'Sunshine2024!');
     await t.pump();
   });
   _screen('password-guessable', 'Mật khẩu: bị từ chối vì quá dễ đoán', () => const BackupPasswordScreen(libraryDir: '', change: false),
-      change: 'Mới: mật khẩu dễ đoán không dùng được; 4 từ ngẫu nhiên thì được',
-      marks: [() => find.byKey(const ValueKey('password-strength'))],
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'lamp river');
     await t.pump();
@@ -1520,14 +1432,13 @@ void main() {
     confirmCountdown(t.element(find.byKey(const ValueKey('host'))), title: 'Xoá vĩnh viễn két này?');
     await t.pump();
     await t.pump(const Duration(milliseconds: 3200));
-  }, change: 'MỚI: đếm ngược 10 giây, chỉ nút Huỷ dừng được');
+  });
   _screen('vault-manager', 'Debug · Két trên máy này', () => const VaultManagerScreen(libraryDir: ''),
       setup: () => VaultManagerScreen.debugSlots = [
             VaultSlot(id: 'e0a966aed6bec8151ebb59139e5aa773', sizeBytes: BigInt.from(1843 << 20), hasPassword: true, hasPin: true, hasBiometric: true, isOpen: true),
             VaultSlot(id: '3fa9c1d2e4b5a6978877665544332211', sizeBytes: BigInt.from(37 << 20), hasPassword: true, hasPin: true, hasBiometric: false, isOpen: false),
             VaultSlot(id: '9b3ad0e1f2c4475a8e61d39b2f0c18d3', sizeBytes: BigInt.from(212 << 10), hasPassword: false, hasPin: true, hasBiometric: false, isOpen: false),
-          ],
-      change: 'Nút xoá màu đỏ; sau khi gõ XOÁ còn 10 giây đếm ngược để Huỷ');
+          ]);
   _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''));
   _screen('restore-keys', 'Khôi phục · 1. Dán 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: ''));
   _screen('restore-source', 'Khôi phục · 2. Két đang ở đâu?', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake'),
@@ -1580,10 +1491,8 @@ void main() {
       setup: () => NewVaultScreen.debugWords = words);
 
   // Every action button at the bottom, within the thumb's reach (2026-10-25).
-  const bottomNote = 'Nút hành động xuống dưới, trong tầm ngón cái';
   _screen('bottom-note', 'Sửa ghi chú · bàn phím đóng: Xong · Gửi · Xoá ở dưới',
-      () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
-      change: bottomNote, marks: [() => find.byKey(const ValueKey('note-done'))]);
+      () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('bottom-note-typing', 'Sửa ghi chú · bàn phím mở: định dạng + ẩn bàn phím',
       () => _FakeKeyboard(child: NoteScreen(item: _formatted)),
       act: (t) async {
@@ -1593,33 +1502,27 @@ void main() {
         final r = t.getRect(find.byType(TextField));
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
-      },
-      change: 'Một thanh trên bàn phím; nút cuối ẩn bàn phím', marks: [() => find.byKey(const ValueKey('format-done-typing'))]);
-  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'),
-      change: bottomNote, marks: [() => find.byType(BottomBar)]);
-  _screen('bottom-file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'),
-      change: bottomNote, marks: [() => find.byType(BottomBar)]);
-  _screen('bottom-trash', 'Đã xoá gần đây · Chọn ở thanh dưới', () => const TrashScreen(),
-      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+      });
+  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'));
+  _screen('bottom-file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
+  _screen('bottom-trash', 'Đã xoá gần đây · Chọn ở thanh dưới', () => const TrashScreen());
   _screen('bottom-trash-select', 'Đã xoá · bấm Chọn', () => const TrashScreen(),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-select')));
         await t.pump();
         await t.tap(find.byKey(ValueKey('trash-${'x1'.padRight(32, '_')}')));
         await t.pump();
-      },
-      change: bottomNote, marks: [() => find.byType(BottomBar)]);
+      });
   _screen('bottom-select', 'Thư viện · đang chọn: Xong và Chọn tất cả ở thanh dưới', home, section: 'library', act: (t) async {
     await t.tap(find.byKey(const ValueKey('select-button')));
     await t.pump();
-  }, change: bottomNote, marks: [() => find.byKey(const ValueKey('select-done')), () => find.byKey(const ValueKey('select-all'))]);
+  });
   _screen('bottom-set-pin', 'Đặt mã PIN cho máy này · Tiếp + Để sau ở dưới',
-      () => const SetPinScreen(skippable: true, forThisPhone: true),
-      change: bottomNote, marks: [() => find.byKey(const ValueKey('pin-not-now'))]);
+      () => const SetPinScreen(skippable: true, forThisPhone: true));
   _screen('bottom-icons', 'Tạo két · ⋯ biểu tượng: nút Đóng ở dưới, bỏ ×', () => Builder(builder: (context) {
         WidgetsBinding.instance.addPostFrameCallback((_) => showAllIcons(context, 0));
         return const Scaffold();
-      }), change: bottomNote, marks: [() => find.byKey(const ValueKey('card-close'))]);
+      }));
   _screen('bottom-search', 'Tìm kiếm · ô tìm ở dưới, trên bàn phím',
       () => _FakeKeyboard(child: SearchScreen(items: _items, thumbnail: (_) async => _thumbnails[0]!)),
       act: (t) async {
@@ -1628,33 +1531,29 @@ void main() {
         await t.pump();
         await t.enterText(find.byKey(const ValueKey('search-field')), 'thuoc');
         await t.pump();
-      },
-      change: bottomNote, marks: [() => find.byKey(const ValueKey('search-field'))]);
+      });
   _screen('bottom-lock-password', 'Màn khoá · dùng mật khẩu: Mở khoá ở dưới', lock, act: (t) async {
     await t.tap(find.byKey(const ValueKey('more-button')));
     await t.pumpAndSettle();
     await t.tap(find.text('Dùng mật khẩu'));
     await t.pump();
-  }, change: bottomNote, marks: [() => find.byKey(const ValueKey('unlock-password-go'))]);
+  });
   _screen('bottom-backup-password', 'Mật khẩu sao lưu · Lưu ở dưới, bàn phím mở',
       () => const _FakeKeyboard(child: BackupPasswordScreen(libraryDir: '', change: false)),
       act: (t) async {
         t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
         t.view.padding = const FakeViewPadding(top: 59 * 2);
         await t.pump();
-      },
-      change: bottomNote, marks: [() => find.byKey(const ValueKey('backup-password-save'))]);
-  _screen('bottom-kit-password', 'Khoá khôi phục · nhập mật khẩu: nút ở dưới', () => const KitPasswordScreen(libraryDir: ''),
-      change: bottomNote, marks: [() => find.byKey(const ValueKey('kit-password-go'))]);
+      });
+  _screen('bottom-kit-password', 'Khoá khôi phục · nhập mật khẩu: nút ở dưới', () => const KitPasswordScreen(libraryDir: ''));
   _screen('bottom-delete-vault', 'Xoá két · nút đỏ ở dưới',
-      () => const DeleteVaultScreen(libraryDir: '', vault: vault, sizeText: '214 MB · 86 mục'),
-      change: bottomNote, marks: [() => find.byKey(const ValueKey('delete-vault-go'))]);
+      () => const DeleteVaultScreen(libraryDir: '', vault: vault, sizeText: '214 MB · 86 mục'));
   _screen('bottom-new-vault-password', 'Tạo két · 3. Mật khẩu: Tiếp ở hàng dưới', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
     await tapKey(t, 'words-done');
     await fillCheck(t);
     await tapKey(t, 'check-done');
-  }, change: bottomNote, marks: [() => find.byKey(const ValueKey('password-next'))]);
+  });
 }
 
 void _leftCamera() {
