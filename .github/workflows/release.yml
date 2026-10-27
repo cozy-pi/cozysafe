@@ -52,8 +52,10 @@ jobs:
         env:
           BUMP: ${{ inputs.bump }}
         run: |
-          # Base: the highest vX.Y.Z tag; first release starts from pubspec's X.Y.
-          last=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' | sort -V | tail -1)
+          # Base: the highest vX.Y.Z tag, or used/vX.Y.Z (a name a run took that never
+          # became a release: a failed build must not hand its name to the next run;
+          # 2026-10-27 three runs were all 0.1.77). First release starts from pubspec's X.Y.
+          last=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' 'used/v[0-9]*.[0-9]*.[0-9]*' | sed 's#^used/##; s/^v//' | sort -V | tail -1)
           # pubspec's X.Y is the line being worked on; a newer line starts at X.Y.0.
           base=$(sed -n 's/^version: \([0-9]*\.[0-9]*\).*/\1/p' app/pubspec.yaml)
           if [ -z "$last" ] || [ "$(printf '%s\n%s\n' "${last%.*}" "$base" | sort -V | tail -1)" != "${last%.*}" ]; then
@@ -62,6 +64,9 @@ jobs:
             IFS=. read -r ma mi pa <<< "$last"
             if [ "$BUMP" = minor ]; then name="$ma.$((mi + 1)).0"; else name="$ma.$mi.$((pa + 1))"; fi
           fi
+          # Taken now, whatever happens to this run.
+          git tag "used/v$name" "$GITHUB_SHA"
+          git push origin "refs/tags/used/v$name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "build=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_OUTPUT"
           echo "### Cozy Safe $name (build $((1000 + GITHUB_RUN_NUMBER)))" >> "$GITHUB_STEP_SUMMARY"
