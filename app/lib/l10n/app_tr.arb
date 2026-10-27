@@ -729,5 +729,6 @@
   "trashHeldNote": "Yalnızca bu cihazda tutulur ve artık eşitlenmez. Geri yükleyince her yere döner.",
   "historyKeepUntil": "Dolana kadar eski sürümleri sakla",
   "historyRule": "Geçmiş bu alanı doldurana kadar, ne kadar eski olursa olsun hiçbir şey silinmez. Dolunca önce 30 günden eski en eski sürümler gider; son 30 gün her zaman kalır. Yalnızca bu cihazda: eşitlenmez, yedeklere girmez.",
-  "historyEmptyAny": "Henüz önceki sürüm yok. Bu her değiştiğinde önceki sürüm saklanır."
+  "historyEmptyAny": "Henüz önceki sürüm yok. Bu her değiştiğinde önceki sürüm saklanır.",
+  "syncPreparing": "Gönderilecek öğeler hazırlanıyor"
 }

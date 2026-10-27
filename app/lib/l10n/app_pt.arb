@@ -729,5 +729,6 @@
   "trashHeldNote": "Fica só neste dispositivo e já não é sincronizado. Restaurar devolve-o a todos.",
   "historyKeepUntil": "Guardar versões anteriores até encher",
   "historyRule": "Até o histórico encher este espaço, nada é apagado, por mais antigo que seja. Quando enche, saem primeiro as versões mais antigas com mais de 30 dias; os últimos 30 dias ficam sempre. Só neste dispositivo: não sincronizado, não incluído nas cópias de segurança.",
-  "historyEmptyAny": "Ainda não há versões anteriores. Cada vez que isto mudar, a versão anterior é guardada."
+  "historyEmptyAny": "Ainda não há versões anteriores. Cada vez que isto mudar, a versão anterior é guardada.",
+  "syncPreparing": "A preparar itens para enviar"
 }

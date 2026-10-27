@@ -272,6 +272,8 @@ struct Entry {
 pub enum SyncPhase {
     /// Reading what the place holds.
     Checking,
+    /// Fingerprinting items that never went anywhere yet (a first sync), before sending.
+    Preparing,
     /// Bringing items in.
     Receiving,
     /// Sending this device's changes.
@@ -961,7 +963,9 @@ impl OpenVault {
         // how much is going.
         let mut todo: Vec<(String, ItemRecord, Vec<u8>)> = Vec::new();
         let mut held: Vec<(String, ItemRecord, Vec<u8>)> = Vec::new();
-        for id in self.index.ids()? {
+        let ids = self.index.ids()?;
+        let all = ids.len() as u32;
+        for (n, id) in ids.into_iter().enumerate() {
             let Some(sealed) = self.sealed_record(&id)? else {
                 continue;
             };
@@ -969,7 +973,15 @@ impl OpenVault {
             let mut sealed = sealed;
             if record.rev.is_empty() || record.data_hash.is_empty() {
                 // From before sync: a first revision, with its content's fingerprints
-                // (same content, same time).
+                // (same content, same time). Reading a whole vault takes a while on a
+                // first sync: the screen says so, item by item (owner 2026-10-27).
+                progress(SyncProgress {
+                    phase: SyncPhase::Preparing,
+                    done: n as u32 + 1,
+                    total: all,
+                    bytes: 0,
+                    bytes_total: 0,
+                });
                 let modified = record.modified_ms;
                 record.data_hash = crate::items::file_sha256_hex(&self.read_path(&id, "data")?)?;
                 if record.has_thumbnail() {
@@ -1032,11 +1044,34 @@ impl OpenVault {
         };
         let mut done = 0u32;
         let mut entry = Entry::default();
+        // Sending from the first byte (owner 2026-10-27: a big first file kept the screen
+        // on "Looking at Google Drive" while it went up), and the bytes every second
+        // while a file is on its way, not only when it is done.
+        if total > 0 {
+            progress(SyncProgress {
+                phase: SyncPhase::Sending,
+                done: 0,
+                total,
+                bytes: 0,
+                bytes_total,
+            });
+        }
+        let done_now = std::cell::Cell::new(0u32);
+        let tick = || {
+            progress(SyncProgress {
+                phase: SyncPhase::Sending,
+                done: done_now.get(),
+                total,
+                bytes: remote.bytes() - start,
+                bytes_total,
+            })
+        };
         // Items are told in the order they are fully up, so a journal entry only ever
         // names items whose files are all in the place.
-        each_at_once(remote.parallel(), &jobs, &send, |i| {
+        each_at_once_ticking(remote.parallel(), &jobs, &send, tick, |i| {
             entry.items.push((jobs[i].id.clone(), jobs[i].rev.clone()));
             done += 1;
+            done_now.set(done);
             progress(SyncProgress {
                 phase: SyncPhase::Sending,
                 done,
@@ -1374,6 +1409,18 @@ fn each_at_once<J: Sync>(
     n: usize,
     jobs: &[J],
     work: &(dyn Fn(&J) -> Result<()> + Sync),
+    done: impl FnMut(usize) -> Result<()>,
+) -> Result<()> {
+    each_at_once_ticking(n, jobs, work, || {}, done)
+}
+
+/// [`each_at_once`], calling `tick` about every second while jobs run (several at
+/// once only: one at a time has no free thread to tell from).
+fn each_at_once_ticking<J: Sync>(
+    n: usize,
+    jobs: &[J],
+    work: &(dyn Fn(&J) -> Result<()> + Sync),
+    tick: impl Fn(),
     mut done: impl FnMut(usize) -> Result<()>,
 ) -> Result<()> {
     let n = n.clamp(1, MAX_AT_ONCE).min(jobs.len());
@@ -1408,7 +1455,18 @@ fn each_at_once<J: Sync>(
         drop(tx);
         let mut first = None;
         // Ends once every worker has stopped.
-        for (i, r) in rx {
+        // Ends once every worker has stopped (the channel closes).
+        loop {
+            let (i, r) = match rx.recv_timeout(std::time::Duration::from_secs(1)) {
+                Ok(got) => got,
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                    if first.is_none() {
+                        tick();
+                    }
+                    continue;
+                }
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+            };
             if first.is_some() {
                 continue;
             }
@@ -1767,7 +1825,31 @@ pub(crate) mod tests {
         r.data_rev.clear();
         r.base_rev = None;
         t.a.store_record(&id, &r).unwrap();
-        assert_eq!(t.a.sync(&t.cloud).unwrap().sent, 1);
+        // The screen is told: getting it ready, then sending from the start (owner
+        // 2026-10-27: it said "Looking at Google Drive" all along).
+        let seen = std::sync::Mutex::new(Vec::new());
+        assert_eq!(
+            t.a.sync_with(&t.cloud, &|p| seen.lock().unwrap().push(p))
+                .unwrap()
+                .sent,
+            1
+        );
+        let phases: Vec<_> = seen
+            .into_inner()
+            .unwrap()
+            .iter()
+            .map(|p| (p.phase, p.done))
+            .collect();
+        let prep = phases
+            .iter()
+            .position(|p| p.0 == SyncPhase::Preparing)
+            .unwrap();
+        let start = phases
+            .iter()
+            .position(|p| p.0 == SyncPhase::Sending)
+            .unwrap();
+        assert!(prep < start);
+        assert_eq!(phases[start], (SyncPhase::Sending, 0));
         t.b.sync(&t.cloud).unwrap();
         assert_eq!(text(&t.b, &id), "x");
     }

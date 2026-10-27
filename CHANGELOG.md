@@ -4,6 +4,21 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.78 (unreleased)
+
+### Changed
+- Version history puts space first, to keep versions as long as possible: until history
+  fills its space nothing goes, however old; once full, the oldest versions more than 30
+  days old go first, and the last 30 days always stay. Settings → Version history is one
+  choice (500 MB, 1 GB, 5 GB, No limit, or Off; 1 GB unless changed) with that rule in a
+  short line.
+
+### Fixed
+- A first sync with Google Drive said "Looking at Google Drive" for a long time while it
+  was reading every item and sending the first files. It now says "Getting items ready
+  to send" with a count, then "Sending to Google Drive" from the first byte, and the
+  sizes and speed move every second while a big file goes up.
+
 ## 0.1.77 (2026-10-27)
 
 ### Added

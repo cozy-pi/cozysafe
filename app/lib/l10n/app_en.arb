@@ -954,5 +954,6 @@
   "trashHeldNote": "Kept only on this device and no longer synced. Restore brings it back everywhere.",
   "historyKeepUntil": "Keep older versions until full",
   "historyRule": "Until history fills this space, nothing is removed, however old. Once full, the oldest versions more than 30 days old go first; the last 30 days always stay. Only on this device: not synced, not in backups.",
-  "historyEmptyAny": "No earlier versions yet. Each time this changes, the version before is kept."
+  "historyEmptyAny": "No earlier versions yet. Each time this changes, the version before is kept.",
+  "syncPreparing": "Getting items ready to send"
 }

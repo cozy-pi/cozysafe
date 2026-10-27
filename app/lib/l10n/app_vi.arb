@@ -743,5 +743,6 @@
   "trashHeldNote": "Chỉ còn trên máy này, không đồng bộ nữa. Khôi phục để có lại ở mọi máy.",
   "historyKeepUntil": "Giữ bản cũ tới khi đầy",
   "historyRule": "Chưa đầy thì giữ mãi, dù cũ đến đâu. Khi đầy, bản cũ nhất đã quá 30 ngày bị xoá trước; 30 ngày gần nhất luôn được giữ. Chỉ ở máy này: không đồng bộ, không nằm trong bản sao lưu.",
-  "historyEmptyAny": "Chưa có bản cũ nào. Mỗi lần mục này thay đổi, bản trước đó sẽ được giữ lại."
+  "historyEmptyAny": "Chưa có bản cũ nào. Mỗi lần mục này thay đổi, bản trước đó sẽ được giữ lại.",
+  "syncPreparing": "Đang chuẩn bị mục để gửi"
 }

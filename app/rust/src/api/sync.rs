@@ -90,6 +90,9 @@ pub enum SyncStep {
     SignIn,
     /// Under way: reading the place, bringing items in, sending (see `done`, `total`).
     Checking,
+    /// Before sending on a first sync: fingerprinting items that never went anywhere
+    /// (`done`, `total` items).
+    Preparing,
     Receiving,
     Sending,
     /// Taking the files of items deleted for good off the place.
@@ -210,6 +213,7 @@ fn progress_event(p: cs_vault::sync::SyncProgress) -> SyncEvent {
         bytes_total: p.bytes_total,
         ..step(match p.phase {
             SyncPhase::Checking => SyncStep::Checking,
+            SyncPhase::Preparing => SyncStep::Preparing,
             SyncPhase::Receiving => SyncStep::Receiving,
             SyncPhase::Sending => SyncStep::Sending,
             SyncPhase::Removing => SyncStep::Removing,
@@ -834,6 +838,7 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         | SyncStep::Knock
         | SyncStep::AskRestore
         | SyncStep::Checking
+        | SyncStep::Preparing
         | SyncStep::Receiving
         | SyncStep::Sending
         | SyncStep::Removing
