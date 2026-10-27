@@ -2,6 +2,7 @@
 #   <name> <version>  # why, who reviewed
 # Baseline 2026-10-24, when the rule came in: these were already in the app. They age
 # past 14 days by early November; remove them then. New versions get no such pass.
+ctutils 0.4.4  # security fix RUSTSEC-2026-0385 (every older version affected); RustCrypto, constant-time helpers, no I/O; reviewed 2026-10-27
 serde_json 1.0.154  # baseline 2026-10-24
 syn 3.0.9  # baseline 2026-10-24 (build-time proc macros)
 tokio 1.53.3  # baseline 2026-10-24 (flutter_rust_bridge runtime)
