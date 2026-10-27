@@ -14,18 +14,16 @@ import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart';
 import 'file_view.dart' show fileSize;
 
-/// The choices for how long and how much (owner 2026-10-27): Off · 7 · 30 · 90 days;
-/// 500 MB · 1 GB · 5 GB · no limit. 30 days and 1 GB unless changed.
-const historyDayChoices = [0, 7, 30, 90];
+/// How much (owner 2026-10-27, space first to keep versions as long as possible):
+/// 500 MB · 1 GB · 5 GB · no limit, or Off; 1 GB unless changed. Under it nothing goes;
+/// once full, versions older than [historyKeptDays] go first (core/cs-vault/src/history.rs).
+const historyKeptDays = 30;
 final historySizeChoices = [
   BigInt.from(500) * BigInt.from(1 << 20),
   BigInt.from(1 << 30),
   BigInt.from(5) * BigInt.from(1 << 30),
   BigInt.zero,
 ];
-
-/// "30 days", or "Off".
-String historyDaysText(AppLocalizations l, int days) => days == 0 ? l.historyOff : l.historyDays(days);
 
 String historySizeText(AppLocalizations l, BigInt bytes) {
   if (bytes == BigInt.zero) return l.historyNoLimit;
@@ -117,7 +115,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
             child: Text(
-              _days == 0 ? l.historyIsOff : l.historyEmpty(_days),
+              _days == 0 ? l.historyIsOff : l.historyEmptyAny,
               key: const ValueKey('history-empty'),
               style: TextStyle(color: c.muted, height: 1.4),
             ),
@@ -484,21 +482,17 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
       children: [
-        _group(context, l.historyKeepFor, [
-          for (final d in historyDayChoices)
-            _choice(context, 'history-days-$d', historyDaysText(l, d), _days == d, () => _set(d, _max)),
+        // One choice (owner 2026-10-27): how much; how long follows from it.
+        _group(context, l.historyKeepUntil, [
+          for (final m in historySizeChoices)
+            _choice(context, 'history-max-$m', historySizeText(l, m), _days != 0 && _max == m,
+                () => _set(historyKeptDays, m)),
+          _choice(context, 'history-days-0', l.historyOff, _days == 0, () => _set(0, _max)),
         ]),
-        if (_days != 0) ...[
-          const SizedBox(height: 28),
-          _group(context, l.historyMaxSize, [
-            for (final m in historySizeChoices)
-              _choice(context, 'history-max-$m', historySizeText(l, m), _max == m, () => _set(_days, m)),
-          ]),
-        ],
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
           child: Text(
-            [if (used != null) l.historyUsing(fileSize(used)), l.historyNote].join(' '),
+            [if (used != null) l.historyUsing(fileSize(used)), l.historyRule].join(' '),
             style: TextStyle(color: c.muted, fontSize: 13, height: 1.35),
           ),
         ),
