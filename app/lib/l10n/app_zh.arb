@@ -726,5 +726,13 @@
   "confirmRestoreHeldBody": "回到保险箱，并在下次同步时回到你的其他设备。",
   "trashMineTitle": "你删除的",
   "trashHeldTitle": "已在其他设备上永久删除",
-  "trashHeldNote": "只保留在此设备上，不再同步。恢复后会回到所有设备。"
+  "trashHeldNote": "只保留在此设备上，不再同步。恢复后会回到所有设备。",
+  "historyKeepUntil": "保留旧版本，直到占满",
+  "historyRule": "在历史记录占满此空间之前，无论多旧都不会删除。占满后，先删除超过 30 天的最旧版本；最近 30 天的版本始终保留。仅保存在此设备上：不同步，也不在备份中。",
+  "historyEmptyAny": "还没有旧版本。每次更改时，都会保留之前的版本。",
+  "syncPreparing": "正在准备要发送的项目",
+  "syncRepairing": "正在重新发送缺失的文件",
+  "syncRepairingDrive": "正在向 Google 云端硬盘重新发送缺失的文件",
+  "syncTidying": "正在清理旧版本",
+  "syncTidyingDrive": "正在清理 Google 云端硬盘上的旧版本"
 }

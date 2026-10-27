@@ -726,5 +726,13 @@
   "confirmRestoreHeldBody": "Vuelve a la caja fuerte y, en la próxima sincronización, a tus otros dispositivos.",
   "trashMineTitle": "Eliminado por ti",
   "trashHeldTitle": "Eliminado para siempre en otro dispositivo",
-  "trashHeldNote": "Solo queda en este dispositivo y ya no se sincroniza. Restaurar lo devuelve a todos."
+  "trashHeldNote": "Solo queda en este dispositivo y ya no se sincroniza. Restaurar lo devuelve a todos.",
+  "historyKeepUntil": "Guardar versiones anteriores hasta llenar",
+  "historyRule": "Hasta que el historial llene este espacio, no se borra nada, por antiguo que sea. Cuando se llena, se van primero las versiones más antiguas de más de 30 días; los últimos 30 días siempre se quedan. Solo en este dispositivo: no se sincroniza ni va en las copias de seguridad.",
+  "historyEmptyAny": "Aún no hay versiones anteriores. Cada vez que esto cambie, se guardará la versión anterior.",
+  "syncPreparing": "Preparando elementos para enviar",
+  "syncRepairing": "Reenviando archivos que faltan",
+  "syncRepairingDrive": "Reenviando a Google Drive archivos que faltan",
+  "syncTidying": "Limpiando versiones antiguas",
+  "syncTidyingDrive": "Quitando versiones antiguas de Google Drive"
 }

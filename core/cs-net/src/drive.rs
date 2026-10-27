@@ -1666,10 +1666,22 @@ mod tests {
             s.nodes[damaged].1[0] ^= 1;
         }
         // The next sync from A sees both from Drive's own checksums and mends them.
+        let seen = Mutex::new(Vec::new());
         let report =
-            t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
-                .unwrap();
+            t.a.sync_with(&DriveRemote::open(drive.clone()).unwrap(), &|p| {
+                seen.lock().unwrap().push(p)
+            })
+            .unwrap();
         assert_eq!((report.repaired, report.unrepaired), (2, 0));
+        // The screen says it is sending them again, with a count (owner 2026-10-27).
+        let mending: Vec<_> = seen
+            .into_inner()
+            .unwrap()
+            .into_iter()
+            .filter(|p| p.phase == cs_vault::sync::SyncPhase::Repairing)
+            .map(|p| (p.done, p.total))
+            .collect();
+        assert_eq!(mending, [(0, 2), (1, 2), (2, 2)]);
         // B reads both back intact.
         t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
             .unwrap();

@@ -86,6 +86,9 @@ class _SyncProgressState extends State<SyncProgress>
     sync.SyncStep.confirm,
     sync.SyncStep.connected,
     sync.SyncStep.checking,
+    sync.SyncStep.preparing,
+    sync.SyncStep.repairing,
+    sync.SyncStep.tidying,
     sync.SyncStep.receiving,
     sync.SyncStep.sending,
     sync.SyncStep.removing,
@@ -111,6 +114,9 @@ class _SyncProgressState extends State<SyncProgress>
   static const _moving = {
     sync.SyncStep.connected,
     sync.SyncStep.checking,
+    sync.SyncStep.preparing,
+    sync.SyncStep.repairing,
+    sync.SyncStep.tidying,
     sync.SyncStep.receiving,
     sync.SyncStep.sending,
     sync.SyncStep.removing,
@@ -360,6 +366,9 @@ class _SyncProgressState extends State<SyncProgress>
     sync.SyncStep.receiving => l.syncReceiving(e.done.toString(), e.total.toString()),
     sync.SyncStep.sending => l.syncSending(e.done.toString(), e.total.toString()),
     sync.SyncStep.checking => l.syncChecking,
+    sync.SyncStep.preparing => l.syncPreparing,
+    sync.SyncStep.repairing => l.syncRepairing,
+    sync.SyncStep.tidying => l.syncTidying,
     sync.SyncStep.removing => l.syncRemoving,
     sync.SyncStep.driveListing => l.syncDriveListing,
     sync.SyncStep.driveFolders => l.syncDriveFolders,
@@ -556,6 +565,10 @@ class _SyncProgressState extends State<SyncProgress>
       sync.SyncStep.sending => drive ? l.syncSendingDrive : l.syncSendingDevice,
       sync.SyncStep.receiving => drive ? l.syncReceivingDrive : l.syncReceivingDevice,
       sync.SyncStep.removing => drive ? l.syncRemovingDrive : l.syncRemovingDevice,
+      // A first sync reads every item before the first one goes (owner 2026-10-27).
+      sync.SyncStep.preparing => l.syncPreparing,
+      sync.SyncStep.repairing => drive ? l.syncRepairingDrive : l.syncRepairing,
+      sync.SyncStep.tidying => drive ? l.syncTidyingDrive : l.syncTidying,
       _ => drive ? l.syncCheckingDrive : l.syncCheckingDevice,
     };
     final bytes = e.bytes.toInt();
@@ -605,7 +618,7 @@ class _SyncProgressState extends State<SyncProgress>
               key: const ValueKey('sync-items'),
               style: small),
           const Spacer(),
-          if (e.kind != sync.SyncStep.removing)
+          if (e.kind != sync.SyncStep.removing && e.kind != sync.SyncStep.preparing && e.kind != sync.SyncStep.tidying)
           Text(
             bytesTotal > 0 ? '${fileSize(BigInt.from(bytes))} / ${fileSize(BigInt.from(bytesTotal))}' : fileSize(BigInt.from(bytes)),
             key: const ValueKey('sync-bytes'),
@@ -709,6 +722,9 @@ class _SyncProgressState extends State<SyncProgress>
         sync.SyncStep.wrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.wrongPassword),
         sync.SyncStep.interrupted => _Status(icon: Icons.pause_circle_outline_rounded, color: const Color(0xFFFF9500), title: l.syncInterrupted),
         sync.SyncStep.checking ||
+        sync.SyncStep.preparing ||
+        sync.SyncStep.repairing ||
+        sync.SyncStep.tidying ||
         sync.SyncStep.receiving ||
         sync.SyncStep.sending ||
         sync.SyncStep.removing ||

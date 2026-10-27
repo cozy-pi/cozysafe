@@ -951,5 +951,13 @@
   "confirmRestoreHeldBody": "It goes back into the vault and, at the next sync, to your other devices.",
   "trashMineTitle": "Deleted by you",
   "trashHeldTitle": "Deleted for good on another device",
-  "trashHeldNote": "Kept only on this device and no longer synced. Restore brings it back everywhere."
+  "trashHeldNote": "Kept only on this device and no longer synced. Restore brings it back everywhere.",
+  "historyKeepUntil": "Keep older versions until full",
+  "historyRule": "Until history fills this space, nothing is removed, however old. Once full, the oldest versions more than 30 days old go first; the last 30 days always stay. Only on this device: not synced, not in backups.",
+  "historyEmptyAny": "No earlier versions yet. Each time this changes, the version before is kept.",
+  "syncPreparing": "Getting items ready to send",
+  "syncRepairing": "Sending missing files again",
+  "syncRepairingDrive": "Sending missing files to Google Drive again",
+  "syncTidying": "Clearing out old versions",
+  "syncTidyingDrive": "Clearing old versions off Google Drive"
 }

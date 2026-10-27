@@ -883,6 +883,22 @@ void main() {
   _screen('sync-drive-folders', 'Google Drive: tạo thư mục (bản cập nhật thư mục, lần đầu)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveFolders, done: 212, total: 517)), onSynced: () {})));
   _screen('sync-drive-moving', 'Google Drive: dời tệp cũ vào thư mục', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveMoving, done: 1400, total: 2986)), onSynced: () {})));
   _screen('sync-drive-done-moved', 'Google Drive: xong, đã sắp xếp lại tệp, không có gì mới', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.done, moved: 2986)), onSynced: () {})));
+  // A first sync (owner 2026-10-27): it said "Looking at Google Drive" while it read
+  // every item and while the first big file went up.
+  _screen('sync-drive-preparing', 'Đồng bộ lần đầu: đang chuẩn bị từng mục để gửi (có đếm), thay vì “Đang xem Google Drive”',
+      () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.preparing, done: 86, total: 340)), onSynced: () {})),
+      change: 'MỚI');
+  _screen('sync-drive-first-file', 'Tệp đầu tiên đang lên: đã là “Đang gửi lên Google Drive”, số byte chạy mỗi giây',
+      () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 0, total: 340, bytes: 38 << 20, bytesTotal: 131 << 20)), onSynced: () {})),
+      setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6),
+      change: 'SỬA');
+  _screen('sync-drive-repairing', 'Gửi lại tệp bị thiếu/hỏng trên Google Drive: có tên riêng và đếm, không còn là “Đang xem”',
+      () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.repairing, done: 1, total: 3, bytes: 4 << 20)), onSynced: () {})),
+      setup: () => SyncProgress.debugRate = (1.8 * (1 << 20), 2),
+      change: 'MỚI');
+  _screen('sync-drive-tidying', 'Dọn bản cũ trên Google Drive (mỗi ngày một lần): tên riêng, không lẫn với “xoá mục đã xoá”',
+      () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.tidying, done: 12, total: 40)), onSynced: () {})),
+      change: 'MỚI');
   _screen('sync-drive-progress', 'Google Drive: đang gửi lên', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 128, total: 340, bytes: 52 << 20, bytesTotal: 131 << 20)), onSynced: () {})),
       setup: () => SyncProgress.debugRate = (2.4 * (1 << 20), 6));
   _screen('sync-drive-receiving', 'Google Drive: đang tải về', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.receiving, done: 40, total: 212, bytes: 18 << 20)), onSynced: () {})),

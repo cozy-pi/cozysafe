@@ -232,6 +232,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final s = await hist.historySettings();
       _historyDays = s.days;
+      _historyMax = s.maxBytes;
       return await hist.historyBytes();
     } catch (_) {
       return BigInt.zero;
@@ -240,6 +241,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// This device's history setting, for its row.
   int _historyDays = 30;
+  BigInt _historyMax = BigInt.from(1 << 30);
 
   Future<void> _openHistory() async {
     final l = AppLocalizations.of(context);
@@ -817,7 +819,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.history_rounded,
               color: _Mau.ngoc,
               title: l.versionHistory,
-              value: historyDaysText(l, _historyDays),
+              value: _historyDays == 0 ? l.historyOff : historySizeText(l, _historyMax),
               onTap: _openHistory,
             ),
           ]),

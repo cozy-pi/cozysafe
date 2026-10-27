@@ -740,5 +740,13 @@
   "confirmRestoreHeldBody": "Trở lại két, và ở lần đồng bộ tới sẽ có lại trên các máy khác.",
   "trashMineTitle": "Bạn đã xoá",
   "trashHeldTitle": "Đã xoá hẳn trên máy khác",
-  "trashHeldNote": "Chỉ còn trên máy này, không đồng bộ nữa. Khôi phục để có lại ở mọi máy."
+  "trashHeldNote": "Chỉ còn trên máy này, không đồng bộ nữa. Khôi phục để có lại ở mọi máy.",
+  "historyKeepUntil": "Giữ bản cũ tới khi đầy",
+  "historyRule": "Chưa đầy thì giữ mãi, dù cũ đến đâu. Khi đầy, bản cũ nhất đã quá 30 ngày bị xoá trước; 30 ngày gần nhất luôn được giữ. Chỉ ở máy này: không đồng bộ, không nằm trong bản sao lưu.",
+  "historyEmptyAny": "Chưa có bản cũ nào. Mỗi lần mục này thay đổi, bản trước đó sẽ được giữ lại.",
+  "syncPreparing": "Đang chuẩn bị mục để gửi",
+  "syncRepairing": "Đang gửi lại tệp bị thiếu",
+  "syncRepairingDrive": "Đang gửi lại tệp bị thiếu lên Google Drive",
+  "syncTidying": "Đang dọn bản cũ",
+  "syncTidyingDrive": "Đang dọn bản cũ trên Google Drive"
 }

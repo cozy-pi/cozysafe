@@ -4,6 +4,31 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.78 (unreleased)
+
+### Changed
+- Version history puts space first, to keep versions as long as possible: until history
+  fills its space nothing goes, however old; once full, the oldest versions more than 30
+  days old go first, and the last 30 days always stay. Settings → Version history is one
+  choice (500 MB, 1 GB, 5 GB, No limit, or Off; 1 GB unless changed) with that rule in a
+  short line.
+
+### Fixed
+- The Android build of 0.1.77 stopped on a missing checksum (a file Google Block Store
+  needs); 0.1.77 reached iPhone and desktop only, Android gets this release.
+- A first sync with Google Drive said "Looking at Google Drive" for a long time while it
+  was reading every item and sending the first files. It now says "Getting items ready
+  to send" with a count, then "Sending to Google Drive" from the first byte, and the
+  sizes and speed move every second while a big file goes up.
+- Every step of a sync says what it does, not only the first time: bringing in is told
+  from the start, files Google Drive lost are "Sending missing files again" with a count,
+  the daily clean-up is "Clearing old versions", and removing deleted items is told
+  before it starts. With a nearby device, the phone being synced with counts items (not
+  their files) and says "Checking" while the other phone only reads lists.
+- Faster sync: bringing items in now fetches several at once (it went one request after
+  another), then takes them in order as before; and a first sync reads the items it
+  must fingerprint several at once. Sending already went several at once.
+
 ## 0.1.77 (2026-10-27)
 
 ### Added

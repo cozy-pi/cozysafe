@@ -1,5 +1,7 @@
-//! Version history: older revisions of each item, kept on this device for a while so
-//! any change can be undone (owner 2026-10-27: "like git", every item, 30 days).
+//! Version history: older revisions of each item, kept on this device so any change can
+//! be undone (owner 2026-10-27: "like git", every item). Space comes first, to keep
+//! versions as long as possible: under the space limit nothing goes, however old; over
+//! it, the oldest that are past the days go first, and the last days are always kept.
 //!
 //! ```text
 //! history/<bucket>/<item>/<superseded_ms>.<rev>.<data_rev>.meta   the old record, sealed
@@ -39,7 +41,8 @@ const DAY_MS: i64 = 24 * 60 * 60 * 1000;
 /// How long and how much history this device keeps.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HistoryLimits {
-    /// Days a version is kept after it was replaced; 0 keeps none (history off).
+    /// Days a version is always kept, even when history is over its space; 0 keeps none
+    /// (history off).
     pub days: u32,
     /// Most space all history may take; 0 for no limit.
     pub max_bytes: u64,
@@ -381,8 +384,10 @@ impl OpenVault {
         out
     }
 
-    /// Drop what falls outside the limits: versions replaced too long ago, then the
-    /// oldest ones until history fits its space. Content goes with the last version
+    /// Drop what falls outside the limits (owner 2026-10-27: keep as long as possible):
+    /// under the space limit nothing goes. Over it, the oldest versions replaced more than
+    /// the days ago go first, until history fits; the last days stay even when that is
+    /// not enough. Content goes with the last version
     /// that needs it. Only files under `history/` are ever removed: the current
     /// version of an item is never touched. Returns how many versions went.
     pub fn prune_history(&self, now_ms: i64) -> Result<usize> {
@@ -442,7 +447,8 @@ impl OpenVault {
         }
         for (ms, f, i) in order {
             let over = limits.max_bytes != 0 && total > limits.max_bytes;
-            if ms >= cutoff && !over {
+            // Oldest first: once one is within the days, all the rest are too.
+            if !over || ms >= cutoff {
                 break;
             }
             let k = &folders[f].kept[i];
@@ -591,11 +597,16 @@ mod tests {
     }
 
     #[test]
-    fn old_versions_go_after_the_days_chosen_and_the_current_one_never() {
+    fn under_the_space_limit_old_versions_stay_over_it_they_go_after_the_days() {
         let (_d, v) = vault();
         let id = note(&v, "A", "one");
         v.replace_item(&id, "A", &b"two"[..]).unwrap();
         let now = crate::items::now_ms();
+        // Room to spare: kept however old.
+        assert_eq!(v.prune_history(now + 400 * DAY_MS).unwrap(), 0);
+        assert_eq!(v.history(&id).unwrap().len(), 1);
+        // Full: still kept within the days, gone after them.
+        v.index.meta_set(BYTES_KEY, "1").unwrap();
         assert_eq!(v.prune_history(now + 29 * DAY_MS).unwrap(), 0);
         assert_eq!(v.prune_history(now + 31 * DAY_MS).unwrap(), 1);
         assert!(v.history(&id).unwrap().is_empty());
@@ -617,7 +628,8 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(2));
         }
         assert_eq!(v.history(&id).unwrap().len(), 3);
-        let now = crate::items::now_ms();
+        // Past the days, so space decides.
+        let now = crate::items::now_ms() + 31 * DAY_MS;
         // Room for about one old version.
         v.set_history_limits(
             HistoryLimits {
@@ -642,6 +654,24 @@ mod tests {
         .unwrap();
         assert!(v.history(&id).unwrap().is_empty());
         assert_eq!(text(&v, &id), "d".repeat(10_000));
+    }
+
+    #[test]
+    fn the_last_days_stay_even_over_the_space_limit() {
+        let (_d, v) = vault();
+        let id = note(&v, "A", &"a".repeat(10_000));
+        v.replace_item(&id, "A", "b".repeat(10_000).as_bytes())
+            .unwrap();
+        let now = crate::items::now_ms();
+        v.set_history_limits(
+            HistoryLimits {
+                days: 30,
+                max_bytes: 1,
+            },
+            now,
+        )
+        .unwrap();
+        assert_eq!(v.history(&id).unwrap().len(), 1);
     }
 
     #[test]

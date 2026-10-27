@@ -896,12 +896,26 @@ fn serve(
 ) -> Result<()> {
     let prefix = format!("{vault_id}/");
     let lock_dir = format!("{vault_id}/lock");
-    // Files and bytes that crossed, for the speed on the host's screen (the total is
-    // the other phone's to know).
+    // What the other phone is doing, as it asks (owner 2026-10-27: every step says what
+    // it does). Items are counted by their records (one per item; content files only add
+    // bytes), so "12 items" means items, not files. Reading lists, the lock and journal
+    // entries is the other phone checking; records and content are items crossing. The
+    // total is the other phone's to know.
     let (mut done, mut bytes) = (0u32, 0u64);
-    let mut tell = |phase, n: u64| {
-        done += 1;
+    let mut last = None;
+    let mut tell = |phase: SyncPhase, path: &str, n: u64| {
+        let item = path.contains("/records/");
+        let phase = if item || path.contains("/blobs/") {
+            phase
+        } else {
+            SyncPhase::Checking
+        };
+        done += item as u32;
         bytes += n;
+        if phase == SyncPhase::Checking && last == Some(SyncPhase::Checking) {
+            return; // once is enough while it only looks
+        }
+        last = Some(phase);
         progress(SyncProgress {
             phase,
             done,
@@ -960,6 +974,7 @@ fn serve(
         }
         match op {
             OP_LIST => {
+                tell(SyncPhase::Checking, "", 0);
                 let names = folder.list(path)?;
                 ch.send(&serde_json::to_vec(&names).expect("serialisable"))?;
             }
@@ -979,7 +994,7 @@ fn serve(
                         sent += n as u64;
                     }
                     ch.send(&[])?;
-                    tell(SyncPhase::Sending, sent);
+                    tell(SyncPhase::Sending, path, sent);
                 }
                 None => ch.send(&[0])?,
             },
@@ -999,7 +1014,7 @@ fn serve(
                     }
                     f.sync_all()?;
                 }
-                tell(SyncPhase::Receiving, got);
+                tell(SyncPhase::Receiving, path, got);
                 // Never overwrite (the folder only ever gains immutable files).
                 if !folder.exists(path)? {
                     let mut f = std::fs::File::open(&tmp)?;
@@ -1841,6 +1856,8 @@ mod tests {
         pick: Mutex<Option<Token>>,
         found: Mutex<Vec<Vec<Peer>>>,
         asked: Mutex<Vec<(String, u16)>>,
+        /// What this side's screen was told.
+        told: Mutex<Vec<SyncProgress>>,
     }
 
     impl Person {
@@ -1880,7 +1897,7 @@ mod tests {
             picked: &|| me.pick.lock().unwrap().take(),
             confirm: &confirm,
             allow: &|_, _| me.allow,
-            progress: &|_| (),
+            progress: &|p| me.told.lock().unwrap().push(p),
         };
         w.run(v, &look, &ask, stop)
     }
@@ -2145,8 +2162,9 @@ mod tests {
         let code = PairCode::parse(&w.code.qr()).unwrap();
         let Two { a, b, dirs, .. } = t;
         let host = std::thread::spawn(move || {
-            let r = run_as(w, &a, vec![], &Person::says(true), &AtomicBool::new(false));
-            (a, r)
+            let me = Person::says(true);
+            let r = run_as(w, &a, vec![], &me, &AtomicBool::new(false));
+            (a, r, me.told.into_inner().unwrap())
         });
         let asked = Mutex::new(Vec::new());
         let confirm = |n: &str, c: u16, _: &dyn Fn() -> bool| {
@@ -2170,11 +2188,20 @@ mod tests {
             &AtomicBool::new(false),
         )
         .unwrap();
-        let (_a, hosted) = host.join().unwrap();
+        let (_a, hosted, told) = host.join().unwrap();
         assert_eq!((joined.name.as_str(), joined.hosted), ("Phone A", false));
         assert_eq!(hosted.unwrap().name, "Tablet B");
         assert_eq!(asked.lock().unwrap().len(), 1);
         assert_eq!(text(&b, &from_a), "aaa");
+        // The host's screen (owner 2026-10-27): first the other phone checking, then the
+        // one item it sent counted as one item (not its record and content files).
+        assert_eq!(told[0].phase, SyncPhase::Checking);
+        let sent: Vec<_> = told
+            .iter()
+            .filter(|p| p.phase == SyncPhase::Sending)
+            .collect();
+        assert_eq!(sent.last().unwrap().done, 1);
+        assert!(sent.last().unwrap().bytes > 0);
         drop(dirs);
     }
 

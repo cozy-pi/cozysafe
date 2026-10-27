@@ -726,5 +726,13 @@
   "confirmRestoreHeldBody": "Es kommt zurück in den Tresor und bei der nächsten Synchronisierung auf Ihre anderen Geräte.",
   "trashMineTitle": "Von Ihnen gelöscht",
   "trashHeldTitle": "Auf einem anderen Gerät endgültig gelöscht",
-  "trashHeldNote": "Nur noch auf diesem Gerät und nicht mehr synchronisiert. Wiederherstellen bringt es überall zurück."
+  "trashHeldNote": "Nur noch auf diesem Gerät und nicht mehr synchronisiert. Wiederherstellen bringt es überall zurück.",
+  "historyKeepUntil": "Ältere Versionen behalten, bis voll",
+  "historyRule": "Bis dieser Platz voll ist, wird nichts gelöscht, egal wie alt. Ist er voll, gehen zuerst die ältesten Versionen, die älter als 30 Tage sind; die letzten 30 Tage bleiben immer. Nur auf diesem Gerät: nicht synchronisiert, nicht in Sicherungen.",
+  "historyEmptyAny": "Noch keine früheren Versionen. Bei jeder Änderung wird die vorherige Version behalten.",
+  "syncPreparing": "Objekte werden zum Senden vorbereitet",
+  "syncRepairing": "Fehlende Dateien werden erneut gesendet",
+  "syncRepairingDrive": "Fehlende Dateien werden erneut an Google Drive gesendet",
+  "syncTidying": "Alte Versionen werden aufgeräumt",
+  "syncTidyingDrive": "Alte Versionen werden aus Google Drive entfernt"
 }
