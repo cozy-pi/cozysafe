@@ -31,6 +31,11 @@ Dates are UTC.
 - safe.cozypi.com is black like the app, only the logo green; it offers the phone and
   tablet apps only (the desktop builds stay on the GitHub release page).
 
+### Security
+- The hashing libraries move to their new versions (sha2 0.11, hkdf 0.13, argon2 0.6,
+  with block-buffer 0.12.1), which fix GHSA-qwgh-2vcv-g2f7. The app was not exposed (no
+  hash ever panics there), but the scanners now find nothing.
+
 ### Fixed
 - Version history: changes made within the same millisecond could list in the wrong
   order.
