@@ -48,6 +48,34 @@ unsupported, e.g. Linux), the system check cannot run and is skipped.
   screenshots are allowed (MainActivity). Android 12 and older with screenshots allowed
   can still show a Recents preview.
 
+## A sync finishing behind the lock (0.1.76)
+
+Owner 2026-10-26: "Even if the vault locks, the screen must stay on and the sync must keep
+running."
+
+- **Locking in the app** (idle lock, Hold Home, the lock button) while Google Drive or a
+  nearby device is moving items: the lock screen shows as always (PIN, Face ID or the
+  password to come back) and the sync goes on underneath, its progress on the lock screen
+  ("Syncing 40%", cloud or device icon, then "Up to date"). The screen stays on until the
+  sync ends.
+- **What stays in memory, and who can reach it.** The vault's slot for the app
+  (`app/rust/src/slot.rs`, `OPEN` in `vault.rs`) empties at once: every call the screens
+  make (list, open, add, settings) answers Locked, and so does one that was waiting on the
+  sync when the lock came. The running sync keeps its own handle (`SyncHold`): the
+  Master Key and index stay in memory only for that sync, and only that code path can
+  use them. When it ends (done, error, Cancel) the handle goes and the key is wiped
+  (zeroize on drop), before the screen hears the end. Opening the same vault again while
+  it runs hands the held one back (never two copies writing one index).
+- **Why that is acceptable.** Nothing new is exposed to someone holding the phone: the
+  screen shows no names or items, only a percentage, and the key was already in memory
+  for the sync before the lock. The window is bounded by the sync itself and by Cancel.
+  Stopping it would have meant starting over (nearby) or a half-done Drive run.
+- **Leaving the app is unchanged:** it locks at once and the sync stops (the system
+  suspends it anyway), the vault is dropped as the run notices the stop; Google Drive
+  continues after the vault opens again, a nearby session must start over. Leaving while
+  a sync runs behind the lock does the same. A nearby session still waiting for the other
+  device, or for an answer on this screen, stops when the vault locks.
+
 ## Secrets on screen
 
 - **Never shown by default.** The Secret Key (Emergency Kit) is masked (`SecretText`):
@@ -120,14 +148,31 @@ By case:
   attacked at all (2¹²⁸).
 - **Recovery Key and backup both leak:** only the password remains; a password at the
   minimum score is our estimate of weeks to years for one machine (not measured).
-- **The real weak spot today is the PIN on the phone**, not the Recovery Key: wrong-PIN
-  waits exist only in the app (4 free tries, then 1, 5, 15 minutes, then 1 hour each,
-  counted in the keystore by `PinStore.addFail`), the PIN copy is not removed after many
-  tries (`forget_pin` exists but the app never calls it), and the device key (32 random
-  bytes, one per device, shared by every vault's PIN) is a plain keystore item, not bound
-  to the secure hardware. An attacker who extracts the keychain/keystore could try all
-  PINs offline. Planned: wipe the PIN copy after a number of wrong tries; bind the device
-  key to the Secure Enclave / StrongBox.
+- **The 24 words in iCloud Keychain** (iPhone, off by default, owner 2026-10-26): a
+  copy of the Recovery Key as a synchronizable keychain item (`lib/key_backup.dart`),
+  end-to-end encrypted by Apple. On, it trades the two independent secrets for one plus
+  the Apple account: whoever takes the account has the words and still needs the vault
+  password. Turning it on asks for the owner; turning it off deletes the copy; a new
+  Recovery Key replaces it. The PIN's device key never goes there.
+- **The error log** (Settings → Report a problem) keeps the last 200 failures as a time,
+  a place and a fixed code (`drive-full`, `io-timed-out`), in a plain file beside the
+  preferences: no names, content, keys, paths or network data, so it can be copied into
+  a message. The core notes its codes (`api/errors.rs`), Dart reduces every word to
+  letters, digits and '-' before writing (`error_log.dart`).
+- **The PIN on the phone** (since 0.1.76, owner 2026-10-26): the device key (32 random
+  bytes, one per device, shared by every vault's PIN) is kept only wrapped by a key made
+  inside the phone's secure hardware (`lib/hw_key.dart`: a Secure Enclave P-256 key with
+  ECIES on iPhone, an Android Keystore AES-GCM key, StrongBox where there is one), so a
+  copy of the keychain/keystore taken off the phone cannot be used to try PINs: every
+  guess has to go through this phone's chip. Keys from before move in on first use;
+  where there is no such hardware (simulators, desktops) the key stays as before. Waits
+  after wrong PINs (4 free tries, then 1, 5, 15 minutes, then 1 hour each) keep the time
+  left, which goes down only while the app runs and by the smaller of the wall clock and
+  a monotonic one: moving the date cannot shorten them. At 10 wrong PINs in a row the PIN
+  copies are removed (`forget_pin`) when the vault has a password to open with; a vault
+  without one keeps its PIN and the waits. Still not like a hardware wallet: the attempt
+  count is kept by the app, so someone with the unlocked phone and full control of it
+  could try PINs there, slowly (each costs an Argon2id run).
 
 Compared with a hardware wallet (Ledger, Trezor): the same 24 BIP39 words once the
 Recovery Key is 256-bit. A hardware wallet keeps its key inside a secure chip that never
@@ -156,6 +201,12 @@ unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.m
 - **In the clear in `vault.db`** (the SQLite index, `core/cs-vault/src/db.rs`): each
   item's id, when it was created, modified and deleted (ms), and its size. The files on
   disk show times and sizes anyway.
+- **Version history** (`history/` beside `items/`, `core/cs-vault/src/history.rs`): an
+  item's older records, sealed exactly as they were, and its older content, encrypted as
+  it was. File names hold only a time and random revision ids. Local only: never synced,
+  never in backups. Deleting an item for good deletes its history; Settings → Version
+  history clears it all or turns it off. Until then, an older version of a note stays
+  readable by whoever opens the vault, as the item itself is.
 - **Not built:** size padding (Padmé), so sizes are exact within a few bytes; a
   monotonic header revision against rollback; locked memory (`mlock`). Keys are wiped
   from memory when dropped (`zeroize`), but may be paged out before that.
@@ -195,8 +246,11 @@ attack. Moving a vault is done by the app's own backup file or sync.
   gave it) crosses only inside the sealed channel, after both proved the vault; a probe's
   answer holds no name and no stable id. Names from the other device are cleaned before
   they are shown or logged.
-- **A new phone restoring** is found only while "Help a new device restore" is on, and
-  served only after Allow (same number on both screens).
+- **A new phone restoring** (24 words and password only) finds a device waiting on its
+  nearby screen; nothing is sent before the person there taps Allow (same number on both
+  screens). Then it gets only the vault's lock, and must prove it opened it (a key
+  confirmation from the Master Key over this session) before a single item is served. A
+  wrong password stops both devices with the lock alone sent.
 
 ## Quantum computers
 

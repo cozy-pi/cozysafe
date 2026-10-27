@@ -21,11 +21,14 @@
 //! the person picks one; if the picked device holds the lower id, it is asked to connect.
 //!
 //! A device with no vault yet (restoring) looks the same way with a key from the 24 words
-//! instead ([`kdf::restore_pairing_key`]), but only finds devices whose person turned
-//! "Help a new device restore" on, and is served only once that person allowed it,
-//! comparing the number both screens show ([`Session::allow`]). It then learns the vault's
-//! id, and opens the vault's lock with the words and the password ([`Library::join`])
-//! before the ordinary sync brings the items.
+//! instead ([`kdf::restore_pairing_key`]): any device waiting on the nearby screen with
+//! the library answers it (no switch, owner 2026-10-26). Nothing is sent until the person
+//! there allowed it, comparing the number both screens show ([`Session::allow`]). Even
+//! then the new device gets only the vault's lock (the Master Key, wrapped under the
+//! password and the words). It opens the lock ([`Library::join`]) and proves it holds the
+//! Master Key ([`restore_proof`]) before a single item record or file is served; the
+//! channel then moves to keys from the vault itself. A wrong password ends there: the old
+//! device is told and stops, having served the lock and nothing else.
 //!
 //! Nothing is advertised on the network: no Bonjour, no broadcast. A QR code (address,
 //! port and token) stays for networks where the knock does not get through.
@@ -49,7 +52,9 @@ use crate::Permit;
 const VERSION: u8 = 2;
 /// What the joiner comes for, in its hello: sync a vault both hold, or restore it.
 const MODE_SYNC: u8 = 1;
-const MODE_RESTORE: u8 = 2;
+/// 6 since 0.1.75 (the new device proves the Master Key before items are served); the
+/// mode 2 of 0.1.73–0.1.74, which was served once allowed, is refused.
+const MODE_RESTORE: u8 = 6;
 /// Not a session: a device looking for its other device on the Wi-Fi.
 const MODE_PROBE: u8 = 3;
 /// Not a session: a short handshake that only swaps names (several devices found, the
@@ -221,6 +226,9 @@ pub struct Channel {
     recv_dir: &'static str,
     /// The 3-digit number both screens show, to compare.
     pub check: u16,
+    /// What binds this session (token and both nonces): a restoring device's proof
+    /// covers it, so a proof is good for this session only.
+    transcript: String,
 }
 
 fn write_frame(stream: &mut TcpStream, bytes: &[u8]) -> Result<()> {
@@ -282,7 +290,24 @@ impl Channel {
     fn rejoin(&mut self, half: RecvHalf) {
         self.recv_n = half.n;
     }
+
+    /// A restoring device proved the Master Key: both sides go on with keys from the
+    /// vault's pairing key (not the 24 words' any more), bound to this session.
+    fn rekey(&mut self, vault_pk: &Key) {
+        let t = &self.transcript;
+        self.send_key = kdf::subkey(vault_pk, &format!("session/restored/{}/{t}", self.send_dir));
+        self.recv_key = kdf::subkey(vault_pk, &format!("session/restored/{}/{t}", self.recv_dir));
+    }
 }
+
+/// The proof a restoring device sends once it opened the vault's lock: a seal under a key
+/// from the vault's pairing key (so from the Master Key) over this session's transcript.
+/// The 24 words alone cannot make it, and it is good for this session only.
+fn restore_proof(vault_pk: &Key, transcript: &str) -> Key {
+    kdf::subkey(vault_pk, &format!("restore-proof/{transcript}"))
+}
+
+const PROOF_AAD: &[u8] = b"cozysafe/p2p/v1/restore-proof";
 
 struct RecvHalf {
     stream: TcpStream,
@@ -322,6 +347,7 @@ fn session(pk: &Key, token: &[u8], nj: &[u8], nh: &[u8], stream: TcpStream, host
             send_dir: "to-joiner",
             recv_dir: "to-host",
             check,
+            transcript: tail,
         }
     } else {
         Channel {
@@ -333,6 +359,7 @@ fn session(pk: &Key, token: &[u8], nj: &[u8], nh: &[u8], stream: TcpStream, host
             send_dir: "to-host",
             recv_dir: "to-joiner",
             check,
+            transcript: tail,
         }
     }
 }
@@ -380,11 +407,10 @@ fn handshake_host(
     let restoring = matches!(mode, MODE_RESTORE | MODE_INTRO_RESTORE);
     let pk = match mode {
         MODE_SYNC | MODE_INTRO => &keys.key,
-        // Only while the person has "Help a new device restore" on.
+        // Only with the library's words (a device without them restores no one).
         MODE_RESTORE | MODE_INTRO_RESTORE => keys
             .restore_key
             .as_ref()
-            .filter(|_| keys.restore_on.load(Ordering::Relaxed))
             .ok_or(Error::Corrupt("p2p hello"))?,
         _ => return Err(Error::Corrupt("p2p hello")),
     };
@@ -513,17 +539,13 @@ fn token_block(token: &Token) -> [u8; TAG_LEN] {
 }
 
 /// A waiting device answers a probe: a fresh nonce, then for each key it holds (the
-/// vault's, and the 24 words' for a device restoring, while the person allows that) a
+/// vault's, and the 24 words' for a device restoring) a
 /// tag that says "same vault" and its token hidden under a second tag. Random bytes stand
 /// in for a key it does not hold or use. No name: names only cross a sealed channel.
 fn answer_probe(keys: &Keys, nj: &[u8], stream: &mut TcpStream) -> Result<()> {
     let nh: [u8; NONCE_LEN] = random();
     let mut reply = nh.to_vec();
-    let restore = keys
-        .restore_key
-        .as_ref()
-        .filter(|_| keys.restore_on.load(Ordering::Relaxed));
-    for pk in [Some(&keys.key), restore] {
+    for pk in [Some(&keys.key), keys.restore_key.as_ref()] {
         match pk {
             Some(pk) => {
                 reply.extend(tag(pk, "vault", nj, &nh));
@@ -539,11 +561,9 @@ fn answer_probe(keys: &Keys, nj: &[u8], stream: &mut TcpStream) -> Result<()> {
 /// threads that read them.
 struct Keys {
     key: Key,
-    /// From the Recovery Key, to let a device with no vault restore this one.
+    /// From the Recovery Key, to let a device with no vault restore this one (only
+    /// once the person here allowed it, and only the lock until it proves the vault).
     restore_key: Option<Key>,
-    /// Whether it may, now: the person turns "Help a new device restore" on and off
-    /// while the device waits.
-    restore_on: Arc<AtomicBool>,
     token: Token,
     name: String,
     /// Devices that asked to be connected to (their person picked this one), by token.
@@ -775,6 +795,8 @@ const OP_DONE: u8 = 9;
 const OP_ABORT: u8 = 8;
 const ABORT_STOPPED: u8 = 0;
 const ABORT_WRONG_PASSWORD: u8 = 1;
+/// A restoring device opened the lock: `[OP_PROVE, seal…]` ([`restore_proof`]).
+const OP_PROVE: u8 = 11;
 
 /// The host's folder, seen by the joiner through the channel.
 pub struct ChannelRemote {
@@ -857,15 +879,23 @@ impl Remote for ChannelRemote {
     }
 }
 
+/// Paths served in tests, with the vault they belong to (to check what crossed).
+#[cfg(test)]
+static SERVED: Mutex<Vec<(String, String)>> = Mutex::new(Vec::new());
+
 /// Answer the joiner's requests from `folder`, only inside this vault's part of it,
-/// until it says it is done.
+/// until it says it is done. With `proof` (a device restoring with the 24 words), only
+/// the vault's lock is served until the device proves the Master Key with it
+/// ([`restore_proof`]); anything else first ends the session.
 fn serve(
     ch: &mut Channel,
     folder: &FolderRemote,
     vault_id: &str,
+    mut proof: Option<&Key>,
     progress: &dyn Fn(SyncProgress),
 ) -> Result<()> {
     let prefix = format!("{vault_id}/");
+    let lock_dir = format!("{vault_id}/lock");
     // Files and bytes that crossed, for the speed on the host's screen (the total is
     // the other phone's to know).
     let (mut done, mut bytes) = (0u32, 0u64);
@@ -884,6 +914,9 @@ fn serve(
         let msg = ch.recv()?;
         let (&op, path) = msg.split_first().ok_or(Error::Corrupt("p2p request"))?;
         if op == OP_DONE {
+            if proof.is_some() {
+                return Err(Error::Corrupt("p2p restore not proven"));
+            }
             ch.send(&[1])?;
             return Ok(());
         }
@@ -893,9 +926,37 @@ fn serve(
                 _ => "p2p peer stopped",
             }));
         }
+        if let Some(pk) = proof {
+            if op == OP_PROVE {
+                wrap::open(&restore_proof(pk, &ch.transcript), path, PROOF_AAD)
+                    .map_err(|_| Error::Corrupt("p2p restore not proven"))?;
+                ch.rekey(pk);
+                proof = None;
+                continue;
+            }
+        }
         let path = std::str::from_utf8(path).map_err(|_| Error::Corrupt("p2p path"))?;
         if path != vault_id && !path.starts_with(&prefix) {
             return Err(Error::Corrupt("p2p path outside the vault"));
+        }
+        // Not proven yet: the lock (its list, one of its files), nothing else.
+        let lock_only = match op {
+            OP_LIST => path == lock_dir,
+            OP_GET => path
+                .strip_prefix(&lock_dir)
+                .and_then(|p| p.strip_prefix('/'))
+                .is_some_and(|f| !f.is_empty() && !f.contains('/')),
+            _ => false,
+        };
+        if proof.is_some() && !lock_only {
+            return Err(Error::Corrupt("p2p restore not proven"));
+        }
+        #[cfg(test)]
+        if op == OP_GET {
+            SERVED
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .push((vault_id.to_owned(), path.to_owned()));
         }
         match op {
             OP_LIST => {
@@ -1043,7 +1104,7 @@ pub struct Prepared {
 /// Sync the vault into `mirror` (an empty private folder) for the other device to read,
 /// and make the keys a waiting device answers with. `name` is this device's, told to the
 /// other only inside a sealed channel. With the library's Recovery Key, a device
-/// restoring with the 24 words may come too, while the person has that on.
+/// restoring with the 24 words may come too (the person here still allows it).
 pub fn host_prepare(
     vault: &OpenVault,
     secret: Option<&SecretKey>,
@@ -1058,7 +1119,6 @@ pub fn host_prepare(
         keys: Arc::new(Keys {
             key: pairing_key(vault),
             restore_key: secret.map(kdf::restore_pairing_key),
-            restore_on: Arc::new(AtomicBool::new(secret.is_some())),
             token: random(),
             name: clean_name(name),
             calls: Mutex::new(Vec::new()),
@@ -1178,12 +1238,6 @@ impl Waiting {
     /// Whether the device has [`PORT`], so the other can find it (else the QR only).
     pub fn findable(&self) -> bool {
         self.code.addr.port() == PORT
-    }
-
-    /// "Help a new device restore", to turn on and off while waiting (no effect without
-    /// the Recovery Key). A device already let in is not affected.
-    pub fn help_restore(&self) -> Arc<AtomicBool> {
-        self.prepared.keys.restore_on.clone()
     }
 
     /// Wait for the other device and look for it (`look` gives a permit for each look,
@@ -1381,6 +1435,7 @@ fn host_side(
             ch,
             vault_id: prepared.vault_id,
             mirror: prepared.mirror,
+            vault_pk: prepared.keys.key.clone(),
             restoring,
             allowed: !restoring,
         };
@@ -1426,6 +1481,8 @@ pub struct Session {
     mirror: PathBuf,
     /// The number both screens show.
     pub check: u16,
+    /// The vault's pairing key: a restoring device proves the Master Key with it.
+    vault_pk: Key,
     restoring: bool,
     /// Served only once true: after both said yes for the same vault, after
     /// [`Session::allow`] for a restoring device.
@@ -1440,7 +1497,7 @@ impl Session {
     }
 
     /// The person allowed the restoring device: tell it which vault (it does not know
-    /// yet), then [`Session::serve`].
+    /// yet), then [`Session::serve`] (the lock only, until it proves the Master Key).
     pub fn allow(&mut self) -> Result<()> {
         if self.restoring && !self.allowed {
             self.ch.send(self.vault_id.as_bytes())?;
@@ -1466,7 +1523,8 @@ impl Session {
         }
         let folder = FolderRemote::with_key(&self.mirror, HOST_KEY);
         set_live(self.ch.stream.try_clone().ok());
-        let served = serve(&mut self.ch, &folder, &self.vault_id, progress);
+        let proof = self.restoring.then_some(&self.vault_pk);
+        let served = serve(&mut self.ch, &folder, &self.vault_id, proof, progress);
         set_live(None);
         served?;
         Ok(Served {
@@ -1539,7 +1597,8 @@ pub fn join_code(
 
 /// Restore onto this device (`dir`, no vault in it) the vault of the device whose QR was
 /// read, with only the 24 words and the password: pair with a key from the words, open
-/// the vault's lock, then sync its items in. False for a wrong password;
+/// the vault's lock, prove the Master Key to the other device, then sync its items in
+/// (the other serves nothing more before that proof). False for a wrong password;
 /// [`Error::WrongSecretKey`] when the other device does not take these words.
 /// `connected` gets the other's name and the number to compare. The vault is then
 /// opened the usual way, from `dir` with the two secrets: nothing that came over the
@@ -1620,8 +1679,25 @@ fn restore_inner(
             return Err(e);
         }
     };
-    let synced = vault
-        .forget_sync_place(JOIN_KEY)
+    // The lock opened: prove the Master Key, then go on under the vault's own keys.
+    let proven = (|| {
+        let mut ch = remote
+            .ch
+            .lock()
+            .map_err(|_| Error::Corrupt("p2p channel"))?;
+        let pk = pairing_key(&vault);
+        let mut msg = vec![OP_PROVE];
+        msg.extend(wrap::seal(
+            &restore_proof(&pk, &ch.transcript),
+            b"",
+            PROOF_AAD,
+        ));
+        ch.send(&msg)?;
+        ch.rekey(&pk);
+        Ok::<_, Error>(())
+    })();
+    let synced = proven
+        .and_then(|_| vault.forget_sync_place(JOIN_KEY))
         .and_then(|_| vault.sync_with(&remote, progress).map(|_| ()));
     if let Err(e) = synced {
         remote.abort(ABORT_STOPPED);
@@ -1643,7 +1719,7 @@ pub struct RestoreAsk<'a> {
 }
 
 /// Look on the Wi-Fi (`look` gives a permit for each look) for a device that takes these
-/// 24 words, whose person turned "Help a new device restore" on, and restore from it
+/// 24 words (waiting on its nearby screen), and restore from it
 /// ([`restore`]): at once when there is one, the one the person picks when several.
 #[allow(clippy::too_many_arguments)]
 pub fn restore_nearby(
@@ -2179,7 +2255,6 @@ mod tests {
         let keys = Keys {
             key: pk.clone(),
             restore_key: None,
-            restore_on: Arc::new(AtomicBool::new(false)),
             token,
             name: String::new(),
             calls: Mutex::new(Vec::new()),
@@ -2215,11 +2290,83 @@ mod tests {
         let (mut h, mut j) = pair();
         let folder_dir = tempfile::tempdir().unwrap();
         let folder = FolderRemote::new(folder_dir.path());
-        let server = std::thread::spawn(move || serve(&mut h, &folder, "abcd", &|_| ()));
+        let server = std::thread::spawn(move || serve(&mut h, &folder, "abcd", None, &|_| ()));
         let mut msg = vec![OP_GET];
         msg.extend_from_slice(b"other-vault/records/x");
         j.send(&msg).unwrap();
         assert!(server.join().unwrap().is_err());
+    }
+
+    /// Before its proof, a restoring device gets the lock and nothing else; a proof made
+    /// without the Master Key, or one from another session, ends the session.
+    #[test]
+    fn before_the_proof_only_the_lock_is_served() {
+        let t = two();
+        let vault_pk = pairing_key(&t.a);
+        let mirror = tempfile::tempdir().unwrap();
+        let folder_dir = mirror.path().to_path_buf();
+        t.a.sync(&FolderRemote::with_key(&folder_dir, HOST_KEY))
+            .unwrap();
+        let id = t.a.id.clone();
+        let start = |pk: Key| {
+            let (mut h, j) = pair();
+            let (dir, id) = (folder_dir.clone(), id.clone());
+            let server = std::thread::spawn(move || {
+                let folder = FolderRemote::with_key(&dir, HOST_KEY);
+                serve(&mut h, &folder, &id, Some(&pk), &|_| ())
+            });
+            (j, server)
+        };
+        // The lock's list and a lock file come; a record does not.
+        let (mut j, server) = start(vault_pk.clone());
+        let mut msg = vec![OP_LIST];
+        msg.extend_from_slice(format!("{id}/lock").as_bytes());
+        j.send(&msg).unwrap();
+        let names: Vec<String> = serde_json::from_slice(&j.recv().unwrap()).unwrap();
+        assert!(!names.is_empty());
+        let mut msg = vec![OP_LIST];
+        msg.extend_from_slice(format!("{id}/records").as_bytes());
+        j.send(&msg).unwrap();
+        assert!(matches!(
+            server.join().unwrap(),
+            Err(Error::Corrupt("p2p restore not proven"))
+        ));
+        // Done before the proof: nothing more either.
+        let (mut j, server) = start(vault_pk.clone());
+        j.send(&[OP_DONE]).unwrap();
+        assert!(server.join().unwrap().is_err());
+        // A proof under the words' key (no Master Key), or another session's, fails.
+        let words_pk = kdf::restore_pairing_key(&t.sk);
+        for (key, transcript) in [(words_pk, None), (vault_pk.clone(), Some("other"))] {
+            let (mut j, server) = start(vault_pk.clone());
+            let t = transcript
+                .map(str::to_owned)
+                .unwrap_or(j.transcript.clone());
+            let mut msg = vec![OP_PROVE];
+            msg.extend(wrap::seal(&restore_proof(&key, &t), b"", PROOF_AAD));
+            j.send(&msg).unwrap();
+            assert!(matches!(
+                server.join().unwrap(),
+                Err(Error::Corrupt("p2p restore not proven"))
+            ));
+        }
+        // The right proof: the rest is served, under the vault's keys.
+        let (mut j, server) = start(vault_pk.clone());
+        let mut msg = vec![OP_PROVE];
+        msg.extend(wrap::seal(
+            &restore_proof(&vault_pk, &j.transcript),
+            b"",
+            PROOF_AAD,
+        ));
+        j.send(&msg).unwrap();
+        j.rekey(&vault_pk);
+        let mut msg = vec![OP_LIST];
+        msg.extend_from_slice(format!("{id}/records").as_bytes());
+        j.send(&msg).unwrap();
+        let _: Vec<String> = serde_json::from_slice(&j.recv().unwrap()).unwrap();
+        j.send(&[OP_DONE]).unwrap();
+        assert_eq!(j.recv().unwrap(), [1]);
+        assert!(server.join().unwrap().is_ok());
     }
 
     #[test]
@@ -2231,6 +2378,7 @@ mod tests {
             ch: h,
             vault_id: "abcd".into(),
             mirror: mirror.path().to_path_buf(),
+            vault_pk: Key::from_bytes(random()),
             restoring: true,
             allowed: false,
         };
@@ -2283,21 +2431,19 @@ mod tests {
         Option<(String, u16)>,
     );
 
-    /// The old device waits with "Help a new device restore" `help` and answers `allow`;
-    /// a new one restores into a fresh folder with `words` and `password`, by the QR or
-    /// (`look`) by looking on the Wi-Fi.
+    /// The old device waits on its nearby screen and answers `allow`; a new one restores
+    /// into a fresh folder with `words` and `password`, by the QR or (`look`) by looking
+    /// on the Wi-Fi.
     fn restore_asking(
         t: &Two,
         words: SecretKey,
         password: &str,
-        help: bool,
         allow: bool,
         look: bool,
     ) -> Restored {
         let mirror = tempfile::tempdir().unwrap();
         let fresh = tempfile::tempdir().unwrap();
         let w = waiting(&t.a, Some(&t.sk), "Old phone", mirror.path());
-        w.help_restore().store(help, Ordering::Relaxed);
         let code = w.code.clone();
         let stop = Arc::new(AtomicBool::new(false));
         // The new device on its own thread; it stops the old one's wait when it is done.
@@ -2371,7 +2517,7 @@ mod tests {
         let id = note(&t.a, "bank", "PIN 4821");
         let sk = t.sk.clone();
         for look in [false, true] {
-            let (got, hosted, dir, asked) = restore_asking(&t, sk.clone(), &t.pw, true, true, look);
+            let (got, hosted, dir, asked) = restore_asking(&t, sk.clone(), &t.pw, true, look);
             assert!(got.unwrap());
             assert!(hosted.unwrap().hosted);
             assert!(asked.is_some());
@@ -2386,16 +2532,27 @@ mod tests {
         let t = two();
         let sk = t.sk.clone();
         let wrong: String = t.pw.chars().rev().collect();
-        let (got, hosted, dir, _) = restore_asking(&t, sk.clone(), &wrong, true, true, false);
+        let (got, hosted, dir, _) = restore_asking(&t, sk.clone(), &wrong, true, false);
         assert!(!got.unwrap());
         assert!(!Library::has_vaults(dir.path()));
+        // It got the lock (to try the password on) and nothing else.
+        let served: Vec<String> = SERVED
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(v, _)| v == &t.a.id)
+            .map(|(_, p)| p.clone())
+            .collect();
+        assert!(!served.is_empty());
+        let lock = format!("{}/lock/", t.a.id);
+        assert!(served.iter().all(|p| p.starts_with(&lock)), "{served:?}");
         // The old phone is told, and stops: it does not keep waiting.
         assert!(
             matches!(hosted, Err(Error::Corrupt("p2p restore wrong password"))),
             "{hosted:?}"
         );
         let other = crate::testkit::other_words(&sk);
-        let (got, hosted, dir, _) = restore_asking(&t, other, &t.pw, true, true, false);
+        let (got, hosted, dir, _) = restore_asking(&t, other, &t.pw, true, false);
         assert!(matches!(got, Err(Error::WrongSecretKey)));
         assert!(!Library::has_vaults(dir.path()));
         assert!(
@@ -2408,7 +2565,7 @@ mod tests {
     fn a_restoring_device_waits_for_the_old_one_to_allow_it() {
         let t = two();
         let sk = t.sk.clone();
-        let (got, hosted, dir, asked) = restore_asking(&t, sk.clone(), &t.pw, true, false, false);
+        let (got, hosted, dir, asked) = restore_asking(&t, sk.clone(), &t.pw, false, false);
         // Turned down: the new phone is told the other stopped, and gets nothing.
         assert!(
             matches!(got, Err(Error::Corrupt("p2p peer stopped"))),
@@ -2423,11 +2580,11 @@ mod tests {
     }
 
     #[test]
-    fn with_restore_off_a_new_device_finds_nothing_and_is_refused() {
+    fn a_device_with_other_words_finds_nothing_and_is_refused() {
         let t = two();
-        let sk = t.sk.clone();
-        // Looking: nothing answers to the words.
-        let (got, hosted, dir, asked) = restore_asking(&t, sk.clone(), &t.pw, false, true, true);
+        let other = crate::testkit::other_words(&t.sk);
+        // Looking: nothing answers to those words.
+        let (got, hosted, dir, asked) = restore_asking(&t, other.clone(), &t.pw, true, true);
         assert!(
             matches!(got, Err(Error::Corrupt("p2p cancelled"))),
             "{got:?}"
@@ -2438,20 +2595,15 @@ mod tests {
         );
         assert!(asked.is_none());
         assert!(!Library::has_vaults(dir.path()));
-        // With the QR anyway: refused.
-        let (got, _hosted, dir, asked) = restore_asking(&t, sk, &t.pw, false, true, false);
-        assert!(got.is_err());
-        assert!(asked.is_none());
-        assert!(!Library::has_vaults(dir.path()));
+        // Nothing of this vault was served.
+        assert!(!SERVED.lock().unwrap().iter().any(|(v, _)| v == &t.a.id));
     }
 
     #[test]
-    fn probes_from_restoring_devices_follow_the_switch() {
+    fn probes_from_restoring_devices_need_the_words() {
         let t = two();
         let mirror = tempfile::tempdir().unwrap();
         let w = waiting(&t.a, Some(&t.sk), "A", mirror.path());
-        let flag = w.help_restore();
-        flag.store(false, Ordering::Relaxed);
         let addr = w.code.addr;
         let Two { a, b, sk, dirs, .. } = t;
         let stop = Arc::new(AtomicBool::new(false));
@@ -2460,20 +2612,28 @@ mod tests {
         // Someone who connects and says nothing holds up no one.
         let _silent: Vec<_> = (0..4).map(|_| TcpStream::connect(addr).unwrap()).collect();
         let started = Instant::now();
-        assert!(probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).is_empty());
+        assert_eq!(
+            probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).len(),
+            1
+        );
         assert_eq!(probe_all(&[addr], &pairing_key(&b), false).len(), 1);
         assert!(
             started.elapsed() < Duration::from_secs(2),
             "{:?}",
             started.elapsed()
         );
-        flag.store(true, Ordering::Relaxed);
-        assert_eq!(
-            probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).len(),
-            1
-        );
         let stranger = crate::testkit::other_words(&sk);
         assert!(probe_all(&[addr], &kdf::restore_pairing_key(&stranger), true).is_empty());
+        stop.store(true, Ordering::Relaxed);
+        assert!(host.join().unwrap().is_err());
+        // A device waiting without the library's words answers no restoring device.
+        let mirror = tempfile::tempdir().unwrap();
+        let w = waiting(&b, None, "B", mirror.path());
+        let addr = w.code.addr;
+        let stop = Arc::new(AtomicBool::new(false));
+        let s2 = stop.clone();
+        let host = std::thread::spawn(move || run_as(w, &b, vec![], &Person::says(true), &s2));
+        assert!(probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).is_empty());
         stop.store(true, Ordering::Relaxed);
         assert!(host.join().unwrap().is_err());
         drop(dirs);

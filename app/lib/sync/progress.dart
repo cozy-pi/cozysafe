@@ -2,20 +2,27 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
+import '../error_log.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_resume.dart';
 import '../platform.dart';
 import '../screens/file_view.dart' show fileSize;
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
+import '../widgets/toast.dart';
 import 'awake.dart';
+import 'status.dart';
 
 /// The live part of a session: [waiting] until the other device proves it holds this
 /// vault, then the number to compare while it syncs, then the result. Leaving before
-/// the end cancels. A Google Drive run stopped while the app was away (phone locked)
-/// continues by itself when the person comes back, and one stopped by the vault locking
-/// continues once it opens again; a session with another device cannot wait, and says so.
+/// the end cancels. The vault locking in the app does not stop a run under way: it goes
+/// on behind the lock screen, which shows how far it is (lib/sync/status.dart). A Google
+/// Drive run stopped while the app was away (phone locked) continues by itself when the
+/// person comes back, and one stopped by leaving the app continues once the vault opens
+/// again; a session with another device cannot wait, and says so.
 /// Who is on the other end, to draw and name it.
 enum SyncPlace { drive, device }
 
@@ -65,6 +72,13 @@ class _SyncProgressState extends State<SyncProgress>
   List<String> _peerIds = const [];
   /// The person picked one of several: it is connecting.
   bool _picked = false;
+  /// Seconds left before "Sync with …?" or "Let … restore?" answers itself (owner
+  /// 2026-10-26: the number shows, the sync starts on its own, Cancel stops it). Safety
+  /// is in the handshake, not in the tap: only a device with the 24 words gets the lock,
+  /// and only one that proves the Master Key gets an item (ADR 0003).
+  static const autoSeconds = 5;
+  int _left = 0;
+  Timer? _auto;
 
   static const _running = {
     sync.SyncStep.askRestore,
@@ -91,9 +105,34 @@ class _SyncProgressState extends State<SyncProgress>
 
   bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;
 
+  /// Moving items (or about to, the person having said Sync): what goes on behind the
+  /// lock screen when the vault locks.
+  static const _moving = {
+    sync.SyncStep.connected,
+    sync.SyncStep.checking,
+    sync.SyncStep.receiving,
+    sync.SyncStep.sending,
+    sync.SyncStep.removing,
+    sync.SyncStep.driveListing,
+    sync.SyncStep.driveFolders,
+    sync.SyncStep.driveMoving,
+  };
+
+  /// The run keeps going when the vault locks in the app: all of a Google Drive run; a
+  /// session with another device once it moves items, not while it still waits for the
+  /// other device or for an answer only this screen can give.
+  bool get _keepsGoing {
+    if (widget.restoring || _over) return false;
+    if (widget.place == SyncPlace.drive) return true;
+    final k = _last?.kind;
+    if (k == null) return false;
+    return _moving.contains(k) || (_answered && (k == sync.SyncStep.confirm || k == sync.SyncStep.askRestore));
+  }
+
   bool _started = false;
-  /// The vault locked in the middle of the run: it was stopped, and continues once the
-  /// same vault opens again.
+  /// The run was stopped by the vault locking as the app was left (or by leaving it
+  /// while it went on behind the lock), or was cut behind the lock: it continues once
+  /// the same vault opens again.
   bool _stoppedByLock = false;
   /// The app left the screen (phone locked, another app) since the last automatic
   /// Continue; iOS stops a sync soon after.
@@ -145,12 +184,17 @@ class _SyncProgressState extends State<SyncProgress>
       }
       setState(() {
         if (_last?.kind != e.kind) _samples.clear();
+        final asks = (e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) && _last?.kind != e.kind;
+        if (e.kind != sync.SyncStep.askRestore && e.kind != sync.SyncStep.confirm) _stopCountDown();
         _last = e;
         if (e.kind == sync.SyncStep.connected || e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) {
           _check = e.check;
           _name = e.name;
         }
-        if (e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) _answered = false;
+        if (asks) {
+          _answered = false;
+          _countDown();
+        }
         _samples.add((DateTime.now(), e.bytes.toInt(), e.done));
         // A few seconds back is enough for a steady figure.
         final from = DateTime.now().subtract(const Duration(seconds: 4));
@@ -163,31 +207,72 @@ class _SyncProgressState extends State<SyncProgress>
       } else {
         _notify(e);
       }
+      _publish();
       if (e.kind == sync.SyncStep.done) widget.onSynced();
-      if (e.kind == sync.SyncStep.interrupted) _autoContinue();
+      if (e.kind == sync.SyncStep.interrupted) _interrupted();
     }, onError: (Object _) {
       // The stream itself broke (the app was suspended mid-way): the same as an
       // interruption, which the engine's journal makes safe to continue.
       if (!mounted) return;
       setState(() => _last = _step(sync.SyncStep.interrupted));
       Awake.set(false);
-      _autoContinue();
+      _publish();
+      _interrupted();
     });
   }
 
-  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0);
+  /// Cut behind the lock: it continues once the vault opens again; else as on return.
+  void _interrupted() {
+    if (vaultLock.locked && widget.retry != null) {
+      _stoppedByLock = true;
+      return;
+    }
+    _autoContinue();
+  }
 
-  /// The page stays under the lock, but the run needs the open vault: stop it now (it
-  /// holds the vault, which could not lock meanwhile). Google Drive picks up after, from
-  /// the engine's journal; a session with another device ends ("open it and try again").
+  /// What the lock screen shows of this run: how far it is while it runs, and "Up to
+  /// date" when it finished behind the lock; nothing otherwise.
+  void _publish() {
+    final e = _last;
+    if (e == null || widget.restoring) return;
+    final show = !_over || (e.kind == sync.SyncStep.done && vaultLock.locked);
+    syncStatus.value = show
+        ? SyncStatus(
+            drive: widget.place == SyncPlace.drive,
+            kind: e.kind,
+            done: e.done,
+            total: e.total,
+            bytes: e.bytes.toInt(),
+            bytesTotal: e.bytesTotal.toInt(),
+          )
+        : null;
+  }
+
+  static sync.SyncEvent _step(sync.SyncStep kind) => sync.SyncEvent(kind: kind, check: 0, name: '', peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: '');
+
+  /// The page stays under the lock. Locked in the app (idle, Hold Home…) with items
+  /// moving: the run keeps going behind the lock screen, the screen stays on, and the
+  /// vault, out of the app's reach, stays with the run until it ends (docs/security.md).
+  /// Locked by leaving the app, or still waiting for the other device: stopped, as the
+  /// system would suspend it anyway.
   @override
   void vaultLocking() {
     if (_over) return;
+    final state = WidgetsBinding.instance.lifecycleState;
+    final leaving = state == AppLifecycleState.hidden || state == AppLifecycleState.paused;
+    if (_keepsGoing && !leaving) return _publish();
+    _stopForLock();
+  }
+
+  /// Stop the run for the lock. Google Drive picks up after, from the engine's journal;
+  /// a session with another device ends ("open it and try again").
+  void _stopForLock() {
     _sub?.cancel();
     _sub = null;
     sync.p2PCancel();
     Awake.set(false);
     final again = widget.retry != null;
+    syncStatus.value = null;
     setState(() {
       _stoppedByLock = again;
       _knock = false;
@@ -197,6 +282,8 @@ class _SyncProgressState extends State<SyncProgress>
 
   @override
   void vaultUnlocked() {
+    // Finished behind the lock: this page tells the rest now.
+    if (_over) syncStatus.value = null;
     if (!_stoppedByLock || widget.retry == null) return;
     _stoppedByLock = false;
     _wasAway = false;
@@ -212,6 +299,8 @@ class _SyncProgressState extends State<SyncProgress>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
       _wasAway = true;
+      // Going on behind the lock, then the app is left: stopped as if it had locked now.
+      if (vaultLock.locked && !_over && _sub != null) _stopForLock();
     } else if (state == AppLifecycleState.resumed) {
       _backAt = DateTime.now();
       _autoContinue();
@@ -252,9 +341,17 @@ class _SyncProgressState extends State<SyncProgress>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _flow.dispose();
+    _auto?.cancel();
     if (!_over) sync.p2PCancel();
     Awake.set(false);
     _sub?.cancel();
+    // Not now: the lock screen listening must not rebuild while the tree is torn down.
+    final shown = syncStatus.value;
+    if (shown != null) {
+      Future.microtask(() {
+        if (identical(syncStatus.value, shown)) syncStatus.value = null;
+      });
+    }
     super.dispose();
   }
 
@@ -269,12 +366,32 @@ class _SyncProgressState extends State<SyncProgress>
     _ => l.syncWorking,
   };
 
-  /// A new device restoring with the 24 words asks to come in (host): the number its
-  /// screen shows, and Allow or Don't allow. Nothing is served before Allow.
+  /// A new device restoring with the 24 words asks to come in (host): its name and the
+  /// number its screen shows; it goes on by itself after [autoSeconds] unless cancelled.
   /// The number both screens show, to compare.
   String get _number => (_check ?? 0).toString().padLeft(3, '0');
 
+  void _countDown() {
+    _auto?.cancel();
+    _left = autoSeconds;
+    _auto = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return t.cancel();
+      if (_left <= 1) {
+        t.cancel();
+        _answer(true);
+      } else {
+        setState(() => _left--);
+      }
+    });
+  }
+
+  void _stopCountDown() {
+    _auto?.cancel();
+    _auto = null;
+  }
+
   void _answer(bool yes) {
+    _stopCountDown();
     setState(() => _answered = true);
     try {
       sync.p2PAnswer(yes: yes);
@@ -282,44 +399,29 @@ class _SyncProgressState extends State<SyncProgress>
   }
 
   Widget _allowCard(AppLocalizations l, CsColors c) {
-    void answer(bool allow) => _answer(allow);
-
     return Column(
       key: const ValueKey('sync-allow-card'),
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(Icons.phonelink_lock_rounded, size: 44, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 14),
-        Text(_name.isEmpty ? l.syncRestoreAllowTitle : l.syncRestoreAllowName(_name),
+        Text(_name.isEmpty ? l.syncRestoreAllowTitle : l.syncConnectedTo(_name),
             textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const SizedBox(height: 18),
         _Number(key: const ValueKey('sync-allow-check'), text: l.syncConfirmNumber(_number)),
         const SizedBox(height: 8),
-        Text(l.syncRestoreAllowNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
-        const SizedBox(height: 24),
-        Row(children: [
-          Expanded(
-            child: OutlinedButton(
-              key: const ValueKey('sync-allow-no'),
-              onPressed: _answered ? null : () => answer(false),
-              child: Text(l.syncRestoreAllowNo),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton(
-              key: const ValueKey('sync-allow-yes'),
-              onPressed: _answered ? null : () => answer(true),
-              child: Text(l.syncRestoreAllowYes),
-            ),
-          ),
-        ]),
+        Text(l.syncConfirmHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+        if (!_answered) _autoLine(l, c),
+        if (_answered) ...[
+          const SizedBox(height: 24),
+          const SizedBox(width: 160, child: LinearProgressIndicator()),
+        ],
       ],
     );
   }
 
-  /// Connected to a device that proved this vault: "Sync with …?" next to the number both
-  /// screens show; the buttons are at the bottom. After Sync, it waits for the other.
+  /// Connected to a device that proved this vault: its name and the number both screens
+  /// show; the sync starts by itself after [autoSeconds], Cancel at the bottom stops it.
   Widget _confirmCard(AppLocalizations l, CsColors c) {
     final name = _name.isEmpty ? 'Cozy Safe' : _name;
     return Column(
@@ -328,13 +430,15 @@ class _SyncProgressState extends State<SyncProgress>
       children: [
         Icon(deviceIcon(_name), size: 52, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 14),
-        Text(_answered ? l.syncConfirmWaiting(name) : l.syncConfirmTitle(name),
+        Text(_answered ? l.syncConfirmWaiting(name) : l.syncConnectedTo(name),
             key: const ValueKey('sync-confirm-title'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.25)),
         const SizedBox(height: 22),
         _Number(key: const ValueKey('sync-check'), text: l.syncConfirmNumber(_number)),
         const SizedBox(height: 12),
-        Text(_answered ? l.syncConfirmWaitingNote : l.syncConfirmHint,
-            textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+        if (!_answered) ...[
+          Text(l.syncConfirmHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
+          _autoLine(l, c),
+        ],
         if (_answered) ...[
           const SizedBox(height: 24),
           const SizedBox(width: 160, child: LinearProgressIndicator()),
@@ -342,6 +446,25 @@ class _SyncProgressState extends State<SyncProgress>
       ],
     );
   }
+
+  Future<void> _copyDetails(sync.SyncEvent e) async {
+    final l = AppLocalizations.of(context);
+    var version = '';
+    try {
+      final p = await PackageInfo.fromPlatform();
+      version = '${p.version} (${p.buildNumber})';
+    } catch (_) {}
+    final where = widget.place == SyncPlace.drive ? 'Google Drive' : 'nearby';
+    await Clipboard.setData(ClipboardData(text: ErrorLog.report(version: version, now: '$where ${e.kind.name} ${e.code}')));
+    if (mounted) showToast(context, l.detailsCopied, icon: Icons.check_rounded);
+  }
+
+  /// "Syncing in 5 s", counting down.
+  Widget _autoLine(AppLocalizations l, CsColors c) => Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Text(l.syncAutoIn(_left), key: const ValueKey('sync-auto'),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
+      );
 
   /// Several devices with this vault: the person picks one (names come from a sealed
   /// handshake with each; "Another device with this vault" until then).
@@ -460,8 +583,6 @@ class _SyncProgressState extends State<SyncProgress>
       ),
       const SizedBox(height: 26),
       Text(title, key: const ValueKey('sync-progress'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 6),
-      Text(e.kind == sync.SyncStep.removing ? l.syncRemovingWhat : l.syncWhat, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14.5, height: 1.35)),
       const SizedBox(height: 22),
       LinearProgressIndicator(
         value: bytesTotal > 0 ? (bytes / bytesTotal).clamp(0, 1) : (e.total > 0 ? e.done / e.total : null),
@@ -545,18 +666,13 @@ class _SyncProgressState extends State<SyncProgress>
               const SizedBox(height: 18),
               _Number(key: const ValueKey('sync-check'), text: l.syncConfirmNumber(_number)),
               const SizedBox(height: 8),
-              Text(l.syncCheckNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
-              if (widget.restoring) ...[
-                const SizedBox(height: 10),
-                Text(l.restoreTapAllow,
-                    key: const ValueKey('sync-tap-allow'),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.35)),
-              ],
+              Text(l.syncConfirmHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.35)),
               const SizedBox(height: 28),
               const SizedBox(width: 160, child: LinearProgressIndicator()),
-              const SizedBox(height: 10),
-              Text(l.syncWorking, style: TextStyle(color: c.muted)),
+              if (!widget.restoring) ...[
+                const SizedBox(height: 10),
+                Text(l.syncWorking, style: TextStyle(color: c.muted)),
+              ],
             ],
           ),
         sync.SyncStep.done => _Status(
@@ -571,6 +687,10 @@ class _SyncProgressState extends State<SyncProgress>
               if (e.removed > 0) l.syncDoneHeld(e.removed),
               if (e.moved > 0) l.syncDriveMoved(e.moved),
               if (e.copies > 0) l.syncDoneCopies(e.copies.toString()),
+              // Drive's own checksums found files it lost or damaged (owner 2026-10-26:
+              // say so).
+              if (e.repaired > 0) l.syncDriveRepaired(e.repaired),
+              if (e.unrepaired > 0) l.syncDriveUnrepaired(e.unrepaired),
             ],
           ),
         sync.SyncStep.expired => _Status(icon: Icons.timer_off_outlined, title: l.syncExpired),
@@ -582,6 +702,7 @@ class _SyncProgressState extends State<SyncProgress>
         sync.SyncStep.signIn => _Status(icon: Icons.account_circle_outlined, color: const Color(0xFFFF9500), title: l.syncSignInAgain),
         sync.SyncStep.peerWrongWords => _Status(icon: Icons.key_off_outlined, color: const Color(0xFFFF9500), title: l.syncPeerWrongWords),
         sync.SyncStep.peerWrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.syncPeerWrongPassword),
+        sync.SyncStep.driveFull => _Status(icon: Icons.cloud_off_rounded, color: const Color(0xFFFF9500), title: l.syncDriveFull),
         sync.SyncStep.peerStopped => _Status(icon: Icons.stop_circle_outlined, color: const Color(0xFFFF9500), title: l.syncPeerStopped),
         sync.SyncStep.wrongWords => _Status(icon: Icons.key_off_outlined, color: const Color(0xFFFF9500), title: l.restoreWrongWords),
         sync.SyncStep.wrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.wrongPassword),
@@ -597,31 +718,36 @@ class _SyncProgressState extends State<SyncProgress>
         // Never the last word (handled above); kept for an exhaustive switch.
         sync.SyncStep.rejected || sync.SyncStep.knock || sync.SyncStep.found => _Status(icon: null, title: l.syncWorking),
       };
+      // What went wrong, as a code to copy (owner 2026-10-26: errors nobody could tell).
+      if (_over && e.code.isNotEmpty) {
+        body = Column(mainAxisSize: MainAxisSize.min, children: [
+          body,
+          const SizedBox(height: 18),
+          Text(l.errorCode(e.code), key: const ValueKey('sync-error-code'), style: TextStyle(color: c.muted, fontSize: 13)),
+          TextButton.icon(
+            key: const ValueKey('sync-copy-details'),
+            onPressed: () => _copyDetails(e),
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            label: Text(l.copyDetails),
+          ),
+        ]);
+      }
     }
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
       child: Column(
         children: [
           Expanded(child: Center(child: SingleChildScrollView(child: body))),
-          if (e?.kind == sync.SyncStep.confirm && !_answered)
-            // Both buttons within the thumb's reach; Sync only counts once both said it.
-            Row(children: [
-              Expanded(
-                child: OutlinedButton(
-                  key: const ValueKey('sync-confirm-no'),
-                  onPressed: () => _answer(false),
-                  child: Text(l.cancel),
-                ),
+          if ((e?.kind == sync.SyncStep.askRestore || e?.kind == sync.SyncStep.confirm) && !_answered)
+            // It goes on by itself; Cancel is the one button, within the thumb's reach.
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                key: const ValueKey('sync-confirm-no'),
+                onPressed: () => _answer(false),
+                child: Text(l.cancel),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  key: const ValueKey('sync-confirm-yes'),
-                  onPressed: () => _answer(true),
-                  child: Text(l.syncConfirmYes),
-                ),
-              ),
-            ])
+            )
           else
           SizedBox(
             width: double.infinity,
@@ -680,8 +806,10 @@ class _Status extends StatelessWidget {
 /// This phone and the other end (Google Drive or another device), with dots running
 /// the way the items go.
 class _Ends extends StatelessWidget {
-  const _Ends({required this.flow, required this.place, required this.direction});
+  const _Ends({required this.flow, required this.place, required this.direction, this.still = false});
   final Animation<double> flow;
+  /// Drawn at rest (no light, no breathing).
+  final bool still;
   final SyncPlace place;
   /// 1: from this phone to the other end; -1: back; 0: looking (both ends breathe).
   final int direction;
@@ -696,7 +824,7 @@ class _Ends extends StatelessWidget {
     const mine = blue;
     const theirs = green;
     final packets = direction > 0 ? mine : theirs;
-    final still = MediaQuery.disableAnimationsOf(context);
+    final still = this.still || MediaQuery.disableAnimationsOf(context);
     Widget end(IconData icon, Color color, double scale, double ring) => Transform.scale(
           scale: scale,
           child: Container(
@@ -731,7 +859,16 @@ class _Ends extends StatelessWidget {
           SizedBox(
             width: 112,
             height: 64,
-            child: CustomPaint(painter: _FlowPainter(t: t, direction: direction, color: packets, track: c.border)),
+            // The lock sits on top of the arch and the packets pass behind it: encrypted
+            // on the way (owner 2026-10-26: a picture instead of a sentence).
+            child: Stack(clipBehavior: Clip.none, children: [
+              Positioned.fill(child: CustomPaint(painter: _FlowPainter(t: t, direction: direction, color: packets, track: c.border, still: this.still))),
+              Positioned(
+                left: 56 - _PathLock.size / 2,
+                top: 64 * _FlowPainter.top - _PathLock.size / 2,
+                child: const _PathLock(key: ValueKey('sync-path-lock')),
+              ),
+            ]),
           ),
           end(place == SyncPlace.drive ? Icons.cloud_rounded : Icons.phone_android_rounded, theirs,
               1 + .05 * there - .025 * breathe, there),
@@ -741,12 +878,70 @@ class _Ends extends StatelessWidget {
   }
 }
 
+/// A closed padlock in a circle, on the way between the two ends.
+class _PathLock extends StatelessWidget {
+  const _PathLock({super.key});
+  static const size = 30.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        // The page's own colour, so the packets disappear behind it.
+        color: Theme.of(context).scaffoldBackgroundColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: c.border, width: 1.5),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: dark ? .5 : .12), blurRadius: 6, offset: const Offset(0, 1.5))],
+      ),
+      child: Icon(Icons.lock_rounded, size: 16, color: dark ? const Color(0xFFFFD60A) : const Color(0xFFE5A100)),
+    );
+  }
+}
+
+/// This device and the other end with the lock between them, moving on its own: for the
+/// screens around a session (the Sync screen, while waiting).
+class SyncLink extends StatefulWidget {
+  const SyncLink({super.key, this.place = SyncPlace.device, this.moving = true});
+  final SyncPlace place;
+  /// False: still (a picture), true: looking (a light runs along the way).
+  final bool moving;
+
+  @override
+  State<SyncLink> createState() => _SyncLinkState();
+}
+
+class _SyncLinkState extends State<SyncLink> with SingleTickerProviderStateMixin {
+  late final AnimationController _flow = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.moving) _flow.repeat();
+  }
+
+  @override
+  void dispose() {
+    _flow.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _Ends(flow: _flow, place: widget.place, direction: 0, still: !widget.moving);
+}
+
 /// The way between the two ends: a dotted arch, and small sealed packets travelling along
 /// it in the direction of the sync, in from nothing and out as they land. While looking,
 /// a light runs back and forth along the arch instead.
 class _FlowPainter extends CustomPainter {
-  _FlowPainter({required this.t, required this.direction, required this.color, required this.track});
+  _FlowPainter({required this.t, required this.direction, required this.color, required this.track, this.still = false});
+  final bool still;
   static const packets = 3;
+  /// The top of the arch, as a share of the height (where the lock sits).
+  static const top = .24;
   final double t;
   final int direction;
   final Color color;
@@ -761,6 +956,7 @@ class _FlowPainter extends CustomPainter {
     for (var i = 0; i <= 10; i++) {
       canvas.drawCircle(_at(size, i / 10), 1.6, dot);
     }
+    if (still) return;
     if (direction == 0) {
       // Back and forth, eased: looking for what changed.
       final at = _at(size, Curves.easeInOut.transform(1 - (t * 2 - 1).abs()));
@@ -804,7 +1000,7 @@ class _FlowPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FlowPainter old) =>
-      old.t != t || old.direction != direction || old.color != color || old.track != track;
+      old.t != t || old.direction != direction || old.color != color || old.track != track || old.still != still;
 }
 
 /// The number both screens show, big, to compare at a glance.

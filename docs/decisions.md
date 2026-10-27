@@ -4,6 +4,34 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-27 — Version history, on each device (0.1.76, mockup)
+
+**Owner:** keep older versions of every item "like git", so any change can be undone,
+30 days. Settings for how long (Off · 7 · 30 · 90 days, default 30) and how much
+(500 MB · 1 GB · 5 GB · no limit, default 1 GB). Asked whether the setting syncs: no,
+each device has its own (choice a, simpler and less risk). History is local, sealed like
+the items, not synced and not in backups; pruning never touches the current version
+(`core/cs-vault/src/history.rs`, docs/security.md). The note editor's Undo/Redo is the
+in-session half of the same request.
+
+## 2026-10-27 — Drive errors named, an error log, Drive checked each sync (0.1.76)
+
+**Owner 2026-10-26:** Drive sync failed "and we don't know why": errors need logs. A 403
+is split by Google's reason (rate limit, full, sign-in); rate limits and server faults
+are tried again (4 tries, from 0.6 s, doubling). Every failure is kept as a fixed code in
+an always-on log (Settings → Report a problem, Copy details). Each Drive sync checks the
+files it relies on against the SHA-256 Google lists and sends lost or damaged ones again,
+saying how many (ADR 0003, "Checking what the place holds").
+
+## 2026-10-27 — Nearby sync goes by itself; Settings like the iPhone's (0.1.76, mockup)
+
+**Owner:** after the two names and the same number, a nearby sync (and a restore) counts
+5 seconds and starts; Cancel stops it. A restoring phone that holds the 24 words and the
+password has the same rights as the old one, so a tap there added nothing (ADR 0003,
+points 8 and 9). No network address is shown anywhere. Settings and Sync have groups
+without names, set apart by a gap; the vault's keys apart from what shields the screen.
+Google Drive gains Sign in again and Remove account (revokes at Google, files stay).
+
 ## 2026-10-26 — User guide, one Security group, lock on leaving optional (0.1.72, mockup)
 
 Owner requests, rendered for approval before release. A "Help & guide" group sits under
@@ -34,8 +62,9 @@ common (bundled as truncated hashes), and zxcvbn score 3 or 4+ different words; 
 replaces "strength shown, never blocked" (2026-10-23). Passwords in use are never
 checked on unlock. Opening, joining and restoring refuse an Argon2 cost below the phone
 floor. The Secret Key fingerprint is cut to 16 bits (a hint, never a check). A P2P host
-serves a restoring device only after "Help a new device restore" is turned on and Allow
-is tapped. The library is kept out of iOS and Android system backups. Still planned:
+serves a restoring device only after Allow is tapped (same number on both screens; no
+switch to turn on since 2026-10-26), and only the vault's lock until it proves the Master
+Key. The library is kept out of iOS and Android system backups. Still planned:
 binding the Argon2 cost into the wraps (format v2), size padding, a header revision
 against rollback, PIN wipe after wrong tries, rotating item keys. Details:
 docs/security.md, ADR 0001, ADR 0003, docs/supply-chain.md (bundled data).

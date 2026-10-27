@@ -4,6 +4,71 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.76 (unreleased)
+
+### Added
+- Version history: every item keeps its older versions on this device (any change:
+  content, name, groups, favourite). Hold an item → Version history lists them by time
+  and device; open one to see it, and Restore This Version brings it back (the version
+  you had is kept too, so a restore can be undone). Settings → Version history sets how
+  long (Off, 7, 30 or 90 days; 30 unless changed) and how much space (500 MB, 1 GB, 5 GB
+  or no limit; 1 GB unless changed); the oldest go first, the current version never.
+  History stays on this device: not synced, not in backups. Renaming a photo keeps no
+  second copy of it. It shows in the storage line as History.
+
+### Changed
+- A sync keeps running when the vault locks while you use the app (auto-lock, Hold Home,
+  the lock button): the lock screen shows as usual, with a small line showing how far the
+  sync is ("Syncing 40%", then "Up to date"), and the screen stays on until it ends. The
+  vault stays locked for everything else, and its key is wiped as soon as the sync ends
+  (docs/security.md). Leaving the app still locks and stops the sync, as before.
+- Nearby sync starts by itself: both screens name the other device and show the same
+  number, count down 5 seconds, and go. Cancel stops it. No Sync or Allow to tap.
+- Restoring from a nearby device needs no switch on the old phone any more: open Sync
+  with a nearby device there, and the new phone (24 words and password) finds it.
+- The new phone gets only the vault's lock first. It must open it with the
+  password and prove so before a single item is sent; with a wrong password it says so,
+  the old phone shows "Wrong password on the other device" and stops.
+- Much less text: the Sync screen, the nearby screens, Google Drive, Settings and the
+  pages under it keep titles, buttons and one short line where a mistake would cost you.
+  A picture says the rest: your device, a lock on the way, the other device.
+- The transfer animation has a lock on the path: what travels passes behind it,
+  encrypted on the way. The waiting screen shows it too.
+- Settings look like the iPhone's: groups have no names, a gap sets them apart. Sync and
+  Back up to a file are the first group. The vault's keys (Face ID, PIN, Recovery Key,
+  password) are one group; what shields the screen (auto-lock, lock on leaving, blocking
+  screenshots, blurring, hiding note text) is the next.
+- The storage line in Settings shows the kinds by name only, like the iPhone's Storage,
+  and comes at once when Settings opens again (it is measured again behind).
+- Google Drive: Sign in again (with the account it uses) and Remove account. Removing
+  asks first, takes back Cozy Safe's access at Google and leaves your files on Drive.
+- No network addresses on screen any more: the other device is named.
+- Recently deleted: one left edge for everything; the photo grid sits inside it with
+  rounded corners, like the cards below.
+- Recent connections are behind one row in Sync, one short line each.
+- Google Drive errors say what happened: Drive full, too many requests, Google's servers.
+  "Too many requests" and server faults are tried again by themselves after a pause
+  (up to 4 times) before the sync stops. A 403 is no longer always "sign in again".
+- Every Google Drive sync checks that Drive still holds every file it relies on, from
+  the SHA-256 Google lists with each file (no extra request). A file lost or damaged
+  there is sent again from this phone, and the end of the sync says how many. An item
+  whose copy here is not right either is counted apart: sync it from a device that has it.
+- The PIN is much harder to attack: its device key is kept inside the phone's secure
+  chip (Secure Enclave on iPhone, the Android Keystore), so a copy of the phone's storage
+  is useless for guessing PINs elsewhere. Waits after wrong PINs cannot be shortened by
+  changing the date and time. After 10 wrong PINs in a row the PIN is removed and the
+  vault opens with its password (a vault without a password keeps its PIN).
+- Settings → Check your 24 words and password: type them back to know they still open
+  this vault. They are only compared, never shown or kept.
+- iPhone: Settings → Keep the 24 words in iCloud Keychain, off unless you turn it on (it
+  asks for Face ID and says the trade). A new iPhone with your Apple account then fills
+  the words in by itself and asks only for the password. Android comes later.
+- Notes: Undo and Redo at the start of the format bar while you type (also Cmd+Z and
+  Shift+Cmd+Z on a keyboard); they step back through formatting too.
+- An error log, always on: every failure is kept as a short code and a time (never
+  names, content, keys or addresses), the last 200. Settings → Report a problem lists
+  them, with Copy details and Feedback. A failed sync shows its code and Copy details.
+
 ## 0.1.75 (2026-10-26)
 
 ### Fixed

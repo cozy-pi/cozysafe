@@ -237,13 +237,15 @@ the device key without the PIN is useless too.
 
 Wrong tries are counted by the app in the keystore (`PinStore.addFail`): 4 free, then
 the pad waits 1 minute after the 5th, 5 after the 6th, 15 after the 7th and 1 hour
-after each one beyond. A right PIN resets the count. The PIN copy is never removed:
-`Library::forget_pin` exists but the app does not call it. Planned: wipe after a
-number of wrong tries. Weakness, accepted for a consumer app: the count is enforced
-by the app, not by secure hardware, and the device key is not bound to it, so someone
-who extracts the keystore could try all PINs offline (about 1–2 hours for 4 digits,
-days for 6, at ~0.5 s per Argon2id run). Users can turn the PIN off and use only the
-password and biometrics.
+after each one beyond, on a clock the phone's date cannot move (`TryWait`: the time
+left, spent only while the app runs, by the smaller of wall and monotonic time). A
+right PIN resets the count. At 10 in a row the PIN copies are removed
+(`Library::forget_pin`) if the vault has a password; otherwise only the waits apply.
+Since 0.1.76 the device key is kept wrapped by a key in the secure hardware (Secure
+Enclave, Android Keystore/StrongBox; `lib/hw_key.dart`), so extracting the keystore no
+longer allows trying PINs offline (before: about 1–2 hours for 4 digits, days for 6).
+The count itself is still enforced by the app, not by the hardware. Users can turn the
+PIN off and use only the password and biometrics.
 
 ### Backup file (built)
 One streaming file: `COZYSAFE-BACKUP1`, then per file a 16-bit path length, the

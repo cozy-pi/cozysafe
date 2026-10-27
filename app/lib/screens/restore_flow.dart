@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
+import '../key_backup.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
@@ -41,6 +42,20 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   final _words = TextEditingController();
   final _password = TextEditingController();
   String? _error;
+  /// The words came from the iCloud Keychain (Settings on the old phone).
+  bool _found = false;
+
+  @override
+  void initState() {
+    super.initState();
+    KeyBackup.find().then((key) {
+      if (key == null || !mounted || _words.text.isNotEmpty) return;
+      setState(() {
+        _words.text = rust.secretKeyText(key: key);
+        _found = true;
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -90,6 +105,11 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
             hint: l.recoveryWordsHint,
             onChanged: (_) => setState(() => _error = null),
           ),
+          if (_found)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(l.keyBackupFound, key: const ValueKey('restore-words-found'), style: TextStyle(color: c.muted, fontSize: 13)),
+            ),
           const SizedBox(height: 12),
           SecretField(
             key: const ValueKey('restore-password'),
@@ -153,7 +173,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
       showToast(context, l10n.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    if (!await allowConnection(context, l10n.syncAllowFindRestore(address)) || !mounted) return;
+    if (!await allowConnection(context, l10n.syncAllowFindRestore) || !mounted) return;
     final name = await deviceName();
     if (!mounted) return;
     final l = l10n;
@@ -191,7 +211,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
     final l = AppLocalizations.of(context);
     final address = sync.p2PCodeAddress(code: code);
     if (address == null) return;
-    if (!await allowConnection(context, l.syncAllowJoin(address))) return;
+    if (!await allowConnection(context, l.syncAllowJoin)) return;
     final name = await deviceName();
     if (!context.mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(

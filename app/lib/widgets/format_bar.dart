@@ -95,12 +95,16 @@ abstract final class NoteFormat {
       v.selection.isValid ? v.selection : TextSelection.collapsed(offset: v.text.length);
 }
 
-/// The small bar over the keyboard while a note is edited: Bold · Italic · Heading ·
-/// List · Checklist · Link, each typing its Markdown marks at the selection, then Done
-/// typing, which puts the keyboard away. It scrolls sideways on a narrow phone.
+/// The small bar over the keyboard while a note is edited: Undo · Redo (owner
+/// 2026-10-27: the editor had none), then Bold · Italic · Heading · List · Checklist ·
+/// Link, each typing its Markdown marks at the selection, then Done typing, which puts
+/// the keyboard away. It scrolls sideways on a narrow phone.
 class NoteFormatBar extends StatelessWidget {
-  const NoteFormatBar({super.key, required this.controller, this.onDoneTyping});
+  const NoteFormatBar({super.key, required this.controller, this.undo, this.onDoneTyping});
   final TextEditingController controller;
+  /// The field's history: typing and the marks these buttons put (Cmd+Z / Shift+Cmd+Z
+  /// on a keyboard too).
+  final UndoHistoryController? undo;
   /// Hides the keyboard; the note's own buttons come back at the bottom.
   final VoidCallback? onDoneTyping;
 
@@ -132,6 +136,29 @@ class NoteFormatBar extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (undo case final u?)
+              ValueListenableBuilder<UndoHistoryValue>(
+                valueListenable: u,
+                builder: (context, h, _) => Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(
+                    key: const ValueKey('format-undo'),
+                    tooltip: l.formatUndo,
+                    onPressed: h.canUndo ? u.undo : null,
+                    iconSize: 24,
+                    style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
+                    icon: Icon(Icons.undo_rounded, color: h.canUndo ? ink : ink.withValues(alpha: .3)),
+                  ),
+                  IconButton(
+                    key: const ValueKey('format-redo'),
+                    tooltip: l.formatRedo,
+                    onPressed: h.canRedo ? u.redo : null,
+                    iconSize: 24,
+                    style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
+                    icon: Icon(Icons.redo_rounded, color: h.canRedo ? ink : ink.withValues(alpha: .3)),
+                  ),
+                  Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 2), color: ink.withValues(alpha: .15)),
+                ]),
+              ),
             button('bold', Icons.format_bold_rounded, l.formatBold, (v) => NoteFormat.wrap(v, '**')),
             button('italic', Icons.format_italic_rounded, l.formatItalic, (v) => NoteFormat.wrap(v, '*')),
             button('heading', Icons.title_rounded, l.formatHeading, (v) => NoteFormat.line(v, '# ')),

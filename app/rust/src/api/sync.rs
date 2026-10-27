@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 use cs_net::drive::{DrivePhase, DriveRemote, DriveSetup, GoogleDrive};
@@ -12,7 +12,7 @@ use cs_net::p2p::{self, PairCode};
 use cs_net::Permit;
 use cs_vault::sync::SyncReport;
 
-use super::vault::{with_open, VaultError};
+use super::vault::{hold_for_sync, with_open, SyncHold, VaultError};
 use crate::frb_generated::StreamSink;
 
 /// What a session tells the screen as it goes (a flat struct: no generated Dart
@@ -43,6 +43,14 @@ pub struct SyncEvent {
     /// [`SyncStep::Done`] of a Google Drive sync: files of an earlier layout moved into
     /// place in Drive first (0 elsewhere).
     pub moved: u32,
+    /// [`SyncStep::Done`] of a Google Drive sync: files Drive had lost or damaged (by its
+    /// own checksums), sent again; and items with no good copy here to send.
+    pub repaired: u32,
+    pub unrepaired: u32,
+    /// A failure: a short fixed code saying what went wrong ("drive-rate-limited",
+    /// "io-timed-out"), for the error log and "Copy details". Never names, paths or
+    /// network data. Empty otherwise.
+    pub code: String,
 }
 
 #[derive(Debug)]
@@ -99,6 +107,8 @@ pub enum SyncStep {
     PeerWrongPassword,
     /// Host: the other phone stopped (an error or Cancel there).
     PeerStopped,
+    /// Google Drive has no room left for the files to send.
+    DriveFull,
     /// Google Drive, before the sync: listing what is there (`done` so far, no total).
     DriveListing,
     /// Google Drive, before the sync: making the folders files move into (`done`,
@@ -125,7 +135,41 @@ fn step(kind: SyncStep) -> SyncEvent {
         bytes: 0,
         bytes_total: 0,
         moved: 0,
+        repaired: 0,
+        unrepaired: 0,
+        code: String::new(),
     }
+}
+
+/// A short fixed code for an error ([`SyncEvent::code`]): the core's own fixed words, or
+/// the kind of an I/O error; never text that came from the network or the disk.
+pub(crate) fn error_code(e: &cs_vault::Error) -> String {
+    use cs_vault::Error as E;
+    let code = match e {
+        E::Corrupt(what) => what.to_string(),
+        E::Io(io) => format!("io {:?}", io.kind()),
+        E::Crypto(_) => "crypto".into(),
+        E::Index(_) => "index".into(),
+        E::NoSuchItem => "no such item".into(),
+        E::BadBackup => "bad backup".into(),
+        E::WrongSecretKey => "wrong secret key".into(),
+        _ => "other".into(),
+    };
+    // "io TimedOut" -> "io-timed-out"
+    let mut out = String::new();
+    for (i, c) in code.chars().enumerate() {
+        if c == ' ' {
+            out.push('-');
+        } else if c.is_ascii_uppercase() {
+            if i > 0 && !out.ends_with('-') {
+                out.push('-');
+            }
+            out.push(c.to_ascii_lowercase());
+        } else if c.is_ascii_alphanumeric() {
+            out.push(c);
+        }
+    }
+    out
 }
 
 /// What the waiting device shows.
@@ -151,6 +195,8 @@ fn report(r: SyncReport) -> SyncEvent {
         sent: r.sent,
         removed: r.removed,
         copies: r.copies,
+        repaired: r.repaired,
+        unrepaired: r.unrepaired,
         ..step(SyncStep::Done)
     }
 }
@@ -184,7 +230,8 @@ fn setup_event(s: DriveSetup) -> SyncEvent {
 }
 
 fn failure(e: cs_vault::Error) -> SyncEvent {
-    step(match e {
+    let code = error_code(&e);
+    let kind = match e {
         _ if STOP.load(Ordering::Relaxed) => SyncStep::Cancelled,
         cs_vault::Error::Corrupt("p2p code expired") => SyncStep::Expired,
         cs_vault::Error::Corrupt("p2p cancelled") => SyncStep::Cancelled,
@@ -193,6 +240,7 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
         // The person turned the restoring device away.
         cs_vault::Error::Corrupt("p2p restore declined") => SyncStep::Cancelled,
         cs_vault::Error::Corrupt("drive not signed in") => SyncStep::SignIn,
+        cs_vault::Error::Corrupt("drive full") => SyncStep::DriveFull,
         cs_vault::Error::Corrupt("p2p restore wrong words") => SyncStep::PeerWrongWords,
         cs_vault::Error::Corrupt("p2p restore wrong password") => SyncStep::PeerWrongPassword,
         cs_vault::Error::Corrupt("p2p peer stopped") => SyncStep::PeerStopped,
@@ -212,11 +260,32 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
             SyncStep::Unreachable
         }
         _ => SyncStep::Failed,
-    })
+    };
+    // The code only where the person may want to tell us what happened.
+    let told = !matches!(
+        kind,
+        SyncStep::Cancelled | SyncStep::PeerCancelled | SyncStep::Expired | SyncStep::Locked
+    );
+    if told {
+        super::errors::note("sync", &code);
+    }
+    SyncEvent {
+        code: if told { code } else { String::new() },
+        ..step(kind)
+    }
 }
 
-fn record(line: String) {
-    let _ = with_open(|v| v.log_connection(&line).map_err(Into::into));
+/// One line in the vault's connection log: through the sync's own hold when it has one
+/// (the vault may have locked meanwhile), else through the open vault.
+fn record(hold: Option<&SyncHold>, line: String) {
+    match hold {
+        Some(h) => {
+            let _ = h.with(|v| v.log_connection(&line));
+        }
+        None => {
+            let _ = with_open(|v| v.log_connection(&line).map_err(Into::into));
+        }
+    }
 }
 
 fn now_ms() -> u128 {
@@ -232,42 +301,30 @@ pub fn p2p_local_address(ip: String) -> bool {
     p2p::local_address(&ip)
 }
 
-/// The vault for the moments a session needs it, through the app's one open vault.
+/// The vault for the moments a session needs it, through the session's own hold: the
+/// vault locking on this device does not stop a session under way.
 #[flutter_rust_bridge::frb(ignore)]
-struct OpenNow;
+struct Held<'a>(&'a SyncHold);
 
-impl p2p::Access for OpenNow {
+impl p2p::Access for Held<'_> {
     fn with(
         &self,
         f: &mut dyn FnMut(&cs_vault::OpenVault) -> cs_vault::Result<()>,
     ) -> cs_vault::Result<()> {
-        let mut inner = Ok(());
-        with_open(|v| {
-            inner = f(v);
-            Ok(())
-        })
-        .map_err(|_| cs_vault::Error::Corrupt("vault locked"))?;
-        inner
+        self.0.with(|v| f(v))
     }
 }
 
 /// The device waiting now, from [`p2p_wait_start`] to [`p2p_wait_run`].
 static PENDING: Mutex<Option<p2p::Waiting>> = Mutex::new(None);
-/// "Help a new device restore" of the device waiting now.
-static HELP: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
 
 /// The person allowed looking for their other device on the Wi-Fi where this device has
 /// `ip`. Copies the vault, sealed, into `mirror` (a private folder, emptied first) and
 /// opens the listener; [`p2p_wait_run`] then waits and looks. `name` is this device's
 /// ("iPhone 15 Pro Max"), told to the other only once it proved the vault. A new device
-/// restoring with the 24 words may ask to join only while `help_restore` (off by
-/// default, [`p2p_wait_help_restore`]).
-pub fn p2p_wait_start(
-    ip: String,
-    mirror: String,
-    help_restore: bool,
-    name: String,
-) -> Result<Hosting, VaultError> {
+/// restoring with the 24 words may ask to join; the person allows it or not
+/// ([`SyncStep::AskRestore`]), and it gets the lock only until it proves the Master Key.
+pub fn p2p_wait_start(ip: String, mirror: String, name: String) -> Result<Hosting, VaultError> {
     STOP.store(false, Ordering::Relaxed);
     let permit = Permit::listen_on(&ip).ok_or(VaultError::Storage)?;
     let dir = Path::new(&mirror);
@@ -278,9 +335,6 @@ pub fn p2p_wait_start(
     let prepared = with_open(|v| Ok(p2p::host_prepare(v, secret.as_ref(), &name, dir)?))?;
     *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
     let waiting = p2p::wait(prepared, permit, p2p::PORT)?;
-    let help = waiting.help_restore();
-    help.store(help_restore && secret.is_some(), Ordering::Relaxed);
-    *HELP.lock().unwrap_or_else(|p| p.into_inner()) = Some(help);
     let shown = Hosting {
         qr: waiting.code.qr(),
         findable: waiting.findable(),
@@ -294,14 +348,6 @@ fn forget_mirror() {
     if let Some(dir) = MIRROR.lock().unwrap_or_else(|p| p.into_inner()).take() {
         // The copy was sealed, but it has done its job.
         let _ = std::fs::remove_dir_all(dir);
-    }
-}
-
-/// "Help a new device restore" turned on or off while waiting (off by default).
-#[flutter_rust_bridge::frb(sync)]
-pub fn p2p_wait_help_restore(on: bool) {
-    if let Some(flag) = HELP.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
-        flag.store(on, Ordering::Relaxed);
     }
 }
 
@@ -330,7 +376,12 @@ fn picked() -> Option<p2p::Token> {
 
 /// Show `event` and wait for the person's answer: no answer in `limit`, Cancel, or the
 /// other device saying no (`gone`) is no.
-fn ask(sink: &StreamSink<SyncEvent>, event: SyncEvent, limit: Duration, gone: &dyn Fn() -> bool) -> bool {
+fn ask(
+    sink: &StreamSink<SyncEvent>,
+    event: SyncEvent,
+    limit: Duration,
+    gone: &dyn Fn() -> bool,
+) -> bool {
     let mut answer = ANSWER.lock().unwrap_or_else(|p| p.into_inner());
     *answer = None;
     let _ = sink.add(event);
@@ -351,7 +402,10 @@ fn ask(sink: &StreamSink<SyncEvent>, event: SyncEvent, limit: Duration, gone: &d
 
 fn found_event(peers: &[p2p::Peer]) -> SyncEvent {
     SyncEvent {
-        peers: peers.iter().map(|p| p.name.clone().unwrap_or_default()).collect(),
+        peers: peers
+            .iter()
+            .map(|p| p.name.clone().unwrap_or_default())
+            .collect(),
         peer_ids: peers.iter().map(|p| p2p::token_text(&p.token)).collect(),
         ..step(SyncStep::Found)
     }
@@ -367,15 +421,29 @@ fn named(kind: SyncStep, name: &str, check: u16) -> SyncEvent {
 
 /// Run `f` with the questions and news of a pairing going to `sink`; the other device's
 /// name, once known, goes to the log.
-fn with_ask<T>(sink: &StreamSink<SyncEvent>, peer: &Mutex<String>, f: impl FnOnce(&p2p::Ask) -> T) -> T {
+fn with_ask<T>(
+    sink: &StreamSink<SyncEvent>,
+    peer: &Mutex<String>,
+    f: impl FnOnce(&p2p::Ask) -> T,
+) -> T {
     let remember = |name: &str| *peer.lock().unwrap_or_else(|p| p.into_inner()) = name.to_owned();
     let confirm = |name: &str, check: u16, gone: &dyn Fn() -> bool| {
         remember(name);
-        ask(sink, named(SyncStep::Confirm, name, check), p2p::CONFIRM_WAIT, gone)
+        ask(
+            sink,
+            named(SyncStep::Confirm, name, check),
+            p2p::CONFIRM_WAIT,
+            gone,
+        )
     };
     let allow = |name: &str, check: u16| {
         remember(name);
-        ask(sink, named(SyncStep::AskRestore, name, check), p2p::ALLOW_WAIT, &|| false)
+        ask(
+            sink,
+            named(SyncStep::AskRestore, name, check),
+            p2p::ALLOW_WAIT,
+            &|| false,
+        )
     };
     let a = p2p::Ask {
         seen: &|seen| {
@@ -399,15 +467,19 @@ fn with_ask<T>(sink: &StreamSink<SyncEvent>, peer: &Mutex<String>, f: impl FnOnc
 
 /// Wait for the other device and look for it on the Wi-Fi where this device has `ip`,
 /// then (both people said Sync) sync with it. The vault stays free while waiting, asking
-/// and serving.
+/// and serving; the session holds it to the end, so a lock meanwhile does not cut it.
 pub fn p2p_wait_run(ip: String, sink: StreamSink<SyncEvent>) {
     *PICK.lock().unwrap_or_else(|p| p.into_inner()) = None;
     let waiting = PENDING.lock().unwrap_or_else(|p| p.into_inner()).take();
+    let hold = hold_for_sync();
     let peer = Mutex::new(String::new());
-    let event = match waiting {
-        None => step(SyncStep::Expired),
-        Some(w) => {
-            let paired = with_ask(&sink, &peer, |a| w.run(&OpenNow, &|| Permit::scan_on(&ip), a, &STOP));
+    let event = match (waiting, &hold) {
+        (None, _) => step(SyncStep::Expired),
+        (Some(_), None) => step(SyncStep::Locked),
+        (Some(w), Some(h)) => {
+            let paired = with_ask(&sink, &peer, |a| {
+                w.run(&Held(h), &|| Permit::scan_on(&ip), a, &STOP)
+            });
             match paired {
                 Ok(p) => {
                     *peer.lock().unwrap_or_else(|p| p.into_inner()) = p.name.clone();
@@ -418,9 +490,10 @@ pub fn p2p_wait_run(ip: String, sink: StreamSink<SyncEvent>) {
         }
     };
     forget_mirror();
-    HELP.lock().unwrap_or_else(|p| p.into_inner()).take();
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
-    log_event("nearby", Some(&name), &event);
+    log_event(hold.as_ref(), "nearby", Some(&name), &event);
+    // Locked meanwhile: the vault goes now, before the screen hears the end.
+    drop(hold);
     let _ = sink.add(event);
 }
 
@@ -440,9 +513,13 @@ pub fn p2p_join(code: String, name: String, sink: StreamSink<SyncEvent>) {
         let _ = sink.add(step(SyncStep::Failed));
         return;
     };
+    let Some(hold) = hold_for_sync() else {
+        let _ = sink.add(step(SyncStep::Locked));
+        return;
+    };
     let peer = Mutex::new(String::new());
     let joined = with_ask(&sink, &peer, |a| {
-        p2p::join_code(&OpenNow, Permit::connect_for(&c), &c, &name, a, &STOP)
+        p2p::join_code(&Held(&hold), Permit::connect_for(&c), &c, &name, a, &STOP)
     });
     let event = match joined {
         Ok(p) => {
@@ -452,12 +529,18 @@ pub fn p2p_join(code: String, name: String, sink: StreamSink<SyncEvent>) {
         Err(e) => failure(e),
     };
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
-    log_event("nearby", Some(&name), &event);
+    log_event(Some(&hold), "nearby", Some(&name), &event);
+    drop(hold);
     let _ = sink.add(event);
 }
 
 /// What came of a restore: the vault opened here the usual way, or why not.
-fn restored(dir: &Path, key: cs_crypto::SecretKey, password: &str, r: cs_vault::Result<bool>) -> SyncEvent {
+fn restored(
+    dir: &Path,
+    key: cs_crypto::SecretKey,
+    password: &str,
+    r: cs_vault::Result<bool>,
+) -> SyncEvent {
     match r {
         // Opened the usual way, from this device's folder with the two secrets.
         Ok(true) => {
@@ -527,7 +610,7 @@ pub fn p2p_restore_nearby(
     // Half a restore (lock opened, items cut short) is still a vault here; the next sync
     // goes on. Nothing is left when the words or password were wrong.
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
-    log_event("restore", Some(&name), &event);
+    log_event(None, "restore", Some(&name), &event);
     let _ = sink.add(event);
 }
 
@@ -544,7 +627,10 @@ pub fn p2p_restore(
     STOP.store(false, Ordering::Relaxed);
     let password = zeroize::Zeroizing::new(password);
     let words = zeroize::Zeroizing::new(words);
-    let (Some(c), Some(key)) = (PairCode::parse(&code), cs_crypto::SecretKey::from_text(&words)) else {
+    let (Some(c), Some(key)) = (
+        PairCode::parse(&code),
+        cs_crypto::SecretKey::from_text(&words),
+    ) else {
         let _ = sink.add(step(SyncStep::Failed));
         return;
     };
@@ -571,16 +657,21 @@ pub fn p2p_restore(
     );
     let event = restored(dir, key, &password, r);
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
-    log_event("restore", Some(&name), &event);
+    log_event(None, "restore", Some(&name), &event);
     let _ = sink.add(event);
 }
 
 /// The person allowed syncing with their Google Drive; `token` is the access token from
-/// their sign-in on this device (scope `drive.file`). Listing Drive happens before the
-/// vault is held; the sync itself holds it.
+/// their sign-in on this device (scope `drive.file`). The run keeps its own hold on the
+/// vault from start to end, so the vault locking meanwhile does not stop it; the vault
+/// itself stays free while Drive is listed.
 pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
     STOP.store(false, Ordering::Relaxed);
     let token = zeroize::Zeroizing::new(token);
+    let Some(hold) = hold_for_sync() else {
+        let _ = sink.add(step(SyncStep::Locked));
+        return;
+    };
     let _ = sink.add(step(SyncStep::Checking));
     // How long each step takes, in Debug's log (owner 2026-10-26: "Looking at Google
     // Drive" was slow after a while without syncing; the log says where the time goes).
@@ -606,23 +697,24 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
     mark("opened".into());
     let event = match remote {
         Err(e) => drive_failure(e),
-        Ok(remote) => match with_open(|v| {
-            Ok(v.sync_with(&remote, &|p| {
+        Ok(remote) => match hold.with(|v| {
+            v.sync_with(&remote, &|p| {
                 let e = progress_event(p);
                 mark(format!("{:?}", e.kind));
                 let _ = sink.add(e);
-            }))
+            })
         }) {
-            Ok(Ok(r)) => SyncEvent {
+            Ok(r) => SyncEvent {
                 moved: remote.moved() + JOIN_MOVED.swap(0, Ordering::Relaxed),
                 ..report(r)
             },
-            Ok(Err(e)) => drive_failure(e),
-            Err(_) => step(SyncStep::Locked),
+            Err(e) => drive_failure(e),
         },
     };
     mark(format!("end {:?}", event.kind));
-    log_event("drive", Some("Google Drive"), &event);
+    log_event(Some(&hold), "drive", Some("Google Drive"), &event);
+    // Locked meanwhile: the vault goes now, before the screen hears the end.
+    drop(hold);
     let _ = sink.add(event);
 }
 
@@ -726,7 +818,7 @@ pub fn p2p_cancel() {
 
 /// One log line: `<ms>|<nearby|restore|drive>|<the other device's name, or ->|<ok|cancelled|expired|failed|…>|<received>|<sent>`.
 /// Lines from before 0.1.73 say `host` or `join` and an address.
-fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
+fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &SyncEvent) {
     // A name from the other device: cleaned (no `|`, no control characters) again here.
     let peer = peer.map(p2p::clean_name).filter(|p| !p.is_empty());
     let peer = peer.as_deref().unwrap_or("-");
@@ -758,13 +850,14 @@ fn log_event(side: &str, peer: Option<&str>, event: &SyncEvent) {
         | SyncStep::WrongPassword
         | SyncStep::PeerWrongWords
         | SyncStep::PeerWrongPassword
-        | SyncStep::PeerStopped => "failed",
+        | SyncStep::PeerStopped
+        | SyncStep::DriveFull => "failed",
     };
     let (received, sent) = (event.received, event.sent);
-    record(format!(
-        "{}|{side}|{peer}|{outcome}|{received}|{sent}",
-        now_ms()
-    ));
+    record(
+        hold,
+        format!("{}|{side}|{peer}|{outcome}|{received}|{sent}", now_ms()),
+    );
 }
 
 /// The connections this vault made, newest first, in [`log_event`]'s format.
@@ -803,4 +896,47 @@ pub fn qr_read(luma: Vec<u8>, width: u32, height: u32, stride: u32) -> Option<St
         .into_iter()
         .filter_map(|g| g.decode().ok().map(|(_, text)| text))
         .find(|t| PairCode::parse(t).is_some())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn error_codes_are_short_fixed_words() {
+        let io = |k| cs_vault::Error::Io(std::io::Error::from(k));
+        assert_eq!(
+            error_code(&cs_vault::Error::Corrupt("drive rate limited")),
+            "drive-rate-limited"
+        );
+        assert_eq!(
+            error_code(&io(std::io::ErrorKind::TimedOut)),
+            "io-timed-out"
+        );
+        assert_eq!(
+            error_code(&io(std::io::ErrorKind::ConnectionRefused)),
+            "io-connection-refused"
+        );
+        assert_eq!(
+            error_code(&cs_vault::Error::Index("a path /x/y".into())),
+            "index"
+        );
+        assert_eq!(
+            error_code(&cs_vault::Error::Corrupt(
+                "another vault uses this Recovery Key"
+            )),
+            "another-vault-uses-this-recovery-key"
+        );
+    }
+
+    #[test]
+    fn a_full_drive_is_its_own_step_with_its_code() {
+        let e = failure(cs_vault::Error::Corrupt("drive full"));
+        assert!(matches!(e.kind, SyncStep::DriveFull));
+        assert_eq!(e.code, "drive-full");
+        // A cancel is not a fault: no code.
+        assert!(failure(cs_vault::Error::Corrupt("p2p cancelled"))
+            .code
+            .is_empty());
+    }
 }

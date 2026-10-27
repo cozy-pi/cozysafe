@@ -2,6 +2,7 @@ import Flutter
 import ImageIO
 import Photos
 import PhotosUI
+import Security
 import UIKit
 import UniformTypeIdentifiers
 
@@ -82,6 +83,16 @@ import UniformTypeIdentifiers
           String(decoding: raw.prefix(while: { $0 != 0 }), as: UTF8.self)
         }
         result(id)
+      }
+      // The PIN's device key wrapped by a key in the Secure Enclave (lib/hw_key.dart).
+      let hwkey = FlutterMethodChannel(name: "cozysafe/hwkey", binaryMessenger: registrar.messenger())
+      hwkey.setMethodCallHandler { call, result in
+        let bytes = ((call.arguments as? [String: Any])?["bytes"] as? FlutterStandardTypedData)?.data
+        switch call.method {
+        case "wrap": result(bytes.flatMap(HwKey.wrap).map { FlutterStandardTypedData(bytes: $0) })
+        case "unwrap": result(bytes.flatMap(HwKey.unwrap).map { FlutterStandardTypedData(bytes: $0) })
+        default: result(FlutterMethodNotImplemented)
+        }
       }
       // While a sync runs (lib/sync/awake.dart): the screen stays on, and if the person
       // still leaves the app, iOS lends it some time to finish the item under way.
@@ -637,5 +648,57 @@ enum Thumbnails {
     }
     CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary)
     return CGImageDestinationFinalize(dest) ? out as Data : nil
+  }
+}
+
+/// A P-256 key made inside the Secure Enclave, never readable outside it, that wraps the
+/// PIN's device key (ECIES, AES-GCM): a copy of the keychain taken off the phone holds
+/// only the wrapped key, so PINs cannot be tried elsewhere (docs/security.md).
+enum HwKey {
+  private static let tag = Data("com.cozypi.cozysafe.pin-wrap".utf8)
+  private static let algorithm = SecKeyAlgorithm.eciesEncryptionCofactorVariableIVX963SHA256AESGCM
+
+  private static func key(create: Bool) -> SecKey? {
+    #if targetEnvironment(simulator)
+    return nil // no Secure Enclave: the device key stays as it was
+    #else
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassKey,
+      kSecAttrApplicationTag as String: tag,
+      kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+      kSecReturnRef as String: true,
+    ]
+    var item: CFTypeRef?
+    if SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let found = item {
+      return (found as! SecKey)
+    }
+    guard create,
+          let access = SecAccessControlCreateWithFlags(
+            nil, kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly, .privateKeyUsage, nil)
+    else { return nil }
+    let attributes: [String: Any] = [
+      kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+      kSecAttrKeySizeInBits as String: 256,
+      kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
+      kSecPrivateKeyAttrs as String: [
+        kSecAttrIsPermanent as String: true,
+        kSecAttrApplicationTag as String: tag,
+        kSecAttrAccessControl as String: access,
+      ] as [String: Any],
+    ]
+    return SecKeyCreateRandomKey(attributes as CFDictionary, nil)
+    #endif
+  }
+
+  static func wrap(_ data: Data) -> Data? {
+    guard let key = key(create: true), let pub = SecKeyCopyPublicKey(key),
+          SecKeyIsAlgorithmSupported(pub, .encrypt, algorithm)
+    else { return nil }
+    return SecKeyCreateEncryptedData(pub, algorithm, data as CFData, nil) as Data?
+  }
+
+  static func unwrap(_ blob: Data) -> Data? {
+    guard let key = key(create: false) else { return nil }
+    return SecKeyCreateDecryptedData(key, algorithm, blob as CFData, nil) as Data?
   }
 }

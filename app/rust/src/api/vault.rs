@@ -11,8 +11,41 @@ use cs_vault::items::NewItem;
 use cs_vault::{ItemMeta, Library, OpenVault};
 use zeroize::Zeroizing;
 
-/// The vault currently open, if any. One at a time by design.
-static OPEN: Mutex<Option<OpenVault>> = Mutex::new(None);
+use crate::slot::{Hold, Kept, Slot};
+
+/// The vault currently open, if any. One at a time by design. A sync running when it
+/// locks keeps its own [`SyncHold`] until it ends (src/slot.rs, docs/security.md).
+static OPEN: Slot<OpenVault> = Slot::new();
+
+/// What the lock screen and settings read of the open vault without waiting for a sync.
+#[derive(Clone)]
+pub(crate) struct Glance {
+    info: VaultInfo,
+    pin: bool,
+    biometric: bool,
+}
+
+impl Kept for OpenVault {
+    type Glance = Glance;
+    fn id(&self) -> &str {
+        &self.id
+    }
+    fn glance(&self) -> Glance {
+        Glance {
+            info: info_of(self),
+            pin: self.pin_enabled(),
+            biometric: self.biometric_enabled(),
+        }
+    }
+}
+
+/// A sync's own handle on the vault it syncs, kept through a lock until the sync ends.
+pub(crate) type SyncHold = Hold<'static, OpenVault>;
+
+/// The open vault for a sync from start to end; None when locked.
+pub(crate) fn hold_for_sync() -> Option<SyncHold> {
+    OPEN.hold()
+}
 /// This device's Secret Key, handed over by Dart from the platform keystore at start.
 static SECRET: Mutex<Option<SecretKey>> = Mutex::new(None);
 /// Technical lines for the Debug page: timings and error kinds, never names or content.
@@ -49,6 +82,7 @@ pub fn take_debug_log() -> Vec<String> {
         .unwrap_or_default()
 }
 
+#[derive(Clone)]
 pub struct VaultInfo {
     pub id: String,
     pub name: String,
@@ -83,6 +117,7 @@ pub enum VaultError {
 
 impl From<cs_vault::Error> for VaultError {
     fn from(e: cs_vault::Error) -> Self {
+        super::errors::note("vault", &super::sync::error_code(&e));
         match e {
             cs_vault::Error::WeakPassword => VaultError::WeakPassword,
             cs_vault::Error::PasswordInUse => VaultError::PasswordInUse,
@@ -214,19 +249,16 @@ pub fn unlock_with_biometric(dir: String, key: Vec<u8>) -> Result<Option<VaultIn
 /// Turn on biometric unlock for the open vault (off for the others). Returns the key Dart
 /// stores behind biometrics; it is useless without this device's vault files.
 pub fn enable_biometric() -> Result<Vec<u8>, VaultError> {
-    with_open(|v| Ok(v.enable_biometric()?.as_bytes().to_vec()))
+    change_open(|v| Ok(v.enable_biometric()?.as_bytes().to_vec()))
 }
 
 pub fn disable_biometric() -> Result<(), VaultError> {
-    with_open(|v| Ok(v.disable_biometric()?))
+    change_open(|v| Ok(v.disable_biometric()?))
 }
 
 #[flutter_rust_bridge::frb(sync)]
 pub fn biometric_enabled() -> bool {
-    OPEN.lock()
-        .unwrap_or_else(|p| p.into_inner())
-        .as_ref()
-        .is_some_and(|v| v.biometric_enabled())
+    OPEN.glance().is_some_and(|g| g.biometric)
 }
 
 pub(crate) fn secret() -> Result<SecretKey, VaultError> {
@@ -267,14 +299,24 @@ pub fn change_secret_key(
         debug_line(|| format!("key change: {e}"));
         VaultError::from(e)
     };
-    let secret = secret().inspect_err(|_| debug_line(|| "key change: no Recovery Key in use".into()))?;
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret).map_err(logged)?;
-    let change = library.change_secret_key_all(&refs, &new_key).map_err(logged)?;
+    let secret =
+        secret().inspect_err(|_| debug_line(|| "key change: no Recovery Key in use".into()))?;
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret)
+        .map_err(logged)?;
+    let change = library
+        .change_secret_key_all(&refs, &new_key)
+        .map_err(logged)?;
     debug_line(|| format!("key change: {change:?} ({} password(s))", refs.len()));
     Ok(match change {
-        cs_vault::KeyChange::Changed => KeyChangeResult { step: KeyChangeStep::Changed },
-        cs_vault::KeyChange::WrongPassword => KeyChangeResult { step: KeyChangeStep::WrongPassword },
-        cs_vault::KeyChange::OthersNeeded(_) => KeyChangeResult { step: KeyChangeStep::OtherVault },
+        cs_vault::KeyChange::Changed => KeyChangeResult {
+            step: KeyChangeStep::Changed,
+        },
+        cs_vault::KeyChange::WrongPassword => KeyChangeResult {
+            step: KeyChangeStep::WrongPassword,
+        },
+        cs_vault::KeyChange::OthersNeeded(_) => KeyChangeResult {
+            step: KeyChangeStep::OtherVault,
+        },
     })
 }
 
@@ -297,10 +339,12 @@ pub struct KeyChangeResult {
 pub fn finish_secret_key_change(dir: String, new_key: Vec<u8>) -> Result<(), VaultError> {
     let new_key = Zeroizing::new(new_key);
     let key = key_from(&new_key).ok_or(VaultError::Storage)?;
-    Library::open_or_create(Path::new(&dir), params_for_this_device(), key.clone()).map_err(|e| {
-        debug_line(|| format!("key change finish: {e}"));
-        VaultError::from(e)
-    })?;
+    Library::open_or_create(Path::new(&dir), params_for_this_device(), key.clone()).map_err(
+        |e| {
+            debug_line(|| format!("key change finish: {e}"));
+            VaultError::from(e)
+        },
+    )?;
     *SECRET.lock().unwrap_or_else(|p| p.into_inner()) = Some(key);
     Ok(())
 }
@@ -420,19 +464,16 @@ pub fn enable_pin(pin: String, device_key: Vec<u8>) -> Result<(), VaultError> {
     let pin = Zeroizing::new(pin);
     let device_key = Zeroizing::new(device_key);
     let dk = key_from(&device_key).ok_or(VaultError::Storage)?;
-    with_open(|v| Ok(v.enable_pin(&pin, &dk, params_for_this_device())?))
+    change_open(|v| Ok(v.enable_pin(&pin, &dk, params_for_this_device())?))
 }
 
 pub fn disable_pin() -> Result<(), VaultError> {
-    with_open(|v| Ok(v.disable_pin()?))
+    change_open(|v| Ok(v.disable_pin()?))
 }
 
 #[flutter_rust_bridge::frb(sync)]
 pub fn pin_enabled() -> bool {
-    OPEN.lock()
-        .unwrap_or_else(|p| p.into_inner())
-        .as_ref()
-        .is_some_and(|v| v.pin_enabled())
+    OPEN.glance().is_some_and(|g| g.pin)
 }
 
 /// Remove the PIN on this device (too many wrong tries).
@@ -462,18 +503,18 @@ pub fn create_vault_with_pin(
 pub fn set_password(dir: String, password: String) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
     let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
-    let guard = OPEN.lock().unwrap_or_else(|p| p.into_inner());
-    let vault = guard.as_ref().ok_or(VaultError::Locked)?;
-    library.set_password(vault, &password)?;
-    Ok(info_of(vault))
+    change_open(|vault| {
+        library.set_password(vault, &password)?;
+        Ok(info_of(vault))
+    })
 }
 
 /// Change the open vault's icon and colour.
 pub fn set_identity(icon: String, color: String) -> Result<VaultInfo, VaultError> {
-    let mut guard = OPEN.lock().unwrap_or_else(|p| p.into_inner());
-    let vault = guard.as_mut().ok_or(VaultError::Locked)?;
-    vault.set_identity(&icon, &color)?;
-    Ok(info_of(vault))
+    change_open(|vault| {
+        vault.set_identity(&icon, &color)?;
+        Ok(info_of(vault))
+    })
 }
 
 /// Whether any vault here opens with a password (show "Use password" on the lock screen).
@@ -501,22 +542,22 @@ fn info_of(vault: &OpenVault) -> VaultInfo {
     }
 }
 
-/// Close the open vault and wipe its keys.
+/// Close the open vault and wipe its keys. A sync running with it keeps it, out of the
+/// UI's reach, until the sync ends; then it is wiped too.
 #[flutter_rust_bridge::frb(sync)]
 pub fn lock() {
-    *OPEN.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    OPEN.clear();
 }
 
 /// The vault open now, if any (e.g. right after a restore from another device).
 #[flutter_rust_bridge::frb(sync)]
 pub fn open_vault_info() -> Option<VaultInfo> {
-    OPEN.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(info_of)
+    OPEN.glance().map(|g| g.info)
 }
 
+/// The vault just opened becomes the open one (the one a sync still holds, if the same).
 pub(crate) fn set_open(vault: OpenVault) -> VaultInfo {
-    let info = info_of(&vault);
-    *OPEN.lock().unwrap_or_else(|p| p.into_inner()) = Some(vault);
-    info
+    OPEN.put(vault).info
 }
 
 /// An item as the vault shows it. Content and preview are fetched separately.
@@ -584,9 +625,15 @@ pub struct CameraFrame {
 pub(crate) fn with_open<T>(
     f: impl FnOnce(&OpenVault) -> Result<T, VaultError>,
 ) -> Result<T, VaultError> {
-    let guard = OPEN.lock().unwrap_or_else(|p| p.into_inner());
-    let vault = guard.as_ref().ok_or(VaultError::Locked)?;
-    f(vault)
+    OPEN.with(f).unwrap_or(Err(VaultError::Locked))
+}
+
+/// [`with_open`] for a change the lock screen or settings show (PIN, Face ID, password,
+/// icon): what they read without waiting is brought up to date.
+fn change_open<T>(
+    f: impl FnOnce(&mut OpenVault) -> Result<T, VaultError>,
+) -> Result<T, VaultError> {
+    OPEN.change(f).unwrap_or(Err(VaultError::Locked))
 }
 
 /// Encode a camera frame to JPEG in memory and store it encrypted. No file ever holds the
@@ -875,7 +922,7 @@ pub struct VaultSlot {
 
 /// Every vault on this device (Debug → Vaults on this device).
 pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
-    let open = OPEN.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(|v| v.id.clone());
+    let open = OPEN.open_id();
     Ok(Library::vault_slots(Path::new(&dir))?
         .into_iter()
         .map(|s| VaultSlot {
@@ -892,7 +939,7 @@ pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
 /// Delete a vault whose password and PIN are forgotten, without opening it; never the
 /// open one. The app asks the phone's owner first (Face ID or the phone's passcode).
 pub fn delete_vault_unopened(dir: String, vault_id: String) -> Result<bool, VaultError> {
-    let open = OPEN.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(|v| v.id.clone());
+    let open = OPEN.open_id();
     if open.as_deref() == Some(vault_id.as_str()) {
         return Ok(false);
     }
@@ -915,7 +962,7 @@ pub fn delete_vault(dir: String, pin: String, device_key: Vec<u8>) -> Result<boo
     let open_id = with_open(|v| Ok(v.id.clone()))?;
     match Library::unlock_pin(Path::new(&dir), &pin, &dk)? {
         Some(v) if v.id == open_id => {
-            *OPEN.lock().unwrap_or_else(|p| p.into_inner()) = None;
+            OPEN.clear();
             v.destroy()?;
             Ok(true)
         }

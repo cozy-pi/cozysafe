@@ -19,14 +19,12 @@ Future<bool> allowConnection(BuildContext context, String message) async {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(message, key: const ValueKey('sync-allow-message'), style: const TextStyle(fontSize: 16, height: 1.35)),
-            const SizedBox(height: 10),
+            // One short line with where it goes; the lock says the rest (owner 2026-10-26).
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lock_outline_rounded, size: 18, color: c.muted),
-                const SizedBox(width: 8),
-                Expanded(child: Text(l.syncAllowSafe, style: TextStyle(color: c.muted, fontSize: 14, height: 1.3))),
+                Icon(Icons.lock_rounded, size: 20, color: c.muted),
+                const SizedBox(width: 10),
+                Expanded(child: Text(message, key: const ValueKey('sync-allow-message'), style: const TextStyle(fontSize: 16, height: 1.35))),
               ],
             ),
             const SizedBox(height: 18),

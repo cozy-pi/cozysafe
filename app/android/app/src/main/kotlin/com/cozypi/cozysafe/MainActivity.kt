@@ -72,6 +72,15 @@ class MainActivity : FlutterFragmentActivity() {
             if (call.method == "model") result.success(listOf(Build.MANUFACTURER ?: "", Build.MODEL ?: ""))
             else result.notImplemented()
         }
+        // The PIN's device key wrapped by a key in the Android Keystore (HwKey).
+        MethodChannel(messenger, "cozysafe/hwkey").setMethodCallHandler { call, result ->
+            val bytes = call.argument<ByteArray>("bytes")
+            when (call.method) {
+                "wrap" -> result.success(bytes?.let { HwKey.wrap(it) })
+                "unwrap" -> result.success(bytes?.let { HwKey.unwrap(it) })
+                else -> result.notImplemented()
+            }
+        }
         // While a sync runs (lib/sync/awake.dart): the screen stays on, and a foreground
         // service with a notification (SyncService) keeps it going with the phone locked.
         MethodChannel(messenger, "cozysafe/awake").setMethodCallHandler { call, result ->

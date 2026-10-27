@@ -248,12 +248,15 @@ deniability).
   The lock screen keeps the brand green, so it never shows which vault colours exist.
 - **Settings** looks like the system's own: the vault card on top (its icon on its
   colour, size split by photos / files / notes, last backup), then grouped rows with a
-  white symbol on its own colour. Order since 2026-10-26: Sync · Help & guide (User guide,
+  white symbol on its own colour. Order since 2026-10-26: Backup & Sync (Sync with its last
+  time, Back up to a file with its button; one group since 2026-10-26) · Help & guide (User guide,
   Feedback) · This vault · **Security, every protection in one group** (Face ID, PIN,
   auto-lock, lock as soon as I leave, hold Home to lock, block screenshots, blur
   thumbnails, hide note text, Recovery Key, vault password, how the vault is protected) ·
-  Back up your data · Display (appearance, language, add button side: nothing that
-  protects) · Delete this vault alone · About.
+  Display (appearance, language, add button side: nothing that
+  protects) · Delete this vault alone · About. Little text (owner 2026-10-26): titles,
+  labels and values; no row notes or group footers; a sentence only where a mistake would
+  cost the vault (the 24 words and password, the 30-day trash rule, deleting a vault).
 - **Checking the build against the mockups**: `flutter test test/preview_test.dart
   --update-goldens --dart-define=PREVIEW=true` renders the real screens (fake vault
   data) to `app/test/preview/*.png` in a few seconds.
@@ -590,9 +593,9 @@ everywhere, easy to hit with a thumb.
 - After a restore: Add · Open and pick · Sections · Settings.
 - **User guide** (owner 2026-10-26): Settings → Help & guide → User guide, the second
   group from the top (under Sync), closes Settings and runs every tip on the vault page,
-  then opens Settings again and goes on there, counting on (6/9): Sync (the group) ·
+  then opens Settings again and goes on there, counting on (6/9): Sync (its row) ·
   Security (the group; a tall group is scrolled so its top third shows under the bubble,
-  the window cut to the list) · Back up your data · User guide (the row: "see these tips
+  the window cut to the list) · Back up to a file (its row) · User guide (the row: "see these tips
   again any time"), then Done. "Keep a second copy" has no button in the guide, Sync comes
   next. Skip anywhere ends the guide; opening Settings alone shows no tips (no surprise
   while someone goes there to change something). Tips on a far row bring it into view
