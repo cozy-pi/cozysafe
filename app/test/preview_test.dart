@@ -821,6 +821,14 @@ void main() {
       change: 'Mới: bỏ tên nhóm; dung lượng gọn như iPhone (thanh màu + tên loại)',
       marks: [() => find.byKey(const ValueKey('sync-row')), () => find.byKey(const ValueKey('backup-now'))],
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+  // The whole page in one tall shot, to compare the order (owner 2026-10-27).
+  _screen('settings-all', 'Cài đặt · cả trang (ảnh dài): quan trọng lên trên, cùng loại một nhóm', () => settings(vault),
+      change: 'ĐỀ XUẤT: Sao lưu & đồng bộ · Khoá của két · Che màn hình & tự khoá · Lấy lại (Đã xoá, Lịch sử) · Giao diện · Trợ giúp · Thông tin',
+      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
+      act: (t) async {
+    t.view.physicalSize = const Size(430, 2560) * 2;
+    await t.pumpAndSettle();
+  });
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('kit-row')), 200, scrollable: find.byType(Scrollable).first);

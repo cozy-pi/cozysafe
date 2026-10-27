@@ -604,9 +604,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
           _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), byKind: _byKind),
-          // First (owner 2026-10-25): syncing is done often and keeps a copy elsewhere. The
-          // backup to a file sits with it (owner 2026-10-26: one "Backup & Sync" group); the
-          // Recovery Key and the password, which open a backup, live under Security.
+          // Most important first, like with like (owner 2026-10-27). Groups still have no
+          // names (owner 2026-10-26): the gaps set them apart.
+          // 1. A copy elsewhere: syncing is done often (owner 2026-10-25), the backup file with it.
           _Group(rows: [
             if (!kIsWeb)
               KeyedSubtree(
@@ -642,74 +642,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ]),
-          // Help near the top, where people look for it (owner 2026-10-26), not under About.
-          _Group(rows: [
-            // The guide again: tips on the vault's page, then here.
-            if (widget.onTour != null)
-              KeyedSubtree(
-                key: _guideRowKey,
-                child: _Row(
-                  key: const ValueKey('guide-row'),
-                  icon: Icons.school_outlined,
-                  color: _Mau.vang,
-                  title: l.userGuide,
-                  onTap: _tour,
-                ),
-              ),
-            // Feedback lives on the website; the app only opens it (owner 2026-10-21).
-            _Row(
-              key: const ValueKey('feedback-row'),
-              icon: Icons.chat_bubble_outline_rounded,
-              color: _Mau.xanh,
-              title: l.feedback,
-              onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
-            ),
-            // What went wrong, as codes to copy (owner 2026-10-26).
-            _Row(
-              key: const ValueKey('report-row'),
-              icon: Icons.bug_report_outlined,
-              color: _Mau.cam,
-              title: l.reportProblem,
-              onTap: () => pushPage<void>(context, title: l.reportProblem, builder: (_) => const ErrorReportScreen()),
-            ),
-          ]),
-          _Group(rows: [
-            _Row(
-              icon: Icons.palette_outlined,
-              color: _Mau.tim,
-              title: l.changeIdentity,
-              onTap: () => _then(widget.onChangeIdentity),
-            ),
-            // The icon on a plain page after unlocking; only a look, so no owner check.
-            _Row(
-              key: const ValueKey('reveal-row'),
-              icon: Icons.auto_awesome_outlined,
-              color: _Mau.cham,
-              title: l.revealIcon,
-              trailing: _Switch(
-                value: revealIconOn(),
-                onChanged: (v) => setState(() => Prefs.write(revealIconPref, v ? '1' : '0')),
-              ),
-            ),
-            _Row(
-              icon: Icons.delete_sweep_outlined,
-              color: _Mau.xam,
-              title: l.recentlyDeleted,
-              onTap: () => _then(widget.onOpenTrash),
-            ),
-            // Older versions of every item, kept on this device (owner 2026-10-27).
-            _Row(
-              key: const ValueKey('history-row'),
-              icon: Icons.history_rounded,
-              color: _Mau.ngoc,
-              title: l.versionHistory,
-              value: historyDaysText(l, _historyDays),
-              onTap: _openHistory,
-            ),
-          ]),
-          // The keys (owner 2026-10-26): how the vault opens here and on a new phone. The
-          // next group shields the screen. Turning any of them weaker asks for the owner
-          // first (docs/security.md).
+          // 2. The keys: how the vault opens here and on a new phone. Turning any of them
+          // weaker asks for the owner first (docs/security.md).
           _Group(boxKey: _securityGroupKey, rows: [
             if (widget.canBiometric)
               _Row(
@@ -729,6 +663,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: l.pinTitle,
               value: l.change,
               onTap: () => _guarded(() => Navigator.of(context).push<bool>(fadeRoute((_) => const SetPinScreen()))),
+            ),
+            _Row(
+              icon: Icons.key_outlined,
+              color: _Mau.vang,
+              title: l.backupPasswordLabel,
+              value: vault.hasPassword ? l.isSet : l.notSet,
+              onTap: () => _then(widget.onPassword),
             ),
             if (vault.hasPassword)
               _Row(
@@ -765,21 +706,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         }),
                 ),
               ),
-            _Row(
-              icon: Icons.key_outlined,
-              color: _Mau.vang,
-              title: l.backupPasswordLabel,
-              value: vault.hasPassword ? l.isSet : l.notSet,
-              onTap: () => _then(widget.onPassword),
-            ),
-            _Row(
-              icon: Icons.verified_user_outlined,
-              color: _Mau.ngoc,
-              title: l.securityTitle,
-              onTap: _showSecurity,
-            ),
           ]),
-          // What shows on screen and when it locks (owner 2026-10-26: apart from the keys above).
+          // 3. What shows on screen and when it locks.
           _Group(boxKey: _shieldGroupKey, rows: [
             _spot(
               SettingsSpot.autoLock,
@@ -875,7 +803,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ]),
-          // How it looks and where things are: nothing here protects the vault.
+          // 4. Getting things back: deleted items, older versions.
+          _Group(rows: [
+            _Row(
+              icon: Icons.delete_sweep_outlined,
+              color: _Mau.xam,
+              title: l.recentlyDeleted,
+              onTap: () => _then(widget.onOpenTrash),
+            ),
+            // Older versions of every item, kept on this device (owner 2026-10-27).
+            _Row(
+              key: const ValueKey('history-row'),
+              icon: Icons.history_rounded,
+              color: _Mau.ngoc,
+              title: l.versionHistory,
+              value: historyDaysText(l, _historyDays),
+              onTap: _openHistory,
+            ),
+          ]),
+          // 5. How it looks and where things are: nothing here protects the vault.
           _Group(rows: [
             _spot(
               SettingsSpot.appearance,
@@ -913,6 +859,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 labels: (l.sideLeftShort, l.sideCenterShort, l.sideRightShort),
                 onChanged: (v) => setState(() => Prefs.write(actionSidePref, v.name)),
               ),
+            ),
+            _Row(
+              icon: Icons.palette_outlined,
+              color: _Mau.tim,
+              title: l.changeIdentity,
+              onTap: () => _then(widget.onChangeIdentity),
+            ),
+            // The icon on a plain page after unlocking; only a look, so no owner check.
+            _Row(
+              key: const ValueKey('reveal-row'),
+              icon: Icons.auto_awesome_outlined,
+              color: _Mau.cham,
+              title: l.revealIcon,
+              trailing: _Switch(
+                value: revealIconOn(),
+                onChanged: (v) => setState(() => Prefs.write(revealIconPref, v ? '1' : '0')),
+              ),
+            ),
+          ]),
+          // 6. Help: the guide, how the vault is protected, feedback, what went wrong.
+          _Group(rows: [
+            // The guide again: tips on the vault's page, then here.
+            if (widget.onTour != null)
+              KeyedSubtree(
+                key: _guideRowKey,
+                child: _Row(
+                  key: const ValueKey('guide-row'),
+                  icon: Icons.school_outlined,
+                  color: _Mau.vang,
+                  title: l.userGuide,
+                  onTap: _tour,
+                ),
+              ),
+            _Row(
+              icon: Icons.verified_user_outlined,
+              color: _Mau.ngoc,
+              title: l.securityTitle,
+              onTap: _showSecurity,
+            ),
+            // Feedback lives on the website; the app only opens it (owner 2026-10-21).
+            _Row(
+              key: const ValueKey('feedback-row'),
+              icon: Icons.chat_bubble_outline_rounded,
+              color: _Mau.xanh,
+              title: l.feedback,
+              onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
+            ),
+            // What went wrong, as codes to copy (owner 2026-10-26).
+            _Row(
+              key: const ValueKey('report-row'),
+              icon: Icons.bug_report_outlined,
+              color: _Mau.cam,
+              title: l.reportProblem,
+              onTap: () => pushPage<void>(context, title: l.reportProblem, builder: (_) => const ErrorReportScreen()),
             ),
           ]),
           // One vault in the app (decisions 2026-10-24); another one only in debug mode, for
