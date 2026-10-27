@@ -15,6 +15,7 @@ import '../theme.dart';
 import '../widgets/toast.dart';
 import 'awake.dart';
 import 'status.dart';
+import '../widgets/drive_logo.dart';
 
 /// The live part of a session: [waiting] until the other device proves it holds this
 /// vault, then the number to compare while it syncs, then the result. Leaving before
@@ -825,7 +826,7 @@ class _Ends extends StatelessWidget {
     const theirs = green;
     final packets = direction > 0 ? mine : theirs;
     final still = this.still || MediaQuery.disableAnimationsOf(context);
-    Widget end(IconData icon, Color color, double scale, double ring) => Transform.scale(
+    Widget end(IconData icon, Color color, double scale, double ring, {Widget? logo}) => Transform.scale(
           scale: scale,
           child: Container(
             width: 76,
@@ -836,7 +837,7 @@ class _Ends extends StatelessWidget {
               // A ring that flares as something lands.
               border: Border.all(color: color.withValues(alpha: .55 * ring), width: 2.5),
             ),
-            child: Icon(icon, size: 38, color: color),
+            child: Center(child: logo ?? Icon(icon, size: 38, color: color)),
           ),
         );
     return AnimatedBuilder(
@@ -871,7 +872,8 @@ class _Ends extends StatelessWidget {
             ]),
           ),
           end(place == SyncPlace.drive ? Icons.cloud_rounded : Icons.phone_android_rounded, theirs,
-              1 + .05 * there - .025 * breathe, there),
+              1 + .05 * there - .025 * breathe, there,
+              logo: place == SyncPlace.drive ? const DriveLogo(size: 38) : null),
         ]);
       },
     );

@@ -714,5 +714,11 @@
   "keyBackupTitleGoogle": "24 個の単語を Google アカウントに保存しますか？",
   "keyBackupBodyGoogle": "Google アカウントから復元した新しい Android スマートフォンでは金庫のパスワードだけで済みます。Google アカウントを乗っ取られると単語も渡りますが、パスワードは依然として必要です。このスマートフォンには画面ロックが必要です。",
   "keyBackupFoundGoogle": "Google アカウントから入力しました。",
-  "keyBackupGoogleFailed": "保存できませんでした。画面ロックを設定して Google にログインしてから、もう一度お試しください。"
+  "keyBackupGoogleFailed": "保存できませんでした。画面ロックを設定して Google にログインしてから、もう一度お試しください。",
+  "addNotePhotos": "この端末の写真とビデオ。あとで元のファイルを削除できます。",
+  "addNoteVideo": "金庫に直接保存。端末の写真には残りません。",
+  "addNotePhoto": "金庫に直接保存。端末の写真には残りません。",
+  "addNoteNote": "自分だけが読めるテキスト：パスワード、コード、リスト。",
+  "addNoteVoice": "ボイスメモを金庫に直接録音します。",
+  "addNoteFile": "「ファイル」から PDF、スキャン、書類を追加。"
 }

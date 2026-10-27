@@ -714,5 +714,11 @@
   "keyBackupTitleGoogle": "Garder les 24 mots dans votre compte Google ?",
   "keyBackupBodyGoogle": "Un nouveau téléphone Android restauré depuis votre compte Google ne demandera que le mot de passe du coffre. Qui s'empare de votre compte Google a aussi les mots, et il lui faut encore le mot de passe. Ce téléphone doit avoir un verrouillage de l'écran.",
   "keyBackupFoundGoogle": "Rempli depuis votre compte Google.",
-  "keyBackupGoogleFailed": "Non gardés. Activez un verrouillage de l'écran et connectez-vous à Google, puis réessayez."
+  "keyBackupGoogleFailed": "Non gardés. Activez un verrouillage de l'écran et connectez-vous à Google, puis réessayez.",
+  "addNotePhotos": "Photos et vidéos de ce téléphone. Vous pourrez ensuite supprimer les originaux.",
+  "addNoteVideo": "Directement dans le coffre, jamais dans les photos du téléphone.",
+  "addNotePhoto": "Directement dans le coffre, jamais dans les photos du téléphone.",
+  "addNoteNote": "Du texte pour vous seul : mots de passe, codes, listes.",
+  "addNoteVoice": "Un mémo vocal, enregistré directement dans le coffre.",
+  "addNoteFile": "PDF, scans et documents depuis Fichiers."
 }

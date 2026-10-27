@@ -714,5 +714,11 @@
   "keyBackupTitleGoogle": "将 24 个单词保存在 Google 账号中？",
   "keyBackupBodyGoogle": "从你的 Google 账号恢复的新 Android 手机只需输入保险箱密码。若有人盗取你的 Google 账号，也会拿到这些单词，但仍需要密码。此手机需要设置屏幕锁定。",
   "keyBackupFoundGoogle": "已从你的 Google 账号填入。",
-  "keyBackupGoogleFailed": "未能保存。请设置屏幕锁定并登录 Google，然后重试。"
+  "keyBackupGoogleFailed": "未能保存。请设置屏幕锁定并登录 Google，然后重试。",
+  "addNotePhotos": "此手机中的照片和视频。之后可以删除原件。",
+  "addNoteVideo": "直接存入保险箱，绝不会出现在手机相册中。",
+  "addNotePhoto": "直接存入保险箱，绝不会出现在手机相册中。",
+  "addNoteNote": "只有你能看的文字：密码、代码、清单。",
+  "addNoteVoice": "语音备忘录，直接录入保险箱。",
+  "addNoteFile": "来自“文件”的 PDF、扫描件和文档。"
 }

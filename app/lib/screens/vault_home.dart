@@ -2256,6 +2256,21 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                           onClose: _closeAdd,
                         ),
                 ),
+              // Above the quick buttons, every way with a line on what it does (owner
+              // 2026-10-27). In the middle it sits over the row; on an edge, beside the
+              // column that climbs that edge.
+              if (_addShown)
+                Positioned(
+                  left: actionSide() == ActionSide.center || actionOnRight() ? 16 : 100,
+                  right: actionSide() == ActionSide.center || !actionOnRight() ? 16 : 100,
+                  top: MediaQuery.paddingOf(context).top + 12,
+                  bottom: bottom + actionLift() + Ui.primary + (actionSide() == ActionSide.center ? 10 + Ui.bar + 40 : 4),
+                  child: AddCard(
+                    open: _adding,
+                    ways: addWays(l, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                    onPick: _pickAdd,
+                  ),
+                ),
               // Above the lock (left thumb), on the right, or in the middle above the bar
               // (Settings). An empty vault has the add tiles on screen instead.
               if (!empty) Positioned(

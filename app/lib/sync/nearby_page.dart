@@ -153,8 +153,9 @@ class _NearbyLookingState extends State<NearbyLooking> {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final waited = DateTime.now().difference(_from);
-    // Nothing after a while: the reasons a person can fix.
-    final hints = waited > const Duration(seconds: 12) || NearbyPage.debugNothingYet
+    // Nothing after a minute: the reasons a person can fix (owner 2026-10-27: 12 s was
+    // too soon, they came up while the other phone was still being opened).
+    final hints = waited > const Duration(minutes: 1) || NearbyPage.debugNothingYet
         ? [widget.restoring ? l.syncNearbyNoneRestore : l.syncNearbyNone, if (Device.iOS) l.syncFindLocalNetwork]
         : const <String>[];
     String? left;
@@ -168,8 +169,9 @@ class _NearbyLookingState extends State<NearbyLooking> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // The two devices with the lock between them, a light running along the way.
-        const SyncLink(key: ValueKey('sync-find-link')),
+        // The two devices with the lock between them, still: nothing travels until the
+        // other device is found (owner 2026-10-27: a moving light read as sending).
+        const SyncLink(key: ValueKey('sync-find-link'), moving: false),
         const SizedBox(height: 22),
         Text(l.syncFindSearching,
             key: const ValueKey('sync-find-status'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.3)),

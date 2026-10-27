@@ -938,5 +938,11 @@
   "keyBackupTitleGoogle": "Keep the 24 words in your Google account?",
   "keyBackupBodyGoogle": "A new Android phone restored from your Google account then asks only for the vault password. Whoever takes over your Google account gets the words too, and still needs the password. This phone needs a screen lock.",
   "keyBackupFoundGoogle": "Filled in from your Google account.",
-  "keyBackupGoogleFailed": "Not kept. Set a screen lock on this phone and sign in to Google, then try again."
+  "keyBackupGoogleFailed": "Not kept. Set a screen lock on this phone and sign in to Google, then try again.",
+  "addNotePhotos": "Photos and videos from this phone. You can then remove the originals.",
+  "addNoteVideo": "Straight into the vault, never in the phone's photos.",
+  "addNotePhoto": "Straight into the vault, never in the phone's photos.",
+  "addNoteNote": "Text for your eyes only: passwords, codes, lists.",
+  "addNoteVoice": "A voice memo, recorded straight into the vault.",
+  "addNoteFile": "PDFs, scans and documents from Files."
 }

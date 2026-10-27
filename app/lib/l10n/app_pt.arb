@@ -714,5 +714,11 @@
   "keyBackupTitleGoogle": "Guardar as 24 palavras na sua conta Google?",
   "keyBackupBodyGoogle": "Um telemóvel Android novo restaurado a partir da sua conta Google pedirá apenas a palavra-passe do cofre. Quem tomar a sua conta Google fica também com as palavras e continua a precisar da palavra-passe. Este telemóvel precisa de bloqueio de ecrã.",
   "keyBackupFoundGoogle": "Preenchido a partir da sua conta Google.",
-  "keyBackupGoogleFailed": "Não foram guardadas. Defina um bloqueio de ecrã e inicie sessão na Google, depois tente de novo."
+  "keyBackupGoogleFailed": "Não foram guardadas. Defina um bloqueio de ecrã e inicie sessão na Google, depois tente de novo.",
+  "addNotePhotos": "Fotos e vídeos deste telemóvel. Depois pode apagar os originais.",
+  "addNoteVideo": "Diretamente para o cofre, nunca nas fotos do telemóvel.",
+  "addNotePhoto": "Diretamente para o cofre, nunca nas fotos do telemóvel.",
+  "addNoteNote": "Texto só para si: palavras-passe, códigos, listas.",
+  "addNoteVoice": "Uma nota de voz, gravada diretamente no cofre.",
+  "addNoteFile": "PDFs, digitalizações e documentos de Ficheiros."
 }

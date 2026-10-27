@@ -714,5 +714,11 @@
   "keyBackupTitleGoogle": "24개 단어를 Google 계정에 보관할까요?",
   "keyBackupBodyGoogle": "Google 계정에서 복원한 새 Android 휴대전화에서는 금고 비밀번호만 입력하면 됩니다. Google 계정을 탈취한 사람도 단어를 갖게 되지만 여전히 비밀번호가 필요합니다. 이 휴대전화에 화면 잠금이 있어야 합니다.",
   "keyBackupFoundGoogle": "Google 계정에서 채웠습니다.",
-  "keyBackupGoogleFailed": "보관하지 못했습니다. 화면 잠금을 설정하고 Google에 로그인한 뒤 다시 시도하세요."
+  "keyBackupGoogleFailed": "보관하지 못했습니다. 화면 잠금을 설정하고 Google에 로그인한 뒤 다시 시도하세요.",
+  "addNotePhotos": "이 휴대전화의 사진과 동영상. 그다음 원본을 삭제할 수 있습니다.",
+  "addNoteVideo": "금고에 바로 저장되며 휴대전화 사진에는 남지 않습니다.",
+  "addNotePhoto": "금고에 바로 저장되며 휴대전화 사진에는 남지 않습니다.",
+  "addNoteNote": "나만 보는 글: 비밀번호, 코드, 목록.",
+  "addNoteVoice": "음성 메모를 금고에 바로 녹음합니다.",
+  "addNoteFile": "파일 앱의 PDF, 스캔, 문서."
 }

@@ -714,5 +714,11 @@
   "keyBackupTitleGoogle": "Conservare le 24 parole nel tuo account Google?",
   "keyBackupBodyGoogle": "Un nuovo telefono Android ripristinato dal tuo account Google chiederà solo la password della cassaforte. Chi si impossessa del tuo account Google avrà anche le parole, e gli servirà comunque la password. Questo telefono deve avere un blocco schermo.",
   "keyBackupFoundGoogle": "Compilato dal tuo account Google.",
-  "keyBackupGoogleFailed": "Non conservate. Imposta un blocco schermo e accedi a Google, poi riprova."
+  "keyBackupGoogleFailed": "Non conservate. Imposta un blocco schermo e accedi a Google, poi riprova.",
+  "addNotePhotos": "Foto e video da questo telefono. Poi puoi eliminare gli originali.",
+  "addNoteVideo": "Direttamente nella cassaforte, mai nelle foto del telefono.",
+  "addNotePhoto": "Direttamente nella cassaforte, mai nelle foto del telefono.",
+  "addNoteNote": "Testo solo per te: password, codici, elenchi.",
+  "addNoteVoice": "Un memo vocale, registrato direttamente nella cassaforte.",
+  "addNoteFile": "PDF, scansioni e documenti da File."
 }

@@ -714,5 +714,11 @@
   "keyBackupTitleGoogle": "24 kelime Google hesabınızda saklansın mı?",
   "keyBackupBodyGoogle": "Google hesabınızdan geri yüklenen yeni bir Android telefon yalnızca kasa parolasını sorar. Google hesabınızı ele geçiren kelimeleri de alır, yine de parolaya ihtiyaç duyar. Bu telefonda ekran kilidi olmalı.",
   "keyBackupFoundGoogle": "Google hesabınızdan dolduruldu.",
-  "keyBackupGoogleFailed": "Saklanamadı. Ekran kilidi ayarlayıp Google'da oturum açın, sonra yeniden deneyin."
+  "keyBackupGoogleFailed": "Saklanamadı. Ekran kilidi ayarlayıp Google'da oturum açın, sonra yeniden deneyin.",
+  "addNotePhotos": "Bu telefondaki fotoğraf ve videolar. Ardından asıllarını silebilirsiniz.",
+  "addNoteVideo": "Doğrudan kasaya, asla telefonun fotoğraflarına değil.",
+  "addNotePhoto": "Doğrudan kasaya, asla telefonun fotoğraflarına değil.",
+  "addNoteNote": "Yalnızca sizin için metin: parolalar, kodlar, listeler.",
+  "addNoteVoice": "Doğrudan kasaya kaydedilen bir sesli not.",
+  "addNoteFile": "Dosyalar'dan PDF, tarama ve belgeler."
 }

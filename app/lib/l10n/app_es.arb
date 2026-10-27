@@ -714,5 +714,11 @@
   "keyBackupTitleGoogle": "¿Guardar las 24 palabras en tu cuenta de Google?",
   "keyBackupBodyGoogle": "Un teléfono Android nuevo restaurado desde tu cuenta de Google solo pedirá la contraseña de la caja fuerte. Quien se haga con tu cuenta de Google tendrá también las palabras y aún necesitará la contraseña. Este teléfono necesita bloqueo de pantalla.",
   "keyBackupFoundGoogle": "Rellenado desde tu cuenta de Google.",
-  "keyBackupGoogleFailed": "No se guardó. Pon un bloqueo de pantalla en este teléfono e inicia sesión en Google, y vuelve a intentarlo."
+  "keyBackupGoogleFailed": "No se guardó. Pon un bloqueo de pantalla en este teléfono e inicia sesión en Google, y vuelve a intentarlo.",
+  "addNotePhotos": "Fotos y vídeos de este teléfono. Después puedes borrar los originales.",
+  "addNoteVideo": "Directo a la caja fuerte, nunca en las fotos del teléfono.",
+  "addNotePhoto": "Directo a la caja fuerte, nunca en las fotos del teléfono.",
+  "addNoteNote": "Texto solo para ti: contraseñas, códigos, listas.",
+  "addNoteVoice": "Una nota de voz, grabada directamente en la caja fuerte.",
+  "addNoteFile": "PDF, escaneos y documentos de Archivos."
 }

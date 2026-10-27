@@ -21,6 +21,7 @@ import 'restore.dart';
 import 'set_pin.dart';
 import 'vault_home.dart';
 import '../theme.dart';
+import '../widgets/drive_logo.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
 /// PIN pad is the fallback; the password is the fallback of the fallback. The add dock
@@ -749,12 +750,15 @@ class _SyncBehindLock extends StatelessWidget {
               ),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(
-                    s.finished ? Icons.check_circle_rounded : (s.drive ? Icons.cloud_sync_rounded : Icons.phonelink_ring_rounded),
-                    size: 20,
-                    color: s.finished ? const Color(0xFF34C759) : ink,
-                    semanticLabel: s.drive ? l.syncDriveRow : l.syncRow,
-                  ),
+                  if (s.drive && !s.finished)
+                    Semantics(label: l.syncDriveRow, child: const DriveLogo(size: 20))
+                  else
+                    Icon(
+                      s.finished ? Icons.check_circle_rounded : Icons.phonelink_ring_rounded,
+                      size: 20,
+                      color: s.finished ? const Color(0xFF34C759) : ink,
+                      semanticLabel: s.drive ? l.syncDriveRow : l.syncRow,
+                    ),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(text,

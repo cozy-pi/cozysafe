@@ -12,6 +12,16 @@ Dates are UTC.
   Google account fills in the words and asks only for the vault password. Kept only
   when Google encrypts it end to end, which needs a screen lock on the phone.
 
+### Changed
+- + opens a card that names every way to add with a line on what it does (Add photos,
+  Record video, Take photo, New note, Voice, Add files); the quick buttons above + stay.
+- Editing a note: Done (save and leave) sits beside the format bar while typing, and the
+  back button on top is gone; every button is at the bottom, as on the other pages.
+- The user guide's Skip is a real button, not grey words.
+- Google Drive shows Google Drive's own logo, not a cloud.
+- Waiting for a nearby device: the picture stays still (a moving light looked like
+  sending), and the tips on what to check come after a minute, not 12 seconds.
+
 ### Fixed
 - Version history: changes made within the same millisecond could list in the wrong
   order.
