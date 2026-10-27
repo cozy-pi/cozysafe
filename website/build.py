@@ -138,25 +138,23 @@ COLLAGE = '<div class="collage" aria-hidden="true">' + ''.join(
 SHOTS = [
     ('iphone', 'lock', 240), ('iphone', 'library', 240), ('iphone', 'notes', 240),
     ('iphone', 'voice', 240), ('iphone', 'group', 240), ('iphone', 'settings', 240),
-    ('mac', 'library', 760), ('ipad', 'notes', 360), ('android', 'voice', 200),
+    ('ipad', 'notes', 360), ('android', 'voice', 200),
 ]
 DEVICE_SIZE = {'iphone': (390, 844), 'android': (412, 915), 'ipad': (820, 1180), 'mac': (1200, 760)}
 
 
 def shot(device, screen, lang, alt, width):
-    """A screenshot in the page's light or dark mode, 1x and 2x."""
+    """A screenshot from the app's dark mode, to sit on the black page (owner 2026-10-27), 1x and 2x."""
     lg = 'vi' if lang == 'vi' else 'en'  # the app speaks English and Vietnamese
     w, h = DEVICE_SIZE[device]
     f = lambda mode, r: f'/img/s/{device}-{screen}-{lg}-{mode}-{r}.webp'
-    return (f'<picture><source media="(prefers-color-scheme: dark)" srcset="{f("dark", "1x")} 1x, {f("dark", "2x")} 2x">'
-            f'<img src="{f("light", "1x")}" srcset="{f("light", "1x")} 1x, {f("light", "2x")} 2x" '
-            f'width="{width}" height="{round(width * h / w)}" alt="{alt}" loading="lazy" decoding="async"></picture>')
+    return (f'<img src="{f("dark", "1x")}" srcset="{f("dark", "1x")} 1x, {f("dark", "2x")} 2x" '
+            f'width="{width}" height="{round(width * h / w)}" alt="{alt}" loading="lazy" decoding="async">')
 
 
+# Phones and tablets only (owner 2026-10-27: the desktop app was the phone's screen made
+# bigger). The desktop builds stay on GitHub releases; the site no longer offers them.
 PLATFORMS = [
-    ('apple', 'macOS', 'CozySafe-macos.dmg', 'mac'),
-    ('windows', 'Windows', 'CozySafe-windows-x64.zip', 'win'),
-    ('linux', 'Linux', 'CozySafe-linux-x64.tar.gz', 'lin'),
     ('android', 'Android', 'CozySafe-android.apk', 'andr'),
 ]
 
@@ -189,7 +187,7 @@ def page(lang, texts, css):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{t['title']}</title>
 <meta name="description" content="{t['desc']}">
-<meta name="theme-color" content="#0F3D33">
+<meta name="theme-color" content="#000000">
 <meta property="og:title" content="{t['title']}">
 <meta property="og:description" content="{t['desc']}">
 <meta property="og:url" content="{SITE}{path(lang, 'home')}">
@@ -214,7 +212,7 @@ def page(lang, texts, css):
           <a class="btn btn-gold" id="primary" href="#download">{ic('download', 20)}<span>{t['btn']}</span></a>
           <a class="btn btn-ghost" href="{REPO}">{ic('code', 20)}{t['btn_src']}</a>
         </div>
-        <ul class="platforms"><li>macOS</li><li>Windows</li><li>Linux</li><li>Android</li><li class="soon">iPhone</li></ul>
+        <ul class="platforms"><li>Android</li><li class="soon">iPhone</li></ul>
       </div>
       <div class="unlock" role="img" aria-label="{t['unlock']}">
         <div class="knob">{DIAL}</div>
@@ -278,9 +276,6 @@ def page(lang, texts, css):
   var ua = navigator.userAgent, p = null, f = null;
   if (/Android/i.test(ua)) {{ p = 'Android'; f = 'CozySafe-android.apk'; }}
   else if (/iPhone|iPad|iPod/i.test(ua)) {{ return; }}
-  else if (/Mac/i.test(ua)) {{ p = 'macOS'; f = 'CozySafe-macos.dmg'; }}
-  else if (/Windows/i.test(ua)) {{ p = 'Windows'; f = 'CozySafe-windows-x64.zip'; }}
-  else if (/Linux/i.test(ua)) {{ p = 'Linux'; f = 'CozySafe-linux-x64.tar.gz'; }}
   if (!p) return;
   var b = document.getElementById('primary');
   b.href = '{BASE}' + f;

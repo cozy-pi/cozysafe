@@ -56,7 +56,7 @@
   "s_voice": "<strong>음성 메모는</strong> 녹음을 멈추는 순간 암호화됩니다.",
   "s_group": "<strong>그룹.</strong> 여권 사진, 스캔본, 메모를 한데 묶어 어느 섹션에서든 열 수 있습니다.",
   "s_settings": "<strong>모든 보안 설정은 먼저 Face ID를 요구합니다.</strong> 무엇이 공간을 차지하는지 한눈에 볼 수 있습니다.",
-  "h_dev": "휴대폰, 태블릿, 컴퓨터에서",
+  "h_dev": "휴대전화와 태블릿에서",
   "d_mac": "<strong>macOS</strong> · Windows와 Linux도 지원",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",

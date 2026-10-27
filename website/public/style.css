@@ -1,4 +1,4 @@
-/* safe.cozypi.com — "B2" style: vault green, blurred protected items, gold index. */
+/* safe.cozypi.com — black, like the app (owner 2026-10-27): only the logo is green. The block at the end sets it. */
 :root {
   --bg: #f4f5f4; --surface: #fff; --ink: #1a1d1f; --muted: #5c6369; --border: #dadfdc; --soft: #e9ecea;
   --green: #165b4c; --deep: #0f3d33; --night: #0b2b24; --mint: #e2eee9; --gold: #f3d08e; --gold-ink: #0f3d33;
@@ -235,3 +235,33 @@ footer .brand { font-size: 16px; }
   .switch-demo { max-width: 380px; }
 }
 .fb .top .lang { margin-left: auto; }
+
+/* ---------- Black, like the app (owner 2026-10-27) ----------
+   One look in every mode: a black page, white type, grey lines; only the logo keeps its
+   green. Last in the file so it wins over the light and dark rules above. */
+:root {
+  --bg: #000; --surface: #121314; --ink: #f2f3f3; --muted: #9da1a5; --border: #2a2c2f; --soft: #1a1b1d;
+  --green: #f2f3f3; --deep: #000; --night: #000; --mint: #1a1b1d; --gold: #fff; --gold-ink: #000;
+  --warn-bg: #2b2416; --warn-ink: #f1d294;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); }
+a { color: var(--ink); }
+.hero { background: #000; }
+.collage, .veil { display: none; }
+.btn-gold { background: #fff; color: #000; }
+.unlock { background: var(--surface); color: var(--ink); border: 1px solid var(--border); box-shadow: 0 30px 70px rgba(0,0,0,.6); }
+.unlock .knob { background: #000; box-shadow: 0 0 0 1px var(--border); }
+.unlock .ring { stroke: #fff; } .unlock .core { fill: #fff; }
+.unlock .field { background: #000; border-color: var(--border); color: var(--muted); }
+.unlock .go { background: #fff; color: #000; }
+.unlock .bio { border-color: var(--border); color: var(--ink); }
+.frame { background: #000; box-shadow: 0 0 0 1px var(--border), 0 18px 40px rgba(0,0,0,.5); }
+.frame.phone::before, .frame.android::before { background: #000; }
+.feat .ic, .way .ic, .dl .os svg { color: var(--ink); }
+.dl .get, .way .get, .steps .num { background: #fff; color: #000; }
+.way .get.alt { background: transparent; color: var(--ink); }
+.letter .mk, .letter .field, .never { color: var(--ink); }
+.letter .lines { border-color: var(--border); } .letter .lines i { background: #222; }
+.switch-demo .off .tog { background: #48484a; }
+footer { background: #000; border-top: 1px solid var(--border); }

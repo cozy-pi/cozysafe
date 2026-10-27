@@ -56,7 +56,7 @@
   "s_voice": "<strong>Ses kayıtları,</strong> kaydı durdurduğunuz anda şifrelenir.",
   "s_group": "<strong>Gruplar.</strong> Pasaport fotoğrafı, taraması ve notu bir arada; hangi bölümden olursa olsun açılır.",
   "s_settings": "<strong>Her güvenlik ayarı önce Face ID ister.</strong> Neyin yer kapladığını bir bakışta görün.",
-  "h_dev": "Telefonunuzda, tabletinizde ve bilgisayarınızda",
+  "h_dev": "Telefonunuzda ve tabletinizde",
   "d_mac": "<strong>macOS</strong> · ayrıca Windows ve Linux",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
