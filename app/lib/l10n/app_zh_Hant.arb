@@ -738,5 +738,7 @@
   "storageItems": "{count, plural, other{{count} 個項目}}",
   "syncAuto": "自動同步",
   "syncWifiOnly": "僅限 Wi-Fi",
-  "syncNow": "立即同步"
+  "syncNow": "立即同步",
+  "syncedStatus": "已同步",
+  "syncProblem": "無法同步"
 }

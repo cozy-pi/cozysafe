@@ -18,6 +18,7 @@ import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../secret_key_store.dart';
 import '../theme.dart';
+import '../sync/sync_status.dart';
 import 'common.dart' show fadeRoute;
 import 'debug.dart';
 import 'security_info.dart';
@@ -659,6 +660,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: SettingsSpot.sync.color,
                   title: l.syncTitle,
                   value: _lastSyncText(l),
+                  alert: true,
                   onTap: _openSync,
                 ),
               ),
@@ -1184,10 +1186,13 @@ class _Row extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.chevron = true,
+    this.alert = false,
   });
 
   /// False for a tap nobody should notice (the version's hidden debug taps).
   final bool chevron;
+  /// The red dot of a failed automatic sync before the value (the Sync row).
+  final bool alert;
 
   final IconData icon;
   /// The tile's colour (white symbol on it).
@@ -1214,6 +1219,7 @@ class _Row extends StatelessWidget {
               const SizedBox(width: 12),
               // Just a name, no note under it (owner 2026-10-21): the name says enough.
               Expanded(flex: 3, child: Text(title, style: const TextStyle(fontSize: CsType.body))),
+              if (alert) const SyncAlertDot(),
               if (value != null) ...[
                 const SizedBox(width: 8),
                 // At 17 pt a long value (a language name, a time) shortens with "…" as on

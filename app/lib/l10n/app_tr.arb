@@ -738,5 +738,7 @@
   "storageItems": "{count, plural, other{{count} öğe}}",
   "syncAuto": "Otomatik eşitle",
   "syncWifiOnly": "Yalnızca Wi-Fi'da",
-  "syncNow": "Şimdi eşitle"
+  "syncNow": "Şimdi eşitle",
+  "syncedStatus": "Eşitlendi",
+  "syncProblem": "Eşitlenemedi"
 }

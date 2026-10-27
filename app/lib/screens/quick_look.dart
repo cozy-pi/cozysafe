@@ -814,8 +814,8 @@ class _QuickLookState extends State<QuickLook> {
                   width: box.maxWidth,
                   child: Column(
                     children: [
-                      // A photo or a video speaks for itself: no name, date or size under
-                      // it (owner 2026-10-28); they are in Info (⋯).
+                      // A photo or a video has no name under it (owner 2026-10-28): its
+                      // date and size are in the tag above it.
                       if (!_pictureOnly) ...[
                         Text(_title,
                             maxLines: 1,
@@ -843,15 +843,36 @@ class _QuickLookState extends State<QuickLook> {
                     ],
                   ),
                 );
+    // A photo or a video: its date and size in a quiet tag centred above it (owner
+    // 2026-10-27); no name, which can be long.
+    final Widget infoTag = Container(
+      key: const ValueKey('quick-info'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: dark ? .14 : .07),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(_info,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: CsType.footnote, color: c.muted, fontWeight: FontWeight.w500)),
+    );
+    final Widget above = _pictureOnly ? infoTag : titleBlock;
+    // Below: the name for other kinds; for a photo, the days left in Recently deleted, or
+    // the tag again unseen so the picture stays in the middle.
+    final Widget below = !_pictureOnly || trash != null
+        ? titleBlock
+        : ExcludeSemantics(child: Visibility.maintain(visible: false, child: infoTag));
     // In a pane: the item, its name, and its buttons under it; nothing over the page.
     if (embedded) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         child: Column(
           children: [
+            if (_pictureOnly) ...[infoTag, const SizedBox(height: 12)],
             Expanded(child: Center(child: boxed)),
             const SizedBox(height: 14),
-            titleBlock,
+            if (!_pictureOnly || trash != null) titleBlock,
             const SizedBox(height: 10),
             SizedBox(
               height: Ui.bar,
@@ -899,7 +920,7 @@ class _QuickLookState extends State<QuickLook> {
               children: [
                 // The same block, unseen, above: the picture itself sits in the middle,
                 // as much space above it as below (owner 2026-10-25).
-                ExcludeSemantics(child: Visibility.maintain(visible: false, child: titleBlock)),
+                _pictureOnly ? above : ExcludeSemantics(child: Visibility.maintain(visible: false, child: titleBlock)),
                 const SizedBox(height: 14),
                 Flexible(
                   child: still
@@ -913,7 +934,7 @@ class _QuickLookState extends State<QuickLook> {
                         ),
                 ),
                 const SizedBox(height: 14),
-                titleBlock,
+                below,
               ],
             ),
           ),

@@ -738,5 +738,7 @@
   "storageItems": "{count, plural, other{{count} รายการ}}",
   "syncAuto": "ซิงค์อัตโนมัติ",
   "syncWifiOnly": "เฉพาะเมื่อใช้ Wi-Fi",
-  "syncNow": "ซิงค์เลย"
+  "syncNow": "ซิงค์เลย",
+  "syncedStatus": "ซิงค์แล้ว",
+  "syncProblem": "ซิงค์ไม่สำเร็จ"
 }

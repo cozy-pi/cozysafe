@@ -738,5 +738,7 @@
   "storageItems": "{count, plural, =1{1 elemento} other{{count} elementi}}",
   "syncAuto": "Sincronizza automaticamente",
   "syncWifiOnly": "Solo con Wi-Fi",
-  "syncNow": "Sincronizza ora"
+  "syncNow": "Sincronizza ora",
+  "syncedStatus": "Sincronizzato",
+  "syncProblem": "Sincronizzazione non riuscita"
 }

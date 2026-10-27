@@ -738,5 +738,7 @@
   "storageItems": "{count, plural, other{{count}件}}",
   "syncAuto": "自動で同期",
   "syncWifiOnly": "Wi-Fi接続時のみ",
-  "syncNow": "今すぐ同期"
+  "syncNow": "今すぐ同期",
+  "syncedStatus": "同期済み",
+  "syncProblem": "同期できませんでした"
 }

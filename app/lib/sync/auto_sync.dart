@@ -43,6 +43,36 @@ abstract final class AutoSync {
   /// A run under way, for a small sign on the page.
   static final running = ValueNotifier(false);
 
+  /// When Google Drive last synced in full (automatic or by hand), for the line on the
+  /// home page; kept across starts.
+  static final lastOk = ValueNotifier<DateTime?>(_readTime());
+
+  /// The last automatic sync failed (not merely cut off by the network): a red dot on
+  /// Settings and on the Sync row until a sync goes through (owner 2026-10-27).
+  static final failed = ValueNotifier<bool>(Prefs.read(_failedPref) == '1');
+
+  static const _okPref = 'drive-auto-last-ok';
+  static const _failedPref = 'drive-auto-failed';
+
+  static DateTime? _readTime() {
+    final ms = int.tryParse(Prefs.read(_okPref) ?? '');
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  /// A sync with Google Drive went through.
+  static void succeeded() {
+    final now = DateTime.now();
+    lastOk.value = now;
+    Prefs.write(_okPref, '${now.millisecondsSinceEpoch}');
+    _fail(false);
+  }
+
+  static void _fail(bool on) {
+    if (failed.value == on) return;
+    failed.value = on;
+    Prefs.write(_failedPref, on ? '1' : '0');
+  }
+
   /// Syncs by hand open: none of these starts meanwhile.
   static int _held = 0;
   static void hold() => _held++;
@@ -125,12 +155,23 @@ abstract final class AutoSync {
     var changes = false;
     try {
       await for (final e in sync.driveSync(token: session.token)) {
-        if (e.kind == sync.SyncStep.done) changes = e.received + e.removed + e.copies > 0;
-        if (e.kind == sync.SyncStep.signIn) ErrorLog.add('auto-sync', 'sign-in');
-        if (e.kind == sync.SyncStep.failed) ErrorLog.add('auto-sync', e.code.isEmpty ? 'failed' : e.code);
+        if (e.kind == sync.SyncStep.done) {
+          changes = e.received + e.removed + e.copies > 0;
+          succeeded();
+        }
+        if (e.kind == sync.SyncStep.signIn) {
+          ErrorLog.add('auto-sync', 'sign-in');
+          _fail(true);
+        }
+        if (e.kind == sync.SyncStep.failed) {
+          ErrorLog.add('auto-sync', e.code.isEmpty ? 'failed' : e.code);
+          _fail(true);
+        }
+        // Interrupted (the network went): nothing is wrong; the next run goes on.
       }
     } catch (e) {
       ErrorLog.add('auto-sync', e.runtimeType.toString());
+      _fail(true);
     } finally {
       running.value = false;
     }

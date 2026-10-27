@@ -10,6 +10,7 @@ import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show pushPage;
 import '../platform.dart';
 import 'auto_sync.dart';
+import 'sync_status.dart';
 import 'consent.dart';
 import 'drive.dart';
 import 'nearby_page.dart';
@@ -126,7 +127,10 @@ class _SyncScreenState extends State<SyncScreen> {
               place: SyncPlace.drive,
               events: sync.driveSync(token: token),
               retry: () => sync.driveSync(token: token),
-              onSynced: widget.onSynced,
+              onSynced: () {
+                AutoSync.succeeded();
+                widget.onSynced();
+              },
               waiting: Column(mainAxisSize: MainAxisSize.min, children: [
                 const SyncLink(place: SyncPlace.drive),
                 const SizedBox(height: 22),
@@ -163,6 +167,7 @@ class _SyncScreenState extends State<SyncScreen> {
                 color: const Color(0xFF34A853),
                 logo: const DriveLogo(size: 20),
                 title: 'Google Drive',
+                alert: true,
                 onTap: _account == null ? _drive : _openDrive),
           ]),
           const SizedBox(height: 24),
@@ -322,7 +327,9 @@ class _Card extends StatelessWidget {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({super.key, required this.icon, required this.color, required this.title, this.onTap, this.detail, this.chevron = true, this.logo, this.trailing});
+  const _Action({super.key, required this.icon, required this.color, required this.title, this.onTap, this.detail, this.chevron = true, this.logo, this.trailing, this.alert = false});
+  /// The red dot of a failed automatic sync after the title (the Google Drive row).
+  final bool alert;
   final IconData icon;
   /// A service's own logo on a white tile instead of [icon] (Google Drive).
   final Widget? logo;
@@ -357,6 +364,7 @@ class _Action extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: CsType.body, color: chevron || onTap == null || trailing != null ? null : color))),
+          if (alert) const SyncAlertDot(),
           if (detail case final d?)
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 190),

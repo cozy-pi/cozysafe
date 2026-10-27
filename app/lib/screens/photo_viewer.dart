@@ -295,43 +295,32 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
     final ml = MaterialLocalizations.of(context);
     final bars = Column(
       children: [
+        // The date and size centred over the photo (owner 2026-10-27); no name, which can
+        // be long. Exit is with the other buttons at the bottom, in the thumb's reach.
         SafeArea(
           bottom: false,
-          child: Row(
-            children: [
-              const SizedBox(width: 8),
-              // Every control sits on dark glass: white on a bright photo vanished.
-              GlassPill(
-                child: IconButton(
-                  key: const ValueKey('media-exit-full'),
-                  // Back to the quick look this full screen was opened from.
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 26),
-                  tooltip: l.exitFullScreen,
-                ),
-              ),
-              const SizedBox(width: 8),
-              ValueListenableBuilder<int>(
-                valueListenable: _index,
-                builder: (context, i, _) {
-                  final when = dateOf(widget.items[i].createdMs);
-                  return GlassPill(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(ml.formatMediumDate(when), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                          Text(ml.formatTimeOfDay(TimeOfDay.fromDateTime(when)),
-                              style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
-                        ],
-                      ),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: ValueListenableBuilder<int>(
+              valueListenable: _index,
+              builder: (context, i, _) {
+                final it = widget.items[i];
+                final when = dateOf(it.createdMs);
+                return GlassPill(
+                  child: Padding(
+                    key: const ValueKey('media-info'),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    child: Column(
+                      children: [
+                        Text(ml.formatMediumDate(when), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                        Text('${ml.formatTimeOfDay(TimeOfDay.fromDateTime(when))} · ${fileSize(it.sizeBytes)}',
+                            style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
+                      ],
                     ),
-                  );
-                },
-              ),
-              const Spacer(),
-            ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
         const Spacer(),
@@ -342,6 +331,16 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                GlassPill(
+                  child: IconButton(
+                    key: const ValueKey('media-exit-full'),
+                    // Back to the quick look this full screen was opened from.
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 26),
+                    tooltip: l.exitFullScreen,
+                  ),
+                ),
+                const SizedBox(width: 16),
                 GlassPill(
                   child: TextButton.icon(
                     key: const ValueKey('photo-send'),

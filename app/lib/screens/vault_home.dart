@@ -58,6 +58,7 @@ import '../widgets/toast.dart';
 import '../widgets/second_place.dart';
 import '../sync/auto_sync.dart';
 import '../sync/sync_screen.dart';
+import '../sync/sync_status.dart';
 import 'history.dart';
 import 'wide_home.dart';
 import '../widgets/readable.dart';
@@ -1794,7 +1795,20 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 12, 6, 0),
-            child: Text(l.storageUsed(fileSize(bytes), things.length), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
+            // Size and count; on the right, when the vault last synced with Google Drive.
+            child: Row(children: [
+              Text(l.storageUsed(fileSize(bytes), things.length), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: HomeSyncLine(
+                    onTap: () => pushPage<void>(context,
+                        title: l.syncTitle, grouped: true, builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
+                  ),
+                ),
+              ),
+            ]),
           ),
           if (things.isNotEmpty)
             SecondPlaceNudge(
@@ -1902,12 +1916,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             const SizedBox(width: 8),
             KeyedSubtree(
               key: _settingsKey,
-              child: GlassButton(
-                key: const ValueKey('settings-button'),
-                icon: Icons.settings_rounded,
-                tooltip: l.settings,
-                size: Ui.circle,
-                onTap: _openSettings,
+              // A red dot when automatic sync failed (owner 2026-10-27).
+              child: SyncAlertBadge(
+                child: GlassButton(
+                  key: const ValueKey('settings-button'),
+                  icon: Icons.settings_rounded,
+                  tooltip: l.settings,
+                  size: Ui.circle,
+                  onTap: _openSettings,
+                ),
               ),
             ),
           ],
