@@ -263,37 +263,24 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                 child: SafeArea(
                   child: Column(
                     children: [
-                      Row(
-                        children: [
-                          const SizedBox(width: 8),
-                          GlassPill(
-                            child: IconButton(
-                              key: const ValueKey('media-exit-full'),
-                              tooltip: widget.playback != null ? l.exitFullScreen : l.close,
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: Icon(
-                                widget.playback != null ? Icons.fullscreen_exit_rounded : Icons.close,
-                                color: Colors.white,
-                                size: 26,
-                              ),
+                      // The date and size centred on top, as for a photo; no name.
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: GlassPill(
+                          child: Padding(
+                            key: const ValueKey('media-info'),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            child: Column(
+                              children: [
+                                Text(MaterialLocalizations.of(context).formatMediumDate(dateOf(widget.item.createdMs)),
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                                Text(
+                                    '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(dateOf(widget.item.createdMs)))} · ${fileSize(widget.item.sizeBytes)}',
+                                    style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: GlassPill(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-                                child: Text(
-                                  widget.item.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
+                        ),
                       ),
                       const Spacer(),
                       if (p != null && v != null && v.isInitialized)
@@ -331,6 +318,20 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            // Exit at the bottom with the other buttons, in the thumb's reach.
+                            GlassPill(
+                              child: IconButton(
+                                key: const ValueKey('media-exit-full'),
+                                tooltip: widget.playback != null ? l.exitFullScreen : l.close,
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: Icon(
+                                  widget.playback != null ? Icons.fullscreen_exit_rounded : Icons.close,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
                             Builder(
                               builder: (b) => GlassPill(
                                 child: TextButton.icon(

@@ -10,6 +10,8 @@
 //! <vault>/blobs/<item>.<rev>.data   content written in revision <rev>
 //! <vault>/blobs/<item>.<rev>.thumb  its preview
 //! <vault>/log/<device>/<n>          sealed journal entries of one device, numbered
+//! <vault>/head/<device>             sealed, small: the device's last entry and how far
+//!                                   it has read the others' (rewritten in place)
 //! <vault>/lock/<ms>-<sha256>.json   the vault's lock (to join from the place)
 //! ```
 //!
@@ -17,8 +19,14 @@
 //! (field by field against the last revision both sides agreed on), then uploads this
 //! device's changes and appends one journal entry naming them. Conflicts never lose
 //! typed text: when a note's text changed on both sides, the other text becomes a copy.
+//!
+//! The head is the one file that changes: written last, after the journal entries it
+//! counts, so a place that tells when a file changed (Google Drive's `version`) lets
+//! another device see in one small request whether anything new was written
+//! ([`HeadsSeen`]). Devices from before heads (0.1.80 and older) write none: their
+//! changes are only seen by a full sync.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -41,8 +49,17 @@ pub trait Remote: Sync {
     fn list(&self, dir: &str) -> Result<Vec<String>>;
     /// Copy the file at `path` into `out`; `false` when there is no such file.
     fn get(&self, path: &str, out: &mut dyn Write) -> Result<bool>;
-    /// Create the file at `path` from `src` (it never exists yet: nothing is overwritten).
+    /// Create the file at `path` from `src` (it never exists yet: nothing is overwritten,
+    /// except through [`Remote::replace`]).
     fn put(&self, path: &str, src: &mut dyn Read) -> Result<()>;
+    /// Write the file at `path` from `src`, replacing the one there. Only a device's head
+    /// (`<vault>/head/<device>`) is ever rewritten. By default the old file is removed,
+    /// then the new one put; a place that cannot remove (a nearby device's session
+    /// folder) keeps the first one, which is fine for a folder thrown away anyway.
+    fn replace(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+        self.remove(path)?;
+        self.put(path, src)
+    }
     fn exists(&self, path: &str) -> Result<bool>;
     /// [`Remote::put`] from a file on this device.
     fn put_file(&self, path: &str, local: &Path) -> Result<()> {
@@ -198,6 +215,11 @@ impl Remote for FolderRemote {
 
     fn exists(&self, path: &str) -> Result<bool> {
         Ok(self.at(path)?.exists())
+    }
+
+    /// [`Remote::put`] writes beside and renames over: the file is replaced at once.
+    fn replace(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+        self.put(path, src)
     }
 
     /// A hard link when the folder is on the same disk (a P2P host's folder holds the
@@ -386,6 +408,11 @@ impl Remote for Counted<'_> {
             .put(path, &mut CountingReader { src, counted: self })
     }
 
+    fn replace(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+        self.inner
+            .replace(path, &mut CountingReader { src, counted: self })
+    }
+
     fn exists(&self, path: &str) -> Result<bool> {
         self.inner.exists(path)
     }
@@ -477,6 +504,10 @@ impl Remote for Ahead<'_, '_> {
         self.inner.put(path, src)
     }
 
+    fn replace(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+        self.inner.replace(path, src)
+    }
+
     fn exists(&self, path: &str) -> Result<bool> {
         self.inner.exists(path)
     }
@@ -504,6 +535,31 @@ impl Remote for Ahead<'_, '_> {
     fn listed(&self, path: &str) -> Option<Listed> {
         self.inner.listed(path)
     }
+}
+
+/// A device's head (`<vault>/head/<device>`), sealed with the Master Key under its
+/// path. Always small: a number per device that synced through the place.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Head {
+    /// The device's last journal entry (`log/<device>/<n>`); 0 before the first.
+    pub n: u64,
+    /// Other device → the last of its journal entries this device has read. Kept for a
+    /// later clean-up of entries every device has read; not used yet.
+    #[serde(default)]
+    pub read: BTreeMap<String, u64>,
+}
+
+/// What a place said about the heads at one moment: Google Drive's `version` of each
+/// head file (it rises on every change), and the id of the folder holding them, so the
+/// next look is one request. Kept per place in the index ([`OpenVault::remember_heads`]).
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HeadsSeen {
+    /// The place's own id for the folder of heads, when it had one.
+    #[serde(default)]
+    pub folder_id: Option<String>,
+    /// Device → its head file's version.
+    #[serde(default)]
+    pub versions: BTreeMap<String, u64>,
 }
 
 /// Items per journal entry while sending, so a long first sync that stops half-way has
@@ -560,13 +616,132 @@ impl OpenVault {
             bytes: 0,
             bytes_total: 0,
         });
-        self.pull(&counted, &mut report, progress)?;
-        self.push(&counted, &mut report, progress)?;
-        Ok(report)
+        let synced = self
+            .pull(&counted, &mut report, progress)
+            .and_then(|()| self.push(&counted, &mut report, progress));
+        if synced.is_err() {
+            // Entries may have gone up before it failed: the head says so if it can.
+            self.write_head_quietly(&counted);
+        }
+        synced.map(|()| report)
     }
 
     fn log_aad(&self, device: &str, n: u64) -> Vec<u8> {
         crate::aad(&self.id, &format!("sync/log/{device}/{n}"))
+    }
+
+    fn head_aad(&self, device: &str) -> Vec<u8> {
+        crate::aad(&self.id, &format!("sync/head/{device}"))
+    }
+
+    /// This device's head as it stands for `remote`: its last journal entry there, and
+    /// the cursors it keeps of the other devices.
+    fn head(&self, remote: &dyn Remote) -> Result<Head> {
+        let rk = remote.key();
+        let n = self
+            .index
+            .meta_get(&format!("{rk}:seq"))?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
+        let prefix = format!("{rk}:cursor:");
+        let read = self
+            .index
+            .meta_prefixed(&prefix)?
+            .into_iter()
+            .filter_map(|(k, v)| Some((k[prefix.len()..].to_owned(), v.parse().ok()?)))
+            .collect();
+        Ok(Head { n, read })
+    }
+
+    /// Write this device's head to `remote` when it says something new (or the place
+    /// lost it): one small file, replaced in place.
+    fn write_head(&self, remote: &dyn Remote) -> Result<()> {
+        let me = device_id(&self.index)?;
+        let rk = remote.key();
+        let json = serde_json::to_string(&self.head(remote)?).expect("json");
+        let path = format!("{}/head/{me}", self.sync_dir());
+        let written = format!("{rk}:head");
+        if self.index.meta_get(&written)?.as_deref() == Some(json.as_str())
+            && remote.exists(&path)?
+        {
+            return Ok(());
+        }
+        let sealed = wrap::seal(&self.master_key, json.as_bytes(), &self.head_aad(&me));
+        remote.replace(&path, &mut &sealed[..])?;
+        self.index.meta_set(&written, &json)
+    }
+
+    /// [`OpenVault::write_head`], never failing the sync: a head not written now is
+    /// written by the next sync (meanwhile other devices see the change only by a full
+    /// sync).
+    fn write_head_quietly(&self, remote: &dyn Remote) {
+        let _ = self.write_head(remote);
+    }
+
+    /// A device's head read from `remote` (`None`: it has none, as devices from before
+    /// heads). Sealed under its path, so it cannot pass for another device's.
+    pub fn read_head(&self, remote: &dyn Remote, device: &str) -> Result<Option<Head>> {
+        let mut sealed = Capped::new(MAX_SMALL);
+        if !remote.get(&format!("{}/head/{device}", self.sync_dir()), &mut sealed)? {
+            return Ok(None);
+        }
+        let json = wrap::open(&self.master_key, &sealed.0, &self.head_aad(device))?;
+        serde_json::from_slice(&json)
+            .map(Some)
+            .map_err(|_| Error::Corrupt("sync head"))
+    }
+
+    /// What `place` last said about the heads, kept after a full sync that worked
+    /// ([`OpenVault::remember_heads`]); `None` before the first.
+    pub fn heads_seen(&self, place: &str) -> Result<Option<HeadsSeen>> {
+        Ok(self
+            .index
+            .meta_get(&format!("{place}:heads-seen"))?
+            .and_then(|v| serde_json::from_str(&v).ok()))
+    }
+
+    /// Keep what `place` said about the heads. Called only after a full sync that worked,
+    /// with what the place said BEFORE that sync read the journals: a change written
+    /// meanwhile, or by a sync that failed, is then still seen as new.
+    pub fn remember_heads(&self, place: &str, seen: &HeadsSeen) -> Result<()> {
+        self.index.meta_set(
+            &format!("{place}:heads-seen"),
+            &serde_json::to_string(seen).expect("json"),
+        )
+    }
+
+    /// Whether `now` (what `place` says about the heads at this moment; `None`: it has no
+    /// folder of heads) shows another device has written since the last full sync.
+    /// Changed when nothing is remembered yet, when there is no folder of heads, or when
+    /// another device's head is new, has another version, or is gone; this device's own
+    /// head is left out. A false "changed" only costs a sync; "unchanged" is said only
+    /// when every other device's head is as it was before the last full sync read the
+    /// journals. Devices without a head (0.1.80 and older) are not seen here. A folder
+    /// found again under another id is kept for the next look.
+    pub fn heads_changed(&self, place: &str, now: Option<&HeadsSeen>) -> Result<bool> {
+        let Some(seen) = self.heads_seen(place)? else {
+            return Ok(true);
+        };
+        let Some(now) = now else {
+            return Ok(true);
+        };
+        if now.folder_id.is_some() && now.folder_id != seen.folder_id {
+            self.remember_heads(
+                place,
+                &HeadsSeen {
+                    folder_id: now.folder_id.clone(),
+                    versions: seen.versions.clone(),
+                },
+            )?;
+        }
+        let me = device_id(&self.index)?;
+        let others = |m: &BTreeMap<String, u64>| -> BTreeMap<String, u64> {
+            m.iter()
+                .filter(|(d, _)| **d != me)
+                .map(|(d, v)| (d.clone(), *v))
+                .collect()
+        };
+        Ok(others(&now.versions) != others(&seen.versions))
     }
 
     fn pull(
@@ -1350,6 +1525,9 @@ impl OpenVault {
                 bytes_total,
             });
         }
+        // The head last, after every entry it counts (and before tidying, which may take
+        // a while once a day).
+        self.write_head_quietly(remote);
         self.collect_garbage(remote, now_ms(), progress)
     }
 
@@ -2934,5 +3112,134 @@ pub(crate) mod tests {
             })
         }
         assert_eq!(ahead_files(&t.b.dir), 0);
+    }
+
+    fn me(v: &OpenVault) -> String {
+        device_id(&v.index).unwrap()
+    }
+
+    /// The highest journal entry of `device` in the place.
+    fn last_entry(t: &Two, device: &str) -> u64 {
+        t.cloud
+            .list(&format!("{}/log/{device}", t.a.id))
+            .unwrap()
+            .iter()
+            .filter_map(|n| n.parse().ok())
+            .max()
+            .unwrap_or(0)
+    }
+
+    #[test]
+    fn the_head_says_the_last_entry_and_what_was_read() {
+        let t = two();
+        let (a, b) = (me(&t.a), me(&t.b));
+        note(&t.a, "one", "1");
+        t.a.sync(&t.cloud).unwrap();
+        let head = t.a.read_head(&t.cloud, &a).unwrap().unwrap();
+        assert!(head.n >= 1);
+        assert_eq!(head.n, last_entry(&t, &a));
+        assert!(head.read.is_empty());
+        // B read A's entries: its head says how far.
+        t.b.sync(&t.cloud).unwrap();
+        let hb = t.b.read_head(&t.cloud, &b).unwrap().unwrap();
+        assert_eq!(hb.read.get(&a), Some(&head.n));
+        assert_eq!(hb.n, last_entry(&t, &b));
+        // A new entry: the head follows, in the same file.
+        note(&t.a, "two", "2");
+        t.a.sync(&t.cloud).unwrap();
+        let again = t.a.read_head(&t.cloud, &a).unwrap().unwrap();
+        assert_eq!(again.n, last_entry(&t, &a));
+        assert!(again.n > head.n);
+        // (A cursor only once B wrote an entry.)
+        assert_eq!(again.read.get(&b).copied().unwrap_or(0), hb.n);
+        let path = format!("{}/head/{a}", t.a.id);
+        assert_eq!(t.cloud.list(&format!("{}/head", t.a.id)).unwrap().len(), 2);
+        // Nothing new: not written again (sealing twice never gives the same bytes).
+        let read = |p: &str| {
+            let mut out = Vec::new();
+            t.cloud.get(p, &mut out).unwrap();
+            out
+        };
+        let before = read(&path);
+        assert!(!before.windows(4).any(|w| w == b"read"));
+        t.a.sync(&t.cloud).unwrap();
+        assert_eq!(read(&path), before);
+        // Sealed under its path: it cannot pass for another device's head.
+        t.cloud
+            .put(&format!("{}/head/{b}", t.a.id), &mut &before[..])
+            .unwrap();
+        assert!(t.a.read_head(&t.cloud, &b).is_err());
+        assert!(t.a.read_head(&t.cloud, "0123").unwrap().is_none());
+    }
+
+    /// A place that refuses to rewrite heads.
+    struct NoHead<'a>(&'a FolderRemote);
+
+    impl Remote for NoHead<'_> {
+        fn key(&self) -> String {
+            self.0.key()
+        }
+        fn list(&self, dir: &str) -> Result<Vec<String>> {
+            self.0.list(dir)
+        }
+        fn get(&self, path: &str, out: &mut dyn Write) -> Result<bool> {
+            self.0.get(path, out)
+        }
+        fn put(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+            self.0.put(path, src)
+        }
+        fn replace(&self, _: &str, _: &mut dyn Read) -> Result<()> {
+            Err(Error::Corrupt("test: place failed"))
+        }
+        fn exists(&self, path: &str) -> Result<bool> {
+            self.0.exists(path)
+        }
+    }
+
+    #[test]
+    fn a_head_that_cannot_be_written_does_not_fail_the_sync() {
+        let t = two();
+        let id = note(&t.a, "one", "the text");
+        assert_eq!(t.a.sync(&NoHead(&t.cloud)).unwrap().sent, 1);
+        let a = me(&t.a);
+        assert!(t.a.read_head(&t.cloud, &a).unwrap().is_none());
+        t.b.sync(&t.cloud).unwrap();
+        assert_eq!(text(&t.b, &id), "the text");
+        // The next sync writes it, though nothing else is new.
+        t.a.sync(&t.cloud).unwrap();
+        let head = t.a.read_head(&t.cloud, &a).unwrap().unwrap();
+        assert_eq!(head.n, last_entry(&t, &a));
+    }
+
+    #[test]
+    fn heads_changed_only_when_another_devices_head_moved() {
+        let t = two();
+        let (a, b) = (me(&t.a), me(&t.b));
+        let at = |folder: &str, pairs: &[(&str, u64)]| HeadsSeen {
+            folder_id: Some(folder.to_owned()),
+            versions: pairs.iter().map(|(d, v)| (d.to_string(), *v)).collect(),
+        };
+        let changed = |now: HeadsSeen| t.a.heads_changed("p", Some(&now)).unwrap();
+        // Nothing remembered yet: changed.
+        assert!(changed(at("h", &[(&b, 4)])));
+        t.a.remember_heads("p", &at("h", &[(&a, 1), (&b, 4)]))
+            .unwrap();
+        assert!(!changed(at("h", &[(&a, 1), (&b, 4)])));
+        // This device's own head is left out.
+        assert!(!changed(at("h", &[(&a, 9), (&b, 4)])));
+        assert!(!changed(at("h", &[(&b, 4)])));
+        // Another device wrote, is new, or its head is gone.
+        assert!(changed(at("h", &[(&a, 1), (&b, 5)])));
+        assert!(changed(at("h", &[(&a, 1), (&b, 4), ("c0", 1)])));
+        assert!(changed(at("h", &[(&a, 1)])));
+        // No folder of heads, or another place: changed.
+        assert!(t.a.heads_changed("p", None).unwrap());
+        assert!(t.a.heads_changed("q", Some(&at("h", &[(&b, 4)]))).unwrap());
+        // The folder found again under another id is kept; what was seen stays.
+        assert!(!changed(at("h2", &[(&b, 4)])));
+        assert_eq!(
+            t.a.heads_seen("p").unwrap(),
+            Some(at("h2", &[(&a, 1), (&b, 4)]))
+        );
     }
 }

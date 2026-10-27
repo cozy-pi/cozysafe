@@ -7,6 +7,7 @@
 //! Cozy Safe/<vault>/index/<bucket>/<item>.<rev>              records/<item>/<rev>
 //! Cozy Safe/<vault>/content/<bucket>/<item>.<rev>.<ext>      blobs/<item>.<rev>.<ext>
 //! Cozy Safe/<vault>/log/<device>.<n>                         log/<device>/<n>
+//! Cozy Safe/<vault>/head/<device>                            head/<device>
 //! Cozy Safe/<vault>/lock/<name>                              lock/<name>
 //! ```
 //!
@@ -20,6 +21,11 @@
 //! (`<vault>/records/<id>/<rev>`, up to 0.1.57), or in the vault's folder named by the
 //! rest (never released). Opening moves them into place, one rename each, no bytes sent
 //! again.
+//!
+//! Each device's head (`head/<device>`) is the one file rewritten, in place (same file
+//! id), after its journal entries; Drive raises the file's `version` on every change.
+//! [`head_versions`] reads those versions in one small request, so the app can tell
+//! whether another device wrote anything without listing the whole tree.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::io::{Read, Write};
@@ -29,7 +35,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Mutex};
 
 use cs_vault::bucket_of;
-use cs_vault::sync::{Remote, Telling};
+use cs_vault::sync::{HeadsSeen, Remote, Telling};
 use cs_vault::{Error, Result};
 use serde_json::Value;
 
@@ -38,6 +44,8 @@ use crate::Permit;
 
 /// The folder the app keeps in the person's Drive.
 pub const FOLDER: &str = "Cozy Safe";
+/// [`Remote::key`] of Google Drive: the sync state kept per place is under this name.
+pub const PLACE_KEY: &str = "google-drive";
 const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
 /// Uploads up to this size are held in memory while sent.
 const SMALL_UPLOAD: u64 = 1 << 20;
@@ -63,6 +71,8 @@ pub struct Node {
     pub folder: bool,
     /// The SHA-256 Google keeps of the file's bytes (lowercase hex), when it gave one.
     pub sha256: Option<String>,
+    /// Drive's version of the file (rises on every change), when it gave one.
+    pub version: Option<u64>,
 }
 
 /// A file going into another folder under another name; its bytes stay where they are.
@@ -90,6 +100,14 @@ pub trait DriveApi: Send + Sync {
     fn download(&self, id: &str, out: &mut dyn Write) -> Result<bool>;
     /// A new file named `name` in `folder`, `len` bytes from `src`; its id.
     fn upload(&self, folder: &str, name: &str, len: u64, src: &mut dyn Read) -> Result<String>;
+    /// New bytes for the file `id`, which keeps its id (only a device's head is ever
+    /// rewritten); false if it is gone.
+    fn update(&self, id: &str, len: u64, src: &mut dyn Read) -> Result<bool>;
+    /// The folder named `name` in `parent` (in the app's own space when `None`), without
+    /// making it; the first by id should there be several.
+    fn find_folder(&self, parent: Option<&str>, name: &str) -> Result<Option<String>>;
+    /// The files directly in `folder`, not in the bin: (name, Drive's version) each.
+    fn children(&self, folder: &str) -> Result<Vec<(String, u64)>>;
     /// Move the file (its id stays); false if it is gone.
     fn move_file(&self, m: &Move) -> Result<bool>;
     /// [`DriveApi::move_file`] for many, in as few requests as the API allows; for each,
@@ -147,6 +165,8 @@ pub struct DriveRemote<A: DriveApi> {
     moved: u32,
     /// File id → the SHA-256 Google listed for it on open (files sent since have none yet).
     sums: HashMap<Box<str>, Box<str>>,
+    /// Vault id → device → its head file's version, as listed on open (before the sync).
+    heads: HashMap<Box<str>, BTreeMap<String, u64>>,
 }
 
 /// A vault's id, as the app makes them: 32 lowercase hex digits.
@@ -189,6 +209,7 @@ fn place(rest: &str) -> Option<(String, String)> {
             Some(("log".to_owned(), format!("{device}.{n}")))
         }
         "lock" => one(tail).then(|| ("lock".to_owned(), tail.to_owned())),
+        "head" => one(tail).then(|| ("head".to_owned(), tail.to_owned())),
         _ => None,
     }
 }
@@ -207,6 +228,7 @@ fn unplace(sub: &str, name: &str) -> Option<String> {
             format!("log/{device}/{n}")
         }
         None if sub == "lock" => format!("lock/{name}"),
+        None if sub == "head" => format!("head/{name}"),
         _ => return None,
     };
     let (s, n) = place(&rest)?;
@@ -214,11 +236,12 @@ fn unplace(sub: &str, name: &str) -> Option<String> {
 }
 
 /// The folders the layout has under "Cozy Safe": `<vault>`, `<vault>/{index,content,
-/// log,lock}`, `<vault>/{index,content}/<bucket>`.
+/// log,lock,head}`, `<vault>/{index,content}/<bucket>`. (Versions up to 0.1.80 do not
+/// know `head`: they leave it and its files alone.)
 fn folder_ok(path: &str) -> bool {
     match path.split('/').collect::<Vec<_>>().as_slice() {
         [v] => is_vault(v),
-        [v, sub] => is_vault(v) && ["index", "content", "log", "lock"].contains(sub),
+        [v, sub] => is_vault(v) && ["index", "content", "log", "lock", "head"].contains(sub),
         [v, sub, b] => is_vault(v) && ["index", "content"].contains(sub) && is_bucket(b),
         _ => false,
     }
@@ -268,6 +291,7 @@ impl<A: DriveApi> DriveRemote<A> {
         }
         // Every file by its sync path; those not where the layout puts them are gathered.
         let mut index: HashMap<Box<str>, Files> = HashMap::new();
+        let mut heads: HashMap<Box<str>, BTreeMap<String, u64>> = HashMap::new();
         let mut astray = Vec::new();
         for n in nodes.iter().filter(|n| !n.folder) {
             let at = if n.parent == root {
@@ -300,6 +324,12 @@ impl<A: DriveApi> DriveRemote<A> {
                 None => true,
             };
             if in_place {
+                if let (Some(device), Some(version)) = (rest.strip_prefix("head/"), n.version) {
+                    heads
+                        .entry(vault.into())
+                        .or_default()
+                        .insert(device.to_owned(), version);
+                }
                 index
                     .entry(vault.into())
                     .or_default()
@@ -323,6 +353,7 @@ impl<A: DriveApi> DriveRemote<A> {
             stop: None,
             moved: 0,
             sums,
+            heads,
         };
         remote.moved = remote.gather(astray, progress)?;
         Ok(remote)
@@ -523,6 +554,21 @@ impl<A: DriveApi> DriveRemote<A> {
         Ok(())
     }
 
+    /// What Drive said about `vault`'s heads when this session opened (before the sync
+    /// read anything), with the folder holding them as it is now (made by this sync, if
+    /// it had to). Kept after a sync that worked, for [`head_versions`] to compare with.
+    pub fn heads_seen(&self, vault: &str) -> HeadsSeen {
+        HeadsSeen {
+            folder_id: self
+                .folders
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .get(&format!("{vault}/head"))
+                .cloned(),
+            versions: self.heads.get(vault).cloned().unwrap_or_default(),
+        }
+    }
+
     /// The vaults this Drive folder holds a lock for (to join one on a new device).
     pub fn vault_ids(&self) -> Vec<String> {
         let index = self.index.lock().unwrap_or_else(|p| p.into_inner());
@@ -623,7 +669,7 @@ fn check(path: &str) -> Result<()> {
 
 impl<A: DriveApi> Remote for DriveRemote<A> {
     fn key(&self) -> String {
-        "google-drive".to_owned()
+        PLACE_KEY.to_owned()
     }
 
     fn list(&self, dir: &str) -> Result<Vec<String>> {
@@ -672,6 +718,30 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
     fn exists(&self, path: &str) -> Result<bool> {
         check(path)?;
         Ok(self.id(path).is_some())
+    }
+
+    /// The same file gets the new bytes (its id, and so its place, stay); a new file
+    /// only when there is none yet, or Drive lost it.
+    fn replace(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+        check(path)?;
+        split(path)
+            .and_then(|(_, rest)| place(rest))
+            .ok_or(Error::Corrupt("drive path"))?;
+        self.go_on()?;
+        let mut bytes = Vec::new();
+        src.take(https::MAX_SMALL as u64 + 1)
+            .read_to_end(&mut bytes)?;
+        if bytes.len() > https::MAX_SMALL {
+            return Err(Error::Corrupt("drive upload too large"));
+        }
+        let len = bytes.len() as u64;
+        if let Some(id) = self.id(path) {
+            if self.api.update(&id, len, &mut bytes.as_slice())? {
+                return Ok(());
+            }
+            self.forget(path);
+        }
+        self.put_bytes(path, len, &mut bytes.as_slice())
     }
 
     fn removes(&self) -> bool {
@@ -774,6 +844,48 @@ impl<A: DriveApi> DriveRemote<A> {
     }
 }
 
+/// What Drive says now about `vault`'s heads, for [`cs_vault::OpenVault::heads_changed`]:
+/// one request listing the folder of heads (`known`, kept from before), or, when that
+/// folder is not known, gone or empty, a few small requests finding it by name first
+/// ("Cozy Safe", the vault's folder, `head`). Works with `drive.file`: the app finds only
+/// what it made. `None`: there is no folder of heads (no device wrote one yet). Devices
+/// from before heads write none, so their changes are not seen here, only by a full sync.
+pub fn head_versions<A: DriveApi>(
+    api: &A,
+    vault: &str,
+    known: Option<&str>,
+) -> Result<Option<HeadsSeen>> {
+    if !is_vault(vault) {
+        return Err(Error::Corrupt("drive path"));
+    }
+    let seen = |folder: &str, files: Vec<(String, u64)>| HeadsSeen {
+        folder_id: Some(folder.to_owned()),
+        versions: files
+            .into_iter()
+            .filter(|(name, _)| !name.is_empty() && name.bytes().all(|b| b.is_ascii_hexdigit()))
+            .collect(),
+    };
+    if let Some(folder) = known {
+        match api.children(folder) {
+            Ok(files) if !files.is_empty() => return Ok(Some(seen(folder, files))),
+            // Moved, removed or emptied meanwhile: look for it again by name.
+            Ok(_) | Err(Error::Corrupt("drive not found")) => {}
+            Err(e) => return Err(e),
+        }
+    }
+    let Some(root) = api.find_folder(None, FOLDER)? else {
+        return Ok(None);
+    };
+    let Some(vault_folder) = api.find_folder(Some(&root), vault)? else {
+        return Ok(None);
+    };
+    let Some(heads) = api.find_folder(Some(&vault_folder), "head")? else {
+        return Ok(None);
+    };
+    let files = api.children(&heads)?;
+    Ok(Some(seen(&heads, files)))
+}
+
 /// The real Drive, through [`https`].
 pub struct GoogleDrive {
     token: String,
@@ -825,21 +937,29 @@ impl GoogleDrive {
     /// many so far after each page.
     fn list(&self, q: &str, listed: &dyn Fn(u32)) -> Result<Vec<Node>> {
         let mut out = Vec::new();
-        let mut page = String::new();
+        self.pages(q, TREE_FIELDS, &mut |v| {
+            out.extend(nodes_of(v));
+            listed(out.len() as u32);
+        })?;
+        Ok(out)
+    }
+
+    /// Each page of the files matching `q` (with `fields` of each), handed to `page`.
+    fn pages(&self, q: &str, fields: &str, page: &mut dyn FnMut(&Value)) -> Result<()> {
+        let mut token = String::new();
         loop {
             let mut path = format!(
-                "/drive/v3/files?q={}&fields=nextPageToken,files(id,name,parents,mimeType,sha256Checksum)&pageSize=1000&spaces=drive",
+                "/drive/v3/files?q={}&fields=nextPageToken,files({fields})&pageSize=1000&spaces=drive",
                 https::encode(q)
             );
-            if !page.is_empty() {
-                path.push_str(&format!("&pageToken={}", https::encode(&page)));
+            if !token.is_empty() {
+                path.push_str(&format!("&pageToken={}", https::encode(&token)));
             }
             let v = self.json("GET", &path, None)?;
-            out.extend(nodes_of(&v));
-            listed(out.len() as u32);
+            page(&v);
             match v["nextPageToken"].as_str() {
-                Some(t) => page = t.to_owned(),
-                None => return Ok(out),
+                Some(t) => token = t.to_owned(),
+                None => return Ok(()),
             }
         }
     }
@@ -972,9 +1092,32 @@ fn folder_query() -> String {
     )
 }
 
+/// The query for folders named `name`, in `parent` when given.
+fn folder_named_query(parent: Option<&str>, name: &str) -> Result<String> {
+    let mut q = format!(
+        "name = {} and mimeType = {} and trashed = false",
+        quoted(name),
+        quoted(FOLDER_MIME)
+    );
+    if let Some(p) = parent {
+        q.push_str(&format!(" and {} in parents", quoted(drive_id(p)?)));
+    }
+    Ok(q)
+}
+
 /// The query for everything the app can see (`drive.file`: only its own files), in one
 /// listing however many folders there are.
 const TREE_QUERY: &str = "trashed = false";
+/// What the tree listing asks of each file.
+const TREE_FIELDS: &str = "id,name,parents,mimeType,sha256Checksum,version";
+
+/// Drive's version of a listed file (an int64, given as a string).
+fn version_of(f: &Value) -> Option<u64> {
+    match &f["version"] {
+        Value::String(s) => s.parse().ok(),
+        v => v.as_u64(),
+    }
+}
 
 /// The files and folders of one page of a listing; any with an odd id, or no folder, are
 /// left out.
@@ -995,6 +1138,7 @@ fn nodes_of(page: &Value) -> Vec<Node> {
                     .as_str()
                     .filter(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()))
                     .map(str::to_ascii_lowercase),
+                version: version_of(f),
             })
         })
         .collect()
@@ -1320,6 +1464,79 @@ impl DriveApi for GoogleDrive {
             .ok_or(Error::Corrupt("drive upload"))
     }
 
+    /// `PATCH` of the file's media: the id stays, Drive raises its version.
+    fn update(&self, id: &str, len: u64, src: &mut dyn Read) -> Result<bool> {
+        let path = format!(
+            "/upload/drive/v3/files/{}?uploadType=media&fields=id",
+            drive_id(id)?
+        );
+        let mut b = Vec::new();
+        src.take(len).read_to_end(&mut b)?;
+        if b.len() as u64 != len {
+            return Err(Error::Corrupt("drive upload short"));
+        }
+        // Small and from memory: tried again after a passing fault.
+        let status = again(|| {
+            let r = self.http.request(
+                "PATCH",
+                &path,
+                &self.token,
+                &[],
+                Body::Bytes("application/octet-stream", b.clone()),
+            )?;
+            let status = r.status;
+            let body = r.bytes_max(ERROR_ANSWER)?;
+            match status {
+                200..=299 | 404 => Ok(status),
+                s => Err(drive_error(s, &body)),
+            }
+        })?;
+        Ok(status != 404)
+    }
+
+    fn find_folder(&self, parent: Option<&str>, name: &str) -> Result<Option<String>> {
+        let found = self.json(
+            "GET",
+            &format!(
+                "/drive/v3/files?q={}&fields=files(id)&spaces=drive",
+                https::encode(&folder_named_query(parent, name)?)
+            ),
+            None,
+        )?;
+        let ids = found["files"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|f| drive_id(f["id"].as_str()?).ok())
+            .collect::<Vec<_>>();
+        // The app's folder as [`DriveApi::folder`] takes it (the first given); in it, the
+        // first by id, as opening a session does.
+        Ok(match parent {
+            None => ids.first().copied(),
+            Some(_) => ids.iter().min().copied(),
+        }
+        .map(str::to_owned))
+    }
+
+    fn children(&self, folder: &str) -> Result<Vec<(String, u64)>> {
+        let q = format!(
+            "{} in parents and trashed = false",
+            quoted(drive_id(folder)?)
+        );
+        let mut out = Vec::new();
+        self.pages(&q, "name,mimeType,version", &mut |v| {
+            for f in v["files"].as_array().into_iter().flatten() {
+                if f["mimeType"].as_str() == Some(FOLDER_MIME) {
+                    continue;
+                }
+                if let (Some(name), Some(version)) = (f["name"].as_str(), version_of(f)) {
+                    out.push((name.to_owned(), version));
+                }
+            }
+        })?;
+        Ok(out)
+    }
+
     /// A rename into another folder (`PATCH` with addParents/removeParents): no bytes move.
     fn move_file(&self, m: &Move) -> Result<bool> {
         let r = self.http.request(
@@ -1387,6 +1604,11 @@ mod tests {
         /// Size of each delete_many call.
         batches: Vec<usize>,
         uploads: usize,
+        /// Files rewritten in place, and requests listing a folder of heads.
+        updates: usize,
+        children: usize,
+        /// Every rewrite fails (Drive refusing for a while).
+        updates_fail: bool,
         moves: usize,
         /// Moves that go through before the next one fails (a cut connection).
         moves_left: Option<usize>,
@@ -1415,6 +1637,7 @@ mod tests {
                 parent: parent.to_owned(),
                 folder,
                 sha256: None,
+                version: (!folder).then_some(1),
             };
             self.state().nodes.push((node, bytes));
             id
@@ -1545,6 +1768,47 @@ mod tests {
             self.state().uploads += 1;
             Ok(self.add(folder, name, b, false))
         }
+        fn update(&self, id: &str, len: u64, src: &mut dyn Read) -> Result<bool> {
+            let mut b = Vec::new();
+            src.take(len).read_to_end(&mut b)?;
+            let mut s = self.state();
+            if s.updates_fail {
+                return Err(Error::Corrupt("drive server error"));
+            }
+            s.updates += 1;
+            match s.nodes.iter_mut().find(|(n, _)| n.id == id && !n.folder) {
+                Some((n, bytes)) => {
+                    *bytes = b;
+                    n.version = n.version.map(|v| v + 1);
+                    Ok(true)
+                }
+                None => Ok(false),
+            }
+        }
+        fn find_folder(&self, parent: Option<&str>, name: &str) -> Result<Option<String>> {
+            if parent.is_none() && name == FOLDER {
+                return Ok(Some("F".into()));
+            }
+            Ok(self
+                .state()
+                .nodes
+                .iter()
+                .filter(|(n, _)| n.folder && n.name == name && parent.is_none_or(|p| n.parent == p))
+                .map(|(n, _)| n.id.clone())
+                .min())
+        }
+        fn children(&self, folder: &str) -> Result<Vec<(String, u64)>> {
+            let mut s = self.state();
+            s.children += 1;
+            if !s.nodes.iter().any(|(n, _)| n.id == folder && n.folder) {
+                return Err(Error::Corrupt("drive not found"));
+            }
+            Ok(s.nodes
+                .iter()
+                .filter(|(n, _)| n.parent == folder && !n.folder)
+                .map(|(n, _)| (n.name.clone(), n.version.unwrap_or(0)))
+                .collect())
+        }
         fn move_file(&self, m: &Move) -> Result<bool> {
             let mut s = self.state();
             if let Some(left) = &mut s.moves_left {
@@ -1592,6 +1856,7 @@ mod tests {
                 None => {
                     (sub == "log" && name.contains('.'))
                         || (sub == "lock" && name.ends_with(".json"))
+                        || (sub == "head" && name.bytes().all(|b| b.is_ascii_hexdigit()))
                 }
                 _ => false,
             };
@@ -1620,6 +1885,7 @@ mod tests {
         let mut want = vec![
             v.clone(),
             format!("{v}/content"),
+            format!("{v}/head"),
             format!("{v}/index"),
             format!("{v}/lock"),
             format!("{v}/log"),
@@ -1649,6 +1915,170 @@ mod tests {
             // Long markers: three random bytes can spell "aaa" by chance.
             assert!(!b.windows(10).any(|w| w == b"plain text"));
         }
+    }
+
+    /// A full sync as the app runs it: what Drive said of the heads on open is kept
+    /// once the sync worked.
+    fn full_sync(v: &cs_vault::OpenVault, drive: &Fake) {
+        let r = DriveRemote::open(drive.clone()).unwrap();
+        v.sync(&r).unwrap();
+        v.remember_heads(&r.key(), &r.heads_seen(&v.id)).unwrap();
+    }
+
+    /// The cheap look, as the app runs it.
+    fn changed(v: &cs_vault::OpenVault, drive: &Fake) -> bool {
+        let known = v.heads_seen("google-drive").unwrap();
+        let Some(folder) = known.as_ref().map(|k| k.folder_id.clone()) else {
+            return true;
+        };
+        let now = head_versions(drive, &v.id, folder.as_deref()).unwrap();
+        v.heads_changed("google-drive", now.as_ref()).unwrap()
+    }
+
+    /// Every head file: (name, id, version).
+    fn heads(drive: &Fake) -> Vec<(String, String, u64)> {
+        drive
+            .layout()
+            .into_iter()
+            .filter(|(f, _, _)| f.ends_with("/head"))
+            .map(|(_, name, id)| {
+                let v = drive
+                    .state()
+                    .nodes
+                    .iter()
+                    .find(|(n, _)| n.id == id)
+                    .and_then(|(n, _)| n.version)
+                    .unwrap();
+                (name, id, v)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_head_is_rewritten_in_place() {
+        let t = two();
+        let drive = Fake::default();
+        note(&t.a, "One", "1");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        let first = heads(&drive);
+        assert_eq!(first.len(), 1);
+        note(&t.a, "Two", "2");
+        let r = DriveRemote::open(drive.clone()).unwrap();
+        t.a.sync(&r).unwrap();
+        let second = heads(&drive);
+        // The same file (same id), a newer version, and nothing uploaded for it.
+        assert_eq!(second.len(), 1);
+        assert_eq!((&second[0].0, &second[0].1), (&first[0].0, &first[0].1));
+        assert!(second[0].2 > first[0].2);
+        assert_eq!(drive.state().updates, 1);
+        let head = t.a.read_head(&r, &first[0].0).unwrap().unwrap();
+        assert!(head.n >= 2);
+        // Nothing new: not rewritten.
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        assert_eq!(drive.state().updates, 1);
+        // Lost from Drive: sent again as a new file.
+        drive.state().nodes.retain(|(n, _)| n.id != first[0].1);
+        note(&t.a, "Three", "3");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        assert_eq!(heads(&drive).len(), 1);
+    }
+
+    #[test]
+    fn one_small_request_tells_whether_another_device_wrote() {
+        let t = two();
+        let drive = Fake::default();
+        // Nothing synced yet: changed (the caller syncs).
+        assert!(changed(&t.a, &drive));
+        note(&t.a, "From A", "a");
+        full_sync(&t.a, &drive);
+        full_sync(&t.b, &drive);
+        // A has not seen B's head yet (it was written after A's sync looked).
+        assert!(changed(&t.a, &drive));
+        full_sync(&t.a, &drive);
+        // Nothing new anywhere: unchanged, in one request listing the heads.
+        let before = drive.state().children;
+        assert!(!changed(&t.a, &drive));
+        assert!(!changed(&t.b, &drive));
+        assert_eq!(drive.state().children, before + 2);
+        // A writing does not make A's own look say changed; B sees it.
+        note(&t.a, "More", "m");
+        full_sync(&t.a, &drive);
+        assert!(!changed(&t.a, &drive));
+        assert!(changed(&t.b, &drive));
+        // B looks again until it has synced: the look never takes the change in.
+        assert!(changed(&t.b, &drive));
+        full_sync(&t.b, &drive);
+        assert!(!changed(&t.b, &drive));
+        // The folder of heads moved away (or its id went stale): found again by name.
+        let head_folder = t.b.heads_seen("google-drive").unwrap().unwrap().folder_id;
+        t.b.remember_heads(
+            "google-drive",
+            &cs_vault::sync::HeadsSeen {
+                folder_id: Some("gone".into()),
+                ..t.b.heads_seen("google-drive").unwrap().unwrap()
+            },
+        )
+        .unwrap();
+        assert!(!changed(&t.b, &drive));
+        assert_eq!(
+            t.b.heads_seen("google-drive").unwrap().unwrap().folder_id,
+            head_folder
+        );
+    }
+
+    #[test]
+    fn a_change_made_while_syncing_is_still_seen_after() {
+        let t = two();
+        let drive = Fake::default();
+        note(&t.a, "One", "1");
+        full_sync(&t.a, &drive);
+        full_sync(&t.b, &drive);
+        full_sync(&t.a, &drive);
+        assert!(!changed(&t.a, &drive));
+        // B writes after A's session looked, before A's sync ends: A keeps what it saw
+        // on open, so the next look still says changed.
+        let r = DriveRemote::open(drive.clone()).unwrap();
+        let two_ = note(&t.b, "Two", "2");
+        full_sync(&t.b, &drive);
+        t.a.sync(&r).unwrap();
+        t.a.remember_heads(&r.key(), &r.heads_seen(&t.a.id))
+            .unwrap();
+        assert!(changed(&t.a, &drive));
+        // (A sync that fails keeps nothing, so the look says changed until one works.)
+        full_sync(&t.a, &drive);
+        assert!(!changed(&t.a, &drive));
+        assert_eq!(text(&t.a, &two_), "2");
+    }
+
+    #[test]
+    fn drive_refusing_the_head_does_not_fail_the_sync() {
+        let t = two();
+        let drive = Fake::default();
+        note(&t.a, "One", "1");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        drive.state().updates_fail = true;
+        let id = note(&t.a, "Two", "two");
+        let report =
+            t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+                .unwrap();
+        assert_eq!(report.sent, 1);
+        t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        assert_eq!(text(&t.b, &id), "two");
+        // Drive takes it again: the next sync writes the head, nothing else new.
+        drive.state().updates_fail = false;
+        let r = DriveRemote::open(drive.clone()).unwrap();
+        t.a.sync(&r).unwrap();
+        assert_eq!(drive.state().updates, 1);
+        let me = heads(&drive).into_iter().map(|(n, _, _)| n).find(|n| {
+            t.a.read_head(&r, n)
+                .is_ok_and(|h| h.is_some_and(|h| h.n >= 2))
+        });
+        assert!(me.is_some());
     }
 
     #[test]
@@ -2014,6 +2444,18 @@ mod tests {
             "name%20%3D%20%27Cozy%20Safe%27%20and%20mimeType%20%3D%20%27application%2Fvnd.google-apps.folder%27%20and%20trashed%20%3D%20false"
         );
         assert_eq!(https::encode(TREE_QUERY), "trashed%20%3D%20false");
+        assert_eq!(
+            folder_named_query(Some("p-1"), "head").unwrap(),
+            "name = 'head' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and 'p-1' in parents"
+        );
+        assert_eq!(folder_named_query(None, FOLDER).unwrap(), folder_query());
+        assert!(folder_named_query(Some("a' or 'x"), "head").is_err());
+        assert_eq!(
+            version_of(&serde_json::json!({ "version": "42" })),
+            Some(42)
+        );
+        assert_eq!(version_of(&serde_json::json!({ "version": 7 })), Some(7));
+        assert_eq!(version_of(&serde_json::json!({})), None);
         for bad in ["", "a' or 'x", "a b", "a\\b", "a/b", "a%27"] {
             assert!(drive_id(bad).is_err(), "{bad:?}");
         }
@@ -2023,7 +2465,7 @@ mod tests {
     fn a_listing_becomes_nodes() {
         let page = serde_json::json!({ "files": [
             { "id": "a1", "name": "Cozy Safe", "parents": ["root"], "mimeType": FOLDER_MIME },
-            { "id": "b2", "name": "x.data", "parents": ["a1", "z"], "mimeType": "application/octet-stream" },
+            { "id": "b2", "name": "x.data", "parents": ["a1", "z"], "mimeType": "application/octet-stream", "version": "17" },
             { "id": "c3", "name": "no parent" },
             { "id": "d 4", "name": "bad id", "parents": ["a1"] },
         ]});
@@ -2035,14 +2477,16 @@ mod tests {
                     name: "Cozy Safe".into(),
                     parent: "root".into(),
                     folder: true,
-                    sha256: None
+                    sha256: None,
+                    version: None,
                 },
                 Node {
                     id: "b2".into(),
                     name: "x.data".into(),
                     parent: "a1".into(),
                     folder: false,
-                    sha256: None
+                    sha256: None,
+                    version: Some(17),
                 },
             ]
         );

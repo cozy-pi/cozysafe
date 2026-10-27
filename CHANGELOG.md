@@ -4,6 +4,25 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.81 (2026-10-28)
+
+### Added
+- Sync status where you look: on the home page, next to the vault size, "Synced · 5 minutes
+  ago" in green, or "Couldn't sync" in red; a tap opens Sync. When automatic sync fails, a
+  red dot on the Settings button, the Sync row and the Google Drive row, until a sync goes
+  through.
+- Previews show the date and size in a small tag centred above the item, for every kind
+  (and the length of a video or a recording).
+
+### Changed
+- Automatic sync looks for other devices' changes every minute with one small request, and
+  syncs in full only when something changed (and at least every 30 minutes). Each device
+  keeps a small, encrypted "head" file in the Drive folder for this.
+- A change not sent yet goes up as you leave the app, instead of at the next opening; coming
+  back to the app looks for changes at once.
+- Full-screen photos and videos: the date, time and size centred on top; Exit full screen
+  moved to the bottom row with the other buttons. A video no longer shows its file name.
+
 ## 0.1.80 (2026-10-27)
 
 ### Added

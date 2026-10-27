@@ -752,5 +752,7 @@
   "storageItems": "{count, plural, other{{count} mục}}",
   "syncAuto": "Tự động đồng bộ",
   "syncWifiOnly": "Chỉ khi có Wi‑Fi",
-  "syncNow": "Đồng bộ ngay"
+  "syncNow": "Đồng bộ ngay",
+  "syncedStatus": "Đã đồng bộ",
+  "syncProblem": "Chưa đồng bộ được"
 }

@@ -738,5 +738,7 @@
   "storageItems": "{count, plural, one{{count} объект} few{{count} объекта} many{{count} объектов} other{{count} объекта}}",
   "syncAuto": "Синхронизировать автоматически",
   "syncWifiOnly": "Только по Wi-Fi",
-  "syncNow": "Синхронизировать сейчас"
+  "syncNow": "Синхронизировать сейчас",
+  "syncedStatus": "Синхронизировано",
+  "syncProblem": "Не удалось синхронизировать"
 }

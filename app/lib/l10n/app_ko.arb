@@ -738,5 +738,7 @@
   "storageItems": "{count, plural, other{항목 {count}개}}",
   "syncAuto": "자동으로 동기화",
   "syncWifiOnly": "Wi-Fi에서만",
-  "syncNow": "지금 동기화"
+  "syncNow": "지금 동기화",
+  "syncedStatus": "동기화됨",
+  "syncProblem": "동기화하지 못함"
 }

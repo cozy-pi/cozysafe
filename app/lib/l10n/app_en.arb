@@ -966,5 +966,9 @@
   "syncWifiOnly": "Only on Wi-Fi",
   "@syncAuto": {"description": "Switch: Google Drive syncs on its own while the vault is open."},
   "@syncWifiOnly": {"description": "Switch: automatic sync only on Wi-Fi, never on mobile data."},
-  "syncNow": "Sync now"
+  "syncNow": "Sync now",
+  "@syncedStatus": {"description": "Home page, next to the vault size: automatic sync with Google Drive went through; followed by ' · 5 minutes ago'."},
+  "syncedStatus": "Synced",
+  "@syncProblem": {"description": "Home page: the last automatic sync with Google Drive failed (shown in red with a red dot)."},
+  "syncProblem": "Couldn't sync"
 }
