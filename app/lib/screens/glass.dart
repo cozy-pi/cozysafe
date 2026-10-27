@@ -24,7 +24,8 @@ class GlassPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: BorderRadius.circular(999),
-    child: BackdropFilter(
+    // Shares one blur with the other pills under a [BackdropGroup] (the photo viewer).
+    child: BackdropFilter.grouped(
       filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
       child: DecoratedBox(
         decoration: BoxDecoration(

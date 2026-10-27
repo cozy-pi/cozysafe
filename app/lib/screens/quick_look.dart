@@ -23,7 +23,7 @@ import 'common.dart';
 import 'file_view.dart';
 import 'item_info.dart';
 import 'note.dart' show noteTitle;
-import 'vault_home.dart' show PhotoViewerScreen;
+import 'photo_viewer.dart';
 import 'video_view.dart';
 
 /// What the preview shows inside its box, and what its Open button does.
