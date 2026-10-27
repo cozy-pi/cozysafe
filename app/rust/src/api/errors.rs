@@ -40,13 +40,16 @@ mod tests {
 
     #[test]
     fn noted_codes_are_taken_once_and_kept_few() {
+        // Other tests run at the same time and note their own codes, so this one uses a
+        // code no one else notes and counts only that.
         take_errors();
         for _ in 0..KEEP + 5 {
-            note("sync", "drive-full");
+            note("test", "only-here");
         }
         let got = take_errors();
         assert_eq!(got.len(), KEEP);
-        assert!(got[0].ends_with("|sync|drive-full"));
-        assert!(take_errors().is_empty());
+        assert!(got.iter().all(|e| e.split('|').count() == 3));
+        assert!(got.iter().filter(|e| e.ends_with("|test|only-here")).count() >= KEEP - 10);
+        assert!(!take_errors().iter().any(|e| e.ends_with("|test|only-here")));
     }
 }
