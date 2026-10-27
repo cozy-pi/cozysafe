@@ -109,7 +109,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The column stays on screen while it closes.
   bool _addShown = false;
   AddWhat? _hover;
-  final _addColumnKey = GlobalKey();
   ScrollController _addScroll = ScrollController();
   final _actionKey = GlobalKey();
   /// What the quick tour points at (tour.dart).
@@ -2240,21 +2239,31 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                           onPick: _pickAdd,
                           onClose: _closeAdd,
                         )
-                      // On an edge: the few ways stack straight up that edge.
-                      : AddColumn(
+                      // On an edge: the card alone just above + (owner 2026-10-27: a column
+                      // beside the card looked broken); its lines are the quick buttons.
+                      : AddCardOverlay(
                           open: _adding,
                           onGone: () => setState(() => _addShown = false),
-                          ways: _addWays(),
-                          mine: addWaysOf(_section),
-                          columnKey: _addColumnKey,
-                          scroll: _addScroll,
-                          right: actionOnRight(),
-                          side: actionEdge,
-                          bottom: bottom + actionLift() + Ui.primary + 4 - 18, // the column's bottom fade sits behind the button's top
+                          ways: addWays(l, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                          bottom: bottom + actionLift() + Ui.primary + 10,
                           hovered: _hover,
                           onPick: _pickAdd,
                           onClose: _closeAdd,
                         ),
+                ),
+              // In the middle, above the quick buttons: every way with a line on what it
+              // does (owner 2026-10-27).
+              if (_addShown && actionSide() == ActionSide.center)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  top: MediaQuery.paddingOf(context).top + 12,
+                  bottom: bottom + actionLift() + Ui.primary + 10 + Ui.bar + 40,
+                  child: AddCard(
+                    open: _adding,
+                    ways: addWays(l, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                    onPick: _pickAdd,
+                  ),
                 ),
               // Above the lock (left thumb), on the right, or in the middle above the bar
               // (Settings). An empty vault has the add tiles on screen instead.

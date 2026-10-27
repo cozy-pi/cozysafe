@@ -15,7 +15,6 @@ import '../widgets/format_bar.dart';
 import '../widgets/toast.dart';
 import '../widgets/text_styles.dart';
 import 'file_view.dart' show shareById;
-import '../widgets/vault_bar.dart';
 
 /// A note's title for the list: its first line, at most 80 characters.
 String noteTitle(String text) {
@@ -230,16 +229,10 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
           bottom: false,
           child: Column(
             children: [
-              // Only the round glass back on top (docs/ui.md, design language); Done, Send
-              // and Delete sit at the bottom, within the thumb's reach (owner 2026-10-25).
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
-                child: Row(
-                  children: [
-                    GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: _saving ? null : _saveAndLeave),
-                  ],
-                ),
-              ),
+              // Nothing on top (owner 2026-10-27: a back button up there is not our way):
+              // Done, Send and Delete sit at the bottom, within the thumb's reach, and
+              // Done is there while typing too. A swipe back still saves and leaves.
+              const SizedBox(height: 12),
               Expanded(
                 child: !_ready
               ? const Center(child: CircularProgressIndicator())
@@ -273,7 +266,24 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
               if (_ready && _focus.hasFocus)
                 Padding(
                   padding: EdgeInsets.fromLTRB(10, 0, 10, 8 + MediaQuery.paddingOf(context).bottom),
-                  child: Center(child: NoteFormatBar(controller: _text, undo: _undo, onDoneTyping: _focus.unfocus)),
+                  child: Row(children: [
+                    Expanded(
+                      child: Center(child: NoteFormatBar(controller: _text, undo: _undo, onDoneTyping: _focus.unfocus)),
+                    ),
+                    const SizedBox(width: 8),
+                    // Save and leave while typing (owner 2026-10-27: no way out while
+                    // the keyboard was up). Hiding the keyboard stays in the bar.
+                    FilledButton(
+                      key: const ValueKey('note-done-typing'),
+                      onPressed: _saving ? null : _saveAndLeave,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, Ui.bar),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        shape: const StadiumBorder(),
+                      ),
+                      child: Text(l.done, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                    ),
+                  ]),
                 )
               else
                 // Otherwise the note's buttons, where the vault bar is: Done saves and

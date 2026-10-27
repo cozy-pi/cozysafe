@@ -709,5 +709,22 @@
   "historyUsing": "Der Verlauf belegt {size} auf diesem Gerät.",
   "historyNote": "Nur auf diesem Gerät: nicht synchronisiert, nicht in Backups. Wird der Platz knapp, gehen die ältesten Versionen zuerst.",
   "historyNoPreview": "Keine Vorschau für diese Art",
-  "kindHistory": "Verlauf"
+  "kindHistory": "Verlauf",
+  "keyBackupRowGoogle": "Die 24 Wörter im Google-Konto aufbewahren",
+  "keyBackupTitleGoogle": "Die 24 Wörter im Google-Konto aufbewahren?",
+  "keyBackupBodyGoogle": "Ein neues Android-Telefon, das aus Ihrem Google-Konto wiederhergestellt wird, fragt dann nur nach dem Tresorpasswort. Wer Ihr Google-Konto übernimmt, hat die Wörter auch, braucht aber noch das Passwort. Dieses Telefon braucht eine Displaysperre.",
+  "keyBackupFoundGoogle": "Aus Ihrem Google-Konto ausgefüllt.",
+  "keyBackupGoogleFailed": "Nicht aufbewahrt. Richten Sie eine Displaysperre ein und melden Sie sich bei Google an, dann erneut versuchen.",
+  "addNotePhotos": "Fotos und Videos von diesem Telefon. Danach können Sie die Originale löschen.",
+  "addNoteVideo": "Direkt in den Tresor, nie in die Fotos des Telefons.",
+  "addNotePhoto": "Direkt in den Tresor, nie in die Fotos des Telefons.",
+  "addNoteNote": "Text nur für Sie: Passwörter, Codes, Listen.",
+  "addNoteVoice": "Eine Sprachnotiz, direkt in den Tresor aufgenommen.",
+  "addNoteFile": "PDFs, Scans und Dokumente aus Dateien.",
+  "confirmRestoreTitle": "{count, plural, =1{Dieses Objekt wiederherstellen?} other{{count} Objekte wiederherstellen?}}",
+  "confirmRestoreBody": "Es kommt zurück in den Tresor, an seinen alten Platz.",
+  "confirmRestoreHeldBody": "Es kommt zurück in den Tresor und bei der nächsten Synchronisierung auf Ihre anderen Geräte.",
+  "trashMineTitle": "Von Ihnen gelöscht",
+  "trashHeldTitle": "Auf einem anderen Gerät endgültig gelöscht",
+  "trashHeldNote": "Nur noch auf diesem Gerät und nicht mehr synchronisiert. Wiederherstellen bringt es überall zurück."
 }

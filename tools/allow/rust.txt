@@ -30,7 +30,9 @@ chacha20
 chacha20poly1305
 chrono
 cipher
+cmov
 console_error_panic_hook
+const-oid
 core-foundation-sys
 cpufeatures
 crypto-common
@@ -38,6 +40,7 @@ cs-crypto
 cs-net
 cs-photo
 cs-vault
+ctutils
 darling
 darling_core
 darling_macro
@@ -82,6 +85,7 @@ hermit-abi
 hex
 hkdf
 hmac
+hybrid-array
 iana-time-zone
 iana-time-zone-haiku
 ident_case
@@ -110,6 +114,7 @@ opaque-debug
 oslog
 parking_lot_core
 password-hash
+phc
 pin-project-lite
 pkg-config
 poly1305

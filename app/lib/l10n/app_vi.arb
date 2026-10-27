@@ -723,5 +723,22 @@
   "historyUsing": "Lịch sử đang dùng {size} trên máy này.",
   "historyNote": "Chỉ giữ trên máy này: không đồng bộ, không có trong bản sao lưu. Khi hết chỗ, bản cũ nhất bị xoá trước.",
   "historyNoPreview": "Không xem trước được loại này",
-  "kindHistory": "Lịch sử"
+  "kindHistory": "Lịch sử",
+  "keyBackupRowGoogle": "Giữ 24 từ trong tài khoản Google",
+  "keyBackupTitleGoogle": "Giữ 24 từ trong tài khoản Google?",
+  "keyBackupBodyGoogle": "Điện thoại Android mới khôi phục từ tài khoản Google khi đó chỉ cần mật khẩu két. Ai chiếm được tài khoản Google của bạn cũng có 24 từ, nhưng vẫn cần mật khẩu. Máy này cần có khoá màn hình.",
+  "keyBackupFoundGoogle": "Đã điền từ tài khoản Google.",
+  "keyBackupGoogleFailed": "Chưa giữ được. Hãy đặt khoá màn hình cho máy và đăng nhập Google, rồi thử lại.",
+  "addNotePhotos": "Ảnh và video có sẵn trong máy. Sau đó có thể xoá bản gốc.",
+  "addNoteVideo": "Vào thẳng két, không bao giờ nằm trong ảnh của máy.",
+  "addNotePhoto": "Vào thẳng két, không bao giờ nằm trong ảnh của máy.",
+  "addNoteNote": "Chữ chỉ mình bạn đọc: mật khẩu, mã số, danh sách.",
+  "addNoteVoice": "Ghi âm giọng nói, lưu thẳng vào két.",
+  "addNoteFile": "PDF, bản scan và tài liệu từ ứng dụng Tệp.",
+  "confirmRestoreTitle": "{count, plural, =1{Khôi phục mục này?} other{Khôi phục {count} mục?}}",
+  "confirmRestoreBody": "Trở lại két, đúng chỗ cũ.",
+  "confirmRestoreHeldBody": "Trở lại két, và ở lần đồng bộ tới sẽ có lại trên các máy khác.",
+  "trashMineTitle": "Bạn đã xoá",
+  "trashHeldTitle": "Đã xoá hẳn trên máy khác",
+  "trashHeldNote": "Chỉ còn trên máy này, không đồng bộ nữa. Khôi phục để có lại ở mọi máy."
 }

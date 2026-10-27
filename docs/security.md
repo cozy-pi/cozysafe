@@ -154,6 +154,11 @@ By case:
   the Apple account: whoever takes the account has the words and still needs the vault
   password. Turning it on asks for the owner; turning it off deletes the copy; a new
   Recovery Key replaces it. The PIN's device key never goes there.
+- **The 24 words in Google Block Store** (Android, off by default, owner 2026-10-27): the
+  same copy kept by Google Block Store (`BlockStore.kt`) with cloud backup, and only when
+  Google says it is end-to-end encrypted (the phone has a screen lock); otherwise nothing
+  is kept and the switch stays off. Same trade as above with the Google account; a phone
+  restored from that account fills in the words on Restore.
 - **The error log** (Settings → Report a problem) keeps the last 200 failures as a time,
   a place and a fixed code (`drive-full`, `io-timed-out`), in a plain file beside the
   preferences: no names, content, keys, paths or network data, so it can be copied into

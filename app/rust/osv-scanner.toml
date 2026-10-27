@@ -1,0 +1,9 @@
+# block-buffer 0.10.4 (GHSA-qwgh-2vcv-g2f7) comes only through flutter_rust_bridge_macros
+# 2.13 (md-5 for its code generation): a proc-macro that runs while building, never in
+# the app. The advisory needs a hash callback that panics and code that catches it and
+# goes on; md-5 does neither. Our own crates use block-buffer 0.12.1 (fixed). Drop this
+# once flutter_rust_bridge moves to digest 0.11.
+[[IgnoredVulns]]
+id = "GHSA-qwgh-2vcv-g2f7"
+ignoreUntil = 2027-01-31
+reason = "Build-time only (flutter_rust_bridge_macros -> md-5); not in the app; md-5 never panics"

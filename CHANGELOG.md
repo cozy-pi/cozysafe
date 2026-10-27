@@ -4,6 +4,42 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.77 (2026-10-27)
+
+### Added
+- Android: Settings → Keep the 24 words in your Google account (off unless turned on),
+  like the iCloud Keychain option on iPhone. A new Android phone restored from that
+  Google account fills in the words and asks only for the vault password. Kept only
+  when Google encrypts it end to end, which needs a screen lock on the phone.
+
+### Changed
+- + opens a card that names every way to add with a line on what it does (Add photos,
+  Record video, Take photo, New note, Voice, Add files); the quick buttons above + stay.
+- Editing a note: Done (save and leave) sits beside the format bar while typing, and the
+  back button on top is gone; every button is at the bottom, as on the other pages.
+- The user guide's Skip is a real button, not grey words.
+- Google Drive shows Google Drive's own logo, not a cloud.
+- Waiting for a nearby device: the picture stays still (a moving light looked like
+  sending), and the tips on what to check come after a minute, not 12 seconds.
+- Recently deleted has two parts: what you deleted, and what another device deleted for
+  good (kept only on this device, no longer synced). Restore asks first, in blue, with a
+  clearer icon (out of the bin).
+- Settings in a new order, most important first and like with like: Backup & Sync, the
+  vault's keys, screen and auto-lock, getting things back (Recently deleted, Version
+  history), the look (with the vault's icon), Help (with How the vault is protected),
+  About.
+- safe.cozypi.com is black like the app, only the logo green; it offers the phone and
+  tablet apps only (the desktop builds stay on the GitHub release page).
+
+### Security
+- The hashing libraries move to their new versions (sha2 0.11, hkdf 0.13, argon2 0.6,
+  with block-buffer 0.12.1), which fix GHSA-qwgh-2vcv-g2f7. The app was not exposed (no
+  hash ever panics there), but the scanners now find nothing.
+
+### Fixed
+- Version history: changes made within the same millisecond could list in the wrong
+  order.
+
 ## 0.1.76 (2026-10-27)
 
 ### Added

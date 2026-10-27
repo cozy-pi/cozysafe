@@ -709,5 +709,22 @@
   "historyUsing": "El historial ocupa {size} en este dispositivo.",
   "historyNote": "Solo en este dispositivo: no se sincroniza ni va en las copias. Si falta espacio, primero se borran las más antiguas.",
   "historyNoPreview": "Sin vista previa para este tipo",
-  "kindHistory": "Historial"
+  "kindHistory": "Historial",
+  "keyBackupRowGoogle": "Guardar las 24 palabras en tu cuenta de Google",
+  "keyBackupTitleGoogle": "¿Guardar las 24 palabras en tu cuenta de Google?",
+  "keyBackupBodyGoogle": "Un teléfono Android nuevo restaurado desde tu cuenta de Google solo pedirá la contraseña de la caja fuerte. Quien se haga con tu cuenta de Google tendrá también las palabras y aún necesitará la contraseña. Este teléfono necesita bloqueo de pantalla.",
+  "keyBackupFoundGoogle": "Rellenado desde tu cuenta de Google.",
+  "keyBackupGoogleFailed": "No se guardó. Pon un bloqueo de pantalla en este teléfono e inicia sesión en Google, y vuelve a intentarlo.",
+  "addNotePhotos": "Fotos y vídeos de este teléfono. Después puedes borrar los originales.",
+  "addNoteVideo": "Directo a la caja fuerte, nunca en las fotos del teléfono.",
+  "addNotePhoto": "Directo a la caja fuerte, nunca en las fotos del teléfono.",
+  "addNoteNote": "Texto solo para ti: contraseñas, códigos, listas.",
+  "addNoteVoice": "Una nota de voz, grabada directamente en la caja fuerte.",
+  "addNoteFile": "PDF, escaneos y documentos de Archivos.",
+  "confirmRestoreTitle": "{count, plural, =1{¿Restaurar este elemento?} other{¿Restaurar {count} elementos?}}",
+  "confirmRestoreBody": "Vuelve a la caja fuerte, donde estaba.",
+  "confirmRestoreHeldBody": "Vuelve a la caja fuerte y, en la próxima sincronización, a tus otros dispositivos.",
+  "trashMineTitle": "Eliminado por ti",
+  "trashHeldTitle": "Eliminado para siempre en otro dispositivo",
+  "trashHeldNote": "Solo queda en este dispositivo y ya no se sincroniza. Restaurar lo devuelve a todos."
 }

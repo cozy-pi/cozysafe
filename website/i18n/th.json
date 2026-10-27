@@ -56,7 +56,7 @@
   "s_voice": "<strong>บันทึกเสียง</strong> ถูกเข้ารหัสทันทีที่คุณหยุดอัด",
   "s_group": "<strong>กลุ่ม</strong> รูปหนังสือเดินทาง ไฟล์สแกน และโน้ตอยู่รวมกัน เปิดได้จากทุกหมวด",
   "s_settings": "<strong>การตั้งค่าความปลอดภัยทุกอย่างต้องยืนยันด้วย Face ID ก่อน</strong> ดูได้ทันทีว่าอะไรใช้พื้นที่",
-  "h_dev": "ใช้ได้บนโทรศัพท์ แท็บเล็ต และคอมพิวเตอร์",
+  "h_dev": "บนโทรศัพท์และแท็บเล็ต",
   "d_mac": "<strong>macOS</strong> · มี Windows และ Linux ด้วย",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",

@@ -248,10 +248,15 @@ class _CoachTourState extends State<CoachTour> {
             Row(
               children: [
                 // Skip on every tip but the very last, where Done or Later ends it anyway.
+                // A real button, not grey words (owner 2026-10-27: it went unseen).
                 if (!end)
-                  TextButton(
+                  OutlinedButton(
                     key: const ValueKey('tip-skip'),
-                    style: TextButton.styleFrom(minimumSize: tall, foregroundColor: muted),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(88, Ui.tap),
+                      shape: const StadiumBorder(),
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    ),
                     onPressed: () => Navigator.of(context).pop(TourEnd.skipped),
                     child: Text(l.tourSkip),
                   ),

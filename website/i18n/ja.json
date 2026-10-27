@@ -56,7 +56,7 @@
   "s_voice": "<strong>ボイスメモは、</strong>録音を止めた瞬間に暗号化されます。",
   "s_group": "<strong>グループ。</strong>パスポートの写真、スキャン、メモをひとまとめにし、どのセクションからでも開けます。",
   "s_settings": "<strong>セキュリティ設定はすべて、まず Face ID を求めます。</strong>容量を使っているものもひと目でわかります。",
-  "h_dev": "スマートフォン、タブレット、パソコンで",
+  "h_dev": "スマートフォンとタブレットで",
   "d_mac": "<strong>macOS</strong> · Windows と Linux にも対応",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",

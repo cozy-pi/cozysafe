@@ -59,3 +59,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Google Block Store for the 24 words (BlockStore.kt); already resolved for the
+    // Credential Manager, so verification-metadata.xml has it.
+    implementation("com.google.android.gms:play-services-auth-blockstore:16.4.0")
+}

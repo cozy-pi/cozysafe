@@ -4,6 +4,23 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-27 — Owner feedback round (0.1.77, mockup v14 approved)
+
+**Owner:** + opens a card that explains every way to add (the quick buttons stay); a
+note has Done while typing and no back on top; the guide's Skip is a real button; Google
+Drive's own logo; waiting for a nearby device shows no moving light and its tips wait a
+minute; Recently deleted in two parts (yours / deleted for good on another device, kept
+only here) and Restore asks first; Settings reordered (most important first, like with
+like, groups still unnamed); the website black like the app, phones and tablets only.
+
+## 2026-10-27 — The 24 words in the Google account on Android (0.1.77)
+
+**Owner:** the Android twin of the iCloud Keychain option ("do it first, fix later").
+Google Block Store with cloud backup, kept only when it is end-to-end encrypted (needs a
+screen lock); off by default, same owner check and same trade as on iPhone. The library
+was already in the build (Credential Manager pulls it), so no new download to verify.
+Released 0.1.76 (#31–#37) the same day after the owner approved mockup v13.
+
 ## 2026-10-27 — Version history, on each device (0.1.76, mockup)
 
 **Owner:** keep older versions of every item "like git", so any change can be undone,

@@ -135,6 +135,10 @@ validate a build with Apple instead of uploading it (`upload: false`).
 - **Build time is not covered.** Build scripts, proc macros, Gradle and CocoaPods
   run with network access, as in any build. cackle checks what Rust build scripts
   use but does not sandbox them.
+- **One known advisory is ignored, at build time only.** GHSA-qwgh-2vcv-g2f7 in
+  block-buffer 0.10.4 reaches only `flutter_rust_bridge_macros` (md-5, a proc macro),
+  never the app; our crates use the fixed 0.12.1. `app/rust/osv-scanner.toml` ignores it
+  until 2027-01-31, with the reason; drop it once flutter_rust_bridge moves to digest 0.11.
 - **Google Drive sync** (cs-net `drive.rs` on `https.rs`): HTTPS to one host,
   `www.googleapis.com`, a constant; it is the only name the app ever looks up, so the
   compiled-library check allows `getaddrinfo`. TLS is rustls with ring and Mozilla's roots

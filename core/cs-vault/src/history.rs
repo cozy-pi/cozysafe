@@ -205,10 +205,14 @@ impl OpenVault {
             return Ok(());
         }
         let now = crate::items::now_ms();
+        // Always after the newest kept one: two changes within one millisecond would
+        // otherwise list in the order of their random revision ids.
+        let newest = self.kept(id)?.first().map_or(i64::MIN, |k| k.replaced_ms);
+        let at = now.max(newest.saturating_add(1));
         let dir = self.history_dir(id)?;
         fs::create_dir_all(&dir)?;
         crate::write_atomic(
-            &dir.join(format!("{now}.{}.{}.meta", old.rev, old.data_rev)),
+            &dir.join(format!("{at}.{}.{}.meta", old.rev, old.data_rev)),
             old_sealed,
         )?;
         self.prune_history(now).map(|_| ())

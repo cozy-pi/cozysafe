@@ -17,6 +17,6 @@ rustls = { version = "=0.23.46", default-features = false, features = ["ring", "
 webpki-roots = "=1.0.10"
 
 [dev-dependencies]
-sha2 = "0.10" # already in the tree (cs-vault): the fake Drive lists checksums
+sha2 = "0.11" # already in the tree (cs-vault): the fake Drive lists checksums
 cs-crypto = { path = "../cs-crypto", features = ["test-kdf"] }
 tempfile = "3"

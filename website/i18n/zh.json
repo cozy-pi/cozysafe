@@ -56,7 +56,7 @@
   "s_voice": "<strong>语音备忘录，</strong>停止录音的那一刻即完成加密。",
   "s_group": "<strong>分组。</strong>护照照片、扫描件和笔记放在一起，从任何分类都能打开。",
   "s_settings": "<strong>所有安全设置都需先通过 Face ID 验证。</strong>存储占用一目了然。",
-  "h_dev": "手机、平板和电脑都能用",
+  "h_dev": "在手机和平板上",
   "d_mac": "<strong>macOS</strong> · 另有 Windows 和 Linux 版",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",

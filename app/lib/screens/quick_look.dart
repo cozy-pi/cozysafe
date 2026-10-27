@@ -755,8 +755,12 @@ class _QuickLookState extends State<QuickLook> {
         ? [
             tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, (_) => Navigator.of(context).pop()),
             // The same actions, icons and order as the long-press menu in Recently deleted.
-            tool(const ValueKey('preview-restore'), Icons.restore_rounded, l.restore,
-                (_) => Navigator.of(context).pop(QuickLook.restoreRequest)),
+            tool(const ValueKey('preview-restore'), Icons.restore_from_trash_rounded, l.restore, (_) async {
+              final nav = Navigator.of(context);
+              if (await confirmRestore(context, count: 1, name: _title, held: trash.held)) {
+                nav.pop(QuickLook.restoreRequest);
+              }
+            }, color: restoreBlue),
             tool(const ValueKey('preview-info'), Icons.info_outline, l.info,
                 (_) => showItemInfo(context, widget.item, held: trash.held)),
             tool(const ValueKey('preview-purge'), Icons.delete_forever_outlined, l.deleteForGoodShort, (_) async {

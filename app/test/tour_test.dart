@@ -194,6 +194,8 @@ void main() {
     await t.tap(find.byKey(const ValueKey('settings-button')));
     await _settle(t);
     expect(find.byType(CoachTour), findsNothing); // opening Settings alone shows no tips
+    // Help is near the end of Settings since 2026-10-27: scroll to it first.
+    await t.scrollUntilVisible(find.byKey(const ValueKey('guide-row')), 200, scrollable: find.byType(Scrollable).first);
     await t.tap(find.byKey(const ValueKey('guide-row')));
     await _settle(t);
     expect(find.byType(SettingsScreen), findsNothing);
@@ -222,6 +224,8 @@ void main() {
     await _settle(t);
     await t.tap(find.byKey(const ValueKey('settings-button')));
     await _settle(t);
+    // Help is near the end of Settings since 2026-10-27: scroll to it first.
+    await t.scrollUntilVisible(find.byKey(const ValueKey('guide-row')), 200, scrollable: find.byType(Scrollable).first);
     await t.tap(find.byKey(const ValueKey('guide-row')));
     await _settle(t);
     expect(find.byKey(const ValueKey('tip-add')), findsOneWidget);

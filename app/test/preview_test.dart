@@ -349,6 +349,7 @@ void _screen(String name, String caption, Widget Function() home,
       HistorySettingsScreen.debugState = null;
       SettingsScreen.debugHistoryBytes = null;
       KeyBackup.debugSupported = null;
+      KeyBackup.debugGoogle = null;
       syncStatus.value = null;
       KeyCheckScreen.debugResults = null;
       SyncProgress.debugRate = null;
@@ -505,7 +506,7 @@ void main() {
     for (var i = 0; i < 5; i++) {
       await t.pump(const Duration(milliseconds: 100)); // let the ways finish popping out
     }
-    await g.moveTo(t.getCenter(find.byKey(const ValueKey('add-photo')).first));
+    await g.moveTo(t.getCenter(find.byKey(const ValueKey('add-card-photo'))));
     await t.pump(const Duration(milliseconds: 200));
   });
   _screen('empty', 'Két trống · thêm bằng ô lớn', home, section: 'library', setup: () {
@@ -820,6 +821,14 @@ void main() {
       change: 'Mới: bỏ tên nhóm; dung lượng gọn như iPhone (thanh màu + tên loại)',
       marks: [() => find.byKey(const ValueKey('sync-row')), () => find.byKey(const ValueKey('backup-now'))],
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+  // The whole page in one tall shot, to compare the order (owner 2026-10-27).
+  _screen('settings-all', 'Cài đặt · cả trang (ảnh dài): quan trọng lên trên, cùng loại một nhóm', () => settings(vault),
+      change: 'ĐỀ XUẤT: Sao lưu & đồng bộ · Khoá của két · Che màn hình & tự khoá · Lấy lại (Đã xoá, Lịch sử) · Giao diện · Trợ giúp · Thông tin',
+      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
+      act: (t) async {
+    t.view.physicalSize = const Size(430, 2560) * 2;
+    await t.pumpAndSettle();
+  });
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('kit-row')), 200, scrollable: find.byType(Scrollable).first);
@@ -979,6 +988,31 @@ void main() {
       setup: () {
     SettingsScreen.debugSyncLog = const [];
     KeyBackup.debugSupported = true;
+  }, act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('key-backup-row')), 200, scrollable: find.byType(Scrollable).first);
+    await t.pumpAndSettle();
+    await t.tap(find.descendant(of: find.byKey(const ValueKey('key-backup-row')), matching: find.byType(Switch)));
+    await t.pumpAndSettle();
+  });
+  // Android: the same through Google Block Store (owner 2026-10-27).
+  _screen('settings-keys-google', 'Android · Cài đặt: Giữ 24 từ trong tài khoản Google (Block Store, tắt mặc định)', () => settings(vault),
+      change: 'Mới: Android giữ 24 từ trong tài khoản Google, như iCloud Keychain trên iPhone',
+      marks: [() => find.byKey(const ValueKey('key-backup-row'))],
+      setup: () {
+    SettingsScreen.debugSyncLog = const [];
+    KeyBackup.debugSupported = true;
+    KeyBackup.debugGoogle = true;
+  }, act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('key-backup-row')), 200, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 220));
+    await t.pumpAndSettle();
+  });
+  _screen('key-backup-ask-google', 'Android · Bật Giữ 24 từ trong tài khoản Google: hỏi lại, nói rõ đánh đổi + cần khoá màn hình', () => settings(vault),
+      change: 'Mới',
+      setup: () {
+    SettingsScreen.debugSyncLog = const [];
+    KeyBackup.debugSupported = true;
+    KeyBackup.debugGoogle = true;
   }, act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('key-backup-row')), 200, scrollable: find.byType(Scrollable).first);
     await t.pumpAndSettle();
@@ -1315,6 +1349,25 @@ void main() {
         await t.pumpAndSettle();
       },
       change: 'Hỏi lại bằng cùng một thẻ ở dưới cùng như mọi lần xoá',
+      marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
+  // Owner 2026-10-27: two parts, and Restore asks first with a clearer icon.
+  _screen('trash-held-part', 'Đã xoá · phần thứ hai: “Đã xoá hẳn trên máy khác”, chỉ còn trên máy này, không đồng bộ nữa',
+      () => const TrashScreen(),
+      change: 'MỚI: tách hai phần “Bạn đã xoá” và “Đã xoá hẳn trên máy khác”',
+      act: (t) async {
+        await t.scrollUntilVisible(find.byKey(const ValueKey('trash-part-held')), 200, scrollable: find.byType(Scrollable).first);
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -120));
+        await t.pumpAndSettle();
+      },
+      marks: [() => find.byKey(const ValueKey('trash-part-held'))]);
+  _screen('trash-restore-confirm', 'Đã xoá · bấm giữ 1 ảnh → Khôi phục: hỏi trước', () => const TrashScreen(),
+      change: 'MỚI: Khôi phục hỏi trước (nút xanh), biểu tượng “lấy ra khỏi thùng rác”',
+      act: (t) async {
+        await t.longPress(find.byType(Image).first);
+        await t.pumpAndSettle();
+        await t.tap(find.byKey(const ValueKey('menu-restore')));
+        await t.pumpAndSettle();
+      },
       marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
   _screen('trash-empty', 'Đã xoá gần đây · trống', () => const TrashScreen(), setup: () => _noTrash = true, change: 'MỚI: màn trống nói rõ mục đã xoá nằm đây 30 ngày');
   _screen('delete-confirm-one', 'Thư viện · bấm giữ 1 ảnh → Xoá', home, section: 'library', act: (t) async {

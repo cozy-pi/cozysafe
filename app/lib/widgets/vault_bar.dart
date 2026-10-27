@@ -888,6 +888,172 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
   }
 }
 
+/// What each way to add does, in one line, for [AddCard].
+String addWayNote(AppLocalizations l, AddWhat what) => switch (what) {
+      AddWhat.photos => l.addNotePhotos,
+      AddWhat.video => l.addNoteVideo,
+      AddWhat.photo => l.addNotePhoto,
+      AddWhat.note => l.addNoteNote,
+      AddWhat.voice => l.addNoteVoice,
+      AddWhat.file => l.addNoteFile,
+    };
+
+/// Opened by + with the quick row (owner 2026-10-27: "a page to choose and understand",
+/// the quick buttons stay): every way to add with its full name and a line on what it
+/// does, in a card at eye level above the row. Tapping a line is the same as its button.
+class AddCard extends StatefulWidget {
+  const AddCard({super.key, required this.open, required this.ways, required this.onPick, this.hovered});
+  final bool open;
+  /// The line under a finger sliding from + (each line is tagged for [AddColumn.wayAt]).
+  final AddWhat? hovered;
+  /// The ways with their full names ([addWays]).
+  final List<(AddWhat, IconData, String)> ways;
+  final ValueChanged<AddWhat> onPick;
+
+  @override
+  State<AddCard> createState() => _AddCardState();
+}
+
+class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 260),
+    reverseDuration: const Duration(milliseconds: 160),
+  )..forward();
+
+  @override
+  void didUpdateWidget(AddCard old) {
+    super.didUpdateWidget(old);
+    if (old.open != widget.open) widget.open ? _c.forward() : _c.reverse();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final a = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: FadeTransition(
+        opacity: a,
+        child: SlideTransition(
+          position: Tween(begin: const Offset(0, .04), end: Offset.zero).animate(a),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Material(
+              key: const ValueKey('add-card'),
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(26),
+              clipBehavior: Clip.antiAlias,
+              elevation: 12,
+              shadowColor: Colors.black38,
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(0, 18, 0, 10),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 0, 22, 6),
+                    child: Text(l.addToVault,
+                        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.2)),
+                  ),
+                  for (final (what, icon, label) in widget.ways)
+                    MetaData(
+                      metaData: what,
+                      behavior: HitTestBehavior.opaque,
+                      child: InkWell(
+                      key: ValueKey('add-card-${what.name}'),
+                      onTap: () => widget.onPick(what),
+                      child: Container(
+                        color: widget.hovered == what ? ink.withValues(alpha: .08) : null,
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                        child: Row(children: [
+                          Container(
+                            width: Ui.tap,
+                            height: Ui.tap,
+                            decoration: BoxDecoration(color: ink.withValues(alpha: .07), shape: BoxShape.circle),
+                            child: Icon(icon, color: ink, size: 24),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 2),
+                              Text(addWayNote(l, what), style: TextStyle(fontSize: 13.5, height: 1.3, color: c.muted)),
+                            ]),
+                          ),
+                        ]),
+                      ),
+                    ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// + on an edge (owner 2026-10-27: the column beside the card looked broken): the card
+/// alone, just above +, the page dimmed behind; its lines are the quick buttons, and a
+/// finger sliding up from + picks one as on the column.
+class AddCardOverlay extends StatelessWidget {
+  const AddCardOverlay({
+    super.key,
+    required this.open,
+    required this.ways,
+    required this.bottom,
+    required this.hovered,
+    required this.onPick,
+    required this.onClose,
+    required this.onGone,
+  });
+  final bool open;
+  final List<(AddWhat, IconData, String)> ways;
+  /// The card's bottom above the screen's bottom edge.
+  final double bottom;
+  final AddWhat? hovered;
+  final ValueChanged<AddWhat> onPick;
+  final VoidCallback onClose;
+  final VoidCallback onGone;
+
+  @override
+  Widget build(BuildContext context) {
+    final page = Theme.of(context).scaffoldBackgroundColor;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: open ? 1 : 0),
+      duration: Duration(milliseconds: open ? 260 : 160),
+      onEnd: () {
+        if (!open) onGone();
+      },
+      builder: (context, t, child) => Stack(children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: onClose,
+            child: ColoredBox(color: page.withValues(alpha: .92 * t)),
+          ),
+        ),
+        child!,
+      ]),
+      child: Positioned(
+        left: 16,
+        right: 16,
+        top: MediaQuery.paddingOf(context).top + 12,
+        bottom: bottom,
+        child: AddCard(open: open, ways: ways, onPick: onPick, hovered: hovered),
+      ),
+    );
+  }
+}
+
 /// One way to add as a round button with its word under it, findable under a sliding
 /// finger ([AddColumn.wayAt]). Used by [AddRow].
 Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String label,

@@ -709,5 +709,22 @@
   "historyUsing": "La cronologia occupa {size} su questo dispositivo.",
   "historyNote": "Solo su questo dispositivo: non sincronizzata, non nei backup. Quando manca spazio, le versioni più vecchie vanno via per prime.",
   "historyNoPreview": "Nessuna anteprima per questo tipo",
-  "kindHistory": "Cronologia"
+  "kindHistory": "Cronologia",
+  "keyBackupRowGoogle": "Conserva le 24 parole nel tuo account Google",
+  "keyBackupTitleGoogle": "Conservare le 24 parole nel tuo account Google?",
+  "keyBackupBodyGoogle": "Un nuovo telefono Android ripristinato dal tuo account Google chiederà solo la password della cassaforte. Chi si impossessa del tuo account Google avrà anche le parole, e gli servirà comunque la password. Questo telefono deve avere un blocco schermo.",
+  "keyBackupFoundGoogle": "Compilato dal tuo account Google.",
+  "keyBackupGoogleFailed": "Non conservate. Imposta un blocco schermo e accedi a Google, poi riprova.",
+  "addNotePhotos": "Foto e video da questo telefono. Poi puoi eliminare gli originali.",
+  "addNoteVideo": "Direttamente nella cassaforte, mai nelle foto del telefono.",
+  "addNotePhoto": "Direttamente nella cassaforte, mai nelle foto del telefono.",
+  "addNoteNote": "Testo solo per te: password, codici, elenchi.",
+  "addNoteVoice": "Un memo vocale, registrato direttamente nella cassaforte.",
+  "addNoteFile": "PDF, scansioni e documenti da File.",
+  "confirmRestoreTitle": "{count, plural, =1{Ripristinare questo elemento?} other{Ripristinare {count} elementi?}}",
+  "confirmRestoreBody": "Torna nella cassaforte, dov'era.",
+  "confirmRestoreHeldBody": "Torna nella cassaforte e, alla prossima sincronizzazione, sugli altri dispositivi.",
+  "trashMineTitle": "Eliminati da te",
+  "trashHeldTitle": "Eliminati per sempre su un altro dispositivo",
+  "trashHeldNote": "Resta solo su questo dispositivo e non si sincronizza più. Ripristina per riaverlo ovunque."
 }

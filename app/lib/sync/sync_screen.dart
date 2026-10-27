@@ -14,6 +14,7 @@ import 'drive.dart';
 import 'nearby_page.dart';
 import 'progress.dart';
 import 'wifi.dart';
+import '../widgets/drive_logo.dart';
 
 /// Settings → Sync: bring this vault up to date with the person's other device on the
 /// same Wi-Fi (docs/adr/0003-sync.md). Every connection is started here and allowed by
@@ -131,7 +132,7 @@ class _SyncScreenState extends State<SyncScreen> {
         if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
           const SizedBox(height: 24),
           _Card(children: [
-            _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), title: l.syncDriveRow, onTap: _drive),
+            _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), logo: const DriveLogo(size: 20), title: l.syncDriveRow, onTap: _drive),
             if (_account case final account?) ...[
               _Action(key: const ValueKey('sync-drive-again'), icon: Icons.account_circle_outlined, color: const Color(0xFF8E8E93), title: l.driveSignInAgain, detail: account, onTap: _signInAgain),
               _Action(key: const ValueKey('sync-drive-remove'), icon: Icons.person_remove_outlined, color: const Color(0xFFFF3B30), title: l.driveRemove, onTap: _remove, chevron: false),
@@ -220,8 +221,10 @@ class _Card extends StatelessWidget {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({super.key, required this.icon, required this.color, required this.title, required this.onTap, this.detail, this.chevron = true});
+  const _Action({super.key, required this.icon, required this.color, required this.title, required this.onTap, this.detail, this.chevron = true, this.logo});
   final IconData icon;
+  /// A service's own logo on a white tile instead of [icon] (Google Drive).
+  final Widget? logo;
   final Color color;
   final String title;
   final VoidCallback onTap;
@@ -240,8 +243,13 @@ class _Action extends StatelessWidget {
           Container(
             width: 30,
             height: 30,
-            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: Colors.white, size: 18),
+            decoration: BoxDecoration(
+              color: logo != null ? Colors.white : color,
+              borderRadius: BorderRadius.circular(8),
+              border: logo != null ? Border.all(color: c.border) : null,
+            ),
+            alignment: Alignment.center,
+            child: logo ?? Icon(icon, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(title, style: TextStyle(fontSize: 15.5, color: chevron ? null : color))),

@@ -709,5 +709,22 @@
   "historyUsing": "記錄在本裝置上佔用 {size}。",
   "historyNote": "僅保存在本裝置：不同步，也不在備份中。空間不足時，最舊的版本先被刪除。",
   "historyNoPreview": "此類項目無法預覽",
-  "kindHistory": "記錄"
+  "kindHistory": "記錄",
+  "keyBackupRowGoogle": "將 24 個單字保存在 Google 帳號中",
+  "keyBackupTitleGoogle": "將 24 個單字保存在 Google 帳號中？",
+  "keyBackupBodyGoogle": "從你的 Google 帳號還原的新 Android 手機只需輸入保險箱密碼。若有人盜取你的 Google 帳號，也會拿到這些單字，但仍需要密碼。此手機需要設定螢幕鎖定。",
+  "keyBackupFoundGoogle": "已從你的 Google 帳號填入。",
+  "keyBackupGoogleFailed": "未能保存。請設定螢幕鎖定並登入 Google，然後再試一次。",
+  "addNotePhotos": "此手機中的照片和影片。之後可以刪除原始檔。",
+  "addNoteVideo": "直接存入保險箱，絕不會出現在手機相簿中。",
+  "addNotePhoto": "直接存入保險箱，絕不會出現在手機相簿中。",
+  "addNoteNote": "只有你能看的文字：密碼、代碼、清單。",
+  "addNoteVoice": "語音備忘錄，直接錄入保險箱。",
+  "addNoteFile": "來自「檔案」的 PDF、掃描檔和文件。",
+  "confirmRestoreTitle": "{count, plural, =1{還原此項目？} other{還原 {count} 個項目？}}",
+  "confirmRestoreBody": "回到保險箱中原來的位置。",
+  "confirmRestoreHeldBody": "回到保險箱，並在下次同步時回到你的其他裝置。",
+  "trashMineTitle": "你刪除的",
+  "trashHeldTitle": "已在其他裝置上永久刪除",
+  "trashHeldNote": "只保留在此裝置上，不再同步。還原後會回到所有裝置。"
 }

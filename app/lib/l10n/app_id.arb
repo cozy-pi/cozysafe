@@ -709,5 +709,22 @@
   "historyUsing": "Riwayat memakai {size} di perangkat ini.",
   "historyNote": "Hanya di perangkat ini: tidak disinkronkan, tidak ada di cadangan. Saat ruang habis, versi tertua dihapus lebih dulu.",
   "historyNoPreview": "Tidak ada pratinjau untuk jenis ini",
-  "kindHistory": "Riwayat"
+  "kindHistory": "Riwayat",
+  "keyBackupRowGoogle": "Simpan 24 kata di akun Google",
+  "keyBackupTitleGoogle": "Simpan 24 kata di akun Google?",
+  "keyBackupBodyGoogle": "Ponsel Android baru yang dipulihkan dari akun Google Anda lalu hanya meminta kata sandi brankas. Siapa pun yang mengambil alih akun Google Anda juga mendapat kata-katanya, dan tetap perlu kata sandi. Ponsel ini perlu kunci layar.",
+  "keyBackupFoundGoogle": "Diisi dari akun Google Anda.",
+  "keyBackupGoogleFailed": "Tidak tersimpan. Pasang kunci layar di ponsel ini dan masuk ke Google, lalu coba lagi.",
+  "addNotePhotos": "Foto dan video dari ponsel ini. Setelah itu Anda bisa menghapus aslinya.",
+  "addNoteVideo": "Langsung ke brankas, tidak pernah masuk foto ponsel.",
+  "addNotePhoto": "Langsung ke brankas, tidak pernah masuk foto ponsel.",
+  "addNoteNote": "Teks hanya untuk Anda: kata sandi, kode, daftar.",
+  "addNoteVoice": "Memo suara, direkam langsung ke brankas.",
+  "addNoteFile": "PDF, hasil pindai, dan dokumen dari File.",
+  "confirmRestoreTitle": "{count, plural, =1{Pulihkan item ini?} other{Pulihkan {count} item?}}",
+  "confirmRestoreBody": "Kembali ke brankas, di tempat semula.",
+  "confirmRestoreHeldBody": "Kembali ke brankas dan, saat sinkronisasi berikutnya, ke perangkat Anda yang lain.",
+  "trashMineTitle": "Dihapus oleh Anda",
+  "trashHeldTitle": "Dihapus permanen di perangkat lain",
+  "trashHeldNote": "Hanya ada di perangkat ini dan tidak disinkronkan lagi. Pulihkan untuk mengembalikannya di semua perangkat."
 }

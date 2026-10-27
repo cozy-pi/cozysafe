@@ -18,6 +18,8 @@ Future<bool> confirmDelete(
   String? name,
   String? body,
   IconData icon = Icons.delete_outline_rounded,
+  /// The icon's and the button's colour; red unless given (blue for Restore).
+  Color? color,
 }) async {
   HapticFeedback.lightImpact();
   final still = MediaQuery.disableAnimationsOf(context);
@@ -27,7 +29,7 @@ Future<bool> confirmDelete(
     barrierLabel: AppLocalizations.of(context).cancel,
     barrierColor: Colors.transparent,
     transitionDuration: Duration(milliseconds: still ? 0 : 220),
-    pageBuilder: (context, _, _) => _ConfirmSheet(title: title, action: action, name: name, body: body, icon: icon),
+    pageBuilder: (context, _, _) => _ConfirmSheet(title: title, action: action, name: name, body: body, icon: icon, color: color),
     transitionBuilder: (context, a, _, child) {
       final curve = CurvedAnimation(parent: a, curve: Curves.easeOutCubic);
       return FadeTransition(
@@ -54,6 +56,25 @@ Future<bool> confirmTrash(BuildContext context, {required int count, String? nam
   );
 }
 
+/// Bringing [count] items back from Recently deleted (owner 2026-10-27: it went without
+/// asking). [held]: some came from another device's delete for good, and go back to
+/// every device at the next sync.
+Future<bool> confirmRestore(BuildContext context, {required int count, String? name, bool held = false}) {
+  final l = AppLocalizations.of(context);
+  return confirmDelete(
+    context,
+    title: l.confirmRestoreTitle(count),
+    name: count == 1 ? name : null,
+    body: held ? l.confirmRestoreHeldBody : l.confirmRestoreBody,
+    action: l.restore,
+    icon: Icons.restore_from_trash_rounded,
+    color: restoreBlue,
+  );
+}
+
+/// Restore's colour: the system blue, never the delete red.
+const restoreBlue = Color(0xFF0A84FF);
+
 /// Deleting from Recently deleted for good. [othersKeep]: some of them are synced, and the
 /// other devices keep them for 30 days.
 Future<bool> confirmDeleteForGood(BuildContext context, {required int count, String? name, bool othersKeep = false}) {
@@ -69,7 +90,8 @@ Future<bool> confirmDeleteForGood(BuildContext context, {required int count, Str
 }
 
 class _ConfirmSheet extends StatelessWidget {
-  const _ConfirmSheet({required this.title, required this.action, required this.icon, this.name, this.body});
+  const _ConfirmSheet({required this.title, required this.action, required this.icon, this.name, this.body, this.color});
+  final Color? color;
   final String title;
   final String action;
   final IconData icon;
@@ -83,7 +105,7 @@ class _ConfirmSheet extends StatelessWidget {
     final page = Theme.of(context).scaffoldBackgroundColor;
     final ink = Theme.of(context).colorScheme.onSurface;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final red = recordRed(context);
+    final red = color ?? recordRed(context);
     // A shade off the page, like the item menu: never a white slab in the dark.
     final fill = Color.alphaBlend(ink.withValues(alpha: dark ? .10 : .03), page);
     final pad = MediaQuery.paddingOf(context);
