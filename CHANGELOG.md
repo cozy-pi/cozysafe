@@ -4,6 +4,25 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.78 (2026-10-27)
+
+### Added
+- iPad, Mac and Windows: windows 700 points wide or more get their own layout. A sidebar
+  holds Add to vault, the sync with when it last ran (always in sight), the sections,
+  the groups with how many each holds, then Recently deleted, Settings and Lock. The
+  grid takes as many columns as fit. From 1100 points the open item shows in a pane
+  beside the list, with its buttons below it, so the list stays in sight. Phones are
+  unchanged.
+
+### Changed
+- Website: the headline is "A secure vault for your important data", in all 15
+  languages.
+
+### Fixed
+- Release names: a release run takes its version name at once, so a run that stops on
+  one platform no longer hands the same name to the next run (0.1.77 was used three
+  times).
+
 ## 0.1.77 (2026-10-27)
 
 Three release runs under one name (builds 1091, 1092, 1093): the first two stopped on
