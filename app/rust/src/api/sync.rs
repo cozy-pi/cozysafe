@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Condvar, Mutex};
 use std::time::{Duration, Instant};
 
-use cs_net::drive::{DrivePhase, DriveRemote, DriveSetup, GoogleDrive};
+use cs_net::drive::{self, DrivePhase, DriveRemote, DriveSetup, GoogleDrive};
 use cs_net::p2p::{self, PairCode};
 use cs_net::Permit;
 use cs_vault::sync::SyncReport;
@@ -708,11 +708,15 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
     let event = match remote {
         Err(e) => drive_failure(e),
         Ok(remote) => match hold.with(|v| {
-            v.sync_with(&remote, &|p| {
+            let r = v.sync_with(&remote, &|p| {
                 let e = progress_event(p);
                 mark(format!("{:?}", e.kind));
                 let _ = sink.add(e);
-            })
+            })?;
+            // What Drive said of the heads on open, before the journals were read: kept
+            // only now that the sync worked, for drive_changed to compare with.
+            let _ = v.remember_heads(drive::PLACE_KEY, &remote.heads_seen(&v.id));
+            Ok(r)
         }) {
             Ok(r) => SyncEvent {
                 moved: remote.moved() + JOIN_MOVED.swap(0, Ordering::Relaxed),
@@ -726,6 +730,41 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
     // Locked meanwhile: the vault goes now, before the screen hears the end.
     drop(hold);
     let _ = sink.add(event);
+}
+
+/// Whether another device may have written to Google Drive since the last Drive sync
+/// that worked here, so the caller knows if a full [`drive_sync`] is worth running: one
+/// small request listing the devices' heads (a few more the first time, or when the
+/// folder moved), instead of listing the whole Drive tree. `token` as for [`drive_sync`].
+///
+/// `true` ("sync") on any doubt: no sync yet, the vault locked, no network, Google
+/// refusing the sign-in, anything unexpected; the full sync then says what is wrong.
+/// A wrong `true` only costs a sync. `false` only when every other device's head is as
+/// it was before the last sync read the journals. Devices on 0.1.80 and older write no
+/// head: their changes are not seen here, only by a full sync (on open and unlock, and
+/// now and then). The vault is held only for two short reads, not over the network.
+pub fn drive_changed(token: String) -> bool {
+    let token = zeroize::Zeroizing::new(token);
+    let started = Instant::now();
+    let changed = (|| -> Option<bool> {
+        let (vault, known) =
+            with_open(|v| Ok((v.id.clone(), v.heads_seen(drive::PLACE_KEY)?))).ok()?;
+        let known = known?;
+        let now = GoogleDrive::new(Permit::google_drive(), token.to_string())
+            .and_then(|api| drive::head_versions(&api, &vault, known.folder_id.as_deref()))
+            .ok()?;
+        with_open(|v| {
+            if v.id != vault {
+                return Ok(true); // another vault opened meanwhile
+            }
+            Ok(v.heads_changed(drive::PLACE_KEY, now.as_ref())?)
+        })
+        .ok()
+    })()
+    .unwrap_or(true);
+    let ms = started.elapsed().as_millis();
+    super::vault::debug_line(|| format!("drive: check changed={changed} in {ms} ms"));
+    changed
 }
 
 /// A dropped connection mid-way is an interruption (nothing lost), not a failure.
