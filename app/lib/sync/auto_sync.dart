@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../error_log.dart';
@@ -13,8 +12,8 @@ import 'status.dart';
 import 'wifi.dart';
 
 /// Google Drive kept up to date without a tap (owner 2026-10-27), while the vault is open:
-/// when it opens, a little after something changes here, and every few minutes for the
-/// other devices' changes. On by default once a Google account is added (the card that
+/// when it opens or comes back, a little after something changes here (at once when the
+/// app is left), and a cheap look every minute for the other devices' changes. On by default once a Google account is added (the card that
 /// adds it has the switch), and in Settings → Sync. Never while the app is closed: the
 /// phone would not let it run, and it would cost battery.
 abstract final class AutoSync {
@@ -24,8 +23,13 @@ abstract final class AutoSync {
   /// After a change here, wait this long for more (twenty photos added: one sync).
   static const settle = Duration(seconds: 30);
 
-  /// While the vault stays open, look for the other devices' changes this often.
-  static const every = Duration(minutes: 5);
+  /// While the vault stays open, look for the other devices' changes this often: a cheap
+  /// look at their small heads on Drive (one request), a full sync only when one moved.
+  static const every = Duration(minutes: 1);
+
+  /// A full sync at least this often anyway: a device of an older version writes no head,
+  /// and one that wrote its journal but not yet its head is seen this way.
+  static const fullEvery = Duration(minutes: 30);
 
   /// Set when the account is added (on unless the person turns it off there); an account
   /// added before automatic sync existed stays by hand until turned on.
@@ -86,6 +90,7 @@ abstract final class AutoSync {
   }
 
   static VoidCallback? _onSynced;
+  static AppLifecycleListener? _life;
   static Timer? _settle;
   static Timer? _every;
   static int? _seen;
@@ -97,13 +102,25 @@ abstract final class AutoSync {
     _seen = null;
     _tick();
     vaultLock.addListener(_lockChanged);
+    _life?.dispose();
+    _life = AppLifecycleListener(
+      // Leaving with a change not sent yet: send it now, before the vault locks, rather
+      // than at the next opening (iOS gives an app leaving a few seconds).
+      onInactive: () {
+        if (_settle?.isActive ?? false) run();
+      },
+      // Back without the lock in between: the others may have changed meanwhile.
+      onResume: () {
+        if (!vaultLock.locked) _look();
+      },
+    );
     run();
   }
 
   /// The every-few-minutes look, only while on and a vault is open.
   static void _tick() {
     final want = enabled && _onSynced != null;
-    if (want && _every == null) _every = Timer.periodic(every, (_) => run());
+    if (want && _every == null) _every = Timer.periodic(every, (_) => _look());
     if (!want) {
       _every?.cancel();
       _every = null;
@@ -117,6 +134,8 @@ abstract final class AutoSync {
     _every?.cancel();
     _settle = _every = null;
     vaultLock.removeListener(_lockChanged);
+    _life?.dispose();
+    _life = null;
   }
 
   /// Opened again after the lock: the others may have changed meanwhile.
@@ -141,6 +160,25 @@ abstract final class AutoSync {
   static void changed() {
     _settle?.cancel();
     _settle = Timer(settle, run);
+  }
+
+  /// The every-minute look: a full sync when it is due anyway or when another device's
+  /// head moved; otherwise nothing more than one small request.
+  static Future<void> _look() async {
+    if (!enabled || running.value || _onSynced == null || vaultLock.locked) return;
+    if (_held > 0 || syncStatus.value != null || driveAccount == null) return;
+    final last = lastOk.value;
+    if (last == null || DateTime.now().difference(last) >= fullEvery) return run();
+    if (wifiOnly && !await onWifi()) return;
+    final session = await driveSignInQuietly();
+    if (session == null || running.value || _onSynced == null || vaultLock.locked) return;
+    bool changed;
+    try {
+      changed = await sync.driveChanged(token: session.token);
+    } catch (_) {
+      changed = true; // unsure: the full sync tells
+    }
+    if (changed) await run();
   }
 
   /// One quiet sync, when everything allows it; otherwise nothing (the next chance comes).
