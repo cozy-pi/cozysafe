@@ -13,6 +13,10 @@ import 'drive.dart';
 Color _red(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
 
+/// iPhone's green for "synced" (owner 2026-10-28: green when fine, red when not).
+Color _green(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : const Color(0xFF248A3D);
+
 /// Whether automatic sync is set up here, so its state is worth showing.
 bool get _autoOn => driveAccount != null && AutoSync.enabled;
 
@@ -94,7 +98,7 @@ class HomeSyncLine extends StatelessWidget {
             ? (SizedBox.square(dimension: 12, child: CircularProgressIndicator(strokeWidth: 1.6, color: c.muted)), l.syncWorking)
             : failed
                 ? (Container(width: 8, height: 8, decoration: BoxDecoration(color: _red(context), shape: BoxShape.circle)), l.syncProblem)
-                : (Icon(Icons.cloud_done_rounded, size: 15, color: c.muted), '${l.syncedStatus} · ${ago(l, AutoSync.lastOk.value)}');
+                : (Icon(Icons.cloud_done_rounded, size: 15, color: _green(context)), '${l.syncedStatus} · ${ago(l, AutoSync.lastOk.value)}');
         return InkWell(
           key: const ValueKey('home-sync-line'),
           onTap: onTap,
@@ -108,7 +112,9 @@ class HomeSyncLine extends StatelessWidget {
                 child: Text(text,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: failed ? _red(context) : c.muted, fontSize: CsType.footnote)),
+                    style: TextStyle(
+                        color: AutoSync.running.value ? c.muted : (failed ? _red(context) : _green(context)),
+                        fontSize: CsType.footnote)),
               ),
             ]),
           ),

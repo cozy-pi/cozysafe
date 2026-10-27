@@ -44,8 +44,8 @@ class TrashLook {
 /// Tapping any item opens it big, over the page, which goes dark and soft behind (owner
 /// 2026-10-22, one design for every kind 2026-10-25): a photo, a video that plays right
 /// there, a note's first lines on a page, a recording with its player, a PDF's first page,
-/// a text file's first lines, or any other file's icon and size. Under it: its name, date
-/// and size, and the buttons in the vault bar's place: Close, Open (full screen, Edit, the
+/// a text file's first lines, or any other file's icon and size. Above it, its date and
+/// size in a small tag; under it, its name (not for a photo or a video); and the buttons in the vault bar's place: Close, Open (full screen, Edit, the
 /// file's own page or another app; none for a recording), Send, More and Delete. A tap outside or a swipe
 /// down closes. Pops with the id when the item was deleted, or with one of the requests
 /// below.
@@ -814,21 +814,14 @@ class _QuickLookState extends State<QuickLook> {
                   width: box.maxWidth,
                   child: Column(
                     children: [
-                      // A photo or a video has no name under it (owner 2026-10-28): its
-                      // date and size are in the tag above it.
-                      if (!_pictureOnly) ...[
+                      // Only the name under it, never for a photo or a video (owner
+                      // 2026-10-28); the date and size are in the tag above, for every kind.
+                      if (!_pictureOnly)
                         Text(_title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 2),
-                        Text(_info,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: CsType.footnote, color: c.muted)),
-                      ],
                       if (trash != null) ...[
                         if (!_pictureOnly) const SizedBox(height: 2),
                         Text(
@@ -843,8 +836,8 @@ class _QuickLookState extends State<QuickLook> {
                     ],
                   ),
                 );
-    // A photo or a video: its date and size in a quiet tag centred above it (owner
-    // 2026-10-27); no name, which can be long.
+    // The date and size in a quiet tag centred above the item, the same for every kind
+    // (owner 2026-10-27/28).
     final Widget infoTag = Container(
       key: const ValueKey('quick-info'),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -857,7 +850,6 @@ class _QuickLookState extends State<QuickLook> {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: CsType.footnote, color: c.muted, fontWeight: FontWeight.w500)),
     );
-    final Widget above = _pictureOnly ? infoTag : titleBlock;
     // Below: the name for other kinds; for a photo, the days left in Recently deleted, or
     // the tag again unseen so the picture stays in the middle.
     final Widget below = !_pictureOnly || trash != null
@@ -869,7 +861,8 @@ class _QuickLookState extends State<QuickLook> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         child: Column(
           children: [
-            if (_pictureOnly) ...[infoTag, const SizedBox(height: 12)],
+            infoTag,
+            const SizedBox(height: 12),
             Expanded(child: Center(child: boxed)),
             const SizedBox(height: 14),
             if (!_pictureOnly || trash != null) titleBlock,
@@ -920,7 +913,7 @@ class _QuickLookState extends State<QuickLook> {
               children: [
                 // The same block, unseen, above: the picture itself sits in the middle,
                 // as much space above it as below (owner 2026-10-25).
-                _pictureOnly ? above : ExcludeSemantics(child: Visibility.maintain(visible: false, child: titleBlock)),
+                infoTag,
                 const SizedBox(height: 14),
                 Flexible(
                   child: still
