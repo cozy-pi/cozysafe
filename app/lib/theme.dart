@@ -219,6 +219,18 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
         textStyle: label.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
       ),
     ),
+    // The quieter button (Cancel, Not now) as tall as the main one, same corners and
+    // type (owner 2026-10-27: Cancel looked lower than our buttons; Material's default
+    // is 40). Its own width, so it still fits in a row.
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: pen,
+        side: BorderSide(color: colors.border, width: 1.5),
+        minimumSize: const Size(64, 52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        textStyle: label.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+    ),
     // Messages float with a margin, rounded, never flush against the bottom bar.
     snackBarTheme: const SnackBarThemeData(
       behavior: SnackBarBehavior.floating,

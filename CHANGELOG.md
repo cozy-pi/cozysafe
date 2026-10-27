@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.79 (unreleased)
+
+### Fixed
+- Android builds again: the last checksum Google Block Store needed (0.1.77 and 0.1.78
+  reached iPhone and desktop only).
+- Cancel and the other outlined buttons were lower than the main buttons (40 points
+  against 52); every outlined button is now as tall as the main one, with the same
+  corners and type.
+
 ## 0.1.78 (2026-10-27)
 
 ### Changed
