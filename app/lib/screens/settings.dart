@@ -1216,7 +1216,12 @@ class _Row extends StatelessWidget {
               Expanded(child: Text(title, style: const TextStyle(fontSize: CsType.body))),
               if (value != null) ...[
                 const SizedBox(width: 8),
-                Text(value!, style: TextStyle(color: c.muted, fontSize: CsType.body)),
+                // At 17 pt a long value (a language name, a time) shortens with "…" as on
+                // the iPhone, instead of pushing the row wider.
+                Flexible(
+                  child: Text(value!,
+                      maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: CsType.body)),
+                ),
               ],
               if (trailing != null) ...[const SizedBox(width: 8), trailing!],
               if (onTap != null && trailing == null && chevron) ...[
