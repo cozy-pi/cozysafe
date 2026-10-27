@@ -444,7 +444,7 @@
   "addRowAddPhotos": "写真を追加",
   "syncTitle": "同期",
   "settingsBackupSync": "バックアップと同期",
-  "syncRow": "近くのデバイスと同期",
+  "syncRow": "別のデバイスの金庫",
   "syncScanCode": "コードをスキャン",
   "syncLog": "最近の接続",
   "syncLogEmpty": "まだ接続はありません。",
@@ -737,5 +737,6 @@
   "sortSmallest": "小さい順",
   "storageItems": "{count, plural, other{{count}件}}",
   "syncAuto": "自動で同期",
-  "syncWifiOnly": "Wi-Fi接続時のみ"
+  "syncWifiOnly": "Wi-Fi接続時のみ",
+  "syncNow": "今すぐ同期"
 }

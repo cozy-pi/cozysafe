@@ -444,7 +444,7 @@
   "addRowAddPhotos": "เพิ่มรูปภาพ",
   "syncTitle": "ซิงค์",
   "settingsBackupSync": "สำรองและซิงค์",
-  "syncRow": "ซิงค์กับอุปกรณ์ใกล้เคียง",
+  "syncRow": "ตู้นิรภัยของคุณในอุปกรณ์อื่น",
   "syncScanCode": "สแกนรหัส",
   "syncLog": "การเชื่อมต่อล่าสุด",
   "syncLogEmpty": "ยังไม่มีการเชื่อมต่อ",
@@ -737,5 +737,6 @@
   "sortSmallest": "เล็กสุดก่อน",
   "storageItems": "{count, plural, other{{count} รายการ}}",
   "syncAuto": "ซิงค์อัตโนมัติ",
-  "syncWifiOnly": "เฉพาะเมื่อใช้ Wi-Fi"
+  "syncWifiOnly": "เฉพาะเมื่อใช้ Wi-Fi",
+  "syncNow": "ซิงค์เลย"
 }

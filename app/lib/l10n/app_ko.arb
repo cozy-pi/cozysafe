@@ -444,7 +444,7 @@
   "addRowAddPhotos": "사진 추가",
   "syncTitle": "동기화",
   "settingsBackupSync": "백업 및 동기화",
-  "syncRow": "근처 기기와 동기화",
+  "syncRow": "다른 기기의 금고",
   "syncScanCode": "코드 스캔",
   "syncLog": "최근 연결",
   "syncLogEmpty": "아직 연결 기록이 없습니다.",
@@ -737,5 +737,6 @@
   "sortSmallest": "작은 순서",
   "storageItems": "{count, plural, other{항목 {count}개}}",
   "syncAuto": "자동으로 동기화",
-  "syncWifiOnly": "Wi-Fi에서만"
+  "syncWifiOnly": "Wi-Fi에서만",
+  "syncNow": "지금 동기화"
 }

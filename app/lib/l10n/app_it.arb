@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Aggiungi foto",
   "syncTitle": "Sincronizza",
   "settingsBackupSync": "Backup e sincronizzazione",
-  "syncRow": "Sincronizza con un dispositivo vicino",
+  "syncRow": "La tua cassaforte su un altro dispositivo",
   "syncScanCode": "Scansiona un codice",
   "syncLog": "Connessioni recenti",
   "syncLogEmpty": "Ancora nessuna connessione.",
@@ -737,5 +737,6 @@
   "sortSmallest": "Prima i più piccoli",
   "storageItems": "{count, plural, =1{1 elemento} other{{count} elementi}}",
   "syncAuto": "Sincronizza automaticamente",
-  "syncWifiOnly": "Solo con Wi-Fi"
+  "syncWifiOnly": "Solo con Wi-Fi",
+  "syncNow": "Sincronizza ora"
 }

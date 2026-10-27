@@ -458,7 +458,7 @@
   "addRowAddPhotos": "Thêm ảnh",
   "syncTitle": "Đồng bộ",
   "settingsBackupSync": "Sao lưu & đồng bộ",
-  "syncRow": "Đồng bộ với máy gần đây",
+  "syncRow": "Két của bạn ở máy khác",
   "syncScanCode": "Quét mã",
   "syncLog": "Các lần kết nối gần đây",
   "syncLogEmpty": "Chưa có lần kết nối nào.",
@@ -751,5 +751,6 @@
   "sortSmallest": "Nhỏ nhất trước",
   "storageItems": "{count, plural, other{{count} mục}}",
   "syncAuto": "Tự động đồng bộ",
-  "syncWifiOnly": "Chỉ khi có Wi‑Fi"
+  "syncWifiOnly": "Chỉ khi có Wi‑Fi",
+  "syncNow": "Đồng bộ ngay"
 }

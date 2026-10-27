@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Добавить фото",
   "syncTitle": "Синхронизация",
   "settingsBackupSync": "Резервная копия и синхронизация",
-  "syncRow": "Синхронизировать с устройством рядом",
+  "syncRow": "Ваш сейф на другом устройстве",
   "syncScanCode": "Сканировать код",
   "syncLog": "Последние подключения",
   "syncLogEmpty": "Подключений пока нет.",
@@ -737,5 +737,6 @@
   "sortSmallest": "Сначала маленькие",
   "storageItems": "{count, plural, one{{count} объект} few{{count} объекта} many{{count} объектов} other{{count} объекта}}",
   "syncAuto": "Синхронизировать автоматически",
-  "syncWifiOnly": "Только по Wi-Fi"
+  "syncWifiOnly": "Только по Wi-Fi",
+  "syncNow": "Синхронизировать сейчас"
 }

@@ -923,8 +923,19 @@ void main() {
     SyncScreen.debugDrive = true;
     SyncScreen.debugAccount = 'ban.do@gmail.com';
     Prefs.write(AutoSync.pref, '1');
-  }, change: 'SỬA: bỏ “Đăng nhập lại”, chỉ hiện email. MỚI: “Tự động đồng bộ” (bật) và “Chỉ khi có Wi‑Fi” (hiện khi bật tự động)',
-      marks: [() => find.byKey(const ValueKey('sync-drive-account')), () => find.byKey(const ValueKey('sync-auto')), () => find.byKey(const ValueKey('sync-wifi-only'))]);
+  }, change: 'SỬA: Google Drive chỉ còn MỘT dòng — tài khoản, tự động đồng bộ, Wi‑Fi, gỡ tài khoản vào trang riêng',
+      marks: [() => find.byKey(const ValueKey('sync-drive'))]);
+  _screen('sync-drive-page', 'Đồng bộ · bấm Google Drive (đã có tài khoản): Đồng bộ ngay · email + Tự động đồng bộ + Chỉ khi có Wi‑Fi · Gỡ tài khoản', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      setup: () {
+    SyncScreen.debugLog = syncLog;
+    SyncScreen.debugDrive = true;
+    SyncScreen.debugAccount = 'ban.do@gmail.com';
+    Prefs.write(AutoSync.pref, '1');
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-drive')));
+    await t.pumpAndSettle();
+  }, change: 'MỚI: trang riêng của Google Drive. Bỏ “Đăng nhập lại”, chỉ hiện email. “Tự động đồng bộ” (bật sẵn), “Chỉ khi có Wi‑Fi” (hiện khi bật tự động)',
+      marks: [() => find.byKey(const ValueKey('sync-drive-now')), () => find.byKey(const ValueKey('sync-auto')), () => find.byKey(const ValueKey('sync-wifi-only'))]);
   _screen('sync-drive-add', 'Đồng bộ · lần đầu thêm Google Drive: hộp cho phép kèm công tắc Tự động đồng bộ (bật sẵn)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugDrive = true;
@@ -941,12 +952,14 @@ void main() {
     await t.tap(find.byKey(const ValueKey('sync-log')));
     await t.pumpAndSettle();
   });
-  _screen('sync-drive-remove', 'Đồng bộ · bấm Gỡ tài khoản: hỏi lại, tệp trên Drive vẫn còn', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync-drive-remove', 'Đồng bộ · Google Drive · bấm Gỡ tài khoản: hỏi lại, tệp trên Drive vẫn còn', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
     SyncScreen.debugAccount = 'ban.do@gmail.com';
   }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-drive')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('sync-drive-remove')));
     await t.pumpAndSettle();
   });

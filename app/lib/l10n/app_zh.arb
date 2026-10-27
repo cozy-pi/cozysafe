@@ -444,7 +444,7 @@
   "addRowAddPhotos": "添加照片",
   "syncTitle": "同步",
   "settingsBackupSync": "备份与同步",
-  "syncRow": "与附近的设备同步",
+  "syncRow": "你在其他设备上的保险箱",
   "syncScanCode": "扫描代码",
   "syncLog": "最近的连接",
   "syncLogEmpty": "还没有连接。",
@@ -737,5 +737,6 @@
   "sortSmallest": "最小优先",
   "storageItems": "{count, plural, other{{count} 项}}",
   "syncAuto": "自动同步",
-  "syncWifiOnly": "仅限 Wi-Fi"
+  "syncWifiOnly": "仅限 Wi-Fi",
+  "syncNow": "立即同步"
 }

@@ -444,7 +444,7 @@
   "addRowAddPhotos": "加入照片",
   "syncTitle": "同步",
   "settingsBackupSync": "備份與同步",
-  "syncRow": "與附近的裝置同步",
+  "syncRow": "你在其他裝置上的保險箱",
   "syncScanCode": "掃描代碼",
   "syncLog": "最近的連線",
   "syncLogEmpty": "還沒有連線。",
@@ -737,5 +737,6 @@
   "sortSmallest": "最小優先",
   "storageItems": "{count, plural, other{{count} 個項目}}",
   "syncAuto": "自動同步",
-  "syncWifiOnly": "僅限 Wi-Fi"
+  "syncWifiOnly": "僅限 Wi-Fi",
+  "syncNow": "立即同步"
 }

@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Fotos hinzufügen",
   "syncTitle": "Synchronisieren",
   "settingsBackupSync": "Sicherung & Synchronisierung",
-  "syncRow": "Mit einem Gerät in der Nähe synchronisieren",
+  "syncRow": "Ihr Tresor auf einem anderen Gerät",
   "syncScanCode": "Code scannen",
   "syncLog": "Letzte Verbindungen",
   "syncLogEmpty": "Noch keine Verbindungen.",
@@ -737,5 +737,6 @@
   "sortSmallest": "Kleinste zuerst",
   "storageItems": "{count, plural, =1{1 Element} other{{count} Elemente}}",
   "syncAuto": "Automatisch synchronisieren",
-  "syncWifiOnly": "Nur über WLAN"
+  "syncWifiOnly": "Nur über WLAN",
+  "syncNow": "Jetzt synchronisieren"
 }

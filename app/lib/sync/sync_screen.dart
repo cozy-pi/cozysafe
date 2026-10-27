@@ -151,40 +151,25 @@ class _SyncScreenState extends State<SyncScreen> {
         // Groups without names, apart by a gap, as in the iPhone's Settings (owner
         // 2026-10-26): the rows say what they do.
         const SizedBox(height: 24),
+        // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
+        if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
+          // One row (owner 2026-10-27: Drive's options on a page of their own, less to
+          // take in here): with no account it signs in and syncs; with one it opens
+          // that page.
+          _Card(children: [
+            _Action(
+                key: const ValueKey('sync-drive'),
+                icon: Icons.cloud_sync_outlined,
+                color: const Color(0xFF34A853),
+                logo: const DriveLogo(size: 20),
+                title: 'Google Drive',
+                onTap: _account == null ? _drive : _openDrive),
+          ]),
+          const SizedBox(height: 24),
+        ],
         _Card(children: [
           _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncRow, onTap: _nearby),
         ]),
-        // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
-        if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
-          const SizedBox(height: 24),
-          _Card(children: [
-            _Action(key: const ValueKey('sync-drive'), icon: Icons.cloud_sync_outlined, color: const Color(0xFF34A853), logo: const DriveLogo(size: 20), title: l.syncDriveRow, onTap: _drive),
-            if (_account case final account?) ...[
-              // The account only (owner 2026-10-27: no "Sign in again"; to change
-              // account, remove it and sync again, which asks for one).
-              _Action(key: const ValueKey('sync-drive-account'), icon: Icons.account_circle_outlined, color: const Color(0xFF8E8E93), title: account, onTap: null, chevron: false),
-              // Automatic sync, and whether mobile data may carry it (owner 2026-10-27).
-              _Action(
-                key: const ValueKey('sync-auto'),
-                icon: Icons.sync_rounded,
-                color: const Color(0xFF34A853),
-                title: l.syncAuto,
-                chevron: false,
-                trailing: _Toggle(value: AutoSync.enabled, onChanged: (v) => setState(() => AutoSync.enabled = v)),
-              ),
-              if (AutoSync.enabled)
-                _Action(
-                  key: const ValueKey('sync-wifi-only'),
-                  icon: Icons.wifi_rounded,
-                  color: const Color(0xFF007AFF),
-                  title: l.syncWifiOnly,
-                  chevron: false,
-                  trailing: _Toggle(value: AutoSync.wifiOnly, onChanged: (v) => setState(() => AutoSync.wifiOnly = v)),
-                ),
-              _Action(key: const ValueKey('sync-drive-remove'), icon: Icons.person_remove_outlined, color: const Color(0xFFFF3B30), title: l.driveRemove, onTap: _remove, chevron: false),
-            ],
-          ]),
-        ],
         const SizedBox(height: 24),
         // The log behind one row (owner 2026-10-26): most people never need it.
         _Card(children: [
@@ -196,18 +181,75 @@ class _SyncScreenState extends State<SyncScreen> {
 
   String? get _account => SyncScreen.debugAccount ?? driveAccount;
 
-  /// Remove the Google account: asks first; the files on Drive stay.
-  Future<void> _remove() async {
+  /// Google Drive's page: sync now; the account, automatic sync, Wi-Fi only; remove.
+  Future<void> _openDrive() async {
+    await pushPage<void>(context,
+        title: 'Google Drive',
+        builder: (context) => StatefulBuilder(builder: (context, set) {
+              final l = AppLocalizations.of(context);
+              final account = _account;
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+                children: [
+                  _Card(children: [
+                    _Action(key: const ValueKey('sync-drive-now'), icon: Icons.sync_rounded, color: const Color(0xFF34A853), title: l.syncNow, onTap: _drive),
+                  ]),
+                  const SizedBox(height: 24),
+                  _Card(children: [
+                    // The account only (owner 2026-10-27: no "Sign in again"; to change
+                    // account, remove it and sync again, which asks for one).
+                    if (account != null)
+                      _Action(key: const ValueKey('sync-drive-account'), icon: Icons.account_circle_outlined, color: const Color(0xFF8E8E93), title: account, onTap: null, chevron: false),
+                    // Automatic sync, and whether mobile data may carry it (owner 2026-10-27).
+                    _Action(
+                      key: const ValueKey('sync-auto'),
+                      icon: Icons.sync_rounded,
+                      color: const Color(0xFF34A853),
+                      title: l.syncAuto,
+                      chevron: false,
+                      trailing: _Toggle(value: AutoSync.enabled, onChanged: (v) => set(() => AutoSync.enabled = v)),
+                    ),
+                    if (AutoSync.enabled)
+                      _Action(
+                        key: const ValueKey('sync-wifi-only'),
+                        icon: Icons.wifi_rounded,
+                        color: const Color(0xFF007AFF),
+                        title: l.syncWifiOnly,
+                        chevron: false,
+                        trailing: _Toggle(value: AutoSync.wifiOnly, onChanged: (v) => set(() => AutoSync.wifiOnly = v)),
+                      ),
+                  ]),
+                  const SizedBox(height: 24),
+                  _Card(children: [
+                    _Action(
+                        key: const ValueKey('sync-drive-remove'),
+                        icon: Icons.person_remove_outlined,
+                        color: const Color(0xFFFF3B30),
+                        title: l.driveRemove,
+                        chevron: false,
+                        onTap: () async {
+                          if (await _remove() && context.mounted) Navigator.of(context).pop();
+                        }),
+                  ]),
+                ],
+              );
+            }));
+    if (mounted) setState(() {});
+  }
+
+  /// Remove the Google account: asks first; the files on Drive stay. True once removed.
+  Future<bool> _remove() async {
     final l = AppLocalizations.of(context);
     final account = _account;
-    if (account == null) return;
+    if (account == null) return false;
     final ok = await confirmDelete(context,
         title: l.driveRemoveTitle(account), body: l.driveRemoveBody, action: l.driveRemove, icon: Icons.person_remove_outlined);
-    if (!ok) return;
+    if (!ok) return false;
     try {
       await driveSignOut(revoke: true);
     } catch (_) {}
     if (mounted) setState(() {});
+    return true;
   }
 
   Future<void> _openLog() => pushPage<void>(context,

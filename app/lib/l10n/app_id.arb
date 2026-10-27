@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Tambah foto",
   "syncTitle": "Sinkronkan",
   "settingsBackupSync": "Cadangan & sinkronisasi",
-  "syncRow": "Sinkronkan dengan perangkat terdekat",
+  "syncRow": "Brankas Anda di perangkat lain",
   "syncScanCode": "Pindai kode",
   "syncLog": "Koneksi terbaru",
   "syncLogEmpty": "Belum ada koneksi.",
@@ -737,5 +737,6 @@
   "sortSmallest": "Terkecil dulu",
   "storageItems": "{count, plural, other{{count} item}}",
   "syncAuto": "Sinkronkan otomatis",
-  "syncWifiOnly": "Hanya lewat Wi-Fi"
+  "syncWifiOnly": "Hanya lewat Wi-Fi",
+  "syncNow": "Sinkronkan sekarang"
 }

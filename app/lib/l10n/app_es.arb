@@ -444,7 +444,7 @@
   "addRowAddPhotos": "Añadir fotos",
   "syncTitle": "Sincronizar",
   "settingsBackupSync": "Copia y sincronización",
-  "syncRow": "Sincronizar con un dispositivo cercano",
+  "syncRow": "Tu caja fuerte en otro dispositivo",
   "syncScanCode": "Escanear un código",
   "syncLog": "Conexiones recientes",
   "syncLogEmpty": "Aún no hay conexiones.",
@@ -737,5 +737,6 @@
   "sortSmallest": "Más pequeños primero",
   "storageItems": "{count, plural, =1{1 elemento} other{{count} elementos}}",
   "syncAuto": "Sincronizar automáticamente",
-  "syncWifiOnly": "Solo con Wi-Fi"
+  "syncWifiOnly": "Solo con Wi-Fi",
+  "syncNow": "Sincronizar ahora"
 }
