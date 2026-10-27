@@ -720,5 +720,11 @@
   "addNotePhoto": "Directo a la caja fuerte, nunca en las fotos del teléfono.",
   "addNoteNote": "Texto solo para ti: contraseñas, códigos, listas.",
   "addNoteVoice": "Una nota de voz, grabada directamente en la caja fuerte.",
-  "addNoteFile": "PDF, escaneos y documentos de Archivos."
+  "addNoteFile": "PDF, escaneos y documentos de Archivos.",
+  "confirmRestoreTitle": "{count, plural, =1{¿Restaurar este elemento?} other{¿Restaurar {count} elementos?}}",
+  "confirmRestoreBody": "Vuelve a la caja fuerte, donde estaba.",
+  "confirmRestoreHeldBody": "Vuelve a la caja fuerte y, en la próxima sincronización, a tus otros dispositivos.",
+  "trashMineTitle": "Eliminado por ti",
+  "trashHeldTitle": "Eliminado para siempre en otro dispositivo",
+  "trashHeldNote": "Solo queda en este dispositivo y ya no se sincroniza. Restaurar lo devuelve a todos."
 }

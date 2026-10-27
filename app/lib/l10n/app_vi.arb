@@ -734,5 +734,11 @@
   "addNotePhoto": "Vào thẳng két, không bao giờ nằm trong ảnh của máy.",
   "addNoteNote": "Chữ chỉ mình bạn đọc: mật khẩu, mã số, danh sách.",
   "addNoteVoice": "Ghi âm giọng nói, lưu thẳng vào két.",
-  "addNoteFile": "PDF, bản scan và tài liệu từ ứng dụng Tệp."
+  "addNoteFile": "PDF, bản scan và tài liệu từ ứng dụng Tệp.",
+  "confirmRestoreTitle": "{count, plural, =1{Khôi phục mục này?} other{Khôi phục {count} mục?}}",
+  "confirmRestoreBody": "Trở lại két, đúng chỗ cũ.",
+  "confirmRestoreHeldBody": "Trở lại két, và ở lần đồng bộ tới sẽ có lại trên các máy khác.",
+  "trashMineTitle": "Bạn đã xoá",
+  "trashHeldTitle": "Đã xoá hẳn trên máy khác",
+  "trashHeldNote": "Chỉ còn trên máy này, không đồng bộ nữa. Khôi phục để có lại ở mọi máy."
 }

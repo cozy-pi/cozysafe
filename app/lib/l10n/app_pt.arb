@@ -720,5 +720,11 @@
   "addNotePhoto": "Diretamente para o cofre, nunca nas fotos do telemóvel.",
   "addNoteNote": "Texto só para si: palavras-passe, códigos, listas.",
   "addNoteVoice": "Uma nota de voz, gravada diretamente no cofre.",
-  "addNoteFile": "PDFs, digitalizações e documentos de Ficheiros."
+  "addNoteFile": "PDFs, digitalizações e documentos de Ficheiros.",
+  "confirmRestoreTitle": "{count, plural, =1{Restaurar este item?} other{Restaurar {count} itens?}}",
+  "confirmRestoreBody": "Volta para o cofre, onde estava.",
+  "confirmRestoreHeldBody": "Volta para o cofre e, na próxima sincronização, para os seus outros dispositivos.",
+  "trashMineTitle": "Apagado por si",
+  "trashHeldTitle": "Apagado de vez noutro dispositivo",
+  "trashHeldNote": "Fica só neste dispositivo e já não é sincronizado. Restaurar devolve-o a todos."
 }

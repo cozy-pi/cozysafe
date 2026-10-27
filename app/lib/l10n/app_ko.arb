@@ -720,5 +720,11 @@
   "addNotePhoto": "금고에 바로 저장되며 휴대전화 사진에는 남지 않습니다.",
   "addNoteNote": "나만 보는 글: 비밀번호, 코드, 목록.",
   "addNoteVoice": "음성 메모를 금고에 바로 녹음합니다.",
-  "addNoteFile": "파일 앱의 PDF, 스캔, 문서."
+  "addNoteFile": "파일 앱의 PDF, 스캔, 문서.",
+  "confirmRestoreTitle": "{count, plural, =1{이 항목을 복원할까요?} other{{count}개 항목을 복원할까요?}}",
+  "confirmRestoreBody": "금고의 원래 자리로 돌아갑니다.",
+  "confirmRestoreHeldBody": "금고로 돌아가며, 다음 동기화 때 다른 기기에도 돌아갑니다.",
+  "trashMineTitle": "직접 삭제함",
+  "trashHeldTitle": "다른 기기에서 영구 삭제됨",
+  "trashHeldNote": "이 기기에만 남아 있으며 더 이상 동기화되지 않습니다. 복원하면 모든 기기에 돌아갑니다."
 }

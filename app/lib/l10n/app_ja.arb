@@ -720,5 +720,11 @@
   "addNotePhoto": "金庫に直接保存。端末の写真には残りません。",
   "addNoteNote": "自分だけが読めるテキスト：パスワード、コード、リスト。",
   "addNoteVoice": "ボイスメモを金庫に直接録音します。",
-  "addNoteFile": "「ファイル」から PDF、スキャン、書類を追加。"
+  "addNoteFile": "「ファイル」から PDF、スキャン、書類を追加。",
+  "confirmRestoreTitle": "{count, plural, =1{この項目を復元しますか？} other{{count}件の項目を復元しますか？}}",
+  "confirmRestoreBody": "金庫の元の場所に戻ります。",
+  "confirmRestoreHeldBody": "金庫に戻り、次の同期でほかの端末にも戻ります。",
+  "trashMineTitle": "自分で削除",
+  "trashHeldTitle": "別の端末で完全に削除",
+  "trashHeldNote": "この端末にだけ残り、同期されません。復元するとすべての端末に戻ります。"
 }

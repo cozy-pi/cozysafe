@@ -720,5 +720,11 @@
   "addNotePhoto": "Directement dans le coffre, jamais dans les photos du téléphone.",
   "addNoteNote": "Du texte pour vous seul : mots de passe, codes, listes.",
   "addNoteVoice": "Un mémo vocal, enregistré directement dans le coffre.",
-  "addNoteFile": "PDF, scans et documents depuis Fichiers."
+  "addNoteFile": "PDF, scans et documents depuis Fichiers.",
+  "confirmRestoreTitle": "{count, plural, =1{Restaurer cet élément ?} other{Restaurer {count} éléments ?}}",
+  "confirmRestoreBody": "Il retourne dans le coffre, à sa place.",
+  "confirmRestoreHeldBody": "Il retourne dans le coffre et, à la prochaine synchronisation, sur vos autres appareils.",
+  "trashMineTitle": "Supprimé par vous",
+  "trashHeldTitle": "Supprimé définitivement sur un autre appareil",
+  "trashHeldNote": "Gardé seulement sur cet appareil, plus synchronisé. Restaurer le remet partout."
 }

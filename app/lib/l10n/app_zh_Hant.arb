@@ -720,5 +720,11 @@
   "addNotePhoto": "直接存入保險箱，絕不會出現在手機相簿中。",
   "addNoteNote": "只有你能看的文字：密碼、代碼、清單。",
   "addNoteVoice": "語音備忘錄，直接錄入保險箱。",
-  "addNoteFile": "來自「檔案」的 PDF、掃描檔和文件。"
+  "addNoteFile": "來自「檔案」的 PDF、掃描檔和文件。",
+  "confirmRestoreTitle": "{count, plural, =1{還原此項目？} other{還原 {count} 個項目？}}",
+  "confirmRestoreBody": "回到保險箱中原來的位置。",
+  "confirmRestoreHeldBody": "回到保險箱，並在下次同步時回到你的其他裝置。",
+  "trashMineTitle": "你刪除的",
+  "trashHeldTitle": "已在其他裝置上永久刪除",
+  "trashHeldNote": "只保留在此裝置上，不再同步。還原後會回到所有裝置。"
 }

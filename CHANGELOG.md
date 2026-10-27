@@ -21,6 +21,9 @@ Dates are UTC.
 - Google Drive shows Google Drive's own logo, not a cloud.
 - Waiting for a nearby device: the picture stays still (a moving light looked like
   sending), and the tips on what to check come after a minute, not 12 seconds.
+- Recently deleted has two parts: what you deleted, and what another device deleted for
+  good (kept only on this device, no longer synced). Restore asks first, in blue, with a
+  clearer icon (out of the bin).
 
 ### Fixed
 - Version history: changes made within the same millisecond could list in the wrong

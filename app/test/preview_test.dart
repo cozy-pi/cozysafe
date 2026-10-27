@@ -1342,6 +1342,25 @@ void main() {
       },
       change: 'Hỏi lại bằng cùng một thẻ ở dưới cùng như mọi lần xoá',
       marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
+  // Owner 2026-10-27: two parts, and Restore asks first with a clearer icon.
+  _screen('trash-held-part', 'Đã xoá · phần thứ hai: “Đã xoá hẳn trên máy khác”, chỉ còn trên máy này, không đồng bộ nữa',
+      () => const TrashScreen(),
+      change: 'MỚI: tách hai phần “Bạn đã xoá” và “Đã xoá hẳn trên máy khác”',
+      act: (t) async {
+        await t.scrollUntilVisible(find.byKey(const ValueKey('trash-part-held')), 200, scrollable: find.byType(Scrollable).first);
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -120));
+        await t.pumpAndSettle();
+      },
+      marks: [() => find.byKey(const ValueKey('trash-part-held'))]);
+  _screen('trash-restore-confirm', 'Đã xoá · bấm giữ 1 ảnh → Khôi phục: hỏi trước', () => const TrashScreen(),
+      change: 'MỚI: Khôi phục hỏi trước (nút xanh), biểu tượng “lấy ra khỏi thùng rác”',
+      act: (t) async {
+        await t.longPress(find.byType(Image).first);
+        await t.pumpAndSettle();
+        await t.tap(find.byKey(const ValueKey('menu-restore')));
+        await t.pumpAndSettle();
+      },
+      marks: [() => find.byKey(const ValueKey('confirm-delete'))]);
   _screen('trash-empty', 'Đã xoá gần đây · trống', () => const TrashScreen(), setup: () => _noTrash = true, change: 'MỚI: màn trống nói rõ mục đã xoá nằm đây 30 ngày');
   _screen('delete-confirm-one', 'Thư viện · bấm giữ 1 ảnh → Xoá', home, section: 'library', act: (t) async {
     await t.longPress(find.byType(Image).at(2));

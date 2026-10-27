@@ -720,5 +720,11 @@
   "addNotePhoto": "直接存入保险箱，绝不会出现在手机相册中。",
   "addNoteNote": "只有你能看的文字：密码、代码、清单。",
   "addNoteVoice": "语音备忘录，直接录入保险箱。",
-  "addNoteFile": "来自“文件”的 PDF、扫描件和文档。"
+  "addNoteFile": "来自“文件”的 PDF、扫描件和文档。",
+  "confirmRestoreTitle": "{count, plural, =1{恢复此项目？} other{恢复 {count} 个项目？}}",
+  "confirmRestoreBody": "回到保险箱中原来的位置。",
+  "confirmRestoreHeldBody": "回到保险箱，并在下次同步时回到你的其他设备。",
+  "trashMineTitle": "你删除的",
+  "trashHeldTitle": "已在其他设备上永久删除",
+  "trashHeldNote": "只保留在此设备上，不再同步。恢复后会回到所有设备。"
 }

@@ -720,5 +720,11 @@
   "addNotePhoto": "Langsung ke brankas, tidak pernah masuk foto ponsel.",
   "addNoteNote": "Teks hanya untuk Anda: kata sandi, kode, daftar.",
   "addNoteVoice": "Memo suara, direkam langsung ke brankas.",
-  "addNoteFile": "PDF, hasil pindai, dan dokumen dari File."
+  "addNoteFile": "PDF, hasil pindai, dan dokumen dari File.",
+  "confirmRestoreTitle": "{count, plural, =1{Pulihkan item ini?} other{Pulihkan {count} item?}}",
+  "confirmRestoreBody": "Kembali ke brankas, di tempat semula.",
+  "confirmRestoreHeldBody": "Kembali ke brankas dan, saat sinkronisasi berikutnya, ke perangkat Anda yang lain.",
+  "trashMineTitle": "Dihapus oleh Anda",
+  "trashHeldTitle": "Dihapus permanen di perangkat lain",
+  "trashHeldNote": "Hanya ada di perangkat ini dan tidak disinkronkan lagi. Pulihkan untuk mengembalikannya di semua perangkat."
 }

@@ -104,14 +104,23 @@ class _TrashScreenState extends State<TrashScreen> {
     final pick = await QuickLook.show(context, it,
         vaultId: '', trash: TrashLook(daysLeft: trashDaysLeft(it), held: _held.contains(it.id)));
     if (!mounted) return;
-    if (pick == QuickLook.restoreRequest) await _restore([it]);
+    if (pick == QuickLook.restoreRequest) await _restore([it], asked: true);
     // Asked in the preview already.
     if (pick == QuickLook.purgeRequest) await _deleteForGood([it], asked: true);
   }
 
   void _open(rust.ItemInfo it) => _selecting ? _toggle(it) : _preview(it);
 
-  Future<void> _restore(List<rust.ItemInfo> items) async {
+  /// Restoring asks first too ([asked]: the preview did), owner 2026-10-27.
+  Future<void> _restore(List<rust.ItemInfo> items, {bool asked = false}) async {
+    if (items.isEmpty) return;
+    if (!asked) {
+      final name = items.length == 1 ? items.first.name : null;
+      if (!await confirmRestore(context, count: items.length, name: name, held: items.any((i) => _held.contains(i.id))) ||
+          !mounted) {
+        return;
+      }
+    }
     for (final it in items) {
       try {
         _held.contains(it.id) ? await rust.restoreHeld(id: it.id) : await rust.restoreItem(id: it.id);
@@ -149,7 +158,7 @@ class _TrashScreenState extends State<TrashScreen> {
     if (_selecting) return _toggle(it);
     final l = AppLocalizations.of(context);
     await showItemMenu(context, title: shownName(l, it), entries: [
-      MenuEntry(Icons.restore_rounded, l.restore, () => _restore([it]), key: const ValueKey('menu-restore')),
+      MenuEntry(Icons.restore_from_trash_rounded, l.restore, () => _restore([it]), key: const ValueKey('menu-restore')),
       MenuEntry(Icons.info_outline, l.info, () => showItemInfo(context, it, held: _held.contains(it.id)),
           key: const ValueKey('menu-info')),
       MenuEntry(Icons.delete_forever_outlined, l.deleteForGoodShort, () => _deleteForGood([it]),
@@ -168,10 +177,29 @@ class _TrashScreenState extends State<TrashScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final items = _items;
-    final bySection = {
-      for (final s in _sections) s: [for (final it in items ?? const <rust.ItemInfo>[]) if (_sectionOf(it) == s) it],
-    };
-    _order = [for (final s in _sections) for (final it in bySection[s]!) it.id];
+    // Two parts (owner 2026-10-27): what you deleted (synced, as everything else), then
+    // what another device deleted for good, kept only here and no longer synced. Each
+    // by kind, as the vault.
+    List<rust.ItemInfo> kind(VaultSection s, bool held) => [
+          for (final it in items ?? const <rust.ItemInfo>[])
+            if (_sectionOf(it) == s && _held.contains(it.id) == held) it,
+        ];
+    final mine = {for (final s in _sections) s: kind(s, false)};
+    final held = {for (final s in _sections) s: kind(s, true)};
+    final hasHeld = held.values.any((v) => v.isNotEmpty);
+    final hasMine = mine.values.any((v) => v.isNotEmpty);
+    _order = [
+      for (final part in [mine, held])
+        for (final s in _sections)
+          for (final it in part[s]!) it.id,
+    ];
+    List<Widget> part(Map<VaultSection, List<rust.ItemInfo>> by) => [
+          for (final s in _sections)
+            if (by[s]!.isNotEmpty) ...[
+              SliverToBoxAdapter(child: _SectionTitle(sectionLabel(l, s), by[s]!.length)),
+              if (s == VaultSection.library) _grid(by[s]!) else _rows(by[s]!),
+            ],
+        ];
     final all = items != null && items.isNotEmpty && _picked.length == items.length;
     // Swipe back pops null and the vault reloads anyway. While selecting, Back ends the
     // selection first, as in the vault.
@@ -200,11 +228,15 @@ class _TrashScreenState extends State<TrashScreen> {
                           key: const ValueKey('trash-list'),
                           slivers: [
                             const SliverToBoxAdapter(child: _Lead()),
-                            for (final s in _sections)
-                              if (bySection[s]!.isNotEmpty) ...[
-                                SliverToBoxAdapter(child: _SectionTitle(sectionLabel(l, s), bySection[s]!.length)),
-                                if (s == VaultSection.library) _grid(bySection[s]!) else _rows(bySection[s]!),
-                              ],
+                            if (hasMine && hasHeld)
+                              SliverToBoxAdapter(child: _PartTitle(l.trashMineTitle, key: const ValueKey('trash-part-mine'))),
+                            ...part(mine),
+                            if (hasHeld) ...[
+                              SliverToBoxAdapter(
+                                child: _PartTitle(l.trashHeldTitle, note: l.trashHeldNote, key: const ValueKey('trash-part-held')),
+                              ),
+                              ...part(held),
+                            ],
                             const SliverToBoxAdapter(child: SizedBox(height: 24)),
                           ],
                         ),
@@ -224,7 +256,7 @@ class _TrashScreenState extends State<TrashScreen> {
                         all ? _picked.clear() : _picked.addAll(items.map((i) => i.id));
                       }),
                       actions: [
-                        SelectionAction(Icons.restore_rounded, l.restore, () => _restore(_chosen),
+                        SelectionAction(Icons.restore_from_trash_rounded, l.restore, () => _restore(_chosen),
                             key: const ValueKey('trash-restore')),
                         SelectionAction(Icons.delete_forever_outlined, l.deleteForGoodShort, () => _deleteForGood(_chosen),
                             color: recordRed(context), key: const ValueKey('trash-purge')),
@@ -357,6 +389,31 @@ class _Lead extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// One of the page's two parts: what you deleted, what another device deleted for good.
+class _PartTitle extends StatelessWidget {
+  const _PartTitle(this.text, {super.key, this.note});
+  final String text;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_gutter, 26, _gutter, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          if (note != null) ...[Icon(Icons.devices_rounded, size: 20, color: c.muted), const SizedBox(width: 8)],
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -.2))),
+        ]),
+        if (note != null) ...[
+          const SizedBox(height: 4),
+          Text(note!, style: TextStyle(color: c.muted, fontSize: 14, height: 1.35)),
+        ],
+      ]),
     );
   }
 }

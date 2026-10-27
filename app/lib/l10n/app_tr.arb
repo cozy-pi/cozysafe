@@ -720,5 +720,11 @@
   "addNotePhoto": "Doğrudan kasaya, asla telefonun fotoğraflarına değil.",
   "addNoteNote": "Yalnızca sizin için metin: parolalar, kodlar, listeler.",
   "addNoteVoice": "Doğrudan kasaya kaydedilen bir sesli not.",
-  "addNoteFile": "Dosyalar'dan PDF, tarama ve belgeler."
+  "addNoteFile": "Dosyalar'dan PDF, tarama ve belgeler.",
+  "confirmRestoreTitle": "{count, plural, =1{Bu öğe geri yüklensin mi?} other{{count} öğe geri yüklensin mi?}}",
+  "confirmRestoreBody": "Kasadaki eski yerine döner.",
+  "confirmRestoreHeldBody": "Kasaya döner ve bir sonraki eşitlemede diğer cihazlarınıza da gelir.",
+  "trashMineTitle": "Sizin sildikleriniz",
+  "trashHeldTitle": "Başka bir cihazda kalıcı olarak silindi",
+  "trashHeldNote": "Yalnızca bu cihazda tutulur ve artık eşitlenmez. Geri yükleyince her yere döner."
 }

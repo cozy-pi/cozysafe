@@ -720,5 +720,11 @@
   "addNotePhoto": "Direttamente nella cassaforte, mai nelle foto del telefono.",
   "addNoteNote": "Testo solo per te: password, codici, elenchi.",
   "addNoteVoice": "Un memo vocale, registrato direttamente nella cassaforte.",
-  "addNoteFile": "PDF, scansioni e documenti da File."
+  "addNoteFile": "PDF, scansioni e documenti da File.",
+  "confirmRestoreTitle": "{count, plural, =1{Ripristinare questo elemento?} other{Ripristinare {count} elementi?}}",
+  "confirmRestoreBody": "Torna nella cassaforte, dov'era.",
+  "confirmRestoreHeldBody": "Torna nella cassaforte e, alla prossima sincronizzazione, sugli altri dispositivi.",
+  "trashMineTitle": "Eliminati da te",
+  "trashHeldTitle": "Eliminati per sempre su un altro dispositivo",
+  "trashHeldNote": "Resta solo su questo dispositivo e non si sincronizza più. Ripristina per riaverlo ovunque."
 }

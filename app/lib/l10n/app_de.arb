@@ -720,5 +720,11 @@
   "addNotePhoto": "Direkt in den Tresor, nie in die Fotos des Telefons.",
   "addNoteNote": "Text nur für Sie: Passwörter, Codes, Listen.",
   "addNoteVoice": "Eine Sprachnotiz, direkt in den Tresor aufgenommen.",
-  "addNoteFile": "PDFs, Scans und Dokumente aus Dateien."
+  "addNoteFile": "PDFs, Scans und Dokumente aus Dateien.",
+  "confirmRestoreTitle": "{count, plural, =1{Dieses Objekt wiederherstellen?} other{{count} Objekte wiederherstellen?}}",
+  "confirmRestoreBody": "Es kommt zurück in den Tresor, an seinen alten Platz.",
+  "confirmRestoreHeldBody": "Es kommt zurück in den Tresor und bei der nächsten Synchronisierung auf Ihre anderen Geräte.",
+  "trashMineTitle": "Von Ihnen gelöscht",
+  "trashHeldTitle": "Auf einem anderen Gerät endgültig gelöscht",
+  "trashHeldNote": "Nur noch auf diesem Gerät und nicht mehr synchronisiert. Wiederherstellen bringt es überall zurück."
 }

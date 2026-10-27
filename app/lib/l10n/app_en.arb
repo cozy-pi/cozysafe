@@ -944,5 +944,12 @@
   "addNotePhoto": "Straight into the vault, never in the phone's photos.",
   "addNoteNote": "Text for your eyes only: passwords, codes, lists.",
   "addNoteVoice": "A voice memo, recorded straight into the vault.",
-  "addNoteFile": "PDFs, scans and documents from Files."
+  "addNoteFile": "PDFs, scans and documents from Files.",
+  "confirmRestoreTitle": "{count, plural, =1{Restore this item?} other{Restore {count} items?}}",
+  "@confirmRestoreTitle": {"placeholders": {"count": {"type": "int"}}},
+  "confirmRestoreBody": "It goes back into the vault, where it was.",
+  "confirmRestoreHeldBody": "It goes back into the vault and, at the next sync, to your other devices.",
+  "trashMineTitle": "Deleted by you",
+  "trashHeldTitle": "Deleted for good on another device",
+  "trashHeldNote": "Kept only on this device and no longer synced. Restore brings it back everywhere."
 }
