@@ -334,6 +334,8 @@ void _screen(String name, String caption, Widget Function() home,
   // for pages left empty on a computer.
   if (_wideAll && size == _phone) size = const Size(1440, 900);
   final entry = <String, Object>{'name': name, 'caption': caption, 'change': ?change};
+  // An iPad or computer screen is drawn in its own frame, at its own shape.
+  if (size != _phone) entry['size'] = [size.width, size.height];
   _manifest.add(entry);
   for (final b in [Brightness.dark, Brightness.light]) {
     testWidgets('$name ${b.name}', skip: !_enabled, (t) async {
