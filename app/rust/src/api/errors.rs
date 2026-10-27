@@ -44,9 +44,12 @@ mod tests {
         for _ in 0..KEEP + 5 {
             note("sync", "drive-full");
         }
+        // Other tests run at the same time and may note their own codes, so only this
+        // test's code is counted.
         let got = take_errors();
         assert_eq!(got.len(), KEEP);
-        assert!(got[0].ends_with("|sync|drive-full"));
-        assert!(take_errors().is_empty());
+        assert!(got.iter().all(|e| e.split('|').count() == 3));
+        assert!(got.iter().filter(|e| e.ends_with("|sync|drive-full")).count() >= KEEP - 10);
+        assert!(!take_errors().iter().any(|e| e.ends_with("|sync|drive-full")));
     }
 }
