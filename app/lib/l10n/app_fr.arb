@@ -726,5 +726,8 @@
   "confirmRestoreHeldBody": "Il retourne dans le coffre et, à la prochaine synchronisation, sur vos autres appareils.",
   "trashMineTitle": "Supprimé par vous",
   "trashHeldTitle": "Supprimé définitivement sur un autre appareil",
-  "trashHeldNote": "Gardé seulement sur cet appareil, plus synchronisé. Restaurer le remet partout."
+  "trashHeldNote": "Gardé seulement sur cet appareil, plus synchronisé. Restaurer le remet partout.",
+  "historyKeepUntil": "Garder les anciennes versions jusqu'à saturation",
+  "historyRule": "Tant que l'historique n'a pas rempli cet espace, rien n'est supprimé, aussi ancien soit-il. Une fois plein, les versions les plus anciennes de plus de 30 jours partent d'abord ; les 30 derniers jours restent toujours. Uniquement sur cet appareil : ni synchronisé, ni dans les sauvegardes.",
+  "historyEmptyAny": "Pas encore de version antérieure. À chaque modification, la version précédente est gardée."
 }

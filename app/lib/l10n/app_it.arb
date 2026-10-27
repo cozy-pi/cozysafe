@@ -726,5 +726,8 @@
   "confirmRestoreHeldBody": "Torna nella cassaforte e, alla prossima sincronizzazione, sugli altri dispositivi.",
   "trashMineTitle": "Eliminati da te",
   "trashHeldTitle": "Eliminati per sempre su un altro dispositivo",
-  "trashHeldNote": "Resta solo su questo dispositivo e non si sincronizza più. Ripristina per riaverlo ovunque."
+  "trashHeldNote": "Resta solo su questo dispositivo e non si sincronizza più. Ripristina per riaverlo ovunque.",
+  "historyKeepUntil": "Conserva le versioni precedenti fino al limite",
+  "historyRule": "Finché la cronologia non riempie questo spazio, non si elimina nulla, per quanto vecchio. Quando è piena, vanno via prima le versioni più vecchie di oltre 30 giorni; gli ultimi 30 giorni restano sempre. Solo su questo dispositivo: non sincronizzata, non nei backup.",
+  "historyEmptyAny": "Ancora nessuna versione precedente. A ogni modifica, la versione prima viene conservata."
 }

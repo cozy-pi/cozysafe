@@ -726,5 +726,8 @@
   "confirmRestoreHeldBody": "Kembali ke brankas dan, saat sinkronisasi berikutnya, ke perangkat Anda yang lain.",
   "trashMineTitle": "Dihapus oleh Anda",
   "trashHeldTitle": "Dihapus permanen di perangkat lain",
-  "trashHeldNote": "Hanya ada di perangkat ini dan tidak disinkronkan lagi. Pulihkan untuk mengembalikannya di semua perangkat."
+  "trashHeldNote": "Hanya ada di perangkat ini dan tidak disinkronkan lagi. Pulihkan untuk mengembalikannya di semua perangkat.",
+  "historyKeepUntil": "Simpan versi lama sampai penuh",
+  "historyRule": "Selama riwayat belum memenuhi ruang ini, tidak ada yang dihapus, setua apa pun. Saat penuh, versi terlama yang berusia lebih dari 30 hari dihapus lebih dulu; 30 hari terakhir selalu disimpan. Hanya di perangkat ini: tidak disinkronkan, tidak ada di cadangan.",
+  "historyEmptyAny": "Belum ada versi sebelumnya. Setiap kali ini berubah, versi sebelumnya disimpan."
 }

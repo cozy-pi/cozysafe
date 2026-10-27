@@ -99,19 +99,20 @@ void main() {
     expect(restored?.name, 'List');
   });
 
-  testWidgets('the limits are chosen here; off hides the space limit', (t) async {
+  testWidgets('one choice: how much space, or off; the rule says the rest', (t) async {
     await t.pumpWidget(app(const HistorySettingsScreen()));
     await t.pumpAndSettle();
     expect(find.textContaining('History uses'), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('history-days-90')));
+    expect(find.textContaining('the last 30 days always stay'), findsOneWidget);
+    await t.tap(find.byKey(ValueKey('history-max-${BigInt.from(5) * BigInt.from(1 << 30)}')));
     await t.pumpAndSettle();
-    expect(_fake.calls.last, 'set 90 ${1 << 30}');
-    await t.tap(find.byKey(ValueKey('history-max-${BigInt.zero}')));
-    await t.pumpAndSettle();
-    expect(_fake.calls.last, 'set 90 0');
+    expect(_fake.calls.last, 'set 30 ${5 * (1 << 30)}');
     await t.tap(find.byKey(const ValueKey('history-days-0')));
     await t.pumpAndSettle();
-    expect(_fake.calls.last, 'set 0 0');
-    expect(find.byKey(ValueKey('history-max-${BigInt.zero}')), findsNothing);
+    expect(_fake.calls.last, 'set 0 ${5 * (1 << 30)}');
+    // Off, then a size again: back on, with the 30 days.
+    await t.tap(find.byKey(ValueKey('history-max-${BigInt.zero}')));
+    await t.pumpAndSettle();
+    expect(_fake.calls.last, 'set 30 0');
   });
 }
