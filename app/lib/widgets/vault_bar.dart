@@ -100,6 +100,15 @@ VaultSection startSection() {
   return vaultSections().where((k) => k.name == saved).firstOrNull ?? VaultSection.home;
 }
 
+/// A section's icon, as in the bar (and the wide window's sidebar).
+IconData sectionIcon(VaultSection s) => switch (s) {
+      VaultSection.home => Icons.home_outlined,
+      VaultSection.note => Icons.edit_note_rounded,
+      VaultSection.library => Icons.photo_library_outlined,
+      VaultSection.audio => Icons.mic_none_rounded,
+      VaultSection.file => Icons.folder_outlined,
+    };
+
 String sectionLabel(AppLocalizations l, VaultSection k) => switch (k) {
       VaultSection.home => l.modeHome,
       VaultSection.note => l.modeNote,

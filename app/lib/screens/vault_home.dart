@@ -59,6 +59,7 @@ import '../widgets/toast.dart';
 import '../widgets/second_place.dart';
 import '../sync/sync_screen.dart';
 import 'history.dart';
+import 'wide_home.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -127,6 +128,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The tag open on top of the sections ("Hộ chiếu"): every section then shows only
   /// what carries it. None: everything.
   String? _tagId;
+  /// A wide window (iPad, computer): three columns, and the item open beside the list.
+  bool _wide = false;
+  rust.ItemInfo? _focus;
+  /// Library columns in a wide window: as many as fit.
+  int _wideCols = 6;
   /// Long-press selection: ids picked for Delete / Send.
   final Set<String> _selected = {};
   /// Select mode, from the Select button: rows show their circles even with nothing
@@ -941,6 +947,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
     if (_selecting) return _toggle(item.id);
     if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
+    // A wide window opens it in the pane beside the list, not over the page.
+    if (_wide && hasPane(context)) return setState(() => _focus = item);
     // Every kind opens the same way: big, over the page you are on, never a jump to
     // another tab (owner 2026-10-21, one design 2026-10-25). Open in its bar goes further:
     // full screen, the note's editor, the file's own page.
@@ -969,6 +977,27 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       _reload();
       _trashed([result]);
     }
+  }
+
+  /// The pane's viewer is done with [item]: the same answers as when it is popped.
+  Future<void> _paneResult(rust.ItemInfo item, String? result) async {
+    if (QuickLook.edited.remove(item.id)) {
+      await QuickLook.lastSave?.catchError((Object _) {});
+      if (!mounted || _locked) return;
+      _previews.remove(item.id);
+      _reload();
+    }
+    if (result == null) return;
+    if (result == QuickLook.editRequest) return _openNote(item);
+    final target = QuickLook.menuTarget(result);
+    if (target != null) {
+      final it = (_items ?? const <rust.ItemInfo>[]).where((i) => i.id == target).firstOrNull;
+      if (it != null) await _itemMenu(it, const []);
+      return;
+    }
+    setState(() => _focus = null);
+    _reload();
+    _trashed([result]);
   }
 
   /// Rename a photo, video, recording or file: the name is edited, its extension kept
@@ -1282,7 +1311,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             SliverToBoxAdapter(child: _SectionTitle(e.key)),
             SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: _cols,
+                crossAxisCount: _wide ? _wideCols : _cols,
                 mainAxisSpacing: 1.5,
                 crossAxisSpacing: 1.5,
               ),
@@ -1826,8 +1855,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           // The home tab has its own search field.
           if (_section != VaultSection.home || _tagId != null)
             GlassButton(icon: Icons.search, tooltip: l.search, size: Ui.circle, onTap: _openSearch),
-          // Inside a group the header is crowded; Settings is one Back away.
-          if (open == null) ...[
+          // Inside a group the header is crowded; Settings is one Back away. A wide window
+          // has it in the sidebar.
+          if (open == null && !_wide) ...[
             const SizedBox(width: 8),
             KeyedSubtree(
               key: _settingsKey,
@@ -1841,6 +1871,143 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// Three columns (owner 2026-10-27, iPad and computer): the sidebar, the list, and the
+  /// open item. No bar at the bottom: the sidebar holds the sections, Add and Lock.
+  Widget _wideLayout(BuildContext context, Widget header, Widget? banner, List<VaultSection> sections, bool empty) {
+    final selecting = _selecting;
+    final width = MediaQuery.sizeOf(context).width;
+    final focus = hasPane(context) && _focus != null && (_items ?? const <rust.ItemInfo>[]).any((i) => i.id == _focus!.id) ? _focus : null;
+    final listWidth = width - sidebarWidth - 1 - (focus != null ? paneWidth + 1 : 0);
+    _wideCols = (listWidth / 130).floor().clamp(3, 10);
+    final items = _items ?? const <rust.ItemInfo>[];
+    int count(String tagId) => items.where((i) => i.kind != ItemKind.tag && i.tagIds.contains(tagId)).length;
+    final groups = [for (final t in _tags.values) (t, count(t.id))]
+      ..sort((a, b) => a.$1.name.toLowerCase().compareTo(b.$1.name.toLowerCase()));
+    final divider = VerticalDivider(width: 1, thickness: 1, color: CsColors.of(context).border);
+    return MenuPointer(
+      child: Scaffold(
+        bottomNavigationBar: selecting
+            ? _SelectionBar(
+                enabled: _selected.isNotEmpty,
+                onDone: () => setState(_endSelect),
+                allSelected: _allShownSelected,
+                onSelectAll: _toggleSelectAll,
+                onSend: _sendSelected,
+                onTag: _tagSelected,
+                onRename: _renamable == null ? null : _renameSelected,
+                onDelete: _deleteSelected)
+            : null,
+        body: SafeArea(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: sidebarWidth,
+                child: WideSidebar(
+                  vault: _vault,
+                  sections: sections.isEmpty ? const [VaultSection.home] : sections,
+                  section: _section,
+                  groups: groups,
+                  groupId: _tagId,
+                  onSection: (s) => setState(() {
+                    _tagId = null;
+                    _pickSection(s);
+                  }),
+                  onGroup: (id) => setState(() => _tagId = id),
+                  onAdd: () => setState(() {
+                    _adding = true;
+                    _openAdd();
+                  }),
+                  onSync: () => pushPage<void>(context,
+                      title: AppLocalizations.of(context).syncTitle,
+                      builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
+                  onTrash: _openTrash,
+                  onSettings: _openSettings,
+                  onLock: _lock,
+                ),
+              ),
+              divider,
+              Expanded(
+                child: Stack(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        header,
+                        ?banner,
+                        Expanded(
+                          child: DragSelectArea(
+                            key: _contentKey,
+                            drag: _drag,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 150),
+                              child: KeyedSubtree(
+                                key: ValueKey('${_section.name}/$_tagId'),
+                                // The overview reads as a page, not stretched across the window.
+                                child: _section == VaultSection.home && _tagId == null
+                                    ? Align(
+                                        alignment: Alignment.topCenter,
+                                        child: ConstrainedBox(
+                                            constraints: const BoxConstraints(maxWidth: 760), child: _content(context)),
+                                      )
+                                    : _content(context),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_addShown)
+                      Positioned.fill(
+                        child: AddCardOverlay(
+                          open: _adding,
+                          onGone: () => setState(() => _addShown = false),
+                          ways: addWays(AppLocalizations.of(context),
+                              camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                          bottom: 24,
+                          hovered: _hover,
+                          onPick: _pickAdd,
+                          onClose: _closeAdd,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (focus != null) ...[
+                divider,
+                SizedBox(
+                  width: paneWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          key: const ValueKey('wide-pane-close'),
+                          tooltip: AppLocalizations.of(context).close,
+                          onPressed: () => setState(() => _focus = null),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ),
+                      Expanded(
+                        child: QuickLook(
+                          key: ValueKey('pane-${focus.id}'),
+                          item: focus,
+                          vaultId: _vault.id,
+                          onResult: (r) => _paneResult(focus, r),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2095,6 +2262,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         : null;
 
     final inTag = _tagId != null;
+    _wide = isWide(context);
+    if (_wide) return _wideLayout(context, header, banner, sections, empty);
     return MenuPointer(child: PopScope(
       canPop: !selecting && !inTag && !_recordingNow && !_adding,
       onPopInvokedWithResult: (didPop, _) {
