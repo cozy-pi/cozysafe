@@ -133,6 +133,25 @@ class VaultPalette {
   late final Color bg, surface, ink, muted, accent, onAccent, dock, soft, border;
 }
 
+/// Text sizes by role, the iPhone's own scale (Apple's Human Interface Guidelines,
+/// default size). New text takes one of these, not a size of its own.
+abstract final class CsType {
+  static const largeTitle = 34.0;
+  static const title1 = 28.0;
+  static const title2 = 22.0;
+  static const title3 = 20.0;
+  /// Bold or semibold 17: a page title in the bar, a heading.
+  static const headline = 17.0;
+  /// A row's name and value, running text.
+  static const body = 17.0;
+  static const callout = 16.0;
+  static const subhead = 15.0;
+  /// The line under a group, a note.
+  static const footnote = 13.0;
+  static const caption1 = 12.0;
+  static const caption2 = 11.0;
+}
+
 ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   final dark = brightness == Brightness.dark;
   final p = vault == null ? null : VaultPalette(vault, brightness);
@@ -191,7 +210,7 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
       scrolledUnderElevation: 0,
       centerTitle: false,
       titleTextStyle: ThemeData(brightness: brightness).textTheme.titleLarge!.copyWith(
-        fontSize: 20,
+        fontSize: CsType.title3,
         fontWeight: FontWeight.w700,
         color: ink,
       ),

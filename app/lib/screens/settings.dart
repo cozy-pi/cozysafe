@@ -88,7 +88,7 @@ abstract final class Settings {
 /// its row's symbol and colour.
 enum SettingsSpot {
   sync(Icons.sync_rounded, _Mau.xanhLa),
-  autoLock(Icons.timer_outlined, _Mau.cam),
+  autoLock(Icons.timer_rounded, _Mau.cam),
   blurThumbs(Icons.blur_on_rounded, _Mau.ngoc),
   hideNoteText(Icons.notes_rounded, _Mau.bacHa),
   appearance(Icons.contrast_rounded, _Mau.cham),
@@ -398,9 +398,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SizedBox(width: 26, child: m == now ? const Icon(Icons.check_rounded, size: 20) : null),
               Icon(
                 switch (m) {
-                  ThemeMode.light => Icons.light_mode_outlined,
-                  ThemeMode.dark => Icons.dark_mode_outlined,
-                  ThemeMode.system => Icons.brightness_auto_outlined,
+                  ThemeMode.light => Icons.light_mode_rounded,
+                  ThemeMode.dark => Icons.dark_mode_rounded,
+                  ThemeMode.system => Icons.brightness_auto_rounded,
                 },
                 size: 20,
               ),
@@ -664,7 +664,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             _Row(
               key: _backupRowKey,
-              icon: Icons.cloud_upload_outlined,
+              icon: Icons.cloud_upload_rounded,
               color: _Mau.xanh,
               title: l.backupToFile,
               trailing: FilledButton(
@@ -689,7 +689,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Group(boxKey: _securityGroupKey, rows: [
             if (widget.canBiometric)
               _Row(
-                icon: Icons.face_retouching_natural,
+                icon: Icons.face_retouching_natural_rounded,
                 color: _Mau.xanhLa,
                 // The device's own symbol: the Face ID glyph, or a fingerprint (biometric.dart).
                 glyph: BiometricGlyph(kind: _bioKind, size: 19, color: Colors.white),
@@ -700,14 +700,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             _Row(
-              icon: Icons.dialpad,
+              icon: Icons.dialpad_rounded,
               color: _Mau.cham,
               title: l.pinTitle,
               value: l.change,
               onTap: () => _guarded(() => Navigator.of(context).push<bool>(fadeRoute((_) => Readable(child: const SetPinScreen())))),
             ),
             _Row(
-              icon: Icons.key_outlined,
+              icon: Icons.key_rounded,
               color: _Mau.vang,
               title: l.backupPasswordLabel,
               value: vault.hasPassword ? l.isSet : l.notSet,
@@ -716,7 +716,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (vault.hasPassword)
               _Row(
                 key: const ValueKey('kit-row'),
-                icon: Icons.medical_services_outlined,
+                icon: Icons.medical_services_rounded,
                 color: _Mau.doTuoi,
                 title: l.showKit,
                 onTap: widget.onShowKit,
@@ -724,7 +724,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Type them back to know they still open this vault (owner 2026-10-26).
             _Row(
               key: const ValueKey('key-check-row'),
-              icon: Icons.fact_check_outlined,
+              icon: Icons.fact_check_rounded,
               color: _Mau.xanhLa,
               title: l.keyCheckRow,
               onTap: () => pushPage<void>(context,
@@ -736,7 +736,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (KeyBackup.supported)
               _Row(
                 key: const ValueKey('key-backup-row'),
-                icon: Icons.cloud_outlined,
+                icon: Icons.cloud_rounded,
                 color: _Mau.troi,
                 title: KeyBackup.google ? l.keyBackupRowGoogle : l.keyBackupRow,
                 trailing: _Switch(
@@ -782,7 +782,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _Row(
               key: const ValueKey('hold-home-row'),
-              icon: Icons.lock_outline_rounded,
+              icon: Icons.lock_rounded,
               color: _Mau.tim,
               title: l.holdHomeTitle,
               trailing: _Switch(
@@ -793,7 +793,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (Device.android || Device.iOS || Settings.debugIOS)
               _Row(
                 key: const ValueKey('screenshots-row'),
-                icon: Icons.visibility_off_outlined,
+                icon: Icons.visibility_off_rounded,
                 color: _Mau.hong,
                 title: l.blockScreenshots,
                 trailing: _Switch(
@@ -848,7 +848,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // 4. Getting things back: deleted items, older versions.
           _Group(rows: [
             _Row(
-              icon: Icons.delete_sweep_outlined,
+              icon: Icons.delete_sweep_rounded,
               color: _Mau.xam,
               title: l.recentlyDeleted,
               onTap: () => _then(_openTrash),
@@ -893,7 +893,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Left, middle or right right on the row: no sheet to open (owner 2026-10-24).
             _Row(
               key: const ValueKey('side-row'),
-              icon: Icons.back_hand_outlined,
+              icon: Icons.back_hand_rounded,
               color: _Mau.cam,
               title: l.actionSide,
               trailing: _SideSwitch(
@@ -903,7 +903,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             _Row(
-              icon: Icons.palette_outlined,
+              icon: Icons.palette_rounded,
               color: _Mau.tim,
               title: l.changeIdentity,
               onTap: () => _then(widget.onChangeIdentity),
@@ -911,7 +911,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // The icon on a plain page after unlocking; only a look, so no owner check.
             _Row(
               key: const ValueKey('reveal-row'),
-              icon: Icons.auto_awesome_outlined,
+              icon: Icons.auto_awesome_rounded,
               color: _Mau.cham,
               title: l.revealIcon,
               trailing: _Switch(
@@ -928,14 +928,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 key: _guideRowKey,
                 child: _Row(
                   key: const ValueKey('guide-row'),
-                  icon: Icons.school_outlined,
+                  icon: Icons.school_rounded,
                   color: _Mau.vang,
                   title: l.userGuide,
                   onTap: _tour,
                 ),
               ),
             _Row(
-              icon: Icons.verified_user_outlined,
+              icon: Icons.verified_user_rounded,
               color: _Mau.ngoc,
               title: l.securityTitle,
               onTap: _showSecurity,
@@ -943,7 +943,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Feedback lives on the website; the app only opens it (owner 2026-10-21).
             _Row(
               key: const ValueKey('feedback-row'),
-              icon: Icons.chat_bubble_outline_rounded,
+              icon: Icons.chat_bubble_rounded,
               color: _Mau.xanh,
               title: l.feedback,
               onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
@@ -951,7 +951,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // What went wrong, as codes to copy (owner 2026-10-26).
             _Row(
               key: const ValueKey('report-row'),
-              icon: Icons.bug_report_outlined,
+              icon: Icons.bug_report_rounded,
               color: _Mau.cam,
               title: l.reportProblem,
               onTap: () => pushPage<void>(context, title: l.reportProblem, builder: (_) => const ErrorReportScreen()),
@@ -1003,7 +1003,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               return _Group(rows: [
                 _Row(
                   key: const ValueKey('about-version'),
-                  icon: Icons.info_outline_rounded,
+                  icon: Icons.info_rounded,
                   color: _Mau.xam,
                   title: l.aboutVersion,
                   value: version,
@@ -1028,7 +1028,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (debugModeOn())
                   _Row(
                     key: _debugRowKey,
-                    icon: Icons.bug_report_outlined,
+                    icon: Icons.bug_report_rounded,
                     color: _Mau.doTuoi,
                     title: l.debugMode,
                     onTap: () async {
@@ -1205,7 +1205,7 @@ class _Row extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 52),
+        constraints: const BoxConstraints(minHeight: 46),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
           child: Row(
@@ -1213,10 +1213,10 @@ class _Row extends StatelessWidget {
               SettingTile(icon: icon, color: color, glyph: glyph),
               const SizedBox(width: 12),
               // Just a name, no note under it (owner 2026-10-21): the name says enough.
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 15.5))),
+              Expanded(child: Text(title, style: const TextStyle(fontSize: CsType.body))),
               if (value != null) ...[
                 const SizedBox(width: 8),
-                Text(value!, style: TextStyle(color: c.muted, fontSize: 14)),
+                Text(value!, style: TextStyle(color: c.muted, fontSize: CsType.body)),
               ],
               if (trailing != null) ...[const SizedBox(width: 8), trailing!],
               if (onTap != null && trailing == null && chevron) ...[

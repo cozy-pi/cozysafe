@@ -96,7 +96,7 @@ class _SyncScreenState extends State<SyncScreen> {
       session = SyncScreen.debugSession ?? await driveSignIn();
     } catch (e) {
       ErrorLog.add('drive-sign-in', driveErrorCode(e));
-      if (mounted) showToast(context, '${l.driveSignInFailed} (${driveErrorCode(e)})', icon: Icons.error_outline_rounded);
+      if (mounted) showToast(context, '${l.driveSignInFailed} (${driveErrorCode(e)})', icon: Icons.error_rounded);
       return;
     }
     if (session == null || !mounted) return;
@@ -159,7 +159,7 @@ class _SyncScreenState extends State<SyncScreen> {
           _Card(children: [
             _Action(
                 key: const ValueKey('sync-drive'),
-                icon: Icons.cloud_sync_outlined,
+                icon: Icons.cloud_sync_rounded,
                 color: const Color(0xFF34A853),
                 logo: const DriveLogo(size: 20),
                 title: 'Google Drive',
@@ -213,14 +213,16 @@ class _SyncScreenState extends State<SyncScreen> {
                   ]),
                   const SizedBox(height: 24),
                   _Card(children: [
-                    _Action(key: const ValueKey('sync-drive-now'), icon: Icons.sync_rounded, color: const Color(0xFF34A853), title: l.syncNow, onTap: _drive),
+                    _Action(key: const ValueKey('sync-drive-now'), icon: Icons.sync_rounded, color: const Color(0xFF007AFF), title: l.syncNow, onTap: _drive),
                   ]),
                   const SizedBox(height: 24),
                   _Card(children: [
                     // Automatic sync, and whether mobile data may carry it (owner 2026-10-27).
+                    // Not the same symbol as Sync now (owner 2026-10-27): a clock that
+                    // turns, for "by itself, from time to time".
                     _Action(
                       key: const ValueKey('sync-auto'),
-                      icon: Icons.sync_rounded,
+                      icon: Icons.update_rounded,
                       color: const Color(0xFF34A853),
                       title: l.syncAuto,
                       chevron: false,
@@ -238,15 +240,19 @@ class _SyncScreenState extends State<SyncScreen> {
                   ]),
                   const SizedBox(height: 24),
                   _Card(children: [
-                    _Action(
-                        key: const ValueKey('sync-drive-remove'),
-                        icon: Icons.person_remove_outlined,
-                        color: const Color(0xFFFF3B30),
-                        title: l.driveRemove,
-                        chevron: false,
-                        onTap: () async {
-                          if (await _remove() && context.mounted) Navigator.of(context).pop();
-                        }),
+                    // Red words only, as the iPhone's Sign Out: no symbol (owner 2026-10-27).
+                    InkWell(
+                      key: const ValueKey('sync-drive-remove'),
+                      onTap: () async {
+                        if (await _remove() && context.mounted) Navigator.of(context).pop();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: Text(l.driveRemove, style: const TextStyle(fontSize: CsType.body, color: Color(0xFFFF3B30))),
+                        ),
+                      ),
+                    ),
                   ]),
                 ],
               );
@@ -260,7 +266,7 @@ class _SyncScreenState extends State<SyncScreen> {
     final account = _account;
     if (account == null) return false;
     final ok = await confirmDelete(context,
-        title: l.driveRemoveTitle(account), body: l.driveRemoveBody, action: l.driveRemove, icon: Icons.person_remove_outlined);
+        title: l.driveRemoveTitle(account), body: l.driveRemoveBody, action: l.driveRemove, icon: Icons.person_remove_rounded);
     if (!ok) return false;
     try {
       await driveSignOut(revoke: true);
@@ -336,7 +342,7 @@ class _Action extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
+        padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
         child: Row(children: [
           Container(
             width: 30,
@@ -350,13 +356,13 @@ class _Action extends StatelessWidget {
             child: logo ?? Icon(icon, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15.5, color: chevron || onTap == null || trailing != null ? null : color))),
+          Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: CsType.body, color: chevron || onTap == null || trailing != null ? null : color))),
           if (detail case final d?)
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 190),
               child: Padding(
                 padding: const EdgeInsets.only(left: 8, right: 2),
-                child: Text(d, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: 14)),
+                child: Text(d, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: CsType.body)),
               ),
             ),
           ?trailing,
@@ -419,7 +425,7 @@ class _LogRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
       child: Row(children: [
-        Icon(ok ? Icons.check_circle_outline_rounded : Icons.remove_circle_outline_rounded,
+        Icon(ok ? Icons.check_circle_rounded : Icons.remove_circle_rounded,
             color: ok ? const Color(0xFF34C759) : c.muted, size: 20),
         const SizedBox(width: 12),
         Expanded(

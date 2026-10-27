@@ -9,6 +9,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show PictureRecorder, ImageByteFormat;
 
+import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
+
 import 'package:cozysafe/links.dart';
 import 'package:cozysafe/widgets/private_thumb.dart';
 import 'package:cozysafe/widgets/selectable_row.dart';
@@ -252,6 +254,10 @@ Future<void> _loadFonts() async {
   final roboto = FontLoader('Roboto');
   if (sf.existsSync()) {
     roboto.addFont(bytes(sf));
+    // The names Flutter gives the iPhone's system font when the platform is iOS.
+    for (final name in ['CupertinoSystemDisplay', 'CupertinoSystemText']) {
+      await (FontLoader(name)..addFont(bytes(sf))).load();
+    }
   } else {
     for (final f in dir.listSync().whereType<File>()) {
       final n = f.uri.pathSegments.last;
@@ -397,12 +403,15 @@ void _screen(String name, String caption, Widget Function() home,
       setup?.call();
       // Real shadows: tests otherwise draw every elevation as a solid black outline.
       debugDisableShadows = false;
+      // A phone is the owner's iPhone: its back button, switches and title bar.
+      if (size == _phone) debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       try {
         final rects = await _shot(t, '$name-${b.name}', home(), b: b, act: act, after: after, marks: marks, size: size);
         if (rects.isNotEmpty) entry['marks'] = rects;
         await t.pump(const Duration(seconds: 2)); // let an animation started by `act` end
       } finally {
         debugDisableShadows = true;
+        debugDefaultTargetPlatformOverride = null;
       }
     });
   }
@@ -911,7 +920,8 @@ void main() {
     await t.pumpAndSettle();
   });
   // As pushPage: a readable column on a computer.
-  Widget page(String title, Widget body) => Readable(child: Scaffold(appBar: AppBar(title: Text(title)), body: SafeArea(top: false, child: body)));
+  Widget page(String title, Widget body) =>
+      Readable(child: Builder(builder: (context) => Scaffold(appBar: pageBar(context, title), body: SafeArea(top: false, child: body))));
   final syncLog = [
     '${_now - 3600000}|nearby|iPhone 15 Pro Max|ok|12|3',
     '${_now - 86400000}|nearby|iPad|cancelled|0|0',

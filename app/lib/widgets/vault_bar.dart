@@ -1467,10 +1467,21 @@ class _LoopMark extends StatelessWidget {
 /// at the bottom edge (owner 2026-10-21; docs/ui.md: read → page, a few choices → a menu
 /// at the row, actions → a bottom sheet).
 /// Like every page, it stays under the lock screen (lib/lock_resume.dart).
+/// The title bar of a page opened from another: on an iPhone the iPhone's own, the
+/// title centred, 17 semibold, beside the "‹" back (owner 2026-10-27).
+AppBar pageBar(BuildContext context, String title) => Theme.of(context).platform == TargetPlatform.iOS
+    ? AppBar(
+        title: Text(title),
+        centerTitle: true,
+        titleTextStyle:
+            Theme.of(context).appBarTheme.titleTextStyle?.copyWith(fontSize: CsType.headline, fontWeight: FontWeight.w600),
+      )
+    : AppBar(title: Text(title));
+
 Future<T?> pushPage<T>(BuildContext context, {required String title, required WidgetBuilder builder}) =>
     Navigator.of(context).push<T>(MaterialPageRoute(
       builder: (context) => Readable(child: Scaffold(
-        appBar: AppBar(title: Text(title)),
+        appBar: pageBar(context, title),
         body: SafeArea(top: false, child: builder(context)),
       )),
     ));
