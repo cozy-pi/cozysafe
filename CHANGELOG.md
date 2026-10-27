@@ -12,6 +12,10 @@ Dates are UTC.
   Google account fills in the words and asks only for the vault password. Kept only
   when Google encrypts it end to end, which needs a screen lock on the phone.
 
+### Fixed
+- Version history: changes made within the same millisecond could list in the wrong
+  order.
+
 ## 0.1.76 (2026-10-27)
 
 ### Added
