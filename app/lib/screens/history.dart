@@ -141,7 +141,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
-            child: Text(l.historyNote, style: TextStyle(color: c.muted, fontSize: 13, height: 1.35)),
+            child: Text(l.historyNote, style: TextStyle(color: c.muted, fontSize: CsType.footnote, height: 1.35)),
           ),
           const SizedBox(height: 28),
           Material(
@@ -155,7 +155,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
                 child: Text(
                   l.historyClearItem,
-                  style: TextStyle(color: recordRed(context), fontSize: 15.5),
+                  style: TextStyle(color: recordRed(context), fontSize: CsType.callout),
                 ),
               ),
             ),
@@ -197,20 +197,20 @@ class _VersionRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_when(context, v.replacedMs), style: const TextStyle(fontSize: 15.5)),
+                  Text(_when(context, v.replacedMs), style: const TextStyle(fontSize: CsType.callout)),
                   if (v.item.name != current.name) ...[
                     const SizedBox(height: 2),
                     Text(
                       v.item.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14),
+                      style: const TextStyle(fontSize: CsType.subhead),
                     ),
                   ],
                   const SizedBox(height: 2),
                   Text(
                     '${v.thisDevice ? l.historyThisDevice : l.historyOtherDevice} · $what',
-                    style: TextStyle(color: c.muted, fontSize: 13),
+                    style: TextStyle(color: c.muted, fontSize: CsType.footnote),
                   ),
                 ],
               ),
@@ -285,7 +285,7 @@ class _VersionPageState extends State<_VersionPage> {
         child: SelectableText(
           text,
           key: const ValueKey('history-text'),
-          style: const TextStyle(fontSize: 16, height: 1.45),
+          style: const TextStyle(fontSize: CsType.callout, height: 1.45),
         ),
       );
     }
@@ -316,12 +316,12 @@ class _VersionPageState extends State<_VersionPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             children: [
-              Text(v.item.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+              Text(v.item.name, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
               Text(
                 '${v.thisDevice ? l.historyThisDevice : l.historyOtherDevice} · '
                 '${v.sameContent ? l.historySameContent : fileSize(v.item.sizeBytes)}',
-                style: TextStyle(color: c.muted, fontSize: 13),
+                style: TextStyle(color: c.muted, fontSize: CsType.footnote),
               ),
               const SizedBox(height: 14),
               _preview(context),
@@ -339,7 +339,7 @@ class _VersionPageState extends State<_VersionPage> {
                 Text(
                   l.historyRestoreNote,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: c.muted, fontSize: 13),
+                  style: TextStyle(color: c.muted, fontSize: CsType.footnote),
                 ),
                 const SizedBox(height: 10),
                 FilledButton(
@@ -438,7 +438,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-          child: Text(title, style: TextStyle(color: c.muted, fontSize: 13)),
+          child: Text(title, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
         ),
         Material(
           color: Theme.of(context).cardColor,
@@ -466,7 +466,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           children: [
-            Expanded(child: Text(label, style: const TextStyle(fontSize: 15.5))),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: CsType.callout))),
             if (on) Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary, size: 22),
           ],
         ),
@@ -493,7 +493,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
           padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
           child: Text(
             [if (used != null) l.historyUsing(fileSize(used)), l.historyRule].join(' '),
-            style: TextStyle(color: c.muted, fontSize: 13, height: 1.35),
+            style: TextStyle(color: c.muted, fontSize: CsType.footnote, height: 1.35),
           ),
         ),
         if (used != null && used > BigInt.zero) ...[
@@ -509,7 +509,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
                 child: Text(
                   l.historyClearAll,
-                  style: TextStyle(color: recordRed(context), fontSize: 15.5),
+                  style: TextStyle(color: recordRed(context), fontSize: CsType.callout),
                 ),
               ),
             ),

@@ -281,7 +281,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         shape: const StadiumBorder(),
                       ),
-                      child: Text(l.done, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                      child: Text(l.done, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
                     ),
                   ]),
                 )
@@ -298,7 +298,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                         padding: const EdgeInsets.symmetric(horizontal: 28),
                         shape: const StadiumBorder(),
                       ),
-                      child: Text(l.done, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                      child: Text(l.done, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
                     ),
                     // Send the note as a text file ("Title.txt"); saved first.
                     BarIcon(
@@ -312,7 +312,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                     if (widget.item != null)
                       BarIcon(
                         key: const ValueKey('note-delete'),
-                        icon: Icons.delete_outline,
+                        icon: Icons.delete_rounded,
                         tooltip: l.delete,
                         onTap: _saving ? null : (_) => _delete(),
                         color: recordRed(context),

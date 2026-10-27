@@ -75,7 +75,7 @@ class BarText extends StatelessWidget {
       onPressed: onTap,
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        child: Text(label, maxLines: 1, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w700)),
       ),
     );
     return expand ? Expanded(child: button) : button;

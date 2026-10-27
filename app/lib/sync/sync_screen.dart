@@ -110,7 +110,7 @@ class _SyncScreenState extends State<SyncScreen> {
               children: [
                 Icon(Icons.sync_rounded, size: 20, color: CsColors.of(context).muted),
                 const SizedBox(width: 10),
-                Expanded(child: Text(l.syncAuto, style: const TextStyle(fontSize: 16))),
+                Expanded(child: Text(l.syncAuto, style: const TextStyle(fontSize: CsType.callout))),
                 _Toggle(value: auto, onChanged: (v) => set(() => auto = v)),
               ],
             ),
@@ -130,7 +130,7 @@ class _SyncScreenState extends State<SyncScreen> {
               waiting: Column(mainAxisSize: MainAxisSize.min, children: [
                 const SyncLink(place: SyncPlace.drive),
                 const SizedBox(height: 22),
-                Text(l.syncDriveWorking, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+                Text(l.syncDriveWorking, textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
               ]),
             ));
     _loadLog();
@@ -184,7 +184,7 @@ class _SyncScreenState extends State<SyncScreen> {
   /// Google Drive's page: sync now; the account, automatic sync, Wi-Fi only; remove.
   Future<void> _openDrive() async {
     await pushPage<void>(context,
-        title: 'Google Drive',
+        title: 'Google Drive', grouped: true,
         builder: (context) => StatefulBuilder(builder: (context, set) {
               final l = AppLocalizations.of(context);
               final account = _account;
@@ -208,7 +208,7 @@ class _SyncScreenState extends State<SyncScreen> {
                     ),
                     if (account != null) ...[
                       const SizedBox(height: 10),
-                      Text(account, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: CsColors.of(context).muted, fontSize: 15)),
+                      Text(account, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: CsColors.of(context).muted, fontSize: CsType.subhead)),
                     ],
                   ]),
                   const SizedBox(height: 24),
@@ -292,7 +292,7 @@ class _SyncScreenState extends State<SyncScreen> {
               _Card(indent: 46, children: [for (final line in _log) _LogRow(line: line)]),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
-              child: Text(l.syncLogNote, style: TextStyle(color: c.muted, fontSize: 13)),
+              child: Text(l.syncLogNote, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
             ),
           ],
         );
@@ -432,15 +432,15 @@ class _LogRow extends StatelessWidget {
           child: Text.rich(
             TextSpan(children: [
               TextSpan(text: title),
-              TextSpan(text: '  $date', style: TextStyle(color: c.muted, fontSize: 12.5)),
+              TextSpan(text: '  $date', style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
             ]),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14.5),
+            style: const TextStyle(fontSize: CsType.subhead),
           ),
         ),
         const SizedBox(width: 8),
-        Text(outcome, style: TextStyle(color: c.muted, fontSize: 12.5)),
+        Text(outcome, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
       ]),
     );
   }

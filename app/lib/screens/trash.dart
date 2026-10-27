@@ -160,9 +160,9 @@ class _TrashScreenState extends State<TrashScreen> {
     final l = AppLocalizations.of(context);
     await showItemMenu(context, title: shownName(l, it), entries: [
       MenuEntry(Icons.restore_from_trash_rounded, l.restore, () => _restore([it]), key: const ValueKey('menu-restore')),
-      MenuEntry(Icons.info_outline, l.info, () => showItemInfo(context, it, held: _held.contains(it.id)),
+      MenuEntry(Icons.info_rounded, l.info, () => showItemInfo(context, it, held: _held.contains(it.id)),
           key: const ValueKey('menu-info')),
-      MenuEntry(Icons.delete_forever_outlined, l.deleteForGoodShort, () => _deleteForGood([it]),
+      MenuEntry(Icons.delete_forever_rounded, l.deleteForGoodShort, () => _deleteForGood([it]),
           danger: true, key: const ValueKey('menu-purge')),
     ]);
   }
@@ -259,7 +259,7 @@ class _TrashScreenState extends State<TrashScreen> {
                       actions: [
                         SelectionAction(Icons.restore_from_trash_rounded, l.restore, () => _restore(_chosen),
                             key: const ValueKey('trash-restore')),
-                        SelectionAction(Icons.delete_forever_outlined, l.deleteForGoodShort, () => _deleteForGood(_chosen),
+                        SelectionAction(Icons.delete_forever_rounded, l.deleteForGoodShort, () => _deleteForGood(_chosen),
                             color: recordRed(context), key: const ValueKey('trash-purge')),
                       ],
                     )
@@ -379,13 +379,13 @@ class _Lead extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(_gutter, 4, _gutter, 0),
       child: Row(
         children: [
-          Icon(Icons.auto_delete_outlined, size: 18, color: c.muted),
+          Icon(Icons.auto_delete_rounded, size: 18, color: c.muted),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               key: const ValueKey('trash-lead'),
               l.trashNote,
-              style: TextStyle(color: c.muted, fontSize: 14, height: 1.3),
+              style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.3),
             ),
           ),
         ],
@@ -408,11 +408,11 @@ class _PartTitle extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           if (note != null) ...[Icon(Icons.devices_rounded, size: 20, color: c.muted), const SizedBox(width: 8)],
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -.2))),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.2))),
         ]),
         if (note != null) ...[
           const SizedBox(height: 4),
-          Text(note!, style: TextStyle(color: c.muted, fontSize: 14, height: 1.35)),
+          Text(note!, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.35)),
         ],
       ]),
     );
@@ -432,7 +432,7 @@ class _SectionTitle extends StatelessWidget {
             TextSpan(text: text),
             TextSpan(text: '  $count', style: TextStyle(color: CsColors.of(context).muted, fontWeight: FontWeight.w600)),
           ]),
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700),
         ),
       );
 }
@@ -456,7 +456,7 @@ class _Empty extends StatelessWidget {
             children: [
               Icon(Icons.delete_outline_rounded, size: 48, color: c.muted),
               const SizedBox(height: 14),
-              Text(l.trashEmptyTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(l.trashEmptyTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Text(l.trashEmptyBody, textAlign: TextAlign.center, style: TextStyle(color: c.muted, height: 1.5)),
             ],
@@ -513,7 +513,7 @@ class _Tile extends StatelessWidget {
                 if (bytes == null || bytes.isEmpty) {
                   // No preview stored (an old video): its kind, as in the vault.
                   return video
-                      ? const ColoredBox(color: Color(0xFF2A3133), child: Icon(Icons.movie_outlined, color: Colors.white54))
+                      ? const ColoredBox(color: Color(0xFF2A3133), child: Icon(Icons.movie_rounded, color: Colors.white54))
                       : const SizedBox.expand();
                 }
                 return PrivateThumb(bytes);
@@ -549,7 +549,7 @@ class _Tile extends StatelessWidget {
                     const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 15, shadows: _shadow),
                     if (duration != null)
                       Text(_length(duration.toInt()),
-                          style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600, shadows: _shadow)),
+                          style: const TextStyle(color: Colors.white, fontSize: CsType.caption1, fontWeight: FontWeight.w600, shadows: _shadow)),
                   ],
                 ),
               ),
@@ -565,7 +565,7 @@ class _Tile extends StatelessWidget {
               Positioned(
                 top: 5,
                 right: 5,
-                child: Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                child: Icon(selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
                     size: 22, color: Colors.white, shadows: _shadow),
               ),
           ],
@@ -613,14 +613,14 @@ class _Row extends StatelessWidget {
             decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(8)),
             child: ext.isEmpty || ext.length > 4
                 ? Icon(icon, color: primary)
-                : Text(ext, style: TextStyle(color: primary, fontSize: 11, fontWeight: FontWeight.w800)),
+                : Text(ext, style: TextStyle(color: primary, fontSize: CsType.caption2, fontWeight: FontWeight.w800)),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(shownName(l, item), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15)),
+                Text(shownName(l, item), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead)),
                 const SizedBox(height: 2),
                 Row(
                   children: [
@@ -633,7 +633,7 @@ class _Row extends StatelessWidget {
                         held ? '${l.trashHeldLabel} · $days' : '${fileSize(item.sizeBytes)} · $days',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: c.muted, fontSize: 12.5),
+                        style: TextStyle(color: c.muted, fontSize: CsType.footnote),
                       ),
                     ),
                   ],
@@ -656,7 +656,7 @@ class _DaysLeft extends StatelessWidget {
         decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+          child: Text(text, style: const TextStyle(color: Colors.white, fontSize: CsType.caption2, fontWeight: FontWeight.w700)),
         ),
       );
 }

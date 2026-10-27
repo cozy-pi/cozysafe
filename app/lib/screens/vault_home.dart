@@ -807,7 +807,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(l.backup, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                Text(l.backup, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
                 Text(l.backupWhatsIn, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
                 const SizedBox(height: 6),
@@ -1175,13 +1175,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(blocked ? Icons.visibility_off_outlined : Icons.warning_amber_rounded,
+            Icon(blocked ? Icons.visibility_off_rounded : Icons.warning_amber_rounded,
                 size: 40, color: blocked ? c.muted : recordRed(context)),
             const SizedBox(height: 12),
-            Text(blocked ? l.shotBlockedBody : l.screenshotWarning, style: const TextStyle(fontSize: 16, height: 1.45)),
+            Text(blocked ? l.shotBlockedBody : l.screenshotWarning, style: const TextStyle(fontSize: CsType.callout, height: 1.45)),
             if (blocked) ...[
               const SizedBox(height: 10),
-              Text(l.shotBlockedHow, style: TextStyle(fontSize: 15, height: 1.45, color: c.muted)),
+              Text(l.shotBlockedHow, style: TextStyle(fontSize: CsType.subhead, height: 1.45, color: c.muted)),
             ],
             const SizedBox(height: 18),
             Row(
@@ -1232,20 +1232,20 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     await showItemMenu(context, title: _shownName(l, item), entries: [
       if (open) MenuEntry(Icons.open_in_new_rounded, l.openItem, () => _openItem(item, media), key: const ValueKey('menu-open')),
-      MenuEntry(Icons.check_circle_outline, l.select, () => setState(() {
+      MenuEntry(Icons.check_circle_rounded, l.select, () => setState(() {
             _selectMode = true;
             _selected.add(item.id);
           }), key: const ValueKey('menu-select')),
       if (item.kind != ItemKind.note)
-        MenuEntry(Icons.edit_outlined, l.rename, () => _rename(item), key: const ValueKey('menu-rename')),
+        MenuEntry(Icons.edit_rounded, l.rename, () => _rename(item), key: const ValueKey('menu-rename')),
       MenuEntry(item.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded, item.isFavorite ? l.unfavorite : l.favorite,
           () => _toggleFavorite(item), key: const ValueKey('menu-favorite')),
-      MenuEntry(Icons.sell_outlined, l.tagAction, () => _onlyThis(item, _tagSelected), key: const ValueKey('menu-group')),
-      MenuEntry(Icons.info_outline, l.info, () => _info(item), key: const ValueKey('menu-info')),
+      MenuEntry(Icons.sell_rounded, l.tagAction, () => _onlyThis(item, _tagSelected), key: const ValueKey('menu-group')),
+      MenuEntry(Icons.info_rounded, l.info, () => _info(item), key: const ValueKey('menu-info')),
       // Older versions of it, to look at or bring back (owner 2026-10-27).
       MenuEntry(Icons.history_rounded, l.versionHistory, () => _history(item), key: const ValueKey('menu-history')),
       MenuEntry(Icons.ios_share, l.sendOut, () => _onlyThis(item, _sendSelected), key: const ValueKey('menu-send')),
-      MenuEntry(Icons.delete_outline, l.delete, () async {
+      MenuEntry(Icons.delete_rounded, l.delete, () async {
         if (!await confirmTrash(context, count: 1, name: _shownName(l, item)) || !mounted) return;
         await rust.trashItem(id: item.id, nowMs: nowMs());
         _reload();
@@ -1259,8 +1259,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     await showItemMenu(context, title: tag.name, entries: [
       MenuEntry(Icons.open_in_new_rounded, l.openItem, () => setState(() => _tagId = tag.id)),
-      MenuEntry(Icons.edit_outlined, l.renameTag, () => _renameTag(tag), key: const ValueKey('menu-rename-tag')),
-      MenuEntry(Icons.delete_outline, l.deleteTag, () => _deleteTag(tag), danger: true),
+      MenuEntry(Icons.edit_rounded, l.renameTag, () => _renameTag(tag), key: const ValueKey('menu-rename-tag')),
+      MenuEntry(Icons.delete_rounded, l.deleteTag, () => _deleteTag(tag), danger: true),
     ]);
   }
 
@@ -1317,7 +1317,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (media.isEmpty) {
       return _tagId != null
           ? _tagEmpty(context)
-          : _Empty(icon: Icons.photo_library_outlined, title: l.emptyPhotosTitle, body: l.emptyPhotosBody);
+          : _Empty(icon: Icons.photo_library_rounded, title: l.emptyPhotosTitle, body: l.emptyPhotosBody);
     }
     final groups = <String, List<rust.ItemInfo>>{};
     // By size: one grid, no date titles.
@@ -1391,9 +1391,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
       children: [
-        Icon(Icons.sell_outlined, size: 44, color: c.muted),
+        Icon(Icons.sell_rounded, size: 44, color: c.muted),
         const SizedBox(height: 12),
-        Text(l.tagEmpty, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 16)),
+        Text(l.tagEmpty, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.callout)),
         const SizedBox(height: 18),
         Wrap(
           alignment: WrapAlignment.center,
@@ -1425,7 +1425,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (_tagId != null) return _tagEmpty(context);
       return notes
           ? _Empty(icon: Icons.edit_note_rounded, title: l.emptyNotesTitle, body: l.emptyNotesBody)
-          : _Empty(icon: Icons.folder_outlined, title: l.emptyFilesTitle, body: l.emptyFilesBody);
+          : _Empty(icon: Icons.folder_rounded, title: l.emptyFilesTitle, body: l.emptyFilesBody);
     }
     _dragOrder = [for (final it in list) it.id];
     if (!notes && _filesAsGrid) {
@@ -1644,7 +1644,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _deleteTag(rust.ItemInfo tag) async {
     final l = AppLocalizations.of(context);
     final ok = await confirmDelete(context,
-        title: l.deleteTagTitle(tag.name), body: l.deleteTagBody, action: l.deleteTag, icon: Icons.sell_outlined);
+        title: l.deleteTagTitle(tag.name), body: l.deleteTagBody, action: l.deleteTag, icon: Icons.sell_rounded);
     if (!ok || !mounted) return;
     await rust.deleteTag(tagId: tag.id);
     if (_tagId == tag.id) setState(() => _tagId = null);
@@ -1664,7 +1664,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             children: [
               for (final t in tags)
                 ListTile(
-                  leading: const Icon(Icons.sell_outlined),
+                  leading: const Icon(Icons.sell_rounded),
                   title: Text(t.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                   trailing: Text('${items.where((i) => i.tagIds.contains(t.id)).length}'),
                   onTap: () => Navigator.pop(context, t.id),
@@ -1786,7 +1786,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(l.searchHint,
-                        maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 17, color: ink.withValues(alpha: .5))),
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: CsType.body, color: ink.withValues(alpha: .5))),
                   ),
                 ]),
               ),
@@ -1794,12 +1794,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 12, 6, 0),
-            child: Text(l.storageUsed(fileSize(bytes), things.length), style: TextStyle(color: c.muted, fontSize: 13.5)),
+            child: Text(l.storageUsed(fileSize(bytes), things.length), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
           ),
           if (things.isNotEmpty)
             SecondPlaceNudge(
               onAdd: () => pushPage<void>(context,
-                  title: l.syncTitle, builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
+                  title: l.syncTitle, grouped: true, builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
             ),
         ],
       ),
@@ -1845,7 +1845,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 if (open != null)
                   Text('${l.tagAction} · ${sectionLabel(l, _section)}',
                       key: const ValueKey('group-label'),
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
+                      style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
                 Text(
                   open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
                   key: const ValueKey('vault-title'),
@@ -1880,7 +1880,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   onTap: () => setState(() => _selectMode = true),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Center(child: Text(l.select, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
+                    child: Center(child: Text(l.select, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600))),
                   ),
                 ),
               ),
@@ -1904,7 +1904,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               key: _settingsKey,
               child: GlassButton(
                 key: const ValueKey('settings-button'),
-                icon: Icons.settings_outlined,
+                icon: Icons.settings_rounded,
                 tooltip: l.settings,
                 size: Ui.circle,
                 onTap: _openSettings,
@@ -1964,7 +1964,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                     _openAdd();
                   }),
                   onSync: () => pushPage<void>(context,
-                      title: AppLocalizations.of(context).syncTitle,
+                      title: AppLocalizations.of(context).syncTitle, grouped: true,
                       builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
                   onTrash: _openTrash,
                   onSettings: _openSettings,
@@ -2084,7 +2084,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 children: [
                   Icon(icon, size: 19, color: primary),
                   const SizedBox(width: 6),
-                  Text(text, style: TextStyle(color: primary, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                  Text(text, style: TextStyle(color: primary, fontWeight: FontWeight.w700, fontSize: CsType.footnote)),
                 ],
               ),
             ),
@@ -2114,7 +2114,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   child: InkWell(
                     borderRadius: BorderRadius.circular(13),
                     onTap: _allTags,
-                    child: SizedBox(width: Ui.chip + 8, child: Icon(Icons.sell_outlined, size: 20, color: primary)),
+                    child: SizedBox(width: Ui.chip + 8, child: Icon(Icons.sell_rounded, size: 20, color: primary)),
                   ),
                 ),
               ),
@@ -2207,8 +2207,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         : switch (_adding ? null : _directAdd) {
             AddWhat.note => (Icons.edit_note_rounded, l.newNote),
             AddWhat.voice => (Icons.mic_rounded, l.startRecording),
-            AddWhat.file => (Icons.folder_outlined, l.addFiles),
-            AddWhat.photos => (Icons.add_photo_alternate_outlined, l.addFromDevice),
+            AddWhat.file => (Icons.folder_rounded, l.addFiles),
+            AddWhat.photos => (Icons.add_photo_alternate_rounded, l.addFromDevice),
             _ => (Icons.add, _adding ? l.close : l.addToVault),
           };
     return ActionButton(
@@ -2269,7 +2269,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 alignment: Alignment.centerLeft,
                 child: Text(_selected.isEmpty ? l.selectItems : l.selectedCount(_selected.length),
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                    style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
               ),
             ),
           )
@@ -2287,8 +2287,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(l.passwordNudgeTitle, style: TextStyle(color: c.warnInk, fontSize: 13.5, fontWeight: FontWeight.w700)),
-                    Text(l.passwordNudge, style: TextStyle(color: c.warnInk, fontSize: 13.5)),
+                    Text(l.passwordNudgeTitle, style: TextStyle(color: c.warnInk, fontSize: CsType.footnote, fontWeight: FontWeight.w700)),
+                    Text(l.passwordNudge, style: TextStyle(color: c.warnInk, fontSize: CsType.footnote)),
                     const SizedBox(height: 8),
                     FilledButton(
                       onPressed: _password,
@@ -2558,18 +2558,18 @@ class _TagChip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(open ? Icons.check_rounded : Icons.sell_outlined, size: 17, color: open ? primary : c.muted),
+                Icon(open ? Icons.check_rounded : Icons.sell_rounded, size: 17, color: open ? primary : c.muted),
                 const SizedBox(width: 6),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 160),
                   child: Text(tag.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5, color: open ? primary : null)),
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: CsType.footnote, color: open ? primary : null)),
                 ),
                 if (count > 0) ...[
                   const SizedBox(width: 6),
-                  Text('$count', style: TextStyle(color: open ? onFill.withValues(alpha: .75) : c.muted, fontSize: 12.5)),
+                  Text('$count', style: TextStyle(color: open ? onFill.withValues(alpha: .75) : c.muted, fontSize: CsType.footnote)),
                 ],
                 if (open) ...[
                   const SizedBox(width: 6),
@@ -2628,7 +2628,7 @@ class _TagSheetState extends State<_TagSheet> {
                       tristate: true,
                       value: _state(t.id),
                       title: Text(t.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                      secondary: const Icon(Icons.sell_outlined),
+                      secondary: const Icon(Icons.sell_rounded),
                       // From "some", a tap puts it on all of them.
                       onChanged: (_) => setState(() => _changed[t.id] = _state(t.id) != true),
                     ),
@@ -2696,9 +2696,9 @@ class _SelectionBar extends StatelessWidget {
       enabled: enabled,
       actions: [
         SelectionAction(Icons.ios_share, l.sendOut, onSend),
-        SelectionAction(Icons.sell_outlined, l.tagAction, onTag),
-        if (onRename case final rename?) SelectionAction(Icons.edit_outlined, l.rename, rename),
-        SelectionAction(Icons.delete_outline, l.delete, onDelete, color: recordRed(context), key: const ValueKey('select-delete')),
+        SelectionAction(Icons.sell_rounded, l.tagAction, onTag),
+        if (onRename case final rename?) SelectionAction(Icons.edit_rounded, l.rename, rename),
+        SelectionAction(Icons.delete_rounded, l.delete, onDelete, color: recordRed(context), key: const ValueKey('select-delete')),
       ],
     );
   }
@@ -2755,7 +2755,7 @@ class _NoteRow extends StatelessWidget {
                           item.name.isEmpty ? l.untitledNote : item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
+                          style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600),
                         ),
                       ),
                       if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
@@ -2776,7 +2776,7 @@ class _NoteRow extends StatelessWidget {
                       ]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: c.muted, fontSize: 13.5),
+                      style: TextStyle(color: c.muted, fontSize: CsType.footnote),
                     ),
                   ),
                 ],
@@ -2835,7 +2835,7 @@ class _FileRow extends StatelessWidget {
                     ? Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary)
                     : Text(ext,
                         style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary, fontSize: 11, fontWeight: FontWeight.w800)),
+                            color: Theme.of(context).colorScheme.primary, fontSize: CsType.caption2, fontWeight: FontWeight.w800)),
               ),
             ),
             const SizedBox(width: 14),
@@ -2845,12 +2845,12 @@ class _FileRow extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Flexible(child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15))),
+                      Flexible(child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead))),
                       if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text('${fileSize(item.sizeBytes)} · $when', style: TextStyle(color: c.muted, fontSize: 12.5)),
+                  Text('${fileSize(item.sizeBytes)} · $when', style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                 ],
               ),
             ),
@@ -2901,13 +2901,13 @@ class _FileTile extends StatelessWidget {
                     alignment: Alignment.center,
                     child: ext.isEmpty || ext.length > 4
                         ? Icon(fileIcon(item), color: primary, size: 30)
-                        : Text(ext, style: TextStyle(color: primary, fontSize: 15, fontWeight: FontWeight.w800)),
+                        : Text(ext, style: TextStyle(color: primary, fontSize: CsType.subhead, fontWeight: FontWeight.w800)),
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(item.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, height: 1.25)),
+                Text(item.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
                 const SizedBox(height: 2),
-                Text(fileSize(item.sizeBytes), style: TextStyle(color: c.muted, fontSize: 11.5)),
+                Text(fileSize(item.sizeBytes), style: TextStyle(color: c.muted, fontSize: CsType.caption1)),
               ],
             ),
             if (item.isFavorite) const Positioned(left: 4, top: 4, child: FavoriteStar(size: 16)),
@@ -2926,7 +2926,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+        child: Text(text, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700)),
       );
 }
 
@@ -2950,7 +2950,7 @@ class _Empty extends StatelessWidget {
             children: [
               Icon(icon, size: 48, color: c.muted),
               const SizedBox(height: 14),
-              Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Text(body, textAlign: TextAlign.center, style: TextStyle(color: c.muted, height: 1.5)),
             ],
@@ -3024,7 +3024,7 @@ class _MediaTile extends StatelessWidget {
                       Text(
                         _length(duration.toInt()),
                         style: const TextStyle(
-                            color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600, shadows: [Shadow(blurRadius: 4)]),
+                            color: Colors.white, fontSize: CsType.caption1, fontWeight: FontWeight.w600, shadows: [Shadow(blurRadius: 4)]),
                       ),
                   ],
                 ),
@@ -3035,7 +3035,7 @@ class _MediaTile extends StatelessWidget {
                 right: 5,
                 top: 5,
                 child: Icon(
-                  selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                  selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
                   color: Colors.white,
                   size: 22,
                   shadows: const [Shadow(blurRadius: 4)],
@@ -3078,12 +3078,12 @@ class _ImportSheetState extends State<_ImportSheet> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(l.encryptingCount(done + (done < widget.total ? 1 : 0), widget.total),
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                    style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
                 LinearProgressIndicator(value: widget.total == 0 ? null : done / widget.total, minHeight: 6,
                     borderRadius: BorderRadius.circular(3)),
                 const SizedBox(height: 12),
-                Text(l.importNote, style: TextStyle(color: CsColors.of(context).muted, fontSize: 13)),
+                Text(l.importNote, style: TextStyle(color: CsColors.of(context).muted, fontSize: CsType.footnote)),
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: _cancelling
@@ -3121,11 +3121,11 @@ class _Welcome extends StatelessWidget {
         Center(child: VaultBadge(icon: vault.icon, color: vault.color, size: 84)),
         const SizedBox(height: 18),
         Text(l.emptyVaultTitle, textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+            style: const TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w800, letterSpacing: -.3)),
         const SizedBox(height: 6),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text(l.emptyVaultBody, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: c.muted, height: 1.35)),
+          child: Text(l.emptyVaultBody, textAlign: TextAlign.center, style: TextStyle(fontSize: CsType.subhead, color: c.muted, height: 1.35)),
         ),
         const SizedBox(height: 28),
         tiles,
@@ -3151,13 +3151,13 @@ class DeleteOriginalsSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(photos ? Icons.photo_library_outlined : Icons.folder_outlined, size: 36, color: c.muted),
+            Icon(photos ? Icons.photo_library_rounded : Icons.folder_rounded, size: 36, color: c.muted),
             const SizedBox(height: 10),
             Text(l.originalsTitle, textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -.2)),
+                style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.2)),
             const SizedBox(height: 8),
             Text(photos ? l.originalsBodyPhotos(count) : l.originalsBodyFiles(count),
-                textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.45)),
+                textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.45)),
             const SizedBox(height: 18),
             FilledButton(
               key: const ValueKey('originals-delete'),

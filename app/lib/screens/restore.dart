@@ -96,7 +96,7 @@ class _RestoreScreenState extends State<RestoreScreen> {
           if (_needFile)
             FilledButton.icon(
               onPressed: _busy ? null : _pickBackup,
-              icon: const Icon(Icons.file_open_outlined),
+              icon: const Icon(Icons.file_open_rounded),
               label: BusyLabel(busy: _busy, idle: l.restorePick, working: l.restoring),
             )
           else
@@ -111,7 +111,7 @@ class _RestoreScreenState extends State<RestoreScreen> {
           const SizedBox(height: 8),
           Text(
             _needFile ? l.restoreLeadFile : l.restoreLeadKey,
-            style: TextStyle(color: c.muted, fontSize: 15, height: 1.5),
+            style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5),
           ),
           if (!_needFile) ...[
             const SizedBox(height: 24),

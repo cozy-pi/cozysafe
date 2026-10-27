@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart' show CsType;
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
@@ -190,7 +191,7 @@ class _SetPinScreenState extends State<SetPinScreen> with VaultLockAware {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: ink,
-                          fontSize: 24,
+                          fontSize: CsType.title2,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -222,7 +223,7 @@ class _SetPinScreenState extends State<SetPinScreen> with VaultLockAware {
                               color: _error != null
                                   ? ink
                                   : ink.withValues(alpha: .7),
-                              fontSize: 13,
+                              fontSize: CsType.footnote,
                               fontWeight: _error != null
                                   ? FontWeight.w600
                                   : FontWeight.w400,

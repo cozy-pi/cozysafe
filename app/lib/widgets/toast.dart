@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart' show CsType;
 
 import 'vault_bar.dart';
 
@@ -215,7 +216,7 @@ class _Toast extends StatelessWidget {
                   text,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: ink, fontSize: 14.5, fontWeight: FontWeight.w600, height: 1.25),
+                  style: TextStyle(color: ink, fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.25),
                 ),
               ),
               if (actionLabel != null) ...[
@@ -235,7 +236,7 @@ class _Toast extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Center(
                             widthFactor: 1,
-                            child: Text(actionLabel!, style: TextStyle(color: page, fontSize: 14.5, fontWeight: FontWeight.w700)),
+                            child: Text(actionLabel!, style: TextStyle(color: page, fontSize: CsType.subhead, fontWeight: FontWeight.w700)),
                           ),
                         ),
                       ),

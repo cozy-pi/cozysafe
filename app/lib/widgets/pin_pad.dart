@@ -26,7 +26,7 @@ class PinPad extends StatelessWidget {
       child: Text(
         d,
         style: TextStyle(
-          fontSize: 28,
+          fontSize: CsType.title1,
           fontWeight: FontWeight.w500,
           color: ink,
         ),
@@ -67,7 +67,7 @@ class PinPad extends StatelessWidget {
                 ghost: true,
                 onTap: enabled ? onDelete : null,
                 child: Icon(
-                  Icons.backspace_outlined,
+                  Icons.backspace_rounded,
                   color: ink,
                   size: 26,
                 ),

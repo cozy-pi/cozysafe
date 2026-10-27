@@ -94,7 +94,7 @@ class _KitPasswordScreenState extends State<KitPasswordScreen> with VaultLockAwa
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [
-            Text(l.kitPasswordLead, style: TextStyle(color: c.muted, fontSize: 15.5, height: 1.4)),
+            Text(l.kitPasswordLead, style: TextStyle(color: c.muted, fontSize: CsType.callout, height: 1.4)),
             const SizedBox(height: 18),
             SecretField(
               key: const ValueKey('kit-password'),

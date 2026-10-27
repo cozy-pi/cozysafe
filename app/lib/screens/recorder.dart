@@ -222,9 +222,9 @@ class RecorderViewState extends State<RecorderView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.mic_none, size: 48, color: c.muted),
+              Icon(Icons.mic_rounded, size: 48, color: c.muted),
               const SizedBox(height: 14),
-              Text(l.emptyAudioTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(l.emptyAudioTitle, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Text(l.emptyAudioBody, textAlign: TextAlign.center, style: TextStyle(color: c.muted, height: 1.5)),
             ],
@@ -287,7 +287,7 @@ class RecorderViewState extends State<RecorderView> {
             IconButton.filledTonal(
               tooltip: l.play,
               onPressed: open == null ? null : () => open(it),
-              icon: const Icon(Icons.play_arrow),
+              icon: const Icon(Icons.play_arrow_rounded),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -298,21 +298,21 @@ class RecorderViewState extends State<RecorderView> {
                     children: [
                       Flexible(
                         child: Text(it.name.replaceAll(RegExp(r'\.m4a$'), ''),
-                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
                       ),
                       if (it.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],
                   ),
                   const SizedBox(height: 2),
                   Text(MaterialLocalizations.of(context).formatShortDate(dateOf(it.createdMs)),
-                      style: TextStyle(color: c.muted, fontSize: 12.5)),
+                      style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                 ],
               ),
             ),
             const SizedBox(width: 10),
             Text(
               _clock(total),
-              style: TextStyle(color: c.muted, fontSize: 12.5, fontFeatures: const [FontFeature.tabularFigures()]),
+              style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontFeatures: const [FontFeature.tabularFigures()]),
             ),
 
           ],

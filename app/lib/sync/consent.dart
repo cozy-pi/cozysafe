@@ -24,7 +24,7 @@ Future<bool> allowConnection(BuildContext context, String message, {Widget? belo
               children: [
                 Icon(Icons.lock_rounded, size: 20, color: c.muted),
                 const SizedBox(width: 10),
-                Expanded(child: Text(message, key: const ValueKey('sync-allow-message'), style: const TextStyle(fontSize: 16, height: 1.35))),
+                Expanded(child: Text(message, key: const ValueKey('sync-allow-message'), style: const TextStyle(fontSize: CsType.callout, height: 1.35))),
               ],
             ),
             if (below != null) ...[const SizedBox(height: 10), below],

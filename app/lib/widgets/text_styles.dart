@@ -16,8 +16,8 @@ import '../theme.dart';
 class NoteTextController extends TextEditingController {
   NoteTextController({super.text});
 
-  static const body = TextStyle(fontSize: 17.5, height: 1.6);
-  static const title = TextStyle(fontSize: 26, height: 1.3, fontWeight: FontWeight.w800, letterSpacing: -.4);
+  static const body = TextStyle(fontSize: CsType.body, height: 1.6);
+  static const title = TextStyle(fontSize: CsType.title1, height: 1.3, fontWeight: FontWeight.w800, letterSpacing: -.4);
 
   /// Longer notes skip the Markdown styling (it runs on every key).
   static const styledMax = 20000;
@@ -115,7 +115,7 @@ Widget copyAwareMenu(BuildContext context, EditableTextState state) {
   );
 }
 
-const _mono = TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Roboto Mono'], fontSize: 13.5, height: 1.5);
+const _mono = TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Roboto Mono'], fontSize: CsType.footnote, height: 1.5);
 
 /// Code or data in a soft rounded card, fixed-width; JSON keys strong, values quieter.
 class CodeCard extends StatelessWidget {
@@ -171,7 +171,7 @@ class ProseText extends StatelessWidget {
         text,
         key: const ValueKey('text-view'),
         contextMenuBuilder: copyAwareMenu,
-        style: const TextStyle(fontSize: 17.5, height: 1.6),
+        style: const TextStyle(fontSize: CsType.body, height: 1.6),
       );
 }
 
@@ -332,7 +332,7 @@ class _MarkdownLiteState extends State<MarkdownLite> {
       } else {
         out.add(TextSpan(
           text: m.group(5),
-          style: _mono.copyWith(fontSize: 15, backgroundColor: ink.withValues(alpha: .08)),
+          style: _mono.copyWith(fontSize: CsType.subhead, backgroundColor: ink.withValues(alpha: .08)),
         ));
       }
       at = m.end;

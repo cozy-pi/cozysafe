@@ -498,7 +498,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                                 Text(
                                   title,
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(color: ink, fontSize: 23, fontWeight: FontWeight.w700),
+                                  style: TextStyle(color: ink, fontSize: CsType.title2, fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -637,9 +637,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(color: ink, fontSize: 16, fontWeight: FontWeight.w700)),
+                    Text(title, style: TextStyle(color: ink, fontSize: CsType.callout, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 2),
-                    Text(body, style: TextStyle(color: ink.withValues(alpha: .78), fontSize: 14, height: 1.4)),
+                    Text(body, style: TextStyle(color: ink.withValues(alpha: .78), fontSize: CsType.subhead, height: 1.4)),
                   ],
                 ),
               ),
@@ -648,7 +648,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         );
     return Column(
       children: [
-        row(Icons.pin_outlined, l.introPinTitle, l.introPinBody, const ValueKey('intro-pin')),
+        row(Icons.pin_rounded, l.introPinTitle, l.introPinBody, const ValueKey('intro-pin')),
         const SizedBox(height: 10),
         row(Icons.password_rounded, l.introPasswordTitle, l.introPasswordBody, const ValueKey('intro-password')),
         const SizedBox(height: 10),
@@ -656,7 +656,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
             const ValueKey('intro-words')),
         const SizedBox(height: 12),
         Text(l.introNoCopy,
-            textAlign: TextAlign.center, style: TextStyle(color: ink.withValues(alpha: .78), fontSize: 13, height: 1.4)),
+            textAlign: TextAlign.center, style: TextStyle(color: ink.withValues(alpha: .78), fontSize: CsType.footnote, height: 1.4)),
       ],
     );
   }
@@ -681,7 +681,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           alignment: Alignment.centerLeft,
           child: FilledButton.tonalIcon(
             onPressed: _suggest,
-            icon: const Icon(Icons.auto_awesome, size: 18),
+            icon: const Icon(Icons.auto_awesome_rounded, size: 18),
             label: Text(l.suggestPassword),
           ),
         ),
@@ -821,7 +821,7 @@ class StepButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18),
           backgroundColor: solidTint(context, Theme.of(context).colorScheme.onSurface.withValues(alpha: .1)),
           shape: const StadiumBorder(),
-          textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: CsType.callout, fontWeight: FontWeight.w600),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

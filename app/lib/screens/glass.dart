@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import '../theme.dart' show CsType;
 
 /// Controls over a photo or video (full screen viewers): white on a bright picture
 /// vanished (owner 2026-10-21), so each sits on its own dark frosted glass.
@@ -41,4 +42,4 @@ class GlassPill extends StatelessWidget {
 }
 
 /// The label of a [glassButton] (styled here: a TextButton's textStyle loses the font).
-Text glassLabel(String text) => Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600));
+Text glassLabel(String text) => Text(text, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600));

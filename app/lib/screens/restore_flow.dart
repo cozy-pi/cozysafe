@@ -95,7 +95,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
         children: [
           Text(l.restoreTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Text(l.restoreKeysLead, style: TextStyle(color: c.muted, fontSize: 15, height: 1.5)),
+          Text(l.restoreKeysLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
           const SizedBox(height: 24),
           SecretField(
             key: const ValueKey('restore-words'),
@@ -109,7 +109,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
           if (_found)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text(KeyBackup.google ? l.keyBackupFoundGoogle : l.keyBackupFound, key: const ValueKey('restore-words-found'), style: TextStyle(color: c.muted, fontSize: 13)),
+              child: Text(KeyBackup.google ? l.keyBackupFoundGoogle : l.keyBackupFound, key: const ValueKey('restore-words-found'), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
             ),
           const SizedBox(height: 12),
           SecretField(
@@ -315,7 +315,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
         if (RestoreSourceScreen.debugDrive || Device.iOS || Device.android)
           BigChoice(
             key: const ValueKey('restore-drive'),
-            icon: Icons.cloud_download_outlined,
+            icon: Icons.cloud_download_rounded,
             title: l.restoreFromDrive,
             note: l.restoreFromDriveNote,
             onTap: _busy
@@ -326,7 +326,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
           ),
         BigChoice(
           key: const ValueKey('restore-file'),
-          icon: Icons.insert_drive_file_outlined,
+          icon: Icons.insert_drive_file_rounded,
           title: l.restoreFromFile,
           note: l.restoreFromFileNote,
           onTap: _busy ? null : _fromFile,

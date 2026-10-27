@@ -134,7 +134,7 @@ class _Menu extends StatelessWidget {
                       child: Text(title!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: c.muted, fontSize: 13, fontWeight: FontWeight.w600)),
+                          style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
                     ),
                   for (final e in entries)
                     InkWell(
@@ -149,7 +149,7 @@ class _Menu extends StatelessWidget {
                               Expanded(
                                 child: Text(e.label,
                                     style: TextStyle(
-                                        fontSize: 16, color: e.danger ? recordRed(context) : ink, fontWeight: FontWeight.w500)),
+                                        fontSize: CsType.callout, color: e.danger ? recordRed(context) : ink, fontWeight: FontWeight.w500)),
                               ),
                               if (e.icon != null)
                                 Icon(e.icon, size: 21, color: e.danger ? recordRed(context) : ink)

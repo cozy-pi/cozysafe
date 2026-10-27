@@ -64,10 +64,10 @@ class PasswordStrength extends StatelessWidget {
         const SizedBox(height: 6),
         Text(word,
             key: const ValueKey('password-strength-word'),
-            style: TextStyle(color: short ? c.muted : (common ? recordRed(context) : color), fontSize: 13, fontWeight: FontWeight.w600)),
+            style: TextStyle(color: short ? c.muted : (common ? recordRed(context) : color), fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
         if (!short && why != null) ...[
           const SizedBox(height: 4),
-          Text(why, key: const ValueKey('password-refused'), style: TextStyle(color: c.muted, fontSize: 13, height: 1.4)),
+          Text(why, key: const ValueKey('password-refused'), style: TextStyle(color: c.muted, fontSize: CsType.footnote, height: 1.4)),
         ],
       ],
     );

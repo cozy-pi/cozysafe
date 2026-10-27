@@ -63,7 +63,7 @@ class RecoveryWordsPanel extends StatelessWidget {
           child: SecretText(
             text: words.join(' '),
             builder: (context, shown) => WordGrid(words: words, shown: shown),
-            style: const TextStyle(fontSize: 15),
+            style: const TextStyle(fontSize: CsType.subhead),
           ),
         ),
         const SizedBox(height: 10),
@@ -71,7 +71,7 @@ class RecoveryWordsPanel extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                  onPressed: () => _copy(context), icon: const Icon(Icons.copy_outlined, size: 18), label: Text(l.kitCopy)),
+                  onPressed: () => _copy(context), icon: const Icon(Icons.copy_rounded, size: 18), label: Text(l.kitCopy)),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -91,7 +91,7 @@ class RecoveryWordsPanel extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           child: Padding(
             padding: const EdgeInsets.all(14),
-            child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: 14, height: 1.45)),
+            child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: CsType.subhead, height: 1.45)),
           ),
         ),
       ],

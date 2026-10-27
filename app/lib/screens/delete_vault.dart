@@ -165,7 +165,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
                   const SizedBox(height: 14),
                   Text(l.deleteVaultTitle,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w700)),
+                      style: TextStyle(color: ink, fontSize: CsType.title2, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
                   Text(
                     l.deleteVaultBody(widget.sizeText),

@@ -543,11 +543,11 @@ class _QuickLookState extends State<QuickLook> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(head.isEmpty ? AppLocalizations.of(context).untitledNote : head,
-                style: NoteTextController.title.copyWith(fontSize: 21, color: ink)),
+                style: NoteTextController.title.copyWith(fontSize: CsType.title3, color: ink)),
             const SizedBox(height: 8),
             MarkdownLite(
                 text: rest,
-                fontSize: 15.5,
+                fontSize: CsType.callout,
                 selectable: false,
                 // From Recently deleted the note is only read.
                 onToggle: _trash ? null : (i) => _toggle(first + 1 + i),
@@ -640,13 +640,13 @@ class _QuickLookState extends State<QuickLook> {
             ),
           const SizedBox(height: 4),
           if (_failed)
-            Text(l.videoFailed, style: TextStyle(color: c.muted, fontSize: 13))
+            Text(l.videoFailed, style: TextStyle(color: c.muted, fontSize: CsType.footnote))
           else
             Row(
               children: [
-                Text(_clock(pos), style: TextStyle(color: c.muted, fontSize: 13, fontFeatures: const [FontFeature.tabularFigures()])),
+                Text(_clock(pos), style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontFeatures: const [FontFeature.tabularFigures()])),
                 const Spacer(),
-                Text(_clock(total), style: TextStyle(color: c.muted, fontSize: 13, fontFeatures: const [FontFeature.tabularFigures()])),
+                Text(_clock(total), style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontFeatures: const [FontFeature.tabularFigures()])),
               ],
             ),
         ],
@@ -674,9 +674,9 @@ class _QuickLookState extends State<QuickLook> {
             child: Icon(fileIcon(widget.item), size: 54, color: Theme.of(context).colorScheme.primary),
           ),
           const SizedBox(height: 16),
-          if (ext != null) Text(ext, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: .5)),
+          if (ext != null) Text(ext, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: .5)),
           const SizedBox(height: 2),
-          Text(fileSize(widget.item.sizeBytes), style: TextStyle(color: c.muted, fontSize: 14)),
+          Text(fileSize(widget.item.sizeBytes), style: TextStyle(color: c.muted, fontSize: CsType.subhead)),
         ],
       ),
     );
@@ -768,7 +768,7 @@ class _QuickLookState extends State<QuickLook> {
         : switch (_look) {
             _Look.photo || _Look.video when _look == _Look.photo || _canPlayVideo =>
               (Icons.fullscreen_rounded, l.fullScreen, const ValueKey('quick-full')),
-            _Look.note => (Icons.edit_outlined, l.previewEdit, const ValueKey('quick-edit')),
+            _Look.note => (Icons.edit_rounded, l.previewEdit, const ValueKey('quick-edit')),
             _Look.pdf || _Look.text || _Look.image => (Icons.open_in_full_rounded, l.openItem, const ValueKey('quick-open')),
             // A recording has nothing more to open (Rename is under ⋯).
             _Look.audio when widget.item.kind == ItemKind.audio => null,
@@ -783,9 +783,9 @@ class _QuickLookState extends State<QuickLook> {
                 _done(QuickLook.restoreRequest);
               }
             }, color: restoreBlue),
-            tool(const ValueKey('preview-info'), Icons.info_outline, l.info,
+            tool(const ValueKey('preview-info'), Icons.info_rounded, l.info,
                 (_) => showItemInfo(context, widget.item, held: trash.held)),
-            tool(const ValueKey('preview-purge'), Icons.delete_forever_outlined, l.deleteForGoodShort, (_) async {
+            tool(const ValueKey('preview-purge'), Icons.delete_forever_rounded, l.deleteForGoodShort, (_) async {
               if (await confirmDeleteForGood(context, count: 1, name: _title, othersKeep: !trash.held)) {
                 _done(QuickLook.purgeRequest);
               }
@@ -797,7 +797,7 @@ class _QuickLookState extends State<QuickLook> {
             tool(const ValueKey('quick-send'), Icons.ios_share, l.sendOut, _send, waits: true),
             tool(const ValueKey('quick-more'), Icons.more_horiz, l.more,
                 (_) => _done(QuickLook.menuFor(widget.item.id))),
-            tool(const ValueKey('quick-delete'), Icons.delete_outline, l.delete, (_) => _delete(), color: red),
+            tool(const ValueKey('quick-delete'), Icons.delete_rounded, l.delete, (_) => _delete(), color: red),
           ];
 
     final boxed = Container(
@@ -821,13 +821,13 @@ class _QuickLookState extends State<QuickLook> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                            style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 2),
                         Text(_info,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13, color: c.muted)),
+                            style: TextStyle(fontSize: CsType.footnote, color: c.muted)),
                       ],
                       if (trash != null) ...[
                         if (!_pictureOnly) const SizedBox(height: 2),
@@ -837,7 +837,7 @@ class _QuickLookState extends State<QuickLook> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: c.muted),
+                          style: TextStyle(fontSize: CsType.footnote, color: c.muted),
                         ),
                       ],
                     ],

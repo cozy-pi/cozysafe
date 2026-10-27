@@ -61,7 +61,7 @@ class SelectionBar extends StatelessWidget {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(a.label,
-                          maxLines: 1, style: TextStyle(color: a.color ?? ink, fontSize: 13, fontWeight: FontWeight.w600)),
+                          maxLines: 1, style: TextStyle(color: a.color ?? ink, fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),

@@ -175,23 +175,23 @@ class _NearbyLookingState extends State<NearbyLooking> {
         const SyncLink(key: ValueKey('sync-find-link'), moving: false),
         const SizedBox(height: 22),
         Text(l.syncFindSearching,
-            key: const ValueKey('sync-find-status'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.3)),
+            key: const ValueKey('sync-find-status'), textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700, height: 1.3)),
         const SizedBox(height: 8),
-        Text(widget.lead, key: const ValueKey('sync-nearby-lead'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 15, height: 1.4)),
+        Text(widget.lead, key: const ValueKey('sync-nearby-lead'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
         if (left != null) ...[
           const SizedBox(height: 4),
-          Text(left, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14, fontFeatures: const [FontFeature.tabularFigures()])),
+          Text(left, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, fontFeatures: const [FontFeature.tabularFigures()])),
         ],
         for (final h in hints)
           Padding(
             padding: const EdgeInsets.only(top: 10),
-            child: Text(h, key: const ValueKey('sync-nearby-hint'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14, height: 1.35)),
+            child: Text(h, key: const ValueKey('sync-nearby-hint'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.35)),
           ),
         if (widget.extra != null) ...[const SizedBox(height: 14), widget.extra!],
         const SizedBox(height: 12),
         if (showQr) ...[
           Text(widget.qrOnly ? l.syncQrOnly : (widget.qr == null ? l.syncQrLeadRestore : l.syncQrLead),
-              key: const ValueKey('sync-qr-lead'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14.5, height: 1.35)),
+              key: const ValueKey('sync-qr-lead'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.35)),
           if (widget.qr != null) ...[
             const SizedBox(height: 14),
             Center(child: QrView(key: const ValueKey('sync-qr'), text: widget.qr!, size: 200)),

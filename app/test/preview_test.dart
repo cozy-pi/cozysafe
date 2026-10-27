@@ -542,7 +542,7 @@ void main() {
   });
   _screen('one-type', 'Chỉ có ghi chú · thanh dưới gọn', home, section: 'note',
       setup: () => _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList());
-  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
+  _screen('note-editor', 'Sửa ghi chú', change: 'Thanh tiêu đề kiểu iPhone; cỡ chữ theo thang iOS', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
   _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
   _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'audio', act: (t) => _tapChip(t, 'Hộ chiếu'));
@@ -554,7 +554,7 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
-  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
+  _screen('home', 'Trang chủ (Tổng quan)', change: 'Cỡ chữ theo thang iOS; icon đặc bo tròn', home, section: 'home');
   // iPad and computer (owner 2026-10-27): three columns, the sync always in sight.
   const ipad = Size(1180, 820), ipadUp = Size(820, 1180), mac = Size(1440, 900), win = Size(1280, 800);
   _screen('wide-ipad-home', 'iPad ngang · Tổng quan: thanh bên (mục, nhóm, đồng bộ, Thêm), nội dung rộng', home,
@@ -623,7 +623,7 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  }, change: 'SỬA: bỏ chữ dưới các nút tròn — thẻ phía trên đã nói rõ từng nút', marks: [() => find.byKey(const ValueKey('add-row'))]);
+  });
   _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
@@ -795,7 +795,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   });
-  _screen('files', 'Tệp', home, section: 'file');
+  _screen('files', 'Tệp', change: 'Cỡ chữ theo thang iOS; icon đặc bo tròn', home, section: 'file');
   _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'));
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
       act: (t) async {
@@ -885,9 +885,8 @@ void main() {
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
-  _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', () => settings(vault),
-      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
-      change: 'MỌI MÀN: mockup giờ dựng bằng font của iPhone (SF Pro) như trên máy thật — trước dựng bằng Roboto');
+  _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', change: 'iPhone: tiêu đề lớn giữ bên trái; NỀN XÁM NHẠT, NHÓM Ô TRẮNG (chế độ sáng); chữ 17; icon đặc', () => settings(vault),
+      setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('storage', 'MỚI · bấm thẻ dung lượng: từng phần (ảnh, video, ghi chú, ghi âm, tệp, Đã xoá gần đây, Lịch sử) với số mục + dung lượng, lớn nhất trên cùng; bấm một dòng → tới đúng chỗ quản lý (mục đó / Thùng rác / cài đặt Lịch sử)', () => settings(vault),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('storage-card')));
@@ -927,15 +926,14 @@ void main() {
     '${_now - 86400000}|nearby|iPad|cancelled|0|0',
     '${_now - 2 * 86400000}|join|192.168.1.21|ok|0|5',
   ];
-  _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (email tài khoản, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (email tài khoản, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', change: 'iPhone: tiêu đề giữa 17; nền xám, ô trắng; chữ 17', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
     SyncScreen.debugAccount = 'ban.do@gmail.com';
     Prefs.write(AutoSync.pref, '1');
-  }, change: 'SỬA: Google Drive chỉ còn MỘT dòng — tài khoản, tự động đồng bộ, Wi‑Fi, gỡ tài khoản vào trang riêng',
-      marks: [() => find.byKey(const ValueKey('sync-drive'))]);
-  _screen('sync-drive-page', 'Đồng bộ · bấm Google Drive (đã có tài khoản): Đồng bộ ngay · email + Tự động đồng bộ + Chỉ khi có Wi‑Fi · Gỡ tài khoản', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  });
+  _screen('sync-drive-page', 'Đồng bộ · bấm Google Drive (đã có tài khoản): Đồng bộ ngay · email + Tự động đồng bộ + Chỉ khi có Wi‑Fi · Gỡ tài khoản', change: 'iPhone: tiêu đề giữa; nền xám, ô trắng', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
@@ -944,8 +942,7 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-drive')));
     await t.pumpAndSettle();
-  }, change: 'MỚI: trang riêng của Google Drive — biểu tượng Drive + email ở đầu trang. Bỏ “Đăng nhập lại”. “Tự động đồng bộ” (bật sẵn), “Chỉ khi có Wi‑Fi” (hiện khi bật tự động)',
-      marks: [() => find.byKey(const ValueKey('sync-drive-now')), () => find.byKey(const ValueKey('sync-auto')), () => find.byKey(const ValueKey('sync-wifi-only'))]);
+  });
   _screen('sync-drive-add', 'Đồng bộ · lần đầu thêm Google Drive: hộp cho phép kèm công tắc Tự động đồng bộ (bật sẵn)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugDrive = true;
@@ -953,7 +950,7 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-drive')));
     await t.pumpAndSettle();
-  }, change: 'MỚI: thêm tài khoản Google là bật sẵn Tự động đồng bộ, tắt được ngay tại đây', marks: [() => find.byKey(const ValueKey('sync-allow-auto'))]);
+  });
   _screen('sync-log', 'Đồng bộ · bấm Các lần kết nối gần đây: danh sách + một dòng giải thích (chỉ tên máy, không địa chỉ IP)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
@@ -1156,7 +1153,7 @@ void main() {
     HistoryScreen.debugVersions = const [];
     HistoryScreen.debugDays = 30;
   });
-  _screen('history-settings', 'Cài đặt → Lịch sử phiên bản: giữ bao lâu (Tắt · 7 · 30 · 90 ngày), tối đa bao nhiêu (500 MB · 1 GB · 5 GB · Không giới hạn), Xoá toàn bộ', () => page('Lịch sử phiên bản', const HistorySettingsScreen()),
+  _screen('history-settings', 'Cài đặt → Lịch sử phiên bản: giữ bao lâu (Tắt · 7 · 30 · 90 ngày), tối đa bao nhiêu (500 MB · 1 GB · 5 GB · Không giới hạn), Xoá toàn bộ', change: 'iPhone: tiêu đề giữa; nền xám, ô trắng', () => page('Lịch sử phiên bản', const HistorySettingsScreen()),
       setup: () => HistorySettingsScreen.debugState = (30, BigInt.from(1 << 30), BigInt.from(186) * BigInt.from(1 << 20)));
   _screen('settings-history', 'Cài đặt: dòng Lịch sử phiên bản; thanh dung lượng có thêm phần Lịch sử (xám)', () => settings(vault),
       setup: () {
@@ -1333,7 +1330,7 @@ void main() {
   _screen('originals-files', 'Vừa cất 2 tệp vào két', () => sheetOver(const DeleteOriginalsSheet(count: 2, photos: false)),
       section: 'file');
   _screen('blur', 'Thư viện · làm mờ ảnh thu nhỏ (mặc định)', home, section: 'library');
-  _screen('security-info', 'Cách két được bảo vệ · đầu trang', () => const SecurityInfoScreen());
+  _screen('security-info', 'Cách két được bảo vệ · đầu trang', change: 'Thanh tiêu đề kiểu iPhone; cỡ chữ theo thang iOS', () => const SecurityInfoScreen());
   _screen('security-info-2', 'Cách két được bảo vệ · giữa trang', () => const SecurityInfoScreen(), act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('sec-4')), 300, scrollable: find.byType(Scrollable).first);
     await t.pump();
@@ -1350,7 +1347,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   }
-  _screen('trash', 'Đã xoá gần đây', () => const Readable(child: TrashScreen()));
+  _screen('trash', 'Đã xoá gần đây', change: 'Thanh tiêu đề kiểu iPhone (giữa, 17); icon đặc', () => const Readable(child: TrashScreen()));
   _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 2 mục', () => const Readable(child: TrashScreen()),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-select')));
@@ -1468,7 +1465,7 @@ void main() {
   });
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
-  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
+  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', change: 'Thanh tiêu đề kiểu iPhone; cỡ chữ theo thang iOS', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
   _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-7QK2-M9XD-4TRB-PW3H-8ZNA-6CJE-1VFS', confirm: false, onChange: () {}));
   Widget change(int step) => ChangeKeyScreen(libraryDir: '', password: '', onBackup: () async {});
   for (final (i, name, what) in [
@@ -1485,7 +1482,7 @@ void main() {
   _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
   _screen('kit-confirm', 'Khoá khôi phục lần đầu: gõ một từ để xác nhận', () => const EmergencyKitScreen(keyText: words, confirm: true));
-  _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', () => const BackupPasswordScreen(libraryDir: '', change: false),
+  _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', change: 'Thanh tiêu đề kiểu iPhone; cỡ chữ theo thang iOS', () => const BackupPasswordScreen(libraryDir: '', change: false),
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
@@ -1522,7 +1519,7 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 3200));
   });
-  _screen('vault-manager', 'Debug · Két trên máy này', () => const VaultManagerScreen(libraryDir: ''),
+  _screen('vault-manager', 'Debug · Két trên máy này', change: 'Thanh tiêu đề kiểu iPhone; icon két đặc bo tròn', () => const VaultManagerScreen(libraryDir: ''),
       setup: () => VaultManagerScreen.debugSlots = [
             VaultSlot(id: 'e0a966aed6bec8151ebb59139e5aa773', sizeBytes: BigInt.from(1843 << 20), hasPassword: true, hasPin: true, hasBiometric: true, isOpen: true),
             VaultSlot(id: '3fa9c1d2e4b5a6978877665544332211', sizeBytes: BigInt.from(37 << 20), hasPassword: true, hasPin: true, hasBiometric: false, isOpen: false),

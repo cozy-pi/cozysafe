@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../theme.dart' show CsType;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
@@ -307,19 +308,19 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                                     tooltip: v.isPlaying ? l.pause : l.play,
                                     onPressed: () => v.isPlaying ? p.pause() : p.play(),
                                     icon: Icon(
-                                      v.isPlaying ? Icons.pause : Icons.play_arrow,
+                                      v.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                                       color: Colors.white,
                                       size: 28,
                                     ),
                                   ),
-                                  Text(_time(v.position), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                  Text(_time(v.position), style: const TextStyle(color: Colors.white, fontSize: CsType.caption1)),
                                   Expanded(
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(horizontal: 8),
                                       child: VideoProgressIndicator(p, allowScrubbing: true),
                                     ),
                                   ),
-                                  Text(_time(v.duration), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                  Text(_time(v.duration), style: const TextStyle(color: Colors.white, fontSize: CsType.caption1)),
                                 ],
                               ),
                             ),
@@ -346,7 +347,7 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                                 key: const ValueKey('video-delete'),
                                 onPressed: _delete,
                                 style: glassDelete,
-                                icon: const Icon(Icons.delete_outline),
+                                icon: const Icon(Icons.delete_rounded),
                                 label: glassLabel(l.delete),
                               ),
                             ),

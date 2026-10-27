@@ -50,12 +50,12 @@ String storagePartName(AppLocalizations l, String part) => switch (part) {
     };
 
 IconData _icon(String part) => switch (part) {
-      ItemKind.photo => Icons.photo_outlined,
-      ItemKind.video => Icons.videocam_outlined,
-      ItemKind.note => Icons.sticky_note_2_outlined,
+      ItemKind.photo => Icons.photo_rounded,
+      ItemKind.video => Icons.videocam_rounded,
+      ItemKind.note => Icons.sticky_note_2_rounded,
       ItemKind.audio => Icons.mic_none_rounded,
-      ItemKind.file => Icons.insert_drive_file_outlined,
-      storageTrash => Icons.delete_sweep_outlined,
+      ItemKind.file => Icons.insert_drive_file_rounded,
+      storageTrash => Icons.delete_sweep_rounded,
       _ => Icons.history_rounded,
     };
 
@@ -117,7 +117,7 @@ class StorageScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             Text(l.storageUsed(fileSize(f.total), f.count),
-                key: const ValueKey('storage-total'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+                key: const ValueKey('storage-total'), style: const TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w700)),
             const SizedBox(height: 14),
             StorageBar(figures: f, height: 12),
             const SizedBox(height: 22),
@@ -143,13 +143,13 @@ class StorageScreen extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(storagePartName(l, part), style: const TextStyle(fontSize: 15.5)),
+                            Text(storagePartName(l, part), style: const TextStyle(fontSize: CsType.callout)),
                             if (f.counts[part] case final n?)
-                              Text(l.storageItems(n), style: TextStyle(color: c.muted, fontSize: 13)),
+                              Text(l.storageItems(n), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                           ]),
                         ),
                         Text(fileSize(f.size(part)),
-                            style: TextStyle(color: c.muted, fontSize: 14, fontFeatures: const [FontFeature.tabularFigures()])),
+                            style: TextStyle(color: c.muted, fontSize: CsType.subhead, fontFeatures: const [FontFeature.tabularFigures()])),
                         const SizedBox(width: 4),
                         Icon(Icons.chevron_right, color: c.muted, size: 20),
                       ]),

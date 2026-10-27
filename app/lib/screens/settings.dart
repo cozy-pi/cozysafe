@@ -284,7 +284,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _openHistory() async {
     final l = AppLocalizations.of(context);
-    await pushPage<void>(context, title: l.versionHistory, builder: (_) => HistorySettingsScreen(onChanged: _measure));
+    await pushPage<void>(context, title: l.versionHistory, grouped: true, builder: (_) => HistorySettingsScreen(onChanged: _measure));
     _measure();
   }
 
@@ -305,7 +305,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return Padding(
         padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(google ? l.keyBackupBodyGoogle : l.keyBackupBody, style: TextStyle(color: c.muted, fontSize: 15, height: 1.4)),
+          Text(google ? l.keyBackupBodyGoogle : l.keyBackupBody, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
           const SizedBox(height: 18),
           Row(children: [
             Expanded(child: OutlinedButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.cancel))),
@@ -503,7 +503,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _openSync() async {
     final l = AppLocalizations.of(context);
     await pushPage<void>(context,
-        title: l.syncTitle,
+        title: l.syncTitle, grouped: true,
         builder: (_) => SyncScreen(
             libraryDir: widget.libraryDir,
             onSynced: () {
@@ -639,8 +639,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final vault = widget.vault();
     final dark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l.settings)),
+    return groupedPage(context, Builder(builder: (context) => Scaffold(
+      appBar: AppBar(title: Text(l.settings), centerTitle: false, titleTextStyle: largeTitle(context)),
       body: ListView(
         controller: _scroll,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
@@ -677,7 +677,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   minimumSize: const Size(0, 34),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: const StadiumBorder(),
-                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: CsType.footnote, fontWeight: FontWeight.w600),
                 ),
                 onPressed: () => _then(widget.onBackup),
                 child: Text(l.backupNow),
@@ -981,7 +981,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Center(
                   // Destructive in the system red, like Delete elsewhere (docs/ui.md); the theme's
                   // error colour is ink in this black-and-white design.
-                  child: Text(l.deleteVault, style: TextStyle(color: recordRed(context), fontWeight: FontWeight.w600, fontSize: 15)),
+                  child: Text(l.deleteVault, style: TextStyle(color: recordRed(context), fontWeight: FontWeight.w600, fontSize: CsType.subhead)),
                 ),
               ),
             ),
@@ -1043,7 +1043,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (dark) const SizedBox(height: 4),
         ],
       ),
-    );
+    )));
   }
 }
 
@@ -1085,9 +1085,9 @@ class _VaultCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(sizeText, style: TextStyle(color: fg, fontSize: 17, fontWeight: FontWeight.w700)),
+                        Text(sizeText, style: TextStyle(color: fg, fontSize: CsType.body, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 2),
-                        Text(lastBackup, style: TextStyle(color: fg.withValues(alpha: .85), fontSize: 13)),
+                        Text(lastBackup, style: TextStyle(color: fg.withValues(alpha: .85), fontSize: CsType.footnote)),
                       ],
                     ),
                   ),
@@ -1112,7 +1112,7 @@ class _VaultCard extends StatelessWidget {
                         const SizedBox(width: 5),
                         // The name only, as in the iPhone's Storage (owner 2026-10-26): the
                         // bar shows how much, the total is above; the sizes are one tap away.
-                        Text(storagePartName(l, k), style: TextStyle(color: fg.withValues(alpha: .9), fontSize: 12.5)),
+                        Text(storagePartName(l, k), style: TextStyle(color: fg.withValues(alpha: .9), fontSize: CsType.footnote)),
                       ],
                     ),
                 ],
@@ -1213,13 +1213,15 @@ class _Row extends StatelessWidget {
               SettingTile(icon: icon, color: color, glyph: glyph),
               const SizedBox(width: 12),
               // Just a name, no note under it (owner 2026-10-21): the name says enough.
-              Expanded(child: Text(title, style: const TextStyle(fontSize: CsType.body))),
+              Expanded(flex: 3, child: Text(title, style: const TextStyle(fontSize: CsType.body))),
               if (value != null) ...[
                 const SizedBox(width: 8),
                 // At 17 pt a long value (a language name, a time) shortens with "…" as on
-                // the iPhone, instead of pushing the row wider.
-                Flexible(
+                // the iPhone, instead of pushing the row wider; it sits against the ›.
+                Expanded(
+                  flex: 2,
                   child: Text(value!,
+                      textAlign: TextAlign.end,
                       maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: CsType.body)),
                 ),
               ],
@@ -1276,7 +1278,7 @@ class _SideSwitch extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: on && !dark ? const [BoxShadow(color: Color(0x22000000), blurRadius: 4, offset: Offset(0, 1))] : null,
           ),
-          child: Text(text, style: TextStyle(fontSize: 14, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
+          child: Text(text, style: TextStyle(fontSize: CsType.subhead, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
         ),
       );
     }
@@ -1305,7 +1307,7 @@ class _LanguageList extends StatelessWidget {
     Widget row(String code, String name) => ListTile(
           key: ValueKey('language-$code'),
           minTileHeight: 52,
-          title: Text(name, style: const TextStyle(fontSize: 16)),
+          title: Text(name, style: const TextStyle(fontSize: CsType.callout)),
           trailing: (code.isEmpty ? chosen == null : chosen == code)
               ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
               : null,

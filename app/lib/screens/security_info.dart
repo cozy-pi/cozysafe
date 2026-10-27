@@ -24,7 +24,7 @@ class SecurityInfoScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             // Title, then its drawing, then the words (owner 2026-10-21).
             children: [
-              Text(title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+              Text(title, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.3)),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 12),
@@ -33,7 +33,7 @@ class SecurityInfoScreen extends StatelessWidget {
               ),
               if (body != null) ...[
                 const SizedBox(height: 12),
-                Text(body, style: TextStyle(fontSize: 16.5, height: 1.55, color: c.muted.withValues(alpha: 1))),
+                Text(body, style: TextStyle(fontSize: CsType.body, height: 1.55, color: c.muted.withValues(alpha: 1))),
               ],
             ],
           ),
@@ -49,7 +49,7 @@ class SecurityInfoScreen extends StatelessWidget {
           // details stay folded at the end.
           section(1, l.sec1Title, null,
               _Flow([
-                _Node(Icons.folder_outlined, l.secItem, blue),
+                _Node(Icons.folder_rounded, l.secItem, blue),
                 _Node(Icons.lock_rounded, l.secOwnKey, blue),
                 _Node(Icons.cloud_off_rounded, l.secNoServer, blue, strong: true),
               ]),
@@ -64,7 +64,7 @@ class SecurityInfoScreen extends StatelessWidget {
               green),
           section(3, l.secRecoverTitle, null,
               _Flow([
-                _Node(Icons.insert_drive_file_outlined, l.secBackupFile, purple),
+                _Node(Icons.insert_drive_file_rounded, l.secBackupFile, purple),
                 const _Plus(),
                 _Node(Icons.key_rounded, l.secKit, purple),
                 const _Plus(),
@@ -85,10 +85,10 @@ class SecurityInfoScreen extends StatelessWidget {
               red),
           const SizedBox(height: 22),
           // Open, not folded (owner 2026-10-21): the details are for whoever reads this far.
-          Text(l.secTech, key: const ValueKey('sec-tech'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+          Text(l.secTech, key: const ValueKey('sec-tech'), style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           SelectableText(l.secTechBody,
-              style: TextStyle(fontSize: 14.5, height: 1.6, color: c.muted, fontFeatures: const [FontFeature.tabularFigures()])),
+              style: TextStyle(fontSize: CsType.subhead, height: 1.6, color: c.muted, fontFeatures: const [FontFeature.tabularFigures()])),
         ],
       ),
     );
@@ -163,7 +163,7 @@ class _NodeWidget extends StatelessWidget {
             ),
             if (label != null) ...[
               const SizedBox(height: 8),
-              Text(label!, textAlign: TextAlign.center, maxLines: 2, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, height: 1.2)),
+              Text(label!, textAlign: TextAlign.center, maxLines: 2, style: const TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, height: 1.2)),
             ],
           ],
         ),
@@ -184,6 +184,6 @@ class _Or extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(top: 13, left: 2, right: 2),
-        child: Text('/', style: TextStyle(fontSize: 20, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .45))),
+        child: Text('/', style: TextStyle(fontSize: CsType.title3, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .45))),
       );
 }
