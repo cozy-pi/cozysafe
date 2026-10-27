@@ -14,6 +14,8 @@ Dates are UTC.
   short line.
 
 ### Fixed
+- The Android build of 0.1.77 stopped on a missing checksum (a file Google Block Store
+  needs); 0.1.77 reached iPhone and desktop only, Android gets this release.
 - A first sync with Google Drive said "Looking at Google Drive" for a long time while it
   was reading every item and sending the first files. It now says "Getting items ready
   to send" with a count, then "Sending to Google Drive" from the first byte, and the
