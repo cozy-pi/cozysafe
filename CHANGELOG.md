@@ -4,7 +4,7 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.1.79 (unreleased)
+## 0.1.79 (2026-10-27)
 
 ### Fixed
 - Android builds again: the last checksum Google Block Store needed (0.1.77 and 0.1.78
