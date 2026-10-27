@@ -396,6 +396,95 @@ impl Remote for Counted<'_> {
     }
 }
 
+/// A record or a content file fetched ahead ([`OpenVault::fetch_ahead`]).
+enum Got {
+    Bytes(Vec<u8>),
+    File(PathBuf),
+}
+
+/// The place, serving first what was fetched ahead (each once), the rest from the place.
+struct Ahead<'a, 'b> {
+    inner: &'a Counted<'b>,
+    got: Mutex<std::collections::HashMap<String, Got>>,
+}
+
+impl Ahead<'_, '_> {
+    /// Nothing to clear between items: each file is taken (and removed) as it is read.
+    fn clear(&self) {}
+
+    /// What was fetched but not taken (an item merged, or one that failed): removed.
+    fn clear_all(&self) {
+        for (_, g) in self.got.lock().unwrap_or_else(|p| p.into_inner()).drain() {
+            if let Got::File(f) = g {
+                let _ = fs::remove_file(f);
+            }
+        }
+    }
+}
+
+impl Remote for Ahead<'_, '_> {
+    fn key(&self) -> String {
+        self.inner.key()
+    }
+
+    fn list(&self, dir: &str) -> Result<Vec<String>> {
+        self.inner.list(dir)
+    }
+
+    fn get(&self, path: &str, out: &mut dyn Write) -> Result<bool> {
+        let got = self
+            .got
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .remove(path);
+        match got {
+            Some(Got::Bytes(b)) => {
+                out.write_all(&b)?;
+                Ok(true)
+            }
+            Some(Got::File(f)) => {
+                let copied = std::io::copy(&mut fs::File::open(&f)?, out);
+                let _ = fs::remove_file(&f);
+                copied?;
+                Ok(true)
+            }
+            None => self.inner.get(path, out),
+        }
+    }
+
+    fn put(&self, path: &str, src: &mut dyn Read) -> Result<()> {
+        self.inner.put(path, src)
+    }
+
+    fn exists(&self, path: &str) -> Result<bool> {
+        self.inner.exists(path)
+    }
+
+    fn put_file(&self, path: &str, local: &Path) -> Result<()> {
+        self.inner.put_file(path, local)
+    }
+
+    fn remove(&self, path: &str) -> Result<()> {
+        self.inner.remove(path)
+    }
+
+    fn removes(&self) -> bool {
+        self.inner.removes()
+    }
+
+    fn remove_many(&self, paths: &[String]) -> Result<()> {
+        self.inner.remove_many(paths)
+    }
+
+    fn parallel(&self) -> usize {
+        self.inner.parallel()
+    }
+
+    fn listed(&self, path: &str) -> Option<Listed> {
+        self.inner.listed(path)
+    }
+}
+
 /// Items per journal entry while sending, so a long first sync that stops half-way has
 /// already told the other devices about what went up.
 pub const LOG_EVERY: usize = 50;
@@ -557,20 +646,44 @@ impl OpenVault {
                 bytes_total: 0,
             });
         }
+        let done_now = std::cell::Cell::new(0u32);
+        let tick = || {
+            progress(SyncProgress {
+                phase: SyncPhase::Receiving,
+                done: done_now.get(),
+                total,
+                bytes: remote.bytes(),
+                bytes_total: 0,
+            })
+        };
         for (device, n, entry) in todo {
-            for (id, rev) in entry.items {
-                let counted = self.would_take(&id, &rev)?;
-                self.take(remote, &id, &rev, report)?;
-                if counted {
-                    done += 1;
-                    progress(SyncProgress {
-                        phase: SyncPhase::Receiving,
-                        done,
-                        total,
-                        bytes: remote.bytes(),
-                        bytes_total: 0,
-                    });
+            // A few items at a time are fetched ahead, several at once (owner 2026-10-27:
+            // bringing in went one request after another), then taken in here in order,
+            // one by one, as before: the index is single-threaded.
+            let batch = remote.parallel().clamp(1, MAX_AT_ONCE) * 2;
+            for items in entry.items.chunks(batch) {
+                let ahead = Ahead {
+                    inner: remote,
+                    got: Mutex::new(self.fetch_ahead(remote, items, &tick)?),
+                };
+                for (id, rev) in items {
+                    let counted = self.would_take(id, rev)?;
+                    let taken = self.take(&ahead, id, rev, report);
+                    ahead.clear();
+                    taken?;
+                    if counted {
+                        done += 1;
+                        done_now.set(done);
+                        progress(SyncProgress {
+                            phase: SyncPhase::Receiving,
+                            done,
+                            total,
+                            bytes: remote.bytes(),
+                            bytes_total: 0,
+                        });
+                    }
                 }
+                ahead.clear_all();
             }
             for (id, hlc) in entry.gone {
                 let counted = self.sealed_record(&id)?.is_some();
@@ -590,6 +703,79 @@ impl OpenVault {
                 .meta_set(&format!("{}:cursor:{device}", remote.key()), &n.to_string())?;
         }
         Ok(())
+    }
+
+    /// The records and content of `items` this device will take, fetched several at once
+    /// into files beside where they go (`.ahead`), for [`Ahead`] to serve. Only the
+    /// network part: nothing here touches the index, and what fails is simply not
+    /// fetched (taking it reads it again and says why).
+    fn fetch_ahead(
+        &self,
+        remote: &Counted<'_>,
+        items: &[(String, String)],
+        tick: &dyn Fn(),
+    ) -> Result<std::collections::HashMap<String, Got>> {
+        let base = self.sync_dir();
+        let mut jobs = Vec::new();
+        for (id, rev) in items {
+            if !self.would_take(id, rev)? || self.sealed_record(id)?.is_some() {
+                continue; // a merge with what is here: read as it goes, as before
+            }
+            jobs.push((
+                id.clone(),
+                rev.clone(),
+                self.item_aad(id, "meta"),
+                self.new_path(id, "data")?.with_extension("data.ahead"),
+                self.new_path(id, "thumb")?.with_extension("thumb.ahead"),
+            ));
+        }
+        let got = Mutex::new(std::collections::HashMap::new());
+        if jobs.len() < 2 {
+            return Ok(got.into_inner().unwrap_or_else(|p| p.into_inner()));
+        }
+        let master_key = &self.master_key;
+        let work = |(id, rev, aad, data, thumb): &(String, String, Vec<u8>, PathBuf, PathBuf)| -> Result<()> {
+            let record_path = format!("{base}/records/{id}/{rev}");
+            let mut sealed = Capped::new(MAX_SMALL);
+            if !remote.get(&record_path, &mut sealed).unwrap_or(false) {
+                return Ok(());
+            }
+            let Ok(record) = wrap::open(master_key, &sealed.0, aad)
+                .ok()
+                .and_then(|json| serde_json::from_slice::<ItemRecord>(&json).ok())
+                .map(ItemRecord::upgraded)
+                .ok_or(())
+            else {
+                return Ok(());
+            };
+            if record.rev != *rev {
+                return Ok(());
+            }
+            let mut files = Vec::new();
+            for (ext, local) in [("data", data), ("thumb", thumb)] {
+                if ext == "thumb" && !record.has_thumbnail() {
+                    continue;
+                }
+                let path = format!("{base}/blobs/{id}.{}.{ext}", record.data_rev);
+                let ok = fs::File::create(local)
+                    .ok()
+                    .map(|mut f| remote.get(&path, &mut f).unwrap_or(false))
+                    .unwrap_or(false);
+                if !ok {
+                    let _ = fs::remove_file(local);
+                    return Ok(());
+                }
+                files.push((path, local.clone()));
+            }
+            let mut got = got.lock().unwrap_or_else(|p| p.into_inner());
+            got.insert(record_path, Got::Bytes(sealed.0));
+            for (path, local) in files {
+                got.insert(path, Got::File(local));
+            }
+            Ok(())
+        };
+        each_at_once_ticking(remote.parallel(), &jobs, &work, tick, |_| Ok(()))?;
+        Ok(got.into_inner().unwrap_or_else(|p| p.into_inner()))
     }
 
     /// Whether a journal entry's revision would change this device: not a revision it
@@ -978,30 +1164,61 @@ impl OpenVault {
         // how much is going.
         let mut todo: Vec<(String, ItemRecord, Vec<u8>)> = Vec::new();
         let mut held: Vec<(String, ItemRecord, Vec<u8>)> = Vec::new();
-        let ids = self.index.ids()?;
-        let all = ids.len() as u32;
-        for (n, id) in ids.into_iter().enumerate() {
+        // Items from before sync need their content's fingerprints first: read several
+        // at once (owner 2026-10-27: a first sync read a whole vault one file at a
+        // time), with a count on the screen. Only the reading is shared out; the index
+        // stays in this thread.
+        let mut items = Vec::new();
+        let mut fingerprint = Vec::new();
+        for id in self.index.ids()? {
             let Some(sealed) = self.sealed_record(&id)? else {
                 continue;
             };
-            let mut record = self.open_record(&id, &sealed)?;
-            let mut sealed = sealed;
+            let record = self.open_record(&id, &sealed)?;
             if record.rev.is_empty() || record.data_hash.is_empty() {
+                let thumb = record
+                    .has_thumbnail()
+                    .then(|| self.read_path(&id, "thumb"))
+                    .transpose()?;
+                fingerprint.push((id.clone(), self.read_path(&id, "data")?, thumb));
+            }
+            items.push((id, record, sealed));
+        }
+        let hashes = Mutex::new(std::collections::HashMap::new());
+        let hash = |(id, data, thumb): &(String, PathBuf, Option<PathBuf>)| -> Result<()> {
+            let data = crate::items::file_sha256_hex(data)?;
+            let thumb = thumb
+                .as_deref()
+                .map(crate::items::file_sha256_hex)
+                .transpose()?;
+            hashes
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .insert(id.clone(), (data, thumb));
+            Ok(())
+        };
+        let all = fingerprint.len() as u32;
+        let mut read = 0u32;
+        each_at_once(MAX_AT_ONCE, &fingerprint, &hash, |_| {
+            read += 1;
+            progress(SyncProgress {
+                phase: SyncPhase::Preparing,
+                done: read,
+                total: all,
+                bytes: 0,
+                bytes_total: 0,
+            });
+            Ok(())
+        })?;
+        let mut hashes = hashes.into_inner().unwrap_or_else(|p| p.into_inner());
+        for (id, mut record, mut sealed) in items {
+            if let Some((data, thumb)) = hashes.remove(&id) {
                 // From before sync: a first revision, with its content's fingerprints
-                // (same content, same time). Reading a whole vault takes a while on a
-                // first sync: the screen says so, item by item (owner 2026-10-27).
-                progress(SyncProgress {
-                    phase: SyncPhase::Preparing,
-                    done: n as u32 + 1,
-                    total: all,
-                    bytes: 0,
-                    bytes_total: 0,
-                });
+                // (same content, same time).
                 let modified = record.modified_ms;
-                record.data_hash = crate::items::file_sha256_hex(&self.read_path(&id, "data")?)?;
-                if record.has_thumbnail() {
-                    record.thumb_hash =
-                        crate::items::file_sha256_hex(&self.read_path(&id, "thumb")?)?;
+                record.data_hash = data;
+                if let Some(thumb) = thumb {
+                    record.thumb_hash = thumb;
                 }
                 record.data_rev.clear(); // its content goes up under this new revision
                 self.stamp(&mut record)?;
@@ -1994,6 +2211,9 @@ pub(crate) mod tests {
         puts: AtomicUsize,
         gets: std::sync::Mutex<Vec<String>>,
         batches: std::sync::Mutex<Vec<usize>>,
+        /// Reads of content under way now, and the most there ever were together.
+        reading: AtomicUsize,
+        most: AtomicUsize,
     }
 
     impl<'a> Watched<'a> {
@@ -2005,6 +2225,8 @@ pub(crate) mod tests {
                 puts: AtomicUsize::new(0),
                 gets: Default::default(),
                 batches: Default::default(),
+                reading: AtomicUsize::new(0),
+                most: AtomicUsize::new(0),
             }
         }
 
@@ -2035,7 +2257,16 @@ pub(crate) mod tests {
         }
         fn get(&self, path: &str, out: &mut dyn Write) -> Result<bool> {
             self.gets.lock().unwrap().push(path.to_owned());
-            self.inner.get(path, out)
+            if !path.contains("/blobs/") {
+                return self.inner.get(path, out);
+            }
+            let now = self.reading.fetch_add(1, Ordering::SeqCst) + 1;
+            self.most.fetch_max(now, Ordering::SeqCst);
+            // Slow enough that several are under way together.
+            std::thread::sleep(std::time::Duration::from_millis(2));
+            let r = self.inner.get(path, out);
+            self.reading.fetch_sub(1, Ordering::SeqCst);
+            r
         }
         fn put(&self, path: &str, src: &mut dyn Read) -> Result<()> {
             self.put_ok()?;
@@ -2590,5 +2821,38 @@ pub(crate) mod tests {
         );
         assert!(last.bytes > 0);
         assert_eq!(text(&t.b, &ids[n - 1]), "x");
+    }
+
+    #[test]
+    fn bringing_in_reads_several_items_at_once_and_takes_them_in_order() {
+        let t = two();
+        let ids: Vec<String> = (0..12)
+            .map(|i| note(&t.a, &format!("N{i}"), &format!("text {i}")))
+            .collect();
+        t.a.sync(&t.cloud).unwrap();
+        // Owner 2026-10-27: bringing in went one request after another.
+        let w = Watched::new(&t.cloud, 4);
+        assert_eq!(t.b.sync(&w).unwrap().received, 12);
+        assert!(w.most.load(Ordering::SeqCst) > 1);
+        for (i, id) in ids.iter().enumerate() {
+            assert_eq!(text(&t.b, id), format!("text {i}"));
+        }
+        // Each content file read once, and nothing left behind beside the items.
+        assert_eq!(w.got("/blobs/"), 12);
+        fn ahead_files(p: &Path) -> usize {
+            fs::read_dir(p).map_or(0, |d| {
+                d.flatten()
+                    .map(|e| {
+                        let p = e.path();
+                        if p.is_dir() {
+                            ahead_files(&p)
+                        } else {
+                            p.to_string_lossy().ends_with(".ahead") as usize
+                        }
+                    })
+                    .sum()
+            })
+        }
+        assert_eq!(ahead_files(&t.b.dir), 0);
     }
 }

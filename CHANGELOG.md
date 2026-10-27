@@ -23,6 +23,9 @@ Dates are UTC.
   the daily clean-up is "Clearing old versions", and removing deleted items is told
   before it starts. With a nearby device, the phone being synced with counts items (not
   their files) and says "Checking" while the other phone only reads lists.
+- Faster sync: bringing items in now fetches several at once (it went one request after
+  another), then takes them in order as before; and a first sync reads the items it
+  must fingerprint several at once. Sending already went several at once.
 
 ## 0.1.77 (2026-10-27)
 

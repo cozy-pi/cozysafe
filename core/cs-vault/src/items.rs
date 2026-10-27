@@ -161,7 +161,7 @@ impl ItemRecord {
     }
 
     /// Bring a format-1 record up to date in memory.
-    fn upgraded(mut self) -> Self {
+    pub(crate) fn upgraded(mut self) -> Self {
         if self.kind == kind::LEGACY_FOLDER {
             self.kind = kind::TAG.to_owned();
         } else if let Some(f) = self.legacy_folder_id.take() {
