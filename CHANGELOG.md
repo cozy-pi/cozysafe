@@ -4,6 +4,23 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.80 (2026-10-27)
+
+### Added
+- Automatic sync with Google Drive: while the vault is open it syncs when you open it, about
+  half a minute after a change and every few minutes. On by default when you add a Google
+  account, with an Only on Wi-Fi switch. Nothing runs while the app is closed.
+- Google Drive has a page of its own: its logo and your account at the top, Sync now,
+  Automatic sync, Only on Wi-Fi and Remove account.
+
+### Changed
+- The iPhone look throughout: titles centred beside ‹ on every page, text sizes from the
+  iPhone's own scale, one icon style (filled, rounded), and Settings, Sync, Google Drive and
+  Version history on a pale grey page with white groups in light mode.
+- Sync: Google Drive comes first, then "Your vault on another device".
+- Add buttons without words under them; the cards above already say what each does.
+- Settings values sit against the ›, and long ones shorten with "…".
+
 ## 0.1.79 (2026-10-27)
 
 ### Added
