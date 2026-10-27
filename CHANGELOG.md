@@ -4,42 +4,11 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.1.79 (2026-10-27)
-
-### Fixed
-- Android builds again: the last checksum Google Block Store needed (0.1.77 and 0.1.78
-  reached iPhone and desktop only).
-- Cancel and the other outlined buttons were lower than the main buttons (40 points
-  against 52); every outlined button is now as tall as the main one, with the same
-  corners and type.
-
-## 0.1.78 (2026-10-27)
-
-### Changed
-- Version history puts space first, to keep versions as long as possible: until history
-  fills its space nothing goes, however old; once full, the oldest versions more than 30
-  days old go first, and the last 30 days always stay. Settings → Version history is one
-  choice (500 MB, 1 GB, 5 GB, No limit, or Off; 1 GB unless changed) with that rule in a
-  short line.
-
-### Fixed
-- The Android build of 0.1.77 stopped on a missing checksum (a file Google Block Store
-  needs); 0.1.77 reached iPhone and desktop only. Android still waits for its checksums
-  (being regenerated), so this release too reaches iPhone and desktop first.
-- A first sync with Google Drive said "Looking at Google Drive" for a long time while it
-  was reading every item and sending the first files. It now says "Getting items ready
-  to send" with a count, then "Sending to Google Drive" from the first byte, and the
-  sizes and speed move every second while a big file goes up.
-- Every step of a sync says what it does, not only the first time: bringing in is told
-  from the start, files Google Drive lost are "Sending missing files again" with a count,
-  the daily clean-up is "Clearing old versions", and removing deleted items is told
-  before it starts. With a nearby device, the phone being synced with counts items (not
-  their files) and says "Checking" while the other phone only reads lists.
-- Faster sync: bringing items in now fetches several at once (it went one request after
-  another), then takes them in order as before; and a first sync reads the items it
-  must fingerprint several at once. Sending already went several at once.
-
 ## 0.1.77 (2026-10-27)
+
+Three release runs under one name (builds 1091, 1092, 1093): the first two stopped on
+the Android build, so no release was made and the name did not move on. iPhone got all
+three; build 1093 has everything below and is the one on Android and GitHub.
 
 ### Added
 - Android: Settings → Keep the 24 words in your Google account (off unless turned on),
@@ -65,15 +34,37 @@ Dates are UTC.
   About.
 - safe.cozypi.com is black like the app, only the logo green; it offers the phone and
   tablet apps only (the desktop builds stay on the GitHub release page).
+- Version history puts space first, to keep versions as long as possible: until history
+  fills its space nothing goes, however old; once full, the oldest versions more than 30
+  days old go first, and the last 30 days always stay. Settings → Version history is one
+  choice (500 MB, 1 GB, 5 GB, No limit, or Off; 1 GB unless changed) with that rule in a
+  short line.
+
+### Fixed
+- Version history: changes made within the same millisecond could list in the wrong
+  order.
+- A first sync with Google Drive said "Looking at Google Drive" for a long time while it
+  was reading every item and sending the first files. It now says "Getting items ready
+  to send" with a count, then "Sending to Google Drive" from the first byte, and the
+  sizes and speed move every second while a big file goes up.
+- Every step of a sync says what it does, not only the first time: bringing in is told
+  from the start, files Google Drive lost are "Sending missing files again" with a count,
+  the daily clean-up is "Clearing old versions", and removing deleted items is told
+  before it starts. With a nearby device, the phone being synced with counts items (not
+  their files) and says "Checking" while the other phone only reads lists.
+- Faster sync: bringing items in now fetches several at once (it went one request after
+  another), then takes them in order as before; and a first sync reads the items it
+  must fingerprint several at once. Sending already went several at once.
+- Android build: the checksums Google Block Store needed (builds 1091 and 1092 stopped
+  on them).
+- Cancel and the other outlined buttons were lower than the main buttons (40 points
+  against 52); every outlined button is now as tall as the main one, with the same
+  corners and type.
 
 ### Security
 - The hashing libraries move to their new versions (sha2 0.11, hkdf 0.13, argon2 0.6,
   with block-buffer 0.12.1), which fix GHSA-qwgh-2vcv-g2f7. The app was not exposed (no
   hash ever panics there), but the scanners now find nothing.
-
-### Fixed
-- Version history: changes made within the same millisecond could list in the wrong
-  order.
 
 ## 0.1.76 (2026-10-27)
 
