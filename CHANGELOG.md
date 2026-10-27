@@ -4,7 +4,7 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.1.78 (unreleased)
+## 0.1.78 (2026-10-27)
 
 ### Changed
 - Version history puts space first, to keep versions as long as possible: until history
@@ -15,7 +15,8 @@ Dates are UTC.
 
 ### Fixed
 - The Android build of 0.1.77 stopped on a missing checksum (a file Google Block Store
-  needs); 0.1.77 reached iPhone and desktop only, Android gets this release.
+  needs); 0.1.77 reached iPhone and desktop only. Android still waits for its checksums
+  (being regenerated), so this release too reaches iPhone and desktop first.
 - A first sync with Google Drive said "Looking at Google Drive" for a long time while it
   was reading every item and sending the first files. It now says "Getting items ready
   to send" with a count, then "Sending to Google Drive" from the first byte, and the
