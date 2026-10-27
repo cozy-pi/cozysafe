@@ -59,6 +59,7 @@ import '../widgets/second_place.dart';
 import '../sync/sync_screen.dart';
 import 'history.dart';
 import 'wide_home.dart';
+import '../widgets/readable.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -365,14 +366,28 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Duration get _awayLimit => Duration(minutes: Settings.autoLockMinutes);
 
+  /// A computer's window hidden this long counts as leaving (see didChangeAppLifecycleState).
+  static const _windowGrace = Duration(seconds: 3);
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
       if (_locked || _away != null) return;
       final leaveLocks = Settings.lockOnLeave;
       // Leaving locks at once (the default), unless the app itself sent the person out.
-      if (leaveLocks && !LockGuard.away) return _lock(animate: false);
+      // On a computer the window reports itself hidden for a moment while it is resized,
+      // tiled or made full screen (owner 2026-10-28: every resize asked for the PIN): it
+      // locks once hidden for [_windowGrace].
+      if (leaveLocks && !LockGuard.away && !Device.desktop) return _lock(animate: false);
       _away = AwayClock.start();
+      if (leaveLocks && !LockGuard.away) {
+        _idleTimer?.cancel();
+        _awayTimer?.cancel();
+        _awayTimer = Timer(_windowGrace, () {
+          if (mounted && _away != null) _lock(animate: false);
+        });
+        return;
+      }
       // "Lock as soon as I leave" off: the auto-lock time runs from now, not from the
       // last touch. The app switcher still shows the cover, not the vault.
       if (!leaveLocks) {
@@ -388,7 +403,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       _awayTimer?.cancel();
       LockGuard.clear();
       // Back in time: the vault shows again. Too late: it locks before anything shows.
-      final tooLong = Settings.lockOnLeave ? gone > const Duration(seconds: 60) : gone >= _awayLimit;
+      final tooLong = Settings.lockOnLeave
+          ? gone > (Device.desktop ? _windowGrace : const Duration(seconds: 60))
+          : gone >= _awayLimit;
       if (tooLong) {
         _lock(animate: false);
       } else {
@@ -585,7 +602,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     NoteScreen.lastSave = null;
     NoteScreen.lastDeleted = null;
     final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
-        builder: (_) => NoteScreen(item: item, tagId: item == null ? _tagId : null, vaultId: _vault.id)));
+        builder: (_) => Readable(child: NoteScreen(item: item, tagId: item == null ? _tagId : null, vaultId: _vault.id))));
     // A swipe back pops null and saves behind the pop: wait for it, then reload.
     final pending = NoteScreen.lastSave;
     if (pending != null) {
@@ -706,7 +723,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<bool> _ensurePassword() async {
     if (_vault.hasPassword) return true;
     final info = await Navigator.of(context).push<rust.VaultInfo>(
-      MaterialPageRoute(builder: (_) => BackupPasswordScreen(libraryDir: widget.libraryDir, change: false)),
+      MaterialPageRoute(builder: (_) => Readable(child: BackupPasswordScreen(libraryDir: widget.libraryDir, change: false))),
     );
     if (info != null && mounted) setState(() => _vault = info);
     return info != null;
@@ -717,7 +734,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _password() async {
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     final info = await Navigator.of(context).push<rust.VaultInfo>(
-      MaterialPageRoute(builder: (_) => BackupPasswordScreen(libraryDir: widget.libraryDir, change: _vault.hasPassword)),
+      MaterialPageRoute(builder: (_) => Readable(child: BackupPasswordScreen(libraryDir: widget.libraryDir, change: _vault.hasPassword))),
     );
     if (info != null && mounted) setState(() => _vault = info);
   }
@@ -822,13 +839,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<void> _pushKit(Uint8List key, String? Function() password) async {
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (kit) => EmergencyKitScreen(
+      builder: (kit) => Readable(child: EmergencyKitScreen(
         keyText: rust.secretKeyText(key: key),
         confirm: false,
         // A new Recovery Key replaces this page (it would show the old one).
         onChange: () => Navigator.of(kit).pushReplacement(MaterialPageRoute<void>(
-          builder: (_) => ChangeKeyScreen(libraryDir: widget.libraryDir, password: password(), onBackup: _backup),
-        )),
+          builder: (_) => Readable(child: ChangeKeyScreen(libraryDir: widget.libraryDir, password: password(), onBackup: _backup)),
+  )      )),
       ),
     ));
   }
@@ -863,7 +880,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<void> _openTrash() async {
-    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TrashScreen()));
+    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => Readable(child: const TrashScreen())));
     // A swipe back returns null: reload then too.
     if (!_locked && changed != false) _reload();
   }
@@ -872,7 +889,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _openSettings({SettingsSpot? focus, int? guideFrom}) async {
     final l = AppLocalizations.of(context);
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => SettingsScreen(
+      builder: (_) => Readable(child: SettingsScreen(
         libraryDir: widget.libraryDir,
         vault: () => _vault,
         canBiometric: _canBio,
@@ -885,11 +902,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         onChangeIdentity: _changeIdentity,
         onOpenTrash: _openTrash,
         onNewVault: _newVault,
+        onShowKind: (kind) => _pickSection(switch (kind) {
+          ItemKind.note => VaultSection.note,
+          ItemKind.audio => VaultSection.audio,
+          ItemKind.file => VaultSection.file,
+          _ => VaultSection.library,
+        }),
         onSynced: _reload,
         focus: focus,
         guideFrom: guideFrom,
         onTour: _replayTour,
-      ),
+      )),
     ));
     if (!_locked) {
       _touch(); // the auto-lock time may have changed
@@ -914,7 +937,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // lock screen first flashed it for a moment.)
     final nav = Navigator.of(context);
     final libraryDir = widget.libraryDir;
-    final route = fadeRoute<void>((_) => NewVaultScreen(libraryDir: libraryDir, first: false, avoid: avoid));
+    final route = fadeRoute<void>((_) => Readable(child: NewVaultScreen(libraryDir: libraryDir, first: false, avoid: avoid)));
     nav.push(route);
     void swap(AnimationStatus s) {
       if (s != AnimationStatus.completed) return;
@@ -1252,7 +1275,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (items == null) return;
     final result = await Navigator.of(context).push<Object>(
       MaterialPageRoute(
-          builder: (_) => SearchScreen(items: items, thumbnail: _thumbnail)),
+          builder: (_) => Readable(child: SearchScreen(items: items, thumbnail: _thumbnail))),
     );
     if (result == null || !mounted || _locked) return;
     // A long press on a result: its menu, over the vault.
@@ -1291,8 +1314,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           : _Empty(icon: Icons.photo_library_outlined, title: l.emptyPhotosTitle, body: l.emptyPhotosBody);
     }
     final groups = <String, List<rust.ItemInfo>>{};
+    // By size: one grid, no date titles.
+    final bySize = _sort == ItemSort.size || _sort == ItemSort.smallest;
     for (final it in media) {
-      groups.putIfAbsent(_dateGroup(context, it.createdMs.toInt()), () => []).add(it);
+      groups.putIfAbsent(bySize ? '' : _dateGroup(context, it.createdMs.toInt()), () => []).add(it);
     }
     _dragOrder = [for (final g in groups.values) for (final it in g) it.id];
     return GestureDetector(
@@ -1312,7 +1337,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       child: Scrollbar(
         child: CustomScrollView(slivers: [
           for (final e in groups.entries) ...[
-            SliverToBoxAdapter(child: _SectionTitle(e.key)),
+            if (e.key.isNotEmpty) SliverToBoxAdapter(child: _SectionTitle(e.key)),
             SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: _wide ? _wideCols : _cols,
@@ -1402,8 +1427,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         child: GridView.builder(
           key: const ValueKey('files-grid'),
           padding: EdgeInsets.fromLTRB(12, 4, 12, _bottomRoom),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78),
+          // Three a row on a phone, as many as fit on a computer (owner 2026-10-28: three
+          // tiles across a MacBook were each the size of a page).
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 150, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78),
           itemCount: list.length,
           itemBuilder: (context, i) {
             final it = list[i];
@@ -1493,6 +1520,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ItemSort.oldest => a.createdMs.compareTo(b.createdMs),
           ItemSort.name => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
           ItemSort.size => b.sizeBytes.compareTo(a.sizeBytes),
+          ItemSort.smallest => a.sizeBytes.compareTo(b.sizeBytes),
           ItemSort.edited => b.modifiedMs.compareTo(a.modifiedMs),
         };
     final pinFirst = _section != VaultSection.library;
@@ -1508,8 +1536,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   ItemSort get _sort {
     final saved = Prefs.read('sort-${_section.name}');
     final sort = ItemSort.values.where((v) => v.name == saved).firstOrNull ?? ItemSort.newest;
-    // The library is grouped by date: only newest or oldest first make sense there.
-    if (_section == VaultSection.library && sort != ItemSort.oldest) return ItemSort.newest;
+    // The library is grouped by date, or one grid by size (owner 2026-10-28): name and
+    // last edit mean nothing there.
+    if (_section == VaultSection.library && (sort == ItemSort.name || sort == ItemSort.edited)) return ItemSort.newest;
     return sort;
   }
 
@@ -1521,15 +1550,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     final now = _sort;
     final options = switch (_section) {
-      VaultSection.library => [ItemSort.newest, ItemSort.oldest],
+      VaultSection.library => [ItemSort.newest, ItemSort.oldest, ItemSort.size, ItemSort.smallest],
       VaultSection.note => ItemSort.values,
-      _ => [ItemSort.newest, ItemSort.oldest, ItemSort.name, ItemSort.size],
+      _ => [ItemSort.newest, ItemSort.oldest, ItemSort.name, ItemSort.size, ItemSort.smallest],
     };
     String label(ItemSort s) => switch (s) {
           ItemSort.newest => l.sortNewest,
           ItemSort.oldest => l.sortOldest,
           ItemSort.name => l.sortName,
           ItemSort.size => l.sortSize,
+          ItemSort.smallest => l.sortSmallest,
           ItemSort.edited => l.sortEdited,
         };
     await showItemMenu(context, title: l.sortBy, entries: [
@@ -3143,4 +3173,4 @@ class DeleteOriginalsSheet extends StatelessWidget {
 }
 
 /// How a section is ordered (the ⇅ menu). Saved per section.
-enum ItemSort { newest, oldest, name, size, edited }
+enum ItemSort { newest, oldest, name, size, smallest, edited }

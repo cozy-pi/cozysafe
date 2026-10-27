@@ -29,7 +29,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Mutex};
 
 use cs_vault::bucket_of;
-use cs_vault::sync::Remote;
+use cs_vault::sync::{Remote, Telling};
 use cs_vault::{Error, Result};
 use serde_json::Value;
 
@@ -704,6 +704,14 @@ impl<A: DriveApi> Remote for DriveRemote<A> {
         let mut f = std::fs::File::open(local)?;
         let len = f.metadata()?.len();
         self.put_bytes(path, len, &mut f)
+    }
+
+    fn put_file_told(&self, path: &str, local: &Path, read: &dyn Fn(u64)) -> Result<()> {
+        check(path)?;
+        self.go_on()?;
+        let mut f = std::fs::File::open(local)?;
+        let len = f.metadata()?.len();
+        self.put_bytes(path, len, &mut Telling { src: &mut f, read })
     }
 
     fn remove_many(&self, paths: &[String]) -> Result<()> {

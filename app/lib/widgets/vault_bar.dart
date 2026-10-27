@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
+import 'readable.dart';
 
 /// The four sections of a vault, picked in the bottom capsule (docs/ui.md, vault bar;
 /// docs/naming.md). A section shows items of some kinds: Library shows photos and
@@ -1477,10 +1478,10 @@ class _LoopMark extends StatelessWidget {
 /// Like every page, it stays under the lock screen (lib/lock_resume.dart).
 Future<T?> pushPage<T>(BuildContext context, {required String title, required WidgetBuilder builder}) =>
     Navigator.of(context).push<T>(MaterialPageRoute(
-      builder: (context) => Scaffold(
+      builder: (context) => Readable(child: Scaffold(
         appBar: AppBar(title: Text(title)),
         body: SafeArea(top: false, child: builder(context)),
-      ),
+      )),
     ));
 
 /// Short content in a card in the middle of the screen, at eye level, the vault dimmed

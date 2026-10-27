@@ -537,23 +537,70 @@ class _SyncProgressState extends State<SyncProgress>
       _ => l.syncDriveListing,
     };
     final count = e.kind == sync.SyncStep.driveListing ? l.syncDriveFiles(e.done) : '${e.done} / ${e.total}';
-    final small = TextStyle(color: c.muted, fontSize: 14, fontFeatures: const [FontFeature.tabularFigures()]);
+    return _meter(
+      c,
+      direction: e.kind == sync.SyncStep.driveListing ? 0 : 1,
+      title: title,
+      value: e.total > 0 ? (e.done / e.total).clamp(0, 1) : null,
+      items: count,
+    );
+  }
+
+  /// The running screen, laid out the same whatever is known yet: every line keeps its
+  /// place, empty until it has something to say, so nothing moves as figures come and go
+  /// (owner 2026-10-27: the sync screen kept growing and shrinking).
+  Widget _meter(
+    CsColors c, {
+    required int direction,
+    required String title,
+    required double? value,
+    String? items,
+    String? bytes,
+    String? speed,
+    String? left,
+  }) {
+    final small = TextStyle(color: c.muted, fontSize: 14, height: 1.3, fontFeatures: const [FontFeature.tabularFigures()]);
+    Widget line(String? text, Key key) => text == null ? Text(' ', style: small) : Text(text, key: key, style: small);
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      _Ends(flow: _flow, place: widget.place, direction: e.kind == sync.SyncStep.driveListing ? 0 : 1),
+      _Ends(flow: _flow, place: widget.place, direction: direction),
       const SizedBox(height: 26),
-      Text(title, key: const ValueKey('sync-progress'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 22),
+      // Room for two lines: a longer title in another language does not push the rest.
+      SizedBox(
+        height: 52,
+        child: Center(
+          child: Text(title,
+              key: const ValueKey('sync-progress'),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 20, height: 1.25, fontWeight: FontWeight.w700)),
+        ),
+      ),
+      const SizedBox(height: 16),
       LinearProgressIndicator(
-        value: e.total > 0 ? (e.done / e.total).clamp(0, 1) : null,
+        value: value,
         minHeight: 8,
+        // The black-and-white theme would draw track and bar alike.
         backgroundColor: c.border,
         borderRadius: BorderRadius.circular(4),
       ),
       const SizedBox(height: 10),
-      Text(count, key: const ValueKey('sync-items'), style: small),
+      Row(children: [
+        line(items, const ValueKey('sync-items')),
+        const Spacer(),
+        line(bytes, const ValueKey('sync-bytes')),
+      ]),
+      const SizedBox(height: 4),
+      Row(children: [
+        line(speed, const ValueKey('sync-speed')),
+        const Spacer(),
+        line(left, const ValueKey('sync-left')),
+      ]),
+      // Android keeps going with the phone locked (a notification shows it, when that service
+      // is on); iOS does not.
       if (Device.iOS || (Device.android && !Awake.androidSyncService)) ...[
         const SizedBox(height: 18),
-        Text(l.syncKeepOpen, key: const ValueKey('sync-keep-open'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14)),
+        Text(AppLocalizations.of(context).syncKeepOpen, key: const ValueKey('sync-keep-open'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14)),
       ],
     ]);
   }
@@ -583,63 +630,35 @@ class _SyncProgressState extends State<SyncProgress>
               : null;
       if (secs != null) left = secs < 60 ? l.syncLeftUnderMinute : l.syncLeftMinutes((secs / 60).ceil());
     }
-    final small = TextStyle(color: c.muted, fontSize: 14, fontFeatures: const [FontFeature.tabularFigures()]);
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      _Ends(
-        flow: _flow,
-        place: widget.place,
-        // Toward this phone when bringing in, away from it when sending.
-        direction: switch (e.kind) {
-          sync.SyncStep.receiving => -1,
-          sync.SyncStep.sending || sync.SyncStep.removing => 1,
-          _ => 0,
-        },
-      ),
-      const SizedBox(height: 26),
-      Text(title, key: const ValueKey('sync-progress'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 22),
-      LinearProgressIndicator(
-        value: bytesTotal > 0 ? (bytes / bytesTotal).clamp(0, 1) : (e.total > 0 ? e.done / e.total : null),
-        minHeight: 8,
-        // The black-and-white theme would draw track and bar alike.
-        backgroundColor: c.border,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      const SizedBox(height: 10),
-      if (e.total > 0 || e.done > 0)
-        Row(children: [
-          Text(
-              // While looking, what counts is the other devices' change lists read so far.
-              e.kind == sync.SyncStep.checking && e.total > 0
-                  ? '${e.done} / ${e.total}'
-                  : e.total > 0
-                      ? l.syncItems(e.done, e.total)
-                      : l.syncItemsSoFar(e.done),
-              key: const ValueKey('sync-items'),
-              style: small),
-          const Spacer(),
-          if (e.kind != sync.SyncStep.removing && e.kind != sync.SyncStep.preparing && e.kind != sync.SyncStep.tidying)
-          Text(
-            bytesTotal > 0 ? '${fileSize(BigInt.from(bytes))} / ${fileSize(BigInt.from(bytesTotal))}' : fileSize(BigInt.from(bytes)),
-            key: const ValueKey('sync-bytes'),
-            style: small,
-          ),
-        ]),
-      if (rate != null) ...[
-        const SizedBox(height: 4),
-        Row(children: [
-          Text('${fileSize(BigInt.from(rate.$1.round()))}/s', key: const ValueKey('sync-speed'), style: small),
-          const Spacer(),
-          if (left != null) Text(left, style: small),
-        ]),
-      ],
-      // Android keeps going with the phone locked (a notification shows it, when that service
-      // is on); iOS does not.
-      if (Device.iOS || (Device.android && !Awake.androidSyncService)) ...[
-        const SizedBox(height: 18),
-        Text(l.syncKeepOpen, key: const ValueKey('sync-keep-open'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: 14)),
-      ],
-    ]);
+    final showBytes = e.kind != sync.SyncStep.removing && e.kind != sync.SyncStep.preparing && e.kind != sync.SyncStep.tidying;
+    return _meter(
+      c,
+      // Toward this phone when bringing in, away from it when sending.
+      direction: switch (e.kind) {
+        sync.SyncStep.receiving => -1,
+        sync.SyncStep.sending || sync.SyncStep.removing => 1,
+        _ => 0,
+      },
+      title: title,
+      value: bytesTotal > 0 ? (bytes / bytesTotal).clamp(0, 1) : (e.total > 0 ? e.done / e.total : null),
+      items: e.total > 0 || e.done > 0
+          // While looking, what counts is the other devices' change lists read so far.
+          ? e.kind == sync.SyncStep.checking && e.total > 0
+              ? '${e.done} / ${e.total}'
+              : e.total > 0
+                  ? l.syncItems(e.done, e.total)
+                  : l.syncItemsSoFar(e.done)
+          : null,
+      bytes: !showBytes
+          ? null
+          : bytesTotal > 0
+              ? '${fileSize(BigInt.from(bytes))} / ${fileSize(BigInt.from(bytesTotal))}'
+              : bytes > 0
+                  ? fileSize(BigInt.from(bytes))
+                  : null,
+      speed: rate != null && showBytes && rate.$1 > 0 ? '${fileSize(BigInt.from(rate.$1.round()))}/s' : null,
+      left: left,
+    );
   }
 
   @override

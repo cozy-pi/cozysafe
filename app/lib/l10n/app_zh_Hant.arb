@@ -734,5 +734,7 @@
   "syncRepairing": "正在重新傳送缺少的檔案",
   "syncRepairingDrive": "正在向 Google 雲端硬碟重新傳送缺少的檔案",
   "syncTidying": "正在清理舊版本",
-  "syncTidyingDrive": "正在清理 Google 雲端硬碟上的舊版本"
+  "syncTidyingDrive": "正在清理 Google 雲端硬碟上的舊版本",
+  "sortSmallest": "最小優先",
+  "storageItems": "{count, plural, other{{count} 個項目}}"
 }

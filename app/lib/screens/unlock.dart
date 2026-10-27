@@ -22,6 +22,7 @@ import 'set_pin.dart';
 import 'vault_home.dart';
 import '../theme.dart';
 import '../widgets/drive_logo.dart';
+import '../widgets/readable.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
 /// PIN pad is the fallback; the password is the fallback of the fallback. The add dock
@@ -332,7 +333,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     // offer one now, so next time is the PIN pad.
     if (offerBiometric && !rust.pinEnabled() && mounted) {
       await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => const SetPinScreen(skippable: true, forThisPhone: true)),
+        MaterialPageRoute(builder: (_) => Readable(child: const SetPinScreen(skippable: true, forThisPhone: true))),
       );
     }
     if (!mounted) return;
@@ -633,7 +634,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
             onPressed: _busy
                 ? null
                 : () => Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) => RestoreScreen(libraryDir: widget.libraryDir, needFile: true),
+                      builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: true)),
                     )),
             child: Text(l.restoreFromBackup),
           ),
@@ -652,7 +653,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   Future<void> _newVault() async {
     final l = AppLocalizations.of(context);
     if (!await confirmOwner(l.ownerCheckReason) || !mounted) return;
-    await Navigator.of(context).push(fadeRoute<void>((_) => NewVaultScreen(libraryDir: widget.libraryDir, first: false)));
+    await Navigator.of(context).push(fadeRoute<void>((_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: false))));
   }
 
   Widget _passwordField(AppLocalizations l, Color ink) {

@@ -48,6 +48,14 @@ pub trait Remote: Sync {
     fn put_file(&self, path: &str, local: &Path) -> Result<()> {
         self.put(path, &mut fs::File::open(local)?)
     }
+    /// [`Remote::put_file`], telling `read` the bytes as they leave (for the speed on
+    /// screen). A place that streams the file tells them on the way; by default all of
+    /// them once the file is up.
+    fn put_file_told(&self, path: &str, local: &Path, read: &dyn Fn(u64)) -> Result<()> {
+        self.put_file(path, local)?;
+        read(fs::metadata(local)?.len());
+        Ok(())
+    }
     /// Delete the file at `path` (gone already is fine). Files are never rewritten: the
     /// vault's lock is replaced by a newer one (`<vault>/lock/…`), and the records and
     /// content of an item deleted for good are taken away. A place that lives for one
@@ -331,6 +339,20 @@ impl Write for CountingWriter<'_, '_> {
     }
 }
 
+/// A reader that tells what goes through it, for [`Remote::put_file_told`].
+pub struct Telling<'a> {
+    pub src: &'a mut dyn Read,
+    pub read: &'a dyn Fn(u64),
+}
+
+impl Read for Telling<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let n = self.src.read(buf)?;
+        (self.read)(n as u64);
+        Ok(n)
+    }
+}
+
 /// A reader that counts what goes through it.
 struct CountingReader<'a, 'b> {
     src: &'a mut dyn Read,
@@ -369,10 +391,9 @@ impl Remote for Counted<'_> {
     }
 
     fn put_file(&self, path: &str, local: &Path) -> Result<()> {
-        // The place may stream the file its own way; count it once it is up.
-        self.inner.put_file(path, local)?;
-        self.add(fs::metadata(local)?.len());
-        Ok(())
+        // Counted as the bytes leave, not once the file is up: a big file used to show no
+        // speed while it went, then a burst (owner 2026-10-27: "the KB/s looks wrong").
+        self.inner.put_file_told(path, local, &|n| self.add(n))
     }
 
     fn remove(&self, path: &str) -> Result<()> {
@@ -2423,6 +2444,65 @@ pub(crate) mod tests {
             .collect();
         assert_eq!(removing.last().unwrap().done, n as u32);
         assert!(removing.len() >= 2);
+    }
+
+    /// A place that streams a file in pieces, saying how far it got after each.
+    struct Streams {
+        at: std::sync::Mutex<Vec<u64>>,
+    }
+
+    impl Remote for Streams {
+        fn key(&self) -> String {
+            "streams".into()
+        }
+        fn list(&self, _: &str) -> Result<Vec<String>> {
+            Ok(Vec::new())
+        }
+        fn get(&self, _: &str, _: &mut dyn Write) -> Result<bool> {
+            Ok(false)
+        }
+        fn put(&self, _: &str, src: &mut dyn Read) -> Result<()> {
+            std::io::copy(src, &mut std::io::sink())?;
+            Ok(())
+        }
+        fn exists(&self, _: &str) -> Result<bool> {
+            Ok(false)
+        }
+        fn put_file_told(&self, _: &str, local: &Path, read: &dyn Fn(u64)) -> Result<()> {
+            let len = fs::metadata(local)?.len();
+            for _ in 0..4 {
+                read(len / 4);
+                self.at.lock().unwrap().push(len / 4);
+            }
+            Ok(())
+        }
+    }
+
+    /// The bytes of a file going up count as they leave, not all at once at the end
+    /// (the speed on screen stood still on a big file, then jumped).
+    #[test]
+    fn upload_bytes_count_on_the_way() {
+        let dir = tempfile::tempdir().unwrap();
+        let local = dir.path().join("f");
+        fs::write(&local, vec![0u8; 4000]).unwrap();
+        let place = Streams {
+            at: Default::default(),
+        };
+        let counted = Counted {
+            inner: &place,
+            bytes: AtomicU64::new(0),
+        };
+        counted.put_file("v/blobs/x", &local).unwrap();
+        assert_eq!(counted.bytes(), 4000);
+        assert_eq!(place.at.lock().unwrap().len(), 4);
+        // A place that does not stream: the whole file once it is up, counted once.
+        let plain = FolderRemote::new(dir.path());
+        let counted = Counted {
+            inner: &plain,
+            bytes: AtomicU64::new(0),
+        };
+        counted.put_file("v/blobs/y", &local).unwrap();
+        assert_eq!(counted.bytes(), 4000);
     }
 
     // ---------- old revisions ----------

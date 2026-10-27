@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../widgets/bottom_bar.dart';
 import '../widgets/secret.dart';
 import 'common.dart';
+import '../widgets/readable.dart';
 
 /// The vault password, asked after Face ID before the Recovery Key is shown (owner
 /// 2026-10-24: Face ID alone was too little for the 24 words). Wrong tries count with
@@ -19,7 +20,7 @@ class KitPasswordScreen extends StatefulWidget {
   /// Pushes the screen; the password once it was the right one (a Recovery Key change
   /// needs it again), null otherwise.
   static Future<String?> ask(BuildContext context, String libraryDir) =>
-      Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => KitPasswordScreen(libraryDir: libraryDir)));
+      Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => Readable(child: KitPasswordScreen(libraryDir: libraryDir))));
 
   @override
   State<KitPasswordScreen> createState() => _KitPasswordScreenState();
