@@ -114,6 +114,12 @@ allow_unsafe = true
 [pkg.cipher]
 allow_unsafe = true
 
+[pkg.cmov]
+allow_unsafe = true
+
+[pkg."const-oid"]
+allow_unsafe = true
+
 [pkg.cpufeatures]
 allow_unsafe = true
 
@@ -124,6 +130,9 @@ allow_apis = ["fs", "net"]
 
 [pkg.g2gen]
 allow_proc_macro = true
+
+[pkg."hybrid-array"]
+allow_unsafe = true
 
 [pkg.lru]
 allow_unsafe = true
