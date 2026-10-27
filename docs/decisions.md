@@ -4,6 +4,18 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-27 — A small head per device, so a quiet Drive costs one request
+
+**Owner (approved design):** every automatic look at Google Drive used to list the whole
+tree. Each device now keeps one sealed head file on the sync place, `<vault>/head/<device>`
+(its last journal entry and how far it read the others'), written after its journal
+entries and rewritten in place on Drive (same file id). `drive_changed` lists only the
+`head` folder with Drive's per-file `version` and says whether another device wrote since
+the last full sync that worked; any doubt or error says "changed". Devices on 0.1.80 and
+older write no head and are seen only by the full syncs on open, unlock and every so often
+(Dart side). The cursors in the head are kept for a later clean-up of old journal entries.
+Details: ADR 0003, "Heads".
+
 ## 2026-10-27 — Automatic sync with Google Drive (changes "Network only by hand")
 
 **Owner:** Google Drive may sync without a tap. A switch, "Sync automatically", set on

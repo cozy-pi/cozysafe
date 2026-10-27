@@ -277,6 +277,21 @@ impl Index {
         Ok(())
     }
 
+    /// Every sync meta entry whose key starts with `prefix`, sorted by key.
+    pub(crate) fn meta_prefixed(&self, prefix: &str) -> Result<Vec<(String, String)>> {
+        let mut st = self
+            .db
+            .prepare("SELECT key, value FROM sync_meta WHERE substr(key, 1, ?2) = ?1 ORDER BY key")
+            .map_err(sql)?;
+        let rows = st
+            .query_map(params![prefix, prefix.chars().count() as i64], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .map_err(sql)?;
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(sql)
+    }
+
     pub(crate) fn synced_rev(&self, remote: &str, id: &str) -> Result<Option<String>> {
         self.db
             .query_row(
