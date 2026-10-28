@@ -13,15 +13,23 @@ quick to notice. Agreed, in this order of value:
 
 1. **No builds on the owner's own computer** (it holds the secrets vault, SSH keys,
    tokens): build scripts, Gradle and CocoaPods run with full access wherever they run.
-   Build in a VM or container without secrets, or only on CI. *To do.*
+   *Done for Rust:* `tools/sandbox/run` runs cargo in a container that sees only the
+   repository, read-only, without network (docs/supply-chain.md). Flutter, Gradle and
+   Xcode builds already run only on CI.
 2. **Slow, reviewed updates.** The 14-day age rule is already in place
-   (`tools/check-age`); add `cargo-vet` (imports Google's and Mozilla's audits) so an
-   update's diff is reviewed. *To do.* An automatic updater (Dependabot) only with a wait.
-3. **Fewer packages**, preferring the platform's own or the Flutter team's. *To do: list
-   candidates.*
-4. **Isolate PDFium**, the C++ PDF renderer that reads files the person adds: its own
-   process without permissions (Android `isolatedProcess`, a macOS XPC service); iOS
-   allows neither. *To do, ADR first.*
+   (`tools/check-age`). *Done:* `cargo-vet` in CI; audits imported from Google, Mozilla,
+   Bytecode Alliance, ISRG, Zcash and Embark; the rest exempted at today's versions, so
+   every new or updated crate needs its diff read and certified. Dart has no such tool.
+3. **Fewer packages.** *Proposed, owner to choose:* replace with our own small platform
+   code, no visible change: `fc_native_video_thumbnail` (tier 1, small publisher),
+   `flutter_secure_storage` (a community package holding our keys; existing entries
+   must still be read), `share_plus`, `record` (two more community publishers),
+   `package_info_plus` (version passed in at build time). About 22 packages; with
+   `pdfrx` (point 4) about 37 of 364. Kept: the Flutter team's plugins, `intl`, and
+   `crypto` / `hex` (removing them removes nothing else).
+4. **PDFium.** *Proposed:* [ADR 0004](adr/0004-pdf-rendering.md): the system's PDF
+   renderer on every platform (Android's in an isolated process), `pdfrx` and our own
+   PDFium copy gone; Linux without an in-app PDF preview.
 
 Done now: **[dependencies.md](dependencies.md)**, a page of every package by risk tier,
 generated from the lock files (`tools/deps-report`, kept current by CI), with a weekly

@@ -19,6 +19,7 @@ No single check can promise that. Several layers, each catching what another mis
 | Dart runtime guard | `app/lib/offline.dart` (installed first thing in `main`) | `HttpClient()` throws; `Socket.connect`, `Socket.startConnect`, `ServerSocket.bind` fail |
 | Allowlists | `tools/check-deps`, `tools/allow/*.txt` | Any new Dart package or Rust crate, direct or transitive, until someone reviews it |
 | Source scan | `tools/check-deps`, `tools/allow/network-ok.txt` | Network APIs in the Dart, Kotlin/Java, Swift/Objective-C and C/C++ sources of every pub package that ships |
+| cargo-vet | `supply-chain/`, `app/rust/supply-chain/`, CI `ci.yml` | A new or updated crate nobody has read: each version must be audited (by us or an imported auditor) or exempted |
 | Age | `tools/check-age`, `tools/allow/young.txt`, CI `security.yml` | Any version published less than 14 days ago (most hijacked releases are pulled within days) |
 | Dependency page | `tools/deps-report`, [dependencies.md](dependencies.md), CI `ci.yml`, `security.yml`, `deps-review.yml` | A package nobody looks at again: every package listed by risk, a monthly review of what changed, and a weekly check that no package changed owners |
 
@@ -81,6 +82,16 @@ included, for network APIs. A package with hits must be listed in
 `tools/allow/network-ok.txt` with the reason it is acceptable (web-only code, a
 feature the app does not call, build-time only).
 
+**cargo-vet** checks every crate version in both workspaces against audits: our own
+(`supply-chain/audits.toml`), and those of Google, Mozilla, the Bytecode Alliance,
+ISRG, Zcash and Embark (imported, `imports.lock`). The crates already in use on
+2026-10-28 are exempted at those versions. A new crate, or a new version of one, fails
+CI until someone reads it and certifies it: `tools/sandbox/run --net --rw supply-chain
+cargo vet` suggests what to read, `cargo vet diff` shows the change from a version
+already trusted, `cargo vet certify` records it (the same in `app/rust`, with
+`--rw app/rust/supply-chain -C app/rust`). It covers Rust only; nothing like it exists
+for pub.dev.
+
 **Dependency page.** `tools/deps-report` writes [dependencies.md](dependencies.md) from
 the lock files: every Rust crate, Dart package and Swift package (and the Gradle groups),
 in four tiers: (1) code that parses data from outside (files the person adds, camera
@@ -111,6 +122,24 @@ first). The app ships only the table.
 Attribution: SecLists is MIT licensed, Copyright (c) 2018 Daniel Miessler (the MIT
 notice is in the SecLists repository, `LICENSE`). The underlying list is Mark
 Burnett's "10 million passwords" set, which he released into the public domain.
+
+## Builds on a person's computer
+
+Flutter, Gradle, CocoaPods and Xcode builds run only on CI. Rust is built and tested
+locally too, and a crate's build script or proc macro runs with every right of whoever
+builds: it could read SSH keys, tokens or other projects. `tools/sandbox/run` runs
+cargo in a Docker container (`tools/sandbox/Dockerfile`: the official Rust image at the
+pinned toolchain, by digest) that sees only this repository, read-only and without
+`.git`, as an unprivileged user, with no network unless `--net` is given:
+
+    tools/sandbox/run --net cargo fetch --locked            # downloads only, no package code runs
+    tools/sandbox/run cargo test --locked                   # offline
+    tools/sandbox/run cargo clippy --locked --all-targets -- -D warnings
+
+The app's own crate (`app/rust`) needs the bindings `flutter_rust_bridge_codegen`
+generates, which needs Flutter, so it builds on CI only. Downloaded crates and build output stay in two Docker volumes (`cozysafe-cargo`,
+`cozysafe-target`). Formatting (`cargo fmt`) runs no package code and writes files, so
+it runs outside.
 
 ## Signing and store keys stay out of build jobs
 
