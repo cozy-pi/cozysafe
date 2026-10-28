@@ -152,9 +152,13 @@ def shot(device, screen, lang, alt, width):
             f'width="{width}" height="{round(width * h / w)}" alt="{alt}" loading="lazy" decoding="async">')
 
 
-# Phones and tablets only (owner 2026-10-27: the desktop app was the phone's screen made
-# bigger). The desktop builds stay on GitHub releases; the site no longer offers them.
+# Computers again (owner 2026-10-28), now that the desktop app has its own wide layout,
+# Google Drive and Touch ID; taken off on 2026-10-27 while it was the phone's screen made
+# bigger.
 PLATFORMS = [
+    ('apple', 'macOS', 'CozySafe-macos.dmg', 'mac'),
+    ('windows', 'Windows', 'CozySafe-windows-x64.zip', 'win'),
+    ('linux', 'Linux', 'CozySafe-linux-x64.tar.gz', 'lin'),
     ('android', 'Android', 'CozySafe-android.apk', 'andr'),
 ]
 
