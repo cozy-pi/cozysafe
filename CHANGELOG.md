@@ -4,6 +4,22 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.84 (2026-10-28)
+
+### Added
+- Google Drive on computers (macOS, Windows, Linux): sign in through your browser, then
+  sync and restore from Drive as on a phone.
+- Touch ID opens the vault on a Mac. The key stays inside the Mac's Secure Enclave; adding
+  or removing a finger turns Touch ID off until you turn it on again.
+- Debug mode: Check Google Drive counts what Drive holds for this vault by kind and finds
+  junk (files no item uses); junk is cleaned only on a tap, after a confirmation.
+- Debug mode: the sync log on its own page, in the device's time.
+
+### Changed
+- Unlocking with the PIN on a computer is about three times faster (the key work now uses
+  several cores; the keys are the same).
+- The Debug page is laid out like Settings.
+
 ## 0.1.83 (2026-10-28)
 
 ### Changed
