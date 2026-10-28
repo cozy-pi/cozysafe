@@ -6,6 +6,7 @@ import '../screens/settings.dart';
 import '../theme.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/toast.dart';
+import '../src/rust/api/sync.dart' as sync;
 import 'drive.dart';
 import 'sync_log.dart';
 
@@ -49,8 +50,26 @@ class DriveCheckScreen extends StatefulWidget {
   State<DriveCheckScreen> createState() => _DriveCheckScreenState();
 }
 
-Future<DriveCounts> _coreCheck(String token) => throw UnimplementedError();
-Future<int> _coreClean(String token) => throw UnimplementedError();
+Future<DriveCounts> _coreCheck(String token) async {
+  final a = await sync.driveAudit(token: token);
+  return DriveCounts(
+    items: a.itemsLive + a.itemsTrash,
+    folders: a.folders,
+    current: a.currentFiles,
+    currentBytes: a.currentBytes.toInt(),
+    old: a.oldFiles,
+    oldBytes: a.oldBytes.toInt(),
+    // Change lists, the devices' heads and the lock: what syncing needs to work.
+    journal: a.journalFiles + a.headFiles + a.lockFiles,
+    junk: a.orphanFiles,
+    junkBytes: a.orphanBytes.toInt(),
+    // Not junk for sure, or already on the way out at the next sync: never cleaned here.
+    unknown: a.unknownFiles + a.deletingFiles,
+    summary: a.summary,
+  );
+}
+
+Future<int> _coreClean(String token) => sync.driveClean(token: token);
 
 class _DriveCheckScreenState extends State<DriveCheckScreen> {
   DriveCounts? _result = DriveCheckScreen.debugResult;
