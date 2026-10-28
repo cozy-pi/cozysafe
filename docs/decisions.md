@@ -4,6 +4,17 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-28 — Checking Google Drive for junk
+
+**Owner:** worried about junk in Drive (98 items, about 920 files and folders). The core
+and bridge gain `drive_audit` (counts and bytes per kind: current, old revisions, journal,
+heads, lock, orphans, unknown, deleting; one log line without ids) and `drive_clean`
+(removes only orphans, worked out again from a fresh listing). One listing, nothing
+downloaded. Conservative: anything that might be another device's item not taken here
+yet, or a revision made after a deletion, is "unknown" and stays; content without a record
+counts as junk only once a day old. Not in the connection log (it would read as a sync).
+UI elsewhere. Details: ADR 0003, "Checking for junk".
+
 ## 2026-10-27 — A small head per device, so a quiet Drive costs one request
 
 **Owner (approved design):** every automatic look at Google Drive used to list the whole

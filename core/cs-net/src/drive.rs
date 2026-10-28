@@ -34,6 +34,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Mutex};
 
+use cs_vault::audit::{self, Class, PlaceAudit, PlaceFile, PlaceKnowledge};
 use cs_vault::bucket_of;
 use cs_vault::sync::{HeadsSeen, Remote, Telling};
 use cs_vault::{Error, Result};
@@ -73,6 +74,10 @@ pub struct Node {
     pub sha256: Option<String>,
     /// Drive's version of the file (rises on every change), when it gave one.
     pub version: Option<u64>,
+    /// The file's size in bytes, when Drive gave one (folders have none).
+    pub size_bytes: Option<u64>,
+    /// When the file was made in Drive (ms since the Unix epoch), when it said.
+    pub created_ms: Option<i64>,
 }
 
 /// A file going into another folder under another name; its bytes stay where they are.
@@ -886,6 +891,168 @@ pub fn head_versions<A: DriveApi>(
     Ok(Some(seen(&heads, files)))
 }
 
+/// One vault's files in Drive, listed once (names, sizes, when made; nothing read), for
+/// checking for junk ([`check_vault`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct VaultFiles {
+    /// Folders under "Cozy Safe" that belong to the vault, its own folder included.
+    pub folders: u32,
+    /// Each file, by its path in the sync layout when it has one; a file at the path
+    /// the layout gives it comes before another copy of the same path.
+    pub files: Vec<PlaceFile>,
+    /// Each file's Drive id, in the same order.
+    pub ids: Vec<String>,
+}
+
+/// Every file and folder of `vault` in Drive, from one listing of the app's tree (the
+/// same one a sync's opening makes), without moving or making anything: files in their
+/// place, files of an earlier layout (flat in "Cozy Safe" or in the vault's folder: a
+/// sync moves them, so they count by their path), and anything else in the vault's
+/// folders (no path: not the layout's). Nothing when there is no "Cozy Safe" folder.
+pub fn vault_files<A: DriveApi>(api: &A, vault: &str) -> Result<VaultFiles> {
+    if !is_vault(vault) {
+        return Err(Error::Corrupt("drive path"));
+    }
+    let Some(root) = api.find_folder(None, FOLDER)? else {
+        return Ok(VaultFiles::default());
+    };
+    let nodes = api.tree(&|_| {})?;
+    // Every folder's path under "Cozy Safe", level by level, however deep.
+    let mut paths: HashMap<&str, String> = HashMap::new();
+    loop {
+        let mut more = Vec::new();
+        for n in nodes
+            .iter()
+            .filter(|n| n.folder && !paths.contains_key(n.id.as_str()))
+        {
+            if n.parent == root {
+                more.push((n.id.as_str(), n.name.clone()));
+            } else if let Some(p) = paths.get(n.parent.as_str()) {
+                more.push((n.id.as_str(), format!("{p}/{}", n.name)));
+            }
+        }
+        if more.is_empty() {
+            break;
+        }
+        paths.extend(more);
+    }
+    let prefix = format!("{vault}/");
+    let mine = |p: &str| p == vault || p.starts_with(&prefix);
+    // Where the layout keeps files: the first folder by id with that path, as a sync's
+    // opening takes it.
+    let mut first: HashMap<&str, &str> = HashMap::new();
+    for (id, path) in &paths {
+        let at = first.entry(path.as_str()).or_insert(id);
+        if *id < *at {
+            *at = id;
+        }
+    }
+    let laid_out = |rest: &str| {
+        (place(rest).is_some() && check(&format!("{vault}/{rest}")).is_ok())
+            .then(|| rest.to_owned())
+    };
+    // (path, in place, Drive id, file)
+    let mut found: Vec<(Option<String>, bool, &str, PlaceFile)> = Vec::new();
+    for n in nodes.iter().filter(|n| !n.folder) {
+        let (path, in_place) = if n.parent == root {
+            // Flat in "Cozy Safe", named by the whole path (up to 0.1.57).
+            match n.name.strip_prefix(&prefix) {
+                Some(rest) => (laid_out(rest), false),
+                None => continue,
+            }
+        } else {
+            let Some(at) = paths.get(n.parent.as_str()).filter(|p| mine(p)) else {
+                continue;
+            };
+            match at.split_once('/') {
+                // Flat in the vault's folder, named by the rest (never released).
+                None => (laid_out(&n.name), false),
+                Some((_, sub)) => match unplace(sub, &n.name).and_then(|r| laid_out(&r)) {
+                    Some(rest) => (
+                        Some(rest),
+                        first.get(at.as_str()) == Some(&n.parent.as_str()),
+                    ),
+                    None => (None, false),
+                },
+            }
+        };
+        found.push((
+            path.clone(),
+            in_place,
+            n.id.as_str(),
+            PlaceFile {
+                path,
+                size_bytes: n.size_bytes.unwrap_or(0),
+                created_ms: n.created_ms,
+            },
+        ));
+    }
+    found.sort_by(|a, b| (a.0.is_none(), &a.0, !a.1, a.2).cmp(&(b.0.is_none(), &b.0, !b.1, b.2)));
+    let folders = paths.values().filter(|p| mine(p)).count() as u32;
+    let (mut files, mut ids) = (Vec::new(), Vec::new());
+    for (_, _, id, f) in found {
+        ids.push(id.to_owned());
+        files.push(f);
+    }
+    Ok(VaultFiles {
+        folders,
+        files,
+        ids,
+    })
+}
+
+/// What [`check_vault`] found.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Checked {
+    pub audit: PlaceAudit,
+    /// The Drive ids of the files classed orphans, records first, then content, then
+    /// the rest ([`cs_vault::audit::removal_rank`]).
+    pub orphans: Vec<String>,
+}
+
+/// Check `vault`'s files in Drive for junk: listed once ([`vault_files`]) and sorted by
+/// [`cs_vault::audit::classify`] against what this device knows (`known`, from
+/// [`cs_vault::OpenVault::place_knowledge`] for [`PLACE_KEY`]). Reads no file. Must not
+/// run while a sync with Drive runs: the knowledge and the place must hold still.
+pub fn check_vault<A: DriveApi>(
+    api: &A,
+    vault: &str,
+    known: &PlaceKnowledge,
+    now_ms: i64,
+) -> Result<Checked> {
+    let listed = vault_files(api, vault)?;
+    let classes = audit::classify(&listed.files, known, now_ms);
+    let audit = PlaceAudit::count(&listed.files, &classes, listed.folders, known);
+    let mut orphans: Vec<(u8, &str)> = listed
+        .files
+        .iter()
+        .zip(&listed.ids)
+        .zip(&classes)
+        .filter(|(_, c)| **c == Class::Orphan)
+        .map(|((f, id), _)| (audit::removal_rank(f), id.as_str()))
+        .collect();
+    orphans.sort();
+    Ok(Checked {
+        audit,
+        orphans: orphans.into_iter().map(|(_, id)| id.to_owned()).collect(),
+    })
+}
+
+/// Delete from Drive the files [`check_vault`] classes orphans, worked out again here,
+/// by their Drive ids, in batches ([`DriveApi::delete_many`]; gone already is fine);
+/// how many. Nothing else is ever deleted: current and old revisions, journal entries,
+/// heads, the lock, and anything unknown stay.
+pub fn clean_vault<A: DriveApi>(
+    api: &A,
+    vault: &str,
+    known: &PlaceKnowledge,
+    now_ms: i64,
+) -> Result<u32> {
+    let checked = check_vault(api, vault, known, now_ms)?;
+    api.delete_many(&checked.orphans)?;
+    Ok(checked.orphans.len() as u32)
+}
+
 /// The real Drive, through [`https`].
 pub struct GoogleDrive {
     token: String,
@@ -1109,14 +1276,71 @@ fn folder_named_query(parent: Option<&str>, name: &str) -> Result<String> {
 /// listing however many folders there are.
 const TREE_QUERY: &str = "trashed = false";
 /// What the tree listing asks of each file.
-const TREE_FIELDS: &str = "id,name,parents,mimeType,sha256Checksum,version";
+const TREE_FIELDS: &str = "id,name,parents,mimeType,sha256Checksum,version,size,createdTime";
 
-/// Drive's version of a listed file (an int64, given as a string).
-fn version_of(f: &Value) -> Option<u64> {
-    match &f["version"] {
+/// A listed file's int64 field (Drive gives them as strings): `version`, `size`.
+fn int_of(f: &Value, field: &str) -> Option<u64> {
+    match &f[field] {
         Value::String(s) => s.parse().ok(),
         v => v.as_u64(),
     }
+}
+
+/// Drive's version of a listed file.
+fn version_of(f: &Value) -> Option<u64> {
+    int_of(f, "version")
+}
+
+/// An RFC 3339 time in UTC as Drive writes it (`2026-10-27T08:15:30.123Z`), in ms since
+/// the Unix epoch; `None` for anything else.
+fn time_ms(s: &str) -> Option<i64> {
+    let b = s.as_bytes();
+    if b.len() < 20
+        || b[4] != b'-'
+        || b[7] != b'-'
+        || b[10] != b'T'
+        || b[13] != b':'
+        || b[16] != b':'
+        || !s.ends_with('Z')
+    {
+        return None;
+    }
+    let num = |r: std::ops::Range<usize>| -> Option<i64> {
+        let part = s.get(r)?;
+        part.bytes()
+            .all(|c| c.is_ascii_digit())
+            .then(|| part.parse().ok())?
+    };
+    let (year, month, day) = (num(0..4)?, num(5..7)?, num(8..10)?);
+    let (hour, minute, second) = (num(11..13)?, num(14..16)?, num(17..19)?);
+    if !(1..=12).contains(&month)
+        || !(1..=31).contains(&day)
+        || hour > 23
+        || minute > 59
+        || second > 60
+    {
+        return None;
+    }
+    let millis = match &s[19..s.len() - 1] {
+        "" => 0,
+        frac => {
+            let digits = frac.strip_prefix('.')?;
+            if digits.is_empty() || !digits.bytes().all(|c| c.is_ascii_digit()) {
+                return None;
+            }
+            let three: String = digits.chars().chain("000".chars()).take(3).collect();
+            three.parse().ok()?
+        }
+    };
+    // Days since 1970-01-01 of a date in the proleptic Gregorian calendar.
+    let y = if month <= 2 { year - 1 } else { year };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let mp = (month + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + day - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146_097 + doe - 719_468;
+    Some(((days * 24 + hour) * 60 + minute) * 60_000 + second * 1000 + millis)
 }
 
 /// The files and folders of one page of a listing; any with an odd id, or no folder, are
@@ -1139,6 +1363,8 @@ fn nodes_of(page: &Value) -> Vec<Node> {
                     .filter(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()))
                     .map(str::to_ascii_lowercase),
                 version: version_of(f),
+                size_bytes: int_of(f, "size"),
+                created_ms: f["createdTime"].as_str().and_then(time_ms),
             })
         })
         .collect()
@@ -1595,6 +1821,7 @@ impl DriveApi for GoogleDrive {
 mod tests {
     use super::*;
     use crate::testkit::{note, text, two};
+    use cs_vault::audit::Tally;
     use std::sync::atomic::AtomicU64;
     use std::sync::Arc;
 
@@ -1612,6 +1839,8 @@ mod tests {
         moves: usize,
         /// Moves that go through before the next one fails (a cut connection).
         moves_left: Option<usize>,
+        /// When the files added from now on are made (ms; 0 by default: long ago).
+        now_ms: i64,
     }
 
     /// Drive in memory; the app's folder is "F".
@@ -1638,6 +1867,8 @@ mod tests {
                 folder,
                 sha256: None,
                 version: (!folder).then_some(1),
+                size_bytes: (!folder).then_some(bytes.len() as u64),
+                created_ms: Some(self.state().now_ms),
             };
             self.state().nodes.push((node, bytes));
             id
@@ -1915,6 +2146,97 @@ mod tests {
             // Long markers: three random bytes can spell "aaa" by chance.
             assert!(!b.windows(10).any(|w| w == b"plain text"));
         }
+    }
+
+    #[test]
+    fn checking_drive_finds_only_junk_and_cleaning_removes_only_that() {
+        let t = two();
+        let drive = Fake::default();
+        let kept = note(&t.a, "Kept", "stays");
+        let gone = note(&t.a, "Gone", "deleted for good");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        t.a.delete_item(&gone).unwrap();
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        // B makes an item and sends it; A has not taken it yet.
+        let from_b = note(&t.b, "From B", "not taken yet");
+        t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        let v = t.a.id.clone();
+        let folder = |path: &str| {
+            let ids: Vec<String> = drive
+                .state()
+                .nodes
+                .iter()
+                .filter(|(n, _)| n.folder)
+                .map(|(n, _)| n.id.clone())
+                .collect();
+            ids.into_iter()
+                .find(|id| drive.path_of(id) == path)
+                .unwrap()
+        };
+        // Junk: content of the item deleted for good, left behind, and a file the layout
+        // does not have; both long ago (the fake's clock is at 0).
+        let lost = gone.clone();
+        let content = folder(&format!("{v}/content/{}", &lost[30..]));
+        drive.add(&content, &format!("{lost}.r1.data"), vec![7; 40], false);
+        let vault_folder = folder(&v);
+        drive.add(&vault_folder, "header.json", vec![1; 3], false);
+        // Content another device is sending right now: not junk yet.
+        drive.state().now_ms = 10 * cs_vault::audit::ORPHAN_AGE_MS;
+        let sending = format!("{}{}", "c".repeat(30), &lost[30..]);
+        drive.add(&content, &format!("{sending}.r1.data"), vec![2; 9], false);
+        // Another vault's files are none of this check's business.
+        let other = "f".repeat(32);
+        let elsewhere = drive.add("F", &other, Vec::new(), true);
+        drive.add(&elsewhere, "header.json", vec![1; 3], false);
+
+        let now = 10 * cs_vault::audit::ORPHAN_AGE_MS + 1;
+        let known = t.a.place_knowledge(PLACE_KEY).unwrap();
+        let checked = check_vault(&drive, &v, &known, now).unwrap();
+        let a = &checked.audit;
+        assert_eq!((a.items_live, a.items_trash), (1, 0), "{a}");
+        assert_eq!(
+            a.orphans,
+            Tally {
+                files: 2,
+                bytes: 43
+            },
+            "{a}"
+        );
+        // B's item (record and content) and the content being sent.
+        assert_eq!(a.unknown.files, 3, "{a}");
+        assert_eq!(a.current.files, 2, "{a}"); // Kept: record and content
+        assert_eq!(a.heads.files, 2, "{a}");
+        assert_eq!(a.locks.files, 1, "{a}");
+        assert!(a.journal.files >= 3, "{a}");
+        assert_eq!(
+            a.folders as usize,
+            drive.folders().iter().filter(|f| f.starts_with(&v)).count()
+        );
+        assert!(a.summary().contains("orphans 2 (43 B)"), "{}", a.summary());
+
+        // Cleaning removes those two and nothing else.
+        let before = drive.layout().len();
+        assert_eq!(clean_vault(&drive, &v, &known, now).unwrap(), 2);
+        let after = drive.layout();
+        assert_eq!(after.len(), before - 2);
+        assert!(!after.iter().any(|(_, n, _)| n.starts_with(&lost)));
+        assert!(after
+            .iter()
+            .any(|(f, n, _)| f == &other && n == "header.json"));
+        assert_eq!(
+            check_vault(&drive, &v, &known, now).unwrap().audit.orphans,
+            Tally::default()
+        );
+        // Both devices go on syncing: A takes B's item, B still has everything.
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        assert_eq!(text(&t.a, &from_b), "not taken yet");
+        t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        assert_eq!(text(&t.b, &kept), "stays");
     }
 
     /// A full sync as the app runs it: what Drive said of the heads on open is kept
@@ -2465,7 +2787,7 @@ mod tests {
     fn a_listing_becomes_nodes() {
         let page = serde_json::json!({ "files": [
             { "id": "a1", "name": "Cozy Safe", "parents": ["root"], "mimeType": FOLDER_MIME },
-            { "id": "b2", "name": "x.data", "parents": ["a1", "z"], "mimeType": "application/octet-stream", "version": "17" },
+            { "id": "b2", "name": "x.data", "parents": ["a1", "z"], "mimeType": "application/octet-stream", "version": "17", "size": "5", "createdTime": "2025-10-27T08:15:30.123Z" },
             { "id": "c3", "name": "no parent" },
             { "id": "d 4", "name": "bad id", "parents": ["a1"] },
         ]});
@@ -2479,6 +2801,8 @@ mod tests {
                     folder: true,
                     sha256: None,
                     version: None,
+                    size_bytes: None,
+                    created_ms: None,
                 },
                 Node {
                     id: "b2".into(),
@@ -2487,6 +2811,8 @@ mod tests {
                     folder: false,
                     sha256: None,
                     version: Some(17),
+                    size_bytes: Some(5),
+                    created_ms: Some(1_761_552_930_123),
                 },
             ]
         );
