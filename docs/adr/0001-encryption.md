@@ -82,6 +82,14 @@ biometrics ─ platform keystore (Secure Enclave / StrongBox) ─► wrapped cop
   every vault shares the root derivation, so a new or changed wrap uses the library's
   stored parameters. Raising a phone-made library to the desktop floor would need
   per-vault parameters (not built).
+- **Lanes on threads, computers only (2026-10-28).** On macOS, Windows and Linux the
+  `argon2` crate's `parallel` feature (rayon, five more crates) runs the p = 4 lanes of
+  `DESKTOP_FLOOR` on separate threads; before, they ran one after another on one core.
+  The output is defined by p, not by the thread count, so no key changes (known-answer
+  test `lanes_on_threads_give_the_same_root`). Release build, Apple M1: one
+  `DESKTOP_FLOOR` derivation 850 ms → 280 ms; `PHONE_FLOOR` unchanged at ~190 ms.
+  iOS and Android do not take the feature (p = 1 there gains nothing). The app's FFI
+  crate also builds its dependencies optimised in debug builds, as the core does.
 - **Lowest accepted cost (2026-10-25).** Opening a library, joining from a sync
   place (its lock file) and restoring a backup refuse parameters below `PHONE_FLOOR`
   with a clear error (`KdfTooWeak`): a tampered `library.json`, lock or backup could

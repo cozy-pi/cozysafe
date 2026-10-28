@@ -676,6 +676,9 @@ pub fn p2p_restore(
 /// vault from start to end, so the vault locking meanwhile does not stop it; the vault
 /// itself stays free while Drive is listed.
 pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
+    // One run with Drive at a time: a check for junk running waits for this, and this
+    // for it.
+    let _run = DRIVE_RUN.lock().unwrap_or_else(|p| p.into_inner());
     STOP.store(false, Ordering::Relaxed);
     let token = zeroize::Zeroizing::new(token);
     let Some(hold) = hold_for_sync() else {
@@ -765,6 +768,112 @@ pub fn drive_changed(token: String) -> bool {
     let ms = started.elapsed().as_millis();
     super::vault::debug_line(|| format!("drive: check changed={changed} in {ms} ms"));
     changed
+}
+
+/// Held by [`drive_sync`], [`drive_audit`] and [`drive_clean`] while they run: a check
+/// never sees a sync half-way (files going up, the index changing), and never removes
+/// a file a sync is about to rely on. Each waits for the other to end.
+static DRIVE_RUN: Mutex<()> = Mutex::new(());
+
+/// What the vault's folder in Google Drive holds, counted by what each file is (see
+/// `cs_vault::audit::classify`); counts and bytes only, no ids or names.
+pub struct DriveAudit {
+    /// Items in the vault, and in Recently deleted (held ones included).
+    pub items_live: u32,
+    pub items_trash: u32,
+    /// The vault's folders in Drive, its own included.
+    pub folders: u32,
+    /// Records and content of the items' current revisions.
+    pub current_files: u32,
+    pub current_bytes: u64,
+    /// Records of older revisions (kept 30 days after they were superseded) and content
+    /// only they use.
+    pub old_files: u32,
+    pub old_bytes: u64,
+    /// Journal entries (`log/`), heads (`head/`), the lock (`lock/`).
+    pub journal_files: u32,
+    pub journal_bytes: u64,
+    pub head_files: u32,
+    pub lock_files: u32,
+    /// Junk nothing can use: what [`drive_clean`] removes.
+    pub orphan_files: u32,
+    pub orphan_bytes: u64,
+    /// Not junk for sure (an item another device made that this one has not taken yet,
+    /// content being sent right now, a second copy of a file): never removed.
+    pub unknown_files: u32,
+    pub unknown_bytes: u64,
+    /// Files of items deleted for good here that the next sync removes.
+    pub deleting_files: u32,
+    pub deleting_bytes: u64,
+    /// The counts as one line for a log: "items 98 (3 in trash) · folders 170 · current
+    /// 290 (1.2 GB) · old 210 (4.1 MB) · journal 140 · heads 2 · locks 1 · orphans 37
+    /// (80.0 MB) · unknown 0 · deleting 0".
+    pub summary: String,
+}
+
+impl From<&cs_vault::audit::PlaceAudit> for DriveAudit {
+    fn from(a: &cs_vault::audit::PlaceAudit) -> Self {
+        DriveAudit {
+            items_live: a.items_live,
+            items_trash: a.items_trash,
+            folders: a.folders,
+            current_files: a.current.files,
+            current_bytes: a.current.bytes,
+            old_files: a.old.files,
+            old_bytes: a.old.bytes,
+            journal_files: a.journal.files,
+            journal_bytes: a.journal.bytes,
+            head_files: a.heads.files,
+            lock_files: a.locks.files,
+            orphan_files: a.orphans.files,
+            orphan_bytes: a.orphans.bytes,
+            unknown_files: a.unknown.files,
+            unknown_bytes: a.unknown.bytes,
+            deleting_files: a.deleting.files,
+            deleting_bytes: a.deleting.bytes,
+            summary: a.summary(),
+        }
+    }
+}
+
+/// The open vault's id and what it knows of its items in Drive: one short look, the
+/// vault is not held over the network.
+fn drive_knowledge() -> Result<(String, cs_vault::audit::PlaceKnowledge), VaultError> {
+    with_open(|v| Ok((v.id.clone(), v.place_knowledge(drive::PLACE_KEY)?)))
+}
+
+/// Check the open vault's folder in Google Drive for junk: one listing of the app's
+/// files (names, sizes, when made), nothing downloaded, nothing changed. `token` as for
+/// [`drive_sync`]; the person allowed Drive for the app already. Waits for a sync with
+/// Drive running here to end first. Errors: [`VaultError::Locked`] when no vault is
+/// open, [`VaultError::Storage`] for Drive or the network (the error log says which).
+pub fn drive_audit(token: String) -> Result<DriveAudit, VaultError> {
+    let _run = DRIVE_RUN.lock().unwrap_or_else(|p| p.into_inner());
+    let token = zeroize::Zeroizing::new(token);
+    let started = Instant::now();
+    let (vault, known) = drive_knowledge()?;
+    let api = GoogleDrive::new(Permit::google_drive(), token.to_string())?;
+    let checked = drive::check_vault(&api, &vault, &known, now_ms() as i64)?;
+    let audit = DriveAudit::from(&checked.audit);
+    let ms = started.elapsed().as_millis();
+    super::vault::debug_line(|| format!("drive: check {} in {ms} ms", audit.summary));
+    Ok(audit)
+}
+
+/// Remove from Google Drive what [`drive_audit`] counts as orphans, and nothing else:
+/// worked out again here from a fresh listing (never from a list handed in), then
+/// deleted in batches. How many files went. Waits for a sync with Drive running here to
+/// end first; errors as for [`drive_audit`].
+pub fn drive_clean(token: String) -> Result<u32, VaultError> {
+    let _run = DRIVE_RUN.lock().unwrap_or_else(|p| p.into_inner());
+    let token = zeroize::Zeroizing::new(token);
+    let started = Instant::now();
+    let (vault, known) = drive_knowledge()?;
+    let api = GoogleDrive::new(Permit::google_drive(), token.to_string())?;
+    let removed = drive::clean_vault(&api, &vault, &known, now_ms() as i64)?;
+    let ms = started.elapsed().as_millis();
+    super::vault::debug_line(|| format!("drive: cleaned {removed} files in {ms} ms"));
+    Ok(removed)
 }
 
 /// A dropped connection mid-way is an interruption (nothing lost), not a failure.
