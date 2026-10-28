@@ -357,6 +357,8 @@ void _screen(String name, String caption, Widget Function() home,
       Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
       AutoSync.failed.value = false; // a screen's sync state never spills into the next
       AutoSync.lastOk.value = null;
+      AutoSync.moving.value = false;
+      AutoSync.pending.value = false;
       if (section != null) Prefs.write('vault-section', section);
       Prefs.write('add-column-hint', '3'); // the drag hint has been seen; no mid-nudge shots
       debugCamera = false;
@@ -556,20 +558,24 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
-  _screen('home', 'Trang chủ (Tổng quan)', home, section: 'home');
-  _screen('home-synced', 'Trang chủ · đã bật tự động đồng bộ Google Drive', change: 'MỚI: bên phải dòng dung lượng: ☁ Đã đồng bộ · 5 phút trước (chạm để mở Đồng bộ)', home, section: 'home',
-      setup: () {
+  void drive({bool failed = false, bool moving = false, bool pending = false}) {
     Prefs.write('drive-account', 'ban.do@gmail.com');
     Prefs.write(AutoSync.pref, '1');
-    AutoSync.failed.value = false;
+    AutoSync.failed.value = failed;
+    AutoSync.moving.value = moving;
+    AutoSync.pending.value = pending;
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
-  });
-  _screen('home-sync-failed', 'Trang chủ · lần tự động đồng bộ gần nhất bị lỗi', change: 'MỚI: chấm đỏ trên nút Cài đặt + chữ đỏ “Chưa đồng bộ được” (chạm để mở Đồng bộ)', home, section: 'home',
-      setup: () {
-    Prefs.write('drive-account', 'ban.do@gmail.com');
-    Prefs.write(AutoSync.pref, '1');
-    AutoSync.failed.value = true;
-  });
+  }
+  _screen('home', 'Trang chủ · chưa cài đồng bộ', change: 'Biểu tượng nhỏ bên phải dòng dung lượng: ☁̸ xám = Chưa đồng bộ (hiện cả khi chưa cài Google Drive)', home,
+      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-none'))]);
+  _screen('home-synced', 'Trang chủ · đã đồng bộ', change: '☁✓ xanh lá = Đã đồng bộ (không còn chữ, không còn giờ)', home,
+      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-ok'))], setup: drive);
+  _screen('home-syncing', 'Trang chủ · đang gửi / nhận mục', change: 'MỚI: ☁⇄ xanh dương = Đang đồng bộ. Chỉ hiện khi có mục đang lên/xuống Drive; lúc chỉ kiểm tra thì giữ nguyên biểu tượng cũ', home,
+      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-moving'))], setup: () => drive(moving: true));
+  _screen('home-sync-pending', 'Trang chủ · vừa sửa, chưa gửi lên', change: 'MỚI: vừa thêm/sửa mục mà chưa gửi (hoặc mất mạng giữa chừng) → ☁̸ xám Chưa đồng bộ', home,
+      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-none'))], setup: () => drive(pending: true));
+  _screen('home-sync-failed', 'Trang chủ · đồng bộ lỗi', change: '☁! đỏ = Đồng bộ lỗi, kèm chấm đỏ trên nút Cài đặt', home,
+      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-failed'))], setup: () => drive(failed: true));
   // iPad and computer (owner 2026-10-27): three columns, the sync always in sight.
   const ipad = Size(1180, 820), ipadUp = Size(820, 1180), mac = Size(1440, 900), win = Size(1280, 800);
   _screen('wide-ipad-home', 'iPad ngang · Tổng quan: thanh bên (mục, nhóm, đồng bộ, Thêm), nội dung rộng', home,
@@ -692,12 +698,12 @@ void main() {
   _screen('quick-photo-center', 'Xem trước · nút + ở giữa thanh', home, section: 'library', setup: () {
     Prefs.write('action-side', 'center');
   }, act: (t) => tapThumb(t, 2));
-  _screen('quick-photo', 'Thư viện · chạm vào một ảnh', change: 'MỚI: thẻ ngày thêm vào két · dung lượng, nhỏ, ở giữa phía trên ảnh (không có tên)', home, section: 'library',
+  _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
       act: (t) => tapThumb(t, 2));
-  _screen('quick-video', 'Thư viện · chạm vào một video', change: 'MỚI: thẻ ngày · dung lượng · độ dài, ở giữa phía trên video', home, section: 'library',
+  _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
       act: (t) => tapThumb(t, 5));
-  _screen('quick-full', 'Ảnh · bấm ⛶', change: 'SỬA: ngày + giờ · dung lượng ở GIỮA phía trên; nút thoát toàn màn hình xuống hàng nút dưới (đầu hàng)', home, section: 'library', act: (t) async {
+  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
     await t.tap(find.byKey(const ValueKey('quick-full')));
     for (var i = 0; i < 6; i++) {
@@ -902,7 +908,7 @@ void main() {
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', () => settings(vault),
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
-  _screen('settings-sync-failed', 'Cài đặt · lần tự động đồng bộ gần nhất bị lỗi', change: 'MỚI: chấm đỏ ở dòng Đồng bộ', () => settings(vault),
+  _screen('settings-sync-failed', 'Cài đặt · lần tự động đồng bộ gần nhất bị lỗi', () => settings(vault),
       setup: () {
     SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'];
     Prefs.write('drive-account', 'ban.do@gmail.com');
@@ -965,7 +971,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('sync-drive')));
     await t.pumpAndSettle();
   });
-  _screen('sync-failed-dot', 'Đồng bộ · lần tự động đồng bộ gần nhất bị lỗi', change: 'MỚI: chấm đỏ ở dòng Google Drive', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync-failed-dot', 'Đồng bộ · lần tự động đồng bộ gần nhất bị lỗi', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;

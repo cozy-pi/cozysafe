@@ -319,9 +319,6 @@
   "tagAction": "Grup",
   "tagSelected": "{count, plural, =1{1 öğenin grupları} other{{count} öğenin grupları}}",
   "tagEmpty": "Bu gruptan burada henüz bir şey yok.",
-  "capturePhoto": "Fotoğraf {when}",
-  "captureVideo": "Video {when}",
-  "captureAudio": "Kayıt {when}",
   "secretShow": "Göster",
   "secretHide": "Gizle",
   "ownerCheckSettings": "Güvenlik ayarlarını değiştirmek için kimliğinizi doğrulayın",
@@ -740,5 +737,6 @@
   "syncWifiOnly": "Yalnızca Wi-Fi'da",
   "syncNow": "Şimdi eşitle",
   "syncedStatus": "Eşitlendi",
-  "syncProblem": "Eşitlenemedi"
+  "syncProblem": "Eşitlenemedi",
+  "syncNotYet": "Senkronize edilmedi"
 }

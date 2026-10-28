@@ -319,9 +319,6 @@
   "tagAction": "Группа",
   "tagSelected": "{count, plural, one{Группы для {count} объекта} few{Группы для {count} объектов} many{Группы для {count} объектов} other{Группы для {count} объекта}}",
   "tagEmpty": "Из этой группы здесь пока ничего нет.",
-  "capturePhoto": "Фото {when}",
-  "captureVideo": "Видео {when}",
-  "captureAudio": "Запись {when}",
   "secretShow": "Показать",
   "secretHide": "Скрыть",
   "ownerCheckSettings": "Подтвердите, что это вы, чтобы изменить настройки безопасности",
@@ -740,5 +737,6 @@
   "syncWifiOnly": "Только по Wi-Fi",
   "syncNow": "Синхронизировать сейчас",
   "syncedStatus": "Синхронизировано",
-  "syncProblem": "Не удалось синхронизировать"
+  "syncProblem": "Не удалось синхронизировать",
+  "syncNotYet": "Не синхронизировано"
 }

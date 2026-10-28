@@ -319,9 +319,6 @@
   "tagAction": "群組",
   "tagSelected": "{count, plural, =1{1 個項目的群組} other{{count} 個項目的群組}}",
   "tagEmpty": "這裡還沒有這個群組的內容。",
-  "capturePhoto": "照片 {when}",
-  "captureVideo": "影片 {when}",
-  "captureAudio": "錄音 {when}",
   "secretShow": "顯示",
   "secretHide": "隱藏",
   "ownerCheckSettings": "請驗證身分以變更安全性設定",
@@ -740,5 +737,6 @@
   "syncWifiOnly": "僅限 Wi-Fi",
   "syncNow": "立即同步",
   "syncedStatus": "已同步",
-  "syncProblem": "無法同步"
+  "syncProblem": "無法同步",
+  "syncNotYet": "未同步"
 }

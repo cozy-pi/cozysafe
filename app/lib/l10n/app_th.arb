@@ -319,9 +319,6 @@
   "tagAction": "กลุ่ม",
   "tagSelected": "{count, plural, =1{กลุ่มของ 1 รายการ} other{กลุ่มของ {count} รายการ}}",
   "tagEmpty": "ยังไม่มีอะไรจากกลุ่มนี้ที่นี่",
-  "capturePhoto": "รูปภาพ {when}",
-  "captureVideo": "วิดีโอ {when}",
-  "captureAudio": "เสียงบันทึก {when}",
   "secretShow": "แสดง",
   "secretHide": "ซ่อน",
   "ownerCheckSettings": "ยืนยันตัวตนเพื่อเปลี่ยนการตั้งค่าความปลอดภัย",
@@ -740,5 +737,6 @@
   "syncWifiOnly": "เฉพาะเมื่อใช้ Wi-Fi",
   "syncNow": "ซิงค์เลย",
   "syncedStatus": "ซิงค์แล้ว",
-  "syncProblem": "ซิงค์ไม่สำเร็จ"
+  "syncProblem": "ซิงค์ไม่สำเร็จ",
+  "syncNotYet": "ยังไม่ได้ซิงค์"
 }

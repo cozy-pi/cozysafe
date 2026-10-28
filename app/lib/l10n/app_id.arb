@@ -319,9 +319,6 @@
   "tagAction": "Grup",
   "tagSelected": "{count, plural, =1{Grup untuk 1 item} other{Grup untuk {count} item}}",
   "tagEmpty": "Belum ada apa pun dari grup ini di sini.",
-  "capturePhoto": "Foto {when}",
-  "captureVideo": "Video {when}",
-  "captureAudio": "Rekaman {when}",
   "secretShow": "Tampilkan",
   "secretHide": "Sembunyikan",
   "ownerCheckSettings": "Konfirmasi bahwa ini Anda untuk mengubah pengaturan keamanan",
@@ -740,5 +737,6 @@
   "syncWifiOnly": "Hanya lewat Wi-Fi",
   "syncNow": "Sinkronkan sekarang",
   "syncedStatus": "Tersinkron",
-  "syncProblem": "Gagal menyinkron"
+  "syncProblem": "Gagal menyinkron",
+  "syncNotYet": "Belum disinkronkan"
 }

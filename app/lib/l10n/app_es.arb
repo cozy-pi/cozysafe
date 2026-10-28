@@ -319,9 +319,6 @@
   "tagAction": "Grupo",
   "tagSelected": "{count, plural, =1{Grupos de 1 elemento} other{Grupos de {count} elementos}}",
   "tagEmpty": "Aún no hay nada de este grupo aquí.",
-  "capturePhoto": "Foto {when}",
-  "captureVideo": "Vídeo {when}",
-  "captureAudio": "Grabación {when}",
   "secretShow": "Mostrar",
   "secretHide": "Ocultar",
   "ownerCheckSettings": "Confirma que eres tú para cambiar los ajustes de seguridad",
@@ -740,5 +737,6 @@
   "syncWifiOnly": "Solo con Wi-Fi",
   "syncNow": "Sincronizar ahora",
   "syncedStatus": "Sincronizado",
-  "syncProblem": "No se pudo sincronizar"
+  "syncProblem": "No se pudo sincronizar",
+  "syncNotYet": "Sin sincronizar"
 }

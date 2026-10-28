@@ -319,9 +319,6 @@
   "tagAction": "グループ",
   "tagSelected": "{count, plural, =1{1件の項目のグループ} other{{count}件の項目のグループ}}",
   "tagEmpty": "このグループの項目はここにはまだありません。",
-  "capturePhoto": "写真 {when}",
-  "captureVideo": "ビデオ {when}",
-  "captureAudio": "録音 {when}",
   "secretShow": "表示",
   "secretHide": "隠す",
   "ownerCheckSettings": "セキュリティ設定を変更するため本人確認をしてください",
@@ -740,5 +737,6 @@
   "syncWifiOnly": "Wi-Fi接続時のみ",
   "syncNow": "今すぐ同期",
   "syncedStatus": "同期済み",
-  "syncProblem": "同期できませんでした"
+  "syncProblem": "同期できませんでした",
+  "syncNotYet": "未同期"
 }

@@ -659,7 +659,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         picked = await importPicked(batch, photos: photos, progress: (d, _) {
           done.value = d;
           LockGuard.activity(); // a long import is not idleness
-        }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(l, kind, DateTime.now(), ext));
+        }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(DateTime.now(), ext));
       } finally {
         final r = sheetRoute;
         if (r != null && r.isCurrent) {
@@ -1795,14 +1795,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 12, 6, 0),
-            // Size and count; on the right, when the vault last synced with Google Drive.
+            // Size and count; on the right, where Google Drive stands (one small icon).
             child: Row(children: [
               Text(l.storageUsed(fileSize(bytes), things.length), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
               const SizedBox(width: 12),
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: HomeSyncLine(
+                  child: HomeSyncIcon(
                     onTap: () => pushPage<void>(context,
                         title: l.syncTitle, grouped: true, builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
                   ),

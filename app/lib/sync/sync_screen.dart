@@ -10,6 +10,7 @@ import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show pushPage;
 import '../platform.dart';
 import 'auto_sync.dart';
+import 'sync_log.dart';
 import 'sync_status.dart';
 import 'consent.dart';
 import 'drive.dart';
@@ -129,6 +130,7 @@ class _SyncScreenState extends State<SyncScreen> {
               retry: () => sync.driveSync(token: token),
               onSynced: () {
                 AutoSync.succeeded();
+                SyncLog.add('hand', 'done');
                 widget.onSynced();
               },
               waiting: Column(mainAxisSize: MainAxisSize.min, children: [

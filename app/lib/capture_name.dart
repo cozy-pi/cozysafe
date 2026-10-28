@@ -1,18 +1,10 @@
-import 'item_kind.dart';
-import 'l10n/app_localizations.dart';
-
 /// The name of a photo, video or recording made in the vault, or picked without a real
-/// name: the kind and the moment, e.g. "Ảnh 20-10-2026 21.40.12.jpg". No "/" or ":", so
-/// the name also works as a file name when the item is sent out.
-String captureName(AppLocalizations l, String kind, DateTime at, String extension) {
+/// name: only the moment, e.g. "20-10-2026 21.40.12.jpg" (owner 2026-10-28: no "Photo",
+/// "Video", "Recording" before it; the icon and the section already say what it is). No
+/// "/" or ":", so the name also works as a file name when the item is sent out.
+String captureName(DateTime at, String extension) {
   String two(int n) => n.toString().padLeft(2, '0');
-  final when = '${two(at.day)}-${two(at.month)}-${at.year} ${two(at.hour)}.${two(at.minute)}.${two(at.second)}';
-  final label = switch (kind) {
-    ItemKind.video => l.captureVideo(when),
-    ItemKind.audio => l.captureAudio(when),
-    _ => l.capturePhoto(when),
-  };
-  return '$label$extension';
+  return '${two(at.day)}-${two(at.month)}-${at.year} ${two(at.hour)}.${two(at.minute)}.${two(at.second)}$extension';
 }
 
 /// Names that pickers make up (temporary copies, UUIDs, bare numbers) say nothing; a name

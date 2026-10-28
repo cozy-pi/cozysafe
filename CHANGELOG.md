@@ -4,6 +4,24 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.82 (2026-10-28)
+
+### Changed
+- The sync status on the home page is one small icon, no words: grey cloud with a slash
+  (not synced: Google Drive not set up yet, a change not sent yet, or cut off), blue
+  (syncing, only while items go up or come down, not while it merely checks), red (sync
+  failed), green tick (synced). Touch and hold for the words; a tap opens Sync.
+- Photos, videos and recordings made in the app are named by the moment alone, e.g.
+  "28-10-2026 21.40.12.jpg", without "Photo", "Video" or "Recording" in front.
+
+### Fixed
+- A video recorded in the app was named with a long code instead of its date and time.
+
+### Added
+- A small sync log, always on: why automatic sync ran or was skipped, and how it ended
+  (items in and out, time taken, cut off or failed). No names, contents or accounts.
+  It comes with Settings → Report a problem → Copy details.
+
 ## 0.1.81 (2026-10-28)
 
 ### Added

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import 'prefs.dart';
+import 'sync/sync_log.dart';
 import 'src/rust/api/errors.dart' as rust;
 
 /// The error log, always on (owner 2026-10-26: Drive failed and nobody could tell why):
@@ -72,13 +73,14 @@ abstract final class ErrorLog {
   }
 
   /// The text "Copy details" puts on the clipboard: the app and the device kind, then
-  /// the codes, newest first.
+  /// the codes, newest first, then what automatic sync did ([SyncLog]).
   static String report({required String version, String? now}) {
     final os = kIsWeb ? 'web' : '${Platform.operatingSystem} ${Platform.operatingSystemVersion.split(' ').first}';
     return [
       'Cozy Safe $version · $os',
       ?now,
       for (final (t, place, code) in entries()) '${t.toUtc().toIso8601String()} $place $code',
+      if (SyncLog.lines() case final sync when sync.isNotEmpty) ...['', 'Sync:', ...sync],
     ].join('\n');
   }
 }

@@ -110,7 +110,7 @@ class RecorderViewState extends State<RecorderView> {
       await _rec.start(const RecordConfig(encoder: AudioEncoder.aacLc, numChannels: 1), path: path);
       HapticFeedback.mediumImpact();
       _path = path;
-      _name = captureName(l, ItemKind.audio, DateTime.now(), '.m4a');
+      _name = captureName(DateTime.now(), '.m4a');
       _bars.clear();
       _levels = _rec.onAmplitudeChanged(const Duration(milliseconds: 90)).listen((a) {
         // dBFS (about -60 quiet … 0 loud) to 0..1.

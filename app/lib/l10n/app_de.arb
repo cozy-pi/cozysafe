@@ -319,9 +319,6 @@
   "tagAction": "Gruppe",
   "tagSelected": "{count, plural, =1{Gruppen für 1 Element} other{Gruppen für {count} Elemente}}",
   "tagEmpty": "Aus dieser Gruppe ist hier noch nichts.",
-  "capturePhoto": "Foto {when}",
-  "captureVideo": "Video {when}",
-  "captureAudio": "Aufnahme {when}",
   "secretShow": "Anzeigen",
   "secretHide": "Verbergen",
   "ownerCheckSettings": "Bestätigen Sie, dass Sie es sind, um Sicherheitseinstellungen zu ändern",
@@ -740,5 +737,6 @@
   "syncWifiOnly": "Nur über WLAN",
   "syncNow": "Jetzt synchronisieren",
   "syncedStatus": "Synchronisiert",
-  "syncProblem": "Synchronisierung fehlgeschlagen"
+  "syncProblem": "Synchronisierung fehlgeschlagen",
+  "syncNotYet": "Nicht synchronisiert"
 }

@@ -333,9 +333,6 @@
   "tagAction": "Nhóm",
   "tagSelected": "{count, plural, other{Nhóm cho {count} mục}}",
   "tagEmpty": "Nhóm này chưa có gì ở mục này.",
-  "capturePhoto": "Ảnh {when}",
-  "captureVideo": "Video {when}",
-  "captureAudio": "Ghi âm {when}",
   "secretShow": "Xem",
   "secretHide": "Ẩn",
   "ownerCheckSettings": "Xác nhận là bạn để đổi cài đặt bảo mật",
@@ -754,5 +751,6 @@
   "syncWifiOnly": "Chỉ khi có Wi‑Fi",
   "syncNow": "Đồng bộ ngay",
   "syncedStatus": "Đã đồng bộ",
-  "syncProblem": "Chưa đồng bộ được"
+  "syncProblem": "Đồng bộ bị lỗi",
+  "syncNotYet": "Chưa đồng bộ"
 }
