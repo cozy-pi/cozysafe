@@ -17,6 +17,10 @@ Color _red(BuildContext context) =>
 Color _green(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : const Color(0xFF248A3D);
 
+/// iPhone's blue for "syncing".
+Color _blue(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
+
 /// Whether automatic sync is set up here, so its state is worth showing.
 bool get _autoOn => driveAccount != null && AutoSync.enabled;
 
@@ -70,56 +74,65 @@ class SyncAlertBadge extends StatelessWidget {
       );
 }
 
-/// "Synced · 5 minutes ago", "Syncing", or the red dot and "Couldn't sync"; nothing when
-/// automatic sync is off. A tap opens Sync.
-class HomeSyncLine extends StatelessWidget {
-  const HomeSyncLine({super.key, required this.onTap});
+/// Where Google Drive stands, as one small icon on the home page, no words (owner
+/// 2026-10-28): not synced (no Drive set up, a change not sent yet, or cut off), syncing
+/// (only while items go up or come down, not while it looks for changes), failed, or
+/// synced. The words are the tooltip and what a screen reader says. A tap opens Sync.
+class HomeSyncIcon extends StatelessWidget {
+  const HomeSyncIcon({super.key, required this.onTap});
   final VoidCallback onTap;
-
-  static String ago(AppLocalizations l, DateTime? at) {
-    if (at == null) return l.syncLastNever;
-    final d = DateTime.now().difference(at);
-    if (d.inMinutes < 1) return l.syncLastJustNow;
-    if (d.inHours < 1) return l.syncLastMinutes(d.inMinutes);
-    if (d.inDays < 1) return l.syncLastHours(d.inHours);
-    return l.syncLastDays(d.inDays);
-  }
 
   @override
   Widget build(BuildContext context) {
-    if (!_autoOn) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     return ListenableBuilder(
-      listenable: Listenable.merge([AutoSync.failed, AutoSync.lastOk, AutoSync.running]),
+      listenable: Listenable.merge([AutoSync.failed, AutoSync.lastOk, AutoSync.moving, AutoSync.pending]),
       builder: (context, _) {
-        final failed = AutoSync.failed.value;
-        final (Widget mark, String text) = AutoSync.running.value
-            ? (SizedBox.square(dimension: 12, child: CircularProgressIndicator(strokeWidth: 1.6, color: c.muted)), l.syncWorking)
-            : failed
-                ? (Container(width: 8, height: 8, decoration: BoxDecoration(color: _red(context), shape: BoxShape.circle)), l.syncProblem)
-                : (Icon(Icons.cloud_done_rounded, size: 15, color: _green(context)), '${l.syncedStatus} · ${ago(l, AutoSync.lastOk.value)}');
-        return InkWell(
-          key: const ValueKey('home-sync-line'),
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              mark,
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(text,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: AutoSync.running.value ? c.muted : (failed ? _red(context) : _green(context)),
-                        fontSize: CsType.footnote)),
-              ),
-            ]),
+        final (String key, Widget icon, String label) = switch (null) {
+          _ when driveAccount == null => ('none', Icon(Icons.cloud_off_rounded, size: 20, color: c.muted), l.syncNotYet),
+          _ when AutoSync.failed.value && AutoSync.enabled => ('failed', _FailedCloud(color: _red(context)), l.syncProblem),
+          _ when AutoSync.moving.value => (
+              'moving',
+              Icon(Icons.cloud_sync_rounded, size: 20, color: _blue(context)),
+              l.syncWorking
+            ),
+          _ when AutoSync.pending.value || AutoSync.lastOk.value == null =>
+            ('none', Icon(Icons.cloud_off_rounded, size: 20, color: c.muted), l.syncNotYet),
+          _ => ('ok', Icon(Icons.cloud_done_rounded, size: 20, color: _green(context)), l.syncedStatus),
+        };
+        return Tooltip(
+          message: label,
+          child: Semantics(
+            button: true,
+            label: label,
+            child: InkResponse(
+              key: ValueKey('home-sync-$key'),
+              onTap: onTap,
+              radius: 20,
+              child: SizedBox.square(dimension: 32, child: Center(child: ExcludeSemantics(child: icon))),
+            ),
           ),
         );
       },
     );
   }
+}
+
+/// A red cloud with a white "!" in it: no Material icon says "the cloud failed".
+class _FailedCloud extends StatelessWidget {
+  const _FailedCloud({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+        dimension: 20,
+        child: Stack(alignment: Alignment.center, children: [
+          Icon(Icons.cloud_rounded, size: 20, color: color),
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.priority_high_rounded, size: 11, color: Colors.white),
+          ),
+        ]),
+      );
 }

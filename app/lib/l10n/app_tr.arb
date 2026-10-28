@@ -740,5 +740,6 @@
   "syncWifiOnly": "Yalnızca Wi-Fi'da",
   "syncNow": "Şimdi eşitle",
   "syncedStatus": "Eşitlendi",
-  "syncProblem": "Eşitlenemedi"
+  "syncProblem": "Eşitlenemedi",
+  "syncNotYet": "Senkronize edilmedi"
 }

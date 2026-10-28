@@ -740,5 +740,6 @@
   "syncWifiOnly": "Solo con Wi-Fi",
   "syncNow": "Sincronizar ahora",
   "syncedStatus": "Sincronizado",
-  "syncProblem": "No se pudo sincronizar"
+  "syncProblem": "No se pudo sincronizar",
+  "syncNotYet": "Sin sincronizar"
 }

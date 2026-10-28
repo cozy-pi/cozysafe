@@ -740,5 +740,6 @@
   "syncWifiOnly": "เฉพาะเมื่อใช้ Wi-Fi",
   "syncNow": "ซิงค์เลย",
   "syncedStatus": "ซิงค์แล้ว",
-  "syncProblem": "ซิงค์ไม่สำเร็จ"
+  "syncProblem": "ซิงค์ไม่สำเร็จ",
+  "syncNotYet": "ยังไม่ได้ซิงค์"
 }

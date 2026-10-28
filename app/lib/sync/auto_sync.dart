@@ -44,8 +44,16 @@ abstract final class AutoSync {
   static bool get wifiOnly => Prefs.read(wifiPref) == '1';
   static set wifiOnly(bool on) => Prefs.write(wifiPref, on ? '1' : '0');
 
-  /// A run under way, for a small sign on the page.
+  /// A run under way (looking included).
   static final running = ValueNotifier(false);
+
+  /// Items going to or coming from Drive right now: the only time the home page shows
+  /// "syncing" (owner 2026-10-28: not while it merely looks for changes).
+  static final moving = ValueNotifier(false);
+
+  /// Something changed here and has not reached Drive yet, or the last run was cut off:
+  /// "not synced" on the home page until a sync goes through.
+  static final pending = ValueNotifier(false);
 
   /// When Google Drive last synced in full (automatic or by hand), for the line on the
   /// home page; kept across starts.
@@ -68,6 +76,7 @@ abstract final class AutoSync {
     final now = DateTime.now();
     lastOk.value = now;
     Prefs.write(_okPref, '${now.millisecondsSinceEpoch}');
+    pending.value = false;
     _fail(false);
   }
 
@@ -153,7 +162,10 @@ abstract final class AutoSync {
       _ours = false;
       return;
     }
-    if (before != null && before != sig && enabled) changed();
+    if (before != null && before != sig) {
+      pending.value = true;
+      if (enabled) changed();
+    }
   }
 
   /// Something changed here.
@@ -181,6 +193,8 @@ abstract final class AutoSync {
     if (changed) await run();
   }
 
+  static const _moves = {sync.SyncStep.receiving, sync.SyncStep.sending, sync.SyncStep.removing, sync.SyncStep.repairing};
+
   /// One quiet sync, when everything allows it; otherwise nothing (the next chance comes).
   static Future<void> run() async {
     _settle?.cancel();
@@ -193,6 +207,8 @@ abstract final class AutoSync {
     var changes = false;
     try {
       await for (final e in sync.driveSync(token: session.token)) {
+        if (_moves.contains(e.kind) && e.total > 0) moving.value = true;
+        if (e.kind == sync.SyncStep.interrupted) pending.value = true;
         if (e.kind == sync.SyncStep.done) {
           changes = e.received + e.removed + e.copies > 0;
           succeeded();
@@ -212,6 +228,7 @@ abstract final class AutoSync {
       _fail(true);
     } finally {
       running.value = false;
+      moving.value = false;
     }
     if (changes) {
       _ours = true; // the reload that follows is the sync's, not a change here

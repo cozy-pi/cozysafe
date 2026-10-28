@@ -740,5 +740,6 @@
   "syncWifiOnly": "Wi-Fi接続時のみ",
   "syncNow": "今すぐ同期",
   "syncedStatus": "同期済み",
-  "syncProblem": "同期できませんでした"
+  "syncProblem": "同期できませんでした",
+  "syncNotYet": "未同期"
 }

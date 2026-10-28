@@ -754,5 +754,6 @@
   "syncWifiOnly": "Chỉ khi có Wi‑Fi",
   "syncNow": "Đồng bộ ngay",
   "syncedStatus": "Đã đồng bộ",
-  "syncProblem": "Chưa đồng bộ được"
+  "syncProblem": "Đồng bộ bị lỗi",
+  "syncNotYet": "Chưa đồng bộ"
 }

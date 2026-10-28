@@ -740,5 +740,6 @@
   "syncWifiOnly": "Wi-Fi에서만",
   "syncNow": "지금 동기화",
   "syncedStatus": "동기화됨",
-  "syncProblem": "동기화하지 못함"
+  "syncProblem": "동기화하지 못함",
+  "syncNotYet": "동기화 안 됨"
 }
