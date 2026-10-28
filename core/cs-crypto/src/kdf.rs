@@ -252,5 +252,24 @@ mod tests {
         KdfParams::DESKTOP_FLOOR.check().unwrap();
     }
 
+    /// Known-answer test with the shape of DESKTOP_FLOOR (p = 4, t = 3), small memory.
+    /// The value was computed with single-threaded Argon2 before computers turned on the
+    /// `parallel` feature: running the lanes on threads must give the same root, or every
+    /// library made on a computer would stop opening.
+    #[test]
+    fn lanes_on_threads_give_the_same_root() {
+        let p4 = KdfParams {
+            m_kib: 256,
+            t: 3,
+            p: 4,
+        };
+        let root = derive_root(b"correct horse", &sk(1), &[7; 16], p4).unwrap();
+        let hex: String = root.as_bytes().iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(
+            hex,
+            "3b2b018310c20a3acfbb95f530ab636387f07db49a7c193cf7bed832c8774f93"
+        );
+    }
+
     const ACCEPTED: KdfParams = KdfParams::ACCEPTED_FLOOR;
 }

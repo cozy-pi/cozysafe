@@ -18,3 +18,10 @@ hkdf = "0.13"
 sha2 = "0.11"
 zeroize = { version = "1", features = ["derive"] }
 thiserror = "2"
+
+# Computers: run the Argon2 lanes on threads (rayon). DESKTOP_FLOOR has p = 4, which
+# otherwise runs its four lanes one after another on one core. The output is defined by
+# p, not by the thread count, so keys do not change (test kdf::tests::lanes_on_threads_*).
+# Phones use p = 1 and gain nothing, so they do not take the five extra crates.
+[target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dependencies]
+argon2 = { version = "0.6", default-features = false, features = ["parallel"] }
