@@ -4,6 +4,30 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-28 — Third-party code: hijacked packages, not only bugs
+
+**Owner:** worried that a library could be malicious or hijacked (xz, tj-actions, the
+npm worms), not only buggy; there are about 350 packages. No mechanism can stop code
+running inside the app's process, so the aim is: hard to get in, little it can reach,
+quick to notice. Agreed, in this order of value:
+
+1. **No builds on the owner's own computer** (it holds the secrets vault, SSH keys,
+   tokens): build scripts, Gradle and CocoaPods run with full access wherever they run.
+   Build in a VM or container without secrets, or only on CI. *To do.*
+2. **Slow, reviewed updates.** The 14-day age rule is already in place
+   (`tools/check-age`); add `cargo-vet` (imports Google's and Mozilla's audits) so an
+   update's diff is reviewed. *To do.* An automatic updater (Dependabot) only with a wait.
+3. **Fewer packages**, preferring the platform's own or the Flutter team's. *To do: list
+   candidates.*
+4. **Isolate PDFium**, the C++ PDF renderer that reads files the person adds: its own
+   process without permissions (Android `isolatedProcess`, a macOS XPC service); iOS
+   allows neither. *To do, ADR first.*
+
+Done now: **[dependencies.md](dependencies.md)**, a page of every package by risk tier,
+generated from the lock files (`tools/deps-report`, kept current by CI), with a weekly
+owner-change check and a monthly review issue ([supply-chain.md](supply-chain.md)).
+Baseline 2026-10-28: the packages already passed the allowlist review when they came in.
+
 ## 2026-10-28 — Checking Google Drive for junk
 
 **Owner:** worried about junk in Drive (98 items, about 920 files and folders). The core

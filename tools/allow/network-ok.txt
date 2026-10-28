@@ -1,7 +1,6 @@
 # Shipped Dart packages whose sources mention a network API (tools/check-deps scan),
 # reviewed one by one. Every line needs a reason. At run time the Dart guard
-# (app/lib/offline.dart) makes HttpClient/Socket fail anyway; on Android the APK has
-# no INTERNET permission and on macOS the sandbox has no network entitlement.
+# (app/lib/offline.dart) makes HttpClient/Socket fail anyway (docs/supply-chain.md).
 
 http                             # HTTP client; the app never imports it (only the browser preview, a dev dependency). Pulled in transitively by the packages below
 image_picker_platform_interface  # imports package:http only in the web implementation of PickedFile (html.dart); not compiled into native builds

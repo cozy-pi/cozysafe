@@ -244,6 +244,7 @@ screen in dark and light inside an iPhone frame, with the changed parts outlined
 | [Plan for v0.1](docs/plan-v0.1.md) | Stages and progress |
 | [Decisions](docs/decisions.md) | What was decided, when, and what is still open |
 | [Supply chain](docs/supply-chain.md) | How no library can send data out, and the limits |
+| [Dependencies](docs/dependencies.md) | Every third-party package, grouped by risk, and what changed since the last review |
 | [Security rules](docs/security.md) | Owner check on security settings; secrets and note text hidden on screen |
 | [UI](docs/ui.md) | Design language (sizes, colours, layout), approved designs, how mockups are made |
 | [Naming](docs/naming.md) | One name per concept; how stored names may change |
