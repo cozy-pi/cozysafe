@@ -93,6 +93,7 @@
     [
      "Ein Backup ist eine einzelne verschlüsselte Datei, gespeichert an einem Ort Ihrer Wahl (zum Beispiel iCloud Drive, Google Drive oder Dropbox). Dort werden nur verschlüsselte Daten gespeichert; der gewählte Anbieter kann sie nicht lesen.",
      "Synchronisierung mit Ihrem anderen Gerät: Wenn Sie sie starten und erlauben, gehen die verschlüsselten Daten des Tresors über Ihr WLAN direkt zu Ihrem eigenen Gerät. Nichts läuft über uns oder einen Server.",
+     "Synchronisierung über Google Drive: nur, wenn Sie Ihr Google-Konto verbinden. Die App speichert dann die verschlüsselten Daten des Tresors in einem Ordner „Cozy Safe“ in Ihrem eigenen Drive und sieht nur die Dateien, die sie dort angelegt hat. Wenn Sie die automatische Synchronisierung erlauben (abschaltbar oder nur über WLAN), aktualisiert sie diesen Ordner, solange der Tresor geöffnet ist. Google sieht verschlüsselte Dateien mit Größe und Zeit, nie Namen oder Inhalte Ihrer Einträge; nichts läuft über uns.",
      "Wenn Sie ein Element teilen, exportieren oder in einer anderen App öffnen, erhält diese App eine unverschlüsselte Kopie und verarbeitet sie nach ihren eigenen Bestimmungen."
     ]
    ],
@@ -102,7 +103,8 @@
      "Kamera: nur um Fotos direkt in einen Tresor aufzunehmen, wenn Sie die Kamera öffnen. Fotos werden nicht in Ihrer Fotomediathek gespeichert.",
      "Biometrie: nur wenn Sie das Entsperren per Face ID, Touch ID oder Fingerabdruck aktivieren. Ihre biometrischen Daten verlassen nie die sichere Hardware des Geräts und sind für die App nie zugänglich.",
      "Lokales Netzwerk (iPhone) / Internet (Android) / Netzwerk (macOS): nur zum Synchronisieren mit Ihrem anderen Gerät im selben WLAN, wenn Sie es starten.",
-     "Mitteilungen (Android): nur während einer Synchronisierung, um ihren Fortschritt zu zeigen und sie bei gesperrtem Telefon weiterlaufen zu lassen. Wenn Sie ablehnen, läuft die Synchronisierung trotzdem."
+     "Mitteilungen (Android): nur während einer Synchronisierung, um ihren Fortschritt zu zeigen und sie bei gesperrtem Telefon weiterlaufen zu lassen. Wenn Sie ablehnen, läuft die Synchronisierung trotzdem.",
+     "Internet (Google Drive): nur, wenn Sie Google Drive verbinden, um sich bei Google anzumelden und Ihr Drive zu erreichen."
     ]
    ],
    [

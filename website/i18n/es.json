@@ -93,6 +93,7 @@
     [
      "Una copia de seguridad es un único archivo cifrado, guardado donde tú elijas (por ejemplo, iCloud Drive, Google Drive o Dropbox). Allí solo se escriben datos cifrados; el proveedor que elijas no puede leerlos.",
      "Sincronización con tu otro dispositivo: cuando la inicias y la permites, los datos cifrados de la caja fuerte van por tu Wi-Fi directamente a tu propio dispositivo. Nada pasa por nosotros ni por ningún servidor.",
+     "Sincronizar con Google Drive: solo si conectas tu cuenta de Google. La app guarda entonces los datos cifrados de la caja en una carpeta «Cozy Safe» de tu propio Drive y solo ve los archivos que creó allí. Si permites la sincronización automática (puedes desactivarla o limitarla al wifi), actualiza esa carpeta mientras la caja está abierta. Google ve archivos cifrados con su tamaño y hora, nunca los nombres ni el contenido de tus elementos; nada pasa por nosotros.",
      "Cuando compartes, exportas o abres un elemento en otra app, esa app recibe una copia sin cifrar y la trata según sus propias condiciones."
     ]
    ],
@@ -102,7 +103,8 @@
      "Cámara: solo para hacer fotos directamente en una caja fuerte, cuando abres la cámara. Las fotos no se guardan en tu fototeca.",
      "Biometría: solo si activas el desbloqueo con Face ID, Touch ID o huella dactilar. Tus datos biométricos nunca salen del hardware seguro del dispositivo y la app nunca tiene acceso a ellos.",
      "Red local (iPhone) / internet (Android) / red (macOS): solo para sincronizar con tu otro dispositivo en la misma Wi-Fi, cuando tú la inicias.",
-     "Notificaciones (Android): solo mientras se sincroniza, para mostrar el progreso y que siga con el teléfono bloqueado. Si dices que no, la sincronización sigue igualmente."
+     "Notificaciones (Android): solo mientras se sincroniza, para mostrar el progreso y que siga con el teléfono bloqueado. Si dices que no, la sincronización sigue igualmente.",
+     "Internet (Google Drive): solo si conectas Google Drive, para iniciar sesión con Google y llegar a tu Drive."
     ]
    ],
    [

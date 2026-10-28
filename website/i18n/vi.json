@@ -93,6 +93,7 @@
     [
      "Bản sao lưu là một tệp đã mã hoá, lưu ở nơi bạn chọn (ví dụ iCloud Drive, Google Drive hay Dropbox). Chỉ dữ liệu đã mã hoá được ghi ra đó; nhà cung cấp bạn chọn không đọc được.",
      "Đồng bộ với máy khác của bạn: khi bạn bắt đầu và cho phép, dữ liệu đã mã hoá của két đi qua Wi-Fi thẳng tới máy của chính bạn. Không có gì đi qua chúng tôi hay máy chủ nào.",
+     "Đồng bộ qua Google Drive: chỉ khi bạn kết nối tài khoản Google. Khi đó app giữ dữ liệu đã mã hoá của két trong thư mục “Cozy Safe” trên Drive của chính bạn và chỉ thấy được các tệp do nó tạo ra ở đó. Nếu bạn cho phép đồng bộ tự động (có thể tắt, hoặc chỉ dùng Wi-Fi), app cập nhật thư mục đó khi két đang mở. Google chỉ thấy các tệp đã mã hoá cùng dung lượng và thời gian, không bao giờ thấy tên hay nội dung các mục của bạn; không có gì đi qua chúng tôi.",
      "Khi bạn chia sẻ, xuất hay mở một mục bằng app khác, app đó nhận bản không mã hoá và xử lý theo điều khoản của họ."
     ]
    ],
@@ -102,7 +103,8 @@
      "Camera: chỉ để chụp ảnh thẳng vào két, khi bạn mở camera. Ảnh không lưu vào thư viện ảnh của máy.",
      "Sinh trắc học: chỉ khi bạn bật mở khoá bằng Face ID, Touch ID hoặc vân tay. Dữ liệu sinh trắc học không rời phần cứng bảo mật của máy và app không bao giờ truy cập được.",
      "Mạng cục bộ (iPhone) / internet (Android) / mạng (macOS): chỉ để đồng bộ với máy khác của bạn trong cùng Wi-Fi, khi bạn bắt đầu.",
-     "Thông báo (Android): chỉ trong lúc đồng bộ, để hiện tiến trình và giữ việc đồng bộ chạy tiếp khi khoá máy. Nếu bạn không cho phép, việc đồng bộ vẫn chạy."
+     "Thông báo (Android): chỉ trong lúc đồng bộ, để hiện tiến trình và giữ việc đồng bộ chạy tiếp khi khoá máy. Nếu bạn không cho phép, việc đồng bộ vẫn chạy.",
+     "Internet (Google Drive): chỉ khi bạn kết nối Google Drive, để đăng nhập Google và truy cập Drive của bạn."
     ]
    ],
    [

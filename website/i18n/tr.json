@@ -93,6 +93,7 @@
     [
      "Yedek, seçtiğiniz bir yere kaydedilen tek bir şifreli dosyadır (örneğin iCloud Drive, Google Drive veya Dropbox). Oraya yalnızca şifreli veri yazılır; seçtiğiniz sağlayıcı bu veriyi okuyamaz.",
      "Diğer cihazınızla eşitleme: siz başlatıp izin verdiğinizde kasanın şifreli verileri Wi-Fi ağınız üzerinden doğrudan kendi cihazınıza gider. Hiçbir şey bizden veya herhangi bir sunucudan geçmez.",
+     "Google Drive ile eşitleme: yalnızca Google hesabınızı bağlarsanız. Uygulama, kasanın şifreli verilerini kendi Drive’ınızdaki “Cozy Safe” klasöründe tutar ve yalnızca orada oluşturduğu dosyaları görebilir. Otomatik eşitlemeye izin verirseniz (kapatılabilir veya yalnızca Wi-Fi ile sınırlanabilir), kasa açıkken o klasörü günceller. Google boyut ve zamanlarıyla şifreli dosyaları görür, ögelerinizin adlarını veya içeriğini asla görmez; hiçbir şey bizden geçmez.",
      "Bir öğeyi paylaştığınızda, dışa aktardığınızda veya başka bir uygulamada açtığınızda o uygulama şifresiz bir kopya alır ve bunu kendi koşullarına göre işler."
     ]
    ],
@@ -102,7 +103,8 @@
      "Kamera: yalnızca kamerayı siz açtığınızda, fotoğrafları doğrudan bir kasaya çekmek için. Fotoğraflar fotoğraf arşivinize kaydedilmez.",
      "Biyometri: yalnızca Face ID, Touch ID veya parmak iziyle kilit açmayı etkinleştirirseniz. Biyometrik verileriniz cihazın güvenli donanımından asla çıkmaz ve uygulamanın erişimine hiçbir zaman açık değildir.",
      "Yerel ağ (iPhone) / internet (Android) / ağ (macOS): yalnızca siz başlattığınızda, aynı Wi-Fi ağındaki diğer cihazınızla eşitleme için.",
-     "Bildirimler (Android): yalnızca eşitleme sürerken, ilerlemesini göstermek ve telefon kilitliyken devam etmesini sağlamak için. İzin vermezseniz eşitleme yine de sürer."
+     "Bildirimler (Android): yalnızca eşitleme sürerken, ilerlemesini göstermek ve telefon kilitliyken devam etmesini sağlamak için. İzin vermezseniz eşitleme yine de sürer.",
+     "İnternet (Google Drive): yalnızca Google Drive’ı bağlarsanız, Google ile oturum açmak ve Drive’ınıza ulaşmak için."
     ]
    ],
    [

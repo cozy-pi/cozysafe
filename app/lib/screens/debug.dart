@@ -269,6 +269,7 @@ class _DebugScreenState extends State<DebugScreen> {
                   onTap: () {
                     Prefs.write(debugPref, '0');
                     DebugLog.sync();
+                    SyncLog.clear(); // nothing kept with debug off (owner 2026-10-28)
                     Navigator.of(context).pop(true);
                   },
                   child: Padding(

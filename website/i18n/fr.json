@@ -93,6 +93,7 @@
     [
      "Une sauvegarde est un seul fichier chiffré, enregistré à l'endroit de votre choix (par exemple iCloud Drive, Google Drive ou Dropbox). Seules des données chiffrées y sont écrites ; le fournisseur choisi ne peut pas les lire.",
      "Synchronisation avec votre autre appareil : quand vous la lancez et l'autorisez, les données chiffrées du coffre passent par votre Wi-Fi directement vers votre propre appareil. Rien ne passe par nous ni par un serveur.",
+     "Synchronisation via Google Drive : seulement si vous connectez votre compte Google. L’app garde alors les données chiffrées du coffre dans un dossier « Cozy Safe » de votre propre Drive et ne voit que les fichiers qu’elle y a créés. Si vous autorisez la synchro automatique (désactivable, ou limitée au Wi-Fi), elle met ce dossier à jour tant que le coffre est ouvert. Google voit des fichiers chiffrés avec leur taille et leur date, jamais les noms ni le contenu de vos éléments ; rien ne passe par nous.",
      "Lorsque vous partagez, exportez ou ouvrez un élément dans une autre app, cette app reçoit une copie non chiffrée et la traite selon ses propres conditions."
     ]
    ],
@@ -102,7 +103,8 @@
      "Appareil photo : uniquement pour prendre des photos directement dans un coffre, lorsque vous ouvrez l'appareil photo. Les photos ne sont pas enregistrées dans votre photothèque.",
      "Biométrie : uniquement si vous activez le déverrouillage par Face ID, Touch ID ou empreinte digitale. Vos données biométriques ne quittent jamais le matériel sécurisé de l'appareil et ne sont jamais accessibles à l'app.",
      "Réseau local (iPhone) / Internet (Android) / réseau (macOS) : uniquement pour synchroniser avec votre autre appareil sur le même Wi-Fi, quand vous la lancez.",
-     "Notifications (Android) : uniquement pendant une synchronisation, pour en montrer la progression et la poursuivre téléphone verrouillé. Si vous refusez, la synchronisation continue quand même."
+     "Notifications (Android) : uniquement pendant une synchronisation, pour en montrer la progression et la poursuivre téléphone verrouillé. Si vous refusez, la synchronisation continue quand même.",
+     "Internet (Google Drive) : seulement si vous connectez Google Drive, pour vous connecter à Google et accéder à votre Drive."
     ]
    ],
    [

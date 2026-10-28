@@ -2,8 +2,10 @@ import 'dart:io';
 
 import '../prefs.dart';
 
-/// What automatic sync did and why, always on and kept across starts (owner 2026-10-28:
-/// "synced just now" showed six hours ago, and nothing told why): the last [keep] steps
+/// What automatic sync did and why, kept across starts, only while debug mode is on
+/// (owner 2026-10-28: first "synced just now" showed six hours ago and nothing told why;
+/// then "with debug off, store nothing that clutters the person's data"; turning debug
+/// off deletes it): the last [keep] steps
 /// as time, kind and a short fixed code — why a run started, why one was skipped, how it
 /// ended (counts and time). Never names, contents, accounts or network data, so it is as
 /// safe to copy as the error log, and goes with it in "Copy details".
@@ -36,6 +38,7 @@ abstract final class SyncLog {
   /// Note a step. The same step again right after (the every-minute look finding
   /// nothing) only moves the time and counts, so an hour of quiet is one line.
   static void add(String kind, String code) {
+    if (Prefs.read('debug-mode') != '1') return;
     final k = _word(kind), c = _word(code);
     final lines = _read();
     var times = 1;

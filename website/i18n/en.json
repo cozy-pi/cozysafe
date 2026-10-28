@@ -93,6 +93,7 @@
     [
      "A backup is one encrypted file, saved where you choose (for example iCloud Drive, Google Drive or Dropbox). Only encrypted data is written there; the provider you choose cannot read it.",
      "Sync with your other device: when you start it and allow it, the vault's encrypted data goes over your Wi-Fi straight to your own device. Nothing goes through us or any server.",
+     "Sync through Google Drive: only if you connect your Google account. The app then keeps the vault's encrypted data in a “Cozy Safe” folder in your own Drive and can only see the files it made there. If you allow automatic sync (you can turn it off, or limit it to Wi-Fi), it updates that folder while the vault is open. Google sees encrypted files with their sizes and times, never your items' names or contents; nothing goes through us.",
      "When you share, export or open an item in another app, that app receives an unencrypted copy and handles it under its own terms."
     ]
    ],
@@ -102,7 +103,8 @@
      "Camera: only to take photos straight into a vault, when you open the camera. Photos are not saved to your photo library.",
      "Biometrics: only if you turn on Face ID, Touch ID or fingerprint unlock. Your biometric data never leaves the device's secure hardware and is never available to the app.",
      "Local network (iPhone) / internet (Android) / network (macOS): only for syncing with your other device on the same Wi-Fi, when you start it.",
-     "Notifications (Android): only while a sync runs, to show its progress and keep it going with the phone locked. If you say no, the sync still runs."
+     "Notifications (Android): only while a sync runs, to show its progress and keep it going with the phone locked. If you say no, the sync still runs.",
+     "Internet (Google Drive): only if you connect Google Drive, to sign in with Google and reach your Drive."
     ]
    ],
    [

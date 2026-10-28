@@ -5,7 +5,16 @@ import 'package:cozysafe/sync/sync_log.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  setUp(() => Prefs.dir = Directory.systemTemp.createTempSync('sync-log').path);
+  setUp(() {
+    Prefs.dir = Directory.systemTemp.createTempSync('sync-log').path;
+    Prefs.write('debug-mode', '1');
+  });
+
+  test('nothing is kept with debug mode off', () {
+    Prefs.write('debug-mode', '0');
+    SyncLog.add('run', 'start-open');
+    expect(SyncLog.lines(), isEmpty);
+  });
 
   test('the same step again only counts; codes stay plain words', () {
     SyncLog.add('look', 'same');
