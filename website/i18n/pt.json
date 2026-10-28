@@ -93,6 +93,7 @@
     [
      "Um backup é um único arquivo criptografado, salvo onde você escolher (por exemplo, iCloud Drive, Google Drive ou Dropbox). Somente dados criptografados são gravados ali; o provedor escolhido não consegue lê-los.",
      "Sincronização com seu outro dispositivo: quando você inicia e permite, os dados criptografados do cofre vão pela sua Wi-Fi direto para o seu próprio dispositivo. Nada passa por nós nem por nenhum servidor.",
+     "Sincronizar pelo Google Drive: só se você conectar sua conta Google. O app guarda então os dados criptografados do cofre numa pasta “Cozy Safe” no seu próprio Drive e só vê os arquivos que criou lá. Se você permitir a sincronização automática (dá para desligar ou limitar ao Wi-Fi), ele atualiza essa pasta enquanto o cofre está aberto. O Google vê arquivos criptografados com tamanho e horário, nunca os nomes nem o conteúdo dos seus itens; nada passa por nós.",
      "Quando você compartilha, exporta ou abre um item em outro app, esse app recebe uma cópia sem criptografia e a trata conforme os próprios termos."
     ]
    ],
@@ -102,7 +103,8 @@
      "Câmera: só para tirar fotos direto para um cofre, quando você abre a câmera. As fotos não são salvas na sua biblioteca de fotos.",
      "Biometria: só se você ativar o desbloqueio por Face ID, Touch ID ou impressão digital. Seus dados biométricos nunca saem do hardware seguro do dispositivo e nunca ficam disponíveis para o app.",
      "Rede local (iPhone) / internet (Android) / rede (macOS): só para sincronizar com seu outro dispositivo na mesma Wi-Fi, quando você inicia.",
-     "Notificações (Android): só durante uma sincronização, para mostrar o progresso e mantê-la rodando com o celular bloqueado. Se você não permitir, a sincronização continua mesmo assim."
+     "Notificações (Android): só durante uma sincronização, para mostrar o progresso e mantê-la rodando com o celular bloqueado. Se você não permitir, a sincronização continua mesmo assim.",
+     "Internet (Google Drive): só se você conectar o Google Drive, para entrar com o Google e acessar seu Drive."
     ]
    ],
    [

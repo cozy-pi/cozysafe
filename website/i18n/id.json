@@ -93,6 +93,7 @@
     [
      "Cadangan adalah satu file terenkripsi yang disimpan di tempat pilihan Anda (misalnya iCloud Drive, Google Drive, atau Dropbox). Hanya data terenkripsi yang ditulis ke sana; penyedia yang Anda pilih tidak bisa membacanya.",
      "Sinkronisasi dengan perangkat Anda yang lain: saat Anda memulai dan mengizinkannya, data brankas yang terenkripsi dikirim lewat Wi-Fi Anda langsung ke perangkat Anda sendiri. Tidak ada yang melewati kami atau server mana pun.",
+     "Sinkronisasi lewat Google Drive: hanya jika Anda menghubungkan akun Google. Aplikasi lalu menyimpan data brankas yang terenkripsi di folder “Cozy Safe” di Drive Anda sendiri dan hanya bisa melihat file yang dibuatnya di sana. Jika Anda mengizinkan sinkronisasi otomatis (bisa dimatikan atau dibatasi ke Wi-Fi), aplikasi memperbarui folder itu selama brankas terbuka. Google melihat file terenkripsi beserta ukuran dan waktunya, tidak pernah nama atau isi item Anda; tidak ada yang melewati kami.",
      "Saat Anda membagikan, mengekspor, atau membuka item di aplikasi lain, aplikasi itu menerima salinan yang tidak terenkripsi dan menanganinya sesuai ketentuannya sendiri."
     ]
    ],
@@ -102,7 +103,8 @@
      "Kamera: hanya untuk mengambil foto langsung ke dalam brankas, saat Anda membuka kamera. Foto tidak disimpan ke galeri foto Anda.",
      "Biometrik: hanya jika Anda mengaktifkan buka kunci dengan Face ID, Touch ID, atau sidik jari. Data biometrik Anda tidak pernah meninggalkan perangkat keras aman di perangkat dan tidak pernah dapat diakses oleh aplikasi.",
      "Jaringan lokal (iPhone) / internet (Android) / jaringan (macOS): hanya untuk sinkronisasi dengan perangkat Anda yang lain di Wi-Fi yang sama, saat Anda memulainya.",
-     "Notifikasi (Android): hanya selama sinkronisasi berjalan, untuk menampilkan progresnya dan menjaganya tetap berjalan saat ponsel terkunci. Jika Anda menolak, sinkronisasi tetap berjalan."
+     "Notifikasi (Android): hanya selama sinkronisasi berjalan, untuk menampilkan progresnya dan menjaganya tetap berjalan saat ponsel terkunci. Jika Anda menolak, sinkronisasi tetap berjalan.",
+     "Internet (Google Drive): hanya jika Anda menghubungkan Google Drive, untuk masuk dengan Google dan menjangkau Drive Anda."
     ]
    ],
    [

@@ -93,6 +93,7 @@
     [
      "Un backup è un unico file cifrato, salvato dove scegli tu (ad esempio iCloud Drive, Google Drive o Dropbox). Lì vengono scritti solo dati cifrati; il fornitore scelto non può leggerli.",
      "Sincronizzazione con l'altro tuo dispositivo: quando la avvii e la autorizzi, i dati cifrati della cassaforte passano dalla tua Wi-Fi direttamente al tuo dispositivo. Niente passa da noi o da un server.",
+     "Sincronizzazione con Google Drive: solo se colleghi il tuo account Google. L’app conserva allora i dati cifrati della cassaforte in una cartella “Cozy Safe” del tuo Drive e vede solo i file che vi ha creato. Se consenti la sincronizzazione automatica (disattivabile, o solo in Wi-Fi), aggiorna quella cartella mentre la cassaforte è aperta. Google vede file cifrati con dimensioni e orari, mai i nomi o il contenuto dei tuoi elementi; nulla passa da noi.",
      "Quando condividi, esporti o apri un elemento in un'altra app, quell'app riceve una copia non cifrata e la gestisce secondo le proprie condizioni."
     ]
    ],
@@ -102,7 +103,8 @@
      "Fotocamera: solo per scattare foto direttamente in una cassaforte, quando apri la fotocamera. Le foto non vengono salvate nella tua libreria foto.",
      "Biometria: solo se attivi lo sblocco con Face ID, Touch ID o impronta digitale. I tuoi dati biometrici non lasciano mai l'hardware sicuro del dispositivo e non sono mai accessibili all'app.",
      "Rete locale (iPhone) / internet (Android) / rete (macOS): solo per sincronizzare con l'altro tuo dispositivo sulla stessa Wi-Fi, quando la avvii.",
-     "Notifiche (Android): solo durante una sincronizzazione, per mostrarne l'avanzamento e farla proseguire con il telefono bloccato. Se rifiuti, la sincronizzazione continua comunque."
+     "Notifiche (Android): solo durante una sincronizzazione, per mostrarne l'avanzamento e farla proseguire con il telefono bloccato. Se rifiuti, la sincronizzazione continua comunque.",
+     "Internet (Google Drive): solo se colleghi Google Drive, per accedere con Google e raggiungere il tuo Drive."
     ]
    ],
    [
