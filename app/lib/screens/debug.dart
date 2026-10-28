@@ -12,9 +12,12 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../sync/drive_check.dart';
+import '../sync/sync_log.dart';
 import '../theme.dart';
 import '../widgets/native_bar.dart';
 import '../widgets/toast.dart';
+import '../widgets/vault_bar.dart';
 import 'file_view.dart';
 import 'settings.dart';
 import 'vault_manager.dart';
@@ -28,6 +31,9 @@ import '../widgets/readable.dart';
 const debugPref = 'debug-mode';
 bool debugModeOn() => Prefs.read(debugPref) == '1';
 
+/// Laid out like Settings (owner 2026-10-28: "make the debug page decent, we will need
+/// many tools there"): the build on top, then tools that open their own page, what this
+/// device says, trials, and Turn off on its own at the end.
 class DebugScreen extends StatefulWidget {
   const DebugScreen({super.key});
 
@@ -89,6 +95,9 @@ class _DebugScreenState extends State<DebugScreen> {
     return '${Platform.operatingSystem} ${Platform.operatingSystemVersion}';
   }
 
+  void _open(String title, WidgetBuilder page) =>
+      pushPage<void>(context, title: title, grouped: true, builder: page).then((_) => mounted ? setState(() {}) : null);
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -97,190 +106,239 @@ class _DebugScreenState extends State<DebugScreen> {
     final items = _items ?? const <rust.ItemInfo>[];
     int count(String k) => items.where((i) => i.kind == k).length;
     final blocked = _networkBlocked;
-    Widget row(String label, String value, {Color? color, Key? key}) => Padding(
-          key: key,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final debugLines = DebugLog.lines().length;
+    final syncLines = SyncLog.lines().length;
+    return groupedPage(
+      context,
+      Builder(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: Text(l.debugMode)),
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
             children: [
-              Expanded(child: Text(label, style: const TextStyle(fontSize: CsType.callout))),
-              const SizedBox(width: 12),
-              Flexible(
-                child: Text(value,
-                    textAlign: TextAlign.end,
-                    style: TextStyle(fontSize: CsType.subhead, color: color ?? c.muted, fontFeatures: const [FontFeature.tabularFigures()])),
-              ),
-            ],
-          ),
-        );
-    Widget group(String title, List<Widget> rows) => Padding(
-          padding: const EdgeInsets.only(top: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 7),
-                child: Text(title, style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
-              ),
-              Material(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(Ui.radius),
-                clipBehavior: Clip.antiAlias,
-                child: Column(children: [
-                  for (final (i, r) in rows.indexed) ...[
-                    if (i > 0) Divider(height: 1, indent: 16, color: c.border.withValues(alpha: .6)),
-                    r,
-                  ],
-                ]),
-              ),
-            ],
-          ),
-        );
-    return Scaffold(
-      appBar: AppBar(title: Text(l.debugMode)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-            child: Text(l.debugNote, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
-          ),
-          group(l.debugBuild, [
-            row(l.aboutVersion, pkg == null ? '…' : '${pkg.version} (${pkg.buildNumber})'),
-            row(l.aboutBuilt, buildDate.isEmpty ? l.aboutLocal : buildDate),
-            row(l.aboutCommit, buildCommit.isEmpty ? l.aboutLocal : buildCommitShort),
-            row('Package', pkg?.packageName ?? '…'),
-          ]),
-          group(l.debugDevice, [
-            row(l.debugPlatform, _platform),
-            row(l.debugBiometric, switch (_bio) {
-              BiometricKind.face => 'Face ID',
-              BiometricKind.fingerprint => 'Touch ID / fingerprint',
-              _ => l.debugNone,
-            }),
-            row(l.debugAutoLock, l.debugMinutes(Settings.autoLockMinutes)),
-          ]),
-          group(l.debugImport, [
-            if (ImportStats.items == null)
-              row(l.debugImport, l.debugImportNone)
-            else ...[
-              row(l.debugImportCount, '${ImportStats.items}', key: const ValueKey('debug-import-count')),
-              row(l.debugImportPick, _seconds(ImportStats.pickMs)),
-              row(l.debugImportThumbnails, _seconds(ImportStats.thumbnailMs)),
-              row(l.debugImportVault, _seconds(ImportStats.vaultMs)),
-              row(l.debugImportTotal, _seconds(ImportStats.totalMs)),
-            ],
-          ]),
-          group(l.debugLog, [
-            Builder(builder: (context) {
-              final lines = DebugLog.lines();
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (lines.isEmpty)
-                      Text(l.debugLogEmpty, style: TextStyle(color: c.muted, fontSize: CsType.subhead))
-                    else
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 260),
-                        child: SingleChildScrollView(
-                          reverse: true,
-                          child: SelectableText(
-                            lines.join('\n'),
-                            key: const ValueKey('debug-log'),
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: CsType.caption1, height: 1.35),
-                          ),
+              // The build, as the top card of Settings shows the vault.
+              SettingsGroup(rows: [
+                Padding(
+                  key: const ValueKey('debug-build'),
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                  child: Row(children: [
+                    const SettingTile(icon: Icons.build_rounded, color: SettingsHue.xam),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Cozy Safe ${pkg == null ? '…' : '${pkg.version} (${pkg.buildNumber})'}',
+                            style: const TextStyle(fontSize: CsType.headline, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(
+                          [buildCommit.isEmpty ? l.aboutLocal : buildCommitShort, if (buildDate.isNotEmpty) buildDate, _platform].join(' · '),
+                          style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontFeatures: const [FontFeature.tabularFigures()]),
                         ),
-                      ),
-                    Row(
-                      children: [
-                        TextButton.icon(
-                          key: const ValueKey('debug-log-copy'),
-                          onPressed: lines.isEmpty
-                              ? null
-                              : () async {
-                                  await Clipboard.setData(ClipboardData(text: lines.join('\n')));
-                                  if (context.mounted) showToast(context, l.debugLogCopied, icon: Icons.check_rounded);
-                                },
-                          icon: const Icon(Icons.copy_rounded, size: 18),
-                          label: Text(l.debugLogCopy),
-                        ),
-                        TextButton(
-                          onPressed: lines.isEmpty ? null : () => setState(DebugLog.clear),
-                          child: Text(l.debugLogClear),
-                        ),
-                      ],
+                      ]),
                     ),
-                  ],
+                  ]),
                 ),
-              );
-            }),
-          ]),
-          group(l.debugChecks, [
-            row(l.debugNetwork, blocked ? l.debugNetworkOn : l.debugNetworkOff,
-                color: blocked ? const Color(0xFF30D158) : recordRed(context), key: const ValueKey('debug-network')),
-            row(l.debugItems, '${l.kindPhotos} ${count(ItemKind.photo)} · ${l.cameraVideo} ${count(ItemKind.video)} · '
-                '${l.kindNotes} ${count(ItemKind.note)} · ${l.modeAudio} ${count(ItemKind.audio)} · ${l.kindFiles} ${count(ItemKind.file)}'),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text('${l.debugPlayback}: ${_temp == null ? '…' : fileSize(BigInt.from(_temp!))}',
-                        style: const TextStyle(fontSize: CsType.callout)),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      await clearPlaybackCopies();
-                      if (!context.mounted) return;
-                      showToast(context, l.debugCleared, icon: Icons.check_rounded);
-                      _load();
-                    },
-                    child: Text(l.debugClear),
-                  ),
-                ],
+              ]),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                child: Text(l.debugNote, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
               ),
-            ),
-          ]),
-          // To compare the two bottom bars on a real phone (owner 2026-10-21).
-          group(l.debugTry, [
-            ListTile(
-              key: const ValueKey('debug-vaults'),
-              title: Text(l.vaultManagerTitle, style: const TextStyle(fontSize: CsType.callout)),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => Readable(child: VaultManagerScreen(libraryDir: '${Prefs.dir}${Platform.pathSeparator}library')),
-              )),
-            ),
-            SwitchListTile.adaptive(
-              key: const ValueKey('debug-native-bar'),
-              title: Text(l.debugNativeBar, style: const TextStyle(fontSize: CsType.callout)),
-              subtitle: NativeBar.available ? null : Text(l.debugNativeBarNone, style: TextStyle(color: c.muted)),
-              value: nativeBarOn(),
-              onChanged: NativeBar.available ? (v) => setState(() => Prefs.write(nativeBarPref, v ? '1' : '0')) : null,
-            ),
-          ]),
-          const SizedBox(height: 24),
-          Material(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(Ui.radius),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              key: const ValueKey('debug-off'),
-              onTap: () {
-                Prefs.write(debugPref, '0');
-                DebugLog.sync();
-                Navigator.of(context).pop(true);
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Center(child: Text(l.debugOff, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: CsType.subhead))),
-              ),
-            ),
+              // Tools: each opens its own page.
+              SettingsGroup(rows: [
+                SettingsRow(
+                  key: const ValueKey('debug-drive-check'),
+                  icon: Icons.cloud_rounded,
+                  color: SettingsHue.xanhLa,
+                  title: l.debugDriveCheck,
+                  onTap: () => _open(l.debugDriveCheck, (_) => const DriveCheckScreen()),
+                ),
+                SettingsRow(
+                  key: const ValueKey('debug-sync-log'),
+                  icon: Icons.sync_rounded,
+                  color: SettingsHue.xanh,
+                  title: l.debugSyncLog,
+                  value: l.debugLines(syncLines),
+                  onTap: () => _open(l.debugSyncLog, (_) => _LogPage(lines: SyncLog.lines, clear: SyncLog.clear)),
+                ),
+                SettingsRow(
+                  key: const ValueKey('debug-log-row'),
+                  icon: Icons.receipt_long_rounded,
+                  color: SettingsHue.xam,
+                  title: l.debugLog,
+                  value: l.debugLines(debugLines),
+                  onTap: () => _open(l.debugLog, (_) => _LogPage(lines: () => DebugLog.lines().reversed.toList(), clear: DebugLog.clear)),
+                ),
+                SettingsRow(
+                  key: const ValueKey('debug-vaults'),
+                  icon: Icons.lock_rounded,
+                  color: SettingsHue.cham,
+                  title: l.vaultManagerTitle,
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (_) => Readable(child: VaultManagerScreen(libraryDir: '${Prefs.dir}${Platform.pathSeparator}library')),
+                  )),
+                ),
+              ]),
+              // What this device says.
+              SettingsGroup(rows: [
+                SettingsRow(
+                  key: const ValueKey('debug-network'),
+                  icon: Icons.wifi_off_rounded,
+                  color: blocked ? SettingsHue.xanhLa : SettingsHue.doTuoi,
+                  title: l.debugNetwork,
+                  trailing: Text(blocked ? l.debugNetworkOn : l.debugNetworkOff,
+                      style: TextStyle(fontSize: CsType.body, color: blocked ? c.muted : recordRed(context), fontWeight: blocked ? null : FontWeight.w600)),
+                ),
+                SettingsRow(
+                  icon: Icons.fingerprint_rounded,
+                  color: SettingsHue.hong,
+                  title: l.debugBiometric,
+                  value: switch (_bio) {
+                    BiometricKind.face => 'Face ID',
+                    BiometricKind.fingerprint => 'Touch ID',
+                    _ => l.debugNone,
+                  },
+                ),
+                SettingsRow(icon: Icons.timer_rounded, color: SettingsHue.cam, title: l.debugAutoLock, value: l.debugMinutes(Settings.autoLockMinutes)),
+                SettingsRow(
+                  key: const ValueKey('debug-items'),
+                  icon: Icons.grid_view_rounded,
+                  color: SettingsHue.ngoc,
+                  title: l.debugItems,
+                  value: '${items.length}',
+                  onTap: () => _open(l.debugItems, (_) => ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: [
+                        SettingsGroup(rows: [
+                          SettingsRow(icon: Icons.photo_rounded, color: SettingsHue.xanh, title: l.kindPhotos, value: '${count(ItemKind.photo)}'),
+                          SettingsRow(icon: Icons.videocam_rounded, color: SettingsHue.tim, title: l.cameraVideo, value: '${count(ItemKind.video)}'),
+                          SettingsRow(icon: Icons.edit_note_rounded, color: SettingsHue.vang, title: l.kindNotes, value: '${count(ItemKind.note)}'),
+                          SettingsRow(icon: Icons.mic_rounded, color: SettingsHue.cam, title: l.modeAudio, value: '${count(ItemKind.audio)}'),
+                          SettingsRow(icon: Icons.folder_rounded, color: SettingsHue.xanhLa, title: l.kindFiles, value: '${count(ItemKind.file)}'),
+                        ]),
+                      ])),
+                ),
+                SettingsRow(
+                  icon: Icons.file_download_rounded,
+                  color: SettingsHue.troi,
+                  title: l.debugImport,
+                  value: ImportStats.items == null ? l.debugImportNone : '${ImportStats.items} · ${_seconds(ImportStats.totalMs)}',
+                  onTap: ImportStats.items == null
+                      ? null
+                      : () => _open(l.debugImport, (_) => ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: [
+                            SettingsGroup(rows: [
+                              SettingsRow(icon: Icons.tag_rounded, color: SettingsHue.xam, title: l.debugImportCount, value: '${ImportStats.items}'),
+                              SettingsRow(icon: Icons.photo_library_rounded, color: SettingsHue.xam, title: l.debugImportPick, value: _seconds(ImportStats.pickMs)),
+                              SettingsRow(icon: Icons.image_rounded, color: SettingsHue.xam, title: l.debugImportThumbnails, value: _seconds(ImportStats.thumbnailMs)),
+                              SettingsRow(icon: Icons.lock_rounded, color: SettingsHue.xam, title: l.debugImportVault, value: _seconds(ImportStats.vaultMs)),
+                              SettingsRow(icon: Icons.functions_rounded, color: SettingsHue.xam, title: l.debugImportTotal, value: _seconds(ImportStats.totalMs)),
+                            ]),
+                          ])),
+                ),
+                SettingsRow(
+                  key: const ValueKey('debug-playback'),
+                  icon: Icons.play_circle_rounded,
+                  color: SettingsHue.tim,
+                  title: l.debugPlayback,
+                  value: _temp == null ? '…' : fileSize(BigInt.from(_temp!)),
+                  trailing: TextButton(
+                    onPressed: (_temp ?? 0) == 0
+                        ? null
+                        : () async {
+                            await clearPlaybackCopies();
+                            if (!context.mounted) return;
+                            showToast(context, l.debugCleared, icon: Icons.check_rounded);
+                            _load();
+                          },
+                    child: Text(l.debugClearShort),
+                  ),
+                ),
+              ]),
+              // Trials (owner 2026-10-21: to compare the two bottom bars on a real phone).
+              SettingsGroup(rows: [
+                SettingsRow(
+                  key: const ValueKey('debug-native-bar'),
+                  icon: Icons.space_bar_rounded,
+                  color: SettingsHue.xanh,
+                  title: l.debugNativeBar,
+                  value: NativeBar.available ? null : l.debugNativeBarNone,
+                  trailing: NativeBar.available
+                      ? SettingsSwitch(value: nativeBarOn(), onChanged: (v) => setState(() => Prefs.write(nativeBarPref, v ? '1' : '0')))
+                      : null,
+                ),
+              ]),
+              SettingsGroup(rows: [
+                InkWell(
+                  key: const ValueKey('debug-off'),
+                  onTap: () {
+                    Prefs.write(debugPref, '0');
+                    DebugLog.sync();
+                    Navigator.of(context).pop(true);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    child: Center(child: Text(l.debugOff, style: TextStyle(fontSize: CsType.body, color: recordRed(context)))),
+                  ),
+                ),
+              ]),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+/// One log on its own page, newest first, to read, copy or clear.
+class _LogPage extends StatefulWidget {
+  const _LogPage({required this.lines, required this.clear});
+  final List<String> Function() lines;
+  final VoidCallback clear;
+
+  @override
+  State<_LogPage> createState() => _LogPageState();
+}
+
+class _LogPageState extends State<_LogPage> {
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final lines = widget.lines();
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      children: [
+        SettingsGroup(rows: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: lines.isEmpty
+                ? Text(l.debugLogEmpty, style: TextStyle(color: c.muted, fontSize: CsType.subhead))
+                : SelectableText(
+                    lines.join('\n'),
+                    key: const ValueKey('debug-log'),
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: CsType.caption1, height: 1.45),
+                  ),
+          ),
+        ]),
+        SettingsGroup(rows: [
+          SettingsRow(
+            key: const ValueKey('debug-log-copy'),
+            icon: Icons.copy_rounded,
+            color: SettingsHue.xanh,
+            title: l.debugLogCopy,
+            chevron: false,
+            onTap: lines.isEmpty
+                ? null
+                : () async {
+                    await Clipboard.setData(ClipboardData(text: lines.join('\n')));
+                    if (context.mounted) showToast(context, l.debugLogCopied, icon: Icons.check_rounded);
+                  },
+          ),
+          SettingsRow(
+            icon: Icons.delete_rounded,
+            color: SettingsHue.doTuoi,
+            title: l.debugLogClear,
+            chevron: false,
+            onTap: lines.isEmpty ? null : () => setState(widget.clear),
+          ),
+        ]),
+      ],
     );
   }
 }

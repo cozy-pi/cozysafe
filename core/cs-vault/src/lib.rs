@@ -31,6 +31,7 @@ use cs_crypto::{wrap, Key, SecretKey, SALT_LEN, SECRET_KEY_LEN};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
+pub mod audit;
 pub mod backup;
 pub mod db;
 pub mod history;

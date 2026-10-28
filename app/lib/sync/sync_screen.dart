@@ -8,7 +8,6 @@ import '../theme.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show pushPage;
-import '../platform.dart';
 import 'auto_sync.dart';
 import 'sync_log.dart';
 import 'sync_status.dart';
@@ -157,8 +156,8 @@ class _SyncScreenState extends State<SyncScreen> {
         // Groups without names, apart by a gap, as in the iPhone's Settings (owner
         // 2026-10-26): the rows say what they do.
         const SizedBox(height: 24),
-        // Google Drive: phones only for now (the desktop sign-in clients are not made yet).
-        if (SyncScreen.debugDrive || Device.iOS || Device.android) ...[
+        // Google Drive: phones, and computers whose build has the desktop sign-in client.
+        if (SyncScreen.debugDrive || driveOffered) ...[
           // One row (owner 2026-10-27: Drive's options on a page of their own, less to
           // take in here): with no account it signs in and syncs; with one it opens
           // that page.

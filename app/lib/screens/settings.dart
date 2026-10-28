@@ -88,12 +88,12 @@ abstract final class Settings {
 /// A setting Settings can open at (the quick tour's "Set up sync now" opens Sync), with
 /// its row's symbol and colour.
 enum SettingsSpot {
-  sync(Icons.sync_rounded, _Mau.xanhLa),
-  autoLock(Icons.timer_rounded, _Mau.cam),
-  blurThumbs(Icons.blur_on_rounded, _Mau.ngoc),
-  hideNoteText(Icons.notes_rounded, _Mau.bacHa),
-  appearance(Icons.contrast_rounded, _Mau.cham),
-  language(Icons.translate_rounded, _Mau.xanh);
+  sync(Icons.sync_rounded, SettingsHue.xanhLa),
+  autoLock(Icons.timer_rounded, SettingsHue.cam),
+  blurThumbs(Icons.blur_on_rounded, SettingsHue.ngoc),
+  hideNoteText(Icons.notes_rounded, SettingsHue.bacHa),
+  appearance(Icons.contrast_rounded, SettingsHue.cham),
+  language(Icons.translate_rounded, SettingsHue.xanh);
 
   const SettingsSpot(this.icon, this.color);
   final IconData icon;
@@ -650,11 +650,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Most important first, like with like (owner 2026-10-27). Groups still have no
           // names (owner 2026-10-26): the gaps set them apart.
           // 1. A copy elsewhere: syncing is done often (owner 2026-10-25), the backup file with it.
-          _Group(rows: [
+          SettingsGroup(rows: [
             if (!kIsWeb)
               KeyedSubtree(
                 key: _syncRowKey,
-                child: _Row(
+                child: SettingsRow(
                   key: const ValueKey('sync-row'),
                   icon: SettingsSpot.sync.icon,
                   color: SettingsSpot.sync.color,
@@ -664,18 +664,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: _openSync,
                 ),
               ),
-            _Row(
+            SettingsRow(
               key: _backupRowKey,
               icon: Icons.cloud_upload_rounded,
-              color: _Mau.xanh,
+              color: SettingsHue.xanh,
               title: l.backupToFile,
               trailing: FilledButton(
                 key: const ValueKey('backup-now'),
                 style: FilledButton.styleFrom(
                   // Settings may use colour (owner): a soft tint of the backup blue, low
                   // contrast in both modes, never a black or white slab.
-                  backgroundColor: _Mau.xanh.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? .22 : .12),
-                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF64A8FF) : _Mau.xanh,
+                  backgroundColor: SettingsHue.xanh.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? .22 : .12),
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF64A8FF) : SettingsHue.xanh,
                   minimumSize: const Size(0, 34),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: const StadiumBorder(),
@@ -688,46 +688,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           // 2. The keys: how the vault opens here and on a new phone. Turning any of them
           // weaker asks for the owner first (docs/security.md).
-          _Group(boxKey: _securityGroupKey, rows: [
+          SettingsGroup(boxKey: _securityGroupKey, rows: [
             if (widget.canBiometric)
-              _Row(
+              SettingsRow(
                 icon: Icons.face_retouching_natural_rounded,
-                color: _Mau.xanhLa,
+                color: SettingsHue.xanhLa,
                 // The device's own symbol: the Face ID glyph, or a fingerprint (biometric.dart).
                 glyph: BiometricGlyph(kind: _bioKind, size: 19, color: Colors.white),
-                title: _bioKind == BiometricKind.face ? l.biometricThisVault : l.fingerprintThisVault,
-                trailing: _Switch(
+                title: opensThisVaultLabel(l, _bioKind),
+                trailing: SettingsSwitch(
                   value: widget.biometricOn(),
                   onChanged: (_) => _then(widget.onToggleBiometric),
                 ),
               ),
-            _Row(
+            SettingsRow(
               icon: Icons.dialpad_rounded,
-              color: _Mau.cham,
+              color: SettingsHue.cham,
               title: l.pinTitle,
               value: l.change,
               onTap: () => _guarded(() => Navigator.of(context).push<bool>(fadeRoute((_) => Readable(child: const SetPinScreen())))),
             ),
-            _Row(
+            SettingsRow(
               icon: Icons.key_rounded,
-              color: _Mau.vang,
+              color: SettingsHue.vang,
               title: l.backupPasswordLabel,
               value: vault.hasPassword ? l.isSet : l.notSet,
               onTap: () => _then(widget.onPassword),
             ),
             if (vault.hasPassword)
-              _Row(
+              SettingsRow(
                 key: const ValueKey('kit-row'),
                 icon: Icons.medical_services_rounded,
-                color: _Mau.doTuoi,
+                color: SettingsHue.doTuoi,
                 title: l.showKit,
                 onTap: widget.onShowKit,
               ),
             // Type them back to know they still open this vault (owner 2026-10-26).
-            _Row(
+            SettingsRow(
               key: const ValueKey('key-check-row'),
               icon: Icons.fact_check_rounded,
-              color: _Mau.xanhLa,
+              color: SettingsHue.xanhLa,
               title: l.keyCheckRow,
               onTap: () => pushPage<void>(context,
                   title: l.keyCheckRow,
@@ -736,12 +736,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Off unless turned on; turning it on is weaker, so it asks for the owner and
             // says the trade (owner 2026-10-26).
             if (KeyBackup.supported)
-              _Row(
+              SettingsRow(
                 key: const ValueKey('key-backup-row'),
                 icon: Icons.cloud_rounded,
-                color: _Mau.troi,
+                color: SettingsHue.troi,
                 title: KeyBackup.google ? l.keyBackupRowGoogle : l.keyBackupRow,
-                trailing: _Switch(
+                trailing: SettingsSwitch(
                   value: KeyBackup.on,
                   onChanged: (on) => on
                       ? _guarded(_keyBackupOn)
@@ -752,10 +752,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
           ]),
           // 3. What shows on screen and when it locks.
-          _Group(boxKey: _shieldGroupKey, rows: [
+          SettingsGroup(boxKey: _shieldGroupKey, rows: [
             _spot(
               SettingsSpot.autoLock,
-              _Row(
+              SettingsRow(
                 key: _autoLockKey,
                 icon: SettingsSpot.autoLock.icon,
                 color: SettingsSpot.autoLock.color,
@@ -765,12 +765,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             // On: leaving the app locks at once. Off: away counts towards the time above.
-            _Row(
+            SettingsRow(
               key: const ValueKey('lock-on-leave-row'),
               icon: Icons.exit_to_app_rounded,
-              color: _Mau.troi,
+              color: SettingsHue.troi,
               title: l.lockOnLeave,
-              trailing: _Switch(
+              trailing: SettingsSwitch(
                 value: _lockOnLeave,
                 onChanged: (on) {
                   void apply() {
@@ -782,23 +782,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
             ),
-            _Row(
+            SettingsRow(
               key: const ValueKey('hold-home-row'),
               icon: Icons.lock_rounded,
-              color: _Mau.tim,
+              color: SettingsHue.tim,
               title: l.holdHomeTitle,
-              trailing: _Switch(
+              trailing: SettingsSwitch(
                 value: holdHomeLocks(),
                 onChanged: (on) => setState(() => Prefs.write(holdHomePref, on ? '1' : '0')),
               ),
             ),
             if (Device.android || Device.iOS || Settings.debugIOS)
-              _Row(
+              SettingsRow(
                 key: const ValueKey('screenshots-row'),
                 icon: Icons.visibility_off_rounded,
-                color: _Mau.hong,
+                color: SettingsHue.hong,
                 title: l.blockScreenshots,
-                trailing: _Switch(
+                trailing: SettingsSwitch(
                   value: _secure,
                   // Turning it on only makes the vault safer: no Face ID for that
                   // (owner 2026-10-24). Turning it off still asks.
@@ -814,12 +814,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             _spot(
               SettingsSpot.blurThumbs,
-              _Row(
+              SettingsRow(
                 key: const ValueKey('blur-row'),
                 icon: SettingsSpot.blurThumbs.icon,
                 color: SettingsSpot.blurThumbs.color,
                 title: l.blurThumbs,
-                trailing: _Switch(
+                trailing: SettingsSwitch(
                   value: blurThumbnails(),
                   // Turning it on protects more; turning it off asks for the owner.
                   onChanged: (v) => v
@@ -830,14 +830,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _spot(
               SettingsSpot.hideNoteText,
-              _Row(
+              SettingsRow(
                 icon: SettingsSpot.hideNoteText.icon,
                 color: SettingsSpot.hideNoteText.color,
                 // "Hide", on by default (owner 2026-10-21): the safe state is the on state,
                 // like "Blur thumbnails". The pref keeps its old meaning (1 = show text).
                 key: const ValueKey('hide-note-text-row'),
                 title: l.hideNoteText,
-                trailing: _Switch(
+                trailing: SettingsSwitch(
                   value: !notePreviews(),
                   // Showing more is weaker: turning "hide" off asks for the owner.
                   onChanged: (hide) => hide
@@ -848,28 +848,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ]),
           // 4. Getting things back: deleted items, older versions.
-          _Group(rows: [
-            _Row(
+          SettingsGroup(rows: [
+            SettingsRow(
               icon: Icons.delete_sweep_rounded,
-              color: _Mau.xam,
+              color: SettingsHue.xam,
               title: l.recentlyDeleted,
               onTap: () => _then(_openTrash),
             ),
             // Older versions of every item, kept on this device (owner 2026-10-27).
-            _Row(
+            SettingsRow(
               key: const ValueKey('history-row'),
               icon: Icons.history_rounded,
-              color: _Mau.ngoc,
+              color: SettingsHue.ngoc,
               title: l.versionHistory,
               value: _historyDays == 0 ? l.historyOff : historySizeText(l, _historyMax),
               onTap: _openHistory,
             ),
           ]),
           // 5. How it looks and where things are: nothing here protects the vault.
-          _Group(rows: [
+          SettingsGroup(rows: [
             _spot(
               SettingsSpot.appearance,
-              _Row(
+              SettingsRow(
                 key: _appearanceKey,
                 icon: SettingsSpot.appearance.icon,
                 color: SettingsSpot.appearance.color,
@@ -881,7 +881,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Same list as Settings → Cozy Safe → Language on iPhone and Android 13+.
             _spot(
               SettingsSpot.language,
-              _Row(
+              SettingsRow(
                 key: const ValueKey('language-row'),
                 icon: SettingsSpot.language.icon,
                 color: SettingsSpot.language.color,
@@ -893,10 +893,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             // Left, middle or right right on the row: no sheet to open (owner 2026-10-24).
-            _Row(
+            SettingsRow(
               key: const ValueKey('side-row'),
               icon: Icons.back_hand_rounded,
-              color: _Mau.cam,
+              color: SettingsHue.cam,
               title: l.actionSide,
               trailing: _SideSwitch(
                 side: actionSide(),
@@ -904,57 +904,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) => setState(() => Prefs.write(actionSidePref, v.name)),
               ),
             ),
-            _Row(
+            SettingsRow(
               icon: Icons.palette_rounded,
-              color: _Mau.tim,
+              color: SettingsHue.tim,
               title: l.changeIdentity,
               onTap: () => _then(widget.onChangeIdentity),
             ),
             // The icon on a plain page after unlocking; only a look, so no owner check.
-            _Row(
+            SettingsRow(
               key: const ValueKey('reveal-row'),
               icon: Icons.auto_awesome_rounded,
-              color: _Mau.cham,
+              color: SettingsHue.cham,
               title: l.revealIcon,
-              trailing: _Switch(
+              trailing: SettingsSwitch(
                 value: revealIconOn(),
                 onChanged: (v) => setState(() => Prefs.write(revealIconPref, v ? '1' : '0')),
               ),
             ),
           ]),
           // 6. Help: the guide, how the vault is protected, feedback, what went wrong.
-          _Group(rows: [
+          SettingsGroup(rows: [
             // The guide again: tips on the vault's page, then here.
             if (widget.onTour != null)
               KeyedSubtree(
                 key: _guideRowKey,
-                child: _Row(
+                child: SettingsRow(
                   key: const ValueKey('guide-row'),
                   icon: Icons.school_rounded,
-                  color: _Mau.vang,
+                  color: SettingsHue.vang,
                   title: l.userGuide,
                   onTap: _tour,
                 ),
               ),
-            _Row(
+            SettingsRow(
               icon: Icons.verified_user_rounded,
-              color: _Mau.ngoc,
+              color: SettingsHue.ngoc,
               title: l.securityTitle,
               onTap: _showSecurity,
             ),
             // Feedback lives on the website; the app only opens it (owner 2026-10-21).
-            _Row(
+            SettingsRow(
               key: const ValueKey('feedback-row'),
               icon: Icons.chat_bubble_rounded,
-              color: _Mau.xanh,
+              color: SettingsHue.xanh,
               title: l.feedback,
               onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
             ),
             // What went wrong, as codes to copy (owner 2026-10-26).
-            _Row(
+            SettingsRow(
               key: const ValueKey('report-row'),
               icon: Icons.bug_report_rounded,
-              color: _Mau.cam,
+              color: SettingsHue.cam,
               title: l.reportProblem,
               onTap: () => pushPage<void>(context, title: l.reportProblem, builder: (_) => const ErrorReportScreen()),
             ),
@@ -962,11 +962,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // One vault in the app (decisions 2026-10-24); another one only in debug mode, for
           // testing (the core keeps several).
           if (debugModeOn())
-            _Group(rows: [
-              _Row(
+            SettingsGroup(rows: [
+              SettingsRow(
                 key: const ValueKey('debug-new-vault'),
                 icon: Icons.add,
-                color: _Mau.troi,
+                color: SettingsHue.troi,
                 title: l.newVault,
                 onTap: widget.onNewVault,
               ),
@@ -1002,36 +1002,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : '${p.version} (${p.buildNumber})';
               DateTime? built = DateTime.tryParse(buildDate);
               final ml = MaterialLocalizations.of(context);
-              return _Group(rows: [
-                _Row(
+              return SettingsGroup(rows: [
+                SettingsRow(
                   key: const ValueKey('about-version'),
                   icon: Icons.info_rounded,
-                  color: _Mau.xam,
+                  color: SettingsHue.xam,
                   title: l.aboutVersion,
                   value: version,
                   onTap: _versionTap,
                   chevron: false,
                 ),
-                _Row(
+                SettingsRow(
                   icon: Icons.schedule_rounded,
-                  color: _Mau.xam,
+                  color: SettingsHue.xam,
                   title: l.aboutBuilt,
                   value: built == null
                       ? l.aboutLocal
                       : '${ml.formatShortDate(built.toLocal())} ${ml.formatTimeOfDay(TimeOfDay.fromDateTime(built.toLocal()))}',
                 ),
-                _Row(
+                SettingsRow(
                   icon: Icons.code_rounded,
-                  color: _Mau.xam,
+                  color: SettingsHue.xam,
                   title: l.aboutCommit,
                   value: buildCommit.isEmpty ? l.aboutLocal : buildCommitShort,
                 ),
-                _Row(icon: Icons.gavel_rounded, color: _Mau.xam, title: l.aboutLicense, value: 'GPL-3.0'),
+                SettingsRow(icon: Icons.gavel_rounded, color: SettingsHue.xam, title: l.aboutLicense, value: 'GPL-3.0'),
                 if (debugModeOn())
-                  _Row(
+                  SettingsRow(
                     key: _debugRowKey,
                     icon: Icons.bug_report_rounded,
-                    color: _Mau.doTuoi,
+                    color: SettingsHue.doTuoi,
                     title: l.debugMode,
                     onTap: () async {
                       await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => Readable(child: const DebugScreen())));
@@ -1129,8 +1129,8 @@ class _VaultCard extends StatelessWidget {
 
 /// Groups have no names, as in the iPhone's Settings (owner 2026-10-26): a gap sets them
 /// apart and the rows say what they are.
-class _Group extends StatelessWidget {
-  const _Group({required this.rows, this.boxKey});
+class SettingsGroup extends StatelessWidget {
+  const SettingsGroup({super.key, required this.rows, this.boxKey});
   final List<Widget> rows;
   /// On the rows (not the space above): what the User guide lights up.
   final Key? boxKey;
@@ -1168,15 +1168,15 @@ class _Group extends StatelessWidget {
 /// "the icons inside Settings may have colour", an exception to black and white), the title
 /// (and a second line), then a value with a chevron, a switch, or a button.
 /// iOS system colours for the setting tiles.
-abstract final class _Mau {
+abstract final class SettingsHue {
   static const tim = Color(0xFFAF52DE), xam = Color(0xFF8E8E93), xanhLa = Color(0xFF34C759),
       cham = Color(0xFF5856D6), cam = Color(0xFFFF9500), xanh = Color(0xFF007AFF),
       doTuoi = Color(0xFFFF3B30), ngoc = Color(0xFF30B0C7), hong = Color(0xFFFF2D55), troi = Color(0xFF32ADE6),
       vang = Color(0xFFFFB300), bacHa = Color(0xFF00C7BE); // brown (nau) dropped: owner found it ugly
 }
 
-class _Row extends StatelessWidget {
-  const _Row({
+class SettingsRow extends StatelessWidget {
+  const SettingsRow({
     super.key,
     required this.icon,
     required this.color,
@@ -1245,8 +1245,8 @@ class _Row extends StatelessWidget {
 }
 
 /// A switch in ink: on is solid ink with a page-coloured thumb.
-class _Switch extends StatelessWidget {
-  const _Switch({required this.value, required this.onChanged});
+class SettingsSwitch extends StatelessWidget {
+  const SettingsSwitch({super.key, required this.value, required this.onChanged});
   final bool value;
   final ValueChanged<bool> onChanged;
 
@@ -1256,7 +1256,7 @@ class _Switch extends StatelessWidget {
         onChanged: onChanged,
         // On is the iPhone's green with a white knob (settings may use colour; a black or
         // white track was too strong, owner 2026-10-21).
-        activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : _Mau.xanhLa,
+        activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : SettingsHue.xanhLa,
         activeThumbColor: Colors.white,
       );
 }

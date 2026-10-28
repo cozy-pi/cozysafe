@@ -30,7 +30,30 @@ A new security setting gets the same check in the same commit, and a row in this
 Limit: on a device with no biometrics and no passcode support (`local_auth` reports it
 unsupported, e.g. Linux), the system check cannot run and is skipped.
 
-## Leaving the app
+## Touch ID on a Mac (2026-10-28)
+
+Biometric unlock works on a Mac with Touch ID the way it does on a phone. The phone's
+keychain item (`biometryCurrentSet`) needs the data-protection keychain on macOS, and
+that needs a provisioning profile the Developer ID build does not have. Instead:
+
+- `MainFlutterWindow.swift` (`BioKey`, channel `cozysafe/biokey`) makes a P-256 key
+  inside the Secure Enclave with CryptoKit, access control
+  `whenPasscodeSetThisDeviceOnly` + `privateKeyUsage` + `biometryCurrentSet`. It is not
+  stored in the keychain; CryptoKit gives an opaque blob that only this Mac's enclave can
+  use. No entitlement or profile is needed (checked on a Mac with an ad-hoc signed tool,
+  both outside and inside the App Sandbox with the release entitlements).
+- The biometric key K is wrapped by ECDH with a one-off P-256 key, HKDF-SHA256 and
+  AES-GCM. The wrapped blob goes into the legacy keychain (`cozysafe.biometric`,
+  `vault-unlock-key-enclave`, `MacBioKey` in `biometric.dart`), like the Secret Key and
+  the PIN's device key. A copy of the keychain taken off the Mac is useless.
+- Unlocking asks Touch ID (`LAContext`, biometrics only, no "use password" in the
+  prompt: the app has its own PIN and password), then the enclave unwraps K.
+- Cancelled, not recognised, locked out, or Touch ID out of reach (a closed laptop):
+  nothing changes, the PIN or password opens the vault. A finger added or removed
+  (`biometryCurrentSet`), or no finger left: the key is gone, biometric unlock turns
+  off as on a phone, and it can be turned on again after the password.
+- Macs without Touch ID (or without a Secure Enclave) do not offer it.
+
 
 - **Leaving locks at once** by default (`vault_home.dart`, `didChangeAppLifecycleState`),
   except for 60 s when the app itself opened a picker, the camera or the share sheet
@@ -256,6 +279,28 @@ attack. Moving a vault is done by the app's own backup file or sync.
   screens). Then it gets only the vault's lock, and must prove it opened it (a key
   confirmation from the Master Key over this session) before a single item is served. A
   wrong password stops both devices with the lock alone sent.
+
+## Google sign-in on computers
+
+(Details: [ADR 0003](adr/0003-sync.md), "Sign-in on computers".) macOS, Windows and Linux
+sign in to Google Drive through the browser, not Google's SDK:
+
+- **Loopback only.** The redirect listener binds `127.0.0.1` (never `0.0.0.0` or the
+  Wi-Fi address), at a port the system picks; it answers one redirect and closes, and
+  gives up after 5 minutes. Other requests on it (a favicon, an idle connection) get
+  nothing useful.
+- **The code is bound to this app run.** PKCE (S256, 64-character verifier) means a code
+  seen by another program on the computer cannot be exchanged without the verifier; the
+  random `state` is compared in constant time, so a redirect the app did not start is
+  refused.
+- **Only Google's sign-in page opens**, checked in Dart and again natively on macOS.
+- **Tokens stay out of sight.** The refresh token is in the system's secure store
+  (Keychain, Credential Manager, libsecret), the access token in memory only; neither
+  codes nor tokens are logged (the error log keeps fixed codes such as `state-mismatch`,
+  `token-400`). Remove account revokes the grant at Google and deletes the token.
+- **The desktop client secret is not a secret** (it ships in the app, as Google expects
+  for installed apps); PKCE and the loopback redirect are what protect the sign-in. The
+  scope is still `drive.file` only.
 
 ## Quantum computers
 

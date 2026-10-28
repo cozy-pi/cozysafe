@@ -13,7 +13,7 @@ No single check can promise that. Several layers, each catching what another mis
 |---|---|---|
 | OS: Android | `app/android/app/src/main/AndroidManifest.xml`, CI `build.yml` | Only `INTERNET` (any socket needs it, even a local one); no network-state, Wi‑Fi or nearby-device permission |
 | OS: macOS | `app/macos/Runner/Release.entitlements`, `tools/check-entitlements` | App Sandbox on; of the network entitlements only `network.client` / `network.server` (sync) |
-| Compiled Rust | `tools/check-rust-symbols` (CI `ci.yml` on Linux, `build.yml` on the APK's library) | The linked Rust library imports only the socket calls cs-net needs, and `getaddrinfo` (Google Drive's one host); no reverse or legacy lookups |
+| Compiled Rust | `tools/check-rust-symbols` (CI `ci.yml` on Linux, `build.yml` on the APK's library) | The linked Rust library imports only the socket calls cs-net needs, and `getaddrinfo` (Google's two fixed hosts); no reverse or legacy lookups |
 | cackle | `app/rust/cackle.toml`, CI `ci.yml` | No crate but `cs-net` uses the `net` API (std::net, Unix sockets, libc socket calls, tokio::net) |
 | cargo-deny | `deny.toml`, CI `ci.yml` | Known-vulnerable or yanked crates, any source but crates.io, known networking crates |
 | Dart runtime guard | `app/lib/offline.dart` (installed first thing in `main`) | `HttpClient()` throws; `Socket.connect`, `Socket.startConnect`, `ServerSocket.bind` fail |
@@ -37,7 +37,8 @@ while a sync runs).
 `network.server` (sync: one device listens, the other connects). `tools/check-entitlements`
 fails if the sandbox is turned off, if any other `com.apple.security.network.*` key
 appears, or if a sandbox temporary exception is added. It runs in CI on every push and before the release is signed.
-`DebugProfile.entitlements` keeps `network.server` for the debugger.
+`DebugProfile.entitlements` has the same two, so debug builds can reach Google Drive and
+listen on 127.0.0.1 for the Google sign-in on computers.
 
 **Compiled Rust.** `tools/check-rust-symbols` reads the undefined (imported) symbols
 of the built `librust_lib_cozysafe` shared library and fails on name lookups
@@ -140,8 +141,12 @@ validate a build with Apple instead of uploading it (`upload: false`).
   never the app; our crates use the fixed 0.12.1. `app/rust/osv-scanner.toml` ignores it
   until 2027-01-31, with the reason; drop it once flutter_rust_bridge moves to digest 0.11.
 - **Google Drive sync** (cs-net `drive.rs` on `https.rs`): HTTPS to one host,
-  `www.googleapis.com`, a constant; it is the only name the app ever looks up, so the
-  compiled-library check allows `getaddrinfo`. TLS is rustls with ring and Mozilla's roots
+  `www.googleapis.com`, a constant; with the sign-in on computers (cs-net `oauth.rs`:
+  token exchange, refresh, revoke) also `oauth2.googleapis.com`, a constant too. These
+  two are the only names the app ever looks up, so the compiled-library check allows
+  `getaddrinfo`. The sign-in's loopback listener (127.0.0.1 only) is in `oauth.rs` too;
+  Dart opens the browser and parses Google's answers but opens no connection itself,
+  so the Dart guard stays as it is. TLS is rustls with ring and Mozilla's roots
   bundled (6 crates; a ready-made HTTP client pulled in 44, so the few HTTP/1.1 requests
   are written in cs-net, with tests for chunked bodies and size caps). Up to four
   connections are kept and reused (HTTP/1.1 keep-alive), one per item a sync sends at

@@ -14,6 +14,7 @@ use std::net::{Ipv4Addr, SocketAddrV4};
 
 pub mod drive;
 mod https;
+pub mod oauth;
 pub mod p2p;
 
 /// The person's yes to one connection. Not `Clone`: each one opens one thing.
@@ -30,6 +31,9 @@ enum Kind {
     Connect(SocketAddrV4),
     /// Talk to Google Drive's API ([`https::HOST`]) and nothing else, for one session.
     Drive,
+    /// Google sign-in on a computer ([`oauth`]): listen on 127.0.0.1 for the browser's
+    /// one redirect, or talk to Google's OAuth host ([`https::OAUTH_HOST`]) only.
+    GoogleSignIn,
     /// Knock at [`p2p::PORT`] on the other addresses of this device's network
     /// (`a.b.c.1`–`254`), to find its other device; one look, and connecting to a device
     /// it found there.
@@ -77,6 +81,18 @@ impl Permit {
     /// Granted after the person allowed syncing with their Google Drive.
     pub fn google_drive() -> Permit {
         Permit { kind: Kind::Drive }
+    }
+
+    /// Granted after the person chose to sign in to Google Drive on a computer (or, for a
+    /// token refresh, allowed Drive sync before).
+    pub fn google_sign_in() -> Permit {
+        Permit {
+            kind: Kind::GoogleSignIn,
+        }
+    }
+
+    pub(crate) fn is_google_sign_in(&self) -> bool {
+        matches!(self.kind, Kind::GoogleSignIn)
     }
 
     pub(crate) fn is_drive(&self) -> bool {
