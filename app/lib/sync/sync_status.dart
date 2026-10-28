@@ -94,7 +94,7 @@ class HomeSyncIcon extends StatelessWidget {
           _ when AutoSync.failed.value && AutoSync.enabled => ('failed', _FailedCloud(color: _red(context)), l.syncProblem),
           _ when AutoSync.moving.value => (
               'moving',
-              Icon(Icons.cloud_sync_rounded, size: 20, color: _blue(context)),
+              _SpinningCloud(color: _blue(context)),
               l.syncWorking
             ),
           _ when AutoSync.pending.value || AutoSync.lastOk.value == null =>
@@ -117,6 +117,53 @@ class HomeSyncIcon extends StatelessWidget {
       },
     );
   }
+}
+
+/// A blue cloud that stays still while the two arrows in it turn, as iCloud's sign while
+/// it loads (owner 2026-10-28: "syncing" should move). Still when the phone asks for less
+/// motion.
+class _SpinningCloud extends StatefulWidget {
+  const _SpinningCloud({required this.color});
+  final Color color;
+
+  @override
+  State<_SpinningCloud> createState() => _SpinningCloudState();
+}
+
+class _SpinningCloudState extends State<_SpinningCloud> with SingleTickerProviderStateMixin {
+  late final _turn = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _turn.stop();
+    } else if (!_turn.isAnimating) {
+      _turn.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _turn.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+        dimension: 20,
+        child: Stack(alignment: Alignment.center, children: [
+          Icon(Icons.cloud_rounded, size: 20, color: widget.color),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            // Turning the other way round, as the arrows point (clockwise reads as forward).
+            child: RotationTransition(
+              turns: ReverseAnimation(_turn),
+              child: const Icon(Icons.sync_rounded, size: 11, color: Colors.white),
+            ),
+          ),
+        ]),
+      );
 }
 
 /// A red cloud with a white "!" in it: no Material icon says "the cloud failed".
