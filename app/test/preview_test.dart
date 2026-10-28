@@ -566,16 +566,16 @@ void main() {
     AutoSync.pending.value = pending;
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
-  _screen('home', 'Trang chủ · chưa cài đồng bộ', change: 'Biểu tượng nhỏ bên phải dòng dung lượng: ☁̸ xám = Chưa đồng bộ (hiện cả khi chưa cài Google Drive)', home,
-      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-none'))]);
-  _screen('home-synced', 'Trang chủ · đã đồng bộ', change: '☁✓ xanh lá = Đã đồng bộ (không còn chữ, không còn giờ)', home,
-      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-ok'))], setup: drive);
-  _screen('home-syncing', 'Trang chủ · đang gửi / nhận mục', change: 'MỚI: ☁⇄ xanh dương = Đang đồng bộ. Chỉ hiện khi có mục đang lên/xuống Drive; lúc chỉ kiểm tra thì giữ nguyên biểu tượng cũ', home,
-      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-moving'))], setup: () => drive(moving: true));
-  _screen('home-sync-pending', 'Trang chủ · vừa sửa, chưa gửi lên', change: 'MỚI: vừa thêm/sửa mục mà chưa gửi (hoặc mất mạng giữa chừng) → ☁̸ xám Chưa đồng bộ', home,
-      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-none'))], setup: () => drive(pending: true));
-  _screen('home-sync-failed', 'Trang chủ · đồng bộ lỗi', change: '☁! đỏ = Đồng bộ lỗi, kèm chấm đỏ trên nút Cài đặt', home,
-      section: 'home', marks: [() => find.byKey(const ValueKey('home-sync-failed'))], setup: () => drive(failed: true));
+  _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
+      section: 'home');
+  _screen('home-synced', 'Trang chủ · đã đồng bộ', home,
+      section: 'home', setup: drive);
+  _screen('home-syncing', 'Trang chủ · đang gửi / nhận mục', change: 'Hai mũi tên trắng trong mây XOAY một vòng mỗi 1,2 giây (ảnh tĩnh chỉ là một khung); máy bật Giảm chuyển động thì đứng yên', home,
+      section: 'home', setup: () => drive(moving: true));
+  _screen('home-sync-pending', 'Trang chủ · vừa sửa, chưa gửi lên', home,
+      section: 'home', setup: () => drive(pending: true));
+  _screen('home-sync-failed', 'Trang chủ · đồng bộ lỗi', home,
+      section: 'home', setup: () => drive(failed: true));
   // iPad and computer (owner 2026-10-27): three columns, the sync always in sight.
   const ipad = Size(1180, 820), ipadUp = Size(820, 1180), mac = Size(1440, 900), win = Size(1280, 800);
   _screen('wide-ipad-home', 'iPad ngang · Tổng quan: thanh bên (mục, nhóm, đồng bộ, Thêm), nội dung rộng', home,
@@ -1019,9 +1019,9 @@ void main() {
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0, int moved = 0}) =>
       SyncEvent(kind: k, check: check, name: '', peers: const [], peerIds: const [], received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal), moved: moved, repaired: 0, unrepaired: 0, code: '');
-  _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})));
-  _screen('sync-drive-folders', 'Google Drive: tạo thư mục (bản cập nhật thư mục, lần đầu)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveFolders, done: 212, total: 517)), onSynced: () {})));
-  _screen('sync-drive-moving', 'Google Drive: dời tệp cũ vào thư mục', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveMoving, done: 1400, total: 2986)), onSynced: () {})));
+  _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', change: 'Bỏ con số tệp (trước: “3.000 tệp”): người dùng chỉ thấy số mục của mình', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})));
+  _screen('sync-drive-folders', 'Google Drive: tạo thư mục (bản cập nhật thư mục, lần đầu)', change: 'Bỏ con số thư mục (trước: 212 / 517)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveFolders, done: 212, total: 517)), onSynced: () {})));
+  _screen('sync-drive-moving', 'Google Drive: dời tệp cũ vào thư mục', change: 'Bỏ con số tệp (trước: 1.400 / 2.986)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveMoving, done: 1400, total: 2986)), onSynced: () {})));
   _screen('sync-drive-done-moved', 'Google Drive: xong, đã sắp xếp lại tệp, không có gì mới', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.done, moved: 2986)), onSynced: () {})));
   // A first sync (owner 2026-10-27): it said "Looking at Google Drive" while it read
   // every item and while the first big file went up.

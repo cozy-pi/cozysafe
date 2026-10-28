@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "삭제",
   "vaultManagerDeleted": "금고를 삭제했습니다.",
   "syncDriveListing": "Google Drive 읽는 중",
-  "syncDriveFiles": "{n, plural, other{파일 {n}개}}",
   "syncDriveFolders": "Google Drive에 폴더 만드는 중",
   "syncDriveMoving": "파일을 폴더로 옮기는 중",
   "syncDriveMoved": "{n, plural, other{Google Drive의 파일 {n}개를 정리했습니다.}}",

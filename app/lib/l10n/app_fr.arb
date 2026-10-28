@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "SUPPRIMER",
   "vaultManagerDeleted": "Coffre supprimé.",
   "syncDriveListing": "Lecture de Google Drive",
-  "syncDriveFiles": "{n, plural, =1{1 fichier} other{{n} fichiers}}",
   "syncDriveFolders": "Création des dossiers dans Google Drive",
   "syncDriveMoving": "Déplacement des fichiers dans les dossiers",
   "syncDriveMoved": "{n, plural, =1{1 fichier réorganisé dans Google Drive.} other{{n} fichiers réorganisés dans Google Drive.}}",

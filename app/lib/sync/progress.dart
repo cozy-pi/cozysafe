@@ -532,20 +532,19 @@ class _SyncProgressState extends State<SyncProgress>
     return ((b1 - b0) / secs, (i1 - i0) / secs);
   }
 
-  /// Reading Google Drive, making its folders, moving files into them: a count, no bytes.
+  /// Reading Google Drive, making its folders, moving files into them: no count (owner
+  /// 2026-10-28: people count their items; how Drive keeps them is not theirs to know).
   Widget _driveSetupBody(AppLocalizations l, CsColors c, sync.SyncEvent e) {
     final title = switch (e.kind) {
       sync.SyncStep.driveFolders => l.syncDriveFolders,
       sync.SyncStep.driveMoving => l.syncDriveMoving,
       _ => l.syncDriveListing,
     };
-    final count = e.kind == sync.SyncStep.driveListing ? l.syncDriveFiles(e.done) : '${e.done} / ${e.total}';
     return _meter(
       c,
       direction: e.kind == sync.SyncStep.driveListing ? 0 : 1,
       title: title,
       value: e.total > 0 ? (e.done / e.total).clamp(0, 1) : null,
-      items: count,
     );
   }
 
@@ -644,14 +643,13 @@ class _SyncProgressState extends State<SyncProgress>
       },
       title: title,
       value: bytesTotal > 0 ? (bytes / bytesTotal).clamp(0, 1) : (e.total > 0 ? e.done / e.total : null),
-      items: e.total > 0 || e.done > 0
-          // While looking, what counts is the other devices' change lists read so far.
-          ? e.kind == sync.SyncStep.checking && e.total > 0
-              ? '${e.done} / ${e.total}'
-              : e.total > 0
-                  ? l.syncItems(e.done, e.total)
-                  : l.syncItemsSoFar(e.done)
-          : null,
+      // Only items are counted, never files, folders or change lists (owner 2026-10-28):
+      // while looking, no figure at all.
+      items: e.kind == sync.SyncStep.checking || (e.total == 0 && e.done == 0)
+          ? null
+          : e.total > 0
+              ? l.syncItems(e.done, e.total)
+              : l.syncItemsSoFar(e.done),
       bytes: !showBytes
           ? null
           : bytesTotal > 0

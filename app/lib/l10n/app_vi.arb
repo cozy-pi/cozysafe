@@ -561,7 +561,6 @@
   "syncPeerStopped": "Máy kia đã dừng đồng bộ.",
   "syncItemsSoFar": "{done} mục",
   "syncDriveListing": "Đang đọc Google Drive",
-  "syncDriveFiles": "{n} tệp",
   "syncDriveFolders": "Đang tạo thư mục trên Google Drive",
   "syncDriveMoving": "Đang dời tệp vào thư mục",
   "syncDriveMoved": "Đã sắp xếp lại {n} tệp trên Google Drive.",

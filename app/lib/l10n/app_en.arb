@@ -718,8 +718,6 @@
   "syncItemsSoFar": "{done} items",
   "@syncItemsSoFar": {"placeholders": {"done": {"type": "int"}}},
   "syncDriveListing": "Reading Google Drive",
-  "syncDriveFiles": "{n, plural, =1{1 file} other{{n} files}}",
-  "@syncDriveFiles": {"placeholders": {"n": {"type": "int"}}},
   "syncDriveFolders": "Making folders in Google Drive",
   "syncDriveMoving": "Moving files into folders",
   "syncDriveMoved": "{n, plural, =1{Rearranged 1 file in Google Drive.} other{Rearranged {n} files in Google Drive.}}",
