@@ -72,6 +72,27 @@ jobs:
           command: check
           command-arguments: advisories sources bans
 
+  # cargo-vet: every crate version is audited, by us or by an imported auditor (Google,
+  # Mozilla, Bytecode Alliance, ISRG, Zcash, Embark), or exempted at the version it had
+  # when the rule came in (2026-10-28). A new or updated crate fails until someone reads
+  # the diff and certifies it (docs/supply-chain.md, cargo-vet).
+  cargo-vet:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [".", app/rust]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: vet
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/cargo-vet
+          key: cargo-vet-0.10.2-${{ runner.os }}-${{ runner.arch }}
+      - if: steps.vet.outputs.cache-hit != 'true'
+        run: cargo install cargo-vet --version 0.10.2 --locked
+      - working-directory: ${{ matrix.dir }}
+        run: cargo vet --locked
+
   # cackle: no crate in the app's Rust library but cs-net may use the network API
   # (app/rust/cackle.toml). Blocking. On failure it uploads the config cackle suggests
   # (still failing on a net grant to any other crate).

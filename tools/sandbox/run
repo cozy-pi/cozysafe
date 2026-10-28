@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Run a Rust command on a person's computer without letting build code reach it.
+#
+#   tools/sandbox/run [-C <dir>] cargo test --locked      no network, source read-only
+#   (app/rust needs the generated Flutter bindings: CI only)
+#   tools/sandbox/run --net [-C <dir>] cargo fetch --locked   network on (downloads only)
+#   tools/sandbox/run --rw supply-chain cargo vet …      this folder writable too
+#
+# Build scripts and proc macros are other people's code, and cargo runs them with every
+# right of whoever builds. Here they run in a container (Docker) that sees only this
+# repository, read-only and without .git; no home folder, SSH keys, tokens or other
+# projects; no network unless --net is given. Downloads (cargo fetch) run no package
+# code, so fetch with --net, then build without. Crates and build output live in two
+# Docker volumes, cozysafe-cargo and cozysafe-target. See docs/supply-chain.md.
+set -euo pipefail
+ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+IMAGE=cozysafe-sandbox
+net=none dir=. rw=()
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --net) net=bridge; shift ;;
+    -C) dir=$2; shift 2 ;;
+    --rw) mkdir -p "$ROOT/$2"; rw+=(--mount "type=bind,src=$ROOT/$2,dst=/src/$2"); shift 2 ;;
+    *) break ;;
+  esac
+done
+[[ $# -gt 0 ]] || { sed -n '2,12p' "$0"; exit 2; }
+# Rebuild the image when its Dockerfile changes (the tag carries the file's hash).
+tag=$(shasum -a 256 "$ROOT/tools/sandbox/Dockerfile" | cut -c1-12)
+if ! docker image inspect "$IMAGE:$tag" >/dev/null 2>&1; then
+  docker build -q -t "$IMAGE:$tag" "$ROOT/tools/sandbox" >/dev/null
+fi
+# Hide .git (hooks, config). In a git worktree it is a file pointing outside the mount.
+hide=()
+[[ -d "$ROOT/.git" ]] && hide=(--mount type=tmpfs,dst=/src/.git)
+exec docker run --rm --init --network "$net" \
+  --cap-drop ALL --security-opt no-new-privileges \
+  --mount "type=bind,src=$ROOT,dst=/src,readonly" ${hide[@]+"${hide[@]}"} ${rw[@]+"${rw[@]}"} \
+  --mount type=volume,src=cozysafe-cargo,dst=/cargo \
+  --mount type=volume,src=cozysafe-target,dst=/target \
+  -w "/src/$dir" "$IMAGE:$tag" "$@"
