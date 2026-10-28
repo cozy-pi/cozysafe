@@ -562,7 +562,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                             child: _BiometricButton(
                               key: const ValueKey('biometric-button'),
                               kind: bio,
-                              label: bio == BiometricKind.face ? l.unlockWithFace : l.unlockWithFingerprint,
+                              label: unlockWithLabel(l, bio),
                               onTap: _busy ? null : _unlockBiometric,
                             ),
                           ),

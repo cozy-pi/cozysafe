@@ -695,7 +695,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: SettingsHue.xanhLa,
                 // The device's own symbol: the Face ID glyph, or a fingerprint (biometric.dart).
                 glyph: BiometricGlyph(kind: _bioKind, size: 19, color: Colors.white),
-                title: _bioKind == BiometricKind.face ? l.biometricThisVault : l.fingerprintThisVault,
+                title: opensThisVaultLabel(l, _bioKind),
                 trailing: SettingsSwitch(
                   value: widget.biometricOn(),
                   onChanged: (_) => _then(widget.onToggleBiometric),

@@ -1,11 +1,12 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'l10n/app_localizations.dart';
 import 'lock_guard.dart';
 import 'platform.dart';
 import 'privacy.dart';
@@ -18,9 +19,9 @@ enum BiometricKind { face, fingerprint }
 
 /// The biometric-gated half of biometric unlock (ADR 0001). Rust wraps a copy of the
 /// vault's Master Key with a random key; that key lives here, in the Keychain
-/// (`biometryCurrentSet`: a new fingerprint or face invalidates it) or the Android
-/// Keystore (strong biometrics, a fresh check for every read). Neither half opens the
-/// vault alone.
+/// (`biometryCurrentSet`: a new fingerprint or face invalidates it), the Android
+/// Keystore (strong biometrics, a fresh check for every read), or on a Mac wrapped by a
+/// Touch ID key in the Secure Enclave ([MacBioKey]). Neither half opens the vault alone.
 class BiometricUnlock {
   BiometricUnlock({required this.promptTitle, required this.promptCancel});
 
@@ -28,7 +29,8 @@ class BiometricUnlock {
   final String promptCancel;
 
   static const _key = 'vault-unlock-key';
-  static bool get platformSupported => debugKind != null || Device.iOS || Device.android;
+  static bool get platformSupported =>
+      debugKind != null || Device.iOS || Device.android || MacBioKey.supported;
 
   /// For the mockup renders: act as a phone with this biometric (an iPhone: face).
   static BiometricKind? debugKind;
@@ -56,6 +58,7 @@ class BiometricUnlock {
   static Future<BiometricKind?> available() async {
     if (debugKind != null) return debugKind;
     if (!platformSupported) return null;
+    if (MacBioKey.supported) return await MacBioKey.available() ? BiometricKind.fingerprint : null;
     try {
       final auth = LocalAuthentication();
       if (!await auth.canCheckBiometrics) return null;
@@ -70,11 +73,15 @@ class BiometricUnlock {
     }
   }
 
-  Future<void> save(Uint8List key) => _storage.write(key: _key, value: base64Encode(key));
+  Future<void> save(Uint8List key) async {
+    if (MacBioKey.supported) return MacBioKey.save(key);
+    await _storage.write(key: _key, value: base64Encode(key));
+  }
 
   /// Shows the system prompt. Null when the key is gone (biometrics changed, turned off).
   /// Throws when the user cancels or the check fails.
   Future<Uint8List?> read() async {
+    if (MacBioKey.supported) return MacBioKey.read(promptTitle);
     final v = await PrivacyCover.whileAsking(() => _storage.read(key: _key));
     return v == null ? null : base64Decode(v);
   }
@@ -98,6 +105,7 @@ class BiometricUnlock {
   }
 
   Future<void> clear() async {
+    if (MacBioKey.supported) return MacBioKey.clear();
     try {
       await _storage.delete(key: _key);
     } catch (_) {
@@ -105,6 +113,87 @@ class BiometricUnlock {
     }
   }
 }
+
+/// Touch ID on a Mac (docs/security.md, "Touch ID on a Mac"). The keychain items phones
+/// use need the data-protection keychain on macOS, and with it a provisioning profile the
+/// Developer ID build does not have. Instead the native side (`cozysafe/biokey`,
+/// `macos/Runner/MainFlutterWindow.swift`) makes a Secure Enclave key that only Touch ID
+/// can use (`biometryCurrentSet`) and wraps the biometric key with it; the wrapped blob is
+/// useless off this Mac, so it lives in the legacy keychain like the Secret Key.
+abstract final class MacBioKey {
+  static const _channel = MethodChannel('cozysafe/biokey');
+  static const _key = 'vault-unlock-key-enclave';
+  static const _storage = FlutterSecureStorage(
+    mOptions: MacOsOptions(
+      accountName: 'cozysafe.biometric',
+      usesDataProtectionKeychain: false,
+      synchronizable: false,
+    ),
+  );
+
+  /// For tests: stands in for the Secure Enclave, and makes any platform act as a Mac.
+  /// `unwrap` gives null when the key is gone, throws when the person cancels.
+  @visibleForTesting
+  static ({
+    Future<bool> Function() available,
+    Future<Uint8List?> Function(Uint8List) wrap,
+    Future<Uint8List?> Function(Uint8List blob, String reason) unwrap,
+  })? debug;
+
+  /// Mockup renders and tests that act as a phone ([BiometricUnlock.debugKind],
+  /// `Device.debugDesktop = false`) are not a Mac here either.
+  static bool get supported =>
+      debug != null || (Device.macOS && Device.debugDesktop != false && BiometricUnlock.debugKind == null);
+
+  static Future<bool> available() async {
+    if (debug case final d?) return d.available();
+    try {
+      return await _channel.invokeMethod<bool>('available') ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Throws when the enclave cannot make the key: turning on is then rolled back.
+  static Future<void> save(Uint8List key) async {
+    final blob = debug != null
+        ? await debug!.wrap(key)
+        : await _channel.invokeMethod<Uint8List>('wrap', {'bytes': key});
+    if (blob == null) throw StateError('No Touch ID key');
+    await _storage.write(key: _key, value: base64Encode(blob));
+  }
+
+  /// Touch ID, then the key. Null when it is gone (fingers changed, nothing stored);
+  /// throws when the person cancels or is not recognised.
+  static Future<Uint8List?> read(String reason) async {
+    final v = await _storage.read(key: _key);
+    if (v == null) return null;
+    final blob = base64Decode(v);
+    if (debug case final d?) return d.unwrap(blob, reason);
+    return PrivacyCover.whileAsking(
+        () => _channel.invokeMethod<Uint8List>('unwrap', {'bytes': blob, 'reason': reason}));
+  }
+
+  static Future<void> clear() async {
+    try {
+      await _storage.delete(key: _key);
+    } catch (_) {}
+  }
+}
+
+/// The unlock button's text for [kind]: Touch ID on a Mac.
+String unlockWithLabel(AppLocalizations l, BiometricKind kind) => kind == BiometricKind.face
+    ? l.unlockWithFace
+    : MacBioKey.supported
+        ? l.unlockWithTouchId
+        : l.unlockWithFingerprint;
+
+/// The setting's title for [kind]: Touch ID on a Mac.
+String opensThisVaultLabel(AppLocalizations l, BiometricKind kind) => kind == BiometricKind.face
+    ? l.biometricThisVault
+    : MacBioKey.supported
+        ? l.touchIdThisVault
+        : l.fingerprintThisVault;
 
 /// Ask the phone's owner to confirm with Face ID, a fingerprint or the phone's
 /// passcode (the system decides). Used before making another vault. True where the
