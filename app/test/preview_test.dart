@@ -1358,6 +1358,7 @@ void main() {
   });
   void debugSetup() {
     DebugScreen.debugNetworkBlocked = true;
+    Prefs.write('debug-mode', '1');
     for (final (k, v) in [('run', 'start-open'), ('run', 'done-r2-s0-x0-4100ms'), ('look', 'same'), ('look', 'same'), ('run', 'start-change'), ('run', 'done-r0-s1-x0-2300ms')]) {
       SyncLog.add(k, v);
     }
