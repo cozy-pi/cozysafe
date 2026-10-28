@@ -35,6 +35,9 @@ console_error_panic_hook
 const-oid
 core-foundation-sys
 cpufeatures
+crossbeam-deque
+crossbeam-epoch
+crossbeam-utils
 crypto-common
 cs-crypto
 cs-net
@@ -126,6 +129,8 @@ qrcode
 quote
 r-efi
 rand_core
+rayon
+rayon-core
 redox_syscall
 regex
 regex-automata

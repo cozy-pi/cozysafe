@@ -125,6 +125,15 @@ allow_unsafe = true
 
 # Our core has no unsafe code (#![forbid(unsafe_code)] in lib.rs). cackle flags it
 # because the EFF word list it embeds contains the word "unsafe".
+[pkg."crossbeam-deque"]
+allow_unsafe = true
+
+[pkg."crossbeam-epoch"]
+allow_unsafe = true
+
+[pkg."crossbeam-utils"]
+allow_unsafe = true
+
 [pkg."cs-net"]
 allow_apis = ["fs", "net"]
 
@@ -138,6 +147,12 @@ allow_unsafe = true
 allow_unsafe = true
 
 [pkg.once_cell]
+allow_unsafe = true
+
+[pkg.rayon]
+allow_unsafe = true
+
+[pkg."rayon-core"]
 allow_unsafe = true
 
 [pkg.ring]
