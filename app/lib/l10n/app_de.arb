@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "LOESCHEN",
   "vaultManagerDeleted": "Tresor gelöscht.",
   "syncDriveListing": "Google Drive wird gelesen",
-  "syncDriveFiles": "{n, plural, =1{1 Datei} other{{n} Dateien}}",
   "syncDriveFolders": "Ordner in Google Drive werden angelegt",
   "syncDriveMoving": "Dateien werden in Ordner verschoben",
   "syncDriveMoved": "{n, plural, =1{1 Datei in Google Drive neu geordnet.} other{{n} Dateien in Google Drive neu geordnet.}}",

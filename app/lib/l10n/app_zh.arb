@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "删除",
   "vaultManagerDeleted": "保险箱已删除。",
   "syncDriveListing": "正在读取 Google Drive",
-  "syncDriveFiles": "{n, plural, other{{n} 个文件}}",
   "syncDriveFolders": "正在 Google Drive 中创建文件夹",
   "syncDriveMoving": "正在将文件移入文件夹",
   "syncDriveMoved": "{n, plural, other{已整理 Google Drive 中的 {n} 个文件。}}",

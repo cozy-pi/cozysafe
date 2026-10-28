@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "УДАЛИТЬ",
   "vaultManagerDeleted": "Сейф удалён.",
   "syncDriveListing": "Чтение Google Drive",
-  "syncDriveFiles": "{n, plural, one{{n} файл} few{{n} файла} many{{n} файлов} other{{n} файла}}",
   "syncDriveFolders": "Создание папок в Google Drive",
   "syncDriveMoving": "Перемещение файлов в папки",
   "syncDriveMoved": "{n, plural, one{Упорядочен {n} файл в Google Drive.} few{Упорядочено {n} файла в Google Drive.} many{Упорядочено {n} файлов в Google Drive.} other{Упорядочено {n} файла в Google Drive.}}",

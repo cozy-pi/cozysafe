@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "SIL",
   "vaultManagerDeleted": "Kasa silindi.",
   "syncDriveListing": "Google Drive okunuyor",
-  "syncDriveFiles": "{n, plural, =1{1 dosya} other{{n} dosya}}",
   "syncDriveFolders": "Google Drive'da klasörler oluşturuluyor",
   "syncDriveMoving": "Dosyalar klasörlere taşınıyor",
   "syncDriveMoved": "{n, plural, =1{Google Drive'daki 1 dosya yeniden düzenlendi.} other{Google Drive'daki {n} dosya yeniden düzenlendi.}}",

@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "HAPUS",
   "vaultManagerDeleted": "Brankas dihapus.",
   "syncDriveListing": "Membaca Google Drive",
-  "syncDriveFiles": "{n, plural, =1{1 file} other{{n} file}}",
   "syncDriveFolders": "Membuat folder di Google Drive",
   "syncDriveMoving": "Memindahkan file ke folder",
   "syncDriveMoved": "{n, plural, =1{1 file di Google Drive telah ditata ulang.} other{{n} file di Google Drive telah ditata ulang.}}",

@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "削除",
   "vaultManagerDeleted": "金庫を削除しました。",
   "syncDriveListing": "Google Drive を読み込み中",
-  "syncDriveFiles": "{n, plural, other{{n} 個のファイル}}",
   "syncDriveFolders": "Google Drive にフォルダを作成中",
   "syncDriveMoving": "ファイルをフォルダに移動中",
   "syncDriveMoved": "{n, plural, other{Google Drive のファイル {n} 個を整理しました。}}",

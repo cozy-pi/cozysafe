@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.83 (2026-10-28)
+
+### Changed
+- While items go to or come from Google Drive, the arrows in the blue cloud on the home
+  page turn (still when the phone asks for less motion).
+- The sync screen counts only your items. It no longer shows how many files or folders
+  Google Drive holds, which said more about how the app stores things than about yours.
+
 ## 0.1.82 (2026-10-28)
 
 ### Changed

@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "EXCLUIR",
   "vaultManagerDeleted": "Cofre excluído.",
   "syncDriveListing": "Lendo o Google Drive",
-  "syncDriveFiles": "{n, plural, =1{1 arquivo} other{{n} arquivos}}",
   "syncDriveFolders": "Criando pastas no Google Drive",
   "syncDriveMoving": "Movendo arquivos para as pastas",
   "syncDriveMoved": "{n, plural, =1{1 arquivo reorganizado no Google Drive.} other{{n} arquivos reorganizados no Google Drive.}}",

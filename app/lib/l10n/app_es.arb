@@ -558,7 +558,6 @@
   "vaultManagerDeleteWord": "ELIMINAR",
   "vaultManagerDeleted": "Caja fuerte eliminada.",
   "syncDriveListing": "Leyendo Google Drive",
-  "syncDriveFiles": "{n, plural, =1{1 archivo} other{{n} archivos}}",
   "syncDriveFolders": "Creando carpetas en Google Drive",
   "syncDriveMoving": "Moviendo archivos a carpetas",
   "syncDriveMoved": "{n, plural, =1{Se reorganizó 1 archivo en Google Drive.} other{Se reorganizaron {n} archivos en Google Drive.}}",
