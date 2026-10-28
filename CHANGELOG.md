@@ -19,6 +19,7 @@ Dates are UTC.
 - Unlocking with the PIN on a computer is about three times faster (the key work now uses
   several cores; the keys are the same).
 - The Debug page is laid out like Settings.
+- The sync log is kept only while debug mode is on; turning debug mode off deletes it.
 
 ## 0.1.83 (2026-10-28)
 
