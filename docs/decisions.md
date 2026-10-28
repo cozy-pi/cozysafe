@@ -15,6 +15,18 @@ yet, or a revision made after a deletion, is "unknown" and stays; content withou
 counts as junk only once a day old. Not in the connection log (it would read as a sync).
 UI elsewhere. Details: ADR 0003, "Checking for junk".
 
+## 2026-10-28 — Google Drive on computers (macOS, Windows, Linux)
+
+**Owner:** Drive sync, and restoring or joining from Drive, on computers too. Google's
+sign-in SDK does not run there (and on macOS needs an entitlement the Developer ID app
+lacks), so computers use Google's installed-app flow: browser, loopback redirect on
+127.0.0.1, PKCE, the refresh token in the system's secure store (ADR 0003, "Sign-in on
+computers"; docs/security.md). The network parts are in cs-net (`oauth.rs`), which now
+looks up a second fixed host, `oauth2.googleapis.com`. Needs a "Desktop app" OAuth client
+in the `cozy-safe` project and two repository secrets; until they exist, computers hide
+Google Drive as before. Open: a "finish signing in in your browser" screen with Cancel
+(today the tap waits silently, up to 5 minutes) needs a mockup first.
+
 ## 2026-10-27 — A small head per device, so a quiet Drive costs one request
 
 **Owner (approved design):** every automatic look at Google Drive used to list the whole

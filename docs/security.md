@@ -257,6 +257,28 @@ attack. Moving a vault is done by the app's own backup file or sync.
   confirmation from the Master Key over this session) before a single item is served. A
   wrong password stops both devices with the lock alone sent.
 
+## Google sign-in on computers
+
+(Details: [ADR 0003](adr/0003-sync.md), "Sign-in on computers".) macOS, Windows and Linux
+sign in to Google Drive through the browser, not Google's SDK:
+
+- **Loopback only.** The redirect listener binds `127.0.0.1` (never `0.0.0.0` or the
+  Wi-Fi address), at a port the system picks; it answers one redirect and closes, and
+  gives up after 5 minutes. Other requests on it (a favicon, an idle connection) get
+  nothing useful.
+- **The code is bound to this app run.** PKCE (S256, 64-character verifier) means a code
+  seen by another program on the computer cannot be exchanged without the verifier; the
+  random `state` is compared in constant time, so a redirect the app did not start is
+  refused.
+- **Only Google's sign-in page opens**, checked in Dart and again natively on macOS.
+- **Tokens stay out of sight.** The refresh token is in the system's secure store
+  (Keychain, Credential Manager, libsecret), the access token in memory only; neither
+  codes nor tokens are logged (the error log keeps fixed codes such as `state-mismatch`,
+  `token-400`). Remove account revokes the grant at Google and deletes the token.
+- **The desktop client secret is not a secret** (it ships in the app, as Google expects
+  for installed apps); PKCE and the loopback redirect are what protect the sign-in. The
+  scope is still `drive.file` only.
+
 ## Quantum computers
 
 - Shor's algorithm breaks public-key cryptography (RSA, elliptic curves: signatures, key

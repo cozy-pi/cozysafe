@@ -4,7 +4,6 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../platform.dart';
 import '../key_backup.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
@@ -12,6 +11,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../sync/consent.dart';
 import '../sync/drive_join.dart';
 import '../sync/device_name.dart';
+import '../sync/drive.dart' show driveOffered;
 import '../sync/join_page.dart';
 import '../sync/nearby_page.dart';
 import '../sync/progress.dart';
@@ -311,8 +311,8 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
           strong: true,
           onTap: _busy ? null : _fromDevice,
         ),
-        // Phones only, like Drive sync (no desktop sign-in client yet).
-        if (RestoreSourceScreen.debugDrive || Device.iOS || Device.android)
+        // Where Drive sync is offered (phones; computers with the desktop client).
+        if (RestoreSourceScreen.debugDrive || driveOffered)
           BigChoice(
             key: const ValueKey('restore-drive'),
             icon: Icons.cloud_download_rounded,

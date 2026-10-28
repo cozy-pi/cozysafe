@@ -1,11 +1,12 @@
-//! The few HTTPS requests Google Drive needs, on rustls, to one host only. A full HTTP
+//! The few HTTPS requests Google Drive needs, on rustls, to two fixed hosts only. A full HTTP
 //! client pulled in 44 crates (docs/supply-chain.md); this is HTTP/1.1 with
 //! `Content-Length` or chunked bodies, nothing else. Up to [`POOL`] connections are kept
 //! open and reused (keep-alive) while the server allows it, so a sync of many small
 //! items, a few at once, pays for a few TLS handshakes, not one per request.
 //!
-//! The only name ever looked up is [`HOST`]: this is the one place in the app that
-//! resolves a name, and it takes no name from outside.
+//! The only names ever looked up are [`HOST`] and, for Google sign-in on computers,
+//! [`OAUTH_HOST`] (crate::oauth): this is the one place in the app that resolves a name,
+//! and it takes no name from outside (a [`Host`] is one of the two constants).
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
@@ -16,6 +17,26 @@ use cs_vault::{Error, Result};
 
 /// Google's API host: Drive files, uploads and downloads all live here.
 pub(crate) const HOST: &str = "www.googleapis.com";
+/// Google's OAuth host: the token exchange, refresh and revoke of the sign-in on
+/// computers (crate::oauth). Phones sign in through Google's own SDKs instead.
+pub(crate) const OAUTH_HOST: &str = "oauth2.googleapis.com";
+
+/// Which of the two hosts a [`Client`] talks to. Not a string: nothing from outside the
+/// crate can name another host.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Host {
+    Api,
+    OAuth,
+}
+
+impl Host {
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Host::Api => HOST,
+            Host::OAuth => OAUTH_HOST,
+        }
+    }
+}
 /// Largest response read into memory (listings, JSON); files are streamed instead.
 pub(crate) const MAX_SMALL: usize = 8 << 20;
 const MAX_HEADERS: usize = 64 << 10;
@@ -34,7 +55,7 @@ pub(crate) enum Body<'a> {
     Stream(&'a str, u64, &'a mut dyn Read),
 }
 
-/// What HTTP is spoken over: TLS to [`HOST`] in the app, bytes in memory in tests.
+/// What HTTP is spoken over: TLS to a [`Host`] in the app, bytes in memory in tests.
 pub(crate) trait Wire: Read + Write + Send {
     /// False once the server has closed, or written without being asked (checked
     /// before a kept connection is reused).
@@ -63,23 +84,34 @@ impl Wire for Tls {
 type Conn = BufReader<Box<dyn Wire>>;
 type Dial = Box<dyn Fn() -> Result<Box<dyn Wire>> + Send + Sync>;
 
-/// Requests to [`HOST`], over kept connections. Shared between threads: each request
-/// takes a connection of its own (a kept one, or a new one) and hands it back after.
+/// Requests to one [`Host`], over kept connections. Shared between threads: each
+/// request takes a connection of its own (a kept one, or a new one) and hands it back
+/// after.
 pub(crate) struct Client {
     /// Idle connections, the most recently used last.
     idle: Mutex<Vec<(Conn, Instant)>>,
     dial: Dial,
+    host: Host,
 }
 
 impl Client {
+    /// Google Drive's API ([`HOST`]).
     pub fn new() -> Self {
-        Client::with_dial(Box::new(|| Ok(Box::new(connect()?) as Box<dyn Wire>)))
+        Client::to(Host::Api)
     }
 
-    fn with_dial(dial: Dial) -> Self {
+    pub fn to(host: Host) -> Self {
+        Client::with_dial(
+            host,
+            Box::new(move || Ok(Box::new(connect(host)?) as Box<dyn Wire>)),
+        )
+    }
+
+    pub(crate) fn with_dial(host: Host, dial: Dial) -> Self {
         Client {
             idle: Mutex::new(Vec::new()),
             dial,
+            host,
         }
     }
 
@@ -104,7 +136,8 @@ impl Client {
         }
     }
 
-    /// One request to [`HOST`]. `path` starts with `/` and is sent as it is. The next
+    /// One request to this client's host. `path` starts with `/` and is sent as it is;
+    /// an empty `token` sends no Authorization header (the OAuth endpoints). The next
     /// request reuses the connection once this answer is read to its end (or dropped).
     pub fn request(
         &self,
@@ -117,8 +150,16 @@ impl Client {
         if !path.starts_with('/') || path.contains(['\r', '\n', ' ']) {
             return Err(Error::Corrupt("drive path"));
         }
-        let mut head = format!(
-            "{method} {path} HTTP/1.1\r\nHost: {HOST}\r\nAuthorization: Bearer {token}\r\nConnection: keep-alive\r\nUser-Agent: CozySafe\r\nAccept-Encoding: identity\r\n"
+        if token.contains(['\r', '\n']) {
+            return Err(Error::Corrupt("drive header"));
+        }
+        let host = self.host.name();
+        let mut head = format!("{method} {path} HTTP/1.1\r\nHost: {host}\r\n");
+        if !token.is_empty() {
+            head.push_str(&format!("Authorization: Bearer {token}\r\n"));
+        }
+        head.push_str(
+            "Connection: keep-alive\r\nUser-Agent: CozySafe\r\nAccept-Encoding: identity\r\n",
         );
         for (k, v) in extra {
             if v.contains(['\r', '\n']) {
@@ -355,15 +396,16 @@ fn tls_config() -> Arc<rustls::ClientConfig> {
     )
 }
 
-fn connect() -> Result<Tls> {
-    let addr = (HOST, 443)
+fn connect(host: Host) -> Result<Tls> {
+    let host = host.name();
+    let addr = (host, 443)
         .to_socket_addrs()?
         .next()
         .ok_or(Error::Corrupt("drive host not found"))?;
     let tcp = TcpStream::connect_timeout(&addr, Duration::from_secs(15))?;
     tcp.set_read_timeout(Some(Duration::from_secs(60)))?;
     tcp.set_write_timeout(Some(Duration::from_secs(60)))?;
-    let name = rustls::pki_types::ServerName::try_from(HOST).expect("valid host");
+    let name = rustls::pki_types::ServerName::try_from(host).expect("valid host");
     let conn = rustls::ClientConnection::new(tls_config(), name)
         .map_err(|_| Error::Corrupt("drive tls"))?;
     Ok(rustls::StreamOwned::new(conn, tcp))
@@ -531,20 +573,23 @@ mod tests {
             .collect();
         let scripts = Mutex::new(scripts);
         let (d, s) = (dials.clone(), sent.clone());
-        let client = Client::with_dial(Box::new(move || {
-            let replies = scripts
-                .lock()
-                .unwrap()
-                .pop_front()
-                .ok_or(Error::Corrupt("no more connections"))?;
-            d.fetch_add(1, Ordering::SeqCst);
-            Ok(Box::new(Fake {
-                replies: replies.into(),
-                now: Cursor::new(Vec::new()),
-                asked: false,
-                sent: s.clone(),
-            }) as Box<dyn Wire>)
-        }));
+        let client = Client::with_dial(
+            Host::Api,
+            Box::new(move || {
+                let replies = scripts
+                    .lock()
+                    .unwrap()
+                    .pop_front()
+                    .ok_or(Error::Corrupt("no more connections"))?;
+                d.fetch_add(1, Ordering::SeqCst);
+                Ok(Box::new(Fake {
+                    replies: replies.into(),
+                    now: Cursor::new(Vec::new()),
+                    asked: false,
+                    sent: s.clone(),
+                }) as Box<dyn Wire>)
+            }),
+        );
         Server {
             client,
             dials,
