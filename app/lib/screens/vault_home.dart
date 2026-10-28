@@ -659,7 +659,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         picked = await importPicked(batch, photos: photos, progress: (d, _) {
           done.value = d;
           LockGuard.activity(); // a long import is not idleness
-        }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(l, kind, DateTime.now(), ext));
+        }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(DateTime.now(), ext));
       } finally {
         final r = sheetRoute;
         if (r != null && r.isCurrent) {

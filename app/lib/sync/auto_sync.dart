@@ -9,6 +9,7 @@ import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import 'drive.dart';
 import 'status.dart';
+import 'sync_log.dart';
 import 'wifi.dart';
 
 /// Google Drive kept up to date without a tap (owner 2026-10-27), while the vault is open:
@@ -37,7 +38,7 @@ abstract final class AutoSync {
   static set enabled(bool on) {
     Prefs.write(pref, on ? '1' : '0');
     _tick();
-    if (on) run();
+    if (on) run('on');
   }
 
   /// Only on Wi-Fi, not on mobile data (owner: a video over 4G costs).
@@ -116,20 +117,20 @@ abstract final class AutoSync {
       // Leaving with a change not sent yet: send it now, before the vault locks, rather
       // than at the next opening (iOS gives an app leaving a few seconds).
       onInactive: () {
-        if (_settle?.isActive ?? false) run();
+        if (_settle?.isActive ?? false) run('leave');
       },
       // Back without the lock in between: the others may have changed meanwhile.
       onResume: () {
-        if (!vaultLock.locked) _look();
+        if (!vaultLock.locked) _look('back');
       },
     );
-    run();
+    run('open');
   }
 
   /// The every-few-minutes look, only while on and a vault is open.
   static void _tick() {
     final want = enabled && _onSynced != null;
-    if (want && _every == null) _every = Timer.periodic(every, (_) => _look());
+    if (want && _every == null) _every = Timer.periodic(every, (_) => _look('minute'));
     if (!want) {
       _every?.cancel();
       _every = null;
@@ -149,7 +150,7 @@ abstract final class AutoSync {
 
   /// Opened again after the lock: the others may have changed meanwhile.
   static void _lockChanged() {
-    if (!vaultLock.locked) run();
+    if (!vaultLock.locked) run('unlock');
   }
 
   /// The vault's items as just listed: when they differ from the last list (and the
@@ -171,40 +172,69 @@ abstract final class AutoSync {
   /// Something changed here.
   static void changed() {
     _settle?.cancel();
-    _settle = Timer(settle, run);
+    _settle = Timer(settle, () => run('change'));
   }
 
   /// The every-minute look: a full sync when it is due anyway or when another device's
   /// head moved; otherwise nothing more than one small request.
-  static Future<void> _look() async {
+  static Future<void> _look(String why) async {
     if (!enabled || running.value || _onSynced == null || vaultLock.locked) return;
     if (_held > 0 || syncStatus.value != null || driveAccount == null) return;
     final last = lastOk.value;
-    if (last == null || DateTime.now().difference(last) >= fullEvery) return run();
-    if (wifiOnly && !await onWifi()) return;
+    if (last == null || DateTime.now().difference(last) >= fullEvery) return run('$why-due');
+    if (wifiOnly && !await onWifi()) return SyncLog.add('look', 'skip-mobile-data');
     final session = await driveSignInQuietly();
-    if (session == null || running.value || _onSynced == null || vaultLock.locked) return;
+    if (session == null) return SyncLog.add('look', 'skip-no-sign-in');
+    if (running.value || _onSynced == null || vaultLock.locked) return;
     bool changed;
     try {
       changed = await sync.driveChanged(token: session.token);
-    } catch (_) {
+      SyncLog.add('look', changed ? 'moved' : 'same');
+    } catch (e) {
       changed = true; // unsure: the full sync tells
+      SyncLog.add('look', 'unsure-${e.runtimeType}');
     }
-    if (changed) await run();
+    if (changed) await run('$why-moved');
   }
+
+  /// How a run can end other than done (each written to [SyncLog]).
+  static const _ends = {
+    sync.SyncStep.interrupted,
+    sync.SyncStep.failed,
+    sync.SyncStep.signIn,
+    sync.SyncStep.locked,
+    sync.SyncStep.cancelled,
+    sync.SyncStep.driveFull,
+  };
 
   static const _moves = {sync.SyncStep.receiving, sync.SyncStep.sending, sync.SyncStep.removing, sync.SyncStep.repairing};
 
   /// One quiet sync, when everything allows it; otherwise nothing (the next chance comes).
-  static Future<void> run() async {
+  static Future<void> run(String why) async {
     _settle?.cancel();
-    if (!enabled || running.value || _onSynced == null || vaultLock.locked) return;
-    if (_held > 0 || syncStatus.value != null || driveAccount == null) return; // a sync by hand is on
-    if (wifiOnly && !await onWifi()) return;
+    final skip = !enabled
+        ? 'off'
+        : running.value
+            ? 'busy'
+            : _onSynced == null
+                ? 'closed'
+                : vaultLock.locked
+                    ? 'locked'
+                    : _held > 0 || syncStatus.value != null
+                        ? 'by-hand' // a sync by hand is on
+                        : driveAccount == null
+                            ? 'no-account'
+                            : null;
+    if (skip != null) return SyncLog.add('run', '$why-skip-$skip');
+    if (wifiOnly && !await onWifi()) return SyncLog.add('run', '$why-skip-mobile-data');
     final session = await driveSignInQuietly();
-    if (session == null || _onSynced == null || vaultLock.locked) return;
+    if (session == null) return SyncLog.add('run', '$why-skip-no-sign-in');
+    if (_onSynced == null || vaultLock.locked) return SyncLog.add('run', '$why-skip-locked');
+    SyncLog.add('run', 'start-$why');
+    final watch = Stopwatch()..start();
     running.value = true;
     var changes = false;
+    var ended = false;
     try {
       await for (final e in sync.driveSync(token: session.token)) {
         if (_moves.contains(e.kind) && e.total > 0) moving.value = true;
@@ -212,6 +242,11 @@ abstract final class AutoSync {
         if (e.kind == sync.SyncStep.done) {
           changes = e.received + e.removed + e.copies > 0;
           succeeded();
+          SyncLog.add('run', 'done-r${e.received}-s${e.sent}-x${e.removed}-${watch.elapsedMilliseconds}ms');
+          ended = true;
+        } else if (_ends.contains(e.kind)) {
+          SyncLog.add('run', '${e.kind.name}${e.code.isEmpty ? '' : '-${e.code}'}-${watch.elapsedMilliseconds}ms');
+          ended = true;
         }
         if (e.kind == sync.SyncStep.signIn) {
           ErrorLog.add('auto-sync', 'sign-in');
@@ -225,8 +260,11 @@ abstract final class AutoSync {
       }
     } catch (e) {
       ErrorLog.add('auto-sync', e.runtimeType.toString());
+      SyncLog.add('run', 'threw-${e.runtimeType}');
+      ended = true;
       _fail(true);
     } finally {
+      if (!ended) SyncLog.add('run', 'no-end-${watch.elapsedMilliseconds}ms');
       running.value = false;
       moving.value = false;
     }

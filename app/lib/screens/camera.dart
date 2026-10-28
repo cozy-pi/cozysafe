@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../capture_name.dart';
-import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
@@ -477,7 +476,7 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     try {
       if (c.value.isStreamingImages) await c.stopImageStream();
       await c.startVideoRecording();
-      _videoName = captureName(l, ItemKind.video, DateTime.now(), '.mp4');
+      _videoName = captureName(DateTime.now(), '.mp4');
       HapticFeedback.mediumImpact();
       LockGuard.beforeLock = _saveBeforeLock;
       setState(() => _recording = true);
@@ -521,8 +520,13 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     XFile? file;
     try {
       file = await c.stopVideoRecording();
-      final named = XFile(file.path, name: _videoName ?? 'Video.mp4', mimeType: 'video/mp4');
-      final added = await importFiles([named], photos: true);
+      // The file itself takes the name: on a phone XFile's `name` is only the path's last
+      // part (the camera's made-up one), whatever is passed (owner 2026-10-28: a video
+      // made here showed a long code as its name).
+      final recorded = File(file.path);
+      final named = recorded.renameSync('${recorded.parent.path}${Platform.pathSeparator}${_videoName ?? 'Video.mp4'}');
+      file = XFile(named.path, mimeType: 'video/mp4');
+      final added = await importFiles([file], photos: true);
       final item = added.firstOrNull;
       final tagId = widget.tagId;
       if (item != null && tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
@@ -559,7 +563,7 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
         rotation: _rotationFor(image),
       );
       final item = await rust.addPhoto(
-          frame: frame, name: captureName(l, ItemKind.photo, DateTime.now(), '.jpg'), createdMs: nowMs());
+          frame: frame, name: captureName(DateTime.now(), '.jpg'), createdMs: nowMs());
       final tagId = widget.tagId;
       if (tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
       final thumbnail = await rust.itemThumbnail(id: item.id);
