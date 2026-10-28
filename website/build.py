@@ -216,7 +216,6 @@ def page(lang, texts, css):
           <a class="btn btn-gold" id="primary" href="#download">{ic('download', 20)}<span>{t['btn']}</span></a>
           <a class="btn btn-ghost" href="{REPO}">{ic('code', 20)}{t['btn_src']}</a>
         </div>
-        <ul class="platforms"><li>Android</li><li class="soon">iPhone</li></ul>
       </div>
       <div class="unlock" role="img" aria-label="{t['unlock']}">
         <div class="knob">{DIAL}</div>
@@ -319,7 +318,9 @@ def privacy(lang, texts, css):
 def feedback(lang, texts, css):
     """Where people send feedback. The app links here and does nothing else (owner
     2026-10-21): the ways to reach us can change without an app release. Same look as
-    the home page: the green hero with the blurred collage, cards below, the footer."""
+    the home page, but each thing is said once (owner 2026-10-28: the address showed
+    four times, "turn it back on" twice): a short hero, the two ways, what to include,
+    how to take a screenshot."""
     t = texts[lang]['feedback']
     h = texts[lang]['home']
     root = '' if lang == 'en' else '../'
@@ -328,7 +329,7 @@ def feedback(lang, texts, css):
     mail = 'support@cozypi.com'
     steps = ''.join(f'<li><span class="num">{n}</span><span>{x}</span></li>' for n, x in enumerate(t['shot_steps'], 1))
     tips = ''.join(f'<div class="feat"><div class="ic">{ic(k)}</div><p>{x}</p></div>'
-                   for k, x in zip(('iphone', 'list', 'image'), t['tips']))
+                   for k, x in zip(('iphone', 'list', 'bug'), t['tips']))
     return f"""<!doctype html>
 <html lang="{HTML_LANG.get(lang, lang)}">
 <head>
@@ -347,22 +348,9 @@ def feedback(lang, texts, css):
       <a class="brand" href="./"><img src="{root}icon-512.png" alt="" width="32" height="32">Cozy Safe</a>
       {lang_menu(lang, 'feedback', texts[lang]['lang_label'])}
     </div>
-    <div class="hero-grid">
-      <div>
-        <h1>{t['h1']}</h1>
-        <p class="lead">{t['intro']}</p>
-        <div class="cta">
-          <a class="btn btn-gold" href="mailto:{mail}?subject=Cozy%20Safe">{ic('mail', 20)}{t['write']}</a>
-          <a class="btn btn-ghost" href="{issue}" rel="noopener">{ic('bug', 20)}{t['gh_link']}</a>
-        </div>
-      </div>
-      <div class="unlock letter" role="img" aria-label="{t['email_h']}">
-        <div class="knob"><span class="mk">{ic('mail', 50, 1.8)}</span></div>
-        <strong>{t['h1']}</strong>
-        <span class="field">{mail}</span>
-        <span class="lines"><i></i><i></i><i class="short"></i></span>
-        <span class="go">{ic('arrow', 18)}{t['write']}</span>
-      </div>
+    <div class="hero-text">
+      <h1>{t['h1']}</h1>
+      <p class="lead">{t['intro']}</p>
     </div>
   </div>
 </header>
@@ -373,32 +361,24 @@ def feedback(lang, texts, css):
       <h2>{t['email_h']}</h2>
       <p>{t['email_p']}</p>
       <div class="addr"><code>{mail}</code>
-        <button type="button" id="copy" data-done="{t['copied']}">{ic('copy', 18)}<span>{t['copy']}</span></button></div>
+        <button type="button" id="copy" data-done="{t['copied']}" aria-label="{t['copy']} {mail}">{ic('copy', 18)}<span>{t['copy']}</span></button></div>
       <a class="get" href="mailto:{mail}?subject=Cozy%20Safe">{ic('mail', 18)}{t['write']}</a>
     </article>
     <article class="way">
-      <div class="ic">{ic('bug', 26)}</div>
+      <div class="ic">{ic('code', 26)}</div>
       <h2>{t['gh_h']}</h2>
       <p>{t['gh_p']}</p>
       <a class="get alt" href="{issue}" rel="noopener">{ic('bug', 18)}{t['gh_link']}</a>
     </article>
   </section>
   <section class="block">
-    <h2>{t['shot_h']}</h2>
-    <div class="shot-how">
-      <ol class="steps">{steps}</ol>
-      <div class="switch-demo" aria-hidden="true">
-        <div class="row"><span class="tile">{ic('eye', 20)}</span><span class="name">{t['switch']}</span><span class="tog"><i></i></span></div>
-        <span class="hint">{ic('arrow', 16)}</span>
-        <div class="row off"><span class="tile">{ic('eye', 20)}</span><span class="name">{t['switch']}</span><span class="tog"><i></i></span></div>
-      </div>
-    </div>
-    <p class="note">{t['shot_after']}</p>
-  </section>
-  <section class="block">
     <h2>{t['tips_h']}</h2>
     <div class="features">{tips}</div>
     <p class="never">{t['never']}</p>
+  </section>
+  <section class="block">
+    <h2>{t['shot_h']}</h2>
+    <ol class="steps">{steps}</ol>
   </section>
 </main>
 <footer>
@@ -408,7 +388,6 @@ def feedback(lang, texts, css):
     <a href="{REPO}">{h['f_src']}</a>
     <span>{h['f_lic']}</span>
     <a href="privacy">{h['f_priv']}</a>
-    <a href="mailto:{mail}">{mail}</a>
   </div>
 </footer>
 <script>

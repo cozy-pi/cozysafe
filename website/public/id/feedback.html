@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Masukan · Cozy Safe</title>
-<meta name="description" content="Ide, masalah, hal yang membingungkan: kami membaca setiap pesan.">
+<meta name="description" content="Ada ide, bug, atau bagian yang sulit dipakai? Ceritakan kepada kami. Kami membaca setiap pesan.">
 <link rel="canonical" href="https://safe.cozypi.com/id/feedback">
 <link rel="alternate" hreflang="en" href="https://safe.cozypi.com/feedback">
 <link rel="alternate" hreflang="es" href="https://safe.cozypi.com/es/feedback">
@@ -24,7 +24,7 @@
 <link rel="alternate" hreflang="x-default" href="https://safe.cozypi.com/feedback">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
-<link rel="stylesheet" href="../style.css?v=02851c41">
+<link rel="stylesheet" href="../style.css?v=51c116e2">
 </head>
 <body class="fb">
 <header class="hero">
@@ -35,22 +35,9 @@
       <a class="brand" href="./"><img src="../icon-512.png" alt="" width="32" height="32">Cozy Safe</a>
       <label class="lang"><span class="sr">Bahasa</span><select onchange="try{localStorage.setItem('cs.lang',this.options[this.selectedIndex].dataset.l)}catch(e){}location.href=this.value"><option value="/feedback?lang=en" data-l="en">English</option><option value="/es/feedback" data-l="es">Español</option><option value="/pt/feedback" data-l="pt">Português (Brasil)</option><option value="/fr/feedback" data-l="fr">Français</option><option value="/de/feedback" data-l="de">Deutsch</option><option value="/it/feedback" data-l="it">Italiano</option><option value="/tr/feedback" data-l="tr">Türkçe</option><option value="/ja/feedback" data-l="ja">日本語</option><option value="/ko/feedback" data-l="ko">한국어</option><option value="/zh/feedback" data-l="zh">简体中文</option><option value="/zh-TW/feedback" data-l="zh-TW">繁體中文</option><option value="/ru/feedback" data-l="ru">Русский</option><option value="/id/feedback" data-l="id" selected>Bahasa Indonesia</option><option value="/th/feedback" data-l="th">ไทย</option><option value="/vi/feedback" data-l="vi">Tiếng Việt</option></select></label>
     </div>
-    <div class="hero-grid">
-      <div>
-        <h1>Kirim masukan</h1>
-        <p class="lead">Ide, masalah, hal yang membingungkan: kami membaca setiap pesan.</p>
-        <div class="cta">
-          <a class="btn btn-gold" href="mailto:support@cozypi.com?subject=Cozy%20Safe"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/></svg>Tulis email</a>
-          <a class="btn btn-ghost" href="https://github.com/cozy-pi/cozysafe/issues/new" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 9a3.5 3.5 0 0 1 7 0v5a3.5 3.5 0 0 1-7 0z"/><path d="M12 11v7M4 11h4.5M15.5 11H20M4.5 17h4M15.5 17h4M9.5 5l1.2 1.6M14.5 5l-1.2 1.6"/></svg>Buka laporan</a>
-        </div>
-      </div>
-      <div class="unlock letter" role="img" aria-label="Lewat email">
-        <div class="knob"><span class="mk"><svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/></svg></span></div>
-        <strong>Kirim masukan</strong>
-        <span class="field">support@cozypi.com</span>
-        <span class="lines"><i></i><i></i><i class="short"></i></span>
-        <span class="go"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Tulis email</span>
-      </div>
+    <div class="hero-text">
+      <h1>Masukan</h1>
+      <p class="lead">Ada ide, bug, atau bagian yang sulit dipakai? Ceritakan kepada kami. Kami membaca setiap pesan.</p>
     </div>
   </div>
 </header>
@@ -58,35 +45,27 @@
   <section class="block ways">
     <article class="way main">
       <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/></svg></div>
-      <h2>Lewat email</h2>
-      <p>Tulis kepada kami dalam bahasa apa pun.</p>
+      <h2>Email</h2>
+      <p>Tulis dalam bahasa apa pun.</p>
       <div class="addr"><code>support@cozypi.com</code>
-        <button type="button" id="copy" data-done="Tersalin"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span>Salin alamat</span></button></div>
+        <button type="button" id="copy" data-done="Tersalin" aria-label="Salin support@cozypi.com"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span>Salin</span></button></div>
       <a class="get" href="mailto:support@cozypi.com?subject=Cozy%20Safe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/></svg>Tulis email</a>
     </article>
     <article class="way">
-      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 9a3.5 3.5 0 0 1 7 0v5a3.5 3.5 0 0 1-7 0z"/><path d="M12 11v7M4 11h4.5M15.5 11H20M4.5 17h4M15.5 17h4M9.5 5l1.2 1.6M14.5 5l-1.2 1.6"/></svg></div>
-      <h2>Laporkan bug di GitHub</h2>
-      <p>Jika punya akun GitHub, Anda bisa membuka laporan publik.</p>
-      <a class="get alt" href="https://github.com/cozy-pi/cozysafe/issues/new" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 9a3.5 3.5 0 0 1 7 0v5a3.5 3.5 0 0 1-7 0z"/><path d="M12 11v7M4 11h4.5M15.5 11H20M4.5 17h4M15.5 17h4M9.5 5l1.2 1.6M14.5 5l-1.2 1.6"/></svg>Buka laporan</a>
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg></div>
+      <h2>GitHub</h2>
+      <p>Jika punya akun GitHub, Anda bisa melaporkan bug secara publik.</p>
+      <a class="get alt" href="https://github.com/cozy-pi/cozysafe/issues/new" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 9a3.5 3.5 0 0 1 7 0v5a3.5 3.5 0 0 1-7 0z"/><path d="M12 11v7M4 11h4.5M15.5 11H20M4.5 17h4M15.5 17h4M9.5 5l1.2 1.6M14.5 5l-1.2 1.6"/></svg>Laporkan di GitHub</a>
     </article>
   </section>
   <section class="block">
-    <h2>Mengambil tangkapan layar</h2>
-    <div class="shot-how">
-      <ol class="steps"><li><span class="num">1</span><span>Buka brankas Anda.</span></li><li><span class="num">2</span><span>Masuk ke Pengaturan → Tampilan.</span></li><li><span class="num">3</span><span>Matikan “Blokir tangkapan layar” (akan diminta Face ID, sidik jari, atau kode perangkat).</span></li><li><span class="num">4</span><span>Ambil tangkapan layar.</span></li><li><span class="num">5</span><span>Nyalakan lagi “Blokir tangkapan layar”.</span></li></ol>
-      <div class="switch-demo" aria-hidden="true">
-        <div class="row"><span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></span><span class="name">Blokir tangkapan layar</span><span class="tog"><i></i></span></div>
-        <span class="hint"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-        <div class="row off"><span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></span><span class="name">Blokir tangkapan layar</span><span class="tog"><i></i></span></div>
-      </div>
-    </div>
-    <p class="note">Nyalakan lagi setelah selesai, dan pastikan tangkapan layar tidak memuat hal pribadi.</p>
+    <h2>Sebaiknya disertakan</h2>
+    <div class="features"><div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div><p>Versi aplikasi (baris Versi di Pengaturan) dan perangkat Anda.</p></div><div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg></div><p>Apa yang Anda lakukan, dan apa yang terjadi.</p></div><div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 9a3.5 3.5 0 0 1 7 0v5a3.5 3.5 0 0 1-7 0z"/><path d="M12 11v7M4 11h4.5M15.5 11H20M4.5 17h4M15.5 17h4M9.5 5l1.2 1.6M14.5 5l-1.2 1.6"/></svg></div><p>Jika aplikasi menampilkan error: Pengaturan → Laporkan masalah → Salin detail, lalu tempel di email. Isinya hanya kode error, tidak ada apa pun dari brankas Anda.</p></div></div>
+    <p class="never">Jangan pernah mengirim kata sandi brankas, Kunci Pemulihan, atau apa pun dari brankas Anda. Kami tidak akan pernah memintanya.</p>
   </section>
   <section class="block">
-    <h2>Yang membantu kami</h2>
-    <div class="features"><div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div><p>Versi aplikasi (Pengaturan → Tentang) dan perangkat Anda.</p></div><div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg></div><p>Apa yang Anda lakukan, apa yang diharapkan, dan apa yang terjadi.</p></div><div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8.5 9"/></svg></div><p>Tangkapan layar tanpa hal pribadi.</p></div></div>
-    <p class="never">Jangan pernah mengirim kata sandi brankas, Kunci Pemulihan, atau isi brankas Anda: kami tidak pernah membutuhkannya.</p>
+    <h2>Mengirim tangkapan layar</h2>
+    <ol class="steps"><li><span class="num">1</span><span>Buka brankas Anda.</span></li><li><span class="num">2</span><span>Di Pengaturan, matikan “Blokir tangkapan layar” (akan diminta Face ID, sidik jari, atau kode sandi ponsel).</span></li><li><span class="num">3</span><span>Ambil tangkapan layar.</span></li><li><span class="num">4</span><span>Periksa dan potong bagian yang bersifat pribadi.</span></li><li><span class="num">5</span><span>Nyalakan lagi “Blokir tangkapan layar”.</span></li></ol>
   </section>
 </main>
 <footer>
@@ -96,7 +75,6 @@
     <a href="https://github.com/cozy-pi/cozysafe">Kode sumber</a>
     <span>GPL-3.0</span>
     <a href="privacy">Privasi</a>
-    <a href="mailto:support@cozypi.com">support@cozypi.com</a>
   </div>
 </footer>
 <script>
