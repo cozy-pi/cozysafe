@@ -11,9 +11,9 @@
 # can list imports of code that never runs.
 #
 # The plain socket calls are allowed: cs-net (and only cs-net, cackle checks that)
-# syncs with a nearby device on the Wi-Fi by IP address. getaddrinfo is allowed for one
-# name only: Google Drive's API host, a constant in cs-net/src/https.rs (no name ever
-# comes from outside). Reverse lookups and the old gethostbyname family stay forbidden.
+# syncs with a nearby device on the Wi-Fi by IP address. getaddrinfo is allowed for two
+# fixed names only: Google Drive's API host and Google's OAuth host (sign-in on
+# computers), constants in cs-net/src/https.rs (no name ever comes from outside). Reverse lookups and the old gethostbyname family stay forbidden.
 set -euo pipefail
 lib="$1"
 

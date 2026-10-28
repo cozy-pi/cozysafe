@@ -73,7 +73,8 @@ Cozy Safe has no server of its own: no account with us, no ads, no analytics, no
 reports. Only two things touch the network, and only when you start them (or turn on
 automatic sync with Google Drive): **syncing with
 your other device on the same Wi‑Fi** (one address on your local network) and **syncing
-through your Google Drive** (one host, `www.googleapis.com`, over TLS 1.3 with the
+through your Google Drive** (`www.googleapis.com`, and `oauth2.googleapis.com` for the
+sign-in on computers, over TLS 1.3 with the
 `drive.file` scope, so the app sees only the files it made). You allow each connection
 by hand, or once for automatic sync, which runs only while the vault is open and can be
 limited to Wi-Fi; everything sent is already encrypted with your vault's keys. A link in a

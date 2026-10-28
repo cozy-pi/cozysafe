@@ -28,6 +28,9 @@ dependencies:
   package_info_plus: ^10.2.2
   record: ^7.1.2
   google_sign_in: 7.2.0
+  # SHA-256 for the PKCE challenge of the Google sign-in on computers (lib/sync/desktop_oauth.dart);
+  # already in the tree through other packages (tools/allow/dart.txt).
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:
