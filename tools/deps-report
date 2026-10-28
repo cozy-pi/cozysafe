@@ -1,0 +1,687 @@
+#!/usr/bin/env python3
+"""The dependency page, docs/dependencies.md: every third-party package the app is built
+from, grouped by risk, with what changed since the last review (docs/supply-chain.md).
+
+  tools/deps-report                  write docs/dependencies.md (offline)
+  tools/deps-report --check          fail if the page or tools/deps/meta.json is out of
+                                     date with the lock files (CI; offline)
+  tools/deps-report --refresh        after a lock file changes: rebuild the dependency
+                                     graph (cargo metadata), fetch release dates and
+                                     owners of new versions, rewrite meta.json and the page
+  tools/deps-report --refresh-owners fetch every package's owners / publisher again;
+                                     exit 1 if any changed (weekly in security.yml)
+  tools/deps-report --mark-reviewed  the monthly review is done: what is locked now
+                                     becomes the baseline the next "changes" are against
+  tools/deps-report --issue          print the monthly review issue (deps-review.yml)
+
+Sources: Cargo.lock and app/rust/Cargo.lock (Rust), app/pubspec.lock (Dart), the
+Package.resolved files (Swift), app/android/gradle/verification-metadata.xml (Gradle).
+Network data (release dates, owners, each Dart version's dependencies) is fetched only by
+--refresh / --refresh-owners and kept in tools/deps/meta.json, so the page is rebuilt
+the same way everywhere. Risk notes are reviewed by hand in tools/deps/outside-data.txt;
+cackle grants (app/rust/cackle.toml) and network-ok reasons are shown with each package.
+"""
+
+import json
+import re
+import subprocess
+import sys
+import time
+import tomllib
+import urllib.request
+from datetime import date
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+APP = ROOT / "app"
+DEPS = ROOT / "tools" / "deps"
+META = DEPS / "meta.json"
+BASELINE = DEPS / "baseline.json"
+OUTSIDE = DEPS / "outside-data.txt"
+PAGE = ROOT / "docs" / "dependencies.md"
+CARGO = {"core": ROOT / "Cargo.toml", "app": APP / "rust" / "Cargo.toml"}
+CARGO_LOCKS = [ROOT / "Cargo.lock", APP / "rust" / "Cargo.lock"]
+CRATES_IO = "registry+https://github.com/rust-lang/crates.io-index"
+UA = {"User-Agent": "cozysafe-deps-report (https://github.com/cozy-pi/cozysafe)"}
+
+# Dart packages that bring native code in through FFI or a build hook rather than a plugin.
+DART_NATIVE_DEPS = {"ffi", "hooks", "code_assets", "native_assets_cli", "jni"}
+# Rust crates that compile C/C++ or link a system library from a build script.
+RUST_NATIVE_BUILD = {"cc", "cmake", "bindgen", "pkg-config"}
+
+TIERS = {
+    1: ("Reads data from outside",
+        "Runs in the app and parses data that does not come from our own code: files the "
+        "person adds, camera frames, sync data from another device or Google Drive. A bug "
+        "here is reachable by whoever crafts that data. Native code first."),
+    2: ("Native code in the app",
+        "Plugins and SDKs in Kotlin/Java, Swift/Objective-C or C/C++, and Rust crates that "
+        "compile C. Not covered by Rust's or Dart's memory safety, and only partly by our "
+        "scans (docs/supply-chain.md, limits)."),
+    3: ("Other code in the app", "Rust and Dart that ships in the app."),
+    4: ("Build, test and tooling only",
+        "Never ships in the app, but runs on the build machines (build scripts, proc "
+        "macros, code generators, test frameworks)."),
+}
+
+
+# ---------------------------------------------------------------- reading the lock files
+
+def rust_locked():
+    """{name@version} of crates.io crates over both Cargo.lock files."""
+    out = set()
+    for lock in CARGO_LOCKS:
+        for block in lock.read_text().split("[[package]]")[1:]:
+            name = re.search(r'^name = "([^"]+)"', block, re.M)
+            ver = re.search(r'^version = "([^"]+)"', block, re.M)
+            if name and ver and f'source = "{CRATES_IO}"' in block:
+                out.add(f"{name.group(1)}@{ver.group(1)}")
+    return out
+
+
+def dart_locked():
+    """{name: (source, version, dependency)} from app/pubspec.lock."""
+    out = {}
+    text = (APP / "pubspec.lock").read_text()
+    for m in re.finditer(r"^  ([A-Za-z0-9_]+):\n((?:    .*\n)+)", text, re.M):
+        body = m.group(2)
+        src = re.search(r"^    source: (\S+)", body, re.M)
+        ver = re.search(r'^    version: "([^"]+)"', body, re.M)
+        dep = re.search(r'^    dependency: "([^"]+)"', body, re.M)
+        out[m.group(1)] = (src.group(1) if src else "", ver.group(1) if ver else "",
+                           dep.group(1) if dep else "")
+    return out
+
+
+def swift_locked():
+    """{identity: (version, location)} over every Package.resolved in app/."""
+    out = {}
+    for f in sorted(APP.glob("*/**/Package.resolved")):
+        if "/build/" in str(f) or "/.build/" in str(f):
+            continue
+        for pin in json.loads(f.read_text()).get("pins", []):
+            out[pin["identity"]] = (pin["state"].get("version") or pin["state"].get("revision", "")[:12],
+                                    pin["location"])
+    return out
+
+
+def gradle_locked():
+    """{group: {name: [versions]}} from Gradle's verification metadata."""
+    out = {}
+    path = APP / "android" / "gradle" / "verification-metadata.xml"
+    if not path.exists():
+        return out
+    for g, n, v in re.findall(r'<component group="([^"]*)" name="([^"]*)" version="([^"]*)"', path.read_text()):
+        out.setdefault(g, {}).setdefault(n, []).append(v)
+    return out
+
+
+def pubspec_section(text, section):
+    """Names under a top-level section (dependencies, dev_dependencies) of a pubspec."""
+    out, inside = [], False
+    for line in text.splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line.startswith(" "):
+            inside = line.rstrip() == f"{section}:"
+            continue
+        if inside and (m := re.match(r"^  ([A-Za-z0-9_]+):", line)):
+            out.append(m.group(1))
+    return out
+
+
+def flutter_version():
+    text = (ROOT / ".github" / "actions" / "flutter-setup" / "action.yml").read_text()
+    return re.search(r"flutter-version:\s*([0-9.]+)", text).group(1)
+
+
+def read_notes(path):
+    """{(kind, name): note} from a hand-kept list: `<kind> <name>  # note`."""
+    out = {}
+    if path.exists():
+        for n, line in enumerate(path.read_text().splitlines(), 1):
+            body, _, note = line.partition("#")
+            if body.strip():
+                kind, name = body.split()[:2]
+                if not note.strip():
+                    sys.exit(f"error: {path.relative_to(ROOT)}:{n}: '{name}' needs a note (# …)")
+                out[(kind, name)] = note.strip()
+    return out
+
+
+def _plain_list(path):
+    out = {}
+    for line in path.read_text().splitlines():
+        body, _, note = line.partition("#")
+        if body.strip():
+            out[body.strip()] = note.strip()
+    return out
+
+
+def cackle_grants():
+    """{crate: 'unsafe, fs, …'} from app/rust/cackle.toml."""
+    path = APP / "rust" / "cackle.toml"
+    if not path.exists():
+        return {}
+    out = {}
+    for name, cfg in tomllib.loads(path.read_text()).get("pkg", {}).items():
+        base = name.split(".")[0]
+        grants = list(cfg.get("allow_apis", []))
+        if cfg.get("allow_unsafe"):
+            grants.insert(0, "unsafe")
+        if cfg.get("allow_build_instructions"):
+            grants.append("build instructions")
+        if "build" in cfg and isinstance(cfg["build"], dict):
+            b = cfg["build"]
+            grants += [f"build: {a}" for a in b.get("allow_apis", [])]
+            if b.get("allow_unsafe"):
+                grants.append("build: unsafe")
+        if grants:
+            out.setdefault(base, [])
+            out[base] += [g for g in grants if g not in out[base]]
+    return {k: ", ".join(v) for k, v in out.items()}
+
+
+# ---------------------------------------------------------------- the network (refresh only)
+
+def get(url, pause=0.0):
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
+                body = r.read()
+            time.sleep(pause)
+            return body
+        except Exception:
+            if attempt == 3:
+                raise
+            time.sleep(2 + attempt * 3)
+
+
+def get_json(url, pause=0.0):
+    return json.loads(get(url, pause))
+
+
+def crate_owners(name):
+    d = get_json(f"https://crates.io/api/v1/crates/{name}/owners", pause=1)
+    return sorted(f"{u['login']}" for u in d.get("users", []))
+
+
+def pub_publisher(name):
+    return get_json(f"https://pub.dev/api/packages/{name}/publisher").get("publisherId")
+
+
+def shipped_targets():
+    """The platforms the app ships on: the same list cargo-deny checks (deny.toml)."""
+    return tomllib.loads((ROOT / "deny.toml").read_text())["graph"]["targets"]
+
+
+def rust_graph():
+    """{name@version: {kind, native, via, direct}} from cargo metadata of both workspaces."""
+    out = {}
+    rank = {"runtime": 0, "build": 1, "dev": 2, "none": 3}
+    for ws, manifest in CARGO.items():
+        platforms = [a for t in shipped_targets() for a in ("--filter-platform", t)]
+        md = json.loads(subprocess.run(
+            ["cargo", "metadata", "--locked", "--format-version", "1", "--manifest-path", str(manifest),
+             *platforms],
+            check=True, capture_output=True, text=True).stdout)
+        pkgs = {p["id"]: p for p in md["packages"]}
+        nodes = {n["id"]: n for n in md["resolve"]["nodes"]}
+        members = set(md["workspace_members"])
+
+        def key(pid):
+            p = pkgs[pid]
+            return f"{p['name']}@{p['version']}"
+
+        def is_macro(pid):
+            return any("proc-macro" in t["kind"] for t in pkgs[pid]["targets"])
+
+        def edges(pid):
+            for d in sorted(nodes[pid]["deps"], key=lambda d: pkgs[d["pkg"]]["name"]):
+                yield d["pkg"], {k["kind"] for k in d["dep_kinds"]}
+
+        def walk(starts, follow):
+            seen, via, todo = {}, {}, [(s, None) for s in sorted(starts, key=lambda s: pkgs[s]["name"])]
+            while todo:
+                pid, parent = todo.pop(0)
+                if pid in seen:
+                    continue
+                seen[pid] = parent
+                for dep, kinds in edges(pid):
+                    if follow(pid, dep, kinds) and dep not in seen:
+                        todo.append((dep, pid))
+            return seen
+
+        runtime = walk(members, lambda p, d, k: None in k and not is_macro(d))
+        build_starts = set()
+        for pid in set(runtime) | members:
+            for dep, kinds in edges(pid):
+                if dep not in runtime and ("build" in kinds or (None in kinds and is_macro(dep))):
+                    build_starts.add(dep)
+        build = walk(build_starts, lambda p, d, k: k & {None, "build"})
+        for b in build_starts:
+            build[b] = next((pid for pid in sorted(set(runtime) | members, key=lambda s: pkgs[s]["name"])
+                             if any(dep == b for dep, _ in edges(pid))), None)
+        dev_starts = {dep for m in members for dep, kinds in edges(m) if "dev" in kinds}
+        dev = walk(dev_starts, lambda p, d, k: bool(k & {None, "build"}))
+        for d in dev_starts:
+            dev[d] = next((m for m in sorted(members, key=lambda s: pkgs[s]["name"])
+                           if any(dep == d for dep, _ in edges(m))), None)
+
+        for kind, seen in (("runtime", runtime), ("build", build), ("dev", dev)):
+            for pid, parent in seen.items():
+                p = pkgs[pid]
+                if p.get("source") != CRATES_IO:
+                    continue
+                k = key(pid)
+                native = bool(p.get("links")) or any(
+                    d["name"] in RUST_NATIVE_BUILD and d.get("kind") == "build" for d in p["dependencies"])
+                direct = parent in members
+                via = "" if parent is None or parent in members else pkgs[parent]["name"]
+                old = out.get(k)
+                if old and rank[old["kind"]] <= rank[kind]:
+                    old["direct"] = old["direct"] or (direct and old["kind"] == kind)
+                    continue
+                out[k] = {"kind": kind, "native": native, "via": via, "direct": direct}
+    for k in rust_locked() - set(out):
+        out[k] = {"kind": "none", "native": False, "via": "", "direct": False}
+    return dict(sorted(out.items()))
+
+
+def dart_native(pubspec):
+    plugin = (pubspec.get("flutter") or {}).get("plugin") or {}
+    platforms = plugin.get("platforms") or {}
+    for os_name, cfg in platforms.items():
+        if os_name == "web" or not isinstance(cfg, dict):
+            continue
+        if cfg.get("pluginClass") or cfg.get("ffiPlugin"):
+            return True
+    return bool(set(pubspec.get("dependencies") or {}) & DART_NATIVE_DEPS)
+
+
+def refresh(owners_too):
+    meta = json.loads(META.read_text()) if META.exists() else {}
+    old_owners = dict(meta.get("rust_owners", {}))
+    old_publisher = dict(meta.get("dart_publisher", {}))
+
+    print("cargo metadata …", file=sys.stderr)
+    meta["rust_graph"] = rust_graph()
+    locked = rust_locked()
+    missing = locked - set(meta["rust_graph"])
+    if missing:
+        sys.exit(f"error: in Cargo.lock but not in the graph: {sorted(missing)}")
+    rust = {k: v for k, v in meta.get("rust", {}).items() if k in locked}
+    for k in sorted(locked - set(rust)):
+        name, ver = k.split("@")
+        print(f"crates.io {k}", file=sys.stderr)
+        v = get_json(f"https://crates.io/api/v1/crates/{name}/{ver}", pause=1)["version"]
+        rust[k] = {"published": v["created_at"][:10],
+                   "published_by": (v.get("published_by") or {}).get("login", "")}
+    meta["rust"] = dict(sorted(rust.items()))
+    names = sorted({k.split("@")[0] for k in locked})
+    owners = {n: o for n, o in meta.get("rust_owners", {}).items() if n in names}
+    for n in names:
+        if owners_too or n not in owners:
+            print(f"crates.io owners {n}", file=sys.stderr)
+            owners[n] = crate_owners(n)
+    meta["rust_owners"] = owners
+
+    lock = dart_locked()
+    dart = {k: v for k, v in meta.get("dart", {}).items()}
+    hosted = {f"{n}@{v}" for n, (s, v, _) in lock.items() if s == "hosted"}
+    dart = {k: v for k, v in dart.items() if k in hosted}
+    for k in sorted(hosted - set(dart)):
+        name, ver = k.split("@")
+        print(f"pub.dev {k}", file=sys.stderr)
+        info = get_json(f"https://pub.dev/api/packages/{name}")
+        found = [v for v in info["versions"] if v["version"] == ver]
+        if not found:
+            sys.exit(f"error: {k} is not on pub.dev")
+        spec = found[0]["pubspec"]
+        dart[k] = {"published": found[0]["published"][:10],
+                   "deps": sorted(spec.get("dependencies") or {}),
+                   "native": dart_native(spec)}
+    meta["dart"] = dict(sorted(dart.items()))
+    pub_names = sorted({k.split("@")[0] for k in hosted})
+    publisher = {n: p for n, p in meta.get("dart_publisher", {}).items() if n in pub_names}
+    for n in pub_names:
+        if owners_too or n not in publisher:
+            print(f"pub.dev publisher {n}", file=sys.stderr)
+            publisher[n] = pub_publisher(n)
+    meta["dart_publisher"] = publisher
+
+    fv = flutter_version()
+    if meta.get("flutter_version") != fv or "dart_sdk" not in meta:
+        sdk = {}
+        for n, (s, _, _) in sorted(lock.items()):
+            if s != "sdk" or n == "sky_engine":
+                continue
+            print(f"Flutter {fv} {n}", file=sys.stderr)
+            text = get(f"https://raw.githubusercontent.com/flutter/flutter/{fv}/packages/{n}/pubspec.yaml").decode()
+            sdk[n] = sorted(pubspec_section(text, "dependencies"))
+        meta["dart_sdk"] = sdk
+        meta["flutter_version"] = fv
+
+    META.parent.mkdir(parents=True, exist_ok=True)
+    META.write_text(json.dumps(meta, indent=1, sort_keys=True) + "\n")
+
+    changed = []
+    for n in sorted(set(old_owners) & set(owners)):
+        if old_owners[n] != owners[n]:
+            changed.append(f"Rust {n}: owners {', '.join(old_owners[n]) or '-'} → {', '.join(owners[n]) or '-'}")
+    for n in sorted(set(old_publisher) & set(publisher)):
+        if old_publisher[n] != publisher[n]:
+            changed.append(f"Dart {n}: publisher {old_publisher[n] or 'none'} → {publisher[n] or 'none'}")
+    return changed
+
+
+# ---------------------------------------------------------------- the model
+
+def dart_graph(meta):
+    """{name: {kind, native, via, direct, version, source}} for every locked Dart package."""
+    lock = dart_locked()
+    local = {"rust_lib_cozysafe": APP / "rust_builder", "pdfium_dart": ROOT / "third_party" / "pdfium_dart"}
+    app_spec = (APP / "pubspec.yaml").read_text()
+
+    def deps_of(name):
+        src, ver, _ = lock.get(name, ("", "", ""))
+        if name in local:
+            return pubspec_section((local[name] / "pubspec.yaml").read_text(), "dependencies")
+        if src == "sdk":
+            return meta.get("dart_sdk", {}).get(name, [])
+        return meta["dart"].get(f"{name}@{ver}", {}).get("deps", [])
+
+    def walk(starts):
+        seen, todo = {}, [(s, None) for s in sorted(starts)]
+        while todo:
+            name, parent = todo.pop(0)
+            if name in seen or name not in lock:
+                continue
+            seen[name] = parent
+            todo += [(d, name) for d in sorted(deps_of(name)) if d not in seen]
+        return seen
+
+    runtime = walk(pubspec_section(app_spec, "dependencies"))
+    dev = {k: v for k, v in walk(pubspec_section(app_spec, "dev_dependencies")).items() if k not in runtime}
+    out = {}
+    for name, (src, ver, dep) in sorted(lock.items()):
+        if name in runtime:
+            kind, parent = "runtime", runtime[name]
+        elif name in dev:
+            kind, parent = "dev", dev[name]
+        else:
+            kind, parent = "dev", None  # only through tooling outside the app's graph
+        m = meta["dart"].get(f"{name}@{ver}", {})
+        native = m.get("native", False)
+        if name in local:
+            import_spec = (local[name] / "pubspec.yaml").read_text()
+            native = "plugin:" in import_spec or bool(set(pubspec_section(import_spec, "dependencies")) & DART_NATIVE_DEPS)
+        out[name] = {"kind": kind, "native": native, "via": parent or "", "direct": parent is None and dep.startswith("direct"),
+                     "version": ver, "source": src, "published": m.get("published", "")}
+    return out
+
+
+def current(meta):
+    """Everything the page shows: a list of row dicts."""
+    outside = read_notes(OUTSIDE)
+    grants = cackle_grants()
+    netok = _plain_list(ROOT / "tools" / "allow" / "network-ok.txt")
+    rows = []
+
+    for k, g in meta["rust_graph"].items():
+        name, ver = k.split("@")
+        m = meta["rust"].get(k, {})
+        notes = []
+        if ("rust", name) in outside:
+            notes.append(outside[("rust", name)])
+        if g["kind"] == "none":
+            notes.append("in the lock file, but built for none of the platforms the app ships on")
+        if g["native"]:
+            notes.append("compiles C or links a system library")
+        if name in grants and g["kind"] == "runtime":
+            notes.append(f"cackle: {grants[name]}")
+        rows.append({"eco": "Rust", "name": name, "version": ver, "published": m.get("published", ""),
+                     "kind": g["kind"], "native": g["native"], "via": g["via"], "direct": g["direct"],
+                     "who": ", ".join(meta["rust_owners"].get(name, [])),
+                     "url": f"https://crates.io/crates/{name}/{ver}", "outside": ("rust", name) in outside,
+                     "notes": notes})
+
+    for name, g in dart_graph(meta).items():
+        if g["source"] == "path" and name == "rust_lib_cozysafe":
+            continue  # our own Rust library
+        notes = []
+        if ("dart", name) in outside:
+            notes.append(outside[("dart", name)])
+        if g["native"]:
+            notes.append("native code (plugin, FFI or build hook)")
+        if name in netok:
+            notes.append(f"network code: {netok[name]}")
+        if g["source"] == "sdk":
+            who, url = "Flutter SDK", "https://github.com/flutter/flutter"
+        elif g["source"] == "path":
+            who, url = "our copy", f"../third_party/{name}"
+        else:
+            pub = meta["dart_publisher"].get(name)
+            who = pub or "no verified publisher"
+            url = f"https://pub.dev/packages/{name}/versions/{g['version']}"
+        rows.append({"eco": "Dart", "name": name, "version": g["version"] or "SDK", "published": g["published"],
+                     "kind": g["kind"], "native": g["native"], "via": g["via"], "direct": g["direct"],
+                     "who": who, "url": url, "outside": ("dart", name) in outside, "notes": notes})
+
+    for name, (ver, loc) in swift_locked().items():
+        notes = ["native SDK (Swift Package Manager)"]
+        if ("swift", name) in outside:
+            notes.insert(0, outside[("swift", name)])
+        org = re.sub(r"^https://github\.com/([^/]+)/.*", r"\1", loc)
+        rows.append({"eco": "Swift", "name": name, "version": ver, "published": "", "kind": "runtime",
+                     "native": True, "via": "google_sign_in (iOS, macOS)", "direct": False, "who": org,
+                     "url": loc.removesuffix(".git"), "outside": ("swift", name) in outside, "notes": notes})
+
+    known = {(r["eco"].lower(), r["name"]) for r in rows}
+    for (kind, name) in outside:
+        if (kind, name) not in known:
+            sys.exit(f"error: tools/deps/outside-data.txt lists {kind} {name}, which is not a dependency")
+
+    for r in rows:
+        if r["kind"] != "runtime":
+            r["tier"] = 4
+        elif r["outside"]:
+            r["tier"] = 1
+        elif r["native"]:
+            r["tier"] = 2
+        else:
+            r["tier"] = 3
+    return sorted(rows, key=lambda r: (r["tier"], not r["native"], r["eco"], r["name"], r["version"]))
+
+
+def snapshot(rows, meta):
+    return {
+        "packages": sorted(f"{r['eco']} {r['name']}@{r['version']}" for r in rows),
+        # Pairs, not a mapping: gitleaks reads `"… password-hash": "<owners>"` as a secret.
+        "owners": sorted([f"{r['eco']} {r['name']}", r["who"]] for r in rows),
+    }
+
+
+def changes(rows, meta):
+    if not BASELINE.exists():
+        return None, []
+    base = json.loads(BASELINE.read_text())
+    now = snapshot(rows, meta)
+
+    def by_name(pkgs):
+        out = {}
+        for p in pkgs:
+            n, v = p.rsplit("@", 1)
+            out.setdefault(n, set()).add(v)
+        return out
+
+    old, new = by_name(base["packages"]), by_name(now["packages"])
+    base_owners, now_owners = dict(base["owners"]), dict(now["owners"])
+    out = []
+    for n in sorted(set(new) - set(old)):
+        out.append(("added", n, ", ".join(sorted(new[n]))))
+    for n in sorted(set(old) - set(new)):
+        out.append(("removed", n, ", ".join(sorted(old[n]))))
+    for n in sorted(set(old) & set(new)):
+        if old[n] != new[n]:
+            out.append(("updated", n, f"{', '.join(sorted(old[n]))} → {', '.join(sorted(new[n]))}"))
+    for n in sorted(set(base_owners) & set(now_owners)):
+        if base_owners[n] != now_owners[n]:
+            out.append(("owners changed", n, f"{base_owners[n] or '-'} → {now_owners[n] or '-'}"))
+    return base["date"], out
+
+
+# ---------------------------------------------------------------- the page
+
+def cell(s):
+    return str(s).replace("|", "\\|")
+
+
+def table(rows):
+    lines = ["| Package | Version | Released | Comes in through | Owners / publisher | Notes |",
+             "|---|---|---|---|---|---|"]
+    for r in rows:
+        via = "direct" if r["direct"] else (r["via"] or "")
+        lines.append(f"| {r['eco']} [{cell(r['name'])}]({r['url']}) | {cell(r['version'])} | {r['published']} | "
+                     f"{cell(via)} | {cell(r['who'])} | {cell('; '.join(r['notes']))} |")
+    return "\n".join(lines)
+
+
+def render(meta):
+    rows = current(meta)
+    since, diff = changes(rows, meta)
+    out = ["# Dependencies", "",
+           "Every third-party package Cozy Safe is built from, grouped by how much harm a bug or "
+           "a hijacked release in it could do. Generated by `tools/deps-report` from the lock "
+           "files; do not edit by hand (CI fails when this page is out of date). Why and how the "
+           "packages are checked: [supply-chain.md](supply-chain.md).", "",
+           "**Review, monthly** (an issue opens on the 1st, `deps-review.yml`): read "
+           "*Changes since the last review*; for each added or updated package look at what "
+           "changed (the release diff on crates.io / pub.dev / GitHub); look again at tiers 1 "
+           "and 2; then run `tools/deps-report --mark-reviewed` and commit. A change of owners "
+           "fails the weekly security run before that.", ""]
+
+    counts = {}
+    for r in rows:
+        counts.setdefault(r["tier"], {}).setdefault(r["eco"], 0)
+        counts[r["tier"]][r["eco"]] += 1
+    out += ["## Summary", "", "| Tier | | Rust | Dart | Swift | Total |", "|---|---|---|---|---|---|"]
+    for t, (title, _) in TIERS.items():
+        c = counts.get(t, {})
+        out.append(f"| {t} | {title} | {c.get('Rust', 0)} | {c.get('Dart', 0)} | {c.get('Swift', 0)} | "
+                   f"{sum(c.values())} |")
+    gradle = gradle_locked()
+    out += ["", f"Plus {sum(len(v) for v in gradle.values())} Gradle artifacts in {len(gradle)} groups "
+            "(Android build tools and libraries, [below](#android-gradle)).", ""]
+
+    out += ["## Changes since the last review", ""]
+    if since is None:
+        out += ["No review recorded yet.", ""]
+    else:
+        out += [f"Last review: **{since}**.", ""]
+        if diff:
+            out += ["| Change | Package | Versions / owners |", "|---|---|---|"]
+            out += [f"| {c} | {cell(n)} | {cell(v)} |" for c, n, v in diff]
+        else:
+            out.append("Nothing changed.")
+        out.append("")
+
+    for t, (title, text) in TIERS.items():
+        tier_rows = [r for r in rows if r["tier"] == t]
+        out += [f"## Tier {t}: {title}", "", text, ""]
+        if t >= 3:
+            out += [f"<details><summary>{len(tier_rows)} packages</summary>", "", table(tier_rows), "",
+                    "</details>", ""]
+        else:
+            out += [table(tier_rows), ""]
+
+    out += ["## Android (Gradle)", "",
+            "From `app/android/gradle/verification-metadata.xml`, which pins the SHA-256 of each "
+            "artifact. It mixes build tools (Android Gradle Plugin, Kotlin compiler, test "
+            "runners) with the libraries in the APK; the libraries come in through the Flutter "
+            "plugins above (CameraX, Media3, Google sign-in and so on).", "",
+            "<details><summary>Groups</summary>", "", "| Group | Artifacts |", "|---|---|"]
+    for g in sorted(gradle):
+        # name@version · …: with "name version, …" gitleaks read play-services-auth as a secret.
+        arts = " · ".join(f"{n}@{'/'.join(sorted(set(v)))}" for n, v in sorted(gradle[g].items()))
+        out.append(f"| {cell(g)} | {cell(arts)} |")
+    out += ["", "</details>", ""]
+    return "\n".join(out)
+
+
+def issue(meta):
+    rows = current(meta)
+    since, diff = changes(rows, meta)
+    lines = [f"Monthly review of the dependencies ([docs/dependencies.md](https://github.com/cozy-pi/cozysafe/blob/main/docs/dependencies.md)).", ""]
+    lines.append(f"Last review: {since or 'none'}.")
+    lines.append("")
+    if diff:
+        lines += ["**Changed since then** (look at each release's diff):", ""]
+        lines += [f"- [ ] {c}: {n} ({v})" for c, n, v in diff]
+    else:
+        lines.append("Nothing changed since then.")
+    for t in (1, 2):
+        lines += ["", f"**Tier {t}: {TIERS[t][0]}** (still needed? still maintained? advisories?):", ""]
+        names = sorted({f"{r['eco']} {r['name']}" for r in rows if r["tier"] == t})
+        lines += [f"- [ ] {n}" for n in names]
+    lines += ["", "When done: `tools/deps-report --mark-reviewed`, commit, close this issue."]
+    return "\n".join(lines)
+
+
+def check_meta(meta):
+    problems = []
+    rust = rust_locked()
+    if set(meta.get("rust_graph", {})) != rust or set(meta.get("rust", {})) != rust:
+        problems.append("Rust crates in the lock files differ from tools/deps/meta.json")
+    lock = dart_locked()
+    hosted = {f"{n}@{v}" for n, (s, v, _) in lock.items() if s == "hosted"}
+    if set(meta.get("dart", {})) != hosted:
+        problems.append("Dart packages in app/pubspec.lock differ from tools/deps/meta.json")
+    if meta.get("flutter_version") != flutter_version():
+        problems.append("the pinned Flutter version differs from tools/deps/meta.json")
+    return problems
+
+
+def main():
+    args = sys.argv[1:]
+    if "--refresh" in args or "--refresh-owners" in args:
+        changed = refresh("--refresh-owners" in args)
+        meta = json.loads(META.read_text())
+        PAGE.write_text(render(meta))
+        print(f"wrote {PAGE.relative_to(ROOT)} and {META.relative_to(ROOT)}")
+        for c in changed:
+            print(f"error: {c}. Find out why (a new maintainer is how hijacked releases start), "
+                  "then commit tools/deps/meta.json.", file=sys.stderr)
+        return 1 if changed else 0
+
+    if not META.exists():
+        sys.exit("error: tools/deps/meta.json is missing: run tools/deps-report --refresh")
+    meta = json.loads(META.read_text())
+    if problems := check_meta(meta):
+        for p in problems:
+            print(f"error: {p}: run tools/deps-report --refresh and commit.", file=sys.stderr)
+        return 1
+
+    if "--mark-reviewed" in args:
+        snap = snapshot(current(meta), meta)
+        BASELINE.write_text(json.dumps({"date": date.today().isoformat(), **snap}, indent=1, sort_keys=True) + "\n")
+        PAGE.write_text(render(meta))
+        print(f"baseline {date.today().isoformat()}: {len(snap['packages'])} packages")
+        return 0
+    if "--issue" in args:
+        print(issue(meta))
+        return 0
+    page = render(meta)
+    if "--check" in args:
+        if not PAGE.exists() or PAGE.read_text() != page:
+            print("error: docs/dependencies.md is out of date: run tools/deps-report and commit.", file=sys.stderr)
+            return 1
+        print("docs/dependencies.md is up to date")
+        return 0
+    PAGE.write_text(page)
+    print(f"wrote {PAGE.relative_to(ROOT)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

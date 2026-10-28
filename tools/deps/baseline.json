@@ -1,0 +1,1827 @@
+{
+ "date": "2026-10-28",
+ "owners": [
+  [
+   "Dart archive",
+   "taosengine.com"
+  ],
+  [
+   "Dart args",
+   "dart.dev"
+  ],
+  [
+   "Dart async",
+   "dart.dev"
+  ],
+  [
+   "Dart boolean_selector",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart build_cli_annotations",
+   "kevmoo.com"
+  ],
+  [
+   "Dart camera",
+   "flutter.dev"
+  ],
+  [
+   "Dart camera_android_camerax",
+   "flutter.dev"
+  ],
+  [
+   "Dart camera_avfoundation",
+   "flutter.dev"
+  ],
+  [
+   "Dart camera_platform_interface",
+   "flutter.dev"
+  ],
+  [
+   "Dart camera_web",
+   "flutter.dev"
+  ],
+  [
+   "Dart characters",
+   "dart.dev"
+  ],
+  [
+   "Dart clock",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart code_assets",
+   "dart.dev"
+  ],
+  [
+   "Dart collection",
+   "dart.dev"
+  ],
+  [
+   "Dart cross_file",
+   "flutter.dev"
+  ],
+  [
+   "Dart crypto",
+   "dart.dev"
+  ],
+  [
+   "Dart csslib",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart cupertino_ui",
+   "flutter.dev"
+  ],
+  [
+   "Dart fake_async",
+   "dart.dev"
+  ],
+  [
+   "Dart fc_native_video_thumbnail",
+   "flutter-cavalry.com"
+  ],
+  [
+   "Dart ffi",
+   "dart.dev"
+  ],
+  [
+   "Dart ffi_leak_tracker",
+   "halildurmus.dev"
+  ],
+  [
+   "Dart file",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart file_selector",
+   "flutter.dev"
+  ],
+  [
+   "Dart file_selector_android",
+   "flutter.dev"
+  ],
+  [
+   "Dart file_selector_ios",
+   "flutter.dev"
+  ],
+  [
+   "Dart file_selector_linux",
+   "flutter.dev"
+  ],
+  [
+   "Dart file_selector_macos",
+   "flutter.dev"
+  ],
+  [
+   "Dart file_selector_platform_interface",
+   "flutter.dev"
+  ],
+  [
+   "Dart file_selector_web",
+   "flutter.dev"
+  ],
+  [
+   "Dart file_selector_windows",
+   "flutter.dev"
+  ],
+  [
+   "Dart fixnum",
+   "dart.dev"
+  ],
+  [
+   "Dart flutter",
+   "Flutter SDK"
+  ],
+  [
+   "Dart flutter_driver",
+   "Flutter SDK"
+  ],
+  [
+   "Dart flutter_lints",
+   "flutter.dev"
+  ],
+  [
+   "Dart flutter_localizations",
+   "Flutter SDK"
+  ],
+  [
+   "Dart flutter_plugin_android_lifecycle",
+   "flutter.dev"
+  ],
+  [
+   "Dart flutter_rust_bridge",
+   "cjycode.com"
+  ],
+  [
+   "Dart flutter_secure_storage",
+   "steenbakker.dev"
+  ],
+  [
+   "Dart flutter_secure_storage_darwin",
+   "steenbakker.dev"
+  ],
+  [
+   "Dart flutter_secure_storage_linux",
+   "steenbakker.dev"
+  ],
+  [
+   "Dart flutter_secure_storage_platform_interface",
+   "steenbakker.dev"
+  ],
+  [
+   "Dart flutter_secure_storage_web",
+   "steenbakker.dev"
+  ],
+  [
+   "Dart flutter_secure_storage_windows",
+   "steenbakker.dev"
+  ],
+  [
+   "Dart flutter_test",
+   "Flutter SDK"
+  ],
+  [
+   "Dart flutter_web_plugins",
+   "Flutter SDK"
+  ],
+  [
+   "Dart fuchsia_remote_debug_protocol",
+   "Flutter SDK"
+  ],
+  [
+   "Dart google_identity_services_web",
+   "flutter.dev"
+  ],
+  [
+   "Dart google_sign_in",
+   "flutter.dev"
+  ],
+  [
+   "Dart google_sign_in_android",
+   "flutter.dev"
+  ],
+  [
+   "Dart google_sign_in_ios",
+   "flutter.dev"
+  ],
+  [
+   "Dart google_sign_in_platform_interface",
+   "flutter.dev"
+  ],
+  [
+   "Dart google_sign_in_web",
+   "flutter.dev"
+  ],
+  [
+   "Dart hooks",
+   "dart.dev"
+  ],
+  [
+   "Dart html",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart http",
+   "dart.dev"
+  ],
+  [
+   "Dart http_parser",
+   "dart.dev"
+  ],
+  [
+   "Dart image",
+   "taosengine.com"
+  ],
+  [
+   "Dart image_picker",
+   "flutter.dev"
+  ],
+  [
+   "Dart image_picker_android",
+   "flutter.dev"
+  ],
+  [
+   "Dart image_picker_for_web",
+   "flutter.dev"
+  ],
+  [
+   "Dart image_picker_ios",
+   "flutter.dev"
+  ],
+  [
+   "Dart image_picker_linux",
+   "flutter.dev"
+  ],
+  [
+   "Dart image_picker_macos",
+   "flutter.dev"
+  ],
+  [
+   "Dart image_picker_platform_interface",
+   "flutter.dev"
+  ],
+  [
+   "Dart image_picker_windows",
+   "flutter.dev"
+  ],
+  [
+   "Dart integration_test",
+   "Flutter SDK"
+  ],
+  [
+   "Dart intl",
+   "dart.dev"
+  ],
+  [
+   "Dart jni",
+   "dart.dev"
+  ],
+  [
+   "Dart jni_flutter",
+   "dart.dev"
+  ],
+  [
+   "Dart jni_util",
+   "dart.dev"
+  ],
+  [
+   "Dart leak_tracker",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart leak_tracker_flutter_testing",
+   "flutter.dev"
+  ],
+  [
+   "Dart leak_tracker_testing",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart lints",
+   "dart.dev"
+  ],
+  [
+   "Dart local_auth",
+   "flutter.dev"
+  ],
+  [
+   "Dart local_auth_android",
+   "flutter.dev"
+  ],
+  [
+   "Dart local_auth_darwin",
+   "flutter.dev"
+  ],
+  [
+   "Dart local_auth_platform_interface",
+   "flutter.dev"
+  ],
+  [
+   "Dart local_auth_windows",
+   "flutter.dev"
+  ],
+  [
+   "Dart logging",
+   "dart.dev"
+  ],
+  [
+   "Dart matcher",
+   "dart.dev"
+  ],
+  [
+   "Dart material_color_utilities",
+   "material.io"
+  ],
+  [
+   "Dart material_ui",
+   "flutter.dev"
+  ],
+  [
+   "Dart meta",
+   "dart.dev"
+  ],
+  [
+   "Dart mime",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart objective_c",
+   "dart.dev"
+  ],
+  [
+   "Dart package_config",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart package_info_plus",
+   "fluttercommunity.dev"
+  ],
+  [
+   "Dart package_info_plus_platform_interface",
+   "fluttercommunity.dev"
+  ],
+  [
+   "Dart path",
+   "dart.dev"
+  ],
+  [
+   "Dart path_provider",
+   "flutter.dev"
+  ],
+  [
+   "Dart path_provider_android",
+   "flutter.dev"
+  ],
+  [
+   "Dart path_provider_foundation",
+   "flutter.dev"
+  ],
+  [
+   "Dart path_provider_linux",
+   "flutter.dev"
+  ],
+  [
+   "Dart path_provider_platform_interface",
+   "flutter.dev"
+  ],
+  [
+   "Dart path_provider_windows",
+   "flutter.dev"
+  ],
+  [
+   "Dart pdfium_dart",
+   "our copy"
+  ],
+  [
+   "Dart pdfium_flutter",
+   "espresso3389.jp"
+  ],
+  [
+   "Dart pdfrx",
+   "espresso3389.jp"
+  ],
+  [
+   "Dart pdfrx_engine",
+   "espresso3389.jp"
+  ],
+  [
+   "Dart platform",
+   "dart.dev"
+  ],
+  [
+   "Dart plugin_platform_interface",
+   "flutter.dev"
+  ],
+  [
+   "Dart posix",
+   "onepub.dev"
+  ],
+  [
+   "Dart process",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart pub_semver",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart record",
+   "cow-level.ovh"
+  ],
+  [
+   "Dart record_android",
+   "cow-level.ovh"
+  ],
+  [
+   "Dart record_ios",
+   "cow-level.ovh"
+  ],
+  [
+   "Dart record_linux",
+   "cow-level.ovh"
+  ],
+  [
+   "Dart record_macos",
+   "cow-level.ovh"
+  ],
+  [
+   "Dart record_platform_interface",
+   "cow-level.ovh"
+  ],
+  [
+   "Dart record_use",
+   "dart.dev"
+  ],
+  [
+   "Dart record_web",
+   "cow-level.ovh"
+  ],
+  [
+   "Dart record_windows",
+   "cow-level.ovh"
+  ],
+  [
+   "Dart rxdart",
+   "fluttercommunity.dev"
+  ],
+  [
+   "Dart share_plus",
+   "fluttercommunity.dev"
+  ],
+  [
+   "Dart share_plus_platform_interface",
+   "fluttercommunity.dev"
+  ],
+  [
+   "Dart sky_engine",
+   "Flutter SDK"
+  ],
+  [
+   "Dart source_span",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart stack_trace",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart stream_channel",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart stream_transform",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart string_scanner",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart sync_http",
+   "google.dev"
+  ],
+  [
+   "Dart synchronized",
+   "tekartik.com"
+  ],
+  [
+   "Dart term_glyph",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart test_api",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart typed_data",
+   "dart.dev"
+  ],
+  [
+   "Dart url_launcher",
+   "flutter.dev"
+  ],
+  [
+   "Dart url_launcher_android",
+   "flutter.dev"
+  ],
+  [
+   "Dart url_launcher_ios",
+   "flutter.dev"
+  ],
+  [
+   "Dart url_launcher_linux",
+   "flutter.dev"
+  ],
+  [
+   "Dart url_launcher_macos",
+   "flutter.dev"
+  ],
+  [
+   "Dart url_launcher_platform_interface",
+   "flutter.dev"
+  ],
+  [
+   "Dart url_launcher_web",
+   "flutter.dev"
+  ],
+  [
+   "Dart url_launcher_windows",
+   "flutter.dev"
+  ],
+  [
+   "Dart uuid",
+   "yuli.dev"
+  ],
+  [
+   "Dart vector_math",
+   "flutter.dev"
+  ],
+  [
+   "Dart video_player",
+   "flutter.dev"
+  ],
+  [
+   "Dart video_player_android",
+   "flutter.dev"
+  ],
+  [
+   "Dart video_player_avfoundation",
+   "flutter.dev"
+  ],
+  [
+   "Dart video_player_platform_interface",
+   "flutter.dev"
+  ],
+  [
+   "Dart video_player_web",
+   "flutter.dev"
+  ],
+  [
+   "Dart vm_service",
+   "tools.dart.dev"
+  ],
+  [
+   "Dart web",
+   "dart.dev"
+  ],
+  [
+   "Dart webdriver",
+   "google.dev"
+  ],
+  [
+   "Dart win32",
+   "halildurmus.dev"
+  ],
+  [
+   "Dart xdg_directories",
+   "flutter.dev"
+  ],
+  [
+   "Dart yaml",
+   "tools.dart.dev"
+  ],
+  [
+   "Rust addr2line",
+   "fitzgen, philipc"
+  ],
+  [
+   "Rust adler2",
+   "oyvindln"
+  ],
+  [
+   "Rust aead",
+   "github:rustcrypto:traits, newpavlov"
+  ],
+  [
+   "Rust aho-corasick",
+   "BurntSushi"
+  ],
+  [
+   "Rust allo-isolate",
+   "shekohex"
+  ],
+  [
+   "Rust android_log-sys",
+   "Dushistov, MarijnS95, Nercury, paulrouget, tyranron"
+  ],
+  [
+   "Rust android_logger",
+   "Dushistov, MarijnS95, Nercury, paulrouget, tyranron"
+  ],
+  [
+   "Rust android_system_properties",
+   "nical"
+  ],
+  [
+   "Rust anyhow",
+   "dtolnay"
+  ],
+  [
+   "Rust argon2",
+   "github:rustcrypto:kdfs, newpavlov"
+  ],
+  [
+   "Rust atomic",
+   "Amanieu"
+  ],
+  [
+   "Rust autocfg",
+   "cuviper, matklad"
+  ],
+  [
+   "Rust backtrace",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust base64ct",
+   "github:rustcrypto:formats, tarcieri"
+  ],
+  [
+   "Rust bit-set",
+   "Gankra, github:contain-rs:owners, pczarn"
+  ],
+  [
+   "Rust bit-vec",
+   "Gankra, github:contain-rs:owners, pczarn"
+  ],
+  [
+   "Rust bitflags",
+   "KodrAus, rust-lang-owner"
+  ],
+  [
+   "Rust blake2",
+   "github:rustcrypto:hashes, newpavlov"
+  ],
+  [
+   "Rust block-buffer",
+   "github:rustcrypto:utils, newpavlov"
+  ],
+  [
+   "Rust block-buffer",
+   "github:rustcrypto:utils, newpavlov"
+  ],
+  [
+   "Rust build-target",
+   "OpenByteDev"
+  ],
+  [
+   "Rust bumpalo",
+   "alexcrichton, fitzgen"
+  ],
+  [
+   "Rust bytemuck",
+   "Lokathor, github:rust-bus:maintainers"
+  ],
+  [
+   "Rust byteorder",
+   "BurntSushi"
+  ],
+  [
+   "Rust byteorder-lite",
+   "fintelia, github:image-rs:publish"
+  ],
+  [
+   "Rust cc",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust cfg-if",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust chacha20",
+   "github:rustcrypto:stream-ciphers, newpavlov"
+  ],
+  [
+   "Rust chacha20poly1305",
+   "github:rustcrypto:aeads, newpavlov"
+  ],
+  [
+   "Rust chrono",
+   "github:chronotope:release-manager, lifthrasiir"
+  ],
+  [
+   "Rust cipher",
+   "github:rustcrypto:traits, newpavlov"
+  ],
+  [
+   "Rust cmov",
+   "github:rustcrypto:utils, tarcieri"
+  ],
+  [
+   "Rust console_error_panic_hook",
+   "alexcrichton, fitzgen"
+  ],
+  [
+   "Rust const-oid",
+   "github:rustcrypto:formats, tarcieri"
+  ],
+  [
+   "Rust core-foundation-sys",
+   "github:servo:cargo-publish, larsbergstrom"
+  ],
+  [
+   "Rust cpufeatures",
+   "github:rustcrypto:utils, tarcieri"
+  ],
+  [
+   "Rust cpufeatures",
+   "github:rustcrypto:utils, tarcieri"
+  ],
+  [
+   "Rust crossbeam-deque",
+   "Amanieu, github:crossbeam-rs:admins, jeehoonkang, taiki-e"
+  ],
+  [
+   "Rust crossbeam-epoch",
+   "Amanieu, github:crossbeam-rs:admins, jeehoonkang, taiki-e"
+  ],
+  [
+   "Rust crossbeam-utils",
+   "Amanieu, github:crossbeam-rs:admins, jeehoonkang, taiki-e"
+  ],
+  [
+   "Rust crypto-common",
+   "github:rustcrypto:traits, newpavlov"
+  ],
+  [
+   "Rust crypto-common",
+   "github:rustcrypto:traits, newpavlov"
+  ],
+  [
+   "Rust ctutils",
+   "github:rustcrypto:utils, tarcieri"
+  ],
+  [
+   "Rust darling",
+   "TedDriggs"
+  ],
+  [
+   "Rust darling_core",
+   "TedDriggs"
+  ],
+  [
+   "Rust darling_macro",
+   "TedDriggs"
+  ],
+  [
+   "Rust dart-sys",
+   "OptimisticPeach, gutenfries"
+  ],
+  [
+   "Rust dashmap",
+   "xacrimon"
+  ],
+  [
+   "Rust delegate-attr",
+   "upsuper"
+  ],
+  [
+   "Rust deranged",
+   "jhpratt"
+  ],
+  [
+   "Rust derive_builder",
+   "TedDriggs, colin-kiegel"
+  ],
+  [
+   "Rust derive_builder_core",
+   "TedDriggs, colin-kiegel"
+  ],
+  [
+   "Rust derive_builder_macro",
+   "TedDriggs"
+  ],
+  [
+   "Rust digest",
+   "github:rustcrypto:traits, newpavlov"
+  ],
+  [
+   "Rust digest",
+   "github:rustcrypto:traits, newpavlov"
+  ],
+  [
+   "Rust either",
+   "bluss, cuviper, jswrenn"
+  ],
+  [
+   "Rust env_filter",
+   "epage, github:rust-cli:maintainers"
+  ],
+  [
+   "Rust errno",
+   "lambda-fairy, sunfishcode"
+  ],
+  [
+   "Rust fallible-iterator",
+   "dpc, sfackler"
+  ],
+  [
+   "Rust fallible-streaming-iterator",
+   "sfackler"
+  ],
+  [
+   "Rust fancy-regex",
+   "github:fancy-regex:crate-owners, keith-hall, raphlinus, robinst"
+  ],
+  [
+   "Rust fastrand",
+   "github:smol-rs:admins, taiki-e"
+  ],
+  [
+   "Rust find-msvc-tools",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust flutter_rust_bridge",
+   "fzyzcjy"
+  ],
+  [
+   "Rust flutter_rust_bridge_macros",
+   "fzyzcjy"
+  ],
+  [
+   "Rust fnv",
+   "SimonSapin, github:servo:cargo-publish"
+  ],
+  [
+   "Rust foldhash",
+   "orlp"
+  ],
+  [
+   "Rust futures",
+   "cramertj, rust-lang-owner, taiki-e"
+  ],
+  [
+   "Rust futures-channel",
+   "cramertj, rust-lang-owner, taiki-e"
+  ],
+  [
+   "Rust futures-core",
+   "cramertj, rust-lang-owner, taiki-e"
+  ],
+  [
+   "Rust futures-executor",
+   "cramertj, rust-lang-owner, taiki-e"
+  ],
+  [
+   "Rust futures-io",
+   "cramertj, rust-lang-owner, taiki-e"
+  ],
+  [
+   "Rust futures-macro",
+   "cramertj, rust-lang-owner, taiki-e"
+  ],
+  [
+   "Rust futures-sink",
+   "cramertj, rust-lang-owner, taiki-e"
+  ],
+  [
+   "Rust futures-task",
+   "cramertj, rust-lang-owner, taiki-e"
+  ],
+  [
+   "Rust futures-util",
+   "cramertj, rust-lang-owner, taiki-e"
+  ],
+  [
+   "Rust g2gen",
+   "WanzenBug"
+  ],
+  [
+   "Rust g2p",
+   "WanzenBug"
+  ],
+  [
+   "Rust g2poly",
+   "WanzenBug"
+  ],
+  [
+   "Rust generic-array",
+   "fizyk20, novacrazy"
+  ],
+  [
+   "Rust getrandom",
+   "dhardy, github:rust-random:maintainers"
+  ],
+  [
+   "Rust getrandom",
+   "dhardy, github:rust-random:maintainers"
+  ],
+  [
+   "Rust gimli",
+   "fitzgen, philipc"
+  ],
+  [
+   "Rust hashbrown",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust hashbrown",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust hashbrown",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust hashlink",
+   "djc, kyren"
+  ],
+  [
+   "Rust hermit-abi",
+   "mkroening, stlankes"
+  ],
+  [
+   "Rust hex",
+   "KokaKiwi"
+  ],
+  [
+   "Rust hkdf",
+   "github:rustcrypto:kdfs, newpavlov"
+  ],
+  [
+   "Rust hmac",
+   "github:rustcrypto:macs, newpavlov"
+  ],
+  [
+   "Rust hybrid-array",
+   "github:rustcrypto:utils, tarcieri"
+  ],
+  [
+   "Rust iana-time-zone",
+   "Kijewski, astraw"
+  ],
+  [
+   "Rust iana-time-zone-haiku",
+   "Kijewski, astraw"
+  ],
+  [
+   "Rust ident_case",
+   "TedDriggs"
+  ],
+  [
+   "Rust image",
+   "197g, fintelia, github:image-rs:publish, theotherphil"
+  ],
+  [
+   "Rust inout",
+   "github:rustcrypto:utils, newpavlov"
+  ],
+  [
+   "Rust itertools",
+   "bluss, jswrenn"
+  ],
+  [
+   "Rust itoa",
+   "dtolnay"
+  ],
+  [
+   "Rust js-sys",
+   "RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford"
+  ],
+  [
+   "Rust lazy_static",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust libc",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust libsqlite3-sys",
+   "gwenn, thomcc"
+  ],
+  [
+   "Rust linux-raw-sys",
+   "sunfishcode"
+  ],
+  [
+   "Rust lock_api",
+   "Amanieu, faern"
+  ],
+  [
+   "Rust log",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust lru",
+   "jeromefroe"
+  ],
+  [
+   "Rust md-5",
+   "github:rustcrypto:hashes, newpavlov"
+  ],
+  [
+   "Rust memchr",
+   "BurntSushi"
+  ],
+  [
+   "Rust miniz_oxide",
+   "Frommi, oyvindln"
+  ],
+  [
+   "Rust moxcms",
+   "awxkee"
+  ],
+  [
+   "Rust num-conv",
+   "jhpratt"
+  ],
+  [
+   "Rust num-traits",
+   "cuviper"
+  ],
+  [
+   "Rust num_cpus",
+   "seanmonstar"
+  ],
+  [
+   "Rust object",
+   "fitzgen, philipc"
+  ],
+  [
+   "Rust once_cell",
+   "matklad, vorner"
+  ],
+  [
+   "Rust opaque-debug",
+   "github:rustcrypto:utils, newpavlov"
+  ],
+  [
+   "Rust oslog",
+   "madsmtm, steven-joruk"
+  ],
+  [
+   "Rust parking_lot_core",
+   "Amanieu, faern"
+  ],
+  [
+   "Rust password-hash",
+   "github:rustcrypto:traits, newpavlov"
+  ],
+  [
+   "Rust phc",
+   "github:rustcrypto:formats, newpavlov"
+  ],
+  [
+   "Rust pin-project-lite",
+   "taiki-e"
+  ],
+  [
+   "Rust pkg-config",
+   "joshtriplett, rust-lang-owner, sdroege"
+  ],
+  [
+   "Rust poly1305",
+   "github:rustcrypto:macs, newpavlov"
+  ],
+  [
+   "Rust portable-atomic",
+   "taiki-e"
+  ],
+  [
+   "Rust powerfmt",
+   "jhpratt"
+  ],
+  [
+   "Rust proc-macro2",
+   "dtolnay"
+  ],
+  [
+   "Rust pxfm",
+   "awxkee"
+  ],
+  [
+   "Rust qrcode",
+   "kennytm"
+  ],
+  [
+   "Rust quote",
+   "dtolnay"
+  ],
+  [
+   "Rust r-efi",
+   "dvdhrm"
+  ],
+  [
+   "Rust rand_core",
+   "dhardy, github:rust-random:maintainers"
+  ],
+  [
+   "Rust rayon",
+   "cuviper, nikomatsakis"
+  ],
+  [
+   "Rust rayon-core",
+   "cuviper, nikomatsakis"
+  ],
+  [
+   "Rust redox_syscall",
+   "4lDO2, jackpot51"
+  ],
+  [
+   "Rust regex",
+   "BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner"
+  ],
+  [
+   "Rust regex-automata",
+   "BurntSushi, rust-lang-owner"
+  ],
+  [
+   "Rust regex-syntax",
+   "BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner"
+  ],
+  [
+   "Rust ring",
+   "briansmith"
+  ],
+  [
+   "Rust rqrr",
+   "WanzenBug"
+  ],
+  [
+   "Rust rsqlite-vfs",
+   "Spxg"
+  ],
+  [
+   "Rust rusqlite",
+   "gwenn, thomcc"
+  ],
+  [
+   "Rust rustc-demangle",
+   "rust-lang-owner"
+  ],
+  [
+   "Rust rustix",
+   "sunfishcode"
+  ],
+  [
+   "Rust rustls",
+   "ctz, djc, github:rustls:publishers"
+  ],
+  [
+   "Rust rustls-pki-types",
+   "djc, github:rustls:publishers"
+  ],
+  [
+   "Rust rustls-webpki",
+   "ctz, djc, github:rustls:publishers"
+  ],
+  [
+   "Rust rustversion",
+   "dtolnay"
+  ],
+  [
+   "Rust scopeguard",
+   "Amanieu, bluss"
+  ],
+  [
+   "Rust serde",
+   "dtolnay, github:serde-rs:publish"
+  ],
+  [
+   "Rust serde_core",
+   "dtolnay, github:serde-rs:publish"
+  ],
+  [
+   "Rust serde_derive",
+   "dtolnay, github:serde-rs:publish"
+  ],
+  [
+   "Rust serde_json",
+   "dtolnay, github:serde-rs:publish"
+  ],
+  [
+   "Rust sha2",
+   "github:rustcrypto:hashes, newpavlov, tarcieri"
+  ],
+  [
+   "Rust shlex",
+   "comex, fenhl"
+  ],
+  [
+   "Rust slab",
+   "carllerche, github:tokio-rs:core"
+  ],
+  [
+   "Rust smallvec",
+   "Ms2ger, SimonSapin, alejandro-vaz, github:servo:cargo-publish"
+  ],
+  [
+   "Rust sqlite-wasm-rs",
+   "Spxg"
+  ],
+  [
+   "Rust strsim",
+   "dguo, maxbachmann"
+  ],
+  [
+   "Rust subtle",
+   "github:dalek-cryptography:subtle-maintainers, isislovecruft"
+  ],
+  [
+   "Rust syn",
+   "dtolnay"
+  ],
+  [
+   "Rust syn",
+   "dtolnay"
+  ],
+  [
+   "Rust tempfile",
+   "Stebalien"
+  ],
+  [
+   "Rust thiserror",
+   "dtolnay"
+  ],
+  [
+   "Rust thiserror-impl",
+   "dtolnay"
+  ],
+  [
+   "Rust threadpool",
+   "frewsxcv, github:rust-threadpool:publishers, github:servo:cargo-publish, huonw"
+  ],
+  [
+   "Rust time",
+   "jhpratt"
+  ],
+  [
+   "Rust time-core",
+   "jhpratt"
+  ],
+  [
+   "Rust tokio",
+   "Darksonn, carllerche, github:tokio-rs:core"
+  ],
+  [
+   "Rust typenum",
+   "paholg"
+  ],
+  [
+   "Rust unicode-ident",
+   "dtolnay"
+  ],
+  [
+   "Rust universal-hash",
+   "github:rustcrypto:traits, newpavlov, tarcieri"
+  ],
+  [
+   "Rust untrusted",
+   "briansmith"
+  ],
+  [
+   "Rust vcpkg",
+   "github:rust-bus:maintainers, kornelski, mcgoo, pkgw, waych"
+  ],
+  [
+   "Rust version_check",
+   "SergioBenitez"
+  ],
+  [
+   "Rust wasi",
+   "alexcrichton, sunfishcode"
+  ],
+  [
+   "Rust wasm-bindgen",
+   "RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford"
+  ],
+  [
+   "Rust wasm-bindgen-futures",
+   "daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford"
+  ],
+  [
+   "Rust wasm-bindgen-macro",
+   "RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford"
+  ],
+  [
+   "Rust wasm-bindgen-macro-support",
+   "RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford"
+  ],
+  [
+   "Rust wasm-bindgen-shared",
+   "RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford"
+  ],
+  [
+   "Rust web-sys",
+   "RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford"
+  ],
+  [
+   "Rust webpki-roots",
+   "ctz, djc, github:rustls:publishers"
+  ],
+  [
+   "Rust windows-core",
+   "kennykerr"
+  ],
+  [
+   "Rust windows-implement",
+   "kennykerr"
+  ],
+  [
+   "Rust windows-interface",
+   "kennykerr"
+  ],
+  [
+   "Rust windows-link",
+   "kennykerr"
+  ],
+  [
+   "Rust windows-result",
+   "kennykerr"
+  ],
+  [
+   "Rust windows-strings",
+   "kennykerr"
+  ],
+  [
+   "Rust windows-sys",
+   "kennykerr"
+  ],
+  [
+   "Rust windows-sys",
+   "kennykerr"
+  ],
+  [
+   "Rust windows-targets",
+   "kennykerr"
+  ],
+  [
+   "Rust windows_aarch64_gnullvm",
+   "kennykerr"
+  ],
+  [
+   "Rust windows_aarch64_msvc",
+   "kennykerr"
+  ],
+  [
+   "Rust windows_i686_gnu",
+   "kennykerr"
+  ],
+  [
+   "Rust windows_i686_gnullvm",
+   "kennykerr"
+  ],
+  [
+   "Rust windows_i686_msvc",
+   "kennykerr"
+  ],
+  [
+   "Rust windows_x86_64_gnu",
+   "kennykerr"
+  ],
+  [
+   "Rust windows_x86_64_gnullvm",
+   "kennykerr"
+  ],
+  [
+   "Rust windows_x86_64_msvc",
+   "kennykerr"
+  ],
+  [
+   "Rust zeroize",
+   "github:rustcrypto:utils, tarcieri"
+  ],
+  [
+   "Rust zeroize_derive",
+   "github:rustcrypto:utils, tarcieri"
+  ],
+  [
+   "Rust zmij",
+   "dtolnay"
+  ],
+  [
+   "Rust zune-core",
+   "etemesi254"
+  ],
+  [
+   "Rust zune-jpeg",
+   "etemesi254"
+  ],
+  [
+   "Rust zxcvbn",
+   "shssoichiro"
+  ],
+  [
+   "Swift app-check",
+   "google"
+  ],
+  [
+   "Swift appauth-ios",
+   "openid"
+  ],
+  [
+   "Swift googlesignin-ios",
+   "google"
+  ],
+  [
+   "Swift googleutilities",
+   "google"
+  ],
+  [
+   "Swift gtm-session-fetcher",
+   "google"
+  ],
+  [
+   "Swift gtmappauth",
+   "google"
+  ],
+  [
+   "Swift interop-ios-for-google-sdks",
+   "google"
+  ],
+  [
+   "Swift promises",
+   "google"
+  ]
+ ],
+ "packages": [
+  "Dart archive@4.5.2",
+  "Dart args@2.7.0",
+  "Dart async@2.13.1",
+  "Dart boolean_selector@2.1.2",
+  "Dart build_cli_annotations@2.1.1",
+  "Dart camera@0.11.4",
+  "Dart camera_android_camerax@0.6.30",
+  "Dart camera_avfoundation@0.9.23+2",
+  "Dart camera_platform_interface@2.15.0",
+  "Dart camera_web@0.3.5+6",
+  "Dart characters@1.4.1",
+  "Dart clock@1.1.3",
+  "Dart code_assets@1.2.1",
+  "Dart collection@1.19.1",
+  "Dart cross_file@0.3.5+5",
+  "Dart crypto@3.0.7",
+  "Dart csslib@1.0.2",
+  "Dart cupertino_ui@1.1.3",
+  "Dart fake_async@1.3.3",
+  "Dart fc_native_video_thumbnail@4.0.0",
+  "Dart ffi@2.2.0",
+  "Dart ffi_leak_tracker@0.1.2",
+  "Dart file@7.0.1",
+  "Dart file_selector@1.1.0",
+  "Dart file_selector_android@0.5.2+11",
+  "Dart file_selector_ios@0.5.3+7",
+  "Dart file_selector_linux@0.9.4+1",
+  "Dart file_selector_macos@0.9.5+1",
+  "Dart file_selector_platform_interface@2.7.0",
+  "Dart file_selector_web@0.9.5",
+  "Dart file_selector_windows@0.9.3+6",
+  "Dart fixnum@1.1.1",
+  "Dart flutter@0.0.0",
+  "Dart flutter_driver@0.0.0",
+  "Dart flutter_lints@6.0.0",
+  "Dart flutter_localizations@0.0.0",
+  "Dart flutter_plugin_android_lifecycle@2.0.35",
+  "Dart flutter_rust_bridge@2.13.0",
+  "Dart flutter_secure_storage@11.2.0",
+  "Dart flutter_secure_storage_darwin@0.4.3",
+  "Dart flutter_secure_storage_linux@3.0.3",
+  "Dart flutter_secure_storage_platform_interface@2.1.1",
+  "Dart flutter_secure_storage_web@2.1.1",
+  "Dart flutter_secure_storage_windows@4.2.2",
+  "Dart flutter_test@0.0.0",
+  "Dart flutter_web_plugins@0.0.0",
+  "Dart fuchsia_remote_debug_protocol@0.0.0",
+  "Dart google_identity_services_web@0.3.3+1",
+  "Dart google_sign_in@7.2.0",
+  "Dart google_sign_in_android@7.2.18",
+  "Dart google_sign_in_ios@6.3.8",
+  "Dart google_sign_in_platform_interface@3.1.0",
+  "Dart google_sign_in_web@1.1.3",
+  "Dart hooks@2.0.2",
+  "Dart html@0.15.7",
+  "Dart http@1.6.0",
+  "Dart http_parser@4.1.2",
+  "Dart image@4.12.0",
+  "Dart image_picker@1.2.4",
+  "Dart image_picker_android@0.8.13+25",
+  "Dart image_picker_for_web@3.1.1",
+  "Dart image_picker_ios@0.8.13+12",
+  "Dart image_picker_linux@0.2.2",
+  "Dart image_picker_macos@0.2.2+1",
+  "Dart image_picker_platform_interface@2.11.2",
+  "Dart image_picker_windows@0.2.2",
+  "Dart integration_test@0.0.0",
+  "Dart intl@0.20.3",
+  "Dart jni@1.1.0",
+  "Dart jni_flutter@1.0.4+1",
+  "Dart jni_util@1.0.0",
+  "Dart leak_tracker@11.0.2",
+  "Dart leak_tracker_flutter_testing@3.0.10",
+  "Dart leak_tracker_testing@3.0.2",
+  "Dart lints@6.1.0",
+  "Dart local_auth@3.0.2",
+  "Dart local_auth_android@2.3.0",
+  "Dart local_auth_darwin@2.0.5",
+  "Dart local_auth_platform_interface@1.1.0",
+  "Dart local_auth_windows@2.0.2",
+  "Dart logging@1.3.0",
+  "Dart matcher@0.12.20",
+  "Dart material_color_utilities@0.13.0",
+  "Dart material_ui@1.7.0",
+  "Dart meta@1.18.3",
+  "Dart mime@2.1.0",
+  "Dart objective_c@9.5.0",
+  "Dart package_config@3.0.0",
+  "Dart package_info_plus@10.2.2",
+  "Dart package_info_plus_platform_interface@4.1.0",
+  "Dart path@1.9.1",
+  "Dart path_provider@2.1.6",
+  "Dart path_provider_android@2.3.1",
+  "Dart path_provider_foundation@2.6.0",
+  "Dart path_provider_linux@2.2.2",
+  "Dart path_provider_platform_interface@2.1.3",
+  "Dart path_provider_windows@2.3.0",
+  "Dart pdfium_dart@0.3.1",
+  "Dart pdfium_flutter@0.3.1",
+  "Dart pdfrx@2.6.6",
+  "Dart pdfrx_engine@0.6.1",
+  "Dart platform@3.2.0",
+  "Dart plugin_platform_interface@2.1.8",
+  "Dart posix@6.5.2",
+  "Dart process@5.0.6",
+  "Dart pub_semver@2.2.1",
+  "Dart record@7.1.2",
+  "Dart record_android@2.2.0",
+  "Dart record_ios@2.1.1",
+  "Dart record_linux@2.1.3",
+  "Dart record_macos@2.1.1",
+  "Dart record_platform_interface@2.1.0",
+  "Dart record_use@0.6.0",
+  "Dart record_web@2.1.3",
+  "Dart record_windows@2.3.0",
+  "Dart rxdart@0.28.0",
+  "Dart share_plus@13.3.1",
+  "Dart share_plus_platform_interface@7.2.0",
+  "Dart sky_engine@0.0.0",
+  "Dart source_span@1.10.2",
+  "Dart stack_trace@1.12.2",
+  "Dart stream_channel@2.1.4",
+  "Dart stream_transform@2.1.2",
+  "Dart string_scanner@1.4.1",
+  "Dart sync_http@0.3.1",
+  "Dart synchronized@3.5.0",
+  "Dart term_glyph@1.2.2",
+  "Dart test_api@0.7.12",
+  "Dart typed_data@1.4.0",
+  "Dart url_launcher@6.3.3",
+  "Dart url_launcher_android@6.3.33",
+  "Dart url_launcher_ios@6.4.2",
+  "Dart url_launcher_linux@3.2.3",
+  "Dart url_launcher_macos@3.2.6",
+  "Dart url_launcher_platform_interface@2.3.2",
+  "Dart url_launcher_web@2.4.3",
+  "Dart url_launcher_windows@3.1.6",
+  "Dart uuid@4.6.0",
+  "Dart vector_math@2.4.0",
+  "Dart video_player@2.14.1",
+  "Dart video_player_android@2.12.2",
+  "Dart video_player_avfoundation@2.12.1",
+  "Dart video_player_platform_interface@6.9.0",
+  "Dart video_player_web@2.4.0",
+  "Dart vm_service@15.4.0",
+  "Dart web@1.1.1",
+  "Dart webdriver@3.2.0",
+  "Dart win32@6.4.0",
+  "Dart xdg_directories@1.1.0",
+  "Dart yaml@3.1.4",
+  "Rust addr2line@0.25.1",
+  "Rust adler2@2.0.1",
+  "Rust aead@0.5.2",
+  "Rust aho-corasick@1.1.5",
+  "Rust allo-isolate@0.1.27",
+  "Rust android_log-sys@0.3.2",
+  "Rust android_logger@0.15.1",
+  "Rust android_system_properties@0.1.6",
+  "Rust anyhow@1.0.104",
+  "Rust argon2@0.6.0",
+  "Rust atomic@0.5.3",
+  "Rust autocfg@1.5.1",
+  "Rust backtrace@0.3.76",
+  "Rust base64ct@1.8.3",
+  "Rust bit-set@0.8.0",
+  "Rust bit-vec@0.8.0",
+  "Rust bitflags@2.13.2",
+  "Rust blake2@0.11.0",
+  "Rust block-buffer@0.10.4",
+  "Rust block-buffer@0.12.1",
+  "Rust build-target@0.4.0",
+  "Rust bumpalo@3.20.3",
+  "Rust bytemuck@1.25.2",
+  "Rust byteorder-lite@0.1.0",
+  "Rust byteorder@1.5.0",
+  "Rust cc@1.8.0",
+  "Rust cfg-if@1.0.5",
+  "Rust chacha20@0.9.1",
+  "Rust chacha20poly1305@0.10.1",
+  "Rust chrono@0.4.45",
+  "Rust cipher@0.4.4",
+  "Rust cmov@0.5.4",
+  "Rust console_error_panic_hook@0.1.7",
+  "Rust const-oid@0.10.2",
+  "Rust core-foundation-sys@0.8.7",
+  "Rust cpufeatures@0.2.17",
+  "Rust cpufeatures@0.3.1",
+  "Rust crossbeam-deque@0.8.6",
+  "Rust crossbeam-epoch@0.9.20",
+  "Rust crossbeam-utils@0.8.23",
+  "Rust crypto-common@0.1.7",
+  "Rust crypto-common@0.2.2",
+  "Rust ctutils@0.4.4",
+  "Rust darling@0.20.11",
+  "Rust darling_core@0.20.11",
+  "Rust darling_macro@0.20.11",
+  "Rust dart-sys@4.1.5",
+  "Rust dashmap@5.5.3",
+  "Rust delegate-attr@0.3.1",
+  "Rust deranged@0.5.9",
+  "Rust derive_builder@0.20.2",
+  "Rust derive_builder_core@0.20.2",
+  "Rust derive_builder_macro@0.20.2",
+  "Rust digest@0.10.7",
+  "Rust digest@0.11.3",
+  "Rust either@1.19.0",
+  "Rust env_filter@0.1.4",
+  "Rust errno@0.3.14",
+  "Rust fallible-iterator@0.3.0",
+  "Rust fallible-streaming-iterator@0.1.9",
+  "Rust fancy-regex@0.18.0",
+  "Rust fastrand@2.5.0",
+  "Rust find-msvc-tools@0.1.14",
+  "Rust flutter_rust_bridge@2.13.0",
+  "Rust flutter_rust_bridge_macros@2.13.0",
+  "Rust fnv@1.0.7",
+  "Rust foldhash@0.2.0",
+  "Rust futures-channel@0.3.34",
+  "Rust futures-core@0.3.34",
+  "Rust futures-executor@0.3.34",
+  "Rust futures-io@0.3.34",
+  "Rust futures-macro@0.3.34",
+  "Rust futures-sink@0.3.34",
+  "Rust futures-task@0.3.34",
+  "Rust futures-util@0.3.34",
+  "Rust futures@0.3.34",
+  "Rust g2gen@1.2.2",
+  "Rust g2p@1.2.2",
+  "Rust g2poly@1.2.2",
+  "Rust generic-array@0.14.7",
+  "Rust getrandom@0.2.17",
+  "Rust getrandom@0.4.3",
+  "Rust gimli@0.32.3",
+  "Rust hashbrown@0.14.5",
+  "Rust hashbrown@0.16.1",
+  "Rust hashbrown@0.17.1",
+  "Rust hashlink@0.12.2",
+  "Rust hermit-abi@0.5.3",
+  "Rust hex@0.4.3",
+  "Rust hkdf@0.13.0",
+  "Rust hmac@0.13.0",
+  "Rust hybrid-array@0.4.15",
+  "Rust iana-time-zone-haiku@0.1.2",
+  "Rust iana-time-zone@0.1.65",
+  "Rust ident_case@1.0.1",
+  "Rust image@0.25.10",
+  "Rust inout@0.1.4",
+  "Rust itertools@0.14.0",
+  "Rust itoa@1.0.18",
+  "Rust js-sys@0.3.106",
+  "Rust lazy_static@1.5.1",
+  "Rust libc@0.2.191",
+  "Rust libsqlite3-sys@0.38.2",
+  "Rust linux-raw-sys@0.12.1",
+  "Rust lock_api@0.4.14",
+  "Rust log@0.4.34",
+  "Rust lru@0.18.5",
+  "Rust md-5@0.10.6",
+  "Rust memchr@2.8.3",
+  "Rust miniz_oxide@0.8.9",
+  "Rust moxcms@0.8.1",
+  "Rust num-conv@0.2.2",
+  "Rust num-traits@0.2.19",
+  "Rust num_cpus@1.17.0",
+  "Rust object@0.37.3",
+  "Rust once_cell@1.21.4",
+  "Rust opaque-debug@0.3.1",
+  "Rust oslog@0.2.0",
+  "Rust parking_lot_core@0.9.12",
+  "Rust password-hash@0.6.1",
+  "Rust phc@0.6.1",
+  "Rust pin-project-lite@0.2.17",
+  "Rust pkg-config@0.3.34",
+  "Rust poly1305@0.8.0",
+  "Rust portable-atomic@1.15.0",
+  "Rust powerfmt@0.2.1",
+  "Rust proc-macro2@1.0.107",
+  "Rust pxfm@0.1.30",
+  "Rust qrcode@0.14.1",
+  "Rust quote@1.0.47",
+  "Rust r-efi@6.0.0",
+  "Rust rand_core@0.6.4",
+  "Rust rayon-core@1.13.0",
+  "Rust rayon@1.12.0",
+  "Rust redox_syscall@0.5.18",
+  "Rust regex-automata@0.4.18",
+  "Rust regex-syntax@0.8.11",
+  "Rust regex@1.13.1",
+  "Rust ring@0.17.14",
+  "Rust rqrr@0.11.0",
+  "Rust rsqlite-vfs@0.1.1",
+  "Rust rusqlite@0.40.2",
+  "Rust rustc-demangle@0.1.28",
+  "Rust rustix@1.1.5",
+  "Rust rustls-pki-types@1.15.1",
+  "Rust rustls-webpki@0.103.16",
+  "Rust rustls@0.23.46",
+  "Rust rustversion@1.0.23",
+  "Rust scopeguard@1.2.0",
+  "Rust serde@1.0.229",
+  "Rust serde_core@1.0.229",
+  "Rust serde_derive@1.0.229",
+  "Rust serde_json@1.0.154",
+  "Rust sha2@0.11.1",
+  "Rust shlex@2.0.1",
+  "Rust slab@0.4.12",
+  "Rust smallvec@1.16.3",
+  "Rust sqlite-wasm-rs@0.5.5",
+  "Rust strsim@0.11.1",
+  "Rust subtle@2.6.1",
+  "Rust syn@2.0.119",
+  "Rust syn@3.0.9",
+  "Rust tempfile@3.27.0",
+  "Rust thiserror-impl@2.0.21",
+  "Rust thiserror@2.0.21",
+  "Rust threadpool@1.8.1",
+  "Rust time-core@0.1.9",
+  "Rust time@0.3.55",
+  "Rust tokio@1.53.3",
+  "Rust typenum@1.20.1",
+  "Rust unicode-ident@1.0.27",
+  "Rust universal-hash@0.5.1",
+  "Rust untrusted@0.9.0",
+  "Rust vcpkg@0.2.15",
+  "Rust version_check@0.9.5",
+  "Rust wasi@0.11.1+wasi-snapshot-preview1",
+  "Rust wasm-bindgen-futures@0.4.79",
+  "Rust wasm-bindgen-macro-support@0.2.129",
+  "Rust wasm-bindgen-macro@0.2.129",
+  "Rust wasm-bindgen-shared@0.2.129",
+  "Rust wasm-bindgen@0.2.129",
+  "Rust web-sys@0.3.106",
+  "Rust webpki-roots@1.0.10",
+  "Rust windows-core@0.62.2",
+  "Rust windows-implement@0.60.2",
+  "Rust windows-interface@0.59.3",
+  "Rust windows-link@0.2.1",
+  "Rust windows-result@0.4.1",
+  "Rust windows-strings@0.5.1",
+  "Rust windows-sys@0.52.0",
+  "Rust windows-sys@0.61.2",
+  "Rust windows-targets@0.52.6",
+  "Rust windows_aarch64_gnullvm@0.52.6",
+  "Rust windows_aarch64_msvc@0.52.6",
+  "Rust windows_i686_gnu@0.52.6",
+  "Rust windows_i686_gnullvm@0.52.6",
+  "Rust windows_i686_msvc@0.52.6",
+  "Rust windows_x86_64_gnu@0.52.6",
+  "Rust windows_x86_64_gnullvm@0.52.6",
+  "Rust windows_x86_64_msvc@0.52.6",
+  "Rust zeroize@1.9.1",
+  "Rust zeroize_derive@1.5.0",
+  "Rust zmij@1.0.23",
+  "Rust zune-core@0.5.3",
+  "Rust zune-jpeg@0.5.15",
+  "Rust zxcvbn@3.1.1",
+  "Swift app-check@11.3.2",
+  "Swift appauth-ios@2.1.0",
+  "Swift googlesignin-ios@9.2.0",
+  "Swift googleutilities@8.1.5",
+  "Swift gtm-session-fetcher@3.5.0",
+  "Swift gtmappauth@5.0.0",
+  "Swift interop-ios-for-google-sdks@101.0.0",
+  "Swift promises@2.4.1"
+ ]
+}

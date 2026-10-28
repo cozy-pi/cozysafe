@@ -82,6 +82,17 @@ jobs:
           tar xzf $f gitleaks
           ./gitleaks git --redact --exit-code 1 .
 
+  # Owners of every crate and publisher of every Dart package, compared with
+  # tools/deps/meta.json: a new maintainer is how hijacked releases start (xz). Not on
+  # pull requests: it asks crates.io about each crate, one request a second.
+  owners:
+    if: github.event_name != 'pull_request' && github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: tools/deps-report --refresh-owners
+      - run: git diff --exit-code tools/deps/meta.json docs/dependencies.md
+
   # No crate or package version younger than 14 days: most hijacked releases are found
   # and pulled within days (tools/check-age).
   age:

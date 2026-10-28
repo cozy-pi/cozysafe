@@ -1,0 +1,22 @@
+# Packages that parse data from outside the app's own code (tier 1 of docs/dependencies.md):
+# files the person adds, camera frames, data from another device or from Google Drive.
+#   <rust|dart|swift> <name>  # what reaches it
+# Reviewed by hand: a new package that reads such data goes here. Only the parts that run
+# on the device: platform interfaces and web implementations are not listed.
+
+dart pdfrx                      # renders PDFs the person adds (PdfViewer.data with decrypted bytes)
+dart pdfrx_engine               # pdfrx's Dart side over PDFium
+dart pdfium_dart                # PDFium (C++) bindings; the binary is pinned by SHA-256 (third_party/pdfium_dart)
+dart pdfium_flutter             # PDFium (C++) binaries for Apple platforms, pinned by SHA-256
+dart video_player_android       # plays videos the person adds (ExoPlayer / Media3)
+dart video_player_avfoundation  # plays videos the person adds (AVFoundation)
+dart fc_native_video_thumbnail  # makes thumbnails of videos the person adds (platform decoders)
+dart image_picker_android       # photo picker: hands over files from the photo library
+dart image_picker_ios           # photo picker: hands over files from the photo library
+dart image_picker_macos         # file picker for photos on macOS
+dart camera_android_camerax     # camera frames (also scanned for QR codes when pairing)
+dart camera_avfoundation        # camera frames (also scanned for QR codes when pairing)
+rust rqrr                       # decodes QR codes from camera frames when pairing
+rust rustls                     # TLS: reads what the network sends (Google Drive)
+rust rustls-webpki              # parses the server's certificates (Google Drive)
+rust serde_json                 # parses Google Drive's answers and sync messages from the other device

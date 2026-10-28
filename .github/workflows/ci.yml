@@ -35,6 +35,8 @@ jobs:
       # in what ships, macOS sandbox with only the network sync needs.
       - name: Dependency allowlists + network-code scan of pub packages
         run: tools/check-deps
+      - name: Dependency page (docs/dependencies.md) matches the lock files
+        run: tools/deps-report --check
       - name: macOS release entitlements stay sandboxed (network only for local sync)
         run: tools/check-entitlements
       - name: Rust side of the app

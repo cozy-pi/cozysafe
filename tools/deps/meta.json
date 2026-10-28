@@ -1,0 +1,4322 @@
+{
+ "dart": {
+  "archive@4.5.2": {
+   "deps": [
+    "path",
+    "posix"
+   ],
+   "native": false,
+   "published": "2026-10-13"
+  },
+  "args@2.7.0": {
+   "deps": [],
+   "native": false,
+   "published": "2025-03-12"
+  },
+  "async@2.13.1": {
+   "deps": [
+    "collection",
+    "meta"
+   ],
+   "native": false,
+   "published": "2026-03-26"
+  },
+  "boolean_selector@2.1.2": {
+   "deps": [
+    "source_span",
+    "string_scanner"
+   ],
+   "native": false,
+   "published": "2024-10-22"
+  },
+  "build_cli_annotations@2.1.1": {
+   "deps": [
+    "args",
+    "meta"
+   ],
+   "native": false,
+   "published": "2025-09-08"
+  },
+  "camera@0.11.4": {
+   "deps": [
+    "camera_android_camerax",
+    "camera_avfoundation",
+    "camera_platform_interface",
+    "camera_web",
+    "flutter",
+    "flutter_plugin_android_lifecycle"
+   ],
+   "native": false,
+   "published": "2026-02-18"
+  },
+  "camera_android_camerax@0.6.30": {
+   "deps": [
+    "async",
+    "camera_platform_interface",
+    "flutter",
+    "meta",
+    "stream_transform"
+   ],
+   "native": true,
+   "published": "2026-02-02"
+  },
+  "camera_avfoundation@0.9.23+2": {
+   "deps": [
+    "camera_platform_interface",
+    "flutter",
+    "stream_transform"
+   ],
+   "native": true,
+   "published": "2026-02-07"
+  },
+  "camera_platform_interface@2.15.0": {
+   "deps": [
+    "cross_file",
+    "flutter",
+    "plugin_platform_interface",
+    "stream_transform"
+   ],
+   "native": false,
+   "published": "2026-10-11"
+  },
+  "camera_web@0.3.5+6": {
+   "deps": [
+    "camera_platform_interface",
+    "flutter",
+    "flutter_web_plugins",
+    "stream_transform",
+    "web"
+   ],
+   "native": false,
+   "published": "2026-09-08"
+  },
+  "characters@1.4.1": {
+   "deps": [],
+   "native": false,
+   "published": "2025-06-25"
+  },
+  "clock@1.1.3": {
+   "deps": [],
+   "native": false,
+   "published": "2026-08-28"
+  },
+  "code_assets@1.2.1": {
+   "deps": [
+    "collection",
+    "hooks"
+   ],
+   "native": true,
+   "published": "2026-06-01"
+  },
+  "collection@1.19.1": {
+   "deps": [],
+   "native": false,
+   "published": "2024-10-21"
+  },
+  "cross_file@0.3.5+5": {
+   "deps": [
+    "meta",
+    "web"
+   ],
+   "native": false,
+   "published": "2026-08-25"
+  },
+  "crypto@3.0.7": {
+   "deps": [
+    "typed_data"
+   ],
+   "native": false,
+   "published": "2025-11-04"
+  },
+  "csslib@1.0.2": {
+   "deps": [
+    "source_span"
+   ],
+   "native": false,
+   "published": "2024-10-29"
+  },
+  "cupertino_ui@1.1.3": {
+   "deps": [
+    "collection",
+    "flutter",
+    "flutter_localizations",
+    "intl"
+   ],
+   "native": false,
+   "published": "2026-10-14"
+  },
+  "fake_async@1.3.3": {
+   "deps": [
+    "clock",
+    "collection"
+   ],
+   "native": false,
+   "published": "2025-01-28"
+  },
+  "fc_native_video_thumbnail@4.0.0": {
+   "deps": [
+    "flutter",
+    "plugin_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-10-16"
+  },
+  "ffi@2.2.0": {
+   "deps": [],
+   "native": false,
+   "published": "2026-02-11"
+  },
+  "ffi_leak_tracker@0.1.2": {
+   "deps": [
+    "ffi"
+   ],
+   "native": true,
+   "published": "2026-04-11"
+  },
+  "file@7.0.1": {
+   "deps": [
+    "meta",
+    "path"
+   ],
+   "native": false,
+   "published": "2024-10-08"
+  },
+  "file_selector@1.1.0": {
+   "deps": [
+    "file_selector_android",
+    "file_selector_ios",
+    "file_selector_linux",
+    "file_selector_macos",
+    "file_selector_platform_interface",
+    "file_selector_web",
+    "file_selector_windows",
+    "flutter"
+   ],
+   "native": false,
+   "published": "2025-11-21"
+  },
+  "file_selector_android@0.5.2+11": {
+   "deps": [
+    "file_selector_platform_interface",
+    "flutter",
+    "meta",
+    "plugin_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-09-11"
+  },
+  "file_selector_ios@0.5.3+7": {
+   "deps": [
+    "file_selector_platform_interface",
+    "flutter",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-10-17"
+  },
+  "file_selector_linux@0.9.4+1": {
+   "deps": [
+    "cross_file",
+    "file_selector_platform_interface",
+    "flutter",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-08-28"
+  },
+  "file_selector_macos@0.9.5+1": {
+   "deps": [
+    "cross_file",
+    "file_selector_platform_interface",
+    "flutter",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-08-28"
+  },
+  "file_selector_platform_interface@2.7.0": {
+   "deps": [
+    "cross_file",
+    "flutter",
+    "http",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2025-11-10"
+  },
+  "file_selector_web@0.9.5": {
+   "deps": [
+    "file_selector_platform_interface",
+    "flutter",
+    "flutter_web_plugins",
+    "web"
+   ],
+   "native": false,
+   "published": "2026-06-01"
+  },
+  "file_selector_windows@0.9.3+6": {
+   "deps": [
+    "cross_file",
+    "file_selector_platform_interface",
+    "flutter",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-08-28"
+  },
+  "fixnum@1.1.1": {
+   "deps": [],
+   "native": false,
+   "published": "2024-10-16"
+  },
+  "flutter_lints@6.0.0": {
+   "deps": [
+    "lints"
+   ],
+   "native": false,
+   "published": "2025-05-27"
+  },
+  "flutter_plugin_android_lifecycle@2.0.35": {
+   "deps": [
+    "flutter"
+   ],
+   "native": true,
+   "published": "2026-06-02"
+  },
+  "flutter_rust_bridge@2.13.0": {
+   "deps": [
+    "args",
+    "async",
+    "build_cli_annotations",
+    "collection",
+    "logging",
+    "meta",
+    "path",
+    "web"
+   ],
+   "native": false,
+   "published": "2026-08-23"
+  },
+  "flutter_secure_storage@11.2.0": {
+   "deps": [
+    "flutter",
+    "flutter_secure_storage_darwin",
+    "flutter_secure_storage_linux",
+    "flutter_secure_storage_platform_interface",
+    "flutter_secure_storage_web",
+    "flutter_secure_storage_windows",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-09-16"
+  },
+  "flutter_secure_storage_darwin@0.4.3": {
+   "deps": [
+    "flutter",
+    "plugin_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-09-16"
+  },
+  "flutter_secure_storage_linux@3.0.3": {
+   "deps": [
+    "flutter",
+    "flutter_secure_storage_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-09-11"
+  },
+  "flutter_secure_storage_platform_interface@2.1.1": {
+   "deps": [
+    "flutter",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2026-09-16"
+  },
+  "flutter_secure_storage_web@2.1.1": {
+   "deps": [
+    "flutter",
+    "flutter_secure_storage_platform_interface",
+    "flutter_web_plugins",
+    "web"
+   ],
+   "native": false,
+   "published": "2026-05-06"
+  },
+  "flutter_secure_storage_windows@4.2.2": {
+   "deps": [
+    "ffi",
+    "flutter",
+    "flutter_secure_storage_platform_interface",
+    "path",
+    "path_provider",
+    "path_provider_platform_interface",
+    "win32"
+   ],
+   "native": true,
+   "published": "2026-05-22"
+  },
+  "google_identity_services_web@0.3.3+1": {
+   "deps": [
+    "meta",
+    "web"
+   ],
+   "native": false,
+   "published": "2025-04-22"
+  },
+  "google_sign_in@7.2.0": {
+   "deps": [
+    "flutter",
+    "google_sign_in_android",
+    "google_sign_in_ios",
+    "google_sign_in_platform_interface",
+    "google_sign_in_web"
+   ],
+   "native": false,
+   "published": "2025-09-17"
+  },
+  "google_sign_in_android@7.2.18": {
+   "deps": [
+    "flutter",
+    "google_sign_in_platform_interface",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-10-13"
+  },
+  "google_sign_in_ios@6.3.8": {
+   "deps": [
+    "flutter",
+    "google_sign_in_platform_interface",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-10-15"
+  },
+  "google_sign_in_platform_interface@3.1.0": {
+   "deps": [
+    "flutter",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2025-09-09"
+  },
+  "google_sign_in_web@1.1.3": {
+   "deps": [
+    "flutter",
+    "flutter_web_plugins",
+    "google_identity_services_web",
+    "google_sign_in_platform_interface",
+    "http",
+    "web"
+   ],
+   "native": false,
+   "published": "2026-03-13"
+  },
+  "hooks@2.0.2": {
+   "deps": [
+    "collection",
+    "crypto",
+    "logging",
+    "meta",
+    "pub_semver",
+    "record_use",
+    "yaml"
+   ],
+   "native": false,
+   "published": "2026-06-02"
+  },
+  "html@0.15.7": {
+   "deps": [
+    "csslib",
+    "source_span"
+   ],
+   "native": false,
+   "published": "2026-08-28"
+  },
+  "http@1.6.0": {
+   "deps": [
+    "async",
+    "http_parser",
+    "meta",
+    "web"
+   ],
+   "native": false,
+   "published": "2025-11-10"
+  },
+  "http_parser@4.1.2": {
+   "deps": [
+    "collection",
+    "source_span",
+    "string_scanner",
+    "typed_data"
+   ],
+   "native": false,
+   "published": "2025-01-02"
+  },
+  "image@4.12.0": {
+   "deps": [
+    "archive"
+   ],
+   "native": false,
+   "published": "2026-10-11"
+  },
+  "image_picker@1.2.4": {
+   "deps": [
+    "flutter",
+    "image_picker_android",
+    "image_picker_for_web",
+    "image_picker_ios",
+    "image_picker_linux",
+    "image_picker_macos",
+    "image_picker_platform_interface",
+    "image_picker_windows"
+   ],
+   "native": false,
+   "published": "2026-10-06"
+  },
+  "image_picker_android@0.8.13+25": {
+   "deps": [
+    "flutter",
+    "flutter_plugin_android_lifecycle",
+    "image_picker_platform_interface",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-10-02"
+  },
+  "image_picker_for_web@3.1.1": {
+   "deps": [
+    "flutter",
+    "flutter_web_plugins",
+    "image_picker_platform_interface",
+    "mime",
+    "web"
+   ],
+   "native": false,
+   "published": "2025-11-18"
+  },
+  "image_picker_ios@0.8.13+12": {
+   "deps": [
+    "flutter",
+    "image_picker_platform_interface",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-10-14"
+  },
+  "image_picker_linux@0.2.2": {
+   "deps": [
+    "file_selector_linux",
+    "file_selector_platform_interface",
+    "flutter",
+    "image_picker_platform_interface"
+   ],
+   "native": false,
+   "published": "2025-08-16"
+  },
+  "image_picker_macos@0.2.2+1": {
+   "deps": [
+    "file_selector_macos",
+    "file_selector_platform_interface",
+    "flutter",
+    "image_picker_platform_interface"
+   ],
+   "native": false,
+   "published": "2025-10-18"
+  },
+  "image_picker_platform_interface@2.11.2": {
+   "deps": [
+    "cross_file",
+    "flutter",
+    "http",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2026-10-06"
+  },
+  "image_picker_windows@0.2.2": {
+   "deps": [
+    "file_selector_platform_interface",
+    "file_selector_windows",
+    "flutter",
+    "image_picker_platform_interface"
+   ],
+   "native": false,
+   "published": "2025-08-16"
+  },
+  "intl@0.20.3": {
+   "deps": [
+    "clock",
+    "meta",
+    "path"
+   ],
+   "native": false,
+   "published": "2026-06-25"
+  },
+  "jni@1.1.0": {
+   "deps": [
+    "args",
+    "collection",
+    "ffi",
+    "jni_util",
+    "meta",
+    "package_config",
+    "path",
+    "plugin_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-10-01"
+  },
+  "jni_flutter@1.0.4+1": {
+   "deps": [
+    "flutter",
+    "jni"
+   ],
+   "native": true,
+   "published": "2026-10-06"
+  },
+  "jni_util@1.0.0": {
+   "deps": [
+    "path"
+   ],
+   "native": false,
+   "published": "2026-07-27"
+  },
+  "leak_tracker@11.0.2": {
+   "deps": [
+    "clock",
+    "collection",
+    "meta",
+    "path",
+    "vm_service"
+   ],
+   "native": false,
+   "published": "2025-09-10"
+  },
+  "leak_tracker_flutter_testing@3.0.10": {
+   "deps": [
+    "flutter",
+    "leak_tracker",
+    "leak_tracker_testing",
+    "matcher",
+    "meta"
+   ],
+   "native": false,
+   "published": "2025-04-21"
+  },
+  "leak_tracker_testing@3.0.2": {
+   "deps": [
+    "leak_tracker",
+    "matcher",
+    "meta"
+   ],
+   "native": false,
+   "published": "2025-04-21"
+  },
+  "lints@6.1.0": {
+   "deps": [],
+   "native": false,
+   "published": "2026-01-30"
+  },
+  "local_auth@3.0.2": {
+   "deps": [
+    "flutter",
+    "local_auth_android",
+    "local_auth_darwin",
+    "local_auth_platform_interface",
+    "local_auth_windows"
+   ],
+   "native": false,
+   "published": "2026-07-09"
+  },
+  "local_auth_android@2.3.0": {
+   "deps": [
+    "flutter",
+    "flutter_plugin_android_lifecycle",
+    "intl",
+    "local_auth_platform_interface",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-10-13"
+  },
+  "local_auth_darwin@2.0.5": {
+   "deps": [
+    "flutter",
+    "intl",
+    "local_auth_platform_interface",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-10-17"
+  },
+  "local_auth_platform_interface@1.1.0": {
+   "deps": [
+    "flutter",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2025-09-30"
+  },
+  "local_auth_windows@2.0.2": {
+   "deps": [
+    "flutter",
+    "local_auth_platform_interface",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-08-28"
+  },
+  "logging@1.3.0": {
+   "deps": [],
+   "native": false,
+   "published": "2024-10-17"
+  },
+  "matcher@0.12.20": {
+   "deps": [
+    "async",
+    "meta",
+    "stack_trace",
+    "term_glyph",
+    "test_api"
+   ],
+   "native": false,
+   "published": "2026-04-27"
+  },
+  "material_color_utilities@0.13.0": {
+   "deps": [
+    "collection"
+   ],
+   "native": false,
+   "published": "2025-06-04"
+  },
+  "material_ui@1.7.0": {
+   "deps": [
+    "collection",
+    "cupertino_ui",
+    "flutter",
+    "flutter_localizations",
+    "intl",
+    "material_color_utilities",
+    "vector_math"
+   ],
+   "native": false,
+   "published": "2026-10-14"
+  },
+  "meta@1.18.3": {
+   "deps": [],
+   "native": false,
+   "published": "2026-06-04"
+  },
+  "mime@2.1.0": {
+   "deps": [],
+   "native": false,
+   "published": "2026-08-28"
+  },
+  "objective_c@9.5.0": {
+   "deps": [
+    "code_assets",
+    "collection",
+    "ffi",
+    "hooks",
+    "logging",
+    "meta",
+    "pub_semver"
+   ],
+   "native": true,
+   "published": "2026-07-27"
+  },
+  "package_config@3.0.0": {
+   "deps": [
+    "meta"
+   ],
+   "native": false,
+   "published": "2026-06-08"
+  },
+  "package_info_plus@10.2.2": {
+   "deps": [
+    "clock",
+    "ffi",
+    "flutter",
+    "flutter_web_plugins",
+    "http",
+    "meta",
+    "package_info_plus_platform_interface",
+    "path",
+    "web",
+    "win32"
+   ],
+   "native": true,
+   "published": "2026-10-01"
+  },
+  "package_info_plus_platform_interface@4.1.0": {
+   "deps": [
+    "flutter",
+    "meta",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2026-04-21"
+  },
+  "path@1.9.1": {
+   "deps": [],
+   "native": false,
+   "published": "2024-10-17"
+  },
+  "path_provider@2.1.6": {
+   "deps": [
+    "flutter",
+    "path_provider_android",
+    "path_provider_foundation",
+    "path_provider_linux",
+    "path_provider_platform_interface",
+    "path_provider_windows"
+   ],
+   "native": false,
+   "published": "2026-06-15"
+  },
+  "path_provider_android@2.3.1": {
+   "deps": [
+    "flutter",
+    "jni",
+    "jni_flutter",
+    "path_provider_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-04-08"
+  },
+  "path_provider_foundation@2.6.0": {
+   "deps": [
+    "ffi",
+    "flutter",
+    "objective_c",
+    "path_provider_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-01-15"
+  },
+  "path_provider_linux@2.2.2": {
+   "deps": [
+    "ffi",
+    "flutter",
+    "path",
+    "path_provider_platform_interface",
+    "xdg_directories"
+   ],
+   "native": true,
+   "published": "2026-06-24"
+  },
+  "path_provider_platform_interface@2.1.3": {
+   "deps": [
+    "flutter",
+    "platform",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2026-06-15"
+  },
+  "path_provider_windows@2.3.0": {
+   "deps": [
+    "ffi",
+    "flutter",
+    "path",
+    "path_provider_platform_interface"
+   ],
+   "native": true,
+   "published": "2024-07-09"
+  },
+  "pdfium_flutter@0.3.1": {
+   "deps": [
+    "code_assets",
+    "ffi",
+    "flutter",
+    "hooks",
+    "path",
+    "pdfium_dart"
+   ],
+   "native": true,
+   "published": "2026-09-18"
+  },
+  "pdfrx@2.6.6": {
+   "deps": [
+    "collection",
+    "crypto",
+    "flutter",
+    "material_ui",
+    "path",
+    "path_provider",
+    "pdfium_flutter",
+    "pdfrx_engine",
+    "rxdart",
+    "synchronized",
+    "url_launcher",
+    "vector_math",
+    "web",
+    "yaml"
+   ],
+   "native": false,
+   "published": "2026-10-19"
+  },
+  "pdfrx_engine@0.6.1": {
+   "deps": [
+    "archive",
+    "collection",
+    "crypto",
+    "ffi",
+    "http",
+    "image",
+    "meta",
+    "path",
+    "pdfium_dart",
+    "rxdart",
+    "synchronized",
+    "vector_math"
+   ],
+   "native": true,
+   "published": "2026-09-18"
+  },
+  "platform@3.2.0": {
+   "deps": [
+    "meta"
+   ],
+   "native": false,
+   "published": "2026-09-07"
+  },
+  "plugin_platform_interface@2.1.8": {
+   "deps": [
+    "meta"
+   ],
+   "native": false,
+   "published": "2024-01-04"
+  },
+  "posix@6.5.2": {
+   "deps": [
+    "ffi",
+    "meta",
+    "path"
+   ],
+   "native": true,
+   "published": "2026-07-24"
+  },
+  "process@5.0.6": {
+   "deps": [
+    "file",
+    "path",
+    "platform"
+   ],
+   "native": false,
+   "published": "2026-08-28"
+  },
+  "pub_semver@2.2.1": {
+   "deps": [
+    "collection"
+   ],
+   "native": false,
+   "published": "2026-08-28"
+  },
+  "record@7.1.2": {
+   "deps": [
+    "flutter",
+    "record_android",
+    "record_ios",
+    "record_linux",
+    "record_macos",
+    "record_platform_interface",
+    "record_web",
+    "record_windows"
+   ],
+   "native": false,
+   "published": "2026-10-09"
+  },
+  "record_android@2.2.0": {
+   "deps": [
+    "flutter",
+    "record_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-09-11"
+  },
+  "record_ios@2.1.1": {
+   "deps": [
+    "flutter",
+    "record_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-06-22"
+  },
+  "record_linux@2.1.3": {
+   "deps": [
+    "flutter",
+    "record_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-10-09"
+  },
+  "record_macos@2.1.1": {
+   "deps": [
+    "flutter",
+    "record_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-06-22"
+  },
+  "record_platform_interface@2.1.0": {
+   "deps": [
+    "flutter",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2026-06-10"
+  },
+  "record_use@0.6.0": {
+   "deps": [
+    "collection",
+    "meta",
+    "pub_semver"
+   ],
+   "native": false,
+   "published": "2026-03-25"
+  },
+  "record_web@2.1.3": {
+   "deps": [
+    "flutter",
+    "flutter_web_plugins",
+    "record_platform_interface",
+    "web"
+   ],
+   "native": false,
+   "published": "2026-09-11"
+  },
+  "record_windows@2.3.0": {
+   "deps": [
+    "flutter",
+    "record_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-09-11"
+  },
+  "rxdart@0.28.0": {
+   "deps": [],
+   "native": false,
+   "published": "2024-06-14"
+  },
+  "share_plus@13.3.1": {
+   "deps": [
+    "cross_file",
+    "ffi",
+    "file",
+    "flutter",
+    "flutter_web_plugins",
+    "meta",
+    "mime",
+    "share_plus_platform_interface",
+    "url_launcher_linux",
+    "url_launcher_platform_interface",
+    "url_launcher_web",
+    "url_launcher_windows",
+    "web",
+    "win32"
+   ],
+   "native": true,
+   "published": "2026-10-01"
+  },
+  "share_plus_platform_interface@7.2.0": {
+   "deps": [
+    "cross_file",
+    "flutter",
+    "meta",
+    "mime",
+    "path_provider",
+    "plugin_platform_interface",
+    "uuid"
+   ],
+   "native": false,
+   "published": "2026-07-23"
+  },
+  "source_span@1.10.2": {
+   "deps": [
+    "collection",
+    "path",
+    "term_glyph"
+   ],
+   "native": false,
+   "published": "2026-02-05"
+  },
+  "stack_trace@1.12.2": {
+   "deps": [
+    "path"
+   ],
+   "native": false,
+   "published": "2026-08-28"
+  },
+  "stream_channel@2.1.4": {
+   "deps": [
+    "async"
+   ],
+   "native": false,
+   "published": "2025-01-07"
+  },
+  "stream_transform@2.1.2": {
+   "deps": [],
+   "native": false,
+   "published": "2026-08-28"
+  },
+  "string_scanner@1.4.1": {
+   "deps": [
+    "source_span"
+   ],
+   "native": false,
+   "published": "2024-12-17"
+  },
+  "sync_http@0.3.1": {
+   "deps": [],
+   "native": false,
+   "published": "2022-06-15"
+  },
+  "synchronized@3.5.0": {
+   "deps": [],
+   "native": false,
+   "published": "2026-10-13"
+  },
+  "term_glyph@1.2.2": {
+   "deps": [],
+   "native": false,
+   "published": "2024-12-17"
+  },
+  "test_api@0.7.12": {
+   "deps": [
+    "async",
+    "boolean_selector",
+    "collection",
+    "meta",
+    "source_span",
+    "stack_trace",
+    "stream_channel",
+    "string_scanner",
+    "term_glyph"
+   ],
+   "native": false,
+   "published": "2026-04-27"
+  },
+  "typed_data@1.4.0": {
+   "deps": [
+    "collection"
+   ],
+   "native": false,
+   "published": "2024-10-17"
+  },
+  "url_launcher@6.3.3": {
+   "deps": [
+    "flutter",
+    "url_launcher_android",
+    "url_launcher_ios",
+    "url_launcher_linux",
+    "url_launcher_macos",
+    "url_launcher_platform_interface",
+    "url_launcher_web",
+    "url_launcher_windows"
+   ],
+   "native": false,
+   "published": "2026-10-02"
+  },
+  "url_launcher_android@6.3.33": {
+   "deps": [
+    "flutter",
+    "meta",
+    "url_launcher_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-08-28"
+  },
+  "url_launcher_ios@6.4.2": {
+   "deps": [
+    "flutter",
+    "meta",
+    "url_launcher_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-08-28"
+  },
+  "url_launcher_linux@3.2.3": {
+   "deps": [
+    "flutter",
+    "meta",
+    "url_launcher_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-08-28"
+  },
+  "url_launcher_macos@3.2.6": {
+   "deps": [
+    "flutter",
+    "meta",
+    "url_launcher_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-08-28"
+  },
+  "url_launcher_platform_interface@2.3.2": {
+   "deps": [
+    "flutter",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2024-02-15"
+  },
+  "url_launcher_web@2.4.3": {
+   "deps": [
+    "flutter",
+    "flutter_web_plugins",
+    "url_launcher_platform_interface",
+    "web"
+   ],
+   "native": false,
+   "published": "2026-05-05"
+  },
+  "url_launcher_windows@3.1.6": {
+   "deps": [
+    "flutter",
+    "meta",
+    "url_launcher_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-08-28"
+  },
+  "uuid@4.6.0": {
+   "deps": [
+    "crypto",
+    "fixnum"
+   ],
+   "native": false,
+   "published": "2026-07-15"
+  },
+  "vector_math@2.4.0": {
+   "deps": [],
+   "native": false,
+   "published": "2026-06-03"
+  },
+  "video_player@2.14.1": {
+   "deps": [
+    "collection",
+    "flutter",
+    "html",
+    "video_player_android",
+    "video_player_avfoundation",
+    "video_player_platform_interface",
+    "video_player_web"
+   ],
+   "native": false,
+   "published": "2026-10-02"
+  },
+  "video_player_android@2.12.2": {
+   "deps": [
+    "flutter",
+    "meta",
+    "video_player_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-09-02"
+  },
+  "video_player_avfoundation@2.12.1": {
+   "deps": [
+    "flutter",
+    "meta",
+    "video_player_platform_interface"
+   ],
+   "native": true,
+   "published": "2026-10-08"
+  },
+  "video_player_platform_interface@6.9.0": {
+   "deps": [
+    "flutter",
+    "plugin_platform_interface"
+   ],
+   "native": false,
+   "published": "2026-07-06"
+  },
+  "video_player_web@2.4.0": {
+   "deps": [
+    "flutter",
+    "flutter_web_plugins",
+    "video_player_platform_interface",
+    "web"
+   ],
+   "native": false,
+   "published": "2025-07-09"
+  },
+  "vm_service@15.4.0": {
+   "deps": [],
+   "native": false,
+   "published": "2026-10-15"
+  },
+  "web@1.1.1": {
+   "deps": [],
+   "native": false,
+   "published": "2025-02-26"
+  },
+  "webdriver@3.2.0": {
+   "deps": [
+    "matcher",
+    "path",
+    "stack_trace",
+    "sync_http",
+    "web"
+   ],
+   "native": false,
+   "published": "2026-09-09"
+  },
+  "win32@6.4.0": {
+   "deps": [
+    "ffi",
+    "ffi_leak_tracker",
+    "meta"
+   ],
+   "native": true,
+   "published": "2026-08-05"
+  },
+  "xdg_directories@1.1.0": {
+   "deps": [
+    "meta",
+    "path"
+   ],
+   "native": false,
+   "published": "2024-10-04"
+  },
+  "yaml@3.1.4": {
+   "deps": [
+    "collection",
+    "source_span",
+    "string_scanner"
+   ],
+   "native": false,
+   "published": "2026-08-28"
+  }
+ },
+ "dart_publisher": {
+  "archive": "taosengine.com",
+  "args": "dart.dev",
+  "async": "dart.dev",
+  "boolean_selector": "tools.dart.dev",
+  "build_cli_annotations": "kevmoo.com",
+  "camera": "flutter.dev",
+  "camera_android_camerax": "flutter.dev",
+  "camera_avfoundation": "flutter.dev",
+  "camera_platform_interface": "flutter.dev",
+  "camera_web": "flutter.dev",
+  "characters": "dart.dev",
+  "clock": "tools.dart.dev",
+  "code_assets": "dart.dev",
+  "collection": "dart.dev",
+  "cross_file": "flutter.dev",
+  "crypto": "dart.dev",
+  "csslib": "tools.dart.dev",
+  "cupertino_ui": "flutter.dev",
+  "fake_async": "dart.dev",
+  "fc_native_video_thumbnail": "flutter-cavalry.com",
+  "ffi": "dart.dev",
+  "ffi_leak_tracker": "halildurmus.dev",
+  "file": "tools.dart.dev",
+  "file_selector": "flutter.dev",
+  "file_selector_android": "flutter.dev",
+  "file_selector_ios": "flutter.dev",
+  "file_selector_linux": "flutter.dev",
+  "file_selector_macos": "flutter.dev",
+  "file_selector_platform_interface": "flutter.dev",
+  "file_selector_web": "flutter.dev",
+  "file_selector_windows": "flutter.dev",
+  "fixnum": "dart.dev",
+  "flutter_lints": "flutter.dev",
+  "flutter_plugin_android_lifecycle": "flutter.dev",
+  "flutter_rust_bridge": "cjycode.com",
+  "flutter_secure_storage": "steenbakker.dev",
+  "flutter_secure_storage_darwin": "steenbakker.dev",
+  "flutter_secure_storage_linux": "steenbakker.dev",
+  "flutter_secure_storage_platform_interface": "steenbakker.dev",
+  "flutter_secure_storage_web": "steenbakker.dev",
+  "flutter_secure_storage_windows": "steenbakker.dev",
+  "google_identity_services_web": "flutter.dev",
+  "google_sign_in": "flutter.dev",
+  "google_sign_in_android": "flutter.dev",
+  "google_sign_in_ios": "flutter.dev",
+  "google_sign_in_platform_interface": "flutter.dev",
+  "google_sign_in_web": "flutter.dev",
+  "hooks": "dart.dev",
+  "html": "tools.dart.dev",
+  "http": "dart.dev",
+  "http_parser": "dart.dev",
+  "image": "taosengine.com",
+  "image_picker": "flutter.dev",
+  "image_picker_android": "flutter.dev",
+  "image_picker_for_web": "flutter.dev",
+  "image_picker_ios": "flutter.dev",
+  "image_picker_linux": "flutter.dev",
+  "image_picker_macos": "flutter.dev",
+  "image_picker_platform_interface": "flutter.dev",
+  "image_picker_windows": "flutter.dev",
+  "intl": "dart.dev",
+  "jni": "dart.dev",
+  "jni_flutter": "dart.dev",
+  "jni_util": "dart.dev",
+  "leak_tracker": "tools.dart.dev",
+  "leak_tracker_flutter_testing": "flutter.dev",
+  "leak_tracker_testing": "tools.dart.dev",
+  "lints": "dart.dev",
+  "local_auth": "flutter.dev",
+  "local_auth_android": "flutter.dev",
+  "local_auth_darwin": "flutter.dev",
+  "local_auth_platform_interface": "flutter.dev",
+  "local_auth_windows": "flutter.dev",
+  "logging": "dart.dev",
+  "matcher": "dart.dev",
+  "material_color_utilities": "material.io",
+  "material_ui": "flutter.dev",
+  "meta": "dart.dev",
+  "mime": "tools.dart.dev",
+  "objective_c": "dart.dev",
+  "package_config": "tools.dart.dev",
+  "package_info_plus": "fluttercommunity.dev",
+  "package_info_plus_platform_interface": "fluttercommunity.dev",
+  "path": "dart.dev",
+  "path_provider": "flutter.dev",
+  "path_provider_android": "flutter.dev",
+  "path_provider_foundation": "flutter.dev",
+  "path_provider_linux": "flutter.dev",
+  "path_provider_platform_interface": "flutter.dev",
+  "path_provider_windows": "flutter.dev",
+  "pdfium_flutter": "espresso3389.jp",
+  "pdfrx": "espresso3389.jp",
+  "pdfrx_engine": "espresso3389.jp",
+  "platform": "dart.dev",
+  "plugin_platform_interface": "flutter.dev",
+  "posix": "onepub.dev",
+  "process": "tools.dart.dev",
+  "pub_semver": "tools.dart.dev",
+  "record": "cow-level.ovh",
+  "record_android": "cow-level.ovh",
+  "record_ios": "cow-level.ovh",
+  "record_linux": "cow-level.ovh",
+  "record_macos": "cow-level.ovh",
+  "record_platform_interface": "cow-level.ovh",
+  "record_use": "dart.dev",
+  "record_web": "cow-level.ovh",
+  "record_windows": "cow-level.ovh",
+  "rxdart": "fluttercommunity.dev",
+  "share_plus": "fluttercommunity.dev",
+  "share_plus_platform_interface": "fluttercommunity.dev",
+  "source_span": "tools.dart.dev",
+  "stack_trace": "tools.dart.dev",
+  "stream_channel": "tools.dart.dev",
+  "stream_transform": "tools.dart.dev",
+  "string_scanner": "tools.dart.dev",
+  "sync_http": "google.dev",
+  "synchronized": "tekartik.com",
+  "term_glyph": "tools.dart.dev",
+  "test_api": "tools.dart.dev",
+  "typed_data": "dart.dev",
+  "url_launcher": "flutter.dev",
+  "url_launcher_android": "flutter.dev",
+  "url_launcher_ios": "flutter.dev",
+  "url_launcher_linux": "flutter.dev",
+  "url_launcher_macos": "flutter.dev",
+  "url_launcher_platform_interface": "flutter.dev",
+  "url_launcher_web": "flutter.dev",
+  "url_launcher_windows": "flutter.dev",
+  "uuid": "yuli.dev",
+  "vector_math": "flutter.dev",
+  "video_player": "flutter.dev",
+  "video_player_android": "flutter.dev",
+  "video_player_avfoundation": "flutter.dev",
+  "video_player_platform_interface": "flutter.dev",
+  "video_player_web": "flutter.dev",
+  "vm_service": "tools.dart.dev",
+  "web": "dart.dev",
+  "webdriver": "google.dev",
+  "win32": "halildurmus.dev",
+  "xdg_directories": "flutter.dev",
+  "yaml": "tools.dart.dev"
+ },
+ "dart_sdk": {
+  "flutter": [
+   "characters",
+   "collection",
+   "material_color_utilities",
+   "meta",
+   "sky_engine",
+   "vector_math"
+  ],
+  "flutter_driver": [
+   "file",
+   "flutter",
+   "flutter_test",
+   "fuchsia_remote_debug_protocol",
+   "matcher",
+   "meta",
+   "path",
+   "vm_service",
+   "webdriver"
+  ],
+  "flutter_localizations": [
+   "flutter",
+   "intl",
+   "path"
+  ],
+  "flutter_test": [
+   "clock",
+   "collection",
+   "fake_async",
+   "flutter",
+   "leak_tracker_flutter_testing",
+   "matcher",
+   "meta",
+   "path",
+   "stack_trace",
+   "stream_channel",
+   "test_api",
+   "vector_math"
+  ],
+  "flutter_web_plugins": [
+   "flutter"
+  ],
+  "fuchsia_remote_debug_protocol": [
+   "meta",
+   "process",
+   "vm_service"
+  ],
+  "integration_test": [
+   "flutter",
+   "flutter_driver",
+   "flutter_test",
+   "path",
+   "vm_service"
+  ]
+ },
+ "flutter_version": "3.47.7",
+ "rust": {
+  "addr2line@0.25.1": {
+   "published": "2025-09-13",
+   "published_by": "philipc"
+  },
+  "adler2@2.0.1": {
+   "published": "2025-06-09",
+   "published_by": "oyvindln"
+  },
+  "aead@0.5.2": {
+   "published": "2023-04-02",
+   "published_by": "tarcieri"
+  },
+  "aho-corasick@1.1.5": {
+   "published": "2026-08-03",
+   "published_by": "BurntSushi"
+  },
+  "allo-isolate@0.1.27": {
+   "published": "2025-03-11",
+   "published_by": "shekohex"
+  },
+  "android_log-sys@0.3.2": {
+   "published": "2025-03-04",
+   "published_by": "Nercury"
+  },
+  "android_logger@0.15.1": {
+   "published": "2025-06-29",
+   "published_by": "Nercury"
+  },
+  "android_system_properties@0.1.6": {
+   "published": "2026-08-05",
+   "published_by": "nical"
+  },
+  "anyhow@1.0.104": {
+   "published": "2026-07-18",
+   "published_by": "dtolnay"
+  },
+  "argon2@0.6.0": {
+   "published": "2026-08-27",
+   "published_by": ""
+  },
+  "atomic@0.5.3": {
+   "published": "2023-05-15",
+   "published_by": "Amanieu"
+  },
+  "autocfg@1.5.1": {
+   "published": "2026-05-22",
+   "published_by": "cuviper"
+  },
+  "backtrace@0.3.76": {
+   "published": "2025-09-26",
+   "published_by": "rust-lang-owner"
+  },
+  "base64ct@1.8.3": {
+   "published": "2026-01-12",
+   "published_by": "tarcieri"
+  },
+  "bit-set@0.8.0": {
+   "published": "2024-07-16",
+   "published_by": "pczarn"
+  },
+  "bit-vec@0.8.0": {
+   "published": "2024-07-16",
+   "published_by": "pczarn"
+  },
+  "bitflags@2.13.2": {
+   "published": "2026-09-10",
+   "published_by": "KodrAus"
+  },
+  "blake2@0.11.0": {
+   "published": "2026-08-26",
+   "published_by": ""
+  },
+  "block-buffer@0.10.4": {
+   "published": "2023-03-09",
+   "published_by": "newpavlov"
+  },
+  "block-buffer@0.12.1": {
+   "published": "2026-06-11",
+   "published_by": ""
+  },
+  "build-target@0.4.0": {
+   "published": "2022-04-29",
+   "published_by": "OpenByteDev"
+  },
+  "bumpalo@3.20.3": {
+   "published": "2026-05-22",
+   "published_by": "fitzgen"
+  },
+  "bytemuck@1.25.2": {
+   "published": "2026-07-19",
+   "published_by": "Lokathor"
+  },
+  "byteorder-lite@0.1.0": {
+   "published": "2024-04-07",
+   "published_by": "fintelia"
+  },
+  "byteorder@1.5.0": {
+   "published": "2023-10-06",
+   "published_by": "BurntSushi"
+  },
+  "cc@1.8.0": {
+   "published": "2026-10-11",
+   "published_by": ""
+  },
+  "cfg-if@1.0.5": {
+   "published": "2026-09-16",
+   "published_by": "rust-lang-owner"
+  },
+  "chacha20@0.9.1": {
+   "published": "2023-04-01",
+   "published_by": "tarcieri"
+  },
+  "chacha20poly1305@0.10.1": {
+   "published": "2022-08-10",
+   "published_by": "tarcieri"
+  },
+  "chrono@0.4.45": {
+   "published": "2026-06-04",
+   "published_by": "djc"
+  },
+  "cipher@0.4.4": {
+   "published": "2023-03-09",
+   "published_by": "newpavlov"
+  },
+  "cmov@0.5.4": {
+   "published": "2026-05-28",
+   "published_by": ""
+  },
+  "console_error_panic_hook@0.1.7": {
+   "published": "2021-10-11",
+   "published_by": "fitzgen"
+  },
+  "const-oid@0.10.2": {
+   "published": "2026-01-07",
+   "published_by": "tarcieri"
+  },
+  "core-foundation-sys@0.8.7": {
+   "published": "2024-08-11",
+   "published_by": "wusyong"
+  },
+  "cpufeatures@0.2.17": {
+   "published": "2025-01-25",
+   "published_by": "tarcieri"
+  },
+  "cpufeatures@0.3.1": {
+   "published": "2026-08-26",
+   "published_by": "tarcieri"
+  },
+  "crossbeam-deque@0.8.6": {
+   "published": "2024-12-15",
+   "published_by": "taiki-e"
+  },
+  "crossbeam-epoch@0.9.20": {
+   "published": "2026-07-06",
+   "published_by": "taiki-e"
+  },
+  "crossbeam-utils@0.8.23": {
+   "published": "2026-09-05",
+   "published_by": "taiki-e"
+  },
+  "crypto-common@0.1.7": {
+   "published": "2025-11-12",
+   "published_by": "newpavlov"
+  },
+  "crypto-common@0.2.2": {
+   "published": "2026-05-19",
+   "published_by": ""
+  },
+  "ctutils@0.4.4": {
+   "published": "2026-10-23",
+   "published_by": ""
+  },
+  "darling@0.20.11": {
+   "published": "2025-03-28",
+   "published_by": "TedDriggs"
+  },
+  "darling_core@0.20.11": {
+   "published": "2025-03-28",
+   "published_by": "TedDriggs"
+  },
+  "darling_macro@0.20.11": {
+   "published": "2025-03-28",
+   "published_by": "TedDriggs"
+  },
+  "dart-sys@4.1.5": {
+   "published": "2024-03-09",
+   "published_by": "gutenfries"
+  },
+  "dashmap@5.5.3": {
+   "published": "2023-08-29",
+   "published_by": "xacrimon"
+  },
+  "delegate-attr@0.3.1": {
+   "published": "2026-08-02",
+   "published_by": "upsuper"
+  },
+  "deranged@0.5.9": {
+   "published": "2026-10-13",
+   "published_by": ""
+  },
+  "derive_builder@0.20.2": {
+   "published": "2024-10-08",
+   "published_by": "TedDriggs"
+  },
+  "derive_builder_core@0.20.2": {
+   "published": "2024-10-08",
+   "published_by": "TedDriggs"
+  },
+  "derive_builder_macro@0.20.2": {
+   "published": "2024-10-08",
+   "published_by": "TedDriggs"
+  },
+  "digest@0.10.7": {
+   "published": "2023-05-19",
+   "published_by": "tarcieri"
+  },
+  "digest@0.11.3": {
+   "published": "2026-05-03",
+   "published_by": ""
+  },
+  "either@1.19.0": {
+   "published": "2026-10-06",
+   "published_by": "cuviper"
+  },
+  "env_filter@0.1.4": {
+   "published": "2025-10-13",
+   "published_by": "epage"
+  },
+  "errno@0.3.14": {
+   "published": "2025-09-09",
+   "published_by": "sunfishcode"
+  },
+  "fallible-iterator@0.3.0": {
+   "published": "2023-05-22",
+   "published_by": "dpc"
+  },
+  "fallible-streaming-iterator@0.1.9": {
+   "published": "2018-05-02",
+   "published_by": ""
+  },
+  "fancy-regex@0.18.0": {
+   "published": "2026-04-24",
+   "published_by": "keith-hall"
+  },
+  "fastrand@2.5.0": {
+   "published": "2026-07-19",
+   "published_by": "taiki-e"
+  },
+  "find-msvc-tools@0.1.14": {
+   "published": "2026-09-25",
+   "published_by": ""
+  },
+  "flutter_rust_bridge@2.13.0": {
+   "published": "2026-08-23",
+   "published_by": "fzyzcjy"
+  },
+  "flutter_rust_bridge_macros@2.13.0": {
+   "published": "2026-08-23",
+   "published_by": "fzyzcjy"
+  },
+  "fnv@1.0.7": {
+   "published": "2020-05-14",
+   "published_by": "Manishearth"
+  },
+  "foldhash@0.2.0": {
+   "published": "2025-08-23",
+   "published_by": "orlp"
+  },
+  "futures-channel@0.3.34": {
+   "published": "2026-08-11",
+   "published_by": "taiki-e"
+  },
+  "futures-core@0.3.34": {
+   "published": "2026-08-11",
+   "published_by": "taiki-e"
+  },
+  "futures-executor@0.3.34": {
+   "published": "2026-08-11",
+   "published_by": "taiki-e"
+  },
+  "futures-io@0.3.34": {
+   "published": "2026-08-11",
+   "published_by": "taiki-e"
+  },
+  "futures-macro@0.3.34": {
+   "published": "2026-08-11",
+   "published_by": "taiki-e"
+  },
+  "futures-sink@0.3.34": {
+   "published": "2026-08-11",
+   "published_by": "taiki-e"
+  },
+  "futures-task@0.3.34": {
+   "published": "2026-08-11",
+   "published_by": "taiki-e"
+  },
+  "futures-util@0.3.34": {
+   "published": "2026-08-11",
+   "published_by": "taiki-e"
+  },
+  "futures@0.3.34": {
+   "published": "2026-08-11",
+   "published_by": "taiki-e"
+  },
+  "g2gen@1.2.2": {
+   "published": "2025-03-23",
+   "published_by": "WanzenBug"
+  },
+  "g2p@1.2.2": {
+   "published": "2025-03-23",
+   "published_by": "WanzenBug"
+  },
+  "g2poly@1.2.2": {
+   "published": "2025-03-23",
+   "published_by": "WanzenBug"
+  },
+  "generic-array@0.14.7": {
+   "published": "2023-03-28",
+   "published_by": "novacrazy"
+  },
+  "getrandom@0.2.17": {
+   "published": "2026-01-11",
+   "published_by": "newpavlov"
+  },
+  "getrandom@0.4.3": {
+   "published": "2026-06-17",
+   "published_by": ""
+  },
+  "gimli@0.32.3": {
+   "published": "2025-09-13",
+   "published_by": "philipc"
+  },
+  "hashbrown@0.14.5": {
+   "published": "2024-04-28",
+   "published_by": "Amanieu"
+  },
+  "hashbrown@0.16.1": {
+   "published": "2025-11-20",
+   "published_by": "rust-lang-owner"
+  },
+  "hashbrown@0.17.1": {
+   "published": "2026-05-09",
+   "published_by": "rust-lang-owner"
+  },
+  "hashlink@0.12.2": {
+   "published": "2026-09-07",
+   "published_by": "djc"
+  },
+  "hermit-abi@0.5.3": {
+   "published": "2026-08-31",
+   "published_by": "mkroening"
+  },
+  "hex@0.4.3": {
+   "published": "2021-03-03",
+   "published_by": "KokaKiwi"
+  },
+  "hkdf@0.13.0": {
+   "published": "2026-03-30",
+   "published_by": ""
+  },
+  "hmac@0.13.0": {
+   "published": "2026-03-29",
+   "published_by": ""
+  },
+  "hybrid-array@0.4.15": {
+   "published": "2026-09-08",
+   "published_by": ""
+  },
+  "iana-time-zone-haiku@0.1.2": {
+   "published": "2023-05-12",
+   "published_by": "astraw"
+  },
+  "iana-time-zone@0.1.65": {
+   "published": "2026-01-28",
+   "published_by": ""
+  },
+  "ident_case@1.0.1": {
+   "published": "2019-03-18",
+   "published_by": "TedDriggs"
+  },
+  "image@0.25.10": {
+   "published": "2026-03-10",
+   "published_by": "197g"
+  },
+  "inout@0.1.4": {
+   "published": "2025-02-21",
+   "published_by": "newpavlov"
+  },
+  "itertools@0.14.0": {
+   "published": "2024-12-31",
+   "published_by": "jswrenn"
+  },
+  "itoa@1.0.18": {
+   "published": "2026-03-20",
+   "published_by": "dtolnay"
+  },
+  "js-sys@0.3.106": {
+   "published": "2026-09-25",
+   "published_by": ""
+  },
+  "lazy_static@1.5.1": {
+   "published": "2026-10-01",
+   "published_by": "rust-lang-owner"
+  },
+  "libc@0.2.191": {
+   "published": "2026-10-16",
+   "published_by": ""
+  },
+  "libsqlite3-sys@0.38.2": {
+   "published": "2026-08-08",
+   "published_by": "gwenn"
+  },
+  "linux-raw-sys@0.12.1": {
+   "published": "2025-12-23",
+   "published_by": "sunfishcode"
+  },
+  "lock_api@0.4.14": {
+   "published": "2025-10-03",
+   "published_by": "Amanieu"
+  },
+  "log@0.4.34": {
+   "published": "2026-08-22",
+   "published_by": "KodrAus"
+  },
+  "lru@0.18.5": {
+   "published": "2026-09-23",
+   "published_by": "jeromefroe"
+  },
+  "md-5@0.10.6": {
+   "published": "2023-09-22",
+   "published_by": "newpavlov"
+  },
+  "memchr@2.8.3": {
+   "published": "2026-07-08",
+   "published_by": "BurntSushi"
+  },
+  "miniz_oxide@0.8.9": {
+   "published": "2025-06-09",
+   "published_by": "oyvindln"
+  },
+  "moxcms@0.8.1": {
+   "published": "2026-03-07",
+   "published_by": "awxkee"
+  },
+  "num-conv@0.2.2": {
+   "published": "2026-05-18",
+   "published_by": "jhpratt"
+  },
+  "num-traits@0.2.19": {
+   "published": "2024-05-03",
+   "published_by": "cuviper"
+  },
+  "num_cpus@1.17.0": {
+   "published": "2025-05-30",
+   "published_by": "seanmonstar"
+  },
+  "object@0.37.3": {
+   "published": "2025-08-13",
+   "published_by": "philipc"
+  },
+  "once_cell@1.21.4": {
+   "published": "2026-03-12",
+   "published_by": "matklad"
+  },
+  "opaque-debug@0.3.1": {
+   "published": "2024-03-01",
+   "published_by": "newpavlov"
+  },
+  "oslog@0.2.0": {
+   "published": "2022-02-17",
+   "published_by": "steven-joruk"
+  },
+  "parking_lot_core@0.9.12": {
+   "published": "2025-10-03",
+   "published_by": "Amanieu"
+  },
+  "password-hash@0.6.1": {
+   "published": "2026-04-08",
+   "published_by": ""
+  },
+  "phc@0.6.1": {
+   "published": "2026-03-09",
+   "published_by": ""
+  },
+  "pin-project-lite@0.2.17": {
+   "published": "2026-02-27",
+   "published_by": ""
+  },
+  "pkg-config@0.3.34": {
+   "published": "2026-08-14",
+   "published_by": "sdroege"
+  },
+  "poly1305@0.8.0": {
+   "published": "2022-07-31",
+   "published_by": "tarcieri"
+  },
+  "portable-atomic@1.15.0": {
+   "published": "2026-08-09",
+   "published_by": ""
+  },
+  "powerfmt@0.2.1": {
+   "published": "2026-10-05",
+   "published_by": "jhpratt"
+  },
+  "proc-macro2@1.0.107": {
+   "published": "2026-07-19",
+   "published_by": "dtolnay"
+  },
+  "pxfm@0.1.30": {
+   "published": "2026-07-06",
+   "published_by": "awxkee"
+  },
+  "qrcode@0.14.1": {
+   "published": "2024-07-05",
+   "published_by": "kennytm"
+  },
+  "quote@1.0.47": {
+   "published": "2026-07-19",
+   "published_by": "dtolnay"
+  },
+  "r-efi@6.0.0": {
+   "published": "2026-02-03",
+   "published_by": "dvdhrm"
+  },
+  "rand_core@0.6.4": {
+   "published": "2022-09-15",
+   "published_by": "dhardy"
+  },
+  "rayon-core@1.13.0": {
+   "published": "2025-08-12",
+   "published_by": "cuviper"
+  },
+  "rayon@1.12.0": {
+   "published": "2026-04-14",
+   "published_by": "cuviper"
+  },
+  "redox_syscall@0.5.18": {
+   "published": "2025-10-04",
+   "published_by": "4lDO2"
+  },
+  "regex-automata@0.4.18": {
+   "published": "2026-08-04",
+   "published_by": "BurntSushi"
+  },
+  "regex-syntax@0.8.11": {
+   "published": "2026-06-09",
+   "published_by": "BurntSushi"
+  },
+  "regex@1.13.1": {
+   "published": "2026-07-15",
+   "published_by": "BurntSushi"
+  },
+  "ring@0.17.14": {
+   "published": "2025-03-11",
+   "published_by": "briansmith"
+  },
+  "rqrr@0.11.0": {
+   "published": "2026-09-02",
+   "published_by": "WanzenBug"
+  },
+  "rsqlite-vfs@0.1.1": {
+   "published": "2026-05-19",
+   "published_by": "Spxg"
+  },
+  "rusqlite@0.40.2": {
+   "published": "2026-08-08",
+   "published_by": "gwenn"
+  },
+  "rustc-demangle@0.1.28": {
+   "published": "2026-07-08",
+   "published_by": "rust-lang-owner"
+  },
+  "rustix@1.1.5": {
+   "published": "2026-09-16",
+   "published_by": "sunfishcode"
+  },
+  "rustls-pki-types@1.15.1": {
+   "published": "2026-07-23",
+   "published_by": "djc"
+  },
+  "rustls-webpki@0.103.16": {
+   "published": "2026-10-20",
+   "published_by": "ctz"
+  },
+  "rustls@0.23.46": {
+   "published": "2026-10-14",
+   "published_by": "ctz"
+  },
+  "rustversion@1.0.23": {
+   "published": "2026-07-07",
+   "published_by": "dtolnay"
+  },
+  "scopeguard@1.2.0": {
+   "published": "2023-07-17",
+   "published_by": "Amanieu"
+  },
+  "serde@1.0.229": {
+   "published": "2026-07-18",
+   "published_by": "dtolnay"
+  },
+  "serde_core@1.0.229": {
+   "published": "2026-07-18",
+   "published_by": "dtolnay"
+  },
+  "serde_derive@1.0.229": {
+   "published": "2026-07-18",
+   "published_by": "dtolnay"
+  },
+  "serde_json@1.0.154": {
+   "published": "2026-10-11",
+   "published_by": "dtolnay"
+  },
+  "sha2@0.11.1": {
+   "published": "2026-10-12",
+   "published_by": ""
+  },
+  "shlex@2.0.1": {
+   "published": "2026-05-17",
+   "published_by": "fenhl"
+  },
+  "slab@0.4.12": {
+   "published": "2026-01-31",
+   "published_by": "Darksonn"
+  },
+  "smallvec@1.16.3": {
+   "published": "2026-10-10",
+   "published_by": "jdm"
+  },
+  "sqlite-wasm-rs@0.5.5": {
+   "published": "2026-05-25",
+   "published_by": "Spxg"
+  },
+  "strsim@0.11.1": {
+   "published": "2024-04-02",
+   "published_by": "maxbachmann"
+  },
+  "subtle@2.6.1": {
+   "published": "2024-06-24",
+   "published_by": "isislovecruft"
+  },
+  "syn@2.0.119": {
+   "published": "2026-07-15",
+   "published_by": "dtolnay"
+  },
+  "syn@3.0.9": {
+   "published": "2026-10-12",
+   "published_by": "dtolnay"
+  },
+  "tempfile@3.27.0": {
+   "published": "2026-03-11",
+   "published_by": "Stebalien"
+  },
+  "thiserror-impl@2.0.21": {
+   "published": "2026-09-23",
+   "published_by": "dtolnay"
+  },
+  "thiserror@2.0.21": {
+   "published": "2026-09-23",
+   "published_by": "dtolnay"
+  },
+  "threadpool@1.8.1": {
+   "published": "2020-05-11",
+   "published_by": "dns2utf8"
+  },
+  "time-core@0.1.9": {
+   "published": "2026-06-12",
+   "published_by": "jhpratt"
+  },
+  "time@0.3.55": {
+   "published": "2026-08-01",
+   "published_by": ""
+  },
+  "tokio@1.53.3": {
+   "published": "2026-10-13",
+   "published_by": "Darksonn"
+  },
+  "typenum@1.20.1": {
+   "published": "2026-05-29",
+   "published_by": "paholg"
+  },
+  "unicode-ident@1.0.27": {
+   "published": "2026-10-12",
+   "published_by": "dtolnay"
+  },
+  "universal-hash@0.5.1": {
+   "published": "2023-05-19",
+   "published_by": "tarcieri"
+  },
+  "untrusted@0.9.0": {
+   "published": "2021-07-13",
+   "published_by": "briansmith"
+  },
+  "vcpkg@0.2.15": {
+   "published": "2021-06-19",
+   "published_by": "waych"
+  },
+  "version_check@0.9.5": {
+   "published": "2024-07-25",
+   "published_by": "SergioBenitez"
+  },
+  "wasi@0.11.1+wasi-snapshot-preview1": {
+   "published": "2025-06-10",
+   "published_by": "alexcrichton"
+  },
+  "wasm-bindgen-futures@0.4.79": {
+   "published": "2026-09-25",
+   "published_by": ""
+  },
+  "wasm-bindgen-macro-support@0.2.129": {
+   "published": "2026-09-25",
+   "published_by": ""
+  },
+  "wasm-bindgen-macro@0.2.129": {
+   "published": "2026-09-25",
+   "published_by": ""
+  },
+  "wasm-bindgen-shared@0.2.129": {
+   "published": "2026-09-25",
+   "published_by": ""
+  },
+  "wasm-bindgen@0.2.129": {
+   "published": "2026-09-25",
+   "published_by": ""
+  },
+  "web-sys@0.3.106": {
+   "published": "2026-09-25",
+   "published_by": ""
+  },
+  "webpki-roots@1.0.10": {
+   "published": "2026-10-19",
+   "published_by": "cpu"
+  },
+  "windows-core@0.62.2": {
+   "published": "2025-10-06",
+   "published_by": "kennykerr"
+  },
+  "windows-implement@0.60.2": {
+   "published": "2025-10-06",
+   "published_by": "kennykerr"
+  },
+  "windows-interface@0.59.3": {
+   "published": "2025-10-06",
+   "published_by": "kennykerr"
+  },
+  "windows-link@0.2.1": {
+   "published": "2025-10-06",
+   "published_by": "kennykerr"
+  },
+  "windows-result@0.4.1": {
+   "published": "2025-10-06",
+   "published_by": "kennykerr"
+  },
+  "windows-strings@0.5.1": {
+   "published": "2025-10-06",
+   "published_by": "kennykerr"
+  },
+  "windows-sys@0.52.0": {
+   "published": "2023-11-15",
+   "published_by": "kennykerr"
+  },
+  "windows-sys@0.61.2": {
+   "published": "2025-10-06",
+   "published_by": "kennykerr"
+  },
+  "windows-targets@0.52.6": {
+   "published": "2024-07-03",
+   "published_by": "kennykerr"
+  },
+  "windows_aarch64_gnullvm@0.52.6": {
+   "published": "2024-07-03",
+   "published_by": "kennykerr"
+  },
+  "windows_aarch64_msvc@0.52.6": {
+   "published": "2024-07-03",
+   "published_by": "kennykerr"
+  },
+  "windows_i686_gnu@0.52.6": {
+   "published": "2024-07-03",
+   "published_by": "kennykerr"
+  },
+  "windows_i686_gnullvm@0.52.6": {
+   "published": "2024-07-03",
+   "published_by": "kennykerr"
+  },
+  "windows_i686_msvc@0.52.6": {
+   "published": "2024-07-03",
+   "published_by": "kennykerr"
+  },
+  "windows_x86_64_gnu@0.52.6": {
+   "published": "2024-07-03",
+   "published_by": "kennykerr"
+  },
+  "windows_x86_64_gnullvm@0.52.6": {
+   "published": "2024-07-03",
+   "published_by": "kennykerr"
+  },
+  "windows_x86_64_msvc@0.52.6": {
+   "published": "2024-07-03",
+   "published_by": "kennykerr"
+  },
+  "zeroize@1.9.1": {
+   "published": "2026-10-06",
+   "published_by": ""
+  },
+  "zeroize_derive@1.5.0": {
+   "published": "2026-06-12",
+   "published_by": ""
+  },
+  "zmij@1.0.23": {
+   "published": "2026-07-13",
+   "published_by": "dtolnay"
+  },
+  "zune-core@0.5.3": {
+   "published": "2026-08-07",
+   "published_by": "etemesi254"
+  },
+  "zune-jpeg@0.5.15": {
+   "published": "2026-03-26",
+   "published_by": "etemesi254"
+  },
+  "zxcvbn@3.1.1": {
+   "published": "2026-04-24",
+   "published_by": "shssoichiro"
+  }
+ },
+ "rust_graph": {
+  "addr2line@0.25.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "backtrace"
+  },
+  "adler2@2.0.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "miniz_oxide"
+  },
+  "aead@0.5.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "chacha20poly1305"
+  },
+  "aho-corasick@1.1.5": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "regex"
+  },
+  "allo-isolate@0.1.27": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "android_log-sys@0.3.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "android_logger"
+  },
+  "android_logger@0.15.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "android_system_properties@0.1.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "anyhow@1.0.104": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "argon2@0.6.0": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "atomic@0.5.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "allo-isolate"
+  },
+  "autocfg@1.5.1": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "num-traits"
+  },
+  "backtrace@0.3.76": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "allo-isolate"
+  },
+  "base64ct@1.8.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "argon2"
+  },
+  "bit-set@0.8.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "fancy-regex"
+  },
+  "bit-vec@0.8.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "bit-set"
+  },
+  "bitflags@2.13.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rusqlite"
+  },
+  "blake2@0.11.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "argon2"
+  },
+  "block-buffer@0.10.4": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "digest"
+  },
+  "block-buffer@0.12.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "digest"
+  },
+  "build-target@0.4.0": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "bumpalo@3.20.3": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "bytemuck@1.25.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "image"
+  },
+  "byteorder-lite@0.1.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "image"
+  },
+  "byteorder@1.5.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "cc@1.8.0": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "libsqlite3-sys"
+  },
+  "cfg-if@1.0.5": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "sha2"
+  },
+  "chacha20@0.9.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "chacha20poly1305"
+  },
+  "chacha20poly1305@0.10.1": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "chrono@0.4.45": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "cipher@0.4.4": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "chacha20poly1305"
+  },
+  "cmov@0.5.4": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "ctutils"
+  },
+  "console_error_panic_hook@0.1.7": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "const-oid@0.10.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "digest"
+  },
+  "core-foundation-sys@0.8.7": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "cpufeatures@0.2.17": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "chacha20"
+  },
+  "cpufeatures@0.3.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "argon2"
+  },
+  "crossbeam-deque@0.8.6": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rayon-core"
+  },
+  "crossbeam-epoch@0.9.20": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "crossbeam-deque"
+  },
+  "crossbeam-utils@0.8.23": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rayon-core"
+  },
+  "crypto-common@0.1.7": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "aead"
+  },
+  "crypto-common@0.2.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "digest"
+  },
+  "ctutils@0.4.4": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "digest"
+  },
+  "darling@0.20.11": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "derive_builder_core"
+  },
+  "darling_core@0.20.11": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "darling"
+  },
+  "darling_macro@0.20.11": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "darling"
+  },
+  "dart-sys@4.1.5": {
+   "direct": false,
+   "kind": "runtime",
+   "native": true,
+   "via": "flutter_rust_bridge"
+  },
+  "dashmap@5.5.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "oslog"
+  },
+  "delegate-attr@0.3.1": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "deranged@0.5.9": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "time"
+  },
+  "derive_builder@0.20.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "zxcvbn"
+  },
+  "derive_builder_core@0.20.2": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "derive_builder_macro"
+  },
+  "derive_builder_macro@0.20.2": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "derive_builder"
+  },
+  "digest@0.10.7": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "md-5"
+  },
+  "digest@0.11.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "sha2"
+  },
+  "either@1.19.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rayon"
+  },
+  "env_filter@0.1.4": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "android_logger"
+  },
+  "errno@0.3.14": {
+   "direct": false,
+   "kind": "dev",
+   "native": false,
+   "via": "rustix"
+  },
+  "fallible-iterator@0.3.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rusqlite"
+  },
+  "fallible-streaming-iterator@0.1.9": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rusqlite"
+  },
+  "fancy-regex@0.18.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "zxcvbn"
+  },
+  "fastrand@2.5.0": {
+   "direct": false,
+   "kind": "dev",
+   "native": false,
+   "via": "tempfile"
+  },
+  "find-msvc-tools@0.1.14": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "cc"
+  },
+  "flutter_rust_bridge@2.13.0": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "flutter_rust_bridge_macros@2.13.0": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "fnv@1.0.7": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "darling_core"
+  },
+  "foldhash@0.2.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "hashbrown"
+  },
+  "futures-channel@0.3.34": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "futures"
+  },
+  "futures-core@0.3.34": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "futures"
+  },
+  "futures-executor@0.3.34": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "futures"
+  },
+  "futures-io@0.3.34": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "futures"
+  },
+  "futures-macro@0.3.34": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "futures-util"
+  },
+  "futures-sink@0.3.34": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "futures"
+  },
+  "futures-task@0.3.34": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "futures"
+  },
+  "futures-util@0.3.34": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "futures"
+  },
+  "futures@0.3.34": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "g2gen@1.2.2": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "g2p"
+  },
+  "g2p@1.2.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rqrr"
+  },
+  "g2poly@1.2.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "g2p"
+  },
+  "generic-array@0.14.7": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "aead"
+  },
+  "getrandom@0.2.17": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "ring"
+  },
+  "getrandom@0.4.3": {
+   "direct": false,
+   "kind": "dev",
+   "native": false,
+   "via": "tempfile"
+  },
+  "gimli@0.32.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "addr2line"
+  },
+  "hashbrown@0.14.5": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "dashmap"
+  },
+  "hashbrown@0.16.1": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "hashbrown@0.17.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "hashlink"
+  },
+  "hashlink@0.12.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rusqlite"
+  },
+  "hermit-abi@0.5.3": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "hex@0.4.3": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "hkdf@0.13.0": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "hmac@0.13.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "hkdf"
+  },
+  "hybrid-array@0.4.15": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "block-buffer"
+  },
+  "iana-time-zone-haiku@0.1.2": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "iana-time-zone@0.1.65": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "ident_case@1.0.1": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "darling_core"
+  },
+  "image@0.25.10": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "inout@0.1.4": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "cipher"
+  },
+  "itertools@0.14.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "zxcvbn"
+  },
+  "itoa@1.0.18": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "serde_json"
+  },
+  "js-sys@0.3.106": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "lazy_static@1.5.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "zxcvbn"
+  },
+  "libc@0.2.191": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "cpufeatures"
+  },
+  "libsqlite3-sys@0.38.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": true,
+   "via": "rusqlite"
+  },
+  "linux-raw-sys@0.12.1": {
+   "direct": false,
+   "kind": "dev",
+   "native": false,
+   "via": "rustix"
+  },
+  "lock_api@0.4.14": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "dashmap"
+  },
+  "log@0.4.34": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "lru@0.18.5": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rqrr"
+  },
+  "md-5@0.10.6": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "flutter_rust_bridge_macros"
+  },
+  "memchr@2.8.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "serde_json"
+  },
+  "miniz_oxide@0.8.9": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "backtrace"
+  },
+  "moxcms@0.8.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "image"
+  },
+  "num-conv@0.2.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "time"
+  },
+  "num-traits@0.2.19": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "image"
+  },
+  "num_cpus@1.17.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "threadpool"
+  },
+  "object@0.37.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "backtrace"
+  },
+  "once_cell@1.21.4": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rustls"
+  },
+  "opaque-debug@0.3.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "poly1305"
+  },
+  "oslog@0.2.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": true,
+   "via": "flutter_rust_bridge"
+  },
+  "parking_lot_core@0.9.12": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "dashmap"
+  },
+  "password-hash@0.6.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "argon2"
+  },
+  "phc@0.6.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "password-hash"
+  },
+  "pin-project-lite@0.2.17": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "tokio"
+  },
+  "pkg-config@0.3.34": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "libsqlite3-sys"
+  },
+  "poly1305@0.8.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "chacha20poly1305"
+  },
+  "portable-atomic@1.15.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "powerfmt@0.2.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "time"
+  },
+  "proc-macro2@1.0.107": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "serde_derive"
+  },
+  "pxfm@0.1.30": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "moxcms"
+  },
+  "qrcode@0.14.1": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "quote@1.0.47": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "serde_derive"
+  },
+  "r-efi@6.0.0": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "rand_core@0.6.4": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "crypto-common"
+  },
+  "rayon-core@1.13.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": true,
+   "via": "rayon"
+  },
+  "rayon@1.12.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "argon2"
+  },
+  "redox_syscall@0.5.18": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "regex-automata@0.4.18": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "fancy-regex"
+  },
+  "regex-syntax@0.8.11": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "fancy-regex"
+  },
+  "regex@1.13.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "zxcvbn"
+  },
+  "ring@0.17.14": {
+   "direct": false,
+   "kind": "runtime",
+   "native": true,
+   "via": "rustls"
+  },
+  "rqrr@0.11.0": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "rsqlite-vfs@0.1.1": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "rusqlite@0.40.2": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "rustc-demangle@0.1.28": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "backtrace"
+  },
+  "rustix@1.1.5": {
+   "direct": false,
+   "kind": "dev",
+   "native": false,
+   "via": "tempfile"
+  },
+  "rustls-pki-types@1.15.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rustls"
+  },
+  "rustls-webpki@0.103.16": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rustls"
+  },
+  "rustls@0.23.46": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "rustversion@1.0.23": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "scopeguard@1.2.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "lock_api"
+  },
+  "serde@1.0.229": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "serde_core@1.0.229": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "serde_json"
+  },
+  "serde_derive@1.0.229": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "serde"
+  },
+  "serde_json@1.0.154": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "sha2@0.11.1": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "shlex@2.0.1": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "cc"
+  },
+  "slab@0.4.12": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "futures-util"
+  },
+  "smallvec@1.16.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rusqlite"
+  },
+  "sqlite-wasm-rs@0.5.5": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "strsim@0.11.1": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "darling_core"
+  },
+  "subtle@2.6.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "rustls"
+  },
+  "syn@2.0.119": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "derive_builder_macro"
+  },
+  "syn@3.0.9": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "serde_derive"
+  },
+  "tempfile@3.27.0": {
+   "direct": true,
+   "kind": "dev",
+   "native": false,
+   "via": ""
+  },
+  "thiserror-impl@2.0.21": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "thiserror"
+  },
+  "thiserror@2.0.21": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "threadpool@1.8.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "time-core@0.1.9": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "time"
+  },
+  "time@0.3.55": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "zxcvbn"
+  },
+  "tokio@1.53.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "flutter_rust_bridge"
+  },
+  "typenum@1.20.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "crypto-common"
+  },
+  "unicode-ident@1.0.27": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "syn"
+  },
+  "universal-hash@0.5.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "poly1305"
+  },
+  "untrusted@0.9.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "ring"
+  },
+  "vcpkg@0.2.15": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "libsqlite3-sys"
+  },
+  "version_check@0.9.5": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "generic-array"
+  },
+  "wasi@0.11.1+wasi-snapshot-preview1": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "wasm-bindgen-futures@0.4.79": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "wasm-bindgen-macro-support@0.2.129": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "wasm-bindgen-macro@0.2.129": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "wasm-bindgen-shared@0.2.129": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "wasm-bindgen@0.2.129": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "web-sys@0.3.106": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "webpki-roots@1.0.10": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "windows-core@0.62.2": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows-implement@0.60.2": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows-interface@0.59.3": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows-link@0.2.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "backtrace"
+  },
+  "windows-result@0.4.1": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows-strings@0.5.1": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows-sys@0.52.0": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows-sys@0.61.2": {
+   "direct": false,
+   "kind": "dev",
+   "native": false,
+   "via": "tempfile"
+  },
+  "windows-targets@0.52.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows_aarch64_gnullvm@0.52.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows_aarch64_msvc@0.52.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows_i686_gnu@0.52.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows_i686_gnullvm@0.52.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows_i686_msvc@0.52.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows_x86_64_gnu@0.52.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows_x86_64_gnullvm@0.52.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "windows_x86_64_msvc@0.52.6": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "zeroize@1.9.1": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "zeroize_derive@1.5.0": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "zeroize"
+  },
+  "zmij@1.0.23": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "serde_json"
+  },
+  "zune-core@0.5.3": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "image"
+  },
+  "zune-jpeg@0.5.15": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "image"
+  },
+  "zxcvbn@3.1.1": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  }
+ },
+ "rust_owners": {
+  "addr2line": [
+   "fitzgen",
+   "philipc"
+  ],
+  "adler2": [
+   "oyvindln"
+  ],
+  "aead": [
+   "github:rustcrypto:traits",
+   "newpavlov"
+  ],
+  "aho-corasick": [
+   "BurntSushi"
+  ],
+  "allo-isolate": [
+   "shekohex"
+  ],
+  "android_log-sys": [
+   "Dushistov",
+   "MarijnS95",
+   "Nercury",
+   "paulrouget",
+   "tyranron"
+  ],
+  "android_logger": [
+   "Dushistov",
+   "MarijnS95",
+   "Nercury",
+   "paulrouget",
+   "tyranron"
+  ],
+  "android_system_properties": [
+   "nical"
+  ],
+  "anyhow": [
+   "dtolnay"
+  ],
+  "argon2": [
+   "github:rustcrypto:kdfs",
+   "newpavlov"
+  ],
+  "atomic": [
+   "Amanieu"
+  ],
+  "autocfg": [
+   "cuviper",
+   "matklad"
+  ],
+  "backtrace": [
+   "rust-lang-owner"
+  ],
+  "base64ct": [
+   "github:rustcrypto:formats",
+   "tarcieri"
+  ],
+  "bit-set": [
+   "Gankra",
+   "github:contain-rs:owners",
+   "pczarn"
+  ],
+  "bit-vec": [
+   "Gankra",
+   "github:contain-rs:owners",
+   "pczarn"
+  ],
+  "bitflags": [
+   "KodrAus",
+   "rust-lang-owner"
+  ],
+  "blake2": [
+   "github:rustcrypto:hashes",
+   "newpavlov"
+  ],
+  "block-buffer": [
+   "github:rustcrypto:utils",
+   "newpavlov"
+  ],
+  "build-target": [
+   "OpenByteDev"
+  ],
+  "bumpalo": [
+   "alexcrichton",
+   "fitzgen"
+  ],
+  "bytemuck": [
+   "Lokathor",
+   "github:rust-bus:maintainers"
+  ],
+  "byteorder": [
+   "BurntSushi"
+  ],
+  "byteorder-lite": [
+   "fintelia",
+   "github:image-rs:publish"
+  ],
+  "cc": [
+   "rust-lang-owner"
+  ],
+  "cfg-if": [
+   "rust-lang-owner"
+  ],
+  "chacha20": [
+   "github:rustcrypto:stream-ciphers",
+   "newpavlov"
+  ],
+  "chacha20poly1305": [
+   "github:rustcrypto:aeads",
+   "newpavlov"
+  ],
+  "chrono": [
+   "github:chronotope:release-manager",
+   "lifthrasiir"
+  ],
+  "cipher": [
+   "github:rustcrypto:traits",
+   "newpavlov"
+  ],
+  "cmov": [
+   "github:rustcrypto:utils",
+   "tarcieri"
+  ],
+  "console_error_panic_hook": [
+   "alexcrichton",
+   "fitzgen"
+  ],
+  "const-oid": [
+   "github:rustcrypto:formats",
+   "tarcieri"
+  ],
+  "core-foundation-sys": [
+   "github:servo:cargo-publish",
+   "larsbergstrom"
+  ],
+  "cpufeatures": [
+   "github:rustcrypto:utils",
+   "tarcieri"
+  ],
+  "crossbeam-deque": [
+   "Amanieu",
+   "github:crossbeam-rs:admins",
+   "jeehoonkang",
+   "taiki-e"
+  ],
+  "crossbeam-epoch": [
+   "Amanieu",
+   "github:crossbeam-rs:admins",
+   "jeehoonkang",
+   "taiki-e"
+  ],
+  "crossbeam-utils": [
+   "Amanieu",
+   "github:crossbeam-rs:admins",
+   "jeehoonkang",
+   "taiki-e"
+  ],
+  "crypto-common": [
+   "github:rustcrypto:traits",
+   "newpavlov"
+  ],
+  "ctutils": [
+   "github:rustcrypto:utils",
+   "tarcieri"
+  ],
+  "darling": [
+   "TedDriggs"
+  ],
+  "darling_core": [
+   "TedDriggs"
+  ],
+  "darling_macro": [
+   "TedDriggs"
+  ],
+  "dart-sys": [
+   "OptimisticPeach",
+   "gutenfries"
+  ],
+  "dashmap": [
+   "xacrimon"
+  ],
+  "delegate-attr": [
+   "upsuper"
+  ],
+  "deranged": [
+   "jhpratt"
+  ],
+  "derive_builder": [
+   "TedDriggs",
+   "colin-kiegel"
+  ],
+  "derive_builder_core": [
+   "TedDriggs",
+   "colin-kiegel"
+  ],
+  "derive_builder_macro": [
+   "TedDriggs"
+  ],
+  "digest": [
+   "github:rustcrypto:traits",
+   "newpavlov"
+  ],
+  "either": [
+   "bluss",
+   "cuviper",
+   "jswrenn"
+  ],
+  "env_filter": [
+   "epage",
+   "github:rust-cli:maintainers"
+  ],
+  "errno": [
+   "lambda-fairy",
+   "sunfishcode"
+  ],
+  "fallible-iterator": [
+   "dpc",
+   "sfackler"
+  ],
+  "fallible-streaming-iterator": [
+   "sfackler"
+  ],
+  "fancy-regex": [
+   "github:fancy-regex:crate-owners",
+   "keith-hall",
+   "raphlinus",
+   "robinst"
+  ],
+  "fastrand": [
+   "github:smol-rs:admins",
+   "taiki-e"
+  ],
+  "find-msvc-tools": [
+   "rust-lang-owner"
+  ],
+  "flutter_rust_bridge": [
+   "fzyzcjy"
+  ],
+  "flutter_rust_bridge_macros": [
+   "fzyzcjy"
+  ],
+  "fnv": [
+   "SimonSapin",
+   "github:servo:cargo-publish"
+  ],
+  "foldhash": [
+   "orlp"
+  ],
+  "futures": [
+   "cramertj",
+   "rust-lang-owner",
+   "taiki-e"
+  ],
+  "futures-channel": [
+   "cramertj",
+   "rust-lang-owner",
+   "taiki-e"
+  ],
+  "futures-core": [
+   "cramertj",
+   "rust-lang-owner",
+   "taiki-e"
+  ],
+  "futures-executor": [
+   "cramertj",
+   "rust-lang-owner",
+   "taiki-e"
+  ],
+  "futures-io": [
+   "cramertj",
+   "rust-lang-owner",
+   "taiki-e"
+  ],
+  "futures-macro": [
+   "cramertj",
+   "rust-lang-owner",
+   "taiki-e"
+  ],
+  "futures-sink": [
+   "cramertj",
+   "rust-lang-owner",
+   "taiki-e"
+  ],
+  "futures-task": [
+   "cramertj",
+   "rust-lang-owner",
+   "taiki-e"
+  ],
+  "futures-util": [
+   "cramertj",
+   "rust-lang-owner",
+   "taiki-e"
+  ],
+  "g2gen": [
+   "WanzenBug"
+  ],
+  "g2p": [
+   "WanzenBug"
+  ],
+  "g2poly": [
+   "WanzenBug"
+  ],
+  "generic-array": [
+   "fizyk20",
+   "novacrazy"
+  ],
+  "getrandom": [
+   "dhardy",
+   "github:rust-random:maintainers"
+  ],
+  "gimli": [
+   "fitzgen",
+   "philipc"
+  ],
+  "hashbrown": [
+   "rust-lang-owner"
+  ],
+  "hashlink": [
+   "djc",
+   "kyren"
+  ],
+  "hermit-abi": [
+   "mkroening",
+   "stlankes"
+  ],
+  "hex": [
+   "KokaKiwi"
+  ],
+  "hkdf": [
+   "github:rustcrypto:kdfs",
+   "newpavlov"
+  ],
+  "hmac": [
+   "github:rustcrypto:macs",
+   "newpavlov"
+  ],
+  "hybrid-array": [
+   "github:rustcrypto:utils",
+   "tarcieri"
+  ],
+  "iana-time-zone": [
+   "Kijewski",
+   "astraw"
+  ],
+  "iana-time-zone-haiku": [
+   "Kijewski",
+   "astraw"
+  ],
+  "ident_case": [
+   "TedDriggs"
+  ],
+  "image": [
+   "197g",
+   "fintelia",
+   "github:image-rs:publish",
+   "theotherphil"
+  ],
+  "inout": [
+   "github:rustcrypto:utils",
+   "newpavlov"
+  ],
+  "itertools": [
+   "bluss",
+   "jswrenn"
+  ],
+  "itoa": [
+   "dtolnay"
+  ],
+  "js-sys": [
+   "RReverser",
+   "daxpedda",
+   "github:wasm-bindgen:wasm-bindgen-publish",
+   "guybedford"
+  ],
+  "lazy_static": [
+   "rust-lang-owner"
+  ],
+  "libc": [
+   "rust-lang-owner"
+  ],
+  "libsqlite3-sys": [
+   "gwenn",
+   "thomcc"
+  ],
+  "linux-raw-sys": [
+   "sunfishcode"
+  ],
+  "lock_api": [
+   "Amanieu",
+   "faern"
+  ],
+  "log": [
+   "rust-lang-owner"
+  ],
+  "lru": [
+   "jeromefroe"
+  ],
+  "md-5": [
+   "github:rustcrypto:hashes",
+   "newpavlov"
+  ],
+  "memchr": [
+   "BurntSushi"
+  ],
+  "miniz_oxide": [
+   "Frommi",
+   "oyvindln"
+  ],
+  "moxcms": [
+   "awxkee"
+  ],
+  "num-conv": [
+   "jhpratt"
+  ],
+  "num-traits": [
+   "cuviper"
+  ],
+  "num_cpus": [
+   "seanmonstar"
+  ],
+  "object": [
+   "fitzgen",
+   "philipc"
+  ],
+  "once_cell": [
+   "matklad",
+   "vorner"
+  ],
+  "opaque-debug": [
+   "github:rustcrypto:utils",
+   "newpavlov"
+  ],
+  "oslog": [
+   "madsmtm",
+   "steven-joruk"
+  ],
+  "parking_lot_core": [
+   "Amanieu",
+   "faern"
+  ],
+  "password-hash": [
+   "github:rustcrypto:traits",
+   "newpavlov"
+  ],
+  "phc": [
+   "github:rustcrypto:formats",
+   "newpavlov"
+  ],
+  "pin-project-lite": [
+   "taiki-e"
+  ],
+  "pkg-config": [
+   "joshtriplett",
+   "rust-lang-owner",
+   "sdroege"
+  ],
+  "poly1305": [
+   "github:rustcrypto:macs",
+   "newpavlov"
+  ],
+  "portable-atomic": [
+   "taiki-e"
+  ],
+  "powerfmt": [
+   "jhpratt"
+  ],
+  "proc-macro2": [
+   "dtolnay"
+  ],
+  "pxfm": [
+   "awxkee"
+  ],
+  "qrcode": [
+   "kennytm"
+  ],
+  "quote": [
+   "dtolnay"
+  ],
+  "r-efi": [
+   "dvdhrm"
+  ],
+  "rand_core": [
+   "dhardy",
+   "github:rust-random:maintainers"
+  ],
+  "rayon": [
+   "cuviper",
+   "nikomatsakis"
+  ],
+  "rayon-core": [
+   "cuviper",
+   "nikomatsakis"
+  ],
+  "redox_syscall": [
+   "4lDO2",
+   "jackpot51"
+  ],
+  "regex": [
+   "BurntSushi",
+   "github:rust-lang-nursery:regex-owners",
+   "rust-lang-owner"
+  ],
+  "regex-automata": [
+   "BurntSushi",
+   "rust-lang-owner"
+  ],
+  "regex-syntax": [
+   "BurntSushi",
+   "github:rust-lang-nursery:regex-owners",
+   "rust-lang-owner"
+  ],
+  "ring": [
+   "briansmith"
+  ],
+  "rqrr": [
+   "WanzenBug"
+  ],
+  "rsqlite-vfs": [
+   "Spxg"
+  ],
+  "rusqlite": [
+   "gwenn",
+   "thomcc"
+  ],
+  "rustc-demangle": [
+   "rust-lang-owner"
+  ],
+  "rustix": [
+   "sunfishcode"
+  ],
+  "rustls": [
+   "ctz",
+   "djc",
+   "github:rustls:publishers"
+  ],
+  "rustls-pki-types": [
+   "djc",
+   "github:rustls:publishers"
+  ],
+  "rustls-webpki": [
+   "ctz",
+   "djc",
+   "github:rustls:publishers"
+  ],
+  "rustversion": [
+   "dtolnay"
+  ],
+  "scopeguard": [
+   "Amanieu",
+   "bluss"
+  ],
+  "serde": [
+   "dtolnay",
+   "github:serde-rs:publish"
+  ],
+  "serde_core": [
+   "dtolnay",
+   "github:serde-rs:publish"
+  ],
+  "serde_derive": [
+   "dtolnay",
+   "github:serde-rs:publish"
+  ],
+  "serde_json": [
+   "dtolnay",
+   "github:serde-rs:publish"
+  ],
+  "sha2": [
+   "github:rustcrypto:hashes",
+   "newpavlov",
+   "tarcieri"
+  ],
+  "shlex": [
+   "comex",
+   "fenhl"
+  ],
+  "slab": [
+   "carllerche",
+   "github:tokio-rs:core"
+  ],
+  "smallvec": [
+   "Ms2ger",
+   "SimonSapin",
+   "alejandro-vaz",
+   "github:servo:cargo-publish"
+  ],
+  "sqlite-wasm-rs": [
+   "Spxg"
+  ],
+  "strsim": [
+   "dguo",
+   "maxbachmann"
+  ],
+  "subtle": [
+   "github:dalek-cryptography:subtle-maintainers",
+   "isislovecruft"
+  ],
+  "syn": [
+   "dtolnay"
+  ],
+  "tempfile": [
+   "Stebalien"
+  ],
+  "thiserror": [
+   "dtolnay"
+  ],
+  "thiserror-impl": [
+   "dtolnay"
+  ],
+  "threadpool": [
+   "frewsxcv",
+   "github:rust-threadpool:publishers",
+   "github:servo:cargo-publish",
+   "huonw"
+  ],
+  "time": [
+   "jhpratt"
+  ],
+  "time-core": [
+   "jhpratt"
+  ],
+  "tokio": [
+   "Darksonn",
+   "carllerche",
+   "github:tokio-rs:core"
+  ],
+  "typenum": [
+   "paholg"
+  ],
+  "unicode-ident": [
+   "dtolnay"
+  ],
+  "universal-hash": [
+   "github:rustcrypto:traits",
+   "newpavlov",
+   "tarcieri"
+  ],
+  "untrusted": [
+   "briansmith"
+  ],
+  "vcpkg": [
+   "github:rust-bus:maintainers",
+   "kornelski",
+   "mcgoo",
+   "pkgw",
+   "waych"
+  ],
+  "version_check": [
+   "SergioBenitez"
+  ],
+  "wasi": [
+   "alexcrichton",
+   "sunfishcode"
+  ],
+  "wasm-bindgen": [
+   "RReverser",
+   "daxpedda",
+   "github:wasm-bindgen:wasm-bindgen-publish",
+   "guybedford"
+  ],
+  "wasm-bindgen-futures": [
+   "daxpedda",
+   "github:wasm-bindgen:wasm-bindgen-publish",
+   "guybedford"
+  ],
+  "wasm-bindgen-macro": [
+   "RReverser",
+   "daxpedda",
+   "github:wasm-bindgen:wasm-bindgen-publish",
+   "guybedford"
+  ],
+  "wasm-bindgen-macro-support": [
+   "RReverser",
+   "daxpedda",
+   "github:wasm-bindgen:wasm-bindgen-publish",
+   "guybedford"
+  ],
+  "wasm-bindgen-shared": [
+   "RReverser",
+   "daxpedda",
+   "github:wasm-bindgen:wasm-bindgen-publish",
+   "guybedford"
+  ],
+  "web-sys": [
+   "RReverser",
+   "daxpedda",
+   "github:wasm-bindgen:wasm-bindgen-publish",
+   "guybedford"
+  ],
+  "webpki-roots": [
+   "ctz",
+   "djc",
+   "github:rustls:publishers"
+  ],
+  "windows-core": [
+   "kennykerr"
+  ],
+  "windows-implement": [
+   "kennykerr"
+  ],
+  "windows-interface": [
+   "kennykerr"
+  ],
+  "windows-link": [
+   "kennykerr"
+  ],
+  "windows-result": [
+   "kennykerr"
+  ],
+  "windows-strings": [
+   "kennykerr"
+  ],
+  "windows-sys": [
+   "kennykerr"
+  ],
+  "windows-targets": [
+   "kennykerr"
+  ],
+  "windows_aarch64_gnullvm": [
+   "kennykerr"
+  ],
+  "windows_aarch64_msvc": [
+   "kennykerr"
+  ],
+  "windows_i686_gnu": [
+   "kennykerr"
+  ],
+  "windows_i686_gnullvm": [
+   "kennykerr"
+  ],
+  "windows_i686_msvc": [
+   "kennykerr"
+  ],
+  "windows_x86_64_gnu": [
+   "kennykerr"
+  ],
+  "windows_x86_64_gnullvm": [
+   "kennykerr"
+  ],
+  "windows_x86_64_msvc": [
+   "kennykerr"
+  ],
+  "zeroize": [
+   "github:rustcrypto:utils",
+   "tarcieri"
+  ],
+  "zeroize_derive": [
+   "github:rustcrypto:utils",
+   "tarcieri"
+  ],
+  "zmij": [
+   "dtolnay"
+  ],
+  "zune-core": [
+   "etemesi254"
+  ],
+  "zune-jpeg": [
+   "etemesi254"
+  ],
+  "zxcvbn": [
+   "shssoichiro"
+  ]
+ }
+}

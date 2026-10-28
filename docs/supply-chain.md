@@ -19,6 +19,8 @@ No single check can promise that. Several layers, each catching what another mis
 | Dart runtime guard | `app/lib/offline.dart` (installed first thing in `main`) | `HttpClient()` throws; `Socket.connect`, `Socket.startConnect`, `ServerSocket.bind` fail |
 | Allowlists | `tools/check-deps`, `tools/allow/*.txt` | Any new Dart package or Rust crate, direct or transitive, until someone reviews it |
 | Source scan | `tools/check-deps`, `tools/allow/network-ok.txt` | Network APIs in the Dart, Kotlin/Java, Swift/Objective-C and C/C++ sources of every pub package that ships |
+| Age | `tools/check-age`, `tools/allow/young.txt`, CI `security.yml` | Any version published less than 14 days ago (most hijacked releases are pulled within days) |
+| Dependency page | `tools/deps-report`, [dependencies.md](dependencies.md), CI `ci.yml`, `security.yml`, `deps-review.yml` | A package nobody looks at again: every package listed by risk, a monthly review of what changed, and a weekly check that no package changed owners |
 
 ## The layers
 
@@ -78,6 +80,21 @@ excluded), native `android/`, `ios/`, `macos/`, `linux/` and `windows/` code
 included, for network APIs. A package with hits must be listed in
 `tools/allow/network-ok.txt` with the reason it is acceptable (web-only code, a
 feature the app does not call, build-time only).
+
+**Dependency page.** `tools/deps-report` writes [dependencies.md](dependencies.md) from
+the lock files: every Rust crate, Dart package and Swift package (and the Gradle groups),
+in four tiers: (1) code that parses data from outside (files the person adds, camera
+frames, Drive and sync data; listed by hand in `tools/deps/outside-data.txt`), (2) other
+native code, (3) other code that ships, (4) build and test only. Each row shows the
+release date, how it comes in, its owners (crates.io) or publisher (pub.dev), its cackle
+grants and network-ok reason. Data from crates.io, pub.dev and the Flutter repository is
+fetched only by `--refresh` and kept in `tools/deps/meta.json`, so CI rebuilds the page
+offline and fails when it is out of date with a lock file. The weekly security run
+fetches every owner again and fails on any change (a new maintainer is how the xz
+backdoor began). On the 1st of each month `deps-review.yml` opens an issue: what changed
+since the last review (`tools/deps/baseline.json`), and tiers 1 and 2 to look at again;
+`tools/deps-report --mark-reviewed` closes the round. pub.dev does not publish who can
+upload a package without a verified publisher, so for those only a new publisher shows.
 
 ## Bundled data
 
