@@ -46,6 +46,8 @@ import 'package:cozysafe/widgets/second_place.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/api/sync.dart';
 import 'package:cozysafe/sync/auto_sync.dart';
+import 'package:cozysafe/sync/drive_check.dart';
+import 'package:cozysafe/sync/sync_log.dart';
 import 'package:cozysafe/sync/drive_join.dart';
 import 'package:cozysafe/sync/join_page.dart';
 import 'package:cozysafe/sync/nearby_page.dart';
@@ -570,7 +572,7 @@ void main() {
       section: 'home');
   _screen('home-synced', 'Trang chủ · đã đồng bộ', home,
       section: 'home', setup: drive);
-  _screen('home-syncing', 'Trang chủ · đang gửi / nhận mục', change: 'Hai mũi tên trắng trong mây XOAY một vòng mỗi 1,2 giây (ảnh tĩnh chỉ là một khung); máy bật Giảm chuyển động thì đứng yên', home,
+  _screen('home-syncing', 'Trang chủ · đang gửi / nhận mục', home,
       section: 'home', setup: () => drive(moving: true));
   _screen('home-sync-pending', 'Trang chủ · vừa sửa, chưa gửi lên', home,
       section: 'home', setup: () => drive(pending: true));
@@ -1019,9 +1021,9 @@ void main() {
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0, int moved = 0}) =>
       SyncEvent(kind: k, check: check, name: '', peers: const [], peerIds: const [], received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal), moved: moved, repaired: 0, unrepaired: 0, code: '');
-  _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', change: 'Bỏ con số tệp (trước: “3.000 tệp”): người dùng chỉ thấy số mục của mình', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})));
-  _screen('sync-drive-folders', 'Google Drive: tạo thư mục (bản cập nhật thư mục, lần đầu)', change: 'Bỏ con số thư mục (trước: 212 / 517)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveFolders, done: 212, total: 517)), onSynced: () {})));
-  _screen('sync-drive-moving', 'Google Drive: dời tệp cũ vào thư mục', change: 'Bỏ con số tệp (trước: 1.400 / 2.986)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveMoving, done: 1400, total: 2986)), onSynced: () {})));
+  _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})));
+  _screen('sync-drive-folders', 'Google Drive: tạo thư mục (bản cập nhật thư mục, lần đầu)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveFolders, done: 212, total: 517)), onSynced: () {})));
+  _screen('sync-drive-moving', 'Google Drive: dời tệp cũ vào thư mục', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveMoving, done: 1400, total: 2986)), onSynced: () {})));
   _screen('sync-drive-done-moved', 'Google Drive: xong, đã sắp xếp lại tệp, không có gì mới', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.done, moved: 2986)), onSynced: () {})));
   // A first sync (owner 2026-10-27): it said "Looking at Google Drive" while it read
   // every item and while the first big file went up.
@@ -1354,7 +1356,37 @@ void main() {
     await t.scrollUntilVisible(find.byKey(const ValueKey('debug-new-vault')), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
   });
-  _screen('debug', 'Trang gỡ lỗi', () => const DebugScreen(), setup: () => DebugScreen.debugNetworkBlocked = true);
+  void debugSetup() {
+    DebugScreen.debugNetworkBlocked = true;
+    for (final (k, v) in [('run', 'start-open'), ('run', 'done-r2-s0-x0-4100ms'), ('look', 'same'), ('look', 'same'), ('run', 'start-change'), ('run', 'done-r0-s1-x0-2300ms')]) {
+      SyncLog.add(k, v);
+    }
+  }
+  _screen('debug', 'Trang gỡ lỗi', change: 'Làm lại theo kiểu Cài đặt: khối phiên bản trên cùng; Công cụ (Kiểm tra Google Drive MỚI, Sổ đồng bộ MỚI, Nhật ký, Két trên máy này) mở trang riêng; Máy này; Thử nghiệm; Tắt gỡ lỗi chữ đỏ ở cuối', () => const DebugScreen(), setup: debugSetup);
+  _screen('debug-more', 'Trang gỡ lỗi · cuộn xuống', change: 'Phần dưới: thông tin máy, Bản tạm (nút Xoá ngay trên dòng), Thử nghiệm, Tắt gỡ lỗi', () => const DebugScreen(), setup: debugSetup, act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('debug-off')), 200, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+  });
+  _screen('debug-sync-log', 'Gỡ lỗi · Sổ đồng bộ', change: 'MỚI: sổ đồng bộ trên trang riêng, mới nhất trên cùng; Sao chép / Xoá ở dưới', () => const DebugScreen(), setup: debugSetup, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('debug-sync-log')));
+    await t.pumpAndSettle();
+  });
+  Widget driveCheckPage() => Builder(builder: (context) => groupedPage(context, Builder(builder: (context) =>
+      Scaffold(appBar: AppBar(title: const Text('Kiểm tra Google Drive')), body: const DriveCheckScreen()))));
+  _screen('drive-check', 'Gỡ lỗi · Kiểm tra Google Drive (chưa chạy)', change: 'MỚI: giải thích ngắn + nút Kiểm tra', driveCheckPage, setup: () {
+    Prefs.write('drive-account', 'ban.do@gmail.com');
+    DriveCheckScreen.debugResult = null;
+  });
+  _screen('drive-check-junk', 'Gỡ lỗi · Kiểm tra Google Drive: có tệp rác', change: 'MỚI: số liệu theo loại; Tệp rác đỏ kèm dung lượng; nút Dọn tệp rác (hỏi lại trước khi xoá)', driveCheckPage, setup: () {
+    Prefs.write('drive-account', 'ban.do@gmail.com');
+    DriveCheckScreen.debugResult = const DriveCounts(items: 98, folders: 172, current: 290, currentBytes: 1240000000, old: 214, oldBytes: 96000000,
+        journal: 141, junk: 37, junkBytes: 81000000, unknown: 0, summary: '');
+  });
+  _screen('drive-check-clean', 'Gỡ lỗi · Kiểm tra Google Drive: không có rác', change: 'MỚI: Tệp rác: Không có (dấu ✓ xanh)', driveCheckPage, setup: () {
+    Prefs.write('drive-account', 'ban.do@gmail.com');
+    DriveCheckScreen.debugResult = const DriveCounts(items: 98, folders: 172, current: 290, currentBytes: 1240000000, old: 214, oldBytes: 96000000,
+        journal: 141, junk: 0, junkBytes: 0, unknown: 0, summary: '');
+  });
   _screen('autolock-menu', 'Cài đặt · Tự khoá', () => settings(vault), act: (t) async {
     await t.tap(find.text('Tự khoá khi không dùng'));
   });

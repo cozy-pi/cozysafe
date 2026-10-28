@@ -55,13 +55,17 @@ abstract final class SyncLog {
     } catch (_) {}
   }
 
-  /// Newest first, one line each: "2026-10-28T01:02:03Z run done-r2-s0-4100ms ×3".
-  static List<String> lines() => [
-    for (final l in _read().reversed)
-      if (l.split('|') case [final ms, final kind, final code, final times])
-        '${DateTime.fromMillisecondsSinceEpoch(int.tryParse(ms) ?? 0).toUtc().toIso8601String()} $kind $code'
-            '${times == '1' ? '' : ' ×$times'}',
-  ];
+  /// Newest first, one line each in the phone's time: "28/10 08:02:03 run done-r2-s0-x0-4100ms ×3".
+  static List<String> lines() {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return [
+      for (final l in _read().reversed)
+        if (l.split('|') case [final ms, final kind, final code, final times])
+          if (DateTime.fromMillisecondsSinceEpoch(int.tryParse(ms) ?? 0) case final t)
+            '${two(t.day)}/${two(t.month)} ${two(t.hour)}:${two(t.minute)}:${two(t.second)} $kind $code'
+                '${times == '1' ? '' : ' ×$times'}',
+    ];
+  }
 
   static void clear() {
     try {
