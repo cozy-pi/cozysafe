@@ -30,7 +30,30 @@ A new security setting gets the same check in the same commit, and a row in this
 Limit: on a device with no biometrics and no passcode support (`local_auth` reports it
 unsupported, e.g. Linux), the system check cannot run and is skipped.
 
-## Leaving the app
+## Touch ID on a Mac (2026-10-28)
+
+Biometric unlock works on a Mac with Touch ID the way it does on a phone. The phone's
+keychain item (`biometryCurrentSet`) needs the data-protection keychain on macOS, and
+that needs a provisioning profile the Developer ID build does not have. Instead:
+
+- `MainFlutterWindow.swift` (`BioKey`, channel `cozysafe/biokey`) makes a P-256 key
+  inside the Secure Enclave with CryptoKit, access control
+  `whenPasscodeSetThisDeviceOnly` + `privateKeyUsage` + `biometryCurrentSet`. It is not
+  stored in the keychain; CryptoKit gives an opaque blob that only this Mac's enclave can
+  use. No entitlement or profile is needed (checked on a Mac with an ad-hoc signed tool,
+  both outside and inside the App Sandbox with the release entitlements).
+- The biometric key K is wrapped by ECDH with a one-off P-256 key, HKDF-SHA256 and
+  AES-GCM. The wrapped blob goes into the legacy keychain (`cozysafe.biometric`,
+  `vault-unlock-key-enclave`, `MacBioKey` in `biometric.dart`), like the Secret Key and
+  the PIN's device key. A copy of the keychain taken off the Mac is useless.
+- Unlocking asks Touch ID (`LAContext`, biometrics only, no "use password" in the
+  prompt: the app has its own PIN and password), then the enclave unwraps K.
+- Cancelled, not recognised, locked out, or Touch ID out of reach (a closed laptop):
+  nothing changes, the PIN or password opens the vault. A finger added or removed
+  (`biometryCurrentSet`), or no finger left: the key is gone, biometric unlock turns
+  off as on a phone, and it can be turned on again after the password.
+- Macs without Touch ID (or without a Secure Enclave) do not offer it.
+
 
 - **Leaving locks at once** by default (`vault_home.dart`, `didChangeAppLifecycleState`),
   except for 60 s when the app itself opened a picker, the camera or the share sheet

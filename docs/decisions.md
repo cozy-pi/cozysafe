@@ -4,6 +4,15 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-28 — Touch ID unlocks the vault on a Mac
+
+Biometric unlock on Macs with Touch ID, as on phones (button "Unlock with Touch ID",
+setting "Touch ID opens this vault"). No provisioning profile: the key that opens the
+vault is wrapped by a Secure Enclave key that only Touch ID can use (CryptoKit,
+`biometryCurrentSet`), and the wrapped blob lives in the legacy keychain the Mac build
+already uses. A finger added or removed turns it off; the PIN or password still opens
+the vault. Phones are unchanged. Details: docs/security.md, "Touch ID on a Mac".
+
 ## 2026-10-27 — A small head per device, so a quiet Drive costs one request
 
 **Owner (approved design):** every automatic look at Google Drive used to list the whole

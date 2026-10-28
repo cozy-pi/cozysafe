@@ -225,6 +225,15 @@ and a fresh check per read. Neither half opens the vault alone. One vault per
 device; on by default for the first vault. A lost K (biometrics changed) removes
 the wrapped copies and falls back to the PIN or password.
 
+**Touch ID on a Mac (2026-10-28).** The keychain item above would need the
+data-protection keychain and a provisioning profile on macOS. Instead K is wrapped by a
+CryptoKit Secure Enclave P-256 key (`privateKeyUsage` + `biometryCurrentSet`, this
+device only): ECDH with a one-off key, HKDF-SHA256, AES-GCM. The enclave key is kept as
+CryptoKit's opaque blob, usable only by this Mac's enclave, inside the wrapped blob, and
+the whole blob sits in the legacy keychain. No entitlement or profile. Unwrapping needs
+Touch ID; a changed enrolment makes the enclave key unusable and the app falls back as
+on a phone. Details: docs/security.md, "Touch ID on a Mac".
+
 ### PIN unlock (built)
 Digits only, this device only: at least 6 for a new PIN (4 or 5 digits set before
 2026-10-23 still unlock). `vaults/<id>/pin` holds the Master Key wrapped by
