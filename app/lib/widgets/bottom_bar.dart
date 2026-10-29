@@ -203,3 +203,36 @@ class ActionBar extends StatelessWidget {
     );
   }
 }
+
+/// The top of every viewer, as in Photos (owner 2026-10-29: one look for photos, videos,
+/// notes, recordings and files): Back on the left, [center] (the date) in the middle, ⋯
+/// on the right. Over a photo or video ([onMedia]) the glass is dark and the icons white.
+class ViewerTopBar extends StatelessWidget {
+  const ViewerTopBar({super.key, required this.back, required this.center, this.more, this.onMedia = false});
+
+  final BarIcon back;
+  final Widget center;
+  /// ⋯; none (Recently deleted): the room stays so the date keeps the middle.
+  final BarIcon? more;
+  final bool onMedia;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget circle(Widget child) => SizedBox.square(
+          dimension: Ui.circle,
+          child: onMedia ? GlassPill(child: Center(child: child)) : Glass(radius: Ui.circle / 2, child: Center(child: child)),
+        );
+    Widget row = Row(
+      children: [
+        circle(back),
+        Expanded(child: Center(child: center)),
+        if (more != null) circle(more!) else const SizedBox(width: Ui.circle),
+      ],
+    );
+    if (onMedia) {
+      final t = Theme.of(context);
+      row = Theme(data: t.copyWith(colorScheme: t.colorScheme.copyWith(onSurface: Colors.white)), child: row);
+    }
+    return Padding(padding: const EdgeInsets.fromLTRB(Ui.side - 4, 4, Ui.side - 4, 0), child: row);
+  }
+}

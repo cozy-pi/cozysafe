@@ -725,6 +725,14 @@ class _QuickLookState extends State<QuickLook> {
     }
   }
 
+  /// ⋯: the item's menu over this view, which stays open.
+  Future<void> _more(BuildContext button) async {
+    final menu = widget.menu;
+    if (menu == null) return _done(QuickLook.menuFor(_item.id));
+    final fresh = await menu(button, _item);
+    if (fresh != null && mounted) setState(() => _fresh = fresh);
+  }
+
   @override
   Widget build(BuildContext context) => embedded
       ? LayoutBuilder(builder: (context, c) => _body(context, Size(c.maxWidth, c.maxHeight)))
@@ -743,6 +751,8 @@ class _QuickLookState extends State<QuickLook> {
     final barHeight = actionSide() == ActionSide.center ? Ui.bar + 8 : Ui.bar;
     final barBottom = safeBottom + Ui.edge;
     final bottomRoom = barBottom + barHeight;
+    // Under the top bar (ViewerTopBar: 4 above a circle), with a little air.
+    final topRoom = MediaQuery.paddingOf(context).top + 4 + Ui.circle + 12;
     final box = embedded
         ? BoxConstraints(maxWidth: (size.width - 32).clamp(0, 720), maxHeight: (size.height - Ui.bar - 120).clamp(0, double.infinity))
         : BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: (size.height - bottomRoom) * .78);
@@ -897,7 +907,7 @@ class _QuickLookState extends State<QuickLook> {
         Positioned(
           left: 0,
           right: 0,
-          top: MediaQuery.paddingOf(context).top,
+          top: topRoom,
           bottom: bottomRoom,
           child: Center(
           child: GestureDetector(
@@ -908,10 +918,6 @@ class _QuickLookState extends State<QuickLook> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // The same block, unseen, above: the picture itself sits in the middle,
-                // as much space above it as below (owner 2026-10-25).
-                infoTag,
-                const SizedBox(height: 14),
                 Flexible(
                   child: still
                       ? shown
@@ -928,6 +934,25 @@ class _QuickLookState extends State<QuickLook> {
               ],
             ),
           ),
+          ),
+        ),
+        // Back, the date and ⋯ on top, as over a photo (owner 2026-10-29: every preview
+        // looks the same).
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          child: SafeArea(
+            bottom: false,
+            child: ViewerTopBar(
+              back: BarIcon(
+                  key: const ValueKey('quick-back'),
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  tooltip: l.back,
+                  onTap: (_) => _done()),
+              more: trash != null ? null : BarIcon(key: const ValueKey('quick-more'), icon: Icons.more_horiz, tooltip: l.more, onTap: _more),
+              center: infoTag,
+            ),
           ),
         ),
         // The buttons where the vault bar is, the same glass, width and height, spread

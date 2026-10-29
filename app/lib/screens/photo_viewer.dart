@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import '../theme.dart' show CsType, Ui;
 import 'package:flutter/physics.dart';
 
 import '../item_bytes.dart';
@@ -375,55 +374,23 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
 
   Widget _barsLayer(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final ml = MaterialLocalizations.of(context);
-    Widget circle(Widget child, {double side = Ui.circle}) =>
-        SizedBox.square(dimension: side, child: GlassPill(child: Center(child: child)));
-    final white = Theme.of(context).copyWith(colorScheme: Theme.of(context).colorScheme.copyWith(onSurface: Colors.white));
     // Laid out as Photos (owner 2026-10-29): Back top left, the date in the middle, ⋯ top
     // right; the strip of photos, then Share · Info · Delete at the bottom.
     final bars = Column(
       children: [
         SafeArea(
           bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(Ui.side - 4, 4, Ui.side - 4, 0),
-            child: Theme(
-              data: white,
-              child: Row(
-                children: [
-                  circle(BarIcon(
-                      key: const ValueKey('media-back'),
-                      icon: Icons.arrow_back_ios_new_rounded,
-                      tooltip: l.back,
-                      onTap: (_) => Navigator.of(context).pop())),
-                  Expanded(
-                    child: Center(
-                      child: ValueListenableBuilder<int>(
-                        valueListenable: _index,
-                        builder: (context, i, _) {
-                          final it = _items[i];
-                          final when = dateOf(it.createdMs);
-                          return GlassPill(
-                            child: Padding(
-                              key: const ValueKey('media-info'),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                              child: Column(
-                                children: [
-                                  Text(ml.formatMediumDate(when),
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                                  Text('${ml.formatTimeOfDay(TimeOfDay.fromDateTime(when))} · ${fileSize(it.sizeBytes)}',
-                                      style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  circle(BarIcon(key: const ValueKey('photo-more'), icon: Icons.more_horiz, tooltip: l.more, onTap: _more)),
-                ],
-              ),
+          child: ViewerTopBar(
+            onMedia: true,
+            back: BarIcon(
+                key: const ValueKey('media-back'),
+                icon: Icons.arrow_back_ios_new_rounded,
+                tooltip: l.back,
+                onTap: (_) => Navigator.of(context).pop()),
+            more: BarIcon(key: const ValueKey('photo-more'), icon: Icons.more_horiz, tooltip: l.more, onTap: _more),
+            center: ValueListenableBuilder<int>(
+              valueListenable: _index,
+              builder: (context, i, _) => mediaDate(context, _items[i]),
             ),
           ),
         ),

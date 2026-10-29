@@ -286,21 +286,27 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                   ]),
                 )
               else
-                // Otherwise the note's buttons, where the vault bar is: Done saves and
-                // leaves, like Back: the ✓ apart on the left (ActionBar), as × is elsewhere.
+                // Otherwise the note's buttons, where the vault bar is, laid out as the
+                // preview (owner 2026-10-29): Send on the left, ✓ Done (saves and leaves,
+                // like Back) in the middle, Delete on the right.
                 ActionBar(
-                  leave: LeaveButton(Icons.check_rounded, l.done, _saving ? null : _saveAndLeave, key: const ValueKey('note-done')),
+                  // Send the note as a text file ("Title.txt"); saved first.
+                  start: BarIcon(
+                    key: const ValueKey('note-send'),
+                    icon: Icons.ios_share,
+                    tooltip: l.sendOut,
+                    onTap: _saving ? null : (_) => _send(),
+                  ),
                   actions: [
-                    // Send the note as a text file ("Title.txt"); saved first.
                     BarIcon(
-                      key: const ValueKey('note-send'),
-                      icon: Icons.ios_share,
-                      tooltip: l.sendOut,
-                      onTap: _saving ? null : (_) => _send(),
+                      key: const ValueKey('note-done'),
+                      icon: Icons.check_rounded,
+                      tooltip: l.done,
+                      onTap: _saving ? null : (_) => _saveAndLeave(),
                     ),
-                    // A new note has nothing to delete yet: no red button (owner's
-                    // testers 2026-10-24: afraid of losing what they typed).
                   ],
+                  // A new note has nothing to delete yet: no red button (owner's
+                  // testers 2026-10-24: afraid of losing what they typed).
                   end: widget.item == null
                       ? null
                       : BarIcon(

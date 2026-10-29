@@ -491,7 +491,12 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock);
+  _screen('lock', 'Màn khoá', change: 'Chưa gõ gì: KHÔNG có nút Mở khoá (gõ đúng mật khẩu là tự mở)', lock);
+  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', change: 'MỚI: gõ rồi mới hiện nút Mở khoá (để báo sai mật khẩu); đúng thì tự mở, không cần bấm',
+      marks: [() => find.byKey(const ValueKey('unlock-password-go'))], lock, act: (t) async {
+    await t.enterText(find.byType(TextField).first, 'matkhau');
+    await t.pump();
+  });
   _screen('mac-lock', 'MacBook · màn khoá', lock,
       size: const Size(1440, 900), setup: () {
     Device.debugDesktop = true;
@@ -570,7 +575,8 @@ void main() {
   });
   _screen('one-type', 'Chỉ có ghi chú · thanh dưới gọn', home, section: 'note',
       setup: () => _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList());
-  _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
+  _screen('note-editor', 'Sửa ghi chú', change: 'Chia sẻ sang trái, ✓ Xong ở giữa, Xoá bên phải — giống trang xem trước',
+      marks: [() => find.byKey(const ValueKey('note-send'))], () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
   _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
   _screen('tag-empty', 'Trong nhóm "Hộ chiếu" · mục Ghi âm', home, section: 'audio', act: (t) => _tapChip(t, 'Hộ chiếu'));
@@ -805,7 +811,8 @@ void main() {
     await t.longPress(find.text('Cuộc họp với luật sư'));
     await t.pumpAndSettle();
   });
-  _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', home, section: 'audio',
+  _screen('audio-open', 'Ghi âm · chạm vào một bản ghi', change: 'Cùng bố cục với ảnh: trên Quay lại · ngày · ⋯; dưới Chia sẻ · Thông tin · Xoá. Bỏ nút ×',
+      marks: [() => find.byKey(const ValueKey('quick-back')), () => find.byKey(const ValueKey('quick-more'))], home, section: 'audio',
       setup: () => QuickLook.debugStillAudio = true,
       act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
   Future<void> openRow(WidgetTester t, String text) async {
@@ -858,8 +865,8 @@ void main() {
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
       });
-  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', change: 'Tên ghi chú chỉ còn MỘT chỗ (trong thẻ). Dưới: Chia sẻ trái · Thông tin giữa · Xoá phải; BỎ nút × (chạm ra ngoài hoặc vuốt xuống để đóng); chạm thẻ để sửa',
-      marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'note',
+  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', change: 'Tên ghi chú chỉ còn MỘT chỗ (trong thẻ). Cùng bố cục với ảnh: trên Quay lại · ngày · ⋯; dưới Chia sẻ · Thông tin · Xoá. Bỏ nút ×; chạm thẻ để sửa',
+      marks: [() => find.byKey(const ValueKey('quick-back')), () => find.byKey(const ValueKey('quick-more'))], home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
       act: (t) => openRow(t, 'Thuốc của mẹ'));
   _screen('quick-pdf', 'Tệp · chạm một PDF', home, section: 'file',
@@ -867,8 +874,8 @@ void main() {
       act: (t) => openRow(t, 'Hop-dong-thue-nha-2026.pdf'));
   _screen('quick-pdf-icon', 'Tệp · chạm một PDF lớn (chỉ biểu tượng)', home, section: 'file',
       act: (t) => openRow(t, 'So-do-nha-scan.pdf'));
-  _screen('quick-file', 'Tệp · chạm một tệp .docx', change: 'Dưới: Chia sẻ trái · Thông tin giữa · Xoá phải; BỎ nút ×, Mở bằng, ⋯ (chạm ra ngoài để đóng, chạm tệp để mở)',
-      marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'file',
+  _screen('quick-file', 'Tệp · chạm một tệp .docx', change: 'Cùng bố cục với ảnh: trên Quay lại · ngày · ⋯; dưới Chia sẻ · Thông tin · Xoá. Bỏ nút × (chạm tệp để mở)',
+      marks: [() => find.byKey(const ValueKey('quick-back')), () => find.byKey(const ValueKey('quick-more'))], home, section: 'file',
       act: (t) => openRow(t, 'Di-chuc-nhap.docx'));
   _screen('quick-image-file', 'Tệp · chạm một ảnh thêm từ Tệp', home, section: 'file',
       act: (t) => openRow(t, 'CCCD-mat-truoc.jpg'));
@@ -1521,7 +1528,8 @@ void main() {
         await t.pump();
         await g.up();
       });
-  _screen('trash-preview', 'Đã xoá · chạm 1 ảnh', () => const Readable(child: TrashScreen()),
+  _screen('trash-preview', 'Đã xoá · chạm 1 ảnh', change: 'Đã xoá: trên Quay lại · ngày (không ⋯); dưới Khôi phục · Thông tin · Xoá hẳn',
+      marks: [() => find.byKey(const ValueKey('quick-back'))], () => const Readable(child: TrashScreen()),
       act: (t) async {
         await t.tap(find.byType(PrivateThumb).first);
         await settleTrash(t);
