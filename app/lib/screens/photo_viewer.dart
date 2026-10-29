@@ -33,8 +33,10 @@ const _doubleTapScale = 2.5;
 /// the pages per frame), a photo let go springs back, the next photos are read once the
 /// swipe has settled (not halfway through it), and the bars share one blur.
 class PhotoViewerScreen extends StatefulWidget {
-  const PhotoViewerScreen({super.key, required this.items, required this.initial, required this.vaultId});
+  const PhotoViewerScreen({super.key, required this.items, required this.initial, required this.vaultId, this.menu});
   final String vaultId;
+  /// What ⋯ opens over the photo; none: ⋯ pops [QuickLook.menuFor].
+  final ViewerMenu? menu;
 
   final List<rust.ItemInfo> items;
   final int initial;
@@ -44,6 +46,8 @@ class PhotoViewerScreen extends StatefulWidget {
 }
 
 class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTickerProviderStateMixin {
+  /// The photos as the menu left them (a new name, a star).
+  late final List<rust.ItemInfo> _items = [...widget.items];
   late final _pages = PageController(initialPage: widget.initial);
   late final _index = ValueNotifier(widget.initial);
   final Map<String, Future<Uint8List>> _content = {};
@@ -61,7 +65,16 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
   /// The photo shown is zoomed in: a drag pans it instead of turning the page or closing.
   final _zoomed = ValueNotifier(false);
 
-  rust.ItemInfo get _item => widget.items[_index.value];
+  rust.ItemInfo get _item => _items[_index.value];
+
+  /// ⋯: the photo's menu over it; the photo stays.
+  Future<void> _more(BuildContext button) async {
+    final menu = widget.menu;
+    if (menu == null) return Navigator.of(context).pop(QuickLook.menuFor(_item.id));
+    final i = _index.value;
+    final fresh = await menu(button, _items[i]);
+    if (fresh != null && mounted) setState(() => _items[i] = fresh);
+  }
 
   Future<Uint8List> _load(String id) => _content[id] ??= photoBytes(id);
   Future<Uint8List> _thumbnail(String id) => _thumbnails[id] ??= rust.itemThumbnail(id: id);
@@ -82,13 +95,13 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
   /// copies megabytes on the UI thread, which halfway through a swipe drops frames.
   void _around(int i) {
     if (!mounted) return;
-    final n = widget.items.length;
-    final keep = {for (var j = i - 3; j <= i + 3; j++) if (j >= 0 && j < n) widget.items[j].id};
+    final n = _items.length;
+    final keep = {for (var j = i - 3; j <= i + 3; j++) if (j >= 0 && j < n) _items[j].id};
     _content.removeWhere((id, _) => !keep.contains(id));
     final w = _decodeWidth;
     for (final j in [i, i + 1, i - 1, i + 2, i - 2]) {
-      if (j < 0 || j >= n || widget.items[j].kind != ItemKind.photo) continue;
-      _load(widget.items[j].id).then((bytes) {
+      if (j < 0 || j >= n || _items[j].kind != ItemKind.photo) continue;
+      _load(_items[j].id).then((bytes) {
         // The same provider Image.memory(cacheWidth:) makes, so the page finds it decoded.
         if (mounted) precacheImage(ResizeImage(MemoryImage(bytes), width: w), context, onError: (_, _) {});
       }, onError: (_) {});
@@ -169,13 +182,13 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
                 allowImplicitScrolling: true, // the pages beside this one are built (and decoded) ahead
                 controller: _pages,
                 physics: zoomed ? const NeverScrollableScrollPhysics() : const _PagePhysics(),
-                itemCount: widget.items.length,
+                itemCount: _items.length,
                 onPageChanged: (i) => _index.value = i,
                 itemBuilder: (context, i) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: _gap / 2),
-                  child: widget.items[i].kind == ItemKind.video
-                      ? _videoPage(context, widget.items[i])
-                      : _photoPage(context, widget.items[i]),
+                  child: _items[i].kind == ItemKind.video
+                      ? _videoPage(context, _items[i])
+                      : _photoPage(context, _items[i]),
                 ),
               ),
             ),
@@ -305,7 +318,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
             child: ValueListenableBuilder<int>(
               valueListenable: _index,
               builder: (context, i, _) {
-                final it = widget.items[i];
+                final it = _items[i];
                 final when = dateOf(it.createdMs);
                 return GlassPill(
                   child: Padding(
@@ -348,7 +361,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
                       key: const ValueKey('photo-more'),
                       icon: Icons.more_horiz,
                       tooltip: l.more,
-                      onTap: (_) => Navigator.of(context).pop(QuickLook.menuFor(_item.id))),
+                      onTap: _more),
                 ],
                 end: BarIcon(
                       key: const ValueKey('photo-delete'),

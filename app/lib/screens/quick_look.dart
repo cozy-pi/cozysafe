@@ -42,6 +42,12 @@ class TrashLook {
   final bool held;
 }
 
+/// The vault's menu for one item (Rename, Favourite, Group, Info, Version history), opened
+/// over the viewer itself (owner 2026-10-29: ⋯ used to close the viewer and open the long
+/// press menu on the grid, somewhere else). Gives back the item as it is afterwards
+/// (renamed, starred), or null when it is gone. The menu opens beside [button].
+typedef ViewerMenu = Future<rust.ItemInfo?> Function(BuildContext button, rust.ItemInfo item);
+
 /// Tapping any item opens it big, over the page, which goes dark and soft behind (owner
 /// 2026-10-22, one design for every kind 2026-10-25): a photo, a video that plays right
 /// there, a note's first lines on a page, a recording with its player, a PDF's first page,
@@ -51,7 +57,8 @@ class TrashLook {
 /// down closes. Pops with the id when the item was deleted, or with one of the requests
 /// below.
 class QuickLook extends StatefulWidget {
-  const QuickLook({super.key, required this.item, this.photos = const [], required this.vaultId, this.trash, this.onResult});
+  const QuickLook(
+      {super.key, required this.item, this.photos = const [], required this.vaultId, this.trash, this.onResult, this.menu});
 
   final rust.ItemInfo item;
   /// The photos and videos around it, for swiping in full screen.
@@ -62,6 +69,8 @@ class QuickLook extends StatefulWidget {
   /// Shown in a pane of a wide window (iPad, computer), not over the page: what a popped
   /// viewer would return goes here instead, and there is no Close and no dimmed page.
   final ValueChanged<String?>? onResult;
+  /// What ⋯ opens over the viewer; none: ⋯ pops [menuFor] as before.
+  final ViewerMenu? menu;
 
   /// Popped by ⋯ in any viewer, with the item's id: the vault shows that item's menu
   /// (Rename, Group, Info…) over itself. The full-screen viewers return it through here.
@@ -92,7 +101,7 @@ class QuickLook extends StatefulWidget {
 
   /// Opens over the current screen, the page still visible behind.
   static Future<String?> show(BuildContext context, rust.ItemInfo item,
-      {List<rust.ItemInfo> photos = const [], required String vaultId, TrashLook? trash}) {
+      {List<rust.ItemInfo> photos = const [], required String vaultId, TrashLook? trash, ViewerMenu? menu}) {
     final still = MediaQuery.disableAnimationsOf(context);
     return Navigator.of(context).push<String>(PageRouteBuilder(
       opaque: false,
@@ -101,7 +110,7 @@ class QuickLook extends StatefulWidget {
       barrierColor: Colors.transparent,
       transitionDuration: Duration(milliseconds: still ? 0 : 260),
       reverseTransitionDuration: Duration(milliseconds: still ? 0 : 180),
-      pageBuilder: (_, _, _) => QuickLook(item: item, photos: photos, vaultId: vaultId, trash: trash),
+      pageBuilder: (_, _, _) => QuickLook(item: item, photos: photos, vaultId: vaultId, trash: trash, menu: menu),
       transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
     ));
   }
@@ -118,6 +127,9 @@ const _pdfPreviewMax = 20 << 20;
 const _maxLines = 30;
 
 class _QuickLookState extends State<QuickLook> {
+  /// The item as the menu left it (a new name, a star).
+  rust.ItemInfo? _fresh;
+  rust.ItemInfo get _item => _fresh ?? widget.item;
   late final _Look _look = _lookOf(widget.item);
   bool get _trash => widget.trash != null;
 
@@ -168,7 +180,7 @@ class _QuickLookState extends State<QuickLook> {
   @override
   void initState() {
     super.initState();
-    final id = widget.item.id;
+    final id = _item.id;
     switch (_look) {
       case _Look.photo || _Look.image:
         _thumb = rust.itemThumbnail(id: id);
@@ -188,7 +200,7 @@ class _QuickLookState extends State<QuickLook> {
         // Only the start is decrypted: a 1 GB log never sits in memory.
         _bytes = readThroughLock(() => rust.itemContentHead(id: id, max: 16 << 10));
       case _Look.pdf:
-        if (QuickLook.debugPdfPage == null && widget.item.sizeBytes <= BigInt.from(_pdfPreviewMax)) {
+        if (QuickLook.debugPdfPage == null && _item.sizeBytes <= BigInt.from(_pdfPreviewMax)) {
           _pdfPage = _renderPdf();
         }
       case _Look.file:
@@ -198,7 +210,7 @@ class _QuickLookState extends State<QuickLook> {
 
   void _startPlayer() {
     if (_playback != null) return;
-    _playback = Playback(widget.item, fallbackExt: _look == _Look.audio ? '.m4a' : '.mp4')..addListener(_tick);
+    _playback = Playback(_item, fallbackExt: _look == _Look.audio ? '.m4a' : '.mp4')..addListener(_tick);
     setState(() {});
   }
 
@@ -209,9 +221,9 @@ class _QuickLookState extends State<QuickLook> {
   /// The first page as a picture, at most ~1200 px on its longer side.
   Future<ui.Image?> _renderPdf() async {
     try {
-      final data = await itemBytes(widget.item.id);
+      final data = await itemBytes(_item.id);
       await pdfrxFlutterInitialize();
-      final doc = await PdfDocument.openData(data, sourceName: widget.item.id);
+      final doc = await PdfDocument.openData(data, sourceName: _item.id);
       try {
         if (doc.pages.isEmpty) return null;
         final page = doc.pages.first;
@@ -271,21 +283,21 @@ class _QuickLookState extends State<QuickLook> {
         return _send(button);
       case _Look.video:
         result = await Navigator.of(context).push<String>(MaterialPageRoute(
-          builder: (_) => VideoViewScreen(item: widget.item, vaultId: widget.vaultId, playback: _playback),
+          builder: (_) => VideoViewScreen(item: _item, vaultId: widget.vaultId, playback: _playback, menu: widget.menu),
         ));
       case _Look.photo:
-        final list = widget.photos.isEmpty ? [widget.item] : widget.photos;
-        final i = list.indexWhere((p) => p.id == widget.item.id);
+        final list = widget.photos.isEmpty ? [_item] : widget.photos;
+        final i = list.indexWhere((p) => p.id == _item.id);
         result = await Navigator.of(context).push<String>(PageRouteBuilder(
           opaque: false,
-          pageBuilder: (_, _, _) => PhotoViewerScreen(items: list, initial: i < 0 ? 0 : i, vaultId: widget.vaultId),
+          pageBuilder: (_, _, _) => PhotoViewerScreen(items: list, initial: i < 0 ? 0 : i, vaultId: widget.vaultId, menu: widget.menu),
           transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
         ));
       case _Look.pdf || _Look.text || _Look.image:
         LockGuard.allowAway();
         try {
           result = await Navigator.of(context)
-              .push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: widget.item, vaultId: widget.vaultId)));
+              .push<String>(MaterialPageRoute(builder: (_) => FileViewScreen(item: _item, vaultId: widget.vaultId, menu: widget.menu)));
         } finally {
           LockGuard.clear();
         }
@@ -300,7 +312,7 @@ class _QuickLookState extends State<QuickLook> {
     final after = before == null ? null : toggleChecklist(before, line);
     if (after == null) return;
     setState(() => _noteText = after);
-    final id = widget.item.id;
+    final id = _item.id;
     final write = (QuickLook.lastSave ?? Future<void>.value())
         .catchError((Object _) {})
         .then((_) => readThroughLock(() => rust.updateNote(id: id, title: noteTitle(after), text: after)));
@@ -319,8 +331,8 @@ class _QuickLookState extends State<QuickLook> {
     final l = AppLocalizations.of(context);
     if (!await confirmTrash(context, count: 1, name: _title) || !mounted) return;
     try {
-      await rust.trashItem(id: widget.item.id, nowMs: nowMs());
-      if (mounted) _done(widget.item.id);
+      await rust.trashItem(id: _item.id, nowMs: nowMs());
+      if (mounted) _done(_item.id);
     } on rust.VaultError catch (e) {
       if (mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
     }
@@ -330,7 +342,7 @@ class _QuickLookState extends State<QuickLook> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      await shareItem(context, widget.item, widget.vaultId, from: button);
+      await shareItem(context, _item, widget.vaultId, from: button);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -342,7 +354,7 @@ class _QuickLookState extends State<QuickLook> {
   }
 
   String get _title {
-    final it = widget.item;
+    final it = _item;
     if (it.kind == ItemKind.note && it.name.isEmpty) return AppLocalizations.of(context).untitledNote;
     return it.kind == ItemKind.audio ? it.name.replaceAll(RegExp(r'\.m4a$'), '') : it.name;
   }
@@ -351,7 +363,7 @@ class _QuickLookState extends State<QuickLook> {
   /// Date · size, and the length of a video or a recording when known. A note's size
   /// says nothing to anyone, so a note has its date only.
   String get _info {
-    final it = widget.item;
+    final it = _item;
     final parts = [MaterialLocalizations.of(context).formatShortDate(dateOf(it.createdMs))];
     if (it.kind != ItemKind.note) parts.add(fileSize(it.sizeBytes));
     final ms = it.durationMs?.toInt() ?? 0;
@@ -568,7 +580,7 @@ class _QuickLookState extends State<QuickLook> {
             if (snap.hasError) return SizedBox(height: 200, child: Center(child: Text(AppLocalizations.of(context).errorStorage)));
             if (!snap.hasData) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
             final text = _head(utf8.decode(snap.data!, allowMalformed: true));
-            final kind = textKindOf(widget.item.name) ?? TextKind.prose;
+            final kind = textKindOf(_item.name) ?? TextKind.prose;
             return _lines(
               box,
               MediaQuery.withClampedTextScaling(
@@ -599,7 +611,7 @@ class _QuickLookState extends State<QuickLook> {
     final primary = Theme.of(context).colorScheme.primary;
     final p = _player;
     final ready = p != null && p.value.isInitialized;
-    final total = ready ? p.value.duration : Duration(milliseconds: widget.item.durationMs?.toInt() ?? 0);
+    final total = ready ? p.value.duration : Duration(milliseconds: _item.durationMs?.toInt() ?? 0);
     final pos = ready ? p.value.position : Duration.zero;
     final playing = ready && p.value.isPlaying;
     final opening = _playback != null && !ready && !_failed;
@@ -656,7 +668,7 @@ class _QuickLookState extends State<QuickLook> {
   /// A file the app does not draw: its icon, its kind and its size.
   Widget _fileCard(BoxConstraints box) {
     final c = CsColors.of(context);
-    final name = widget.item.name;
+    final name = _item.name;
     final dot = name.lastIndexOf('.');
     final ext = dot > 0 && name.length - dot <= 6 ? name.substring(dot + 1).toUpperCase() : null;
     return _card(
@@ -670,12 +682,12 @@ class _QuickLookState extends State<QuickLook> {
             width: 104,
             height: 104,
             decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(24)),
-            child: Icon(fileIcon(widget.item), size: 54, color: Theme.of(context).colorScheme.primary),
+            child: Icon(fileIcon(_item), size: 54, color: Theme.of(context).colorScheme.primary),
           ),
           const SizedBox(height: 16),
           if (ext != null) Text(ext, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: .5)),
           const SizedBox(height: 2),
-          Text(fileSize(widget.item.sizeBytes), style: TextStyle(color: c.muted, fontSize: CsType.subhead)),
+          Text(fileSize(_item.sizeBytes), style: TextStyle(color: c.muted, fontSize: CsType.subhead)),
         ],
       ),
     );
@@ -711,6 +723,14 @@ class _QuickLookState extends State<QuickLook> {
     } else {
       Navigator.of(context).pop(result);
     }
+  }
+
+  /// ⋯: the item's menu over this view, which stays open.
+  Future<void> _more(BuildContext button) async {
+    final menu = widget.menu;
+    if (menu == null) return _done(QuickLook.menuFor(_item.id));
+    final fresh = await menu(button, _item);
+    if (fresh != null && mounted) setState(() => _fresh = fresh);
   }
 
   @override
@@ -770,7 +790,7 @@ class _QuickLookState extends State<QuickLook> {
             _Look.note => (Icons.edit_rounded, l.previewEdit, const ValueKey('quick-edit')),
             _Look.pdf || _Look.text || _Look.image => (Icons.open_in_full_rounded, l.openItem, const ValueKey('quick-open')),
             // A recording has nothing more to open (Rename is under ⋯).
-            _Look.audio when widget.item.kind == ItemKind.audio => null,
+            _Look.audio when _item.kind == ItemKind.audio => null,
             _ => (Icons.open_in_new_rounded, l.openWith, const ValueKey('quick-open-with')),
           };
     // Close sits apart on the left (ActionBar); in a pane there is nothing to close.
@@ -784,7 +804,7 @@ class _QuickLookState extends State<QuickLook> {
               }
             }, color: restoreBlue),
             tool(const ValueKey('preview-info'), Icons.info_rounded, l.info,
-                (_) => showItemInfo(context, widget.item, held: trash.held)),
+                (_) => showItemInfo(context, _item, held: trash.held)),
             tool(const ValueKey('preview-purge'), Icons.delete_forever_rounded, l.deleteForGoodShort, (_) async {
               if (await confirmDeleteForGood(context, count: 1, name: _title, othersKeep: !trash.held)) {
                 _done(QuickLook.purgeRequest);
@@ -795,7 +815,7 @@ class _QuickLookState extends State<QuickLook> {
             if (open != null) tool(open.$3, open.$1, open.$2, _open, waits: true),
             tool(const ValueKey('quick-send'), Icons.ios_share, l.sendOut, _send, waits: true),
             tool(const ValueKey('quick-more'), Icons.more_horiz, l.more,
-                (_) => _done(QuickLook.menuFor(widget.item.id))),
+                _more),
             tool(const ValueKey('quick-delete'), Icons.delete_rounded, l.delete, (_) => _delete(), color: red),
           ];
 

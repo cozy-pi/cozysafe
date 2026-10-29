@@ -19,7 +19,6 @@ class TourTip {
     required this.title,
     required this.body,
     this.note,
-    this.action,
     this.prepare,
   });
 
@@ -31,15 +30,14 @@ class TourTip {
   final String body;
   /// A second line with a key in front: what must not be lost.
   final String? note;
-  /// A button above the others (its label); the tour ends with [TourEnd.action].
-  final String? action;
   /// Run before the tip shows, to bring its widget into view (a row far down Settings).
   final Future<void> Function()? prepare;
 }
 
-/// How the tour ended: Done or Later ([done]), Skip ([skipped]), or the tip's own button
-/// ([action]); null after Back.
-enum TourEnd { done, skipped, action }
+/// How the tour ended: Done ([done]) or Skip ([skipped]); null after Back. No tip has a
+/// button of its own that leaves the tour (owner 2026-10-29: "Set up sync now" ended it
+/// half-read).
+enum TourEnd { done, skipped }
 
 /// Coach marks over the real page (owner 2026-10-26: tips on the screen itself, not
 /// picture cards): the page dims, the widget being explained stays lit in a cut-out, and
@@ -163,11 +161,9 @@ class _CoachTourState extends State<CoachTour> {
   Widget _bubble(BuildContext context, TourTip tip, Color color) {
     final l = AppLocalizations.of(context);
     final muted = CsColors.of(context).muted;
-    // The last of these tips; the last of all only if no page follows.
-    final last = _at == widget.tips.length - 1;
+    // The last of all (no page follows).
     final end = widget.first + _at == _total - 1;
     final n = widget.first + _at + 1;
-    const tall = Size(64, Ui.tap);
     return Material(
       key: ValueKey('tip-${tip.id}'),
       color: color,
@@ -232,22 +228,10 @@ class _CoachTourState extends State<CoachTour> {
                 ),
               ),
             ],
-            if (tip.action case final action?) ...[
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: FilledButton(
-                  key: const ValueKey('tip-action'),
-                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(Ui.tap), shape: const StadiumBorder()),
-                  onPressed: () => Navigator.of(context).pop(TourEnd.action),
-                  child: Text(action, maxLines: 1, overflow: TextOverflow.ellipsis),
-                ),
-              ),
-            ],
             const SizedBox(height: 4),
             Row(
               children: [
-                // Skip on every tip but the very last, where Done or Later ends it anyway.
+                // Skip on every tip but the very last, where Done ends it anyway.
                 // A real button, not grey words (owner 2026-10-27: it went unseen).
                 if (!end)
                   OutlinedButton(
@@ -261,20 +245,12 @@ class _CoachTourState extends State<CoachTour> {
                     child: Text(l.tourSkip),
                   ),
                 const Spacer(),
-                if (last && tip.action != null)
-                  TextButton(
-                    key: const ValueKey('tip-next'),
-                    style: TextButton.styleFrom(minimumSize: tall),
-                    onPressed: _next,
-                    child: Text(l.tourLater),
-                  )
-                else
-                  FilledButton(
-                    key: const ValueKey('tip-next'),
-                    style: FilledButton.styleFrom(minimumSize: const Size(88, Ui.tap), shape: const StadiumBorder()),
-                    onPressed: _next,
-                    child: Text(end ? l.tourDone : l.tourNext),
-                  ),
+                FilledButton(
+                  key: const ValueKey('tip-next'),
+                  style: FilledButton.styleFrom(minimumSize: const Size(88, Ui.tap), shape: const StadiumBorder()),
+                  onPressed: _next,
+                  child: Text(end ? l.tourDone : l.tourNext),
+                ),
               ],
             ),
           ],

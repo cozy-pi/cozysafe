@@ -23,10 +23,12 @@ import 'glass.dart';
 /// when the screen closes, when the vault locks, and at every app start
 /// ([clearPlaybackCopies]). Pops with the id when the video was deleted.
 class VideoViewScreen extends StatefulWidget {
-  const VideoViewScreen({super.key, required this.item, required this.vaultId, this.playback});
+  const VideoViewScreen({super.key, required this.item, required this.vaultId, this.playback, this.menu});
 
   final rust.ItemInfo item;
   final String vaultId;
+  /// What ⋯ opens over this view; none: ⋯ pops [QuickLook.menuFor].
+  final ViewerMenu? menu;
 
   /// Full screen from the quick look: its player (and decrypted copy) carry on here and
   /// stay the quick look's to dispose; the corner button goes back to it.
@@ -179,6 +181,18 @@ class Playback extends ChangeNotifier {
 }
 
 class _VideoViewScreenState extends State<VideoViewScreen> {
+  /// The item as the menu left it (a new name, a star).
+  rust.ItemInfo? _fresh;
+  rust.ItemInfo get _item => _fresh ?? widget.item;
+
+  /// ⋯: the item's menu over this view, which stays open.
+  Future<void> _more(BuildContext button) async {
+    final menu = widget.menu;
+    if (menu == null) return Navigator.of(context).pop(QuickLook.menuFor(_item.id));
+    final fresh = await menu(button, _item);
+    if (fresh != null && mounted) setState(() => _fresh = fresh);
+  }
+
   late final Playback _playback = widget.playback ?? Playback(widget.item);
   bool _bars = true;
 
@@ -205,9 +219,9 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
 
   /// Asks first, then it goes to Recently deleted and the vault offers Undo.
   Future<void> _delete() async {
-    if (!await confirmTrash(context, count: 1, name: widget.item.name) || !mounted) return;
-    await rust.trashItem(id: widget.item.id, nowMs: nowMs());
-    if (mounted) Navigator.of(context).pop(widget.item.id);
+    if (!await confirmTrash(context, count: 1, name: _item.name) || !mounted) return;
+    await rust.trashItem(id: _item.id, nowMs: nowMs());
+    if (mounted) Navigator.of(context).pop(_item.id);
   }
 
   Future<void> _send(BuildContext buttonContext) async {
@@ -218,7 +232,7 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
     try {
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(copy.path, mimeType: widget.item.mime, name: widget.item.name)],
+          files: [XFile(copy.path, mimeType: _item.mime, name: _item.name)],
           sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
         ),
       );
@@ -273,10 +287,10 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                             child: Column(
                               children: [
-                                Text(MaterialLocalizations.of(context).formatMediumDate(dateOf(widget.item.createdMs)),
+                                Text(MaterialLocalizations.of(context).formatMediumDate(dateOf(_item.createdMs)),
                                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                                 Text(
-                                    '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(dateOf(widget.item.createdMs)))} · ${fileSize(widget.item.sizeBytes)}',
+                                    '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(dateOf(_item.createdMs)))} · ${fileSize(_item.sizeBytes)}',
                                     style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
                               ],
                             ),
@@ -332,7 +346,7 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                                 key: const ValueKey('video-more'),
                                 icon: Icons.more_horiz,
                                 tooltip: l.more,
-                                onTap: (_) => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id))),
+                                onTap: _more),
                           ],
                           end: BarIcon(
                                 key: const ValueKey('video-delete'),

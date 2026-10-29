@@ -5,6 +5,8 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
+import '../sync/auto_sync.dart';
+import '../sync/status.dart';
 import '../theme.dart';
 import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
@@ -69,6 +71,23 @@ class _WideSidebarState extends State<WideSidebar> {
   void initState() {
     super.initState();
     _load();
+    // Read again when a sync starts, ends or goes through: the column stays open the
+    // whole time (owner 2026-10-29: "just synced, and it still said 23 hours ago").
+    AutoSync.lastOk.addListener(_load);
+    syncStatus.addListener(_onStatus);
+  }
+
+  /// Progress ticks many times a second: only its end matters here.
+  void _onStatus() {
+    final s = syncStatus.value;
+    if (s == null || s.finished) _load();
+  }
+
+  @override
+  void dispose() {
+    AutoSync.lastOk.removeListener(_load);
+    syncStatus.removeListener(_onStatus);
+    super.dispose();
   }
 
   /// When this vault last synced fully, anywhere (as Settings says it).

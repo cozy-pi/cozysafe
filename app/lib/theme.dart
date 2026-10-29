@@ -218,10 +218,8 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   // One field look everywhere (docs/design-language.md, owner 2026-10-29): a soft grey
   // rounded field, no outline at rest (the label sits inside, at its top); a ring of ink
   // only while typing, red on an error.
-  OutlineInputBorder field(Color? c) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: c == null ? BorderSide.none : BorderSide(color: c, width: 1.5),
-      );
+  RoundFieldBorder field(Color? c) =>
+      RoundFieldBorder(borderSide: c == null ? BorderSide.none : BorderSide(color: c, width: 1.5));
 
   return ThemeData(
     // Back on every page is a round button like the header's own (docs/design-language.md,
@@ -349,3 +347,59 @@ abstract final class Ui {
 /// picture show through and was hard to read (owner 2026-10-24).
 Color solidTint(BuildContext context, Color color) =>
     Color.alphaBlend(color, Theme.of(context).scaffoldBackgroundColor);
+
+/// A text field's rounded box. Not an "outline" to Flutter, so a label floats inside the
+/// field, at its top, as on a filled field. An [OutlineInputBorder] lifts it onto the
+/// ring and cuts a gap there (owner 2026-10-29: on Android "Password" sat across the
+/// field's edge).
+class RoundFieldBorder extends InputBorder {
+  const RoundFieldBorder({super.borderSide = BorderSide.none, this.radius = 14});
+
+  final double radius;
+
+  RRect _box(Rect rect) => RRect.fromRectAndRadius(rect, Radius.circular(radius));
+
+  @override
+  bool get isOutline => false;
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.all(borderSide.width);
+
+  @override
+  RoundFieldBorder copyWith({BorderSide? borderSide}) =>
+      RoundFieldBorder(borderSide: borderSide ?? this.borderSide, radius: radius);
+
+  @override
+  ShapeBorder scale(double t) => RoundFieldBorder(borderSide: borderSide.scale(t), radius: radius * t);
+
+  @override
+  ShapeBorder? lerpFrom(ShapeBorder? a, double t) => a is RoundFieldBorder
+      ? RoundFieldBorder(borderSide: BorderSide.lerp(a.borderSide, borderSide, t), radius: radius)
+      : super.lerpFrom(a, t);
+
+  @override
+  ShapeBorder? lerpTo(ShapeBorder? b, double t) => b is RoundFieldBorder
+      ? RoundFieldBorder(borderSide: BorderSide.lerp(borderSide, b.borderSide, t), radius: radius)
+      : super.lerpTo(b, t);
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      Path()..addRRect(_box(rect).deflate(borderSide.width));
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) => Path()..addRRect(_box(rect));
+
+  @override
+  void paint(Canvas canvas, Rect rect,
+      {double? gapStart, double gapExtent = 0, double gapPercentage = 0, TextDirection? textDirection}) {
+    if (borderSide.style == BorderStyle.none || borderSide.width == 0) return;
+    canvas.drawRRect(_box(rect).deflate(borderSide.width / 2), borderSide.toPaint());
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is RoundFieldBorder && other.borderSide == borderSide && other.radius == radius;
+
+  @override
+  int get hashCode => Object.hash(borderSide, radius);
+}

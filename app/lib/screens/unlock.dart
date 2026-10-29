@@ -671,8 +671,9 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       controller: _password,
       focusNode: _focus,
       enabled: !_busy,
-      // Phones: not over Face ID (the keyboard would cover it). Computers: always.
-      autofocus: Device.desktop || _bioKind == null,
+      // Phones: never by itself, the owner taps it when they want to type (owner
+      // 2026-10-29: the keyboard came up on its own). Computers: always (2026-10-28).
+      autofocus: Device.desktop,
       obscureText: _obscure,
       autocorrect: false,
       enableSuggestions: false,

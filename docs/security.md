@@ -110,7 +110,7 @@ running."
   lock screen (opening the vault comes back to it); passwords and PINs typed on such a
   page are cleared on lock (`lib/lock_resume.dart`).
 - **Password and key fields are hidden while typed** (`SecretField`), with an eye to
-  show them; this includes a suggested passphrase, which appears hidden.
+  show them.
 - **Note text is hidden in lists** ("Hide note text", on by default; turning it off asks
   for the owner): lists and search show a note's title only, so someone beside you
   cannot read it off the list. Opening a note is done on purpose, so an opened note
@@ -218,7 +218,7 @@ passwords (a bundled list, compared case-insensitively, also after removing a sh
 of digits or symbols at the end and undoing simple leetspeak such as 0→o, 3→e, @→a,
 $→s); and either zxcvbn score 3 or a passphrase of at least 4 different words of 3 or
 more characters. The app says why a password is refused and suggests 4 random words
-("Suggest a password" fills 5). A password already in use is never checked when
+(it no longer fills them in itself: owner 2026-10-29). A password already in use is never checked when
 unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.md).
 
 ## What is on disk, and what is not

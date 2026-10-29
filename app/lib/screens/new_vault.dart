@@ -16,10 +16,11 @@ import 'common.dart';
 import 'tour.dart' show TourKind;
 import 'vault_home.dart';
 
-/// Create a vault (owner 2026-10-23): what each key is for → (first vault on this
-/// device) the 24 words, written down and four of them typed back → the vault password
-/// (8 characters at least; strength shown, never blocked) → a PIN of 6 digits or more,
-/// twice → Face ID → icon and colour, which can be skipped. The 24 words belong to the
+/// Create a vault (owner 2026-10-23, order 2026-10-29): what each key is for → the vault
+/// password (8 characters at least; strength shown, never blocked) → (first vault on this
+/// device) the 24 words, written down and four of them typed back → Face ID → icon and
+/// colour, which can be skipped. The vault is made only once the words are checked, so a
+/// start left at the words leaves no vault without its written key. The 24 words belong to the
 /// device and every vault shares them; each vault has its own password and PIN.
 class NewVaultScreen extends StatefulWidget {
   const NewVaultScreen({super.key, required this.libraryDir, required this.first, this.avoid});
@@ -48,8 +49,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   late int _color;
   String? _error;
   bool _busy = false;
-  /// Face ID, Touch ID or fingerprint, when this device has one: its own step, right
-  /// after the password (owner 2026-10-28).
+  /// Face ID, Touch ID or fingerprint, when this device has one: its own step, after the
+  /// password and the words (owner 2026-10-28, 2026-10-29).
   BiometricKind? _bioKind;
 
   /// The device's Secret Key as 24 words; null until known. [_newWords]: made now, so
@@ -66,8 +67,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   /// at once). The first vault starts from the welcome screen, so it has no intro.
   List<_Step> get _steps => [
         if (!widget.first) _Step.intro,
-        if (_newWords) ...[_Step.words, _Step.check],
         _Step.password,
+        if (_newWords) ...[_Step.words, _Step.check],
         if (_bioKind != null) _Step.biometric,
         _Step.icon,
       ];
@@ -140,7 +141,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         _error = null;
       });
 
-  /// Back stops at the password once the vault exists: it is made then.
+  /// Back stops once the vault exists: it is made after the password (and the words).
   void _back() {
     if (_vault != null) {
       if (_step == _Step.color) _go(_Step.icon);
@@ -162,15 +163,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   bool get _passwordOk => PasswordStrength.acceptable(_pw.text) && _pw.text == _pwAgain.text;
 
-  void _suggest() => setState(() {
-        _pw.text = rust.suggestPassphrase();
-        _pwAgain.clear();
-        _error = null;
-      });
-
-  /// The vault is made with its password (decisions 2026-10-28: no PIN); then Face ID,
-  /// then the look. Back here after it was made (Back from Face ID is not offered), the
-  /// password is set again at once.
+  /// The vault is made with its password (decisions 2026-10-28: no PIN), after the words
+  /// are checked; then Face ID, then the look. An error goes back to the password, where
+  /// it is shown.
   Future<void> _create(AppLocalizations l) async {
     setState(() {
       _busy = true;
@@ -197,6 +192,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       if (mounted) {
         setState(() {
           _busy = false;
+          _step = _Step.password;
           _error = l.errorStorage;
         });
       }
@@ -497,10 +493,11 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
           _checkOk = false;
           _go(_Step.check);
         }),
-      _Step.check => button(const ValueKey('check-done'), l.pinNext, _checkOk ? () => _go(_Step.password) : null),
-      // Back here after the vault was made (password taken): this sets it at once.
+      // The words are checked: now the vault is made, with the password set before.
+      _Step.check => button(const ValueKey('check-done'), l.pinNext, _checkOk && !_busy ? () => _create(l) : null),
+      // On to the words when this device makes them; else the vault is made here.
       _Step.password => button(const ValueKey('password-next'), l.pinNext,
-          !_passwordOk || _busy ? null : () => _create(l)),
+          !_passwordOk || _busy ? null : () => _newWords ? _go(_Step.words) : _create(l)),
       _Step.biometric => button(const ValueKey('bio-yes'), l.biometricOfferYes, _busy ? null : () => _biometricAnswer(true)),
       _ => null,
     };
@@ -541,14 +538,16 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         );
     return Column(
       children: [
-        if (_bioKind case final bio?) ...[
-          row(Icons.face_rounded, unlockWithLabel(l, bio), l.introBioBody, const ValueKey('intro-bio')),
-          const SizedBox(height: 10),
-        ],
+        // In the order of the steps (owner 2026-10-29).
         row(Icons.password_rounded, l.introPasswordTitle, l.introPasswordBody, const ValueKey('intro-password')),
         const SizedBox(height: 10),
         row(Icons.key_rounded, l.introWordsTitle, _newWords ? l.introWordsBody : l.introWordsShared,
             const ValueKey('intro-words')),
+        if (_bioKind case final bio?) ...[
+          const SizedBox(height: 10),
+          row(bio == BiometricKind.face ? Icons.face_rounded : Icons.fingerprint_rounded, unlockWithLabel(l, bio),
+              l.introBioBody, const ValueKey('intro-bio')),
+        ],
         const SizedBox(height: 12),
         Text(l.introNoCopy,
             textAlign: TextAlign.center, style: TextStyle(color: ink.withValues(alpha: .78), fontSize: CsType.footnote, height: 1.4)),
@@ -572,15 +571,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: FilledButton.tonalIcon(
-            onPressed: _suggest,
-            icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-            label: Text(l.suggestPassword),
-          ),
-        ),
-        const SizedBox(height: 12),
         SecretField(
           key: const ValueKey('new-password'),
           controller: _pw,

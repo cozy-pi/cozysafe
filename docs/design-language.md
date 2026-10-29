@@ -81,6 +81,9 @@ Icons: Material rounded, 28 in an action circle, about 0.44 of a header circle.
   Send · Group.
 - Right: Delete or Delete for good, red. None when there is nothing to delete.
 - Icons only; the word is the tooltip and what a screen reader says.
+- ⋯ in a viewer opens the item's menu right there, beside the button, over the item
+  (`ViewerMenu`): the viewer stays. It has only what the bar lacks (Rename, Favourite,
+  Group, Info, Version history). Never close the viewer to show a menu elsewhere.
 - On a narrow phone the middle circles shrink together; they never wrap or overflow.
 
 **Section header** (Overview, Library, Files, Notes, inside a group):
@@ -98,11 +101,16 @@ semibold in the middle, at most one round button on the right (Recently deleted:
 Select).
 
 **Text fields**: one look from the theme, a soft grey rounded field (14), no outline at
-rest, a ring of ink while typing, red on an error.
+rest, a ring of ink while typing, red on an error. The border is `RoundFieldBorder`: the
+label floats inside the field, at its top, never onto the ring.
+
+**No helper button over a password field** (owner 2026-10-29: "Suggest a password"
+removed). The strength line under it says how to make a better one.
 
 **Selection marks**: round everywhere (the theme's `checkboxTheme`), as on a photo.
 
-**Steps** (create a vault, restore): progress on top with Back, the title big on the
+**Steps** (create a vault, restore): create is Password → 24 words → four typed back →
+Face ID → look; the intro lists them in that order. Progress on top with Back, the title big on the
 left, one main button the width of the page at the bottom (`PinnedAction`), a second
 choice as plain text under it.
 
@@ -114,6 +122,12 @@ under it.
 - Lists: one look everywhere, rows grouped in one rounded card (as Settings), rows about
   54 high, a thin line between rows, the kind's icon on the left.
 - The bottom bars sit about 44 above the screen's edge; Photos' sit about 20.
+
+**Wide window** (iPad, computer): a page opened from the content (Sync from the home
+page's cloud, Version history) opens on the right through `_pageContext`; the left column
+stays.
+
+**Tour tips**: no button that leaves the tour; Next, Skip, Done only.
 
 ## 6. Before you call a screen done
 

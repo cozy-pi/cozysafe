@@ -4,6 +4,34 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.86 (2026-10-29)
+
+### Added
+- The tour after a new vault goes on into Settings: Sync, the keys, locking and
+  privacy, Back up to a file, User guide. Security now has two tips, one for each group.
+
+### Changed
+- Creating a vault: the password first, then the 24 words, then Face ID or fingerprint.
+  The vault is made only once the 24 words are typed back.
+- Each step and the intro say plainly what the password, the 24 words and biometrics are
+  for: on a new device you need both the password and the 24 words.
+- ⋯ in a preview or full-screen photo, video or file opens its menu right there; the
+  preview stays open.
+- Text field labels sit inside the field, no longer across its edge (Android).
+- "Suggest a password" is gone.
+- The lock screen no longer opens the keyboard by itself on a phone.
+- On a Mac the window first opens larger (1200 × 800, centred) and then remembers its
+  size and place.
+- The last tour tip has no "Set up sync now" button: it ended the tour.
+
+### Fixed
+- The sidebar on a computer or iPad updates "Last synced" right after a sync.
+- On a computer or iPad, the cloud on the home page opens Sync beside the sidebar,
+  not over the whole window.
+- The intro said a backup is lost only if both the password and the 24 words are lost;
+  losing either one is enough.
+- The fingerprint row of the intro showed a face icon.
+
 ## 0.1.85 (2026-10-29)
 
 ### Added
