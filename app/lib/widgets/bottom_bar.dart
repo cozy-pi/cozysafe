@@ -134,9 +134,13 @@ class LeaveButton {
 /// mistake), the [actions] between them (Open · Send · ⋯). Icons only; the word is the
 /// tooltip. Over a photo or video ([onMedia]) the glass is dark and the icons white.
 class ActionBar extends StatelessWidget {
-  const ActionBar({super.key, this.leave, required this.actions, this.end, this.onMedia = false, this.inset = true, this.barKey});
+  const ActionBar(
+      {super.key, this.leave, this.start, required this.actions, this.end, this.onMedia = false, this.inset = true, this.barKey});
 
   final LeaveButton? leave;
+  /// A [BarIcon] on the left in place of [leave], where the view closes some other way
+  /// (a tap beside it, Back on top): Share, as in Photos (owner 2026-10-29).
+  final Widget? start;
   /// [BarIcon]s.
   final List<Widget> actions;
   /// Delete: alone on the right.
@@ -156,7 +160,9 @@ class ActionBar extends StatelessWidget {
     Widget row = Row(
       key: barKey,
       children: [
-        if (out != null)
+        if (start != null)
+          circle(start!)
+        else if (out != null)
           circle(Builder(
             builder: (context) => BarIcon(
               key: out.key,
@@ -183,7 +189,7 @@ class ActionBar extends StatelessWidget {
             ),
           ),
         ),
-        if (end != null) circle(end!) else if (out != null) const SizedBox(width: Ui.action),
+        if (end != null) circle(end!) else if (out != null || start != null) const SizedBox(width: Ui.action),
       ],
     );
     if (onMedia) {
@@ -195,5 +201,38 @@ class ActionBar extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(Ui.side, 6, Ui.side, Ui.edge + MediaQuery.paddingOf(context).bottom),
       child: row,
     );
+  }
+}
+
+/// The top of every viewer, as in Photos (owner 2026-10-29: one look for photos, videos,
+/// notes, recordings and files): Back on the left, [center] (the date) in the middle, ⋯
+/// on the right. Over a photo or video ([onMedia]) the glass is dark and the icons white.
+class ViewerTopBar extends StatelessWidget {
+  const ViewerTopBar({super.key, required this.back, required this.center, this.more, this.onMedia = false});
+
+  final BarIcon back;
+  final Widget center;
+  /// ⋯; none (Recently deleted): the room stays so the date keeps the middle.
+  final BarIcon? more;
+  final bool onMedia;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget circle(Widget child) => SizedBox.square(
+          dimension: Ui.circle,
+          child: onMedia ? GlassPill(child: Center(child: child)) : Glass(radius: Ui.circle / 2, child: Center(child: child)),
+        );
+    Widget row = Row(
+      children: [
+        circle(back),
+        Expanded(child: Center(child: center)),
+        if (more != null) circle(more!) else const SizedBox(width: Ui.circle),
+      ],
+    );
+    if (onMedia) {
+      final t = Theme.of(context);
+      row = Theme(data: t.copyWith(colorScheme: t.colorScheme.copyWith(onSurface: Colors.white)), child: row);
+    }
+    return Padding(padding: const EdgeInsets.fromLTRB(Ui.side - 4, 4, Ui.side - 4, 0), child: row);
   }
 }

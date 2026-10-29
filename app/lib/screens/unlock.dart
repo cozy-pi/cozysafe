@@ -547,10 +547,18 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                         width: double.infinity,
                         child: ListenableBuilder(
                           listenable: _password,
-                          builder: (context, _) => FilledButton(
-                            key: const ValueKey('unlock-password-go'),
-                            onPressed: _busy || _password.text.isEmpty ? null : () => _attempt(quiet: false),
-                            child: BusyLabel(busy: _busy, idle: l.unlockButton, working: l.unlocking),
+                          // Only once something is typed (owner 2026-10-29: there from the
+                          // start it was in the way); its room is kept so nothing jumps.
+                          builder: (context, _) => Visibility(
+                            visible: _password.text.isNotEmpty || _busy,
+                            maintainSize: true,
+                            maintainAnimation: true,
+                            maintainState: true,
+                            child: FilledButton(
+                              key: const ValueKey('unlock-password-go'),
+                              onPressed: _busy || _password.text.isEmpty ? null : () => _attempt(quiet: false),
+                              child: BusyLabel(busy: _busy, idle: l.unlockButton, working: l.unlocking),
+                            ),
                           ),
                         ),
                       ),

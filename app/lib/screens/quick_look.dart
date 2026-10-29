@@ -751,6 +751,8 @@ class _QuickLookState extends State<QuickLook> {
     final barHeight = actionSide() == ActionSide.center ? Ui.bar + 8 : Ui.bar;
     final barBottom = safeBottom + Ui.edge;
     final bottomRoom = barBottom + barHeight;
+    // Under the top bar (ViewerTopBar: 4 above a circle), with a little air.
+    final topRoom = MediaQuery.paddingOf(context).top + 4 + Ui.circle + 12;
     final box = embedded
         ? BoxConstraints(maxWidth: (size.width - 32).clamp(0, 720), maxHeight: (size.height - Ui.bar - 120).clamp(0, double.infinity))
         : BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: (size.height - bottomRoom) * .78);
@@ -782,19 +784,7 @@ class _QuickLookState extends State<QuickLook> {
         );
 
     final red = recordRed(context);
-    final (IconData, String, Key)? open = trash != null
-        ? null
-        : switch (_look) {
-            _Look.photo || _Look.video when _look == _Look.photo || _canPlayVideo =>
-              (Icons.fullscreen_rounded, l.fullScreen, const ValueKey('quick-full')),
-            _Look.note => (Icons.edit_rounded, l.previewEdit, const ValueKey('quick-edit')),
-            _Look.pdf || _Look.text || _Look.image => (Icons.open_in_full_rounded, l.openItem, const ValueKey('quick-open')),
-            // A recording has nothing more to open (Rename is under ⋯).
-            _Look.audio when _item.kind == ItemKind.audio => null,
-            _ => (Icons.open_in_new_rounded, l.openWith, const ValueKey('quick-open-with')),
-          };
-    // Close sits apart on the left (ActionBar); in a pane there is nothing to close.
-    final leave = embedded ? null : LeaveButton(Icons.close_rounded, l.close, () => _done(), key: const ValueKey('quick-close'));
+    // No ×: a tap beside the item or a swipe down puts it away (owner 2026-10-29).
     final tools = trash != null
         ? [
             // The same actions, icons and order as the long-press menu in Recently deleted.
@@ -812,10 +802,10 @@ class _QuickLookState extends State<QuickLook> {
             }, color: red),
           ]
         : [
-            if (open != null) tool(open.$3, open.$1, open.$2, _open, waits: true),
+            // Share on the left, Info in the middle, Delete on the right, as in Photos
+            // (owner 2026-10-29); the item opens by a tap on it.
             tool(const ValueKey('quick-send'), Icons.ios_share, l.sendOut, _send, waits: true),
-            tool(const ValueKey('quick-more'), Icons.more_horiz, l.more,
-                _more),
+            tool(const ValueKey('quick-item-info'), Icons.info_rounded, l.info, (_) => showItemInfo(context, _item)),
             tool(const ValueKey('quick-delete'), Icons.delete_rounded, l.delete, (_) => _delete(), color: red),
           ];
 
@@ -828,6 +818,12 @@ class _QuickLookState extends State<QuickLook> {
       ),
       child: ClipRRect(borderRadius: BorderRadius.circular(20), child: media),
     );
+    // A tap on the item opens it (full screen, the editor, the file page); a video plays
+    // and pauses here instead. Recently deleted only looks.
+    final opens = trash == null && _look != _Look.video && !(_look == _Look.audio && _item.kind == ItemKind.audio);
+    final shown = opens
+        ? Builder(builder: (b) => GestureDetector(key: const ValueKey('quick-tap-open'), onTap: _busy ? null : () => _open(b), child: boxed))
+        : boxed;
 
     final Widget titleBlock = SizedBox(
                   width: box.maxWidth,
@@ -836,6 +832,8 @@ class _QuickLookState extends State<QuickLook> {
                       // The name under every kind, photos and videos too, on one line
                       // ending in … when long (owner 2026-10-29); the date and size are in
                       // the tag above.
+                      // Not under a note: its card starts with the same title.
+                      if (_look != _Look.note)
                         Text(_title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -879,11 +877,11 @@ class _QuickLookState extends State<QuickLook> {
           children: [
             infoTag,
             const SizedBox(height: 12),
-            Expanded(child: Center(child: boxed)),
+            Expanded(child: Center(child: shown)),
             const SizedBox(height: 14),
             titleBlock,
             const SizedBox(height: 10),
-            ActionBar(inset: false, barKey: const ValueKey('quick-bar'), actions: tools.sublist(0, tools.length - 1), end: tools.last),
+            ActionBar(inset: false, barKey: const ValueKey('quick-bar'), start: tools.first, actions: [tools[1]], end: tools.last),
           ],
         ),
       );
@@ -909,7 +907,7 @@ class _QuickLookState extends State<QuickLook> {
         Positioned(
           left: 0,
           right: 0,
-          top: MediaQuery.paddingOf(context).top,
+          top: topRoom,
           bottom: bottomRoom,
           child: Center(
           child: GestureDetector(
@@ -920,19 +918,15 @@ class _QuickLookState extends State<QuickLook> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // The same block, unseen, above: the picture itself sits in the middle,
-                // as much space above it as below (owner 2026-10-25).
-                infoTag,
-                const SizedBox(height: 14),
                 Flexible(
                   child: still
-                      ? boxed
+                      ? shown
                       : TweenAnimationBuilder<double>(
                           tween: Tween(begin: .92, end: 1),
                           duration: const Duration(milliseconds: 240),
                           curve: Curves.easeOutCubic,
                           builder: (context, s, child) => Transform.scale(scale: s, child: child),
-                          child: boxed,
+                          child: shown,
                         ),
                 ),
                 const SizedBox(height: 14),
@@ -940,6 +934,25 @@ class _QuickLookState extends State<QuickLook> {
               ],
             ),
           ),
+          ),
+        ),
+        // Back, the date and ⋯ on top, as over a photo (owner 2026-10-29: every preview
+        // looks the same).
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          child: SafeArea(
+            bottom: false,
+            child: ViewerTopBar(
+              back: BarIcon(
+                  key: const ValueKey('quick-back'),
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  tooltip: l.back,
+                  onTap: (_) => _done()),
+              more: trash != null ? null : BarIcon(key: const ValueKey('quick-more'), icon: Icons.more_horiz, tooltip: l.more, onTap: _more),
+              center: infoTag,
+            ),
           ),
         ),
         // The buttons where the vault bar is, the same glass, width and height, spread
@@ -951,7 +964,7 @@ class _QuickLookState extends State<QuickLook> {
           height: barHeight,
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: ActionBar(inset: false, leave: leave, barKey: const ValueKey('quick-bar'), actions: tools.sublist(0, tools.length - 1), end: tools.last),
+            child: ActionBar(inset: false, barKey: const ValueKey('quick-bar'), start: tools.first, actions: [tools[1]], end: tools.last),
           ),
         ),
       ],

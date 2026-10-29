@@ -1,3 +1,4 @@
+import 'item_info.dart';
 import 'quick_look.dart';
 import 'dart:async';
 import 'dart:io';
@@ -278,24 +279,16 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                 child: SafeArea(
                   child: Column(
                     children: [
-                      // The date and size centred on top, as for a photo; no name.
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: GlassPill(
-                          child: Padding(
-                            key: const ValueKey('media-info'),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                            child: Column(
-                              children: [
-                                Text(MaterialLocalizations.of(context).formatMediumDate(dateOf(_item.createdMs)),
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                                Text(
-                                    '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(dateOf(_item.createdMs)))} · ${fileSize(_item.sizeBytes)}',
-                                    style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
-                              ],
-                            ),
-                          ),
-                        ),
+                      // Back, the date and ⋯ on top, as for a photo (owner 2026-10-29).
+                      ViewerTopBar(
+                        onMedia: true,
+                        back: BarIcon(
+                            key: const ValueKey('media-back'),
+                            icon: Icons.arrow_back_ios_new_rounded,
+                            tooltip: l.back,
+                            onTap: (_) => Navigator.of(context).pop()),
+                        more: BarIcon(key: const ValueKey('video-more'), icon: Icons.more_horiz, tooltip: l.more, onTap: _more),
+                        center: mediaDate(context, _item),
                       ),
                       const Spacer(),
                       if (p != null && v != null && v.isInitialized)
@@ -334,19 +327,14 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                         child: ActionBar(
                           onMedia: true,
                           inset: false,
-                          leave: LeaveButton(
-                            widget.playback != null ? Icons.fullscreen_exit_rounded : Icons.close_rounded,
-                            widget.playback != null ? l.exitFullScreen : l.close,
-                            () => Navigator.of(context).pop(),
-                            key: const ValueKey('media-exit-full'),
-                          ),
+                          // Share · Info · Delete, as for every item.
+                          start: BarIcon(icon: Icons.ios_share, tooltip: l.sendOut, onTap: _copy == null ? null : _send),
                           actions: [
-                            BarIcon(icon: Icons.ios_share, tooltip: l.sendOut, onTap: _copy == null ? null : _send),
                             BarIcon(
-                                key: const ValueKey('video-more'),
-                                icon: Icons.more_horiz,
-                                tooltip: l.more,
-                                onTap: _more),
+                                key: const ValueKey('video-info'),
+                                icon: Icons.info_rounded,
+                                tooltip: l.info,
+                                onTap: (_) => showItemInfo(context, _item)),
                           ],
                           end: BarIcon(
                                 key: const ValueKey('video-delete'),

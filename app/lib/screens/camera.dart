@@ -475,6 +475,9 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     final failed = l.videoSaveFailed;
     try {
       if (c.value.isStreamingImages) await c.stopImageStream();
+      // The screen stays upright, but a video is made the way the phone is held: held
+      // sideways, it plays wide (owner 2026-10-29: it came out tall).
+      await c.lockCaptureOrientation(c.value.deviceOrientation);
       await c.startVideoRecording();
       _videoName = captureName(DateTime.now(), '.mp4');
       HapticFeedback.mediumImpact();
@@ -507,6 +510,7 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     }
     setState(() => _saving = false);
     try {
+      await c.lockCaptureOrientation(DeviceOrientation.portraitUp);
       await c.startImageStream(_onFrame);
     } catch (_) {}
   }

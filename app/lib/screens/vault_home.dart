@@ -35,6 +35,7 @@ import 'kit_password.dart';
 import 'change_key.dart';
 import 'file_view.dart';
 import 'new_vault.dart';
+import 'photo_viewer.dart';
 import 'quick_look.dart';
 import 'note.dart';
 import 'recorder.dart';
@@ -1026,11 +1027,21 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // Every kind opens the same way: big, over the page you are on, never a jump to
     // another tab (owner 2026-10-21, one design 2026-10-25). Open in its bar goes further:
     // full screen, the note's editor, the file's own page.
-    final result = await QuickLook.show(context, item,
-        // Photos and videos: the full-screen view swipes through both.
-        photos: media.where((m) => m.kind == ItemKind.photo || VideoViewScreen.supported).toList(),
-        vaultId: _vault.id,
-        menu: _viewerMenu);
+    // Photos and videos: the full-screen view swipes through both.
+    final swipe = media.where((m) => m.kind == ItemKind.photo || VideoViewScreen.supported).toList();
+    final String? result;
+    final at = swipe.indexWhere((m) => m.id == item.id);
+    if (at >= 0) {
+      // Straight to full screen, as in Photos (owner 2026-10-29: one view, not a preview
+      // first); a tap on a video there plays it.
+      result = await Navigator.of(context).push<String>(PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (_, _, _) => PhotoViewerScreen(items: swipe, initial: at, vaultId: _vault.id, menu: _viewerMenu),
+        transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
+      ));
+    } else {
+      result = await QuickLook.show(context, item, photos: swipe, vaultId: _vault.id, menu: _viewerMenu);
+    }
     if (!mounted || _locked) return;
     // A box ticked in the preview: its write ends first (Edit reads the note), then the
     // list and the note's line under its title catch up.

@@ -1,7 +1,10 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import '../platform.dart' show dateOf;
+import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart' show CsType;
+import 'file_view.dart' show fileSize;
 
 /// Controls over a photo or video (full screen viewers): white on a bright picture
 /// vanished (owner 2026-10-21), so each sits on its own dark frosted glass.
@@ -43,3 +46,23 @@ class GlassPill extends StatelessWidget {
 
 /// The label of a [glassButton] (styled here: a TextButton's textStyle loses the font).
 Text glassLabel(String text) => Text(text, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600));
+
+/// The date, time and size of a photo or video, centred on top of its viewer.
+Widget mediaDate(BuildContext context, rust.ItemInfo it) {
+  final ml = MaterialLocalizations.of(context);
+  final when = dateOf(it.createdMs);
+  return GlassPill(
+    child: Padding(
+      key: const ValueKey('media-info'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(ml.formatMediumDate(when), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          Text('${ml.formatTimeOfDay(TimeOfDay.fromDateTime(when))} · ${fileSize(it.sizeBytes)}',
+              style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
+        ],
+      ),
+    ),
+  );
+}
