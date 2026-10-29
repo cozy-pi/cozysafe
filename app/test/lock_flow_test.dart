@@ -16,7 +16,6 @@ import 'package:cozysafe/screens/kit_password.dart';
 import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/secret_key_store.dart';
-import 'package:cozysafe/screens/set_pin.dart';
 import 'package:cozysafe/screens/settings.dart';
 import 'package:cozysafe/screens/unlock.dart';
 import 'package:cozysafe/screens/vault_home.dart';
@@ -311,32 +310,6 @@ void main() {
     expect(find.byType(UnlockScreen), findsNothing);
     expect(syncStatus.value, isNull);
     expect(find.byKey(const ValueKey('sync-close')), findsOneWidget);
-  });
-
-  testWidgets('setting a PIN needs the same digits twice', (t) async {
-    await _pump(t, _app(const SetPinScreen()));
-    await t.pump();
-    await _tapDigits(t, '123456');
-    await t.tap(find.text('Next'));
-    await t.pump();
-    await _tapDigits(t, '123457');
-    await t.pump();
-    expect(find.text("The PINs didn't match. Start again."), findsOneWidget);
-    expect(_fake.enabledPin, isNull);
-    await _tapDigits(t, '123456');
-    await t.tap(find.text('Next'));
-    await t.pump();
-    await _tapDigits(t, '123456');
-    await _settle(t);
-    expect(_fake.enabledPin, '123456');
-  });
-
-  testWidgets('a PIN shorter than 6 digits cannot go on', (t) async {
-    await _pump(t, _app(const SetPinScreen()));
-    await t.pump();
-    await _tapDigits(t, '12345');
-    final next = t.widget<FilledButton>(find.widgetWithText(FilledButton, 'Next'));
-    expect(next.onPressed, isNull);
   });
 
   testWidgets('Emergency Kit goes on only with the last 4 characters', (t) async {

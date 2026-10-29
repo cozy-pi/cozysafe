@@ -231,7 +231,7 @@ K lives in the keystore behind biometrics: Keychain with `biometryCurrentSet`
 (a changed enrolment invalidates it), Android Keystore with strong biometrics
 and a fresh check per read. Neither half opens the vault alone. One vault per
 device; on by default for the first vault. A lost K (biometrics changed) removes
-the wrapped copies and falls back to the PIN or password.
+the wrapped copies and falls back to the password.
 
 **Touch ID on a Mac (2026-10-28).** The keychain item above would need the
 data-protection keychain and a provisioning profile on macOS. Instead K is wrapped by a
@@ -242,7 +242,14 @@ the whole blob sits in the legacy keychain. No entitlement or profile. Unwrappin
 Touch ID; a changed enrolment makes the enclave key unusable and the app falls back as
 on a phone. Details: docs/security.md, "Touch ID on a Mac".
 
-### PIN unlock (built)
+### PIN unlock (built, then retired 2026-10-28)
+**Retired:** the app no longer offers a PIN (decisions 2026-10-28; docs/security.md, "No
+PIN"). The chip key wrapping the device key has no user-presence check, so on an
+unlocked phone under full control the device key can be taken once and 6-digit PINs
+tried off the phone. Vaults now open with biometrics or the password; PIN files of
+vaults with a password are removed (`Library::forget_pins_with_password`). The core
+keeps what follows for vaults made with only a PIN.
+
 Digits only, this device only: at least 6 for a new PIN (4 or 5 digits set before
 2026-10-23 still unlock). `vaults/<id>/pin` holds the Master Key wrapped by
 HKDF(Argon2id(PIN, device key, salt)) with the device's floor parameters. The device

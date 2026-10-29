@@ -8,7 +8,7 @@ import '../lock_resume.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
-import '../widgets/pin_pad.dart';
+import '../widgets/secret.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'unlock.dart';
@@ -16,8 +16,8 @@ import '../widgets/bottom_bar.dart';
 import '../widgets/toast.dart';
 import 'welcome.dart';
 
-/// Delete the open vault, confirmed with its own PIN. In the opposite brightness (light when the app is dark, and the reverse), so it is
-/// never taken for the lock screen. Wrong PINs count towards the same waits as the PIN pad.
+/// Delete the open vault, confirmed with its own password (no PIN since 2026-10-28). In the opposite brightness (light when the app is dark, and the reverse), so it is
+/// never taken for the lock screen. Wrong passwords count towards the same waits as the lock screen.
 class DeleteVaultScreen extends StatefulWidget {
   const DeleteVaultScreen({
     super.key,
@@ -36,37 +36,31 @@ class DeleteVaultScreen extends StatefulWidget {
 }
 
 class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAware {
-  String _pin = '';
+  final _pw = TextEditingController();
   String? _error;
   bool _busy = false;
 
-  void _digit(String d) {
-    if (_busy || _pin.length >= 256) return;
-    setState(() {
-      _pin += d;
-      _error = null;
-    });
-  }
-
-  /// The PIN typed is not kept while the vault is locked (the countdown, if open,
+  /// The password typed is not kept while the vault is locked (the countdown, if open,
   /// closes as Cancel).
   @override
-  void vaultLocking() => setState(() => _pin = '');
+  void vaultLocking() => setState(_pw.clear);
 
-  void _back() {
-    if (_pin.isNotEmpty) setState(() => _pin = _pin.substring(0, _pin.length - 1));
+  @override
+  void dispose() {
+    _pw.clear();
+    _pw.dispose();
+    super.dispose();
   }
 
   Future<void> _confirm() async {
     final l = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
-      final until = await PinStore.waitUntil();
+      final until = await PinStore.passwordWaitUntil();
       if (until != null && until.isAfter(DateTime.now())) {
         final m = until.difference(DateTime.now()).inSeconds;
         setState(() {
           _busy = false;
-          _pin = '';
           _error = l.pinWait(m <= 60 ? 1 : (m / 60).ceil());
         });
         return;
@@ -77,22 +71,20 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
         if (mounted) setState(() => _busy = false);
         return;
       }
-      final device = await PinStore.deviceKey();
-      final ok = device != null &&
-          await rust.deleteVault(dir: widget.libraryDir, pin: _pin, deviceKey: device);
+      final ok = await rust.deleteVault(dir: widget.libraryDir, password: _pw.text);
       if (!ok) {
-        await PinStore.addFail();
+        await PinStore.addPasswordFail();
         HapticFeedback.heavyImpact();
         if (mounted) {
           setState(() {
             _busy = false;
-            _pin = '';
-            _error = l.pinWrongTry;
+            _error = l.wrongPassword;
           });
         }
         return;
       }
-      await PinStore.resetFails();
+      await PinStore.resetPasswordFails();
+      _pw.clear();
       if (!mounted) return;
       await LockGuard.clearCopied();
       if (!mounted) return;
@@ -111,7 +103,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
         }
       }
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(
           builder: (_) => any
               ? UnlockScreen(libraryDir: widget.libraryDir, askBiometricNow: false)
@@ -124,7 +116,6 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       if (mounted) {
         setState(() {
           _busy = false;
-          _pin = '';
           _error = vaultErrorText(l, e);
         });
       }
@@ -150,7 +141,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
             FilledButton(
               key: const ValueKey('delete-vault-go'),
               style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
-              onPressed: _pin.length >= 4 && !_busy ? _confirm : null,
+              onPressed: _pw.text.isNotEmpty && !_busy ? _confirm : null,
               child: Text(l.deleteVaultAction),
             ),
           ],
@@ -179,16 +170,21 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
                       color: ink.withValues(alpha: .08),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(_error ?? l.deleteVaultPin,
+                    child: Text(_error ?? l.deleteVaultPassword,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             color: ink,
                             fontWeight: _error != null ? FontWeight.w600 : FontWeight.w400)),
                   ),
                   const SizedBox(height: 16),
-                  SizedBox(height: 20, child: PinDots(filled: _pin.length, color: ink)),
-                  const SizedBox(height: 16),
-                  PinPad(onDigit: _digit, onDelete: _back, enabled: !_busy),
+                  SecretField(
+                    key: const ValueKey('delete-vault-password'),
+                    controller: _pw,
+                    label: l.password,
+                    enabled: !_busy,
+                    onChanged: (_) => setState(() => _error = null),
+                    onSubmitted: (_) => _pw.text.isNotEmpty && !_busy ? _confirm() : null,
+                  ),
                 ],
               ),
             ),

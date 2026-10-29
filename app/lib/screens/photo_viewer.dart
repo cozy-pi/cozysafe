@@ -10,6 +10,7 @@ import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../widgets/bottom_bar.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/toast.dart';
 import 'common.dart';
@@ -328,49 +329,34 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
           top: false,
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                GlassPill(
-                  child: IconButton(
-                    key: const ValueKey('media-exit-full'),
-                    // Back to the quick look this full screen was opened from.
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 26),
-                    tooltip: l.exitFullScreen,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                GlassPill(
-                  child: TextButton.icon(
-                    key: const ValueKey('photo-send'),
-                    onPressed: () => shareItem(context, _item, widget.vaultId),
-                    style: glassButton,
-                    icon: const Icon(Icons.ios_share),
-                    label: glassLabel(l.sendOut),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                GlassPill(
-                  child: TextButton.icon(
-                    key: const ValueKey('photo-delete'),
-                    onPressed: _delete,
-                    style: glassDelete,
-                    icon: const Icon(Icons.delete_rounded),
-                    label: glassLabel(l.delete),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                GlassPill(
-                  child: IconButton(
-                    key: const ValueKey('photo-more'),
-                    tooltip: l.more,
-                    color: Colors.white,
-                    onPressed: () => Navigator.of(context).pop(QuickLook.menuFor(_item.id)),
-                    icon: const Icon(Icons.more_horiz),
-                  ),
-                ),
-              ],
+            // The same bar as every item (ActionBar), dark glass over the photo.
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: ActionBar(
+                onMedia: true,
+                inset: false,
+                // Back to the quick look this full screen was opened from.
+                leave: LeaveButton(Icons.fullscreen_exit_rounded, l.exitFullScreen, () => Navigator.of(context).pop(),
+                    key: const ValueKey('media-exit-full')),
+                actions: [
+                  BarIcon(
+                      key: const ValueKey('photo-send'),
+                      icon: Icons.ios_share,
+                      tooltip: l.sendOut,
+                      onTap: (b) => shareItem(b, _item, widget.vaultId)),
+                  BarIcon(
+                      key: const ValueKey('photo-more'),
+                      icon: Icons.more_horiz,
+                      tooltip: l.more,
+                      onTap: (_) => Navigator.of(context).pop(QuickLook.menuFor(_item.id))),
+                ],
+                end: BarIcon(
+                      key: const ValueKey('photo-delete'),
+                      icon: Icons.delete_rounded,
+                      tooltip: l.delete,
+                      onTap: (_) => _delete(),
+                      color: const Color(0xFFFF453A)),
+              ),
             ),
           ),
         ),

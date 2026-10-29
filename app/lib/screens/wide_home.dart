@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -9,22 +10,15 @@ import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
 import 'settings.dart' show SettingsScreen;
 
-/// From this width the vault is three columns (iPad, computer; owner 2026-10-27: the
-/// phone's page made bigger looked poor, and a big screen should show many devices'
-/// worth of things at once): a sidebar, the list, and the item open beside it.
+/// From this width the vault is two columns (iPad, computer; owner 2026-10-27: the
+/// phone's page made bigger looked poor; 2026-10-28: two columns, not three): the
+/// sidebar, and the main column where the list, an open item and Settings show.
 const wideFrom = 700.0;
 
-/// From this width the open item has its own pane beside the list; narrower (an iPad held
-/// upright) it opens over the page, as on a phone.
-const paneFrom = 1100.0;
-
-/// The sidebar's width, and the open item's pane.
-const sidebarWidth = 264.0;
-const paneWidth = 420.0;
+/// The sidebar's width: narrower on a computer, where its rows are small.
+double get sidebarWidth => Device.desktop ? 228.0 : 264.0;
 
 bool isWide(BuildContext context) => MediaQuery.sizeOf(context).width >= wideFrom;
-
-bool hasPane(BuildContext context) => MediaQuery.sizeOf(context).width >= paneFrom;
 
 /// The left column of a wide window: the vault, Add, how the sync stands (always in sight:
 /// several devices is the point of a big screen), the sections, the groups, then Recently
@@ -44,7 +38,11 @@ class WideSidebar extends StatefulWidget {
     required this.onTrash,
     required this.onSettings,
     required this.onLock,
+    this.addKey,
   });
+
+  /// On the Add button, so the ways to add can drop from just under it.
+  final GlobalKey? addKey;
 
   final rust.VaultInfo vault;
   final List<VaultSection> sections;
@@ -104,6 +102,9 @@ class _WideSidebarState extends State<WideSidebar> {
     final c = CsColors.of(context);
     final ink = Theme.of(context).colorScheme.onSurface;
     final w = widget;
+    // A computer's sidebar is as small as Finder's (owner 2026-10-28); an iPad keeps
+    // rows a finger can hit.
+    final desk = Device.desktop;
 
     Widget row(Key key, IconData icon, String label, bool on, VoidCallback onTap, {String? trailing}) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
@@ -115,17 +116,17 @@ class _WideSidebarState extends State<WideSidebar> {
               borderRadius: BorderRadius.circular(10),
               onTap: onTap,
               child: SizedBox(
-                height: 40,
+                height: desk ? 30 : 40,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Row(children: [
-                    Icon(icon, size: 21, color: ink),
-                    const SizedBox(width: 12),
+                    Icon(icon, size: desk ? 18 : 21, color: ink),
+                    SizedBox(width: desk ? 10 : 12),
                     Expanded(
                       child: Text(label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: CsType.subhead, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
+                          style: TextStyle(fontSize: desk ? 13.5 : CsType.subhead, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
                     ),
                     if (trailing != null) Text(trailing, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                   ]),
@@ -159,11 +160,14 @@ class _WideSidebarState extends State<WideSidebar> {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: FilledButton.icon(
-            key: const ValueKey('wide-add'),
-            onPressed: w.onAdd,
-            icon: const Icon(Icons.add_rounded),
-            label: Text(l.addToVault),
+          child: KeyedSubtree(
+            key: w.addKey,
+            child: FilledButton.icon(
+              key: const ValueKey('wide-add'),
+              onPressed: w.onAdd,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(l.addToVault),
+            ),
           ),
         ),
         // How the sync stands, always in sight, with Sync now.

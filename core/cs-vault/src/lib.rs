@@ -420,6 +420,35 @@ impl Library {
         if name.is_empty() {
             return Err(Error::EmptyName);
         }
+        self.create_with_meta(
+            VaultMeta {
+                name: name.to_owned(),
+                ..Default::default()
+            },
+            password,
+        )
+    }
+
+    /// Create a vault known by its icon and colour (no name), opened by `password`: what
+    /// the app makes since the PIN went (decisions 2026-10-28). Same checks as
+    /// [`Library::create_vault`].
+    pub fn create_vault_with_password(
+        &self,
+        icon: &str,
+        color: &str,
+        password: &str,
+    ) -> Result<OpenVault> {
+        self.create_with_meta(
+            VaultMeta {
+                icon: icon.to_owned(),
+                color: color.to_owned(),
+                ..Default::default()
+            },
+            password,
+        )
+    }
+
+    fn create_with_meta(&self, meta: VaultMeta, password: &str) -> Result<OpenVault> {
         if check_new_password(password) != PasswordCheck::Ok {
             return Err(Error::WeakPassword);
         }
@@ -437,11 +466,7 @@ impl Library {
         let vault_salt = cs_crypto::generate_salt();
         let kek = kdf::vault_kek(&root, &vault_salt);
         let master_key = Key::generate();
-        let meta = serde_json::to_vec(&VaultMeta {
-            name: name.to_owned(),
-            ..Default::default()
-        })
-        .expect("serialisable");
+        let sealed = serde_json::to_vec(&meta).expect("serialisable");
         let header = VaultHeader {
             format: FORMAT,
             prev_wrapped_master_key: String::new(),
@@ -451,7 +476,7 @@ impl Library {
                 &master_key,
                 &aad(&id, "master-key"),
             )),
-            meta: hex::encode(wrap::seal(&master_key, &meta, &aad(&id, "meta"))),
+            meta: hex::encode(wrap::seal(&master_key, &sealed, &aad(&id, "meta"))),
         };
         let vault_dir = self.dir.join(VAULTS_DIR).join(&id);
         fs::create_dir_all(&vault_dir)?;
@@ -462,9 +487,9 @@ impl Library {
         let index = db::Index::open(&vault_dir)?;
         Ok(OpenVault {
             id,
-            name: name.to_owned(),
-            icon: String::new(),
-            color: String::new(),
+            name: meta.name,
+            icon: meta.icon,
+            color: meta.color,
             dir: vault_dir,
             master_key,
             index,
@@ -1265,6 +1290,26 @@ pub(crate) mod tests {
             lib(tmp.path()).unlock(pw_b()).unwrap().unwrap().id,
             fresh.id
         );
+    }
+
+    #[test]
+    fn create_with_password_keeps_the_look() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
+        let v = l
+            .create_vault_with_password("lock", "teal", "correct horse battery")
+            .unwrap();
+        assert_eq!((v.icon.as_str(), v.color.as_str()), ("lock", "teal"));
+        assert!(v.has_password());
+        let back = l.unlock("correct horse battery").unwrap().unwrap();
+        assert_eq!(
+            (back.id, back.icon, back.color, back.name),
+            (v.id.clone(), "lock".into(), "teal".into(), String::new())
+        );
+        assert!(matches!(
+            l.create_vault_with_password("star", "red", "correct horse battery"),
+            Err(Error::PasswordInUse)
+        ));
     }
 
     #[test]

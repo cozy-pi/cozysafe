@@ -18,6 +18,7 @@ import '../theme.dart';
 import '../widgets/link_card.dart';
 import '../widgets/text_styles.dart';
 import '../widgets/toast.dart';
+import '../widgets/bottom_bar.dart';
 import '../widgets/vault_bar.dart';
 import 'common.dart';
 import 'file_view.dart';
@@ -346,8 +347,6 @@ class _QuickLookState extends State<QuickLook> {
     return it.kind == ItemKind.audio ? it.name.replaceAll(RegExp(r'\.m4a$'), '') : it.name;
   }
 
-  /// Photos and videos show the picture alone.
-  bool get _pictureOnly => _look == _Look.photo || _look == _Look.video;
 
   /// Date · size, and the length of a video or a recording when known. A note's size
   /// says nothing to anyone, so a note has its date only.
@@ -756,8 +755,8 @@ class _QuickLookState extends State<QuickLook> {
             key: key,
             tooltip: tip,
             onPressed: waits && _busy ? null : () => onTap(b),
-            iconSize: 24,
-            style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
+            iconSize: 28,
+            style: IconButton.styleFrom(minimumSize: const Size(Ui.bar, Ui.bar)),
             icon: Icon(icon, color: color ?? Theme.of(context).colorScheme.onSurface),
           ),
         );
@@ -774,9 +773,10 @@ class _QuickLookState extends State<QuickLook> {
             _Look.audio when widget.item.kind == ItemKind.audio => null,
             _ => (Icons.open_in_new_rounded, l.openWith, const ValueKey('quick-open-with')),
           };
+    // Close sits apart on the left (ActionBar); in a pane there is nothing to close.
+    final leave = embedded ? null : LeaveButton(Icons.close_rounded, l.close, () => _done(), key: const ValueKey('quick-close'));
     final tools = trash != null
         ? [
-            if (!embedded) tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, (_) => _done()),
             // The same actions, icons and order as the long-press menu in Recently deleted.
             tool(const ValueKey('preview-restore'), Icons.restore_from_trash_rounded, l.restore, (_) async {
               if (await confirmRestore(context, count: 1, name: _title, held: trash.held)) {
@@ -792,7 +792,6 @@ class _QuickLookState extends State<QuickLook> {
             }, color: red),
           ]
         : [
-            if (!embedded) tool(const ValueKey('quick-close'), Icons.close_rounded, l.close, (_) => _done()),
             if (open != null) tool(open.$3, open.$1, open.$2, _open, waits: true),
             tool(const ValueKey('quick-send'), Icons.ios_share, l.sendOut, _send, waits: true),
             tool(const ValueKey('quick-more'), Icons.more_horiz, l.more,
@@ -814,16 +813,16 @@ class _QuickLookState extends State<QuickLook> {
                   width: box.maxWidth,
                   child: Column(
                     children: [
-                      // Only the name under it, never for a photo or a video (owner
-                      // 2026-10-28); the date and size are in the tag above, for every kind.
-                      if (!_pictureOnly)
+                      // The name under every kind, photos and videos too, on one line
+                      // ending in … when long (owner 2026-10-29); the date and size are in
+                      // the tag above.
                         Text(_title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
                       if (trash != null) ...[
-                        if (!_pictureOnly) const SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
                           key: const ValueKey('preview-days'),
                           trash.held ? '${l.trashHeldLabel} · ${l.daysLeft(trash.daysLeft)}' : l.daysLeft(trash.daysLeft),
@@ -850,11 +849,8 @@ class _QuickLookState extends State<QuickLook> {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: CsType.footnote, color: c.muted, fontWeight: FontWeight.w500)),
     );
-    // Below: the name for other kinds; for a photo, the days left in Recently deleted, or
-    // the tag again unseen so the picture stays in the middle.
-    final Widget below = !_pictureOnly || trash != null
-        ? titleBlock
-        : ExcludeSemantics(child: Visibility.maintain(visible: false, child: infoTag));
+    // Below: the name (and in Recently deleted, the days left).
+    final Widget below = titleBlock;
     // In a pane: the item, its name, and its buttons under it; nothing over the page.
     if (embedded) {
       return Padding(
@@ -865,16 +861,9 @@ class _QuickLookState extends State<QuickLook> {
             const SizedBox(height: 12),
             Expanded(child: Center(child: boxed)),
             const SizedBox(height: 14),
-            if (!_pictureOnly || trash != null) titleBlock,
+            titleBlock,
             const SizedBox(height: 10),
-            SizedBox(
-              height: Ui.bar,
-              child: Glass(
-                key: const ValueKey('quick-bar'),
-                radius: Ui.bar / 2,
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: tools),
-              ),
-            ),
+            ActionBar(inset: false, barKey: const ValueKey('quick-bar'), actions: tools.sublist(0, tools.length - 1), end: tools.last),
           ],
         ),
       );
@@ -940,13 +929,9 @@ class _QuickLookState extends State<QuickLook> {
           right: 10,
           bottom: barBottom,
           height: barHeight,
-          child: Glass(
-            key: const ValueKey('quick-bar'),
-            radius: Ui.bar / 2,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: tools,
-            ),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ActionBar(inset: false, leave: leave, barKey: const ValueKey('quick-bar'), actions: tools.sublist(0, tools.length - 1), end: tools.last),
           ),
         ),
       ],

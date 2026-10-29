@@ -20,7 +20,6 @@ import '../debug_log.dart';
 import '../lock_guard.dart';
 import '../originals.dart' show PickedBatch, PickedCopy;
 import '../widgets/bottom_bar.dart';
-import '../widgets/vault_bar.dart';
 import 'quick_look.dart';
 import 'video_view.dart';
 import '../widgets/link_card.dart';
@@ -390,33 +389,29 @@ class _FileViewScreenState extends State<FileViewScreen> {
 
   bool get _pdf => widget.item.mime == 'application/pdf';
 
-  /// ⋯: back to the vault, which shows this item's menu (Rename, Group, Info…).
-  Widget _more(AppLocalizations l) => IconButton(
-        key: const ValueKey('file-more'),
-        tooltip: l.more,
-        onPressed: _busy ? null : () => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id)),
-        icon: const Icon(Icons.more_horiz),
-      );
 
-  /// The actions at the bottom, in the vault bar's place (owner 2026-10-25: buttons within
-  /// the thumb's reach); back and the name stay on top. [first] leads (Send, or Open with
-  /// for a file the app does not draw).
-  Widget _bar(AppLocalizations l, {List<Widget>? first}) => BottomBar(
-        children: [
+  /// The actions at the bottom (ActionBar, owner 2026-10-28): Close apart on the left,
+  /// then [first] (Send, or Open with for a file the app does not draw), ⋯, Delete.
+  Widget _barIn(AppLocalizations l) => Padding(padding: const EdgeInsets.fromLTRB(10, 6, 10, 0), child: _bar(l, inset: false));
+
+  Widget _bar(AppLocalizations l, {List<Widget>? first, bool inset = true}) => ActionBar(
+        inset: inset,
+        leave: LeaveButton(Icons.close_rounded, l.close, () => Navigator.of(context).maybePop(), key: const ValueKey('file-close')),
+        actions: [
           ...first ??
               [BarIcon(key: const ValueKey('file-send'), icon: Icons.ios_share, tooltip: l.sendOut, onTap: _busy ? null : _open)],
-          BarIcon(
-              key: const ValueKey('file-delete'),
-              icon: Icons.delete_rounded,
-              tooltip: l.delete,
-              onTap: _busy ? null : (_) => _delete(),
-              color: recordRed(context)),
           BarIcon(
               key: const ValueKey('file-more'),
               icon: Icons.more_horiz,
               tooltip: l.more,
               onTap: _busy ? null : (_) => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id))),
         ],
+        end: BarIcon(
+            key: const ValueKey('file-delete'),
+            icon: Icons.delete_rounded,
+            tooltip: l.delete,
+            onTap: _busy ? null : (_) => _delete(),
+            color: recordRed(context)),
       );
 
   /// Pictures up to this size are decrypted into memory and shown here.
@@ -478,7 +473,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.item.name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                  Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w800, letterSpacing: -.3)),
                   const SizedBox(height: 2),
                   Text('$label · ${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
@@ -520,48 +515,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 },
               ),
             ),
-            // Close where the camera's is, then the actions in glass.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, Ui.edge),
-              child: Row(
-                children: [
-                  GlassButton(icon: Icons.close, tooltip: l.close, size: Ui.bar, onTap: () => Navigator.of(context).maybePop()),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Glass(
-                      radius: Ui.bar / 2,
-                      child: SizedBox(
-                        height: Ui.bar,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Builder(
-                                builder: (b) => TextButton.icon(
-                                  onPressed: _busy ? null : () => _open(b),
-                                  style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
-                                  icon: const Icon(Icons.ios_share, size: 22),
-                                  label: Text(l.sendOut, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600)),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: TextButton.icon(
-                                onPressed: _busy ? null : _delete,
-                                style: TextButton.styleFrom(foregroundColor: recordRed(context)),
-                                icon: const Icon(Icons.delete_rounded, size: 22),
-                                label: Text(l.delete, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600)),
-                              ),
-                            ),
-                            _more(l),
-                            const SizedBox(width: 4),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // The same bar as every item (ActionBar); the page's SafeArea is under it.
+            Padding(padding: const EdgeInsets.only(bottom: Ui.edge), child: _barIn(l)),
           ],
         ),
       ),

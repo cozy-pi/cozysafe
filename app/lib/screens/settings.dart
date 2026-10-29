@@ -19,7 +19,6 @@ import '../src/rust/api/vault.dart' as rust;
 import '../secret_key_store.dart';
 import '../theme.dart';
 import '../sync/sync_status.dart';
-import 'common.dart' show fadeRoute;
 import 'debug.dart';
 import 'security_info.dart';
 import '../widgets/toast.dart';
@@ -35,7 +34,6 @@ import '../src/rust/api/history.dart' as hist;
 import 'file_view.dart';
 import 'error_report.dart';
 import 'key_check.dart';
-import 'set_pin.dart';
 import 'tour.dart';
 import '../sync/sync_screen.dart';
 import '../widgets/readable.dart';
@@ -450,12 +448,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => Readable(child: const SecurityInfoScreen())));
 
   Future<void> _deleteVault() async {
-    // The PIN confirms it; a vault opened with its password on this phone gets one first.
-    if (!rust.pinEnabled()) {
-      final set = await Navigator.of(context).push<bool>(
-        fadeRoute((_) => Readable(child: const SetPinScreen(skippable: true, forThisPhone: true))),
-      );
-      if (set != true || !mounted) return;
+    // The vault's password confirms it; a vault without one (made with a PIN before)
+    // gets one first.
+    if (!widget.vault().hasPassword) {
+      await widget.onPassword();
+      if (!mounted || !widget.vault().hasPassword) return;
     }
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => Readable(child: DeleteVaultScreen(libraryDir: widget.libraryDir, vault: widget.vault(), sizeText: _sizeText)),
@@ -701,13 +698,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (_) => _then(widget.onToggleBiometric),
                 ),
               ),
-            SettingsRow(
-              icon: Icons.dialpad_rounded,
-              color: SettingsHue.cham,
-              title: l.pinTitle,
-              value: l.change,
-              onTap: () => _guarded(() => Navigator.of(context).push<bool>(fadeRoute((_) => Readable(child: const SetPinScreen())))),
-            ),
             SettingsRow(
               icon: Icons.key_rounded,
               color: SettingsHue.vang,

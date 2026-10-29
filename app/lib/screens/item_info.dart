@@ -25,6 +25,20 @@ String shownName(AppLocalizations l, rust.ItemInfo it) => it.name.isEmpty
         ? it.name.replaceAll(RegExp(r'\.m4a$'), '')
         : it.name;
 
+/// What an item is, in words: "Photo · JPG", "Note", "File · PDF" (the info card, and the
+/// Kind column of a computer's list).
+String itemKindLabel(AppLocalizations l, rust.ItemInfo item) {
+  final dot = item.name.lastIndexOf('.');
+  final ext = dot > 0 ? item.name.substring(dot + 1).toUpperCase() : '';
+  return switch (item.kind) {
+    ItemKind.photo => '${l.kindPhotos}${ext.isEmpty ? '' : ' · $ext'}',
+    ItemKind.video => '${l.cameraVideo}${ext.isEmpty ? '' : ' · $ext'}',
+    ItemKind.note => l.modeNote,
+    ItemKind.audio => l.modeAudio,
+    _ => ext.isEmpty ? l.modeFile : '${l.modeFile} · $ext',
+  };
+}
+
 /// What an item is, in a card: name, kind, size, when it was added, its length, its
 /// [groups] (null: not shown, as in Recently deleted). An item in Recently deleted also
 /// says when it was deleted ([held]: on another device) and until when it is kept. The
@@ -34,15 +48,7 @@ Future<void> showItemInfo(BuildContext context, rust.ItemInfo item, {List<String
   final ml = MaterialLocalizations.of(context);
   String when(DateTime d) =>
       '${ml.formatShortDate(d)}, ${ml.formatTimeOfDay(TimeOfDay.fromDateTime(d), alwaysUse24HourFormat: true)}';
-  final dot = item.name.lastIndexOf('.');
-  final ext = dot > 0 ? item.name.substring(dot + 1).toUpperCase() : '';
-  final kind = switch (item.kind) {
-    ItemKind.photo => '${l.kindPhotos}${ext.isEmpty ? '' : ' · $ext'}',
-    ItemKind.video => '${l.cameraVideo}${ext.isEmpty ? '' : ' · $ext'}',
-    ItemKind.note => l.modeNote,
-    ItemKind.audio => l.modeAudio,
-    _ => ext.isEmpty ? l.modeFile : '${l.modeFile} · $ext',
-  };
+  final kind = itemKindLabel(l, item);
   final ms = item.durationMs?.toInt();
   String clock(int ms) {
     final d = Duration(milliseconds: ms);

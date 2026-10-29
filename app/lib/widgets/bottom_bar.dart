@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../screens/glass.dart' show GlassPill;
 import 'vault_bar.dart' show Glass;
 
 // Every action button sits at the bottom, within the thumb's reach (owner 2026-10-25).
@@ -46,8 +47,8 @@ class BarIcon extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       onPressed: tap == null ? null : () => tap(context),
-      iconSize: 24,
-      style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
+      iconSize: 28,
+      style: IconButton.styleFrom(minimumSize: const Size(Ui.action, Ui.action)),
       icon: Icon(icon, color: tap == null ? null : color ?? Theme.of(context).colorScheme.onSurface),
     );
   }
@@ -115,4 +116,84 @@ class PinnedAction extends StatelessWidget {
           ),
         ],
       );
+}
+
+/// The way out of an item, in its own round glass on the left of an [ActionBar]: × to
+/// close, ✓ to save and leave (a note), ⤡ to leave full screen.
+class LeaveButton {
+  const LeaveButton(this.icon, this.tooltip, this.onTap, {this.key});
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+  final Key? key;
+}
+
+/// An item's actions, one look everywhere (owner 2026-10-29, as the iPhone's own apps):
+/// every button its own glass circle, apart from the others. The way out on the left (×,
+/// ✓, ⤡), [end] on the right (Delete, red, far from the rest so it is not hit by
+/// mistake), the [actions] between them (Open · Send · ⋯). Icons only; the word is the
+/// tooltip. Over a photo or video ([onMedia]) the glass is dark and the icons white.
+class ActionBar extends StatelessWidget {
+  const ActionBar({super.key, this.leave, required this.actions, this.end, this.onMedia = false, this.inset = true, this.barKey});
+
+  final LeaveButton? leave;
+  /// [BarIcon]s.
+  final List<Widget> actions;
+  /// Delete: alone on the right.
+  final Widget? end;
+  final bool onMedia;
+  /// Its own margins and the safe area; false where the caller places it.
+  final bool inset;
+  final Key? barKey;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget circle(Widget child) => SizedBox.square(
+          dimension: Ui.action,
+          child: onMedia ? GlassPill(child: Center(child: child)) : Glass(radius: Ui.action / 2, child: Center(child: child)),
+        );
+    final out = leave;
+    Widget row = Row(
+      key: barKey,
+      children: [
+        if (out != null)
+          circle(Builder(
+            builder: (context) => BarIcon(
+              key: out.key,
+              icon: out.icon,
+              tooltip: out.tooltip,
+              onTap: out.onTap == null ? null : (_) => out.onTap!(),
+            ),
+          ))
+        else if (end != null)
+          const SizedBox(width: Ui.action),
+        Expanded(
+          // Spread over the room between the ends; on a narrow phone with many buttons
+          // they shrink together rather than overflow (the iPhone's own bars give way too).
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final (i, a) in actions.indexed) ...[
+                  if (i > 0) const SizedBox(width: 12),
+                  circle(a),
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (end != null) circle(end!) else if (out != null) const SizedBox(width: Ui.action),
+      ],
+    );
+    if (onMedia) {
+      final t = Theme.of(context);
+      row = Theme(data: t.copyWith(colorScheme: t.colorScheme.copyWith(onSurface: Colors.white)), child: row);
+    }
+    if (!inset) return row;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(Ui.side, 6, Ui.side, Ui.edge + MediaQuery.paddingOf(context).bottom),
+      child: row,
+    );
+  }
 }

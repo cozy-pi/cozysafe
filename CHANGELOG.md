@@ -4,6 +4,37 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.85 (2026-10-29)
+
+### Added
+- Creating a vault has a step to turn on Face ID or Touch ID right after the password.
+- Recovery Key: Save to a file now saves a real .txt file (Save to Files on a phone, a
+  Save dialog on a computer), after a short reminder of where to keep it. The copy the
+  phone shares from is deleted right away.
+- Wherever you type the 24 words back (restore, join from Google Drive, check), Open a
+  file reads them from that .txt file.
+- Under a preview, the item's name, photos and videos too, on one line.
+- Computers: lists like Finder's (Name, Kind, Size, Date; click a column to sort), a
+  one-line toolbar with search, a status line, and Settings, Recently deleted and Sync in
+  the main column beside the sidebar.
+
+### Changed
+- No more PIN. A vault opens with Face ID, Touch ID or fingerprint, or with its password.
+  Existing PINs are forgotten once a vault has a password; deleting a vault asks for the
+  password.
+- One look for buttons, after the iPhone's own apps: every action is its own round
+  button, Close on the left and Delete in red on the right; icons only.
+- Section headers: a bigger title with the number of items under it; Select and Sort are
+  in the ⋯ button. Recently deleted has Select in its ⋯ too.
+- Back on every page is a round button; text fields and selection marks look the same
+  everywhere; menu icons are all line icons.
+- On a computer the password field is ready to type into as soon as the lock screen shows.
+
+### Fixed
+- iPhone: coming back to the app no longer shows the vault for a moment before the lock
+  screen.
+- Library: no empty strip under the last photos.
+
 ## 0.1.84 (2026-10-28)
 
 ### Added

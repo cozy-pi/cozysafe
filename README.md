@@ -19,8 +19,8 @@ Cozy Safe does about it; the details are in the linked documents.
 | **someone copies your files or your backup** | encrypts everything on the device before it is written, with a key that needs both your vault password and your Recovery Key (24 words) kept in the device's keystore ([how](#how-your-data-is-protected)) |
 | **someone picks up your phone while a vault is open** | locks the vault as soon as the app leaves the screen (60 seconds of grace only when the app itself opened the share sheet or a picker), and after a few minutes without a touch (2 by default) |
 | **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Recovery Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher and while the screen is being recorded, and warns after a screenshot (iPhone); blocks screenshots and screen recording (Android, and iPhone through a secure layer) |
-| **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing the PIN or auto-lock, backups, the Recovery Key, showing note text, deleting a vault ([rules](docs/security.md)) |
-| **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; each vault has its own PIN and only its icon and colour tell it apart |
+| **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing auto-lock, backups, the Recovery Key, showing note text, deleting a vault ([rules](docs/security.md)) |
+| **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; only its icon and colour tell a vault apart |
 | **something is left behind on the device** | encodes camera photos in memory (never the photo library, no location data); videos, voice memos and files being played or sent exist only as copies in the app's private temporary folder, deleted when done, on lock and at every start |
 | **a library tries to send data out** | no server of ours and no analytics: only one part of the app can open a connection, only when you allow it, only to a device on your Wi‑Fi or to Google Drive's API (if you turn Drive sync on), and only encrypted files ever leave; network calls switched off everywhere else, and every library reviewed before it gets in ([below](#no-library-can-send-your-data-out)) |
 | **someone tampers with a build** | builds in the open on GitHub, with every third-party action pinned to an exact commit; signing and store keys never reach the jobs that run other people's build code; every release file carries a build-provenance attestation, and the macOS app is notarized by Apple ([supply chain](docs/supply-chain.md)) |
@@ -108,8 +108,8 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 
 - **One vault per device**, with its own icon and colour; nothing on disk says what is
   inside or how it is used. (The core supports several; the app shows one.)
-- Unlock with Face ID or fingerprint, the vault's PIN, or its password. Wrong PINs
-  make you wait longer each time.
+- Unlock with Face ID, Touch ID or fingerprint, or the vault password (no PIN: a
+  short code was the weakest way in). Wrong passwords make you wait longer each time.
 - **Photos and videos:** take them inside the app (never in the photo library, no
   location data) or add them from the device. **Notes**, **voice memos** and **any
   file**, with a PDF viewer inside the app.
@@ -177,7 +177,8 @@ Every file has a GitHub build-provenance attestation:
 
 ## How your data is protected
 
-- **Two kinds of key.** Every day: PIN or Face ID, on this device only. On a new or
+- **Two kinds of key.** Every day: Face ID (or Touch ID, a fingerprint) on this device,
+  or the vault password. On a new or
   lost device: the **Recovery Key** plus the **vault password**, both needed.
 - **The Recovery Key** is a 256-bit secret made on your device, shown as 24 BIP39
   words like a hardware wallet's, and kept in its keystore (Keychain, Android Keystore,
@@ -191,10 +192,10 @@ Every file has a GitHub build-provenance attestation:
 - **Argon2id** stretches the password (128 MiB on phones, 512 MiB on computers);
   **XChaCha20-Poly1305** encrypts everything, file content in 64 KiB chunks so
   multi-gigabyte files need little memory. Each item has its own random key.
-- **Face ID, fingerprint and PIN** only unwrap a copy of the vault key held for this
-  device. The PIN is combined with a random key in the device keystore, so vault
-  files copied elsewhere can't be brute-forced with the PIN. From the fifth wrong PIN
-  you wait longer each time (1, 5, 15, then 60 minutes); nothing is wiped.
+- **Face ID, Touch ID and fingerprint** only unwrap a copy of the vault key held for
+  this device, behind the device's secure chip; a new or removed finger or face turns
+  it off. There is no PIN (removed 2026-10-28): the fallback is the vault password,
+  where wrong tries make you wait longer each time.
 - **No recovery.** Lose the vault password, or both the device and the Recovery Key, and
   the data is gone. Nobody, including us, can open it.
 

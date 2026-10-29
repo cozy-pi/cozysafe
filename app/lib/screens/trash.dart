@@ -6,7 +6,6 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/private_thumb.dart';
-import '../widgets/bottom_bar.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/drag_select.dart';
 import '../widgets/item_menu.dart';
@@ -159,10 +158,10 @@ class _TrashScreenState extends State<TrashScreen> {
     if (_selecting) return _toggle(it);
     final l = AppLocalizations.of(context);
     await showItemMenu(context, title: shownName(l, it), entries: [
-      MenuEntry(Icons.restore_from_trash_rounded, l.restore, () => _restore([it]), key: const ValueKey('menu-restore')),
-      MenuEntry(Icons.info_rounded, l.info, () => showItemInfo(context, it, held: _held.contains(it.id)),
+      MenuEntry(Icons.restore_from_trash_outlined, l.restore, () => _restore([it]), key: const ValueKey('menu-restore')),
+      MenuEntry(Icons.info_outline_rounded, l.info, () => showItemInfo(context, it, held: _held.contains(it.id)),
           key: const ValueKey('menu-info')),
-      MenuEntry(Icons.delete_forever_rounded, l.deleteForGoodShort, () => _deleteForGood([it]),
+      MenuEntry(Icons.delete_forever_outlined, l.deleteForGoodShort, () => _deleteForGood([it]),
           danger: true, key: const ValueKey('menu-purge')),
     ]);
   }
@@ -217,6 +216,22 @@ class _TrashScreenState extends State<TrashScreen> {
                 : _picked.isEmpty
                     ? l.selectItems
                     : l.selectedCount(_picked.length)),
+            // Select in the header's ⋯, as in the vault's sections (docs/design-language.md).
+            actions: [
+              if (!_selecting && items != null && items.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(right: Ui.side - 4),
+                  child: GlassButton(
+                    key: const ValueKey('trash-more'),
+                    icon: Icons.more_horiz,
+                    tooltip: l.more,
+                    onTap: () => showItemMenu(context, entries: [
+                      MenuEntry(Icons.check_circle_outline_rounded, l.select, () => setState(() => _selectMode = true),
+                          key: const ValueKey('trash-select')),
+                    ]),
+                  ),
+                ),
+            ],
           ),
           body: items == null
               ? const Center(child: CircularProgressIndicator())
@@ -243,7 +258,7 @@ class _TrashScreenState extends State<TrashScreen> {
                         ),
                       ),
                     ),
-          // Every action at the bottom (owner 2026-10-25): Select; while selecting, the
+          // While selecting, the
           // vault's selection bar with Restore and Delete for good (red), acting on the
           // selection only.
           bottomNavigationBar: (items == null || items.isEmpty)
@@ -263,14 +278,7 @@ class _TrashScreenState extends State<TrashScreen> {
                             color: recordRed(context), key: const ValueKey('trash-purge')),
                       ],
                     )
-                  : BottomBar(
-                      children: [
-                        BarText(
-                            key: const ValueKey('trash-select'),
-                            label: l.select,
-                            onTap: () => setState(() => _selectMode = true)),
-                      ],
-                    ),
+                  : null,
         ),
       ),
     );

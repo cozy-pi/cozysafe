@@ -56,9 +56,9 @@ class SecurityInfoScreen extends StatelessWidget {
               blue),
           section(2, l.secDailyTitle, null,
               _Flow([
-                _Node(Icons.dialpad_rounded, 'PIN', green),
-                const _Or(),
                 _NodeWidget(const FaceIdGlyph(size: 26, color: Colors.white), 'Face ID', green),
+                const _Or(),
+                _Node(Icons.password_rounded, l.secPassword, green),
                 _Node(Icons.smartphone_rounded, l.secThisPhone, green, strong: true),
               ]),
               green),

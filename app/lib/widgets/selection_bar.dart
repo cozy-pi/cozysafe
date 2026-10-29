@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../theme.dart';
-import 'vault_bar.dart' show Glass;
+import 'bottom_bar.dart';
 
-/// One action of a [SelectionBar]: an icon over a short word.
+/// One action of a [SelectionBar]: an icon; [label] is its tooltip.
 class SelectionAction {
   const SelectionAction(this.icon, this.label, this.onTap, {this.color, this.key});
   final IconData icon;
@@ -41,53 +40,24 @@ class SelectionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final bottom = MediaQuery.paddingOf(context).bottom;
-    final ink = Theme.of(context).colorScheme.onSurface;
-    Widget action(SelectionAction a, {bool always = false}) => Expanded(
-          child: Opacity(
-            opacity: enabled || always ? 1 : .35,
-            child: InkWell(
-              key: a.key,
-              onTap: enabled || always ? a.onTap : null,
-              customBorder: const StadiumBorder(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(a.icon, color: a.color ?? ink),
-                    const SizedBox(height: 3),
-                    // Six buttons on a narrow phone: a long label shrinks rather than wraps.
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(a.label,
-                          maxLines: 1, style: TextStyle(color: a.color ?? ink, fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-    return Padding(
-      padding: EdgeInsets.fromLTRB(10, 0, 10, Ui.edge + bottom),
-      child: Glass(
-        radius: Ui.bar / 2 + 6,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          child: Row(
-            children: [
-              action(SelectionAction(Icons.check_rounded, l.done, onDone, key: const ValueKey('select-done')), always: true),
-              action(
-                  SelectionAction(allSelected ? Icons.deselect_rounded : Icons.select_all_rounded,
-                      allSelected ? l.deselectAll : l.selectAll, onSelectAll,
-                      key: const ValueKey('select-all')),
-                  always: true),
-              for (final a in actions) action(a),
-            ],
-          ),
+    // Icons only, Done apart on the left like Close on an item (ActionBar, owner
+    // 2026-10-28); each icon's word is its tooltip and what a screen reader says.
+    return ActionBar(
+      leave: LeaveButton(Icons.check_rounded, l.done, onDone, key: const ValueKey('select-done')),
+      actions: [
+        BarIcon(
+          key: const ValueKey('select-all'),
+          icon: allSelected ? Icons.deselect_rounded : Icons.select_all_rounded,
+          tooltip: allSelected ? l.deselectAll : l.selectAll,
+          onTap: (_) => onSelectAll(),
         ),
-      ),
+        for (final a in actions.take(actions.length - 1)) _icon(a),
+      ],
+      // Delete (or Delete for good) is always the last action: alone on the right.
+      end: actions.isEmpty ? null : _icon(actions.last),
     );
   }
+
+  Widget _icon(SelectionAction a) =>
+      BarIcon(key: a.key, icon: a.icon, tooltip: a.label, onTap: enabled ? (_) => a.onTap() : null, color: a.color);
 }

@@ -204,6 +204,22 @@ class PinStore {
       await TryWait.clear(_storage, _until);
     } catch (_) {}
   }
+
+  /// The app no longer offers a PIN (decisions 2026-10-28): drop the PIN of every vault
+  /// that opens with a password, then the device key once no PIN is left. A PIN-only
+  /// vault (made before, never given a password) keeps its PIN and the key.
+  static Future<void> retire(String libraryDir, {
+    required int Function({required String dir}) forgetWithPassword,
+    required List<int> Function({required String dir}) lengths,
+  }) async {
+    try {
+      forgetWithPassword(dir: libraryDir);
+      if (lengths(dir: libraryDir).isNotEmpty) return;
+      await _storage.delete(key: _wrapped);
+      await _storage.delete(key: _key);
+      await resetFails();
+    } catch (_) {} // tried again at the next lock screen
+  }
 }
 
 /// A wait after wrong tries that changing the phone's date and time cannot shorten

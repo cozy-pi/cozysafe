@@ -206,6 +206,21 @@ impl Library {
         Ok(None)
     }
 
+    /// Remove the PIN of every vault that opens with a password. The app no longer
+    /// offers a PIN (decisions 2026-10-28: a 6-digit PIN was the weakest way in); a
+    /// vault made with only a PIN keeps it until it gets a password, or it would be
+    /// locked out. Returns how many PINs were removed.
+    pub fn forget_pins_with_password(dir: &Path) -> Result<usize> {
+        let mut removed = 0;
+        for (vault_dir, _) in pin_files(dir) {
+            if read_header(&vault_dir).is_some_and(|h| h.has_password()) {
+                remove_if_exists(&vault_dir.join(PIN_FILE))?;
+                removed += 1;
+            }
+        }
+        Ok(removed)
+    }
+
     /// Remove every PIN on this device (too many wrong tries, or turned off).
     pub fn forget_pin(dir: &Path) -> Result<()> {
         if let Ok(entries) = fs::read_dir(dir.join(VAULTS_DIR)) {
@@ -275,6 +290,29 @@ mod tests {
         assert!(Library::unlock_pin(tmp.path(), "246802", &device)
             .unwrap()
             .is_none());
+    }
+
+    /// Only vaults with a password lose their PIN; a PIN-only vault keeps it.
+    #[test]
+    fn forgets_pins_only_where_a_password_opens() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
+        let device = SecretKey::generate();
+        let with_pw = l.create_vault("A", pw()).unwrap();
+        with_pw.enable_pin("246802", &device, FAST).unwrap();
+        let pin_only = l
+            .create_vault_with_pin("lock", "teal", "135791", &device, FAST)
+            .unwrap();
+
+        assert_eq!(Library::forget_pins_with_password(tmp.path()).unwrap(), 1);
+        assert!(Library::unlock_pin(tmp.path(), "246802", &device)
+            .unwrap()
+            .is_none());
+        let still = Library::unlock_pin(tmp.path(), "135791", &device)
+            .unwrap()
+            .unwrap();
+        assert_eq!(still.id, pin_only.id);
+        assert_eq!(Library::forget_pins_with_password(tmp.path()).unwrap(), 0);
     }
 
     /// A PIN file from 0.1.0–0.1.6 (format 1, cost at the top level) still unlocks,

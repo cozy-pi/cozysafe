@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../theme.dart';
 
@@ -100,8 +102,9 @@ class SecretField extends StatefulWidget {
     this.paste = false,
   });
 
-  /// A Paste button (the 24 words come from a password manager or a note). The
-  /// clipboard is emptied after, so the words do not linger there.
+  /// A Paste button (the 24 words come from a password manager or a note; the clipboard
+  /// is emptied after, so the words do not linger there) and an Open file button (the
+  /// .txt the app saves, owner 2026-10-29).
   final bool paste;
 
   /// Long secrets (24 words): once shown, the field grows to several lines.
@@ -132,6 +135,26 @@ class _SecretFieldState extends State<SecretField> {
     widget.onChanged?.call(text);
   }
 
+  /// The words from a file (the .txt "Save to a file" writes, or any text with the 24
+  /// words). Numbered lines ("1. word") are read in order; otherwise the whole text.
+  Future<void> _openFile() async {
+    LockGuard.allowAway();
+    XFile? file;
+    try {
+      file = await openFile(acceptedTypeGroups: const [
+        XTypeGroup(label: 'text', extensions: ['txt'], mimeTypes: ['text/plain'], uniformTypeIdentifiers: ['public.plain-text']),
+      ]);
+    } finally {
+      LockGuard.clear();
+    }
+    if (file == null || !mounted) return;
+    final text = wordsFromText(await file.readAsString());
+    if (text.isEmpty || !mounted) return;
+    widget.controller.text = text;
+    widget.controller.selection = TextSelection.collapsed(offset: text.length);
+    widget.onChanged?.call(text);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -157,6 +180,13 @@ class _SecretFieldState extends State<SecretField> {
               icon: const Icon(Icons.content_paste_rounded),
               onPressed: widget.enabled ? _paste : null,
             ),
+          if (widget.paste)
+            IconButton(
+              key: const ValueKey('secret-open-file'),
+              tooltip: l.wordsOpenFile,
+              icon: const Icon(Icons.file_open_outlined),
+              onPressed: widget.enabled ? _openFile : null,
+            ),
           IconButton(
             tooltip: _obscure ? l.showPassword : l.hidePassword,
             icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded),
@@ -168,4 +198,13 @@ class _SecretFieldState extends State<SecretField> {
       onSubmitted: widget.onSubmitted,
     );
   }
+}
+
+/// The 24 words in a text: the numbered lines ("1. word") in order when there are any,
+/// so the title and the note of the saved file are left out; otherwise the whole text.
+String wordsFromText(String text) {
+  final numbered = [
+    for (final m in RegExp(r'^\s*\d+[.)]\s*(\S+)\s*$', multiLine: true).allMatches(text)) m.group(1)!,
+  ];
+  return numbered.isNotEmpty ? numbered.join(' ') : text.trim();
 }
