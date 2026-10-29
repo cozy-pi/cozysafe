@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.90 (2026-10-29)
+
+### Added
+- A light tap you can feel when a vault opens, when you confirm a delete, and for each
+  photo you swipe to in full screen.
+
 ## 0.1.89 (2026-10-29)
 
 ### Changed

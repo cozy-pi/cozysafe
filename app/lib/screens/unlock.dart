@@ -340,6 +340,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
 
   Future<void> _open(rust.VaultInfo vault, {bool offerBiometric = false}) async {
     _leaving = true;
+    // Opened (password, PIN or Face ID): felt as well as seen (owner 2026-10-29).
+    HapticFeedback.mediumImpact();
     _debounce?.cancel();
     _password.clear();
     final l = AppLocalizations.of(context);

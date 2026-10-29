@@ -41,6 +41,8 @@ Future<bool> confirmDelete(
       );
     },
   );
+  // Done: a firmer tap than the one that asked (owner 2026-10-29), for a delete only.
+  if (ok == true && color == null) HapticFeedback.mediumImpact();
   return ok == true;
 }
 
