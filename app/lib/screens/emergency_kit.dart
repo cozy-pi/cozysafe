@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../theme.dart';
+import '../widgets/recovery_words.dart' show saveWordsFile;
 import '../widgets/secret.dart';
 import 'common.dart';
 import '../widgets/toast.dart';
@@ -66,7 +67,9 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
     if (mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
   }
 
+  /// The words as a real .txt file (recovery_words.dart); an old CS1- key as plain text.
   Future<void> _share(BuildContext buttonContext) async {
+    if (_isWords) return saveWordsFile(buttonContext, _words);
     final l = AppLocalizations.of(context);
     final box = buttonContext.findRenderObject() as RenderBox?;
     await SharePlus.instance.share(ShareParams(

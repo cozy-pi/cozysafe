@@ -1,13 +1,17 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
+import '../platform.dart';
 import '../screens/emergency_kit.dart' show WordGrid;
 import '../theme.dart';
 import 'secret.dart';
@@ -39,16 +43,7 @@ class RecoveryWordsPanel extends StatelessWidget {
     if (context.mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
   }
 
-  Future<void> _save(BuildContext button) async {
-    final l = AppLocalizations.of(button);
-    final box = button.findRenderObject() as RenderBox?;
-    final plain = [for (final (i, w) in words.indexed) '${i + 1}. $w'].join('\n');
-    await SharePlus.instance.share(ShareParams(
-      subject: l.kitTitle,
-      text: '${l.kitTitle}\n\n$plain\n\n${l.kitShareNote}',
-      sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-    ));
-  }
+  Future<void> _save(BuildContext button) => saveWordsFile(button, words);
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +72,7 @@ class RecoveryWordsPanel extends StatelessWidget {
             Expanded(
               child: Builder(
                 builder: (b) => OutlinedButton.icon(
+                  key: const ValueKey('words-save'),
                   onPressed: () => _save(b),
                   icon: const Icon(Icons.ios_share, size: 18),
                   label: Text(l.wordsSave),
@@ -176,4 +172,66 @@ class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> with VaultLockA
       ],
     );
   }
+}
+
+/// "Save to a file" writes a real .txt file (owner 2026-10-29: it used to share plain
+/// text, which is not a file): on a computer through the Save dialog; on a phone a file
+/// in the app's temporary folder, handed to the share sheet (Save to Files) and deleted
+/// right after, so the words do not stay on the phone outside the vault.
+Future<void> saveWordsFile(BuildContext button, List<String> words) async {
+  final l = AppLocalizations.of(button);
+  // Where to keep it, first (owner 2026-10-29): no password of its own on the file (a
+  // third secret to forget), a reminder instead.
+  if (await _askBeforeSaving(button) != true || !button.mounted) return;
+  final plain = [for (final (i, w) in words.indexed) '${i + 1}. $w'].join('\n');
+  final text = '${l.kitTitle}\n\n$plain\n\n${l.kitShareNote}\n';
+  final name = '${l.kitTitle} - Cozy Safe.txt'.replaceAll(RegExp(r'[\\/:*?"<>|]'), '-');
+  final box = button.findRenderObject() as RenderBox?;
+  LockGuard.allowAway();
+  try {
+    if (Device.desktop) {
+      final loc = await getSaveLocation(suggestedName: name);
+      if (loc != null) await File(loc.path).writeAsString(text);
+      return;
+    }
+    final tmp = File('${(await getTemporaryDirectory()).path}${Platform.pathSeparator}$name');
+    await tmp.writeAsString(text);
+    try {
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(tmp.path, mimeType: 'text/plain', name: name)],
+        sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      ));
+    } finally {
+      if (tmp.existsSync()) tmp.deleteSync();
+    }
+  } finally {
+    LockGuard.clear();
+  }
+}
+
+Future<bool?> _askBeforeSaving(BuildContext context) {
+  final l = AppLocalizations.of(context);
+  return showModalBottomSheet<bool>(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
+        child: Column(
+          key: const ValueKey('words-save-ask'),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l.wordsSaveAskTitle, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text(l.wordsSaveAskBody, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
+            const SizedBox(height: 16),
+            FilledButton(
+                key: const ValueKey('words-save-go'), onPressed: () => Navigator.pop(context, true), child: Text(l.wordsSaveAskGo)),
+            const SizedBox(height: 6),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+          ],
+        ),
+      ),
+    ),
+  );
 }

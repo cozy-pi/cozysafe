@@ -215,17 +215,35 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   // Button labels derive from the theme's own type scale so they keep its font.
   final label = ThemeData(brightness: brightness).textTheme.labelLarge!;
 
-  OutlineInputBorder field(Color c) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: c, width: 1.5),
+  // One field look everywhere (docs/design-language.md, owner 2026-10-29): a soft grey
+  // rounded field, no outline at rest (the label sits inside, at its top); a ring of ink
+  // only while typing, red on an error.
+  OutlineInputBorder field(Color? c) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: c == null ? BorderSide.none : BorderSide(color: c, width: 1.5),
       );
 
   return ThemeData(
+    // Back on every page is a round button like the header's own (docs/design-language.md,
+    // owner 2026-10-29), not a bare arrow: a [Ui.circle] disc in the ink's tone.
+    actionIconTheme: ActionIconThemeData(
+      backButtonIconBuilder: (context) => DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: tone(dark ? .14 : .06),
+          border: Border.all(color: pen.withValues(alpha: dark ? .14 : .08)),
+        ),
+        child: SizedBox.square(dimension: Ui.circle, child: Icon(Icons.arrow_back_ios_new_rounded, size: 19, color: ink)),
+      ),
+    ),
     colorScheme: scheme,
     scaffoldBackgroundColor: bg,
     cardColor: surface,
     extensions: [colors],
     appBarTheme: AppBarTheme(
+      // Room for the round Back ([actionIconTheme]) at the page's side margin.
+      toolbarHeight: Ui.circle + 16,
+      leadingWidth: Ui.circle + 32,
       backgroundColor: bg,
       foregroundColor: ink,
       elevation: 0,
@@ -241,12 +259,17 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: surface,
-      border: field(colors.border),
-      enabledBorder: field(colors.border),
+      fillColor: colors.soft,
+      border: field(null),
+      enabledBorder: field(null),
       focusedBorder: field(accent),
       errorBorder: field(danger),
       focusedErrorBorder: field(danger),
+    ),
+    // A selection mark is round everywhere, as on a photo (docs/design-language.md).
+    checkboxTheme: CheckboxThemeData(
+      shape: const CircleBorder(),
+      side: BorderSide(color: colors.muted, width: 1.5),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
@@ -295,18 +318,24 @@ abstract final class Ui {
   /// Smallest touch target.
   static const double tap = 48;
   /// Round glass buttons (back, search, settings, close, flip).
-  static const double circle = 48;
+  static const double circle = 44;
   /// The main action (+, record), always within the thumb's reach: as big as the lock
   /// button (owner 2026-10-21: smaller, so it hides less of the content).
   static const double primary = bar;
   /// The bottom glass bar: lock and sections.
-  static const double bar = 56;
+  static const double bar = 62;
+  /// One action of an item (Close, Send, Delete…), each its own circle as big as the
+  /// iPhone's own bottom buttons (owner 2026-10-29: as big as Photos' search, 62; header
+  /// buttons stay [circle]).
+  static const double action = bar;
+  /// The page's side margin, as the iPhone's own apps (20).
+  static const double side = 20;
   /// Chips (groups) and segmented switches.
   static const double chip = 40;
   /// Large add tiles (the add sheet, an empty vault).
   static const double tile = 96;
   /// Corner radius of cards and tiles; buttons are round or stadium-shaped.
-  static const double radius = 18;
+  static const double radius = 24;
   /// Space between the bottom bar, the main action and the screen edge.
   static const double edge = 10;
   /// The main action's bottom above the safe area when on an edge: clear of the bottom bar

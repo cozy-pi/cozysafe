@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
+import '../widgets/bottom_bar.dart';
 import '../widgets/confirm_delete.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
@@ -314,55 +315,31 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                           ),
                         ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Exit at the bottom with the other buttons, in the thumb's reach.
-                            GlassPill(
-                              child: IconButton(
-                                key: const ValueKey('media-exit-full'),
-                                tooltip: widget.playback != null ? l.exitFullScreen : l.close,
-                                onPressed: () => Navigator.of(context).pop(),
-                                icon: Icon(
-                                  widget.playback != null ? Icons.fullscreen_exit_rounded : Icons.close,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Builder(
-                              builder: (b) => GlassPill(
-                                child: TextButton.icon(
-                                  onPressed: _copy == null ? null : () => _send(b),
-                                  style: glassButton,
-                                  icon: const Icon(Icons.ios_share),
-                                  label: glassLabel(l.sendOut),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            GlassPill(
-                              child: TextButton.icon(
-                                key: const ValueKey('video-delete'),
-                                onPressed: _delete,
-                                style: glassDelete,
-                                icon: const Icon(Icons.delete_rounded),
-                                label: glassLabel(l.delete),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            GlassPill(
-                              child: IconButton(
+                        padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+                        // The same bar as every item (ActionBar), dark glass over the video.
+                        child: ActionBar(
+                          onMedia: true,
+                          inset: false,
+                          leave: LeaveButton(
+                            widget.playback != null ? Icons.fullscreen_exit_rounded : Icons.close_rounded,
+                            widget.playback != null ? l.exitFullScreen : l.close,
+                            () => Navigator.of(context).pop(),
+                            key: const ValueKey('media-exit-full'),
+                          ),
+                          actions: [
+                            BarIcon(icon: Icons.ios_share, tooltip: l.sendOut, onTap: _copy == null ? null : _send),
+                            BarIcon(
                                 key: const ValueKey('video-more'),
+                                icon: Icons.more_horiz,
                                 tooltip: l.more,
-                                color: Colors.white,
-                                onPressed: () => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id)),
-                                icon: const Icon(Icons.more_horiz),
-                              ),
-                            ),
+                                onTap: (_) => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id))),
                           ],
+                          end: BarIcon(
+                                key: const ValueKey('video-delete'),
+                                icon: Icons.delete_rounded,
+                                tooltip: l.delete,
+                                onTap: (_) => _delete(),
+                                color: const Color(0xFFFF453A)),
                         ),
                       ),
                     ],

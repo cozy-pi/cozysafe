@@ -287,19 +287,10 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                 )
               else
                 // Otherwise the note's buttons, where the vault bar is: Done saves and
-                // leaves, like Back.
-                BottomBar(
-                  children: [
-                    FilledButton(
-                      key: const ValueKey('note-done'),
-                      onPressed: _saving ? null : _saveAndLeave,
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 44),
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
-                        shape: const StadiumBorder(),
-                      ),
-                      child: Text(l.done, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
-                    ),
+                // leaves, like Back: the ✓ apart on the left (ActionBar), as × is elsewhere.
+                ActionBar(
+                  leave: LeaveButton(Icons.check_rounded, l.done, _saving ? null : _saveAndLeave, key: const ValueKey('note-done')),
+                  actions: [
                     // Send the note as a text file ("Title.txt"); saved first.
                     BarIcon(
                       key: const ValueKey('note-send'),
@@ -309,15 +300,16 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                     ),
                     // A new note has nothing to delete yet: no red button (owner's
                     // testers 2026-10-24: afraid of losing what they typed).
-                    if (widget.item != null)
-                      BarIcon(
+                  ],
+                  end: widget.item == null
+                      ? null
+                      : BarIcon(
                         key: const ValueKey('note-delete'),
                         icon: Icons.delete_rounded,
                         tooltip: l.delete,
                         onTap: _saving ? null : (_) => _delete(),
                         color: recordRed(context),
                       ),
-                  ],
                 ),
             ],
           ),

@@ -197,6 +197,8 @@ void main() {
     _tall(t);
     await t.pumpWidget(_app(const TrashScreen()));
     await _settle(t);
+    await t.tap(find.byKey(const ValueKey('trash-more')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('trash-select')));
     await t.pump();
     // Nothing selected: Delete for good does nothing.

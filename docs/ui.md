@@ -1,5 +1,8 @@
 # UI
 
+> **Start with `docs/design-language.md`**: the short rules, numbers and shared pieces
+> every new screen must use. This file keeps the history and the reasons.
+
 One design, light and dark only (see `requirements.md`, Theming). Brand colours:
 vault green `#165B4C` (deep `#0F3D33`, night `#0B2B24`), gold index `#F3D08E` /
 `#D9A53F`, neutrals from the app theme (`app/lib/theme.dart`).
@@ -59,12 +62,11 @@ in `test/preview_test.dart`; the page lists them at the top and outlines the mar
   subtitle and no item counts.
 - Unlock order (approved 2026-10-19, mockup
   (internal mockup)): biometrics are asked for
-  as soon as the screen shows; then the **PIN pad** if this device has a PIN
-  (a dot per digit typed, no empty placeholders, digits only, checks itself at
-  every PIN length in use, shakes on a wrong PIN, waits grow from the 5th wrong
-  one); then the **password** (type to unlock, no Enter needed), offered only when
-  some vault has one. "Use password" / "Use PIN" switch between them; "Create a
-  new vault" sits under them.
+  as soon as the screen shows; then the **password** (type to unlock, no Enter
+  needed). No PIN since 2026-10-28 (decisions); the PIN pad shows only for a vault
+  made with a PIN and never given a password. On a computer the password field has
+  the blinking caret from the start, and again after Touch ID is cancelled, so it is
+  clear that typing works (owner 2026-10-28).
 - Spacing: at least 32 px between the card (with its "Use password" link) and the
   top row of keys, so the link is never hit instead of 1·2·3 (user report on 0.1.0).
 - The **add dock** (below) fills the bottom, identical to the one inside a
@@ -82,7 +84,7 @@ Mockup: (internal mockup) (v3, learned from
 Apple Photos iOS 26, Google Photos, Files, Proton Drive, Ente Photos).
 
 - Header: the vault's coloured icon (tap: change icon and colour), no text, and a
-  menu: icon and colour · vault password · change PIN · Face ID · back up ·
+  menu: icon and colour · vault password · Face ID · back up ·
   Recovery Key · new vault. Settings and Delete vault join it (review below).
 - Without a vault password, a banner under the header says what is at stake
   (review below) with "Set it".
@@ -144,15 +146,16 @@ flows (internal mockup)
   2. Pick a colour (11 + "⋯" for the full set of 20, hand-picked so no two look
      alike; generated hue steps looked the same). The whole screen background
      takes the colour.
-  3. Set a PIN (4–10 digits). 4. Type it again (checks itself).
-  5. "Unlock with Face ID?" Turn on / Not now. Then the dial turns, into the vault.
+  (Since 2026-10-28 the order is: what each key is for → 24 words → vault password,
+  which makes the vault → "Open with Face ID?" Turn on / Not now, whenever the device
+  has biometrics → icon and colour. No PIN step.)
 - **No vault names.** Icon + colour (35 × 20 = 700 combinations) identify a vault;
   inside the vault only the coloured icon is shown, no text. A new vault (the first one too) starts with a random
   icon and colour from the 11 shown on each grid (grid order stays fixed, only the
   preselection changes), avoiding the open vault's own when created from inside it.
   Combinations are not checked against other vaults: the app cannot see them
   while locked, and a readable list would show how many vaults exist.
-- **No password at the start.** Each vault opens with its own PIN on this device
+- (History, replaced: no PIN since 2026-10-28.) **No password at the start.** Each vault opens with its own PIN on this device
   (a PIN picks its vault, like the password does) and the default vault also
   with Face ID. The **vault password** and the **Recovery Key** are set later, on
   one screen ("Suggest a password", type it again, then the kit with a QR code):
@@ -606,3 +609,22 @@ everywhere, easy to hit with a thumb.
 - With "Lock as soon as I leave the app" off, the lock tip points at Settings: "locks
   after a few minutes without use, also while you are away".
 - Whatever was open on the page (selection, a group, the add column) closes first.
+
+## One look per kind of thing (owner 2026-10-28)
+
+The app stays black and white (approved 2026-10-20); a vault's own colour stays its own.
+This round makes each kind of control look the same everywhere.
+
+- **Action bar** (`ActionBar`, `lib/widgets/bottom_bar.dart`): an open item, the photo
+  and video full screen, a note being edited, selecting many. **Every button its own
+  glass circle** (`Ui.action`, 62, as Photos' search; shrinking together on a narrow phone), apart, as the iPhone's own apps (owner 2026-10-29):
+  the way out on the left (× to close, ✓ to save and leave or end Select, ⤡ to leave full
+  screen), Delete alone on the right in red, the rest between them (Open · Send · ⋯).
+  Icons only; the word is the tooltip. Over a photo or video the glass is dark
+  (`onMedia`). Buttons share one glass only when they are one set to pick from (the
+  section tabs).
+- **iPhone measures** (owner 2026-10-29, from the Photos app): header buttons 44, big
+  title 34 with the item count under it, side margin 20 (`Ui.side`), corners 24, the
+  section bar 62.
+- **Section header**: the big title on the left, then at most Search, ⋯ and Settings.
+  Select and Sort live in the ⋯ (inside a group, also Rename and Delete the group).

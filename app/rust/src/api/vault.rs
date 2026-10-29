@@ -209,6 +209,20 @@ pub fn create_vault(dir: String, name: String, password: String) -> Result<Vault
     Ok(set_open(vault))
 }
 
+/// Create a vault known by its icon and colour, opened by `password`, and leave it
+/// open (the new-vault flow since the PIN went). Runs Argon2id: call it off the UI thread.
+pub fn create_vault_with_password(
+    dir: String,
+    icon: String,
+    color: String,
+    password: String,
+) -> Result<VaultInfo, VaultError> {
+    let password = Zeroizing::new(password);
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let vault = library.create_vault_with_password(&icon, &color, &password)?;
+    Ok(set_open(vault))
+}
+
 /// Open the vault this password belongs to; `None` when no vault matches.
 pub fn unlock(dir: String, password: String) -> Result<Option<VaultInfo>, VaultError> {
     let password = Zeroizing::new(password);
@@ -479,6 +493,14 @@ pub fn pin_enabled() -> bool {
 /// Remove the PIN on this device (too many wrong tries).
 pub fn forget_pin(dir: String) -> Result<(), VaultError> {
     Ok(Library::forget_pin(Path::new(&dir))?)
+}
+
+/// Remove the PIN of every vault here that opens with a password (the app no longer
+/// offers a PIN, decisions 2026-10-28). A PIN-only vault keeps it until it gets a
+/// password. Returns how many were removed.
+#[flutter_rust_bridge::frb(sync)]
+pub fn forget_pins_with_password(dir: String) -> Result<u32, VaultError> {
+    Ok(Library::forget_pins_with_password(Path::new(&dir))? as u32)
 }
 
 /// Create a vault that starts with only a PIN on this device (no password yet) and
@@ -951,16 +973,14 @@ pub fn delete_vault_unopened(dir: String, vault_id: String) -> Result<bool, Vaul
     Ok(true)
 }
 
-/// Delete the open vault from this device, confirmed by its PIN: the PIN must open
-/// this very vault. Locks it. Returns false (nothing deleted) for any other PIN.
-pub fn delete_vault(dir: String, pin: String, device_key: Vec<u8>) -> Result<bool, VaultError> {
-    let pin = Zeroizing::new(pin);
-    let device_key = Zeroizing::new(device_key);
-    let Some(dk) = key_from(&device_key) else {
-        return Ok(false);
-    };
+/// Delete the open vault from this device, confirmed by its password: the password
+/// must open this very vault. Locks it. Returns false (nothing deleted) for any other
+/// password. Runs Argon2id: call it off the UI thread.
+pub fn delete_vault(dir: String, password: String) -> Result<bool, VaultError> {
+    let password = Zeroizing::new(password);
     let open_id = with_open(|v| Ok(v.id.clone()))?;
-    match Library::unlock_pin(Path::new(&dir), &pin, &dk)? {
+    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    match library.unlock(&password)? {
         Some(v) if v.id == open_id => {
             OPEN.clear();
             v.destroy()?;

@@ -163,7 +163,10 @@ import UniformTypeIdentifiers
         }
       }
       channel.setMethodCallHandler { [weak self] call, result in
-        if call.method == "suspendCover" {
+        if call.method == "uncover" {
+          self?.uncover()
+          result(nil)
+        } else if call.method == "suspendCover" {
           self?.coverSuspended = (call.arguments as? Bool) ?? false
           result(nil)
         } else if call.method == "openUrl" {
@@ -218,11 +221,26 @@ import UniformTypeIdentifiers
     covers[ObjectIdentifier(scene)] = cover
   }
 
+  /// Back in the app, the cover stays until Flutter has drawn a new frame (Dart calls
+  /// "uncover", lib/privacy.dart): Flutter does not draw while in the background, so the
+  /// screen still holds the vault as it was left, and lifting the cover at once showed it
+  /// for a moment before the lock screen (owner 2026-10-29). If Dart never answers, the
+  /// cover still goes after a short while rather than leaving a blank app.
   @objc private func sceneDidActivate(_ note: Notification) {
     guard let scene = note.object as? UIWindowScene else { return }
-    covers.removeValue(forKey: ObjectIdentifier(scene))?.removeFromSuperview()
+    let key = ObjectIdentifier(scene)
+    if let cover = covers[key] {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+        if self?.covers[key] === cover { self?.uncover() }
+      }
+    }
     applySecure() // the window exists by now
     captureChanged() // recording may have started while the app was away
+  }
+
+  private func uncover() {
+    for cover in covers.values { cover.removeFromSuperview() }
+    covers.removeAll()
   }
 
   /// Put each app window under a secure text field's layer once, then switch the field's

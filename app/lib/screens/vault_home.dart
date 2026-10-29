@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -41,6 +42,7 @@ import '../widgets/item_menu.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/drag_select.dart';
 import '../widgets/selection_bar.dart';
+import 'desk_table.dart';
 import 'item_info.dart';
 import '../widgets/native_bar.dart';
 import 'overview.dart';
@@ -136,6 +138,32 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// A wide window (iPad, computer): three columns, and the item open beside the list.
   bool _wide = false;
   rust.ItemInfo? _focus;
+
+  /// A wide window's right-hand column (owner 2026-10-28: two columns, not three): the
+  /// list, an open item, Settings, Recently deleted and Sync all show here, the sidebar
+  /// stays beside them.
+  final _mainNav = GlobalKey<NavigatorState>();
+
+  /// The sidebar's Add button and the wide window's body: the ways to add drop from
+  /// just under the button.
+  final _wideAddKey = GlobalKey();
+  final _wideBodyKey = GlobalKey();
+
+  Offset _wideAddDrop() {
+    final button = _wideAddKey.currentContext?.findRenderObject() as RenderBox?;
+    final body = _wideBodyKey.currentContext?.findRenderObject() as RenderBox?;
+    if (button == null || body == null || !button.hasSize) return const Offset(16, 120);
+    return body.globalToLocal(button.localToGlobal(Offset(0, button.size.height + 8)));
+  }
+
+  /// Where a page opens: the right-hand column on a wide window, else over everything.
+  BuildContext get _pageContext => _wide ? (_mainNav.currentContext ?? context) : context;
+
+  /// Back to the list in the right-hand column (a sidebar choice).
+  void _mainBack() {
+    _mainNav.currentState?.popUntil((r) => r.isFirst);
+    _focus = null;
+  }
   /// Library columns in a wide window: as many as fit.
   int _wideCols = 6;
   /// Long-press selection: ids picked for Delete / Send.
@@ -467,6 +495,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       // The lock covers the pages; what floats over them closes (as Cancel), and the item
       // names go until the vault opens again.
       nav.popUntil(keptOnLock);
+      _mainNav.currentState?.popUntil(keptOnLock);
       if (mounted) setState(() => _items = null);
       final opened = await nav.push<rust.VaultInfo>(
         PageRouteBuilder<rust.VaultInfo>(
@@ -887,7 +916,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<void> _openTrash() async {
-    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => Readable(child: const TrashScreen())));
+    final changed = await Navigator.of(_pageContext).push<bool>(MaterialPageRoute(builder: (_) => Readable(child: const TrashScreen())));
     // A swipe back returns null: reload then too.
     if (!_locked && changed != false) _reload();
   }
@@ -895,7 +924,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// [guideFrom]: the User guide goes on in Settings after that many tips here.
   Future<void> _openSettings({SettingsSpot? focus, int? guideFrom}) async {
     final l = AppLocalizations.of(context);
-    await Navigator.of(context).push(MaterialPageRoute<void>(
+    await Navigator.of(_pageContext).push(MaterialPageRoute<void>(
       builder: (_) => Readable(child: SettingsScreen(
         libraryDir: widget.libraryDir,
         vault: () => _vault,
@@ -982,7 +1011,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (_selecting) return _toggle(item.id);
     if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
     // A wide window opens it in the pane beside the list, not over the page.
-    if (_wide && hasPane(context)) return setState(() => _focus = item);
+    if (_wide) return setState(() => _focus = item);
     // Every kind opens the same way: big, over the page you are on, never a jump to
     // another tab (owner 2026-10-21, one design 2026-10-25). Open in its bar goes further:
     // full screen, the note's editor, the file's own page.
@@ -1233,20 +1262,20 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     await showItemMenu(context, title: _shownName(l, item), entries: [
       if (open) MenuEntry(Icons.open_in_new_rounded, l.openItem, () => _openItem(item, media), key: const ValueKey('menu-open')),
-      MenuEntry(Icons.check_circle_rounded, l.select, () => setState(() {
+      MenuEntry(Icons.check_circle_outline_rounded, l.select, () => setState(() {
             _selectMode = true;
             _selected.add(item.id);
           }), key: const ValueKey('menu-select')),
       if (item.kind != ItemKind.note)
-        MenuEntry(Icons.edit_rounded, l.rename, () => _rename(item), key: const ValueKey('menu-rename')),
+        MenuEntry(Icons.edit_outlined, l.rename, () => _rename(item), key: const ValueKey('menu-rename')),
       MenuEntry(item.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded, item.isFavorite ? l.unfavorite : l.favorite,
           () => _toggleFavorite(item), key: const ValueKey('menu-favorite')),
-      MenuEntry(Icons.sell_rounded, l.tagAction, () => _onlyThis(item, _tagSelected), key: const ValueKey('menu-group')),
-      MenuEntry(Icons.info_rounded, l.info, () => _info(item), key: const ValueKey('menu-info')),
+      MenuEntry(Icons.sell_outlined, l.tagAction, () => _onlyThis(item, _tagSelected), key: const ValueKey('menu-group')),
+      MenuEntry(Icons.info_outline_rounded, l.info, () => _info(item), key: const ValueKey('menu-info')),
       // Older versions of it, to look at or bring back (owner 2026-10-27).
       MenuEntry(Icons.history_rounded, l.versionHistory, () => _history(item), key: const ValueKey('menu-history')),
       MenuEntry(Icons.ios_share, l.sendOut, () => _onlyThis(item, _sendSelected), key: const ValueKey('menu-send')),
-      MenuEntry(Icons.delete_rounded, l.delete, () async {
+      MenuEntry(Icons.delete_outline_rounded, l.delete, () async {
         if (!await confirmTrash(context, count: 1, name: _shownName(l, item)) || !mounted) return;
         await rust.trashItem(id: item.id, nowMs: nowMs());
         _reload();
@@ -1260,8 +1289,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     await showItemMenu(context, title: tag.name, entries: [
       MenuEntry(Icons.open_in_new_rounded, l.openItem, () => setState(() => _tagId = tag.id)),
-      MenuEntry(Icons.edit_rounded, l.renameTag, () => _renameTag(tag), key: const ValueKey('menu-rename-tag')),
-      MenuEntry(Icons.delete_rounded, l.deleteTag, () => _deleteTag(tag), danger: true),
+      MenuEntry(Icons.edit_outlined, l.renameTag, () => _renameTag(tag), key: const ValueKey('menu-rename-tag')),
+      MenuEntry(Icons.delete_outline_rounded, l.deleteTag, () => _deleteTag(tag), danger: true),
     ]);
   }
 
@@ -1308,9 +1337,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     return m.isEmpty ? m : m[0].toUpperCase() + m.substring(1); // "tháng 9" → "Tháng 9"
   }
 
-  /// Room under the content for the floating bar and the button above the lock, so
-  /// neither ever hides the last row.
-  double get _bottomRoom => MediaQuery.paddingOf(context).bottom + 150;
+  /// Room under the content for the floating bar (and the + above it when it floats on a
+  /// side), so neither hides the last row, and no more: the last row rests just above
+  /// the bar, as in Photos. A flat 150 left a bare strip under the photos, black in dark
+  /// mode (owner 2026-10-29). A wide window has no bar.
+  double get _bottomRoom {
+    if (_wide) return 24;
+    final top = actionSide() == ActionSide.center ? Ui.edge + Ui.bar + 8 : Ui.actionLift + Ui.primary;
+    return MediaQuery.paddingOf(context).bottom + top + 12;
+  }
 
   /// Library: photos and videos, by date, small squares like Photos.
   Widget _library(BuildContext context, List<rust.ItemInfo> media) {
@@ -1720,6 +1755,164 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
+  // ---------- a computer's window, as Finder (owner 2026-10-28) ----------
+
+  /// A computer's wide window: small rows, a toolbar, a status line (not on an iPad,
+  /// which is touched).
+  bool get _desk => _wide && Device.desktop;
+
+  bool get _deskSectionHasViews =>
+      _section == VaultSection.library || _section == VaultSection.file || _section == VaultSection.note;
+
+  /// List (columns) or icons, per section; files and notes start as a list, photos as icons.
+  bool get _deskList {
+    if (!_desk || !_deskSectionHasViews) return false;
+    final saved = Prefs.read('desk-view-${_section.name}');
+    return saved == null ? _section != VaultSection.library : saved == 'list';
+  }
+
+  void _setDeskList(bool list) => setState(() => Prefs.write('desk-view-${_section.name}', list ? 'list' : 'icons'));
+
+  (DeskColumn, bool) get _deskSort {
+    final saved = Prefs.read('desk-sort-${_section.name}')?.split(':');
+    final col = DeskColumn.values.where((c) => c.name == saved?.first).firstOrNull ?? DeskColumn.date;
+    return (col, saved != null && saved.length > 1 ? saved[1] == 'asc' : col == DeskColumn.name || col == DeskColumn.kind);
+  }
+
+  /// A header clicked: by that column, or the other way when it already is.
+  void _deskSortBy(DeskColumn col) {
+    final (now, asc) = _deskSort;
+    final up = now == col ? !asc : col == DeskColumn.name || col == DeskColumn.kind;
+    setState(() => Prefs.write('desk-sort-${_section.name}', '${col.name}:${up ? 'asc' : 'desc'}'));
+  }
+
+  Widget _deskTable(List<rust.ItemInfo> shown) {
+    if (shown.isEmpty) return _list(context, shown, notes: _section == VaultSection.note);
+    final l = AppLocalizations.of(context);
+    final (col, asc) = _deskSort;
+    final added = _section == VaultSection.library;
+    int by(rust.ItemInfo a, rust.ItemInfo b) => switch (col) {
+          DeskColumn.name => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          DeskColumn.kind => itemKindLabel(l, a).compareTo(itemKindLabel(l, b)),
+          DeskColumn.size => a.sizeBytes.compareTo(b.sizeBytes),
+          DeskColumn.date => (added ? a.createdMs : a.modifiedMs).compareTo(added ? b.createdMs : b.modifiedMs),
+        };
+    final rows = [...shown]..sort((a, b) => asc ? by(a, b) : by(b, a));
+    _dragOrder = [for (final it in rows) it.id];
+    final media = rows.where(_isMedia).toList();
+    return DeskTable(
+      items: rows,
+      thumbnail: (it) => _isMedia(it) ? _thumbnail(it.id) : null,
+      onOpen: (it) => _openItem(it, media),
+      onMenu: (it) => _itemMenu(it, media),
+      sortColumn: col,
+      ascending: asc,
+      onSort: _deskSortBy,
+      selected: _selected,
+      selecting: _selecting,
+      onToggle: _toggle,
+      dateIsAdded: added,
+    );
+  }
+
+  /// One toolbar line (Finder's): the place, then the views, order, Select and Search.
+  Widget _deskBar(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final open = _openTag;
+    final any = _items != null && !_empty && _shown(_items!).isNotEmpty;
+    Widget view(bool list, IconData icon, String tip) {
+      final on = _deskList == list;
+      return Tooltip(
+        message: tip,
+        child: InkWell(
+          key: ValueKey(list ? 'desk-view-list' : 'desk-view-icons'),
+          borderRadius: BorderRadius.circular(6),
+          onTap: () => _setDeskList(list),
+          child: Container(
+            width: 32,
+            height: 26,
+            decoration: BoxDecoration(color: on ? ink.withValues(alpha: .12) : null, borderRadius: BorderRadius.circular(6)),
+            child: Icon(icon, size: 18, color: on ? ink : c.muted),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.border))),
+      child: Row(children: [
+        if (open != null)
+          IconButton(
+              tooltip: l.back, icon: const Icon(Icons.chevron_left_rounded), onPressed: () => setState(() => _tagId = null)),
+        Expanded(
+          child: Text(
+            open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
+            key: const ValueKey('vault-title'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+        ),
+        if (_deskSectionHasViews && any) ...[
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(color: ink.withValues(alpha: .05), borderRadius: BorderRadius.circular(8)),
+            child: Row(children: [
+              view(false, Icons.grid_view_rounded, l.viewGrid),
+              view(true, Icons.view_list_rounded, l.viewList),
+            ]),
+          ),
+          const SizedBox(width: 6),
+        ],
+        // Icons order with the menu; a list orders by its headers.
+        if (any && !_deskList && _section != VaultSection.home)
+          IconButton(key: const ValueKey('sort-button'), tooltip: l.sortBy, icon: const Icon(Icons.swap_vert_rounded, size: 20), onPressed: _sortMenu),
+        if (any && _section != VaultSection.home)
+          TextButton(key: const ValueKey('select-button'), onPressed: () => setState(() => _selectMode = true), child: Text(l.select)),
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 220,
+          height: 30,
+          child: Material(
+            color: ink.withValues(alpha: .06),
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              key: const ValueKey('desk-search'),
+              borderRadius: BorderRadius.circular(8),
+              onTap: _openSearch,
+              child: Row(children: [
+                const SizedBox(width: 8),
+                Icon(Icons.search, size: 17, color: c.muted),
+                const SizedBox(width: 6),
+                Text(l.search, style: TextStyle(fontSize: 13, color: c.muted)),
+              ]),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  /// Finder's status line: how many, how big, of what is shown.
+  Widget _deskStatus(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final shown = _items == null || _empty ? const <rust.ItemInfo>[] : _shown(_items!).where((i) => i.kind != ItemKind.tag).toList();
+    final bytes = shown.fold<BigInt>(BigInt.zero, (a, i) => a + i.sizeBytes);
+    return Container(
+      key: const ValueKey('desk-status'),
+      height: 26,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: c.border))),
+      child: Text(shown.isEmpty ? '' : l.storageUsed(fileSize(bytes), shown.length),
+          style: TextStyle(fontSize: 12, color: c.muted)),
+    );
+  }
+
   Widget _content(BuildContext context) {
     final items = _items;
     if (items == null) return const Center(child: CircularProgressIndicator());
@@ -1731,6 +1924,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       );
     }
     final shown = _shown(items);
+    if (_deskList) return _deskTable(shown);
     return switch (_section) {
       VaultSection.home => _home(context, items),
       VaultSection.note => _list(context, shown, notes: true),
@@ -1772,7 +1966,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 4),
-          Material(
+          // A computer has Search in its toolbar.
+          if (!_desk) Material(
             key: const ValueKey('home-search'),
             color: ink.withValues(alpha: .07),
             shape: const StadiumBorder(),
@@ -1841,8 +2036,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Widget _header(BuildContext context) {
     final l = AppLocalizations.of(context);
     final open = _openTag;
+    // Under the big title, how many items it holds, as the iPhone's Photos (owner
+    // 2026-10-29); not on the home tab, which shows its own sizes.
+    final count = _section == VaultSection.home || _items == null || _empty ? null : _shown(_items!).length;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+      padding: const EdgeInsets.fromLTRB(Ui.side, 8, Ui.side, 4),
       child: Row(
         children: [
           // No vault icon here: it shows once when the vault opens; change it in Settings.
@@ -1865,46 +2063,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   key: const ValueKey('vault-title'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: open != null ? 26 : 28, fontWeight: FontWeight.w800, letterSpacing: -.5),
+                  style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w800, letterSpacing: -.5),
                 ),
+                if (count != null)
+                  Text(l.itemsCount(count),
+                      key: const ValueKey('vault-count'),
+                      style: TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
               ],
             ),
           ),
-          if (open != null) ...[
-            PopupMenuButton<int>(
-              tooltip: l.tagOptions,
-              onSelected: (v) => v == 0 ? _renameTag(open) : _deleteTag(open),
-              itemBuilder: (context) => [
-                PopupMenuItem(value: 0, child: Text(l.renameTag)),
-                PopupMenuItem(value: 1, child: Text(l.deleteTag)),
-              ],
-              child: const IgnorePointer(child: GlassButton(icon: Icons.more_horiz, tooltip: '', size: Ui.circle, onTap: null)),
-            ),
-            const SizedBox(width: 8),
-          ],
-          // Select, as in Files: choose many, then act on them in the bar.
-          if (_items != null && !_empty && _shown(_items!).isNotEmpty) ...[
-            SizedBox(
-              height: Ui.circle,
-              child: Glass(
-                radius: Ui.circle / 2,
-                child: InkWell(
-                  key: const ValueKey('select-button'),
-                  customBorder: const StadiumBorder(),
-                  onTap: () => setState(() => _selectMode = true),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Center(child: Text(l.select, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600))),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          // Sort (and, for files, grid or list), as in Files.
-          if (_section != VaultSection.home && _items != null && !_empty && _shown(_items!).length > 1) ...[
-            GlassButton(
-                key: const ValueKey('sort-button'), icon: Icons.swap_vert_rounded, tooltip: l.sortBy, size: Ui.circle, onTap: _sortMenu),
+          // Select, sort and the group's own actions in one ⋯ (owner 2026-10-28: the
+          // header had four buttons and a word; now Search, ⋯ and Settings at most).
+          if (_moreEntries(l, open).isNotEmpty) ...[
+            GlassButton(key: const ValueKey('more-button'), icon: Icons.more_horiz, tooltip: l.more, size: Ui.circle, onTap: () => _moreMenu(open)),
             const SizedBox(width: 8),
           ],
           // The home tab has its own search field.
@@ -1933,13 +2104,33 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
-  /// Three columns (owner 2026-10-27, iPad and computer): the sidebar, the list, and the
-  /// open item. No bar at the bottom: the sidebar holds the sections, Add and Lock.
+  /// What the header's ⋯ offers: Select, Sort, and inside a group its rename and delete.
+  List<MenuEntry> _moreEntries(AppLocalizations l, rust.ItemInfo? open) {
+    final shown = _items == null || _empty ? const <rust.ItemInfo>[] : _shown(_items!);
+    return [
+      if (shown.isNotEmpty)
+        MenuEntry(Icons.check_circle_outline_rounded, l.select, () => setState(() => _selectMode = true), key: const ValueKey('select-button')),
+      if (_section != VaultSection.home && shown.length > 1)
+        MenuEntry(Icons.swap_vert_rounded, l.sortBy, _sortMenu, key: const ValueKey('sort-button')),
+      if (open != null) ...[
+        MenuEntry(Icons.edit_outlined, l.renameTag, () => _renameTag(open), key: const ValueKey('rename-tag')),
+        MenuEntry(Icons.delete_outline_rounded, l.deleteTag, () => _deleteTag(open), danger: true, key: const ValueKey('delete-tag')),
+      ],
+    ];
+  }
+
+  Future<void> _moreMenu(rust.ItemInfo? open) =>
+      showItemMenu(context, entries: _moreEntries(AppLocalizations.of(context), open));
+
+  /// Two columns (owner 2026-10-28, iPad and computer; three before): the sidebar, always
+  /// there, and the main column, which shows the list, or the item opened from it, or
+  /// Settings, Recently deleted or Sync. No bar at the bottom: the sidebar holds the
+  /// sections, Add and Lock.
   Widget _wideLayout(BuildContext context, Widget header, Widget? banner, List<VaultSection> sections, bool empty) {
     final selecting = _selecting;
     final width = MediaQuery.sizeOf(context).width;
-    final focus = hasPane(context) && _focus != null && (_items ?? const <rust.ItemInfo>[]).any((i) => i.id == _focus!.id) ? _focus : null;
-    final listWidth = width - sidebarWidth - 1 - (focus != null ? paneWidth + 1 : 0);
+    final focus = _focus != null && (_items ?? const <rust.ItemInfo>[]).any((i) => i.id == _focus!.id) ? _focus : null;
+    final listWidth = width - sidebarWidth - 1;
     _wideCols = (listWidth / 130).floor().clamp(3, 10);
     final items = _items ?? const <rust.ItemInfo>[];
     int count(String tagId) => items.where((i) => i.kind != ItemKind.tag && i.tagIds.contains(tagId)).length;
@@ -1960,42 +2151,67 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 onDelete: _deleteSelected)
             : null,
         body: SafeArea(
-          child: Row(
+          child: Stack(
+            key: _wideBodyKey,
+            children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
                 width: sidebarWidth,
                 child: WideSidebar(
+                  addKey: _wideAddKey,
                   vault: _vault,
                   sections: sections.isEmpty ? const [VaultSection.home] : sections,
                   section: _section,
                   groups: groups,
                   groupId: _tagId,
                   onSection: (s) => setState(() {
+                    _mainBack();
                     _tagId = null;
                     _pickSection(s);
                   }),
-                  onGroup: (id) => setState(() => _tagId = id),
+                  onGroup: (id) => setState(() {
+                    _mainBack();
+                    _tagId = id;
+                  }),
                   onAdd: () => setState(() {
                     _adding = true;
                     _openAdd();
                   }),
-                  onSync: () => pushPage<void>(context,
-                      title: AppLocalizations.of(context).syncTitle, grouped: true,
-                      builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
-                  onTrash: _openTrash,
-                  onSettings: _openSettings,
+                  onSync: () {
+                    setState(_mainBack);
+                    pushPage<void>(_pageContext,
+                        title: AppLocalizations.of(context).syncTitle, grouped: true,
+                        builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload));
+                  },
+                  onTrash: () {
+                    setState(_mainBack);
+                    _openTrash();
+                  },
+                  onSettings: () {
+                    setState(_mainBack);
+                    _openSettings();
+                  },
                   onLock: _lock,
                 ),
               ),
               divider,
               Expanded(
-                child: Stack(
+                // Pages opened here (Settings, Recently deleted, Sync, and what they open)
+                // stay in this column; the sidebar stays beside them.
+                child: Navigator(
+                  key: _mainNav,
+                  onDidRemovePage: (_) {},
+                  pages: [
+                    MaterialPage<void>(
+                      key: const ValueKey('vault-main'),
+                      child: focus != null ? _wideItem(context, focus) : Stack(
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        header,
+                        if (_desk) _deskBar(context) else header,
                         ?banner,
                         Expanded(
                           child: DragSelectArea(
@@ -2017,55 +2233,74 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                             ),
                           ),
                         ),
+                        if (_desk && _section != VaultSection.home) _deskStatus(context),
                       ],
                     ),
-                    if (_addShown)
-                      Positioned.fill(
-                        child: AddCardOverlay(
-                          open: _adding,
-                          onGone: () => setState(() => _addShown = false),
-                          ways: addWays(AppLocalizations.of(context),
-                              camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
-                          bottom: 24,
-                          hovered: _hover,
-                          onPick: _pickAdd,
-                          onClose: _closeAdd,
-                        ),
-                      ),
+                  ],
+                ),
+                    ),
                   ],
                 ),
               ),
-              if (focus != null) ...[
-                divider,
-                SizedBox(
-                  width: paneWidth,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: IconButton(
-                          key: const ValueKey('wide-pane-close'),
-                          tooltip: AppLocalizations.of(context).close,
-                          onPressed: () => setState(() => _focus = null),
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ),
-                      Expanded(
-                        child: QuickLook(
-                          key: ValueKey('pane-${focus.id}'),
-                          item: focus,
-                          vaultId: _vault.id,
-                          onResult: (r) => _paneResult(focus, r),
-                        ),
-                      ),
-                    ],
+            ],
+          ),
+              // The ways to add, dropping from under the sidebar's Add button.
+              if (_addShown)
+                Positioned.fill(
+                  child: AddCardOverlay(
+                    open: _adding,
+                    onGone: () => setState(() => _addShown = false),
+                    ways: addWays(AppLocalizations.of(context),
+                        camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                    bottom: 24,
+                    dropFrom: _wideAddDrop(),
+                    hovered: _hover,
+                    onPick: _pickAdd,
+                    onClose: _closeAdd,
                   ),
                 ),
-              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// The item opened from the list, in the main column in place of the list (a wide
+  /// window): Back returns to the list where it was.
+  Widget _wideItem(BuildContext context, rust.ItemInfo item) {
+    final l = AppLocalizations.of(context);
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+            child: Row(children: [
+              TextButton.icon(
+                key: const ValueKey('wide-item-back'),
+                onPressed: () => setState(() => _focus = null),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: Text(l.back),
+              ),
+            ]),
+          ),
+          Expanded(
+            child: CallbackShortcuts(
+              bindings: {const SingleActivator(LogicalKeyboardKey.escape): () => setState(() => _focus = null)},
+              child: Focus(
+                autofocus: true,
+                child: QuickLook(
+                  key: ValueKey('pane-${item.id}'),
+                  item: item,
+                  vaultId: _vault.id,
+                  onResult: (r) => _paneResult(item, r),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2713,7 +2948,7 @@ class _SelectionBar extends StatelessWidget {
       enabled: enabled,
       actions: [
         SelectionAction(Icons.ios_share, l.sendOut, onSend),
-        SelectionAction(Icons.sell_rounded, l.tagAction, onTag),
+        SelectionAction(Icons.sell_rounded, l.tagAction, onTag, key: const ValueKey('select-group')),
         if (onRename case final rename?) SelectionAction(Icons.edit_rounded, l.rename, rename),
         SelectionAction(Icons.delete_rounded, l.delete, onDelete, color: recordRed(context), key: const ValueKey('select-delete')),
       ],
@@ -2922,7 +3157,7 @@ class _FileTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(item.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
+                Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
                 const SizedBox(height: 2),
                 Text(fileSize(item.sizeBytes), style: TextStyle(color: c.muted, fontSize: CsType.caption1)),
               ],
@@ -3133,7 +3368,7 @@ class _Welcome extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     return ListView(
-      padding: EdgeInsets.fromLTRB(16, 24, 16, bottomPad - 60),
+      padding: EdgeInsets.fromLTRB(16, 24, 16, math.max(24, bottomPad - 60)),
       children: [
         Center(child: VaultBadge(icon: vault.icon, color: vault.color, size: 84)),
         const SizedBox(height: 18),

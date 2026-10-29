@@ -9,6 +9,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cozysafe/biometric.dart';
+import 'package:cozysafe/platform.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/screens/new_vault.dart';
@@ -37,7 +38,7 @@ class _Fake implements RustLibApi {
     if (name.contains('PasswordProblem')) return PasswordProblem.none;
     if (name.contains('PasswordScore')) return 4;
     if (name.contains('HasVaults')) return true;
-    if (name.contains('CreateVaultWithPin')) {
+    if (name.contains('CreateVaultWithPassword')) {
       created++;
       return Future<VaultInfo>.value(_vault);
     }
@@ -80,13 +81,6 @@ Future<void> _settle(WidgetTester t) async {
   await t.pumpAndSettle();
 }
 
-Future<void> _tapDigits(WidgetTester t, String digits) async {
-  for (final d in digits.split('')) {
-    await t.tap(find.text(d).last);
-    await t.pump();
-  }
-}
-
 void main() {
   setUpAll(() => RustLib.initMock(api: _fake = _Fake()));
 
@@ -94,6 +88,8 @@ void main() {
     _fake.created = 0;
     Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
     BiometricUnlock.debugKind = null;
+    // A phone with no biometrics: the test host's own (a Mac's Touch ID) is never asked.
+    Device.debugDesktop = false;
     VaultHomeScreen.debugReveal = false;
     NewVaultScreen.debugWords = List.filled(24, 'word').join(' ');
     SyncScreen.debugLog = const [];
@@ -105,16 +101,19 @@ void main() {
   });
 
   tearDown(() {
+    Device.debugDesktop = null;
     NewVaultScreen.debugWords = null;
     VaultHomeScreen.debugReveal = true;
     SyncScreen.debugLog = null;
     SettingsScreen.debugSyncLog = null;
   });
 
-  testWidgets('the tour shows after a vault is made, and Skip closes it', (t) async {
+  testWidgets('with Face ID, its own step comes right after the password', (t) async {
+    BiometricUnlock.debugKind = BiometricKind.face;
     await _pump(t, _app(const NewVaultScreen(libraryDir: 'lib', first: false)));
     await _settle(t);
-    // What each key is for → the password → the PIN, twice → the look (skipped).
+    // The intro names Face ID as the everyday key.
+    expect(find.byKey(const ValueKey('intro-bio')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('intro-start')));
     await _settle(t);
     const password = 'orange kettle whispers at dawn';
@@ -124,12 +123,29 @@ void main() {
     await t.pump();
     await t.tap(find.byKey(const ValueKey('password-next')));
     await _settle(t);
-    await _tapDigits(t, '135790');
-    await t.tap(find.byKey(const ValueKey('pin-next')));
+    expect(_fake.created, 1);
+    expect(find.byKey(const ValueKey('bio-yes')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('bio-no')));
     await _settle(t);
-    await _tapDigits(t, '135790');
+    expect(find.byKey(const ValueKey('new-vault-skip')), findsOneWidget);
+  });
+
+  testWidgets('the tour shows after a vault is made, and Skip closes it', (t) async {
+    await _pump(t, _app(const NewVaultScreen(libraryDir: 'lib', first: false)));
+    await _settle(t);
+    // What each key is for → the password (makes the vault; no PIN since 2026-10-28) →
+    // the look (skipped). No Face ID on this device, so no Face ID step.
+    await t.tap(find.byKey(const ValueKey('intro-start')));
+    await _settle(t);
+    const password = 'orange kettle whispers at dawn';
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('new-password')), matching: find.byType(TextField)), password);
+    await t.enterText(
+        find.descendant(of: find.byKey(const ValueKey('new-password-again')), matching: find.byType(TextField)), password);
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('password-next')));
     await _settle(t);
     expect(_fake.created, 1);
+    expect(find.byKey(const ValueKey('bio-yes')), findsNothing);
     await t.tap(find.byKey(const ValueKey('new-vault-skip')));
     await _settle(t);
 

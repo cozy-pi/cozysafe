@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
+import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../key_backup.dart';
 import '../secret_key_store.dart';
@@ -22,7 +23,6 @@ import '../widgets/toast.dart';
 import 'common.dart';
 import 'new_vault.dart';
 import 'restore.dart';
-import 'set_pin.dart';
 import 'unlock.dart';
 import 'tour.dart' show TourKind;
 import 'vault_home.dart';
@@ -147,16 +147,14 @@ class RestoreSourceScreen extends StatefulWidget {
 class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
   bool _busy = false;
 
-  /// The vault is open here: keep the words on this device, give it a PIN, go in.
+  /// The vault is open here: keep the words on this device, offer Face ID, go in.
   Future<void> _opened(rust.VaultInfo vault) async {
     final key = rust.parseSecretKey(text: widget.words);
     if (key != null) await SecretKeyStore.write(Uint8List.fromList(key));
     if (!mounted) return;
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => Readable(child: const SetPinScreen(skippable: true, forThisPhone: true))),
-    );
+    await offerBiometric(context);
     if (!mounted) return;
-    await Navigator.of(context).pushAndRemoveUntil(
+    await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute<void>(
           builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, tour: TourKind.restored)),
       (_) => false,
@@ -243,7 +241,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
       if (!mounted) return;
       if (!rust.secretKeyFits(dir: widget.libraryDir, key: key)) {
         // The file is in; these words are not its own. Ask for them again.
-        await Navigator.of(context).pushAndRemoveUntil(
+        await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute<void>(builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: false))),
           (_) => false,
         );
@@ -255,7 +253,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
       if (!mounted) return;
       if (vault == null) {
         // Right words, another password: the unlock screen asks for it.
-        await Navigator.of(context).pushAndRemoveUntil(
+        await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute<void>(builder: (_) => UnlockScreen(libraryDir: widget.libraryDir)),
           (_) => false,
         );

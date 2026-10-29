@@ -73,7 +73,7 @@ class _RestoreScreenState extends State<RestoreScreen> {
       await SecretKeyStore.write(key);
       rust.setSecretKey(key: key);
       if (!mounted) return;
-      await Navigator.of(context).pushAndRemoveUntil(
+      await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => UnlockScreen(libraryDir: widget.libraryDir)),
         (_) => false,
       );

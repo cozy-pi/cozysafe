@@ -15,7 +15,6 @@ time, wherever it is opened from:
 | Setting | Where the check is |
 |---|---|
 | Face ID / fingerprint on or off | `vault_home.dart` `_toggleBiometric` |
-| Change PIN | `settings.dart` (`_guarded`) |
 | Auto-lock time | `settings.dart` (`_guarded`) |
 | Lock as soon as I leave the app (off only; on by default) | `settings.dart` (`_guarded`) |
 | Block screenshots (off only: turning it on only makes the vault safer) | `settings.dart` (`_guarded`) |
@@ -23,7 +22,7 @@ time, wherever it is opened from:
 | Backup password (set or change) | `vault_home.dart` `_password` (also the reminder banner) |
 | Recovery Key (shows the 24 words): Face ID, **then the vault password** (`KitPasswordScreen`, wrong tries share the lock screen's waits) | `vault_home.dart` `_showKit` |
 | Blur thumbnails (off only) | `settings.dart` (`_guarded`) |
-| Delete this vault | `settings.dart` (`_guarded`), then the vault's PIN |
+| Delete this vault | `settings.dart` (`_guarded`), then the vault's password |
 | New vault | `confirmOwner` (lock screen and vault) |
 
 A new security setting gets the same check in the same commit, and a row in this table.
@@ -70,6 +69,10 @@ that needs a provisioning profile the Developer ID build does not have. Instead:
   FLAG_SECURE and, on Android 13+, `setRecentsScreenshotEnabled(false)` even when
   screenshots are allowed (MainActivity). Android 12 and older with screenshots allowed
   can still show a Recents preview.
+- **Coming back never flashes the vault** (iOS, owner 2026-10-29): Flutter draws nothing
+  in the background, so the last frame on screen is still the open vault. The cover
+  stays up when the app comes back until Dart has drawn two new frames (the lock screen)
+  and calls `uncover` (lib/privacy.dart); 1.5 s at most if Dart never answers.
 
 ## A sync finishing behind the lock (0.1.76)
 
@@ -187,20 +190,16 @@ By case:
   preferences: no names, content, keys, paths or network data, so it can be copied into
   a message. The core notes its codes (`api/errors.rs`), Dart reduces every word to
   letters, digits and '-' before writing (`error_log.dart`).
-- **The PIN on the phone** (since 0.1.76, owner 2026-10-26): the device key (32 random
-  bytes, one per device, shared by every vault's PIN) is kept only wrapped by a key made
-  inside the phone's secure hardware (`lib/hw_key.dart`: a Secure Enclave P-256 key with
-  ECIES on iPhone, an Android Keystore AES-GCM key, StrongBox where there is one), so a
-  copy of the keychain/keystore taken off the phone cannot be used to try PINs: every
-  guess has to go through this phone's chip. Keys from before move in on first use;
-  where there is no such hardware (simulators, desktops) the key stays as before. Waits
-  after wrong PINs (4 free tries, then 1, 5, 15 minutes, then 1 hour each) keep the time
-  left, which goes down only while the app runs and by the smaller of the wall clock and
-  a monotonic one: moving the date cannot shorten them. At 10 wrong PINs in a row the PIN
-  copies are removed (`forget_pin`) when the vault has a password to open with; a vault
-  without one keeps its PIN and the waits. Still not like a hardware wallet: the attempt
-  count is kept by the app, so someone with the unlocked phone and full control of it
-  could try PINs there, slowly (each costs an Argon2id run).
+- **No PIN** (since 2026-10-28, decisions): the vault opens with Face ID / Touch ID /
+  fingerprint, held by the device's chip (`biometryCurrentSet`), or with the vault
+  password. The PIN that came before was the weakest way in: 6 digits, and on an
+  unlocked phone under full control (root, jailbreak, forensic tools) the chip could be
+  asked once for the device key and every PIN tried off the phone, since the wait and
+  the wipe after wrong tries were kept by the app. PINs of vaults with a password are
+  removed at the lock screen (`forget_pins_with_password`), and the device key with the
+  last one. A vault made with only a PIN keeps it until it gets a password. Wrong vault
+  passwords still wait (10 free tries of 8 characters or more, then growing waits), on a
+  clock the phone's date cannot move.
 
 Compared with a hardware wallet (Ledger, Trezor): the same 24 BIP39 words once the
 Recovery Key is 256-bit. A hardware wallet keeps its key inside a secure chip that never

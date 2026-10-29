@@ -334,7 +334,7 @@ class _CentreTabs extends StatelessWidget {
                   curve: Curves.easeOutBack,
                   child: s == VaultSection.home && home != null
                       ? home!
-                      : Icon(_icon(s), size: 26, color: on ? primary : ink.withValues(alpha: .7)),
+                      : Icon(_icon(s), size: 28, color: on ? primary : ink.withValues(alpha: .7)),
                 ),
               ),
             ),
@@ -909,8 +909,11 @@ String addWayNote(AppLocalizations l, AddWhat what) => switch (what) {
 /// the quick buttons stay): every way to add with its full name and a line on what it
 /// does, in a card at eye level above the row. Tapping a line is the same as its button.
 class AddCard extends StatefulWidget {
-  const AddCard({super.key, required this.open, required this.ways, required this.onPick, this.hovered});
+  const AddCard({super.key, required this.open, required this.ways, required this.onPick, this.hovered, this.drop = false});
   final bool open;
+  /// Hangs from the top of its space (a menu under a computer's Add button), instead of
+  /// standing on its bottom.
+  final bool drop;
   /// The line under a finger sliding from + (each line is tagged for [AddColumn.wayAt]).
   final AddWhat? hovered;
   /// The ways with their full names ([addWays]).
@@ -947,11 +950,11 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
     final ink = Theme.of(context).colorScheme.onSurface;
     final a = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
     return Align(
-      alignment: Alignment.bottomCenter,
+      alignment: widget.drop ? Alignment.topLeft : Alignment.bottomCenter,
       child: FadeTransition(
         opacity: a,
         child: SlideTransition(
-          position: Tween(begin: const Offset(0, .04), end: Offset.zero).animate(a),
+          position: Tween(begin: Offset(0, widget.drop ? -.04 : .04), end: Offset.zero).animate(a),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 440),
             child: Material(
@@ -1022,11 +1025,15 @@ class AddCardOverlay extends StatelessWidget {
     required this.onPick,
     required this.onClose,
     required this.onGone,
+    this.dropFrom,
   });
   final bool open;
   final List<(AddWhat, IconData, String)> ways;
   /// The card's bottom above the screen's bottom edge.
   final double bottom;
+  /// A computer's window: the card drops from this point (just under the sidebar's Add
+  /// button, owner 2026-10-28: not at the bottom of the window), over a light dim.
+  final Offset? dropFrom;
   final AddWhat? hovered;
   final ValueChanged<AddWhat> onPick;
   final VoidCallback onClose;
@@ -1045,18 +1052,26 @@ class AddCardOverlay extends StatelessWidget {
         Positioned.fill(
           child: GestureDetector(
             onTap: onClose,
-            child: ColoredBox(color: page.withValues(alpha: .92 * t)),
+            child: ColoredBox(color: page.withValues(alpha: (dropFrom != null ? .45 : .92) * t)),
           ),
         ),
         child!,
       ]),
-      child: Positioned(
-        left: 16,
-        right: 16,
-        top: MediaQuery.paddingOf(context).top + 12,
-        bottom: bottom,
-        child: AddCard(open: open, ways: ways, onPick: onPick, hovered: hovered),
-      ),
+      child: dropFrom != null
+          ? Positioned(
+              left: dropFrom!.dx,
+              top: dropFrom!.dy,
+              bottom: bottom,
+              width: 440,
+              child: AddCard(open: open, ways: ways, onPick: onPick, hovered: hovered, drop: true),
+            )
+          : Positioned(
+              left: 16,
+              right: 16,
+              top: MediaQuery.paddingOf(context).top + 12,
+              bottom: bottom,
+              child: AddCard(open: open, ways: ways, onPick: onPick, hovered: hovered),
+            ),
     );
   }
 }

@@ -3,9 +3,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../error_log.dart';
+import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../screens/common.dart';
-import '../screens/set_pin.dart';
 import '../screens/tour.dart' show TourKind;
 import '../screens/vault_home.dart';
 import '../secret_key_store.dart';
@@ -21,7 +21,7 @@ import '../widgets/readable.dart';
 /// A new device with no vault: open the one kept in Google Drive with the 24 words and
 /// the vault password, no backup file (owner 2026-10-24). Sign in, allow the
 /// connection, type the two secrets; the vault comes down sealed, opens here, then this
-/// phone gets its own PIN.
+/// device is offered Face ID / Touch ID.
 class DriveJoinScreen extends StatefulWidget {
   const DriveJoinScreen({super.key, required this.libraryDir, this.words, this.password});
   final String libraryDir;
@@ -123,11 +123,9 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
         )),
       ));
       if (!mounted) return;
-      await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => Readable(child: const SetPinScreen(skippable: true, forThisPhone: true))),
-      );
+      await offerBiometric(context);
       if (!mounted) return;
-      await Navigator.of(context).pushAndRemoveUntil(
+      await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(
             builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, tour: TourKind.restored)),
         (_) => false,

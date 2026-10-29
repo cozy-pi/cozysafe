@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../biometric.dart';
+import '../platform.dart';
 import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
@@ -18,16 +19,15 @@ import 'common.dart';
 import 'debug.dart' show debugModeOn;
 import 'new_vault.dart';
 import 'restore.dart';
-import 'set_pin.dart';
 import 'vault_home.dart';
 import '../theme.dart';
 import '../widgets/drive_logo.dart';
 import '../widgets/readable.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
-/// PIN pad is the fallback; the password is the fallback of the fallback. The add dock
-/// at the bottom is the same as inside the vault: picking an action here unlocks first,
-/// then runs it.
+/// vault password is the fallback (decisions 2026-10-28: no more PIN, it was the
+/// weakest way in). The PIN pad shows only for a vault made with a PIN and never given
+/// a password, until it gets one.
 class UnlockScreen extends StatefulWidget {
   const UnlockScreen({super.key, required this.libraryDir, this.askBiometricNow = true, this.resumeVaultId});
 
@@ -97,6 +97,9 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     // Locked because the app went to the background: ask when it comes back.
     final life = WidgetsBinding.instance.lifecycleState;
     _wasHidden = life == AppLifecycleState.paused || life == AppLifecycleState.hidden;
+    // PINs of vaults that have a password go (decisions 2026-10-28).
+    PinStore.retire(widget.libraryDir,
+        forgetWithPassword: rust.forgetPinsWithPassword, lengths: rust.pinLengths);
     _lengths = rust.pinLengths(dir: widget.libraryDir);
     _anyPassword = rust.anyPassword(dir: widget.libraryDir);
     _mode = _lengths.isNotEmpty ? _Mode.pin : _Mode.password;
@@ -180,11 +183,24 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     } on rust.VaultError catch (e) {
       if (mounted) setState(() => _error = vaultErrorText(l, e));
     } finally {
-      if (mounted && !_leaving) setState(() => _busy = false);
+      if (mounted && !_leaving) {
+        setState(() => _busy = false);
+        _focusOnComputer();
+      }
     }
   }
 
-  // ---------- PIN ----------
+  /// On a computer the keyboard is right there: the password field always has the
+  /// caret, also after Touch ID was asked or cancelled (owner 2026-10-28: nothing showed
+  /// that typing works).
+  void _focusOnComputer() {
+    if (!Device.desktop || _mode != _Mode.password || _leaving) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_focus.hasFocus) _focus.requestFocus();
+    });
+  }
+
+  // ---------- PIN (only a PIN-only vault from before) ----------
 
   void _digit(String d) {
     if (_busy || _waitUntil != null || _pin.length >= _maxLen) return;
@@ -234,6 +250,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
           _mode = _Mode.password;
           _error = l.pinWiped;
         });
+        _focusOnComputer();
         return;
       }
       if (!mounted) return;
@@ -328,13 +345,6 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     final l = AppLocalizations.of(context);
     if (offerBiometric && !rust.hasBiometricUnlock(dir: widget.libraryDir)) {
       await _maybeOfferBiometric(l);
-    }
-    // Opened with the password and no PIN for it here (e.g. restored on a new phone):
-    // offer one now, so next time is the PIN pad.
-    if (offerBiometric && !rust.pinEnabled() && mounted) {
-      await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => Readable(child: const SetPinScreen(skippable: true, forThisPhone: true))),
-      );
     }
     if (!mounted) return;
     final nav = Navigator.of(context);
@@ -661,7 +671,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       controller: _password,
       focusNode: _focus,
       enabled: !_busy,
-      autofocus: _bioKind == null,
+      // Phones: not over Face ID (the keyboard would cover it). Computers: always.
+      autofocus: Device.desktop || _bioKind == null,
       obscureText: _obscure,
       autocorrect: false,
       enableSuggestions: false,

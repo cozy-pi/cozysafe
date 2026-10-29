@@ -243,6 +243,28 @@ Future<bool> turnOnBiometric(BiometricUnlock store) async {
   }
 }
 
+/// Ask once whether the open vault should open with Face ID / Touch ID / fingerprint
+/// on this device, when it can and does not already (a vault restored or opened with the
+/// password here). Replaces the PIN offered there before 2026-10-28.
+Future<void> offerBiometric(BuildContext context) async {
+  if (!BiometricUnlock.platformSupported || rust.biometricEnabled()) return;
+  final kind = await BiometricUnlock.available();
+  if (kind == null || !context.mounted) return;
+  final l = AppLocalizations.of(context);
+  final yes = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l.biometricOfferTitle),
+      content: Text(l.biometricOfferBody),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.biometricOfferNo)),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.biometricOfferYes)),
+      ],
+    ),
+  );
+  if (yes == true) await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
+}
+
 Future<void> turnOffBiometric(BiometricUnlock store) async {
   try {
     await rust.disableBiometric();

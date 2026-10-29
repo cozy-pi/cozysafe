@@ -4,6 +4,43 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-29 — One design language, after the iPhone's Photos
+
+**Owner:** the phone screens were not consistent (bottom bars in five shapes, small
+buttons, headers in several styles); agree on one language before building more. Stay
+black and white (approved 2026-10-20; a vault keeps its own colour). Learn from the
+iPhone's own Photos app: every action its own round button (Close left, Delete red
+right), icons only, iPhone sizes (header 44, action 62, title 34, margin 20). Select
+and Sort in the header's ⋯. Menus use line icons. Names on one line with … .
+Saving the 24 words makes a real .txt file after a reminder; no password on the file (a
+third secret to forget). The rules, numbers and shared pieces are in
+[design-language.md](design-language.md), which every new screen follows.
+
+## 2026-10-28 — No PIN: Face ID, else the vault password
+
+**Owner:** the PIN goes. Review of the PIN (6 digits, about 20 bits): the device key it
+needs is wrapped by the Secure Enclave / Android Keystore, but that key has no
+user-presence check, so code running on an unlocked, rooted or jailbroken phone can ask
+the chip once for the device key and then try every PIN off the phone; the wait after
+wrong tries and the wipe after 10 are kept by the app, not the chip. On computers there
+was no chip at all. A PIN expiry was rejected: the app cannot enforce it while it is not
+running. Using the phone's passcode instead was rejected: people the vault hides things
+from often know it. So:
+
+- **Everyday:** Face ID / Touch ID / fingerprint (`biometryCurrentSet`, held by the
+  chip); **fallback:** the vault password, on the lock screen itself. On a computer the
+  password field has the caret from the start and again after Touch ID is cancelled.
+- **New vault:** intro (Face ID, password, 24 words) → 24 words → password (the vault is
+  made here, `create_vault_with_password`) → **Turn on Face ID** (its own step, whenever
+  the device has biometrics) → look.
+- **After a restore** (file, Drive, nearby): Face ID is offered instead of a PIN.
+- **Delete vault:** confirmed with the vault password (owner check first, as before).
+- **Existing PINs:** removed at the lock screen for every vault that has a password
+  (`forget_pins_with_password`), then the device key once none is left. A vault made
+  with only a PIN and never given a password keeps its PIN pad until it gets one (or it
+  would be locked out). The core keeps its PIN code for that case.
+- Settings: "PIN" row gone. Docs: security.md, ADR 0001.
+
 ## 2026-10-28 — Third-party code: hijacked packages, not only bugs
 
 **Owner:** worried that a library could be malicious or hijacked (xz, tj-actions, the
