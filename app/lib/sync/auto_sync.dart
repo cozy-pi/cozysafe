@@ -78,8 +78,19 @@ abstract final class AutoSync {
     lastOk.value = now;
     Prefs.write(_okPref, '${now.millisecondsSinceEpoch}');
     pending.value = false;
+    _cutOff = 0;
     _fail(false);
   }
+
+  /// Runs cut off in a row. One now and then is the network going (nothing wrong); this
+  /// many in a row is a problem the person should see: every run hung on a Wi-Fi with
+  /// broken IPv6 for an afternoon with nothing on screen (owner 2026-10-29).
+  static int _cutOff = 0;
+  static const cutOffShown = 3;
+
+  /// The app left the screen during this run: a run cut off then is the system's doing,
+  /// not counted in [_cutOff].
+  static bool _wentAway = false;
 
   static void _fail(bool on) {
     if (failed.value == on) return;
@@ -119,6 +130,7 @@ abstract final class AutoSync {
       onInactive: () {
         if (_settle?.isActive ?? false) run('leave');
       },
+      onHide: () => _wentAway = true,
       // Back without the lock in between: the others may have changed meanwhile.
       onResume: () {
         if (!vaultLock.locked) _look('back');
@@ -233,12 +245,19 @@ abstract final class AutoSync {
     SyncLog.add('run', 'start-$why');
     final watch = Stopwatch()..start();
     running.value = true;
+    _wentAway = false;
     var changes = false;
     var ended = false;
     try {
       await for (final e in sync.driveSync(token: session.token)) {
         if (_moves.contains(e.kind) && e.total > 0) moving.value = true;
-        if (e.kind == sync.SyncStep.interrupted) pending.value = true;
+        if (e.kind == sync.SyncStep.interrupted) {
+          pending.value = true;
+          if (!_wentAway && ++_cutOff >= cutOffShown) {
+            ErrorLog.add('auto-sync', 'interrupted-$_cutOff');
+            _fail(true);
+          }
+        }
         if (e.kind == sync.SyncStep.done) {
           changes = e.received + e.removed + e.copies > 0;
           succeeded();
@@ -256,7 +275,8 @@ abstract final class AutoSync {
           ErrorLog.add('auto-sync', e.code.isEmpty ? 'failed' : e.code);
           _fail(true);
         }
-        // Interrupted (the network went): nothing is wrong; the next run goes on.
+        // Interrupted (the network went): nothing is wrong, the next run goes on, unless
+        // it keeps happening ([cutOffShown]).
       }
     } catch (e) {
       ErrorLog.add('auto-sync', e.runtimeType.toString());

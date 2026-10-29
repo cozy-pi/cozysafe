@@ -9,7 +9,7 @@
 //! and it takes no name from outside (a [`Host`] is one of the two constants).
 
 use std::io::{BufRead, BufReader, Read, Write};
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -396,13 +396,59 @@ fn tls_config() -> Arc<rustls::ClientConfig> {
     )
 }
 
+/// How long all tries at a TCP connection take at most, and each but the last.
+const CONNECT_WAIT: Duration = Duration::from_secs(15);
+const CONNECT_TRY: Duration = Duration::from_secs(4);
+
+/// The name's addresses, the two families taken in turn, the first one DNS gave first.
+fn try_order(addrs: Vec<SocketAddr>) -> Vec<SocketAddr> {
+    let first_v6 = addrs.first().is_some_and(SocketAddr::is_ipv6);
+    let (v6, v4): (Vec<_>, Vec<_>) = addrs.into_iter().partition(SocketAddr::is_ipv6);
+    let (mut a, mut b) = if first_v6 {
+        (v6.into_iter(), v4.into_iter())
+    } else {
+        (v4.into_iter(), v6.into_iter())
+    };
+    let mut out = Vec::new();
+    loop {
+        match (a.next(), b.next()) {
+            (None, None) => return out,
+            (x, y) => out.extend(x.into_iter().chain(y)),
+        }
+    }
+}
+
+/// Every address in [`try_order`], a short wait for each but the last: only the first
+/// was tried before, and on a Wi-Fi with broken IPv6 every sync hung the whole wait on
+/// it and gave up, silently (owner 2026-10-29), while browsers just went over IPv4.
+fn tcp_to(host: &str) -> Result<TcpStream> {
+    let addrs = try_order((host, 443).to_socket_addrs()?.collect());
+    let started = Instant::now();
+    let mut last = None;
+    for (i, addr) in addrs.iter().enumerate() {
+        let left = CONNECT_WAIT.saturating_sub(started.elapsed());
+        if left.is_zero() {
+            break;
+        }
+        let wait = if i + 1 == addrs.len() {
+            left
+        } else {
+            left.min(CONNECT_TRY)
+        };
+        match TcpStream::connect_timeout(addr, wait) {
+            Ok(tcp) => return Ok(tcp),
+            Err(e) => last = Some(e),
+        }
+    }
+    match last {
+        Some(e) => Err(e.into()),
+        None => Err(Error::Corrupt("drive host not found")),
+    }
+}
+
 fn connect(host: Host) -> Result<Tls> {
     let host = host.name();
-    let addr = (host, 443)
-        .to_socket_addrs()?
-        .next()
-        .ok_or(Error::Corrupt("drive host not found"))?;
-    let tcp = TcpStream::connect_timeout(&addr, Duration::from_secs(15))?;
+    let tcp = tcp_to(host)?;
     tcp.set_read_timeout(Some(Duration::from_secs(60)))?;
     tcp.set_write_timeout(Some(Duration::from_secs(60)))?;
     let name = rustls::pki_types::ServerName::try_from(host).expect("valid host");
@@ -522,6 +568,31 @@ mod tests {
     use std::collections::VecDeque;
     use std::io::Cursor;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn tries_both_families_in_turn() {
+        let a = |s: &str| s.parse::<SocketAddr>().unwrap();
+        let got = try_order(vec![
+            a("[::1]:443"),
+            a("[::2]:443"),
+            a("1.1.1.1:443"),
+            a("2.2.2.2:443"),
+            a("3.3.3.3:443"),
+        ]);
+        assert_eq!(
+            got,
+            vec![
+                a("[::1]:443"),
+                a("1.1.1.1:443"),
+                a("[::2]:443"),
+                a("2.2.2.2:443"),
+                a("3.3.3.3:443")
+            ]
+        );
+        let got = try_order(vec![a("1.1.1.1:443"), a("[::1]:443")]);
+        assert_eq!(got, vec![a("1.1.1.1:443"), a("[::1]:443")]);
+        assert!(try_order(vec![]).is_empty());
+    }
 
     /// A server in memory: each connection answers its next scripted reply once a
     /// request has been written, and closes when the script runs out.
