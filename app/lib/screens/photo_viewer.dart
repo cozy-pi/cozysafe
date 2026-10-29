@@ -1,7 +1,7 @@
-import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/physics.dart';
 
 import '../item_bytes.dart';
@@ -190,6 +190,8 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
                 physics: zoomed ? const NeverScrollableScrollPhysics() : const _PagePhysics(),
                 itemCount: _items.length,
                 onPageChanged: (i) {
+                  // A tick for each photo passed, as a wheel clicks (owner 2026-10-29).
+                  HapticFeedback.selectionClick();
                   _index.value = i;
                   _centreStrip(i);
                 },
