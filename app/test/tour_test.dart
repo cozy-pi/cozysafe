@@ -169,7 +169,7 @@ void main() {
     expect(find.byType(VaultHomeScreen), findsOneWidget);
   });
 
-  testWidgets('"Set up sync now" opens the Sync page', (t) async {
+  testWidgets('the last tip has no button that leaves the tour: Done ends it', (t) async {
     await _pump(t, _app(const VaultHomeScreen(libraryDir: 'lib', vault: _vault, tour: TourKind.created)));
     await _settle(t);
     expect(find.byType(CoachTour), findsOneWidget);
@@ -180,15 +180,12 @@ void main() {
       await _settle(t);
     }
     expect(find.byKey(const ValueKey('tip-copy')), findsOneWidget);
-    expect(find.byKey(const ValueKey('tip-skip')), findsNothing); // Later instead
-    await t.tap(find.byKey(const ValueKey('tip-action')));
+    expect(find.byKey(const ValueKey('tip-skip')), findsNothing);
+    expect(find.byKey(const ValueKey('tip-action')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('tip-next')));
     await _settle(t);
     expect(find.byType(CoachTour), findsNothing);
-    expect(find.byType(SyncScreen), findsOneWidget);
-    // Back from Sync is Settings.
-    await t.pageBack();
-    await _settle(t);
-    expect(find.byType(SettingsScreen), findsOneWidget);
+    expect(find.byType(VaultHomeScreen), findsOneWidget);
   });
 
   testWidgets('after a restore the tour is the short one, and Settings runs it again', (t) async {

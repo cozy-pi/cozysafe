@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -11,7 +12,7 @@ class MenuEntry {
   /// None: an empty space (unchosen options in a list where only the chosen one has ✓).
   final IconData? icon;
   final String label;
-  final VoidCallback onTap;
+  final FutureOr<void> Function() onTap;
   /// Delete and the like: the system red.
   final bool danger;
   final Key? key;
@@ -38,9 +39,13 @@ class MenuPointer extends StatelessWidget {
 /// A small menu at the finger, the page dimmed and soft behind: the actions for one
 /// item. In the page's own colour, a shade off it (like the lock screen's ⋯ menu), never
 /// a white slab. Each entry closes the menu, then runs.
-Future<void> showItemMenu(BuildContext context, {String? title, required List<MenuEntry> entries}) async {
+///
+/// [from]: open beside that button instead (⋯ in a viewer, which has no [MenuPointer]).
+/// The chosen entry's work is awaited, so a caller knows when it is done.
+Future<void> showItemMenu(BuildContext context, {String? title, required List<MenuEntry> entries, BuildContext? from}) async {
   HapticFeedback.mediumImpact();
-  final at = _lastDown;
+  final box = from?.findRenderObject() as RenderBox?;
+  final at = box != null && box.hasSize ? box.localToGlobal(box.size.center(Offset.zero)) : _lastDown;
   final nav = Navigator.of(context, rootNavigator: true);
   final route = RawDialogRoute<MenuEntry>(
     barrierDismissible: true,
@@ -56,7 +61,7 @@ Future<void> showItemMenu(BuildContext context, {String? title, required List<Me
   _open = (nav, route);
   final picked = await nav.push(route);
   if (identical(_open?.$2, route)) _open = null;
-  picked?.onTap();
+  await picked?.onTap();
 }
 
 /// The menu on screen, if any, so a drag that starts from the long press can put it away.

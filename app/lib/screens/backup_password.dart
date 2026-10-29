@@ -103,14 +103,7 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
           Text(widget.change ? l.changePasswordTitle : l.backupPasswordTitle,
               style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 18),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.tonalIcon(
-              onPressed: _busy ? null : _suggest,
-              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-              label: Text(l.suggestPassword),
-            ),
-          ),
+          SuggestPasswordButton(onPressed: _busy ? null : _suggest),
           const SizedBox(height: 12),
           SecretField(
             controller: _pw,

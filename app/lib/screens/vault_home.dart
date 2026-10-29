@@ -160,6 +160,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   BuildContext get _pageContext => _wide ? (_mainNav.currentContext ?? context) : context;
 
   /// Back to the list in the right-hand column (a sidebar choice).
+  /// Sync, from the home page's cloud, its nudge or the wide window's left column: in a
+  /// wide window it opens on the right, the left column stays (owner 2026-10-29: the
+  /// cloud opened it over the whole window).
+  void _openSync() {
+    if (_wide) setState(_mainBack);
+    pushPage<void>(_pageContext,
+        title: AppLocalizations.of(context).syncTitle,
+        grouped: true,
+        builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload));
+  }
+
   void _mainBack() {
     _mainNav.currentState?.popUntil((r) => r.isFirst);
     _focus = null;
@@ -235,7 +246,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   /// The quick tour: tips over this page, each pointing at the real thing (owner
-  /// 2026-10-26). "Set up sync now" opens Settings, then Sync on top of it.
+  /// 2026-10-26).
   Future<void> _showTour(TourKind kind) async {
     // The items first: an empty vault has the add tiles where the + would be.
     for (var i = 0; i < 20 && mounted && _items == null; i++) {
@@ -255,7 +266,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final guide = kind == TourKind.guide;
     final end = await showCoachTour(context, tips, total: guide ? tips.length + SettingsScreen.guideTipCount : null);
     if (!mounted || _locked) return;
-    if (end == TourEnd.action) _openSettings(focus: SettingsSpot.sync);
     if (end == TourEnd.done && guide) _openSettings(guideFrom: tips.length);
   }
 
@@ -342,14 +352,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           TourTip(id: 'lock', target: _homeTabRect, title: l.tipLockTitle, body: l.tipLockHoldBody)
         else
           TourTip(id: 'lock', target: () => _rectOf(_settingsKey), title: l.tipLockTitle, body: l.tipLockBody),
-        // In the User guide, Sync comes next in Settings: no button for it here.
+        // No "Set up sync now" button (owner 2026-10-29: it ended the tour half-read).
+        // Settings has Sync; the User guide goes on to it.
         TourTip(
           id: 'copy',
           target: () => _rectOf(_settingsKey),
           title: l.tourCopyTitle,
           body: l.tourCopyBody,
           note: l.tourSafeKeys,
-          action: kind == TourKind.guide ? null : l.tourCopyNow,
         ),
       ],
     ];
@@ -1018,7 +1028,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final result = await QuickLook.show(context, item,
         // Photos and videos: the full-screen view swipes through both.
         photos: media.where((m) => m.kind == ItemKind.photo || VideoViewScreen.supported).toList(),
-        vaultId: _vault.id);
+        vaultId: _vault.id,
+        menu: _viewerMenu);
     if (!mounted || _locked) return;
     // A box ticked in the preview: its write ends first (Edit reads the note), then the
     // list and the note's line under its title catch up.
@@ -1092,7 +1103,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     text.dispose();
     if (name == null || name.isEmpty || '$name$ext' == item.name) return;
     await rust.renameItem(id: item.id, name: '$name$ext');
-    _reload();
+    await _reload();
   }
 
   /// The one selected item, when it can be renamed (not a note, not a group).
@@ -1257,15 +1268,20 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   /// The actions for one item, at the finger (owner 2026-10-22, the iPhone's Files app):
   /// Open, Select, Rename, Group, Info, Send, Delete.
-  Future<void> _itemMenu(rust.ItemInfo item, List<rust.ItemInfo> media, {bool open = true}) async {
-    if (_selecting) return _toggle(item.id);
+  ///
+  /// [viewer]: ⋯ in an open item, the menu beside that button. Open, Select, Send and
+  /// Delete are left out: the viewer's own bar has them, and Select means the grid.
+  Future<void> _itemMenu(rust.ItemInfo item, List<rust.ItemInfo> media, {bool open = true, BuildContext? viewer}) async {
+    if (_selecting && viewer == null) return _toggle(item.id);
     final l = AppLocalizations.of(context);
-    await showItemMenu(context, title: _shownName(l, item), entries: [
-      if (open) MenuEntry(Icons.open_in_new_rounded, l.openItem, () => _openItem(item, media), key: const ValueKey('menu-open')),
-      MenuEntry(Icons.check_circle_outline_rounded, l.select, () => setState(() {
-            _selectMode = true;
-            _selected.add(item.id);
-          }), key: const ValueKey('menu-select')),
+    final all = viewer == null;
+    await showItemMenu(context, title: _shownName(l, item), from: viewer, entries: [
+      if (open && all) MenuEntry(Icons.open_in_new_rounded, l.openItem, () => _openItem(item, media), key: const ValueKey('menu-open')),
+      if (all)
+        MenuEntry(Icons.check_circle_outline_rounded, l.select, () => setState(() {
+              _selectMode = true;
+              _selected.add(item.id);
+            }), key: const ValueKey('menu-select')),
       if (item.kind != ItemKind.note)
         MenuEntry(Icons.edit_outlined, l.rename, () => _rename(item), key: const ValueKey('menu-rename')),
       MenuEntry(item.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded, item.isFavorite ? l.unfavorite : l.favorite,
@@ -1274,14 +1290,24 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       MenuEntry(Icons.info_outline_rounded, l.info, () => _info(item), key: const ValueKey('menu-info')),
       // Older versions of it, to look at or bring back (owner 2026-10-27).
       MenuEntry(Icons.history_rounded, l.versionHistory, () => _history(item), key: const ValueKey('menu-history')),
-      MenuEntry(Icons.ios_share, l.sendOut, () => _onlyThis(item, _sendSelected), key: const ValueKey('menu-send')),
-      MenuEntry(Icons.delete_outline_rounded, l.delete, () async {
-        if (!await confirmTrash(context, count: 1, name: _shownName(l, item)) || !mounted) return;
-        await rust.trashItem(id: item.id, nowMs: nowMs());
-        _reload();
-        _trashed([item.id]);
-      }, danger: true, key: const ValueKey('menu-delete')),
+      if (all) ...[
+        MenuEntry(Icons.ios_share, l.sendOut, () => _onlyThis(item, _sendSelected), key: const ValueKey('menu-send')),
+        MenuEntry(Icons.delete_outline_rounded, l.delete, () async {
+          if (!await confirmTrash(context, count: 1, name: _shownName(l, item)) || !mounted) return;
+          await rust.trashItem(id: item.id, nowMs: nowMs());
+          _reload();
+          _trashed([item.id]);
+        }, danger: true, key: const ValueKey('menu-delete')),
+      ],
     ]);
+  }
+
+  /// ⋯ in an open item: its menu over the viewer, which stays (owner 2026-10-29: it
+  /// used to close the viewer and open the grid's menu, somewhere else). The item as it
+  /// is afterwards goes back to the viewer.
+  Future<rust.ItemInfo?> _viewerMenu(BuildContext button, rust.ItemInfo item) async {
+    await _itemMenu(item, const [], viewer: button);
+    return (_items ?? const <rust.ItemInfo>[]).where((i) => i.id == item.id).firstOrNull;
   }
 
   /// A group's menu (long press on its chip): Open, Rename, Delete.
@@ -1296,7 +1322,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   String _shownName(AppLocalizations l, rust.ItemInfo it) => shownName(l, it);
 
-  Future<void> _history(rust.ItemInfo item) => pushPage<void>(context,
+  Future<void> _history(rust.ItemInfo item) => pushPage<void>(_pageContext,
       title: AppLocalizations.of(context).versionHistory,
       builder: (_) => HistoryScreen(item: item, onRestored: (_) => _reload()));
 
@@ -1998,8 +2024,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: HomeSyncIcon(
-                    onTap: () => pushPage<void>(context,
-                        title: l.syncTitle, grouped: true, builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
+                    onTap: _openSync,
                   ),
                 ),
               ),
@@ -2007,8 +2032,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ),
           if (things.isNotEmpty)
             SecondPlaceNudge(
-              onAdd: () => pushPage<void>(context,
-                  title: l.syncTitle, grouped: true, builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload)),
+              onAdd: _openSync,
             ),
         ],
       ),
@@ -2179,12 +2203,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                     _adding = true;
                     _openAdd();
                   }),
-                  onSync: () {
-                    setState(_mainBack);
-                    pushPage<void>(_pageContext,
-                        title: AppLocalizations.of(context).syncTitle, grouped: true,
-                        builder: (_) => SyncScreen(libraryDir: widget.libraryDir, onSynced: _reload));
-                  },
+                  onSync: _openSync,
                   onTrash: () {
                     setState(_mainBack);
                     _openTrash();
@@ -2296,6 +2315,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   item: item,
                   vaultId: _vault.id,
                   onResult: (r) => _paneResult(item, r),
+                  menu: _viewerMenu,
                 ),
               ),
             ),

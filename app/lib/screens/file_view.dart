@@ -359,35 +359,49 @@ Future<List<XFile>> pickFiles() => openFiles();
 
 /// A file in the vault: what it is, open it in another app, delete it.
 class FileViewScreen extends StatefulWidget {
-  const FileViewScreen({super.key, required this.item, required this.vaultId});
+  const FileViewScreen({super.key, required this.item, required this.vaultId, this.menu});
 
   final rust.ItemInfo item;
   /// The first share out of each vault asks once (docs/ui.md, review 5).
   final String vaultId;
+  /// What ⋯ opens over this view; none: ⋯ pops [QuickLook.menuFor].
+  final ViewerMenu? menu;
 
   @override
   State<FileViewScreen> createState() => _FileViewScreenState();
 }
 
 class _FileViewScreenState extends State<FileViewScreen> {
+  /// The item as the menu left it (a new name, a star).
+  rust.ItemInfo? _fresh;
+  rust.ItemInfo get _item => _fresh ?? widget.item;
+
+  /// ⋯: the item's menu over this view, which stays open.
+  Future<void> _more(BuildContext button) async {
+    final menu = widget.menu;
+    if (menu == null) return Navigator.of(context).pop(QuickLook.menuFor(_item.id));
+    final fresh = await menu(button, _item);
+    if (fresh != null && mounted) setState(() => _fresh = fresh);
+  }
+
   bool _busy = false;
 
   /// Decrypt to a private temp file, hand it to the system (open with / save to), then
   /// delete the decrypted copy.
   Future<void> _open(BuildContext buttonContext) async {
     setState(() => _busy = true);
-    await shareItem(context, widget.item, widget.vaultId, from: buttonContext);
+    await shareItem(context, _item, widget.vaultId, from: buttonContext);
     if (mounted) setState(() => _busy = false);
   }
 
   /// Asks first, then it goes to Recently deleted and the vault offers Undo.
   Future<void> _delete() async {
-    if (!await confirmTrash(context, count: 1, name: widget.item.name) || !mounted) return;
-    await rust.trashItem(id: widget.item.id, nowMs: nowMs());
-    if (mounted) Navigator.of(context).pop(widget.item.id);
+    if (!await confirmTrash(context, count: 1, name: _item.name) || !mounted) return;
+    await rust.trashItem(id: _item.id, nowMs: nowMs());
+    if (mounted) Navigator.of(context).pop(_item.id);
   }
 
-  bool get _pdf => widget.item.mime == 'application/pdf';
+  bool get _pdf => _item.mime == 'application/pdf';
 
 
   /// The actions at the bottom (ActionBar, owner 2026-10-28): Close apart on the left,
@@ -404,7 +418,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
               key: const ValueKey('file-more'),
               icon: Icons.more_horiz,
               tooltip: l.more,
-              onTap: _busy ? null : (_) => Navigator.of(context).pop(QuickLook.menuFor(widget.item.id))),
+              onTap: _busy ? null : _more),
         ],
         end: BarIcon(
             key: const ValueKey('file-delete'),
@@ -423,12 +437,12 @@ class _FileViewScreenState extends State<FileViewScreen> {
         appBar: AppBar(
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
-          title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.callout, color: Colors.white)),
+          title: Text(_item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.callout, color: Colors.white)),
         ),
         // Dark glass over the black page, whatever the app's theme.
         bottomNavigationBar: Theme(data: buildTheme(Brightness.dark), child: Builder(builder: (_) => _bar(l))),
         body: FutureBuilder<Uint8List>(
-          future: _imageBytes ??= photoBytes(widget.item.id),
+          future: _imageBytes ??= photoBytes(_item.id),
           builder: (context, snap) {
             if (snap.hasError) {
               return Center(child: Text(l.videoFailed, style: const TextStyle(color: Colors.white)));
@@ -459,10 +473,10 @@ class _FileViewScreenState extends State<FileViewScreen> {
   /// no file is written. Markdown is drawn, JSON laid out and highlighted, code in a card,
   /// plain text like a page (docs/ui.md, design language).
   Widget _textView(AppLocalizations l) {
-    final kind = textKindOf(widget.item.name) ?? TextKind.prose;
+    final kind = textKindOf(_item.name) ?? TextKind.prose;
     final c = CsColors.of(context);
-    final when = dateOf(widget.item.createdMs);
-    final label = textLabelOf(widget.item.name);
+    final when = dateOf(_item.createdMs);
+    final label = textLabelOf(_item.name);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -473,10 +487,10 @@ class _FileViewScreenState extends State<FileViewScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  Text(_item.name, maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w800, letterSpacing: -.3)),
                   const SizedBox(height: 2),
-                  Text('$label · ${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
+                  Text('$label · ${fileSize(_item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
                       style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                 ],
               ),
@@ -484,7 +498,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
             Expanded(
               child: FutureBuilder<Uint8List>(
                 // Only the first part is decrypted: a 1 GB log never sits in memory.
-                future: _bytes ??= rust.itemContentHead(id: widget.item.id, max: _textLimit + 1),
+                future: _bytes ??= rust.itemContentHead(id: _item.id, max: _textLimit + 1),
                 builder: (context, snap) {
                   if (snap.hasError) return Center(child: Text(l.errorStorage));
                   final data = snap.data;
@@ -527,16 +541,16 @@ class _FileViewScreenState extends State<FileViewScreen> {
   /// written. "Send out" stays available as the secondary action.
   Widget _pdfView(AppLocalizations l) => Scaffold(
         appBar: AppBar(
-          title: Text(widget.item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: Text(_item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
         bottomNavigationBar: _bar(l),
         // Up to [_pdfInMemory] the PDF is decrypted into memory only. A bigger one would not
         // fit on a small phone, so it is decrypted (in 64 KB chunks) to the app's private
         // playback folder, read from there, and deleted when this screen closes, on lock
         // and at every start, like videos.
-        body: widget.item.sizeBytes > BigInt.from(_pdfInMemory)
+        body: _item.sizeBytes > BigInt.from(_pdfInMemory)
             ? FutureBuilder<File>(
-                future: _pdfCopy ??= readThroughLock(() => playbackCopy(widget.item, fallbackExt: '.pdf')),
+                future: _pdfCopy ??= readThroughLock(() => playbackCopy(_item, fallbackExt: '.pdf')),
                 builder: (context, snap) {
                   if (snap.hasError) return Center(child: Text(l.errorStorage));
                   final f = snap.data;
@@ -545,12 +559,12 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 },
               )
             : FutureBuilder<Uint8List>(
-                future: _bytes ??= itemBytes(widget.item.id),
+                future: _bytes ??= itemBytes(_item.id),
                 builder: (context, snap) {
                   if (snap.hasError) return Center(child: Text(l.errorStorage));
                   final data = snap.data;
                   if (data == null) return const Center(child: CircularProgressIndicator());
-                  return PdfViewer.data(data, sourceName: widget.item.id);
+                  return PdfViewer.data(data, sourceName: _item.id);
                 },
               ),
       );
@@ -573,14 +587,14 @@ class _FileViewScreenState extends State<FileViewScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     if (_pdf) return _pdfView(l);
-    if (_asText || textKindOf(widget.item.name) != null || widget.item.mime.startsWith('text/')) return _textView(l);
+    if (_asText || textKindOf(_item.name) != null || _item.mime.startsWith('text/')) return _textView(l);
     // A picture added from Files (not through the photo picker) is a file, but it opens
     // as a picture (owner 2026-10-22). Very large ones go to "Open with".
-    if (widget.item.mime.startsWith('image/') && widget.item.sizeBytes < BigInt.from(_imageInMemory)) {
+    if (_item.mime.startsWith('image/') && _item.sizeBytes < BigInt.from(_imageInMemory)) {
       return _imageView(l);
     }
     final c = CsColors.of(context);
-    final when = dateOf(widget.item.createdMs);
+    final when = dateOf(_item.createdMs);
     return Scaffold(
       appBar: AppBar(),
       // Open with leads the bar; Open as text beside it.
@@ -606,9 +620,9 @@ class _FileViewScreenState extends State<FileViewScreen> {
                   child: Icon(fileIcon(widget.item), size: 48, color: Theme.of(context).colorScheme.primary),
                 ),
                 const SizedBox(height: 16),
-                Text(widget.item.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
+                Text(_item.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text('${fileSize(widget.item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
+                Text('${fileSize(_item.sizeBytes)} · ${MaterialLocalizations.of(context).formatMediumDate(when)}',
                     style: TextStyle(color: c.muted)),
                 const SizedBox(height: 20),
                 Text(l.openWithNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),

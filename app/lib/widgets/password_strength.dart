@@ -4,6 +4,35 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 
+/// "Suggest a password": a small chip over the password field, not a main button (owner
+/// 2026-10-29: the theme's page-wide, 52-high button made it the biggest thing there).
+class SuggestPasswordButton extends StatelessWidget {
+  const SuggestPasswordButton({super.key, required this.onPressed});
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        key: const ValueKey('suggest-password'),
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, Ui.chip),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          backgroundColor: ink.withValues(alpha: .08),
+          foregroundColor: ink,
+          shape: const StadiumBorder(),
+        ),
+        icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+        label: Text(AppLocalizations.of(context).suggestPassword,
+            style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+}
+
 /// How strong a new vault password is: four bars and a word, from the same zxcvbn score
 /// the vault uses, and why it would be refused (2026-10-25, NIST SP 800-63B): under
 /// [rust.minPasswordLength] characters, one of the most common passwords, or easy to

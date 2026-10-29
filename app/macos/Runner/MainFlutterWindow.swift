@@ -7,9 +7,20 @@ import Security
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
-    let windowFrame = self.frame
+    // First open: a roomy window, not the template's 800 x 600 (owner 2026-10-29: too
+    // small, it looked off). 1200 x 800, at most 85% of the screen, centred. Later opens
+    // get the size and place it was left at: macOS saves them under the autosave name.
+    var windowFrame = self.frame
+    if let screen = NSScreen.main?.visibleFrame {
+      let width = min(1200, screen.width * 0.85)
+      let height = min(800, screen.height * 0.85)
+      windowFrame = NSRect(
+        x: screen.midX - width / 2, y: screen.midY - height / 2, width: width, height: height)
+    }
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
+    self.minSize = NSSize(width: 400, height: 560)
+    self.setFrameAutosaveName("CozySafeMain")
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 
