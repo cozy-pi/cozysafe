@@ -104,8 +104,8 @@ Select).
 rest, a ring of ink while typing, red on an error. The border is `RoundFieldBorder`: the
 label floats inside the field, at its top, never onto the ring.
 
-**Small helper button** over a field (Suggest a password): `SuggestPasswordButton`, a
-chip `Ui.chip` high, never the theme's page-wide 52 button.
+**No helper button over a password field** (owner 2026-10-29: "Suggest a password"
+removed). The strength line under it says how to make a better one.
 
 **Selection marks**: round everywhere (the theme's `checkboxTheme`), as on a photo.
 

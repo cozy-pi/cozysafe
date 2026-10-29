@@ -11,8 +11,8 @@ import 'emergency_kit.dart';
 import '../widgets/readable.dart';
 
 /// The backup password, set when it is needed (first backup, or the nudge in the
-/// vault) and changed the same way. "Suggest a password" fills five random words in one
-/// tap; it is typed again once so it is really known. The first time, the Emergency
+/// vault) and changed the same way. It is typed again once so it is really known (no
+/// "Suggest a password": the owner removed it 2026-10-29, a password should be one's own). The first time, the Emergency
 /// Kit follows. Pops with the updated vault info.
 class BackupPasswordScreen extends StatefulWidget {
   const BackupPasswordScreen({super.key, required this.libraryDir, required this.change});
@@ -47,12 +47,6 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
   }
 
   void _changed() => setState(() => _error = null);
-
-  void _suggest() {
-    _pw.text = rust.suggestPassphrase();
-    _again.clear();
-    _changed();
-  }
 
   /// Long enough, not a common password, hard to guess or four words (PasswordStrength).
   bool get _ready => !_busy && PasswordStrength.acceptable(_pw.text) && _pw.text == _again.text;
@@ -103,8 +97,6 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
           Text(widget.change ? l.changePasswordTitle : l.backupPasswordTitle,
               style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 18),
-          SuggestPasswordButton(onPressed: _busy ? null : _suggest),
-          const SizedBox(height: 12),
           SecretField(
             controller: _pw,
             enabled: !_busy,

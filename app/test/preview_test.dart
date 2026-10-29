@@ -1656,8 +1656,7 @@ void main() {
   _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
   _screen('kit-confirm', 'Khoá khôi phục lần đầu: gõ một từ để xác nhận', () => const EmergencyKitScreen(keyText: words, confirm: true));
-  _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', change: 'Nút Gợi ý mật khẩu thành viên nhỏ (trước: nút đen to cả bề ngang)',
-      marks: [() => find.byKey(const ValueKey('suggest-password'))], () => const BackupPasswordScreen(libraryDir: '', change: false),
+  _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', change: 'BỎ nút Gợi ý mật khẩu (trước: nút đen to cả bề ngang)', () => const BackupPasswordScreen(libraryDir: '', change: false),
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
@@ -1725,8 +1724,8 @@ void main() {
     NewVaultScreen.debugBiometricStep = true;
   });
   _screen('new-vault', 'Tạo két · 1. Đặt mật khẩu (vào thẳng, không màn giới thiệu)',
-      change: 'Thứ tự mới: Mật khẩu → 24 từ → gõ lại 4 từ → Face ID. Nút Gợi ý thành viên nhỏ; chữ "Mật khẩu" nằm trong ô, không đè lên viền',
-      marks: [() => find.byKey(const ValueKey('suggest-password')), () => find.byKey(const ValueKey('new-password'))],
+      change: 'Thứ tự mới: Mật khẩu → 24 từ → gõ lại 4 từ → Face ID. BỎ nút Gợi ý mật khẩu; chữ "Mật khẩu" nằm trong ô, không đè lên viền',
+      marks: [() => find.byKey(const ValueKey('new-password'))],
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords);
   _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ (sau mật khẩu)', change: 'Bước 2, sau mật khẩu (trước: bước 1)',

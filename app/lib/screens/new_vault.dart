@@ -163,12 +163,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   bool get _passwordOk => PasswordStrength.acceptable(_pw.text) && _pw.text == _pwAgain.text;
 
-  void _suggest() => setState(() {
-        _pw.text = rust.suggestPassphrase();
-        _pwAgain.clear();
-        _error = null;
-      });
-
   /// The vault is made with its password (decisions 2026-10-28: no PIN), after the words
   /// are checked; then Face ID, then the look. An error goes back to the password, where
   /// it is shown.
@@ -576,8 +570,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SuggestPasswordButton(onPressed: _suggest),
-        const SizedBox(height: 12),
         SecretField(
           key: const ValueKey('new-password'),
           controller: _pw,
