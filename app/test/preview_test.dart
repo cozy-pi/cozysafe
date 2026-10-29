@@ -1718,17 +1718,17 @@ void main() {
   });
   _screen('restore-drive', 'Khôi phục · Google Drive (24 từ đã nhập ở bước 1)', () => const DriveJoinScreen(libraryDir: '', words: 'fake', password: 'fake'),
       setup: () => DriveJoinScreen.debugAccount = 'me@example.com');
-  _screen('new-vault-biometric', 'Tạo két · 4. Face ID: Bật hoặc Để sau (sau 24 từ)', () => const NewVaultScreen(libraryDir: '', first: true),
+  _screen('new-vault-biometric', 'Tạo két · 4. Face ID: Bật hoặc Để sau (sau 24 từ)', change: 'Câu mới: mở nhanh, chỉ trên máy này, mật khẩu và 24 từ vẫn phải giữ', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: () {
     useWords();
     NewVaultScreen.debugBiometricStep = true;
   });
   _screen('new-vault', 'Tạo két · 1. Đặt mật khẩu (vào thẳng, không màn giới thiệu)',
-      change: 'Thứ tự mới: Mật khẩu → 24 từ → gõ lại 4 từ → Face ID. BỎ nút Gợi ý mật khẩu; chữ "Mật khẩu" nằm trong ô, không đè lên viền',
+      change: 'Thứ tự mới: Mật khẩu → 24 từ → gõ lại 4 từ → Face ID. BỎ nút Gợi ý mật khẩu; chữ "Mật khẩu" nằm trong ô. Câu dưới tiêu đề nói rõ mật khẩu để làm gì',
       marks: [() => find.byKey(const ValueKey('new-password'))],
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords);
-  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ (sau mật khẩu)', change: 'Bước 2, sau mật khẩu (trước: bước 1)',
+  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ (sau mật khẩu)', change: 'Bước 2, sau mật khẩu. Câu dưới tiêu đề nói rõ 24 từ để làm gì',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: fillPassword);
   _screen('join-drive', 'Mở két từ Google Drive · trước khi đăng nhập', () => const DriveJoinScreen(libraryDir: ''));
@@ -1766,7 +1766,7 @@ void main() {
     await tapKey(t, 'check-done');
   });
   _screen('new-vault-second', 'Tạo két · màn giới thiệu (két thứ hai: dùng chung 24 từ)',
-      change: 'Xếp đúng thứ tự các bước: Mật khẩu → 24 từ → Face ID',
+      change: 'Xếp đúng thứ tự: Mật khẩu → 24 từ → sinh trắc; mỗi thứ nói rõ để làm gì. Sửa câu cuối (trước nói sai: "mất CẢ HAI mới không mở được")',
       marks: [() => find.byKey(const ValueKey('intro-password')), () => find.byKey(const ValueKey('intro-words'))],
       () => const NewVaultScreen(libraryDir: '', first: false),
       setup: () => NewVaultScreen.debugWords = words);

@@ -545,7 +545,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
             const ValueKey('intro-words')),
         if (_bioKind case final bio?) ...[
           const SizedBox(height: 10),
-          row(Icons.face_rounded, unlockWithLabel(l, bio), l.introBioBody, const ValueKey('intro-bio')),
+          row(bio == BiometricKind.face ? Icons.face_rounded : Icons.fingerprint_rounded, unlockWithLabel(l, bio),
+              l.introBioBody, const ValueKey('intro-bio')),
         ],
         const SizedBox(height: 12),
         Text(l.introNoCopy,
