@@ -536,34 +536,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                 ),
                 // The lock screen only opens vaults (adding while locked is gone):
                 // ⋯ for everything else under the left thumb, biometrics in the middle.
-                // Typing the password: Unlock over that row, above the keyboard while it
-                // is up (owner 2026-10-25: every button within the thumb's reach).
-                if (_mode == _Mode.password)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 8, 28, 0),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ListenableBuilder(
-                          listenable: _password,
-                          // Only once something is typed (owner 2026-10-29: there from the
-                          // start it was in the way); its room is kept so nothing jumps.
-                          builder: (context, _) => Visibility(
-                            visible: _password.text.isNotEmpty || _busy,
-                            maintainSize: true,
-                            maintainAnimation: true,
-                            maintainState: true,
-                            child: FilledButton(
-                              key: const ValueKey('unlock-password-go'),
-                              onPressed: _busy || _password.text.isEmpty ? null : () => _attempt(quiet: false),
-                              child: BusyLabel(busy: _busy, idle: l.unlockButton, working: l.unlocking),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                // No Unlock button (owner 2026-10-29): the right password opens by
+                // itself; the keyboard's Done tries and says when it is wrong.
                 SafeArea(
                   top: false,
                   child: Padding(

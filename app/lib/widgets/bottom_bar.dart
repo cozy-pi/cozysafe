@@ -218,21 +218,22 @@ class ViewerTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // As big as the bottom bar's circles (owner 2026-10-29: smaller, they looked lost).
     Widget circle(Widget child) => SizedBox.square(
-          dimension: Ui.circle,
-          child: onMedia ? GlassPill(child: Center(child: child)) : Glass(radius: Ui.circle / 2, child: Center(child: child)),
+          dimension: Ui.action,
+          child: onMedia ? GlassPill(child: Center(child: child)) : Glass(radius: Ui.action / 2, child: Center(child: child)),
         );
     Widget row = Row(
       children: [
         circle(back),
         Expanded(child: Center(child: center)),
-        if (more != null) circle(more!) else const SizedBox(width: Ui.circle),
+        if (more != null) circle(more!) else const SizedBox(width: Ui.action),
       ],
     );
     if (onMedia) {
       final t = Theme.of(context);
       row = Theme(data: t.copyWith(colorScheme: t.colorScheme.copyWith(onSurface: Colors.white)), child: row);
     }
-    return Padding(padding: const EdgeInsets.fromLTRB(Ui.side - 4, 4, Ui.side - 4, 0), child: row);
+    return Padding(padding: const EdgeInsets.fromLTRB(10, 4, 10, 0), child: row);
   }
 }

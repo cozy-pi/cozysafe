@@ -752,7 +752,7 @@ class _QuickLookState extends State<QuickLook> {
     final barBottom = safeBottom + Ui.edge;
     final bottomRoom = barBottom + barHeight;
     // Under the top bar (ViewerTopBar: 4 above a circle), with a little air.
-    final topRoom = MediaQuery.paddingOf(context).top + 4 + Ui.circle + 12;
+    final topRoom = MediaQuery.paddingOf(context).top + 4 + Ui.action + 12;
     final box = embedded
         ? BoxConstraints(maxWidth: (size.width - 32).clamp(0, 720), maxHeight: (size.height - Ui.bar - 120).clamp(0, double.infinity))
         : BoxConstraints(maxWidth: (size.width - 32).clamp(0, 520), maxHeight: (size.height - bottomRoom) * .78);

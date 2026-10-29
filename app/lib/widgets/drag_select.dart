@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../hidden_features.dart';
 import 'item_menu.dart';
 
 /// Hold, then drag across items to select a run of them, as in the iPhone's Photos
@@ -100,7 +101,8 @@ class DragSelect {
   void pointerMove(Offset at) {
     if (_anchor == null) {
       final id = _pressed, down = _down;
-      if (id == null || down == null || (at - down).distance < slop) return;
+      // Hidden for the beta (hidden_features.dart): a held item only opens its menu.
+      if (!selectShown || id == null || down == null || (at - down).distance < slop) return;
       _begin(id);
     }
     _last = at;

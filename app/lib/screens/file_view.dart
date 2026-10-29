@@ -20,6 +20,7 @@ import '../debug_log.dart';
 import '../lock_guard.dart';
 import '../originals.dart' show PickedBatch, PickedCopy;
 import '../widgets/bottom_bar.dart';
+import 'item_info.dart';
 import 'quick_look.dart';
 import 'video_view.dart';
 import '../widgets/link_card.dart';
@@ -32,6 +33,7 @@ import 'common.dart';
 import '../capture_name.dart';
 import '../item_kind.dart';
 import '../widgets/toast.dart';
+import '../widgets/vault_bar.dart' show GlassButton;
 
 /// Icon for an item kind / type.
 IconData fileIcon(rust.ItemInfo item) {
@@ -404,29 +406,39 @@ class _FileViewScreenState extends State<FileViewScreen> {
   bool get _pdf => _item.mime == 'application/pdf';
 
 
-  /// The actions at the bottom (ActionBar, owner 2026-10-28): Close apart on the left,
-  /// then [first] (Send, or Open with for a file the app does not draw), ⋯, Delete.
+  /// The actions at the bottom, as in every viewer (owner 2026-10-29): [first] on the left
+  /// (Send, or Open with for a file the app does not draw), Info (and Open as text) in the
+  /// middle, Delete on the right. Back and ⋯ are on top ([_moreButton]).
   Widget _barIn(AppLocalizations l) => Padding(padding: const EdgeInsets.fromLTRB(10, 6, 10, 0), child: _bar(l, inset: false));
 
-  Widget _bar(AppLocalizations l, {List<Widget>? first, bool inset = true}) => ActionBar(
-        inset: inset,
-        leave: LeaveButton(Icons.close_rounded, l.close, () => Navigator.of(context).maybePop(), key: const ValueKey('file-close')),
-        actions: [
-          ...first ??
-              [BarIcon(key: const ValueKey('file-send'), icon: Icons.ios_share, tooltip: l.sendOut, onTap: _busy ? null : _open)],
-          BarIcon(
-              key: const ValueKey('file-more'),
-              icon: Icons.more_horiz,
-              tooltip: l.more,
-              onTap: _busy ? null : _more),
-        ],
-        end: BarIcon(
-            key: const ValueKey('file-delete'),
-            icon: Icons.delete_rounded,
-            tooltip: l.delete,
-            onTap: _busy ? null : (_) => _delete(),
-            color: recordRed(context)),
-      );
+  Widget _bar(AppLocalizations l, {List<Widget>? first, bool inset = true}) {
+    final lead = first ?? [BarIcon(key: const ValueKey('file-send'), icon: Icons.ios_share, tooltip: l.sendOut, onTap: _busy ? null : _open)];
+    return ActionBar(
+      inset: inset,
+      start: lead.first,
+      actions: [
+        ...lead.skip(1),
+        BarIcon(key: const ValueKey('file-info'), icon: Icons.info_rounded, tooltip: l.info, onTap: (_) => showItemInfo(context, _item)),
+      ],
+      end: BarIcon(
+          key: const ValueKey('file-delete'),
+          icon: Icons.delete_rounded,
+          tooltip: l.delete,
+          onTap: _busy ? null : (_) => _delete(),
+          color: recordRed(context)),
+    );
+  }
+
+  /// ⋯ on the right of the header: the item's menu, over this page.
+  List<Widget> _moreButton(AppLocalizations l) => [
+        Padding(
+          padding: const EdgeInsets.only(right: Ui.side - 4),
+          child: Builder(
+            builder: (b) => GlassButton(
+                key: const ValueKey('file-more'), icon: Icons.more_horiz, tooltip: l.more, onTap: _busy ? null : () => _more(b)),
+          ),
+        ),
+      ];
 
   /// Pictures up to this size are decrypted into memory and shown here.
   static const _imageInMemory = 60 << 20;
@@ -438,6 +450,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
           title: Text(_item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.callout, color: Colors.white)),
+          actions: _moreButton(l),
         ),
         // Dark glass over the black page, whatever the app's theme.
         bottomNavigationBar: Theme(data: buildTheme(Brightness.dark), child: Builder(builder: (_) => _bar(l))),
@@ -478,6 +491,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
     final when = dateOf(_item.createdMs);
     final label = textLabelOf(_item.name);
     return Scaffold(
+      // Back and ⋯ on top, as on every item's page.
+      appBar: AppBar(actions: _moreButton(l)),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,6 +557,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
   Widget _pdfView(AppLocalizations l) => Scaffold(
         appBar: AppBar(
           title: Text(_item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          actions: _moreButton(l),
         ),
         bottomNavigationBar: _bar(l),
         // Up to [_pdfInMemory] the PDF is decrypted into memory only. A bigger one would not
@@ -596,7 +612,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
     final c = CsColors.of(context);
     final when = dateOf(_item.createdMs);
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(actions: _moreButton(l)),
       // Open with leads the bar; Open as text beside it.
       bottomNavigationBar: _bar(l, first: [
         BarIcon(key: const ValueKey('file-open-with'), icon: Icons.open_in_new_rounded, tooltip: l.openWith, onTap: _busy ? null : _open),

@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:cozysafe/hidden_features.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/screens/note.dart';
@@ -194,6 +195,7 @@ void main() {
   });
 
   testWidgets('Recently deleted: the selection bar acts on the selection only, and asks', (t) async {
+    if (!selectShown) return; // selecting many is hidden for the beta
     _tall(t);
     await t.pumpWidget(_app(const TrashScreen()));
     await _settle(t);
@@ -217,6 +219,7 @@ void main() {
   });
 
   testWidgets('hold, then drag across the grid selects the run, and back deselects', (t) async {
+    if (!selectShown) return; // selecting many is hidden for the beta
     _tall(t);
     await t.pumpWidget(_app(const TrashScreen()));
     await _settle(t);
