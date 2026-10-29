@@ -4,6 +4,23 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-30 — The 24 words never leave the screen; temporary files swept
+
+**Owner:** opening files from outside is dangerous for a security app, and the 24 words
+must never be written to disk, absolutely. Decided:
+
+- A build switch, `WORDS_EXPORT` (off by default): no Copy, Save to a file, share or Open
+  file for the words. This replaces 2026-10-29's "save the words as a .txt". The pages
+  showing the words stay on for 3 minutes after the last touch (each touch starts again).
+- The temporary folder is emptied at start and on lock; Windows and Linux get a private one.
+- Memory kept tight (owner: the app has been killed; no crash report on Play or
+  TestFlight, which fits the system killing it for memory): photos at screen size,
+  fewer read ahead, caches capped. Memory in use shows in Debug.
+- Next, to discuss: two kinds of vault in one app. **Top secret** (24 words; text only,
+  no decoder ever runs) and **Private** (a strong password; photos and files, input
+  checked). From Private to Top secret the app must restart (a flag in memory blocks it;
+  a Quit button). Details in [security.md](security.md#things-from-outside-and-temporary-files-2026-10-30).
+
 ## 2026-10-29 — One design language, after the iPhone's Photos
 
 **Owner:** the phone screens were not consistent (bottom bars in five shapes, small

@@ -246,6 +246,45 @@ unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.m
   4 lanes on computers). A library, sync lock or backup naming less than the phone floor
   is refused, so a tampered file cannot make guessing cheaper.
 
+## The 24 words stay on the screen (2026-10-30)
+
+The owner: the words are never written to disk, absolutely. A build has no Copy, no
+Save to a file, no share and no Open file for the words or an earlier `CS1-` key
+(`lib/words_export.dart`, `wordsExport`, off unless built with
+`--dart-define=WORDS_EXPORT=true`). The clipboard is a disk in practice (Android
+keyboards keep a history, an iPhone hands it to a nearby Mac), and a file or the share
+sheet puts the words where the app can never wipe them (Notes, Drive, a chat). The only
+way out is a pen: the pages that show the words stay on and keep the vault from locking
+for 3 minutes after the last touch, and block screenshots and recordings whatever
+Settings says (`widgets/words_awake.dart`). The word typed back to confirm is kept out
+of the keyboard's learning. `test/words_export_test.dart` fails if a new way out is not
+behind the switch.
+
+Still open: the opt-in copy of the words in iCloud Keychain / Google Block Store (above)
+is not covered by the switch; it is the system's encrypted store, not a file.
+
+## Things from outside, and temporary files (2026-10-30)
+
+Every byte that comes from outside is hostile: a photo, video, PDF or any file the
+person imports. A decoder is where a phone gets taken over (libwebp 2023, FORCEDENTRY
+2021). Review of 2026-10-30, and what is done:
+
+- **Temporary folder:** the app's own (phones and the Mac give each app one; on Windows
+  and Linux the app keeps `tmp/` beside the vault, user-only, as the system one is shared
+  between programs: `lib/temp_files.dart`). It is emptied at start, before anything
+  else, and when the vault locks. Before, only a video's playback copy was swept, and a
+  crash during an import, a share or a backup left plain copies behind.
+- **Photos decode at screen size.** An Android HEIC is decoded by the system at most to
+  the screen's longer side (1024–3000 px), not 4096 (a ~50 MB bitmap); the viewer reads
+  ahead one photo each side, not two. At most 800 thumbnails stay in memory; Flutter's
+  picture cache is 64 MB.
+- **Not done yet (proposed, waiting for the owner):** a file's kind is taken from its
+  name and the picker, not its first bytes; there is no limit on pixels or file size
+  before a decoder runs; a PDF (PDFium) and a video start as soon as the item is touched;
+  imported photos are decoded by the system (ImageIO, Android ImageDecoder) at import.
+  Proposed: two kinds of vault, one that never decodes anything (keys, passwords,
+  words) and one for photos and files, behind a restart of the app between them.
+
 ## OS backups
 
 The library is kept out of the system's own backups (2026-10-25). iOS: the library

@@ -492,8 +492,8 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', change: 'KHÔNG còn nút Mở khoá', lock);
-  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', change: 'BỎ hẳn nút Mở khoá: gõ đúng là tự mở; phím Xong trên bàn phím báo nếu sai', lock, act: (t) async {
+  _screen('lock', 'Màn khoá', lock);
+  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, act: (t) async {
     await t.enterText(find.byType(TextField).first, 'matkhau');
     await t.pump();
   });
@@ -545,7 +545,7 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', change: 'BỎ dải chip Nhóm; ⋯ chỉ còn Sắp xếp (bỏ Chọn)', home, section: 'library');
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library');
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
@@ -595,7 +595,7 @@ void main() {
     AutoSync.pending.value = pending;
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
-  _screen('home', 'Trang chủ · chưa cài đồng bộ', change: 'BỎ phần Nhóm ở Tổng quan (tạm ẩn tính năng Nhóm)', home,
+  _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
       section: 'home');
   _screen('home-synced', 'Trang chủ · đã đồng bộ', home,
       section: 'home', setup: drive);
@@ -756,7 +756,7 @@ void main() {
     Prefs.write('action-side', 'left');
   });
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh → toàn màn hình (ảnh nhỏ đang che)',
-      home, section: 'library', change: 'Ảnh nằm GỌN giữa thanh trên và thanh dưới như Ảnh iPhone (trước: tràn dưới các nút); chạm ảnh để ẩn nút thì ảnh nở toàn màn', act: (t) => tapThumb(t, 2));
+      home, section: 'library', act: (t) => tapThumb(t, 2));
   _screen('photo-strip-clear', 'Ảnh toàn màn hình · tắt che ảnh nhỏ', home, section: 'library',
       setup: () => Prefs.write(blurThumbsPref, '0'), act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video → toàn màn hình', home, section: 'library',
@@ -859,7 +859,7 @@ void main() {
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
       });
-  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', change: 'Nút Quay lại và ⋯ to bằng ba nút dưới (trước: nhỏ hơn)', home, section: 'note',
+  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
       act: (t) => openRow(t, 'Thuốc của mẹ'));
   _screen('quick-pdf', 'Tệp · chạm một PDF', home, section: 'file',
@@ -916,7 +916,7 @@ void main() {
   });
   }
   if (selectShown) {
-    _screen('select', 'Đang chọn', change: 'Thanh chọn nhiều: BỎ nút Nhóm', home, section: 'library', act: (t) async {
+    _screen('select', 'Đang chọn', home, section: 'library', act: (t) async {
     await _viaMore(t, 'select-button');
     await t.pump();
     await t.tap(find.byType(PrivateThumb).at(2));
@@ -924,7 +924,7 @@ void main() {
     await t.tap(find.byType(PrivateThumb).at(4));
   });
   }
-  _screen('photo-menu', 'Thư viện · bấm giữ một ảnh', change: 'Menu bấm giữ: BỎ mục Nhóm và Chọn', home, section: 'library', act: (t) async {
+  _screen('photo-menu', 'Thư viện · bấm giữ một ảnh', home, section: 'library', act: (t) async {
     await t.longPress(find.byType(PrivateThumb).at(2));
     await t.pumpAndSettle();
   });
@@ -976,8 +976,8 @@ void main() {
   _screen('search-none', 'Tìm kiếm · không có kết quả', search,
       act: (t) => typeSearch(t, 'xyzw'));
   _screen('text-json', 'Tệp · mở wifi-config.json', () => FileViewScreen(item: _item('j1', ItemKind.file, 'wifi-config.json', 180), vaultId: 'v'));
-  _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', change: 'Trang mở tệp như trang xem: trên Quay lại · ⋯; dưới Chia sẻ (trái) · Thông tin · Xoá. Bỏ nút ×', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
-  _screen('file-other', 'Tệp · mở hop-dong.docx', change: 'Trang mở tệp như trang xem: trên Quay lại · ⋯; dưới Chia sẻ (trái) · Thông tin · Xoá. Bỏ nút ×', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
+  _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
+  _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', () => settings(vault),
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
@@ -1453,7 +1453,7 @@ void main() {
       SyncLog.add(k, v);
     }
   }
-  _screen('debug', 'Trang gỡ lỗi', () => const DebugScreen(), setup: debugSetup);
+  _screen('debug', 'Trang gỡ lỗi', change: 'MỚI: dòng Bộ nhớ đang dùng: hiện tại / cao nhất từ lúc mở app (chạm để đo lại). Bản tạm đã giải mã nay tính cả thư mục tạm', () => const DebugScreen(), setup: debugSetup);
   _screen('debug-more', 'Trang gỡ lỗi · cuộn xuống', () => const DebugScreen(), setup: debugSetup, act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('debug-off')), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
@@ -1641,7 +1641,7 @@ void main() {
   }
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
-  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
+  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', change: 'BỎ nút Sao chép và Lưu ra tệp: 24 từ chỉ ở trên màn, chép tay ra giấy. Màn sáng 3 phút sau lần chạm cuối; chặn chụp màn hình', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
   _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-7QK2-M9XD-4TRB-PW3H-8ZNA-6CJE-1VFS', confirm: false, onChange: () {}));
   Widget change(int step) => ChangeKeyScreen(libraryDir: '', password: '', onBackup: () async {});
   for (final (i, name, what) in [
@@ -1655,9 +1655,9 @@ void main() {
       ChangeKeyScreen.debugStep = i;
     });
   }
-  _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),
+  _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', change: 'BỎ nút Sao chép và Lưu ra tệp: 24 từ chỉ ở trên màn, chép tay ra giấy. Màn sáng 3 phút sau lần chạm cuối; chặn chụp màn hình', () => const EmergencyKitScreen(keyText: words, confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
-  _screen('kit-confirm', 'Khoá khôi phục lần đầu: gõ một từ để xác nhận', () => const EmergencyKitScreen(keyText: words, confirm: true));
+  _screen('kit-confirm', 'Khoá khôi phục lần đầu: gõ một từ để xác nhận', change: 'BỎ Sao chép và Lưu ra tệp; ô gõ lại từ không cho bàn phím học từ', () => const EmergencyKitScreen(keyText: words, confirm: true));
   _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', () => const BackupPasswordScreen(libraryDir: '', change: false),
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
@@ -1710,7 +1710,7 @@ void main() {
             VaultSlot(id: '9b3ad0e1f2c4475a8e61d39b2f0c18d3', sizeBytes: BigInt.from(212 << 10), hasPassword: false, hasPin: true, hasBiometric: false, isOpen: false),
           ]);
   _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''));
-  _screen('restore-keys', 'Khôi phục · 1. Dán 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: ''));
+  _screen('restore-keys', 'Khôi phục · 1. Dán 24 từ và mật khẩu', change: 'BỎ nút Mở tệp ở ô 24 từ (24 từ không nằm trong tệp nào); vẫn còn nút Dán', () => const RestoreKeysScreen(libraryDir: ''));
   _screen('restore-source', 'Khôi phục · 2. Két đang ở đâu?', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake'),
       setup: () => RestoreSourceScreen.debugDrive = true);
   _screen('restore-none', 'Khôi phục · không còn nơi nào giữ két', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake'),
@@ -1728,21 +1728,16 @@ void main() {
   _screen('new-vault', 'Tạo két · 1. Đặt mật khẩu (vào thẳng, không màn giới thiệu)',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords);
-  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ (sau mật khẩu)',
+  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ (sau mật khẩu)', change: 'BỎ nút Sao chép và Lưu ra tệp: 24 từ chỉ ở trên màn, chép tay ra giấy. Màn sáng 3 phút sau lần chạm cuối; chặn chụp màn hình',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: fillPassword);
   _screen('join-drive', 'Mở két từ Google Drive · trước khi đăng nhập', () => const DriveJoinScreen(libraryDir: ''));
   _screen('join-drive-signed', 'Mở két từ Google Drive · đã đăng nhập: nhập 24 từ và mật khẩu', () => const DriveJoinScreen(libraryDir: ''),
       setup: () => DriveJoinScreen.debugAccount = 'ban@gmail.com');
-  _screen('new-vault-words-shown', 'Tạo két · 24 từ sau khi chạm Xem', () => const NewVaultScreen(libraryDir: '', first: true),
+  _screen('new-vault-words-shown', 'Tạo két · 24 từ sau khi chạm Xem', change: 'BỎ nút Sao chép và Lưu ra tệp: 24 từ chỉ ở trên màn, chép tay ra giấy. Màn sáng 3 phút sau lần chạm cuối; chặn chụp màn hình', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
     await fillPassword(t);
     await tapKey(t, 'secret-show');
-  });
-  _screen('new-vault-save-ask', 'Tạo két · bấm Lưu ra tệp', () => const NewVaultScreen(libraryDir: '', first: true),
-      setup: useWords, act: (t) async {
-    await fillPassword(t);
-    await tapKey(t, 'words-save');
   });
   _screen('new-vault-check', 'Tạo két · 3. Gõ lại 4 từ: Tiếp là tạo két',
       () => const NewVaultScreen(libraryDir: '', first: true),
@@ -1781,7 +1776,7 @@ void main() {
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
       });
-  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', change: 'Trang mở tệp như trang xem: trên Quay lại · ⋯; dưới Chia sẻ (trái) · Thông tin · Xoá. Bỏ nút ×', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'));
+  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'));
   _screen('bottom-file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('bottom-trash', 'Đã xoá gần đây · Chọn ở thanh dưới', () => const Readable(child: TrashScreen()));
   if (selectShown) {

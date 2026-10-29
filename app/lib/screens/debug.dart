@@ -58,7 +58,7 @@ class _DebugScreenState extends State<DebugScreen> {
     _load();
   }
 
-  static String _mb(int bytes) => '${(bytes / (1 << 20)).round()} MB';
+  static String _mb(int bytes) => '${(bytes / (1 << 20)).round()}';
 
   Future<void> _load() async {
     final bio = await BiometricUnlock.available();
@@ -240,8 +240,9 @@ class _DebugScreenState extends State<DebugScreen> {
                   icon: Icons.memory_rounded,
                   color: SettingsHue.tim,
                   title: l.debugMemory,
-                  value: '${_mb(ProcessInfo.currentRss)} (↑ ${_mb(ProcessInfo.maxRss)})',
-                  trailing: IconButton(onPressed: () => setState(() {}), icon: const Icon(Icons.refresh_rounded)),
+                  // Now / the most since the app started; a tap reads it again.
+                  value: '${_mb(ProcessInfo.currentRss)} / ${_mb(ProcessInfo.maxRss)} MB',
+                  onTap: () => setState(() {}),
                 ),
                 SettingsRow(
                   key: const ValueKey('debug-playback'),
