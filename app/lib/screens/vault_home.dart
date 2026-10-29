@@ -8,7 +8,6 @@ import 'package:flutter/gestures.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../biometric.dart';
@@ -20,6 +19,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../sync/awake.dart';
 import '../theme.dart';
+import '../temp_files.dart';
 import '../originals.dart';
 import '../prefs.dart';
 import '../privacy.dart';
@@ -503,7 +503,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       }
       rust.lock();
       LockGuard.clearCopied();
-      clearPlaybackCopies();
+      clearTemp(); // the video being played, and anything else decrypted for a moment
       _thumbnails.clear();
       _thumbReady.clear();
       // The lock covers the pages; what floats over them closes (as Cancel), and the item
@@ -809,7 +809,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         if (mounted) _snack(l.backupDone);
         return;
       }
-      final tmp = File('${(await getTemporaryDirectory()).path}${Platform.pathSeparator}$name');
+      final tmp = File('${(await privateTemp()).path}${Platform.pathSeparator}$name');
       await rust.exportBackup(dir: widget.libraryDir, path: tmp.path);
       if (!mounted) return;
       final box = context.findRenderObject() as RenderBox?;
@@ -1009,8 +1009,24 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   // ---------- content ----------
 
-  Future<Uint8List> _thumbnail(String id) => _thumbnails[id] ??= rust.itemThumbnail(id: id)
-    ..then((b) => _thumbReady[id] = b, onError: (_) => Uint8List(0));
+  /// At most this many thumbnails stay in memory (~30 KB each, ~25 MB), the ones seen
+  /// longest ago dropped first and read again if scrolled back to (owner 2026-10-30:
+  /// memory kept tight; a library of thousands of photos kept them all).
+  static const _thumbCap = 800;
+
+  Future<Uint8List> _thumbnail(String id) {
+    final had = _thumbnails.remove(id);
+    if (had != null) return _thumbnails[id] = had; // now the most recent
+    while (_thumbnails.length >= _thumbCap) {
+      final oldest = _thumbnails.keys.first;
+      _thumbnails.remove(oldest);
+      _thumbReady.remove(oldest);
+    }
+    return _thumbnails[id] = rust.itemThumbnail(id: id)
+      ..then<void>((b) {
+        if (_thumbnails.containsKey(id)) _thumbReady[id] = b;
+      }, onError: (_) {});
+  }
 
   /// The note's text after its first line (the title), for the list's two-line preview.
   Future<String> _preview(String id) => _previews[id] ??= rust.itemContent(id: id).then((bytes) {
@@ -1184,7 +1200,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!await confirmShareOut(context, _vault.id) || !mounted) return;
     final items =
         (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id) && i.kind != ItemKind.tag).toList();
-    final dir = await Directory((await getTemporaryDirectory()).path).createTemp('send');
+    final dir = await (await privateTemp()).createTemp('send');
     LockGuard.allowAway();
     try {
       final files = <XFile>[];

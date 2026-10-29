@@ -771,5 +771,6 @@
   "wordsSaveAskBody": "此檔案加上保險箱密碼即可打開你的保險箱。不要與密碼放在同一處。最好列印出來或複製到 USB 隨身碟;避免使用備忘錄、電子郵件和截圖。",
   "wordsSaveAskGo": "儲存檔案",
   "introBioBody": "每天快速打開，僅限這台裝置。它不能取代密碼或 24 個單字。",
-  "deleteVaultPassword": "輸入這個保險箱的密碼以確認。"
+  "deleteVaultPassword": "輸入這個保險箱的密碼以確認。",
+  "debugMemory": "已用記憶體"
 }

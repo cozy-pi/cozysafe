@@ -771,5 +771,6 @@
   "wordsSaveAskBody": "Insieme alla password della cassaforte, questo file apre la cassaforte. Non tenerlo nello stesso posto della password. Meglio stamparlo o copiarlo su una chiavetta USB. Evita Note, email e screenshot.",
   "wordsSaveAskGo": "Salva file",
   "introBioBody": "La apre in fretta ogni giorno, solo su questo dispositivo. Non sostituisce la password né le 24 parole.",
-  "deleteVaultPassword": "Inserisci la password di questa cassaforte per confermare."
+  "deleteVaultPassword": "Inserisci la password di questa cassaforte per confermare.",
+  "debugMemory": "Memoria in uso"
 }

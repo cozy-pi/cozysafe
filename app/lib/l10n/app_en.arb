@@ -982,5 +982,7 @@
   "wordsOpenFile": "Open a file",
   "wordsSaveAskTitle": "Save the 24 words to a file?",
   "wordsSaveAskBody": "With your vault password, this file opens your vault. Do not keep it in the same place as the password. Best: print it or copy it to a USB stick. Avoid Notes, email and screenshots.",
-  "wordsSaveAskGo": "Save file"
+  "wordsSaveAskGo": "Save file",
+  "debugMemory": "Memory in use",
+  "@debugMemory": {"description": "Debug page: how much memory the app uses now, and its peak since it started"}
 }

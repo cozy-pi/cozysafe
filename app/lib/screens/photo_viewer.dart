@@ -1,3 +1,4 @@
+import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -101,10 +102,12 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
   void _around(int i) {
     if (!mounted) return;
     final n = _items.length;
-    final keep = {for (var j = i - 3; j <= i + 3; j++) if (j >= 0 && j < n) _items[j].id};
+    final keep = {for (var j = i - 2; j <= i + 2; j++) if (j >= 0 && j < n) _items[j].id};
     _content.removeWhere((id, _) => !keep.contains(id));
     final w = _decodeWidth;
-    for (final j in [i, i + 1, i - 1, i + 2, i - 2]) {
+    // The one shown and one each side: five at once was the largest burst of memory in
+    // the app (an Android HEIC is decoded whole before it is shrunk).
+    for (final j in [i, i + 1, i - 1]) {
       if (j < 0 || j >= n || _items[j].kind != ItemKind.photo) continue;
       _load(_items[j].id).then((bytes) {
         // The same provider Image.memory(cacheWidth:) makes, so the page finds it decoded.
@@ -207,15 +210,19 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
         ),
       );
 
-  /// The thumbnail at once (no spinner between photos), the full photo over it as soon as
-  /// it is decoded.
+  /// The thumbnail at once, the full photo over it as soon as it is decoded; a spinner
+  /// over the thumbnail when that takes a moment (owner 2026-10-30: a slow photo looked
+  /// stuck).
   Widget _photoPage(BuildContext context, rust.ItemInfo item) {
-    final still = FutureBuilder<Uint8List>(
-      future: _thumbnail(item.id),
-      builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-          ? Image.memory(snap.data!, fit: BoxFit.contain, gaplessPlayback: true, width: double.infinity, height: double.infinity)
-          : const SizedBox.expand(),
-    );
+    final still = Stack(fit: StackFit.expand, children: [
+      FutureBuilder<Uint8List>(
+        future: _thumbnail(item.id),
+        builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
+            ? Image.memory(snap.data!, fit: BoxFit.contain, gaplessPlayback: true, width: double.infinity, height: double.infinity)
+            : const SizedBox.expand(),
+      ),
+      const LoadingSpinner(),
+    ]);
     return FutureBuilder<Uint8List>(
       future: _load(item.id),
       builder: (context, snap) {
@@ -560,4 +567,46 @@ class _ZoomPhotoState extends State<_ZoomPhoto> with SingleTickerProviderStateMi
           ),
         ),
       );
+}
+
+/// A spinner over a photo still being read, shown only if that takes over [after], so a
+/// quick photo does not flash one.
+class LoadingSpinner extends StatefulWidget {
+  const LoadingSpinner({super.key});
+
+  static const after = Duration(milliseconds: 250);
+
+  @override
+  State<LoadingSpinner> createState() => _LoadingSpinnerState();
+}
+
+class _LoadingSpinnerState extends State<LoadingSpinner> {
+  Timer? _timer;
+  bool _shown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(LoadingSpinner.after, () {
+      if (mounted) setState(() => _shown = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => !_shown
+      ? const SizedBox.shrink()
+      : const Center(
+          child: SizedBox(
+            key: ValueKey('photo-loading'),
+            width: 34,
+            height: 34,
+            child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white70),
+          ),
+        );
 }

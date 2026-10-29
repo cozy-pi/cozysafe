@@ -785,5 +785,6 @@
   "wordsOpenFile": "Mở tệp",
   "wordsSaveAskTitle": "Lưu 24 từ ra tệp?",
   "wordsSaveAskBody": "Tệp này cùng mật khẩu két mở được két của bạn. Đừng lưu chung chỗ với mật khẩu. Tốt nhất in ra giấy hoặc chép vào USB; tránh Ghi chú, Email, ảnh chụp màn hình.",
-  "wordsSaveAskGo": "Lưu tệp"
+  "wordsSaveAskGo": "Lưu tệp",
+  "debugMemory": "Bộ nhớ đang dùng"
 }

@@ -411,7 +411,13 @@ class _QuickLookState extends State<QuickLook> {
               imageFilter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
               child: Image.memory(thumb, fit: BoxFit.contain, gaplessPlayback: true, scale: .05),
             );
-            return Stack(alignment: Alignment.center, children: [small, if (big != null) Positioned.fill(child: big)]);
+            // Still reading: a spinner over the blurred thumbnail (owner 2026-10-30).
+            final waiting = f.connectionState != ConnectionState.done;
+            return Stack(alignment: Alignment.center, children: [
+              small,
+              if (big != null) Positioned.fill(child: big),
+              if (waiting) const Positioned.fill(child: LoadingSpinner()),
+            ]);
           },
         );
       },

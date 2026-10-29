@@ -12,6 +12,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../temp_files.dart';
 import '../sync/drive_check.dart';
 import '../sync/sync_log.dart';
 import '../theme.dart';
@@ -56,6 +57,8 @@ class _DebugScreenState extends State<DebugScreen> {
     super.initState();
     _load();
   }
+
+  static String _mb(int bytes) => '${(bytes / (1 << 20)).round()} MB';
 
   Future<void> _load() async {
     final bio = await BiometricUnlock.available();
@@ -231,6 +234,15 @@ class _DebugScreenState extends State<DebugScreen> {
                             ]),
                           ])),
                 ),
+                // Owner 2026-10-30: memory kept tight; this shows it on the phone itself.
+                SettingsRow(
+                  key: const ValueKey('debug-memory'),
+                  icon: Icons.memory_rounded,
+                  color: SettingsHue.tim,
+                  title: l.debugMemory,
+                  value: '${_mb(ProcessInfo.currentRss)} (↑ ${_mb(ProcessInfo.maxRss)})',
+                  trailing: IconButton(onPressed: () => setState(() {}), icon: const Icon(Icons.refresh_rounded)),
+                ),
                 SettingsRow(
                   key: const ValueKey('debug-playback'),
                   icon: Icons.play_circle_rounded,
@@ -241,7 +253,7 @@ class _DebugScreenState extends State<DebugScreen> {
                     onPressed: (_temp ?? 0) == 0
                         ? null
                         : () async {
-                            await clearPlaybackCopies();
+                            await clearTemp();
                             if (!context.mounted) return;
                             showToast(context, l.debugCleared, icon: Icons.check_rounded);
                             _load();

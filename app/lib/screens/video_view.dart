@@ -5,7 +5,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import '../theme.dart' show CsType;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
@@ -16,6 +15,7 @@ import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../temp_files.dart';
 import 'file_view.dart';
 import 'glass.dart';
 
@@ -45,7 +45,7 @@ class VideoViewScreen extends StatefulWidget {
 const _playDir = 'play';
 
 Future<Directory> _playbackDir() async =>
-    Directory('${(await getTemporaryDirectory()).path}${Platform.pathSeparator}$_playDir');
+    Directory('${(await privateTemp()).path}${Platform.pathSeparator}$_playDir');
 
 /// Decrypt an item into the private playback folder for a player that needs a file.
 /// The caller deletes it when done; [clearPlaybackCopies] sweeps whatever is left.
@@ -66,10 +66,10 @@ Future<Directory> recordingDir() async {
   return d;
 }
 
-/// How many bytes of decrypted playback copies are on disk now (Debug).
+/// How many bytes of temporary copies are on disk now, playback and any other (Debug).
 Future<int> playbackBytes() async {
   try {
-    final d = await _playbackDir();
+    final d = await privateTemp();
     if (!d.existsSync()) return 0;
     var n = 0;
     for (final f in d.listSync(recursive: true).whereType<File>()) {

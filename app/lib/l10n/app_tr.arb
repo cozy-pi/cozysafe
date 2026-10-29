@@ -771,5 +771,6 @@
   "wordsSaveAskBody": "Kasa parolanızla birlikte bu dosya kasanızı açar. Parolayla aynı yerde saklamayın. En iyisi: yazdırın ya da bir USB belleğe kopyalayın. Notlar, e-posta ve ekran görüntülerinden kaçının.",
   "wordsSaveAskGo": "Dosyayı kaydet",
   "introBioBody": "Her gün hızlıca açar, yalnızca bu cihazda. Parolanın ya da 24 kelimenin yerini tutmaz.",
-  "deleteVaultPassword": "Onaylamak için bu kasanın parolasını girin."
+  "deleteVaultPassword": "Onaylamak için bu kasanın parolasını girin.",
+  "debugMemory": "Kullanılan bellek"
 }

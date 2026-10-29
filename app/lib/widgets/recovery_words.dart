@@ -5,17 +5,19 @@ import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../platform.dart';
+import '../temp_files.dart';
 import '../screens/emergency_kit.dart' show WordGrid;
 import '../theme.dart';
+import '../words_export.dart';
 import 'secret.dart';
 import 'toast.dart';
+import 'words_awake.dart';
 
 /// Four positions (0-based, in order) to ask back. Fixed in tests and mockups.
 List<int> pickFourWords({bool fixed = false}) {
@@ -28,14 +30,16 @@ List<int> pickFourWords({bool fixed = false}) {
   return picked.toList()..sort();
 }
 
-/// The 24 words to write down (new vault, Recovery Key change): masked until Show, Copy
-/// (wiped from the clipboard after 60 s and on lock) and Save, then the warning. The
-/// screen pins its own button at the bottom.
+/// The 24 words to write down (new vault, Recovery Key change): masked until Show, then
+/// the warning; the screen stays on while they are copied out by hand ([WordsAwake]).
+/// Copy (wiped from the clipboard after 60 s and on lock) and Save only in a build with
+/// [wordsExport]. The screen pins its own button at the bottom.
 class RecoveryWordsPanel extends StatelessWidget {
   const RecoveryWordsPanel({super.key, required this.words});
   final List<String> words;
 
   Future<void> _copy(BuildContext context) async {
+    if (!wordsExport) return;
     final l = AppLocalizations.of(context);
     final text = words.join(' ');
     await Clipboard.setData(ClipboardData(text: text));
@@ -49,7 +53,8 @@ class RecoveryWordsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    return Column(
+    return WordsAwake(
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
@@ -61,6 +66,7 @@ class RecoveryWordsPanel extends StatelessWidget {
             style: const TextStyle(fontSize: CsType.subhead),
           ),
         ),
+        if (wordsExport) ...[
         const SizedBox(height: 10),
         Row(
           children: [
@@ -81,6 +87,7 @@ class RecoveryWordsPanel extends StatelessWidget {
             ),
           ],
         ),
+        ],
         const SizedBox(height: 12),
         Material(
           color: c.warnBg,
@@ -91,6 +98,7 @@ class RecoveryWordsPanel extends StatelessWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }
@@ -156,6 +164,7 @@ class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> with VaultLockA
             controller: _answers[i],
             autocorrect: false,
             enableSuggestions: false,
+            enableIMEPersonalizedLearning: false,
             textInputAction: i < 3 ? TextInputAction.next : TextInputAction.done,
             decoration: InputDecoration(
               labelText: l.wordNumber(widget.ask[i] + 1),
@@ -179,6 +188,7 @@ class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> with VaultLockA
 /// in the app's temporary folder, handed to the share sheet (Save to Files) and deleted
 /// right after, so the words do not stay on the phone outside the vault.
 Future<void> saveWordsFile(BuildContext button, List<String> words) async {
+  if (!wordsExport) return;
   final l = AppLocalizations.of(button);
   // Where to keep it, first (owner 2026-10-29): no password of its own on the file (a
   // third secret to forget), a reminder instead.
@@ -194,7 +204,7 @@ Future<void> saveWordsFile(BuildContext button, List<String> words) async {
       if (loc != null) await File(loc.path).writeAsString(text);
       return;
     }
-    final tmp = File('${(await getTemporaryDirectory()).path}${Platform.pathSeparator}$name');
+    final tmp = File('${(await privateTemp()).path}${Platform.pathSeparator}$name');
     await tmp.writeAsString(text);
     try {
       await SharePlus.instance.share(ShareParams(

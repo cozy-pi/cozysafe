@@ -10,6 +10,8 @@ import '../lock_resume.dart';
 import '../theme.dart';
 import '../widgets/recovery_words.dart' show saveWordsFile;
 import '../widgets/secret.dart';
+import '../widgets/words_awake.dart';
+import '../words_export.dart';
 import 'common.dart';
 import '../widgets/toast.dart';
 
@@ -61,6 +63,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
   }
 
   Future<void> _copy() async {
+    if (!wordsExport) return;
     final l = AppLocalizations.of(context);
     await Clipboard.setData(ClipboardData(text: widget.keyText));
     LockGuard.copied(widget.keyText); // wiped from the clipboard after 60 s and on lock
@@ -69,6 +72,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
 
   /// The words as a real .txt file (recovery_words.dart); an old CS1- key as plain text.
   Future<void> _share(BuildContext buttonContext) async {
+    if (!wordsExport) return;
     if (_isWords) return saveWordsFile(buttonContext, _words);
     final l = AppLocalizations.of(context);
     final box = buttonContext.findRenderObject() as RenderBox?;
@@ -86,7 +90,8 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
     final theme = Theme.of(context);
     return Scaffold(
       appBar: widget.confirm ? null : AppBar(),
-      body: FormColumn(
+      body: WordsAwake(
+        child: FormColumn(
         children: [
           Text(l.kitTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
@@ -112,6 +117,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
               ),
             ),
           ),
+          if (wordsExport) ...[
           const SizedBox(height: 12),
           Row(
             children: [
@@ -130,6 +136,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
               ),
             ],
           ),
+          ],
           const SizedBox(height: 16),
           Material(
             color: c.warnBg,
@@ -156,6 +163,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
               maxLength: _isWords ? 8 : 4,
               autocorrect: false,
               enableSuggestions: false,
+              enableIMEPersonalizedLearning: false,
               textCapitalization: _isWords ? TextCapitalization.none : TextCapitalization.characters,
               decoration: InputDecoration(
                 labelText: _isWords ? l.kitConfirmWord(_ask + 1) : l.kitConfirmLabel,
@@ -167,6 +175,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
             FilledButton(onPressed: _ok ? widget.onDone : null, child: Text(l.kitDone)),
           ],
         ],
+        ),
       ),
     );
   }

@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../theme.dart';
+import '../words_export.dart';
 
 /// A secret shown for people (the Secret Key): hidden until "Show" is tapped, hidden again
 /// after 30 seconds or when the app goes to the background, so a person or a camera
@@ -103,8 +104,8 @@ class SecretField extends StatefulWidget {
   });
 
   /// A Paste button (the 24 words come from a password manager or a note; the clipboard
-  /// is emptied after, so the words do not linger there) and an Open file button (the
-  /// .txt the app saves, owner 2026-10-29).
+  /// is emptied after, so the words do not linger there) and, in a build with
+  /// [wordsExport], an Open file button (the .txt that build saves, owner 2026-10-29).
   final bool paste;
 
   /// Long secrets (24 words): once shown, the field grows to several lines.
@@ -138,6 +139,7 @@ class _SecretFieldState extends State<SecretField> {
   /// The words from a file (the .txt "Save to a file" writes, or any text with the 24
   /// words). Numbered lines ("1. word") are read in order; otherwise the whole text.
   Future<void> _openFile() async {
+    if (!wordsExport) return;
     LockGuard.allowAway();
     XFile? file;
     try {
@@ -180,7 +182,7 @@ class _SecretFieldState extends State<SecretField> {
               icon: const Icon(Icons.content_paste_rounded),
               onPressed: widget.enabled ? _paste : null,
             ),
-          if (widget.paste)
+          if (widget.paste && wordsExport)
             IconButton(
               key: const ValueKey('secret-open-file'),
               tooltip: l.wordsOpenFile,

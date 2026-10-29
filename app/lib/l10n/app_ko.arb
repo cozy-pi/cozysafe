@@ -771,5 +771,6 @@
   "wordsSaveAskBody": "이 파일과 금고 비밀번호가 있으면 금고를 열 수 있습니다. 비밀번호와 같은 곳에 두지 마세요. 인쇄하거나 USB에 복사하는 것이 가장 좋습니다. 메모, 이메일, 스크린샷은 피하세요.",
   "wordsSaveAskGo": "파일 저장",
   "introBioBody": "이 기기에서만 매일 빠르게 엽니다. 비밀번호나 24개 단어를 대신하지는 않습니다.",
-  "deleteVaultPassword": "확인을 위해 이 금고의 비밀번호를 입력하세요."
+  "deleteVaultPassword": "확인을 위해 이 금고의 비밀번호를 입력하세요.",
+  "debugMemory": "사용 중인 메모리"
 }

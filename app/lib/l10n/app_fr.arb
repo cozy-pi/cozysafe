@@ -771,5 +771,6 @@
   "wordsSaveAskBody": "Avec le mot de passe du coffre, ce fichier ouvre votre coffre. Ne le gardez pas au même endroit que le mot de passe. Le mieux : l’imprimer ou le copier sur une clé USB. Évitez Notes, les e-mails et les captures d’écran.",
   "wordsSaveAskGo": "Enregistrer le fichier",
   "introBioBody": "L'ouvre vite au quotidien, sur cet appareil uniquement. Ne remplace ni le mot de passe ni les 24 mots.",
-  "deleteVaultPassword": "Saisissez le mot de passe de ce coffre pour confirmer."
+  "deleteVaultPassword": "Saisissez le mot de passe de ce coffre pour confirmer.",
+  "debugMemory": "Mémoire utilisée"
 }

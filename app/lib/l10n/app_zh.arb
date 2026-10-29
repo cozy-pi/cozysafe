@@ -771,5 +771,6 @@
   "wordsSaveAskBody": "此文件加上保险箱密码即可打开你的保险箱。不要与密码放在同一处。最好打印出来或复制到 U 盘;避免使用备忘录、邮件和截图。",
   "wordsSaveAskGo": "保存文件",
   "introBioBody": "每天快速打开，仅限这台设备。它不能代替密码或 24 个单词。",
-  "deleteVaultPassword": "输入这个保险箱的密码以确认。"
+  "deleteVaultPassword": "输入这个保险箱的密码以确认。",
+  "debugMemory": "已用内存"
 }
