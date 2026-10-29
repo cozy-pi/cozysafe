@@ -4,6 +4,20 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.88 (2026-10-29)
+
+### Changed
+- Every preview looks the same, as in Photos: Back, the date and ⋯ on top; Share,
+  Info and Delete at the bottom. No × button: tap beside the item, swipe down or Back.
+- A photo or video opens straight to full screen, with a strip of the other photos and
+  videos at the bottom (blurred when thumbnails are hidden).
+- In the note editor, Share is on the left, Done in the middle, Delete on the right.
+- The Unlock button shows only once you type; the right password still unlocks by itself.
+- A note's title shows once in its preview.
+
+### Fixed
+- A video recorded with the phone held sideways now plays wide, not tall.
+
 ## 0.1.87 (2026-10-29)
 
 ### Fixed

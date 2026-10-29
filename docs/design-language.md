@@ -53,7 +53,8 @@ Icons: Material rounded, 28 in an action circle, about 0.44 of a header circle.
 
 | Need | Piece | Where |
 |---|---|---|
-| Actions for an open item, a note, a full-screen photo or video | `ActionBar` + `LeaveButton` + `BarIcon` | `widgets/bottom_bar.dart` |
+| Actions for an open item, a note, a full-screen photo or video | `ActionBar` (`start` / `leave`) + `BarIcon` | `widgets/bottom_bar.dart` |
+| The top of every viewer (Back · date · ⋯) | `ViewerTopBar`, `mediaDate` | `widgets/bottom_bar.dart`, `screens/glass.dart` |
 | Actions while selecting many | `SelectionBar` (built on `ActionBar`) | `widgets/selection_bar.dart` |
 | A form's main button pinned at the bottom | `PinnedAction` | `widgets/bottom_bar.dart` |
 | A round button in a header | `GlassButton` (size `Ui.circle`) | `widgets/vault_bar.dart` |
@@ -68,22 +69,37 @@ Icons: Material rounded, 28 in an action circle, about 0.44 of a header circle.
 
 ## 4. Layouts
 
-**Action bar** (an open item, editing, selecting):
+**Viewer** (every preview: photo, video, note, recording, file; owner 2026-10-29, laid
+out as Photos):
 
 ```
- (×)        (⤢) (⇪) (⋯)        (🗑)
- leave       the actions        Delete, red
+ (‹)          date · time · size          (⋯)
+
+                  the item
+
+           [ strip of photos ]        photos and videos only
+ (⇪)               (ⓘ)                (🗑)
+ Share             Info               Delete, red
 ```
 
-- Left, the way out: × to close, ✓ to save and leave or end Select, ⤡ to leave full
-  screen.
-- Middle, in this order: Open or Full screen · Send · ⋯. While selecting: Select all ·
-  Send · Group.
+- A photo or video opens straight to full screen; there is no preview box first. The
+  strip shows every photo and video, blurred when thumbnails are hidden.
+- A note, recording or file opens in the box over the page; a tap beside it or a swipe
+  down closes it, as Back does. A tap on the item opens it (the editor, the file page).
+- No ×. In Recently deleted: no ⋯; Restore · Info · Delete for good.
+- ⋯ opens the item's menu right there, beside the button (`ViewerMenu`): the viewer
+  stays. Never close the viewer to show a menu elsewhere.
+
+**Action bar** (editing a note, selecting):
+
+```
+ (⇪)               (✓)                (🗑)        a note: Send · Done · Delete
+ (✓)      (☐) (⇪) (#)                (🗑)        selecting: Done, then the actions
+```
+
+- Left: Send in a note (as in the viewers); ✓ to end Select.
 - Right: Delete or Delete for good, red. None when there is nothing to delete.
 - Icons only; the word is the tooltip and what a screen reader says.
-- ⋯ in a viewer opens the item's menu right there, beside the button, over the item
-  (`ViewerMenu`): the viewer stays. It has only what the bar lacks (Rename, Favourite,
-  Group, Info, Version history). Never close the viewer to show a menu elsewhere.
 - On a narrow phone the middle circles shrink together; they never wrap or overflow.
 
 **Section header** (Overview, Library, Files, Notes, inside a group):
