@@ -147,6 +147,10 @@ stays.
 
 **Tour tips**: no button that leaves the tour; Next, Skip, Done only.
 
+**Hidden for the beta** (owner 2026-10-29: a simpler app first): groups and selecting
+many, each behind one switch in `lib/hidden_features.dart`. Nothing is deleted; a screen
+that offers either checks its switch.
+
 ## 6. Before you call a screen done
 
 - [ ] Only pieces from section 3, only numbers from section 2.

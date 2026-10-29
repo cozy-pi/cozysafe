@@ -4,6 +4,18 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.89 (2026-10-29)
+
+### Changed
+- Simpler for the beta: groups and selecting many are hidden for now. Groups you made
+  are kept, in the vault and in sync.
+- No Unlock button: the right password opens the vault as you type; the keyboard's
+  Done says when it is wrong.
+- In full screen a photo sits between the bars, as in Photos; tap it to hide them.
+- Back and ⋯ in the viewers are as big as the buttons at the bottom.
+- A file's page (PDF, text, a picture from Files) has the same layout as the viewers:
+  Back and ⋯ on top; Share, Info and Delete at the bottom.
+
 ## 0.1.88 (2026-10-29)
 
 ### Changed
