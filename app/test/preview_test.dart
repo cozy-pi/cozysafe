@@ -634,8 +634,7 @@ void main() {
           await t.pumpAndSettle();
         });
   }
-  _screen('mac-home-cloud', 'MacBook · Tổng quan: bấm đám mây xanh', change: 'Đồng bộ mở ở khung phải, cột trái vẫn còn (trước: trang to phủ cả cửa sổ)',
-      marks: [() => find.byKey(const ValueKey('wide-sync'))],
+  _screen('mac-home-cloud', 'MacBook · Tổng quan: bấm đám mây xanh',
       home, section: 'home', size: mac, setup: () {
         SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|drive|Google Drive|ok|12|3'];
         drive();
@@ -754,30 +753,30 @@ void main() {
   _screen('quick-photo-center', 'Xem trước · nút + ở giữa thanh', home, section: 'library', setup: () {
     Prefs.write('action-side', 'center');
   }, act: (t) => tapThumb(t, 2));
-  _screen('quick-photo', 'Thư viện · chạm vào một ảnh', home, section: 'library',
+  _screen('quick-photo', 'Thư viện · chạm vào một ảnh', change: 'Thanh chỉ còn Chia sẻ · Thông tin · Xoá (bỏ nút ⛶ và ⋯). Chạm vào ảnh để xem toàn màn',
+      marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'library',
       act: (t) => tapThumb(t, 2));
-  _screen('quick-video', 'Thư viện · chạm vào một video', home, section: 'library',
+  _screen('quick-video', 'Thư viện · chạm vào một video', change: 'Thanh chỉ còn Chia sẻ · Thông tin · Xoá (bỏ nút ⛶ và ⋯)',
+      marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'library',
       setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
       act: (t) => tapThumb(t, 5));
   _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-full')));
+    await t.tap(find.byKey(const ValueKey('quick-tap-open')));
     for (var i = 0; i < 6; i++) {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await t.pump(const Duration(milliseconds: 100));
     }
   });
-  _screen('quick-photo-menu', 'Xem trước ảnh · bấm ⋯', change: 'MỚI: menu mở ngay trên ảnh, cạnh nút ⋯ (trước: đóng xem trước, menu nhảy sang ô ảnh ngoài lưới). Chỉ Đổi tên · Yêu thích · Nhóm · Thông tin · Lịch sử — Gửi/Xoá đã có ở thanh',
-      marks: [() => find.byKey(const ValueKey('item-menu'))], home, section: 'library', act: (t) async {
+  _screen('quick-photo-info', 'Xem trước ảnh · bấm ⓘ', change: 'MỚI: nút Thông tin thay nút ⋯ — thanh chỉ còn Chia sẻ · Thông tin · Xoá',
+      marks: [() => find.byKey(const ValueKey('quick-item-info'))], home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-more')));
-    await t.pump();
-    await t.pump(const Duration(milliseconds: 300));
+    await t.tap(find.byKey(const ValueKey('quick-item-info')));
+    await t.pumpAndSettle();
   });
-  _screen('photo-full-menu', 'Ảnh toàn màn · bấm ⋯', change: 'MỚI: menu mở ngay trên ảnh toàn màn, ảnh vẫn ở đó',
-      marks: [() => find.byKey(const ValueKey('item-menu'))], home, section: 'library', act: (t) async {
+  _screen('photo-full-menu', 'Ảnh toàn màn · bấm ⋯', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-full')));
+    await t.tap(find.byKey(const ValueKey('quick-tap-open')));
     for (var i = 0; i < 6; i++) {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await t.pump(const Duration(milliseconds: 100));
@@ -788,7 +787,7 @@ void main() {
   });
   _screen('photo-swipe', 'Ảnh toàn màn hình · đang vuốt sang ảnh kế', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-full')));
+    await t.tap(find.byKey(const ValueKey('quick-tap-open')));
     for (var i = 0; i < 6; i++) {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await t.pump(const Duration(milliseconds: 100));
@@ -801,7 +800,7 @@ void main() {
   }, after: 0);
   _screen('photo-drag', 'Ảnh toàn màn hình · đang kéo xuống để đóng', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-full')));
+    await t.tap(find.byKey(const ValueKey('quick-tap-open')));
     for (var i = 0; i < 6; i++) {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await t.pump(const Duration(milliseconds: 100));
@@ -871,7 +870,8 @@ void main() {
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
       });
-  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', home, section: 'note',
+  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', change: 'Tên ghi chú chỉ còn MỘT chỗ (trong thẻ); bỏ dòng tên lặp ở dưới. Thanh: Chia sẻ · Thông tin · Xoá; chạm thẻ để sửa',
+      marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
       act: (t) => openRow(t, 'Thuốc của mẹ'));
   _screen('quick-pdf', 'Tệp · chạm một PDF', home, section: 'file',
@@ -879,7 +879,8 @@ void main() {
       act: (t) => openRow(t, 'Hop-dong-thue-nha-2026.pdf'));
   _screen('quick-pdf-icon', 'Tệp · chạm một PDF lớn (chỉ biểu tượng)', home, section: 'file',
       act: (t) => openRow(t, 'So-do-nha-scan.pdf'));
-  _screen('quick-file', 'Tệp · chạm một tệp .docx', home, section: 'file',
+  _screen('quick-file', 'Tệp · chạm một tệp .docx', change: 'Thanh chỉ còn Chia sẻ · Thông tin · Xoá (bỏ nút Mở bằng và ⋯). Chạm vào tệp để mở',
+      marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'file',
       act: (t) => openRow(t, 'Di-chuc-nhap.docx'));
   _screen('quick-image-file', 'Tệp · chạm một ảnh thêm từ Tệp', home, section: 'file',
       act: (t) => openRow(t, 'CCCD-mat-truoc.jpg'));
@@ -1343,8 +1344,6 @@ void main() {
   ];
   for (final (i, (name, caption)) in madeTips.indexed) {
     _screen('tip-made-${i + 1}-$name', 'Hướng dẫn nhanh sau khi tạo két · ${i + 1}/10: $caption',
-        change: name == 'copy' ? 'Bỏ nút "Cài đồng bộ ngay" (bấm vào là mất hướng dẫn); Tiếp → sang Cài đặt (đếm 5/10)' : null,
-        marks: [if (name == 'copy') () => find.byKey(const ValueKey('tip-next'))],
         () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.created),
         section: 'library',
         setup: () {
@@ -1420,11 +1419,6 @@ void main() {
   ];
   for (final (i, (name, caption)) in settingsTips.indexed) {
     _screen('tip-guide-${i + 7}-$name', 'Hướng dẫn sử dụng trong Cài đặt · ${i + 7}/11: $caption',
-        change: switch (name) {
-          'security' => 'Mẹo Bảo mật tách đôi: đây là nhóm khoá',
-          'shield' => 'MỚI: mẹo riêng cho nhóm tự khoá + che màn hình',
-          _ => null,
-        },
         () => settings(vault, guideFrom: 6),
         setup: () {
           CoachTour.debugStart = i;
@@ -1435,7 +1429,6 @@ void main() {
   // The first tour after a vault is made goes on into Settings too (owner 2026-10-29).
   for (final (i, (name, caption)) in settingsTips.indexed) {
     _screen('tip-made-${i + 6}-$name', 'Hướng dẫn nhanh sau khi tạo két, tiếp trong Cài đặt · ${i + 6}/10: $caption',
-        change: 'MỚI: hướng dẫn lần đầu đi tiếp sang Cài đặt: Đồng bộ, nhóm khoá, nhóm tự khoá + che, Sao lưu, Hướng dẫn',
         () => settings(vault, guideFrom: 5),
         setup: () {
           CoachTour.debugStart = i;
@@ -1656,7 +1649,7 @@ void main() {
   _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
   _screen('kit-confirm', 'Khoá khôi phục lần đầu: gõ một từ để xác nhận', () => const EmergencyKitScreen(keyText: words, confirm: true));
-  _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', change: 'BỎ nút Gợi ý mật khẩu (trước: nút đen to cả bề ngang)', () => const BackupPasswordScreen(libraryDir: '', change: false),
+  _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', () => const BackupPasswordScreen(libraryDir: '', change: false),
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
@@ -1718,17 +1711,15 @@ void main() {
   });
   _screen('restore-drive', 'Khôi phục · Google Drive (24 từ đã nhập ở bước 1)', () => const DriveJoinScreen(libraryDir: '', words: 'fake', password: 'fake'),
       setup: () => DriveJoinScreen.debugAccount = 'me@example.com');
-  _screen('new-vault-biometric', 'Tạo két · 4. Face ID: Bật hoặc Để sau (sau 24 từ)', change: 'Câu mới: mở nhanh, chỉ trên máy này, mật khẩu và 24 từ vẫn phải giữ', () => const NewVaultScreen(libraryDir: '', first: true),
+  _screen('new-vault-biometric', 'Tạo két · 4. Face ID: Bật hoặc Để sau (sau 24 từ)', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: () {
     useWords();
     NewVaultScreen.debugBiometricStep = true;
   });
   _screen('new-vault', 'Tạo két · 1. Đặt mật khẩu (vào thẳng, không màn giới thiệu)',
-      change: 'Thứ tự mới: Mật khẩu → 24 từ → gõ lại 4 từ → Face ID. BỎ nút Gợi ý mật khẩu; chữ "Mật khẩu" nằm trong ô. Câu dưới tiêu đề nói rõ mật khẩu để làm gì',
-      marks: [() => find.byKey(const ValueKey('new-password'))],
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords);
-  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ (sau mật khẩu)', change: 'Bước 2, sau mật khẩu. Câu dưới tiêu đề nói rõ 24 từ để làm gì',
+  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ (sau mật khẩu)',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: fillPassword);
   _screen('join-drive', 'Mở két từ Google Drive · trước khi đăng nhập', () => const DriveJoinScreen(libraryDir: ''));
@@ -1744,15 +1735,14 @@ void main() {
     await fillPassword(t);
     await tapKey(t, 'words-save');
   });
-  _screen('new-vault-check', 'Tạo két · 3. Gõ lại 4 từ: Tiếp là tạo két', change: 'Bước 3; két chỉ được tạo khi bấm Tiếp ở đây',
+  _screen('new-vault-check', 'Tạo két · 3. Gõ lại 4 từ: Tiếp là tạo két',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
     await fillPassword(t);
     await tapKey(t, 'words-done');
     await fillCheck(t);
   });
-  _screen('new-vault-password', 'Tạo két · 1. Mật khẩu: đang gõ', change: 'Chữ "Mật khẩu" thu nhỏ NẰM TRONG ô (trước: nổi lên cắt ngang viền)',
-      marks: [() => find.byKey(const ValueKey('new-password'))],
+  _screen('new-vault-password', 'Tạo két · 1. Mật khẩu: đang gõ',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
     await t.enterText(find.byKey(const ValueKey('new-password')).first, 'sunflower');
@@ -1766,8 +1756,6 @@ void main() {
     await tapKey(t, 'check-done');
   });
   _screen('new-vault-second', 'Tạo két · màn giới thiệu (két thứ hai: dùng chung 24 từ)',
-      change: 'Xếp đúng thứ tự: Mật khẩu → 24 từ → sinh trắc; mỗi thứ nói rõ để làm gì. Sửa câu cuối (trước nói sai: "mất CẢ HAI mới không mở được")',
-      marks: [() => find.byKey(const ValueKey('intro-password')), () => find.byKey(const ValueKey('intro-words'))],
       () => const NewVaultScreen(libraryDir: '', first: false),
       setup: () => NewVaultScreen.debugWords = words);
 

@@ -725,14 +725,6 @@ class _QuickLookState extends State<QuickLook> {
     }
   }
 
-  /// ⋯: the item's menu over this view, which stays open.
-  Future<void> _more(BuildContext button) async {
-    final menu = widget.menu;
-    if (menu == null) return _done(QuickLook.menuFor(_item.id));
-    final fresh = await menu(button, _item);
-    if (fresh != null && mounted) setState(() => _fresh = fresh);
-  }
-
   @override
   Widget build(BuildContext context) => embedded
       ? LayoutBuilder(builder: (context, c) => _body(context, Size(c.maxWidth, c.maxHeight)))
@@ -782,17 +774,6 @@ class _QuickLookState extends State<QuickLook> {
         );
 
     final red = recordRed(context);
-    final (IconData, String, Key)? open = trash != null
-        ? null
-        : switch (_look) {
-            _Look.photo || _Look.video when _look == _Look.photo || _canPlayVideo =>
-              (Icons.fullscreen_rounded, l.fullScreen, const ValueKey('quick-full')),
-            _Look.note => (Icons.edit_rounded, l.previewEdit, const ValueKey('quick-edit')),
-            _Look.pdf || _Look.text || _Look.image => (Icons.open_in_full_rounded, l.openItem, const ValueKey('quick-open')),
-            // A recording has nothing more to open (Rename is under ⋯).
-            _Look.audio when _item.kind == ItemKind.audio => null,
-            _ => (Icons.open_in_new_rounded, l.openWith, const ValueKey('quick-open-with')),
-          };
     // Close sits apart on the left (ActionBar); in a pane there is nothing to close.
     final leave = embedded ? null : LeaveButton(Icons.close_rounded, l.close, () => _done(), key: const ValueKey('quick-close'));
     final tools = trash != null
@@ -812,10 +793,9 @@ class _QuickLookState extends State<QuickLook> {
             }, color: red),
           ]
         : [
-            if (open != null) tool(open.$3, open.$1, open.$2, _open, waits: true),
+            // Share, Info and Delete only (owner 2026-10-29); the item opens by a tap on it.
             tool(const ValueKey('quick-send'), Icons.ios_share, l.sendOut, _send, waits: true),
-            tool(const ValueKey('quick-more'), Icons.more_horiz, l.more,
-                _more),
+            tool(const ValueKey('quick-item-info'), Icons.info_rounded, l.info, (_) => showItemInfo(context, _item)),
             tool(const ValueKey('quick-delete'), Icons.delete_rounded, l.delete, (_) => _delete(), color: red),
           ];
 
@@ -828,6 +808,12 @@ class _QuickLookState extends State<QuickLook> {
       ),
       child: ClipRRect(borderRadius: BorderRadius.circular(20), child: media),
     );
+    // A tap on the item opens it (full screen, the editor, the file page); a video plays
+    // and pauses here instead. Recently deleted only looks.
+    final opens = trash == null && _look != _Look.video && !(_look == _Look.audio && _item.kind == ItemKind.audio);
+    final shown = opens
+        ? Builder(builder: (b) => GestureDetector(key: const ValueKey('quick-tap-open'), onTap: _busy ? null : () => _open(b), child: boxed))
+        : boxed;
 
     final Widget titleBlock = SizedBox(
                   width: box.maxWidth,
@@ -836,6 +822,8 @@ class _QuickLookState extends State<QuickLook> {
                       // The name under every kind, photos and videos too, on one line
                       // ending in … when long (owner 2026-10-29); the date and size are in
                       // the tag above.
+                      // Not under a note: its card starts with the same title.
+                      if (_look != _Look.note)
                         Text(_title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -879,7 +867,7 @@ class _QuickLookState extends State<QuickLook> {
           children: [
             infoTag,
             const SizedBox(height: 12),
-            Expanded(child: Center(child: boxed)),
+            Expanded(child: Center(child: shown)),
             const SizedBox(height: 14),
             titleBlock,
             const SizedBox(height: 10),
@@ -926,13 +914,13 @@ class _QuickLookState extends State<QuickLook> {
                 const SizedBox(height: 14),
                 Flexible(
                   child: still
-                      ? boxed
+                      ? shown
                       : TweenAnimationBuilder<double>(
                           tween: Tween(begin: .92, end: 1),
                           duration: const Duration(milliseconds: 240),
                           curve: Curves.easeOutCubic,
                           builder: (context, s, child) => Transform.scale(scale: s, child: child),
-                          child: boxed,
+                          child: shown,
                         ),
                 ),
                 const SizedBox(height: 14),
