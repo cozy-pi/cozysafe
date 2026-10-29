@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../hidden_features.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
@@ -218,7 +219,8 @@ class _TrashScreenState extends State<TrashScreen> {
                     : l.selectedCount(_picked.length)),
             // Select in the header's ⋯, as in the vault's sections (docs/design-language.md).
             actions: [
-              if (!_selecting && items != null && items.isNotEmpty)
+              // Select is its only entry: none while selecting is hidden (hidden_features.dart).
+              if (selectShown && !_selecting && items != null && items.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(right: Ui.side - 4),
                   child: GlassButton(

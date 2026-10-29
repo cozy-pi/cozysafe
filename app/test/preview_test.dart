@@ -57,7 +57,7 @@ import 'package:cozysafe/sync/status.dart';
 import 'package:cozysafe/sync/sync_screen.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
-import 'package:cozysafe/groups.dart';
+import 'package:cozysafe/hidden_features.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/privacy.dart';
 import 'package:cozysafe/screens/overview.dart';
@@ -492,8 +492,8 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock);
-  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, act: (t) async {
+  _screen('lock', 'Màn khoá', change: 'KHÔNG còn nút Mở khoá', lock);
+  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', change: 'BỎ hẳn nút Mở khoá: gõ đúng là tự mở; phím Xong trên bàn phím báo nếu sai', lock, act: (t) async {
     await t.enterText(find.byType(TextField).first, 'matkhau');
     await t.pump();
   });
@@ -545,7 +545,7 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', change: 'BỎ dải chip Nhóm trên đầu thư viện', home, section: 'library');
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', change: 'BỎ dải chip Nhóm; ⋯ chỉ còn Sắp xếp (bỏ Chọn)', home, section: 'library');
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
@@ -756,7 +756,7 @@ void main() {
     Prefs.write('action-side', 'left');
   });
   _screen('quick-photo', 'Thư viện · chạm vào một ảnh → toàn màn hình (ảnh nhỏ đang che)',
-      home, section: 'library', act: (t) => tapThumb(t, 2));
+      home, section: 'library', change: 'Ảnh nằm GỌN giữa thanh trên và thanh dưới như Ảnh iPhone (trước: tràn dưới các nút); chạm ảnh để ẩn nút thì ảnh nở toàn màn', act: (t) => tapThumb(t, 2));
   _screen('photo-strip-clear', 'Ảnh toàn màn hình · tắt che ảnh nhỏ', home, section: 'library',
       setup: () => Prefs.write(blurThumbsPref, '0'), act: (t) => tapThumb(t, 2));
   _screen('quick-video', 'Thư viện · chạm vào một video → toàn màn hình', home, section: 'library',
@@ -859,7 +859,7 @@ void main() {
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
       });
-  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', home, section: 'note',
+  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', change: 'Nút Quay lại và ⋯ to bằng ba nút dưới (trước: nhỏ hơn)', home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
       act: (t) => openRow(t, 'Thuốc của mẹ'));
   _screen('quick-pdf', 'Tệp · chạm một PDF', home, section: 'file',
@@ -909,18 +909,22 @@ void main() {
   });
   }
   if (groupsShown) _screen('all-tags', 'Tất cả nhóm', home, section: 'audio', act: (t) => t.tap(find.byKey(const ValueKey('all-tags'))));
-  _screen('select-mode', 'Thư viện · bấm Chọn', home, section: 'library', act: (t) async {
+  if (selectShown) {
+    _screen('select-mode', 'Thư viện · bấm Chọn', home, section: 'library', act: (t) async {
     await _viaMore(t, 'select-button');
     await t.pump();
   });
-  _screen('select', 'Đang chọn', change: 'Thanh chọn nhiều: BỎ nút Nhóm', home, section: 'library', act: (t) async {
+  }
+  if (selectShown) {
+    _screen('select', 'Đang chọn', change: 'Thanh chọn nhiều: BỎ nút Nhóm', home, section: 'library', act: (t) async {
     await _viaMore(t, 'select-button');
     await t.pump();
     await t.tap(find.byType(PrivateThumb).at(2));
     await t.pump();
     await t.tap(find.byType(PrivateThumb).at(4));
   });
-  _screen('photo-menu', 'Thư viện · bấm giữ một ảnh', change: 'Menu bấm giữ: BỎ mục Nhóm', home, section: 'library', act: (t) async {
+  }
+  _screen('photo-menu', 'Thư viện · bấm giữ một ảnh', change: 'Menu bấm giữ: BỎ mục Nhóm và Chọn', home, section: 'library', act: (t) async {
     await t.longPress(find.byType(PrivateThumb).at(2));
     await t.pumpAndSettle();
   });
@@ -972,8 +976,8 @@ void main() {
   _screen('search-none', 'Tìm kiếm · không có kết quả', search,
       act: (t) => typeSearch(t, 'xyzw'));
   _screen('text-json', 'Tệp · mở wifi-config.json', () => FileViewScreen(item: _item('j1', ItemKind.file, 'wifi-config.json', 180), vaultId: 'v'));
-  _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
-  _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
+  _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', change: 'Trang mở tệp như trang xem: trên Quay lại · ⋯; dưới Chia sẻ (trái) · Thông tin · Xoá. Bỏ nút ×', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
+  _screen('file-other', 'Tệp · mở hop-dong.docx', change: 'Trang mở tệp như trang xem: trên Quay lại · ⋯; dưới Chia sẻ (trái) · Thông tin · Xoá. Bỏ nút ×', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', () => settings(vault),
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
@@ -1504,7 +1508,8 @@ void main() {
     }
   }
   _screen('trash', 'Đã xoá gần đây', () => const Readable(child: TrashScreen()));
-  _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 2 mục', () => const Readable(child: TrashScreen()),
+  if (selectShown) {
+    _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 2 mục', () => const Readable(child: TrashScreen()),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-more')));
     await t.pumpAndSettle();
@@ -1515,7 +1520,9 @@ void main() {
         await t.tap(find.text('Mật khẩu wifi cũ'));
         await t.pump();
       });
-  _screen('trash-drag', 'Đã xoá · bấm giữ 1 ảnh rồi quẹt sang mục khác', () => const Readable(child: TrashScreen()),
+  }
+  if (selectShown) {
+    _screen('trash-drag', 'Đã xoá · bấm giữ 1 ảnh rồi quẹt sang mục khác', () => const Readable(child: TrashScreen()),
       act: (t) async {
         final from = t.getCenter(find.byType(PrivateThumb).first);
         final g = await t.startGesture(from);
@@ -1526,6 +1533,7 @@ void main() {
         await t.pump();
         await g.up();
       });
+  }
   _screen('trash-preview', 'Đã xoá · chạm 1 ảnh', () => const Readable(child: TrashScreen()),
       act: (t) async {
         await t.tap(find.byType(PrivateThumb).first);
@@ -1557,7 +1565,8 @@ void main() {
         await t.tap(find.byKey(const ValueKey('menu-info')));
         await t.pumpAndSettle();
       });
-  _screen('trash-purge-confirm', 'Đã xoá · chọn 2 mục → Xoá vĩnh viễn', () => const Readable(child: TrashScreen()),
+  if (selectShown) {
+    _screen('trash-purge-confirm', 'Đã xoá · chọn 2 mục → Xoá vĩnh viễn', () => const Readable(child: TrashScreen()),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-more')));
     await t.pumpAndSettle();
@@ -1569,6 +1578,7 @@ void main() {
         await t.tap(find.byKey(const ValueKey('trash-purge')));
         await t.pumpAndSettle();
       });
+  }
   // Owner 2026-10-27: two parts, and Restore asks first with a clearer icon.
   _screen('trash-held-part', 'Đã xoá · phần thứ hai: “Đã xoá hẳn trên máy khác”, chỉ còn trên máy này, không đồng bộ nữa',
       () => const Readable(child: TrashScreen()),
@@ -1591,7 +1601,8 @@ void main() {
     await t.tap(find.byKey(const ValueKey('menu-delete')));
     await t.pumpAndSettle();
   });
-  _screen('delete-confirm-many', 'Thư viện · chọn 3 ảnh → Xoá', home, section: 'library', act: (t) async {
+  if (selectShown) {
+    _screen('delete-confirm-many', 'Thư viện · chọn 3 ảnh → Xoá', home, section: 'library', act: (t) async {
     await _viaMore(t, 'select-button');
     await t.pump();
     for (final i in [1, 2, 4]) {
@@ -1601,6 +1612,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('select-delete')));
     await t.pumpAndSettle();
   });
+  }
   _screen('delete-confirm-note', 'Sửa ghi chú · bấm Xoá', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('note-delete')));
@@ -1614,7 +1626,8 @@ void main() {
     await t.pumpAndSettle();
   });
   }
-  _screen('drag-select', 'Thư viện · bấm giữ 1 ảnh rồi quẹt qua 6 ảnh', home, section: 'library', act: (t) async {
+  if (selectShown) {
+    _screen('drag-select', 'Thư viện · bấm giữ 1 ảnh rồi quẹt qua 6 ảnh', home, section: 'library', act: (t) async {
     final g = await t.startGesture(t.getCenter(find.byType(PrivateThumb).at(1)));
     await t.pump(kLongPressTimeout + const Duration(milliseconds: 50));
     await g.moveBy(const Offset(30, 0));
@@ -1625,6 +1638,7 @@ void main() {
     await t.pump();
     await g.up();
   });
+  }
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
   _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
@@ -1767,10 +1781,11 @@ void main() {
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
       });
-  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'));
+  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', change: 'Trang mở tệp như trang xem: trên Quay lại · ⋯; dưới Chia sẻ (trái) · Thông tin · Xoá. Bỏ nút ×', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'));
   _screen('bottom-file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('bottom-trash', 'Đã xoá gần đây · Chọn ở thanh dưới', () => const Readable(child: TrashScreen()));
-  _screen('bottom-trash-select', 'Đã xoá · bấm Chọn', () => const Readable(child: TrashScreen()),
+  if (selectShown) {
+    _screen('bottom-trash-select', 'Đã xoá · bấm Chọn', () => const Readable(child: TrashScreen()),
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('trash-more')));
     await t.pumpAndSettle();
@@ -1779,10 +1794,13 @@ void main() {
         await t.tap(find.byKey(ValueKey('trash-${'x1'.padRight(32, '_')}')));
         await t.pump();
       });
-  _screen('bottom-select', 'Thư viện · đang chọn: Xong và Chọn tất cả ở thanh dưới', home, section: 'library', act: (t) async {
+  }
+  if (selectShown) {
+    _screen('bottom-select', 'Thư viện · đang chọn: Xong và Chọn tất cả ở thanh dưới', home, section: 'library', act: (t) async {
     await _viaMore(t, 'select-button');
     await t.pump();
   });
+  }
   _screen('bottom-icons', 'Tạo két · ⋯ biểu tượng: nút Đóng ở dưới, bỏ ×', () => Builder(builder: (context) {
         WidgetsBinding.instance.addPostFrameCallback((_) => showAllIcons(context, 0));
         return const Scaffold();

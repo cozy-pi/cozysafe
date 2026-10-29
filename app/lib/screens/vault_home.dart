@@ -54,7 +54,7 @@ import 'trash.dart';
 import 'unlock.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
-import '../groups.dart';
+import '../hidden_features.dart';
 import '../item_kind.dart';
 import '../widgets/edge_swipe_back.dart';
 import '../widgets/selectable_row.dart';
@@ -464,7 +464,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     try {
       final items = await rust.listItems();
       if (!mounted) return;
-      // Hidden groups are left out of every list, chip and count here (groups.dart).
+      // Hidden groups are left out of every list, chip and count here (hidden_features.dart).
       setState(() => _items = groupsShown ? items : items.where((i) => i.kind != ItemKind.tag).toList());
       AutoSync.seen(items); // a change here: a sync follows shortly
     } on rust.VaultError catch (e) {
@@ -1291,7 +1291,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final all = viewer == null;
     await showItemMenu(context, title: _shownName(l, item), from: viewer, entries: [
       if (open && all) MenuEntry(Icons.open_in_new_rounded, l.openItem, () => _openItem(item, media), key: const ValueKey('menu-open')),
-      if (all)
+      if (all && selectShown)
         MenuEntry(Icons.check_circle_outline_rounded, l.select, () => setState(() {
               _selectMode = true;
               _selected.add(item.id);
@@ -1912,7 +1912,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         // Icons order with the menu; a list orders by its headers.
         if (any && !_deskList && _section != VaultSection.home)
           IconButton(key: const ValueKey('sort-button'), tooltip: l.sortBy, icon: const Icon(Icons.swap_vert_rounded, size: 20), onPressed: _sortMenu),
-        if (any && _section != VaultSection.home)
+        if (selectShown && any && _section != VaultSection.home)
           TextButton(key: const ValueKey('select-button'), onPressed: () => setState(() => _selectMode = true), child: Text(l.select)),
         const SizedBox(width: 6),
         SizedBox(
@@ -2147,7 +2147,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   List<MenuEntry> _moreEntries(AppLocalizations l, rust.ItemInfo? open) {
     final shown = _items == null || _empty ? const <rust.ItemInfo>[] : _shown(_items!);
     return [
-      if (shown.isNotEmpty)
+      if (selectShown && shown.isNotEmpty)
         MenuEntry(Icons.check_circle_outline_rounded, l.select, () => setState(() => _selectMode = true), key: const ValueKey('select-button')),
       if (_section != VaultSection.home && shown.length > 1)
         MenuEntry(Icons.swap_vert_rounded, l.sortBy, _sortMenu, key: const ValueKey('sort-button')),

@@ -8,6 +8,7 @@ import '../item_bytes.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
+import '../theme.dart' show Ui;
 import '../src/rust/api/vault.dart' as rust;
 import '../widgets/bottom_bar.dart';
 import '../widgets/confirm_delete.dart';
@@ -357,9 +358,25 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
               onVerticalDragEnd: zoomed ? null : _dragEnd,
               child: child,
             ),
+            // With the bars shown, the photo sits between them, as in Photos (owner
+            // 2026-10-29: under the bars it looked too big); hidden, it fills the screen.
             child: ValueListenableBuilder<Offset>(
               valueListenable: _drag,
-              child: pages,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _bars,
+                child: pages,
+                builder: (context, shown, child) {
+                  final pad = MediaQuery.paddingOf(context);
+                  final top = pad.top + 4 + Ui.action + 12;
+                  final bottom = pad.bottom + 8 + Ui.action + (_items.length > 1 ? 12 + 44 : 0) + 12;
+                  return AnimatedPadding(
+                    duration: Duration(milliseconds: MediaQuery.disableAnimationsOf(context) ? 0 : 220),
+                    curve: Curves.easeOutCubic,
+                    padding: shown ? EdgeInsets.only(top: top, bottom: bottom) : EdgeInsets.zero,
+                    child: child,
+                  );
+                },
+              ),
               builder: (context, o, child) => Transform.translate(
                 offset: o,
                 child: Transform.scale(scale: (1 - o.dy.abs() / 1500).clamp(.7, 1.0), child: child),

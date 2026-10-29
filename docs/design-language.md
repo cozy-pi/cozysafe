@@ -87,6 +87,8 @@ out as Photos):
 - A note, recording or file opens in the box over the page; a tap beside it or a swipe
   down closes it, as Back does. A tap on the item opens it (the editor, the file page).
 - No ×. In Recently deleted: no ⋯; Restore · Info · Delete for good.
+- Back and ⋯ are as big as the bottom circles (`Ui.action`), not header size.
+- With the bars shown, a photo sits between them; a tap hides them and it fills the screen.
 - ⋯ opens the item's menu right there, beside the button (`ViewerMenu`): the viewer
   stays. Never close the viewer to show a menu elsewhere.
 
