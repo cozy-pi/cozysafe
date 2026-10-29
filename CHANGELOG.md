@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.87 (2026-10-29)
+
+### Fixed
+- Google Drive sync no longer gets stuck on networks with broken IPv6: it now tries
+  every address Google has, IPv6 and IPv4 in turn, as browsers do.
+- When automatic sync keeps getting cut off (three times in a row with the app open),
+  Settings shows the sync problem dot instead of staying silent.
+
 ## 0.1.86 (2026-10-29)
 
 ### Added
