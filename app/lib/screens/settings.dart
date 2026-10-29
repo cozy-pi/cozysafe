@@ -147,7 +147,7 @@ class SettingsScreen extends StatefulWidget {
   final int? guideFrom;
 
   /// How many User guide tips are in Settings ([_SettingsScreenState._guideTips]).
-  static int get guideTipCount => kIsWeb ? 3 : 4;
+  static int get guideTipCount => kIsWeb ? 4 : 5;
 
   /// Opened from the quick tour: scroll to this setting and light it up (Sync: open it).
   final SettingsSpot? focus;
@@ -595,7 +595,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         TourTip(id: id, target: () => _visibleRect(key), prepare: () => _bringUp(key), title: title, body: body);
     return [
       if (!kIsWeb) tip('sync', _syncRowKey, l.syncTitle, l.tipSyncBody),
-      tip('security', _securityGroupKey, l.settingsSecurity, l.tipSecurityBody),
+      // Security in two stops (owner 2026-10-29: every security setting shown): the keys,
+      // then locking and what stays hidden.
+      tip('security', _securityGroupKey, l.settingsSecurity, l.tipKeysBody),
+      tip('shield', _shieldGroupKey, l.tipShieldTitle, l.tipShieldBody),
       tip('backup', _backupRowKey, l.backupToFile, l.tipBackupBody),
       tip('guide', _guideRowKey, l.userGuide, l.tipGuideBody),
     ];

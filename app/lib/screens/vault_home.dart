@@ -262,11 +262,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted) return;
     final tips = _tourTips(AppLocalizations.of(context), kind);
-    // The User guide goes on into Settings, counting on (6/9 there).
-    final guide = kind == TourKind.guide;
-    final end = await showCoachTour(context, tips, total: guide ? tips.length + SettingsScreen.guideTipCount : null);
+    // The User guide, and the first tour after a vault is made (owner 2026-10-29: it must
+    // show the settings too, Sync and security), go on into Settings, counting on (6/9).
+    final settings = kind != TourKind.restored;
+    final end = await showCoachTour(context, tips, total: settings ? tips.length + SettingsScreen.guideTipCount : null);
     if (!mounted || _locked) return;
-    if (end == TourEnd.done && guide) _openSettings(guideFrom: tips.length);
+    if (end == TourEnd.done && settings) _openSettings(guideFrom: tips.length);
   }
 
   /// Where [key]'s widget is on screen, if it is.
@@ -352,8 +353,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           TourTip(id: 'lock', target: _homeTabRect, title: l.tipLockTitle, body: l.tipLockHoldBody)
         else
           TourTip(id: 'lock', target: () => _rectOf(_settingsKey), title: l.tipLockTitle, body: l.tipLockBody),
-        // No "Set up sync now" button (owner 2026-10-29: it ended the tour half-read).
-        // Settings has Sync; the User guide goes on to it.
+        // No "Set up sync now" button (owner 2026-10-29: it ended the tour half-read):
+        // the tour goes on into Settings, to Sync first.
         TourTip(
           id: 'copy',
           target: () => _rectOf(_settingsKey),

@@ -1339,11 +1339,11 @@ void main() {
     ('items', 'chạm mở · giữ ra menu · giữ rồi kéo để chọn nhiều'),
     ('settings', 'nút Cài đặt'),
     ('lock', 'nút khoá: rời app là két tự khoá'),
-    ('copy', 'bản thứ hai + 24 từ và mật khẩu · Xong'),
+    ('copy', 'bản thứ hai + 24 từ và mật khẩu · Tiếp sang Cài đặt'),
   ];
   for (final (i, (name, caption)) in madeTips.indexed) {
-    _screen('tip-made-${i + 1}-$name', 'Hướng dẫn nhanh sau khi tạo két · ${i + 1}/${madeTips.length}: $caption',
-        change: name == 'copy' ? 'Bỏ nút "Cài đồng bộ ngay" (bấm vào là mất hướng dẫn); chỉ còn Xong' : null,
+    _screen('tip-made-${i + 1}-$name', 'Hướng dẫn nhanh sau khi tạo két · ${i + 1}/10: $caption',
+        change: name == 'copy' ? 'Bỏ nút "Cài đồng bộ ngay" (bấm vào là mất hướng dẫn); Tiếp → sang Cài đặt (đếm 5/10)' : null,
         marks: [if (name == 'copy') () => find.byKey(const ValueKey('tip-next'))],
         () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.created),
         section: 'library',
@@ -1363,7 +1363,7 @@ void main() {
     ('copy', 'bản thứ hai + 24 từ và mật khẩu, không có nút: bấm Tiếp sang Cài đặt'),
   ];
   for (final (i, (name, caption)) in fullTips.indexed) {
-    _screen('tip-guide-${i + 1}-$name', 'Hướng dẫn sử dụng (Cài đặt → Hướng dẫn sử dụng, két đã có đồ) · ${i + 1}/10: $caption',
+    _screen('tip-guide-${i + 1}-$name', 'Hướng dẫn sử dụng (Cài đặt → Hướng dẫn sử dụng, két đã có đồ) · ${i + 1}/11: $caption',
         () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.guide),
         setup: () => CoachTour.debugStart = i,
         act: tourOpen);
@@ -1413,13 +1413,30 @@ void main() {
   }, act: tourOpen);
   const settingsTips = [
     ('sync', 'nhóm Đồng bộ'),
-    ('security', 'nhóm Bảo mật'),
+    ('security', 'nhóm khoá: cách mở, mật khẩu, 24 từ'),
+    ('shield', 'MỚI: nhóm tự khoá + che (chụp màn hình, ảnh thu nhỏ, ghi chú)'),
     ('backup', 'Sao lưu ra tệp'),
     ('guide', 'dòng Hướng dẫn sử dụng: xem lại bất cứ lúc nào'),
   ];
   for (final (i, (name, caption)) in settingsTips.indexed) {
-    _screen('tip-guide-${i + 7}-$name', 'Hướng dẫn sử dụng trong Cài đặt · ${i + 7}/10: $caption',
+    _screen('tip-guide-${i + 7}-$name', 'Hướng dẫn sử dụng trong Cài đặt · ${i + 7}/11: $caption',
+        change: switch (name) {
+          'security' => 'Mẹo Bảo mật tách đôi: đây là nhóm khoá',
+          'shield' => 'MỚI: mẹo riêng cho nhóm tự khoá + che màn hình',
+          _ => null,
+        },
         () => settings(vault, guideFrom: 6),
+        setup: () {
+          CoachTour.debugStart = i;
+          SettingsScreen.debugSyncLog = const [];
+        },
+        act: tourOpen);
+  }
+  // The first tour after a vault is made goes on into Settings too (owner 2026-10-29).
+  for (final (i, (name, caption)) in settingsTips.indexed) {
+    _screen('tip-made-${i + 6}-$name', 'Hướng dẫn nhanh sau khi tạo két, tiếp trong Cài đặt · ${i + 6}/10: $caption',
+        change: 'MỚI: hướng dẫn lần đầu đi tiếp sang Cài đặt: Đồng bộ, nhóm khoá, nhóm tự khoá + che, Sao lưu, Hướng dẫn',
+        () => settings(vault, guideFrom: 5),
         setup: () {
           CoachTour.debugStart = i;
           SettingsScreen.debugSyncLog = const [];
