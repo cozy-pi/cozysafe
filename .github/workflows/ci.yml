@@ -110,8 +110,10 @@ jobs:
         with:
           path: ~/.cargo/bin/cargo-acl
           key: cargo-acl-0.9.0-${{ runner.os }}-${{ runner.arch }}
+      # rust-cache can bring ~/.cargo/bin back with cargo-acl in it while this cache
+      # misses; a plain install then stops on "already exists".
       - if: steps.tool.outputs.cache-hit != 'true'
-        run: cargo install --locked cargo-acl@0.9.0
+        run: cargo install --locked --force cargo-acl@0.9.0
       - name: cargo acl
         working-directory: app/rust
         run: cargo acl --no-ui
