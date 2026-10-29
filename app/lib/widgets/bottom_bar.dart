@@ -134,9 +134,13 @@ class LeaveButton {
 /// mistake), the [actions] between them (Open · Send · ⋯). Icons only; the word is the
 /// tooltip. Over a photo or video ([onMedia]) the glass is dark and the icons white.
 class ActionBar extends StatelessWidget {
-  const ActionBar({super.key, this.leave, required this.actions, this.end, this.onMedia = false, this.inset = true, this.barKey});
+  const ActionBar(
+      {super.key, this.leave, this.start, required this.actions, this.end, this.onMedia = false, this.inset = true, this.barKey});
 
   final LeaveButton? leave;
+  /// A [BarIcon] on the left in place of [leave], where the view closes some other way
+  /// (a tap beside it, Back on top): Share, as in Photos (owner 2026-10-29).
+  final Widget? start;
   /// [BarIcon]s.
   final List<Widget> actions;
   /// Delete: alone on the right.
@@ -156,7 +160,9 @@ class ActionBar extends StatelessWidget {
     Widget row = Row(
       key: barKey,
       children: [
-        if (out != null)
+        if (start != null)
+          circle(start!)
+        else if (out != null)
           circle(Builder(
             builder: (context) => BarIcon(
               key: out.key,
@@ -183,7 +189,7 @@ class ActionBar extends StatelessWidget {
             ),
           ),
         ),
-        if (end != null) circle(end!) else if (out != null) const SizedBox(width: Ui.action),
+        if (end != null) circle(end!) else if (out != null || start != null) const SizedBox(width: Ui.action),
       ],
     );
     if (onMedia) {

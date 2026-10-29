@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import '../theme.dart' show CsType;
+import '../theme.dart' show CsType, Ui;
 import 'package:flutter/physics.dart';
 
 import '../item_bytes.dart';
@@ -12,10 +12,12 @@ import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../widgets/bottom_bar.dart';
 import '../widgets/confirm_delete.dart';
+import '../widgets/private_thumb.dart';
 import '../widgets/toast.dart';
 import 'common.dart';
 import 'file_view.dart';
 import 'glass.dart';
+import 'item_info.dart';
 import 'quick_look.dart';
 import 'video_view.dart';
 
@@ -67,6 +69,9 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
 
   rust.ItemInfo get _item => _items[_index.value];
 
+  /// The strip of small photos at the bottom, the one shown in the middle.
+  final _stripScroll = ScrollController();
+
   /// ⋯: the photo's menu over it; the photo stays.
   Future<void> _more(BuildContext button) async {
     final menu = widget.menu;
@@ -111,6 +116,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
   @override
   void dispose() {
     _pages.dispose();
+    _stripScroll.dispose();
     _back.dispose();
     _index.dispose();
     _bars.dispose();
@@ -183,7 +189,10 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
                 controller: _pages,
                 physics: zoomed ? const NeverScrollableScrollPhysics() : const _PagePhysics(),
                 itemCount: _items.length,
-                onPageChanged: (i) => _index.value = i,
+                onPageChanged: (i) {
+                  _index.value = i;
+                  _centreStrip(i);
+                },
                 itemBuilder: (context, i) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: _gap / 2),
                   child: _items[i].kind == ItemKind.video
@@ -261,6 +270,66 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
     if (result != null && mounted) Navigator.of(context).pop(result);
   }
 
+  // ---------- the strip ----------
+
+  /// One small photo in the strip, with its gap.
+  static const _cell = 36.0;
+
+  void _centreStrip(int i, {bool animate = true}) {
+    if (!_stripScroll.hasClients) return;
+    final to = (i * _cell).clamp(0.0, _stripScroll.position.maxScrollExtent);
+    if (animate) {
+      _stripScroll.animateTo(to, duration: const Duration(milliseconds: 200), curve: Curves.easeOutCubic);
+    } else {
+      _stripScroll.jumpTo(to);
+    }
+  }
+
+  /// Every photo and video small, as in Photos: tap one to go to it. Blurred like the
+  /// library when thumbnails are hidden (PrivateThumb).
+  Widget _strip() => LayoutBuilder(
+        builder: (context, box) {
+          final pad = (box.maxWidth - _cell) / 2;
+          if (!_stripScroll.hasClients) {
+            WidgetsBinding.instance.addPostFrameCallback((_) => _centreStrip(_index.value, animate: false));
+          }
+          return SizedBox(
+            key: const ValueKey('photo-strip'),
+            height: 44,
+            child: ListView.builder(
+              controller: _stripScroll,
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: pad),
+              itemExtent: _cell,
+              itemCount: _items.length,
+              itemBuilder: (context, i) => GestureDetector(
+                onTap: () => _pages.jumpToPage(i),
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _index,
+                  builder: (context, at, child) => Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 2, vertical: at == i ? 0 : 4),
+                    child: DecoratedBox(
+                      position: DecorationPosition.foreground,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        border: at == i ? Border.all(color: Colors.white, width: 2) : null,
+                      ),
+                      child: ClipRRect(borderRadius: BorderRadius.circular(4), child: child),
+                    ),
+                  ),
+                  child: FutureBuilder<Uint8List>(
+                    future: _thumbnail(_items[i].id),
+                    builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
+                        ? PrivateThumb(snap.data!)
+                        : const ColoredBox(color: Color(0xFF2C2C2E)),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
   // ---------- the screen ----------
 
   @override
@@ -307,33 +376,54 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
   Widget _barsLayer(BuildContext context) {
     final l = AppLocalizations.of(context);
     final ml = MaterialLocalizations.of(context);
+    Widget circle(Widget child, {double side = Ui.circle}) =>
+        SizedBox.square(dimension: side, child: GlassPill(child: Center(child: child)));
+    final white = Theme.of(context).copyWith(colorScheme: Theme.of(context).colorScheme.copyWith(onSurface: Colors.white));
+    // Laid out as Photos (owner 2026-10-29): Back top left, the date in the middle, ⋯ top
+    // right; the strip of photos, then Share · Info · Delete at the bottom.
     final bars = Column(
       children: [
-        // The date and size centred over the photo (owner 2026-10-27); no name, which can
-        // be long. Exit is with the other buttons at the bottom, in the thumb's reach.
         SafeArea(
           bottom: false,
           child: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: ValueListenableBuilder<int>(
-              valueListenable: _index,
-              builder: (context, i, _) {
-                final it = _items[i];
-                final when = dateOf(it.createdMs);
-                return GlassPill(
-                  child: Padding(
-                    key: const ValueKey('media-info'),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    child: Column(
-                      children: [
-                        Text(ml.formatMediumDate(when), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                        Text('${ml.formatTimeOfDay(TimeOfDay.fromDateTime(when))} · ${fileSize(it.sizeBytes)}',
-                            style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
-                      ],
+            padding: const EdgeInsets.fromLTRB(Ui.side - 4, 4, Ui.side - 4, 0),
+            child: Theme(
+              data: white,
+              child: Row(
+                children: [
+                  circle(BarIcon(
+                      key: const ValueKey('media-back'),
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      tooltip: l.back,
+                      onTap: (_) => Navigator.of(context).pop())),
+                  Expanded(
+                    child: Center(
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: _index,
+                        builder: (context, i, _) {
+                          final it = _items[i];
+                          final when = dateOf(it.createdMs);
+                          return GlassPill(
+                            child: Padding(
+                              key: const ValueKey('media-info'),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              child: Column(
+                                children: [
+                                  Text(ml.formatMediumDate(when),
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                                  Text('${ml.formatTimeOfDay(TimeOfDay.fromDateTime(when))} · ${fileSize(it.sizeBytes)}',
+                                      style: const TextStyle(color: Colors.white70, fontSize: CsType.caption1)),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                );
-              },
+                  circle(BarIcon(key: const ValueKey('photo-more'), icon: Icons.more_horiz, tooltip: l.more, onTap: _more)),
+                ],
+              ),
             ),
           ),
         ),
@@ -342,34 +432,36 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
           top: false,
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            // The same bar as every item (ActionBar), dark glass over the photo.
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: ActionBar(
-                onMedia: true,
-                inset: false,
-                // Back to the quick look this full screen was opened from.
-                leave: LeaveButton(Icons.fullscreen_exit_rounded, l.exitFullScreen, () => Navigator.of(context).pop(),
-                    key: const ValueKey('media-exit-full')),
-                actions: [
-                  BarIcon(
-                      key: const ValueKey('photo-send'),
-                      icon: Icons.ios_share,
-                      tooltip: l.sendOut,
-                      onTap: (b) => shareItem(b, _item, widget.vaultId)),
-                  BarIcon(
-                      key: const ValueKey('photo-more'),
-                      icon: Icons.more_horiz,
-                      tooltip: l.more,
-                      onTap: _more),
-                ],
-                end: BarIcon(
-                      key: const ValueKey('photo-delete'),
-                      icon: Icons.delete_rounded,
-                      tooltip: l.delete,
-                      onTap: (_) => _delete(),
-                      color: const Color(0xFFFF453A)),
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_items.length > 1) ...[_strip(), const SizedBox(height: 12)],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: ActionBar(
+                    onMedia: true,
+                    inset: false,
+                    start: BarIcon(
+                        key: const ValueKey('photo-send'),
+                        icon: Icons.ios_share,
+                        tooltip: l.sendOut,
+                        onTap: (b) => shareItem(b, _item, widget.vaultId)),
+                    actions: [
+                      BarIcon(
+                          key: const ValueKey('photo-info'),
+                          icon: Icons.info_rounded,
+                          tooltip: l.info,
+                          onTap: (_) => showItemInfo(context, _item)),
+                    ],
+                    end: BarIcon(
+                        key: const ValueKey('photo-delete'),
+                        icon: Icons.delete_rounded,
+                        tooltip: l.delete,
+                        onTap: (_) => _delete(),
+                        color: const Color(0xFFFF453A)),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

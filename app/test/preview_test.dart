@@ -750,33 +750,23 @@ void main() {
   _screen('library-left', 'Thư viện · nút + bên trái (chọn trong Cài đặt)', home, section: 'library', setup: () {
     Prefs.write('action-side', 'left');
   });
-  _screen('quick-photo-center', 'Xem trước · nút + ở giữa thanh', home, section: 'library', setup: () {
-    Prefs.write('action-side', 'center');
-  }, act: (t) => tapThumb(t, 2));
-  _screen('quick-photo', 'Thư viện · chạm vào một ảnh', change: 'Thanh chỉ còn Chia sẻ · Thông tin · Xoá (bỏ nút ⛶ và ⋯). Chạm vào ảnh để xem toàn màn',
-      marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'library',
-      act: (t) => tapThumb(t, 2));
-  _screen('quick-video', 'Thư viện · chạm vào một video', change: 'Thanh chỉ còn Chia sẻ · Thông tin · Xoá (bỏ nút ⛶ và ⋯)',
-      marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'library',
-      setup: () => QuickLook.debugVideo = _photos.isEmpty ? null : Image.memory(_photos[5]!, fit: BoxFit.cover),
+  _screen('quick-photo', 'Thư viện · chạm vào một ảnh → toàn màn hình (ảnh nhỏ đang che)', change: 'MỚI: chạm ảnh là vào thẳng toàn màn hình như Ảnh của iPhone (bỏ hộp xem trước). Trên: Quay lại · ngày · ⋯. Dưới: dải ảnh nhỏ (che theo cài đặt), rồi Chia sẻ · Thông tin · Xoá',
+      marks: [() => find.byKey(const ValueKey('media-back')), () => find.byKey(const ValueKey('photo-more')), () => find.byKey(const ValueKey('photo-strip'))],
+      home, section: 'library', act: (t) => tapThumb(t, 2));
+  _screen('photo-strip-clear', 'Ảnh toàn màn hình · tắt che ảnh nhỏ', change: 'Dải ảnh nhỏ hiện rõ khi tắt "Che ảnh thu nhỏ"',
+      marks: [() => find.byKey(const ValueKey('photo-strip'))], home, section: 'library',
+      setup: () => Prefs.write(blurThumbsPref, '0'), act: (t) => tapThumb(t, 2));
+  _screen('quick-video', 'Thư viện · chạm vào một video → toàn màn hình', change: 'Video cũng vào thẳng toàn màn hình; chạm để phát',
+      marks: [() => find.byKey(const ValueKey('viewer-play'))], home, section: 'library',
       act: (t) => tapThumb(t, 5));
-  _screen('quick-full', 'Ảnh · bấm ⛶', home, section: 'library', act: (t) async {
+  _screen('quick-photo-info', 'Ảnh toàn màn hình · bấm ⓘ', change: 'MỚI: nút Thông tin ở giữa thanh dưới',
+      marks: [() => find.byKey(const ValueKey('photo-info'))], home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-tap-open')));
-    for (var i = 0; i < 6; i++) {
-      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
-      await t.pump(const Duration(milliseconds: 100));
-    }
-  });
-  _screen('quick-photo-info', 'Xem trước ảnh · bấm ⓘ', change: 'MỚI: nút Thông tin thay nút ⋯ — thanh chỉ còn Chia sẻ · Thông tin · Xoá',
-      marks: [() => find.byKey(const ValueKey('quick-item-info'))], home, section: 'library', act: (t) async {
-    await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-item-info')));
+    await t.tap(find.byKey(const ValueKey('photo-info')));
     await t.pumpAndSettle();
   });
-  _screen('photo-full-menu', 'Ảnh toàn màn · bấm ⋯', home, section: 'library', act: (t) async {
+  _screen('photo-full-menu', 'Ảnh toàn màn · bấm ⋯ (góc trên phải)', change: '⋯ chuyển lên góc trên phải', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-tap-open')));
     for (var i = 0; i < 6; i++) {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await t.pump(const Duration(milliseconds: 100));
@@ -787,7 +777,6 @@ void main() {
   });
   _screen('photo-swipe', 'Ảnh toàn màn hình · đang vuốt sang ảnh kế', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-tap-open')));
     for (var i = 0; i < 6; i++) {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await t.pump(const Duration(milliseconds: 100));
@@ -800,7 +789,6 @@ void main() {
   }, after: 0);
   _screen('photo-drag', 'Ảnh toàn màn hình · đang kéo xuống để đóng', home, section: 'library', act: (t) async {
     await tapThumb(t, 2);
-    await t.tap(find.byKey(const ValueKey('quick-tap-open')));
     for (var i = 0; i < 6; i++) {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
       await t.pump(const Duration(milliseconds: 100));
@@ -870,7 +858,7 @@ void main() {
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
       });
-  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', change: 'Tên ghi chú chỉ còn MỘT chỗ (trong thẻ); bỏ dòng tên lặp ở dưới. Thanh: Chia sẻ · Thông tin · Xoá; chạm thẻ để sửa',
+  _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', change: 'Tên ghi chú chỉ còn MỘT chỗ (trong thẻ). Dưới: Chia sẻ trái · Thông tin giữa · Xoá phải; BỎ nút × (chạm ra ngoài hoặc vuốt xuống để đóng); chạm thẻ để sửa',
       marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
       act: (t) => openRow(t, 'Thuốc của mẹ'));
@@ -879,7 +867,7 @@ void main() {
       act: (t) => openRow(t, 'Hop-dong-thue-nha-2026.pdf'));
   _screen('quick-pdf-icon', 'Tệp · chạm một PDF lớn (chỉ biểu tượng)', home, section: 'file',
       act: (t) => openRow(t, 'So-do-nha-scan.pdf'));
-  _screen('quick-file', 'Tệp · chạm một tệp .docx', change: 'Thanh chỉ còn Chia sẻ · Thông tin · Xoá (bỏ nút Mở bằng và ⋯). Chạm vào tệp để mở',
+  _screen('quick-file', 'Tệp · chạm một tệp .docx', change: 'Dưới: Chia sẻ trái · Thông tin giữa · Xoá phải; BỎ nút ×, Mở bằng, ⋯ (chạm ra ngoài để đóng, chạm tệp để mở)',
       marks: [() => find.byKey(const ValueKey('quick-bar'))], home, section: 'file',
       act: (t) => openRow(t, 'Di-chuc-nhap.docx'));
   _screen('quick-image-file', 'Tệp · chạm một ảnh thêm từ Tệp', home, section: 'file',

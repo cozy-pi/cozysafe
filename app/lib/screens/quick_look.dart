@@ -774,8 +774,7 @@ class _QuickLookState extends State<QuickLook> {
         );
 
     final red = recordRed(context);
-    // Close sits apart on the left (ActionBar); in a pane there is nothing to close.
-    final leave = embedded ? null : LeaveButton(Icons.close_rounded, l.close, () => _done(), key: const ValueKey('quick-close'));
+    // No ×: a tap beside the item or a swipe down puts it away (owner 2026-10-29).
     final tools = trash != null
         ? [
             // The same actions, icons and order as the long-press menu in Recently deleted.
@@ -793,7 +792,8 @@ class _QuickLookState extends State<QuickLook> {
             }, color: red),
           ]
         : [
-            // Share, Info and Delete only (owner 2026-10-29); the item opens by a tap on it.
+            // Share on the left, Info in the middle, Delete on the right, as in Photos
+            // (owner 2026-10-29); the item opens by a tap on it.
             tool(const ValueKey('quick-send'), Icons.ios_share, l.sendOut, _send, waits: true),
             tool(const ValueKey('quick-item-info'), Icons.info_rounded, l.info, (_) => showItemInfo(context, _item)),
             tool(const ValueKey('quick-delete'), Icons.delete_rounded, l.delete, (_) => _delete(), color: red),
@@ -871,7 +871,7 @@ class _QuickLookState extends State<QuickLook> {
             const SizedBox(height: 14),
             titleBlock,
             const SizedBox(height: 10),
-            ActionBar(inset: false, barKey: const ValueKey('quick-bar'), actions: tools.sublist(0, tools.length - 1), end: tools.last),
+            ActionBar(inset: false, barKey: const ValueKey('quick-bar'), start: tools.first, actions: [tools[1]], end: tools.last),
           ],
         ),
       );
@@ -939,7 +939,7 @@ class _QuickLookState extends State<QuickLook> {
           height: barHeight,
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: ActionBar(inset: false, leave: leave, barKey: const ValueKey('quick-bar'), actions: tools.sublist(0, tools.length - 1), end: tools.last),
+            child: ActionBar(inset: false, barKey: const ValueKey('quick-bar'), start: tools.first, actions: [tools[1]], end: tools.last),
           ),
         ),
       ],
