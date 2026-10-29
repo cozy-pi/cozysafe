@@ -423,17 +423,22 @@ fn try_order(addrs: Vec<SocketAddr>) -> Vec<SocketAddr> {
 /// it and gave up, silently (owner 2026-10-29), while browsers just went over IPv4.
 fn tcp_to(host: &str) -> Result<TcpStream> {
     let addrs = try_order((host, 443).to_socket_addrs()?.collect());
+    connect_any(&addrs, CONNECT_WAIT, CONNECT_TRY)
+}
+
+/// The first of `addrs` that answers, within `total` in all and `each` for each but the last.
+fn connect_any(addrs: &[SocketAddr], total: Duration, each: Duration) -> Result<TcpStream> {
     let started = Instant::now();
     let mut last = None;
     for (i, addr) in addrs.iter().enumerate() {
-        let left = CONNECT_WAIT.saturating_sub(started.elapsed());
+        let left = total.saturating_sub(started.elapsed());
         if left.is_zero() {
             break;
         }
         let wait = if i + 1 == addrs.len() {
             left
         } else {
-            left.min(CONNECT_TRY)
+            left.min(each)
         };
         match TcpStream::connect_timeout(addr, wait) {
             Ok(tcp) => return Ok(tcp),
@@ -592,6 +597,46 @@ mod tests {
         let got = try_order(vec![a("1.1.1.1:443"), a("[::1]:443")]);
         assert_eq!(got, vec![a("1.1.1.1:443"), a("[::1]:443")]);
         assert!(try_order(vec![]).is_empty());
+    }
+
+    /// The bug of 2026-10-29: the first address never answered (broken IPv6 on a Wi-Fi)
+    /// and nothing else was tried. One that is refused, one that goes nowhere (TEST-NET,
+    /// it hangs or fails at once depending on the machine), then one that answers.
+    #[test]
+    fn an_address_that_does_not_answer_is_passed_over() {
+        let closed = std::net::TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap();
+        let open = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let nowhere: SocketAddr = "192.0.2.1:443".parse().unwrap();
+        let addrs = [closed, nowhere, open.local_addr().unwrap()];
+        let started = Instant::now();
+        let tcp = connect_any(&addrs, Duration::from_secs(5), Duration::from_millis(300)).unwrap();
+        assert_eq!(tcp.peer_addr().unwrap(), open.local_addr().unwrap());
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "took {:?}",
+            started.elapsed()
+        );
+    }
+
+    #[test]
+    fn no_address_answering_ends_within_the_wait() {
+        let nowhere: SocketAddr = "192.0.2.1:443".parse().unwrap();
+        let started = Instant::now();
+        assert!(connect_any(
+            &[nowhere, nowhere],
+            Duration::from_millis(600),
+            Duration::from_millis(300)
+        )
+        .is_err());
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "took {:?}",
+            started.elapsed()
+        );
+        assert!(connect_any(&[], Duration::from_secs(1), Duration::from_secs(1)).is_err());
     }
 
     /// A server in memory: each connection answers its next scripted reply once a

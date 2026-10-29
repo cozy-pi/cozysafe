@@ -7,6 +7,7 @@ import '../lock_resume.dart';
 import '../prefs.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
+import 'cut_offs.dart';
 import 'drive.dart';
 import 'status.dart';
 import 'sync_log.dart';
@@ -78,19 +79,11 @@ abstract final class AutoSync {
     lastOk.value = now;
     Prefs.write(_okPref, '${now.millisecondsSinceEpoch}');
     pending.value = false;
-    _cutOff = 0;
+    _cutOffs.ok();
     _fail(false);
   }
 
-  /// Runs cut off in a row. One now and then is the network going (nothing wrong); this
-  /// many in a row is a problem the person should see: every run hung on a Wi-Fi with
-  /// broken IPv6 for an afternoon with nothing on screen (owner 2026-10-29).
-  static int _cutOff = 0;
-  static const cutOffShown = 3;
-
-  /// The app left the screen during this run: a run cut off then is the system's doing,
-  /// not counted in [_cutOff].
-  static bool _wentAway = false;
+  static final _cutOffs = CutOffs();
 
   static void _fail(bool on) {
     if (failed.value == on) return;
@@ -130,7 +123,7 @@ abstract final class AutoSync {
       onInactive: () {
         if (_settle?.isActive ?? false) run('leave');
       },
-      onHide: () => _wentAway = true,
+      onHide: _cutOffs.away,
       // Back without the lock in between: the others may have changed meanwhile.
       onResume: () {
         if (!vaultLock.locked) _look('back');
@@ -245,7 +238,7 @@ abstract final class AutoSync {
     SyncLog.add('run', 'start-$why');
     final watch = Stopwatch()..start();
     running.value = true;
-    _wentAway = false;
+    _cutOffs.start();
     var changes = false;
     var ended = false;
     try {
@@ -253,8 +246,8 @@ abstract final class AutoSync {
         if (_moves.contains(e.kind) && e.total > 0) moving.value = true;
         if (e.kind == sync.SyncStep.interrupted) {
           pending.value = true;
-          if (!_wentAway && ++_cutOff >= cutOffShown) {
-            ErrorLog.add('auto-sync', 'interrupted-$_cutOff');
+          if (_cutOffs.cutOff()) {
+            ErrorLog.add('auto-sync', 'interrupted-${_cutOffs.count}');
             _fail(true);
           }
         }
@@ -276,7 +269,7 @@ abstract final class AutoSync {
           _fail(true);
         }
         // Interrupted (the network went): nothing is wrong, the next run goes on, unless
-        // it keeps happening ([cutOffShown]).
+        // it keeps happening ([CutOffs]).
       }
     } catch (e) {
       ErrorLog.add('auto-sync', e.runtimeType.toString());
