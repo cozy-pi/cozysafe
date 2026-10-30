@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The Top secret core builds from copies kept in third_party/rust/, never from the internet.
 
-  tools/check-vendor            check (CI, every build; offline)
+  tools/check-vendor            check (CI, every build; reads the crates.io index for the
+                                dependency graph, downloads no crate)
   tools/check-vendor --update   after a reviewed change to third_party/rust/: rewrite
                                 third_party/rust/RECORD and the [patch.crates-io] blocks
 
@@ -121,7 +122,7 @@ def core_crates():
             for p in CORE:
                 r = subprocess.run(
                     ["cargo", "tree", "-p", p, "-e", "normal,build", "--target", t,
-                     "--offline", "--locked", "--prefix", "none", "--format", "{p}"],
+                     "--locked", "--prefix", "none", "--format", "{p}"],
                     cwd=ws, capture_output=True, text=True)
                 if r.returncode != 0 and "did not match any packages" in r.stderr:
                     continue  # this workspace does not use that part of the core (yet)

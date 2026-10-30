@@ -22,9 +22,6 @@ url = "https://raw.githubusercontent.com/mozilla/supply-chain/main/audits.toml"
 [imports.zcash]
 url = "https://raw.githubusercontent.com/zcash/rust-ecosystem/main/supply-chain/audits.toml"
 
-# The Top secret core's crates are built from copies in third_party/rust/ (path
-# dependencies, tools/check-vendor); they are crates.io's published crates byte for byte,
-# so they are audited like crates.io crates.
 [policy.aead]
 audit-as-crates-io = true
 

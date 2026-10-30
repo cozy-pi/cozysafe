@@ -1,0 +1,9 @@
+# gitleaks: the default rules, plus one path left out. third_party/rust/ holds crates
+# exactly as published on crates.io (tools/check-vendor checks every byte); their test
+# fixtures are made-up keys, and the code is not ours to change.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Vendored crates.io crates for the Top secret core (docs/supply-chain.md)"
+paths = ['''^third_party/rust/''']

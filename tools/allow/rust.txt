@@ -36,6 +36,7 @@ const-oid
 core-foundation-sys
 cpufeatures
 crypto-common
+cs-core
 cs-crypto
 cs-net
 cs-photo
