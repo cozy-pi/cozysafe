@@ -225,9 +225,12 @@ mod tests {
         for pw in cases("short") {
             assert_eq!(check_new_password(&pw), PasswordCheck::TooShort);
         }
-        assert_eq!(check_new_password("abcdefghjkm"), PasswordCheck::TooShort);
         // Random each run: none is written in the code.
         let random = crate::hex::encode(cs_crypto::generate_salt());
+        assert_eq!(
+            check_new_password(&random[..MIN_PASSWORD_LEN - 1]),
+            PasswordCheck::TooShort
+        );
         assert_eq!(check_new_password(&random), PasswordCheck::Ok);
         assert_eq!(strength(&random), 4);
         assert_eq!(strength(&random[..12]), MIN_PASSWORD_SCORE);
