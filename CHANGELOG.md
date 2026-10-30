@@ -4,6 +4,18 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.92 (2026-10-30)
+
+### Changed
+- Google Drive syncs 15 seconds after your last change (it was 30).
+- While syncing, the cloud on the home page is blue with its arrow moving up.
+- The unlock card is taller, with more room under the password field.
+
+### Fixed
+- A change made while a sync was running could wait up to 30 minutes; another sync now
+  follows right away.
+- Changes waiting for Wi-Fi or a connection are sent within a minute once it is back.
+
 ## 0.1.91 (2026-10-30)
 
 ### Changed

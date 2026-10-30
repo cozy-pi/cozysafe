@@ -22,8 +22,9 @@ abstract final class AutoSync {
   static const pref = 'drive-auto-sync';
   static const wifiPref = 'drive-auto-wifi-only';
 
-  /// After a change here, wait this long for more (twenty photos added: one sync).
-  static const settle = Duration(seconds: 30);
+  /// After a change here, wait this long for more (twenty photos added: one sync); each
+  /// change starts it again (owner 2026-10-30: 15 seconds after the last change).
+  static const settle = Duration(seconds: 15);
 
   /// While the vault stays open, look for the other devices' changes this often: a cheap
   /// look at their small heads on Drive (one request), a full sync only when one moved.
@@ -52,9 +53,6 @@ abstract final class AutoSync {
   /// Items going to or coming from Drive right now: the only time the home page shows
   /// "syncing" (owner 2026-10-28: not while it merely looks for changes).
   static final moving = ValueNotifier(false);
-
-  /// While items move: how far, 0 to 1 (owner 2026-10-30: the cloud fills up as they go).
-  static final progress = ValueNotifier<double>(0);
 
   /// Why changes wait, when nothing is wrong and the next run goes on by itself: on mobile
   /// data with "Only on Wi-Fi", or the network went in the middle.
@@ -191,9 +189,14 @@ abstract final class AutoSync {
 
   /// Something changed here.
   static void changed() {
+    if (running.value) _again = true;
     _settle?.cancel();
     _settle = Timer(settle, () => run('change'));
   }
+
+  /// A change made while a run was under way: that run may not have carried it, so
+  /// another follows (it used to wait for the 30-minute full sync).
+  static bool _again = false;
 
   /// The every-minute look: a full sync when it is due anyway or when another device's
   /// head moved; otherwise nothing more than one small request.
@@ -206,6 +209,9 @@ abstract final class AutoSync {
       waiting.value = SyncWait.wifi;
       return SyncLog.add('look', 'skip-mobile-data');
     }
+    // Changes here still waiting (Wi-Fi or the network was back, a run was cut off):
+    // try again now rather than when the full sync is due.
+    if (pending.value) return run('$why-pending');
     final session = await driveSignInQuietly();
     if (session == null) return SyncLog.add('look', 'skip-no-sign-in');
     if (running.value || _onSynced == null || vaultLock.locked) return;
@@ -248,7 +254,10 @@ abstract final class AutoSync {
                         : driveAccount == null
                             ? 'no-account'
                             : null;
-    if (skip != null) return SyncLog.add('run', '$why-skip-$skip');
+    if (skip != null) {
+      if (skip == 'busy') _again = true;
+      return SyncLog.add('run', '$why-skip-$skip');
+    }
     if (wifiOnly && !await onWifi()) {
       waiting.value = SyncWait.wifi;
       return SyncLog.add('run', '$why-skip-mobile-data');
@@ -265,12 +274,7 @@ abstract final class AutoSync {
     var ended = false;
     try {
       await for (final e in sync.driveSync(token: session.token)) {
-        if (_moves.contains(e.kind) && e.total > 0) {
-          moving.value = true;
-          progress.value = e.bytesTotal > BigInt.zero
-              ? (e.bytes.toDouble() / e.bytesTotal.toDouble()).clamp(0, 1)
-              : (e.done / e.total).clamp(0, 1);
-        }
+        if (_moves.contains(e.kind) && e.total > 0) moving.value = true;
         if (e.kind == sync.SyncStep.interrupted) {
           pending.value = true;
           waiting.value = SyncWait.network;
@@ -313,7 +317,11 @@ abstract final class AutoSync {
       if (!ended) SyncLog.add('run', 'no-end-${watch.elapsedMilliseconds}ms');
       running.value = false;
       moving.value = false;
-      progress.value = 0;
+    }
+    if (_again) {
+      _again = false;
+      pending.value = true;
+      if (enabled) changed();
     }
     if (changes) {
       _ours = true; // the reload that follows is the sync's, not a change here

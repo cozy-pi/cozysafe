@@ -406,7 +406,9 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       trigger: _shake,
       child: Container(
         margin: const EdgeInsets.only(top: 46),
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        // Room under the field (owner 2026-10-30: the card was too low, out of
+        // balance; then more room still under the field).
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 44),
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(26),
@@ -417,7 +419,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
           alignment: Alignment.topCenter,
           children: [
             Padding(
-              padding: const EdgeInsets.only(top: 58),
+              padding: const EdgeInsets.only(top: 64),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -425,7 +427,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                     _mode == _Mode.pin ? l.pinEnter : (_remind ? l.passwordRemindTitle : l.unlockTitle),
                     style: TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w700, color: ink, letterSpacing: -.3),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 22),
                   if (_mode == _Mode.pin)
                     PinDots(filled: _pin.length, color: accent)
                   else

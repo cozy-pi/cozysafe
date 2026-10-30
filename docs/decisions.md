@@ -4,6 +4,15 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-30 (later) — Sync sooner; the lock card taller
+
+**Owner:** sync was not fast enough. Decided: a sync 15 seconds after the last change
+(each change starts the wait again). A change made during a run is followed by another
+run, and changes waiting for Wi-Fi or a connection are retried every minute (both used to
+wait for the 30-minute full sync). While syncing, the home cloud is the "changes waiting"
+cloud with its arrow moving up (in place of the cloud filling up). The unlock card gets
+more room under the password field (option 2 of four shown).
+
 ## 2026-10-30 — The 24 words never leave the screen; temporary files swept
 
 **Owner:** opening files from outside is dangerous for a security app, and the 24 words

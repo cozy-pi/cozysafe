@@ -368,7 +368,6 @@ void _screen(String name, String caption, Widget Function() home,
       AutoSync.moving.value = false;
       AutoSync.pending.value = false;
       AutoSync.waiting.value = null;
-      AutoSync.progress.value = 0;
       EmergencyKitScreen.debugFixedWords = true;
       if (section != null) Prefs.write('vault-section', section);
       Prefs.write('add-column-hint', '3'); // the drag hint has been seen; no mid-nudge shots
@@ -444,8 +443,6 @@ Future<void> _viaMore(WidgetTester t, String key) async {
   await t.pumpAndSettle();
 }
 
-/// The 24-word grid, said once for every screen that has it (2026-10-30).
-const _grid = 'MỚI: bảng 24 ô đánh số như tờ ghi 24 từ. Gõ 4 chữ cái là đủ, tự điền nốt và sang ô kế; rời ô là thành chấm; từ không có trong danh sách viền đỏ; Xem/Ẩn cả bảng';
 
 void main() {
   setUpAll(() async {
@@ -499,8 +496,8 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock);
-  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, act: (t) async {
+  _screen('lock', 'Màn khoá', lock, change: 'ĐỔI: khung mật khẩu cao hơn cho cân đối: thêm khoảng dưới ô mật khẩu, tiêu đề cách vòng tròn và ô xa hơn');
+  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, change: 'ĐỔI: khung mật khẩu cao hơn cho cân đối', act: (t) async {
     await t.enterText(find.byType(TextField).first, 'matkhau');
     await t.pump();
   });
@@ -594,30 +591,29 @@ void main() {
   }
   _screen('camera', 'Chụp ảnh (mở từ Thư viện)', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
-  void drive({bool failed = false, bool moving = false, bool pending = false, SyncWait? waiting, double progress = 0}) {
+  void drive({bool failed = false, bool moving = false, bool pending = false, SyncWait? waiting}) {
     Prefs.write('drive-account', 'ban.do@gmail.com');
     Prefs.write(AutoSync.pref, '1');
     AutoSync.failed.value = failed;
     AutoSync.moving.value = moving;
     AutoSync.pending.value = pending;
     AutoSync.waiting.value = waiting;
-    AutoSync.progress.value = progress;
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
-      section: 'home', change: 'Nút mây góc trên: mây xám gạch nay CHỈ dùng khi chưa nối Google Drive (chữ đọc: "Chưa cài đặt đồng bộ")', marks: [() => find.byKey(const ValueKey('home-sync-none'))]);
+      section: 'home');
   _screen('home-synced', 'Trang chủ · đã đồng bộ', home,
       section: 'home', setup: drive);
-  _screen('home-syncing', 'Trang chủ · đang gửi / nhận mục (60%)', home,
-      section: 'home', setup: () => drive(moving: true, progress: 0.6), change: 'Nút mây góc trên: ĐỔI: mây nhạt đầy dần màu xanh theo phần trăm đã gửi (kiểu F), thay mũi tên xoay', marks: [() => find.byKey(const ValueKey('home-sync-moving'))]);
+  _screen('home-syncing', 'Trang chủ · đang gửi / nhận mục', home,
+      section: 'home', setup: () => drive(moving: true), change: 'Nút mây góc trên: ĐỔI: mây xanh, mũi tên đi thẳng lên (chuyển động); giống hình chờ đồng bộ nhưng mũi tên chạy', marks: [() => find.byKey(const ValueKey('home-sync-moving'))]);
   _screen('home-sync-pending', 'Trang chủ · vừa thêm ảnh, chưa gửi lên', home,
-      section: 'home', setup: () => drive(pending: true), change: 'Nút mây góc trên: SỬA LỖI: trước là mây xám gạch (như chưa cài đồng bộ); nay mây xanh mũi tên lên', marks: [() => find.byKey(const ValueKey('home-sync-pending'))]);
+      section: 'home', setup: () => drive(pending: true));
   _screen('home-sync-wifi', 'Trang chủ · có thay đổi, đang dùng 4G mà chỉ cho đồng bộ qua Wi-Fi', home,
-      section: 'home', setup: () => drive(pending: true, waiting: SyncWait.wifi), change: 'Nút mây góc trên: MỚI: mây vàng biểu tượng Wi-Fi (trước là mây xám gạch)', marks: [() => find.byKey(const ValueKey('home-sync-wifi'))]);
+      section: 'home', setup: () => drive(pending: true, waiting: SyncWait.wifi));
   _screen('home-sync-offline', 'Trang chủ · mất mạng giữa chừng, sẽ tự thử lại', home,
-      section: 'home', setup: () => drive(pending: true, waiting: SyncWait.network), change: 'Nút mây góc trên: MỚI: mây vàng ba chấm (trước là mây xám gạch)', marks: [() => find.byKey(const ValueKey('home-sync-offline'))]);
+      section: 'home', setup: () => drive(pending: true, waiting: SyncWait.network));
   _screen('home-sync-failed', 'Trang chủ · đồng bộ lỗi / Drive đầy / cần đăng nhập lại', home,
-      section: 'home', setup: () => drive(failed: true), change: 'Nút mây góc trên: mây đỏ "!" giữ nguyên; nay Drive đầy cũng hiện đỏ (trước lặng lẽ xám)', marks: [() => find.byKey(const ValueKey('home-sync-failed'))]);
+      section: 'home', setup: () => drive(failed: true));
   // iPad and computer (owner 2026-10-27): three columns, the sync always in sight.
   const ipad = Size(1180, 820), ipadUp = Size(820, 1180), mac = Size(1440, 900), win = Size(1280, 800);
   _screen('wide-ipad-home', 'iPad ngang · Tổng quan: thanh bên (mục, nhóm, đồng bộ, Thêm), nội dung rộng', home,
@@ -1066,7 +1062,6 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('sync-drive-page-full', 'Đồng bộ · Google Drive khi lần tự động gần nhất gặp Drive đầy', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
-      change: 'MỚI: một dòng dưới email nói rõ lý do (Drive đầy / cần đăng nhập lại / chờ Wi-Fi / chờ có mạng)', marks: [() => find.byKey(const ValueKey('sync-auto-state'))],
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
@@ -1262,7 +1257,7 @@ void main() {
     await t.tap(find.descendant(of: find.byKey(const ValueKey('key-backup-row')), matching: find.byType(Switch)));
     await t.pumpAndSettle();
   });
-  _screen('key-check', 'Kiểm tra 24 từ và mật khẩu: chỉ so khớp, không hiện, không lưu', change: _grid, marks: [() => find.byKey(const ValueKey('key-check-words'))], () => page('Kiểm tra 24 từ và mật khẩu', const KeyCheckScreen(libraryDir: '', hasPassword: true)), setup: () => KeyCheckScreen.debugResults = (words: true, password: false));
+  _screen('key-check', 'Kiểm tra 24 từ và mật khẩu: chỉ so khớp, không hiện, không lưu', () => page('Kiểm tra 24 từ và mật khẩu', const KeyCheckScreen(libraryDir: '', hasPassword: true)), setup: () => KeyCheckScreen.debugResults = (words: true, password: false));
   // Version history (owner 2026-10-27): every item, on this device, 30 days / 1 GB unless changed.
   final wifi = _item('n1', ItemKind.note, 'Wifi nhà bà ngoại', 120, tags: ['t7']);
   HistoryVersion ver(String rev, int ago, {String? name, bool here = true, bool same = false, bool gone = false, int size = 96}) =>
@@ -1480,7 +1475,7 @@ void main() {
       SyncLog.add(k, v);
     }
   }
-  _screen('debug', 'Trang gỡ lỗi', change: 'MỚI: dòng Bộ nhớ đang dùng: hiện tại / cao nhất từ lúc mở app (chạm để đo lại). Bản tạm đã giải mã nay tính cả thư mục tạm', () => const DebugScreen(), setup: debugSetup);
+  _screen('debug', 'Trang gỡ lỗi', () => const DebugScreen(), setup: debugSetup);
   _screen('debug-more', 'Trang gỡ lỗi · cuộn xuống', () => const DebugScreen(), setup: debugSetup, act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('debug-off')), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
@@ -1668,7 +1663,7 @@ void main() {
   }
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
   _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
-  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', change: 'BỎ nút Sao chép và Lưu ra tệp: 24 từ chỉ ở trên màn, chép tay ra giấy. Màn sáng 3 phút sau lần chạm cuối; chặn chụp màn hình', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
+  _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}));
   _screen('kit-legacy', 'Khoá khôi phục kiểu cũ (CS1-…): nút "Đổi sang 24 từ"', () => EmergencyKitScreen(keyText: 'CS1-7QK2-M9XD-4TRB-PW3H-8ZNA-6CJE-1VFS', confirm: false, onChange: () {}));
   Widget change(int step) => ChangeKeyScreen(libraryDir: '', password: '', onBackup: () async {});
   for (final (i, name, what) in [
@@ -1682,10 +1677,9 @@ void main() {
       ChangeKeyScreen.debugStep = i;
     });
   }
-  _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', change: 'BỎ nút Sao chép và Lưu ra tệp: 24 từ chỉ ở trên màn, chép tay ra giấy. Màn sáng 3 phút sau lần chạm cuối; chặn chụp màn hình', () => const EmergencyKitScreen(keyText: words, confirm: false),
+  _screen('kit-shown', 'Khoá khôi phục: sau khi bấm Xem', () => const EmergencyKitScreen(keyText: words, confirm: false),
       act: (t) => t.tap(find.byKey(const ValueKey('secret-show'))));
-  _screen('kit-confirm', 'Khoá khôi phục lần đầu (sau khi đặt mật khẩu sao lưu): gõ lại 4 từ', change: 'ĐỔI: hỏi 4 từ thay vì 1, cùng bảng ô số như lúc tạo két (các ô không hỏi là chấm). BỎ Sao chép và Lưu ra tệp', () => const EmergencyKitScreen(keyText: words, confirm: true),
-      marks: [() => find.byKey(const ValueKey('kit-confirm-words'))], act: (t) async {
+  _screen('kit-confirm', 'Khoá khôi phục lần đầu (sau khi đặt mật khẩu sao lưu): gõ lại 4 từ', () => const EmergencyKitScreen(keyText: words, confirm: true), act: (t) async {
     await t.ensureVisible(find.byKey(const ValueKey('kit-confirm-words')));
     await t.enterText(find.byKey(const ValueKey('words-field-2')), 'epis');
     await t.pumpAndSettle();
@@ -1742,18 +1736,15 @@ void main() {
             VaultSlot(id: '9b3ad0e1f2c4475a8e61d39b2f0c18d3', sizeBytes: BigInt.from(212 << 10), hasPassword: false, hasPin: true, hasBiometric: false, isOpen: false),
           ]);
   _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''));
-  _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', change: '$_grid. Dán: tự rải 24 từ vào 24 ô (bỏ số thứ tự) rồi xoá bộ nhớ tạm. BỎ nút Mở tệp', marks: [() => find.byKey(const ValueKey('restore-words'))], () => const RestoreKeysScreen(libraryDir: ''));
-  _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: ''),
-      change: _grid, marks: [() => find.byKey(const ValueKey('words-cell-2')), () => find.byKey(const ValueKey('words-cell-3'))], act: (t) async {
+  _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: ''));
+  _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: ''), act: (t) async {
     await t.enterText(find.byKey(const ValueKey('words-field-0')), 'boun');
     await t.enterText(find.byKey(const ValueKey('words-field-1')), 'announce');
     await t.enterText(find.byKey(const ValueKey('words-field-2')), 'episod3');
     await t.enterText(find.byKey(const ValueKey('words-field-3')), 'wre');
     await t.pump();
   });
-  _screen('restore-keys-wrong-order', 'Khôi phục · đủ 24 từ có thật nhưng hai từ đổi chỗ', () => const RestoreKeysScreen(libraryDir: ''),
-      change: 'MỚI: đủ 24 từ đúng chính tả mà không ra khoá (sai một từ hoặc sai thứ tự) thì báo ngay dưới bảng',
-      marks: [() => find.byKey(const ValueKey('words-no-key'))], setup: () => RecoveryWords.makesKey = (w) => w == words, act: (t) async {
+  _screen('restore-keys-wrong-order', 'Khôi phục · đủ 24 từ có thật nhưng hai từ đổi chỗ', () => const RestoreKeysScreen(libraryDir: ''), setup: () => RecoveryWords.makesKey = (w) => w == words, act: (t) async {
     final w = words.split(' ');
     final first = w[0];
     w[0] = w[1];
@@ -1763,8 +1754,7 @@ void main() {
     await t.ensureVisible(find.byKey(const ValueKey('words-no-key')));
     await t.pumpAndSettle();
   });
-  _screen('restore-keys-legacy', 'Khôi phục · bấm "Tôi có khoá kiểu cũ (CS1-…)"', () => const RestoreKeysScreen(libraryDir: ''),
-      change: 'MỚI: khoá kiểu cũ CS1-… gõ ở một ô như trước, qua một dòng nhỏ dưới bảng', marks: [() => find.byKey(const ValueKey('legacy-key'))], act: (t) async {
+  _screen('restore-keys-legacy', 'Khôi phục · bấm "Tôi có khoá kiểu cũ (CS1-…)"', () => const RestoreKeysScreen(libraryDir: ''), act: (t) async {
     await t.ensureVisible(find.byKey(const ValueKey('words-legacy-switch')));
     await t.tap(find.byKey(const ValueKey('words-legacy-switch')));
     await t.pumpAndSettle();
@@ -1786,18 +1776,18 @@ void main() {
   _screen('new-vault', 'Tạo két · 1. Đặt mật khẩu (vào thẳng, không màn giới thiệu)',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords);
-  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ (sau mật khẩu)', change: 'BỎ nút Sao chép và Lưu ra tệp: 24 từ chỉ ở trên màn, chép tay ra giấy. Màn sáng 3 phút sau lần chạm cuối; chặn chụp màn hình',
+  _screen('new-vault-words', 'Tạo két · 2. Ghi lại 24 từ (sau mật khẩu)',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: fillPassword);
   _screen('join-drive', 'Mở két từ Google Drive · trước khi đăng nhập', () => const DriveJoinScreen(libraryDir: ''));
-  _screen('join-drive-signed', 'Mở két từ Google Drive · đã đăng nhập: nhập 24 từ và mật khẩu', change: _grid, marks: [() => find.byKey(const ValueKey('join-words'))], () => const DriveJoinScreen(libraryDir: ''),
+  _screen('join-drive-signed', 'Mở két từ Google Drive · đã đăng nhập: nhập 24 từ và mật khẩu', () => const DriveJoinScreen(libraryDir: ''),
       setup: () => DriveJoinScreen.debugAccount = 'ban@gmail.com');
-  _screen('new-vault-words-shown', 'Tạo két · 24 từ sau khi chạm Xem', change: 'BỎ nút Sao chép và Lưu ra tệp: 24 từ chỉ ở trên màn, chép tay ra giấy. Màn sáng 3 phút sau lần chạm cuối; chặn chụp màn hình', () => const NewVaultScreen(libraryDir: '', first: true),
+  _screen('new-vault-words-shown', 'Tạo két · 24 từ sau khi chạm Xem', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
     await fillPassword(t);
     await tapKey(t, 'secret-show');
   });
-  _screen('new-vault-check', 'Tạo két · 3. Gõ lại 4 từ: Tiếp là tạo két', change: 'ĐỔI: 4 từ gõ lại trong bảng 24 ô đánh số như tờ ghi (ô không hỏi là chấm), thay 4 ô rời; gõ 4 chữ cái là đủ', marks: [() => find.byKey(const ValueKey('words-check'))],
+  _screen('new-vault-check', 'Tạo két · 3. Gõ lại 4 từ: Tiếp là tạo két',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) async {
     await fillPassword(t);
