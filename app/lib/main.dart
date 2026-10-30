@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'appearance.dart';
 import 'debug_log.dart';
 import 'l10n/app_localizations.dart';
+import 'key_backup.dart';
 import 'language.dart';
 import 'offline.dart';
 import 'screens/settings.dart';
@@ -35,6 +37,7 @@ Future<void> main() async {
   Settings.apply(); // Android: honour "block screenshots" off
   PrivacyCover.listen(); // iOS: screenshots taken (they cannot be stopped there)
   await clearTemp(); // plain copies a crash or a kill left: an import, a share, a video
+  unawaited(KeyBackup.sweep()); // no copy of the words in iCloud / Google in this build
   final hasKey = await loadSecretKey(libraryDir);
   await AppLanguage.load();
   await NativeBar.probe(); // iOS 26: the system's own bottom bar

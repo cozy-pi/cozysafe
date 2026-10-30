@@ -39,14 +39,17 @@ void main() {
     expect(find.byIcon(Icons.ios_share), findsNothing);
   });
 
-  testWidgets('Recovery Key page: no Copy, no Save, and the word typed back is not learnt', (t) async {
+  testWidgets('Recovery Key page: no Copy, no Save, and the words typed back are not learnt', (t) async {
     await t.pumpWidget(_app(const EmergencyKitScreen(keyText: _words, confirm: true)));
     expect(find.byIcon(Icons.copy_rounded), findsNothing);
     expect(find.byIcon(Icons.ios_share), findsNothing);
-    final field = t.widget<TextField>(find.byKey(const ValueKey('kit-confirm')));
-    expect(field.enableIMEPersonalizedLearning, isFalse);
-    expect(field.autocorrect, isFalse);
-    expect(field.enableSuggestions, isFalse);
+    final fields = find.descendant(of: find.byKey(const ValueKey('kit-confirm-words')), matching: find.byType(TextField));
+    expect(fields, findsNWidgets(4));
+    for (final field in t.widgetList<TextField>(fields)) {
+      expect(field.enableIMEPersonalizedLearning, isFalse);
+      expect(field.autocorrect, isFalse);
+      expect(field.enableSuggestions, isFalse);
+    }
   });
 
   testWidgets('typing the words in to restore: Paste, but no Open file', (t) async {
@@ -78,6 +81,7 @@ void main() {
       'lib/widgets/recovery_words.dart': ['Future<void> _copy(', 'Future<void> saveWordsFile('],
       'lib/screens/emergency_kit.dart': ['Future<void> _copy(', 'Future<void> _share('],
       'lib/widgets/secret.dart': ['Future<void> _openFile('],
+      'lib/widgets/words_input.dart': <String>[],
     };
     for (final MapEntry(key: path, value: heads) in guarded.entries) {
       final source = File(path).readAsStringSync();
@@ -96,6 +100,7 @@ void main() {
         'lib/widgets/recovery_words.dart': 5, // _copy; saveWordsFile: save dialog, two writes, share
         'lib/screens/emergency_kit.dart': 2, // _copy, _share
         'lib/widgets/secret.dart': 3, // _openFile, the picker it calls; Paste empties the clipboard
+        'lib/widgets/words_input.dart': 2, // both empty the clipboard after a paste
       }[path];
       expect(reaches, allowed, reason: '$path: a new way out must sit behind wordsExport');
     }

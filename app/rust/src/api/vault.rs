@@ -405,6 +405,12 @@ pub fn secret_key_text(key: Vec<u8>) -> String {
         .unwrap_or_default()
 }
 
+/// The 2048 words of the Recovery Key list (BIP39 English), for the typing grid.
+#[flutter_rust_bridge::frb(sync)]
+pub fn recovery_word_list() -> Vec<String> {
+    cs_crypto::recovery_word_list().into_iter().map(String::from).collect()
+}
+
 /// Read a Secret Key typed from an Emergency Kit; None when it has a typo.
 #[flutter_rust_bridge::frb(sync)]
 pub fn parse_secret_key(text: String) -> Option<Vec<u8>> {

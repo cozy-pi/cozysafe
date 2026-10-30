@@ -7,7 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
-import '../widgets/secret.dart';
+import '../widgets/words_input.dart';
 import 'common.dart';
 import 'unlock.dart';
 
@@ -115,16 +115,11 @@ class _RestoreScreenState extends State<RestoreScreen> {
           ),
           if (!_needFile) ...[
             const SizedBox(height: 24),
-            SecretField(
+            RecoveryKeyInput(
+              key: const ValueKey('restore-key'),
               controller: _key,
               enabled: !_busy,
-              capitalization: TextCapitalization.none,
-              multiline: true,
-              paste: true,
-              label: l.secretKeyLabel,
-              hint: l.recoveryWordsHint,
-              onChanged: (_) => setState(() => _error = null),
-              onSubmitted: (_) => _useKey(),
+              onChanged: () => setState(() => _error = null),
             ),
           ],
           if (_error != null) ...[

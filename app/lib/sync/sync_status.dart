@@ -74,10 +74,17 @@ class SyncAlertBadge extends StatelessWidget {
       );
 }
 
-/// Where Google Drive stands, as one small icon on the home page, no words (owner
-/// 2026-10-28): not synced (no Drive set up, a change not sent yet, or cut off), syncing
-/// (only while items go up or come down, not while it looks for changes), failed, or
-/// synced. The words are the tooltip and what a screen reader says. A tap opens Sync.
+/// iPhone's amber for "waiting, nothing to do" (on mobile data, or no network).
+Color _amber(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark ? const Color(0xFFFFB340) : const Color(0xFFC27C00);
+
+/// Where Google Drive stands, as one small icon on the home page, no words. Each state
+/// its own picture (owner 2026-10-30, mockup approved): the grey crossed-out cloud only
+/// while sync is not set up; changes waiting (a blue cloud with an arrow up); syncing
+/// (a blue cloud filling up as items move); synced (green tick); waiting for Wi-Fi or
+/// for a connection (amber, Wi-Fi sign or three dots: it goes on by itself); failed, or
+/// something to do such as a full Drive (red "!"). The words are the tooltip and what a
+/// screen reader says. A tap opens Sync.
 class HomeSyncIcon extends StatelessWidget {
   const HomeSyncIcon({super.key, required this.onTap});
   final VoidCallback onTap;
@@ -87,18 +94,19 @@ class HomeSyncIcon extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     return ListenableBuilder(
-      listenable: Listenable.merge([AutoSync.failed, AutoSync.lastOk, AutoSync.moving, AutoSync.pending]),
+      listenable: Listenable.merge([AutoSync.failed, AutoSync.lastOk, AutoSync.moving, AutoSync.pending, AutoSync.waiting, AutoSync.progress]),
       builder: (context, _) {
+        final waitingChanges = AutoSync.pending.value || AutoSync.lastOk.value == null;
         final (String key, Widget icon, String label) = switch (null) {
-          _ when driveAccount == null => ('none', Icon(Icons.cloud_off_rounded, size: 20, color: c.muted), l.syncNotYet),
-          _ when AutoSync.failed.value && AutoSync.enabled => ('failed', _FailedCloud(color: _red(context)), l.syncProblem),
-          _ when AutoSync.moving.value => (
-              'moving',
-              _SpinningCloud(color: _blue(context)),
-              l.syncWorking
-            ),
-          _ when AutoSync.pending.value || AutoSync.lastOk.value == null =>
-            ('none', Icon(Icons.cloud_off_rounded, size: 20, color: c.muted), l.syncNotYet),
+          _ when driveAccount == null => ('none', Icon(Icons.cloud_off_rounded, size: 20, color: c.muted), l.syncNotSetUp),
+          _ when AutoSync.failed.value && AutoSync.enabled =>
+            ('failed', _MarkedCloud(color: _red(context), mark: Icons.priority_high_rounded), l.syncProblem),
+          _ when AutoSync.moving.value => ('moving', _FillingCloud(color: _blue(context), progress: AutoSync.progress.value), l.syncWorking),
+          _ when waitingChanges && AutoSync.waiting.value == SyncWait.wifi =>
+            ('wifi', _MarkedCloud(color: _amber(context), mark: Icons.wifi_rounded), l.syncWaitWifi),
+          _ when waitingChanges && AutoSync.waiting.value == SyncWait.network =>
+            ('offline', _MarkedCloud(color: _amber(context), mark: Icons.more_horiz_rounded, markSize: 14), l.syncWaitNetwork),
+          _ when waitingChanges => ('pending', _MarkedCloud(color: _blue(context), mark: Icons.arrow_upward_rounded), l.syncPendingStatus),
           _ => ('ok', Icon(Icons.cloud_done_rounded, size: 20, color: _green(context)), l.syncedStatus),
         };
         return Tooltip(
@@ -119,67 +127,59 @@ class HomeSyncIcon extends StatelessWidget {
   }
 }
 
-/// A blue cloud that stays still while the two arrows in it turn, as iCloud's sign while
-/// it loads (owner 2026-10-28: "syncing" should move). Still when the phone asks for less
-/// motion.
-class _SpinningCloud extends StatefulWidget {
-  const _SpinningCloud({required this.color});
+/// A cloud with a small white sign in it: no Material icon says "the cloud failed" or
+/// "the cloud waits for Wi-Fi".
+class _MarkedCloud extends StatelessWidget {
+  const _MarkedCloud({required this.color, required this.mark, this.markSize = 11});
   final Color color;
-
-  @override
-  State<_SpinningCloud> createState() => _SpinningCloudState();
-}
-
-class _SpinningCloudState extends State<_SpinningCloud> with SingleTickerProviderStateMixin {
-  late final _turn = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _turn.stop();
-    } else if (!_turn.isAnimating) {
-      _turn.repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _turn.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => SizedBox.square(
-        dimension: 20,
-        child: Stack(alignment: Alignment.center, children: [
-          Icon(Icons.cloud_rounded, size: 20, color: widget.color),
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            // Turning the other way round, as the arrows point (clockwise reads as forward).
-            child: RotationTransition(
-              turns: ReverseAnimation(_turn),
-              child: const Icon(Icons.sync_rounded, size: 11, color: Colors.white),
-            ),
-          ),
-        ]),
-      );
-}
-
-/// A red cloud with a white "!" in it: no Material icon says "the cloud failed".
-class _FailedCloud extends StatelessWidget {
-  const _FailedCloud({required this.color});
-  final Color color;
+  final IconData mark;
+  final double markSize;
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
         dimension: 20,
         child: Stack(alignment: Alignment.center, children: [
           Icon(Icons.cloud_rounded, size: 20, color: color),
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.priority_high_rounded, size: 11, color: Colors.white),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(mark, size: markSize, color: Colors.white),
           ),
         ]),
       );
+}
+
+/// A pale cloud that fills with colour from the bottom as the items move (owner
+/// 2026-10-30: chosen over turning arrows). Eased between steps; nothing loops, so it
+/// is the same with less motion.
+class _FillingCloud extends StatelessWidget {
+  const _FillingCloud({required this.color, required this.progress});
+  final Color color;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(end: progress.clamp(0.0, 1.0)),
+        duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+        builder: (context, p, _) => SizedBox.square(
+          dimension: 20,
+          child: Stack(children: [
+            Icon(Icons.cloud_rounded, size: 20, color: color.withValues(alpha: 0.28)),
+            // A sliver from the start, so a run that has just begun already reads as blue.
+            ClipRect(clipper: _FromBottom(0.12 + 0.88 * p), child: Icon(Icons.cloud_rounded, size: 20, color: color)),
+          ]),
+        ),
+      );
+}
+
+/// The lower [part] of the cloud: the icon's cloud runs from 4/24 to 20/24 of its height.
+class _FromBottom extends CustomClipper<Rect> {
+  const _FromBottom(this.part);
+  final double part;
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(0, size.height * (20 - 16 * part) / 24, size.width, size.height);
+
+  @override
+  bool shouldReclip(_FromBottom old) => old.part != part;
 }

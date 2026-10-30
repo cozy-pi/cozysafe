@@ -53,6 +53,13 @@ abstract final class AutoSync {
   /// "syncing" (owner 2026-10-28: not while it merely looks for changes).
   static final moving = ValueNotifier(false);
 
+  /// While items move: how far, 0 to 1 (owner 2026-10-30: the cloud fills up as they go).
+  static final progress = ValueNotifier<double>(0);
+
+  /// Why changes wait, when nothing is wrong and the next run goes on by itself: on mobile
+  /// data with "Only on Wi-Fi", or the network went in the middle.
+  static final waiting = ValueNotifier<SyncWait?>(null);
+
   /// Something changed here and has not reached Drive yet, or the last run was cut off:
   /// "not synced" on the home page until a sync goes through.
   static final pending = ValueNotifier(false);
@@ -63,7 +70,14 @@ abstract final class AutoSync {
 
   /// The last automatic sync failed (not merely cut off by the network): a red dot on
   /// Settings and on the Sync row until a sync goes through (owner 2026-10-27).
-  static final failed = ValueNotifier<bool>(Prefs.read(_failedPref) == '1');
+  static final failed = ValueNotifier<bool>((Prefs.read(_failedPref) ?? '0') != '0');
+
+  /// Why it failed, for the line on the Sync page: 'drive-full', 'sign-in', or '' (kept
+  /// with [failed]).
+  static String get failWhy {
+    final v = Prefs.read(_failedPref) ?? '0';
+    return v == '0' || v == '1' ? '' : v;
+  }
 
   static const _okPref = 'drive-auto-last-ok';
   static const _failedPref = 'drive-auto-failed';
@@ -79,16 +93,17 @@ abstract final class AutoSync {
     lastOk.value = now;
     Prefs.write(_okPref, '${now.millisecondsSinceEpoch}');
     pending.value = false;
+    waiting.value = null;
     _cutOffs.ok();
     _fail(false);
   }
 
   static final _cutOffs = CutOffs();
 
-  static void _fail(bool on) {
-    if (failed.value == on) return;
+  static void _fail(bool on, [String why = '']) {
+    final v = on ? (why.isEmpty ? '1' : why) : '0';
+    if (Prefs.read(_failedPref) != v) Prefs.write(_failedPref, v);
     failed.value = on;
-    Prefs.write(_failedPref, on ? '1' : '0');
   }
 
   /// Syncs by hand open: none of these starts meanwhile.
@@ -187,7 +202,10 @@ abstract final class AutoSync {
     if (_held > 0 || syncStatus.value != null || driveAccount == null) return;
     final last = lastOk.value;
     if (last == null || DateTime.now().difference(last) >= fullEvery) return run('$why-due');
-    if (wifiOnly && !await onWifi()) return SyncLog.add('look', 'skip-mobile-data');
+    if (wifiOnly && !await onWifi()) {
+      waiting.value = SyncWait.wifi;
+      return SyncLog.add('look', 'skip-mobile-data');
+    }
     final session = await driveSignInQuietly();
     if (session == null) return SyncLog.add('look', 'skip-no-sign-in');
     if (running.value || _onSynced == null || vaultLock.locked) return;
@@ -231,11 +249,15 @@ abstract final class AutoSync {
                             ? 'no-account'
                             : null;
     if (skip != null) return SyncLog.add('run', '$why-skip-$skip');
-    if (wifiOnly && !await onWifi()) return SyncLog.add('run', '$why-skip-mobile-data');
+    if (wifiOnly && !await onWifi()) {
+      waiting.value = SyncWait.wifi;
+      return SyncLog.add('run', '$why-skip-mobile-data');
+    }
     final session = await driveSignInQuietly();
     if (session == null) return SyncLog.add('run', '$why-skip-no-sign-in');
     if (_onSynced == null || vaultLock.locked) return SyncLog.add('run', '$why-skip-locked');
     SyncLog.add('run', 'start-$why');
+    waiting.value = null; // under way: no longer waiting for Wi-Fi or a connection
     final watch = Stopwatch()..start();
     running.value = true;
     _cutOffs.start();
@@ -243,9 +265,15 @@ abstract final class AutoSync {
     var ended = false;
     try {
       await for (final e in sync.driveSync(token: session.token)) {
-        if (_moves.contains(e.kind) && e.total > 0) moving.value = true;
+        if (_moves.contains(e.kind) && e.total > 0) {
+          moving.value = true;
+          progress.value = e.bytesTotal > BigInt.zero
+              ? (e.bytes.toDouble() / e.bytesTotal.toDouble()).clamp(0, 1)
+              : (e.done / e.total).clamp(0, 1);
+        }
         if (e.kind == sync.SyncStep.interrupted) {
           pending.value = true;
+          waiting.value = SyncWait.network;
           if (_cutOffs.cutOff()) {
             ErrorLog.add('auto-sync', 'interrupted-${_cutOffs.count}');
             _fail(true);
@@ -262,7 +290,12 @@ abstract final class AutoSync {
         }
         if (e.kind == sync.SyncStep.signIn) {
           ErrorLog.add('auto-sync', 'sign-in');
-          _fail(true);
+          _fail(true, 'sign-in');
+        }
+        if (e.kind == sync.SyncStep.driveFull) {
+          // Not a cut-off: nothing goes up until space is freed (it used to stay grey).
+          ErrorLog.add('auto-sync', 'drive-full');
+          _fail(true, 'drive-full');
         }
         if (e.kind == sync.SyncStep.failed) {
           ErrorLog.add('auto-sync', e.code.isEmpty ? 'failed' : e.code);
@@ -280,6 +313,7 @@ abstract final class AutoSync {
       if (!ended) SyncLog.add('run', 'no-end-${watch.elapsedMilliseconds}ms');
       running.value = false;
       moving.value = false;
+      progress.value = 0;
     }
     if (changes) {
       _ours = true; // the reload that follows is the sync's, not a change here
@@ -287,3 +321,6 @@ abstract final class AutoSync {
     }
   }
 }
+
+/// Why changes wait for the next run ([AutoSync.waiting]).
+enum SyncWait { wifi, network }

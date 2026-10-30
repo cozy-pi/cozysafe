@@ -9,7 +9,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
-import '../lock_resume.dart';
 import '../platform.dart';
 import '../temp_files.dart';
 import '../screens/emergency_kit.dart' show WordGrid;
@@ -18,6 +17,7 @@ import '../words_export.dart';
 import 'secret.dart';
 import 'toast.dart';
 import 'words_awake.dart';
+import 'words_input.dart';
 
 /// Four positions (0-based, in order) to ask back. Fixed in tests and mockups.
 List<int> pickFourWords({bool fixed = false}) {
@@ -103,52 +103,31 @@ class RecoveryWordsPanel extends StatelessWidget {
   }
 }
 
-/// Four of the 24 words typed back ([ask]: their positions). [onValid] hears whether all
-/// four are right, for the screen's button pinned at the bottom; [onShowAgain] goes back
-/// to the words.
+/// Four of the 24 words typed back ([ask]: their positions), in the same numbered grid
+/// as the words were shown in, the other cells dots (owner 2026-10-30). [onValid] hears
+/// whether all four are right, for the screen's button pinned at the bottom;
+/// [onShowAgain] goes back to the words.
 class RecoveryWordsCheck extends StatefulWidget {
   const RecoveryWordsCheck({
     super.key,
     required this.words,
     required this.ask,
     required this.onValid,
-    required this.onShowAgain,
+    this.onShowAgain,
   });
   final List<String> words;
   final List<int> ask;
   final ValueChanged<bool> onValid;
-  final VoidCallback onShowAgain;
+  final VoidCallback? onShowAgain;
 
   @override
   State<RecoveryWordsCheck> createState() => _RecoveryWordsCheckState();
 }
 
-class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> with VaultLockAware {
-  final _answers = List.generate(4, (_) => TextEditingController());
-
-  /// The words typed are not kept while the vault is locked.
-  @override
-  void vaultLocking() {
-    setState(() {
-      for (final c in _answers) {
-        c.clear();
-      }
-    });
-    widget.onValid(false);
-  }
-
-  @override
-  void dispose() {
-    for (final c in _answers) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
+class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> {
   /// Every BIP39 word is known by its first four letters.
-  bool _ok(int i) {
-    final want = widget.words[widget.ask[i]];
-    final typed = _answers[i].text.trim().toLowerCase();
+  bool _ok(int i, String typed) {
+    final want = widget.words[i];
     return typed == want || (typed.length >= 4 && want.startsWith(typed));
   }
 
@@ -158,26 +137,17 @@ class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> with VaultLockA
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < 4; i++) ...[
-          TextField(
-            key: ValueKey('check-word-$i'),
-            controller: _answers[i],
-            autocorrect: false,
-            enableSuggestions: false,
-            enableIMEPersonalizedLearning: false,
-            textInputAction: i < 3 ? TextInputAction.next : TextInputAction.done,
-            decoration: InputDecoration(
-              labelText: l.wordNumber(widget.ask[i] + 1),
-              suffixIcon: _answers[i].text.isNotEmpty && _ok(i) ? const Icon(Icons.check_rounded) : null,
-            ),
-            onChanged: (_) {
-              setState(() {});
-              widget.onValid([for (var i = 0; i < 4; i++) _ok(i)].every((x) => x));
-            },
-          ),
-          const SizedBox(height: 10),
+        WordsInput(
+          key: const ValueKey('words-check'),
+          only: widget.ask,
+          paste: false,
+          accept: _ok,
+          onCells: (cells) => widget.onValid([for (final i in widget.ask) _ok(i, cells[i])].every((x) => x)),
+        ),
+        if (widget.onShowAgain != null) ...[
+          const SizedBox(height: 6),
+          TextButton(onPressed: widget.onShowAgain, child: Text(l.wordsShowAgain)),
         ],
-        TextButton(onPressed: widget.onShowAgain, child: Text(l.wordsShowAgain)),
       ],
     );
   }

@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -8,7 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../theme.dart';
-import '../widgets/recovery_words.dart' show saveWordsFile;
+import '../widgets/recovery_words.dart' show RecoveryWordsCheck, pickFourWords, saveWordsFile;
 import '../widgets/secret.dart';
 import '../widgets/words_awake.dart';
 import '../words_export.dart';
@@ -16,8 +14,8 @@ import 'common.dart';
 import '../widgets/toast.dart';
 
 /// The Secret Key, written for people. Shown once after the first vault (and later from
-/// the vault menu). With `confirm`, the user must type its last 4 characters to go on,
-/// so it has really been written down somewhere.
+/// the vault menu). With `confirm`, four of the words must be typed back to go on (the
+/// last 4 characters of an earlier key), so it has really been written down somewhere.
 class EmergencyKitScreen extends StatefulWidget {
   const EmergencyKitScreen({super.key, required this.keyText, required this.confirm, this.onDone, this.onChange});
 
@@ -26,6 +24,9 @@ class EmergencyKitScreen extends StatefulWidget {
   final VoidCallback? onDone;
   /// Settings only: change to a new Recovery Key (24 words; from an earlier key too).
   final VoidCallback? onChange;
+
+  /// For the mockup renders: the same four words asked each time.
+  static bool debugFixedWords = false;
 
   @override
   State<EmergencyKitScreen> createState() => _EmergencyKitScreenState();
@@ -37,16 +38,16 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
   /// 24 words for keys made since 2026-10-21; earlier keys are `CS1-XXXX-…`.
   late final List<String> _words = widget.keyText.contains(' ') ? widget.keyText.split(' ') : const [];
   bool get _isWords => _words.length == 24;
-  /// To go on, one word the person must have written down (a random one, not always
-  /// the last), or the last 4 characters of an earlier key.
-  late final int _ask = Random.secure().nextInt(24);
+  /// To go on, four of the words, as when the vault was made (owner 2026-10-30: one was
+  /// too few), or the last 4 characters of an earlier key.
+  late final List<int> _ask = pickFourWords(fixed: EmergencyKitScreen.debugFixedWords);
+  bool _wordsOk = false;
   String get _tail => widget.keyText.replaceAll('-', '').substring(widget.keyText.replaceAll('-', '').length - 4);
   bool get _ok {
     if (!widget.confirm) return true;
     final typed = _last.text.trim().toLowerCase();
     if (!_isWords) return typed.toUpperCase() == _tail;
-    final want = _words[_ask];
-    return typed == want || (typed.length >= 4 && want.startsWith(typed));
+    return _wordsOk;
   }
 
   /// For copying and saving: one numbered word per line.
@@ -157,16 +158,26 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
           ],
           if (widget.confirm) ...[
             const SizedBox(height: 20),
+            if (_isWords) ...[
+              Text(l.wordsCheckLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
+              const SizedBox(height: 8),
+              RecoveryWordsCheck(
+                key: const ValueKey('kit-confirm-words'),
+                words: _words,
+                ask: _ask,
+                onValid: (ok) => setState(() => _wordsOk = ok),
+              ),
+            ] else
             TextField(
               controller: _last,
               key: const ValueKey('kit-confirm'),
-              maxLength: _isWords ? 8 : 4,
+              maxLength: 4,
               autocorrect: false,
               enableSuggestions: false,
               enableIMEPersonalizedLearning: false,
-              textCapitalization: _isWords ? TextCapitalization.none : TextCapitalization.characters,
+              textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
-                labelText: _isWords ? l.kitConfirmWord(_ask + 1) : l.kitConfirmLabel,
+                labelText: l.kitConfirmLabel,
                 counterText: '',
               ),
               onChanged: (_) => setState(() {}),

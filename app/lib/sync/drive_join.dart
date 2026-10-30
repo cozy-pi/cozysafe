@@ -13,6 +13,7 @@ import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/secret.dart';
+import '../widgets/words_input.dart';
 import 'consent.dart';
 import 'drive.dart';
 import 'progress.dart';
@@ -177,15 +178,11 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
             ]),
             if (widget.words == null) ...[
             const SizedBox(height: 16),
-            SecretField(
+            RecoveryKeyInput(
               key: const ValueKey('join-words'),
               controller: _words,
               enabled: !_busy,
-              multiline: true,
-              paste: true,
-              label: l.secretKeyLabel,
-              hint: l.recoveryWordsHint,
-              onChanged: (_) => setState(() => _error = null),
+              onChanged: () => setState(() => _error = null),
             ),
             const SizedBox(height: 12),
             SecretField(

@@ -772,5 +772,12 @@
   "wordsSaveAskGo": "Enregistrer le fichier",
   "introBioBody": "L'ouvre vite au quotidien, sur cet appareil uniquement. Ne remplace ni le mot de passe ni les 24 mots.",
   "deleteVaultPassword": "Saisissez le mot de passe de ce coffre pour confirmer.",
-  "debugMemory": "Mémoire utilisée"
+  "debugMemory": "Mémoire utilisée",
+  "wordsNoKey": "Les 24 mots existent, mais l’un est faux ou mal placé. Comparez-les avec votre liste.",
+  "wordsUseLegacy": "J’ai une ancienne clé (CS1-…)",
+  "wordsUseGrid": "Saisir les 24 mots",
+  "syncNotSetUp": "Synchronisation non configurée",
+  "syncPendingStatus": "Modifications en attente de synchronisation",
+  "syncWaitWifi": "En attente du Wi-Fi",
+  "syncWaitNetwork": "En attente de connexion"
 }

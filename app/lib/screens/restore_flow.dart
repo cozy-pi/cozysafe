@@ -19,6 +19,7 @@ import '../sync/progress.dart';
 import '../sync/wifi.dart';
 import '../theme.dart';
 import '../widgets/secret.dart';
+import '../widgets/words_input.dart';
 import '../widgets/toast.dart';
 import 'common.dart';
 import 'new_vault.dart';
@@ -97,14 +98,10 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
           const SizedBox(height: 8),
           Text(l.restoreKeysLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
           const SizedBox(height: 24),
-          SecretField(
+          RecoveryKeyInput(
             key: const ValueKey('restore-words'),
             controller: _words,
-            multiline: true,
-            paste: true,
-            label: l.secretKeyLabel,
-            hint: l.recoveryWordsHint,
-            onChanged: (_) => setState(() => _error = null),
+            onChanged: () => setState(() => _error = null),
           ),
           if (_found)
             Padding(

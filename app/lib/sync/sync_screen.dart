@@ -216,6 +216,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       const SizedBox(height: 10),
                       Text(account, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: CsColors.of(context).muted, fontSize: CsType.subhead)),
                     ],
+                    const _AutoState(),
                   ]),
                   const SizedBox(height: 24),
                   _Card(children: [
@@ -451,6 +452,42 @@ class _LogRow extends StatelessWidget {
         const SizedBox(width: 8),
         Text(outcome, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
       ]),
+    );
+  }
+}
+
+/// One line under the account on why automatic sync waits or failed (owner 2026-10-30:
+/// the cloud on the home page says that something is up, this says what).
+class _AutoState extends StatelessWidget {
+  const _AutoState();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return ListenableBuilder(
+      listenable: Listenable.merge([AutoSync.failed, AutoSync.waiting, AutoSync.pending]),
+      builder: (context, _) {
+        final failed = AutoSync.failed.value && AutoSync.enabled;
+        final text = failed
+            ? switch (AutoSync.failWhy) { 'drive-full' => l.syncDriveFull, 'sign-in' => l.syncSignInAgain, _ => l.syncProblem }
+            : !AutoSync.pending.value
+                ? null
+                : switch (AutoSync.waiting.value) { SyncWait.wifi => l.syncWaitWifi, SyncWait.network => l.syncWaitNetwork, null => null };
+        if (text == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            text,
+            key: const ValueKey('sync-auto-state'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: CsType.subhead,
+              fontWeight: failed ? FontWeight.w600 : null,
+              color: failed ? Theme.of(context).colorScheme.error : CsColors.of(context).muted,
+            ),
+          ),
+        );
+      },
     );
   }
 }

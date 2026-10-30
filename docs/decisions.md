@@ -16,6 +16,21 @@ must never be written to disk, absolutely. Decided:
 - Memory kept tight (owner: the app has been killed; no crash report on Play or
   TestFlight, which fits the system killing it for memory): photos at screen size,
   fewer read ahead, caches capped. Memory in use shows in Debug.
+- The words are typed back in a numbered grid like the page they were written from (all
+  six places: restore, joining from Drive, the check in Settings, the four words asked
+  when a vault is made, when the key changes and after the first backup password, which
+  asked only one). A word turns to dots once its cell is left; four letters are enough
+  and the cell moves on; a word not on the list is marked red; 24 real words that make
+  no key are said at once (the checksum); Paste spreads a numbered list over the cells
+  (it used to fail on the numbers) and empties the clipboard. A `CS1-…` key keeps one field.
+- With the switch off, the iCloud Keychain / Google Block Store copy of the words is off
+  too, and a copy kept before is taken out at start.
+- Google Drive's cloud on the home page has one picture per state (mockup approved): grey
+  crossed out only while sync is not set up; blue with an arrow up for changes waiting
+  (it used to turn grey right after adding photos); blue filling up while items move;
+  green tick; amber with Wi-Fi or with three dots while it waits for Wi-Fi or a
+  connection; red "!" when something is to be done. A full Drive is now red (it stayed
+  grey), and the Drive page says why in one line.
 - Next, to discuss: two kinds of vault in one app. **Top secret** (24 words; text only,
   no decoder ever runs) and **Private** (a strong password; photos and files, input
   checked). From Private to Top secret the app must restart (a flag in memory blocks it;

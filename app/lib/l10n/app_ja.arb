@@ -772,5 +772,12 @@
   "wordsSaveAskGo": "ファイルを保存",
   "introBioBody": "この端末でのみ、毎日すばやく開けます。パスワードや24語の代わりにはなりません。",
   "deleteVaultPassword": "確認のため、この金庫のパスワードを入力してください。",
-  "debugMemory": "使用中のメモリ"
+  "debugMemory": "使用中のメモリ",
+  "wordsNoKey": "24語はすべて正しい単語ですが、1つが違うか順番が違います。控えと見比べてください。",
+  "wordsUseLegacy": "古い形式のキーがあります（CS1-…）",
+  "wordsUseGrid": "24語を入力",
+  "syncNotSetUp": "同期が設定されていません",
+  "syncPendingStatus": "同期待ちの変更があります",
+  "syncWaitWifi": "Wi-Fiを待っています",
+  "syncWaitNetwork": "接続を待っています"
 }

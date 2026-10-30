@@ -772,5 +772,12 @@
   "wordsSaveAskGo": "儲存檔案",
   "introBioBody": "每天快速打開，僅限這台裝置。它不能取代密碼或 24 個單字。",
   "deleteVaultPassword": "輸入這個保險箱的密碼以確認。",
-  "debugMemory": "已用記憶體"
+  "debugMemory": "已用記憶體",
+  "wordsNoKey": "24 個單字都存在，但有一個寫錯或順序不對。請對照你記下的清單。",
+  "wordsUseLegacy": "我有舊格式的金鑰（CS1-…）",
+  "wordsUseGrid": "輸入 24 個單字",
+  "syncNotSetUp": "尚未設定同步",
+  "syncPendingStatus": "有變更等待同步",
+  "syncWaitWifi": "正在等待 Wi-Fi",
+  "syncWaitNetwork": "正在等待網路"
 }
