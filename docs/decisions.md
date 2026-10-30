@@ -4,6 +4,14 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-30 (later) — Top secret is top secret
+
+**Owner, absolute:** the core of a Top secret vault uses only independently audited
+cryptography and SQLite, nothing else. Always remember that top secret means top secret.
+Top secret and Private have nothing to do with each other: switching between them, either
+way, restarts the app and wipes every temporary file; nothing is shared. The rule, what it removes (`serde`, `serde_json`, `hex`, `thiserror`, `zxcvbn`) and how
+CI keeps it: [supply-chain.md](supply-chain.md#top-secret-means-top-secret-owner-2026-10-30-absolute).
+
 ## 2026-10-30 (later) — Sync sooner; the lock card taller
 
 **Owner:** sync was not fast enough. Decided: a sync 15 seconds after the last change

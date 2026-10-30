@@ -23,6 +23,28 @@ No single check can promise that. Several layers, each catching what another mis
 | Age | `tools/check-age`, `tools/allow/young.txt`, CI `security.yml` | Any version published less than 14 days ago (most hijacked releases are pulled within days) |
 | Dependency page | `tools/deps-report`, [dependencies.md](dependencies.md), CI `ci.yml`, `security.yml`, `deps-review.yml` | A package nobody looks at again: every package listed by risk, a monthly review of what changed, and a weekly check that no package changed owners |
 
+## Top secret means top secret (owner 2026-10-30, absolute)
+
+The core of a Top secret vault depends on **independently audited cryptography and
+SQLite, and nothing else**. No other crate, however small or popular, is allowed on its
+path: what it needs beyond those is written here, in our own code.
+
+- **Allowed:** the RustCrypto crates that have a public, independent audit (each listed
+  below with its report), the small crates they are made of, and SQLite (`rusqlite`,
+  built from the bundled source).
+- **Not allowed:** everything else. Today the vault core also uses `serde`,
+  `serde_json`, `hex`, `thiserror` and `zxcvbn` (which alone brings 25 crates); a Top
+  secret vault is built without them (its own small encoding, its own errors, its own
+  password check: length plus a list of common passwords).
+- **"Audited" needs evidence:** a crate stays out until its audit report is linked here.
+  To check before the Top secret vault is built: `chacha20poly1305`, `argon2`, `hkdf`,
+  `sha2`, `zeroize`.
+- **Kept that way by CI:** a check fails the build when any crate outside this list
+  reaches the Top secret core (`cargo tree -e normal`), direct or transitive. Adding one
+  needs the owner's approval and a line here first.
+- The app around it (Flutter) is held to the same idea: a Top secret vault opens no file
+  from outside, decodes no picture, video or PDF, and shows text only.
+
 ## The layers
 
 **Android.** The main manifest declares INTERNET: Android needs it for any socket, even

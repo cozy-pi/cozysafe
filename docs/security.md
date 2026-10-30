@@ -284,6 +284,11 @@ person imports. A decoder is where a phone gets taken over (libwebp 2023, FORCED
   imported photos are decoded by the system (ImageIO, Android ImageDecoder) at import.
   Proposed: two kinds of vault, one that never decodes anything (keys, passwords,
   words) and one for photos and files, behind a restart of the app between them.
+  **Decided (owner 2026-10-30): Top secret and Private have nothing to do with each
+  other.** Going from one to the other, either way, restarts the app and wipes every
+  temporary file first; nothing is shared between them (no key, no cache, no state in
+  memory). The Top secret core uses only audited cryptography and SQLite
+  ([supply-chain.md](supply-chain.md#top-secret-means-top-secret-owner-2026-10-30-absolute)).
 
 ## OS backups
 
