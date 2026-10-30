@@ -22,6 +22,150 @@ url = "https://raw.githubusercontent.com/mozilla/supply-chain/main/audits.toml"
 [imports.zcash]
 url = "https://raw.githubusercontent.com/zcash/rust-ecosystem/main/supply-chain/audits.toml"
 
+# The Top secret core's crates are built from copies in third_party/rust/ (path
+# dependencies, tools/check-vendor); they are crates.io's published crates byte for byte,
+# so they are audited like crates.io crates.
+[policy.aead]
+audit-as-crates-io = true
+
+[policy.argon2]
+audit-as-crates-io = true
+
+[policy.base64ct]
+audit-as-crates-io = true
+
+[policy.bitflags]
+audit-as-crates-io = true
+
+[policy.blake2]
+audit-as-crates-io = true
+
+[policy.block-buffer]
+audit-as-crates-io = true
+
+[policy.cc]
+audit-as-crates-io = true
+
+[policy.cfg-if]
+audit-as-crates-io = true
+
+[policy.chacha20]
+audit-as-crates-io = true
+
+[policy.chacha20poly1305]
+audit-as-crates-io = true
+
+[policy.cipher]
+audit-as-crates-io = true
+
+[policy.cmov]
+audit-as-crates-io = true
+
+[policy.const-oid]
+audit-as-crates-io = true
+
+[policy.cpufeatures]
+audit-as-crates-io = true
+
+[policy.crypto-common]
+audit-as-crates-io = true
+
+[policy.ctutils]
+audit-as-crates-io = true
+
+[policy.digest]
+audit-as-crates-io = true
+
+[policy.fallible-iterator]
+audit-as-crates-io = true
+
+[policy.fallible-streaming-iterator]
+audit-as-crates-io = true
+
+[policy.find-msvc-tools]
+audit-as-crates-io = true
+
+[policy.foldhash]
+audit-as-crates-io = true
+
+[policy.generic-array]
+audit-as-crates-io = true
+
+[policy.getrandom]
+audit-as-crates-io = true
+
+[policy.hashbrown]
+audit-as-crates-io = true
+
+[policy.hashlink]
+audit-as-crates-io = true
+
+[policy.hkdf]
+audit-as-crates-io = true
+
+[policy.hmac]
+audit-as-crates-io = true
+
+[policy.hybrid-array]
+audit-as-crates-io = true
+
+[policy.inout]
+audit-as-crates-io = true
+
+[policy.libc]
+audit-as-crates-io = true
+
+[policy.libsqlite3-sys]
+audit-as-crates-io = true
+
+[policy.opaque-debug]
+audit-as-crates-io = true
+
+[policy.password-hash]
+audit-as-crates-io = true
+
+[policy.phc]
+audit-as-crates-io = true
+
+[policy.pkg-config]
+audit-as-crates-io = true
+
+[policy.poly1305]
+audit-as-crates-io = true
+
+[policy.rand_core]
+audit-as-crates-io = true
+
+[policy.rusqlite]
+audit-as-crates-io = true
+
+[policy.sha2]
+audit-as-crates-io = true
+
+[policy.shlex]
+audit-as-crates-io = true
+
+[policy.smallvec]
+audit-as-crates-io = true
+
+[policy.subtle]
+audit-as-crates-io = true
+
+[policy.typenum]
+audit-as-crates-io = true
+
+[policy.universal-hash]
+audit-as-crates-io = true
+
+[policy.vcpkg]
+audit-as-crates-io = true
+
+[policy.version_check]
+audit-as-crates-io = true
+
+[policy.zeroize]
+audit-as-crates-io = true
+
 [[exemptions.aead]]
 version = "0.5.2"
 criteria = "safe-to-deploy"

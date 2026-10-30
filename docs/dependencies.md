@@ -9,9 +9,9 @@ Every third-party package Cozy Safe is built from, grouped by how much harm a bu
 | Tier | | Rust | Dart | Swift | Total |
 |---|---|---|---|---|---|
 | 1 | Reads data from outside | 4 | 12 | 0 | 16 |
-| 2 | Native code in the app | 5 | 38 | 8 | 51 |
-| 3 | Other code in the app | 122 | 81 | 0 | 203 |
-| 4 | Build, test and tooling only | 75 | 19 | 0 | 94 |
+| 2 | Native code in the app | 4 | 38 | 8 | 50 |
+| 3 | Other code in the app | 118 | 81 | 0 | 199 |
+| 4 | Build, test and tooling only | 74 | 19 | 0 | 93 |
 
 Plus 443 Gradle artifacts in 151 groups (Android build tools and libraries, [below](#android-gradle)).
 
@@ -19,7 +19,14 @@ Plus 443 Gradle artifacts in 151 groups (Android build tools and libraries, [bel
 
 Last review: **2026-10-28**.
 
-Nothing changed.
+| Change | Package | Versions / owners |
+|---|---|---|
+| removed | Rust crossbeam-deque | 0.8.6 |
+| removed | Rust crossbeam-epoch | 0.9.20 |
+| removed | Rust crossbeam-utils | 0.8.23 |
+| removed | Rust rayon | 1.12.0 |
+| removed | Rust rayon-core | 1.13.0 |
+| removed | Rust zeroize_derive | 1.5.0 |
 
 ## Tier 1: Reads data from outside
 
@@ -91,7 +98,6 @@ Plugins and SDKs in Kotlin/Java, Swift/Objective-C or C/C++, and Rust crates tha
 | Rust [dart-sys](https://crates.io/crates/dart-sys/4.1.5) | 4.1.5 | 2024-03-09 | flutter_rust_bridge | OptimisticPeach, gutenfries | compiles C or links a system library; cackle: unsafe, build: fs |
 | Rust [libsqlite3-sys](https://crates.io/crates/libsqlite3-sys/0.38.2) | 0.38.2 | 2026-08-08 | rusqlite | gwenn, thomcc | compiles C or links a system library; cackle: unsafe, build: fs |
 | Rust [oslog](https://crates.io/crates/oslog/0.2.0) | 0.2.0 | 2022-02-17 | flutter_rust_bridge | madsmtm, steven-joruk | compiles C or links a system library |
-| Rust [rayon-core](https://crates.io/crates/rayon-core/1.13.0) | 1.13.0 | 2025-08-12 | rayon | cuviper, nikomatsakis | compiles C or links a system library; cackle: unsafe |
 | Rust [ring](https://crates.io/crates/ring/0.17.14) | 0.17.14 | 2025-03-11 | rustls | briansmith | compiles C or links a system library; cackle: unsafe, build: fs, build: process |
 | Swift [app-check](https://github.com/google/app-check) | 11.3.2 |  | google_sign_in (iOS, macOS) | google | native SDK (Swift Package Manager) |
 | Swift [appauth-ios](https://github.com/openid/AppAuth-iOS) | 2.1.0 |  | google_sign_in (iOS, macOS) | openid | native SDK (Swift Package Manager) |
@@ -106,7 +112,7 @@ Plugins and SDKs in Kotlin/Java, Swift/Objective-C or C/C++, and Rust crates tha
 
 Rust and Dart that ships in the app.
 
-<details><summary>203 packages</summary>
+<details><summary>199 packages</summary>
 
 | Package | Version | Released | Comes in through | Owners / publisher | Notes |
 |---|---|---|---|---|---|
@@ -219,9 +225,6 @@ Rust and Dart that ships in the app.
 | Rust [const-oid](https://crates.io/crates/const-oid/0.10.2) | 0.10.2 | 2026-01-07 | digest | github:rustcrypto:formats, tarcieri | cackle: unsafe |
 | Rust [cpufeatures](https://crates.io/crates/cpufeatures/0.2.17) | 0.2.17 | 2025-01-25 | chacha20 | github:rustcrypto:utils, tarcieri | cackle: unsafe |
 | Rust [cpufeatures](https://crates.io/crates/cpufeatures/0.3.1) | 0.3.1 | 2026-08-26 | argon2 | github:rustcrypto:utils, tarcieri | cackle: unsafe |
-| Rust [crossbeam-deque](https://crates.io/crates/crossbeam-deque/0.8.6) | 0.8.6 | 2024-12-15 | rayon-core | Amanieu, github:crossbeam-rs:admins, jeehoonkang, taiki-e | cackle: unsafe |
-| Rust [crossbeam-epoch](https://crates.io/crates/crossbeam-epoch/0.9.20) | 0.9.20 | 2026-07-06 | crossbeam-deque | Amanieu, github:crossbeam-rs:admins, jeehoonkang, taiki-e | cackle: unsafe |
-| Rust [crossbeam-utils](https://crates.io/crates/crossbeam-utils/0.8.23) | 0.8.23 | 2026-09-05 | rayon-core | Amanieu, github:crossbeam-rs:admins, jeehoonkang, taiki-e | cackle: unsafe |
 | Rust [crypto-common](https://crates.io/crates/crypto-common/0.1.7) | 0.1.7 | 2025-11-12 | aead | github:rustcrypto:traits, newpavlov |  |
 | Rust [crypto-common](https://crates.io/crates/crypto-common/0.2.2) | 0.2.2 | 2026-05-19 | digest | github:rustcrypto:traits, newpavlov |  |
 | Rust [ctutils](https://crates.io/crates/ctutils/0.4.4) | 0.4.4 | 2026-10-23 | digest | github:rustcrypto:utils, tarcieri |  |
@@ -229,7 +232,7 @@ Rust and Dart that ships in the app.
 | Rust [deranged](https://crates.io/crates/deranged/0.5.9) | 0.5.9 | 2026-10-13 | time | jhpratt | cackle: unsafe |
 | Rust [derive_builder](https://crates.io/crates/derive_builder/0.20.2) | 0.20.2 | 2024-10-08 | zxcvbn | TedDriggs, colin-kiegel |  |
 | Rust [digest](https://crates.io/crates/digest/0.11.3) | 0.11.3 | 2026-05-03 | sha2 | github:rustcrypto:traits, newpavlov |  |
-| Rust [either](https://crates.io/crates/either/1.19.0) | 1.19.0 | 2026-10-06 | rayon | bluss, cuviper, jswrenn | cackle: unsafe |
+| Rust [either](https://crates.io/crates/either/1.19.0) | 1.19.0 | 2026-10-06 | itertools | bluss, cuviper, jswrenn | cackle: unsafe |
 | Rust [env_filter](https://crates.io/crates/env_filter/0.1.4) | 0.1.4 | 2025-10-13 | android_logger | epage, github:rust-cli:maintainers |  |
 | Rust [fallible-iterator](https://crates.io/crates/fallible-iterator/0.3.0) | 0.3.0 | 2023-05-22 | rusqlite | dpc, sfackler |  |
 | Rust [fallible-streaming-iterator](https://crates.io/crates/fallible-streaming-iterator/0.1.9) | 0.1.9 | 2018-05-02 | rusqlite | sfackler |  |
@@ -284,7 +287,6 @@ Rust and Dart that ships in the app.
 | Rust [pxfm](https://crates.io/crates/pxfm/0.1.30) | 0.1.30 | 2026-07-06 | moxcms | awxkee | cackle: unsafe |
 | Rust [qrcode](https://crates.io/crates/qrcode/0.14.1) | 0.14.1 | 2024-07-05 | direct | kennytm |  |
 | Rust [rand_core](https://crates.io/crates/rand_core/0.6.4) | 0.6.4 | 2022-09-15 | crypto-common | dhardy, github:rust-random:maintainers | cackle: unsafe |
-| Rust [rayon](https://crates.io/crates/rayon/1.12.0) | 1.12.0 | 2026-04-14 | argon2 | cuviper, nikomatsakis | cackle: unsafe |
 | Rust [regex](https://crates.io/crates/regex/1.13.1) | 1.13.1 | 2026-07-15 | zxcvbn | BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner | cackle: unsafe |
 | Rust [regex-automata](https://crates.io/crates/regex-automata/0.4.18) | 0.4.18 | 2026-08-04 | fancy-regex | BurntSushi, rust-lang-owner | cackle: unsafe |
 | Rust [regex-syntax](https://crates.io/crates/regex-syntax/0.8.11) | 0.8.11 | 2026-06-09 | fancy-regex | BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner |  |
@@ -320,7 +322,7 @@ Rust and Dart that ships in the app.
 
 Never ships in the app, but runs on the build machines (build scripts, proc macros, code generators, test frameworks).
 
-<details><summary>94 packages</summary>
+<details><summary>93 packages</summary>
 
 | Package | Version | Released | Comes in through | Owners / publisher | Notes |
 |---|---|---|---|---|---|
@@ -417,7 +419,6 @@ Never ships in the app, but runs on the build machines (build scripts, proc macr
 | Rust [windows_x86_64_gnu](https://crates.io/crates/windows_x86_64_gnu/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
 | Rust [windows_x86_64_gnullvm](https://crates.io/crates/windows_x86_64_gnullvm/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
 | Rust [windows_x86_64_msvc](https://crates.io/crates/windows_x86_64_msvc/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
-| Rust [zeroize_derive](https://crates.io/crates/zeroize_derive/1.5.0) | 1.5.0 | 2026-06-12 | zeroize | github:rustcrypto:utils, tarcieri |  |
 
 </details>
 

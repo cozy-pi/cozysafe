@@ -29,30 +29,61 @@ pub const LEGACY_SECRET_KEY_LEN: usize = 16;
 /// Length of every salt, in bytes.
 pub const SALT_LEN: usize = 16;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum Error {
     /// Wrong key, wrong password, or data that was modified, truncated or reordered.
     /// Deliberately carries no detail.
-    #[error("decryption failed")]
     Decrypt,
-    #[error("invalid format: {0}")]
     Format(&'static str),
-    #[error("unsupported format version {0}")]
     Version(u8),
-    #[error("key derivation parameters out of range")]
     KdfParams,
     /// Argon2 cost below [`kdf::KdfParams::ACCEPTED_FLOOR`]: refused, never derived with.
-    #[error("key derivation cost below the minimum")]
     KdfTooWeak,
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    Io(std::io::Error),
+}
+
+// Written by hand: no error-derive crate in the Top secret core (docs/supply-chain.md).
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Decrypt => f.write_str("decryption failed"),
+            Error::Format(what) => write!(f, "invalid format: {what}"),
+            Error::Version(v) => write!(f, "unsupported format version {v}"),
+            Error::KdfParams => f.write_str("key derivation parameters out of range"),
+            Error::KdfTooWeak => f.write_str("key derivation cost below the minimum"),
+            Error::Io(e) => e.fmt(f),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::Io(e) => e.source(),
+            _ => None,
+        }
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::Io(e)
+    }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// A 256-bit symmetric key. Never printed, wiped on drop.
-#[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Key([u8; KEY_LEN]);
+
+// Wiping written by hand: no zeroize-derive macro in the Top secret core.
+impl Drop for Key {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
+impl ZeroizeOnDrop for Key {}
 
 impl Key {
     /// A fresh random key from the OS CSPRNG.
@@ -79,11 +110,19 @@ impl std::fmt::Debug for Key {
 
 /// The Secret Key mixed into every unlock (people see it as the Recovery Key): 256 bits
 /// for new libraries, 128 bits for earlier ones. Never printed, wiped on drop.
-#[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct SecretKey {
     bytes: [u8; SECRET_KEY_LEN],
     len: u8,
 }
+
+impl Drop for SecretKey {
+    fn drop(&mut self) {
+        self.bytes.zeroize();
+        self.len.zeroize();
+    }
+}
+impl ZeroizeOnDrop for SecretKey {}
 
 impl SecretKey {
     /// A fresh 256-bit key.

@@ -1642,18 +1642,6 @@
    "published": "2026-08-26",
    "published_by": "tarcieri"
   },
-  "crossbeam-deque@0.8.6": {
-   "published": "2024-12-15",
-   "published_by": "taiki-e"
-  },
-  "crossbeam-epoch@0.9.20": {
-   "published": "2026-07-06",
-   "published_by": "taiki-e"
-  },
-  "crossbeam-utils@0.8.23": {
-   "published": "2026-09-05",
-   "published_by": "taiki-e"
-  },
   "crypto-common@0.1.7": {
    "published": "2025-11-12",
    "published_by": "newpavlov"
@@ -2022,14 +2010,6 @@
    "published": "2022-09-15",
    "published_by": "dhardy"
   },
-  "rayon-core@1.13.0": {
-   "published": "2025-08-12",
-   "published_by": "cuviper"
-  },
-  "rayon@1.12.0": {
-   "published": "2026-04-14",
-   "published_by": "cuviper"
-  },
   "redox_syscall@0.5.18": {
    "published": "2025-10-04",
    "published_by": "4lDO2"
@@ -2298,10 +2278,6 @@
    "published": "2026-10-06",
    "published_by": ""
   },
-  "zeroize_derive@1.5.0": {
-   "published": "2026-06-12",
-   "published_by": ""
-  },
   "zmij@1.0.23": {
    "published": "2026-07-13",
    "published_by": "dtolnay"
@@ -2542,24 +2518,6 @@
    "native": false,
    "via": "argon2"
   },
-  "crossbeam-deque@0.8.6": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "rayon-core"
-  },
-  "crossbeam-epoch@0.9.20": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "crossbeam-deque"
-  },
-  "crossbeam-utils@0.8.23": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "rayon-core"
-  },
   "crypto-common@0.1.7": {
    "direct": false,
    "kind": "runtime",
@@ -2654,7 +2612,7 @@
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "rayon"
+   "via": "itertools"
   },
   "env_filter@0.1.4": {
    "direct": false,
@@ -3112,18 +3070,6 @@
    "native": false,
    "via": "crypto-common"
   },
-  "rayon-core@1.13.0": {
-   "direct": false,
-   "kind": "runtime",
-   "native": true,
-   "via": "rayon"
-  },
-  "rayon@1.12.0": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "argon2"
-  },
   "redox_syscall@0.5.18": {
    "direct": false,
    "kind": "none",
@@ -3526,12 +3472,6 @@
    "native": false,
    "via": ""
   },
-  "zeroize_derive@1.5.0": {
-   "direct": false,
-   "kind": "build",
-   "native": false,
-   "via": "zeroize"
-  },
   "zmij@1.0.23": {
    "direct": false,
    "kind": "runtime",
@@ -3694,24 +3634,6 @@
   "cpufeatures": [
    "github:rustcrypto:utils",
    "tarcieri"
-  ],
-  "crossbeam-deque": [
-   "Amanieu",
-   "github:crossbeam-rs:admins",
-   "jeehoonkang",
-   "taiki-e"
-  ],
-  "crossbeam-epoch": [
-   "Amanieu",
-   "github:crossbeam-rs:admins",
-   "jeehoonkang",
-   "taiki-e"
-  ],
-  "crossbeam-utils": [
-   "Amanieu",
-   "github:crossbeam-rs:admins",
-   "jeehoonkang",
-   "taiki-e"
   ],
   "crypto-common": [
    "github:rustcrypto:traits",
@@ -4041,14 +3963,6 @@
    "dhardy",
    "github:rust-random:maintainers"
   ],
-  "rayon": [
-   "cuviper",
-   "nikomatsakis"
-  ],
-  "rayon-core": [
-   "cuviper",
-   "nikomatsakis"
-  ],
   "redox_syscall": [
    "4lDO2",
    "jackpot51"
@@ -4299,10 +4213,6 @@
    "kennykerr"
   ],
   "zeroize": [
-   "github:rustcrypto:utils",
-   "tarcieri"
-  ],
-  "zeroize_derive": [
    "github:rustcrypto:utils",
    "tarcieri"
   ],

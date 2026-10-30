@@ -2,7 +2,9 @@
 resolver = "2"
 members = ["core/cs-crypto", "core/cs-vault", "core/cs-photo", "core/cs-net"]
 # The Flutter app's FFI crate joins once the app scaffold exists (bootstrap workflow).
-exclude = ["app"]
+# third_party/rust/: the crates the Top secret core is built from, as published (not
+# members: their tests and lints are upstream's).
+exclude = ["app", "third_party"]
 
 [workspace.package]
 edition = "2021"
@@ -12,3 +14,56 @@ repository = "https://github.com/cozy-pi/cozysafe"
 [profile.dev.package."*"]
 # Argon2 is unbearably slow unoptimised; dependencies build optimised even in debug.
 opt-level = 3
+
+# --- BEGIN vendored Top secret core (tools/check-vendor --update) ---
+[patch.crates-io]
+aead = { path = "third_party/rust/aead-0.5.2" }
+argon2 = { path = "third_party/rust/argon2-0.6.0" }
+base64ct = { path = "third_party/rust/base64ct-1.8.3" }
+bitflags = { path = "third_party/rust/bitflags-2.13.2" }
+blake2 = { path = "third_party/rust/blake2-0.11.0" }
+block-buffer = { path = "third_party/rust/block-buffer-0.12.1" }
+cc = { path = "third_party/rust/cc-1.8.0" }
+cfg-if = { path = "third_party/rust/cfg-if-1.0.5" }
+chacha20 = { path = "third_party/rust/chacha20-0.9.1" }
+chacha20poly1305 = { path = "third_party/rust/chacha20poly1305-0.10.1" }
+cipher = { path = "third_party/rust/cipher-0.4.4" }
+cmov = { path = "third_party/rust/cmov-0.5.4" }
+const-oid = { path = "third_party/rust/const-oid-0.10.2" }
+cpufeatures = { path = "third_party/rust/cpufeatures-0.3.1" }
+cpufeatures_0_2_17 = { package = "cpufeatures", path = "third_party/rust/cpufeatures-0.2.17" }
+crypto-common = { path = "third_party/rust/crypto-common-0.2.2" }
+crypto-common_0_1_7 = { package = "crypto-common", path = "third_party/rust/crypto-common-0.1.7" }
+ctutils = { path = "third_party/rust/ctutils-0.4.4" }
+digest = { path = "third_party/rust/digest-0.11.3" }
+fallible-iterator = { path = "third_party/rust/fallible-iterator-0.3.0" }
+fallible-streaming-iterator = { path = "third_party/rust/fallible-streaming-iterator-0.1.9" }
+find-msvc-tools = { path = "third_party/rust/find-msvc-tools-0.1.14" }
+foldhash = { path = "third_party/rust/foldhash-0.2.0" }
+generic-array = { path = "third_party/rust/generic-array-0.14.7" }
+getrandom = { path = "third_party/rust/getrandom-0.2.17" }
+hashbrown = { path = "third_party/rust/hashbrown-0.17.1" }
+hashlink = { path = "third_party/rust/hashlink-0.12.2" }
+hkdf = { path = "third_party/rust/hkdf-0.13.0" }
+hmac = { path = "third_party/rust/hmac-0.13.0" }
+hybrid-array = { path = "third_party/rust/hybrid-array-0.4.15" }
+inout = { path = "third_party/rust/inout-0.1.4" }
+libc = { path = "third_party/rust/libc-0.2.191" }
+libsqlite3-sys = { path = "third_party/rust/libsqlite3-sys-0.38.2" }
+opaque-debug = { path = "third_party/rust/opaque-debug-0.3.1" }
+password-hash = { path = "third_party/rust/password-hash-0.6.1" }
+phc = { path = "third_party/rust/phc-0.6.1" }
+pkg-config = { path = "third_party/rust/pkg-config-0.3.34" }
+poly1305 = { path = "third_party/rust/poly1305-0.8.0" }
+rand_core = { path = "third_party/rust/rand_core-0.6.4" }
+rusqlite = { path = "third_party/rust/rusqlite-0.40.2" }
+sha2 = { path = "third_party/rust/sha2-0.11.1" }
+shlex = { path = "third_party/rust/shlex-2.0.1" }
+smallvec = { path = "third_party/rust/smallvec-1.16.3" }
+subtle = { path = "third_party/rust/subtle-2.6.1" }
+typenum = { path = "third_party/rust/typenum-1.20.1" }
+universal-hash = { path = "third_party/rust/universal-hash-0.5.1" }
+vcpkg = { path = "third_party/rust/vcpkg-0.2.15" }
+version_check = { path = "third_party/rust/version_check-0.9.5" }
+zeroize = { path = "third_party/rust/zeroize-1.9.1" }
+# --- END vendored Top secret core ---

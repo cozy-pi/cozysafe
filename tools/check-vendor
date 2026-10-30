@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""The Top secret core builds from copies kept in third_party/rust/, never from the internet.
+
+  tools/check-vendor            check (CI, every build; offline)
+  tools/check-vendor --update   after a reviewed change to third_party/rust/: rewrite
+                                third_party/rust/RECORD and the [patch.crates-io] blocks
+
+Each third_party/rust/<name>-<version>/ is a crate exactly as published on crates.io
+(`cargo vendor`): its .cargo-checksum.json holds the sha256 of every file and of the
+published .crate. The check fails, naming the file, when:
+
+1. a file differs from its recorded sha256, is missing, or was added;
+2. RECORD (name, version, sha256 of the .crate on crates.io) disagrees with the copies;
+3. the [patch.crates-io] block of Cargo.toml or app/rust/Cargo.toml does not point every
+   copy at third_party/rust/, so a build would take crates.io's file instead;
+4. a crate reaches the Top secret core (cs-crypto, SQLite and their dependencies, for every
+   platform the app ships on) without being one of the copies, or a copy is unused.
+
+The weekly job (tools/vendor-watch) compares RECORD with crates.io and RustSec.
+See docs/supply-chain.md, "Top secret means top secret".
+"""
+
+import hashlib
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+VENDOR = ROOT / "third_party" / "rust"
+RECORD = VENDOR / "RECORD"
+# The Top secret core: the cryptography crate and SQLite (cs-core joins in step 1 of
+# docs/adr/0005-two-kinds-of-vault.md).
+CORE = ["cs-crypto", "rusqlite"]
+MANIFESTS = [ROOT / "Cargo.toml", ROOT / "app" / "rust" / "Cargo.toml",
+             ROOT / "tools" / "core-offline" / "Cargo.toml"]
+BEGIN = "# --- BEGIN vendored Top secret core (tools/check-vendor --update) ---"
+END = "# --- END vendored Top secret core ---"
+# Every platform the app ships on; the core's dependencies differ per target.
+TARGETS = [
+    "aarch64-apple-ios", "aarch64-apple-ios-sim", "x86_64-apple-ios",
+    "aarch64-linux-android", "armv7-linux-androideabi", "x86_64-linux-android",
+    "i686-linux-android", "aarch64-apple-darwin", "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc", "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+]
+# Copies cargo needs although nothing builds them: argon2 names `password-hash?/alloc`, a
+# weak feature, and cargo downloads a weak dependency even when it stays off (it does not
+# compile it). Kept so that building the core downloads nothing at all.
+UNBUILT = {"password-hash", "phc"}
+
+errors = []
+
+
+def fail(msg):
+    errors.append(msg)
+
+
+def sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def copies():
+    """{dir name: (name, version, .crate sha256)} of every copy."""
+    out = {}
+    for d in sorted(VENDOR.iterdir()):
+        if not d.is_dir():
+            continue
+        meta = json.loads((d / ".cargo-checksum.json").read_text())
+        toml = (d / "Cargo.toml").read_text()
+        pkg = toml[toml.index("[package]"):]
+        name = re.search(r'^name = "([^"]+)"', pkg, re.M).group(1)
+        version = re.search(r'^version = "([^"]+)"', pkg, re.M).group(1)
+        if d.name != f"{name}-{version}":
+            fail(f"third_party/rust/{d.name}: holds {name} {version}, the folder must be named {name}-{version}")
+        out[d.name] = (name, version, meta["package"])
+    return out
+
+
+def check_files(d):
+    meta = json.loads((d / ".cargo-checksum.json").read_text())["files"]
+    seen = set()
+    for f in d.rglob("*"):
+        if f.is_dir() or f.name == ".cargo-checksum.json":
+            continue
+        rel = f.relative_to(d).as_posix()
+        seen.add(rel)
+        want = meta.get(rel)
+        if want is None:
+            fail(f"third_party/rust/{d.name}/{rel}: not in the published crate (added)")
+        elif sha256(f) != want:
+            fail(f"third_party/rust/{d.name}/{rel}: changed (sha256 differs from the published crate)")
+    for rel in sorted(set(meta) - seen):
+        fail(f"third_party/rust/{d.name}/{rel}: missing")
+
+
+def patch_block(manifest, have):
+    rel = Path("third_party/rust") if manifest.parent == ROOT else Path("../../third_party/rust")
+    # (app/rust and tools/core-offline are both two levels down.)
+    names = {}
+    for dirname, (name, version, _) in sorted(have.items()):
+        names.setdefault(name, []).append((version, dirname))
+    lines = [BEGIN, "[patch.crates-io]"]
+    for name, vers in sorted(names.items()):
+        # The newest version takes the crate's own name; older ones a renamed key.
+        vers.sort(key=lambda v: [int(x) if x.isdigit() else x for x in re.split(r"[.+-]", v[0])])
+        for i, (version, dirname) in enumerate(reversed(vers)):
+            key = name if i == 0 else f"{name}_{version.replace('.', '_')}"
+            pkg = "" if i == 0 else f'package = "{name}", '
+            lines.append(f'{key} = {{ {pkg}path = "{(rel / dirname).as_posix()}" }}')
+    lines.append(END)
+    return "\n".join(lines)
+
+
+def core_crates():
+    """{name-version} reaching CORE on any shipped target, from both workspaces."""
+    out = set()
+    for ws in [ROOT, ROOT / "app" / "rust"]:
+        for t in TARGETS:
+            for p in CORE:
+                r = subprocess.run(
+                    ["cargo", "tree", "-p", p, "-e", "normal,build", "--target", t,
+                     "--offline", "--locked", "--prefix", "none", "--format", "{p}"],
+                    cwd=ws, capture_output=True, text=True)
+                if r.returncode != 0:
+                    sys.exit(f"cargo tree failed in {ws}: {r.stderr.strip()}")
+                for line in r.stdout.splitlines():
+                    m = re.match(r"^(\S+) v(\S+)", line)
+                    if m and not m.group(1).startswith("cs-"):
+                        out.add(f"{m.group(1)}-{m.group(2)}")
+    return out
+
+
+def main():
+    update = "--update" in sys.argv[1:]
+    have = copies()
+    for d in sorted(VENDOR.iterdir()):
+        if d.is_dir():
+            check_files(d)
+
+    record = "".join(f"{n} {v} {h}\n" for n, v, h in sorted(have.values()))
+    header = ("# name version sha256-of-the-.crate-on-crates.io\n"
+              "# Written by tools/check-vendor --update; compared with crates.io weekly.\n")
+    if update:
+        RECORD.write_text(header + record)
+    elif not RECORD.exists() or RECORD.read_text() != header + record:
+        fail("third_party/rust/RECORD does not match the copies (run tools/check-vendor --update after review)")
+
+    for m in MANIFESTS:
+        text = m.read_text()
+        block = patch_block(m, have)
+        if BEGIN in text:
+            a, b = text.index(BEGIN), text.index(END) + len(END)
+            new = text[:a] + block + text[b:]
+        else:
+            new = text.rstrip("\n") + "\n\n" + block + "\n"
+        if new != text:
+            if update:
+                m.write_text(new)
+            else:
+                fail(f"{m.relative_to(ROOT)}: the [patch.crates-io] block is not the one for third_party/rust/")
+
+    if not update:
+        used = core_crates()
+        for c in sorted(used - set(have)):
+            fail(f"{c} reaches the Top secret core but is not a copy in third_party/rust/ "
+                 "(the core takes audited cryptography and SQLite only; docs/supply-chain.md)")
+        for c in sorted(set(have) - used - {d for d in have if have[d][0] in UNBUILT}):
+            fail(f"third_party/rust/{c} is not used by the Top secret core any more; remove it")
+
+    if errors:
+        print("\n".join(f"error: {e}" for e in errors))
+        sys.exit(1)
+    print(f"{len(have)} vendored crates checked" + (" (updated)" if update else ""))
+
+
+if __name__ == "__main__":
+    main()

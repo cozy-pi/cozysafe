@@ -37,12 +37,17 @@ def get(url):
 
 def crates():
     seen = set()
+    rec = ROOT / "third_party" / "rust" / "RECORD"
+    record = rec.read_text() if rec.exists() else ""
     for lock in [ROOT / "Cargo.lock", ROOT / "app/rust/Cargo.lock"]:
         text = lock.read_text()
         for block in text.split("[[package]]")[1:]:
             name = re.search(r'^name = "([^"]+)"', block, re.M)
             ver = re.search(r'^version = "([^"]+)"', block, re.M)
             src = re.search(r'^source = "registry\+https://github.com/rust-lang/crates.io-index"', block, re.M)
+            # A copy in third_party/rust/ (tools/check-vendor) is a crates.io crate too.
+            src = src or ("source = " not in block and name and ver
+                          and f"{name.group(1)} {ver.group(1)} " in record)
             if name and ver and src:
                 seen.add((name.group(1), ver.group(1)))
     return sorted(seen)

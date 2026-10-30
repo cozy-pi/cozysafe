@@ -47,27 +47,43 @@ path: what it needs beyond those is written here, in our own code.
   | Crate | Evidence |
   |---|---|
   | `chacha20poly1305` (and `chacha20`, `poly1305`) | NCC Group, 2020: [report](https://web.archive.org/web/20200606025324/https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/) (no significant findings) |
-  | `argon2`, `blake2` | own review + RFC 9106 vectors (to do) |
-  | `sha2` | own review + NIST vectors (to do) |
-  | `hmac` | own review + RFC 4231 vectors (to do) |
-  | `hkdf` | own review + RFC 5869 vectors (to do) |
+  | `argon2`, `blake2` | RFC 9106 vectors pass; own review (to do) |
+  | `sha2` | NIST FIPS 180-4 examples pass; own review (to do) |
+  | `hmac` | RFC 4231 vectors pass; own review (to do) |
+  | `hkdf` | RFC 5869 vectors pass; own review (to do) |
   | `zeroize` | cargo-vet audits imported from Mozilla and Bytecode Alliance |
   | `subtle` | cargo-vet audits imported from Mozilla and ISRG |
   | `rusqlite`, `libsqlite3-sys` (SQLite) | own review of the Rust layer; SQLite's own test suite (to do) |
+
+  The vectors are in `core/cs-crypto/tests/vectors.rs` and run with every `cargo test`
+  (RFC 8439 and the XChaCha draft cover the cipher as well). The SHA-2, HMAC and HKDF
+  values were also checked against OpenSSL before they were written in.
 
 - **Nothing fetched from the internet at build time** (owner 2026-10-31): the Top secret
   core builds offline from source copied into the repo (`third_party/`), each copy kept
   exactly as published with its upstream checksum or signature, so it can be checked
   again at any time. A change we need goes in a separate patch file, never into the
   copy. Only the compilers (Rust, Xcode, the Android NDK) come from outside, pinned by
-  version.
-- **Checked on every build:** the checksums of everything in `third_party/` are
-  recomputed and compared with the record; one changed byte, or a crate missing from
-  the record, stops the build and names the file.
+  version. How: the copies are wired in with `[patch.crates-io]` (`Cargo.toml`,
+  `app/rust/Cargo.toml`), so the app is built from them too; CI builds
+  `tools/core-offline` from an empty cargo home and fails if a single crate is downloaded
+  (cargo still reads the crates.io index, the list of versions, but no source). Two
+  copies are never compiled (`password-hash`, `phc`): cargo downloads a weak optional
+  dependency of `argon2` even when it stays off, so they are kept to download nothing.
+  The core no longer takes `rayon` (Argon2 runs its lanes one after another; a computer
+  unlocks in about 0.9 s instead of 0.3 s, same key) nor any derive macro.
+- **Checked on every build:** `tools/check-vendor` recomputes the sha256 of every file in
+  `third_party/rust/` and compares it with the published crate's list
+  (`.cargo-checksum.json`) and `third_party/rust/RECORD`; one changed byte, an added or
+  missing file, a crate reaching the core that is not a copy, or a copy no longer used
+  stops the build and names it. cargo-vet treats the copies as crates.io crates
+  (`audit-as-crates-io`).
 - **Upstream watched every week and before each release** (a separate CI job, since the
-  build itself is offline): new versions and security advisories (RustSec, SQLite) for
-  every copied library are compared with what we keep, and an issue is opened with what
-  changed and a recommendation: update now (security fix), should update, or no need.
+  build itself is offline): `tools/vendor-watch` compares every copy with crates.io (same
+  sha256, not yanked, newer versions) and RustSec (an advisory on our version) and gives
+  one recommendation per crate: 🔴 update now (fails security.yml, so the release
+  waits), 🟡 should update, ⚪ no need. `vendor-watch.yml` keeps one open issue with the
+  latest report every Monday.
   Updating is always done by hand: fetch, check the signature, read the diff, record
   the review.
 - **Kept that way by CI:** a check fails the build when any crate outside this list

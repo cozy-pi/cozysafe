@@ -253,9 +253,9 @@ mod tests {
     }
 
     /// Known-answer test with the shape of DESKTOP_FLOOR (p = 4, t = 3), small memory.
-    /// The value was computed with single-threaded Argon2 before computers turned on the
-    /// `parallel` feature: running the lanes on threads must give the same root, or every
-    /// library made on a computer would stop opening.
+    /// The value was computed with single-threaded Argon2, kept while computers ran the
+    /// lanes on threads (rayon, until 0.1.93): how the lanes are run must never change
+    /// the root, or every library made on a computer would stop opening.
     #[test]
     fn lanes_on_threads_give_the_same_root() {
         let p4 = KdfParams {
