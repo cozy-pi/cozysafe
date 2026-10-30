@@ -23,6 +23,17 @@ depends on memory. Details live in the linked docs; this page is the index.
 - Still to design and approve before building: the screens, the code split, and what
   happens to vaults made before (they hold photos today).
 
+## 2026-10-31 — Top secret core, step 1: built from copies, a simpler password rule
+
+**Owner:** the cryptography stays RustCrypto (memory safe, no C); "audited" means a
+public audit, or our own review plus the standard test vectors. The Top secret core is
+built from copies kept in the repo and nothing is downloaded for it; every build checks
+the copies byte for byte, and a weekly job compares them with upstream and recommends
+what to update (supply-chain.md). New passwords: at least 12 characters (or 4 words,
+which always are) and not among the most common; zxcvbn is gone (security.md,
+"Passwords"). Passwords already in use keep working. On a computer unlocking takes
+about 0.9 s (no threading library in the core).
+
 ## 2026-10-30 (later) — Top secret is top secret
 
 **Owner, absolute:** the core of a Top secret vault uses only independently audited

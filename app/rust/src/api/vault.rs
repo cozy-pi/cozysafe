@@ -154,8 +154,8 @@ pub fn has_vaults(dir: String) -> bool {
     Library::has_vaults(Path::new(&dir))
 }
 
-/// 0 (trivial) … 4 (very strong); a new password needs `min_password_score()` unless it
-/// is a phrase of four words or more ([`password_problem`]).
+/// 0 … 4 for the strength bars: an accepted password has `min_password_score()` or more
+/// ([`password_problem`] says why one is refused).
 #[flutter_rust_bridge::frb(sync)]
 pub fn password_score(password: String) -> u8 {
     let password = Zeroizing::new(password);
@@ -167,7 +167,9 @@ pub fn min_password_score() -> u8 {
     cs_vault::MIN_PASSWORD_SCORE
 }
 
-/// A vault password needs at least this many characters (and see [`password_problem`]).
+/// A new vault password needs at least this many characters (and see
+/// [`password_problem`]). Unlocking counts wrong passwords from 8 characters, the least
+/// the earlier rule allowed (app/lib/screens/unlock.dart).
 #[flutter_rust_bridge::frb(sync)]
 pub fn min_password_length() -> u32 {
     cs_vault::MIN_PASSWORD_LEN as u32
@@ -179,7 +181,8 @@ pub enum PasswordProblem {
     TooShort,
     /// One of the most common passwords (maybe with a number or symbol added).
     Common,
-    /// Easy to guess, and not a phrase of four words or more.
+    /// Easy to guess. No longer given (the rule is length and the common list since
+    /// 2026-10-31, docs/security.md); kept so the generated bindings stay as they are.
     Guessable,
 }
 
@@ -191,7 +194,6 @@ pub fn password_problem(password: String) -> PasswordProblem {
         cs_vault::PasswordCheck::Ok => PasswordProblem::None,
         cs_vault::PasswordCheck::TooShort => PasswordProblem::TooShort,
         cs_vault::PasswordCheck::Common => PasswordProblem::Common,
-        cs_vault::PasswordCheck::Guessable => PasswordProblem::Guessable,
     }
 }
 

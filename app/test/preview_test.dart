@@ -201,7 +201,7 @@ class _Fake implements RustLibApi {
   dynamic noSuchMethod(Invocation call) {
     final n = call.memberName.toString();
     if (n.contains('MinPasswordScore')) return 3;
-    if (n.contains('MinPasswordLength')) return 8;
+    if (n.contains('MinPasswordLength')) return 12;
     if (n.contains('MinPinLength')) return 6;
     if (n.contains('PasswordProblem')) {
       final pw = call.namedArguments[#password] as String;

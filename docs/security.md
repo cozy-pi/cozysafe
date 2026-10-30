@@ -162,7 +162,7 @@ Key as people see it (it was the Emergency Kit); "vault password" was the backup
 | Random key | 128 bits | 256 bits | 256 bits as 24 BIP39 words (libraries before 21 Oct 2026: 128 bits) |
 | Opens with | the words alone | the words alone | Recovery Key **and** vault password **and** the files |
 | Cost per guess | low (PBKDF2, 2048 rounds) | low | Argon2id, 128 MiB × 3 passes on phones (512 MiB on computers) |
-| Extra password | optional ("25th word") | optional | mandatory: 8+ characters, not a common password, zxcvbn score ≥ 3 or 4+ words |
+| Extra password | optional ("25th word") | optional | mandatory: 12+ characters (or 4 words), not a common password |
 
 By case:
 
@@ -210,14 +210,18 @@ In short: the key alone is as strong as a 12-word wallet (24-word after the move
 break than a Bitcoin wallet, because two independent secrets are needed and guessing the
 password is deliberately expensive.
 
-## Passwords (2026-10-25)
+## Passwords (2026-10-25, rule changed 2026-10-31)
 
 A new password (new vault, setting or changing one) is checked as NIST SP 800-63B rev 4
-(section 3.1.1.2) asks: at least 8 characters; not one of the 100,000 most common
-passwords (a bundled list, compared case-insensitively, also after removing a short run
-of digits or symbols at the end and undoing simple leetspeak such as 0→o, 3→e, @→a,
-$→s); and either zxcvbn score 3 or a passphrase of at least 4 different words of 3 or
-more characters. The app says why a password is refused and suggests 4 random words
+(section 3.1.1.2) asks: at least 12 characters (a phrase of 4 words always is); and not
+one of the 100,000 most common passwords (a bundled list, compared case-insensitively,
+also after removing a short run of digits or symbols at the end and undoing simple
+leetspeak such as 0→o, 3→e, @→a, $→s). Until 2026-10-31 it was 8 characters plus a
+zxcvbn score of 3 or a phrase of 4 words; zxcvbn went with the Top secret rule (it alone
+brought 25 crates), and the owner chose the simpler rule: longer instead of scored.
+The strength bars follow the same rule (refused: one bar; accepted: three; 16
+characters or 5 words: four). Wrong passwords of 8 characters or more still count
+towards the unlock wait, as before. The app says why a password is refused and suggests 4 random words
 (it no longer fills them in itself: owner 2026-10-29). A password already in use is never checked when
 unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.md).
 

@@ -7,6 +7,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+cs-core = { path = "../cs-core" }
 cs-crypto = { path = "../cs-crypto" }
 hex = "0.4"
 serde = { version = "1", features = ["derive"] }
@@ -14,7 +15,6 @@ serde_json = "1"
 sha2 = "0.11"
 thiserror = "2"
 zeroize = "1"
-zxcvbn = "3"
 
 # The vault index (docs/adr/0002): plain SQLite, bundled (compiled from source, no
 # system library). Nothing secret is stored in clear: each row's sensitive fields are

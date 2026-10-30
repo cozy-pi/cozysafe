@@ -1,7 +1,11 @@
-//! What a new vault password must be (NIST SP 800-63B rev 4, 3.1.1.2): long enough, not
-//! one of the passwords people use most, and either hard to guess (zxcvbn) or a phrase
-//! of several words. Only new passwords are checked (a new vault, setting or changing a
-//! password): unlocking never is, so no vault made before gets locked out.
+//! What a new vault password must be (owner 2026-10-31, NIST SP 800-63B rev 4, 3.1.1.2):
+//! at least [`MIN_PASSWORD_LEN`] characters and not one of the passwords people use most.
+//! A phrase of [`MIN_WORDS`] words always meets the length (three letters or more each,
+//! with the spaces), so "or a phrase of four words" needs no rule of its own. Only new
+//! passwords are checked (a new vault, setting or changing a password): unlocking never
+//! is, so a vault made under the earlier rule (8 characters and a zxcvbn score) still
+//! opens. zxcvbn is gone: the Top secret core takes no library beyond audited
+//! cryptography and SQLite (docs/supply-chain.md).
 //!
 //! The list is the 100,000 most common passwords (SecLists
 //! `xato-net-10-million-passwords-100000.txt`, see docs/supply-chain.md), kept as a
@@ -9,11 +13,17 @@
 //! [`normalize`]d form: no password text in the repo or the app, about one false alarm
 //! in 30,000 random passwords. [`tests::make_blocklist`] builds it.
 
-use sha2::{Digest, Sha256};
+use cs_crypto::sha256;
 
-use crate::{password_score, MIN_PASSWORD_LEN, MIN_PASSWORD_SCORE};
-
-/// A passphrase of this many different words passes whatever its zxcvbn score.
+/// A new password needs at least this many characters.
+pub const MIN_PASSWORD_LEN: usize = 12;
+/// The least any password was ever allowed to be (the rule before 2026-10-31): wrong
+/// passwords this long or longer count towards the unlock wait.
+pub const OLDEST_MIN_PASSWORD_LEN: usize = 8;
+/// What the strength bars call good enough: [`strength`] gives it to every password the
+/// rule accepts.
+pub const MIN_PASSWORD_SCORE: u8 = 3;
+/// A phrase of this many words is suggested as the way to a long password.
 pub const MIN_WORDS: usize = 4;
 /// What counts as a word in a passphrase.
 const MIN_WORD_CHARS: usize = 3;
@@ -33,8 +43,6 @@ pub enum PasswordCheck {
     TooShort,
     /// One of the most common passwords, maybe with a number or a symbol added.
     Common,
-    /// Easy to guess (zxcvbn under [`MIN_PASSWORD_SCORE`]) and not a passphrase.
-    Guessable,
 }
 
 /// Whether `password` may become a vault password.
@@ -43,10 +51,24 @@ pub fn check_new_password(password: &str) -> PasswordCheck {
         PasswordCheck::TooShort
     } else if is_common(password) {
         PasswordCheck::Common
-    } else if password_score(password) >= MIN_PASSWORD_SCORE || is_passphrase(password) {
-        PasswordCheck::Ok
     } else {
-        PasswordCheck::Guessable
+        PasswordCheck::Ok
+    }
+}
+
+/// The strength bars (0 to 4), from the rule alone: under 8 characters 0, refused 1,
+/// accepted [`MIN_PASSWORD_SCORE`], and 4 from 16 characters or 5 words on (the length
+/// of the suggested phrase).
+pub fn strength(password: &str) -> u8 {
+    let chars = password.chars().count();
+    if chars < OLDEST_MIN_PASSWORD_LEN {
+        0
+    } else if check_new_password(password) != PasswordCheck::Ok {
+        1
+    } else if chars >= 16 || words(password) > MIN_WORDS {
+        4
+    } else {
+        MIN_PASSWORD_SCORE
     }
 }
 
@@ -56,9 +78,9 @@ fn is_common(password: &str) -> bool {
     listed(&lower) || (form.chars().count() >= MIN_FORM_CHARS && listed(&form))
 }
 
-/// At least [`MIN_WORDS`] different words of [`MIN_WORD_CHARS`] or more characters,
-/// apart by spaces or the usual separators.
-fn is_passphrase(password: &str) -> bool {
+/// Different words of [`MIN_WORD_CHARS`] or more characters, apart by spaces or the
+/// usual separators.
+fn words(password: &str) -> usize {
     let mut words: Vec<String> = password
         .split(|c: char| c.is_whitespace() || "-_.,+/".contains(c))
         .filter(|w| w.chars().count() >= MIN_WORD_CHARS)
@@ -66,7 +88,7 @@ fn is_passphrase(password: &str) -> bool {
         .collect();
     words.sort();
     words.dedup();
-    words.len() >= MIN_WORDS
+    words.len()
 }
 
 /// A lower-case password as people bend common ones: a short tail of digits and symbols
@@ -98,7 +120,7 @@ pub(crate) fn normalize(lower: &str) -> String {
 }
 
 fn prefix(text: &str) -> [u8; 4] {
-    let h = Sha256::digest(text.as_bytes());
+    let h = sha256(text.as_bytes());
     [h[0], h[1], h[2], h[3]]
 }
 
@@ -131,19 +153,21 @@ mod tests {
 
     /// Build `data/common-passwords.bin` from the SecLists text file:
     /// `COZYSAFE_BLOCKLIST_SRC=<file> cargo test -p cs-vault --lib -- --ignored make_blocklist`.
-    /// Only lower-case entries a new password could equal (8+ characters) and the
+    /// Only lower-case entries a password could equal (8+ characters) and the
     /// normalised forms go in.
     #[test]
     #[ignore]
     fn make_blocklist() {
         let src = std::env::var("COZYSAFE_BLOCKLIST_SRC").expect("COZYSAFE_BLOCKLIST_SRC");
         let bytes = std::fs::read(src).unwrap();
-        assert_eq!(hex::encode(Sha256::digest(&bytes)), SOURCE_SHA256);
+        assert_eq!(crate::hex::encode(sha256(&bytes)), SOURCE_SHA256);
         let text = String::from_utf8_lossy(&bytes);
         let mut table: Vec<[u8; 4]> = Vec::new();
         for line in text.lines() {
             let lower = line.trim().to_lowercase();
-            if lower.chars().count() >= MIN_PASSWORD_LEN {
+            // Every length a password was ever allowed (8+), not only today's 12+:
+            // the table is shared by both rules and stays as it was built.
+            if lower.chars().count() >= OLDEST_MIN_PASSWORD_LEN {
                 table.push(prefix(&lower));
             }
             let form = normalize(&lower);
@@ -188,38 +212,42 @@ mod tests {
         let all = cases("common");
         assert!(all.len() >= 10);
         for pw in &all {
-            assert_eq!(check_new_password(pw), PasswordCheck::Common);
+            assert!(is_common(pw), "{pw}");
+            assert_ne!(check_new_password(pw), PasswordCheck::Ok);
+            if pw.chars().count() >= MIN_PASSWORD_LEN {
+                assert_eq!(check_new_password(pw), PasswordCheck::Common);
+            }
         }
     }
 
     #[test]
-    fn short_guessable_and_good_passwords() {
+    fn short_and_good_passwords() {
         for pw in cases("short") {
             assert_eq!(check_new_password(&pw), PasswordCheck::TooShort);
         }
-        // Not on the list, but repeats and two words a guesser tries early.
-        for pw in cases("guessable") {
-            assert_eq!(check_new_password(&pw), PasswordCheck::Guessable);
-        }
+        assert_eq!(check_new_password("abcdefghjkm"), PasswordCheck::TooShort);
         // Random each run: none is written in the code.
-        let random = hex::encode(cs_crypto::generate_salt());
+        let random = crate::hex::encode(cs_crypto::generate_salt());
         assert_eq!(check_new_password(&random), PasswordCheck::Ok);
-        assert_eq!(
-            check_new_password(&crate::passphrase::suggest(
-                crate::passphrase::SUGGESTED_WORDS
-            )),
-            PasswordCheck::Ok
-        );
+        assert_eq!(strength(&random), 4);
+        assert_eq!(strength(&random[..12]), MIN_PASSWORD_SCORE);
+        assert_eq!(strength(&random[..9]), 1);
+        assert_eq!(strength(&random[..5]), 0);
     }
 
+    /// "Or a phrase of four words": four words of three letters or more, apart, are
+    /// always at least 12 characters, so the length rule covers them.
     #[test]
-    fn four_different_words_pass_whatever_the_score() {
+    fn four_words_always_meet_the_length() {
+        let shortest = ["abc"; 4].join(" ");
+        assert!(shortest.chars().count() >= MIN_PASSWORD_LEN);
         for pw in cases("passphrase") {
-            assert!(is_passphrase(&pw));
+            assert!(words(&pw) >= MIN_WORDS);
+            assert_eq!(check_new_password(&pw), PasswordCheck::Ok);
         }
-        // The same word four times, or words too short, are not a passphrase.
+        // The same word four times, or words too short, are fewer than four words.
         for pw in cases("not-passphrase") {
-            assert!(!is_passphrase(&pw));
+            assert!(words(&pw) < MIN_WORDS);
         }
     }
 

@@ -13,6 +13,13 @@
 pub mod kdf;
 mod secret_key_text;
 pub use secret_key_text::recovery_word_list;
+
+/// SHA-256 of `data` (for fingerprints and table lookups, not for keys: those go
+/// through [`kdf`]).
+pub fn sha256(data: &[u8]) -> [u8; 32] {
+    use sha2::Digest;
+    sha2::Sha256::digest(data).into()
+}
 pub mod stream;
 pub mod wrap;
 

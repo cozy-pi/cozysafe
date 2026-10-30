@@ -1522,10 +1522,6 @@
    "published": "2025-06-29",
    "published_by": "Nercury"
   },
-  "android_system_properties@0.1.6": {
-   "published": "2026-08-05",
-   "published_by": "nical"
-  },
   "anyhow@1.0.104": {
    "published": "2026-07-18",
    "published_by": "dtolnay"
@@ -1549,14 +1545,6 @@
   "base64ct@1.8.3": {
    "published": "2026-01-12",
    "published_by": "tarcieri"
-  },
-  "bit-set@0.8.0": {
-   "published": "2024-07-16",
-   "published_by": "pczarn"
-  },
-  "bit-vec@0.8.0": {
-   "published": "2024-07-16",
-   "published_by": "pczarn"
   },
   "bitflags@2.13.2": {
    "published": "2026-09-10",
@@ -1610,10 +1598,6 @@
    "published": "2022-08-10",
    "published_by": "tarcieri"
   },
-  "chrono@0.4.45": {
-   "published": "2026-06-04",
-   "published_by": "djc"
-  },
   "cipher@0.4.4": {
    "published": "2023-03-09",
    "published_by": "newpavlov"
@@ -1629,10 +1613,6 @@
   "const-oid@0.10.2": {
    "published": "2026-01-07",
    "published_by": "tarcieri"
-  },
-  "core-foundation-sys@0.8.7": {
-   "published": "2024-08-11",
-   "published_by": "wusyong"
   },
   "cpufeatures@0.2.17": {
    "published": "2025-01-25",
@@ -1654,18 +1634,6 @@
    "published": "2026-10-23",
    "published_by": ""
   },
-  "darling@0.20.11": {
-   "published": "2025-03-28",
-   "published_by": "TedDriggs"
-  },
-  "darling_core@0.20.11": {
-   "published": "2025-03-28",
-   "published_by": "TedDriggs"
-  },
-  "darling_macro@0.20.11": {
-   "published": "2025-03-28",
-   "published_by": "TedDriggs"
-  },
   "dart-sys@4.1.5": {
    "published": "2024-03-09",
    "published_by": "gutenfries"
@@ -1678,22 +1646,6 @@
    "published": "2026-08-02",
    "published_by": "upsuper"
   },
-  "deranged@0.5.9": {
-   "published": "2026-10-13",
-   "published_by": ""
-  },
-  "derive_builder@0.20.2": {
-   "published": "2024-10-08",
-   "published_by": "TedDriggs"
-  },
-  "derive_builder_core@0.20.2": {
-   "published": "2024-10-08",
-   "published_by": "TedDriggs"
-  },
-  "derive_builder_macro@0.20.2": {
-   "published": "2024-10-08",
-   "published_by": "TedDriggs"
-  },
   "digest@0.10.7": {
    "published": "2023-05-19",
    "published_by": "tarcieri"
@@ -1701,10 +1653,6 @@
   "digest@0.11.3": {
    "published": "2026-05-03",
    "published_by": ""
-  },
-  "either@1.19.0": {
-   "published": "2026-10-06",
-   "published_by": "cuviper"
   },
   "env_filter@0.1.4": {
    "published": "2025-10-13",
@@ -1722,10 +1670,6 @@
    "published": "2018-05-02",
    "published_by": ""
   },
-  "fancy-regex@0.18.0": {
-   "published": "2026-04-24",
-   "published_by": "keith-hall"
-  },
   "fastrand@2.5.0": {
    "published": "2026-07-19",
    "published_by": "taiki-e"
@@ -1741,10 +1685,6 @@
   "flutter_rust_bridge_macros@2.13.0": {
    "published": "2026-08-23",
    "published_by": "fzyzcjy"
-  },
-  "fnv@1.0.7": {
-   "published": "2020-05-14",
-   "published_by": "Manishearth"
   },
   "foldhash@0.2.0": {
    "published": "2025-08-23",
@@ -1850,18 +1790,6 @@
    "published": "2026-09-08",
    "published_by": ""
   },
-  "iana-time-zone-haiku@0.1.2": {
-   "published": "2023-05-12",
-   "published_by": "astraw"
-  },
-  "iana-time-zone@0.1.65": {
-   "published": "2026-01-28",
-   "published_by": ""
-  },
-  "ident_case@1.0.1": {
-   "published": "2019-03-18",
-   "published_by": "TedDriggs"
-  },
   "image@0.25.10": {
    "published": "2026-03-10",
    "published_by": "197g"
@@ -1869,10 +1797,6 @@
   "inout@0.1.4": {
    "published": "2025-02-21",
    "published_by": "newpavlov"
-  },
-  "itertools@0.14.0": {
-   "published": "2024-12-31",
-   "published_by": "jswrenn"
   },
   "itoa@1.0.18": {
    "published": "2026-03-20",
@@ -1926,10 +1850,6 @@
    "published": "2026-03-07",
    "published_by": "awxkee"
   },
-  "num-conv@0.2.2": {
-   "published": "2026-05-18",
-   "published_by": "jhpratt"
-  },
   "num-traits@0.2.19": {
    "published": "2024-05-03",
    "published_by": "cuviper"
@@ -1981,10 +1901,6 @@
   "portable-atomic@1.15.0": {
    "published": "2026-08-09",
    "published_by": ""
-  },
-  "powerfmt@0.2.1": {
-   "published": "2026-10-05",
-   "published_by": "jhpratt"
   },
   "proc-macro2@1.0.107": {
    "published": "2026-07-19",
@@ -2106,10 +2022,6 @@
    "published": "2026-05-25",
    "published_by": "Spxg"
   },
-  "strsim@0.11.1": {
-   "published": "2024-04-02",
-   "published_by": "maxbachmann"
-  },
   "subtle@2.6.1": {
    "published": "2024-06-24",
    "published_by": "isislovecruft"
@@ -2137,14 +2049,6 @@
   "threadpool@1.8.1": {
    "published": "2020-05-11",
    "published_by": "dns2utf8"
-  },
-  "time-core@0.1.9": {
-   "published": "2026-06-12",
-   "published_by": "jhpratt"
-  },
-  "time@0.3.55": {
-   "published": "2026-08-01",
-   "published_by": ""
   },
   "tokio@1.53.3": {
    "published": "2026-10-13",
@@ -2206,27 +2110,7 @@
    "published": "2026-10-19",
    "published_by": "cpu"
   },
-  "windows-core@0.62.2": {
-   "published": "2025-10-06",
-   "published_by": "kennykerr"
-  },
-  "windows-implement@0.60.2": {
-   "published": "2025-10-06",
-   "published_by": "kennykerr"
-  },
-  "windows-interface@0.59.3": {
-   "published": "2025-10-06",
-   "published_by": "kennykerr"
-  },
   "windows-link@0.2.1": {
-   "published": "2025-10-06",
-   "published_by": "kennykerr"
-  },
-  "windows-result@0.4.1": {
-   "published": "2025-10-06",
-   "published_by": "kennykerr"
-  },
-  "windows-strings@0.5.1": {
    "published": "2025-10-06",
    "published_by": "kennykerr"
   },
@@ -2289,10 +2173,6 @@
   "zune-jpeg@0.5.15": {
    "published": "2026-03-26",
    "published_by": "etemesi254"
-  },
-  "zxcvbn@3.1.1": {
-   "published": "2026-04-24",
-   "published_by": "shssoichiro"
   }
  },
  "rust_graph": {
@@ -2338,12 +2218,6 @@
    "native": false,
    "via": "flutter_rust_bridge"
   },
-  "android_system_properties@0.1.6": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
-  },
   "anyhow@1.0.104": {
    "direct": false,
    "kind": "runtime",
@@ -2379,18 +2253,6 @@
    "kind": "runtime",
    "native": false,
    "via": "argon2"
-  },
-  "bit-set@0.8.0": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "fancy-regex"
-  },
-  "bit-vec@0.8.0": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "bit-set"
   },
   "bitflags@2.13.2": {
    "direct": false,
@@ -2470,12 +2332,6 @@
    "native": false,
    "via": ""
   },
-  "chrono@0.4.45": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
-  },
   "cipher@0.4.4": {
    "direct": false,
    "kind": "runtime",
@@ -2499,12 +2355,6 @@
    "kind": "runtime",
    "native": false,
    "via": "digest"
-  },
-  "core-foundation-sys@0.8.7": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
   },
   "cpufeatures@0.2.17": {
    "direct": false,
@@ -2536,24 +2386,6 @@
    "native": false,
    "via": "digest"
   },
-  "darling@0.20.11": {
-   "direct": false,
-   "kind": "build",
-   "native": false,
-   "via": "derive_builder_core"
-  },
-  "darling_core@0.20.11": {
-   "direct": false,
-   "kind": "build",
-   "native": false,
-   "via": "darling"
-  },
-  "darling_macro@0.20.11": {
-   "direct": false,
-   "kind": "build",
-   "native": false,
-   "via": "darling"
-  },
   "dart-sys@4.1.5": {
    "direct": false,
    "kind": "runtime",
@@ -2572,30 +2404,6 @@
    "native": false,
    "via": "flutter_rust_bridge"
   },
-  "deranged@0.5.9": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "time"
-  },
-  "derive_builder@0.20.2": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "zxcvbn"
-  },
-  "derive_builder_core@0.20.2": {
-   "direct": false,
-   "kind": "build",
-   "native": false,
-   "via": "derive_builder_macro"
-  },
-  "derive_builder_macro@0.20.2": {
-   "direct": false,
-   "kind": "build",
-   "native": false,
-   "via": "derive_builder"
-  },
   "digest@0.10.7": {
    "direct": false,
    "kind": "build",
@@ -2607,12 +2415,6 @@
    "kind": "runtime",
    "native": false,
    "via": "sha2"
-  },
-  "either@1.19.0": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "itertools"
   },
   "env_filter@0.1.4": {
    "direct": false,
@@ -2638,12 +2440,6 @@
    "native": false,
    "via": "rusqlite"
   },
-  "fancy-regex@0.18.0": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "zxcvbn"
-  },
   "fastrand@2.5.0": {
    "direct": false,
    "kind": "dev",
@@ -2667,12 +2463,6 @@
    "kind": "build",
    "native": false,
    "via": "flutter_rust_bridge"
-  },
-  "fnv@1.0.7": {
-   "direct": false,
-   "kind": "build",
-   "native": false,
-   "via": "darling_core"
   },
   "foldhash@0.2.0": {
    "direct": false,
@@ -2830,24 +2620,6 @@
    "native": false,
    "via": "block-buffer"
   },
-  "iana-time-zone-haiku@0.1.2": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
-  },
-  "iana-time-zone@0.1.65": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
-  },
-  "ident_case@1.0.1": {
-   "direct": false,
-   "kind": "build",
-   "native": false,
-   "via": "darling_core"
-  },
   "image@0.25.10": {
    "direct": true,
    "kind": "runtime",
@@ -2859,12 +2631,6 @@
    "kind": "runtime",
    "native": false,
    "via": "cipher"
-  },
-  "itertools@0.14.0": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "zxcvbn"
   },
   "itoa@1.0.18": {
    "direct": false,
@@ -2882,7 +2648,7 @@
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "zxcvbn"
+   "via": "flutter_rust_bridge"
   },
   "libc@0.2.191": {
    "direct": false,
@@ -2943,12 +2709,6 @@
    "kind": "runtime",
    "native": false,
    "via": "image"
-  },
-  "num-conv@0.2.2": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "time"
   },
   "num-traits@0.2.19": {
    "direct": false,
@@ -3028,12 +2788,6 @@
    "native": false,
    "via": "flutter_rust_bridge"
   },
-  "powerfmt@0.2.1": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "time"
-  },
   "proc-macro2@1.0.107": {
    "direct": false,
    "kind": "build",
@@ -3080,19 +2834,19 @@
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "fancy-regex"
+   "via": "regex"
   },
   "regex-syntax@0.8.11": {
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "fancy-regex"
+   "via": "regex"
   },
   "regex@1.13.1": {
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "zxcvbn"
+   "via": "env_filter"
   },
   "ring@0.17.14": {
    "direct": false,
@@ -3214,12 +2968,6 @@
    "native": false,
    "via": ""
   },
-  "strsim@0.11.1": {
-   "direct": false,
-   "kind": "build",
-   "native": false,
-   "via": "darling_core"
-  },
   "subtle@2.6.1": {
    "direct": false,
    "kind": "runtime",
@@ -3230,7 +2978,7 @@
    "direct": false,
    "kind": "build",
    "native": false,
-   "via": "derive_builder_macro"
+   "via": "flutter_rust_bridge_macros"
   },
   "syn@3.0.9": {
    "direct": false,
@@ -3262,18 +3010,6 @@
    "native": false,
    "via": "flutter_rust_bridge"
   },
-  "time-core@0.1.9": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "time"
-  },
-  "time@0.3.55": {
-   "direct": false,
-   "kind": "runtime",
-   "native": false,
-   "via": "zxcvbn"
-  },
   "tokio@1.53.3": {
    "direct": false,
    "kind": "runtime",
@@ -3290,7 +3026,7 @@
    "direct": false,
    "kind": "build",
    "native": false,
-   "via": "syn"
+   "via": "proc-macro2"
   },
   "universal-hash@0.5.1": {
    "direct": false,
@@ -3364,41 +3100,11 @@
    "native": false,
    "via": ""
   },
-  "windows-core@0.62.2": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
-  },
-  "windows-implement@0.60.2": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
-  },
-  "windows-interface@0.59.3": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
-  },
   "windows-link@0.2.1": {
    "direct": false,
    "kind": "runtime",
    "native": false,
    "via": "backtrace"
-  },
-  "windows-result@0.4.1": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
-  },
-  "windows-strings@0.5.1": {
-   "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
   },
   "windows-sys@0.52.0": {
    "direct": false,
@@ -3489,12 +3195,6 @@
    "kind": "runtime",
    "native": false,
    "via": "image"
-  },
-  "zxcvbn@3.1.1": {
-   "direct": true,
-   "kind": "runtime",
-   "native": false,
-   "via": ""
   }
  },
  "rust_owners": {
@@ -3529,9 +3229,6 @@
    "paulrouget",
    "tyranron"
   ],
-  "android_system_properties": [
-   "nical"
-  ],
   "anyhow": [
    "dtolnay"
   ],
@@ -3552,16 +3249,6 @@
   "base64ct": [
    "github:rustcrypto:formats",
    "tarcieri"
-  ],
-  "bit-set": [
-   "Gankra",
-   "github:contain-rs:owners",
-   "pczarn"
-  ],
-  "bit-vec": [
-   "Gankra",
-   "github:contain-rs:owners",
-   "pczarn"
   ],
   "bitflags": [
    "KodrAus",
@@ -3607,10 +3294,6 @@
    "github:rustcrypto:aeads",
    "newpavlov"
   ],
-  "chrono": [
-   "github:chronotope:release-manager",
-   "lifthrasiir"
-  ],
   "cipher": [
    "github:rustcrypto:traits",
    "newpavlov"
@@ -3627,10 +3310,6 @@
    "github:rustcrypto:formats",
    "tarcieri"
   ],
-  "core-foundation-sys": [
-   "github:servo:cargo-publish",
-   "larsbergstrom"
-  ],
   "cpufeatures": [
    "github:rustcrypto:utils",
    "tarcieri"
@@ -3643,15 +3322,6 @@
    "github:rustcrypto:utils",
    "tarcieri"
   ],
-  "darling": [
-   "TedDriggs"
-  ],
-  "darling_core": [
-   "TedDriggs"
-  ],
-  "darling_macro": [
-   "TedDriggs"
-  ],
   "dart-sys": [
    "OptimisticPeach",
    "gutenfries"
@@ -3662,28 +3332,9 @@
   "delegate-attr": [
    "upsuper"
   ],
-  "deranged": [
-   "jhpratt"
-  ],
-  "derive_builder": [
-   "TedDriggs",
-   "colin-kiegel"
-  ],
-  "derive_builder_core": [
-   "TedDriggs",
-   "colin-kiegel"
-  ],
-  "derive_builder_macro": [
-   "TedDriggs"
-  ],
   "digest": [
    "github:rustcrypto:traits",
    "newpavlov"
-  ],
-  "either": [
-   "bluss",
-   "cuviper",
-   "jswrenn"
   ],
   "env_filter": [
    "epage",
@@ -3700,12 +3351,6 @@
   "fallible-streaming-iterator": [
    "sfackler"
   ],
-  "fancy-regex": [
-   "github:fancy-regex:crate-owners",
-   "keith-hall",
-   "raphlinus",
-   "robinst"
-  ],
   "fastrand": [
    "github:smol-rs:admins",
    "taiki-e"
@@ -3718,10 +3363,6 @@
   ],
   "flutter_rust_bridge_macros": [
    "fzyzcjy"
-  ],
-  "fnv": [
-   "SimonSapin",
-   "github:servo:cargo-publish"
   ],
   "foldhash": [
    "orlp"
@@ -3818,17 +3459,6 @@
    "github:rustcrypto:utils",
    "tarcieri"
   ],
-  "iana-time-zone": [
-   "Kijewski",
-   "astraw"
-  ],
-  "iana-time-zone-haiku": [
-   "Kijewski",
-   "astraw"
-  ],
-  "ident_case": [
-   "TedDriggs"
-  ],
   "image": [
    "197g",
    "fintelia",
@@ -3838,10 +3468,6 @@
   "inout": [
    "github:rustcrypto:utils",
    "newpavlov"
-  ],
-  "itertools": [
-   "bluss",
-   "jswrenn"
   ],
   "itoa": [
    "dtolnay"
@@ -3888,9 +3514,6 @@
   ],
   "moxcms": [
    "awxkee"
-  ],
-  "num-conv": [
-   "jhpratt"
   ],
   "num-traits": [
    "cuviper"
@@ -3940,9 +3563,6 @@
   ],
   "portable-atomic": [
    "taiki-e"
-  ],
-  "powerfmt": [
-   "jhpratt"
   ],
   "proc-macro2": [
    "dtolnay"
@@ -4059,10 +3679,6 @@
   "sqlite-wasm-rs": [
    "Spxg"
   ],
-  "strsim": [
-   "dguo",
-   "maxbachmann"
-  ],
   "subtle": [
    "github:dalek-cryptography:subtle-maintainers",
    "isislovecruft"
@@ -4084,12 +3700,6 @@
    "github:rust-threadpool:publishers",
    "github:servo:cargo-publish",
    "huonw"
-  ],
-  "time": [
-   "jhpratt"
-  ],
-  "time-core": [
-   "jhpratt"
   ],
   "tokio": [
    "Darksonn",
@@ -4164,22 +3774,7 @@
    "djc",
    "github:rustls:publishers"
   ],
-  "windows-core": [
-   "kennykerr"
-  ],
-  "windows-implement": [
-   "kennykerr"
-  ],
-  "windows-interface": [
-   "kennykerr"
-  ],
   "windows-link": [
-   "kennykerr"
-  ],
-  "windows-result": [
-   "kennykerr"
-  ],
-  "windows-strings": [
    "kennykerr"
   ],
   "windows-sys": [
@@ -4224,9 +3819,6 @@
   ],
   "zune-jpeg": [
    "etemesi254"
-  ],
-  "zxcvbn": [
-   "shssoichiro"
   ]
  }
 }

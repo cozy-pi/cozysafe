@@ -38,8 +38,7 @@ pub mod history;
 pub mod items;
 pub mod join;
 pub mod passphrase;
-pub mod passwords;
-pub use passwords::{check_new_password, PasswordCheck};
+pub use cs_core::passwords::{self, check_new_password, PasswordCheck};
 pub mod pin;
 pub mod sync;
 pub use items::ItemMeta;
@@ -52,11 +51,7 @@ pub(crate) const HEADER_FILE: &str = "header.json";
 /// Master Key wrapped by a key that lives in the platform keystore behind biometrics.
 const BIOMETRIC_FILE: &str = "biometric";
 
-/// zxcvbn score (0–4) a new password needs, unless it is a passphrase of
-/// [`passwords::MIN_WORDS`] words ([`check_new_password`]).
-pub const MIN_PASSWORD_SCORE: u8 = 3;
-/// A new password needs at least this many characters (and see [`check_new_password`]).
-pub const MIN_PASSWORD_LEN: usize = 8;
+pub use cs_core::passwords::{MIN_PASSWORD_LEN, MIN_PASSWORD_SCORE, OLDEST_MIN_PASSWORD_LEN};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -91,9 +86,9 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// Strength of a candidate password, 0 (trivial) to 4 (very strong).
+/// Strength of a candidate password for the bars, 0 to 4 ([`passwords::strength`]).
 pub fn password_score(password: &str) -> u8 {
-    u8::from(zxcvbn::zxcvbn(password, &[]).score())
+    passwords::strength(password)
 }
 
 #[derive(Serialize, Deserialize)]

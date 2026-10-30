@@ -54,7 +54,7 @@ class _Fake implements RustLibApi {
       syncCancels++;
       return null;
     }
-    if (name.contains('MinPasswordLength')) return 8;
+    if (name.contains('MinPasswordLength')) return 12;
     if (name.contains('MinPinLength')) return 6;
     final vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: anyPassword);
     if (name.contains('MinPasswordScore')) return 3;

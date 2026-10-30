@@ -11,6 +11,8 @@ Dates are UTC.
   checked byte for byte on every build; nothing is downloaded for it.
 - On a computer, unlocking takes about a second (it was a third of a second): the core
   no longer uses a threading library. Your password and key work as before.
+- A new vault password needs at least 12 characters (4 words always do) and must not be
+  one of the most common passwords. Passwords you already use keep working.
 
 ## 0.1.92 (2026-10-30)
 

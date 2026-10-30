@@ -28,6 +28,10 @@ import '../widgets/readable.dart';
 /// vault password is the fallback (decisions 2026-10-28: no more PIN, it was the
 /// weakest way in). The PIN pad shows only for a vault made with a PIN and never given
 /// a password, until it gets one.
+/// The least any vault password was ever allowed (cs_core::passwords::OLDEST_MIN_PASSWORD_LEN):
+/// shorter text cannot be a password, so it does not count towards the wait.
+const _oldestMinPasswordLength = 8;
+
 class UnlockScreen extends StatefulWidget {
   const UnlockScreen({super.key, required this.libraryDir, this.askBiometricNow = true, this.resumeVaultId});
 
@@ -303,7 +307,9 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       final vault = await rust.unlock(dir: widget.libraryDir, password: text);
       _tried = text;
       if (!mounted) return;
-      final possible = text.characters.length >= rust.minPasswordLength();
+      // From 8 characters, the least any vault password was ever allowed (the rule
+      // was 8 until 2026-10-31, 12 since): shorter text cannot be a password.
+      final possible = text.characters.length >= _oldestMinPasswordLength;
       if (vault == null && possible) {
         final wait = await PinStore.addPasswordFail();
         if (wait > Duration.zero && mounted) {
