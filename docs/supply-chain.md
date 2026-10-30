@@ -42,8 +42,11 @@ path: what it needs beyond those is written here, in our own code.
 - **Kept that way by CI:** a check fails the build when any crate outside this list
   reaches the Top secret core (`cargo tree -e normal`), direct or transitive. Adding one
   needs the owner's approval and a line here first.
-- The app around it (Flutter) is held to the same idea: a Top secret vault opens no file
-  from outside, decodes no picture, video or PDF, and shows text only.
+- The app around it (Flutter) is held to the same idea: a Top secret vault decodes no
+  picture, video or PDF. It keeps text, files and photos taken with the app's own camera
+  (no import from the photo library); files and photos are sealed as they are, with no
+  preview and no thumbnail (a name, a size, a plain icon). To open one, it is exported
+  (written out decrypted for another app) after a warning that it then leaves the vault.
 
 ## The layers
 

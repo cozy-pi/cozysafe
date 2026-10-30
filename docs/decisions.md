@@ -15,6 +15,9 @@ depends on memory. Details live in the linked docs; this page is the index.
   item. The app does not link the two: someone who forgot the Private password opens
   Top secret, reads the key, restarts into Private and types it. The two are never open
   at the same time.
+- **Top secret keeps text, files and photos taken with the app's camera** (no import
+  from the photo library). Files and photos are sealed as they are and never opened in
+  the app: no preview, no thumbnail. Opening one means exporting it, after a warning.
 - **The first vault on a device is Top secret.** Right after it is made, the app offers
   a Private vault for photos and files.
 - Still to design and approve before building: the screens, the code split, and what
