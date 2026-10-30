@@ -4,6 +4,22 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-30 (later) — Two kinds of vault: what is decided
+
+**Owner:**
+- **Top secret syncs**, over Google Drive and with a device nearby. Only the vault core
+  (keys, decryption) is held to "audited cryptography and SQLite only"; the sync layer
+  carries data already sealed by the core and never sees a key or a plain byte. It uses
+  `rustls` (audited) and a small JSON reader of our own for Google Drive's answers.
+- **A Private vault's backup key is kept in the Top secret vault**, as an ordinary text
+  item. The app does not link the two: someone who forgot the Private password opens
+  Top secret, reads the key, restarts into Private and types it. The two are never open
+  at the same time.
+- **The first vault on a device is Top secret.** Right after it is made, the app offers
+  a Private vault for photos and files.
+- Still to design and approve before building: the screens, the code split, and what
+  happens to vaults made before (they hold photos today).
+
 ## 2026-10-30 (later) — Top secret is top secret
 
 **Owner, absolute:** the core of a Top secret vault uses only independently audited
