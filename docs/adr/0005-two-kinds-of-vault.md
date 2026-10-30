@@ -105,8 +105,10 @@ new version:
 
 ## Open
 
-- Whether audit reports exist for `argon2`, `hkdf`, `sha2`, `zeroize` (the NCC Group
-  audit of 2020 covers `chacha20poly1305`). A crate without one is reported to the owner.
+- Decided 2026-10-31: the cryptography stays RustCrypto (memory safe, no C). `argon2`,
+  `sha2`, `hmac` and `hkdf` have no public audit, so they are covered by our own review
+  and the standard test vectors (see supply-chain.md); the core builds offline from
+  copies kept in `third_party/`.
 - `webpki-roots` (the list of trusted certificate authorities) is data, not code; to be
   confirmed as allowed on the Top secret sync path.
 - Exporting a file writes it decrypted to the temporary folder for the other app; it is

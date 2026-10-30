@@ -29,16 +29,47 @@ The core of a Top secret vault depends on **independently audited cryptography a
 SQLite, and nothing else**. No other crate, however small or popular, is allowed on its
 path: what it needs beyond those is written here, in our own code.
 
-- **Allowed:** the RustCrypto crates that have a public, independent audit (each listed
-  below with its report), the small crates they are made of, and SQLite (`rusqlite`,
-  built from the bundled source).
+- **Allowed:** the RustCrypto crates, the small crates they are made of, and SQLite
+  (`rusqlite`, built from the bundled source). The cryptography is all Rust: no C
+  cryptography library (owner 2026-10-31, for memory safety). SQLite is the only C.
 - **Not allowed:** everything else. Today the vault core also uses `serde`,
   `serde_json`, `hex`, `thiserror` and `zxcvbn` (which alone brings 25 crates); a Top
   secret vault is built without them (its own small encoding, its own errors, its own
   password check: length plus a list of common passwords).
-- **"Audited" needs evidence:** a crate stays out until its audit report is linked here.
-  To check before the Top secret vault is built: `chacha20poly1305`, `argon2`, `hkdf`,
-  `sha2`, `zeroize`.
+- **"Audited" means one of two things, with the evidence kept here** (owner
+  2026-10-31):
+  1. a public, independent audit report, linked below; or
+  2. our own review: every line of the copy kept in the repo read, recorded in the
+     cargo-vet audits (who, which version, when), and the standard test vectors passing
+     in every test run, plus a one-off cross-check against libsodium done outside the
+     repo (same input, same output; only the result is kept).
+
+  | Crate | Evidence |
+  |---|---|
+  | `chacha20poly1305` (and `chacha20`, `poly1305`) | NCC Group, 2020: [report](https://web.archive.org/web/20200606025324/https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/) (no significant findings) |
+  | `argon2`, `blake2` | own review + RFC 9106 vectors (to do) |
+  | `sha2` | own review + NIST vectors (to do) |
+  | `hmac` | own review + RFC 4231 vectors (to do) |
+  | `hkdf` | own review + RFC 5869 vectors (to do) |
+  | `zeroize` | cargo-vet audits imported from Mozilla and Bytecode Alliance |
+  | `subtle` | cargo-vet audits imported from Mozilla and ISRG |
+  | `rusqlite`, `libsqlite3-sys` (SQLite) | own review of the Rust layer; SQLite's own test suite (to do) |
+
+- **Nothing fetched from the internet at build time** (owner 2026-10-31): the Top secret
+  core builds offline from source copied into the repo (`third_party/`), each copy kept
+  exactly as published with its upstream checksum or signature, so it can be checked
+  again at any time. A change we need goes in a separate patch file, never into the
+  copy. Only the compilers (Rust, Xcode, the Android NDK) come from outside, pinned by
+  version.
+- **Checked on every build:** the checksums of everything in `third_party/` are
+  recomputed and compared with the record; one changed byte, or a crate missing from
+  the record, stops the build and names the file.
+- **Upstream watched every week and before each release** (a separate CI job, since the
+  build itself is offline): new versions and security advisories (RustSec, SQLite) for
+  every copied library are compared with what we keep, and an issue is opened with what
+  changed and a recommendation: update now (security fix), should update, or no need.
+  Updating is always done by hand: fetch, check the signature, read the diff, record
+  the review.
 - **Kept that way by CI:** a check fails the build when any crate outside this list
   reaches the Top secret core (`cargo tree -e normal`), direct or transitive. Adding one
   needs the owner's approval and a line here first.
