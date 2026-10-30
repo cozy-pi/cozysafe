@@ -496,8 +496,8 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock);
-  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, act: (t) async {
+  _screen('lock', 'Màn khoá', lock, change: 'ĐỔI: khung mật khẩu cao hơn cho cân đối: thêm khoảng dưới ô mật khẩu, tiêu đề cách vòng tròn và ô xa hơn');
+  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, change: 'ĐỔI: khung mật khẩu cao hơn cho cân đối', act: (t) async {
     await t.enterText(find.byType(TextField).first, 'matkhau');
     await t.pump();
   });
