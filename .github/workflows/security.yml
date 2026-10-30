@@ -85,7 +85,7 @@ jobs:
           curl -fsSLO https://github.com/gitleaks/gitleaks/releases/download/v$v/gitleaks_${v}_checksums.txt
           grep " $f\$" gitleaks_${v}_checksums.txt | sha256sum -c -
           tar xzf $f gitleaks
-          ./gitleaks git --redact --exit-code 1 .
+          ./gitleaks git --redact --verbose --exit-code 1 .
 
   # Owners of every crate and publisher of every Dart package, compared with
   # tools/deps/meta.json: a new maintainer is how hijacked releases start (xz). Not on
