@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core/cs-crypto", "core/cs-vault", "core/cs-photo", "core/cs-net"]
+members = ["core/cs-crypto", "core/cs-core", "core/cs-vault", "core/cs-photo", "core/cs-net"]
 # The Flutter app's FFI crate joins once the app scaffold exists (bootstrap workflow).
 # third_party/rust/: the crates the Top secret core is built from, as published (not
 # members: their tests and lints are upstream's).

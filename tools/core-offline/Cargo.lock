@@ -102,6 +102,7 @@ version = "0.10.2"
 name = "core-offline"
 version = "0.0.0"
 dependencies = [
+ "cs-core",
  "cs-crypto",
  "rusqlite",
 ]
@@ -134,6 +135,13 @@ name = "crypto-common"
 version = "0.2.2"
 dependencies = [
  "hybrid-array",
+]
+
+[[package]]
+name = "cs-core"
+version = "0.1.0"
+dependencies = [
+ "cs-crypto",
 ]
 
 [[package]]

@@ -30,9 +30,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 VENDOR = ROOT / "third_party" / "rust"
 RECORD = VENDOR / "RECORD"
-# The Top secret core: the cryptography crate and SQLite (cs-core joins in step 1 of
-# docs/adr/0005-two-kinds-of-vault.md).
-CORE = ["cs-crypto", "rusqlite"]
+# The Top secret core: cs-core, the cryptography crate and SQLite (step 1 of
+# docs/adr/0005-two-kinds-of-vault.md moves the vault core into cs-core).
+CORE = ["cs-core", "cs-crypto", "rusqlite"]
 MANIFESTS = [ROOT / "Cargo.toml", ROOT / "app" / "rust" / "Cargo.toml",
              ROOT / "tools" / "core-offline" / "Cargo.toml"]
 BEGIN = "# --- BEGIN vendored Top secret core (tools/check-vendor --update) ---"
@@ -123,6 +123,8 @@ def core_crates():
                     ["cargo", "tree", "-p", p, "-e", "normal,build", "--target", t,
                      "--offline", "--locked", "--prefix", "none", "--format", "{p}"],
                     cwd=ws, capture_output=True, text=True)
+                if r.returncode != 0 and "did not match any packages" in r.stderr:
+                    continue  # this workspace does not use that part of the core (yet)
                 if r.returncode != 0:
                     sys.exit(f"cargo tree failed in {ws}: {r.stderr.strip()}")
                 for line in r.stdout.splitlines():

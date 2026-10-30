@@ -47,13 +47,22 @@ path: what it needs beyond those is written here, in our own code.
   | Crate | Evidence |
   |---|---|
   | `chacha20poly1305` (and `chacha20`, `poly1305`) | NCC Group, 2020: [report](https://web.archive.org/web/20200606025324/https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/) (no significant findings) |
-  | `argon2`, `blake2` | RFC 9106 vectors pass; own review (to do) |
-  | `sha2` | NIST FIPS 180-4 examples pass; own review (to do) |
-  | `hmac` | RFC 4231 vectors pass; own review (to do) |
-  | `hkdf` | RFC 5869 vectors pass; own review (to do) |
+  | `argon2`, `blake2` | RFC 9106 vectors pass; own review recorded in `supply-chain/audits.toml` (2026-10-31) |
+  | `sha2` (and `digest`, `block-buffer`, `cpufeatures`) | NIST FIPS 180-4 examples pass; own review, plus a differential test of every length 0-599 against OpenSSL |
+  | `hmac` (and `ctutils`, `cmov`, `hybrid-array`, `crypto-common`) | RFC 4231 vectors pass; own review |
+  | `hkdf` | RFC 5869 vectors pass; own review |
   | `zeroize` | cargo-vet audits imported from Mozilla and Bytecode Alliance |
   | `subtle` | cargo-vet audits imported from Mozilla and ISRG |
   | `rusqlite`, `libsqlite3-sys` (SQLite) | own review of the Rust layer; SQLite's own test suite (to do) |
+
+  The reviews were machine-assisted (every `src/` file read, each `unsafe` block
+  checked for soundness, the algorithm compared with its standard); their notes, with
+  what was not read, are in the audits file. What they found and what was done:
+  `argon2` frees its working memory (up to 512 MiB derived from the password) without
+  wiping it, so `cs-crypto` hands it memory of its own and wipes it (about 20 ms);
+  `hmac`/`hkdf` keep no wiped copy of the key (the keys they see are derived, short-lived
+  and held only during unlock); `sha2`'s SHA-512 detection on Android ARM accepts the
+  SHA3 flag alone (no known phone has one without the other).
 
   The vectors are in `core/cs-crypto/tests/vectors.rs` and run with every `cargo test`
   (RFC 8439 and the XChaCha draft cover the cipher as well). The SHA-2, HMAC and HKDF

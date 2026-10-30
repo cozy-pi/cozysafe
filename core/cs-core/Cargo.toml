@@ -1,0 +1,17 @@
+[package]
+name = "cs-core"
+version = "0.1.0"
+description = "Cozy Safe Top secret core: audited cryptography and SQLite only (docs/supply-chain.md)"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# The Top secret core takes audited cryptography and SQLite, nothing else
+# (docs/supply-chain.md, "Top secret means top secret"; tools/check-vendor enforces it).
+# What it needs beyond those is written here: JSON, hex, errors, the password check.
+[dependencies]
+cs-crypto = { path = "../cs-crypto" }
+
+[dev-dependencies]
+# Tests only (never in the app): the JSON written here is compared with serde_json's.
+serde_json = "1"

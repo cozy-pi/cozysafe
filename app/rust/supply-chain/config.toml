@@ -198,10 +198,6 @@ criteria = "safe-to-deploy"
 version = "1.0.104"
 criteria = "safe-to-deploy"
 
-[[exemptions.argon2]]
-version = "0.6.0"
-criteria = "safe-to-deploy"
-
 [[exemptions.atomic]]
 version = "0.5.3"
 criteria = "safe-to-deploy"
@@ -220,14 +216,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.bitflags]]
 version = "2.13.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.blake2]]
-version = "0.11.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.block-buffer]]
-version = "0.12.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.build-target]]
@@ -262,10 +250,6 @@ criteria = "safe-to-deploy"
 version = "0.4.45"
 criteria = "safe-to-deploy"
 
-[[exemptions.cmov]]
-version = "0.5.4"
-criteria = "safe-to-deploy"
-
 [[exemptions.console_error_panic_hook]]
 version = "0.1.7"
 criteria = "safe-to-deploy"
@@ -292,14 +276,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.crypto-common]]
 version = "0.1.7"
-criteria = "safe-to-deploy"
-
-[[exemptions.crypto-common]]
-version = "0.2.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.ctutils]]
-version = "0.4.4"
 criteria = "safe-to-deploy"
 
 [[exemptions.darling]]
@@ -344,10 +320,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.digest]]
 version = "0.10.7"
-criteria = "safe-to-deploy"
-
-[[exemptions.digest]]
-version = "0.11.3"
 criteria = "safe-to-deploy"
 
 [[exemptions.either]]
@@ -436,18 +408,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.hermit-abi]]
 version = "0.5.3"
-criteria = "safe-to-deploy"
-
-[[exemptions.hkdf]]
-version = "0.13.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.hmac]]
-version = "0.13.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.hybrid-array]]
-version = "0.4.15"
 criteria = "safe-to-deploy"
 
 [[exemptions.iana-time-zone]]
@@ -636,10 +596,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.serde_json]]
 version = "1.0.154"
-criteria = "safe-to-deploy"
-
-[[exemptions.sha2]]
-version = "0.11.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.slab]]

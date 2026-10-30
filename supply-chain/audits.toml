@@ -2,3 +2,111 @@
 # cargo-vet audits file
 
 [audits]
+
+[[audits.argon2]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.6.0"
+notes = """
+Every src/ file read. Argon2id v0x13 checked against RFC 9106 (H0 with all length prefixes, H' for T<=64 and T>64, first blocks, data-independent addressing in pass 0 slices 0-1, index selection, BlaMka G, final XOR and H'). Unsafe (block allocation, segment views, AVX2 wrapper behind cpuid) sound. No I/O, no build script. Not wiped by the crate: its working memory (up to 512 MiB) and some stack copies; cs-crypto passes its own memory and wipes it. RFC 9106 vector runs in core/cs-crypto/tests/vectors.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.blake2]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.11.0"
+notes = """
+Blake2b (as used by argon2) read: rounds, IV, sigma, rotations, counter and final flag, output length in the parameter block. One unsafe (repr(C) struct as bytes) sound. No SIMD, no I/O, no build script.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.sha2]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.11.1"
+notes = """
+SHA-256/512: constants recomputed from prime roots, schedule, compression and padding checked against FIPS 180-4. Unsafe in the SHA-NI, AVX2 and ARMv8 backends in bounds and gated by cpufeatures. Differential test of lengths 0-599 (one-shot and split) against OpenSSL, hardware and soft backends: no mismatch. Low: aarch64 Linux/Android SHA-512 detection accepts SHA3 or SHA512 hwcap; old Apple OSes without the sysctl key would panic on SHA-512 detection. NIST examples run in core/cs-crypto/tests/vectors.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.digest]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.11.3"
+notes = """
+forbid(unsafe_code). Padding (0x80, zeros, big-endian bit length, extra block past 55/111) and MAC verify (length check on public size, then ct_eq) read.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.block-buffer]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.12.1"
+notes = """
+All unsafe read: eager buffer keeps its position in the last byte, copies stay below the block size, only initialised bytes exposed. Sound (one SAFETY comment is stale: Drop exists, it only zeroizes).
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.cpufeatures]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.3.1"
+notes = """
+cpuid/xgetbv (XCR0 checked before AVX), getauxval and sysctlbyname reads only. Sound.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.hmac]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.13.0"
+notes = """
+forbid(unsafe_code). RFC 2104: long key hashed, zero padding, ipad 0x36/opad 0x5c, eager precomputed states. Key material not wiped (no ZeroizeOnDrop). RFC 4231 vectors run in core/cs-crypto/tests/vectors.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.hkdf]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.13.0"
+notes = """
+forbid(unsafe_code). RFC 5869: absent salt is HashLen zeros, T(i) chaining with counter from 1, output over 255*HashLen is an error before any work, from_prk checks length. RFC 5869 vectors run in core/cs-crypto/tests/vectors.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.crypto-common]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.2.2"
+notes = """
+forbid(unsafe_code); key/iv init traits only.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.ctutils]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.4.4"
+notes = """
+forbid(unsafe_code). ct_eq on byte slices goes through cmov, result via black_box.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.cmov]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.5.4"
+notes = """
+Inline asm cmov/csel (pure, nomem, nostack), same-size slice casts with const asserts, vendored split helpers: sound. Branch-free equality.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.hybrid-array]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.4.15"
+notes = """
+Skimmed: unsafe relies on the sealed ArraySize trait implemented only for [T; N] by a macro with a length test; split/uninit/from_fn guard sound as read. Not every module read closely.
+Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""

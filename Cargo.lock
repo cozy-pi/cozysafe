@@ -199,6 +199,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cs-core"
+version = "0.1.0"
+dependencies = [
+ "cs-crypto",
+ "serde_json",
+]
+
+[[package]]
 name = "cs-crypto"
 version = "0.1.0"
 dependencies = [

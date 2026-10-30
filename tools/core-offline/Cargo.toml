@@ -10,6 +10,7 @@ publish = false
 [workspace]
 
 [dependencies]
+cs-core = { path = "../../core/cs-core" }
 cs-crypto = { path = "../../core/cs-crypto" }
 rusqlite = { version = "0.40", features = ["bundled"] }
 
