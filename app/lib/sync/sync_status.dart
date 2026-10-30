@@ -81,7 +81,7 @@ Color _amber(BuildContext context) =>
 /// Where Google Drive stands, as one small icon on the home page, no words. Each state
 /// its own picture (owner 2026-10-30, mockup approved): the grey crossed-out cloud only
 /// while sync is not set up; changes waiting (a blue cloud with an arrow up); syncing
-/// (a blue cloud filling up as items move); synced (green tick); waiting for Wi-Fi or
+/// (the same blue cloud, its arrow going up, owner 2026-10-30); synced (green tick); waiting for Wi-Fi or
 /// for a connection (amber, Wi-Fi sign or three dots: it goes on by itself); failed, or
 /// something to do such as a full Drive (red "!"). The words are the tooltip and what a
 /// screen reader says. A tap opens Sync.
@@ -94,14 +94,14 @@ class HomeSyncIcon extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     return ListenableBuilder(
-      listenable: Listenable.merge([AutoSync.failed, AutoSync.lastOk, AutoSync.moving, AutoSync.pending, AutoSync.waiting, AutoSync.progress]),
+      listenable: Listenable.merge([AutoSync.failed, AutoSync.lastOk, AutoSync.moving, AutoSync.pending, AutoSync.waiting]),
       builder: (context, _) {
         final waitingChanges = AutoSync.pending.value || AutoSync.lastOk.value == null;
         final (String key, Widget icon, String label) = switch (null) {
           _ when driveAccount == null => ('none', Icon(Icons.cloud_off_rounded, size: 20, color: c.muted), l.syncNotSetUp),
           _ when AutoSync.failed.value && AutoSync.enabled =>
             ('failed', _MarkedCloud(color: _red(context), mark: Icons.priority_high_rounded), l.syncProblem),
-          _ when AutoSync.moving.value => ('moving', _FillingCloud(color: _blue(context), progress: AutoSync.progress.value), l.syncWorking),
+          _ when AutoSync.moving.value => ('moving', _RisingCloud(color: _blue(context)), l.syncWorking),
           _ when waitingChanges && AutoSync.waiting.value == SyncWait.wifi =>
             ('wifi', _MarkedCloud(color: _amber(context), mark: Icons.wifi_rounded), l.syncWaitWifi),
           _ when waitingChanges && AutoSync.waiting.value == SyncWait.network =>
@@ -148,38 +148,56 @@ class _MarkedCloud extends StatelessWidget {
       );
 }
 
-/// A pale cloud that fills with colour from the bottom as the items move (owner
-/// 2026-10-30: chosen over turning arrows). Eased between steps; nothing loops, so it
-/// is the same with less motion.
-class _FillingCloud extends StatelessWidget {
-  const _FillingCloud({required this.color, required this.progress});
+/// The cloud of changes waiting, its arrow moving up out of it and coming back, again and
+/// again (owner 2026-10-30, in place of a cloud filling up). Still with less motion.
+class _RisingCloud extends StatefulWidget {
+  const _RisingCloud({required this.color});
   final Color color;
-  final double progress;
 
   @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-        tween: Tween(end: progress.clamp(0.0, 1.0)),
-        duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
-        builder: (context, p, _) => SizedBox.square(
-          dimension: 20,
-          child: Stack(children: [
-            Icon(Icons.cloud_rounded, size: 20, color: color.withValues(alpha: 0.28)),
-            // A sliver from the start, so a run that has just begun already reads as blue.
-            ClipRect(clipper: _FromBottom(0.12 + 0.88 * p), child: Icon(Icons.cloud_rounded, size: 20, color: color)),
-          ]),
-        ),
-      );
+  State<_RisingCloud> createState() => _RisingCloudState();
 }
 
-/// The lower [part] of the cloud: the icon's cloud runs from 4/24 to 20/24 of its height.
-class _FromBottom extends CustomClipper<Rect> {
-  const _FromBottom(this.part);
-  final double part;
+class _RisingCloudState extends State<_RisingCloud> with SingleTickerProviderStateMixin {
+  late final _go = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
 
   @override
-  Rect getClip(Size size) => Rect.fromLTRB(0, size.height * (20 - 16 * part) / 24, size.width, size.height);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _go
+        ..stop()
+        ..value = 0.5;
+    } else if (!_go.isAnimating) {
+      _go.repeat();
+    }
+  }
 
   @override
-  bool shouldReclip(_FromBottom old) => old.part != part;
+  void dispose() {
+    _go.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+        dimension: 20,
+        child: Stack(alignment: Alignment.center, children: [
+          Icon(Icons.cloud_rounded, size: 20, color: widget.color),
+          // Inside the cloud only: the arrow comes in from below and leaves at the top.
+          ClipRect(
+            child: AnimatedBuilder(
+              animation: _go,
+              builder: (context, child) => Transform.translate(
+                offset: Offset(0, 2 + 8 * (0.5 - Curves.easeInOut.transform(_go.value))),
+                child: Opacity(opacity: (1 - (2 * _go.value - 1).abs() * 0.9).clamp(0, 1), child: child),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(Icons.arrow_upward_rounded, size: 11, color: Colors.white),
+              ),
+            ),
+          ),
+        ]),
+      );
 }
