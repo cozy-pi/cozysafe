@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,10 +7,10 @@ import 'package:path_provider/path_provider.dart';
 import 'appearance.dart';
 import 'debug_log.dart';
 import 'l10n/app_localizations.dart';
+import 'key_backup.dart';
 import 'language.dart';
 import 'offline.dart';
 import 'screens/settings.dart';
-import 'screens/video_view.dart';
 import 'screens/restore.dart';
 import 'screens/unlock.dart';
 import 'secret_key_store.dart';
@@ -21,17 +22,22 @@ import 'widgets/native_bar.dart';
 import 'prefs.dart';
 import 'privacy.dart';
 import 'screens/welcome.dart';
+import 'temp_files.dart';
 
 Future<void> main() async {
   installNetworkGuard(); // before any plugin or library code runs
   WidgetsFlutterBinding.ensureInitialized();
+  // Decoded pictures kept for reuse: 64 MB, not Flutter's 100 MB (owner 2026-10-30:
+  // memory kept tight). Thumbnails are ~0.5 MB decoded, a full photo ~20 MB.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 64 << 20;
   await RustLib.init();
   final support = await getApplicationSupportDirectory();
   final libraryDir = '${support.path}${Platform.pathSeparator}library';
   Prefs.dir = support.path;
   Settings.apply(); // Android: honour "block screenshots" off
   PrivacyCover.listen(); // iOS: screenshots taken (they cannot be stopped there)
-  clearPlaybackCopies(); // a decrypted video copy left by a crash or a kill
+  await clearTemp(); // plain copies a crash or a kill left: an import, a share, a video
+  unawaited(KeyBackup.sweep()); // no copy of the words in iCloud / Google in this build
   final hasKey = await loadSecretKey(libraryDir);
   await AppLanguage.load();
   await NativeBar.probe(); // iOS 26: the system's own bottom bar

@@ -771,5 +771,13 @@
   "wordsSaveAskBody": "Bersama kata sandi brankas, file ini bisa membuka brankas Anda. Jangan simpan di tempat yang sama dengan kata sandi. Paling baik: cetak atau salin ke flashdisk. Hindari Catatan, email, dan tangkapan layar.",
   "wordsSaveAskGo": "Simpan file",
   "introBioBody": "Membukanya dengan cepat setiap hari, hanya di perangkat ini. Tidak menggantikan kata sandi atau 24 kata.",
-  "deleteVaultPassword": "Masukkan kata sandi brankas ini untuk konfirmasi."
+  "deleteVaultPassword": "Masukkan kata sandi brankas ini untuk konfirmasi.",
+  "debugMemory": "Memori terpakai",
+  "wordsNoKey": "Ke-24 kata itu ada, tetapi satu salah atau tidak berurutan. Cocokkan dengan daftar Anda.",
+  "wordsUseLegacy": "Saya punya kunci lama (CS1-…)",
+  "wordsUseGrid": "Ketik 24 kata",
+  "syncNotSetUp": "Sinkronisasi belum diatur",
+  "syncPendingStatus": "Perubahan menunggu disinkronkan",
+  "syncWaitWifi": "Menunggu Wi-Fi",
+  "syncWaitNetwork": "Menunggu koneksi"
 }

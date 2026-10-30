@@ -330,19 +330,24 @@ void main() {
     expect(done, isTrue);
   });
 
-  testWidgets('Recovery Key (24 words) goes on only with the asked word', (t) async {
+  testWidgets('Recovery Key (24 words) goes on only with the four asked words', (t) async {
     var done = false;
     const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
+    final list = words.split(' ');
     await _pump(t, _app(EmergencyKitScreen(keyText: words, confirm: true, onDone: () => done = true)));
     await t.pump();
-    final label = t.widget<TextField>(find.byType(TextField)).decoration!.labelText!;
-    final n = int.parse(RegExp(r'\d+').firstMatch(label)!.group(0)!);
-    final want = words.split(' ')[n - 1];
+    final fields = find.descendant(of: find.byKey(const ValueKey('kit-confirm-words')), matching: find.byType(TextField));
+    expect(fields, findsNWidgets(4)); // four asked, the other twenty are dots
+    final asked = [
+      for (final e in fields.evaluate()) int.parse(((e.widget as TextField).key! as ValueKey<String>).value.split('-').last),
+    ];
     FilledButton button() => t.widget<FilledButton>(find.widgetWithText(FilledButton, "I've saved it"));
-    await t.enterText(find.byType(TextField), want == 'zoo' ? 'abandon' : 'zoo');
-    await t.pump();
-    expect(button().onPressed, isNull);
-    await t.enterText(find.byType(TextField), want.toUpperCase());
+    for (final (k, i) in asked.indexed) {
+      await t.enterText(fields.at(k), k == 3 ? (list[i] == 'zoo' ? 'abandon' : 'zoo') : list[i]);
+      await t.pump();
+    }
+    expect(button().onPressed, isNull); // three right, one wrong
+    await t.enterText(fields.at(3), list[asked[3]].substring(0, 4).toUpperCase()); // four letters are enough
     await t.pump();
     await t.ensureVisible(find.widgetWithText(FilledButton, "I've saved it"));
     await t.tap(find.widgetWithText(FilledButton, "I've saved it"));

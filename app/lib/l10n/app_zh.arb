@@ -771,5 +771,13 @@
   "wordsSaveAskBody": "此文件加上保险箱密码即可打开你的保险箱。不要与密码放在同一处。最好打印出来或复制到 U 盘;避免使用备忘录、邮件和截图。",
   "wordsSaveAskGo": "保存文件",
   "introBioBody": "每天快速打开，仅限这台设备。它不能代替密码或 24 个单词。",
-  "deleteVaultPassword": "输入这个保险箱的密码以确认。"
+  "deleteVaultPassword": "输入这个保险箱的密码以确认。",
+  "debugMemory": "已用内存",
+  "wordsNoKey": "24 个单词都存在，但有一个写错或顺序不对。请对照你记下的列表。",
+  "wordsUseLegacy": "我有旧格式的密钥（CS1-…）",
+  "wordsUseGrid": "输入 24 个单词",
+  "syncNotSetUp": "尚未设置同步",
+  "syncPendingStatus": "有更改等待同步",
+  "syncWaitWifi": "正在等待 Wi-Fi",
+  "syncWaitNetwork": "正在等待网络"
 }

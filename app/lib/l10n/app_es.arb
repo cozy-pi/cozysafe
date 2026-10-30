@@ -771,5 +771,13 @@
   "wordsSaveAskBody": "Junto con la contraseña de la caja fuerte, este archivo la abre. No lo guarde en el mismo lugar que la contraseña. Lo mejor: imprímalo o cópielo en una memoria USB. Evite Notas, el correo y las capturas de pantalla.",
   "wordsSaveAskGo": "Guardar archivo",
   "introBioBody": "La abre rápido cada día, solo en este dispositivo. No sustituye la contraseña ni las 24 palabras.",
-  "deleteVaultPassword": "Introduce la contraseña de esta caja fuerte para confirmar."
+  "deleteVaultPassword": "Introduce la contraseña de esta caja fuerte para confirmar.",
+  "debugMemory": "Memoria en uso",
+  "wordsNoKey": "Las 24 palabras existen, pero una es incorrecta o está fuera de lugar. Compáralas con tu lista.",
+  "wordsUseLegacy": "Tengo una clave antigua (CS1-…)",
+  "wordsUseGrid": "Escribir las 24 palabras",
+  "syncNotSetUp": "La sincronización no está configurada",
+  "syncPendingStatus": "Cambios pendientes de sincronizar",
+  "syncWaitWifi": "Esperando Wi-Fi",
+  "syncWaitNetwork": "Esperando conexión"
 }

@@ -28,6 +28,7 @@ import '../widgets/text_styles.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../temp_files.dart';
 import '../prefs.dart';
 import 'common.dart';
 import '../capture_name.dart';
@@ -662,7 +663,7 @@ Future<void> shareItem(BuildContext context, rust.ItemInfo item, String vaultId,
 Future<void> shareById(BuildContext context, String id, String mime, String name, String vaultId, {BuildContext? from}) async {
   final l = AppLocalizations.of(context);
   if (!await confirmShareOut(context, vaultId) || !context.mounted) return;
-  final dir = await Directory((await getTemporaryDirectory()).path).createTemp('send');
+  final dir = await (await privateTemp()).createTemp('send');
   final file = name.replaceAll(RegExp(r'[/\\:]'), '-');
   final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
   LockGuard.allowAway();

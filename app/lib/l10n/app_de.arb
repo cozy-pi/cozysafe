@@ -771,5 +771,13 @@
   "wordsSaveAskBody": "Zusammen mit dem Tresor-Passwort öffnet diese Datei Ihren Tresor. Bewahren Sie sie nicht am selben Ort wie das Passwort auf. Am besten ausdrucken oder auf einen USB-Stick kopieren. Vermeiden Sie Notizen, E-Mail und Bildschirmfotos.",
   "wordsSaveAskGo": "Datei speichern",
   "introBioBody": "Öffnet ihn schnell im Alltag, nur auf diesem Gerät. Ersetzt weder das Passwort noch die 24 Wörter.",
-  "deleteVaultPassword": "Geben Sie zur Bestätigung das Passwort dieses Tresors ein."
+  "deleteVaultPassword": "Geben Sie zur Bestätigung das Passwort dieses Tresors ein.",
+  "debugMemory": "Belegter Arbeitsspeicher",
+  "wordsNoKey": "Alle 24 Wörter gibt es, aber eines ist falsch oder an der falschen Stelle. Vergleiche sie mit deiner Liste.",
+  "wordsUseLegacy": "Ich habe einen älteren Schlüssel (CS1-…)",
+  "wordsUseGrid": "Die 24 Wörter eingeben",
+  "syncNotSetUp": "Synchronisierung nicht eingerichtet",
+  "syncPendingStatus": "Änderungen warten auf Synchronisierung",
+  "syncWaitWifi": "Warte auf WLAN",
+  "syncWaitNetwork": "Warte auf Verbindung"
 }

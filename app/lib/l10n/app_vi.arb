@@ -785,5 +785,13 @@
   "wordsOpenFile": "Mở tệp",
   "wordsSaveAskTitle": "Lưu 24 từ ra tệp?",
   "wordsSaveAskBody": "Tệp này cùng mật khẩu két mở được két của bạn. Đừng lưu chung chỗ với mật khẩu. Tốt nhất in ra giấy hoặc chép vào USB; tránh Ghi chú, Email, ảnh chụp màn hình.",
-  "wordsSaveAskGo": "Lưu tệp"
+  "wordsSaveAskGo": "Lưu tệp",
+  "debugMemory": "Bộ nhớ đang dùng",
+  "wordsNoKey": "Đủ 24 từ nhưng có một từ sai hoặc sai thứ tự. Hãy so lại với danh sách bạn đã ghi.",
+  "wordsUseLegacy": "Tôi có khoá kiểu cũ (CS1-…)",
+  "wordsUseGrid": "Gõ 24 từ",
+  "syncNotSetUp": "Chưa cài đặt đồng bộ",
+  "syncPendingStatus": "Có thay đổi chờ đồng bộ",
+  "syncWaitWifi": "Đang chờ Wi-Fi",
+  "syncWaitNetwork": "Đang chờ có mạng"
 }

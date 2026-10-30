@@ -771,5 +771,13 @@
   "wordsSaveAskBody": "이 파일과 금고 비밀번호가 있으면 금고를 열 수 있습니다. 비밀번호와 같은 곳에 두지 마세요. 인쇄하거나 USB에 복사하는 것이 가장 좋습니다. 메모, 이메일, 스크린샷은 피하세요.",
   "wordsSaveAskGo": "파일 저장",
   "introBioBody": "이 기기에서만 매일 빠르게 엽니다. 비밀번호나 24개 단어를 대신하지는 않습니다.",
-  "deleteVaultPassword": "확인을 위해 이 금고의 비밀번호를 입력하세요."
+  "deleteVaultPassword": "확인을 위해 이 금고의 비밀번호를 입력하세요.",
+  "debugMemory": "사용 중인 메모리",
+  "wordsNoKey": "24개 단어는 모두 있는 단어지만, 하나가 틀렸거나 순서가 다릅니다. 적어 둔 목록과 비교하세요.",
+  "wordsUseLegacy": "이전 형식의 키가 있어요 (CS1-…)",
+  "wordsUseGrid": "24개 단어 입력",
+  "syncNotSetUp": "동기화가 설정되지 않음",
+  "syncPendingStatus": "동기화 대기 중인 변경 사항",
+  "syncWaitWifi": "Wi-Fi 대기 중",
+  "syncWaitNetwork": "연결 대기 중"
 }

@@ -771,5 +771,13 @@
   "wordsSaveAskBody": "Junto com a senha do cofre, este arquivo abre o seu cofre. Não o guarde no mesmo lugar que a senha. O melhor: imprima ou copie para um pen drive. Evite Notas, e-mail e capturas de tela.",
   "wordsSaveAskGo": "Salvar arquivo",
   "introBioBody": "Abre rápido no dia a dia, só neste dispositivo. Não substitui a senha nem as 24 palavras.",
-  "deleteVaultPassword": "Digite a senha deste cofre para confirmar."
+  "deleteVaultPassword": "Digite a senha deste cofre para confirmar.",
+  "debugMemory": "Memória em uso",
+  "wordsNoKey": "As 24 palavras existem, mas uma está errada ou fora do lugar. Compare com a sua lista.",
+  "wordsUseLegacy": "Tenho uma chave antiga (CS1-…)",
+  "wordsUseGrid": "Digitar as 24 palavras",
+  "syncNotSetUp": "Sincronização não configurada",
+  "syncPendingStatus": "Alterações aguardando sincronização",
+  "syncWaitWifi": "Aguardando Wi-Fi",
+  "syncWaitNetwork": "Aguardando conexão"
 }

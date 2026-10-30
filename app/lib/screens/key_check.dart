@@ -5,6 +5,7 @@ import '../lock_resume.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/secret.dart';
+import '../widgets/words_input.dart';
 import 'common.dart';
 
 /// Settings → Check your 24 words and password (owner 2026-10-26, instead of asking for
@@ -98,14 +99,10 @@ class _KeyCheckScreenState extends State<KeyCheckScreen> with VaultLockAware {
         ),
       ],
       children: [
-        SecretField(
+        RecoveryKeyInput(
           key: const ValueKey('key-check-words'),
           controller: _words,
-          multiline: true,
-          paste: true,
-          label: l.secretKeyLabel,
-          hint: l.recoveryWordsHint,
-          onChanged: (_) => setState(() => _wordsOk = null),
+          onChanged: () => setState(() => _wordsOk = null),
         ),
         _result(_wordsOk, l.keyCheckWordsOk, l.keyCheckWordsBad, 'key-check-words-result'),
         if (widget.hasPassword) ...[

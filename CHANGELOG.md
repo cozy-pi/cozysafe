@@ -4,6 +4,34 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.1.91 (2026-10-30)
+
+### Changed
+- The 24 words stay on the screen: Copy, Save to a file, Share and Open file are gone, so
+  the words are never in the clipboard, a file or another app. Write them down by hand;
+  the page stays on for 3 minutes after your last touch.
+- The copy of the 24 words in the iCloud Keychain / Google Block Store is off, and a copy
+  kept before is removed.
+- The 24 words are typed in a numbered grid, like the page you wrote them from: four
+  letters are enough, each word turns to dots once you move on, Show/Hide for the grid.
+  A misspelt word is marked red; 24 real words in the wrong order are pointed out at once.
+  Paste spreads a numbered list over the cells.
+- After setting the first backup password, four words are asked back instead of one.
+- The cloud on the home page shows each Google Drive state: crossed out only when sync is
+  not set up; an arrow up when changes wait; filling up while items move; amber while it
+  waits for Wi-Fi or a connection; red when something needs you.
+- Photos use less memory: decoded at screen size, fewer read ahead, caches capped.
+
+### Added
+- A spinner on a photo that takes a moment to open.
+- Debug shows the memory in use.
+
+### Fixed
+- After adding photos or files, the sync cloud turned grey as if sync was off.
+- A full Google Drive now shows red, and the Drive page says why.
+- Temporary copies (an import, a share, a video) are cleared at start and on lock, also
+  after a crash. Windows and Linux use a private temporary folder.
+
 ## 0.1.90 (2026-10-29)
 
 ### Added

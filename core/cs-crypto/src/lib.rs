@@ -12,6 +12,7 @@
 
 pub mod kdf;
 mod secret_key_text;
+pub use secret_key_text::recovery_word_list;
 pub mod stream;
 pub mod wrap;
 

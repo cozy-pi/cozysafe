@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show WidgetsBinding;
 
 import 'lock_resume.dart';
 import 'platform.dart';
@@ -41,12 +42,13 @@ const _media = MethodChannel('cozysafe/media');
 
 /// A photo's bytes, ready for Flutter to draw. An iPhone's HEIC does not decode on every
 /// Android (owner 2026-10-25), so there Android's own decoder turns it into a JPEG at
-/// most [maxSide] px on its longer side; elsewhere the bytes are as stored.
-Future<Uint8List> photoBytes(String id, {int maxSide = 4096}) async {
+/// most [maxSide] px on its longer side (the screen's, [screenLongSide]); elsewhere the
+/// bytes are as stored.
+Future<Uint8List> photoBytes(String id, {int? maxSide}) async {
   final bytes = await itemBytes(id);
   if (!Device.android || !isHeif(bytes)) return bytes;
   try {
-    final jpeg = await _media.invokeMethod<Uint8List>('decode', {'bytes': bytes, 'maxSide': maxSide});
+    final jpeg = await _media.invokeMethod<Uint8List>('decode', {'bytes': bytes, 'maxSide': maxSide ?? screenLongSide()});
     if (jpeg != null && jpeg.isNotEmpty) return jpeg;
   } catch (_) {}
   return bytes;
@@ -58,4 +60,16 @@ bool isHeif(Uint8List b) {
   if (b.length < 12 || String.fromCharCodes(b.sublist(4, 8)) != 'ftyp') return false;
   const brands = {'heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1', 'avif'};
   return brands.contains(String.fromCharCodes(b.sublist(8, 12)));
+}
+
+/// The screen's longer side in pixels, between 1024 and 3000: what a photo is decoded to
+/// at most. A 12 MP photo decoded whole is a ~50 MB bitmap (4096 px, the earlier cap);
+/// at a phone's 2400 px it is ~17 MB, and the screen cannot show more (owner
+/// 2026-10-30: memory kept tight, no app killed for lack of it).
+int screenLongSide() {
+  final views = WidgetsBinding.instance.platformDispatcher.views;
+  if (views.isEmpty) return 2048;
+  final size = views.first.physicalSize;
+  final long = size.width > size.height ? size.width : size.height;
+  return long.round().clamp(1024, 3000);
 }

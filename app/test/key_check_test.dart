@@ -49,7 +49,7 @@ void main() {
       ..fits = true
       ..right = 'test-pass-1';
     await t.pumpWidget(app());
-    await t.enterText(find.descendant(of: find.byKey(const ValueKey('key-check-words')), matching: find.byType(TextField)), words('abandon'));
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('key-check-words')), matching: find.byType(TextField)).first, words('abandon'));
     await t.enterText(find.descendant(of: find.byKey(const ValueKey('key-check-password')), matching: find.byType(TextField)), 'test-pass-1');
     await t.pump();
     await t.tap(find.byKey(const ValueKey('key-check-go')));
@@ -63,7 +63,7 @@ void main() {
       ..fits = false
       ..right = 'something-else';
     await t.pumpWidget(app());
-    await t.enterText(find.descendant(of: find.byKey(const ValueKey('key-check-words')), matching: find.byType(TextField)), words('zoo'));
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('key-check-words')), matching: find.byType(TextField)).first, words('zoo'));
     await t.enterText(find.descendant(of: find.byKey(const ValueKey('key-check-password')), matching: find.byType(TextField)), 'nope-nope');
     await t.pump();
     await t.tap(find.byKey(const ValueKey('key-check-go')));

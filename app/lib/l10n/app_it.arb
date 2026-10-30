@@ -771,5 +771,13 @@
   "wordsSaveAskBody": "Insieme alla password della cassaforte, questo file apre la cassaforte. Non tenerlo nello stesso posto della password. Meglio stamparlo o copiarlo su una chiavetta USB. Evita Note, email e screenshot.",
   "wordsSaveAskGo": "Salva file",
   "introBioBody": "La apre in fretta ogni giorno, solo su questo dispositivo. Non sostituisce la password né le 24 parole.",
-  "deleteVaultPassword": "Inserisci la password di questa cassaforte per confermare."
+  "deleteVaultPassword": "Inserisci la password di questa cassaforte per confermare.",
+  "debugMemory": "Memoria in uso",
+  "wordsNoKey": "Le 24 parole esistono, ma una è sbagliata o fuori posto. Confrontale con la tua lista.",
+  "wordsUseLegacy": "Ho una chiave precedente (CS1-…)",
+  "wordsUseGrid": "Scrivi le 24 parole",
+  "syncNotSetUp": "Sincronizzazione non configurata",
+  "syncPendingStatus": "Modifiche in attesa di sincronizzazione",
+  "syncWaitWifi": "In attesa del Wi-Fi",
+  "syncWaitNetwork": "In attesa di connessione"
 }

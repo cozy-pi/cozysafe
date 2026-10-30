@@ -81,6 +81,12 @@ fn words() -> Vec<&'static str> {
     WORDS.lines().collect()
 }
 
+/// The 2048 words a Recovery Key is made of, in order: the typing grid checks each word
+/// as it is typed and completes it from its first four letters.
+pub fn recovery_word_list() -> Vec<&'static str> {
+    words()
+}
+
 /// 256 bits + the first 8 bits of their SHA-256 = 264 bits = 24 words of 11 bits.
 fn bip39_words(entropy: &[u8]) -> Zeroizing<String> {
     let list = words();
@@ -263,6 +269,16 @@ mod tests {
             "2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda"
         );
         assert_eq!(words().len(), 2048);
+    }
+
+    #[test]
+    fn the_word_list_is_2048_words_known_by_four_letters() {
+        let list = recovery_word_list();
+        assert_eq!(list.len(), 2048);
+        let mut heads: Vec<String> = list.iter().map(|w| w.chars().take(4).collect()).collect();
+        heads.sort();
+        heads.dedup();
+        assert_eq!(heads.len(), 2048);
     }
 
     #[test]
