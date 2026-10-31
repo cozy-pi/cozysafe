@@ -1059,6 +1059,31 @@ pub fn clean_vault<A: DriveApi>(
 pub fn delete_vault<A: DriveApi>(api: &A, vault: &str) -> Result<u32> {
     let listed = vault_files(api, vault)?;
     api.delete_many(&listed.ids)?;
+    // Its folders too, the vault's own and every one under it (owner 2026-10-31: empty
+    // "head" and "lock" were left behind), the deepest first.
+    if let Some(root) = api.find_folder(None, FOLDER)? {
+        let nodes = api.tree(&|_| {})?;
+        let mut depth: HashMap<&str, usize> = nodes
+            .iter()
+            .filter(|n| n.folder && n.parent == root && n.name == vault)
+            .map(|n| (n.id.as_str(), 0))
+            .collect();
+        loop {
+            let more: Vec<(&str, usize)> = nodes
+                .iter()
+                .filter(|n| n.folder && !depth.contains_key(n.id.as_str()))
+                .filter_map(|n| depth.get(n.parent.as_str()).map(|d| (n.id.as_str(), d + 1)))
+                .collect();
+            if more.is_empty() {
+                break;
+            }
+            depth.extend(more);
+        }
+        let mut folders: Vec<(&str, usize)> = depth.into_iter().collect();
+        folders.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
+        let ids: Vec<String> = folders.into_iter().map(|(id, _)| id.to_owned()).collect();
+        api.delete_many(&ids)?;
+    }
     Ok(listed.ids.len() as u32)
 }
 
@@ -2262,6 +2287,12 @@ mod tests {
         drive.add(&elsewhere, "header.json", vec![1; 3], false);
         assert!(delete_vault(&drive, &v).unwrap() > 0);
         assert!(!drive.layout().iter().any(|(f, _, _)| f.starts_with(&v)));
+        assert!(
+            !drive.folders().iter().any(|f| f.starts_with(&v)),
+            "its folders go too: {:?}",
+            drive.folders()
+        );
+        assert!(drive.folders().iter().any(|f| f == &other));
         assert!(drive
             .layout()
             .iter()

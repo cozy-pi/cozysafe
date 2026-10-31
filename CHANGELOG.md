@@ -60,6 +60,7 @@ Dates are UTC.
   change.
 - A tap beside the quick buttons above + closes them, as a tap anywhere else does.
 - With + in the middle and three sections (Top Secret Mode), + sat right of centre.
+- Deleting a vault from Google Drive removes its folders too; empty ones were left.
 
 ## 0.1.92 (2026-10-30)
 
