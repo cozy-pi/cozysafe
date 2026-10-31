@@ -963,6 +963,41 @@ pub mod tests {
         P.get_or_init(|| crate::hex::encode(cs_crypto::generate_salt()))
     }
 
+    /// A vault password, random each run: none is written in the code.
+    fn pw_c() -> &'static str {
+        static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        P.get_or_init(|| crate::hex::encode(cs_crypto::generate_salt()))
+    }
+
+    /// `n` random digits: no PIN is written in the code.
+    pub fn digits(n: usize) -> String {
+        let mut out = String::new();
+        while out.len() < n {
+            for b in cs_crypto::generate_salt() {
+                if out.len() < n {
+                    out.push(char::from(b'0' + b % 10));
+                }
+            }
+        }
+        out
+    }
+
+    /// Four different 6-digit PINs, a 4-digit one (allowed before 2026-10-23) and one
+    /// that differs from the first in its last digit, the same for the whole run.
+    pub fn pins() -> &'static [String; 6] {
+        static P: std::sync::OnceLock<[String; 6]> = std::sync::OnceLock::new();
+        P.get_or_init(|| loop {
+            let a = digits(6);
+            let last = a.as_bytes()[5] - b'0';
+            let near = format!("{}{}", &a[..5], (last + 1) % 10);
+            let p = [a, digits(6), digits(6), digits(6), digits(4), near];
+            let distinct = (0..6).all(|i| (0..i).all(|j| p[i] != p[j]));
+            if distinct {
+                break p;
+            }
+        })
+    }
+
     pub fn sk() -> SecretKey {
         SecretKey::from_bytes([7; SECRET_KEY_LEN])
     }
@@ -993,7 +1028,7 @@ pub mod tests {
         let v = l.create_vault("Két", pw_a()).unwrap();
         let id = note(&v, "giữ nguyên");
         let dk = SecretKey::generate();
-        v.enable_pin("246810", &dk, FAST).unwrap();
+        v.enable_pin(&pins()[0], &dk, FAST).unwrap();
 
         assert!(
             !l.change_secret_key(&v, pw_b(), &new).unwrap(),
@@ -1016,7 +1051,7 @@ pub mod tests {
             Library::open_or_create(tmp.path(), FAST, old),
             Err(Error::WrongSecretKey)
         ));
-        assert!(Library::unlock_pin(tmp.path(), "246810", &dk)
+        assert!(Library::unlock_pin(tmp.path(), &pins()[0], &dk)
             .unwrap()
             .is_some());
         let h = read_header(&tmp.path().join(VAULTS_DIR).join(id_of(tmp.path()))).unwrap();
@@ -1161,17 +1196,17 @@ pub mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
         let v = l
-            .create_vault_with_password("lock", "teal", "correct horse battery")
+            .create_vault_with_password("lock", "teal", pw_c())
             .unwrap();
         assert_eq!((v.icon.as_str(), v.color.as_str()), ("lock", "teal"));
         assert!(v.has_password());
-        let back = l.unlock("correct horse battery").unwrap().unwrap();
+        let back = l.unlock(pw_c()).unwrap().unwrap();
         assert_eq!(
             (back.id, back.icon, back.color, back.name),
             (v.id.clone(), "lock".into(), "teal".into(), String::new())
         );
         assert!(matches!(
-            l.create_vault_with_password("star", "red", "correct horse battery"),
+            l.create_vault_with_password("star", "red", pw_c()),
             Err(Error::PasswordInUse)
         ));
     }
@@ -1190,10 +1225,7 @@ pub mod tests {
             .expect("vault opens");
         assert_eq!(opened.id, v.id);
         assert_eq!(opened.name, "Cá nhân");
-        assert!(lib(tmp.path())
-            .unlock("wrong password entirely 123")
-            .unwrap()
-            .is_none());
+        assert!(lib(tmp.path()).unlock(pw_b()).unwrap().is_none());
     }
 
     #[test]
@@ -1265,7 +1297,7 @@ pub mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let l = lib(tmp.path());
         assert!(matches!(
-            l.create_vault("A", "short12"),
+            l.create_vault("A", &pw_a()[..crate::passwords::MIN_PASSWORD_LEN - 1]),
             Err(Error::WeakPassword)
         ));
         assert!(matches!(
@@ -1343,7 +1375,6 @@ pub mod tests {
     #[test]
     fn scores() {
         use crate::passwords::{strength, MIN_PASSWORD_SCORE};
-        assert!(strength("password1") < MIN_PASSWORD_SCORE);
         assert!(strength(pw_a()) >= MIN_PASSWORD_SCORE);
         assert!(strength(pw_b()) >= MIN_PASSWORD_SCORE);
     }

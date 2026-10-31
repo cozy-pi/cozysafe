@@ -410,7 +410,11 @@ pub(crate) mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let device = cs_crypto::SecretKey::from_bytes([3; cs_crypto::SECRET_KEY_LEN]);
         let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
-        l.create_vault_with_pin("lock", "blue", "135790", &device, FAST)
+        let pin: String = cs_crypto::generate_salt()[..6]
+            .iter()
+            .map(|b| char::from(b'0' + b % 10))
+            .collect();
+        l.create_vault_with_pin("lock", "blue", &pin, &device, FAST)
             .unwrap();
         let mut out = Vec::new();
         assert_eq!(export(tmp.path(), &mut out).unwrap(), 1); // library.json only

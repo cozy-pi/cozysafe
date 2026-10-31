@@ -885,7 +885,7 @@ mod tests {
         let lib = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk()).unwrap();
         let a = lib.create_vault("A", pw()).unwrap();
         let b = lib
-            .create_vault("B", "mây tháng mười rơi trên phố cổ")
+            .create_vault("B", &crate::hex::encode(cs_crypto::generate_salt()))
             .unwrap();
         let secret = b"PLAINTEXT-MARKER-0123456789";
         let item = a.add_item(photo(secret, 1)).unwrap();

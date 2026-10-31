@@ -215,7 +215,7 @@ fn pin_files(dir: &Path) -> Vec<(std::path::PathBuf, PinFile)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vault::tests::sk;
+    use crate::vault::tests::{digits, pins, sk};
 
     const FAST: KdfParams = KdfParams {
         m_kib: 64,
@@ -223,6 +223,12 @@ mod tests {
         p: 1,
     };
     /// A vault password, random each run: none is written in the code.
+    /// A second password, random each run.
+    fn pw2() -> &'static str {
+        static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        P.get_or_init(|| crate::hex::encode(cs_crypto::generate_salt()))
+    }
+
     fn pw() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
         P.get_or_init(|| crate::hex::encode(cs_crypto::generate_salt()))
@@ -235,25 +241,25 @@ mod tests {
         let v = l.create_vault("A", pw()).unwrap();
         let device = SecretKey::generate();
         assert!(Library::pin_length(tmp.path()).is_none());
-        v.enable_pin("246802", &device, FAST).unwrap();
+        v.enable_pin(&pins()[0], &device, FAST).unwrap();
         assert_eq!(Library::pin_length(tmp.path()), Some(6));
 
-        let opened = Library::unlock_pin(tmp.path(), "246802", &device)
+        let opened = Library::unlock_pin(tmp.path(), &pins()[0], &device)
             .unwrap()
             .unwrap();
         assert_eq!(opened.id, v.id);
-        assert!(Library::unlock_pin(tmp.path(), "246803", &device)
+        assert!(Library::unlock_pin(tmp.path(), &pins()[5], &device)
             .unwrap()
             .is_none());
         // Same PIN, files copied to a device without the device key: nothing.
         assert!(
-            Library::unlock_pin(tmp.path(), "246802", &SecretKey::generate())
+            Library::unlock_pin(tmp.path(), &pins()[0], &SecretKey::generate())
                 .unwrap()
                 .is_none()
         );
 
         Library::forget_pin(tmp.path()).unwrap();
-        assert!(Library::unlock_pin(tmp.path(), "246802", &device)
+        assert!(Library::unlock_pin(tmp.path(), &pins()[0], &device)
             .unwrap()
             .is_none());
     }
@@ -265,16 +271,16 @@ mod tests {
         let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
         let device = SecretKey::generate();
         let with_pw = l.create_vault("A", pw()).unwrap();
-        with_pw.enable_pin("246802", &device, FAST).unwrap();
+        with_pw.enable_pin(&pins()[0], &device, FAST).unwrap();
         let pin_only = l
-            .create_vault_with_pin("lock", "teal", "135791", &device, FAST)
+            .create_vault_with_pin("lock", "teal", &pins()[1], &device, FAST)
             .unwrap();
 
         assert_eq!(Library::forget_pins_with_password(tmp.path()).unwrap(), 1);
-        assert!(Library::unlock_pin(tmp.path(), "246802", &device)
+        assert!(Library::unlock_pin(tmp.path(), &pins()[0], &device)
             .unwrap()
             .is_none());
-        let still = Library::unlock_pin(tmp.path(), "135791", &device)
+        let still = Library::unlock_pin(tmp.path(), &pins()[1], &device)
             .unwrap()
             .unwrap();
         assert_eq!(still.id, pin_only.id);
@@ -289,7 +295,7 @@ mod tests {
         let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
         let v = l.create_vault("A", pw()).unwrap();
         let device = SecretKey::generate();
-        v.enable_pin("246802", &device, FAST).unwrap();
+        v.enable_pin(&pins()[0], &device, FAST).unwrap();
         let path = tmp.path().join(VAULTS_DIR).join(&v.id).join(PIN_FILE);
         let mut json: serde_json::Value =
             serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
@@ -302,7 +308,7 @@ mod tests {
             o.insert(k.into(), kdf[k].clone());
         }
         fs::write(&path, serde_json::to_vec(&json).unwrap()).unwrap();
-        let opened = Library::unlock_pin(tmp.path(), "246802", &device)
+        let opened = Library::unlock_pin(tmp.path(), &pins()[0], &device)
             .unwrap()
             .unwrap();
         assert_eq!(opened.id, v.id);
@@ -314,17 +320,17 @@ mod tests {
         let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
         let d = SecretKey::generate();
         let a = l
-            .create_vault_with_pin("home", "green", "246802", &d, FAST)
+            .create_vault_with_pin("home", "green", &pins()[0], &d, FAST)
             .unwrap();
         let b = l
-            .create_vault_with_pin("work", "blue", "135790", &d, FAST)
+            .create_vault_with_pin("work", "blue", &pins()[2], &d, FAST)
             .unwrap();
         assert!(matches!(
-            l.create_vault_with_pin("car", "red", "246802", &d, FAST),
+            l.create_vault_with_pin("car", "red", &pins()[0], &d, FAST),
             Err(Error::PinInUse)
         ));
         assert_eq!(Library::pin_lengths(tmp.path()), vec![6]);
-        let oa = Library::unlock_pin(tmp.path(), "246802", &d)
+        let oa = Library::unlock_pin(tmp.path(), &pins()[0], &d)
             .unwrap()
             .unwrap();
         assert_eq!(
@@ -332,7 +338,7 @@ mod tests {
             (a.id.as_str(), "home", "green")
         );
         assert_eq!(
-            Library::unlock_pin(tmp.path(), "135790", &d)
+            Library::unlock_pin(tmp.path(), &pins()[2], &d)
                 .unwrap()
                 .unwrap()
                 .id,
@@ -340,12 +346,12 @@ mod tests {
         );
         // Changing B's PIN to A's is refused; to a new one is fine.
         assert!(matches!(
-            b.enable_pin("246802", &d, FAST),
+            b.enable_pin(&pins()[0], &d, FAST),
             Err(Error::PinInUse)
         ));
-        b.enable_pin("111111", &d, FAST).unwrap();
+        b.enable_pin(&pins()[3], &d, FAST).unwrap();
         assert_eq!(
-            Library::unlock_pin(tmp.path(), "111111", &d)
+            Library::unlock_pin(tmp.path(), &pins()[3], &d)
                 .unwrap()
                 .unwrap()
                 .id,
@@ -367,16 +373,9 @@ mod tests {
             Err(Error::PasswordInUse)
         ));
         // Changing it is just a re-wrap: the old one stops working.
-        l.set_password(&a, "mây tháng mười rơi trên phố cổ")
-            .unwrap();
+        l.set_password(&a, pw2()).unwrap();
         assert!(l.unlock(pw()).unwrap().is_none());
-        assert_eq!(
-            l.unlock("mây tháng mười rơi trên phố cổ")
-                .unwrap()
-                .unwrap()
-                .id,
-            a.id
-        );
+        assert_eq!(l.unlock(pw2()).unwrap().unwrap().id, a.id);
     }
 
     #[test]
@@ -385,10 +384,10 @@ mod tests {
         let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
         let d = SecretKey::generate();
         let mut v = l
-            .create_vault_with_pin("home", "green", "246802", &d, FAST)
+            .create_vault_with_pin("home", "green", &pins()[0], &d, FAST)
             .unwrap();
         v.set_identity("star", "plum").unwrap();
-        let o = Library::unlock_pin(tmp.path(), "246802", &d)
+        let o = Library::unlock_pin(tmp.path(), &pins()[0], &d)
             .unwrap()
             .unwrap();
         assert_eq!((o.icon.as_str(), o.color.as_str()), ("star", "plum"));
@@ -405,7 +404,14 @@ mod tests {
             .create_vault("A", pw())
             .unwrap();
         let d = SecretKey::generate();
-        for bad in ["123", "12345", &"1".repeat(257), "12a456", ""] {
+        let bad_pins = [
+            digits(3),
+            digits(5),
+            digits(257),
+            format!("{}a{}", digits(2), digits(3)),
+            String::new(),
+        ];
+        for bad in &bad_pins {
             assert!(
                 matches!(v.enable_pin(bad, &d, FAST), Err(Error::BadPin)),
                 "{bad}"
@@ -423,9 +429,12 @@ mod tests {
             .create_vault("A", pw())
             .unwrap();
         let d = SecretKey::generate();
-        v.write_pin("2468", &d, FAST).unwrap();
-        assert!(matches!(v.enable_pin("2468", &d, FAST), Err(Error::BadPin)));
-        let opened = Library::unlock_pin(tmp.path(), "2468", &d)
+        v.write_pin(&pins()[4], &d, FAST).unwrap();
+        assert!(matches!(
+            v.enable_pin(&pins()[4], &d, FAST),
+            Err(Error::BadPin)
+        ));
+        let opened = Library::unlock_pin(tmp.path(), &pins()[4], &d)
             .unwrap()
             .unwrap();
         assert_eq!(opened.id, v.id);
