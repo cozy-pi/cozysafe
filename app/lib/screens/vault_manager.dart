@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/identity.dart';
-import '../widgets/item_menu.dart';
 import '../widgets/toast.dart';
 import '../widgets/bottom_bar.dart' show PinnedAction;
 import 'delete_vault.dart';
 import '../platform.dart' show nowMs;
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart' show PlatformInt64Util;
 import 'file_view.dart' show fileSize;
 import 'top_secret_page.dart' show TopSecretMark;
 
@@ -65,77 +62,23 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
     }
   }
 
+  /// A tap on a vault opens its delete screen (owner 2026-10-31): there, its password,
+  /// or "Forgot the password" for another vault.
   Future<void> _menu(rust.VaultSlot slot, BuildContext from) async {
-    final l = AppLocalizations.of(context);
     if (slot.isOpen) {
-      await showItemMenu(context, from: from, entries: [
-        MenuEntry(Icons.delete_outline_rounded, l.deleteVault, () async {
-          await widget.onDeleteOpen?.call();
-          if (mounted) await _load();
-        }, danger: true, key: const ValueKey('vault-delete-open')),
-      ]);
+      await widget.onDeleteOpen?.call();
+      if (mounted) await _load();
       return;
     }
-    await showItemMenu(context, from: from, entries: [
-      MenuEntry(Icons.delete_outline_rounded, l.vaultDeleteWithPassword, () => _deleteWithPassword(slot),
-          danger: true, key: const ValueKey('vault-delete-password')),
-      if (slot.deleteAtMs == null)
-        MenuEntry(Icons.schedule_rounded, l.vaultForgotPassword, () => _schedule(slot), key: const ValueKey('vault-forgot'))
-      else
-        MenuEntry(Icons.undo_rounded, l.vaultKeep, () => _keep(slot), key: const ValueKey('vault-keep')),
-    ]);
-  }
-
-  Future<void> _deleteWithPassword(rust.VaultSlot slot) async {
     final gone = await Navigator.of(context).push<bool>(MaterialPageRoute(
-      builder: (_) => DeleteVaultScreen(libraryDir: widget.libraryDir, otherId: slot.id, sizeText: fileSize(slot.sizeBytes)),
+      builder: (_) => DeleteVaultScreen(
+        libraryDir: widget.libraryDir,
+        otherId: slot.id,
+        deleteAtMs: slot.deleteAtMs?.toInt(),
+        sizeText: fileSize(slot.sizeBytes),
+      ),
     ));
     if (gone == true && mounted) showToast(context, AppLocalizations.of(context).vaultDeleted, icon: Icons.check_rounded);
-    await _load();
-  }
-
-  Future<void> _schedule(rust.VaultSlot slot) async {
-    final l = AppLocalizations.of(context);
-    // The phone's owner first: a password forgotten is no reason to let anyone erase it.
-    if (!await confirmOwnerForSetting(l.vaultScheduleTitle) || !mounted) return;
-    final yes = await showModalBottomSheet<bool>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(Ui.side, 20, Ui.side, 12),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(l.vaultScheduleTitle, style: TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Text(l.vaultScheduleBody, style: TextStyle(fontSize: CsType.subhead, height: 1.4, color: CsColors.of(context).muted)),
-            const SizedBox(height: 20),
-            FilledButton(
-              key: const ValueKey('vault-schedule-go'),
-              style: FilledButton.styleFrom(backgroundColor: recordRed(context), foregroundColor: Colors.white),
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l.vaultScheduleAction),
-            ),
-            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-          ]),
-        ),
-      ),
-    );
-    if (yes != true || !mounted) return;
-    try {
-      final at = DateTime.now().add(VaultManagerScreen.forgotWait).millisecondsSinceEpoch;
-      await rust.scheduleVaultDelete(dir: widget.libraryDir, vaultId: slot.id, atMs: PlatformInt64Util.from(at));
-      if (mounted) showToast(context, l.vaultScheduled, icon: Icons.schedule_rounded);
-    } on rust.VaultError catch (e) {
-      if (mounted) showToast(context, '${l.errorStorage} (${e.name})', icon: Icons.error_outline_rounded);
-    }
-    await _load();
-  }
-
-  Future<void> _keep(rust.VaultSlot slot) async {
-    final l = AppLocalizations.of(context);
-    try {
-      await rust.cancelVaultDelete(dir: widget.libraryDir, vaultId: slot.id);
-      if (mounted) showToast(context, l.vaultKept, icon: Icons.check_rounded);
-    } catch (_) {}
     await _load();
   }
 

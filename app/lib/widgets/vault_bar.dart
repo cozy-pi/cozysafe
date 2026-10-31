@@ -706,7 +706,8 @@ enum AddWhat { note, photo, video, photos, voice, file }
 /// overview, the storage bar, the tabs and the ways to add.
 Color sectionColor(VaultSection s) => switch (s) {
       VaultSection.home => const Color(0xFF8E8E93),
-      VaultSection.note => const Color(0xFFFFB300),
+      // Indigo (owner 2026-10-31: the yellow was not liked).
+      VaultSection.note => const Color(0xFF5E5CE6),
       VaultSection.library => const Color(0xFF0A84FF),
       // Pink, apart from the notes' yellow (owner 2026-10-31: the two looked alike).
       VaultSection.audio => const Color(0xFFFF375F),

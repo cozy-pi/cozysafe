@@ -1857,21 +1857,21 @@ void main() {
       marks: [() => find.byKey(const ValueKey('vault-deletes-9b3ad0e1f2c4475a8e61d39b2f0c18d3'))],
       setup: () => VaultManagerScreen.debugSlots = slots());
   _screen('vault-manager-menu', 'Két trên máy này · chạm một két khoá', () => const VaultManagerScreen(libraryDir: ''),
-      change: 'MỚI: Xoá bằng mật khẩu của két · Quên mật khẩu (hẹn xoá sau 7 ngày, hỏi Face ID/mã máy trước)',
+      change: 'ĐỔI: chạm két là vào thẳng màn Xoá két: gõ mật khẩu, hoặc Quên mật khẩu (hẹn xoá sau 7 ngày, hỏi Face ID/mã máy trước)',
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-3fa9c1d2e4b5a6978877665544332211')));
     await t.pumpAndSettle();
   });
   _screen('vault-manager-open', 'Két trên máy này · chạm két đang mở', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
-      change: 'MỚI: Xoá két này nằm ở đây (bỏ khỏi trang Bảo mật)',
+      change: 'ĐỔI: chạm két đang mở là vào màn Xoá két (bỏ khỏi trang Bảo mật)',
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-e0a966aed6bec8151ebb59139e5aa773')));
     await t.pumpAndSettle();
   });
   _screen('vault-manager-keep', 'Két trên máy này · chạm két đang hẹn xoá', () => const VaultManagerScreen(libraryDir: ''),
-      change: 'MỚI: két đang hẹn xoá: Giữ lại két này (huỷ hẹn); mở két bằng mật khẩu cũng tự huỷ',
+      change: 'MỚI: két đang hẹn xoá: màn Xoá két có Giữ lại két này (huỷ hẹn); mở két bằng mật khẩu cũng tự huỷ',
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-9b3ad0e1f2c4475a8e61d39b2f0c18d3')));

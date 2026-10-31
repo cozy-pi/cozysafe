@@ -6,6 +6,9 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../secret_key_store.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart' show PlatformInt64Util;
+
+import '../biometric.dart' show confirmOwnerForSetting;
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../sync/drive.dart' show driveAccount, driveSignInQuietly;
@@ -16,6 +19,7 @@ import 'common.dart';
 import 'unlock.dart';
 import '../widgets/bottom_bar.dart';
 import '../widgets/toast.dart';
+import 'vault_manager.dart' show VaultManagerScreen;
 import 'welcome.dart';
 
 /// Delete a vault from this device, confirmed with its own password (no PIN since
@@ -30,8 +34,12 @@ class DeleteVaultScreen extends StatefulWidget {
     required this.libraryDir,
     this.vault,
     this.otherId,
+    this.deleteAtMs,
     required this.sizeText,
   }) : assert((vault == null) != (otherId == null));
+
+  /// [otherId] is already set to be deleted then (ms since the epoch).
+  final int? deleteAtMs;
 
   final String libraryDir;
   final rust.VaultInfo? vault;
@@ -148,6 +156,56 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
     }
   }
 
+  /// Password forgotten: the phone's owner, then a confirmation, then the vault is set
+  /// to be deleted in [VaultManagerScreen.forgotWait] unless opened with its password.
+  Future<void> _schedule() async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmOwnerForSetting(l.vaultScheduleTitle) || !mounted) return;
+    final yes = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(Ui.side, 20, Ui.side, 12),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text(l.vaultScheduleTitle, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text(l.vaultScheduleBody, style: TextStyle(fontSize: CsType.subhead, height: 1.4, color: CsColors.of(context).muted)),
+            const SizedBox(height: 20),
+            FilledButton(
+              key: const ValueKey('vault-schedule-go'),
+              style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l.vaultScheduleAction),
+            ),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+          ]),
+        ),
+      ),
+    );
+    if (yes != true || !mounted) return;
+    try {
+      final at = DateTime.now().add(VaultManagerScreen.forgotWait).millisecondsSinceEpoch;
+      await rust.scheduleVaultDelete(dir: widget.libraryDir, vaultId: _id, atMs: PlatformInt64Util.from(at));
+      if (!mounted) return;
+      showToast(context, l.vaultScheduled, icon: Icons.schedule_rounded);
+      Navigator.of(context).pop(false);
+    } on rust.VaultError catch (e) {
+      if (mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
+    }
+  }
+
+  Future<void> _keep() async {
+    final l = AppLocalizations.of(context);
+    try {
+      await rust.cancelVaultDelete(dir: widget.libraryDir, vaultId: _id);
+      if (!mounted) return;
+      showToast(context, l.vaultKept, icon: Icons.check_rounded);
+      Navigator.of(context).pop(false);
+    } on rust.VaultError catch (e) {
+      if (mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
+    }
+  }
+
   Future<bool> _deleteFromDrive(String id) async {
     try {
       final session = await driveSignInQuietly();
@@ -181,6 +239,14 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
               onPressed: _pw.text.isNotEmpty && !_busy ? _confirm : null,
               child: Text(l.deleteVaultAction),
             ),
+            // Another vault: its password forgotten, it can still go, in seven days
+            // (owner 2026-10-31: both ways on this one screen); or, set already, kept.
+            if (widget.otherId != null)
+              TextButton(
+                key: ValueKey(widget.deleteAtMs == null ? 'vault-forgot' : 'vault-keep'),
+                onPressed: _busy ? null : (widget.deleteAtMs == null ? _schedule : _keep),
+                child: Text(widget.deleteAtMs == null ? l.vaultForgotPassword : l.vaultKeep),
+              ),
           ],
           child: Center(
           child: SingleChildScrollView(

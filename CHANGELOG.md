@@ -20,12 +20,16 @@ Dates are UTC.
   thumbnail, nothing opened in the app.
 - Face ID or fingerprint opens one vault per device: a new vault no longer takes it
   from another one, and moving it in Settings says so first.
-- Settings' pages (Sync and backup, Security…) slide in as pages of their own, with Back
-  and the swipe from the edge.
+- Settings: what you use most is on the main page; what shows on screen, the look and
+  language, and About are pages of their own that slide in, with Back and the swipe from
+  the edge.
+- Making a new vault and deleting one are in Settings → Vaults on this device only.
+- Notes are indigo and voice memos pink, so the two no longer look alike.
 
 ### Added
-- Settings → Vaults on this device: delete a vault with its password, or, password
-  forgotten, have it deleted in 7 days unless someone opens it with its password.
+- Settings → Vaults on this device: tap a vault to delete it with its password, or,
+  password forgotten, have it deleted in 7 days unless someone opens it with its
+  password.
 - Deleting a vault can also delete its copy in Google Drive, and Sync → Google Drive can
   delete the open vault's copy there.
 
