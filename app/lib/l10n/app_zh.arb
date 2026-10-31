@@ -809,7 +809,7 @@
   "modeChangeLater": "之后可以在设置中更改。",
   "compareLock": "由密码和 24 个单词锁住",
   "compareCapture": "拍照、录像和录音",
-  "compareNotesFiles": "笔记，以及来自“文件”应用的文件",
+  "compareNotesFiles": "笔记、照片/文件",
   "compareView": "在应用内显示照片、视频和 PDF",
   "compareThumbs": "缩略图",
   "compareLibrary": "从照片图库添加",

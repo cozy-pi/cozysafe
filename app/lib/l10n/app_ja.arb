@@ -809,7 +809,7 @@
   "modeChangeLater": "あとで設定から変更できます。",
   "compareLock": "パスワードと24語で施錠",
   "compareCapture": "写真撮影、ビデオ・音声の録画・録音",
-  "compareNotesFiles": "メモ、ファイル App からのファイル",
+  "compareNotesFiles": "メモ、写真/ファイル",
   "compareView": "写真・動画・PDF をアプリ内で表示",
   "compareThumbs": "サムネイル",
   "compareLibrary": "写真ライブラリから追加",

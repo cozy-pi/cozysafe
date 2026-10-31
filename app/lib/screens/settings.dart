@@ -1265,7 +1265,6 @@ class _VaultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     // The same surface as the groups below, ink text: a black card in light mode and a
     // white one in dark mode were both too strong (owner 2026-10-21).
     final bg = Theme.of(context).cardColor;
@@ -1300,28 +1299,9 @@ class _VaultCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
+              // The bar alone, no legend (owner 2026-10-31): a tap opens Storage, with the
+              // parts named and sized.
               StorageBar(figures: figures),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 14,
-                runSpacing: 4,
-                children: [
-                  for (final (k, color) in storageParts)
-                    if (figures.size(k) > BigInt.zero) Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                        const SizedBox(width: 5),
-                        // The name only, as in the iPhone's Storage (owner 2026-10-26): the
-                        // bar shows how much, the total is above; the sizes are one tap away.
-                        Text(storagePartName(l, k), style: TextStyle(color: fg.withValues(alpha: .9), fontSize: CsType.footnote)),
-                      ],
-                    ),
-                ],
-              ),
             ],
           ),
         ),

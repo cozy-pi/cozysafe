@@ -1022,7 +1022,7 @@
   "modeChangeLater": "You can change this later in Settings.",
   "compareLock": "Opens with password + 24 words",
   "compareCapture": "Take photos, record video and voice",
-  "compareNotesFiles": "Notes, files from Files",
+  "compareNotesFiles": "Notes, photos/files",
   "compareView": "Photos, videos, PDFs in the app",
   "compareThumbs": "Thumbnails",
   "compareLibrary": "Add from the photo library",

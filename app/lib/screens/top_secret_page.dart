@@ -121,11 +121,10 @@ class TopSecretCompare extends StatelessWidget {
           row(l.compareEncrypted, true, true),
           row(l.compareLock, true, true),
           row(l.compareCapture, true, true),
+          // Photos from the library and files from Files in one row (owner 2026-10-31).
           row(l.compareNotesFiles, true, true),
           row(l.compareView, true, false),
           row(l.compareThumbs, true, false),
-          // Photos come in as sealed files, never looked at (owner 2026-10-31).
-          row(l.compareLibrary, true, true),
         ],
       ),
     );

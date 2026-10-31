@@ -809,7 +809,7 @@
   "modeChangeLater": "เปลี่ยนได้ภายหลังในการตั้งค่า",
   "compareLock": "ล็อกด้วยรหัสผ่านและคำ 24 คำ",
   "compareCapture": "ถ่ายรูป อัดวิดีโอและเสียง",
-  "compareNotesFiles": "โน้ต และไฟล์จากแอปไฟล์",
+  "compareNotesFiles": "โน้ต รูปภาพ/ไฟล์",
   "compareView": "แสดงรูปภาพ วิดีโอ และ PDF ในแอป",
   "compareThumbs": "ภาพย่อ",
   "compareLibrary": "เพิ่มจากคลังรูปภาพ",
