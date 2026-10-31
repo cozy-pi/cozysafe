@@ -347,7 +347,9 @@ void main() {
       await t.pump();
     }
     expect(button().onPressed, isNull); // three right, one wrong
-    await t.enterText(fields.at(3), list[asked[3]].substring(0, 4).toUpperCase()); // four letters are enough
+    // Four letters are enough (a three-letter word, such as "mom", is typed whole).
+    final last = list[asked[3]];
+    await t.enterText(fields.at(3), last.substring(0, last.length < 4 ? last.length : 4).toUpperCase());
     await t.pump();
     await t.ensureVisible(find.widgetWithText(FilledButton, "I've saved it"));
     await t.tap(find.widgetWithText(FilledButton, "I've saved it"));
