@@ -23,6 +23,13 @@ depends on memory. Details live in the linked docs; this page is the index.
 - Still to design and approve before building: the screens, the code split, and what
   happens to vaults made before (they hold photos today).
 
+## 2026-10-31 (later) — Top secret vault: the rest on the branch
+
+**Owner:** finish the Top secret vault (ADR 0005 steps 2–6) on the branch, then merge.
+Each step: mockup, approval, an internal test build from the branch (no public
+release). Top secret keeps version history. `webpki-roots` is allowed for Top secret
+sync. New passwords also need 5 different characters.
+
 ## 2026-10-31 — Top secret core, step 1: built from copies, a simpler password rule
 
 **Owner:** the cryptography stays RustCrypto (memory safe, no C); "audited" means a

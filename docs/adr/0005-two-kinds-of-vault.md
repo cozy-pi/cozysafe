@@ -114,8 +114,14 @@ new version:
   `sha2`, `hmac` and `hkdf` have no public audit, so they are covered by our own review
   and the standard test vectors (see supply-chain.md); the core builds offline from
   copies kept in `third_party/`.
-- `webpki-roots` (the list of trusted certificate authorities) is data, not code; to be
-  confirmed as allowed on the Top secret sync path.
+- Decided 2026-10-31: `webpki-roots` (Mozilla's list of certificate authorities, data
+  not code) is allowed on the Top secret sync path, kept as a copy in the repo like the
+  rest.
+- Decided 2026-10-31: Top secret keeps version history (a note or password changed by
+  mistake can be brought back); the code is already in `cs-core`.
+- Decided 2026-10-31: steps 2–6 are built on the branch and merged into `main` only when
+  all are done; each step still gets a mockup, the owner's approval and an internal test
+  build (TestFlight, Play internal) made from the branch, with no public GitHub release.
 - Exporting a file writes it decrypted to the temporary folder for the other app; it is
   wiped on lock and at start, but the other app may keep its own copy. The warning says
   so.
