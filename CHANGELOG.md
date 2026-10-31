@@ -25,6 +25,9 @@ Dates are UTC.
   the edge.
 - Making a new vault and deleting one are in Settings → Vaults on this device only.
 - Notes are indigo and voice memos pink, so the two no longer look alike.
+- "Open in another app" shows only the apps that can open the file: Android's own
+  "Open with" (the app gets read-only access to that one copy), the iPhone's "Open in…".
+  Where there is none, the share sheet as before.
 
 ### Added
 - Settings → Vaults on this device: tap a vault to delete it with its password, or,

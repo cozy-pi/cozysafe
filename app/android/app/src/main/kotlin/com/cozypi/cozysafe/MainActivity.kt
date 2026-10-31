@@ -40,6 +40,10 @@ class MainActivity : FlutterFragmentActivity() {
     private lateinit var pickMedia: ActivityResultLauncher<PickVisualMediaRequest>
     private lateinit var pickDocs: ActivityResultLauncher<Array<String>>
     private lateinit var confirmDelete: ActivityResultLauncher<IntentSenderRequest>
+    // "cozysafe/open": Android's own "Open with" for one decrypted copy; answers once the
+    // person is back in the app (the copy is removed then).
+    private lateinit var openWith: ActivityResultLauncher<Intent>
+    private var openResult: MethodChannel.Result? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +56,10 @@ class MainActivity : FlutterFragmentActivity() {
         // The system photo picker: no permission to read the whole library.
         pickMedia = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(100)) { deliver(it) }
         pickDocs = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { deliver(it) }
+        openWith = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            openResult?.success(true)
+            openResult = null
+        }
         confirmDelete = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { r ->
             val ok = r.resultCode == RESULT_OK
             finishDelete(
@@ -71,6 +79,25 @@ class MainActivity : FlutterFragmentActivity() {
         MethodChannel(messenger, "cozysafe/device").setMethodCallHandler { call, result ->
             if (call.method == "model") result.success(listOf(Build.MANUFACTURER ?: "", Build.MODEL ?: ""))
             else result.notImplemented()
+        }
+        MethodChannel(messenger, "cozysafe/open").setMethodCallHandler { call, result ->
+            if (call.method != "openWith") return@setMethodCallHandler result.notImplemented()
+            val path = call.argument<String>("path") ?: return@setMethodCallHandler result.success(false)
+            val mime = call.argument<String>("mime")?.ifEmpty { null } ?: "*/*"
+            try {
+                val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.open", File(path))
+                val view = Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(uri, mime)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                // No check for apps first (Android 11 hides other apps without a <queries>
+                // entry): the system's chooser says so itself when none can open it.
+                openResult?.success(true)
+                openResult = result
+                openWith.launch(Intent.createChooser(view, call.argument<String>("title")))
+            } catch (_: Throwable) {
+                openResult = null
+                result.success(false)
+            }
         }
         // The 24 words in Google Block Store, when Settings turns it on (BlockStore).
         MethodChannel(messenger, "cozysafe/blockstore").setMethodCallHandler { call, result ->

@@ -6,7 +6,7 @@ import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/vault_bar.dart' show showCard;
-import 'file_view.dart' show fileSize, shareById;
+import 'file_view.dart' show fileSize, openWithById;
 import 'item_info.dart' show itemKindLabel, shownName;
 
 /// A Top secret item that is not a note (ADR 0005): never opened, previewed or played in
@@ -66,7 +66,7 @@ Future<void> showSealedItem(
     ),
   );
   if (send != true || !context.mounted) return;
-  await shareById(
+  await openWithById(
     context,
     item.id,
     item.mime,

@@ -129,6 +129,12 @@ import UniformTypeIdentifiers
           DispatchQueue.main.async { result(data.map { FlutterStandardTypedData(bytes: $0) }) }
         }
       }
+      let open = FlutterMethodChannel(name: "cozysafe/open", binaryMessenger: registrar.messenger())
+      open.setMethodCallHandler { [weak self] call, result in
+        guard let self, call.method == "openWith", let args = call.arguments as? [String: Any],
+              let path = args["path"] as? String else { return result(FlutterMethodNotImplemented) }
+        self.openWith(path: path, result: result)
+      }
       let originals = FlutterMethodChannel(name: "cozysafe/originals", binaryMessenger: registrar.messenger())
       originalsChannel = originals
       originals.setMethodCallHandler { [weak self] call, result in
@@ -316,6 +322,11 @@ import UniformTypeIdentifiers
   /// Copies still on their way, so a cancelled import can stop them.
   private var copying: [Progress] = []
   private var copyStopped = false
+  /// "cozysafe/open": the system's "Open in…" menu for one decrypted copy, kept until the
+  /// menu closes or the chosen app has its copy; then Dart hears and removes the file.
+  private var openIn: UIDocumentInteractionController?
+  private var openResult: FlutterResult?
+  private var openSending = false
   /// Picked files, by the id given to Dart, still open for their security scope.
   private var pickedFiles: [String: URL] = [:]
 
@@ -394,6 +405,45 @@ import UniformTypeIdentifiers
   private func releaseFiles() {
     for url in pickedFiles.values { url.stopAccessingSecurityScopedResource() }
     pickedFiles.removeAll()
+  }
+}
+
+extension AppDelegate: UIDocumentInteractionControllerDelegate {
+  /// The apps that can open this kind of file, in the system's own menu; false (Dart
+  /// falls back to the share sheet) when there is none or nothing to show it on.
+  func openWith(path: String, result: @escaping FlutterResult) {
+    finishOpen()
+    guard let view = topController?.view else { return result(false) }
+    let doc = UIDocumentInteractionController(url: URL(fileURLWithPath: path))
+    doc.delegate = self
+    openIn = doc
+    openResult = result
+    openSending = false
+    let rect = CGRect(x: view.bounds.midX, y: view.bounds.maxY - 80, width: 1, height: 1)
+    if !doc.presentOpenInMenu(from: rect, in: view, animated: true) {
+      openIn = nil
+      openResult = nil
+      result(false)
+    }
+  }
+
+  private func finishOpen() {
+    openResult?(true)
+    openResult = nil
+    openIn = nil
+    openSending = false
+  }
+
+  func documentInteractionController(_ controller: UIDocumentInteractionController, willBeginSendingToApplication application: String?) {
+    openSending = true
+  }
+
+  func documentInteractionController(_ controller: UIDocumentInteractionController, didEndSendingToApplication application: String?) {
+    finishOpen()
+  }
+
+  func documentInteractionControllerDidDismissOpenInMenu(_ controller: UIDocumentInteractionController) {
+    if !openSending { finishOpen() }
   }
 }
 

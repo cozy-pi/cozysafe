@@ -407,6 +407,13 @@ class _FileViewScreenState extends State<FileViewScreen> {
     if (mounted) setState(() => _busy = false);
   }
 
+  /// "Open with" (Android) / "Open in…" (iPhone): only the apps that open this file.
+  Future<void> _openWith(BuildContext buttonContext) async {
+    setState(() => _busy = true);
+    await openWithById(context, _item.id, _item.mime, _item.name, widget.vaultId, from: buttonContext);
+    if (mounted) setState(() => _busy = false);
+  }
+
   /// Asks first, then it goes to Recently deleted and the vault offers Undo.
   Future<void> _delete() async {
     if (!await confirmTrash(context, count: 1, name: _item.name) || !mounted) return;
@@ -626,7 +633,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
       appBar: AppBar(actions: _moreButton(l)),
       // Open with leads the bar; Open as text beside it.
       bottomNavigationBar: _bar(l, first: [
-        BarIcon(key: const ValueKey('file-open-with'), icon: Icons.open_in_new_rounded, tooltip: l.openWith, onTap: _busy ? null : _open),
+        BarIcon(key: const ValueKey('file-open-with'), icon: Icons.open_in_new_rounded, tooltip: l.openWith, onTap: _busy ? null : _openWith),
         BarIcon(
             key: const ValueKey('open-as-text'),
             icon: Icons.notes_rounded,
@@ -695,6 +702,46 @@ Future<void> shareById(BuildContext context, String id, String mime, String name
       dir.deleteSync(recursive: true);
     } catch (_) {}
   }
+}
+
+const _openChannel = MethodChannel('cozysafe/open');
+
+/// Open one item in another app, as a computer's "Open with" (owner 2026-10-31: the share
+/// sheet only sent it): Android's own "Open with" (a read-only link to the copy, for the
+/// app picked) and the iPhone's "Open in…" (only apps that open this kind of file; the
+/// one picked gets a copy). Elsewhere, or when the system has nothing to offer, the share
+/// sheet as before. The decrypted copy is removed once the person is back.
+Future<void> openWithById(BuildContext context, String id, String mime, String name, String vaultId,
+    {BuildContext? from, bool askFirst = true}) async {
+  if (!Device.android && !Device.iOS) {
+    return shareById(context, id, mime, name, vaultId, from: from, askFirst: askFirst);
+  }
+  final l = AppLocalizations.of(context);
+  if (askFirst && !await confirmShareOut(context, vaultId) || !context.mounted) return;
+  // Android shares only this folder (res/xml/open_paths.xml).
+  final base = Directory('${(await privateTemp()).path}${Platform.pathSeparator}open');
+  base.createSync(recursive: true);
+  final dir = base.createTempSync('o');
+  final file = name.replaceAll(RegExp(r'[/\\:]'), '-');
+  final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
+  LockGuard.allowAway();
+  var shown = false;
+  try {
+    await rust.exportItem(id: id, path: path);
+    shown = await _openChannel.invokeMethod<bool>('openWith', {'path': path, 'mime': mime, 'title': l.openWith}) ?? false;
+  } on rust.VaultError catch (e) {
+    shown = true;
+    if (context.mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
+  } catch (_) {
+    shown = false;
+  } finally {
+    LockGuard.clear();
+    try {
+      dir.deleteSync(recursive: true);
+    } catch (_) {}
+  }
+  // No app for it here: the share sheet still lets it go somewhere (Files, AirDrop).
+  if (!shown && context.mounted) await shareById(context, id, mime, name, vaultId, from: from, askFirst: false);
 }
 
 /// Before the first decrypted copy leaves a vault: say what that means, once per
