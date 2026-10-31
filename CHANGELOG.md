@@ -4,6 +4,64 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Unreleased
+
+### Changed
+- The encryption core is built only from copies of its libraries kept in the source,
+  checked byte for byte on every build; nothing is downloaded for it.
+- On a computer, unlocking takes about a second (it was a third of a second): the core
+  no longer uses a threading library. Your password and key work as before.
+- A new vault password needs at least 12 characters (4 words always do) and must not be
+  one of the most common passwords. Passwords you already use keep working.
+- Google Drive syncs 5 seconds after your last change (it was 15).
+- Each vault has its own mode: Private or Top secret is chosen for every new vault, and
+  changed for the open vault in Settings.
+- Top Secret Mode adds photos from the library again, kept as sealed files: no
+  thumbnail, nothing opened in the app.
+- Face ID or fingerprint opens one vault per device: a new vault no longer takes it
+  from another one, and moving it in Settings says so first.
+- Settings: what you use most is on the main page; what shows on screen, the look and
+  language, and About are pages of their own that slide in, with Back and the swipe from
+  the edge.
+- Making a new vault and deleting one are in Settings → Vaults on this device only.
+- Notes are indigo with a notebook icon, and voice memos pink, so the two no longer look
+  alike.
+- The quick buttons above + go video, photo, voice.
+- Files show an icon and a colour for their kind (PDF, pictures, video, sound, documents,
+  sheets, slides, archives, text, code, keys…), in the list, the grid, Recent and search.
+- A vault in Top Secret Mode has a faint red wash over the top half of its page and
+  of Settings, instead of the small shield on the Settings button.
+- A long file name keeps its extension: "Ket qua xet nghiem… .pdf".
+- Grid or list is chosen in ⋯ (no longer under Sort), on Files and now on Overview too.
+- Overview lists everything, newest first, as far as you scroll (it stopped at six).
+- In the grid, the extension sits on the file's icon (or on a picture's corner); the name
+  under it goes without.
+- After turning Top Secret Mode on or off, Android counts 3, 2, 1 and starts Cozy Safe
+  again by itself; a computer counts down and closes.
+- The vault's icon and the mode shields are flat, one colour each.
+- Pinch the files' grid and the home page's grid for 2 to 5 tiles a row, as in the
+  library; each remembers its size.
+- Long lists (files, notes, voice memos, everything on the home page) are drawn row by row
+  as you scroll, so a vault with a great many items opens as fast as a small one.
+  Search draws the first 500 matches of each kind and says how many there are in all.
+- "Open in another app" shows only the apps that can open the file: Android's own
+  "Open with" (the app gets read-only access to that one copy), the iPhone's "Open in…".
+  Where there is none, the share sheet as before.
+
+### Added
+- Settings → Vaults on this device: tap a vault to delete it with its password, or,
+  password forgotten, have it deleted in 7 days unless someone opens it with its
+  password.
+- Deleting a vault can also delete its copy in Google Drive, and Sync → Google Drive can
+  delete the open vault's copy there.
+
+### Fixed
+- Deleting for good from Recently deleted starts an automatic sync, like any other
+  change.
+- A tap beside the quick buttons above + closes them, as a tap anywhere else does.
+- With + in the middle and three sections (Top Secret Mode), + sat right of centre.
+- Deleting a vault from Google Drive removes its folders too; empty ones were left.
+
 ## 0.1.92 (2026-10-30)
 
 ### Changed

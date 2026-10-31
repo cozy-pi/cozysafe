@@ -110,7 +110,7 @@ class _Fake implements RustLibApi {
     final items = _items(_lang);
     final media = items.where((x) => x.kind == 'photo' || x.kind == 'video').toList();
     if (n.contains('MinPasswordScore')) return 3;
-    if (n.contains('MinPasswordLength')) return 8;
+    if (n.contains('MinPasswordLength')) return 12;
     if (n.contains('MinPinLength')) return 6;
     if (n.contains('PasswordProblem')) return PasswordProblem.none;
     if (n.contains('PasswordScore')) return 4;
@@ -178,7 +178,7 @@ void main() {
     }
   });
 
-  const vault = VaultInfo(id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true);
+  const vault = VaultInfo(id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
   Widget settings() => SettingsScreen(

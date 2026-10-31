@@ -66,6 +66,11 @@ import '../sync/sync_status.dart';
 import 'history.dart';
 import 'wide_home.dart';
 import '../widgets/readable.dart';
+import '../top_secret_mode.dart';
+import 'top_secret_page.dart';
+import 'sealed_item.dart';
+import '../file_kinds.dart';
+import '../widgets/file_name.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -107,6 +112,32 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
   static const _colSteps = [3, 4, 5, 7];
   double _scaleStart = 1;
+
+  /// Tiles per row in the files' and the home page's grids, pinched like the library
+  /// (owner 2026-10-31), each remembered (Prefs `<pref>`).
+  static const _tileSteps = [2, 3, 4, 5];
+  int _tileCols(String pref) {
+    final n = int.tryParse(Prefs.read(pref) ?? '');
+    return _tileSteps.contains(n) ? n! : 3;
+  }
+
+  /// [child] that a pinch makes hold more tiles a row (in) or fewer (out).
+  Widget _pinchTiles(String pref, Widget child) => GestureDetector(
+        onScaleStart: (_) => _scaleStart = 1,
+        onScaleUpdate: (d) {
+          if (d.pointerCount < 2) return;
+          final now = _tileCols(pref);
+          final at = _tileSteps.indexOf(now);
+          int? next;
+          if (d.scale < _scaleStart * .8 && at < _tileSteps.length - 1) next = _tileSteps[at + 1];
+          if (d.scale > _scaleStart * 1.25 && at > 0) next = _tileSteps[at - 1];
+          if (next == null) return;
+          _scaleStart = d.scale;
+          Prefs.write(pref, '$next');
+          setState(() {});
+        },
+        child: child,
+      );
   /// What the vault shows, picked in the bottom capsule.
   late VaultSection _section = startSection();
   /// A section opened from the add sheet stays offered while empty (a voice memo
@@ -596,10 +627,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
-  List<(AddWhat, IconData, String)> _addWays() => addRowWays(AppLocalizations.of(context), _section,
-      camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
+  /// The quick buttons above +.
+  List<(AddWhat, IconData, String)> _addWays() =>
+      quickWays(AppLocalizations.of(context), camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
 
-  AddWhat? get _directAdd => addDirect(_section, camera: _hasCamera) ?? (_addWays().isEmpty ? AddWhat.photos : null);
+  /// Every way, for the card above the quick buttons and the computer's Add.
+  List<(AddWhat, IconData, String)> _allWays() =>
+      addWays(AppLocalizations.of(context), camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
+
+  AddWhat? get _directAdd => addDirect(_section, camera: _hasCamera);
 
 
   /// One way of adding, from the add column or the empty vault's tiles. The section it fills
@@ -607,7 +643,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _add(AddWhat what) async {
     final target = switch (what) {
       AddWhat.note => VaultSection.note,
-      AddWhat.photo || AddWhat.video || AddWhat.photos => VaultSection.library,
+      AddWhat.photo || AddWhat.video || AddWhat.photos => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       AddWhat.voice => VaultSection.audio,
       AddWhat.file => VaultSection.file,
     };
@@ -904,12 +940,31 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     final l = AppLocalizations.of(context);
     final store = BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel);
+    // One vault per device opens with Face ID: taking it from another vault says so first
+    // (owner 2026-10-31).
+    if (!_bioOn && rust.hasBiometricUnlock(dir: widget.libraryDir) && !await _confirmBiometricMove(l)) return;
     if (_bioOn) {
       await turnOffBiometric(store);
     } else if (!await turnOnBiometric(store)) {
       if (mounted) _snack(l.biometricFailed);
     }
     if (mounted) setState(() => _bioOn = rust.biometricEnabled());
+  }
+
+  Future<bool> _confirmBiometricMove(AppLocalizations l) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const ValueKey('bio-move'),
+        title: Text(l.biometricMoveTitle),
+        content: Text(l.biometricMoveBody),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+          FilledButton(key: const ValueKey('bio-move-yes'), onPressed: () => Navigator.pop(context, true), child: Text(l.biometricMoveYes)),
+        ],
+      ),
+    );
+    return yes == true;
   }
 
   Future<void> _changeIdentity() async {
@@ -1015,6 +1070,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   static const _thumbCap = 800;
 
   Future<Uint8List> _thumbnail(String id) {
+    // Top secret reads no thumbnail (ADR 0005): rows show the kind's icon.
+    if (TopSecretMode.on) return Future.value(Uint8List(0));
     final had = _thumbnails.remove(id);
     if (had != null) return _thumbnails[id] = had; // now the most recent
     while (_thumbnails.length >= _thumbCap) {
@@ -1037,9 +1094,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   bool _isMedia(rust.ItemInfo i) => i.kind == ItemKind.photo || i.kind == ItemKind.video;
 
+  /// Whether a row draws the item's picture: never in Top secret (ADR 0005), where a
+  /// photo or video row shows its kind, as a file does.
+  bool _rowPicture(rust.ItemInfo i) => _isMedia(i) && !TopSecretMode.on;
+
   Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
     if (_selecting) return _toggle(item.id);
     if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
+    // Top secret opens notes only (ADR 0005); anything else is a sealed row: its details
+    // and Export, after the warning. No viewer, player or preview is ever built.
+    if (TopSecretMode.on && item.kind != ItemKind.note) {
+      await showSealedItem(context, item, vaultId: _vault.id);
+      return;
+    }
     // A wide window opens it in the pane beside the list, not over the page.
     if (_wide) return setState(() => _focus = item);
     // Every kind opens the same way: big, over the page you are on, never a jump to
@@ -1517,19 +1584,23 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (list.isEmpty) {
       if (_tagId != null) return _tagEmpty(context);
       return notes
-          ? _Empty(icon: Icons.edit_note_rounded, title: l.emptyNotesTitle, body: l.emptyNotesBody)
+          ? _Empty(icon: Icons.book_rounded, title: l.emptyNotesTitle, body: l.emptyNotesBody)
           : _Empty(icon: Icons.folder_rounded, title: l.emptyFilesTitle, body: l.emptyFilesBody);
     }
     _dragOrder = [for (final it in list) it.id];
     if (!notes && _filesAsGrid) {
-      return Scrollbar(
+      return _pinchTiles('files-columns', Scrollbar(
         child: GridView.builder(
           key: const ValueKey('files-grid'),
           padding: EdgeInsets.fromLTRB(12, 4, 12, _bottomRoom),
-          // Three a row on a phone, as many as fit on a computer (owner 2026-10-28: three
-          // tiles across a MacBook were each the size of a page).
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 150, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78),
+          // As many a row as pinched on a phone (three at first), as many as fit on a
+          // computer (owner 2026-10-28: three tiles across a MacBook were each the size of
+          // a page).
+          gridDelegate: _wide
+              ? const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 150, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78)
+              : SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: _tileCols('files-columns'), mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78),
           itemCount: list.length,
           itemBuilder: (context, i) {
             final it = list[i];
@@ -1546,45 +1617,52 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             );
           },
         ),
-      );
+      ));
     }
+    // Built row by row as the list scrolls (owner 2026-10-31: hundreds of thousands of
+    // items must not be laid out at once); each row draws its part of the one card.
+    final last = list.length - 1;
     return Scrollbar(
-      child: ListView(
+      child: ListView.builder(
+        key: ValueKey('list-${_section.name}'),
         padding: EdgeInsets.fromLTRB(12, 4, 12, _bottomRoom),
-        children: [
-          Material(
+        itemCount: list.length,
+        itemBuilder: (context, i) {
+          final it = list[i];
+          return Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(i == 0 ? 14 : 0),
+              bottom: Radius.circular(i == last ? 14 : 0),
+            ),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
-                for (final (i, it) in list.indexed) ...[
-                  if (i > 0) Divider(height: 1, indent: notes ? 16 : 70, color: c.border.withValues(alpha: .6)),
-                  DragSelectItem(
-                    id: it.id,
-                    drag: _drag,
-                    onMenu: () => _itemMenu(it, notes ? const [] : list.where(_isMedia).toList()),
-                    child: notes
-                        ? _NoteRow(
-                            item: it,
-                            preview: notePreviews() ? _preview(it.id) : null,
-                            selected: _selected.contains(it.id),
-                            selecting: _selecting,
-                            onTap: () => _openItem(it, const []),
-                          )
-                        : _FileRow(
-                            item: it,
-                            thumbnail: _isMedia(it) ? _thumbnail(it.id) : null,
-                            selected: _selected.contains(it.id),
-                            selecting: _selecting,
-                            onTap: () => _openItem(it, list.where(_isMedia).toList()),
-                          ),
-                  ),
-                ],
+                if (i > 0) Divider(height: 1, indent: notes ? 16 : 70, color: c.border.withValues(alpha: .6)),
+                DragSelectItem(
+                  id: it.id,
+                  drag: _drag,
+                  onMenu: () => _itemMenu(it, notes ? const [] : list.where(_isMedia).toList()),
+                  child: notes
+                      ? _NoteRow(
+                          item: it,
+                          preview: notePreviews() ? _preview(it.id) : null,
+                          selected: _selected.contains(it.id),
+                          selecting: _selecting,
+                          onTap: () => _openItem(it, const []),
+                        )
+                      : _FileRow(
+                          item: it,
+                          thumbnail: _rowPicture(it) ? _thumbnail(it.id) : null,
+                          selected: _selected.contains(it.id),
+                          selecting: _selecting,
+                          onTap: () => _openItem(it, list.where(_isMedia).toList()),
+                        ),
+                ),
               ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -1603,7 +1681,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         VaultSection.note => i.kind == ItemKind.note,
         VaultSection.library => i.kind == ItemKind.photo || i.kind == ItemKind.video,
         VaultSection.audio => i.kind == ItemKind.audio,
-        VaultSection.file => i.kind == ItemKind.file,
+        // Top secret has no Library: its photos and videos (camera shots, and those
+        // from before the split) are files there.
+        VaultSection.file => i.kind == ItemKind.file || (TopSecretMode.on && (i.kind == ItemKind.photo || i.kind == ItemKind.video)),
       };
 
   /// What the section on show holds, narrowed to the open tag.
@@ -1644,7 +1724,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// Files as a grid of tiles instead of rows (Prefs `files-view`).
   bool get _filesAsGrid => Prefs.read('files-view') == 'grid';
 
-  /// Sort and view, from the ⇅ button in the header.
+  /// The home page's list of everything as a grid of tiles (Prefs `home-view`).
+  bool get _homeAsGrid => Prefs.read('home-view') == 'grid';
+
+  /// The pref that holds [section]'s view, where it has a choice (owner 2026-10-31: in
+  /// ⋯, not in Sort; the home page too).
+  static String? _viewPref(VaultSection section) => switch (section) {
+        VaultSection.file => 'files-view',
+        VaultSection.home => 'home-view',
+        _ => null,
+      };
+
+  /// Sort, from ⋯ in the header.
   Future<void> _sortMenu() async {
     final l = AppLocalizations.of(context);
     final now = _sort;
@@ -1667,11 +1758,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           Prefs.write('sort-${_section.name}', o.name);
           setState(() {});
         }, key: ValueKey('sort-${o.name}')),
-      if (_section == VaultSection.file)
-        MenuEntry(_filesAsGrid ? Icons.view_list_rounded : Icons.grid_view_rounded, _filesAsGrid ? l.viewList : l.viewGrid, () {
-          Prefs.write('files-view', _filesAsGrid ? 'list' : 'grid');
-          setState(() {});
-        }, key: const ValueKey('files-view')),
     ]);
   }
 
@@ -1859,7 +1945,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final media = rows.where(_isMedia).toList();
     return DeskTable(
       items: rows,
-      thumbnail: (it) => _isMedia(it) ? _thumbnail(it.id) : null,
+      thumbnail: (it) => _rowPicture(it) ? _thumbnail(it.id) : null,
       onOpen: (it) => _openItem(it, media),
       onMenu: (it) => _itemMenu(it, media),
       sortColumn: col,
@@ -2014,11 +2100,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final ink = Theme.of(context).colorScheme.onSurface;
     final things = items.where((i) => i.kind != ItemKind.tag).toList();
     final bytes = things.fold<BigInt>(BigInt.zero, (a, i) => a + i.sizeBytes);
-    return VaultOverview(
+    return _pinchTiles('home-columns', VaultOverview(
       items: items,
+      columns: _tileCols('home-columns'),
       thumbnail: _thumbnail,
       bottomPad: _bottomRoom,
-      recentCount: 6,
+      grid: _homeAsGrid,
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -2083,7 +2170,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       onOpen: (it) => _openItem(it, things.where(_isMedia).toList()),
       onMenu: (it) => _itemMenu(it, things.where(_isMedia).toList()),
       onGroupMenu: _tagMenu,
-    );
+    ));
   }
 
   /// Large title (the section, or the open tag with Back and a ⋯ menu); Search and
@@ -2113,13 +2200,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   Text('${l.tagAction} · ${sectionLabel(l, _section)}',
                       key: const ValueKey('group-label'),
                       style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
-                Text(
-                  open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
-                  key: const ValueKey('vault-title'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w800, letterSpacing: -.5),
-                ),
+                Row(children: [
+                  Flexible(
+                    child: Text(
+                      open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
+                      key: const ValueKey('vault-title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w800, letterSpacing: -.5),
+                    ),
+                  ),
+                ]),
                 if (count != null)
                   Text(l.itemsCount(count),
                       key: const ValueKey('vault-count'),
@@ -2144,13 +2235,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               key: _settingsKey,
               // A red dot when automatic sync failed (owner 2026-10-27).
               child: SyncAlertBadge(
-                child: GlassButton(
+                child: _withTopSecretCorner(GlassButton(
                   key: const ValueKey('settings-button'),
                   icon: Icons.settings_rounded,
                   tooltip: l.settings,
                   size: Ui.circle,
                   onTap: _openSettings,
-                ),
+                )),
               ),
             ),
           ],
@@ -2158,6 +2249,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       ),
     );
   }
+
+  /// The mode shows as the page's red wash now ([TopSecretWash]), not on this button.
+  Widget _withTopSecretCorner(Widget button) => button;
 
   /// What the header's ⋯ offers: Select, Sort, and inside a group its rename and delete.
   List<MenuEntry> _moreEntries(AppLocalizations l, rust.ItemInfo? open) {
@@ -2167,6 +2261,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         MenuEntry(Icons.check_circle_outline_rounded, l.select, () => setState(() => _selectMode = true), key: const ValueKey('select-button')),
       if (_section != VaultSection.home && shown.length > 1)
         MenuEntry(Icons.swap_vert_rounded, l.sortBy, _sortMenu, key: const ValueKey('sort-button')),
+      if (_viewPref(_section) case final pref?)
+        Prefs.read(pref) == 'grid'
+            ? MenuEntry(Icons.view_list_rounded, l.viewList, () => setState(() => Prefs.write(pref, 'list')),
+                key: const ValueKey('files-view'))
+            : MenuEntry(Icons.grid_view_rounded, l.viewGrid, () => setState(() => Prefs.write(pref, 'grid')),
+                key: const ValueKey('files-view')),
       if (open != null) ...[
         MenuEntry(Icons.edit_outlined, l.renameTag, () => _renameTag(open), key: const ValueKey('rename-tag')),
         MenuEntry(Icons.delete_outline_rounded, l.deleteTag, () => _deleteTag(open), danger: true, key: const ValueKey('delete-tag')),
@@ -2300,8 +2400,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   child: AddCardOverlay(
                     open: _adding,
                     onGone: () => setState(() => _addShown = false),
-                    ways: addWays(AppLocalizations.of(context),
-                        camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                    ways: _allWays(),
                     bottom: 24,
                     dropFrom: _wideAddDrop(),
                     hovered: _hover,
@@ -2508,7 +2607,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final (icon, tip) = _recordingNow
         ? (Icons.stop_rounded, l.stopRecording)
         : switch (_adding ? null : _directAdd) {
-            AddWhat.note => (Icons.edit_note_rounded, l.newNote),
+            AddWhat.note => (Icons.book_rounded, l.newNote),
             AddWhat.voice => (Icons.mic_rounded, l.startRecording),
             AddWhat.file => (Icons.folder_rounded, l.addFiles),
             AddWhat.photos => (Icons.add_photo_alternate_rounded, l.addFromDevice),
@@ -2642,6 +2741,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             : null,
         body: Stack(
           children: [
+            // Top Secret Mode: a faint red wash from the top of the page, enough to tell
+            // which mode this vault is in without getting in the way (owner 2026-10-31: in
+            // place of the shield on the Settings button).
+            if (TopSecretMode.on) const Positioned.fill(child: IgnorePointer(child: TopSecretWash())),
             SafeArea(
               bottom: false,
               child: Column(
@@ -2757,7 +2860,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       : AddCardOverlay(
                           open: _adding,
                           onGone: () => setState(() => _addShown = false),
-                          ways: addWays(l, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                          ways: _allWays(),
                           bottom: bottom + actionLift() + Ui.primary + 10,
                           hovered: _hover,
                           onPick: _pickAdd,
@@ -2774,7 +2877,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   bottom: bottom + actionLift() + Ui.primary + 10 + Ui.bar + 40,
                   child: AddCard(
                     open: _adding,
-                    ways: addWays(l, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio)),
+                    ways: _allWays(),
                     onPick: _pickAdd,
                   ),
                 ),
@@ -3111,8 +3214,6 @@ class _FileRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = CsColors.of(context);
     final when = MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs));
-    final dot = item.name.lastIndexOf('.');
-    final ext = dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     return SelectableRow(
       selected: selected,
       selecting: selecting,
@@ -3133,13 +3234,10 @@ class _FileRow extends StatelessWidget {
                           ? PrivateThumb(snap.data!)
                           : const SizedBox.expand(),
                     )
-                  : Center(
-                child: item.kind == ItemKind.note || ext.isEmpty || ext.length > 4
-                    ? Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary)
-                    : Text(ext,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary, fontSize: CsType.caption2, fontWeight: FontWeight.w800)),
-              ),
+                  : item.kind == ItemKind.note
+                      ? Center(child: Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary))
+                      // Each kind of file its icon and colour (owner 2026-10-31).
+                      : FileKindBadge(name: item.name, mime: item.mime),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -3148,7 +3246,7 @@ class _FileRow extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Flexible(child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead))),
+                      Flexible(child: FileNameText(item.name, style: const TextStyle(fontSize: CsType.subhead))),
                       if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],
                   ),
@@ -3180,8 +3278,6 @@ class _FileTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = CsColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
-    final dot = item.name.lastIndexOf('.');
-    final ext = dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     return InkWell(
       onTap: onTap,
       // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
@@ -3199,16 +3295,15 @@ class _FileTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(10)),
-                    alignment: Alignment.center,
-                    child: ext.isEmpty || ext.length > 4
-                        ? Icon(fileIcon(item), color: primary, size: 30)
-                        : Text(ext, style: TextStyle(color: primary, fontSize: CsType.subhead, fontWeight: FontWeight.w800)),
+                  child: LayoutBuilder(
+                    builder: (context, box) =>
+                        FileKindBadge(name: item.name, mime: item.mime, width: box.maxWidth, height: box.maxHeight, big: true),
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
+                // The extension is on the mark above (owner 2026-10-31).
+                Text(nameWithoutExtension(item.name),
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
                 const SizedBox(height: 2),
                 Text(fileSize(item.sizeBytes), style: TextStyle(color: c.muted, fontSize: CsType.caption1)),
               ],

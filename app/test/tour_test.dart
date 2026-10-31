@@ -24,7 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true);
+const _vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
 
 class _Fake implements RustLibApi {
   int created = 0;
@@ -32,7 +32,7 @@ class _Fake implements RustLibApi {
   @override
   dynamic noSuchMethod(Invocation call) {
     final name = call.memberName.toString();
-    if (name.contains('MinPasswordLength')) return 8;
+    if (name.contains('MinPasswordLength')) return 12;
     if (name.contains('MinPinLength')) return 6;
     if (name.contains('MinPasswordScore')) return 3;
     if (name.contains('PasswordProblem')) return PasswordProblem.none;
@@ -116,6 +116,9 @@ void main() {
     expect(find.byKey(const ValueKey('intro-bio')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('intro-start')));
     await _settle(t);
+    // Every vault chooses its own mode (ADR 0007).
+    await t.tap(find.byKey(const ValueKey('mode-next')));
+    await _settle(t);
     const password = 'orange kettle whispers at dawn';
     await t.enterText(find.descendant(of: find.byKey(const ValueKey('new-password')), matching: find.byType(TextField)), password);
     await t.enterText(
@@ -136,6 +139,9 @@ void main() {
     // What each key is for → the password (makes the vault; no PIN since 2026-10-28) →
     // the look (skipped). No Face ID on this device, so no Face ID step.
     await t.tap(find.byKey(const ValueKey('intro-start')));
+    await _settle(t);
+    // Every vault chooses its own mode (ADR 0007).
+    await t.tap(find.byKey(const ValueKey('mode-next')));
     await _settle(t);
     const password = 'orange kettle whispers at dawn';
     await t.enterText(find.descendant(of: find.byKey(const ValueKey('new-password')), matching: find.byType(TextField)), password);
@@ -214,7 +220,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('settings-button')));
     await _settle(t);
     expect(find.byType(CoachTour), findsNothing); // opening Settings alone shows no tips
-    // Help is near the end of Settings since 2026-10-27: scroll to it first.
+    // Help is near the end of Settings, on its one page (2026-10-31): scroll to it.
     await t.scrollUntilVisible(find.byKey(const ValueKey('guide-row')), 200, scrollable: find.byType(Scrollable).first);
     // Rows are taller at the iPhone's 17 pt: bring the row clear of the bottom bar.
     await t.drag(find.byType(Scrollable).first, const Offset(0, -200));
@@ -247,7 +253,7 @@ void main() {
     await _settle(t);
     await t.tap(find.byKey(const ValueKey('settings-button')));
     await _settle(t);
-    // Help is near the end of Settings since 2026-10-27: scroll to it first.
+    // Help is near the end of Settings, on its one page (2026-10-31): scroll to it.
     await t.scrollUntilVisible(find.byKey(const ValueKey('guide-row')), 200, scrollable: find.byType(Scrollable).first);
     // Rows are taller at the iPhone's 17 pt: bring the row clear of the bottom bar.
     await t.drag(find.byType(Scrollable).first, const Offset(0, -200));

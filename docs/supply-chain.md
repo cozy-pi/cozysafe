@@ -29,16 +29,74 @@ The core of a Top secret vault depends on **independently audited cryptography a
 SQLite, and nothing else**. No other crate, however small or popular, is allowed on its
 path: what it needs beyond those is written here, in our own code.
 
-- **Allowed:** the RustCrypto crates that have a public, independent audit (each listed
-  below with its report), the small crates they are made of, and SQLite (`rusqlite`,
-  built from the bundled source).
-- **Not allowed:** everything else. Today the vault core also uses `serde`,
-  `serde_json`, `hex`, `thiserror` and `zxcvbn` (which alone brings 25 crates); a Top
-  secret vault is built without them (its own small encoding, its own errors, its own
-  password check: length plus a list of common passwords).
-- **"Audited" needs evidence:** a crate stays out until its audit report is linked here.
-  To check before the Top secret vault is built: `chacha20poly1305`, `argon2`, `hkdf`,
-  `sha2`, `zeroize`.
+- **Allowed:** the RustCrypto crates, the small crates they are made of, and SQLite
+  (`rusqlite`, built from the bundled source). The cryptography is all Rust: no C
+  cryptography library (owner 2026-10-31, for memory safety). SQLite is the only C.
+- **Not allowed:** everything else. The vault core, `core/cs-core` (the library, the
+  vaults, their items, PINs, version history and index), is built without `serde`,
+  `serde_json`, `hex`, `thiserror` and `zxcvbn`, which it used before: its own small
+  JSON (byte for byte what serde wrote, `tests/format_serde.rs`), its own errors, its own
+  hex, its own password check (length plus a list of common passwords). `cs-vault`
+  (sync, backups, joining) still uses `serde` for the sync journal.
+- **"Audited" means one of two things, with the evidence kept here** (owner
+  2026-10-31):
+  1. a public, independent audit report, linked below; or
+  2. our own review: every line of the copy kept in the repo read, recorded in the
+     cargo-vet audits (who, which version, when), and the standard test vectors passing
+     in every test run, plus a one-off cross-check against libsodium done outside the
+     repo (same input, same output; only the result is kept).
+
+  | Crate | Evidence |
+  |---|---|
+  | `chacha20poly1305` (and `chacha20`, `poly1305`) | NCC Group, 2020: [report](https://web.archive.org/web/20200606025324/https://research.nccgroup.com/2020/02/26/public-report-rustcrypto-aes-gcm-and-chacha20poly1305-implementation-review/) (no significant findings) |
+  | `argon2`, `blake2` | RFC 9106 vectors pass; own review recorded in `supply-chain/audits.toml` (2026-10-31) |
+  | `sha2` (and `digest`, `block-buffer`, `cpufeatures`) | NIST FIPS 180-4 examples pass; own review, plus a differential test of every length 0-599 against OpenSSL |
+  | `hmac` (and `ctutils`, `cmov`, `hybrid-array`, `crypto-common`) | RFC 4231 vectors pass; own review |
+  | `hkdf` | RFC 5869 vectors pass; own review |
+  | `zeroize` | cargo-vet audits imported from Mozilla and Bytecode Alliance |
+  | `subtle` | cargo-vet audits imported from Mozilla and ISRG |
+  | `rusqlite`, `libsqlite3-sys` (SQLite) | own review of the Rust layer; SQLite's own test suite (to do) |
+
+  The reviews were machine-assisted (every `src/` file read, each `unsafe` block
+  checked for soundness, the algorithm compared with its standard); their notes, with
+  what was not read, are in the audits file. What they found and what was done:
+  `argon2` frees its working memory (up to 512 MiB derived from the password) without
+  wiping it, so `cs-crypto` hands it memory of its own and wipes it (about 20 ms);
+  `hmac`/`hkdf` keep no wiped copy of the key (the keys they see are derived, short-lived
+  and held only during unlock); `sha2`'s SHA-512 detection on Android ARM accepts the
+  SHA3 flag alone (no known phone has one without the other).
+
+  The vectors are in `core/cs-crypto/tests/vectors.rs` and run with every `cargo test`
+  (RFC 8439 and the XChaCha draft cover the cipher as well). The SHA-2, HMAC and HKDF
+  values were also checked against OpenSSL before they were written in.
+
+- **Nothing fetched from the internet at build time** (owner 2026-10-31): the Top secret
+  core builds offline from source copied into the repo (`third_party/`), each copy kept
+  exactly as published with its upstream checksum or signature, so it can be checked
+  again at any time. A change we need goes in a separate patch file, never into the
+  copy. Only the compilers (Rust, Xcode, the Android NDK) come from outside, pinned by
+  version. How: the copies are wired in with `[patch.crates-io]` (`Cargo.toml`,
+  `app/rust/Cargo.toml`), so the app is built from them too; CI builds
+  `tools/core-offline` from an empty cargo home and fails if a single crate is downloaded
+  (cargo still reads the crates.io index, the list of versions, but no source). Two
+  copies are never compiled (`password-hash`, `phc`): cargo downloads a weak optional
+  dependency of `argon2` even when it stays off, so they are kept to download nothing.
+  The core no longer takes `rayon` (Argon2 runs its lanes one after another; a computer
+  unlocks in about 0.9 s instead of 0.3 s, same key) nor any derive macro.
+- **Checked on every build:** `tools/check-vendor` recomputes the sha256 of every file in
+  `third_party/rust/` and compares it with the published crate's list
+  (`.cargo-checksum.json`) and `third_party/rust/RECORD`; one changed byte, an added or
+  missing file, a crate reaching the core that is not a copy, or a copy no longer used
+  stops the build and names it. cargo-vet treats the copies as crates.io crates
+  (`audit-as-crates-io`).
+- **Upstream watched every week and before each release** (a separate CI job, since the
+  build itself is offline): `tools/vendor-watch` compares every copy with crates.io (same
+  sha256, not yanked, newer versions) and RustSec (an advisory on our version) and gives
+  one recommendation per crate: 🔴 update now (fails security.yml, so the release
+  waits), 🟡 should update, ⚪ no need. `vendor-watch.yml` keeps one open issue with the
+  latest report every Monday.
+  Updating is always done by hand: fetch, check the signature, read the diff, record
+  the review.
 - **Kept that way by CI:** a check fails the build when any crate outside this list
   reaches the Top secret core (`cargo tree -e normal`), direct or transitive. Adding one
   needs the owner's approval and a line here first.
@@ -83,7 +141,7 @@ to the crate it comes from. The policy forbids the `net` API to every crate but
 config records which crates may use `unsafe`, the file system, or start processes
 (build scripts). Linux only. The CI job blocks; when it fails it uploads the config
 cackle suggests, and still fails outright if that config would hand `net` to another crate.
-The core crates (`cs-vault`, `cs-crypto`, `cs-photo`) also carry
+The core crates (`cs-core`, `cs-vault`, `cs-crypto`, `cs-photo`) also carry
 `#![forbid(unsafe_code)]`: the compiler refuses unsafe Rust there.
 
 **cargo-deny** checks both lockfiles (the core workspace and `app/rust`) against the
@@ -139,9 +197,9 @@ passwords). Source: SecLists,
 `Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt` at commit
 `c205c36a445bff37f8e58a9ec829105cd4975c58`; the downloaded file's SHA-256 is
 `1472aafa2561df5e3293aee252aee3ca660c12b399a283cf808bb01b39be388b`. The list is not
-kept as text: `core/cs-vault/data/common-passwords.bin` is a sorted table of the first
+kept as text: `core/cs-core/data/common-passwords.bin` is a sorted table of the first
 4 bytes of the SHA-256 of each normalised entry, built by the ignored test
-`make_blocklist` in `core/cs-vault` from that file at that commit (its SHA-256 checked
+`make_blocklist` in `core/cs-core` from that file at that commit (its SHA-256 checked
 first). The app ships only the table.
 
 Attribution: SecLists is MIT licensed, Copyright (c) 2018 Daniel Miessler (the MIT

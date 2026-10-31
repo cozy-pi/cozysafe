@@ -1,0 +1,203 @@
+#!/usr/bin/env python3
+"""Compare the Top secret core's copies (third_party/rust/RECORD) with upstream.
+
+  tools/vendor-watch            print the report; exit 1 on a red line (CI, every build)
+  tools/vendor-watch --issue    print the report as an issue body, exit 0 (weekly job)
+
+The copies are built offline (tools/check-vendor); this is the part that goes online,
+so it runs beside the build, never inside it. For every copy it asks:
+
+  - crates.io: is our version still published with the same sha256 as RECORD, is it
+    yanked, which newer versions exist;
+  - RustSec (github.com/rustsec/advisory-db): is there an advisory whose affected
+    versions include ours.
+
+and gives one recommendation per crate:
+
+  RED     update now: an advisory affects our version, our version was yanked, or
+          crates.io's sha256 differs from RECORD (fails the build)
+  YELLOW  should update: a newer compatible version exists (same major, or same minor
+          for 0.x)
+  WHITE   no need: up to date, or only incompatible (major) versions are newer
+
+Updating is never automatic: fetch the new version, compare its sha256 with crates.io,
+read the diff, record the review, then tools/check-vendor --update (docs/supply-chain.md).
+"""
+
+import io
+import json
+import re
+import sys
+import tarfile
+import time
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+RECORD = ROOT / "third_party" / "rust" / "RECORD"
+UA = {"User-Agent": "cozysafe vendor-watch (https://github.com/cozy-pi/cozysafe)"}
+ADVISORY_DB = "https://codeload.github.com/rustsec/advisory-db/tar.gz/refs/heads/main"
+
+
+def get(url, attempts=4):
+    for i in range(attempts):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+                return r.read()
+        except Exception:
+            if i == attempts - 1:
+                raise
+            time.sleep(2 + 3 * i)
+
+
+# --------------------------------------------------------------------------- versions
+
+def parse(v):
+    """'1.2.3-pre+build' → ((1, 2, 3), 'pre')."""
+    v = v.split("+")[0]
+    core, _, pre = v.partition("-")
+    nums = [int(x) for x in core.split(".")] + [0, 0]
+    return tuple(nums[:3]), pre
+
+
+def key(v):
+    nums, pre = parse(v)
+    return nums, (0 if pre else 1), pre
+
+
+def compatible(ours, other):
+    """Cargo's caret rule: same major, or same minor for 0.x, or same patch for 0.0.x."""
+    (a, b, c), _ = parse(ours)
+    (x, y, z), _ = parse(other)
+    if a != 0:
+        return x == a
+    if b != 0:
+        return x == 0 and y == b
+    return (x, y, z) == (0, 0, c)
+
+
+def matches(v, req):
+    """RustSec version requirement, e.g. '>= 0.10.1, < 0.11' or '^0.4.2'."""
+    for part in req.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        m = re.match(r"^(>=|<=|>|<|=|\^|~)?\s*(\S+)$", part)
+        op, want = (m.group(1) or "^"), m.group(2)
+        ka, kb = key(v), key(want)
+        if op == ">=" and not ka >= kb:
+            return False
+        if op == ">" and not ka > kb:
+            return False
+        if op == "<=" and not ka <= kb:
+            return False
+        if op == "<" and not ka < kb:
+            return False
+        if op == "=" and ka != kb:
+            return False
+        if op == "^" and not (ka >= kb and compatible(want, v)):
+            return False
+        if op == "~":
+            (x, y, _), _ = parse(want)
+            (a, b, _), _ = parse(v)
+            if not (ka >= kb and (a, b) == (x, y)):
+                return False
+    return True
+
+
+# --------------------------------------------------------------------------- sources
+
+def advisories():
+    """{crate: [(id, title, patched, unaffected, informational)]} from RustSec."""
+    out = {}
+    with tarfile.open(fileobj=io.BytesIO(get(ADVISORY_DB)), mode="r:gz") as tar:
+        for member in tar.getmembers():
+            parts = member.name.split("/")
+            if len(parts) != 4 or parts[1] != "crates" or not parts[3].endswith(".md"):
+                continue
+            text = tar.extractfile(member).read().decode()
+            front = text.split("```toml", 1)[1].split("```", 1)[0]
+            if re.search(r'^withdrawn\s*=', front, re.M):
+                continue
+
+            def arr(name):
+                m = re.search(rf"^{name}\s*=\s*\[(.*?)\]", front, re.M | re.S)
+                return re.findall(r'"([^"]*)"', m.group(1)) if m else []
+
+            ident = re.search(r'^id\s*=\s*"([^"]+)"', front, re.M).group(1)
+            title = re.search(r"^#\s+(.+)$", text.split("```", 2)[2], re.M)
+            info = re.search(r'^informational\s*=\s*"([^"]+)"', front, re.M)
+            out.setdefault(parts[2], []).append(
+                (ident, title.group(1).strip() if title else "", arr("patched"),
+                 arr("unaffected"), info.group(1) if info else ""))
+    return out
+
+
+def crate_info(name):
+    data = json.loads(get(f"https://crates.io/api/v1/crates/{name}"))
+    time.sleep(1)  # crates.io asks for at most one request per second
+    return {v["num"]: v for v in data["versions"]}
+
+
+# --------------------------------------------------------------------------- report
+
+def main():
+    issue = "--issue" in sys.argv[1:]
+    record = [l.split() for l in RECORD.read_text().splitlines() if l and not l.startswith("#")]
+    adv = advisories()
+    rows = []
+    for name, ver, sha in record:
+        reasons, level = [], "WHITE"
+        versions = crate_info(name)
+        mine = versions.get(ver)
+        if mine is None:
+            level, reasons = "RED", ["our version is no longer on crates.io"]
+        else:
+            if mine.get("checksum") != sha:
+                level = "RED"
+                reasons.append("crates.io's sha256 differs from RECORD")
+            if mine.get("yanked"):
+                level = "RED"
+                reasons.append("our version was yanked")
+        for ident, title, patched, unaffected, info in adv.get(name, []):
+            if any(matches(ver, r) for r in patched + unaffected):
+                continue
+            if info == "unmaintained":
+                reasons.append(f"{ident} (unmaintained): {title}")
+                level = level if level == "RED" else "YELLOW"
+            else:
+                level = "RED"
+                reasons.append(f"{ident}{f' ({info})' if info else ''}: {title}")
+        newer = sorted((v for v, m in versions.items()
+                        if not m.get("yanked") and key(v) > key(ver) and not parse(v)[1]), key=key)
+        compat = [v for v in newer if compatible(ver, v)]
+        if compat:
+            level = level if level == "RED" else "YELLOW"
+            reasons.append(f"newer compatible: {compat[-1]}")
+        elif newer:
+            reasons.append(f"newer, not compatible: {newer[-1]}")
+        rows.append((level, name, ver, "; ".join(reasons) or "up to date"))
+
+    order = {"RED": 0, "YELLOW": 1, "WHITE": 2}
+    rows.sort(key=lambda r: (order[r[0]], r[1]))
+    mark = {"RED": "🔴 update now", "YELLOW": "🟡 should update", "WHITE": "⚪ no need"}
+    counts = {k: sum(1 for r in rows if r[0] == k) for k in order}
+    lines = [
+        "Weekly check of the crates the Top secret core is built from "
+        "(`third_party/rust/`, docs/supply-chain.md).",
+        "",
+        f"🔴 {counts['RED']} · 🟡 {counts['YELLOW']} · ⚪ {counts['WHITE']}",
+        "",
+        "| Recommendation | Crate | Ours | Why |",
+        "|---|---|---|---|",
+    ]
+    lines += [f"| {mark[l]} | `{n}` | {v} | {w} |" for l, n, v, w in rows]
+    lines += ["", "Updating is by hand: fetch, compare the sha256 with crates.io, read the diff, "
+              "record the review, `tools/check-vendor --update`."]
+    print("\n".join(lines))
+    if not issue and counts["RED"]:
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

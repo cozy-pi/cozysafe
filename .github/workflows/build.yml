@@ -24,6 +24,10 @@ on:
       publish:
         type: boolean
         default: false
+      # A branch's test build (release.yml): Play internal and TestFlight only.
+      internal_only:
+        type: boolean
+        default: false
     # Named one by one (release.yml passes exactly these, never `secrets: inherit`).
     secrets:
       ANDROID_KEYSTORE_BASE64:
@@ -369,6 +373,7 @@ jobs:
           sparse-checkout: tools
           path: src
       - name: Google Play, the same build into closed testing (alpha, reviewed by Google)
+        if: ${{ !inputs.internal_only }}
         env:
           SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           BUILD: ${{ inputs.build }}
@@ -381,7 +386,7 @@ jobs:
           { echo "### Google Play"; echo '```'; cat play.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
   release:
-    if: startsWith(github.ref, 'refs/tags/') || inputs.publish
+    if: (startsWith(github.ref, 'refs/tags/') || inputs.publish) && !inputs.internal_only
     needs: [android-sign, linux, windows, macos-notarize]
     runs-on: ubuntu-latest
     permissions:

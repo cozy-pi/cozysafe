@@ -4,7 +4,7 @@
 //!    Runs once per unlock; this is where the whole time budget goes.
 //! 2. [`vault_kek`]: HKDF of the root with each vault's own salt. Microseconds per vault.
 
-use argon2::{Algorithm, Argon2, Params, Version};
+use argon2::{Algorithm, Argon2, Block, Params, Version};
 use hkdf::Hkdf;
 use sha2::Sha256;
 use zeroize::Zeroizing;
@@ -104,10 +104,19 @@ pub fn derive_root(
     input.extend_from_slice(hkdf_expand(secret_key.as_bytes(), None, INFO_SECRET_KEY).as_bytes());
     input.extend_from_slice(password);
 
-    let argon = Argon2::new(Algorithm::Argon2id, Version::V0x13, params.to_argon2()?);
+    let params = params.to_argon2()?;
+    // Argon2's working memory (up to 512 MiB, all derived from the password) is ours, so
+    // it is wiped when this returns: the crate frees its own without wiping it, even with
+    // its `zeroize` feature (review of argon2 0.6.0, docs/supply-chain.md).
+    let mut memory: Zeroizing<Vec<Block>> = Zeroizing::new(Vec::new());
+    memory
+        .try_reserve_exact(params.block_count())
+        .map_err(|_| Error::KdfParams)?;
+    memory.resize(params.block_count(), Block::default());
+    let argon = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
     let mut out = Zeroizing::new([0u8; KEY_LEN]);
     argon
-        .hash_password_into(&input, library_salt, out.as_mut())
+        .hash_password_into_with_memory(&input, library_salt, out.as_mut(), &mut memory[..])
         .map_err(|_| Error::KdfParams)?;
     Ok(Key::from_bytes(*out))
 }
@@ -253,9 +262,9 @@ mod tests {
     }
 
     /// Known-answer test with the shape of DESKTOP_FLOOR (p = 4, t = 3), small memory.
-    /// The value was computed with single-threaded Argon2 before computers turned on the
-    /// `parallel` feature: running the lanes on threads must give the same root, or every
-    /// library made on a computer would stop opening.
+    /// The value was computed with single-threaded Argon2, kept while computers ran the
+    /// lanes on threads (rayon, until 0.1.93): how the lanes are run must never change
+    /// the root, or every library made on a computer would stop opening.
     #[test]
     fn lanes_on_threads_give_the_same_root() {
         let p4 = KdfParams {

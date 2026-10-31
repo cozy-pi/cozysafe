@@ -392,17 +392,22 @@ pub fn removal_rank(file: &PlaceFile) -> u8 {
     }
 }
 
-impl OpenVault {
+/// The audit of a sync place, on top of the Top secret core.
+pub trait VaultAudit {
     /// What this device knows about the items, for checking `place` ([`classify`]):
     /// every item in the vault and in Recently deleted with its revision, held items,
     /// and deletions for good with whether `place` was told.
-    pub fn place_knowledge(&self, place: &str) -> Result<PlaceKnowledge> {
+    fn place_knowledge(&self, place: &str) -> Result<PlaceKnowledge>;
+}
+
+impl VaultAudit for OpenVault {
+    fn place_knowledge(&self, place: &str) -> Result<PlaceKnowledge> {
         let mut k = PlaceKnowledge::default();
         for deleted in [false, true] {
-            for row in self.index.rows(deleted)? {
+            for row in self.index().rows(deleted)? {
                 let r = self.open_record(&row.id, &row.sealed_record)?;
                 let other_revs = self
-                    .index
+                    .index()
                     .rev_clocks(place, &row.id)?
                     .into_iter()
                     .filter(|(rev, _, _)| *rev != r.rev)
@@ -430,12 +435,12 @@ impl OpenVault {
             }
         }
         let unsent: HashSet<String> = self
-            .index
+            .index()
             .gone_unsent(place)?
             .into_iter()
             .map(|(id, _, _)| id)
             .collect();
-        for (id, _, last_rev) in self.index.all_gone()? {
+        for (id, _, last_rev) in self.index().all_gone()? {
             let told = !unsent.contains(&id);
             k.items.entry(id).or_insert(Known::Gone { last_rev, told });
         }
@@ -448,6 +453,7 @@ mod tests {
     use super::*;
     use crate::sync::tests::{note, two};
     use crate::sync::Remote;
+    use crate::VaultSync;
     use std::path::Path;
 
     const OLD: Option<i64> = Some(0);

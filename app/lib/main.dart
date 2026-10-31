@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -10,6 +9,7 @@ import 'l10n/app_localizations.dart';
 import 'key_backup.dart';
 import 'language.dart';
 import 'offline.dart';
+import 'platform.dart' show nowMs;
 import 'screens/settings.dart';
 import 'screens/restore.dart';
 import 'screens/unlock.dart';
@@ -23,6 +23,7 @@ import 'prefs.dart';
 import 'privacy.dart';
 import 'screens/welcome.dart';
 import 'temp_files.dart';
+import 'top_secret_mode.dart';
 
 Future<void> main() async {
   installNetworkGuard(); // before any plugin or library code runs
@@ -32,12 +33,18 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSizeBytes = 64 << 20;
   await RustLib.init();
   final support = await getApplicationSupportDirectory();
-  final libraryDir = '${support.path}${Platform.pathSeparator}library';
+  // Each vault has its own mode (ADR 0007); the run is Top secret until one opens.
+  final libraryDir = TopSecretMode.start(support.path);
   Prefs.dir = support.path;
   Settings.apply(); // Android: honour "block screenshots" off
   PrivacyCover.listen(); // iOS: screenshots taken (they cannot be stopped there)
   await clearTemp(); // plain copies a crash or a kill left: an import, a share, a video
   unawaited(KeyBackup.sweep()); // no copy of the words in iCloud / Google in this build
+  // Vaults set to go seven days after their password was forgotten (Settings → Vaults on
+  // this device), once their time came.
+  try {
+    await rust.purgeDueVaults(dir: libraryDir, nowMs: nowMs());
+  } catch (_) {}
   final hasKey = await loadSecretKey(libraryDir);
   await AppLanguage.load();
   await NativeBar.probe(); // iOS 26: the system's own bottom bar

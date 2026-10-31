@@ -11,6 +11,7 @@ use cs_net::drive::{self, DrivePhase, DriveRemote, DriveSetup, GoogleDrive};
 use cs_net::p2p::{self, PairCode};
 use cs_net::Permit;
 use cs_vault::sync::SyncReport;
+use cs_vault::{LibraryJoin, VaultAudit, VaultSync};
 
 use super::vault::{hold_for_sync, with_open, SyncHold, VaultError};
 use crate::frb_generated::StreamSink;
@@ -587,7 +588,10 @@ pub fn p2p_restore_nearby(
         let _ = sink.add(step(SyncStep::Failed));
         return;
     };
-    let dir = Path::new(&dir);
+    let Ok(dir) = super::run::library_dir(&dir) else {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    };
     if cs_vault::Library::reset_if_empty(dir).is_err() {
         let _ = sink.add(step(SyncStep::Failed));
         return;
@@ -644,7 +648,10 @@ pub fn p2p_restore(
         let _ = sink.add(step(SyncStep::Failed));
         return;
     };
-    let dir = Path::new(&dir);
+    let Ok(dir) = super::run::library_dir(&dir) else {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    };
     if cs_vault::Library::reset_if_empty(dir).is_err() {
         let _ = sink.add(step(SyncStep::Failed));
         return;
@@ -876,6 +883,19 @@ pub fn drive_clean(token: String) -> Result<u32, VaultError> {
     Ok(removed)
 }
 
+/// Delete every file of vault `vault_id` from Google Drive (the person chose to, when
+/// deleting the vault here or from Sync). How many files went. Another device that still
+/// holds the vault may send it up again. Waits for a sync with Drive running here to end
+/// first. Errors: [`VaultError::Storage`] for Drive or the network.
+pub fn drive_delete_vault(token: String, vault_id: String) -> Result<u32, VaultError> {
+    let _run = DRIVE_RUN.lock().unwrap_or_else(|p| p.into_inner());
+    let token = zeroize::Zeroizing::new(token);
+    let api = GoogleDrive::new(Permit::google_drive(), token.to_string())?;
+    let removed = drive::delete_vault(&api, &vault_id)?;
+    super::vault::debug_line(|| format!("drive: deleted a vault, {removed} files"));
+    Ok(removed)
+}
+
 /// A dropped connection mid-way is an interruption (nothing lost), not a failure.
 fn drive_failure(e: cs_vault::Error) -> SyncEvent {
     match e {
@@ -939,7 +959,9 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
     if ids.is_empty() {
         return join_result(JoinOutcome::NoVault);
     }
-    let dir = Path::new(&dir);
+    let Ok(dir) = super::run::library_dir(&dir) else {
+        return join_result(JoinOutcome::Failed);
+    };
     if cs_vault::Library::reset_if_empty(dir).is_err() {
         return join_result(JoinOutcome::Failed);
     }

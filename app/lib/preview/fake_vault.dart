@@ -78,7 +78,7 @@ class FakeVault implements RustLibApi {
 
   final List<Uint8List> photos;
   final List<ItemInfo> _items = [];
-  var _vault = const VaultInfo(id: 'preview', name: '', icon: 'home', color: 'green', hasPassword: false);
+  var _vault = const VaultInfo(id: 'preview', name: '', icon: 'home', color: 'green', hasPassword: false, topSecret: false);
   bool _open = false;
   int _next = 100;
 
@@ -141,13 +141,11 @@ class FakeVault implements RustLibApi {
         return 3;
       case 'PasswordProblem':
         final pw = a<String>('password');
-        return pw.length < 8
-            ? PasswordProblem.tooShort
-            : pw.length < 12
-                ? PasswordProblem.guessable
-                : PasswordProblem.none;
+        return pw.length < 12 ? PasswordProblem.tooShort : PasswordProblem.none;
       case 'PasswordScore':
-        return (a<String>('password').length ~/ 6).clamp(0, 4);
+        // As cs_core::passwords::strength: under 8 none, refused 1, accepted 3, 16+ 4.
+        final n = a<String>('password').length;
+        return n < 8 ? 0 : n < 12 ? 1 : n < 16 ? 3 : 4;
       case 'SuggestPassphrase':
         return 'mây-tháng-mười-rơi-phố-cổ';
       case 'SetSecretKey':
@@ -232,7 +230,7 @@ class FakeVault implements RustLibApi {
         _items.removeWhere((x) => x.id == tagId);
         return _f<void>(null);
       case 'SetIdentity':
-        _vault = VaultInfo(id: _vault.id, name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: _vault.hasPassword);
+        _vault = VaultInfo(id: _vault.id, name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: _vault.hasPassword, topSecret: _vault.topSecret);
         return _f(_vault);
       case 'SecretKeyText':
         return 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
@@ -241,7 +239,7 @@ class FakeVault implements RustLibApi {
       case 'NewSecretKey':
         return Uint8List(16);
       case 'CreateVaultWithPin':
-        _vault = VaultInfo(id: 'preview2', name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: false);
+        _vault = VaultInfo(id: 'preview2', name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: false, topSecret: false);
         return _f(_vault);
       case 'RenameItem':
         _replace(a<String>('id'), (i) => _copy(i, name: a<String>('name')));

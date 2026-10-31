@@ -1053,6 +1053,40 @@ pub fn clean_vault<A: DriveApi>(
     Ok(checked.orphans.len() as u32)
 }
 
+/// Delete every file of `vault` in Drive, the person's own choice (owner 2026-10-31: their
+/// copy there must be deletable too). How many files went. Nothing stops another device
+/// that still holds the vault from sending it up again: the app says so.
+pub fn delete_vault<A: DriveApi>(api: &A, vault: &str) -> Result<u32> {
+    let listed = vault_files(api, vault)?;
+    api.delete_many(&listed.ids)?;
+    // Its folders too, the vault's own and every one under it (owner 2026-10-31: empty
+    // "head" and "lock" were left behind), the deepest first.
+    if let Some(root) = api.find_folder(None, FOLDER)? {
+        let nodes = api.tree(&|_| {})?;
+        let mut depth: HashMap<&str, usize> = nodes
+            .iter()
+            .filter(|n| n.folder && n.parent == root && n.name == vault)
+            .map(|n| (n.id.as_str(), 0))
+            .collect();
+        loop {
+            let more: Vec<(&str, usize)> = nodes
+                .iter()
+                .filter(|n| n.folder && !depth.contains_key(n.id.as_str()))
+                .filter_map(|n| depth.get(n.parent.as_str()).map(|d| (n.id.as_str(), d + 1)))
+                .collect();
+            if more.is_empty() {
+                break;
+            }
+            depth.extend(more);
+        }
+        let mut folders: Vec<(&str, usize)> = depth.into_iter().collect();
+        folders.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
+        let ids: Vec<String> = folders.into_iter().map(|(id, _)| id.to_owned()).collect();
+        api.delete_many(&ids)?;
+    }
+    Ok(listed.ids.len() as u32)
+}
+
 /// The real Drive, through [`https`].
 pub struct GoogleDrive {
     token: String,
@@ -1822,6 +1856,7 @@ mod tests {
     use super::*;
     use crate::testkit::{note, text, two};
     use cs_vault::audit::Tally;
+    use cs_vault::{VaultAudit, VaultSync};
     use std::sync::atomic::AtomicU64;
     use std::sync::Arc;
 
@@ -2237,6 +2272,32 @@ mod tests {
         t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
             .unwrap();
         assert_eq!(text(&t.b, &kept), "stays");
+    }
+
+    #[test]
+    fn deleting_a_vault_from_drive_takes_only_its_files() {
+        let t = two();
+        let drive = Fake::default();
+        note(&t.a, "One", "x");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        let v = t.a.id.clone();
+        let other = "f".repeat(32);
+        let elsewhere = drive.add("F", &other, Vec::new(), true);
+        drive.add(&elsewhere, "header.json", vec![1; 3], false);
+        assert!(delete_vault(&drive, &v).unwrap() > 0);
+        assert!(!drive.layout().iter().any(|(f, _, _)| f.starts_with(&v)));
+        assert!(
+            !drive.folders().iter().any(|f| f.starts_with(&v)),
+            "its folders go too: {:?}",
+            drive.folders()
+        );
+        assert!(drive.folders().iter().any(|f| f == &other));
+        assert!(drive
+            .layout()
+            .iter()
+            .any(|(f, n, _)| f == &other && n == "header.json"));
+        assert_eq!(delete_vault(&drive, &v).unwrap(), 0);
     }
 
     /// A full sync as the app runs it: what Drive said of the heads on open is kept

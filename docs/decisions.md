@@ -4,7 +4,42 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-31 (night) — Each vault has its own mode; Vaults on this device
+
+**Owner:** the mode belongs to each vault, chosen when any vault is made
+([ADR 0007](adr/0007-mode-per-vault.md)). Top Secret Mode takes photos from the library
+as sealed files (no thumbnail). Face ID opens one vault per device: it is offered only
+when no vault has it, and moving it in Settings warns that the other vault loses it.
+Settings → Vaults on this device: delete a vault with its password, or, password
+forgotten, after the owner check it goes in seven days unless opened with its password.
+Deleting is on this device; Google Drive only when ticked, and Sync → Google Drive can
+delete the open vault's copy there. No "deleted" mark on Drive (a device synced over
+Wi-Fi would send the vault back anyway). Drive syncs 5 seconds after the last change.
+Settings' sub-pages open as pages of their own.
+
+## 2026-10-31 (evening) — Top Secret Mode replaces the two kinds of vault
+
+**Owner:** one vault (password and the 24 words, as always) with a switch, **Top Secret
+Mode** ("Chế độ tuyệt mật"), like the iPhone's Lockdown Mode; the Private vault is gone.
+[ADR 0006](adr/0006-top-secret-mode.md) replaces ADR 0005.
+
+- The mode changes only what the app does with what is inside: in it nothing is decoded
+  (photos, videos, PDFs, thumbnails), files open in another app, nothing comes from the
+  photo library. Encryption is the same in both modes; the comparison list says so first.
+- Enforced in Rust as well as in the screens. Turning it on or off restarts the app and
+  asks for the owner first.
+- Chosen when the first vault is made (Private · Top secret, with the differences and
+  "you can change this later in Settings"); a card for it near the top of Settings.
+- The everyday mode is called **Private** ("Riêng tư"). Marks: red shield with a lock,
+  green shield with a photo. While on, a small red shield on the Settings button's
+  corner, nowhere else.
+- Settings' sub-pages go back with an edge swipe (iPhone; they are shown in place).
+- Test build from the branch only; merge into `main` once tried.
+
 ## 2026-10-30 (later) — Two kinds of vault: what is decided
+
+Replaced 2026-10-31 by Top Secret Mode (above).
+
 
 **Owner:**
 - **Top secret syncs**, over Google Drive and with a device nearby. Only the vault core
@@ -22,6 +57,26 @@ depends on memory. Details live in the linked docs; this page is the index.
   a Private vault for photos and files.
 - Still to design and approve before building: the screens, the code split, and what
   happens to vaults made before (they hold photos today).
+
+## 2026-10-31 (later) — Top secret vault: the rest on the branch
+
+**Owner:** finish the Top secret vault (ADR 0005 steps 2–6) on the branch, then merge.
+Each step: mockup, approval, an internal test build from the branch (no public
+release). Top secret keeps version history. `webpki-roots` is allowed for Top secret
+sync. New passwords also need 5 different characters.
+
+## 2026-10-31 — Top secret core, step 1: built from copies, a simpler password rule
+
+**Owner:** the cryptography stays RustCrypto (memory safe, no C); "audited" means a
+public audit, or our own review plus the standard test vectors. The Top secret core is
+built from copies kept in the repo and nothing is downloaded for it; every build checks
+the copies byte for byte, and a weekly job compares them with upstream and recommends
+what to update (supply-chain.md). New passwords: at least 12 characters (or 4 words,
+which always are), at least 5 different characters, and not among the most common; zxcvbn is gone (security.md,
+"Passwords"). Passwords already in use keep working. On a computer unlocking takes
+about 0.9 s (no threading library in the core). The vault core moved into `cs-core`
+(library, vaults, items, PINs, history, index) and reads and writes the same files as
+before; sync, backups and joining stay in `cs-vault` on top of it.
 
 ## 2026-10-30 (later) — Top secret is top secret
 
@@ -223,7 +278,7 @@ Released 0.1.76 (#31–#37) the same day after the owner approved mockup v13.
 (500 MB · 1 GB · 5 GB · no limit, default 1 GB). Asked whether the setting syncs: no,
 each device has its own (choice a, simpler and less risk). History is local, sealed like
 the items, not synced and not in backups; pruning never touches the current version
-(`core/cs-vault/src/history.rs`, docs/security.md). The note editor's Undo/Redo is the
+(`core/cs-core/src/history.rs`, docs/security.md). The note editor's Undo/Redo is the
 in-session half of the same request.
 
 ## 2026-10-27 — Drive errors named, an error log, Drive checked each sync (0.1.76)

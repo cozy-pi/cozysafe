@@ -29,6 +29,7 @@ import 'tour.dart' show TourKind;
 import 'vault_home.dart';
 import 'welcome.dart';
 import '../widgets/readable.dart';
+import '../top_secret_mode.dart';
 
 /// Restore, step 1 (owner 2026-10-24): the two secrets first, pasted or typed, the
 /// same for every way the vault can come back.
@@ -146,6 +147,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
 
   /// The vault is open here: keep the words on this device, offer Face ID, go in.
   Future<void> _opened(rust.VaultInfo vault) async {
+    TopSecretMode.opened(vault);
     final key = rust.parseSecretKey(text: widget.words);
     if (key != null) await SecretKeyStore.write(Uint8List.fromList(key));
     if (!mounted) return;

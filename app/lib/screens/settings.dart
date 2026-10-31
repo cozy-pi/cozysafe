@@ -37,6 +37,10 @@ import 'key_check.dart';
 import 'tour.dart';
 import '../sync/sync_screen.dart';
 import '../widgets/readable.dart';
+import '../top_secret_mode.dart';
+import 'top_secret_page.dart';
+import 'vault_manager.dart';
+import '../widgets/edge_swipe_back.dart';
 
 /// Per-device choices, kept next to the library (not secret).
 abstract final class Settings {
@@ -97,6 +101,13 @@ enum SettingsSpot {
   final IconData icon;
   final Color color;
 }
+
+/// Settings' sub-pages (owner 2026-10-31: too many settings on one page). The main page
+/// shows the vault's card and one row per sub-page; each row opens its page in place, so
+/// the rows' switches, the User guide and the jumps to a setting keep working.
+/// The main page with what is used most (owner 2026-10-31, the mix of one page and
+/// sub-pages); what shows on screen, the look, and About each on a page of their own.
+enum _Page { main, screen, look, help }
 
 /// A setting's symbol: white on its own colour, as at the start of each row.
 class SettingTile extends StatelessWidget {
@@ -174,6 +185,8 @@ class SettingsScreen extends StatefulWidget {
   static List<String>? debugSyncLog;
   /// For the mockup renders: space version history takes.
   static BigInt? debugHistoryBytes;
+  /// Mockups: open on a sub-page (`syncBackup`, `security`, `history`, `look`, `help`).
+  static String? debugPage;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -459,6 +472,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ));
   }
 
+  Future<void> _openVaults() async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => Readable(
+        child: VaultManagerScreen(
+          libraryDir: widget.libraryDir,
+          onDeleteOpen: () => _guarded(_deleteVault),
+          onNewVault: widget.onNewVault,
+        ),
+      ),
+    ));
+    if (mounted) setState(() {});
+  }
+
   Future<void> _pickLanguage() async {
     final l = AppLocalizations.of(context);
     final picked = await pushPage<String>(
@@ -515,6 +541,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    _rev.dispose();
     _scroll.dispose();
     _figures.dispose();
     super.dispose();
@@ -532,12 +559,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// The row just reached from the tour, lit up for a moment.
   SettingsSpot? _lit;
 
+  /// The page drawn by this screen: the main page, or (mockups only, [SettingsScreen.debugPage])
+  /// a sub-page in place.
+  _Page _page = _Page.values.asNameMap()[SettingsScreen.debugPage] ?? _Page.main;
+
+  /// Bumped on every [setState], so a sub-page pushed over this screen redraws too.
+  final _rev = ValueNotifier(0);
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _rev.value++;
+  }
+
+  /// The list of the sub-page on show over this screen.
+  ScrollController? _subScroll;
+
+  /// [key] while [page] is the one this screen draws; null on a pushed sub-page, whose
+  /// main page stays built underneath with the same keys (the User guide's targets).
+  GlobalKey? _here(GlobalKey key, _Page page) => page == _page ? key : null;
+
+  /// A sub-page slides in as a page of its own, like Top Secret Mode (owner 2026-10-31:
+  /// the in-place pages felt poor); Back and the edge swipe come with the route.
+  Future<void> _show(_Page page) async {
+    if (page == _Page.main) {
+      if (_page != _Page.main) setState(() => _page = _Page.main);
+      return;
+    }
+    final scroll = ScrollController();
+    _subScroll = scroll;
+    await pushPage<void>(
+      context,
+      title: _pageTitle(AppLocalizations.of(context), page),
+      grouped: true,
+      builder: (context) => ValueListenableBuilder<int>(
+        valueListenable: _rev,
+        builder: (context, _, _) => ListView(
+          key: ValueKey('settings-page-${page.name}'),
+          controller: scroll,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+          children: _children(AppLocalizations.of(context), page),
+        ),
+      ),
+    );
+    if (_subScroll == scroll) _subScroll = null;
+    scroll.dispose();
+    if (mounted) setState(() {});
+  }
+
+  String _pageTitle(AppLocalizations l, _Page page) => switch (page) {
+        _Page.main => l.settings,
+        _Page.screen => l.settingsScreen,
+        _Page.look => l.settingsLook,
+        _Page.help => l.aboutTitle,
+      };
+
+  /// Where each setting the tour points at lives.
+  static _Page _pageOf(SettingsSpot spot) => switch (spot) {
+        SettingsSpot.sync || SettingsSpot.autoLock => _Page.main,
+        SettingsSpot.blurThumbs || SettingsSpot.hideNoteText => _Page.screen,
+        SettingsSpot.appearance || SettingsSpot.language => _Page.look,
+      };
+
   /// Takes the person to [spot]: Sync opens; any other row scrolls into the middle and
   /// lights up, so it is easy to see which one to change.
   Future<void> _goTo(SettingsSpot spot) async {
     if (!mounted) return;
     if (spot == SettingsSpot.sync) return _openSync();
-    final row = await _build(_spotKeys[spot]!);
+    if (_pageOf(spot) != _Page.main) {
+      unawaited(_show(_pageOf(spot)));
+      // The page slides in first.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+    } else {
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    if (!mounted) return;
+    final row = await _build(_spotKeys[spot]!, _subScroll ?? _scroll);
     if (row == null || !row.mounted || !mounted) return;
     setState(() => _lit = spot);
     await Scrollable.ensureVisible(row, alignment: .4, duration: const Duration(milliseconds: 400), curve: Curves.easeOutCubic);
@@ -547,12 +644,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// [key]'s widget, built: rows far down are not built yet, so the list moves down a
   /// screen at a time until it is.
-  Future<BuildContext?> _build(GlobalKey key) async {
+  Future<BuildContext?> _build(GlobalKey key, [ScrollController? list]) async {
+    final scroll = list ?? _scroll;
     var row = key.currentContext;
-    for (var i = 0; row == null && i < 12 && _scroll.hasClients; i++) {
-      final p = _scroll.position;
+    for (var i = 0; row == null && i < 12 && scroll.hasClients; i++) {
+      final p = scroll.position;
       if (p.pixels >= p.maxScrollExtent) break;
-      _scroll.jumpTo((p.pixels + p.viewportDimension).clamp(0, p.maxScrollExtent));
+      scroll.jumpTo((p.pixels + p.viewportDimension).clamp(0, p.maxScrollExtent));
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted) return null;
       row = key.currentContext;
@@ -629,31 +727,98 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: row,
       );
 
+  Future<void> _openTopSecret() async {
+    final l = AppLocalizations.of(context);
+    await pushPage<void>(
+      context,
+      title: l.topSecretMode,
+      grouped: true,
+      builder: (_) => TopSecretModePage(verify: () => confirmOwnerForSetting(l.ownerCheckSettings)),
+    );
+  }
+
   void _tour() {
     widget.onTour?.call();
-    Navigator.of(context).pop();
+    // Help is a page of its own over Settings: both close.
+    final me = ModalRoute.of(context);
+    final nav = Navigator.of(context);
+    nav.popUntil((r) => r == me);
+    nav.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final vault = widget.vault();
-    final dark = Theme.of(context).brightness == Brightness.dark;
-
-    return groupedPage(context, Builder(builder: (context) => Scaffold(
-      appBar: AppBar(title: Text(l.settings), centerTitle: false, titleTextStyle: largeTitle(context)),
+    final main = _page == _Page.main;
+    return PopScope(
+      // A sub-page goes back to the main page first.
+      canPop: main,
+      onPopInvokedWithResult: (popped, _) {
+        if (!popped) _show(_Page.main);
+      },
+      // Sub-pages are shown in place, so the system swipe has nothing to pop: an edge
+      // swipe goes back to the main page (iPhone).
+      child: EdgeSwipeBack(
+      enabled: !main,
+      onBack: () => _show(_Page.main),
+      child: groupedPage(context, Builder(builder: (context) => _washed(context, Scaffold(
+      // Top Secret Mode's red wash shows through the page and its bar (owner 2026-10-31).
+      backgroundColor: TopSecretMode.on ? Colors.transparent : null,
+      appBar: AppBar(
+        backgroundColor: TopSecretMode.on ? Colors.transparent : null,
+        scrolledUnderElevation: TopSecretMode.on ? 0 : null,
+        title: Text(main ? l.settings : _pageTitle(l, _page)),
+        centerTitle: !main,
+        titleTextStyle: main ? largeTitle(context) : null,
+        leading: main
+            ? null
+            : IconButton(
+                key: const ValueKey('settings-back'),
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () => _show(_Page.main),
+              ),
+      ),
       body: ListView(
         controller: _scroll,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
-          _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), figures: _figures.value, onTap: _openStorage),
+          ..._children(l, _page),
+        ],
+      ),
+    ))))));
+  }
+
+  /// [page] over the page colour and, in Top Secret Mode, the red wash ([TopSecretWash]).
+  Widget _washed(BuildContext context, Widget page) => !TopSecretMode.on
+      ? page
+      : Stack(children: [
+          Positioned.fill(child: ColoredBox(color: Theme.of(context).scaffoldBackgroundColor)),
+          const Positioned.fill(child: IgnorePointer(child: TopSecretWash())),
+          page,
+        ]);
+
+  /// What [page] shows: the main page, or one sub-page (pushed as a page of its own, or
+  /// in place for mockups).
+  List<Widget> _children(AppLocalizations l, _Page page) {
+    final vault = widget.vault();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return [
+          // One page, every setting on it in groups (owner 2026-10-31: the main page was
+          // empty and the sub-pages long); only About opens a page of its own.
+          if (page == _Page.main) ...[
+            _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), figures: _figures.value, onTap: _openStorage),
+            // Top Secret Mode in a card of its own, near the top (owner 2026-10-31: people
+            // must know the feature exists).
+            _TopSecretCard(onTap: _openTopSecret),
+          ],
           // Most important first, like with like (owner 2026-10-27). Groups still have no
           // names (owner 2026-10-26): the gaps set them apart.
           // 1. A copy elsewhere: syncing is done often (owner 2026-10-25), the backup file with it.
-          SettingsGroup(rows: [
+          if (page == _Page.main) SettingsGroup(rows: [
             if (!kIsWeb)
               KeyedSubtree(
-                key: _syncRowKey,
+                key: _here(_syncRowKey, page),
                 child: SettingsRow(
                   key: const ValueKey('sync-row'),
                   icon: SettingsSpot.sync.icon,
@@ -665,7 +830,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             SettingsRow(
-              key: _backupRowKey,
+              key: _here(_backupRowKey, page) ?? const ValueKey('backup-row'),
               icon: Icons.cloud_upload_rounded,
               color: SettingsHue.xanh,
               title: l.backupToFile,
@@ -688,7 +853,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           // 2. The keys: how the vault opens here and on a new phone. Turning any of them
           // weaker asks for the owner first (docs/security.md).
-          SettingsGroup(boxKey: _securityGroupKey, rows: [
+          if (page == _Page.main) SettingsGroup(boxKey: _here(_securityGroupKey, page), rows: [
             if (widget.canBiometric)
               SettingsRow(
                 icon: Icons.face_retouching_natural_rounded,
@@ -744,8 +909,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
           ]),
-          // 3. What shows on screen and when it locks.
-          SettingsGroup(boxKey: _shieldGroupKey, rows: [
+          // 3. When it locks; what shows on screen on a page of its own.
+          if (page == _Page.main) SettingsGroup(boxKey: _here(_shieldGroupKey, page), rows: [
             _spot(
               SettingsSpot.autoLock,
               SettingsRow(
@@ -785,6 +950,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (on) => setState(() => Prefs.write(holdHomePref, on ? '1' : '0')),
               ),
             ),
+            SettingsRow(
+              key: const ValueKey('settings-screen'),
+              icon: Icons.visibility_off_rounded,
+              color: SettingsHue.hong,
+              title: l.settingsScreen,
+              onTap: () => _show(_Page.screen),
+            ),
+            SettingsRow(
+              key: const ValueKey('settings-look'),
+              icon: Icons.brightness_6_rounded,
+              color: SettingsHue.cham,
+              title: l.settingsLook,
+              onTap: () => _show(_Page.look),
+            ),
+          ]),
+          if (page == _Page.screen) SettingsGroup(rows: [
             if (Device.android || Device.iOS || Settings.debugIOS)
               SettingsRow(
                 key: const ValueKey('screenshots-row'),
@@ -840,8 +1021,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ]),
-          // 4. Getting things back: deleted items, older versions.
-          SettingsGroup(rows: [
+          // 4. This vault and the others: its look, getting things back, the vaults here
+          // (making and deleting a vault live there).
+          if (page == _Page.main) SettingsGroup(rows: [
+            SettingsRow(
+              key: const ValueKey('identity-row'),
+              icon: Icons.palette_rounded,
+              color: SettingsHue.tim,
+              title: l.changeIdentity,
+              onTap: () => _then(widget.onChangeIdentity),
+            ),
             SettingsRow(
               icon: Icons.delete_sweep_rounded,
               color: SettingsHue.xam,
@@ -857,9 +1046,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: _historyDays == 0 ? l.historyOff : historySizeText(l, _historyMax),
               onTap: _openHistory,
             ),
+            SettingsRow(
+              key: const ValueKey('vaults-row'),
+              icon: Icons.inventory_2_rounded,
+              color: SettingsHue.cam,
+              title: l.vaultManagerTitle,
+              onTap: _openVaults,
+            ),
           ]),
           // 5. How it looks and where things are: nothing here protects the vault.
-          SettingsGroup(rows: [
+          if (page == _Page.look) SettingsGroup(rows: [
             _spot(
               SettingsSpot.appearance,
               SettingsRow(
@@ -897,12 +1093,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) => setState(() => Prefs.write(actionSidePref, v.name)),
               ),
             ),
-            SettingsRow(
-              icon: Icons.palette_rounded,
-              color: SettingsHue.tim,
-              title: l.changeIdentity,
-              onTap: () => _then(widget.onChangeIdentity),
-            ),
             // The icon on a plain page after unlocking; only a look, so no owner check.
             SettingsRow(
               key: const ValueKey('reveal-row'),
@@ -916,11 +1106,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ]),
           // 6. Help: the guide, how the vault is protected, feedback, what went wrong.
-          SettingsGroup(rows: [
+          if (page == _Page.main) SettingsGroup(rows: [
             // The guide again: tips on the vault's page, then here.
             if (widget.onTour != null)
               KeyedSubtree(
-                key: _guideRowKey,
+                key: _here(_guideRowKey, page),
                 child: SettingsRow(
                   key: const ValueKey('guide-row'),
                   icon: Icons.school_rounded,
@@ -951,39 +1141,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: l.reportProblem,
               onTap: () => pushPage<void>(context, title: l.reportProblem, builder: (_) => const ErrorReportScreen()),
             ),
-          ]),
-          // One vault in the app (decisions 2026-10-24); another one only in debug mode, for
-          // testing (the core keeps several).
-          if (debugModeOn())
-            SettingsGroup(rows: [
-              SettingsRow(
-                key: const ValueKey('debug-new-vault'),
-                icon: Icons.add,
-                color: SettingsHue.troi,
-                title: l.newVault,
-                onTap: widget.onNewVault,
-              ),
-            ]),
-          const SizedBox(height: 22),
-          Material(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: () => _guarded(_deleteVault),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Center(
-                  // Destructive in the system red, like Delete elsewhere (docs/ui.md); the theme's
-                  // error colour is ink in this black-and-white design.
-                  child: Text(l.deleteVault, style: TextStyle(color: recordRed(context), fontWeight: FontWeight.w600, fontSize: CsType.subhead)),
-                ),
-              ),
+            // Version, build, source, licence (and Debug) on a page of their own.
+            SettingsRow(
+              key: const ValueKey('settings-help'),
+              icon: Icons.info_rounded,
+              color: SettingsHue.xam,
+              title: l.aboutTitle,
+              onTap: () => _show(_Page.help),
             ),
-          ),
+          ]),
           // About: version and build (to match a phone with its release run, build =
           // 1000 + run), when and from which commit it was built, the licence.
-          FutureBuilder<PackageInfo>(
+          if (page == _Page.help) FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
             builder: (context, snap) {
               final p = snap.data;
@@ -1036,9 +1205,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 12),
           if (dark) const SizedBox(height: 4),
-        ],
+    ];
+  }
+}
+
+/// Top Secret Mode on the main page: its mark, its name, whether it is on, one line on
+/// what it does. A tap opens its page.
+class _TopSecretCard extends StatelessWidget {
+  const _TopSecretCard({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final on = TopSecretMode.on;
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Material(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const ValueKey('top-secret-row'),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+            child: Row(children: [
+              const TopSecretMark(size: 34),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Flexible(
+                      child: Text(l.topSecretMode,
+                          style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      on ? l.statusOn : l.statusOff,
+                      style: TextStyle(
+                        fontSize: CsType.footnote,
+                        fontWeight: FontWeight.w700,
+                        color: on ? topSecretRed : c.muted,
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 2),
+                  Text(l.topSecretCardNote,
+                      style: TextStyle(fontSize: CsType.footnote, height: 1.3, color: c.muted)),
+                ]),
+              ),
+              Icon(Icons.chevron_right_rounded, color: c.muted),
+            ]),
+          ),
+        ),
       ),
-    )));
+    );
   }
 }
 
@@ -1055,7 +1278,6 @@ class _VaultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     // The same surface as the groups below, ink text: a black card in light mode and a
     // white one in dark mode were both too strong (owner 2026-10-21).
     final bg = Theme.of(context).cardColor;
@@ -1090,28 +1312,9 @@ class _VaultCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
+              // The bar alone, no legend (owner 2026-10-31): a tap opens Storage, with the
+              // parts named and sized.
               StorageBar(figures: figures),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 14,
-                runSpacing: 4,
-                children: [
-                  for (final (k, color) in storageParts)
-                    if (figures.size(k) > BigInt.zero) Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                        const SizedBox(width: 5),
-                        // The name only, as in the iPhone's Storage (owner 2026-10-26): the
-                        // bar shows how much, the total is above; the sizes are one tap away.
-                        Text(storagePartName(l, k), style: TextStyle(color: fg.withValues(alpha: .9), fontSize: CsType.footnote)),
-                      ],
-                    ),
-                ],
-              ),
             ],
           ),
         ),

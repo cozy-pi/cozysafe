@@ -3,7 +3,9 @@ import 'package:intl/intl.dart';
 
 import '../error_log.dart';
 import '../l10n/app_localizations.dart';
+import '../biometric.dart' show confirmOwnerForSetting;
 import '../src/rust/api/sync.dart' as sync;
+import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/toast.dart';
@@ -246,7 +248,22 @@ class _SyncScreenState extends State<SyncScreen> {
                       ),
                   ]),
                   const SizedBox(height: 24),
-                  _Card(children: [
+                  _Card(indent: 0, children: [
+                    // This vault's copy in Drive, deleted on request (owner 2026-10-31: the
+                    // person's own security); this device keeps the vault.
+                    InkWell(
+                      key: const ValueKey('sync-drive-delete'),
+                      onTap: () async {
+                        await _deleteFromDrive();
+                        set(() {});
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: Text(l.driveDeleteRow, style: const TextStyle(fontSize: CsType.body, color: Color(0xFFFF3B30))),
+                        ),
+                      ),
+                    ),
                     // Red words only, as the iPhone's Sign Out: no symbol (owner 2026-10-27).
                     InkWell(
                       key: const ValueKey('sync-drive-remove'),
@@ -265,6 +282,28 @@ class _SyncScreenState extends State<SyncScreen> {
               );
             }));
     if (mounted) setState(() {});
+  }
+
+  /// Delete this vault's files from Google Drive: the phone's owner, then a confirmation.
+  /// Automatic sync turns off first, or it would send everything up again.
+  Future<void> _deleteFromDrive() async {
+    final l = AppLocalizations.of(context);
+    final id = rust.openVaultInfo()?.id;
+    if (id == null) return;
+    if (!await confirmOwnerForSetting(l.driveDeleteTitle) || !mounted) return;
+    final ok = await confirmDelete(context,
+        title: l.driveDeleteTitle, body: l.driveDeleteBody, action: l.driveDeleteRow, icon: Icons.cloud_off_rounded);
+    if (!ok || !mounted) return;
+    AutoSync.enabled = false;
+    try {
+      final session = await driveSignInQuietly() ?? await driveSignIn();
+      if (session == null) throw StateError('no sign-in');
+      await sync.driveDeleteVault(token: session.token, vaultId: id);
+      if (mounted) showToast(context, l.driveDeleted, icon: Icons.check_rounded);
+    } catch (e) {
+      ErrorLog.add('drive-delete', e.runtimeType.toString());
+      if (mounted) showToast(context, l.deleteDriveFailed, icon: Icons.error_outline_rounded);
+    }
   }
 
   /// Remove the Google account: asks first; the files on Drive stay. True once removed.

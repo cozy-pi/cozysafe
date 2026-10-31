@@ -14,6 +14,8 @@ import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'tour.dart' show TourKind;
+import 'top_secret_page.dart';
+import '../top_secret_mode.dart';
 import 'vault_home.dart';
 
 /// Create a vault (owner 2026-10-23, order 2026-10-29): what each key is for → the vault
@@ -36,12 +38,15 @@ class NewVaultScreen extends StatefulWidget {
   /// For the mockup renders: open on the Face ID step.
   @visibleForTesting
   static bool debugBiometricStep = false;
+  /// Mockups of the later steps: start at the password, as before the mode step.
+  @visibleForTesting
+  static bool debugSkipMode = false;
 
   @override
   State<NewVaultScreen> createState() => _NewVaultScreenState();
 }
 
-enum _Step { intro, words, check, password, biometric, icon, color }
+enum _Step { intro, mode, words, check, password, biometric, icon, color }
 
 class _NewVaultScreenState extends State<NewVaultScreen> {
   _Step _step = _Step.intro;
@@ -62,14 +67,22 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   final _pw = TextEditingController();
   final _pwAgain = TextEditingController();
   rust.VaultInfo? _vault;
+  /// The mode chosen on [_Step.mode]: this vault's own (ADR 0007).
+  bool _topSecret = TopSecretMode.on;
+  /// Face ID opens one vault per device; while another vault has it, making this one does
+  /// not ask (owner 2026-10-31: asking took it from the other). Settings can move it.
+  late final bool _bioTaken = rust.hasBiometricUnlock(dir: widget.libraryDir);
 
   /// One thing per step, said briefly (owner 2026-10-24: no screen explaining all three
   /// at once). The first vault starts from the welcome screen, so it has no intro.
   List<_Step> get _steps => [
         if (!widget.first) _Step.intro,
+        // Every vault chooses Top Secret Mode or not, its own (ADR 0007, owner 2026-10-31:
+        // with the differences listed, and said it can change later).
+        if (!NewVaultScreen.debugSkipMode) _Step.mode,
         _Step.password,
         if (_newWords) ...[_Step.words, _Step.check],
-        if (_bioKind != null) _Step.biometric,
+        if (_bioKind != null && !_bioTaken) _Step.biometric,
         _Step.icon,
       ];
 
@@ -178,10 +191,18 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
               icon: vaultIcons[_icon].id,
               color: vaultColors[_color].id,
               password: _pw.text,
+              topSecret: _topSecret,
             )
           : await rust.setPassword(dir: widget.libraryDir, password: _pw.text);
     } on rust.VaultError catch (e) {
       if (!mounted) return;
+      // Made, but a Top secret vault cannot open after an everyday one in this run: the
+      // app starts again and it is unlocked with its password.
+      if (e == rust.VaultError.restartForMode) {
+        _pw.clear();
+        _pwAgain.clear();
+        return restartForMode(context);
+      }
       setState(() {
         _busy = false;
         _step = _Step.password;
@@ -203,7 +224,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     _bioKind ??= await BiometricUnlock.available();
     if (!mounted) return;
     setState(() => _busy = false);
-    _go(_bioKind != null ? _Step.biometric : _Step.icon);
+    _go(_bioKind != null && !_bioTaken ? _Step.biometric : _Step.icon);
   }
 
   // ---------- look, then in ----------
@@ -228,6 +249,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       } catch (_) {} // the suggested look stays; it can be changed in Settings
     }
     if (!mounted) return;
+    TopSecretMode.opened(vault);
     // The root: from a computer's right-hand pane the vault replaces the whole window.
     final nav = Navigator.of(context, rootNavigator: true);
     await playVaultSpin(
@@ -270,6 +292,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     });
     final title = switch (_step) {
       _Step.intro => widget.first ? l.firstVaultTitle : l.newVaultTitle,
+      _Step.mode => l.modeChooseTitle,
       _Step.words => l.wordsTitle,
       _Step.check => l.wordsCheckTitle,
       _Step.password => l.backupPasswordTitle,
@@ -279,6 +302,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     };
     final hint = switch (_step) {
       _Step.intro => l.introLead,
+      _Step.mode => l.modeChooseLead,
       _Step.words => l.wordsLead,
       _Step.check => l.wordsCheckLead,
       _Step.password => l.passwordLead,
@@ -288,6 +312,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     };
     final body = switch (_step) {
       _Step.intro => _intro(l),
+      _Step.mode => _modeBody(l),
       _Step.words => _wordsBody(l),
       _Step.check => _checkBody(l),
       _Step.password => _passwordBody(l),
@@ -322,7 +347,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     };
     // The badge is the vault being made; forms (words, password) need the room, and the
     // Face ID step has its own glyph.
-    final badge = switch (_step) { _Step.words || _Step.check || _Step.password || _Step.biometric => false, _ => true };
+    final badge = switch (_step) { _Step.mode || _Step.words || _Step.check || _Step.password || _Step.biometric => false, _ => true };
 
     return PopScope(
       // The system back gesture steps back too; on the first step it leaves.
@@ -489,6 +514,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     return switch (_step) {
       _Step.intro => button(const ValueKey('intro-start'), l.introStart,
           _words == null && NewVaultScreen.debugWords == null && widget.first ? null : () => _go(_steps[1])),
+      _Step.mode => button(const ValueKey('mode-next'), l.pinNext, () => _go(_Step.password)),
       _Step.words => button(const ValueKey('words-done'), l.wordsWritten, () {
           _checkOk = false;
           _go(_Step.check);
@@ -501,6 +527,51 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       _Step.biometric => button(const ValueKey('bio-yes'), l.biometricOfferYes, _busy ? null : () => _biometricAnswer(true)),
       _ => null,
     };
+  }
+
+  /// Everyday or Top Secret Mode: the two as choices, the differences under them.
+  Widget _modeBody(AppLocalizations l) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    Widget choice(bool topSecret, Widget mark, String title, String note) {
+      final on = _topSecret == topSecret;
+      final edge = topSecret ? topSecretRed : privateGreen;
+      return Material(
+        color: solidTint(context, (on ? edge : ink).withValues(alpha: on ? .12 : .06)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: on ? edge : Colors.transparent, width: 2),
+        ),
+        child: InkWell(
+          key: ValueKey(topSecret ? 'mode-top-secret' : 'mode-everyday'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => setState(() => _topSecret = topSecret),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+            child: Row(children: [
+              mark,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: TextStyle(color: ink, fontSize: CsType.callout, fontWeight: FontWeight.w700)),
+                  Text(note, style: TextStyle(color: ink.withValues(alpha: .65), fontSize: CsType.footnote, height: 1.3)),
+                ]),
+              ),
+              Icon(on ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, color: on ? edge : ink.withValues(alpha: .4)),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      choice(false, const PrivateMark(size: 30), l.modeEveryday, l.modeEverydayNote),
+      const SizedBox(height: 10),
+      choice(true, const TopSecretMark(size: 30), l.topSecretShort, l.modeTopSecretNote),
+      const SizedBox(height: 16),
+      const TopSecretCompare(),
+      const SizedBox(height: 10),
+      Text('${l.topSecretPerVault} ${l.modeChangeLater}', style: TextStyle(color: ink.withValues(alpha: .6), fontSize: CsType.footnote, height: 1.35)),
+    ]);
   }
 
   /// The four words typed back are right.

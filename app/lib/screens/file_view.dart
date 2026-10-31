@@ -35,18 +35,14 @@ import '../capture_name.dart';
 import '../item_kind.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show GlassButton;
+import '../top_secret_mode.dart';
+import '../file_kinds.dart';
 
 /// Icon for an item kind / type.
 IconData fileIcon(rust.ItemInfo item) {
-  if (item.kind == ItemKind.note) return Icons.edit_note_rounded;
+  if (item.kind == ItemKind.note) return Icons.book_rounded;
   if (item.kind == ItemKind.video) return Icons.movie_rounded;
-  final m = item.mime;
-  if (m == 'application/pdf') return Icons.picture_as_pdf_rounded;
-  if (m.startsWith('image/')) return Icons.image_rounded;
-  if (m.startsWith('video/')) return Icons.movie_rounded;
-  if (m.startsWith('audio/')) return Icons.audiotrack_rounded;
-  if (m.contains('zip') || m.contains('compressed')) return Icons.folder_zip_rounded;
-  return Icons.insert_drive_file_rounded;
+  return fileKindOf(item.name, item.mime).icon;
 }
 
 String fileSize(BigInt bytes) {
@@ -328,14 +324,23 @@ Future<void> importOne(
       : f.name;
   final watch = Stopwatch()..start();
   var way = isVideo ? 'video' : '';
-  final thumbnail =
-      isImage ? await imageThumbnail(f.path, way: (w) => way = w) : (isVideo ? await videoThumbnail(f.path) : null);
+  // Top secret seals the bytes as they are: no picture or video is decoded (ADR 0005).
+  final thumbnail = TopSecretMode.on
+      ? null
+      : isImage
+          ? await imageThumbnail(f.path, way: (w) => way = w)
+          : (isVideo ? await videoThumbnail(f.path) : null);
   final thumbMs = watch.elapsedMilliseconds;
   ImportStats.thumbnailMs += thumbMs;
   watch.reset();
   final item = await rust.addFile(
     path: f.path,
-    kind: isVideo ? ItemKind.video : (isImage && (photos || thumbnail != null) ? ItemKind.photo : ItemKind.file),
+    // Top secret: files picked stay files; a video from the app's camera stays a video.
+    kind: TopSecretMode.on
+        ? (isVideo && photos ? ItemKind.video : ItemKind.file)
+        : isVideo
+            ? ItemKind.video
+            : (isImage && (photos || thumbnail != null) ? ItemKind.photo : ItemKind.file),
     name: name,
     mime: mime,
     createdMs: nowMs(),
@@ -344,7 +349,7 @@ Future<void> importOne(
   ImportStats.vaultMs += watch.elapsedMilliseconds;
   DebugLog.add('import $tag ${isVideo ? 'video' : isImage ? 'image' : 'file'} ${(item.sizeBytes ~/ BigInt.from(1024))} KB: '
       'thumbnail $way $thumbMs ms (${thumbnail == null ? 'none' : '${thumbnail.length ~/ 1024} KB'}) · vault ${watch.elapsedMilliseconds} ms');
-  if (isVideo) {
+  if (isVideo && !TopSecretMode.on) {
     final ms = await videoLength(f.path);
     if (ms != null) await rust.setItemDuration(id: item.id, durationMs: i64(ms));
   }
@@ -394,6 +399,13 @@ class _FileViewScreenState extends State<FileViewScreen> {
   Future<void> _open(BuildContext buttonContext) async {
     setState(() => _busy = true);
     await shareItem(context, _item, widget.vaultId, from: buttonContext);
+    if (mounted) setState(() => _busy = false);
+  }
+
+  /// "Open with" (Android) / "Open in…" (iPhone): only the apps that open this file.
+  Future<void> _openWith(BuildContext buttonContext) async {
+    setState(() => _busy = true);
+    await openWithById(context, _item.id, _item.mime, _item.name, widget.vaultId, from: buttonContext);
     if (mounted) setState(() => _busy = false);
   }
 
@@ -616,7 +628,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
       appBar: AppBar(actions: _moreButton(l)),
       // Open with leads the bar; Open as text beside it.
       bottomNavigationBar: _bar(l, first: [
-        BarIcon(key: const ValueKey('file-open-with'), icon: Icons.open_in_new_rounded, tooltip: l.openWith, onTap: _busy ? null : _open),
+        BarIcon(key: const ValueKey('file-open-with'), icon: Icons.open_in_new_rounded, tooltip: l.openWith, onTap: _busy ? null : _openWith),
         BarIcon(
             key: const ValueKey('open-as-text'),
             icon: Icons.notes_rounded,
@@ -660,9 +672,12 @@ Future<void> shareItem(BuildContext context, rust.ItemInfo item, String vaultId,
     shareById(context, item.id, item.mime, name ?? item.name, vaultId, from: from);
 
 /// [shareItem] by id, for an item whose details are not at hand (a note just saved).
-Future<void> shareById(BuildContext context, String id, String mime, String name, String vaultId, {BuildContext? from}) async {
+/// [askFirst] false: the caller has just said what sending means (a Top secret item's
+/// card says it every time).
+Future<void> shareById(BuildContext context, String id, String mime, String name, String vaultId,
+    {BuildContext? from, bool askFirst = true}) async {
   final l = AppLocalizations.of(context);
-  if (!await confirmShareOut(context, vaultId) || !context.mounted) return;
+  if (askFirst && !await confirmShareOut(context, vaultId) || !context.mounted) return;
   final dir = await (await privateTemp()).createTemp('send');
   final file = name.replaceAll(RegExp(r'[/\\:]'), '-');
   final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
@@ -682,6 +697,46 @@ Future<void> shareById(BuildContext context, String id, String mime, String name
       dir.deleteSync(recursive: true);
     } catch (_) {}
   }
+}
+
+const _openChannel = MethodChannel('cozysafe/open');
+
+/// Open one item in another app, as a computer's "Open with" (owner 2026-10-31: the share
+/// sheet only sent it): Android's own "Open with" (a read-only link to the copy, for the
+/// app picked) and the iPhone's "Open in…" (only apps that open this kind of file; the
+/// one picked gets a copy). Elsewhere, or when the system has nothing to offer, the share
+/// sheet as before. The decrypted copy is removed once the person is back.
+Future<void> openWithById(BuildContext context, String id, String mime, String name, String vaultId,
+    {BuildContext? from, bool askFirst = true}) async {
+  if (!Device.android && !Device.iOS) {
+    return shareById(context, id, mime, name, vaultId, from: from, askFirst: askFirst);
+  }
+  final l = AppLocalizations.of(context);
+  if (askFirst && !await confirmShareOut(context, vaultId) || !context.mounted) return;
+  // Android shares only this folder (res/xml/open_paths.xml).
+  final base = Directory('${(await privateTemp()).path}${Platform.pathSeparator}open');
+  base.createSync(recursive: true);
+  final dir = base.createTempSync('o');
+  final file = name.replaceAll(RegExp(r'[/\\:]'), '-');
+  final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
+  LockGuard.allowAway();
+  var shown = false;
+  try {
+    await rust.exportItem(id: id, path: path);
+    shown = await _openChannel.invokeMethod<bool>('openWith', {'path': path, 'mime': mime, 'title': l.openWith}) ?? false;
+  } on rust.VaultError catch (e) {
+    shown = true;
+    if (context.mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
+  } catch (_) {
+    shown = false;
+  } finally {
+    LockGuard.clear();
+    try {
+      dir.deleteSync(recursive: true);
+    } catch (_) {}
+  }
+  // No app for it here: the share sheet still lets it go somewhere (Files, AirDrop).
+  if (!shown && context.mounted) await shareById(context, id, mime, name, vaultId, from: from, askFirst: false);
 }
 
 /// Before the first decrypted copy leaves a vault: say what that means, once per

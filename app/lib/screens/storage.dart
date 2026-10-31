@@ -32,8 +32,8 @@ class StorageFigures {
 const storageParts = [
   (ItemKind.photo, Color(0xFF0A84FF)),
   (ItemKind.video, Color(0xFFBF5AF2)),
-  (ItemKind.note, Color(0xFFFFD60A)),
-  (ItemKind.audio, Color(0xFFFF9F0A)),
+  (ItemKind.note, Color(0xFF5E5CE6)),
+  (ItemKind.audio, Color(0xFFFF375F)),
   (ItemKind.file, Color(0xFF30D158)),
   (storageTrash, Color(0xFFFF453A)),
   (storageHistory, Color(0xFF8E8E93)),
@@ -52,7 +52,7 @@ String storagePartName(AppLocalizations l, String part) => switch (part) {
 IconData _icon(String part) => switch (part) {
       ItemKind.photo => Icons.photo_rounded,
       ItemKind.video => Icons.videocam_rounded,
-      ItemKind.note => Icons.sticky_note_2_rounded,
+      ItemKind.note => Icons.book_rounded,
       ItemKind.audio => Icons.mic_none_rounded,
       ItemKind.file => Icons.insert_drive_file_rounded,
       storageTrash => Icons.delete_sweep_rounded,
