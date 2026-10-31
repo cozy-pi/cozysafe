@@ -1531,10 +1531,10 @@ void main() {
     SettingsScreen.debugSyncLog = const [];
     Prefs.write('lock-on-leave', '0');
   }, act: (t) async {
-    await t.scrollUntilVisible(find.text('Tự khoá khi không dùng'), 200, scrollable: find.byType(Scrollable).first);
+    await t.scrollUntilVisible(find.text('Tự khoá'), 200, scrollable: find.byType(Scrollable).first);
     await t.drag(find.byType(Scrollable).first, const Offset(0, 300));
     await t.pumpAndSettle();
-    await t.tap(find.text('Tự khoá khi không dùng'));
+    await t.tap(find.text('Tự khoá'));
   });
   _screen('tip-lock-away', 'Gợi ý Tự khoá khi đã tắt “Khoá ngay khi rời ứng dụng”: chỉ vào Cài đặt',
       () => const VaultHomeScreen(libraryDir: '', vault: vault, tour: TourKind.guide),
@@ -1609,7 +1609,7 @@ void main() {
         journal: 141, junk: 0, junkBytes: 0, unknown: 0, summary: '');
   });
   _screen('autolock-menu', 'Cài đặt · Tự khoá', () => settings(vault), act: (t) async {
-    await t.tap(find.text('Tự khoá khi không dùng'));
+    await t.tap(find.text('Tự khoá'));
   });
   Widget sheetOver(Widget sheet) => Builder(builder: (context) {
         WidgetsBinding.instance.addPostFrameCallback((_) => showModalBottomSheet<bool>(context: context, builder: (_) => sheet));
