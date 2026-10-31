@@ -76,6 +76,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cozysafe/screens/history.dart';
 import 'package:cozysafe/src/rust/api/history.dart' show HistoryVersion;
+import 'package:cozysafe/screens/vault_kinds.dart';
+import 'package:cozysafe/vault_kind.dart';
 
 const _enabled = bool.fromEnvironment('PREVIEW');
 final _now = DateTime.now().millisecondsSinceEpoch;
@@ -197,8 +199,8 @@ const _qrText = 'cozysafe:p2p:2:60N00JBJ120XDWG3A2';
 const _qrBits = '1111111000011001111010111111110000010000000000110001000001101110101000101010110010111011011101011100000111000101110110111010100101110000101011101100000101010111110100010000011111111010101010101010111111100000000110111010001000000000101111100111001101110011111001110110001011001100010101010110001010010010000110011011000001001011100001010100110110110110111110010000011011010111100101100100011110001001110001100000110001011100100100011000000110101001100001000001100110101011010100111000110100101101100000011100001010010100111000111011010001101001101100010110100110100110011111011001101001100111100100011111101100000000010000111101010001101111111110001111111000101010100100000101011110000111000110001011101011101011100011111011010111010111011000000010101011101110101010001111000011110101000001000100100100110000001011111110110110010000011001100';
 
 /// As the vault's rule: 12 characters, 5 different ones, not a common password.
-PasswordProblem _passwordProblem(String pw) {
-  if (pw.length < 12) return PasswordProblem.tooShort;
+PasswordProblem _passwordProblem(String pw, {bool private = false}) {
+  if (pw.length < (RunKind.topSecret && !private ? 12 : 14)) return PasswordProblem.tooShort;
   if (pw.toLowerCase().split('').toSet().length < 5) return PasswordProblem.guessable;
   // A common one with a year added, for the "password refused" mockup.
   if (pw.toLowerCase().startsWith('sunshine')) return PasswordProblem.common;
@@ -210,8 +212,12 @@ class _Fake implements RustLibApi {
   dynamic noSuchMethod(Invocation call) {
     final n = call.memberName.toString();
     if (n.contains('MinPasswordScore')) return 3;
-    if (n.contains('MinPasswordLength')) return 12;
+    if (n.contains('MinPasswordLength')) return RunKind.topSecret ? 12 : 14;
     if (n.contains('MinPinLength')) return 6;
+    if (n.contains('PrivatePasswordProblem')) {
+      return _passwordProblem(call.namedArguments[#password] as String, private: true);
+    }
+    if (n.contains('MinPrivatePasswordLength')) return 14;
     if (n.contains('PasswordProblem')) return _passwordProblem(call.namedArguments[#password] as String);
     if (n.contains('PasswordScore')) {
       // As the vault's strength(): under 8 none, refused one bar, accepted three, 16+ four.
@@ -221,6 +227,7 @@ class _Fake implements RustLibApi {
       return pw.length >= 16 ? 4 : 3;
     }
     if (n.contains('HasVaults')) return true;
+    if (n.contains('AddNote')) return Future<ItemInfo>.value(_items.first);
     if (n.contains('QrMatrix')) return QrMatrix(size: 29, dark: [for (final c in _qrBits.split('')) c == '1']);
     if (n.contains('P2PCodeAddress')) return '192.168.1.37';
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_itemsNow ?? _items);
@@ -425,6 +432,9 @@ void _screen(String name, String caption, Widget Function() home,
       QuickLook.debugStillAudio = false;
       QuickLook.debugPdfPage = null;
       CoachTour.debugStart = 0;
+      RunKind.current = VaultKind.topSecret;
+      PrivateVaultPage.debugExists = null;
+      RunKind.debugClosesItself = false; // the owner's iPhone
       // A MacBook or Windows frame is a computer: Finder-style rows and toolbar.
       if (size.width >= 1280) Device.debugDesktop = true;
       setup?.call();
@@ -1038,6 +1048,65 @@ void main() {
       act: (t) async {
     t.view.physicalSize = const Size(430, 2560) * 2;
     await t.pumpAndSettle();
+  });
+  Widget kindPage(String title, Widget body) =>
+      Readable(child: Builder(builder: (context) => Scaffold(appBar: pageBar(context, title), body: SafeArea(top: false, child: body))));
+  Future<void> toOtherKind(WidgetTester t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('other-kind-row')), 200, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, 160));
+    await t.pumpAndSettle();
+  }
+  _screen('kinds-settings-top', 'Két Tuyệt mật · Cài đặt: dòng "Két Riêng tư"', () => settings(vault),
+      change: 'MỚI: dòng "Két Riêng tư" — nơi DUY NHẤT để sang két Riêng tư (sau khi đã mở két; màn khoá không nhắc gì)',
+      marks: [() => find.byKey(const ValueKey('other-kind-row'))],
+      act: toOtherKind);
+  _screen('kinds-settings-private', 'Két Riêng tư · Cài đặt: không còn dòng 24 từ, có dòng "Két Tuyệt mật"', () => settings(vault),
+      change: 'MỚI: trong két Riêng tư, Cài đặt bỏ các dòng của 24 từ (Khoá khôi phục, Kiểm tra 24 từ, sao lưu khoá); dòng "Két Tuyệt mật" để quay về',
+      marks: [() => find.byKey(const ValueKey('other-kind-row'))],
+      setup: () => RunKind.current = VaultKind.private,
+      act: toOtherKind);
+  _screen('kinds-private-page', 'Két Tuyệt mật · Cài đặt → Két Riêng tư (chưa có)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: false)),
+      change: 'MỚI: két Riêng tư là gì (ảnh, video, tệp; mật khẩu riêng; tách hẳn) + nút Tạo',
+      marks: [() => find.byKey(const ValueKey('create-private'))]);
+  _screen('kinds-private-set-password', 'Két Riêng tư · tự đặt mật khẩu (ở két Tuyệt mật)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: false)),
+      change: 'MỚI: người dùng TỰ ĐẶT mật khẩu két Riêng tư (ít nhất 14 ký tự); 4–5 từ ngẫu nhiên chỉ là lời gợi ý',
+      marks: [() => find.byKey(const ValueKey('password-strength-word'))],
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('create-private')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('private-password')).first, 'maple orbit');
+    await t.pump();
+  });
+  _screen('kinds-private-saved', 'Két Riêng tư · đã cất mật khẩu thành ghi chú trong két Tuyệt mật', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: false)),
+      change: 'MỚI: Lưu là cất NGAY mật khẩu thành ghi chú "Mật khẩu két Riêng tư" trong két Tuyệt mật, rồi mới chuyển',
+      marks: [() => find.byKey(const ValueKey('private-password-saved')), () => find.byKey(const ValueKey('switch-to-private'))],
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('create-private')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('private-password')).first, 'maple orbit candle river');
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('save-private-password')));
+    await t.pumpAndSettle();
+  });
+  _screen('kinds-switch-card', 'Chuyển sang két Riêng tư · hỏi lại trước khi chuyển (iPhone)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: true)),
+      change: 'MỚI: hỏi lại; két khoá, xoá mọi tệp tạm. Android/máy tính: app tự đóng. iPhone/iPad: hiện màn "Đóng app rồi mở lại"',
+      marks: [() => find.byKey(const ValueKey('switch-go'))],
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('switch-to-private')));
+    await t.pumpAndSettle();
+  });
+  _screen('kinds-close-app', 'iPhone/iPad sau khi chuyển: đóng app rồi mở lại', () => const CloseAppPage(next: VaultKind.private),
+      change: 'MỚI: Apple không cho app tự thoát, nên màn này chỉ bảo đóng app rồi mở lại; không làm gì khác được trên màn này');
+  _screen('kinds-private-welcome', 'Két Riêng tư · lần đầu mở', () => const PrivateWelcomeScreen(libraryDir: ''),
+      change: 'MỚI: lần đầu vào két Riêng tư: Tạo (gõ mật khẩu trong ghi chú) hoặc Về két Tuyệt mật',
+      setup: () => RunKind.current = VaultKind.private);
+  _screen('kinds-private-password', 'Két Riêng tư · lần đầu: gõ lại mật khẩu (chưa đủ)', () => const NewVaultScreen(libraryDir: '', first: true),
+      change: 'MỚI: một ô (không gõ lại vì đã có trong ghi chú); ít nhất 14 ký tự; không có bước 24 từ',
+      marks: [() => find.byKey(const ValueKey('password-strength-word'))],
+      setup: () => RunKind.current = VaultKind.private,
+      act: (t) async {
+    await t.enterText(find.byKey(const ValueKey('new-password')).first, 'maple orbit');
+    await t.pump();
   });
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
       act: (t) async {

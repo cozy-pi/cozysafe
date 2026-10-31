@@ -37,6 +37,8 @@ import 'key_check.dart';
 import 'tour.dart';
 import '../sync/sync_screen.dart';
 import '../widgets/readable.dart';
+import '../vault_kind.dart';
+import 'vault_kinds.dart';
 
 /// Per-device choices, kept next to the library (not secret).
 abstract final class Settings {
@@ -629,6 +631,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: row,
       );
 
+  Future<void> _openOtherKind() async {
+    final l = AppLocalizations.of(context);
+    if (!RunKind.topSecret) return switchKind(context, VaultKind.topSecret);
+    final exists = PrivateVaultPage.debugExists ?? await privateLibraryExists();
+    if (!mounted) return;
+    await pushPage<void>(context, title: l.privateVault, builder: (_) => PrivateVaultPage(exists: exists));
+  }
+
   void _tour() {
     widget.onTour?.call();
     Navigator.of(context).pop();
@@ -708,7 +718,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: vault.hasPassword ? l.isSet : l.notSet,
               onTap: () => _then(widget.onPassword),
             ),
-            if (vault.hasPassword)
+            // The 24 words are Top secret's (ADR 0005); a Private vault has none.
+            if (vault.hasPassword && RunKind.topSecret)
               SettingsRow(
                 key: const ValueKey('kit-row'),
                 icon: Icons.medical_services_rounded,
@@ -717,6 +728,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: widget.onShowKit,
               ),
             // Type them back to know they still open this vault (owner 2026-10-26).
+            if (RunKind.topSecret)
             SettingsRow(
               key: const ValueKey('key-check-row'),
               icon: Icons.fact_check_rounded,
@@ -728,7 +740,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             // Off unless turned on; turning it on is weaker, so it asks for the owner and
             // says the trade (owner 2026-10-26).
-            if (KeyBackup.supported)
+            if (KeyBackup.supported && RunKind.topSecret)
               SettingsRow(
                 key: const ValueKey('key-backup-row'),
                 icon: Icons.cloud_rounded,
@@ -743,6 +755,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         }),
                 ),
               ),
+          ]),
+          // The other kind of vault (ADR 0005): only here, after unlocking (owner
+          // 2026-10-31: nothing on the lock screen tells there is a second kind).
+          SettingsGroup(rows: [
+            SettingsRow(
+              key: const ValueKey('other-kind-row'),
+              icon: RunKind.topSecret ? Icons.photo_library_rounded : Icons.lock_rounded,
+              color: RunKind.topSecret ? SettingsHue.hong : SettingsHue.xam,
+              title: RunKind.topSecret ? l.privateVault : l.topSecretVault,
+              onTap: _openOtherKind,
+            ),
           ]),
           // 3. What shows on screen and when it locks.
           SettingsGroup(boxKey: _shieldGroupKey, rows: [

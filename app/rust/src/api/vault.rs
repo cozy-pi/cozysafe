@@ -218,11 +218,28 @@ pub enum PasswordProblem {
 #[flutter_rust_bridge::frb(sync)]
 pub fn password_problem(password: String) -> PasswordProblem {
     let password = Zeroizing::new(password);
-    let check = if private_run() {
+    problem_of(if private_run() {
         cs_vault::check_new_private_password(&password)
     } else {
         cs_vault::check_new_password(&password)
-    };
+    })
+}
+
+/// [`password_problem`] by the Private rule, whatever this run's kind: a Top secret run
+/// sets the Private vault's password before switching (ADR 0005).
+#[flutter_rust_bridge::frb(sync)]
+pub fn private_password_problem(password: String) -> PasswordProblem {
+    let password = Zeroizing::new(password);
+    problem_of(cs_vault::check_new_private_password(&password))
+}
+
+/// The least a Private vault's password may be, whatever this run's kind.
+#[flutter_rust_bridge::frb(sync)]
+pub fn min_private_password_length() -> u32 {
+    cs_vault::MIN_PRIVATE_PASSWORD_LEN as u32
+}
+
+fn problem_of(check: cs_vault::PasswordCheck) -> PasswordProblem {
     match check {
         cs_vault::PasswordCheck::Ok => PasswordProblem::None,
         cs_vault::PasswordCheck::TooShort => PasswordProblem::TooShort,

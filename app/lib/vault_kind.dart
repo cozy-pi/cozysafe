@@ -89,7 +89,10 @@ abstract final class RunKind {
 
   /// Whether the app may quit by itself after [switchTo]. Apple asks apps not to (App
   /// Review may treat it as a crash), so on iPhone and iPad the person closes it.
-  static bool get closesItself => !Platform.isIOS;
+  static bool get closesItself => debugClosesItself ?? !Platform.isIOS;
+
+  /// Mockups: act as a platform that quits by itself (or as iPhone, which does not).
+  static bool? debugClosesItself;
 
   static String _name(VaultKind kind) => kind == VaultKind.topSecret ? 'top-secret' : 'private';
 

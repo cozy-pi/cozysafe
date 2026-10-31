@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../vault_kind.dart';
 import '../widgets/edge_swipe_back.dart';
 import '../widgets/password_strength.dart';
 import '../widgets/recovery_words.dart';
@@ -100,6 +101,14 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   /// left half-way are never shown again (owner 2026-10-24): someone may have seen
   /// them, so a device with no vault yet always gets fresh ones.
   Future<void> _loadWords() async {
+    // A Private vault has no 24 words (ADR 0005): its password is the five words kept in
+    // the Top secret vault.
+    if (_private) {
+      setState(() {
+        if (_step == _Step.intro) _step = _steps.first;
+      });
+      return;
+    }
     // Fixed words only in tests and mockups, never in a release build.
     final debug = kReleaseMode ? null : NewVaultScreen.debugWords;
     if (debug != null) {
@@ -161,7 +170,11 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   // ---------- password ----------
 
-  bool get _passwordOk => PasswordStrength.acceptable(_pw.text) && _pw.text == _pwAgain.text;
+  /// A Private run (ADR 0005): one field, for the words already written in the Top
+  /// secret vault, so no typing twice.
+  bool get _private => !RunKind.topSecret;
+
+  bool get _passwordOk => PasswordStrength.acceptable(_pw.text) && (_private || _pw.text == _pwAgain.text);
 
   /// The vault is made with its password (decisions 2026-10-28: no PIN), after the words
   /// are checked; then Face ID, then the look. An error goes back to the password, where
@@ -272,7 +285,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       _Step.intro => widget.first ? l.firstVaultTitle : l.newVaultTitle,
       _Step.words => l.wordsTitle,
       _Step.check => l.wordsCheckTitle,
-      _Step.password => l.backupPasswordTitle,
+      _Step.password => _private ? l.privatePasswordTitle : l.backupPasswordTitle,
       _Step.biometric => l.biometricAskTitle,
       _Step.icon => l.pickIconHint,
       _Step.color => l.pickColorTitle,
@@ -281,7 +294,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       _Step.intro => l.introLead,
       _Step.words => l.wordsLead,
       _Step.check => l.wordsCheckLead,
-      _Step.password => l.passwordLead,
+      _Step.password => _private ? l.privatePasswordLead : l.passwordLead,
       _Step.biometric => l.biometricAskBody,
       _Step.icon => l.lookLead,
       _Step.color => l.lookLead,
@@ -579,14 +592,16 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         ),
         const SizedBox(height: 8),
         PasswordStrength(password: _pw.text),
-        const SizedBox(height: 12),
-        SecretField(
-          key: const ValueKey('new-password-again'),
-          controller: _pwAgain,
-          label: l.typeAgain,
-          errorText: _pwAgain.text.isNotEmpty && _pwAgain.text != _pw.text ? l.passwordsDiffer : null,
-          onChanged: (_) => setState(() {}),
-        ),
+        if (!_private) ...[
+          const SizedBox(height: 12),
+          SecretField(
+            key: const ValueKey('new-password-again'),
+            controller: _pwAgain,
+            label: l.typeAgain,
+            errorText: _pwAgain.text.isNotEmpty && _pwAgain.text != _pw.text ? l.passwordsDiffer : null,
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
         if (_error != null) ...[
           const SizedBox(height: 12),
           Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),

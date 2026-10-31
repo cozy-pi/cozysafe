@@ -119,6 +119,13 @@ new version:
   rest.
 - Decided 2026-10-31: Top secret keeps version history (a note or password changed by
   mistake can be brought back); the code is already in `cs-core`.
+- Decided 2026-10-31: the Private password is made from a Top secret run (Settings →
+  Private vault): the app suggests four words and saves them at once as a note
+  "Private vault password" in the open Top secret vault, then switches; the first
+  Private start asks for those words to make the library. Private's key derivation is
+  its own (password only, a fixed value under its own label in the Secret Key's place).
+- Decided 2026-10-31: switching kinds is only in Settings, after unlocking (nothing on
+  the lock screen tells that a second kind exists).
 - Decided 2026-10-31: steps 2–6 are built on the branch and merged into `main` only when
   all are done; each step still gets a mockup, the owner's approval and an internal test
   build (TestFlight, Play internal) made from the branch, with no public GitHub release.

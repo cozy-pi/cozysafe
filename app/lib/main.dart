@@ -21,6 +21,7 @@ import 'widgets/brand.dart';
 import 'widgets/native_bar.dart';
 import 'prefs.dart';
 import 'privacy.dart';
+import 'screens/vault_kinds.dart';
 import 'screens/welcome.dart';
 import 'temp_files.dart';
 import 'vault_kind.dart';
@@ -42,7 +43,7 @@ Future<void> main() async {
   PrivacyCover.listen(); // iOS: screenshots taken (they cannot be stopped there)
   await clearTemp(); // plain copies a crash or a kill left: an import, a share, a video
   unawaited(KeyBackup.sweep()); // no copy of the words in iCloud / Google in this build
-  final hasKey = await loadSecretKey(libraryDir);
+  final hasKey = RunKind.topSecret && await loadSecretKey(libraryDir);
   await AppLanguage.load();
   await NativeBar.probe(); // iOS 26: the system's own bottom bar
   DebugLog.sync(); // keep debug lines only if debug mode is on
@@ -96,8 +97,9 @@ class CozySafeApp extends StatelessWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: !rust.hasVaults(dir: libraryDir)
-          ? WelcomeScreen(libraryDir: libraryDir)
-          : hasSecretKey
+          ? (RunKind.topSecret ? WelcomeScreen(libraryDir: libraryDir) : PrivateWelcomeScreen(libraryDir: libraryDir))
+          // A Private vault has no Secret Key (ADR 0005).
+          : hasSecretKey || !RunKind.topSecret
               ? UnlockScreen(libraryDir: libraryDir)
               // Vaults are here but this device has no Secret Key (reinstall,
               // restored phone): ask for the Emergency Kit.
