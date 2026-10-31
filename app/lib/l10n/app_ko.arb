@@ -187,7 +187,7 @@
   "vaultDeleted": "금고를 삭제했습니다",
   "storageUsed": "{size} · {count, plural, =1{항목 1개} other{항목 {count}개}}",
   "settingsLock": "잠금",
-  "autoLock": "사용하지 않을 때 잠금",
+  "autoLock": "자동 잠금",
   "minutesShort": "{count}분",
   "lastBackupLabel": "마지막 백업",
   "settingsPrivacy": "개인정보 보호",

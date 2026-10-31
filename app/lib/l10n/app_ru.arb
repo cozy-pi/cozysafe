@@ -187,7 +187,7 @@
   "vaultDeleted": "Сейф удалён",
   "storageUsed": "{size} · {count, plural, one{{count} объект} few{{count} объекта} many{{count} объектов} other{{count} объекта}}",
   "settingsLock": "Блокировка",
-  "autoLock": "Запирать при бездействии",
+  "autoLock": "Автоблокировка",
   "minutesShort": "{count} мин",
   "lastBackupLabel": "Последняя копия",
   "settingsPrivacy": "Конфиденциальность",

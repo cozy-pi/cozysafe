@@ -187,7 +187,7 @@
   "vaultDeleted": "Kasa silindi",
   "storageUsed": "{size} · {count, plural, =1{1 öğe} other{{count} öğe}}",
   "settingsLock": "Kilit",
-  "autoLock": "Kullanılmadığında kilitle",
+  "autoLock": "Otomatik kilit",
   "minutesShort": "{count} dk",
   "lastBackupLabel": "Son yedek",
   "settingsPrivacy": "Gizlilik",

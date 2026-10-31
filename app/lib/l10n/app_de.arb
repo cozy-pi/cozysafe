@@ -187,7 +187,7 @@
   "vaultDeleted": "Tresor gelöscht",
   "storageUsed": "{size} · {count, plural, =1{1 Element} other{{count} Elemente}}",
   "settingsLock": "Sperre",
-  "autoLock": "Sperren nach Inaktivität",
+  "autoLock": "Automatische Sperre",
   "minutesShort": "{count} Min.",
   "lastBackupLabel": "Letztes Backup",
   "settingsPrivacy": "Datenschutz",

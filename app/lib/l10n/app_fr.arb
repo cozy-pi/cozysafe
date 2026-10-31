@@ -187,7 +187,7 @@
   "vaultDeleted": "Coffre supprimé",
   "storageUsed": "{size} · {count, plural, =1{1 élément} other{{count} éléments}}",
   "settingsLock": "Verrouillage",
-  "autoLock": "Verrouiller après inactivité",
+  "autoLock": "Verrouillage auto",
   "minutesShort": "{count} min",
   "lastBackupLabel": "Dernière sauvegarde",
   "settingsPrivacy": "Confidentialité",

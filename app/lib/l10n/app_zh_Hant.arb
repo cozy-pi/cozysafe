@@ -187,7 +187,7 @@
   "vaultDeleted": "保險箱已刪除",
   "storageUsed": "{size} · {count, plural, =1{1 個項目} other{{count} 個項目}}",
   "settingsLock": "鎖定",
-  "autoLock": "閒置後鎖定",
+  "autoLock": "自動鎖定",
   "minutesShort": "{count} 分鐘",
   "lastBackupLabel": "上次備份",
   "settingsPrivacy": "隱私",

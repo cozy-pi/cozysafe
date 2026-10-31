@@ -187,7 +187,7 @@
   "vaultDeleted": "金庫を削除しました",
   "storageUsed": "{size} · {count, plural, =1{1件} other{{count}件}}",
   "settingsLock": "ロック",
-  "autoLock": "未使用時にロック",
+  "autoLock": "自動ロック",
   "minutesShort": "{count}分",
   "lastBackupLabel": "前回のバックアップ",
   "settingsPrivacy": "プライバシー",

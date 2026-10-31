@@ -187,7 +187,7 @@
   "vaultDeleted": "Cofre excluído",
   "storageUsed": "{size} · {count, plural, =1{1 item} other{{count} itens}}",
   "settingsLock": "Bloqueio",
-  "autoLock": "Bloquear sem uso",
+  "autoLock": "Bloqueio automático",
   "minutesShort": "{count} min",
   "lastBackupLabel": "Último backup",
   "settingsPrivacy": "Privacidade",

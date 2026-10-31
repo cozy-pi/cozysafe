@@ -222,7 +222,7 @@
   "vaultDeleted": "Vault deleted",
   "storageUsed": "{size} · {count, plural, =1{1 item} other{{count} items}}",
   "settingsLock": "Lock",
-  "autoLock": "Lock after no use",
+  "autoLock": "Auto-Lock",
   "minutesShort": "{count} min",
   "lastBackupLabel": "Last backup",
   "settingsPrivacy": "Privacy",

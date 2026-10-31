@@ -187,7 +187,7 @@
   "vaultDeleted": "ลบตู้นิรภัยแล้ว",
   "storageUsed": "{size} · {count, plural, =1{1 รายการ} other{{count} รายการ}}",
   "settingsLock": "การล็อก",
-  "autoLock": "ล็อกเมื่อไม่ได้ใช้งาน",
+  "autoLock": "ล็อกอัตโนมัติ",
   "minutesShort": "{count} นาที",
   "lastBackupLabel": "สำรองล่าสุด",
   "settingsPrivacy": "ความเป็นส่วนตัว",

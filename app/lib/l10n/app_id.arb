@@ -187,7 +187,7 @@
   "vaultDeleted": "Brankas dihapus",
   "storageUsed": "{size} · {count, plural, =1{1 item} other{{count} item}}",
   "settingsLock": "Kunci",
-  "autoLock": "Kunci jika tidak dipakai",
+  "autoLock": "Kunci otomatis",
   "minutesShort": "{count} mnt",
   "lastBackupLabel": "Cadangan terakhir",
   "settingsPrivacy": "Privasi",

@@ -187,7 +187,7 @@
   "vaultDeleted": "保险箱已删除",
   "storageUsed": "{size} · {count, plural, =1{1 项} other{{count} 项}}",
   "settingsLock": "锁定",
-  "autoLock": "闲置后锁定",
+  "autoLock": "自动锁定",
   "minutesShort": "{count} 分钟",
   "lastBackupLabel": "上次备份",
   "settingsPrivacy": "隐私",

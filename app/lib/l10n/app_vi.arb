@@ -201,7 +201,7 @@
   "vaultDeleted": "Đã xoá két",
   "storageUsed": "{size} · {count, plural, other{{count} mục}}",
   "settingsLock": "Khoá",
-  "autoLock": "Tự khoá khi không dùng",
+  "autoLock": "Tự khoá",
   "minutesShort": "{count} phút",
   "lastBackupLabel": "Lần sao lưu cuối",
   "settingsPrivacy": "Riêng tư",

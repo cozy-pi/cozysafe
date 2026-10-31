@@ -187,7 +187,7 @@
   "vaultDeleted": "Cassaforte eliminata",
   "storageUsed": "{size} · {count, plural, =1{1 elemento} other{{count} elementi}}",
   "settingsLock": "Blocco",
-  "autoLock": "Blocca dopo inattività",
+  "autoLock": "Blocco automatico",
   "minutesShort": "{count} min",
   "lastBackupLabel": "Ultimo backup",
   "settingsPrivacy": "Privacy",
