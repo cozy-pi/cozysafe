@@ -13,6 +13,7 @@ Dates are UTC.
   no longer uses a threading library. Your password and key work as before.
 - A new vault password needs at least 12 characters (4 words always do) and must not be
   one of the most common passwords. Passwords you already use keep working.
+- Google Drive syncs 5 seconds after your last change (it was 15).
 
 ## 0.1.92 (2026-10-30)
 

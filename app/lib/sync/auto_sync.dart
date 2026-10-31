@@ -23,8 +23,8 @@ abstract final class AutoSync {
   static const wifiPref = 'drive-auto-wifi-only';
 
   /// After a change here, wait this long for more (twenty photos added: one sync); each
-  /// change starts it again (owner 2026-10-30: 15 seconds after the last change).
-  static const settle = Duration(seconds: 15);
+  /// change starts it again (owner 2026-10-30: 15 seconds; 2026-10-31: 5 seconds).
+  static const settle = Duration(seconds: 5);
 
   /// While the vault stays open, look for the other devices' changes this often: a cheap
   /// look at their small heads on Drive (one request), a full sync only when one moved.
