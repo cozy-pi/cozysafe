@@ -35,6 +35,9 @@ Future<bool> privateLibraryExists() async {
 /// a shield for Top secret, a person for Private.
 IconData kindBadge(VaultKind kind) => kind == VaultKind.topSecret ? Icons.shield_rounded : Icons.person_rounded;
 
+/// Each kind's colour (owner 2026-10-31): red for Top secret, green for Private.
+Color kindColor(VaultKind kind) => kind == VaultKind.topSecret ? const Color(0xFFE5383B) : const Color(0xFF2E9E5B);
+
 /// A kind of vault, wherever it is named (owner 2026-10-31: one mark for both, a badge
 /// for each): a safe (body, dial, handle, feet) with a round badge at its lower right.
 /// [cut] is the colour behind the mark, so the badge stands out of the body.
@@ -42,14 +45,14 @@ class KindMark extends StatelessWidget {
   const KindMark({super.key, required this.kind, required this.size, this.color, this.cut});
   final VaultKind kind;
   final double size;
-  /// The ink; the page's ink when null.
+  /// The ink; the kind's colour ([kindColor]) when null.
   final Color? color;
   /// What the mark sits on; the page colour when null.
   final Color? cut;
 
   @override
   Widget build(BuildContext context) {
-    final ink = color ?? Theme.of(context).colorScheme.onSurface;
+    final ink = color ?? kindColor(kind);
     final under = cut ?? Theme.of(context).scaffoldBackgroundColor;
     // Larger at small sizes, so the shield or the person stays readable on a row.
     final badge = size * (size < 30 ? .62 : .52);
@@ -129,7 +132,7 @@ class KindLabel extends StatelessWidget {
       key: const ValueKey('kind-label'),
       mainAxisSize: MainAxisSize.min,
       children: [
-        KindMark(kind: k, size: 20, color: muted),
+        KindMark(kind: k, size: 20),
         const SizedBox(width: 8),
         Text(kindName(AppLocalizations.of(context), k),
             style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: muted)),

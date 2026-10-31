@@ -132,6 +132,14 @@ new version:
   played back in the app, opened only by exporting. Photos and videos already in a Top
   secret vault (until step 6 moves them) show as rows like files, no thumbnail; opening
   one exports it after the warning.
+- Decided 2026-10-31 (later): Top secret records video too, kept like a voice memo
+  (sealed at once, never played in the app, opened only in another app; the camera's
+  plain file is deleted as soon as it is sealed). Marks in colour: Top secret red,
+  Private green.
+- Decided 2026-10-31: the Private password is kept sealed inside the Top secret vault,
+  never shown and not as a note; Settings → Private vault offers Reset password, which
+  opens the Private vault for a moment only to wrap its key again (a second exception).
+  A Private run has no Change password row. Settings is grouped into sub-pages.
 - Decided 2026-10-31 (changed the same day): both kinds share the vault mark (the dial of
   the app's icon) with a small badge: a shield for Top secret, a person for Private.
   Shown above the vault's title, in Settings and the switching pages, and on the lock

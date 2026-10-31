@@ -13,7 +13,10 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
 1. **Black and white.** One ink (black in light mode, white in dark) on the page colour.
    Everything else is that ink at an opacity. The only colours: a vault's own icon and
    colour, the system red for Delete and recording, Settings' small coloured icons, and
-   the colour per kind of item where kinds are counted (storage).
+   the colour per kind of item where kinds are counted (storage). Since 2026-10-31
+   (owner: more colour in the icons) also: each section's colour on its tab and on the
+   ways to add (`sectionColor`, `addWayColor`), and each kind of vault's colour on its
+   mark (`kindColor`: Top secret red, Private green).
 2. **Few buttons, each on its own.** A button that does one thing is its own glass
    circle, apart from the others. Buttons share one glass only when they are one set to
    pick from (the section tabs, a segmented switch).

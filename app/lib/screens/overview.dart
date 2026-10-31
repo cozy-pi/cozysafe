@@ -15,13 +15,7 @@ import 'search.dart' show MarkedText;
 import '../vault_kind.dart';
 
 /// The colour of each section, the same as the storage bar in Settings.
-Color searchKindColor(VaultSection s) => switch (s) {
-      VaultSection.home => const Color(0xFF8E8E93),
-      VaultSection.note => const Color(0xFFFFB300),
-      VaultSection.library => const Color(0xFF0A84FF),
-      VaultSection.audio => const Color(0xFFFF9F0A),
-      VaultSection.file => const Color(0xFF30D158),
-    };
+Color searchKindColor(VaultSection s) => sectionColor(s);
 
 IconData searchKindIcon(VaultSection s) => switch (s) {
       VaultSection.home => Icons.home_rounded,

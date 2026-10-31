@@ -762,12 +762,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('other-kind-row'),
               icon: kindBadge(RunKind.topSecret ? VaultKind.private : VaultKind.topSecret),
-              color: RunKind.topSecret ? SettingsHue.hong : SettingsHue.xam,
+              color: kindColor(RunKind.topSecret ? VaultKind.private : VaultKind.topSecret),
               glyph: KindMark(
                 kind: RunKind.topSecret ? VaultKind.private : VaultKind.topSecret,
                 size: 21,
                 color: Colors.white,
-                cut: RunKind.topSecret ? SettingsHue.hong : SettingsHue.xam,
+                cut: kindColor(RunKind.topSecret ? VaultKind.private : VaultKind.topSecret),
               ),
               title: RunKind.topSecret ? l.privateVault : l.topSecretVault,
               onTap: _openOtherKind,

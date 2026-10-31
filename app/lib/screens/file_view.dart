@@ -340,8 +340,9 @@ Future<void> importOne(
   watch.reset();
   final item = await rust.addFile(
     path: f.path,
+    // Top secret: files picked stay files; a video from the app's camera stays a video.
     kind: RunKind.topSecret
-        ? ItemKind.file
+        ? (isVideo && photos ? ItemKind.video : ItemKind.file)
         : isVideo
             ? ItemKind.video
             : (isImage && (photos || thumbnail != null) ? ItemKind.photo : ItemKind.file),

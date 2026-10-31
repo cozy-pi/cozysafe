@@ -599,14 +599,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
+  /// The quick buttons above +.
   List<(AddWhat, IconData, String)> _addWays() =>
       quickWays(AppLocalizations.of(context), camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
 
-  /// A tab's own thing; on the overview with neither camera nor microphone (a computer),
-  /// + adds files (Top secret) or from the photo library (Private) at once.
-  AddWhat? get _directAdd =>
-      addDirect(_section, camera: _hasCamera) ??
-      (_addWays().isEmpty ? (RunKind.topSecret ? AddWhat.file : AddWhat.photos) : null);
+  /// Every way, for the card above the quick buttons and the computer's Add.
+  List<(AddWhat, IconData, String)> _allWays() =>
+      addWays(AppLocalizations.of(context), camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
+
+  AddWhat? get _directAdd => addDirect(_section, camera: _hasCamera);
 
 
   /// One way of adding, from the add column or the empty vault's tiles. The section it fills
@@ -1928,7 +1929,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               tooltip: l.back, icon: const Icon(Icons.chevron_left_rounded), onPressed: () => setState(() => _tagId = null)),
         Padding(
           padding: const EdgeInsets.only(right: 8),
-          child: KindMark(kind: RunKind.current, size: 18, color: c.muted),
+          child: KindMark(kind: RunKind.current, size: 18),
         ),
         Expanded(
           child: Text(
@@ -2328,7 +2329,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   child: AddCardOverlay(
                     open: _adding,
                     onGone: () => setState(() => _addShown = false),
-                    ways: _addWays(),
+                    ways: _allWays(),
                     bottom: 24,
                     dropFrom: _wideAddDrop(),
                     hovered: _hover,
@@ -2784,7 +2785,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       : AddCardOverlay(
                           open: _adding,
                           onGone: () => setState(() => _addShown = false),
-                          ways: _addWays(),
+                          ways: _allWays(),
                           bottom: bottom + actionLift() + Ui.primary + 10,
                           hovered: _hover,
                           onPick: _pickAdd,
@@ -2801,7 +2802,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   bottom: bottom + actionLift() + Ui.primary + 10 + Ui.bar + 40,
                   child: AddCard(
                     open: _adding,
-                    ways: _addWays(),
+                    ways: _allWays(),
                     onPick: _pickAdd,
                   ),
                 ),

@@ -307,7 +307,6 @@ class _CentreTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final primary = Theme.of(context).colorScheme.primary;
-    final ink = Theme.of(context).colorScheme.onSurface;
     Widget tab(VaultSection s) {
       final on = s == section;
       return Expanded(
@@ -337,7 +336,8 @@ class _CentreTabs extends StatelessWidget {
                   curve: Curves.easeOutBack,
                   child: s == VaultSection.home && home != null
                       ? home!
-                      : Icon(_icon(s), size: 28, color: on ? primary : ink.withValues(alpha: .7)),
+                      // Each tab in its section's colour (owner 2026-10-31), brighter on show.
+                      : Icon(_icon(s), size: 28, color: on ? sectionColor(s) : sectionColor(s).withValues(alpha: .7)),
                 ),
               ),
             ),
@@ -702,11 +702,30 @@ class _ActionButtonState extends State<ActionButton> {
 /// The ways to add something to a vault.
 enum AddWhat { note, photo, video, photos, voice, file }
 
+/// Each section's colour (owner 2026-10-31: more colour in the icons): the tiles on the
+/// overview, the storage bar, the tabs and the ways to add.
+Color sectionColor(VaultSection s) => switch (s) {
+      VaultSection.home => const Color(0xFF8E8E93),
+      VaultSection.note => const Color(0xFFFFB300),
+      VaultSection.library => const Color(0xFF0A84FF),
+      VaultSection.audio => const Color(0xFFFF9F0A),
+      VaultSection.file => const Color(0xFF30D158),
+    };
+
+/// A way to add, in the colour of what it makes; a video its own purple.
+Color addWayColor(AddWhat w) => switch (w) {
+      AddWhat.note => sectionColor(VaultSection.note),
+      AddWhat.photo || AddWhat.photos => sectionColor(VaultSection.library),
+      AddWhat.video => const Color(0xFFBF5AF2),
+      AddWhat.voice => sectionColor(VaultSection.audio),
+      AddWhat.file => sectionColor(VaultSection.file),
+    };
+
 /// Every way to add, in the fixed order (camera and voice only where the device has them).
 List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
-      // Top secret takes nothing from the photo library and records no video (ADR 0005).
+      // Top secret takes nothing from the photo library (ADR 0005).
       if (!RunKind.topSecret) (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
-      if (camera && !RunKind.topSecret) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
+      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, l.newNote),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
@@ -738,30 +757,25 @@ List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection se
         {required bool camera, required bool voice}) =>
     [
       if (!RunKind.topSecret) (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
-      if (camera && !RunKind.topSecret) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
+      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
       (AddWhat.file, Icons.folder_rounded, sectionLabel(l, VaultSection.file)),
     ];
 
-/// What + offers on the overview (owner 2026-10-31: the long list was slow to use and had
-/// to be swiped): the two quick ones, camera and voice memo. Everything else is added from
-/// its own tab ([addDirect]); an empty vault's tiles still show every way ([addWays]).
+/// The round quick buttons just above + (owner 2026-10-31: the long row was slow and had
+/// to be swiped): only what records on the spot, camera, video and voice memo. The card
+/// above them still lists every way ([addWays]).
 List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, {required bool camera, required bool voice}) => [
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
+      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
     ];
 
-/// In a tab, + does that tab's one thing at once (owner 2026-10-31): a new note, files, the
-/// photo library, a voice memo. On the overview it offers [quickWays].
-AddWhat? addDirect(VaultSection section, {required bool camera}) => switch (section) {
-      VaultSection.home => null,
-      VaultSection.note => AddWhat.note,
-      VaultSection.file => AddWhat.file,
-      VaultSection.library => AddWhat.photos,
-      VaultSection.audio => AddWhat.voice,
-    };
+/// + never does one thing at once: it always opens the card of every way and the quick
+/// buttons ([quickWays]).
+AddWhat? addDirect(VaultSection section, {required bool camera}) => null;
 
 /// The + button's row: the page dims and the ways to add spread out sideways from the
 /// button, centred just above it. Tap one, or keep the finger down from + and slide to
@@ -1006,8 +1020,8 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
                           Container(
                             width: Ui.tap,
                             height: Ui.tap,
-                            decoration: BoxDecoration(color: ink.withValues(alpha: .07), shape: BoxShape.circle),
-                            child: Icon(icon, color: ink, size: 24),
+                            decoration: BoxDecoration(color: addWayColor(what).withValues(alpha: .16), shape: BoxShape.circle),
+                            child: Icon(icon, color: addWayColor(what), size: 24),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -1102,7 +1116,6 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
     {required bool hovered, required VoidCallback onTap, double width = AddRow.width}) {
   final circle = (width - 4).clamp(44.0, Ui.bar);
   final page = Theme.of(context).scaffoldBackgroundColor;
-  final ink = Theme.of(context).colorScheme.onSurface;
   return MetaData(
     metaData: what,
     behavior: HitTestBehavior.opaque,
@@ -1125,10 +1138,10 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
                 height: circle,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: hovered ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
+                  color: hovered ? addWayColor(what) : Color.alphaBlend(addWayColor(what).withValues(alpha: .16), page),
                   boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
                 ),
-                child: Icon(icon, size: 26, color: hovered ? page : ink),
+                child: Icon(icon, size: 26, color: hovered ? Colors.white : addWayColor(what)),
               ),
             ),
           ),
@@ -1463,7 +1476,7 @@ class AddTiles extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon, size: 32, color: ink),
+                    Icon(icon, size: 32, color: addWayColor(what)),
                     const SizedBox(height: 8),
                     Text(label, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.2)),

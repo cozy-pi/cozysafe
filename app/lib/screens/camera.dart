@@ -34,8 +34,7 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   final _view = GlobalKey<CameraViewState>();
-  // Top secret records no video (ADR 0005).
-  late bool _video = widget.video && !RunKind.topSecret;
+  late bool _video = widget.video;
   bool _recording = false;
   DateTime? _since;
   Timer? _tick;
@@ -161,7 +160,6 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
               const SizedBox(height: 14),
               // Photo | Video, in the same glass capsule as the vault's sections.
-              if (!RunKind.topSecret)
               AnimatedOpacity(
                 opacity: _recording ? 0 : 1,
                 duration: const Duration(milliseconds: 150),
@@ -500,7 +498,13 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     setState(() => _saving = true);
     final item = await _finishVideo(c);
     if (!mounted) return;
-    if (item != null) {
+    if (item != null && RunKind.topSecret) {
+      // Top secret: nothing of the video is shown; it is named at once (ADR 0005).
+      await nameNewItem(context, item);
+      if (!mounted) return;
+      widget.onChanged?.call();
+      widget.onSaved(item);
+    } else if (item != null) {
       final thumbnail = await rust.itemThumbnail(id: item.id).catchError((_) => Uint8List(0));
       if (!mounted) return;
       setState(() {
