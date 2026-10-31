@@ -2,7 +2,6 @@
 //! never key material. The password has to come from a Dart text field; it is wiped
 //! here as soon as it has been used.
 
-use std::path::Path;
 use std::sync::Mutex;
 
 use cs_crypto::kdf::KdfParams;
@@ -151,7 +150,7 @@ fn params_for_this_device() -> KdfParams {
 
 #[flutter_rust_bridge::frb(sync)]
 pub fn has_vaults(dir: String) -> bool {
-    Library::has_vaults(Path::new(&dir))
+    super::run::library_dir(&dir).is_ok_and(Library::has_vaults)
 }
 
 /// 0 … 4 for the strength bars: an accepted password has `min_password_score()` or more
@@ -206,7 +205,11 @@ pub fn min_pin_length() -> u32 {
 /// Create a vault and leave it open. Runs Argon2id: call it off the UI thread (async).
 pub fn create_vault(dir: String, name: String, password: String) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let library = Library::open_or_create(
+        super::run::library_dir(&dir)?,
+        params_for_this_device(),
+        secret()?,
+    )?;
     let vault = library.create_vault(&name, &password)?;
     Ok(set_open(vault))
 }
@@ -220,7 +223,11 @@ pub fn create_vault_with_password(
     password: String,
 ) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let library = Library::open_or_create(
+        super::run::library_dir(&dir)?,
+        params_for_this_device(),
+        secret()?,
+    )?;
     let vault = library.create_vault_with_password(&icon, &color, &password)?;
     Ok(set_open(vault))
 }
@@ -228,7 +235,11 @@ pub fn create_vault_with_password(
 /// Open the vault this password belongs to; `None` when no vault matches.
 pub fn unlock(dir: String, password: String) -> Result<Option<VaultInfo>, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let library = Library::open_or_create(
+        super::run::library_dir(&dir)?,
+        params_for_this_device(),
+        secret()?,
+    )?;
     Ok(library.unlock(&password)?.map(set_open))
 }
 
@@ -237,19 +248,23 @@ pub fn unlock(dir: String, password: String) -> Result<Option<VaultInfo>, VaultE
 pub fn check_password(dir: String, password: String) -> Result<bool, VaultError> {
     let password = Zeroizing::new(password);
     let open_id = with_open(|v| Ok(v.id.clone()))?;
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let library = Library::open_or_create(
+        super::run::library_dir(&dir)?,
+        params_for_this_device(),
+        secret()?,
+    )?;
     Ok(library.unlock(&password)?.is_some_and(|v| v.id == open_id))
 }
 
 /// Whether a vault here has biometric unlock turned on (shows the button).
 #[flutter_rust_bridge::frb(sync)]
 pub fn has_biometric_unlock(dir: String) -> bool {
-    Library::has_biometric(Path::new(&dir))
+    super::run::library_dir(&dir).is_ok_and(Library::has_biometric)
 }
 
 /// Forget biometric unlock for every vault here (the keystore lost its key).
 pub fn forget_biometric_unlock(dir: String) -> Result<(), VaultError> {
-    Ok(Library::forget_biometric(Path::new(&dir))?)
+    Ok(Library::forget_biometric(super::run::library_dir(&dir)?)?)
 }
 
 /// Open the vault with the key the platform keystore released after Face ID / fingerprint.
@@ -259,7 +274,7 @@ pub fn unlock_with_biometric(dir: String, key: Vec<u8>) -> Result<Option<VaultIn
         return Ok(None);
     };
     let key = cs_crypto::Key::from_bytes(bytes);
-    Ok(Library::unlock_biometric(Path::new(&dir), &key)?.map(set_open))
+    Ok(Library::unlock_biometric(super::run::library_dir(&dir)?, &key)?.map(set_open))
 }
 
 /// Turn on biometric unlock for the open vault (off for the others). Returns the key Dart
@@ -293,7 +308,7 @@ fn key_from(bytes: &[u8]) -> Option<SecretKey> {
 /// With no vault on this device, let the next one start the library with a new Secret
 /// Key (an old 128-bit key cannot be shown as 24 words). False while any vault exists.
 pub fn reset_empty_library(dir: String) -> Result<bool, VaultError> {
-    Ok(Library::reset_if_empty(Path::new(&dir))?)
+    Ok(Library::reset_if_empty(super::run::library_dir(&dir)?)?)
 }
 
 /// Move this device's library to `new_key` (a new Recovery Key) with the password of
@@ -317,8 +332,12 @@ pub fn change_secret_key(
     };
     let secret =
         secret().inspect_err(|_| debug_line(|| "key change: no Recovery Key in use".into()))?;
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret)
-        .map_err(logged)?;
+    let library = Library::open_or_create(
+        super::run::library_dir(&dir)?,
+        params_for_this_device(),
+        secret,
+    )
+    .map_err(logged)?;
     let change = library
         .change_secret_key_all(&refs, &new_key)
         .map_err(logged)?;
@@ -355,12 +374,15 @@ pub struct KeyChangeResult {
 pub fn finish_secret_key_change(dir: String, new_key: Vec<u8>) -> Result<(), VaultError> {
     let new_key = Zeroizing::new(new_key);
     let key = key_from(&new_key).ok_or(VaultError::Storage)?;
-    Library::open_or_create(Path::new(&dir), params_for_this_device(), key.clone()).map_err(
-        |e| {
-            debug_line(|| format!("key change finish: {e}"));
-            VaultError::from(e)
-        },
-    )?;
+    Library::open_or_create(
+        super::run::library_dir(&dir)?,
+        params_for_this_device(),
+        key.clone(),
+    )
+    .map_err(|e| {
+        debug_line(|| format!("key change finish: {e}"));
+        VaultError::from(e)
+    })?;
     *SECRET.lock().unwrap_or_else(|p| p.into_inner()) = Some(key);
     Ok(())
 }
@@ -410,7 +432,10 @@ pub fn secret_key_text(key: Vec<u8>) -> String {
 /// The 2048 words of the Recovery Key list (BIP39 English), for the typing grid.
 #[flutter_rust_bridge::frb(sync)]
 pub fn recovery_word_list() -> Vec<String> {
-    cs_crypto::recovery_word_list().into_iter().map(String::from).collect()
+    cs_crypto::recovery_word_list()
+        .into_iter()
+        .map(String::from)
+        .collect()
 }
 
 /// Read a Secret Key typed from an Emergency Kit; None when it has a typo.
@@ -424,25 +449,29 @@ pub fn parse_secret_key(text: String) -> Option<Vec<u8>> {
 #[flutter_rust_bridge::frb(sync)]
 pub fn secret_key_fits(dir: String, key: Vec<u8>) -> bool {
     let key = Zeroizing::new(key);
-    key_from(&key).is_some_and(|k| Library::secret_key_fits(Path::new(&dir), &k))
+    super::run::library_dir(&dir)
+        .is_ok_and(|d| key_from(&key).is_some_and(|k| Library::secret_key_fits(d, &k)))
 }
 
 /// Secret Key from a first-preview install (a file), to move into the keystore.
 pub fn legacy_secret_key(dir: String) -> Result<Option<Vec<u8>>, VaultError> {
-    Ok(Library::legacy_secret_key(Path::new(&dir))?.map(|k| k.as_bytes().to_vec()))
+    Ok(Library::legacy_secret_key(super::run::library_dir(&dir)?)?.map(|k| k.as_bytes().to_vec()))
 }
 
 /// Wipe the first-preview file once the keystore holds the key.
 pub fn forget_legacy_secret_key(dir: String) -> Result<(), VaultError> {
-    Ok(Library::forget_legacy_secret_key(Path::new(&dir))?)
+    Ok(Library::forget_legacy_secret_key(super::run::library_dir(
+        &dir,
+    )?)?)
 }
 
 /// Write a backup of the whole library to `path`. Returns the number of files.
 pub fn export_backup(dir: String, path: String) -> Result<u32, VaultError> {
+    let dir = super::run::library_dir(&dir)?;
     let tmp = format!("{path}.part");
     let result = std::fs::File::create(&tmp)
         .map_err(cs_vault::Error::from)
-        .and_then(|f| cs_vault::backup::export(Path::new(&dir), f));
+        .and_then(|f| cs_vault::backup::export(dir, f));
     match result {
         Ok(n) => {
             std::fs::rename(&tmp, &path).map_err(|_| VaultError::Storage)?;
@@ -458,13 +487,16 @@ pub fn export_backup(dir: String, path: String) -> Result<u32, VaultError> {
 /// Restore a backup file into `dir` (which must have no library yet).
 pub fn import_backup(path: String, dir: String) -> Result<u32, VaultError> {
     let f = std::fs::File::open(&path).map_err(|_| VaultError::BadBackup)?;
-    Ok(cs_vault::backup::import(f, Path::new(&dir))?)
+    Ok(cs_vault::backup::import(f, super::run::library_dir(&dir)?)?)
 }
 
 /// Digits of the PIN set on this device (for the dots), 0 when there is none.
 #[flutter_rust_bridge::frb(sync)]
 pub fn pin_length(dir: String) -> u32 {
-    Library::pin_length(Path::new(&dir)).unwrap_or(0) as u32
+    super::run::library_dir(&dir)
+        .ok()
+        .and_then(Library::pin_length)
+        .unwrap_or(0) as u32
 }
 
 /// Open the vault with the PIN; `None` for a wrong PIN. `device_key` comes from the keystore.
@@ -478,7 +510,7 @@ pub fn unlock_with_pin(
     let Some(dk) = key_from(&device_key) else {
         return Ok(None);
     };
-    Ok(Library::unlock_pin(Path::new(&dir), &pin, &dk)?.map(set_open))
+    Ok(Library::unlock_pin(super::run::library_dir(&dir)?, &pin, &dk)?.map(set_open))
 }
 
 /// Set the PIN for the open vault (replaces any PIN on this device).
@@ -500,7 +532,7 @@ pub fn pin_enabled() -> bool {
 
 /// Remove the PIN on this device (too many wrong tries).
 pub fn forget_pin(dir: String) -> Result<(), VaultError> {
-    Ok(Library::forget_pin(Path::new(&dir))?)
+    Ok(Library::forget_pin(super::run::library_dir(&dir)?)?)
 }
 
 /// Remove the PIN of every vault here that opens with a password (the app no longer
@@ -508,7 +540,7 @@ pub fn forget_pin(dir: String) -> Result<(), VaultError> {
 /// password. Returns how many were removed.
 #[flutter_rust_bridge::frb(sync)]
 pub fn forget_pins_with_password(dir: String) -> Result<u32, VaultError> {
-    Ok(Library::forget_pins_with_password(Path::new(&dir))? as u32)
+    Ok(Library::forget_pins_with_password(super::run::library_dir(&dir)?)? as u32)
 }
 
 /// Create a vault that starts with only a PIN on this device (no password yet) and
@@ -523,7 +555,11 @@ pub fn create_vault_with_pin(
     let pin = Zeroizing::new(pin);
     let device_key = Zeroizing::new(device_key);
     let dk = key_from(&device_key).ok_or(VaultError::Storage)?;
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let library = Library::open_or_create(
+        super::run::library_dir(&dir)?,
+        params_for_this_device(),
+        secret()?,
+    )?;
     let vault =
         library.create_vault_with_pin(&icon, &color, &pin, &dk, params_for_this_device())?;
     Ok(set_open(vault))
@@ -532,7 +568,11 @@ pub fn create_vault_with_pin(
 /// Set or change the open vault's password (instant: re-wraps the vault key).
 pub fn set_password(dir: String, password: String) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let library = Library::open_or_create(
+        super::run::library_dir(&dir)?,
+        params_for_this_device(),
+        secret()?,
+    )?;
     change_open(|vault| {
         library.set_password(vault, &password)?;
         Ok(info_of(vault))
@@ -550,13 +590,15 @@ pub fn set_identity(icon: String, color: String) -> Result<VaultInfo, VaultError
 /// Whether any vault here opens with a password (show "Use password" on the lock screen).
 #[flutter_rust_bridge::frb(sync)]
 pub fn any_password(dir: String) -> bool {
-    Library::any_password(Path::new(&dir))
+    super::run::library_dir(&dir).is_ok_and(Library::any_password)
 }
 
 /// PIN lengths in use on this device, shortest first (the pad checks at each).
 #[flutter_rust_bridge::frb(sync)]
 pub fn pin_lengths(dir: String) -> Vec<u32> {
-    Library::pin_lengths(Path::new(&dir))
+    super::run::library_dir(&dir)
+        .map(Library::pin_lengths)
+        .unwrap_or_default()
         .into_iter()
         .map(|n| n as u32)
         .collect()
@@ -953,7 +995,7 @@ pub struct VaultSlot {
 /// Every vault on this device (Debug → Vaults on this device).
 pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
     let open = OPEN.open_id();
-    Ok(Library::vault_slots(Path::new(&dir))?
+    Ok(Library::vault_slots(super::run::library_dir(&dir)?)?
         .into_iter()
         .map(|s| VaultSlot {
             is_open: open.as_deref() == Some(s.id.as_str()),
@@ -973,7 +1015,7 @@ pub fn delete_vault_unopened(dir: String, vault_id: String) -> Result<bool, Vaul
     if open.as_deref() == Some(vault_id.as_str()) {
         return Ok(false);
     }
-    Library::destroy_unopened(Path::new(&dir), &vault_id).map_err(|e| {
+    Library::destroy_unopened(super::run::library_dir(&dir)?, &vault_id).map_err(|e| {
         debug_line(|| format!("delete unopened vault: {e}"));
         VaultError::from(e)
     })?;
@@ -987,7 +1029,11 @@ pub fn delete_vault_unopened(dir: String, vault_id: String) -> Result<bool, Vaul
 pub fn delete_vault(dir: String, password: String) -> Result<bool, VaultError> {
     let password = Zeroizing::new(password);
     let open_id = with_open(|v| Ok(v.id.clone()))?;
-    let library = Library::open_or_create(Path::new(&dir), params_for_this_device(), secret()?)?;
+    let library = Library::open_or_create(
+        super::run::library_dir(&dir)?,
+        params_for_this_device(),
+        secret()?,
+    )?;
     match library.unlock(&password)? {
         Some(v) if v.id == open_id => {
             OPEN.clear();

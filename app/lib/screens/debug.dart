@@ -23,6 +23,7 @@ import 'file_view.dart';
 import 'settings.dart';
 import 'vault_manager.dart';
 import 'video_view.dart';
+import '../vault_kind.dart';
 import '../widgets/readable.dart';
 
 /// Hidden debug mode (docs/security.md, debug): seven taps on the version in Settings →
@@ -176,7 +177,7 @@ class _DebugScreenState extends State<DebugScreen> {
                   color: SettingsHue.cham,
                   title: l.vaultManagerTitle,
                   onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                    builder: (_) => Readable(child: VaultManagerScreen(libraryDir: '${Prefs.dir}${Platform.pathSeparator}library')),
+                    builder: (_) => Readable(child: VaultManagerScreen(libraryDir: RunKind.libraryDir(RunKind.current))),
                   )),
                 ),
               ]),

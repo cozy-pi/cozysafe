@@ -13,6 +13,7 @@ import 'privacy.dart';
 import 'widgets/brand.dart';
 
 import 'src/rust/api/vault.dart' as rust;
+import 'vault_kind.dart';
 
 /// What the device unlocks with, for the button label.
 enum BiometricKind { face, fingerprint }
@@ -28,7 +29,7 @@ class BiometricUnlock {
   final String promptTitle;
   final String promptCancel;
 
-  static const _key = 'vault-unlock-key';
+  static String get _key => RunKind.key('vault-unlock-key');
   static bool get platformSupported =>
       debugKind != null || Device.iOS || Device.android || MacBioKey.supported;
 
@@ -36,14 +37,14 @@ class BiometricUnlock {
   static BiometricKind? debugKind;
 
   FlutterSecureStorage get _storage => FlutterSecureStorage(
-        iOptions: const IOSOptions(
-          accountName: 'cozysafe.biometric',
+        iOptions: IOSOptions(
+          accountName: RunKind.account('biometric'),
           accessibility: KeychainAccessibility.passcode,
           accessControlFlags: [AccessControlFlag.biometryCurrentSet],
           synchronizable: false,
         ),
         aOptions: AndroidOptions.biometric(
-          storageNamespace: 'cozysafe_biometric',
+          storageNamespace: RunKind.namespace('biometric'),
           enforceBiometrics: true,
           requireBiometricsPerOperation: true,
           biometricType: AndroidBiometricType.strongBiometricOnly,
@@ -122,10 +123,10 @@ class BiometricUnlock {
 /// useless off this Mac, so it lives in the legacy keychain like the Secret Key.
 abstract final class MacBioKey {
   static const _channel = MethodChannel('cozysafe/biokey');
-  static const _key = 'vault-unlock-key-enclave';
-  static const _storage = FlutterSecureStorage(
+  static String get _key => RunKind.key('vault-unlock-key-enclave');
+  static FlutterSecureStorage get _storage => FlutterSecureStorage(
     mOptions: MacOsOptions(
-      accountName: 'cozysafe.biometric',
+      accountName: RunKind.account('biometric'),
       usesDataProtectionKeychain: false,
       synchronizable: false,
     ),

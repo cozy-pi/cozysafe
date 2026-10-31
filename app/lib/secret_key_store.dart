@@ -5,28 +5,29 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'hw_key.dart';
 import 'key_backup.dart';
+import 'vault_kind.dart';
 
 /// This device's Secret Key in the platform keystore (ADR 0001): Keychain on Apple
 /// devices (this device only, readable after the first unlock since boot), the Android
 /// Keystore, the Windows credential store, libsecret on Linux. Not synced while Cozy Safe
 /// has no sync; the Emergency Kit is the copy that leaves the device.
 class SecretKeyStore {
-  static const _name = 'secret-key';
+  static String get _name => RunKind.key('secret-key');
 
-  static const _storage = FlutterSecureStorage(
+  static FlutterSecureStorage get _storage => FlutterSecureStorage(
     iOptions: IOSOptions(
-      accountName: 'cozysafe.secret-key',
+      accountName: RunKind.account('secret-key'),
       accessibility: KeychainAccessibility.first_unlock_this_device,
       synchronizable: false,
     ),
     // The legacy keychain needs no keychain-sharing entitlement, so Developer ID
     // builds run on any Mac.
     mOptions: MacOsOptions(
-      accountName: 'cozysafe.secret-key',
+      accountName: RunKind.account('secret-key'),
       usesDataProtectionKeychain: false,
       synchronizable: false,
     ),
-    aOptions: AndroidOptions(storageNamespace: 'cozysafe_secret', resetOnError: false),
+    aOptions: AndroidOptions(storageNamespace: RunKind.namespace('secret'), resetOnError: false),
   );
 
   /// The stored key, or null when there is none or the store cannot read it (for
@@ -73,14 +74,14 @@ class PinStore {
   static const _fails = 'pin-fails';
   static const _until = 'pin-wait-until';
 
-  static const _storage = FlutterSecureStorage(
+  static FlutterSecureStorage get _storage => FlutterSecureStorage(
     iOptions: IOSOptions(
-      accountName: 'cozysafe.pin',
+      accountName: RunKind.account('pin'),
       accessibility: KeychainAccessibility.first_unlock_this_device,
       synchronizable: false,
     ),
-    mOptions: MacOsOptions(accountName: 'cozysafe.pin', usesDataProtectionKeychain: false, synchronizable: false),
-    aOptions: AndroidOptions(storageNamespace: 'cozysafe_pin', resetOnError: false),
+    mOptions: MacOsOptions(accountName: RunKind.account('pin'), usesDataProtectionKeychain: false, synchronizable: false),
+    aOptions: AndroidOptions(storageNamespace: RunKind.namespace('pin'), resetOnError: false),
   );
 
   static Future<Uint8List?> deviceKey() async {

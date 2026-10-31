@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'platform.dart';
 import 'prefs.dart';
 import 'words_export.dart';
+import 'vault_kind.dart';
 
 /// The 24 words kept in the person's iCloud Keychain too (owner 2026-10-26, option 2):
 /// off unless turned on in Settings. Apple encrypts the iCloud Keychain end to end; a new
@@ -17,12 +18,12 @@ import 'words_export.dart';
 /// key: that one stays in this phone's chip.
 abstract final class KeyBackup {
   static const _pref = 'key-backup-icloud';
-  static const _name = 'secret-key';
+  static String get _name => RunKind.key('secret-key');
   static const _android = MethodChannel('cozysafe/blockstore');
 
-  static const _storage = FlutterSecureStorage(
+  static FlutterSecureStorage get _storage => FlutterSecureStorage(
     iOptions: IOSOptions(
-      accountName: 'cozysafe.secret-key.icloud',
+      accountName: RunKind.account('secret-key.icloud'),
       accessibility: KeychainAccessibility.first_unlock,
       synchronizable: true,
     ),

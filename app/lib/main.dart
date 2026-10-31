@@ -23,6 +23,7 @@ import 'prefs.dart';
 import 'privacy.dart';
 import 'screens/welcome.dart';
 import 'temp_files.dart';
+import 'vault_kind.dart';
 
 Future<void> main() async {
   installNetworkGuard(); // before any plugin or library code runs
@@ -32,8 +33,11 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSizeBytes = 64 << 20;
   await RustLib.init();
   final support = await getApplicationSupportDirectory();
-  final libraryDir = '${support.path}${Platform.pathSeparator}library';
-  Prefs.dir = support.path;
+  // One kind of vault per run (ADR 0005): fixed here, before anything reads a library,
+  // a preference or the keystore.
+  final libraryDir = RunKind.start(support.path);
+  Prefs.dir = RunKind.prefsDir(RunKind.current);
+  Directory(Prefs.dir).createSync(recursive: true);
   Settings.apply(); // Android: honour "block screenshots" off
   PrivacyCover.listen(); // iOS: screenshots taken (they cannot be stopped there)
   await clearTemp(); // plain copies a crash or a kill left: an import, a share, a video

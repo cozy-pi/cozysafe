@@ -588,7 +588,10 @@ pub fn p2p_restore_nearby(
         let _ = sink.add(step(SyncStep::Failed));
         return;
     };
-    let dir = Path::new(&dir);
+    let Ok(dir) = super::run::library_dir(&dir) else {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    };
     if cs_vault::Library::reset_if_empty(dir).is_err() {
         let _ = sink.add(step(SyncStep::Failed));
         return;
@@ -645,7 +648,10 @@ pub fn p2p_restore(
         let _ = sink.add(step(SyncStep::Failed));
         return;
     };
-    let dir = Path::new(&dir);
+    let Ok(dir) = super::run::library_dir(&dir) else {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    };
     if cs_vault::Library::reset_if_empty(dir).is_err() {
         let _ = sink.add(step(SyncStep::Failed));
         return;
@@ -940,7 +946,9 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
     if ids.is_empty() {
         return join_result(JoinOutcome::NoVault);
     }
-    let dir = Path::new(&dir);
+    let Ok(dir) = super::run::library_dir(&dir) else {
+        return join_result(JoinOutcome::Failed);
+    };
     if cs_vault::Library::reset_if_empty(dir).is_err() {
         return join_result(JoinOutcome::Failed);
     }
