@@ -3,6 +3,23 @@
 An open-source, cross-platform encrypted vault for photos, documents, files and
 notes. Everything is encrypted on your device before it is saved.
 
+## Two kinds of vault
+
+![Top secret and Private: what each opens with, keeps and shows](docs/img/two-vaults.svg)
+
+- **Top secret** (shield) is for what must never leak: passwords, notes, documents, voice
+  memos and photos taken with the app's own camera. It opens with the vault password
+  **and** the Recovery Key (24 words). It never opens a picture, video, recording or PDF
+  inside the app and takes nothing from the photo library; to look at a file, you open it
+  in another app, after a warning. Its core uses audited cryptography and SQLite, nothing
+  else, built from copies kept in this repository ([supply chain](docs/supply-chain.md)).
+- **Private** (photo frame) is for photos, videos and files from anywhere, shown inside
+  the app. It opens with its own password alone (14 characters or more, at a higher cost
+  to guess), which is kept as a note in the Top secret vault in case it is forgotten.
+- **They share nothing.** One kind runs at a time; switching locks the vault, wipes every
+  temporary file and restarts the app. Each has its own folder, keys, Face ID entry and
+  settings ([ADR 0005](docs/adr/0005-two-kinds-of-vault.md)).
+
 > **Status: preview.** Sync works (with a device on the same Wi‑Fi, or through your
 > Google Drive on phones), but the app is young. Don't keep your only copy of something
 > important in it yet, and use **Back up to a file** often. Decisions and what is next: [`docs/decisions.md`](docs/decisions.md).
@@ -16,7 +33,7 @@ Cozy Safe does about it; the details are in the linked documents.
 
 | If… | Cozy Safe… |
 |---|---|
-| **someone copies your files or your backup** | encrypts everything on the device before it is written, with a key that needs both your vault password and your Recovery Key (24 words) kept in the device's keystore ([how](#how-your-data-is-protected)) |
+| **someone copies your files or your backup** | encrypts everything on the device before it is written; a Top secret vault's key needs both your vault password and your Recovery Key (24 words) kept in the device's keystore, a Private vault's needs a long password made costly to guess ([how](#how-your-data-is-protected)) |
 | **someone picks up your phone while a vault is open** | locks the vault as soon as the app leaves the screen (60 seconds of grace only when the app itself opened the share sheet or a picker), and after a few minutes without a touch (2 by default) |
 | **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Recovery Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher and while the screen is being recorded, and warns after a screenshot (iPhone); blocks screenshots and screen recording (Android, and iPhone through a secure layer) |
 | **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing auto-lock, backups, the Recovery Key, showing note text, deleting a vault ([rules](docs/security.md)) |
@@ -106,13 +123,16 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 
 ## What works today
 
-- **One vault per device**, with its own icon and colour; nothing on disk says what is
-  inside or how it is used. (The core supports several; the app shows one.)
+- **Two kinds of vault**, Top secret and Private ([above](#two-kinds-of-vault)), each
+  with its own icon on every screen where it is named; switch in Settings. One vault of
+  each kind per device, with its own icon and colour; nothing on disk says what is
+  inside or how it is used.
 - Unlock with Face ID, Touch ID or fingerprint, or the vault password (no PIN: a
   short code was the weakest way in). Wrong passwords make you wait longer each time.
-- **Photos and videos:** take them inside the app (never in the photo library, no
-  location data) or add them from the device. **Notes**, **voice memos** and **any
-  file**, with a PDF viewer inside the app.
+- **Photos and videos** (Private): take them inside the app (never in the photo library,
+  no location data) or add them from the device. **Notes**, **voice memos** and **any
+  file**, with a PDF viewer inside the app. In Top secret, files, recordings and camera
+  photos are kept sealed and named, never opened in the app.
 - **Groups:** put anything in one or more groups ("Passport": the photo, the scan and the
   note) and open a group from any section.
 - **One way to open anything:** tap any item (photo, video, note, recording, PDF, file) and
@@ -158,7 +178,9 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 - **15 languages**, light and dark. Pick one in Settings → Language, or in the
   system's settings for the app (iPhone, Android 13+); the two stay the same.
 
-Not yet: Google Drive on computers, keeping a sync going with an Android phone locked
+Not yet: sync and backups of a Private vault (Top secret syncs today), moving the
+photos and videos of a vault made before the split into a Private one, Google Drive on
+computers, keeping a sync going with an Android phone locked
 (waiting for Google Play), and the security work listed in
 [`docs/decisions.md`](docs/decisions.md).
 
@@ -189,7 +211,8 @@ Every file has a GitHub build-provenance attestation:
   [security](docs/security.md#how-strong-is-it-compared-with-a-bitcoin-wallet).
   It comes from the system's random generator, never from anything the app seeds; tests
   pin the official BIP39 word list (by checksum) and its reference vectors.
-- **Argon2id** stretches the password (128 MiB on phones, 512 MiB on computers);
+- **Argon2id** stretches the password: Top secret 128 MiB on phones, 512 MiB on
+  computers; Private, with no Recovery Key beside it, 256 MiB and 1 GiB;
   **XChaCha20-Poly1305** encrypts everything, file content in 64 KiB chunks so
   multi-gigabyte files need little memory. Each item has its own random key.
 - **Face ID, Touch ID and fingerprint** only unwrap a copy of the vault key held for

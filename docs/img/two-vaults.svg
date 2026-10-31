@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 640" width="1080" height="640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Cozy Safe: two kinds of vault that share nothing</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5b6470"/>
+    </marker>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.2 3.4 9.9 8 11 4.6-1.1 8-5.8 8-11V5l-8-3z"/></symbol>
+    <symbol id="photo" viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM6 17l3.5-4.5 2.5 3 3.5-4.5L19 17H6z"/></symbol>
+    <symbol id="lock" viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9V6z"/></symbol>
+  </defs>
+
+  <rect width="1080" height="640" rx="24" fill="#ffffff"/>
+  <text x="540" y="48" text-anchor="middle" font-size="24" font-weight="800" fill="#11161c">One app, two kinds of vault that share nothing</text>
+  <text x="540" y="74" text-anchor="middle" font-size="14" fill="#5b6470">Everything is encrypted on the device before it is saved. Nobody, including us, can open it.</text>
+
+  <!-- Top secret -->
+  <rect x="32" y="100" width="420" height="372" rx="20" fill="#eef2f6" stroke="#1d2733" stroke-width="2"/>
+  <use href="#shield" x="56" y="120" width="34" height="34" fill="#1d2733"/>
+  <text x="100" y="146" font-size="22" font-weight="800" fill="#11161c">Top secret</text>
+  <text x="56" y="182" font-size="13" font-weight="700" fill="#5b6470" letter-spacing=".5">OPENS WITH</text>
+  <text x="56" y="203" font-size="15" fill="#11161c">vault password + Recovery Key (24 words,</text>
+  <text x="56" y="222" font-size="15" fill="#11161c">kept in this device's secure keystore)</text>
+  <text x="56" y="241" font-size="15" fill="#11161c">→ Argon2id, 128 MiB on a phone → vault key</text>
+  <text x="56" y="274" font-size="13" font-weight="700" fill="#5b6470" letter-spacing=".5">KEEPS</text>
+  <text x="56" y="295" font-size="15" fill="#11161c">notes, passwords, files, voice memos,</text>
+  <text x="56" y="314" font-size="15" fill="#11161c">photos taken with the app's own camera</text>
+  <text x="56" y="347" font-size="13" font-weight="700" fill="#5b6470" letter-spacing=".5">NEVER</text>
+  <text x="56" y="368" font-size="15" fill="#11161c">opens a picture, video, recording or PDF in</text>
+  <text x="56" y="387" font-size="15" fill="#11161c">the app, or takes anything from the photo</text>
+  <text x="56" y="406" font-size="15" fill="#11161c">library: to look, open it in another app</text>
+  <rect x="56" y="424" width="372" height="32" rx="10" fill="#1d2733"/>
+  <text x="242" y="445" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">core: audited cryptography + SQLite, nothing else</text>
+
+  <!-- Private -->
+  <rect x="628" y="100" width="420" height="372" rx="20" fill="#f6f1ea" stroke="#8a5a2b" stroke-width="2"/>
+  <use href="#photo" x="652" y="120" width="34" height="34" fill="#8a5a2b"/>
+  <text x="696" y="146" font-size="22" font-weight="800" fill="#11161c">Private</text>
+  <text x="652" y="182" font-size="13" font-weight="700" fill="#5b6470" letter-spacing=".5">OPENS WITH</text>
+  <text x="652" y="203" font-size="15" fill="#11161c">its own password, 14 characters or more</text>
+  <text x="652" y="222" font-size="15" fill="#11161c">(no 24 words)</text>
+  <text x="652" y="241" font-size="15" fill="#11161c">→ Argon2id, 256 MiB on a phone → vault key</text>
+  <text x="652" y="274" font-size="13" font-weight="700" fill="#5b6470" letter-spacing=".5">KEEPS</text>
+  <text x="652" y="295" font-size="15" fill="#11161c">photos, videos, voice memos, files,</text>
+  <text x="652" y="314" font-size="15" fill="#11161c">from the camera, the photo library or Files</text>
+  <text x="652" y="347" font-size="13" font-weight="700" fill="#5b6470" letter-spacing=".5">SHOWS</text>
+  <text x="652" y="368" font-size="15" fill="#11161c">thumbnails (blurred by default), photos,</text>
+  <text x="652" y="387" font-size="15" fill="#11161c">videos and PDFs, inside the app</text>
+  <rect x="652" y="424" width="372" height="32" rx="10" fill="#8a5a2b"/>
+  <text x="838" y="445" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">its password is kept as a note in Top secret</text>
+
+  <!-- between -->
+  <path d="M456 300 H624" stroke="#5b6470" stroke-width="2" stroke-dasharray="6 6" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <rect x="470" y="252" width="140" height="30" rx="15" fill="#ffffff" stroke="#5b6470"/>
+  <text x="540" y="272" text-anchor="middle" font-size="13" font-weight="700" fill="#11161c">switch = restart</text>
+  <text x="540" y="330" text-anchor="middle" font-size="12" fill="#5b6470">one kind per run,</text>
+  <text x="540" y="346" text-anchor="middle" font-size="12" fill="#5b6470">temp files wiped,</text>
+  <text x="540" y="362" text-anchor="middle" font-size="12" fill="#5b6470">no key carried over</text>
+
+  <!-- every item -->
+  <rect x="32" y="496" width="1016" height="56" rx="16" fill="#f3f4f6"/>
+  <use href="#lock" x="52" y="510" width="28" height="28" fill="#1d2733"/>
+  <text x="92" y="520" font-size="15" font-weight="700" fill="#11161c">Every item has its own random key: XChaCha20-Poly1305, files in 64 KiB chunks.</text>
+  <text x="92" y="540" font-size="14" fill="#5b6470">Face ID or a fingerprint only unwraps a copy of the vault key kept behind this device's secure chip.</text>
+
+  <!-- leaving the device -->
+  <rect x="32" y="566" width="1016" height="50" rx="16" fill="#f3f4f6"/>
+  <text x="52" y="596" font-size="15" font-weight="700" fill="#11161c">Leaving the device:</text>
+  <text x="210" y="596" font-size="15" fill="#11161c">sync with Google Drive or a device nearby, and backup files, carry only sealed data.</text>
+</svg>
