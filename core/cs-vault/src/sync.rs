@@ -1500,7 +1500,7 @@ impl SyncSteps for OpenVault {
         };
         let all = fingerprint.len() as u32;
         let mut read = 0u32;
-        each_at_once(MAX_AT_ONCE, &fingerprint, &hash, |_| {
+        each_at_once(HASH_AT_ONCE, &fingerprint, &hash, |_| {
             read += 1;
             progress(SyncProgress {
                 phase: SyncPhase::Preparing,
@@ -1949,7 +1949,9 @@ struct Upload {
 }
 
 /// Most items sent at once, whatever a place allows.
-const MAX_AT_ONCE: usize = 4;
+const MAX_AT_ONCE: usize = 8;
+/// Items fingerprinted at once: work for the processor, not the network.
+const HASH_AT_ONCE: usize = 4;
 /// Files of deleted items removed per batch (Google Drive takes 100 per request).
 const REMOVE_EVERY: usize = 100;
 
