@@ -761,8 +761,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SettingsGroup(rows: [
             SettingsRow(
               key: const ValueKey('other-kind-row'),
-              icon: kindIcon(RunKind.topSecret ? VaultKind.private : VaultKind.topSecret),
+              icon: kindBadge(RunKind.topSecret ? VaultKind.private : VaultKind.topSecret),
               color: RunKind.topSecret ? SettingsHue.hong : SettingsHue.xam,
+              glyph: KindMark(
+                kind: RunKind.topSecret ? VaultKind.private : VaultKind.topSecret,
+                size: 21,
+                color: Colors.white,
+                cut: RunKind.topSecret ? SettingsHue.hong : SettingsHue.xam,
+              ),
               title: RunKind.topSecret ? l.privateVault : l.topSecretVault,
               onTap: _openOtherKind,
             ),

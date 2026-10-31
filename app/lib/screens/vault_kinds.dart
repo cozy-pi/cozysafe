@@ -15,6 +15,8 @@ import '../widgets/vault_bar.dart';
 import 'common.dart';
 import 'new_vault.dart';
 import 'welcome.dart';
+import '../src/rust/api/run.dart' show createPrivateVault;
+import '../widgets/identity.dart' show randomIdentity;
 
 /// The two kinds of vault on screen (ADR 0005): the Private vault's page in a Top secret
 /// run, switching from Settings, the page that asks to close the app on iPhone and iPad,
@@ -29,9 +31,87 @@ Future<bool> privateLibraryExists() async {
   ).existsSync();
 }
 
-/// Each kind's one icon, wherever it is named (owner 2026-10-31): a shield for Top
-/// secret, a photo frame for Private. Not the Library's stack of photos.
-IconData kindIcon(VaultKind kind) => kind == VaultKind.topSecret ? Icons.shield_rounded : Icons.photo_rounded;
+/// The badge that tells the two kinds apart on the shared vault mark (owner 2026-10-31):
+/// a shield for Top secret, a person for Private.
+IconData kindBadge(VaultKind kind) => kind == VaultKind.topSecret ? Icons.shield_rounded : Icons.person_rounded;
+
+/// A kind of vault, wherever it is named (owner 2026-10-31: one mark for both, a badge
+/// for each): a safe (body, dial, handle, feet) with a round badge at its lower right.
+/// [cut] is the colour behind the mark, so the badge stands out of the body.
+class KindMark extends StatelessWidget {
+  const KindMark({super.key, required this.kind, required this.size, this.color, this.cut});
+  final VaultKind kind;
+  final double size;
+  /// The ink; the page's ink when null.
+  final Color? color;
+  /// What the mark sits on; the page colour when null.
+  final Color? cut;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = color ?? Theme.of(context).colorScheme.onSurface;
+    final under = cut ?? Theme.of(context).scaffoldBackgroundColor;
+    // Larger at small sizes, so the shield or the person stays readable on a row.
+    final badge = size * (size < 30 ? .62 : .52);
+    return Semantics(
+      label: kindName(AppLocalizations.of(context), kind),
+      child: SizedBox.square(
+        dimension: size,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(child: CustomPaint(painter: _SafePainter(ink))),
+            Positioned(
+              right: -size * .14,
+              bottom: -size * .12,
+              child: Container(
+                width: badge,
+                height: badge,
+                decoration: BoxDecoration(
+                  color: ink,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: under, width: size * .07),
+                ),
+                child: Icon(kindBadge(kind), size: badge * .7, color: under),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The safe: a rounded body, the dial of the app's icon in it, a handle and two feet.
+class _SafePainter extends CustomPainter {
+  _SafePainter(this.ink);
+  final Color ink;
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final w = s.width;
+    final line = Paint()
+      ..color = ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * .085
+      ..strokeCap = StrokeCap.round;
+    final fill = Paint()..color = ink;
+    // Body, its feet, the door's handle.
+    final body = RRect.fromLTRBR(w * .08, w * .06, w * .92, w * .84, Radius.circular(w * .16));
+    canvas.drawRRect(body, line);
+    canvas.drawLine(Offset(w * .26, w * .9), Offset(w * .34, w * .9), line);
+    canvas.drawLine(Offset(w * .66, w * .9), Offset(w * .74, w * .9), line);
+    canvas.drawLine(Offset(w * .76, w * .32), Offset(w * .76, w * .58), line);
+    // The dial: a ring, its centre and the mark at the top, as on the app's icon.
+    final c = Offset(w * .44, w * .45);
+    canvas.drawCircle(c, w * .19, line);
+    canvas.drawCircle(c, w * .055, fill);
+    canvas.drawLine(c.translate(0, -w * .19), c.translate(0, -w * .12), line);
+  }
+
+  @override
+  bool shouldRepaint(_SafePainter old) => old.ink != ink;
+}
 
 /// The kind's icon and short name, small and quiet: on the lock screen and above a
 /// vault's title, so it is always clear which kind is open.
@@ -49,8 +129,8 @@ class KindLabel extends StatelessWidget {
       key: const ValueKey('kind-label'),
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(kindIcon(k), size: 15, color: muted),
-        const SizedBox(width: 5),
+        KindMark(kind: k, size: 20, color: muted),
+        const SizedBox(width: 8),
         Text(kindName(AppLocalizations.of(context), k),
             style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: muted)),
       ],
@@ -94,16 +174,26 @@ class _PrivateVaultPageState extends State<PrivateVaultPage> {
     super.dispose();
   }
 
-  /// Keep the password as a note in the open Top secret vault: the Private vault's only
-  /// way back if it is forgotten (ADR 0005). The Private library itself is made by the
-  /// first Private start; this run may not touch it.
+  /// Keep the password as a note in the open Top secret vault (the Private vault's only
+  /// way back if it is forgotten), then make the Private vault itself, so its first start
+  /// is an ordinary unlock (ADR 0005, owner 2026-10-31). The note comes first: a vault
+  /// must never exist without its kept password.
   Future<void> _save(AppLocalizations l) async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await rust.addNote(title: l.privatePasswordNoteTitle, text: _pw.text, createdMs: nowMs());
+      final password = _pw.text;
+      await rust.addNote(title: l.privatePasswordNoteTitle, text: password, createdMs: nowMs());
+      final (icon, color) = randomIdentity();
+      final support = (await getApplicationSupportDirectory()).path;
+      await createPrivateVault(
+        dir: RunKind.libraryDir(VaultKind.private, support),
+        icon: icon,
+        color: color,
+        password: password,
+      );
       _pw.clear();
       if (mounted) setState(() => _stage = _Stage.saved);
     } catch (_) {
@@ -139,7 +229,7 @@ class _PrivateVaultPageState extends State<PrivateVaultPage> {
       ],
       children: [
         if (_stage != _Stage.password) ...[
-          Icon(kindIcon(VaultKind.private), size: 44),
+          const KindMark(kind: VaultKind.private, size: 52),
           const SizedBox(height: 14),
         ],
         ...switch (_stage) {
@@ -239,7 +329,7 @@ Future<void> switchKind(BuildContext context, VaultKind next) async {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(kindIcon(next), size: 36),
+          Center(child: KindMark(kind: next, size: 40, cut: Theme.of(context).cardColor)),
           const SizedBox(height: 10),
           Text(
             RunKind.closesItself
@@ -293,7 +383,7 @@ class CloseAppPage extends StatelessWidget {
       key: const ValueKey('close-app'),
       title: l.closeAppTitle,
       lead: l.closeAppBody(kindName(l, next)),
-      icon: kindIcon(next),
+      mark: KindMark(kind: next, size: 72),
       choices: const [],
     );
   }
@@ -311,7 +401,7 @@ class PrivateWelcomeScreen extends StatelessWidget {
     return ChoicePage(
       title: l.privateVault,
       lead: l.privateWelcomeLead,
-      icon: kindIcon(VaultKind.private),
+      mark: const KindMark(kind: VaultKind.private, size: 72),
       choices: [
         BigChoice(
           key: const ValueKey('private-welcome-new'),
@@ -329,7 +419,7 @@ class PrivateWelcomeScreen extends StatelessWidget {
         ),
         BigChoice(
           key: const ValueKey('private-welcome-back'),
-          icon: kindIcon(VaultKind.topSecret),
+          icon: kindBadge(VaultKind.topSecret),
           title: l.switchToTopSecret,
           note: l.privateWelcomeBackNote,
           onTap: () => switchKind(context, VaultKind.topSecret),

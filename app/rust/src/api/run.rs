@@ -67,6 +67,49 @@ pub(crate) fn library_dir(dir: &str) -> Result<&Path, VaultError> {
     }
 }
 
+/// The one exception to one kind per run (ADR 0005, owner 2026-10-31): a Top secret run
+/// makes the Private vault when its password is saved, so the first Private start is an
+/// ordinary unlock. Only where there is no Private vault yet, only into the Private
+/// folder beside this run's library, and nothing is opened: the vault is made and
+/// dropped at once, its keys wiped with it. False when a Private vault is already there.
+/// Runs Argon2id at the Private cost: call it off the UI thread.
+pub fn create_private_vault(
+    dir: String,
+    icon: String,
+    color: String,
+    password: String,
+) -> Result<bool, VaultError> {
+    let password = zeroize::Zeroizing::new(password);
+    let path = PathBuf::from(&dir);
+    if !private_beside(&run(), &path) {
+        debug_line(|| "create private vault refused: not from a Top secret run".into());
+        return Err(VaultError::Storage);
+    }
+    if cs_vault::Library::has_vaults(&path) {
+        return Ok(false);
+    }
+    // A start left half-way (a library file, no vault) is made again.
+    cs_vault::Library::reset_if_empty(&path)?;
+    let library = cs_vault::Library::open_or_create_private(
+        &path,
+        super::vault::private_params_for_this_device(),
+    )?;
+    let vault = library.create_vault_with_password(&icon, &color, &password)?;
+    drop(vault); // wipes its Master Key; nothing of it stays in this run
+    Ok(true)
+}
+
+/// Whether `dir` is the Private library beside a Top secret run's own:
+/// `<support>/library` and `<support>/private/library`.
+fn private_beside(run: &Run, dir: &Path) -> bool {
+    match run {
+        Run::Started(VaultKind::TopSecret, top) => top
+            .parent()
+            .is_some_and(|support| dir == support.join("private").join("library")),
+        _ => false,
+    }
+}
+
 fn start(run: &mut Run, kind: VaultKind, dir: PathBuf) -> bool {
     match run {
         Run::NotStarted => {
@@ -101,6 +144,23 @@ mod tests {
         assert!(!start(&mut r, VaultKind::TopSecret, private.clone()));
         assert!(allowed(&r, &top));
         assert!(!allowed(&r, &private));
+    }
+
+    #[test]
+    fn only_a_top_secret_run_may_make_the_private_vault_beside_it() {
+        let top = PathBuf::from("/support/library");
+        let private = PathBuf::from("/support/private/library");
+        let mut r = Run::NotStarted;
+        assert!(!private_beside(&r, &private));
+        assert!(start(&mut r, VaultKind::TopSecret, top.clone()));
+        assert!(private_beside(&r, &private));
+        assert!(!private_beside(&r, &top));
+        assert!(!private_beside(&r, Path::new("/elsewhere/private/library")));
+        // A Private run, or a run that ended, makes nothing.
+        let mut p = Run::NotStarted;
+        assert!(start(&mut p, VaultKind::Private, private.clone()));
+        assert!(!private_beside(&p, &private));
+        assert!(!private_beside(&Run::Ended, &private));
     }
 
     #[test]

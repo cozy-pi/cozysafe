@@ -150,7 +150,7 @@ fn params_for_this_device() -> KdfParams {
 
 /// Argon2id cost for a Private library created on this device (ADR 0005: about one
 /// second on a phone).
-fn private_params_for_this_device() -> KdfParams {
+pub(crate) fn private_params_for_this_device() -> KdfParams {
     if cfg!(any(target_os = "android", target_os = "ios")) {
         KdfParams::PRIVATE_PHONE_FLOOR
     } else {

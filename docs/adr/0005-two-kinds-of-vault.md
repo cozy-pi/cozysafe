@@ -132,9 +132,15 @@ new version:
   played back in the app, opened only by exporting. Photos and videos already in a Top
   secret vault (until step 6 moves them) show as rows like files, no thumbnail; opening
   one exports it after the warning.
-- Decided 2026-10-31: each kind has one icon, used everywhere it is named: Top secret a
-  shield, Private a photo frame. Shown beside the vault's title, in Settings and the
-  switching pages, and on the lock screen.
+- Decided 2026-10-31 (changed the same day): both kinds share the vault mark (the dial of
+  the app's icon) with a small badge: a shield for Top secret, a person for Private.
+  Shown above the vault's title, in Settings and the switching pages, and on the lock
+  screen.
+- Decided 2026-10-31: the Private vault is made, for real, from the Top secret run when
+  its password is saved (owner: the first Private start must be an ordinary unlock, not
+  "create" again). The one exception to "one kind per run": the Top secret run may
+  create a Private library where there is none, and nothing else; it never opens it, and
+  every key made for it is dropped at once.
 - Decided 2026-10-31: steps 2–6 are built on the branch and merged into `main` only when
   all are done; each step still gets a mockup, the owner's approval and an internal test
   build (TestFlight, Play internal) made from the branch, with no public GitHub release.

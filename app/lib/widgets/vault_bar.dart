@@ -745,8 +745,23 @@ List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection se
       (AddWhat.file, Icons.folder_rounded, sectionLabel(l, VaultSection.file)),
     ];
 
-/// + never does one thing at once any more: it always offers every way ([addRowWays]).
-AddWhat? addDirect(VaultSection section, {required bool camera}) => null;
+/// What + offers on the overview (owner 2026-10-31: the long list was slow to use and had
+/// to be swiped): the two quick ones, camera and voice memo. Everything else is added from
+/// its own tab ([addDirect]); an empty vault's tiles still show every way ([addWays]).
+List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, {required bool camera, required bool voice}) => [
+      if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
+      if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
+    ];
+
+/// In a tab, + does that tab's one thing at once (owner 2026-10-31): a new note, files, the
+/// photo library, a voice memo. On the overview it offers [quickWays].
+AddWhat? addDirect(VaultSection section, {required bool camera}) => switch (section) {
+      VaultSection.home => null,
+      VaultSection.note => AddWhat.note,
+      VaultSection.file => AddWhat.file,
+      VaultSection.library => AddWhat.photos,
+      VaultSection.audio => AddWhat.voice,
+    };
 
 /// The + button's row: the page dims and the ways to add spread out sideways from the
 /// button, centred just above it. Tap one, or keep the finger down from + and slide to
