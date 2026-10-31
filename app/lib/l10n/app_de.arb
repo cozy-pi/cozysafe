@@ -590,7 +590,7 @@
   "errorWeakKdf": "Diese Tresordateien wurden so geändert, dass sie leichter zu knacken sind. Darum wurde nichts geöffnet. Stelle aus einer Sicherung oder von deinem anderen Gerät wieder her.",
   "passwordCommon": "Zu häufig",
   "passwordCommonFix": "Das ist eines der meistbenutzten Passwörter, auch mit angehängter Zahl oder Sonderzeichen. Nimm 4 zufällige Wörter.",
-  "passwordGuessable": "Zu leicht zu erraten. Mach es länger oder nimm 4 zufällige Wörter.",
+  "passwordGuessable": "Zu wenige verschiedene Zeichen. Nimm mindestens 5 oder 4 zufällige Wörter.",
   "syncRestoreAllowTitle": "Dieses neue Gerät zulassen?",
   "syncRestoreAllowYes": "Zulassen",
   "syncRestoreAllowNo": "Nicht zulassen",

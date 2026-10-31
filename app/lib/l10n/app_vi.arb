@@ -604,7 +604,7 @@
   "errorWeakKdf": "Tệp của két đã bị sửa để dễ phá hơn, nên không mở gì cả. Hãy khôi phục từ bản sao lưu hoặc từ máy kia.",
   "passwordCommon": "Quá phổ biến",
   "passwordCommonFix": "Đây là một trong những mật khẩu được dùng nhiều nhất, kể cả khi thêm số hay ký hiệu. Thử 4 từ ngẫu nhiên.",
-  "passwordGuessable": "Quá dễ đoán. Viết dài hơn, hoặc dùng 4 từ ngẫu nhiên.",
+  "passwordGuessable": "Quá ít ký tự khác nhau. Dùng ít nhất 5 ký tự khác nhau, hoặc 4 từ ngẫu nhiên.",
   "syncRestoreAllowTitle": "Cho phép máy mới này?",
   "syncRestoreAllowYes": "Cho phép",
   "syncRestoreAllowNo": "Không cho",

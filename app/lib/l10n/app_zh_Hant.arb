@@ -590,7 +590,7 @@
   "errorWeakKdf": "保險箱檔案被改得更容易破解，因此沒有開啟任何內容。請從備份或另一台裝置還原。",
   "passwordCommon": "太常見",
   "passwordCommonFix": "這是最常用的密碼之一，加上數字或符號也一樣。試試 4 個隨機單字。",
-  "passwordGuessable": "太容易被猜到。請加長，或用 4 個隨機單字。",
+  "passwordGuessable": "不同的字元太少。請至少用 5 個不同字元，或用 4 個隨機單字。",
   "syncRestoreAllowTitle": "允許這台新裝置嗎？",
   "syncRestoreAllowYes": "允許",
   "syncRestoreAllowNo": "不允許",

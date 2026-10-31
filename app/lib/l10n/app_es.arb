@@ -590,7 +590,7 @@
   "errorWeakKdf": "Estos archivos de la caja fuerte se cambiaron para que sean más fáciles de romper, así que no se abrió nada. Restaura desde una copia de seguridad o desde tu otro dispositivo.",
   "passwordCommon": "Demasiado común",
   "passwordCommonFix": "Es una de las contraseñas más usadas, aunque le añadas un número o un símbolo. Prueba 4 palabras al azar.",
-  "passwordGuessable": "Demasiado fácil de adivinar. Hazla más larga o usa 4 palabras al azar.",
+  "passwordGuessable": "Muy pocos caracteres distintos. Usa al menos 5 o 4 palabras al azar.",
   "syncRestoreAllowTitle": "¿Permitir este dispositivo nuevo?",
   "syncRestoreAllowYes": "Permitir",
   "syncRestoreAllowNo": "No permitir",

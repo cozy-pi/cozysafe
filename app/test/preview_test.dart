@@ -196,6 +196,15 @@ final _thumbnails = <int, Uint8List>{};
 const _qrText = 'cozysafe:p2p:2:60N00JBJ120XDWG3A2';
 const _qrBits = '1111111000011001111010111111110000010000000000110001000001101110101000101010110010111011011101011100000111000101110110111010100101110000101011101100000101010111110100010000011111111010101010101010111111100000000110111010001000000000101111100111001101110011111001110110001011001100010101010110001010010010000110011011000001001011100001010100110110110110111110010000011011010111100101100100011110001001110001100000110001011100100100011000000110101001100001000001100110101011010100111000110100101101100000011100001010010100111000111011010001101001101100010110100110100110011111011001101001100111100100011111101100000000010000111101010001101111111110001111111000101010100100000101011110000111000110001011101011101011100011111011010111010111011000000010101011101110101010001111000011110101000001000100100100110000001011111110110110010000011001100';
 
+/// As the vault's rule: 12 characters, 5 different ones, not a common password.
+PasswordProblem _passwordProblem(String pw) {
+  if (pw.length < 12) return PasswordProblem.tooShort;
+  if (pw.toLowerCase().split('').toSet().length < 5) return PasswordProblem.guessable;
+  // A common one with a year added, for the "password refused" mockup.
+  if (pw.toLowerCase().startsWith('sunshine')) return PasswordProblem.common;
+  return PasswordProblem.none;
+}
+
 class _Fake implements RustLibApi {
   @override
   dynamic noSuchMethod(Invocation call) {
@@ -203,14 +212,14 @@ class _Fake implements RustLibApi {
     if (n.contains('MinPasswordScore')) return 3;
     if (n.contains('MinPasswordLength')) return 12;
     if (n.contains('MinPinLength')) return 6;
-    if (n.contains('PasswordProblem')) {
+    if (n.contains('PasswordProblem')) return _passwordProblem(call.namedArguments[#password] as String);
+    if (n.contains('PasswordScore')) {
+      // As the vault's strength(): under 8 none, refused one bar, accepted three, 16+ four.
       final pw = call.namedArguments[#password] as String;
-      if (pw.length < 8) return PasswordProblem.tooShort;
-      // A common one with a year added, for the "password refused" mockup.
-      if (pw.toLowerCase().startsWith('sunshine')) return PasswordProblem.common;
-      return pw.length < 12 ? PasswordProblem.guessable : PasswordProblem.none;
+      if (pw.length < 8) return 0;
+      if (_passwordProblem(pw) != PasswordProblem.none) return 1;
+      return pw.length >= 16 ? 4 : 3;
     }
-    if (n.contains('PasswordScore')) return (call.namedArguments[#password] as String).length < 12 ? 1 : 4;
     if (n.contains('HasVaults')) return true;
     if (n.contains('QrMatrix')) return QrMatrix(size: 29, dark: [for (final c in _qrBits.split('')) c == '1']);
     if (n.contains('P2PCodeAddress')) return '192.168.1.37';
@@ -496,8 +505,8 @@ void main() {
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
-  _screen('lock', 'Màn khoá', lock, change: 'ĐỔI: khung mật khẩu cao hơn cho cân đối: thêm khoảng dưới ô mật khẩu, tiêu đề cách vòng tròn và ô xa hơn');
-  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, change: 'ĐỔI: khung mật khẩu cao hơn cho cân đối', act: (t) async {
+  _screen('lock', 'Màn khoá', lock);
+  _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, act: (t) async {
     await t.enterText(find.byType(TextField).first, 'matkhau');
     await t.pump();
   });
@@ -605,7 +614,7 @@ void main() {
   _screen('home-synced', 'Trang chủ · đã đồng bộ', home,
       section: 'home', setup: drive);
   _screen('home-syncing', 'Trang chủ · đang gửi / nhận mục', home,
-      section: 'home', setup: () => drive(moving: true), change: 'Nút mây góc trên: ĐỔI: mây xanh, mũi tên đi thẳng lên (chuyển động); giống hình chờ đồng bộ nhưng mũi tên chạy', marks: [() => find.byKey(const ValueKey('home-sync-moving'))]);
+      section: 'home', setup: () => drive(moving: true));
   _screen('home-sync-pending', 'Trang chủ · vừa thêm ảnh, chưa gửi lên', home,
       section: 'home', setup: () => drive(pending: true));
   _screen('home-sync-wifi', 'Trang chủ · có thay đổi, đang dùng 4G mà chỉ cho đồng bộ qua Wi-Fi', home,
@@ -1689,13 +1698,17 @@ void main() {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
   _screen('password-common', 'Mật khẩu: bị từ chối vì quá phổ biến (kể cả thêm số)', () => const BackupPasswordScreen(libraryDir: '', change: false),
+      change: 'Giữ nguyên: mật khẩu phổ biến (kể cả thêm số/ký hiệu) bị từ chối — nay kiểm bằng danh sách 100.000 mật khẩu phổ biến thay cho zxcvbn',
+      marks: [() => find.byKey(const ValueKey('password-refused'))],
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'Sunshine2024!');
     await t.pump();
   });
-  _screen('password-guessable', 'Mật khẩu: bị từ chối vì quá dễ đoán', () => const BackupPasswordScreen(libraryDir: '', change: false),
+  _screen('password-guessable', 'Mật khẩu: bị từ chối vì quá ít ký tự khác nhau', () => const BackupPasswordScreen(libraryDir: '', change: false),
+      change: 'MỚI: chuỗi lặp như "abababababab" đủ 12 ký tự vẫn bị từ chối — cần ít nhất 5 ký tự khác nhau (hoa/thường tính là một)',
+      marks: [() => find.byKey(const ValueKey('password-refused'))],
       act: (t) async {
-    await t.enterText(find.byType(TextField).first, 'lamp river');
+    await t.enterText(find.byType(TextField).first, 'abababababab');
     await t.pump();
   });
   _screen('change-password', 'Đổi mật khẩu', () => const BackupPasswordScreen(libraryDir: '', change: true));
@@ -1796,6 +1809,8 @@ void main() {
   });
   _screen('new-vault-password', 'Tạo két · 1. Mật khẩu: đang gõ',
       () => const NewVaultScreen(libraryDir: '', first: true),
+      change: 'ĐỔI: chưa đủ dài thì báo "Ít nhất 12 ký tự" (trước: 8 ký tự + điểm zxcvbn)',
+      marks: [() => find.byKey(const ValueKey('password-strength-word'))],
       setup: useWords, act: (t) async {
     await t.enterText(find.byKey(const ValueKey('new-password')).first, 'sunflower');
     await t.pump();

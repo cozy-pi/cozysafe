@@ -590,7 +590,7 @@
   "errorWeakKdf": "保险箱文件被改得更容易破解，因此没有打开任何内容。请从备份或另一台设备恢复。",
   "passwordCommon": "太常见",
   "passwordCommonFix": "这是最常用的密码之一，加上数字或符号也一样。试试 4 个随机单词。",
-  "passwordGuessable": "太容易被猜到。请加长，或用 4 个随机单词。",
+  "passwordGuessable": "不同的字符太少。请至少用 5 个不同字符，或用 4 个随机单词。",
   "syncRestoreAllowTitle": "允许这台新设备吗？",
   "syncRestoreAllowYes": "允许",
   "syncRestoreAllowNo": "不允许",

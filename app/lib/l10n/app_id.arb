@@ -590,7 +590,7 @@
   "errorWeakKdf": "File brankas ini diubah agar lebih mudah dibobol, jadi tidak ada yang dibuka. Pulihkan dari cadangan atau dari perangkat Anda yang lain.",
   "passwordCommon": "Terlalu umum",
   "passwordCommonFix": "Ini salah satu kata sandi yang paling banyak dipakai, meski ditambah angka atau simbol. Coba 4 kata acak.",
-  "passwordGuessable": "Terlalu mudah ditebak. Buat lebih panjang, atau gunakan 4 kata acak.",
+  "passwordGuessable": "Terlalu sedikit karakter berbeda. Gunakan minimal 5, atau 4 kata acak.",
   "syncRestoreAllowTitle": "Izinkan perangkat baru ini?",
   "syncRestoreAllowYes": "Izinkan",
   "syncRestoreAllowNo": "Jangan izinkan",

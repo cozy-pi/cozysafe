@@ -590,7 +590,7 @@
   "errorWeakKdf": "Questi file della cassaforte sono stati modificati per renderli più facili da violare, quindi non è stato aperto nulla. Ripristina da un backup o dall’altro dispositivo.",
   "passwordCommon": "Troppo comune",
   "passwordCommonFix": "È una delle password più usate, anche aggiungendo un numero o un simbolo. Prova 4 parole a caso.",
-  "passwordGuessable": "Troppo facile da indovinare. Allungala o usa 4 parole a caso.",
+  "passwordGuessable": "Troppi pochi caratteri diversi. Usane almeno 5, o 4 parole a caso.",
   "syncRestoreAllowTitle": "Consentire questo nuovo dispositivo?",
   "syncRestoreAllowYes": "Consenti",
   "syncRestoreAllowNo": "Non consentire",

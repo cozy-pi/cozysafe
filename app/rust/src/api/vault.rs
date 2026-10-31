@@ -181,8 +181,7 @@ pub enum PasswordProblem {
     TooShort,
     /// One of the most common passwords (maybe with a number or symbol added).
     Common,
-    /// Easy to guess. No longer given (the rule is length and the common list since
-    /// 2026-10-31, docs/security.md); kept so the generated bindings stay as they are.
+    /// Too few different characters ("aaaaaaaaaaaa"), however long.
     Guessable,
 }
 
@@ -194,6 +193,7 @@ pub fn password_problem(password: String) -> PasswordProblem {
         cs_vault::PasswordCheck::Ok => PasswordProblem::None,
         cs_vault::PasswordCheck::TooShort => PasswordProblem::TooShort,
         cs_vault::PasswordCheck::Common => PasswordProblem::Common,
+        cs_vault::PasswordCheck::TooFewChars => PasswordProblem::Guessable,
     }
 }
 

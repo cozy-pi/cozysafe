@@ -162,7 +162,7 @@ Key as people see it (it was the Emergency Kit); "vault password" was the backup
 | Random key | 128 bits | 256 bits | 256 bits as 24 BIP39 words (libraries before 21 Oct 2026: 128 bits) |
 | Opens with | the words alone | the words alone | Recovery Key **and** vault password **and** the files |
 | Cost per guess | low (PBKDF2, 2048 rounds) | low | Argon2id, 128 MiB × 3 passes on phones (512 MiB on computers) |
-| Extra password | optional ("25th word") | optional | mandatory: 12+ characters (or 4 words), not a common password |
+| Extra password | optional ("25th word") | optional | mandatory: 12+ characters (or 4 words), 5+ different characters, not a common password |
 
 By case:
 
@@ -213,8 +213,9 @@ password is deliberately expensive.
 ## Passwords (2026-10-25, rule changed 2026-10-31)
 
 A new password (new vault, setting or changing one) is checked as NIST SP 800-63B rev 4
-(section 3.1.1.2) asks: at least 12 characters (a phrase of 4 words always is); and not
-one of the 100,000 most common passwords (a bundled list, compared case-insensitively,
+(section 3.1.1.2) asks: at least 12 characters (a phrase of 4 words always is); at least
+5 different characters, upper and lower case counted as one (owner 2026-10-31: a long run
+of one or two characters is not a password); and not one of the 100,000 most common passwords (a bundled list, compared case-insensitively,
 also after removing a short run of digits or symbols at the end and undoing simple
 leetspeak such as 0→o, 3→e, @→a, $→s). Until 2026-10-31 it was 8 characters plus a
 zxcvbn score of 3 or a phrase of 4 words; zxcvbn went with the Top secret rule (it alone

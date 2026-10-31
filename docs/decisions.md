@@ -30,7 +30,7 @@ public audit, or our own review plus the standard test vectors. The Top secret c
 built from copies kept in the repo and nothing is downloaded for it; every build checks
 the copies byte for byte, and a weekly job compares them with upstream and recommends
 what to update (supply-chain.md). New passwords: at least 12 characters (or 4 words,
-which always are) and not among the most common; zxcvbn is gone (security.md,
+which always are), at least 5 different characters, and not among the most common; zxcvbn is gone (security.md,
 "Passwords"). Passwords already in use keep working. On a computer unlocking takes
 about 0.9 s (no threading library in the core). The vault core moved into `cs-core`
 (library, vaults, items, PINs, history, index) and reads and writes the same files as

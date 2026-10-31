@@ -590,7 +590,7 @@
   "errorWeakKdf": "Estes arquivos do cofre foram alterados para facilitar a quebra, então nada foi aberto. Restaure de um backup ou do seu outro aparelho.",
   "passwordCommon": "Comum demais",
   "passwordCommonFix": "Esta é uma das senhas mais usadas, mesmo com um número ou símbolo a mais. Tente 4 palavras aleatórias.",
-  "passwordGuessable": "Fácil demais de adivinhar. Deixe-a mais longa ou use 4 palavras aleatórias.",
+  "passwordGuessable": "Poucos caracteres diferentes. Use pelo menos 5 ou 4 palavras aleatórias.",
   "syncRestoreAllowTitle": "Permitir este aparelho novo?",
   "syncRestoreAllowYes": "Permitir",
   "syncRestoreAllowNo": "Não permitir",

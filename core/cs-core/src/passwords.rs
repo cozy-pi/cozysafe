@@ -1,5 +1,7 @@
 //! What a new vault password must be (owner 2026-10-31, NIST SP 800-63B rev 4, 3.1.1.2):
-//! at least [`MIN_PASSWORD_LEN`] characters and not one of the passwords people use most.
+//! at least [`MIN_PASSWORD_LEN`] characters, at least [`MIN_DISTINCT_CHARS`] different
+//! characters (owner 2026-10-31: "aaaaaaaaaaaa" is long but not a password), and not one
+//! of the passwords people use most.
 //! A phrase of [`MIN_WORDS`] words always meets the length (three letters or more each,
 //! with the spaces), so "or a phrase of four words" needs no rule of its own. Only new
 //! passwords are checked (a new vault, setting or changing a password): unlocking never
@@ -23,6 +25,9 @@ pub const OLDEST_MIN_PASSWORD_LEN: usize = 8;
 /// What the strength bars call good enough: [`strength`] gives it to every password the
 /// rule accepts.
 pub const MIN_PASSWORD_SCORE: u8 = 3;
+/// A new password needs at least this many different characters, upper and lower case
+/// counted as one.
+pub const MIN_DISTINCT_CHARS: usize = 5;
 /// A phrase of this many words is suggested as the way to a long password.
 pub const MIN_WORDS: usize = 4;
 /// What counts as a word in a passphrase.
@@ -41,6 +46,8 @@ pub enum PasswordCheck {
     Ok,
     /// Under [`MIN_PASSWORD_LEN`] characters.
     TooShort,
+    /// Under [`MIN_DISTINCT_CHARS`] different characters ("aaaaaaaaaaaa", "abababababab").
+    TooFewChars,
     /// One of the most common passwords, maybe with a number or a symbol added.
     Common,
 }
@@ -49,6 +56,8 @@ pub enum PasswordCheck {
 pub fn check_new_password(password: &str) -> PasswordCheck {
     if password.chars().count() < MIN_PASSWORD_LEN {
         PasswordCheck::TooShort
+    } else if distinct_chars(password) < MIN_DISTINCT_CHARS {
+        PasswordCheck::TooFewChars
     } else if is_common(password) {
         PasswordCheck::Common
     } else {
@@ -70,6 +79,14 @@ pub fn strength(password: &str) -> u8 {
     } else {
         MIN_PASSWORD_SCORE
     }
+}
+
+/// Different characters, upper and lower case counted as one.
+fn distinct_chars(password: &str) -> usize {
+    let mut chars: Vec<char> = password.chars().flat_map(char::to_lowercase).collect();
+    chars.sort_unstable();
+    chars.dedup();
+    chars.len()
 }
 
 fn is_common(password: &str) -> bool {
@@ -225,8 +242,14 @@ mod tests {
         for pw in cases("short") {
             assert_eq!(check_new_password(&pw), PasswordCheck::TooShort);
         }
-        // Random each run: none is written in the code.
-        let random = crate::hex::encode(cs_crypto::generate_salt());
+        // Random each run: none is written in the code (and with enough different
+        // characters in its first 12, which a random one has 9,999 times in 10,000).
+        let random = loop {
+            let r = crate::hex::encode(cs_crypto::generate_salt());
+            if distinct_chars(&r[..MIN_PASSWORD_LEN]) >= MIN_DISTINCT_CHARS {
+                break r;
+            }
+        };
         assert_eq!(
             check_new_password(&random[..MIN_PASSWORD_LEN - 1]),
             PasswordCheck::TooShort
@@ -240,6 +263,42 @@ mod tests {
 
     /// "Or a phrase of four words": four words of three letters or more, apart, are
     /// always at least 12 characters, so the length rule covers them.
+    /// Long but made of few characters: refused, whatever the length.
+    #[test]
+    fn few_different_characters_are_refused() {
+        let random = crate::hex::encode(cs_crypto::generate_salt());
+        let few: Vec<char> = {
+            let mut c: Vec<char> = random.chars().collect();
+            c.sort_unstable();
+            c.dedup();
+            c.truncate(MIN_DISTINCT_CHARS);
+            c
+        };
+        for n in 1..MIN_DISTINCT_CHARS {
+            let pw: String = few[..n].iter().cycle().take(40).collect();
+            assert_eq!(check_new_password(&pw), PasswordCheck::TooFewChars, "{n}");
+            assert_eq!(strength(&pw), 1);
+            // Upper and lower case are one character.
+            let mixed: String = pw
+                .chars()
+                .enumerate()
+                .map(|(i, c)| {
+                    if i % 2 == 0 {
+                        c.to_ascii_uppercase()
+                    } else {
+                        c
+                    }
+                })
+                .collect();
+            assert_eq!(check_new_password(&mixed), PasswordCheck::TooFewChars);
+        }
+        let enough: String = few.iter().cycle().take(MIN_PASSWORD_LEN).collect();
+        assert_ne!(check_new_password(&enough), PasswordCheck::TooFewChars);
+        // A short one is too short first.
+        let short: String = few[..1].iter().cycle().take(MIN_PASSWORD_LEN - 1).collect();
+        assert_eq!(check_new_password(&short), PasswordCheck::TooShort);
+    }
+
     #[test]
     fn four_words_always_meet_the_length() {
         let shortest = ["abc"; 4].join(" ");

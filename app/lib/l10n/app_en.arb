@@ -774,7 +774,7 @@
   "errorWeakKdf": "These vault files were changed to make them easier to break, so nothing was opened. Restore from a backup or from your other device.",
   "passwordCommon": "Too common",
   "passwordCommonFix": "This is one of the most used passwords, even with a number or symbol added. Try 4 random words.",
-  "passwordGuessable": "Too easy to guess. Make it longer, or use 4 random words.",
+  "passwordGuessable": "Too few different characters. Use at least 5, or 4 random words.",
   "syncRestoreAllowTitle": "Allow this new device?",
   "syncRestoreAllowYes": "Allow",
   "syncRestoreAllowNo": "Don't allow",

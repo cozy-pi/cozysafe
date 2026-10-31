@@ -590,7 +590,7 @@
   "errorWeakKdf": "Ces fichiers de coffre ont été modifiés pour être plus faciles à casser : rien n’a été ouvert. Restaurez depuis une sauvegarde ou depuis votre autre appareil.",
   "passwordCommon": "Trop courant",
   "passwordCommonFix": "C’est l’un des mots de passe les plus utilisés, même avec un chiffre ou un symbole ajouté. Essayez 4 mots au hasard.",
-  "passwordGuessable": "Trop facile à deviner. Allongez-le ou utilisez 4 mots au hasard.",
+  "passwordGuessable": "Trop peu de caractères différents. Utilisez-en au moins 5, ou 4 mots au hasard.",
   "syncRestoreAllowTitle": "Autoriser ce nouvel appareil ?",
   "syncRestoreAllowYes": "Autoriser",
   "syncRestoreAllowNo": "Ne pas autoriser",

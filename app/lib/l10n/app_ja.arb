@@ -590,7 +590,7 @@
   "errorWeakKdf": "金庫のファイルが破られやすいように書き換えられていたため、何も開きませんでした。バックアップかもう一台の端末から復元してください。",
   "passwordCommon": "よく使われすぎ",
   "passwordCommonFix": "最もよく使われているパスワードの一つです（数字や記号を足しても同じです）。ランダムな4つの単語を試してください。",
-  "passwordGuessable": "推測されやすすぎます。長くするか、ランダムな4つの単語にしてください。",
+  "passwordGuessable": "異なる文字が少なすぎます。5種類以上の文字か、ランダムな4つの単語にしてください。",
   "syncRestoreAllowTitle": "この新しい端末を許可しますか？",
   "syncRestoreAllowYes": "許可",
   "syncRestoreAllowNo": "許可しない",
