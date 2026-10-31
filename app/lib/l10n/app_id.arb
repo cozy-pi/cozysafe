@@ -839,5 +839,8 @@
   "driveDeleteBody": "Salinannya di Google Drive dihapus; perangkat ini tetap menyimpan brankas. Sinkronisasi otomatis dimatikan, kalau tidak semuanya akan terkirim lagi. Perangkat lain yang masih menyinkronkan brankas ini bisa mengunggahnya kembali.",
   "driveDeleted": "Dihapus dari Google Drive.",
   "aboutTitle": "Tentang",
-  "settingsScreen": "Yang tampil di layar"
+  "settingsScreen": "Yang tampil di layar",
+  "restartCountdownLead": "Cozy Safe dimulai ulang untuk menyelesaikan perubahan.",
+  "closeCountdownLead": "Cozy Safe ditutup untuk menyelesaikan perubahan. Buka lagi setelahnya.",
+  "restartingTitle": "Memulai ulang Cozy Safe"
 }

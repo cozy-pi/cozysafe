@@ -839,5 +839,8 @@
   "driveDeleteBody": "Google Drive'daki kopyası silinir; bu cihaz kasayı korur. Otomatik eşitleme kapanır, yoksa her şeyi yeniden gönderir. Bu kasayı hâlâ eşitleyen başka bir cihaz onu geri koyabilir.",
   "driveDeleted": "Google Drive'dan silindi.",
   "aboutTitle": "Hakkında",
-  "settingsScreen": "Ekranda görünenler"
+  "settingsScreen": "Ekranda görünenler",
+  "restartCountdownLead": "Cozy Safe değişikliği tamamlamak için yeniden başlatılıyor.",
+  "closeCountdownLead": "Cozy Safe değişikliği tamamlamak için kapanıyor. Ardından yeniden açın.",
+  "restartingTitle": "Cozy Safe yeniden başlatılıyor"
 }

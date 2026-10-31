@@ -761,8 +761,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: EdgeSwipeBack(
       enabled: !main,
       onBack: () => _show(_Page.main),
-      child: groupedPage(context, Builder(builder: (context) => Scaffold(
+      child: groupedPage(context, Builder(builder: (context) => _washed(context, Scaffold(
+      // Top Secret Mode's red wash shows through the page and its bar (owner 2026-10-31).
+      backgroundColor: TopSecretMode.on ? Colors.transparent : null,
       appBar: AppBar(
+        backgroundColor: TopSecretMode.on ? Colors.transparent : null,
+        scrolledUnderElevation: TopSecretMode.on ? 0 : null,
         title: Text(main ? l.settings : _pageTitle(l, _page)),
         centerTitle: !main,
         titleTextStyle: main ? largeTitle(context) : null,
@@ -782,8 +786,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ..._children(l, _page),
         ],
       ),
-    )))));
+    ))))));
   }
+
+  /// [page] over the page colour and, in Top Secret Mode, the red wash ([TopSecretWash]).
+  Widget _washed(BuildContext context, Widget page) => !TopSecretMode.on
+      ? page
+      : Stack(children: [
+          Positioned.fill(child: ColoredBox(color: Theme.of(context).scaffoldBackgroundColor)),
+          const Positioned.fill(child: IgnorePointer(child: TopSecretWash())),
+          page,
+        ]);
 
   /// What [page] shows: the main page, or one sub-page (pushed as a page of its own, or
   /// in place for mockups).

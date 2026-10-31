@@ -839,5 +839,8 @@
   "driveDeleteBody": "它在 Google Drive 上的副本会被删除；此设备仍保留保险箱。自动同步会关闭，否则会再次全部上传。仍在同步此保险箱的其他设备可能会重新上传。",
   "driveDeleted": "已从 Google Drive 删除。",
   "aboutTitle": "关于",
-  "settingsScreen": "屏幕上显示的内容"
+  "settingsScreen": "屏幕上显示的内容",
+  "restartCountdownLead": "Cozy Safe 将重新启动以完成更改。",
+  "closeCountdownLead": "Cozy Safe 将关闭以完成更改。之后请重新打开。",
+  "restartingTitle": "正在重新启动 Cozy Safe"
 }

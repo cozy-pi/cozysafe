@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -53,15 +54,8 @@ class _ShieldMark extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            ShaderMask(
-              blendMode: BlendMode.srcIn,
-              shaderCallback: (r) => LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: colors,
-              ).createShader(r),
-              child: Icon(Icons.shield_rounded, size: size),
-            ),
+            // Flat (owner 2026-10-31: no gradient): the middle of its colours.
+            Icon(Icons.shield_rounded, size: size, color: colors[colors.length ~/ 2]),
             Padding(
               padding: EdgeInsets.only(top: size * .04),
               child: Icon(inner, size: size * .44, color: Colors.white),
@@ -186,7 +180,6 @@ class TopSecretModePage extends StatelessWidget {
 Future<void> turnTopSecretMode(BuildContext context, bool next) async {
   final nav = Navigator.of(context, rootNavigator: true);
   await TopSecretMode.turn(next);
-  if (TopSecretMode.closesItself) exit(0);
   nav.pushAndRemoveUntil(
     PageRouteBuilder<void>(
       transitionDuration: Duration.zero,
@@ -211,16 +204,69 @@ class CloseAppPage extends StatelessWidget {
     // The only page left (pushAndRemoveUntil): there is nothing to go back to.
     return ChoicePage(
       key: const ValueKey('close-app'),
-      title: l.closeAppTitle,
-      lead: forVault ? l.closeAppBodyVault : on ? l.closeAppBodyOn : l.closeAppBodyOff,
+      title: TopSecretMode.closesItself && (Platform.isAndroid || TopSecretMode.debugClosesItself == true)
+          ? l.restartingTitle
+          : l.closeAppTitle,
+      lead: TopSecretMode.closesItself
+          ? (Platform.isAndroid || TopSecretMode.debugClosesItself == true ? l.restartCountdownLead : l.closeCountdownLead)
+          : forVault
+              ? l.closeAppBodyVault
+              : on
+                  ? l.closeAppBodyOn
+                  : l.closeAppBodyOff,
       mark: on ? const TopSecretMark(size: 72) : null,
       logo: !on,
       choices: [
-        if (forVault && TopSecretMode.closesItself)
-          FilledButton(key: const ValueKey('close-app-now'), onPressed: () => exit(0), child: Text(l.close)),
+        // Android and computers: 3, 2, 1, then Android starts again by itself and a
+        // computer closes (owner 2026-10-31: not closing out of the blue).
+        if (TopSecretMode.closesItself) const _QuitCountdown(),
       ],
     );
   }
+}
+
+class _QuitCountdown extends StatefulWidget {
+  const _QuitCountdown();
+
+  @override
+  State<_QuitCountdown> createState() => _QuitCountdownState();
+}
+
+class _QuitCountdownState extends State<_QuitCountdown> {
+  int _left = 3;
+  Timer? _tick;
+
+  /// Mockups: hold at 3 instead of quitting.
+  static bool get _hold => TopSecretMode.debugClosesItself != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_hold) return;
+    _tick = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_left <= 1) {
+        t.cancel();
+        TopSecretMode.quit();
+        return;
+      }
+      setState(() => _left--);
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Text(
+          '$_left',
+          key: const ValueKey('quit-countdown'),
+          style: TextStyle(fontSize: CsType.largeTitle * 2, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface),
+        ),
+      );
 }
 
 /// A Top secret vault asked to open in a run that opened an everyday one
@@ -239,7 +285,7 @@ Future<void> restartForMode(BuildContext context) async {
 }
 
 /// Top Secret Mode's sign on the vault's page: the page colour washed with a little red
-/// at the top, fading out by about a third of the way down. Light enough to read through,
+/// at the top, fading out by about two fifths of the way down. Light enough to read through,
 /// strong enough to tell the mode at a glance.
 class TopSecretWash extends StatelessWidget {
   const TopSecretWash({super.key});
@@ -253,8 +299,13 @@ class TopSecretWash extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [0, .38],
-          colors: [topSecretRed.withValues(alpha: dark ? .22 : .13), topSecretRed.withValues(alpha: 0)],
+          // About two fifths of the screen (owner 2026-10-31), fading out gently.
+          stops: const [0, .2, .42],
+          colors: [
+            topSecretRed.withValues(alpha: dark ? .22 : .13),
+            topSecretRed.withValues(alpha: dark ? .13 : .08),
+            topSecretRed.withValues(alpha: 0),
+          ],
         ),
       ),
     );

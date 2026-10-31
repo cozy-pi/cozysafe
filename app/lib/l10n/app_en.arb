@@ -1053,5 +1053,8 @@
   "driveDeleteBody": "Its copy in Google Drive is deleted; this device keeps the vault. Automatic sync turns off, or it would send everything up again. Another device that still syncs this vault can put it back.",
   "driveDeleted": "Deleted from Google Drive.",
   "aboutTitle": "About",
-  "settingsScreen": "What shows on screen"
+  "settingsScreen": "What shows on screen",
+  "restartCountdownLead": "Cozy Safe restarts to finish the change.",
+  "closeCountdownLead": "Cozy Safe closes to finish the change. Open it again afterwards.",
+  "restartingTitle": "Restarting Cozy Safe"
 }

@@ -839,5 +839,8 @@
   "driveDeleteBody": "Se elimina su copia en Google Drive; este dispositivo conserva la caja fuerte. La sincronización automática se desactiva, o volvería a subirlo todo. Otro dispositivo que aún sincronice esta caja fuerte puede volver a subirla.",
   "driveDeleted": "Eliminada de Google Drive.",
   "aboutTitle": "Acerca de",
-  "settingsScreen": "Lo que se ve en pantalla"
+  "settingsScreen": "Lo que se ve en pantalla",
+  "restartCountdownLead": "Cozy Safe se reinicia para completar el cambio.",
+  "closeCountdownLead": "Cozy Safe se cierra para completar el cambio. Ábrela de nuevo después.",
+  "restartingTitle": "Reiniciando Cozy Safe"
 }

@@ -839,5 +839,8 @@
   "driveDeleteBody": "Die Kopie in Google Drive wird gelöscht; dieses Gerät behält den Tresor. Die automatische Synchronisierung wird ausgeschaltet, sonst würde sie alles wieder hochladen. Ein anderes Gerät, das diesen Tresor noch synchronisiert, kann ihn wieder hochladen.",
   "driveDeleted": "Aus Google Drive gelöscht.",
   "aboutTitle": "Über",
-  "settingsScreen": "Was auf dem Bildschirm erscheint"
+  "settingsScreen": "Was auf dem Bildschirm erscheint",
+  "restartCountdownLead": "Cozy Safe startet neu, um die Änderung abzuschließen.",
+  "closeCountdownLead": "Cozy Safe wird geschlossen, um die Änderung abzuschließen. Öffne die App danach erneut.",
+  "restartingTitle": "Cozy Safe startet neu"
 }

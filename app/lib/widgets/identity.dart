@@ -120,23 +120,13 @@ class VaultBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final i = iconById(icon);
     final c = colorById(color);
-    final lift = size >= 64; // big badges stand out with depth; small ones stay flat
+    // Flat, one colour (owner 2026-10-31: the gradient and shadow looked machine-made).
     return Semantics(
       label: '${i.label}, ${c.label}',
       child: Container(
         width: size,
         height: size,
-        decoration: ShapeDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color.lerp(c.color, Colors.white, .16)!, c.color, Color.lerp(c.color, Colors.black, .14)!],
-          ),
-          shape: const CircleBorder(),
-          shadows: lift
-              ? [BoxShadow(color: c.color.withValues(alpha: .38), blurRadius: size * .22, offset: Offset(0, size * .09))]
-              : null,
-        ),
+        decoration: ShapeDecoration(color: c.color, shape: const CircleBorder()),
         child: Icon(i.icon, color: Colors.white, size: size * .52),
       ),
     );

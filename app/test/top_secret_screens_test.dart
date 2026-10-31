@@ -20,6 +20,7 @@ import 'package:cozysafe/widgets/vault_bar.dart'
     show VaultSection, debugVoice, vaultSections;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cozysafe/widgets/file_name.dart';
 
 ItemInfo _item(String id, String kind, String name, String mime) => ItemInfo(
   id: id,
@@ -64,6 +65,9 @@ class _Fake implements RustLibApi {
 }
 
 late _Fake _fake;
+
+/// A file's name as the lists draw it ([FileNameText]: the name and its extension apart).
+Finder _name(String name) => find.byWidgetPredicate((w) => w is FileNameText && w.name == name);
 
 const _vault = VaultInfo(
   id: 'v1',
@@ -138,7 +142,7 @@ void main() {
       TopSecretMode.on = true;
       await _open(t);
       for (final it in _items.where((i) => i.kind != 'audio')) {
-        final row = find.text(it.name);
+        final row = _name(it.name);
         expect(row, findsWidgets, reason: '${it.kind} shows among the files');
         await _tapRow(t, row.first);
         expect(
@@ -177,7 +181,7 @@ void main() {
     (t) async {
       TopSecretMode.on = false;
       await _open(t);
-      await _tapRow(t, find.text('contract.pdf').first);
+      await _tapRow(t, _name('contract.pdf').first);
       expect(find.byType(QuickLook), findsOneWidget);
       expect(find.byKey(const ValueKey('sealed-item')), findsNothing);
     },

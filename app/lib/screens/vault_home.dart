@@ -70,6 +70,7 @@ import '../top_secret_mode.dart';
 import 'top_secret_page.dart';
 import 'sealed_item.dart';
 import '../file_kinds.dart';
+import '../widgets/file_name.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -1686,7 +1687,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// Files as a grid of tiles instead of rows (Prefs `files-view`).
   bool get _filesAsGrid => Prefs.read('files-view') == 'grid';
 
-  /// Sort and view, from the ⇅ button in the header.
+  /// The home page's list of everything as a grid of tiles (Prefs `home-view`).
+  bool get _homeAsGrid => Prefs.read('home-view') == 'grid';
+
+  /// The pref that holds [section]'s view, where it has a choice (owner 2026-10-31: in
+  /// ⋯, not in Sort; the home page too).
+  static String? _viewPref(VaultSection section) => switch (section) {
+        VaultSection.file => 'files-view',
+        VaultSection.home => 'home-view',
+        _ => null,
+      };
+
+  /// Sort, from ⋯ in the header.
   Future<void> _sortMenu() async {
     final l = AppLocalizations.of(context);
     final now = _sort;
@@ -1709,11 +1721,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           Prefs.write('sort-${_section.name}', o.name);
           setState(() {});
         }, key: ValueKey('sort-${o.name}')),
-      if (_section == VaultSection.file)
-        MenuEntry(_filesAsGrid ? Icons.view_list_rounded : Icons.grid_view_rounded, _filesAsGrid ? l.viewList : l.viewGrid, () {
-          Prefs.write('files-view', _filesAsGrid ? 'list' : 'grid');
-          setState(() {});
-        }, key: const ValueKey('files-view')),
     ]);
   }
 
@@ -2060,7 +2067,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       items: items,
       thumbnail: _thumbnail,
       bottomPad: _bottomRoom,
-      recentCount: 6,
+      grid: _homeAsGrid,
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -2216,6 +2223,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         MenuEntry(Icons.check_circle_outline_rounded, l.select, () => setState(() => _selectMode = true), key: const ValueKey('select-button')),
       if (_section != VaultSection.home && shown.length > 1)
         MenuEntry(Icons.swap_vert_rounded, l.sortBy, _sortMenu, key: const ValueKey('sort-button')),
+      if (_viewPref(_section) case final pref?)
+        Prefs.read(pref) == 'grid'
+            ? MenuEntry(Icons.view_list_rounded, l.viewList, () => setState(() => Prefs.write(pref, 'list')),
+                key: const ValueKey('files-view'))
+            : MenuEntry(Icons.grid_view_rounded, l.viewGrid, () => setState(() => Prefs.write(pref, 'grid')),
+                key: const ValueKey('files-view')),
       if (open != null) ...[
         MenuEntry(Icons.edit_outlined, l.renameTag, () => _renameTag(open), key: const ValueKey('rename-tag')),
         MenuEntry(Icons.delete_outline_rounded, l.deleteTag, () => _deleteTag(open), danger: true, key: const ValueKey('delete-tag')),
@@ -3195,7 +3208,7 @@ class _FileRow extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Flexible(child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead))),
+                      Flexible(child: FileNameText(item.name, style: const TextStyle(fontSize: CsType.subhead))),
                       if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],
                   ),
@@ -3250,7 +3263,9 @@ class _FileTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
+                // The extension is on the mark above (owner 2026-10-31).
+                Text(nameWithoutExtension(item.name),
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
                 const SizedBox(height: 2),
                 Text(fileSize(item.sizeBytes), style: TextStyle(color: c.muted, fontSize: CsType.caption1)),
               ],

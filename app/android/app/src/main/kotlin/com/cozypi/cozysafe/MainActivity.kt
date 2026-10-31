@@ -77,8 +77,18 @@ class MainActivity : FlutterFragmentActivity() {
         // device (lib/sync/device_name.dart). Not the device's own name: it often holds
         // the owner's name.
         MethodChannel(messenger, "cozysafe/device").setMethodCallHandler { call, result ->
-            if (call.method == "model") result.success(listOf(Build.MANUFACTURER ?: "", Build.MODEL ?: ""))
-            else result.notImplemented()
+            when (call.method) {
+                "model" -> result.success(listOf(Build.MANUFACTURER ?: "", Build.MODEL ?: ""))
+                // Top Secret Mode turned on or off (lib/top_secret_mode.dart): start again in a
+                // fresh process, the old one and everything it held gone.
+                "restart" -> {
+                    packageManager.getLaunchIntentForPackage(packageName)?.component?.let {
+                        startActivity(Intent.makeRestartActivityTask(it))
+                    }
+                    Runtime.getRuntime().exit(0)
+                }
+                else -> result.notImplemented()
+            }
         }
         MethodChannel(messenger, "cozysafe/open").setMethodCallHandler { call, result ->
             if (call.method != "openWith") return@setMethodCallHandler result.notImplemented()

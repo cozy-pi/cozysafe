@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
 
 import 'src/rust/api/run.dart' as rust;
 import 'src/rust/api/run.dart' show RunMode;
@@ -58,6 +59,17 @@ abstract final class TopSecretMode {
   static Future<void> turn(bool next) async {
     await setTopSecret(topSecret: next);
     await endRun();
+  }
+
+  /// After [endRun] on Android and computers: Android starts the app again in a fresh
+  /// process; a computer quits (the person opens it again).
+  static Future<void> quit() async {
+    if (Platform.isAndroid) {
+      try {
+        await const MethodChannel('cozysafe/device').invokeMethod<void>('restart');
+      } catch (_) {}
+    }
+    exit(0);
   }
 
   /// Whether the app may quit by itself after [endRun]. Apple asks apps not to (App Review

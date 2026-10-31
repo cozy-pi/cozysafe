@@ -853,5 +853,8 @@
   "driveDeleteBody": "Bản trên Google Drive bị xoá; két vẫn còn trên máy này. Đồng bộ tự động sẽ tắt, nếu không nó lại gửi hết lên. Máy khác còn đồng bộ két này có thể đẩy nó lên lại.",
   "driveDeleted": "Đã xoá khỏi Google Drive.",
   "aboutTitle": "Giới thiệu",
-  "settingsScreen": "Hiện trên màn hình"
+  "settingsScreen": "Hiện trên màn hình",
+  "restartCountdownLead": "Cozy Safe khởi động lại để hoàn tất thay đổi.",
+  "closeCountdownLead": "Cozy Safe sẽ đóng để hoàn tất thay đổi. Sau đó hãy mở lại.",
+  "restartingTitle": "Đang khởi động lại Cozy Safe"
 }

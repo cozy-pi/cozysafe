@@ -839,5 +839,8 @@
   "driveDeleteBody": "Sa copie dans Google Drive est supprimée ; cet appareil garde le coffre. La synchronisation automatique est désactivée, sinon elle renverrait tout. Un autre appareil qui synchronise encore ce coffre peut le remettre.",
   "driveDeleted": "Supprimé de Google Drive.",
   "aboutTitle": "À propos",
-  "settingsScreen": "Ce qui s'affiche à l'écran"
+  "settingsScreen": "Ce qui s'affiche à l'écran",
+  "restartCountdownLead": "Cozy Safe redémarre pour terminer le changement.",
+  "closeCountdownLead": "Cozy Safe se ferme pour terminer le changement. Rouvrez-la ensuite.",
+  "restartingTitle": "Redémarrage de Cozy Safe"
 }

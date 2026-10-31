@@ -925,6 +925,33 @@ void main() {
   });
   _screen('files', 'Tệp', home, section: 'file');
   _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'));
+  _screen('files-more', 'Tệp · bấm ⋯: Chọn · Sắp xếp · Dạng lưới', home, section: 'file',
+      change: 'ĐỔI: chọn kiểu hiển thị nằm trong ⋯ (không còn trong Sắp xếp)',
+      marks: [() => find.byKey(const ValueKey('files-view'))],
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('more-button')));
+    await t.pumpAndSettle();
+  });
+  _screen('home-more', 'Tổng quan · bấm ⋯', home, section: 'home',
+      change: 'MỚI: Tổng quan cũng đổi được dạng lưới/danh sách',
+      marks: [() => find.byKey(const ValueKey('files-view'))],
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('more-button')));
+    await t.pumpAndSettle();
+  });
+  _screen('home-all', 'Tổng quan · cuộn xuống: Gần đây hiện tất cả, cuộn tới đâu hiện tới đó', home, section: 'home',
+      change: 'ĐỔI: Gần đây không còn dừng ở 6 mục',
+      act: (t) async {
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -1100));
+    await t.pumpAndSettle();
+  });
+  _screen('home-grid', 'Tổng quan · dạng lưới, cuộn xuống', home, section: 'home',
+      change: 'MỚI: Tổng quan dạng lưới: ảnh, biểu tượng theo loại tệp, tên giữ đuôi',
+      setup: () => Prefs.write('home-view', 'grid'),
+      act: (t) async {
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -900));
+    await t.pumpAndSettle();
+  });
   _screen('files-select', 'Tệp · bấm giữ một dòng', home, section: 'file',
       act: (t) async {
     await t.longPress(find.byType(SelectableRow).first);

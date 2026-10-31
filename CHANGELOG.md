@@ -29,8 +29,16 @@ Dates are UTC.
 - The quick buttons above + go video, photo, voice.
 - Files show an icon and a colour for their kind (PDF, pictures, video, sound, documents,
   sheets, slides, archives, text, code, keys…), in the list, the grid, Recent and search.
-- A vault in Top Secret Mode has a faint red wash at the top of its page, instead of the
-  small shield on the Settings button.
+- A vault in Top Secret Mode has a faint red wash over the top two fifths of its page and
+  of Settings, instead of the small shield on the Settings button.
+- A long file name keeps its extension: "Ket qua xet nghiem… .pdf".
+- Grid or list is chosen in ⋯ (no longer under Sort), on Files and now on Overview too.
+- Overview lists everything, newest first, as far as you scroll (it stopped at six).
+- In the grid, the extension sits on the file's icon (or on a picture's corner); the name
+  under it goes without.
+- After turning Top Secret Mode on or off, Android counts 3, 2, 1 and starts Cozy Safe
+  again by itself; a computer counts down and closes.
+- The vault's icon and the mode shields are flat, one colour each.
 - "Open in another app" shows only the apps that can open the file: Android's own
   "Open with" (the app gets read-only access to that one copy), the iPhone's "Open in…".
   Where there is none, the share sheet as before.

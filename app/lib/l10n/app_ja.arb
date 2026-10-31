@@ -839,5 +839,8 @@
   "driveDeleteBody": "Google Drive 上のコピーは削除され、この端末の金庫は残ります。自動同期はオフになります（オフにしないとまた全部送信されます）。この金庫をまだ同期している別の端末が、戻すことがあります。",
   "driveDeleted": "Google Drive から削除しました。",
   "aboutTitle": "情報",
-  "settingsScreen": "画面に表示する内容"
+  "settingsScreen": "画面に表示する内容",
+  "restartCountdownLead": "変更を反映するため Cozy Safe を再起動します。",
+  "closeCountdownLead": "変更を反映するため Cozy Safe を閉じます。その後もう一度開いてください。",
+  "restartingTitle": "Cozy Safe を再起動しています"
 }
