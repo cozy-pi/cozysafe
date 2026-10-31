@@ -1097,6 +1097,14 @@ void main() {
   });
   _screen('kinds-close-app', 'iPhone/iPad sau khi chuyển: đóng app rồi mở lại', () => const CloseAppPage(next: VaultKind.private),
       change: 'MỚI: Apple không cho app tự thoát, nên màn này chỉ bảo đóng app rồi mở lại; không làm gì khác được trên màn này');
+  _screen('kinds-private-lock-menu', 'Két Riêng tư · màn khoá, menu ⋯: Về két Tuyệt mật', lock,
+      change: 'MỚI: chỉ màn khoá két Riêng tư có lối "Về két Tuyệt mật" (trong ⋯), cho người quên mật khẩu đọc lại ghi chú; màn khoá két Tuyệt mật không nhắc gì',
+      marks: [() => find.byKey(const ValueKey('lock-to-top-secret'))],
+      setup: () => RunKind.current = VaultKind.private,
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('more-button')));
+    await t.pumpAndSettle();
+  });
   _screen('kinds-private-welcome', 'Két Riêng tư · lần đầu mở', () => const PrivateWelcomeScreen(libraryDir: ''),
       change: 'MỚI: lần đầu vào két Riêng tư: Tạo (gõ mật khẩu trong ghi chú) hoặc Về két Tuyệt mật',
       setup: () => RunKind.current = VaultKind.private);

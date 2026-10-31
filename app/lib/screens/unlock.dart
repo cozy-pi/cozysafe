@@ -23,6 +23,8 @@ import 'vault_home.dart';
 import '../theme.dart';
 import '../widgets/drive_logo.dart';
 import '../widgets/readable.dart';
+import '../vault_kind.dart';
+import 'vault_kinds.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
 /// vault password is the fallback (decisions 2026-10-28: no more PIN, it was the
@@ -630,6 +632,19 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
               onPressed: _busy ? null : _newVault,
               child: Text(l.newVault),
             ),
+          // A Private vault whose password is forgotten: the way back to the Top secret
+          // vault, where it is kept as a note (owner 2026-10-31). Only on Private's lock
+          // screen; Top secret's says nothing of a second kind.
+          if (!RunKind.topSecret)
+            MenuItemButton(
+              key: const ValueKey('lock-to-top-secret'),
+              style: _menuItem,
+              leadingIcon: const Icon(Icons.lock_outline_rounded),
+              onPressed: _busy ? null : () => switchKind(context, VaultKind.topSecret),
+              child: Text(l.switchToTopSecret),
+            ),
+          // Restoring takes the 24 words: Top secret only.
+          if (RunKind.topSecret)
           MenuItemButton(
             style: _menuItem,
             leadingIcon: const Icon(Icons.settings_backup_restore_rounded),
