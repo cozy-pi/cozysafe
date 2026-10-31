@@ -1556,7 +1556,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (list.isEmpty) {
       if (_tagId != null) return _tagEmpty(context);
       return notes
-          ? _Empty(icon: Icons.edit_note_rounded, title: l.emptyNotesTitle, body: l.emptyNotesBody)
+          ? _Empty(icon: Icons.book_rounded, title: l.emptyNotesTitle, body: l.emptyNotesBody)
           : _Empty(icon: Icons.folder_rounded, title: l.emptyFilesTitle, body: l.emptyFilesBody);
     }
     _dragOrder = [for (final it in list) it.id];
@@ -2558,7 +2558,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final (icon, tip) = _recordingNow
         ? (Icons.stop_rounded, l.stopRecording)
         : switch (_adding ? null : _directAdd) {
-            AddWhat.note => (Icons.edit_note_rounded, l.newNote),
+            AddWhat.note => (Icons.book_rounded, l.newNote),
             AddWhat.voice => (Icons.mic_rounded, l.startRecording),
             AddWhat.file => (Icons.folder_rounded, l.addFiles),
             AddWhat.photos => (Icons.add_photo_alternate_rounded, l.addFromDevice),

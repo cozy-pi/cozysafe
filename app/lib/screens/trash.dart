@@ -17,6 +17,7 @@ import 'file_view.dart';
 import 'item_info.dart';
 import 'quick_look.dart';
 import '../top_secret_mode.dart';
+import '../sync/auto_sync.dart';
 
 /// Recently deleted (owner 2026-10-26, "cho tử tế"): items stay here, still encrypted, for
 /// 30 days, then go for good. Laid out like the vault: photos and videos as a grid of
@@ -154,6 +155,7 @@ class _TrashScreenState extends State<TrashScreen> {
       } catch (_) {}
       _thumbnails.remove(it.id);
     }
+    AutoSync.changedOutOfList();
     if (!mounted) return;
     setState(_endSelect);
     await _load();
@@ -611,7 +613,7 @@ class _Row extends StatelessWidget {
     final dot = item.name.lastIndexOf('.');
     final ext = item.kind != ItemKind.file || dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     final icon = switch (item.kind) {
-      ItemKind.note => Icons.edit_note_rounded,
+      ItemKind.note => Icons.book_rounded,
       ItemKind.audio => Icons.mic_none_rounded,
       _ => fileIcon(item),
     };

@@ -24,7 +24,9 @@ Dates are UTC.
   language, and About are pages of their own that slide in, with Back and the swipe from
   the edge.
 - Making a new vault and deleting one are in Settings → Vaults on this device only.
-- Notes are indigo and voice memos pink, so the two no longer look alike.
+- Notes are indigo with a notebook icon, and voice memos pink, so the two no longer look
+  alike.
+- The quick buttons above + go video, photo, voice.
 - "Open in another app" shows only the apps that can open the file: Android's own
   "Open with" (the app gets read-only access to that one copy), the iPhone's "Open in…".
   Where there is none, the share sheet as before.
@@ -35,6 +37,11 @@ Dates are UTC.
   password.
 - Deleting a vault can also delete its copy in Google Drive, and Sync → Google Drive can
   delete the open vault's copy there.
+
+### Fixed
+- Deleting for good from Recently deleted starts an automatic sync, like any other
+  change.
+- A tap beside the quick buttons above + closes them, as a tap anywhere else does.
 
 ## 0.1.92 (2026-10-30)
 

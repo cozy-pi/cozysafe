@@ -104,7 +104,7 @@ VaultSection startSection() {
 /// A section's icon, as in the bar (and the wide window's sidebar).
 IconData sectionIcon(VaultSection s) => switch (s) {
       VaultSection.home => Icons.home_rounded,
-      VaultSection.note => Icons.edit_note_rounded,
+      VaultSection.note => Icons.book_rounded,
       VaultSection.library => Icons.photo_library_rounded,
       VaultSection.audio => Icons.mic_none_rounded,
       VaultSection.file => Icons.folder_rounded,
@@ -297,7 +297,7 @@ class _CentreTabs extends StatelessWidget {
 
   static IconData _icon(VaultSection s) => switch (s) {
         VaultSection.home => Icons.home_rounded,
-        VaultSection.note => Icons.edit_note_rounded,
+        VaultSection.note => Icons.book_rounded,
         VaultSection.library => Icons.photo_library_rounded,
         VaultSection.audio => Icons.mic_none_rounded,
         VaultSection.file => Icons.folder_rounded,
@@ -729,7 +729,7 @@ List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool cam
       (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
-      (AddWhat.note, Icons.edit_note_rounded, l.newNote),
+      (AddWhat.note, Icons.book_rounded, l.newNote),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
       (AddWhat.file, Icons.folder_rounded, l.addFiles),
     ];
@@ -761,7 +761,7 @@ List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection se
       (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
-      (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
+      (AddWhat.note, Icons.book_rounded, sectionLabel(l, VaultSection.note)),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
       (AddWhat.file, Icons.folder_rounded, sectionLabel(l, VaultSection.file)),
     ];
@@ -770,8 +770,9 @@ List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection se
 /// to be swiped): only what records on the spot, camera, video and voice memo. The card
 /// above them still lists every way ([addWays]).
 List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, {required bool camera, required bool voice}) => [
-      if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
+      // Video, photo, voice (owner 2026-10-31).
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
+      if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
     ];
 
@@ -911,16 +912,25 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
                 ),
               ),
             );
+              // The row spans the screen: a tap beside the buttons closes, as anywhere
+              // outside them (owner 2026-10-31: it did nothing there). A button's own tap
+              // still wins.
+              final closing = GestureDetector(
+                key: const ValueKey('add-row-gap'),
+                behavior: HitTestBehavior.opaque,
+                onTap: w.onClose,
+                child: row,
+              );
               // More to the right: the right edge fades, the last way half shows.
               return !overflows
-                  ? row
+                  ? closing
                   : ShaderMask(
                       blendMode: BlendMode.dstIn,
                       shaderCallback: (r) => const LinearGradient(
                         colors: [Colors.white, Colors.white, Colors.transparent],
                         stops: [0, .85, 1],
                       ).createShader(r),
-                      child: row,
+                      child: closing,
                     );
             },
           ),

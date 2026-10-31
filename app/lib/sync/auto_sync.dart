@@ -187,6 +187,14 @@ abstract final class AutoSync {
     }
   }
 
+  /// A change the item list does not show (deleted for good from Recently deleted: it
+  /// was not in the list already): waits to be sent, and a sync follows as for any change
+  /// (owner 2026-10-31: emptying the trash started no sync).
+  static void changedOutOfList() {
+    pending.value = true;
+    if (enabled && _onSynced != null) changed();
+  }
+
   /// Something changed here.
   static void changed() {
     if (running.value) _again = true;

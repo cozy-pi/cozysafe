@@ -19,7 +19,7 @@ Color searchKindColor(VaultSection s) => sectionColor(s);
 
 IconData searchKindIcon(VaultSection s) => switch (s) {
       VaultSection.home => Icons.home_rounded,
-      VaultSection.note => Icons.edit_note_rounded,
+      VaultSection.note => Icons.book_rounded,
       VaultSection.library => Icons.photo_library_rounded,
       VaultSection.audio => Icons.mic_none_rounded,
       VaultSection.file => Icons.folder_rounded,
