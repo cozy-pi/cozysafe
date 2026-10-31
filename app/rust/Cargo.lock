@@ -301,7 +301,6 @@ version = "0.1.0"
 dependencies = [
  "cs-core",
  "cs-crypto",
- "hex",
  "rusqlite",
  "serde",
  "serde_json",

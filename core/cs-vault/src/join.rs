@@ -88,7 +88,7 @@ impl Library {
         ]
         .into_iter()
         .filter(|w| !w.is_empty())
-        .filter_map(|w| hex::decode(w).ok())
+        .filter_map(cs_core::hex::decode)
         .find_map(|w| wrap::unwrap_key(&kek, &w, &aad(vault_id, "master-key")).ok());
         let Some(master_key) = opened else {
             return Ok(None);
@@ -107,7 +107,7 @@ impl Library {
         fs::create_dir_all(&vault_dir)?;
         let mut vh = lock.vault;
         // The wrap that opened becomes the only one.
-        let new_wrap = hex::encode(wrap::wrap_key(
+        let new_wrap = cs_core::hex::encode(wrap::wrap_key(
             &kek,
             &master_key,
             &aad(vault_id, "master-key"),
@@ -206,7 +206,7 @@ mod tests {
     fn of_several_vaults_in_one_place_the_password_picks_its_own() {
         let t = two();
         // A second vault in the same library (same words), its own password.
-        let pw2 = hex::encode(cs_crypto::generate_salt());
+        let pw2 = cs_core::hex::encode(cs_crypto::generate_salt());
         let lib = Library::open_or_create(t._dirs.0.path(), FAST, crate::tests::sk()).unwrap();
         let w = lib.create_vault("W", &pw2).unwrap();
         let id = note(&w, "W", "second");

@@ -252,7 +252,7 @@ pub(crate) mod tests {
     /// A vault password, random each run: none is written in the code.
     fn pw() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
     }
 
     #[test]

@@ -225,7 +225,7 @@ impl OpenVault {
             *slot = clock.elapsed().as_millis() as u32;
             clock = std::time::Instant::now();
         };
-        let id = hex::encode(cs_crypto::generate_salt());
+        let id = cs_core::hex::encode(cs_crypto::generate_salt());
         let dek = Key::generate();
 
         let data_path = self.new_path(&id, "data")?;
@@ -269,7 +269,7 @@ impl OpenVault {
             data_hash,
             thumb_hash,
             legacy_folder_id: None,
-            wrapped_dek: hex::encode(wrap::wrap_key(
+            wrapped_dek: cs_core::hex::encode(wrap::wrap_key(
                 &self.master_key,
                 &dek,
                 &self.item_aad(&id, "dek"),
@@ -318,7 +318,7 @@ impl OpenVault {
     /// A new revision of `record`, made here now. An empty `data_rev` means the content
     /// changed in this revision.
     pub(crate) fn stamp(&self, record: &mut ItemRecord) -> Result<()> {
-        let rev = hex::encode(cs_crypto::generate_salt());
+        let rev = cs_core::hex::encode(cs_crypto::generate_salt());
         record.base_rev = (!record.rev.is_empty()).then(|| std::mem::take(&mut record.rev));
         record.hlc = crate::sync::next_hlc(&self.index, record.hlc)?;
         record.device = crate::sync::device_id(&self.index)?;
@@ -714,7 +714,8 @@ impl OpenVault {
 
     /// The item's own content key, from its record.
     pub(crate) fn unwrap_dek(&self, id: &str, record: &ItemRecord) -> Result<Key> {
-        let wrapped = hex::decode(&record.wrapped_dek).map_err(|_| Error::Corrupt("item key"))?;
+        let wrapped =
+            cs_core::hex::decode(&record.wrapped_dek).ok_or(Error::Corrupt("item key"))?;
         Ok(wrap::unwrap_key(
             &self.master_key,
             &wrapped,
@@ -764,7 +765,7 @@ pub(crate) fn meta(id: String, r: ItemRecord) -> ItemMeta {
 /// Hex SHA-256 of some bytes.
 pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     use sha2::Digest;
-    hex::encode(sha2::Sha256::digest(bytes))
+    cs_core::hex::encode(sha2::Sha256::digest(bytes))
 }
 
 /// Hex SHA-256 of a file, read in pieces.
@@ -780,7 +781,7 @@ pub(crate) fn file_sha256_hex(path: &std::path::Path) -> Result<String> {
         }
         h.update(&buf[..n]);
     }
-    Ok(hex::encode(h.finalize()))
+    Ok(cs_core::hex::encode(h.finalize()))
 }
 
 /// A writer that hashes what goes through it (the encrypted content, as written).
@@ -800,7 +801,7 @@ impl<W: Write> Hashing<W> {
 
     pub(crate) fn hex(self) -> String {
         use sha2::Digest;
-        hex::encode(self.hash.finalize())
+        cs_core::hex::encode(self.hash.finalize())
     }
 }
 
@@ -831,7 +832,7 @@ mod tests {
     /// A vault password, random each run: none is written in the code.
     fn pw() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
     }
 
     fn photo<'a>(content: &'a [u8], created_ms: i64) -> NewItem<'a, &'a [u8]> {

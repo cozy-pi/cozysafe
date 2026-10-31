@@ -67,13 +67,13 @@ impl OpenVault {
         let kek = kdf::vault_kek(&root, &salt);
         let file = PinFile {
             format: PIN_FORMAT,
-            salt: hex::encode(salt),
+            salt: cs_core::hex::encode(salt),
             length: pin.len() as u8,
             kdf: Some(params.into()),
             legacy_m_kib: None,
             legacy_t: None,
             legacy_p: None,
-            wrapped_master_key: hex::encode(wrap::wrap_key(
+            wrapped_master_key: cs_core::hex::encode(wrap::wrap_key(
                 &kek,
                 &self.master_key,
                 &aad(&self.id, "pin"),
@@ -134,7 +134,7 @@ impl Library {
             let root = kdf::derive_root(pin.as_bytes(), device_key, &salt, params)?;
             let kek = kdf::vault_kek(&root, &salt);
             let wrapped =
-                hex::decode(&file.wrapped_master_key).map_err(|_| Error::Corrupt("pin"))?;
+                cs_core::hex::decode(&file.wrapped_master_key).ok_or(Error::Corrupt("pin"))?;
             if wrap::unwrap_key(&kek, &wrapped, &aad(&id, "pin")).is_ok() {
                 return Ok(Some(id));
             }
@@ -167,7 +167,7 @@ impl Library {
             let root = kdf::derive_root(pin.as_bytes(), device_key, &salt, params)?;
             let kek = kdf::vault_kek(&root, &salt);
             let wrapped =
-                hex::decode(&file.wrapped_master_key).map_err(|_| Error::Corrupt("pin"))?;
+                cs_core::hex::decode(&file.wrapped_master_key).ok_or(Error::Corrupt("pin"))?;
             if let Ok(mk) = wrap::unwrap_key(&kek, &wrapped, &aad(&id, "pin")) {
                 return open_with(id, vault_dir, &header, mk).map(Some);
             }
@@ -228,7 +228,7 @@ mod tests {
     /// A vault password, random each run: none is written in the code.
     fn pw() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
     }
 
     #[test]

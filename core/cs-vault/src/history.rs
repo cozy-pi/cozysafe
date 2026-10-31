@@ -507,7 +507,7 @@ mod tests {
     };
     fn pw() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
     }
 
     fn vault() -> (tempfile::TempDir, OpenVault) {

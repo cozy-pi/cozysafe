@@ -149,9 +149,10 @@ impl FolderRemote {
     /// A temporary file name inside the folder (ignored by listings).
     pub fn scratch(&self) -> Result<PathBuf> {
         fs::create_dir_all(&self.root)?;
-        Ok(self
-            .root
-            .join(format!("{}.tmp", hex::encode(cs_crypto::generate_salt()))))
+        Ok(self.root.join(format!(
+            "{}.tmp",
+            cs_core::hex::encode(cs_crypto::generate_salt())
+        )))
     }
 
     fn at(&self, path: &str) -> Result<PathBuf> {
@@ -252,7 +253,7 @@ pub(crate) fn device_id(index: &Index) -> Result<String> {
     if let Some(id) = index.meta_get("device")? {
         return Ok(id);
     }
-    let id = hex::encode(&cs_crypto::generate_salt()[..8]);
+    let id = cs_core::hex::encode(&cs_crypto::generate_salt()[..8]);
     index.meta_set("device", &id)?;
     Ok(id)
 }
@@ -1998,7 +1999,7 @@ pub(crate) mod tests {
     /// A vault password, random each run: none is written in the code.
     pub(crate) fn pw() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
     }
 
     /// A vault on device A, the same vault copied to device B (without A's local sync

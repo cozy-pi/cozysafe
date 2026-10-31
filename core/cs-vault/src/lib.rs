@@ -98,7 +98,7 @@ impl OpenVault {
         let Some(sealed) = self.index.meta_get(CONNECTION_LOG)? else {
             return Ok(Vec::new());
         };
-        let bytes = hex::decode(sealed).map_err(|_| Error::Corrupt("connection log"))?;
+        let bytes = cs_core::hex::decode(sealed).ok_or(Error::Corrupt("connection log"))?;
         let plain = cs_crypto::wrap::open(&self.master_key, &bytes, CONNECTION_LOG.as_bytes())
             .map_err(|_| Error::Corrupt("connection log"))?;
         cs_core::format::strings_from_json(&plain).map_err(|_| Error::Corrupt("connection log"))
@@ -112,7 +112,8 @@ impl OpenVault {
         log.truncate(CONNECTION_LOG_LEN);
         let plain = cs_core::format::strings_to_json(&log);
         let sealed = cs_crypto::wrap::seal(&self.master_key, &plain, CONNECTION_LOG.as_bytes());
-        self.index.meta_set(CONNECTION_LOG, &hex::encode(sealed))
+        self.index
+            .meta_set(CONNECTION_LOG, &cs_core::hex::encode(sealed))
     }
 }
 
@@ -211,7 +212,7 @@ impl Library {
                     t: params_if_new.t,
                     p: params_if_new.p,
                 },
-                salt: hex::encode(cs_crypto::generate_salt()),
+                salt: cs_core::hex::encode(cs_crypto::generate_salt()),
                 secret_key: Some(secret_key.fingerprint()),
                 prev_secret_key: None,
             };
@@ -343,7 +344,7 @@ impl Library {
             return Err(Error::PasswordInUse);
         }
 
-        let id = hex::encode(cs_crypto::generate_salt());
+        let id = cs_core::hex::encode(cs_crypto::generate_salt());
         let vault_salt = cs_crypto::generate_salt();
         let kek = kdf::vault_kek(&root, &vault_salt);
         let master_key = Key::generate();
@@ -351,13 +352,13 @@ impl Library {
         let header = VaultHeader {
             format: FORMAT,
             prev_wrapped_master_key: String::new(),
-            salt: hex::encode(vault_salt),
-            wrapped_master_key: hex::encode(wrap::wrap_key(
+            salt: cs_core::hex::encode(vault_salt),
+            wrapped_master_key: cs_core::hex::encode(wrap::wrap_key(
                 &kek,
                 &master_key,
                 &aad(&id, "master-key"),
             )),
-            meta: hex::encode(wrap::seal(&master_key, &sealed, &aad(&id, "meta"))),
+            meta: cs_core::hex::encode(wrap::seal(&master_key, &sealed, &aad(&id, "meta"))),
         };
         let vault_dir = self.dir.join(VAULTS_DIR).join(&id);
         fs::create_dir_all(&vault_dir)?;
@@ -409,7 +410,7 @@ impl Library {
             let opened = [&header.wrapped_master_key, &header.prev_wrapped_master_key]
                 .into_iter()
                 .filter(|w| !w.is_empty())
-                .filter_map(|w| hex::decode(w).ok())
+                .filter_map(cs_core::hex::decode)
                 .find_map(|w| wrap::unwrap_key(&kek, &w, &aad(&id, "master-key")).ok());
             let Some(master_key) = opened else {
                 continue;
@@ -459,7 +460,7 @@ impl Library {
                 continue;
             };
             let id = id.to_string_lossy().into_owned();
-            let Ok(wrapped) = hex::decode(wrapped.trim()) else {
+            let Some(wrapped) = cs_core::hex::decode(wrapped.trim()) else {
                 continue;
             };
             let Ok(master_key) = wrap::unwrap_key(key, &wrapped, &aad(&id, "biometric")) else {
@@ -485,7 +486,7 @@ impl Library {
         if Library::pin_owner(&self.dir, pin, device_key)?.is_some() {
             return Err(Error::PinInUse);
         }
-        let id = hex::encode(cs_crypto::generate_salt());
+        let id = cs_core::hex::encode(cs_crypto::generate_salt());
         let master_key = Key::generate();
         let meta = VaultMeta {
             icon: icon.to_owned(),
@@ -495,9 +496,9 @@ impl Library {
         let header = VaultHeader {
             format: FORMAT,
             prev_wrapped_master_key: String::new(),
-            salt: hex::encode(cs_crypto::generate_salt()),
+            salt: cs_core::hex::encode(cs_crypto::generate_salt()),
             wrapped_master_key: String::new(),
-            meta: hex::encode(wrap::seal(&master_key, &meta.to_json(), &aad(&id, "meta"))),
+            meta: cs_core::hex::encode(wrap::seal(&master_key, &meta.to_json(), &aad(&id, "meta"))),
         };
         let vault_dir = self.dir.join(VAULTS_DIR).join(&id);
         fs::create_dir_all(&vault_dir)?;
@@ -550,7 +551,7 @@ impl Library {
         let mut header = read_header(&vault.dir).ok_or(Error::Corrupt("vault header"))?;
         let salt = decode_array::<SALT_LEN>(&header.salt, "vault salt")?;
         let kek = kdf::vault_kek(&root, &salt);
-        header.wrapped_master_key = hex::encode(wrap::wrap_key(
+        header.wrapped_master_key = cs_core::hex::encode(wrap::wrap_key(
             &kek,
             &vault.master_key,
             &aad(&vault.id, "master-key"),
@@ -651,7 +652,7 @@ impl Library {
             .into_iter()
             .filter(|w| !w.is_empty())
             .find(|w| {
-                hex::decode(w).is_ok_and(|b| {
+                cs_core::hex::decode(w).is_some_and(|b| {
                     wrap::unwrap_key(&old_kek, &b, &aad).is_ok_and(|k| k == vault.master_key)
                 })
             })
@@ -662,7 +663,8 @@ impl Library {
         let new_root = kdf::derive_root(password.as_bytes(), new_key, &self.salt, self.params)?;
         let new_kek = kdf::vault_kek(&new_root, &salt);
         header.prev_wrapped_master_key = old_wrap;
-        header.wrapped_master_key = hex::encode(wrap::wrap_key(&new_kek, &vault.master_key, &aad));
+        header.wrapped_master_key =
+            cs_core::hex::encode(wrap::wrap_key(&new_kek, &vault.master_key, &aad));
         write_atomic(&vault.dir.join(HEADER_FILE), &header.to_json_pretty())?;
         Ok(true)
     }
@@ -758,7 +760,7 @@ impl OpenVault {
             icon: icon.to_owned(),
             color: color.to_owned(),
         };
-        header.meta = hex::encode(wrap::seal(
+        header.meta = cs_core::hex::encode(wrap::seal(
             &self.master_key,
             &meta.to_json(),
             &aad(&self.id, "meta"),
@@ -783,7 +785,7 @@ impl OpenVault {
         let wrapped = wrap::wrap_key(&key, &self.master_key, &aad(&self.id, "biometric"));
         write_atomic(
             &self.dir.join(BIOMETRIC_FILE),
-            hex::encode(wrapped).as_bytes(),
+            cs_core::hex::encode(wrapped).as_bytes(),
         )?;
         Ok(key)
     }
@@ -849,7 +851,7 @@ pub(crate) fn open_with(
     header: &VaultHeader,
     master_key: Key,
 ) -> Result<OpenVault> {
-    let meta_bytes = hex::decode(&header.meta).map_err(|_| Error::Corrupt("vault meta"))?;
+    let meta_bytes = cs_core::hex::decode(&header.meta).ok_or(Error::Corrupt("vault meta"))?;
     let meta_json = wrap::open(&master_key, &meta_bytes, &aad(&id, "meta"))?;
     let meta = VaultMeta::from_json(&meta_json).map_err(|_| Error::Corrupt("vault meta"))?;
     let index = db::Index::open(&dir)?;
@@ -883,8 +885,7 @@ pub(crate) fn aad(vault_id: &str, role: &str) -> Vec<u8> {
 }
 
 pub(crate) fn decode_array<const N: usize>(s: &str, what: &'static str) -> Result<[u8; N]> {
-    hex::decode(s)
-        .ok()
+    cs_core::hex::decode(s)
         .and_then(|v| v.try_into().ok())
         .ok_or(Error::Corrupt(what))
 }
@@ -943,12 +944,12 @@ pub(crate) mod tests {
     /// A vault password, random each run: none is written in the code.
     fn pw_a() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
     }
     /// A vault password, random each run: none is written in the code.
     fn pw_b() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
     }
 
     pub(crate) fn sk() -> SecretKey {
