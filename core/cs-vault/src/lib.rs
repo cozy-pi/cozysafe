@@ -32,7 +32,7 @@ use zeroize::Zeroizing;
 
 pub mod audit;
 pub mod backup;
-pub mod db;
+pub use cs_core::db;
 pub mod history;
 pub mod items;
 pub mod join;
@@ -52,38 +52,7 @@ const BIOMETRIC_FILE: &str = "biometric";
 
 pub use cs_core::passwords::{MIN_PASSWORD_LEN, MIN_PASSWORD_SCORE, OLDEST_MIN_PASSWORD_LEN};
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    /// A new password that [`check_new_password`] refuses.
-    #[error("password too short or too easy to guess")]
-    WeakPassword,
-    #[error("another vault already uses this password")]
-    PasswordInUse,
-    #[error("vault name is empty")]
-    EmptyName,
-    #[error("a PIN has at least 4 digits")]
-    BadPin,
-    #[error("another vault already opens with this PIN")]
-    PinInUse,
-    #[error("no such item")]
-    NoSuchItem,
-    #[error("this Secret Key belongs to another library")]
-    WrongSecretKey,
-    #[error("not a Cozy Safe backup, or the file is damaged")]
-    BadBackup,
-    #[error("a library already exists here")]
-    LibraryExists,
-    #[error("library data is damaged: {0}")]
-    Corrupt(&'static str),
-    #[error("vault index: {0}")]
-    Index(String),
-    #[error(transparent)]
-    Crypto(#[from] cs_crypto::Error),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-}
-
-pub type Result<T> = std::result::Result<T, Error>;
+pub use cs_core::{Error, Result};
 
 /// Strength of a candidate password for the bars, 0 to 4 ([`passwords::strength`]).
 pub fn password_score(password: &str) -> u8 {

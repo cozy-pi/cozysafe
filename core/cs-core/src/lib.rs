@@ -3,6 +3,9 @@
 //! Its only dependencies are audited cryptography (through `cs-crypto`) and SQLite
 //! (docs/supply-chain.md, "Top secret means top secret"; tools/check-vendor enforces it).
 //!
+//! - [`format`]: the library's files (headers, PIN files, item records).
+//! - [`db`]: the vault index, one SQLite file per vault.
+//! - [`Error`]: the vault's errors (in place of `thiserror`).
 //! - [`json`]: the small JSON the vault files use (in place of serde and serde_json).
 //! - [`hex`]: lower-case hex (in place of the `hex` crate).
 //! - [`passwords`]: the rule for a new password (in place of `zxcvbn`).
@@ -10,7 +13,11 @@
 // No unsafe Rust in the core: the compiler refuses it (docs/supply-chain.md).
 #![forbid(unsafe_code)]
 
+pub mod db;
+mod error;
 pub mod format;
 pub mod hex;
 pub mod json;
 pub mod passwords;
+
+pub use error::{Error, Result};

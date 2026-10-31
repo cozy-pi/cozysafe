@@ -16,7 +16,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{Error, Result};
 
-pub(crate) const INDEX_FILE: &str = "vault.db";
+pub const INDEX_FILE: &str = "vault.db";
 /// `PRAGMA user_version` of the schema below; each new version gets one migration.
 const SCHEMA_VERSION: i32 = 4;
 
@@ -77,13 +77,13 @@ CREATE TABLE IF NOT EXISTS sync_rev_clock (
 ";
 
 /// What the index knows about an item without opening it.
-pub(crate) struct Row {
+pub struct Row {
     pub id: String,
     pub sealed_record: Vec<u8>,
 }
 
 /// The plain columns of a row, taken from the item's record.
-pub(crate) struct Columns {
+pub struct Columns {
     pub created_ms: i64,
     pub modified_ms: i64,
     pub deleted_ms: Option<i64>,
@@ -92,9 +92,9 @@ pub(crate) struct Columns {
 
 /// A deletion for good: the item, its clock reading, and the last revision this device
 /// had before it ('' when not known).
-pub(crate) type Gone = (String, i64, String);
+pub type Gone = (String, i64, String);
 
-pub(crate) struct Index {
+pub struct Index {
     db: Connection,
 }
 
@@ -102,7 +102,7 @@ impl Index {
     /// Open the vault's index, creating it if missing. A file that is not a usable
     /// index (damaged, or from a future schema) is replaced by an empty one; the caller
     /// fills it from the `.meta` files.
-    pub(crate) fn open(vault_dir: &Path) -> Result<Index> {
+    pub fn open(vault_dir: &Path) -> Result<Index> {
         let path = vault_dir.join(INDEX_FILE);
         match Self::open_at(&path) {
             Ok(index) => Ok(index),
@@ -150,7 +150,7 @@ impl Index {
         Ok(Index { db })
     }
 
-    pub(crate) fn upsert(&self, id: &str, c: &Columns, sealed_record: &[u8]) -> Result<()> {
+    pub fn upsert(&self, id: &str, c: &Columns, sealed_record: &[u8]) -> Result<()> {
         self.db
             .execute(
                 "INSERT INTO items (id, created_ms, modified_ms, deleted_ms, size_bytes, sealed_record)
@@ -167,7 +167,7 @@ impl Index {
         Ok(())
     }
 
-    pub(crate) fn sealed_record(&self, id: &str) -> Result<Option<Vec<u8>>> {
+    pub fn sealed_record(&self, id: &str) -> Result<Option<Vec<u8>>> {
         self.db
             .query_row("SELECT sealed_record FROM items WHERE id = ?1", [id], |r| {
                 r.get(0)
@@ -176,7 +176,7 @@ impl Index {
             .map_err(sql)
     }
 
-    pub(crate) fn remove(&self, id: &str) -> Result<()> {
+    pub fn remove(&self, id: &str) -> Result<()> {
         self.db
             .execute("DELETE FROM items WHERE id = ?1", [id])
             .map_err(sql)?;
@@ -187,7 +187,7 @@ impl Index {
     }
 
     /// The older revisions of `id` in `remote` read so far: (rev, hlc, data_rev).
-    pub(crate) fn rev_clocks(&self, remote: &str, id: &str) -> Result<Vec<(String, i64, String)>> {
+    pub fn rev_clocks(&self, remote: &str, id: &str) -> Result<Vec<(String, i64, String)>> {
         let mut q = self
             .db
             .prepare_cached(
@@ -200,7 +200,7 @@ impl Index {
         rows.collect::<std::result::Result<_, _>>().map_err(sql)
     }
 
-    pub(crate) fn set_rev_clock(
+    pub fn set_rev_clock(
         &self,
         remote: &str,
         id: &str,
@@ -219,7 +219,7 @@ impl Index {
     }
 
     /// The revision is no longer in the place (or is the item's current one).
-    pub(crate) fn forget_rev_clock(&self, remote: &str, id: &str, rev: &str) -> Result<()> {
+    pub fn forget_rev_clock(&self, remote: &str, id: &str, rev: &str) -> Result<()> {
         self.db
             .execute(
                 "DELETE FROM sync_rev_clock WHERE remote = ?1 AND id = ?2 AND rev = ?3",
@@ -231,7 +231,7 @@ impl Index {
 
     /// Items in the vault (`deleted` false, newest first) or in Recently deleted
     /// (`deleted` true, latest deletion first).
-    pub(crate) fn rows(&self, deleted: bool) -> Result<Vec<Row>> {
+    pub fn rows(&self, deleted: bool) -> Result<Vec<Row>> {
         let query = if deleted {
             "SELECT id, sealed_record FROM items
              WHERE deleted_ms IS NOT NULL ORDER BY deleted_ms DESC, id"
@@ -251,13 +251,13 @@ impl Index {
         rows.collect::<rusqlite::Result<Vec<_>>>().map_err(sql)
     }
 
-    pub(crate) fn ids(&self) -> Result<HashSet<String>> {
+    pub fn ids(&self) -> Result<HashSet<String>> {
         let mut stmt = self.db.prepare("SELECT id FROM items").map_err(sql)?;
         let ids = stmt.query_map([], |r| r.get(0)).map_err(sql)?;
         ids.collect::<rusqlite::Result<HashSet<_>>>().map_err(sql)
     }
 
-    pub(crate) fn meta_get(&self, key: &str) -> Result<Option<String>> {
+    pub fn meta_get(&self, key: &str) -> Result<Option<String>> {
         self.db
             .query_row("SELECT value FROM sync_meta WHERE key = ?1", [key], |r| {
                 r.get(0)
@@ -266,7 +266,7 @@ impl Index {
             .map_err(sql)
     }
 
-    pub(crate) fn meta_set(&self, key: &str, value: &str) -> Result<()> {
+    pub fn meta_set(&self, key: &str, value: &str) -> Result<()> {
         self.db
             .execute(
                 "INSERT INTO sync_meta (key, value) VALUES (?1, ?2)
@@ -278,7 +278,7 @@ impl Index {
     }
 
     /// Every sync meta entry whose key starts with `prefix`, sorted by key.
-    pub(crate) fn meta_prefixed(&self, prefix: &str) -> Result<Vec<(String, String)>> {
+    pub fn meta_prefixed(&self, prefix: &str) -> Result<Vec<(String, String)>> {
         let mut st = self
             .db
             .prepare("SELECT key, value FROM sync_meta WHERE substr(key, 1, ?2) = ?1 ORDER BY key")
@@ -292,7 +292,7 @@ impl Index {
             .map_err(sql)
     }
 
-    pub(crate) fn synced_rev(&self, remote: &str, id: &str) -> Result<Option<String>> {
+    pub fn synced_rev(&self, remote: &str, id: &str) -> Result<Option<String>> {
         self.db
             .query_row(
                 "SELECT synced_rev FROM sync_items WHERE remote = ?1 AND id = ?2",
@@ -303,7 +303,7 @@ impl Index {
             .map_err(sql)
     }
 
-    pub(crate) fn set_synced(&self, remote: &str, id: &str, rev: &str) -> Result<()> {
+    pub fn set_synced(&self, remote: &str, id: &str, rev: &str) -> Result<()> {
         self.db
             .execute(
                 "INSERT INTO sync_items (remote, id, synced_rev) VALUES (?1, ?2, ?3)
@@ -316,7 +316,7 @@ impl Index {
 
     /// A deletion for good, to tell every place synced with. `rev`: the last revision
     /// this device had, made before the deletion ('' when not known).
-    pub(crate) fn add_gone(&self, id: &str, hlc: i64, rev: &str) -> Result<()> {
+    pub fn add_gone(&self, id: &str, hlc: i64, rev: &str) -> Result<()> {
         self.db
             .execute(
                 "INSERT INTO sync_gone (id, hlc, rev) VALUES (?1, ?2, ?3)
@@ -333,7 +333,7 @@ impl Index {
         Ok(())
     }
 
-    pub(crate) fn gone_hlc(&self, id: &str) -> Result<Option<i64>> {
+    pub fn gone_hlc(&self, id: &str) -> Result<Option<i64>> {
         self.db
             .query_row("SELECT hlc FROM sync_gone WHERE id = ?1", [id], |r| {
                 r.get(0)
@@ -343,7 +343,7 @@ impl Index {
     }
 
     /// Every deletion kept here.
-    pub(crate) fn all_gone(&self) -> Result<Vec<Gone>> {
+    pub fn all_gone(&self) -> Result<Vec<Gone>> {
         let mut stmt = self
             .db
             .prepare("SELECT id, hlc, rev FROM sync_gone ORDER BY id")
@@ -355,7 +355,7 @@ impl Index {
     }
 
     /// Deletions `remote` has not been told about.
-    pub(crate) fn gone_unsent(&self, remote: &str) -> Result<Vec<Gone>> {
+    pub fn gone_unsent(&self, remote: &str) -> Result<Vec<Gone>> {
         let mut stmt = self
             .db
             .prepare(
@@ -369,7 +369,7 @@ impl Index {
         rows.collect::<rusqlite::Result<Vec<_>>>().map_err(sql)
     }
 
-    pub(crate) fn gone_sent(&self, remote: &str, id: &str) -> Result<()> {
+    pub fn gone_sent(&self, remote: &str, id: &str) -> Result<()> {
         self.db
             .execute(
                 "INSERT OR IGNORE INTO sync_gone_sent (remote, id) VALUES (?1, ?2)",
@@ -380,7 +380,7 @@ impl Index {
     }
 
     /// The item came back (edited elsewhere after the deletion): forget the deletion.
-    pub(crate) fn forget_gone(&self, id: &str) -> Result<()> {
+    pub fn forget_gone(&self, id: &str) -> Result<()> {
         self.db
             .execute("DELETE FROM sync_gone WHERE id = ?1", [id])
             .map_err(sql)?;
@@ -391,7 +391,7 @@ impl Index {
     }
 
     /// Forget what was agreed with `remote` (it is a new, empty place).
-    pub(crate) fn forget_remote(&self, remote: &str) -> Result<()> {
+    pub fn forget_remote(&self, remote: &str) -> Result<()> {
         self.db
             .execute("DELETE FROM sync_items WHERE remote = ?1", [remote])
             .map_err(sql)?;
@@ -405,7 +405,7 @@ impl Index {
     }
 
     /// Run `f` in one transaction: all of it lands, or none.
-    pub(crate) fn transaction<T>(&self, f: impl FnOnce() -> Result<T>) -> Result<T> {
+    pub fn transaction<T>(&self, f: impl FnOnce() -> Result<T>) -> Result<T> {
         let tx = self.db.unchecked_transaction().map_err(sql)?;
         let out = f()?;
         tx.commit().map_err(sql)?;

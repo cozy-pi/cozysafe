@@ -151,8 +151,10 @@ name = "cs-core"
 version = "0.1.0"
 dependencies = [
  "cs-crypto",
+ "rusqlite",
  "serde",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -200,7 +202,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "tempfile",
- "thiserror",
  "zeroize",
 ]
 
