@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../l10n/app_localizations.dart';
-import '../platform.dart';
-import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../vault_kind.dart';
 import '../widgets/readable.dart';
@@ -15,7 +13,7 @@ import '../widgets/vault_bar.dart';
 import 'common.dart';
 import 'new_vault.dart';
 import 'welcome.dart';
-import '../src/rust/api/run.dart' show createPrivateVault;
+import '../src/rust/api/run.dart' show createPrivateVault, privatePasswordKept, resetPrivatePassword;
 import '../widgets/identity.dart' show randomIdentity;
 
 /// The two kinds of vault on screen (ADR 0005): the Private vault's page in a Top secret
@@ -147,9 +145,9 @@ String kindName(AppLocalizations l, VaultKind kind) =>
 
 /// Settings → Private vault, in a Top secret run (owner 2026-10-31). Before there is one:
 /// what it is for, then "Create": the person sets the Private vault's own password (the
-/// Private rule, 14 characters; four or five random words suggested in words only), the
-/// app keeps it at once as a note in the open Top secret vault, then offers the switch.
-/// The first Private start asks for it again. Once there is one: only the switch.
+/// Private rule, 14 characters; random words suggested in words only), and the app makes
+/// the Private vault and keeps its password sealed in the open Top secret vault, never
+/// shown. Once there is one: the switch, and Reset password for a forgotten one.
 class PrivateVaultPage extends StatefulWidget {
   const PrivateVaultPage({super.key, required this.exists});
 
@@ -163,75 +161,112 @@ class PrivateVaultPage extends StatefulWidget {
   State<PrivateVaultPage> createState() => _PrivateVaultPageState();
 }
 
-enum _Stage { about, password, saved }
+enum _Stage { about, password, saved, reset }
 
 class _PrivateVaultPageState extends State<PrivateVaultPage> {
   late _Stage _stage = widget.exists ? _Stage.saved : _Stage.about;
   final _pw = TextEditingController();
+  final _current = TextEditingController();
   bool _busy = false;
+  bool _done = false;
   String? _error;
+
+  /// Vaults made before 2026-10-31 kept the password as a note, not sealed here: a reset
+  /// then asks for the current one.
+  late final bool _kept = PrivateVaultPage.debugExists != null || privatePasswordKept();
 
   @override
   void dispose() {
     _pw.dispose();
+    _current.dispose();
     super.dispose();
   }
 
-  /// Keep the password as a note in the open Top secret vault (the Private vault's only
-  /// way back if it is forgotten), then make the Private vault itself, so its first start
-  /// is an ordinary unlock (ADR 0005, owner 2026-10-31). The note comes first: a vault
-  /// must never exist without its kept password.
-  Future<void> _save(AppLocalizations l) async {
+  Future<String> _privateDir() async =>
+      RunKind.libraryDir(VaultKind.private, (await getApplicationSupportDirectory()).path);
+
+  Future<void> _run(AppLocalizations l, Future<String?> Function() work) async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      final password = _pw.text;
-      await rust.addNote(title: l.privatePasswordNoteTitle, text: password, createdMs: nowMs());
-      final (icon, color) = randomIdentity();
-      final support = (await getApplicationSupportDirectory()).path;
-      await createPrivateVault(
-        dir: RunKind.libraryDir(VaultKind.private, support),
-        icon: icon,
-        color: color,
-        password: password,
-      );
-      _pw.clear();
-      if (mounted) setState(() => _stage = _Stage.saved);
+      _error = await work();
     } catch (_) {
-      if (mounted) setState(() => _error = l.errorStorage);
+      _error = l.errorStorage;
     }
     if (mounted) setState(() => _busy = false);
   }
+
+  /// Make the Private vault (ADR 0005, owner 2026-10-31): its first start is then an
+  /// ordinary unlock. Rust keeps the password sealed in the Top secret vault first.
+  Future<void> _save(AppLocalizations l) => _run(l, () async {
+        final (icon, color) = randomIdentity();
+        await createPrivateVault(dir: await _privateDir(), icon: icon, color: color, password: _pw.text);
+        _pw.clear();
+        _stage = _Stage.saved;
+        _done = true;
+        return null;
+      });
+
+  Future<void> _reset(AppLocalizations l) => _run(l, () async {
+        final ok = await resetPrivatePassword(
+          dir: await _privateDir(),
+          current: _kept ? null : _current.text,
+          newPassword: _pw.text,
+        );
+        if (!ok) return l.wrongPassword;
+        _pw.clear();
+        _current.clear();
+        _stage = _Stage.saved;
+        _done = true;
+        return null;
+      });
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final ink = Theme.of(context).colorScheme.onSurface;
     final lead = TextStyle(color: ink.withValues(alpha: .8), fontSize: CsType.callout, height: 1.45);
+    final newOk = !_busy && PasswordStrength.acceptable(_pw.text, private: true);
     return FormColumn(
-      actions: [
-        switch (_stage) {
-          _Stage.about => FilledButton(
+      actions: switch (_stage) {
+        _Stage.about => [
+            FilledButton(
               key: const ValueKey('create-private'),
               onPressed: () => setState(() => _stage = _Stage.password),
               child: Text(l.privateVaultCreate),
             ),
-          _Stage.password => FilledButton(
+          ],
+        _Stage.password => [
+            FilledButton(
               key: const ValueKey('save-private-password'),
-              onPressed: !_busy && PasswordStrength.acceptable(_pw.text, private: true) ? () => _save(l) : null,
+              onPressed: newOk ? () => _save(l) : null,
               child: Text(l.privatePasswordSave),
             ),
-          _Stage.saved => FilledButton(
+          ],
+        _Stage.reset => [
+            FilledButton(
+              key: const ValueKey('reset-private-password-go'),
+              onPressed: newOk && (_kept || _current.text.isNotEmpty) ? () => _reset(l) : null,
+              child: Text(l.privatePasswordSave),
+            ),
+          ],
+        _Stage.saved => [
+            FilledButton(
               key: const ValueKey('switch-to-private'),
               onPressed: () => switchKind(context, VaultKind.private),
               child: Text(l.switchToPrivate),
             ),
-        },
-      ],
+            TextButton(
+              key: const ValueKey('reset-private-password'),
+              onPressed: () => setState(() => _stage = _Stage.reset),
+              child: Text(l.privatePasswordReset),
+            ),
+          ],
+      },
       children: [
-        if (_stage != _Stage.password) ...[
+        if (_stage == _Stage.about || _stage == _Stage.saved) ...[
           const KindMark(kind: VaultKind.private, size: 52),
           const SizedBox(height: 14),
         ],
@@ -245,16 +280,26 @@ class _PrivateVaultPageState extends State<PrivateVaultPage> {
                 (Icons.call_split_rounded, l.privateVaultPointApart),
               ]),
             ],
-          _Stage.password => [
-              Text(l.privatePasswordTitle,
+          _Stage.password || _Stage.reset => [
+              Text(_stage == _Stage.reset ? l.privatePasswordReset : l.privatePasswordTitle,
                   style: TextStyle(color: ink, fontSize: CsType.title2, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Text(l.privatePasswordSetLead, style: lead),
               const SizedBox(height: 20),
+              if (_stage == _Stage.reset && !_kept) ...[
+                SecretField(
+                  key: const ValueKey('private-current-password'),
+                  controller: _current,
+                  label: l.privatePasswordCurrent,
+                  enabled: !_busy,
+                  onChanged: (_) => setState(() => _error = null),
+                ),
+                const SizedBox(height: 12),
+              ],
               SecretField(
                 key: const ValueKey('private-password'),
                 controller: _pw,
-                label: l.password,
+                label: _stage == _Stage.reset ? l.privatePasswordNew : l.password,
                 enabled: !_busy,
                 onChanged: (_) => setState(() => _error = null),
               ),
@@ -262,7 +307,7 @@ class _PrivateVaultPageState extends State<PrivateVaultPage> {
               PasswordStrength(password: _pw.text, private: true),
             ],
           _Stage.saved => [
-              Text(widget.exists ? l.privateVaultLead : l.privatePasswordSaved,
+              Text(_done ? l.privatePasswordSaved : l.privateVaultLead,
                   key: const ValueKey('private-password-saved'), textAlign: TextAlign.center, style: lead),
             ],
         },

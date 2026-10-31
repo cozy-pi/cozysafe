@@ -588,6 +588,9 @@ void main() {
             onNewVault: () async {},
           )));
       await _settle(t);
+      // In Settings → Security since 2026-10-31.
+      await t.tap(find.byKey(const ValueKey('settings-security')));
+      await _settle(t);
       final row = find.byKey(const ValueKey('lock-on-leave-row'));
       await t.scrollUntilVisible(row, 200, scrollable: find.byType(Scrollable).first);
       await t.pumpAndSettle();

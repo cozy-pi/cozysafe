@@ -88,6 +88,9 @@ pub fn create_private_vault(
     if cs_vault::Library::has_vaults(&path) {
         return Ok(false);
     }
+    // Its password is kept, sealed, in the open Top secret vault first (owner 2026-10-31:
+    // never shown, reset from Settings): a Private vault never exists without it.
+    super::vault::with_open(|v| keep_private_password(v, &password))?;
     // A start left half-way (a library file, no vault) is made again.
     cs_vault::Library::reset_if_empty(&path)?;
     let library = cs_vault::Library::open_or_create_private(
@@ -97,6 +100,82 @@ pub fn create_private_vault(
     let vault = library.create_vault_with_password(&icon, &color, &password)?;
     drop(vault); // wipes its Master Key; nothing of it stays in this run
     Ok(true)
+}
+
+/// The file, in the Top secret vault's folder, that keeps the Private vault's password
+/// sealed with the Top secret vault's key.
+const PRIVATE_PASSWORD_FILE: &str = "private-password";
+
+fn private_password_aad(vault: &cs_vault::OpenVault) -> Vec<u8> {
+    format!("vault/{}/private-password", vault.id).into_bytes()
+}
+
+fn keep_private_password(vault: &cs_vault::OpenVault, password: &str) -> Result<(), VaultError> {
+    let sealed = vault
+        .sealer()
+        .seal(password.as_bytes(), &private_password_aad(vault));
+    let path = vault.dir().join(PRIVATE_PASSWORD_FILE);
+    let part = vault.dir().join(format!("{PRIVATE_PASSWORD_FILE}.part"));
+    std::fs::write(&part, &sealed)
+        .and_then(|()| std::fs::rename(&part, &path))
+        .map_err(|_| VaultError::Storage)
+}
+
+fn kept_private_password(
+    vault: &cs_vault::OpenVault,
+) -> Result<Option<zeroize::Zeroizing<String>>, VaultError> {
+    let Ok(sealed) = std::fs::read(vault.dir().join(PRIVATE_PASSWORD_FILE)) else {
+        return Ok(None);
+    };
+    let plain = vault
+        .sealer()
+        .open(&sealed, &private_password_aad(vault))
+        .map_err(|_| VaultError::Storage)?;
+    let text = String::from_utf8(plain.to_vec()).map_err(|_| VaultError::Storage)?;
+    Ok(Some(zeroize::Zeroizing::new(text)))
+}
+
+/// Whether the open Top secret vault keeps the Private vault's password (vaults made
+/// before 2026-10-31 kept it as a note instead).
+#[flutter_rust_bridge::frb(sync)]
+pub fn private_password_kept() -> bool {
+    super::vault::with_open(|v| Ok(kept_private_password(v)?.is_some())).unwrap_or(false)
+}
+
+/// The second exception to one kind per run (ADR 0005, owner 2026-10-31): from a Top
+/// secret run, give the Private vault beside it a new password. It opens the Private
+/// vault with the kept password ([`current`] when none is kept), wraps its key again
+/// with `new_password`, drops it at once, and keeps the new password. Nothing inside the
+/// Private vault is read. False when the password does not open it. Runs Argon2id twice
+/// at the Private cost: call it off the UI thread.
+pub fn reset_private_password(
+    dir: String,
+    current: Option<String>,
+    new_password: String,
+) -> Result<bool, VaultError> {
+    let new_password = zeroize::Zeroizing::new(new_password);
+    let current = current.map(zeroize::Zeroizing::new);
+    let path = PathBuf::from(&dir);
+    if !private_beside(&run(), &path) || !cs_vault::Library::has_vaults(&path) {
+        debug_line(|| "reset private password refused".into());
+        return Err(VaultError::Storage);
+    }
+    super::vault::with_open(|top| {
+        let Some(old) = kept_private_password(top)?.or(current.clone()) else {
+            return Ok(false);
+        };
+        let library = cs_vault::Library::open_or_create_private(
+            &path,
+            super::vault::private_params_for_this_device(),
+        )?;
+        let Some(private) = library.unlock(&old)? else {
+            return Ok(false);
+        };
+        library.set_password(&private, &new_password)?;
+        drop(private); // wipes its Master Key
+        keep_private_password(top, &new_password)?;
+        Ok(true)
+    })
 }
 
 /// Whether `dir` is the Private library beside a Top secret run's own:

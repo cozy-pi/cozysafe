@@ -369,6 +369,15 @@ final _manifest = <Map<String, Object>>[];
 /// [change] says what is new on this screen, [marks] finds the parts to outline.
 const _wideAll = bool.fromEnvironment('WIDE');
 
+/// The Settings sub-page each older shot of a setting is on.
+const _settingsPages = {
+  'security': ['autolock-menu', 'autolock-menu-away', 'key-backup-ask', 'key-backup-ask-google', 'settings-backup',
+      'settings-display', 'settings-keys', 'settings-keys-google', 'settings-lock-on-leave-off', 'settings-security',
+      'settings-security-group'],
+  'help': ['settings-about', 'settings-debug-on', 'settings-debug-taps'],
+  'look': ['settings-appearance', 'settings-language'],
+};
+
 /// Screens of photos and videos: since ADR 0005 step 4 they exist only in a Private run.
 const _privateShots = [
   'photo', 'quick-photo', 'quick-video', 'quick-image', 'sort-menu-library', 'trash', 'wide-ipad',
@@ -416,6 +425,8 @@ void _screen(String name, String caption, Widget Function() home,
       HistoryScreen.debugDays = null;
       HistorySettingsScreen.debugState = null;
       SettingsScreen.debugHistoryBytes = null;
+      // Settings' rows live on sub-pages since 2026-10-31: a shot of one opens its page.
+      SettingsScreen.debugPage = _settingsPages.entries.where((e) => e.value.contains(name)).firstOrNull?.key;
       KeyBackup.debugSupported = null;
       KeyBackup.debugGoogle = null;
       syncStatus.value = null;
@@ -1018,7 +1029,8 @@ void main() {
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
-  _screen('settings', 'Cài đặt kiểu iPhone: các nhóm không tên, cách nhau bằng khoảng trống; thống kê dung lượng chỉ còn tên từng loại', () => settings(vault),
+  _screen('settings', 'Cài đặt · màn chính: thẻ két + 6 dòng mở trang con', () => settings(vault),
+      change: 'MỚI: Cài đặt gom thành trang con: Đồng bộ và sao lưu · Bảo mật · Két Riêng tư · Đã xoá và lịch sử · Giao diện và ngôn ngữ · Trợ giúp và giới thiệu',
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   _screen('settings-sync-failed', 'Cài đặt · lần tự động đồng bộ gần nhất bị lỗi', () => settings(vault),
       setup: () {
@@ -1067,15 +1079,10 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, 160));
     await t.pumpAndSettle();
   }
-  _screen('ts-files', 'Két Tuyệt mật · Tệp: ảnh, video thành dòng như tệp', home, section: 'file',
-      change: 'MỚI (bước 4): két Tuyệt mật không còn tab Thư viện; ảnh, video thành dòng như tệp, KHÔNG ảnh thu nhỏ. Trên tiêu đề: biểu tượng két + dấu khiên + "Tuyệt mật"',
-      marks: [() => find.byKey(const ValueKey('kind-label'))]);
+  _screen('ts-files', 'Két Tuyệt mật · Tệp: ảnh, video thành dòng như tệp', home, section: 'file');
   _screen('ts-sealed', 'Két Tuyệt mật · chạm một ảnh: không mở, chỉ thông tin + Mở bằng app khác', home, section: 'file',
-      change: 'MỚI (bước 4): chạm ảnh/video/ghi âm/tệp KHÔNG mở trong app; thẻ cho biết vì sao + nút "Mở bằng app khác" (cảnh báo mỗi lần)',
-      marks: [() => find.byKey(const ValueKey('sealed-send'))],
       act: (t) => openRow(t, 'Sinh nhật bé Na.MOV'));
   _screen('ts-add', 'Két Tuyệt mật · Tổng quan · bấm +', home, section: 'home',
-      change: 'ĐỔI: + ở Tổng quan chỉ còn 2 nút nhanh: Chụp ảnh, Ghi âm. Ở tab Ghi chú / Tệp / Thư viện, + làm ngay việc của tab đó (ghi chú mới, thêm tệp, thêm ảnh)',
       setup: () {
     debugCamera = true;
     debugVoice = true;
@@ -1084,30 +1091,27 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('plus-notes-tab', 'Tab Ghi chú · nút + là Ghi chú mới', home, section: 'note',
-      change: 'MỚI: trong tab Ghi chú, + mang hình bút và mở ghi chú mới ngay (không bảng chọn)',
-      marks: [() => find.byKey(const ValueKey('vault-action'))]);
+  _screen('plus-notes-tab', 'Tab Ghi chú · nút + là Ghi chú mới', home, section: 'note');
   _screen('ts-name-photo', 'Két Tuyệt mật · vừa chụp ảnh: đặt tên ngay', home, section: 'file',
-      change: 'MỚI (bước 4): chụp xong không hiện ảnh; hỏi tên ngay (vd. "Căn cước, mặt trước") để tìm lại mà không cần mở',
       act: (t) async {
     unawaited(nameNewItem(t.element(find.byType(VaultHomeScreen)), _items.firstWhere((i) => i.kind == ItemKind.photo)));
     await t.pumpAndSettle();
   });
-  _screen('ts-lock', 'Màn khoá két Tuyệt mật: biểu tượng két + dấu khiên', lock,
-      change: 'ĐỔI: biểu tượng chung là chiếc két; Tuyệt mật có dấu khiên, Riêng tư có dấu hình người',
-      marks: [() => find.byKey(const ValueKey('kind-label'))]);
+  _screen('ts-lock', 'Màn khoá két Tuyệt mật: biểu tượng két + dấu khiên', lock);
   _screen('kinds-private-lock', 'Màn khoá két Riêng tư: biểu tượng két + dấu người', lock,
-      change: 'ĐỔI: két + dấu hình người (Riêng tư). Đây là màn lần đầu vào két Riêng tư: mở khoá bình thường, không còn "Tạo két"',
-      marks: [() => find.byKey(const ValueKey('kind-label'))],
       setup: () => RunKind.current = VaultKind.private);
   _screen('kinds-private-home', 'Két Riêng tư · Thư viện (như hiện nay) + biểu tượng', home, section: 'home',
-      change: 'Két Riêng tư giữ nguyên ảnh, video, xem trước như hiện nay; trên tiêu đề có biểu tượng két + dấu người + "Riêng tư"',
-      marks: [() => find.byKey(const ValueKey('kind-label'))],
       setup: () => RunKind.current = VaultKind.private);
+  _screen('settings-page-security', 'Cài đặt → Bảo mật', () => settings(vault),
+      change: 'MỚI: trang con Bảo mật: Face ID, mật khẩu, Khoá khôi phục, kiểm tra 24 từ, tự khoá, chặn chụp, làm mờ, ẩn ghi chú, Xoá két',
+      setup: () => SettingsScreen.debugPage = 'security');
+  _screen('settings-page-look', 'Cài đặt → Giao diện và ngôn ngữ', () => settings(vault),
+      change: 'MỚI: trang con Giao diện và ngôn ngữ',
+      setup: () => SettingsScreen.debugPage = 'look');
   _screen('kinds-settings-top', 'Két Tuyệt mật · Cài đặt: dòng "Két Riêng tư"', () => settings(vault),
-      change: 'ĐỔI: dòng Két Riêng tư dùng biểu tượng két + dấu người',
       act: toOtherKind);
   _screen('kinds-settings-private', 'Két Riêng tư · Cài đặt: không còn dòng 24 từ, có dòng "Két Tuyệt mật"', () => settings(vault),
+      change: 'ĐỔI: trong két Riêng tư không còn dòng Mật khẩu két (đổi từ két Tuyệt mật)',
       setup: () => RunKind.current = VaultKind.private,
       act: toOtherKind);
   _screen('kinds-private-page', 'Két Tuyệt mật · Cài đặt → Két Riêng tư (chưa có)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: false)));
@@ -1119,7 +1123,7 @@ void main() {
     await t.pump();
   });
   _screen('kinds-private-saved', 'Két Riêng tư · đã cất mật khẩu thành ghi chú trong két Tuyệt mật', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: false)),
-      change: 'ĐỔI: Lưu là TẠO THẬT két Riêng tư; lần đầu vào két Riêng tư là màn Mở khoá, không phải Tạo két nữa',
+      change: 'ĐỔI: mật khẩu két Riêng tư cất KÍN trong két Tuyệt mật (không ghi chú, không hiện); có nút Đặt lại mật khẩu',
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('create-private')));
     await t.pumpAndSettle();
@@ -1128,14 +1132,19 @@ void main() {
     await t.tap(find.byKey(const ValueKey('save-private-password')));
     await t.pumpAndSettle();
   });
+  _screen('kinds-private-reset', 'Két Riêng tư · Đặt lại mật khẩu (từ két Tuyệt mật)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: true)),
+      change: 'MỚI: quên mật khẩu két Riêng tư → đặt mật khẩu mới từ đây; app thay khoá, không đọc gì trong két Riêng tư',
+      setup: () => PrivateVaultPage.debugExists = true,
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('reset-private-password')));
+    await t.pumpAndSettle();
+  });
   _screen('kinds-switch-card', 'Chuyển sang két Riêng tư · hỏi lại trước khi chuyển (iPhone)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: true)),
-      change: 'ĐỔI: thẻ hỏi lại có biểu tượng loại két sẽ sang',
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('switch-to-private')));
     await t.pumpAndSettle();
   });
-  _screen('kinds-close-app', 'iPhone/iPad sau khi chuyển: đóng app rồi mở lại', () => const CloseAppPage(next: VaultKind.private),
-      change: 'ĐỔI: biểu tượng loại két sẽ mở thay cho logo app');
+  _screen('kinds-close-app', 'iPhone/iPad sau khi chuyển: đóng app rồi mở lại', () => const CloseAppPage(next: VaultKind.private));
   _screen('kinds-private-lock-menu', 'Két Riêng tư · màn khoá, menu ⋯: Về két Tuyệt mật', lock,
       setup: () => RunKind.current = VaultKind.private,
       act: (t) async {
@@ -1143,7 +1152,6 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('kinds-private-welcome', 'Két Riêng tư · lần đầu mở', () => const PrivateWelcomeScreen(libraryDir: ''),
-      change: 'ĐỔI: biểu tượng két + dấu người (chỉ hiện khi máy chưa có két Riêng tư)',
       setup: () => RunKind.current = VaultKind.private);
   _screen('kinds-private-password', 'Két Riêng tư · lần đầu: gõ lại mật khẩu (chưa đủ)', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: () => RunKind.current = VaultKind.private,
