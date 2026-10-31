@@ -148,6 +148,32 @@ fn params_for_this_device() -> KdfParams {
     }
 }
 
+/// Argon2id cost for a Private library created on this device (ADR 0005: about one
+/// second on a phone).
+fn private_params_for_this_device() -> KdfParams {
+    if cfg!(any(target_os = "android", target_os = "ios")) {
+        KdfParams::PRIVATE_PHONE_FLOOR
+    } else {
+        KdfParams::PRIVATE_DESKTOP_FLOOR
+    }
+}
+
+/// This run's library (api/run.rs), created if absent: Top secret with the device's
+/// Secret Key, Private with none.
+fn library(dir: &str) -> Result<Library, VaultError> {
+    let dir = super::run::library_dir(dir)?;
+    Ok(match super::run::run_kind() {
+        Some(super::run::VaultKind::Private) => {
+            Library::open_or_create_private(dir, private_params_for_this_device())?
+        }
+        _ => Library::open_or_create(dir, params_for_this_device(), secret()?)?,
+    })
+}
+
+fn private_run() -> bool {
+    super::run::run_kind() == Some(super::run::VaultKind::Private)
+}
+
 #[flutter_rust_bridge::frb(sync)]
 pub fn has_vaults(dir: String) -> bool {
     super::run::library_dir(&dir).is_ok_and(Library::has_vaults)
@@ -166,12 +192,16 @@ pub fn min_password_score() -> u8 {
     cs_vault::MIN_PASSWORD_SCORE
 }
 
-/// A new vault password needs at least this many characters (and see
-/// [`password_problem`]). Unlocking counts wrong passwords from 8 characters, the least
+/// A new vault password needs at least this many characters in this run's kind (12, or
+/// 14 for Private; and see [`password_problem`]). Unlocking counts wrong passwords from 8 characters, the least
 /// the earlier rule allowed (app/lib/screens/unlock.dart).
 #[flutter_rust_bridge::frb(sync)]
 pub fn min_password_length() -> u32 {
-    cs_vault::MIN_PASSWORD_LEN as u32
+    if private_run() {
+        cs_vault::MIN_PRIVATE_PASSWORD_LEN as u32
+    } else {
+        cs_vault::MIN_PASSWORD_LEN as u32
+    }
 }
 
 /// Why a new password would be refused, to say so while it is typed.
@@ -188,7 +218,12 @@ pub enum PasswordProblem {
 #[flutter_rust_bridge::frb(sync)]
 pub fn password_problem(password: String) -> PasswordProblem {
     let password = Zeroizing::new(password);
-    match cs_vault::check_new_password(&password) {
+    let check = if private_run() {
+        cs_vault::check_new_private_password(&password)
+    } else {
+        cs_vault::check_new_password(&password)
+    };
+    match check {
         cs_vault::PasswordCheck::Ok => PasswordProblem::None,
         cs_vault::PasswordCheck::TooShort => PasswordProblem::TooShort,
         cs_vault::PasswordCheck::Common => PasswordProblem::Common,
@@ -205,11 +240,7 @@ pub fn min_pin_length() -> u32 {
 /// Create a vault and leave it open. Runs Argon2id: call it off the UI thread (async).
 pub fn create_vault(dir: String, name: String, password: String) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(
-        super::run::library_dir(&dir)?,
-        params_for_this_device(),
-        secret()?,
-    )?;
+    let library = library(&dir)?;
     let vault = library.create_vault(&name, &password)?;
     Ok(set_open(vault))
 }
@@ -223,11 +254,7 @@ pub fn create_vault_with_password(
     password: String,
 ) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(
-        super::run::library_dir(&dir)?,
-        params_for_this_device(),
-        secret()?,
-    )?;
+    let library = library(&dir)?;
     let vault = library.create_vault_with_password(&icon, &color, &password)?;
     Ok(set_open(vault))
 }
@@ -235,11 +262,7 @@ pub fn create_vault_with_password(
 /// Open the vault this password belongs to; `None` when no vault matches.
 pub fn unlock(dir: String, password: String) -> Result<Option<VaultInfo>, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(
-        super::run::library_dir(&dir)?,
-        params_for_this_device(),
-        secret()?,
-    )?;
+    let library = library(&dir)?;
     Ok(library.unlock(&password)?.map(set_open))
 }
 
@@ -248,11 +271,7 @@ pub fn unlock(dir: String, password: String) -> Result<Option<VaultInfo>, VaultE
 pub fn check_password(dir: String, password: String) -> Result<bool, VaultError> {
     let password = Zeroizing::new(password);
     let open_id = with_open(|v| Ok(v.id.clone()))?;
-    let library = Library::open_or_create(
-        super::run::library_dir(&dir)?,
-        params_for_this_device(),
-        secret()?,
-    )?;
+    let library = library(&dir)?;
     Ok(library.unlock(&password)?.is_some_and(|v| v.id == open_id))
 }
 
@@ -555,11 +574,7 @@ pub fn create_vault_with_pin(
     let pin = Zeroizing::new(pin);
     let device_key = Zeroizing::new(device_key);
     let dk = key_from(&device_key).ok_or(VaultError::Storage)?;
-    let library = Library::open_or_create(
-        super::run::library_dir(&dir)?,
-        params_for_this_device(),
-        secret()?,
-    )?;
+    let library = library(&dir)?;
     let vault =
         library.create_vault_with_pin(&icon, &color, &pin, &dk, params_for_this_device())?;
     Ok(set_open(vault))
@@ -568,11 +583,7 @@ pub fn create_vault_with_pin(
 /// Set or change the open vault's password (instant: re-wraps the vault key).
 pub fn set_password(dir: String, password: String) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
-    let library = Library::open_or_create(
-        super::run::library_dir(&dir)?,
-        params_for_this_device(),
-        secret()?,
-    )?;
+    let library = library(&dir)?;
     change_open(|vault| {
         library.set_password(vault, &password)?;
         Ok(info_of(vault))
@@ -1029,11 +1040,7 @@ pub fn delete_vault_unopened(dir: String, vault_id: String) -> Result<bool, Vaul
 pub fn delete_vault(dir: String, password: String) -> Result<bool, VaultError> {
     let password = Zeroizing::new(password);
     let open_id = with_open(|v| Ok(v.id.clone()))?;
-    let library = Library::open_or_create(
-        super::run::library_dir(&dir)?,
-        params_for_this_device(),
-        secret()?,
-    )?;
+    let library = library(&dir)?;
     match library.unlock(&password)? {
         Some(v) if v.id == open_id => {
             OPEN.clear();
