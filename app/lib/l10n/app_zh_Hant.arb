@@ -837,5 +837,6 @@
   "driveDeleteRow": "從 Google Drive 刪除此保險箱",
   "driveDeleteTitle": "從 Google Drive 刪除此保險箱？",
   "driveDeleteBody": "它在 Google Drive 上的副本會被刪除；此裝置仍保留保險箱。自動同步會關閉，否則會再次全部上傳。仍在同步此保險箱的其他裝置可能會重新上傳。",
-  "driveDeleted": "已從 Google Drive 刪除。"
+  "driveDeleted": "已從 Google Drive 刪除。",
+  "aboutTitle": "關於"
 }

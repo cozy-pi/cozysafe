@@ -837,5 +837,6 @@
   "driveDeleteRow": "Diesen Tresor aus Google Drive löschen",
   "driveDeleteTitle": "Diesen Tresor aus Google Drive löschen?",
   "driveDeleteBody": "Die Kopie in Google Drive wird gelöscht; dieses Gerät behält den Tresor. Die automatische Synchronisierung wird ausgeschaltet, sonst würde sie alles wieder hochladen. Ein anderes Gerät, das diesen Tresor noch synchronisiert, kann ihn wieder hochladen.",
-  "driveDeleted": "Aus Google Drive gelöscht."
+  "driveDeleted": "Aus Google Drive gelöscht.",
+  "aboutTitle": "Über"
 }

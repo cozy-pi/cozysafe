@@ -837,5 +837,6 @@
   "driveDeleteRow": "Bu kasayı Google Drive'dan sil",
   "driveDeleteTitle": "Bu kasa Google Drive'dan silinsin mi?",
   "driveDeleteBody": "Google Drive'daki kopyası silinir; bu cihaz kasayı korur. Otomatik eşitleme kapanır, yoksa her şeyi yeniden gönderir. Bu kasayı hâlâ eşitleyen başka bir cihaz onu geri koyabilir.",
-  "driveDeleted": "Google Drive'dan silindi."
+  "driveDeleted": "Google Drive'dan silindi.",
+  "aboutTitle": "Hakkında"
 }

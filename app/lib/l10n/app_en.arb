@@ -1051,5 +1051,6 @@
   "driveDeleteRow": "Delete this vault from Google Drive",
   "driveDeleteTitle": "Delete this vault from Google Drive?",
   "driveDeleteBody": "Its copy in Google Drive is deleted; this device keeps the vault. Automatic sync turns off, or it would send everything up again. Another device that still syncs this vault can put it back.",
-  "driveDeleted": "Deleted from Google Drive."
+  "driveDeleted": "Deleted from Google Drive.",
+  "aboutTitle": "About"
 }

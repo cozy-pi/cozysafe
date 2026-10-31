@@ -220,10 +220,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('settings-button')));
     await _settle(t);
     expect(find.byType(CoachTour), findsNothing); // opening Settings alone shows no tips
-    // Help is near the end of Settings since 2026-10-27: scroll to it first.
-    // In Settings → Help since 2026-10-31.
-    await t.tap(find.byKey(const ValueKey('settings-help')));
-    await _settle(t);
+    // Help is near the end of Settings, on its one page (2026-10-31): scroll to it.
     await t.scrollUntilVisible(find.byKey(const ValueKey('guide-row')), 200, scrollable: find.byType(Scrollable).first);
     // Rows are taller at the iPhone's 17 pt: bring the row clear of the bottom bar.
     await t.drag(find.byType(Scrollable).first, const Offset(0, -200));
@@ -256,10 +253,7 @@ void main() {
     await _settle(t);
     await t.tap(find.byKey(const ValueKey('settings-button')));
     await _settle(t);
-    // Help is near the end of Settings since 2026-10-27: scroll to it first.
-    // In Settings → Help since 2026-10-31.
-    await t.tap(find.byKey(const ValueKey('settings-help')));
-    await _settle(t);
+    // Help is near the end of Settings, on its one page (2026-10-31): scroll to it.
     await t.scrollUntilVisible(find.byKey(const ValueKey('guide-row')), 200, scrollable: find.byType(Scrollable).first);
     // Rows are taller at the iPhone's 17 pt: bring the row clear of the bottom bar.
     await t.drag(find.byType(Scrollable).first, const Offset(0, -200));

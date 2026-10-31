@@ -851,5 +851,6 @@
   "driveDeleteRow": "Xoá két này khỏi Google Drive",
   "driveDeleteTitle": "Xoá két này khỏi Google Drive?",
   "driveDeleteBody": "Bản trên Google Drive bị xoá; két vẫn còn trên máy này. Đồng bộ tự động sẽ tắt, nếu không nó lại gửi hết lên. Máy khác còn đồng bộ két này có thể đẩy nó lên lại.",
-  "driveDeleted": "Đã xoá khỏi Google Drive."
+  "driveDeleted": "Đã xoá khỏi Google Drive.",
+  "aboutTitle": "Giới thiệu"
 }

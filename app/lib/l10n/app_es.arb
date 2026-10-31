@@ -837,5 +837,6 @@
   "driveDeleteRow": "Eliminar esta caja fuerte de Google Drive",
   "driveDeleteTitle": "¿Eliminar esta caja fuerte de Google Drive?",
   "driveDeleteBody": "Se elimina su copia en Google Drive; este dispositivo conserva la caja fuerte. La sincronización automática se desactiva, o volvería a subirlo todo. Otro dispositivo que aún sincronice esta caja fuerte puede volver a subirla.",
-  "driveDeleted": "Eliminada de Google Drive."
+  "driveDeleted": "Eliminada de Google Drive.",
+  "aboutTitle": "Acerca de"
 }

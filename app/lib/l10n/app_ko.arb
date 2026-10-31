@@ -837,5 +837,6 @@
   "driveDeleteRow": "이 금고를 Google Drive에서 삭제",
   "driveDeleteTitle": "이 금고를 Google Drive에서 삭제할까요?",
   "driveDeleteBody": "Google Drive에 있는 사본이 삭제되고, 이 기기의 금고는 그대로 남습니다. 자동 동기화는 꺼집니다. 그러지 않으면 모든 것을 다시 올립니다. 이 금고를 아직 동기화하는 다른 기기가 다시 올릴 수 있습니다.",
-  "driveDeleted": "Google Drive에서 삭제했습니다."
+  "driveDeleted": "Google Drive에서 삭제했습니다.",
+  "aboutTitle": "정보"
 }

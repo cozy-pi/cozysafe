@@ -1024,9 +1024,18 @@ void main() {
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt · màn chính: thẻ két + các dòng mở trang con', () => settings(vault),
-      change: 'MỚI: dòng "Két trên máy này" (ai cũng thấy, không cần bật gỡ lỗi)',
-      marks: [() => find.byKey(const ValueKey('vaults-row'))],
+      change: 'ĐỀ XUẤT: một trang duy nhất, mọi mục hiện thẳng theo nhóm (Bản sao · Mở khoá & khoá khôi phục · Khoá & màn hình · Két này · Giao diện · Trợ giúp); chỉ Giới thiệu còn trang riêng',
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
+  for (final (i, dy) in [(2, 700.0), (3, 1400.0), (4, 2100.0)]) {
+    _screen('settings-all-$i', 'Cài đặt · một trang, cuộn xuống ($i/4)', () => settings(vault),
+        change: i == 3 ? 'ĐỀ XUẤT: nhóm Két này: Đổi biểu tượng · Đã xoá gần đây · Lịch sử phiên bản · Két trên máy này (tạo/xoá két ở đó)' : 'ĐỀ XUẤT: cuộn tiếp trang Cài đặt',
+        marks: i == 3 ? [() => find.byKey(const ValueKey('vaults-row'))] : const [],
+        setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
+        act: (t) async {
+      await t.drag(find.byType(Scrollable).first, Offset(0, -dy));
+      await t.pumpAndSettle();
+    });
+  }
   _screen('settings-sync-failed', 'Cài đặt · lần tự động đồng bộ gần nhất bị lỗi', () => settings(vault),
       setup: () {
     SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'];
@@ -1120,12 +1129,6 @@ void main() {
   });
   _screen('settings-page-security', 'Cài đặt → Bảo mật', () => settings(vault),
       setup: () => SettingsScreen.debugPage = 'security');
-  _screen('settings-push-security', 'Cài đặt · bấm Bảo mật: trang con trượt vào như một trang riêng', () => settings(vault),
-      change: 'ĐỔI: trang con Cài đặt mở như trang riêng (trượt vào, nút lùi, vuốt mép theo ngón tay) giống trang Chế độ tuyệt mật',
-      act: (t) async {
-    await t.tap(find.byKey(const ValueKey('settings-security')));
-    await t.pumpAndSettle();
-  });
   _screen('settings-page-look', 'Cài đặt → Giao diện và ngôn ngữ', () => settings(vault),
       setup: () => SettingsScreen.debugPage = 'look');
   _screen('settings-backup', 'Cài đặt · Sao lưu và Bảo mật', () => settings(vault),
@@ -1563,11 +1566,6 @@ void main() {
     }
   });
   _screen('settings-debug-on', 'Cài đặt · đã bật gỡ lỗi', () => settings(vault), setup: () => Prefs.write('debug-mode', '1'), act: toAbout);
-  _screen('settings-debug-vault', 'Cài đặt · gỡ lỗi bật: Tạo két mới', () => settings(vault),
-      setup: () => Prefs.write('debug-mode', '1'), act: (t) async {
-    await t.scrollUntilVisible(find.byKey(const ValueKey('debug-new-vault')), 200, scrollable: find.byType(Scrollable).first);
-    await t.pump();
-  });
   void debugSetup() {
     DebugScreen.debugNetworkBlocked = true;
     Prefs.write('debug-mode', '1');
@@ -1844,8 +1842,8 @@ void main() {
             isOpen: false,
             deleteAtMs: PlatformInt64Util.from(_now + 5 * Duration.millisecondsPerDay)),
       ];
-  _screen('vault-manager', 'Cài đặt → Két trên máy này', () => const VaultManagerScreen(libraryDir: ''),
-      change: 'MỚI: két đang mở ở đầu; két khác là ô khoá + dung lượng (tên/chế độ vẫn niêm phong); két hẹn xoá ghi "Bị xoá sau N ngày"',
+  _screen('vault-manager', 'Cài đặt → Két trên máy này', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
+      change: 'MỚI: két đang mở ở đầu; két khác là ô khoá + dung lượng (tên/chế độ vẫn niêm phong); két hẹn xoá ghi "Bị xoá sau N ngày"; nút Tạo két mới ở dưới (tạo và xoá két chỉ ở đây)',
       marks: [() => find.byKey(const ValueKey('vault-deletes-9b3ad0e1f2c4475a8e61d39b2f0c18d3'))],
       setup: () => VaultManagerScreen.debugSlots = slots());
   _screen('vault-manager-menu', 'Két trên máy này · chạm một két khoá', () => const VaultManagerScreen(libraryDir: ''),
@@ -1853,6 +1851,13 @@ void main() {
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-3fa9c1d2e4b5a6978877665544332211')));
+    await t.pumpAndSettle();
+  });
+  _screen('vault-manager-open', 'Két trên máy này · chạm két đang mở', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
+      change: 'MỚI: Xoá két này nằm ở đây (bỏ khỏi trang Bảo mật)',
+      setup: () => VaultManagerScreen.debugSlots = slots(),
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-slot-e0a966aed6bec8151ebb59139e5aa773')));
     await t.pumpAndSettle();
   });
   _screen('vault-manager-keep', 'Két trên máy này · chạm két đang hẹn xoá', () => const VaultManagerScreen(libraryDir: ''),

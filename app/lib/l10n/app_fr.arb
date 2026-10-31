@@ -837,5 +837,6 @@
   "driveDeleteRow": "Supprimer ce coffre de Google Drive",
   "driveDeleteTitle": "Supprimer ce coffre de Google Drive ?",
   "driveDeleteBody": "Sa copie dans Google Drive est supprimée ; cet appareil garde le coffre. La synchronisation automatique est désactivée, sinon elle renverrait tout. Un autre appareil qui synchronise encore ce coffre peut le remettre.",
-  "driveDeleted": "Supprimé de Google Drive."
+  "driveDeleted": "Supprimé de Google Drive.",
+  "aboutTitle": "À propos"
 }

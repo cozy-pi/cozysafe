@@ -105,7 +105,8 @@ enum SettingsSpot {
 /// Settings' sub-pages (owner 2026-10-31: too many settings on one page). The main page
 /// shows the vault's card and one row per sub-page; each row opens its page in place, so
 /// the rows' switches, the User guide and the jumps to a setting keep working.
-enum _Page { main, syncBackup, security, history, look, help }
+/// The main page, or About (version, build, source, licence) on a page of its own.
+enum _Page { main, help }
 
 /// A setting's symbol: white on its own colour, as at the start of each row.
 class SettingTile extends StatelessWidget {
@@ -473,7 +474,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _openVaults() async {
     await Navigator.of(context).push<void>(MaterialPageRoute(
       builder: (_) => Readable(
-        child: VaultManagerScreen(libraryDir: widget.libraryDir, onDeleteOpen: () => _guarded(_deleteVault)),
+        child: VaultManagerScreen(
+          libraryDir: widget.libraryDir,
+          onDeleteOpen: () => _guarded(_deleteVault),
+          onNewVault: widget.onNewVault,
+        ),
       ),
     ));
     if (mounted) setState(() {});
@@ -555,7 +560,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// The page drawn by this screen: the main page, or (mockups only, [SettingsScreen.debugPage])
   /// a sub-page in place.
-  _Page _page = _Page.values.asNameMap()[SettingsScreen.debugPage] ?? _Page.main;
+  _Page _page = SettingsScreen.debugPage == _Page.help.name ? _Page.help : _Page.main;
 
   /// Bumped on every [setState], so a sub-page pushed over this screen redraws too.
   final _rev = ValueNotifier(0);
@@ -603,76 +608,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String _pageTitle(AppLocalizations l, _Page page) => switch (page) {
         _Page.main => l.settings,
-        _Page.syncBackup => l.settingsSyncBackup,
-        _Page.security => l.settingsSecurity,
-        _Page.history => l.settingsHistory,
-        _Page.look => l.settingsLook,
-        _Page.help => l.settingsHelpAbout,
+        _Page.help => l.aboutTitle,
       };
 
   /// Where each setting the tour points at lives.
-  static _Page _pageOf(SettingsSpot spot) => switch (spot) {
-        SettingsSpot.sync => _Page.syncBackup,
-        SettingsSpot.autoLock || SettingsSpot.blurThumbs || SettingsSpot.hideNoteText => _Page.security,
-        SettingsSpot.appearance || SettingsSpot.language => _Page.look,
-      };
-
-  /// The main page's rows, one per sub-page, and the other kind of vault. The User
-  /// guide's tips point at these rows ([_guideTips]).
-  List<Widget> _mainRows(AppLocalizations l) {
-    SettingsRow nav(_Page page, IconData icon, Color color, {bool alert = false}) => SettingsRow(
-          key: ValueKey('settings-${page.name}'),
-          icon: icon,
-          color: color,
-          title: _pageTitle(l, page),
-          alert: alert,
-          onTap: () => _show(page),
-        );
-    return [
-      SettingsGroup(rows: [
-        if (!kIsWeb)
-          KeyedSubtree(
-            key: _syncRowKey,
-            child: KeyedSubtree(
-              key: _backupRowKey,
-              // A red dot when automatic sync failed, as the sync row itself.
-              child: nav(_Page.syncBackup, Icons.cloud_sync_rounded, SettingsHue.xanh, alert: true),
-            ),
-          )
-        else
-          nav(_Page.syncBackup, Icons.cloud_sync_rounded, SettingsHue.xanh),
-        KeyedSubtree(
-          key: _securityGroupKey,
-          child: KeyedSubtree(key: _shieldGroupKey, child: nav(_Page.security, Icons.shield_rounded, SettingsHue.xanhLa)),
-        ),
-      ]),
-      // Top Secret Mode (ADR 0006) in a card of its own, near the top (owner 2026-10-31:
-      // people must know the feature exists).
-      _TopSecretCard(onTap: _openTopSecret),
-      SettingsGroup(rows: [
-        // Every vault here, to delete one (owner 2026-10-31).
-        SettingsRow(
-          key: const ValueKey('vaults-row'),
-          icon: Icons.inventory_2_rounded,
-          color: SettingsHue.cam,
-          title: l.vaultManagerTitle,
-          onTap: _openVaults,
-        ),
-        nav(_Page.history, Icons.history_rounded, SettingsHue.ngoc),
-        nav(_Page.look, Icons.palette_rounded, SettingsHue.cham),
-        KeyedSubtree(key: _guideRowKey, child: nav(_Page.help, Icons.help_rounded, SettingsHue.xam)),
-      ]),
-    ];
-  }
+  static _Page _pageOf(SettingsSpot spot) => _Page.main;
 
   /// Takes the person to [spot]: Sync opens; any other row scrolls into the middle and
   /// lights up, so it is easy to see which one to change.
   Future<void> _goTo(SettingsSpot spot) async {
     if (!mounted) return;
     if (spot == SettingsSpot.sync) return _openSync();
-    unawaited(_show(_pageOf(spot)));
-    // The page slides in first.
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+    if (_pageOf(spot) != _Page.main) {
+      unawaited(_show(_pageOf(spot)));
+      // The page slides in first.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+    } else {
+      await WidgetsBinding.instance.endOfFrame;
+    }
     if (!mounted) return;
     final row = await _build(_spotKeys[spot]!, _subScroll ?? _scroll);
     if (row == null || !row.mounted || !mounted) return;
@@ -831,14 +784,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final vault = widget.vault();
     final dark = Theme.of(context).brightness == Brightness.dark;
     return [
+          // One page, every setting on it in groups (owner 2026-10-31: the main page was
+          // empty and the sub-pages long); only About opens a page of its own.
           if (page == _Page.main) ...[
             _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), figures: _figures.value, onTap: _openStorage),
-            ..._mainRows(l),
+            // Top Secret Mode in a card of its own, near the top (owner 2026-10-31: people
+            // must know the feature exists).
+            _TopSecretCard(onTap: _openTopSecret),
           ],
           // Most important first, like with like (owner 2026-10-27). Groups still have no
           // names (owner 2026-10-26): the gaps set them apart.
           // 1. A copy elsewhere: syncing is done often (owner 2026-10-25), the backup file with it.
-          if (page == _Page.syncBackup) SettingsGroup(rows: [
+          if (page == _Page.main) SettingsGroup(rows: [
             if (!kIsWeb)
               KeyedSubtree(
                 key: _here(_syncRowKey, page),
@@ -876,7 +833,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           // 2. The keys: how the vault opens here and on a new phone. Turning any of them
           // weaker asks for the owner first (docs/security.md).
-          if (page == _Page.security) SettingsGroup(boxKey: _here(_securityGroupKey, page), rows: [
+          if (page == _Page.main) SettingsGroup(boxKey: _here(_securityGroupKey, page), rows: [
             if (widget.canBiometric)
               SettingsRow(
                 icon: Icons.face_retouching_natural_rounded,
@@ -933,7 +890,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
           ]),
           // 3. What shows on screen and when it locks.
-          if (page == _Page.security) SettingsGroup(boxKey: _here(_shieldGroupKey, page), rows: [
+          if (page == _Page.main) SettingsGroup(boxKey: _here(_shieldGroupKey, page), rows: [
             _spot(
               SettingsSpot.autoLock,
               SettingsRow(
@@ -1028,8 +985,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ]),
-          // 4. Getting things back: deleted items, older versions.
-          if (page == _Page.history) SettingsGroup(rows: [
+          // 4. This vault and the others: its look, getting things back, the vaults here
+          // (making and deleting a vault live there).
+          if (page == _Page.main) SettingsGroup(rows: [
+            SettingsRow(
+              key: const ValueKey('identity-row'),
+              icon: Icons.palette_rounded,
+              color: SettingsHue.tim,
+              title: l.changeIdentity,
+              onTap: () => _then(widget.onChangeIdentity),
+            ),
             SettingsRow(
               icon: Icons.delete_sweep_rounded,
               color: SettingsHue.xam,
@@ -1045,9 +1010,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: _historyDays == 0 ? l.historyOff : historySizeText(l, _historyMax),
               onTap: _openHistory,
             ),
+            SettingsRow(
+              key: const ValueKey('vaults-row'),
+              icon: Icons.inventory_2_rounded,
+              color: SettingsHue.cam,
+              title: l.vaultManagerTitle,
+              onTap: _openVaults,
+            ),
           ]),
           // 5. How it looks and where things are: nothing here protects the vault.
-          if (page == _Page.look) SettingsGroup(rows: [
+          if (page == _Page.main) SettingsGroup(rows: [
             _spot(
               SettingsSpot.appearance,
               SettingsRow(
@@ -1085,12 +1057,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) => setState(() => Prefs.write(actionSidePref, v.name)),
               ),
             ),
-            SettingsRow(
-              icon: Icons.palette_rounded,
-              color: SettingsHue.tim,
-              title: l.changeIdentity,
-              onTap: () => _then(widget.onChangeIdentity),
-            ),
             // The icon on a plain page after unlocking; only a look, so no owner check.
             SettingsRow(
               key: const ValueKey('reveal-row'),
@@ -1104,7 +1070,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ]),
           // 6. Help: the guide, how the vault is protected, feedback, what went wrong.
-          if (page == _Page.help) SettingsGroup(rows: [
+          if (page == _Page.main) SettingsGroup(rows: [
             // The guide again: tips on the vault's page, then here.
             if (widget.onTour != null)
               KeyedSubtree(
@@ -1139,38 +1105,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: l.reportProblem,
               onTap: () => pushPage<void>(context, title: l.reportProblem, builder: (_) => const ErrorReportScreen()),
             ),
-          ]),
-          // One vault in the app (decisions 2026-10-24); another one only in debug mode, for
-          // testing (the core keeps several).
-          if (debugModeOn() && page == _Page.main)
-            SettingsGroup(rows: [
-              SettingsRow(
-                key: const ValueKey('debug-new-vault'),
-                icon: Icons.add,
-                color: SettingsHue.troi,
-                title: l.newVault,
-                onTap: widget.onNewVault,
-              ),
-            ]),
-          if (page == _Page.security) ...[
-          const SizedBox(height: 22),
-          Material(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: () => _guarded(_deleteVault),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Center(
-                  // Destructive in the system red, like Delete elsewhere (docs/ui.md); the theme's
-                  // error colour is ink in this black-and-white design.
-                  child: Text(l.deleteVault, style: TextStyle(color: recordRed(context), fontWeight: FontWeight.w600, fontSize: CsType.subhead)),
-                ),
-              ),
+            // Version, build, source, licence (and Debug) on a page of their own.
+            SettingsRow(
+              key: const ValueKey('settings-help'),
+              icon: Icons.info_rounded,
+              color: SettingsHue.xam,
+              title: l.aboutTitle,
+              onTap: () => _show(_Page.help),
             ),
-          ),
-          ],
+          ]),
           // About: version and build (to match a phone with its release run, build =
           // 1000 + run), when and from which commit it was built, the licence.
           if (page == _Page.help) FutureBuilder<PackageInfo>(

@@ -837,5 +837,6 @@
   "driveDeleteRow": "Удалить этот сейф из Google Drive",
   "driveDeleteTitle": "Удалить этот сейф из Google Drive?",
   "driveDeleteBody": "Его копия в Google Drive будет удалена, а на этом устройстве сейф останется. Автосинхронизация выключится, иначе она снова всё загрузит. Другое устройство, которое всё ещё синхронизирует этот сейф, может загрузить его снова.",
-  "driveDeleted": "Удалено из Google Drive."
+  "driveDeleted": "Удалено из Google Drive.",
+  "aboutTitle": "О приложении"
 }

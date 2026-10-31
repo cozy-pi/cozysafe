@@ -7,23 +7,27 @@ import '../theme.dart';
 import '../widgets/identity.dart';
 import '../widgets/item_menu.dart';
 import '../widgets/toast.dart';
+import '../widgets/bottom_bar.dart' show PinnedAction;
 import 'delete_vault.dart';
 import '../platform.dart' show nowMs;
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart' show PlatformInt64Util;
 import 'file_view.dart' show fileSize;
 import 'top_secret_page.dart' show TopSecretMark;
 
-/// Settings → Vaults on this device (owner 2026-10-31): every vault here, to delete one.
+/// Settings → Vaults on this device (owner 2026-10-31): every vault here; making a new
+/// one and deleting one live here and nowhere else.
 /// Names, icons and modes stay sealed until a vault is opened, so the others show as
 /// locked tiles with their size. Deleting takes that vault's password; a vault whose
 /// password is forgotten can be set to go in seven days, after the phone's owner
 /// confirms, and opening it with its password in the meantime keeps it. Only on this
 /// device; Google Drive is a choice on the delete page.
 class VaultManagerScreen extends StatefulWidget {
-  const VaultManagerScreen({super.key, required this.libraryDir, this.onDeleteOpen});
+  const VaultManagerScreen({super.key, required this.libraryDir, this.onDeleteOpen, this.onNewVault});
   final String libraryDir;
   /// Delete the open vault (Settings' own flow, which locks and leaves it).
   final Future<void> Function()? onDeleteOpen;
+  /// Make another vault (the vault page's flow: the owner first, this vault locks).
+  final Future<void> Function()? onNewVault;
 
   /// For the mockup renders: these vaults instead of the library's.
   static List<rust.VaultSlot>? debugSlots;
@@ -64,8 +68,12 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
   Future<void> _menu(rust.VaultSlot slot, BuildContext from) async {
     final l = AppLocalizations.of(context);
     if (slot.isOpen) {
-      await widget.onDeleteOpen?.call();
-      if (mounted) await _load();
+      await showItemMenu(context, from: from, entries: [
+        MenuEntry(Icons.delete_outline_rounded, l.deleteVault, () async {
+          await widget.onDeleteOpen?.call();
+          if (mounted) await _load();
+        }, danger: true, key: const ValueKey('vault-delete-open')),
+      ]);
       return;
     }
     await showItemMenu(context, from: from, entries: [
@@ -147,7 +155,19 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
       appBar: AppBar(title: Text(l.vaultManagerTitle)),
       body: slots == null
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : SafeArea(
+              top: false,
+              child: PinnedAction(
+              actions: [
+                if (widget.onNewVault != null)
+                  FilledButton.icon(
+                    key: const ValueKey('vaults-new'),
+                    onPressed: widget.onNewVault,
+                    icon: const Icon(Icons.add_rounded),
+                    label: Text(l.newVault),
+                  ),
+              ],
+              child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
                 Padding(
@@ -219,6 +239,8 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                     ),
                   ),
               ],
+            ),
+            ),
             ),
     );
   }

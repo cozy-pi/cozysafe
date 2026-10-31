@@ -837,5 +837,6 @@
   "driveDeleteRow": "ลบตู้นี้ออกจาก Google Drive",
   "driveDeleteTitle": "ลบตู้นี้ออกจาก Google Drive ไหม",
   "driveDeleteBody": "สำเนาบน Google Drive จะถูกลบ ส่วนตู้บนอุปกรณ์นี้ยังอยู่ การซิงค์อัตโนมัติจะปิด ไม่เช่นนั้นจะส่งขึ้นไปใหม่หมด อุปกรณ์อื่นที่ยังซิงค์ตู้นี้อยู่อาจอัปโหลดกลับขึ้นไปได้",
-  "driveDeleted": "ลบจาก Google Drive แล้ว"
+  "driveDeleted": "ลบจาก Google Drive แล้ว",
+  "aboutTitle": "เกี่ยวกับ"
 }
