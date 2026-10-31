@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import 'vault_bar.dart' show blurThumbnails;
+import '../vault_kind.dart';
 
 /// Width a blurred thumbnail is made at: blurred, so drawing it larger loses nothing.
 const _blurSide = 48;
@@ -45,6 +46,8 @@ class PrivateThumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A Top secret run decodes no picture (ADR 0005): the last guard, whatever asked.
+    if (RunKind.topSecret) return const SizedBox.expand();
     if (!blurThumbnails()) return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
     final ready = _blurred[bytes];
     if (ready != null) return _image(ready);

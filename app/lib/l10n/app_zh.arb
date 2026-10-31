@@ -805,5 +805,8 @@
   "privatePasswordTitle": "私密保险箱密码",
   "privatePasswordLead": "输入绝密保险箱中笔记“私密保险箱密码”里的密码。一旦丢失，谁都无法找回。",
   "privatePasswordSave": "保存密码",
-  "privatePasswordSetLead": "至少 14 个字符；4 到 5 个随机单词既好记又难猜。密码会作为笔记存在这个绝密保险箱里。"
+  "privatePasswordSetLead": "至少 14 个字符；4 到 5 个随机单词既好记又难猜。密码会作为笔记存在这个绝密保险箱里。",
+  "sealedLead": "绝密保险箱不会在应用内打开照片、视频、录音或文件。如需查看，请用其他应用打开。",
+  "namePhotoTitle": "为这张照片命名",
+  "namePhotoHint": "例如：身份证正面"
 }

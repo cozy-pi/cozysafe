@@ -29,6 +29,35 @@ Future<bool> privateLibraryExists() async {
   ).existsSync();
 }
 
+/// Each kind's one icon, wherever it is named (owner 2026-10-31): a shield for Top
+/// secret, a photo frame for Private. Not the Library's stack of photos.
+IconData kindIcon(VaultKind kind) => kind == VaultKind.topSecret ? Icons.shield_rounded : Icons.photo_rounded;
+
+/// The kind's icon and short name, small and quiet: on the lock screen and above a
+/// vault's title, so it is always clear which kind is open.
+class KindLabel extends StatelessWidget {
+  const KindLabel({super.key, this.kind});
+
+  /// Null: this run's kind.
+  final VaultKind? kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final k = kind ?? RunKind.current;
+    final muted = CsColors.of(context).muted;
+    return Row(
+      key: const ValueKey('kind-label'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(kindIcon(k), size: 15, color: muted),
+        const SizedBox(width: 5),
+        Text(kindName(AppLocalizations.of(context), k),
+            style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: muted)),
+      ],
+    );
+  }
+}
+
 /// The short name of a kind, as said inside a sentence ("the Private vault").
 String kindName(AppLocalizations l, VaultKind kind) =>
     kind == VaultKind.topSecret ? l.topSecretName : l.privateName;
@@ -110,7 +139,7 @@ class _PrivateVaultPageState extends State<PrivateVaultPage> {
       ],
       children: [
         if (_stage != _Stage.password) ...[
-          const Icon(Icons.photo_library_rounded, size: 44),
+          Icon(kindIcon(VaultKind.private), size: 44),
           const SizedBox(height: 14),
         ],
         ...switch (_stage) {
@@ -210,6 +239,8 @@ Future<void> switchKind(BuildContext context, VaultKind next) async {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Icon(kindIcon(next), size: 36),
+          const SizedBox(height: 10),
           Text(
             RunKind.closesItself
                 ? l.switchQuitsBody(kindName(l, next))
@@ -262,7 +293,7 @@ class CloseAppPage extends StatelessWidget {
       key: const ValueKey('close-app'),
       title: l.closeAppTitle,
       lead: l.closeAppBody(kindName(l, next)),
-      logo: true,
+      icon: kindIcon(next),
       choices: const [],
     );
   }
@@ -280,7 +311,7 @@ class PrivateWelcomeScreen extends StatelessWidget {
     return ChoicePage(
       title: l.privateVault,
       lead: l.privateWelcomeLead,
-      logo: true,
+      icon: kindIcon(VaultKind.private),
       choices: [
         BigChoice(
           key: const ValueKey('private-welcome-new'),
@@ -298,7 +329,7 @@ class PrivateWelcomeScreen extends StatelessWidget {
         ),
         BigChoice(
           key: const ValueKey('private-welcome-back'),
-          icon: Icons.lock_rounded,
+          icon: kindIcon(VaultKind.topSecret),
           title: l.switchToTopSecret,
           note: l.privateWelcomeBackNote,
           onTap: () => switchKind(context, VaultKind.topSecret),

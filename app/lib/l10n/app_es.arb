@@ -805,5 +805,8 @@
   "privatePasswordTitle": "Contraseña de la caja fuerte Privada",
   "privatePasswordLead": "Escribe la contraseña de la nota “Contraseña de la caja fuerte Privada” de tu caja fuerte Alto secreto. Si se pierde, nadie puede recuperarla.",
   "privatePasswordSave": "Guardar contraseña",
-  "privatePasswordSetLead": "Al menos 14 caracteres; 4 o 5 palabras al azar son fáciles de recordar y difíciles de adivinar. La contraseña se guarda como una nota en esta caja fuerte Alto secreto."
+  "privatePasswordSetLead": "Al menos 14 caracteres; 4 o 5 palabras al azar son fáciles de recordar y difíciles de adivinar. La contraseña se guarda como una nota en esta caja fuerte Alto secreto.",
+  "sealedLead": "Una caja fuerte Alto secreto nunca abre fotos, vídeos, grabaciones ni archivos en la app. Para ver uno, ábrelo en otra app.",
+  "namePhotoTitle": "Ponle nombre a esta foto",
+  "namePhotoHint": "Por ejemplo: DNI, anverso"
 }

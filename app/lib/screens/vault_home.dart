@@ -66,6 +66,9 @@ import '../sync/sync_status.dart';
 import 'history.dart';
 import 'wide_home.dart';
 import '../widgets/readable.dart';
+import '../vault_kind.dart';
+import 'sealed_item.dart';
+import 'vault_kinds.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -607,7 +610,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _add(AddWhat what) async {
     final target = switch (what) {
       AddWhat.note => VaultSection.note,
-      AddWhat.photo || AddWhat.video || AddWhat.photos => VaultSection.library,
+      AddWhat.photo || AddWhat.video || AddWhat.photos => RunKind.topSecret ? VaultSection.file : VaultSection.library,
       AddWhat.voice => VaultSection.audio,
       AddWhat.file => VaultSection.file,
     };
@@ -1015,6 +1018,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   static const _thumbCap = 800;
 
   Future<Uint8List> _thumbnail(String id) {
+    // Top secret reads no thumbnail (ADR 0005): rows show the kind's icon.
+    if (RunKind.topSecret) return Future.value(Uint8List(0));
     final had = _thumbnails.remove(id);
     if (had != null) return _thumbnails[id] = had; // now the most recent
     while (_thumbnails.length >= _thumbCap) {
@@ -1037,9 +1042,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   bool _isMedia(rust.ItemInfo i) => i.kind == ItemKind.photo || i.kind == ItemKind.video;
 
+  /// Whether a row draws the item's picture: never in Top secret (ADR 0005), where a
+  /// photo or video row shows its kind, as a file does.
+  bool _rowPicture(rust.ItemInfo i) => _isMedia(i) && !RunKind.topSecret;
+
   Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
     if (_selecting) return _toggle(item.id);
     if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
+    // Top secret opens notes only (ADR 0005); anything else is a sealed row: its details
+    // and Export, after the warning. No viewer, player or preview is ever built.
+    if (RunKind.topSecret && item.kind != ItemKind.note) {
+      await showSealedItem(context, item, vaultId: _vault.id);
+      return;
+    }
     // A wide window opens it in the pane beside the list, not over the page.
     if (_wide) return setState(() => _focus = item);
     // Every kind opens the same way: big, over the page you are on, never a jump to
@@ -1574,7 +1589,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                           )
                         : _FileRow(
                             item: it,
-                            thumbnail: _isMedia(it) ? _thumbnail(it.id) : null,
+                            thumbnail: _rowPicture(it) ? _thumbnail(it.id) : null,
                             selected: _selected.contains(it.id),
                             selecting: _selecting,
                             onTap: () => _openItem(it, list.where(_isMedia).toList()),
@@ -1603,7 +1618,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         VaultSection.note => i.kind == ItemKind.note,
         VaultSection.library => i.kind == ItemKind.photo || i.kind == ItemKind.video,
         VaultSection.audio => i.kind == ItemKind.audio,
-        VaultSection.file => i.kind == ItemKind.file,
+        // Top secret has no Library: its photos and videos (camera shots, and those
+        // from before the split) are files there.
+        VaultSection.file => i.kind == ItemKind.file || (RunKind.topSecret && (i.kind == ItemKind.photo || i.kind == ItemKind.video)),
       };
 
   /// What the section on show holds, narrowed to the open tag.
@@ -1859,7 +1876,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final media = rows.where(_isMedia).toList();
     return DeskTable(
       items: rows,
-      thumbnail: (it) => _isMedia(it) ? _thumbnail(it.id) : null,
+      thumbnail: (it) => _rowPicture(it) ? _thumbnail(it.id) : null,
       onOpen: (it) => _openItem(it, media),
       onMenu: (it) => _itemMenu(it, media),
       sortColumn: col,
@@ -1905,6 +1922,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         if (open != null)
           IconButton(
               tooltip: l.back, icon: const Icon(Icons.chevron_left_rounded), onPressed: () => setState(() => _tagId = null)),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Icon(kindIcon(RunKind.current), size: 16, color: c.muted, semanticLabel: kindName(l, RunKind.current)),
+        ),
         Expanded(
           child: Text(
             open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
@@ -2112,7 +2133,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 if (open != null)
                   Text('${l.tagAction} · ${sectionLabel(l, _section)}',
                       key: const ValueKey('group-label'),
-                      style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
+                      style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: CsColors.of(context).muted))
+                // Which kind of vault is open, always (owner 2026-10-31: one icon each).
+                else
+                  const KindLabel(),
                 Text(
                   open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
                   key: const ValueKey('vault-title'),

@@ -805,5 +805,8 @@
   "privatePasswordTitle": "Senha do cofre Privado",
   "privatePasswordLead": "Digite a senha da nota “Senha do cofre Privado” no seu cofre Ultrassecreto. Se ela for perdida, ninguém consegue recuperá-la.",
   "privatePasswordSave": "Salvar senha",
-  "privatePasswordSetLead": "Pelo menos 14 caracteres; 4 ou 5 palavras aleatórias são fáceis de lembrar e difíceis de adivinhar. A senha fica guardada como uma nota neste cofre Ultrassecreto."
+  "privatePasswordSetLead": "Pelo menos 14 caracteres; 4 ou 5 palavras aleatórias são fáceis de lembrar e difíceis de adivinhar. A senha fica guardada como uma nota neste cofre Ultrassecreto.",
+  "sealedLead": "Um cofre Ultrassecreto nunca abre fotos, vídeos, gravações ou arquivos no app. Para ver um, abra-o em outro app.",
+  "namePhotoTitle": "Dê um nome a esta foto",
+  "namePhotoHint": "Por exemplo: RG, frente"
 }

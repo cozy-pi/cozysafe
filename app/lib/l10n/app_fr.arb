@@ -805,5 +805,8 @@
   "privatePasswordTitle": "Mot de passe du coffre Privé",
   "privatePasswordLead": "Tapez le mot de passe de la note « Mot de passe du coffre Privé » de votre coffre Top secret. S'il est perdu, personne ne peut le récupérer.",
   "privatePasswordSave": "Enregistrer le mot de passe",
-  "privatePasswordSetLead": "Au moins 14 caractères ; 4 ou 5 mots au hasard sont faciles à retenir et difficiles à deviner. Le mot de passe est gardé dans une note de ce coffre Top secret."
+  "privatePasswordSetLead": "Au moins 14 caractères ; 4 ou 5 mots au hasard sont faciles à retenir et difficiles à deviner. Le mot de passe est gardé dans une note de ce coffre Top secret.",
+  "sealedLead": "Un coffre Top secret n'ouvre jamais les photos, vidéos, enregistrements ou fichiers dans l'app. Pour en voir un, ouvrez-le dans une autre app.",
+  "namePhotoTitle": "Nommer cette photo",
+  "namePhotoHint": "Par exemple : carte d'identité, recto"
 }

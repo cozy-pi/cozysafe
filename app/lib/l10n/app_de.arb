@@ -805,5 +805,8 @@
   "privatePasswordTitle": "Passwort für den Privat-Tresor",
   "privatePasswordLead": "Geben Sie das Passwort aus der Notiz „Passwort für den Privat-Tresor“ in Ihrem Streng-geheim-Tresor ein. Geht es verloren, kann es niemand zurückholen.",
   "privatePasswordSave": "Passwort speichern",
-  "privatePasswordSetLead": "Mindestens 14 Zeichen; 4 oder 5 zufällige Wörter sind leicht zu merken und schwer zu erraten. Das Passwort wird als Notiz in diesem Streng-geheim-Tresor gespeichert."
+  "privatePasswordSetLead": "Mindestens 14 Zeichen; 4 oder 5 zufällige Wörter sind leicht zu merken und schwer zu erraten. Das Passwort wird als Notiz in diesem Streng-geheim-Tresor gespeichert.",
+  "sealedLead": "Ein Streng-geheim-Tresor öffnet Fotos, Videos, Aufnahmen und Dateien nie in der App. Um sie anzusehen, öffnen Sie sie in einer anderen App.",
+  "namePhotoTitle": "Foto benennen",
+  "namePhotoHint": "Zum Beispiel: Ausweis, Vorderseite"
 }

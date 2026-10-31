@@ -805,5 +805,8 @@
   "privatePasswordTitle": "개인 금고 비밀번호",
   "privatePasswordLead": "극비 금고에 있는 “개인 금고 비밀번호” 메모의 비밀번호를 입력하세요. 잃어버리면 아무도 되찾을 수 없습니다.",
   "privatePasswordSave": "비밀번호 저장",
-  "privatePasswordSetLead": "14자 이상. 무작위 단어 4~5개는 기억하기 쉽고 추측하기 어렵습니다. 비밀번호는 이 극비 금고에 메모로 보관됩니다."
+  "privatePasswordSetLead": "14자 이상. 무작위 단어 4~5개는 기억하기 쉽고 추측하기 어렵습니다. 비밀번호는 이 극비 금고에 메모로 보관됩니다.",
+  "sealedLead": "극비 금고는 사진, 동영상, 녹음, 파일을 앱 안에서 열지 않습니다. 보려면 다른 앱에서 여세요.",
+  "namePhotoTitle": "사진 이름 지정",
+  "namePhotoHint": "예: 신분증 앞면"
 }

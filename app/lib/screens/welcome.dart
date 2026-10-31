@@ -47,11 +47,13 @@ class WelcomeScreen extends StatelessWidget {
 
 /// A title, a line, and a few large choices over the vault backdrop.
 class ChoicePage extends StatelessWidget {
-  const ChoicePage({super.key, required this.title, required this.lead, required this.choices, this.logo = false, this.back = false});
+  const ChoicePage({super.key, required this.title, required this.lead, required this.choices, this.logo = false, this.back = false, this.icon});
   final String title;
   final String lead;
   final List<Widget> choices;
   final bool logo;
+  /// In the logo's place: a kind of vault's icon (vault_kinds.dart).
+  final IconData? icon;
   final bool back;
 
   @override
@@ -80,7 +82,10 @@ class ChoicePage extends StatelessWidget {
                           ),
                         ),
                       const Spacer(flex: 3),
-                      if (logo) ...[
+                      if (icon != null) ...[
+                        Icon(icon, size: 64, color: ink),
+                        const SizedBox(height: 18),
+                      ] else if (logo) ...[
                         ClipRRect(
                           borderRadius: BorderRadius.circular(22),
                           child: Image.asset('assets/icon.png', width: 88, height: 88, filterQuality: FilterQuality.medium),

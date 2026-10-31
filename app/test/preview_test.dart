@@ -4,6 +4,7 @@
 // Off by default:
 //   flutter test test/preview_test.dart --update-goldens --dart-define=PREVIEW=true
 // Output: test/preview/*.png (not committed). Rust is a fake with sample items.
+import 'dart:async' show unawaited;
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -76,6 +77,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cozysafe/screens/history.dart';
 import 'package:cozysafe/src/rust/api/history.dart' show HistoryVersion;
+import 'package:cozysafe/screens/sealed_item.dart';
 import 'package:cozysafe/screens/vault_kinds.dart';
 import 'package:cozysafe/vault_kind.dart';
 
@@ -366,6 +368,12 @@ final _manifest = <Map<String, Object>>[];
 /// [change] says what is new on this screen, [marks] finds the parts to outline.
 const _wideAll = bool.fromEnvironment('WIDE');
 
+/// Screens of photos and videos: since ADR 0005 step 4 they exist only in a Private run.
+const _privateShots = [
+  'photo', 'quick-photo', 'quick-video', 'quick-image', 'sort-menu-library', 'trash', 'wide-ipad',
+  'delete-confirm', 'camera', 'mac-library', 'bottom-trash', 'library',
+];
+
 void _screen(String name, String caption, Widget Function() home,
     {String? section, Future<void> Function(WidgetTester)? act, int after = 6, void Function()? setup,
     String? change, List<Finder Function()> marks = const [], Size size = _phone}) {
@@ -437,6 +445,8 @@ void _screen(String name, String caption, Widget Function() home,
       RunKind.debugClosesItself = false; // the owner's iPhone
       // A MacBook or Windows frame is a computer: Finder-style rows and toolbar.
       if (size.width >= 1280) Device.debugDesktop = true;
+      // Photos and videos open only in a Private vault (ADR 0005): their screens show one.
+      if (section == 'library' || _privateShots.any(name.startsWith)) RunKind.current = VaultKind.private;
       setup?.call();
       // Real shadows: tests otherwise draw every elevation as a solid black outline.
       debugDisableShadows = false;
@@ -1056,21 +1066,48 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, 160));
     await t.pumpAndSettle();
   }
+  _screen('ts-files', 'Két Tuyệt mật · Tệp: ảnh, video thành dòng như tệp', home, section: 'file',
+      change: 'MỚI (bước 4): két Tuyệt mật không còn tab Thư viện; ảnh, video thành dòng như tệp, KHÔNG ảnh thu nhỏ. Trên tiêu đề: biểu tượng khiên + "Tuyệt mật"',
+      marks: [() => find.byKey(const ValueKey('kind-label'))]);
+  _screen('ts-sealed', 'Két Tuyệt mật · chạm một ảnh: không mở, chỉ thông tin + Mở bằng app khác', home, section: 'file',
+      change: 'MỚI (bước 4): chạm ảnh/video/ghi âm/tệp KHÔNG mở trong app; thẻ cho biết vì sao + nút "Mở bằng app khác" (cảnh báo mỗi lần)',
+      marks: [() => find.byKey(const ValueKey('sealed-send'))],
+      act: (t) => openRow(t, 'Sinh nhật bé Na.MOV'));
+  _screen('ts-add', 'Két Tuyệt mật · bấm +', home, section: 'file',
+      change: 'MỚI (bước 4): + không còn "Thêm ảnh" (thư viện ảnh) và "Quay video"; còn Chụp ảnh, Ghi chú, Ghi âm, Tệp',
+      setup: () {
+    debugCamera = true;
+    debugVoice = true;
+    Prefs.write('action-side', 'center');
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  });
+  _screen('ts-name-photo', 'Két Tuyệt mật · vừa chụp ảnh: đặt tên ngay', home, section: 'file',
+      change: 'MỚI (bước 4): chụp xong không hiện ảnh; hỏi tên ngay (vd. "Căn cước, mặt trước") để tìm lại mà không cần mở',
+      act: (t) async {
+    unawaited(nameNewItem(t.element(find.byType(VaultHomeScreen)), _items.firstWhere((i) => i.kind == ItemKind.photo)));
+    await t.pumpAndSettle();
+  });
+  _screen('ts-lock', 'Màn khoá két Tuyệt mật: biểu tượng khiên', lock,
+      change: 'MỚI: dưới chữ Mở khoá có biểu tượng + tên loại két (không nhắc két kia)',
+      marks: [() => find.byKey(const ValueKey('kind-label'))]);
+  _screen('kinds-private-lock', 'Màn khoá két Riêng tư: biểu tượng khung ảnh', lock,
+      change: 'MỚI: két Riêng tư có biểu tượng khung ảnh',
+      marks: [() => find.byKey(const ValueKey('kind-label'))],
+      setup: () => RunKind.current = VaultKind.private);
+  _screen('kinds-private-home', 'Két Riêng tư · Thư viện (như hiện nay) + biểu tượng', home, section: 'home',
+      change: 'Két Riêng tư giữ nguyên ảnh, video, xem trước như hiện nay; trên tiêu đề có biểu tượng khung ảnh + "Riêng tư"',
+      marks: [() => find.byKey(const ValueKey('kind-label'))],
+      setup: () => RunKind.current = VaultKind.private);
   _screen('kinds-settings-top', 'Két Tuyệt mật · Cài đặt: dòng "Két Riêng tư"', () => settings(vault),
-      change: 'MỚI: dòng "Két Riêng tư" — nơi DUY NHẤT để sang két Riêng tư (sau khi đã mở két; màn khoá không nhắc gì)',
-      marks: [() => find.byKey(const ValueKey('other-kind-row'))],
+      change: 'ĐỔI: dòng Két Riêng tư dùng biểu tượng khung ảnh',
       act: toOtherKind);
   _screen('kinds-settings-private', 'Két Riêng tư · Cài đặt: không còn dòng 24 từ, có dòng "Két Tuyệt mật"', () => settings(vault),
-      change: 'MỚI: trong két Riêng tư, Cài đặt bỏ các dòng của 24 từ (Khoá khôi phục, Kiểm tra 24 từ, sao lưu khoá); dòng "Két Tuyệt mật" để quay về',
-      marks: [() => find.byKey(const ValueKey('other-kind-row'))],
       setup: () => RunKind.current = VaultKind.private,
       act: toOtherKind);
-  _screen('kinds-private-page', 'Két Tuyệt mật · Cài đặt → Két Riêng tư (chưa có)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: false)),
-      change: 'MỚI: két Riêng tư là gì (ảnh, video, tệp; mật khẩu riêng; tách hẳn) + nút Tạo',
-      marks: [() => find.byKey(const ValueKey('create-private'))]);
+  _screen('kinds-private-page', 'Két Tuyệt mật · Cài đặt → Két Riêng tư (chưa có)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: false)));
   _screen('kinds-private-set-password', 'Két Riêng tư · tự đặt mật khẩu (ở két Tuyệt mật)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: false)),
-      change: 'MỚI: người dùng TỰ ĐẶT mật khẩu két Riêng tư (ít nhất 14 ký tự); 4–5 từ ngẫu nhiên chỉ là lời gợi ý',
-      marks: [() => find.byKey(const ValueKey('password-strength-word'))],
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('create-private')));
     await t.pumpAndSettle();
@@ -1078,8 +1115,6 @@ void main() {
     await t.pump();
   });
   _screen('kinds-private-saved', 'Két Riêng tư · đã cất mật khẩu thành ghi chú trong két Tuyệt mật', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: false)),
-      change: 'MỚI: Lưu là cất NGAY mật khẩu thành ghi chú "Mật khẩu két Riêng tư" trong két Tuyệt mật, rồi mới chuyển',
-      marks: [() => find.byKey(const ValueKey('private-password-saved')), () => find.byKey(const ValueKey('switch-to-private'))],
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('create-private')));
     await t.pumpAndSettle();
@@ -1089,28 +1124,23 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('kinds-switch-card', 'Chuyển sang két Riêng tư · hỏi lại trước khi chuyển (iPhone)', () => kindPage('Két Riêng tư', const PrivateVaultPage(exists: true)),
-      change: 'MỚI: hỏi lại; két khoá, xoá mọi tệp tạm. Android/máy tính: app tự đóng. iPhone/iPad: hiện màn "Đóng app rồi mở lại"',
-      marks: [() => find.byKey(const ValueKey('switch-go'))],
+      change: 'ĐỔI: thẻ hỏi lại có biểu tượng loại két sẽ sang',
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('switch-to-private')));
     await t.pumpAndSettle();
   });
   _screen('kinds-close-app', 'iPhone/iPad sau khi chuyển: đóng app rồi mở lại', () => const CloseAppPage(next: VaultKind.private),
-      change: 'MỚI: Apple không cho app tự thoát, nên màn này chỉ bảo đóng app rồi mở lại; không làm gì khác được trên màn này');
+      change: 'ĐỔI: biểu tượng loại két sẽ mở thay cho logo app');
   _screen('kinds-private-lock-menu', 'Két Riêng tư · màn khoá, menu ⋯: Về két Tuyệt mật', lock,
-      change: 'MỚI: chỉ màn khoá két Riêng tư có lối "Về két Tuyệt mật" (trong ⋯), cho người quên mật khẩu đọc lại ghi chú; màn khoá két Tuyệt mật không nhắc gì',
-      marks: [() => find.byKey(const ValueKey('lock-to-top-secret'))],
       setup: () => RunKind.current = VaultKind.private,
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('more-button')));
     await t.pumpAndSettle();
   });
   _screen('kinds-private-welcome', 'Két Riêng tư · lần đầu mở', () => const PrivateWelcomeScreen(libraryDir: ''),
-      change: 'MỚI: lần đầu vào két Riêng tư: Tạo (gõ mật khẩu trong ghi chú) hoặc Về két Tuyệt mật',
+      change: 'ĐỔI: biểu tượng khung ảnh; nút Về két Tuyệt mật dùng khiên',
       setup: () => RunKind.current = VaultKind.private);
   _screen('kinds-private-password', 'Két Riêng tư · lần đầu: gõ lại mật khẩu (chưa đủ)', () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'MỚI: một ô (không gõ lại vì đã có trong ghi chú); ít nhất 14 ký tự; không có bước 24 từ',
-      marks: [() => find.byKey(const ValueKey('password-strength-word'))],
       setup: () => RunKind.current = VaultKind.private,
       act: (t) async {
     await t.enterText(find.byKey(const ValueKey('new-password')).first, 'maple orbit');
@@ -1775,15 +1805,11 @@ void main() {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
   _screen('password-common', 'Mật khẩu: bị từ chối vì quá phổ biến (kể cả thêm số)', () => const BackupPasswordScreen(libraryDir: '', change: false),
-      change: 'Giữ nguyên: mật khẩu phổ biến (kể cả thêm số/ký hiệu) bị từ chối — nay kiểm bằng danh sách 100.000 mật khẩu phổ biến thay cho zxcvbn',
-      marks: [() => find.byKey(const ValueKey('password-refused'))],
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'Sunshine2024!');
     await t.pump();
   });
   _screen('password-guessable', 'Mật khẩu: bị từ chối vì quá ít ký tự khác nhau', () => const BackupPasswordScreen(libraryDir: '', change: false),
-      change: 'MỚI: chuỗi lặp như "abababababab" đủ 12 ký tự vẫn bị từ chối — cần ít nhất 5 ký tự khác nhau (hoa/thường tính là một)',
-      marks: [() => find.byKey(const ValueKey('password-refused'))],
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'abababababab');
     await t.pump();
@@ -1886,8 +1912,6 @@ void main() {
   });
   _screen('new-vault-password', 'Tạo két · 1. Mật khẩu: đang gõ',
       () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'ĐỔI: chưa đủ dài thì báo "Ít nhất 12 ký tự" (trước: 8 ký tự + điểm zxcvbn)',
-      marks: [() => find.byKey(const ValueKey('password-strength-word'))],
       setup: useWords, act: (t) async {
     await t.enterText(find.byKey(const ValueKey('new-password')).first, 'sunflower');
     await t.pump();

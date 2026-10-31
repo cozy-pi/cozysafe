@@ -805,5 +805,8 @@
   "privatePasswordTitle": "Özel kasa parolası",
   "privatePasswordLead": "Çok Gizli kasanızdaki “Özel kasa parolası” notundaki parolayı yazın. Kaybolursa kimse geri getiremez.",
   "privatePasswordSave": "Parolayı kaydet",
-  "privatePasswordSetLead": "En az 14 karakter; rastgele 4 veya 5 kelime hem kolay hatırlanır hem zor tahmin edilir. Parola bu Çok Gizli kasada not olarak saklanır."
+  "privatePasswordSetLead": "En az 14 karakter; rastgele 4 veya 5 kelime hem kolay hatırlanır hem zor tahmin edilir. Parola bu Çok Gizli kasada not olarak saklanır.",
+  "sealedLead": "Çok Gizli kasa fotoğrafları, videoları, kayıtları ve dosyaları uygulamada asla açmaz. Birine bakmak için onu başka bir uygulamada açın.",
+  "namePhotoTitle": "Bu fotoğrafa ad verin",
+  "namePhotoHint": "Örneğin: Kimlik kartı, ön yüz"
 }

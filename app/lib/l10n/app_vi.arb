@@ -819,5 +819,8 @@
   "privatePasswordTitle": "Mật khẩu két Riêng tư",
   "privatePasswordLead": "Gõ mật khẩu trong ghi chú “Mật khẩu két Riêng tư” ở két Tuyệt mật. Quên là không ai lấy lại được.",
   "privatePasswordSave": "Lưu mật khẩu",
-  "privatePasswordSetLead": "Ít nhất 14 ký tự; 4–5 từ ngẫu nhiên vừa dễ nhớ vừa khó đoán. Mật khẩu được cất thành ghi chú trong két Tuyệt mật này."
+  "privatePasswordSetLead": "Ít nhất 14 ký tự; 4–5 từ ngẫu nhiên vừa dễ nhớ vừa khó đoán. Mật khẩu được cất thành ghi chú trong két Tuyệt mật này.",
+  "sealedLead": "Két Tuyệt mật không mở ảnh, video, ghi âm hay tệp trong app. Muốn xem thì mở bằng app khác.",
+  "namePhotoTitle": "Đặt tên cho ảnh",
+  "namePhotoHint": "Ví dụ: Căn cước, mặt trước"
 }

@@ -126,6 +126,15 @@ new version:
   its own (password only, a fixed value under its own label in the Secret Key's place).
 - Decided 2026-10-31: switching kinds is only in Settings, after unlocking (nothing on
   the lock screen tells that a second kind exists).
+- Decided 2026-10-31 (step 4): Top secret takes files picked in the system's Files
+  (bytes sealed as they are, never opened), but nothing from the photo library or from
+  another app's Share. Voice notes stay in Top secret, kept like a file: recorded, never
+  played back in the app, opened only by exporting. Photos and videos already in a Top
+  secret vault (until step 6 moves them) show as rows like files, no thumbnail; opening
+  one exports it after the warning.
+- Decided 2026-10-31: each kind has one icon, used everywhere it is named: Top secret a
+  shield, Private a photo frame. Shown beside the vault's title, in Settings and the
+  switching pages, and on the lock screen.
 - Decided 2026-10-31: steps 2–6 are built on the branch and merged into `main` only when
   all are done; each step still gets a mockup, the owner's approval and an internal test
   build (TestFlight, Play internal) made from the branch, with no public GitHub release.

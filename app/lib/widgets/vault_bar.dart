@@ -11,6 +11,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
 import 'readable.dart';
+import '../vault_kind.dart';
 
 /// The four sections of a vault, picked in the bottom capsule (docs/ui.md, vault bar;
 /// docs/naming.md). A section shows items of some kinds: Library shows photos and
@@ -18,10 +19,12 @@ import 'readable.dart';
 /// [home] is the overview of everything (owner 2026-10-21); it holds no items itself.
 enum VaultSection { home, note, library, audio, file }
 
-/// The sections this device offers: voice memos need a phone's microphone.
+/// The sections this device offers: voice memos need a phone's microphone. Top secret
+/// has no Library (ADR 0005: no picture is shown there); its photos and videos are rows
+/// among the files.
 List<VaultSection> vaultSections() => [
       VaultSection.home,
-      VaultSection.library,
+      if (!RunKind.topSecret) VaultSection.library,
       VaultSection.file,
       VaultSection.note,
       if (Device.iOS || Device.android || debugVoice) VaultSection.audio,
@@ -701,8 +704,9 @@ enum AddWhat { note, photo, video, photos, voice, file }
 
 /// Every way to add, in the fixed order (camera and voice only where the device has them).
 List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
-      (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
-      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
+      // Top secret takes nothing from the photo library and records no video (ADR 0005).
+      if (!RunKind.topSecret) (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
+      if (camera && !RunKind.topSecret) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, l.newNote),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
@@ -733,8 +737,8 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
 List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
         {required bool camera, required bool voice}) =>
     [
-      (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
-      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
+      if (!RunKind.topSecret) (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
+      if (camera && !RunKind.topSecret) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),

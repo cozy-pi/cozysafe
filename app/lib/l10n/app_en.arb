@@ -1022,5 +1022,8 @@
   "privatePasswordTitle": "Private vault password",
   "privatePasswordLead": "Type the password from the note “Private vault password” in your Top secret vault. If it is lost, no one can get it back.",
   "privatePasswordSave": "Save password",
-  "privatePasswordSetLead": "At least 14 characters; 4 or 5 random words are easy to remember and hard to guess. The password is kept as a note in this Top secret vault."
+  "privatePasswordSetLead": "At least 14 characters; 4 or 5 random words are easy to remember and hard to guess. The password is kept as a note in this Top secret vault.",
+  "sealedLead": "A Top secret vault never opens photos, videos, recordings or files in the app. To look at one, open it in another app.",
+  "namePhotoTitle": "Name this photo",
+  "namePhotoHint": "For example: ID card, front"
 }

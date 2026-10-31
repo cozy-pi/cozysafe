@@ -805,5 +805,8 @@
   "privatePasswordTitle": "Kata sandi brankas Privat",
   "privatePasswordLead": "Ketik kata sandi dari catatan “Kata sandi brankas Privat” di brankas Sangat Rahasia Anda. Jika hilang, tidak ada yang bisa memulihkannya.",
   "privatePasswordSave": "Simpan kata sandi",
-  "privatePasswordSetLead": "Minimal 14 karakter; 4 atau 5 kata acak mudah diingat dan sulit ditebak. Kata sandi disimpan sebagai catatan di brankas Sangat Rahasia ini."
+  "privatePasswordSetLead": "Minimal 14 karakter; 4 atau 5 kata acak mudah diingat dan sulit ditebak. Kata sandi disimpan sebagai catatan di brankas Sangat Rahasia ini.",
+  "sealedLead": "Brankas Sangat Rahasia tidak pernah membuka foto, video, rekaman, atau file di aplikasi. Untuk melihatnya, buka di aplikasi lain.",
+  "namePhotoTitle": "Beri nama foto ini",
+  "namePhotoHint": "Contoh: KTP, depan"
 }

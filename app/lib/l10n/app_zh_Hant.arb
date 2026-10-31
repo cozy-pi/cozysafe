@@ -805,5 +805,8 @@
   "privatePasswordTitle": "私密保險箱密碼",
   "privatePasswordLead": "輸入絕密保險箱中筆記「私密保險箱密碼」裡的密碼。一旦遺失，誰都無法找回。",
   "privatePasswordSave": "儲存密碼",
-  "privatePasswordSetLead": "至少 14 個字元；4 到 5 個隨機單字既好記又難猜。密碼會存成筆記放在這個絕密保險箱裡。"
+  "privatePasswordSetLead": "至少 14 個字元；4 到 5 個隨機單字既好記又難猜。密碼會存成筆記放在這個絕密保險箱裡。",
+  "sealedLead": "絕密保險箱不會在 App 內打開照片、影片、錄音或檔案。如需查看，請用其他 App 開啟。",
+  "namePhotoTitle": "為這張照片命名",
+  "namePhotoHint": "例如：身分證正面"
 }

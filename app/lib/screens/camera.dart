@@ -16,6 +16,8 @@ import 'common.dart';
 import 'file_view.dart';
 import '../widgets/toast.dart';
 import '../theme.dart';
+import '../vault_kind.dart';
+import 'sealed_item.dart';
 
 /// The camera, opened from the Library's + menu (docs/ui.md, vault bar): Photo | Video,
 /// a shutter, the last shot, and flip. What it takes carries the tag open in the vault
@@ -32,7 +34,8 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   final _view = GlobalKey<CameraViewState>();
-  late bool _video = widget.video;
+  // Top secret records no video (ADR 0005).
+  late bool _video = widget.video && !RunKind.topSecret;
   bool _recording = false;
   DateTime? _since;
   Timer? _tick;
@@ -158,6 +161,7 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
               const SizedBox(height: 14),
               // Photo | Video, in the same glass capsule as the vault's sections.
+              if (!RunKind.topSecret)
               AnimatedOpacity(
                 opacity: _recording ? 0 : 1,
                 duration: const Duration(milliseconds: 150),
@@ -570,6 +574,16 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
           frame: frame, name: captureName(DateTime.now(), '.jpg'), createdMs: nowMs());
       final tagId = widget.tagId;
       if (tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
+      // Top secret: no thumbnail, nothing shown of the shot; it is named at once so it
+      // can be found without opening it (ADR 0005).
+      if (RunKind.topSecret) {
+        if (!mounted) return;
+        await nameNewItem(context, item);
+        if (!mounted) return;
+        widget.onChanged?.call();
+        widget.onSaved(item);
+        return;
+      }
       final thumbnail = await rust.itemThumbnail(id: item.id);
       if (!mounted) return;
       setState(() {

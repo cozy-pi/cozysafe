@@ -435,7 +435,11 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                     _mode == _Mode.pin ? l.pinEnter : (_remind ? l.passwordRemindTitle : l.unlockTitle),
                     style: TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w700, color: ink, letterSpacing: -.3),
                   ),
-                  const SizedBox(height: 22),
+                  // Which kind this is (owner 2026-10-31): its icon and name, nothing of
+                  // the other kind.
+                  const SizedBox(height: 6),
+                  const KindLabel(),
+                  const SizedBox(height: 16),
                   if (_mode == _Mode.pin)
                     PinDots(filled: _pin.length, color: accent)
                   else
@@ -639,7 +643,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
             MenuItemButton(
               key: const ValueKey('lock-to-top-secret'),
               style: _menuItem,
-              leadingIcon: const Icon(Icons.lock_outline_rounded),
+              leadingIcon: const Icon(Icons.shield_outlined),
               onPressed: _busy ? null : () => switchKind(context, VaultKind.topSecret),
               child: Text(l.switchToTopSecret),
             ),

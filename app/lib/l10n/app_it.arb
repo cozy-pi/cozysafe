@@ -805,5 +805,8 @@
   "privatePasswordTitle": "Password della cassaforte Privata",
   "privatePasswordLead": "Digita la password della nota “Password della cassaforte Privata” nella tua cassaforte Top secret. Se va persa, nessuno può recuperarla.",
   "privatePasswordSave": "Salva password",
-  "privatePasswordSetLead": "Almeno 14 caratteri; 4 o 5 parole a caso sono facili da ricordare e difficili da indovinare. La password viene salvata come nota in questa cassaforte Top secret."
+  "privatePasswordSetLead": "Almeno 14 caratteri; 4 o 5 parole a caso sono facili da ricordare e difficili da indovinare. La password viene salvata come nota in questa cassaforte Top secret.",
+  "sealedLead": "Una cassaforte Top secret non apre mai foto, video, registrazioni o file nell'app. Per vederne uno, aprilo in un'altra app.",
+  "namePhotoTitle": "Dai un nome a questa foto",
+  "namePhotoHint": "Ad esempio: carta d'identità, fronte"
 }
