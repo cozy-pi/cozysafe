@@ -44,6 +44,8 @@ struct SVaultMeta {
     icon: String,
     #[serde(default)]
     color: String,
+    #[serde(default, skip_serializing_if = "is_false")]
+    top_secret: bool,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -148,6 +150,7 @@ fn meta(s: &SVaultMeta) -> VaultMeta {
         name: s.name.clone(),
         icon: s.icon.clone(),
         color: s.color.clone(),
+        top_secret: s.top_secret,
     }
 }
 
@@ -365,6 +368,7 @@ fn vault_meta() {
             name: r.string(),
             icon: r.string(),
             color: r.string(),
+            top_secret: r.string().len().is_multiple_of(2),
         };
         let o = meta(&s);
         same!(s, o, to_json, serde_json::to_vec, VaultMeta, SVaultMeta);
@@ -509,6 +513,7 @@ fn older_headers() {
         r#"{}"#,
         r#"{"name":"Nhà"}"#,
         r#"{"name":"a","icon":"b","color":"c","x":1}"#,
+        r#"{"name":"a","top_secret":true}"#,
     ] {
         read_alike::<SVaultMeta, _>(doc, VaultMeta::from_json, meta);
     }

@@ -14,6 +14,20 @@ Dates are UTC.
 - A new vault password needs at least 12 characters (4 words always do) and must not be
   one of the most common passwords. Passwords you already use keep working.
 - Google Drive syncs 5 seconds after your last change (it was 15).
+- Each vault has its own mode: Private or Top secret is chosen for every new vault, and
+  changed for the open vault in Settings.
+- Top Secret Mode adds photos from the library again, kept as sealed files: no
+  thumbnail, nothing opened in the app.
+- Face ID or fingerprint opens one vault per device: a new vault no longer takes it
+  from another one, and moving it in Settings says so first.
+- Settings' pages (Sync and backup, Security…) slide in as pages of their own, with Back
+  and the swipe from the edge.
+
+### Added
+- Settings → Vaults on this device: delete a vault with its password, or, password
+  forgotten, have it deleted in 7 days unless someone opens it with its password.
+- Deleting a vault can also delete its copy in Google Drive, and Sync → Google Drive can
+  delete the open vault's copy there.
 
 ## 0.1.92 (2026-10-30)
 

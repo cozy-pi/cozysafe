@@ -9,9 +9,12 @@
 //! a screen that forgot to ask the mode still cannot show one. Notes (text) are read as
 //! always; files leave only by export, to another app.
 //!
-//! The mode is fixed once a vault opens. Before that (the first start, choosing the mode
-//! while making the first vault) it may change. Turning the mode on or off later ends the
-//! run ([`end_run`]); nothing opens again until the app starts anew.
+//! Each vault has its own mode (ADR 0007), sealed in its meta. A run starts in Top
+//! Secret Mode (nothing decoded before a vault opens) and takes the mode of the first
+//! vault that opens. A later vault may open in the same mode, or in the everyday mode after
+//! a Top secret one (nothing was decoded); a Top secret vault after an everyday one needs a
+//! fresh run ([`VaultError::RestartForMode`]): something decoded may have touched the app.
+//! Turning a vault's mode on or off ends the run ([`end_run`]).
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -90,10 +93,32 @@ pub(crate) fn top_secret() -> bool {
     )
 }
 
-/// Called when a vault opens: from then on the mode is fixed for the run.
-pub(crate) fn vault_opened() {
-    if let Run::Started { opened, .. } = &mut *run() {
-        *opened = true;
+/// Called when a vault opens, with its mode: the run takes it, or refuses when the vault
+/// is Top secret and this run already opened an everyday one.
+pub(crate) fn vault_opening(top_secret: bool) -> Result<(), VaultError> {
+    if opening(&mut run(), top_secret) {
+        Ok(())
+    } else {
+        debug_line(|| "vault refused: Top secret after an everyday vault".into());
+        Err(VaultError::RestartForMode)
+    }
+}
+
+fn opening(run: &mut Run, top_secret: bool) -> bool {
+    let next = if top_secret {
+        RunMode::TopSecret
+    } else {
+        RunMode::Everyday
+    };
+    match run {
+        Run::Started { mode, opened, .. }
+            if !*opened || *mode == next || next == RunMode::Everyday =>
+        {
+            *mode = next;
+            *opened = true;
+            true
+        }
+        _ => false,
     }
 }
 
@@ -182,6 +207,27 @@ mod tests {
             "the same mode again is fine"
         );
         assert!(!start(&mut r, RunMode::TopSecret, lib.clone()));
+    }
+
+    #[test]
+    fn a_top_secret_vault_after_an_everyday_one_needs_a_new_run() {
+        let lib = PathBuf::from("/support/library");
+        let mut r = Run::NotStarted;
+        assert!(!opening(&mut r, false), "not before the run starts");
+        assert!(start(&mut r, RunMode::TopSecret, lib));
+        assert!(opening(&mut r, true));
+        assert!(opening(&mut r, false), "Top secret, then everyday: fine");
+        assert!(matches!(
+            r,
+            Run::Started {
+                mode: RunMode::Everyday,
+                ..
+            }
+        ));
+        assert!(opening(&mut r, false));
+        assert!(!opening(&mut r, true), "everyday, then Top secret: restart");
+        r = Run::Ended;
+        assert!(!opening(&mut r, false));
     }
 
     #[test]

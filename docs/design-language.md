@@ -65,7 +65,7 @@ Icons: Material rounded, 28 in an action circle, about 0.44 of a header circle.
 | Glass behind anything | `Glass` (page glass), `GlassPill` (dark, over photos) | `widgets/vault_bar.dart`, `screens/glass.dart` |
 | A row in a vault list | `SelectableRow` | `widgets/selectable_row.dart` |
 | A small menu at the finger (long press, ⋯) | `showItemMenu` + `MenuEntry` | `widgets/item_menu.dart` |
-| A long page | `pushPage` | `widgets/vault_bar.dart` |
+| A long page, and every sub-page of Settings (never swapped in place: owner 2026-10-31) | `pushPage` | `widgets/vault_bar.dart` |
 | Short content over the page | `showCard` | `widgets/vault_bar.dart` |
 | A group of settings rows | `SettingsGroup` | `screens/settings.dart` |
 | A secret (password, 24 words) | `SecretField` | `widgets/secret.dart` |

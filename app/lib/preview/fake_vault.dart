@@ -78,7 +78,7 @@ class FakeVault implements RustLibApi {
 
   final List<Uint8List> photos;
   final List<ItemInfo> _items = [];
-  var _vault = const VaultInfo(id: 'preview', name: '', icon: 'home', color: 'green', hasPassword: false);
+  var _vault = const VaultInfo(id: 'preview', name: '', icon: 'home', color: 'green', hasPassword: false, topSecret: false);
   bool _open = false;
   int _next = 100;
 
@@ -230,7 +230,7 @@ class FakeVault implements RustLibApi {
         _items.removeWhere((x) => x.id == tagId);
         return _f<void>(null);
       case 'SetIdentity':
-        _vault = VaultInfo(id: _vault.id, name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: _vault.hasPassword);
+        _vault = VaultInfo(id: _vault.id, name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: _vault.hasPassword, topSecret: _vault.topSecret);
         return _f(_vault);
       case 'SecretKeyText':
         return 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
@@ -239,7 +239,7 @@ class FakeVault implements RustLibApi {
       case 'NewSecretKey':
         return Uint8List(16);
       case 'CreateVaultWithPin':
-        _vault = VaultInfo(id: 'preview2', name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: false);
+        _vault = VaultInfo(id: 'preview2', name: '', icon: a<String>('icon'), color: a<String>('color'), hasPassword: false, topSecret: false);
         return _f(_vault);
       case 'RenameItem':
         _replace(a<String>('id'), (i) => _copy(i, name: a<String>('name')));

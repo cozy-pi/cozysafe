@@ -1053,6 +1053,15 @@ pub fn clean_vault<A: DriveApi>(
     Ok(checked.orphans.len() as u32)
 }
 
+/// Delete every file of `vault` in Drive, the person's own choice (owner 2026-10-31: their
+/// copy there must be deletable too). How many files went. Nothing stops another device
+/// that still holds the vault from sending it up again: the app says so.
+pub fn delete_vault<A: DriveApi>(api: &A, vault: &str) -> Result<u32> {
+    let listed = vault_files(api, vault)?;
+    api.delete_many(&listed.ids)?;
+    Ok(listed.ids.len() as u32)
+}
+
 /// The real Drive, through [`https`].
 pub struct GoogleDrive {
     token: String,
@@ -2238,6 +2247,26 @@ mod tests {
         t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
             .unwrap();
         assert_eq!(text(&t.b, &kept), "stays");
+    }
+
+    #[test]
+    fn deleting_a_vault_from_drive_takes_only_its_files() {
+        let t = two();
+        let drive = Fake::default();
+        note(&t.a, "One", "x");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        let v = t.a.id.clone();
+        let other = "f".repeat(32);
+        let elsewhere = drive.add("F", &other, Vec::new(), true);
+        drive.add(&elsewhere, "header.json", vec![1; 3], false);
+        assert!(delete_vault(&drive, &v).unwrap() > 0);
+        assert!(!drive.layout().iter().any(|(f, _, _)| f.starts_with(&v)));
+        assert!(drive
+            .layout()
+            .iter()
+            .any(|(f, n, _)| f == &other && n == "header.json"));
+        assert_eq!(delete_vault(&drive, &v).unwrap(), 0);
     }
 
     /// A full sync as the app runs it: what Drive said of the heads on open is kept

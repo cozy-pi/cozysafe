@@ -5,20 +5,21 @@ notes. Everything is encrypted on your device before it is saved.
 
 ## Top Secret Mode
 
-One vault, opened with your vault password **and** the Recovery Key (24 words), encrypted
+Each vault is opened with its password **and** the Recovery Key (24 words), encrypted
 the same way whatever you choose. You pick how the app treats what is inside when you
-make the vault, and can change it later in Settings:
+make each vault, and can change it later in Settings; every vault has its own mode:
 
 - **Private** (green shield): photos, videos, PDFs and files are shown inside the app,
   with thumbnails; add from the camera, the photo library or the Files app.
 - **Top Secret Mode** (red shield): the app never opens anything inside the vault. No
   picture, video, PDF or thumbnail is decoded; a file, recording or camera photo is a
-  named row, and you open it in another app after a warning. Nothing comes in from the
-  photo library. The app's Rust core refuses those calls itself, so a screen that forgot
+  named row, and you open it in another app after a warning. Photos from the library
+  come in as sealed files, never looked at. The app's Rust core refuses those calls itself, so a screen that forgot
   to ask still cannot show one. A small red shield on the Settings button says the mode
   is on.
 - **Turning it on or off** locks the vault, wipes every temporary file and restarts the
-  app ([ADR 0006](docs/adr/0006-top-secret-mode.md)). The vault's core uses audited
+  app ([ADR 0006](docs/adr/0006-top-secret-mode.md),
+  [ADR 0007](docs/adr/0007-mode-per-vault.md)). The vault's core uses audited
   cryptography and SQLite, nothing else, built from copies kept in this repository
   ([supply chain](docs/supply-chain.md)).
 
@@ -125,9 +126,12 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 
 ## What works today
 
-- **Top Secret Mode** ([above](#top-secret-mode)): chosen when the vault is made,
-  changed in Settings. One vault per device, with its own icon and colour; nothing on
-  disk says what is inside or how it is used.
+- **Top Secret Mode** ([above](#top-secret-mode)): chosen when each vault is made,
+  changed in Settings. Each vault has its own icon, colour and mode; nothing on disk
+  says what is inside or how it is used.
+- **Vaults on this device** (Settings): delete a vault with its password, or, password
+  forgotten, have it deleted in seven days unless someone opens it with its password.
+  Its Google Drive copy goes only if you tick it.
 - Unlock with Face ID, Touch ID or fingerprint, or the vault password (no PIN: a
   short code was the weakest way in). Wrong passwords make you wait longer each time.
 - **Photos and videos**: take them inside the app (never in the photo library,

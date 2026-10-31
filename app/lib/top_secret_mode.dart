@@ -4,79 +4,66 @@ import 'package:flutter/painting.dart';
 
 import 'src/rust/api/run.dart' as rust;
 import 'src/rust/api/run.dart' show RunMode;
+import 'src/rust/api/vault.dart' show VaultInfo, setTopSecret;
 import 'temp_files.dart';
 
-/// Top Secret Mode (ADR 0006): what the app does with what is in the vault, never how the
+/// Top Secret Mode (ADR 0007): what the app does with what is in a vault, never how the
 /// vault is locked (the password and the 24 words are the same either way). On: nothing
 /// in the vault is decoded in the app (no photo, video, PDF or thumbnail; files open in
-/// another app), and nothing comes in from the photo library or another app's Share.
+/// another app); photos come in from the library as sealed files, never looked at.
 ///
-/// The mode is read once at start from a small file next to the library and handed to
-/// Rust, which refuses decoding calls in Top Secret Mode ([rust.startRun]). It may change
-/// until a vault opens (making the first vault asks for it); after that turning it on or
-/// off ends the run and the app starts again.
+/// Each vault has its own mode, sealed in it (owner 2026-10-31). A run starts in Top
+/// Secret Mode and takes the mode of the vault that opens ([opened]); Rust refuses an
+/// everyday-only call in Top Secret Mode ([rust.startRun]). A Top secret vault after an
+/// everyday one in the same run needs the app to start again
+/// (`VaultError.restartForMode`), and so does turning a vault's mode on or off.
 abstract final class TopSecretMode {
-  /// The start file, in the app's support folder: `on` or `off`; missing means off.
-  static const startFile = 'top-secret-mode';
+  /// The start file of ADR 0006 (one mode for the whole device), removed at start.
+  static const _oldStartFile = 'top-secret-mode';
 
-  /// Whether this run is in Top Secret Mode; set by [start].
+  /// Whether the open vault is in Top Secret Mode; set by [opened].
   static bool on = false;
 
-  static String _support = '';
+  /// This run's library folder, set by [start].
+  static String libraryDir = '';
 
-  /// Read the start file, fix the mode for this run and hand it to Rust. Returns the
-  /// library folder.
+  /// Hand the library folder to Rust, in Top Secret Mode until a vault opens. Returns
+  /// the library folder.
   static String start(String support) {
-    _support = support;
-    on = read(support);
+    try {
+      File('$support${Platform.pathSeparator}$_oldStartFile').deleteSync();
+    } catch (_) {}
     final dir = '$support${Platform.pathSeparator}library';
-    rust.startRun(mode: _mode(on), libraryDir: dir);
+    libraryDir = dir;
+    rust.startRun(mode: RunMode.topSecret, libraryDir: dir);
     return dir;
   }
 
-  /// The mode the start file names (off when it is missing or unreadable).
-  static bool read(String support) {
-    try {
-      return File('$support${Platform.pathSeparator}$startFile').readAsStringSync().trim() == 'on';
-    } catch (_) {
-      return false;
-    }
-  }
+  /// A vault opened: the screens follow its mode.
+  static void opened(VaultInfo vault) => on = vault.topSecret;
 
-  /// Making the first vault: the mode it starts in, before any vault opens.
-  static void choose(bool next) {
-    if (!rust.chooseMode(mode: _mode(next))) return;
-    on = next;
-    _write(next);
-  }
-
-  /// Turn the mode on or off for the next start: Rust locks, forgets its keys and
-  /// refuses every library call; temporary files are wiped and decoded pictures dropped.
-  /// The caller then quits the app, or on iPhone and iPad shows the page asking the
-  /// person to close it ([closesItself]).
-  static Future<void> turn(bool next) async {
+  /// End this run before the app starts again: Rust locks, forgets its keys and refuses
+  /// every library call; temporary files are wiped and decoded pictures dropped. The
+  /// caller then quits the app, or on iPhone and iPad shows the page asking the person to
+  /// close it ([closesItself]).
+  static Future<void> endRun() async {
     rust.endRun();
     await clearTemp();
     PaintingBinding.instance.imageCache
       ..clear()
       ..clearLiveImages();
-    _write(next);
   }
 
-  /// Whether the app may quit by itself after [turn]. Apple asks apps not to (App Review
+  /// Turn the open vault's mode on or off, then end the run.
+  static Future<void> turn(bool next) async {
+    await setTopSecret(topSecret: next);
+    await endRun();
+  }
+
+  /// Whether the app may quit by itself after [endRun]. Apple asks apps not to (App Review
   /// may treat it as a crash), so on iPhone and iPad the person closes it.
   static bool get closesItself => debugClosesItself ?? !Platform.isIOS;
 
   /// Mockups: act as a platform that quits by itself (or as iPhone, which does not).
   static bool? debugClosesItself;
-
-  static RunMode _mode(bool on) => on ? RunMode.topSecret : RunMode.everyday;
-
-  static void _write(bool next) {
-    if (_support.isEmpty) return;
-    final f = File('$_support${Platform.pathSeparator}$startFile');
-    final part = File('${f.path}.part');
-    part.writeAsStringSync(next ? 'on' : 'off', flush: true);
-    part.renameSync(f.path);
-  }
 }

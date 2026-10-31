@@ -6,7 +6,9 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../secret_key_store.dart';
+import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
+import '../sync/drive.dart' show driveAccount, driveSignInQuietly;
 import '../theme.dart';
 import '../widgets/secret.dart';
 import '../widgets/identity.dart';
@@ -16,18 +18,28 @@ import '../widgets/bottom_bar.dart';
 import '../widgets/toast.dart';
 import 'welcome.dart';
 
-/// Delete the open vault, confirmed with its own password (no PIN since 2026-10-28). In the opposite brightness (light when the app is dark, and the reverse), so it is
-/// never taken for the lock screen. Wrong passwords count towards the same waits as the lock screen.
+/// Delete a vault from this device, confirmed with its own password (no PIN since
+/// 2026-10-28): the open one ([vault]), or another one from Vaults on this device
+/// ([otherId], which pops true when it went). Its copy in Google Drive goes too only when
+/// the person ticks it (owner 2026-10-31). In the opposite brightness (light when the app
+/// is dark, and the reverse), so it is never taken for the lock screen. Wrong passwords
+/// count towards the same waits as the lock screen.
 class DeleteVaultScreen extends StatefulWidget {
   const DeleteVaultScreen({
     super.key,
     required this.libraryDir,
-    required this.vault,
+    this.vault,
+    this.otherId,
     required this.sizeText,
-  });
+  }) : assert((vault == null) != (otherId == null));
 
   final String libraryDir;
-  final rust.VaultInfo vault;
+  final rust.VaultInfo? vault;
+  /// A vault that is not open.
+  final String? otherId;
+
+  /// Mockups: act as if a Google account were added.
+  static bool debugDrive = false;
   /// "214 MB · 86 items", what goes with it.
   final String sizeText;
 
@@ -39,6 +51,10 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
   final _pw = TextEditingController();
   String? _error;
   bool _busy = false;
+  /// Also delete its copy in Google Drive (only offered with a Google account here).
+  bool _alsoDrive = false;
+
+  String get _id => widget.vault?.id ?? widget.otherId!;
 
   /// The password typed is not kept while the vault is locked (the countdown, if open,
   /// closes as Cancel).
@@ -71,7 +87,10 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
         if (mounted) setState(() => _busy = false);
         return;
       }
-      final ok = await rust.deleteVault(dir: widget.libraryDir, password: _pw.text);
+      final id = _id;
+      final ok = widget.otherId != null
+          ? await rust.deleteOtherVault(dir: widget.libraryDir, vaultId: id, password: _pw.text)
+          : await rust.deleteVault(dir: widget.libraryDir, password: _pw.text);
       if (!ok) {
         await PinStore.addPasswordFail();
         HapticFeedback.heavyImpact();
@@ -85,7 +104,14 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       }
       await PinStore.resetPasswordFails();
       _pw.clear();
+      if (_alsoDrive && !await _deleteFromDrive(id) && mounted) {
+        showToast(context, l.deleteDriveFailed, icon: Icons.error_outline_rounded);
+      }
       if (!mounted) return;
+      if (widget.otherId != null) {
+        Navigator.of(context).pop(true);
+        return;
+      }
       await LockGuard.clearCopied();
       if (!mounted) return;
       final any = rust.hasVaults(dir: widget.libraryDir);
@@ -122,6 +148,17 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
     }
   }
 
+  Future<bool> _deleteFromDrive(String id) async {
+    try {
+      final session = await driveSignInQuietly();
+      if (session == null) return false;
+      await sync.driveDeleteVault(token: session.token, vaultId: id);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final inverted = Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark;
@@ -152,7 +189,10 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
               constraints: const BoxConstraints(maxWidth: 380),
               child: Column(
                 children: [
-                  VaultBadge(icon: widget.vault.icon, color: widget.vault.color, size: 64),
+                  if (widget.vault case final v?)
+                    VaultBadge(icon: v.icon, color: v.color, size: 64)
+                  else
+                    Icon(Icons.lock_rounded, size: 56, color: ink.withValues(alpha: .7)),
                   const SizedBox(height: 14),
                   Text(l.deleteVaultTitle,
                       textAlign: TextAlign.center,
@@ -185,6 +225,18 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
                     onChanged: (_) => setState(() => _error = null),
                     onSubmitted: (_) => _pw.text.isNotEmpty && !_busy ? _confirm() : null,
                   ),
+                  if (driveAccount != null || DeleteVaultScreen.debugDrive) ...[
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      key: const ValueKey('delete-also-drive'),
+                      value: _alsoDrive,
+                      onChanged: _busy ? null : (v) => setState(() => _alsoDrive = v ?? false),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l.deleteAlsoDrive, style: TextStyle(color: ink, fontSize: CsType.subhead)),
+                      subtitle: Text(l.deleteDriveNote, style: TextStyle(color: ink.withValues(alpha: .7), fontSize: CsType.footnote)),
+                    ),
+                  ],
                 ],
               ),
             ),

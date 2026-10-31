@@ -89,6 +89,8 @@ pub struct VaultInfo {
     pub icon: String,
     pub color: String,
     pub has_password: bool,
+    /// Top Secret Mode for this vault (ADR 0007).
+    pub top_secret: bool,
 }
 
 /// Errors Dart shows to the user; each maps to a translated message.
@@ -111,6 +113,9 @@ pub enum VaultError {
     /// The library, backup or sync place asks for a password-hashing cost below the
     /// least any release uses: its files were changed by someone. Nothing is opened.
     WeakKdf,
+    /// The vault is in Top Secret Mode and this run opened an everyday vault: the app must
+    /// start again before it opens (api/run.rs). Nothing was opened.
+    RestartForMode,
     Storage,
 }
 
@@ -220,28 +225,40 @@ pub fn create_vault(dir: String, name: String, password: String) -> Result<Vault
     let password = Zeroizing::new(password);
     let library = library(&dir)?;
     let vault = library.create_vault(&name, &password)?;
-    Ok(set_open(vault))
+    set_open(vault)
 }
 
-/// Create a vault known by its icon and colour, opened by `password`, and leave it
-/// open (the new-vault flow since the PIN went). Runs Argon2id: call it off the UI thread.
+/// Create a vault known by its icon and colour, opened by `password`, in its mode
+/// (ADR 0007), and leave it open (the new-vault flow since the PIN went).
+/// [`VaultError::RestartForMode`]: made, but this run cannot open it. Runs Argon2id: call
+/// it off the UI thread.
 pub fn create_vault_with_password(
     dir: String,
     icon: String,
     color: String,
     password: String,
+    top_secret: bool,
 ) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
     let library = library(&dir)?;
-    let vault = library.create_vault_with_password(&icon, &color, &password)?;
-    Ok(set_open(vault))
+    let vault = library.create_vault_in_mode(&icon, &color, &password, top_secret)?;
+    set_open(vault)
+}
+
+/// Turn Top Secret Mode on or off for the open vault. The caller then ends the run
+/// ([`super::run::end_run`]) and the app starts again.
+pub fn set_top_secret(top_secret: bool) -> Result<VaultInfo, VaultError> {
+    change_open(|v| {
+        v.set_top_secret(top_secret)?;
+        Ok(info_of(v))
+    })
 }
 
 /// Open the vault this password belongs to; `None` when no vault matches.
 pub fn unlock(dir: String, password: String) -> Result<Option<VaultInfo>, VaultError> {
     let password = Zeroizing::new(password);
     let library = library(&dir)?;
-    Ok(library.unlock(&password)?.map(set_open))
+    library.unlock(&password)?.map(set_open).transpose()
 }
 
 /// Whether `password` opens the vault that is open now: asked before its Recovery Key
@@ -271,7 +288,9 @@ pub fn unlock_with_biometric(dir: String, key: Vec<u8>) -> Result<Option<VaultIn
         return Ok(None);
     };
     let key = cs_crypto::Key::from_bytes(bytes);
-    Ok(Library::unlock_biometric(super::run::library_dir(&dir)?, &key)?.map(set_open))
+    Library::unlock_biometric(super::run::library_dir(&dir)?, &key)?
+        .map(set_open)
+        .transpose()
 }
 
 /// Turn on biometric unlock for the open vault (off for the others). Returns the key Dart
@@ -507,7 +526,9 @@ pub fn unlock_with_pin(
     let Some(dk) = key_from(&device_key) else {
         return Ok(None);
     };
-    Ok(Library::unlock_pin(super::run::library_dir(&dir)?, &pin, &dk)?.map(set_open))
+    Library::unlock_pin(super::run::library_dir(&dir)?, &pin, &dk)?
+        .map(set_open)
+        .transpose()
 }
 
 /// Set the PIN for the open vault (replaces any PIN on this device).
@@ -555,7 +576,7 @@ pub fn create_vault_with_pin(
     let library = library(&dir)?;
     let vault =
         library.create_vault_with_pin(&icon, &color, &pin, &dk, params_for_this_device())?;
-    Ok(set_open(vault))
+    set_open(vault)
 }
 
 /// Set or change the open vault's password (instant: re-wraps the vault key).
@@ -600,6 +621,7 @@ fn info_of(vault: &OpenVault) -> VaultInfo {
         icon: vault.icon.clone(),
         color: vault.color.clone(),
         has_password: vault.has_password(),
+        top_secret: vault.top_secret,
     }
 }
 
@@ -616,10 +638,19 @@ pub fn open_vault_info() -> Option<VaultInfo> {
     OPEN.glance().map(|g| g.info)
 }
 
-/// The vault just opened becomes the open one (the one a sync still holds, if the same).
-pub(crate) fn set_open(vault: OpenVault) -> VaultInfo {
-    super::run::vault_opened();
-    OPEN.put(vault).info
+/// The vault just opened becomes the open one (the one a sync still holds, if the same),
+/// when this run may open it in its mode ([`super::run::vault_opening`]); otherwise it is
+/// dropped (keys wiped) and [`VaultError::RestartForMode`]. Opening it with its password,
+/// Face ID or PIN keeps it: a deletion set for it is dropped.
+pub(crate) fn set_open(vault: OpenVault) -> Result<VaultInfo, VaultError> {
+    super::run::vault_opening(vault.top_secret)?;
+    if let Some(library) = vault.dir().parent().and_then(std::path::Path::parent) {
+        if Library::delete_at(library, &vault.id).is_some() {
+            Library::cancel_delete(library, &vault.id)?;
+            debug_line(|| "vault opened: its deletion is cancelled".into());
+        }
+    }
+    Ok(OPEN.put(vault).info)
 }
 
 /// An item as the vault shows it. Content and preview are fetched separately.
@@ -996,6 +1027,8 @@ pub struct VaultSlot {
     pub has_biometric: bool,
     /// The vault open now.
     pub is_open: bool,
+    /// When it will be deleted (ms since the epoch), when a deletion is set.
+    pub delete_at_ms: Option<i64>,
 }
 
 /// Every vault on this device (Debug → Vaults on this device).
@@ -1010,8 +1043,67 @@ pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
             has_password: s.has_password,
             has_pin: s.has_pin,
             has_biometric: s.has_biometric,
+            delete_at_ms: s.delete_at_ms,
         })
         .collect())
+}
+
+/// Delete a vault that is not open, confirmed by its own password: the password must open
+/// that very vault (it is opened only to check, never kept). False for any other password.
+/// Runs Argon2id: call it off the UI thread.
+pub fn delete_other_vault(
+    dir: String,
+    vault_id: String,
+    password: String,
+) -> Result<bool, VaultError> {
+    let password = Zeroizing::new(password);
+    if OPEN.open_id().as_deref() == Some(vault_id.as_str()) {
+        return Ok(false);
+    }
+    let library = library(&dir)?;
+    match library.unlock(&password)? {
+        Some(v) if v.id == vault_id => {
+            v.destroy()?;
+            Library::cancel_delete(super::run::library_dir(&dir)?, &vault_id)?;
+            debug_line(|| "delete vault with its password: done".into());
+            Ok(true)
+        }
+        _ => Ok(false),
+    }
+}
+
+/// Set a vault whose password is forgotten to be deleted at `at_ms` (seven days on);
+/// never the open one. The app asks the phone's owner first.
+pub fn schedule_vault_delete(
+    dir: String,
+    vault_id: String,
+    at_ms: i64,
+) -> Result<bool, VaultError> {
+    if OPEN.open_id().as_deref() == Some(vault_id.as_str()) {
+        return Ok(false);
+    }
+    Library::schedule_delete(super::run::library_dir(&dir)?, &vault_id, at_ms)?;
+    debug_line(|| "vault set to be deleted".into());
+    Ok(true)
+}
+
+/// Keep a vault set to be deleted.
+pub fn cancel_vault_delete(dir: String, vault_id: String) -> Result<(), VaultError> {
+    Ok(Library::cancel_delete(
+        super::run::library_dir(&dir)?,
+        &vault_id,
+    )?)
+}
+
+/// Delete the vaults whose time has come (at start and on the vault list), never the open
+/// one. How many went.
+pub fn purge_due_vaults(dir: String, now_ms: i64) -> Result<u32, VaultError> {
+    let open = OPEN.open_id();
+    let gone = Library::purge_due(super::run::library_dir(&dir)?, now_ms, open.as_deref())?;
+    if !gone.is_empty() {
+        debug_line(|| format!("deleted {} vault(s) whose time came", gone.len()));
+    }
+    Ok(gone.len() as u32)
 }
 
 /// Delete a vault whose password and PIN are forgotten, without opening it; never the

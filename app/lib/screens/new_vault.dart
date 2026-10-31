@@ -67,19 +67,22 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   final _pw = TextEditingController();
   final _pwAgain = TextEditingController();
   rust.VaultInfo? _vault;
-  /// The mode chosen on [_Step.mode].
+  /// The mode chosen on [_Step.mode]: this vault's own (ADR 0007).
   bool _topSecret = TopSecretMode.on;
+  /// Face ID opens one vault per device; while another vault has it, making this one does
+  /// not ask (owner 2026-10-31: asking took it from the other). Settings can move it.
+  late final bool _bioTaken = rust.hasBiometricUnlock(dir: widget.libraryDir);
 
   /// One thing per step, said briefly (owner 2026-10-24: no screen explaining all three
   /// at once). The first vault starts from the welcome screen, so it has no intro.
   List<_Step> get _steps => [
         if (!widget.first) _Step.intro,
-        // The first vault chooses Top Secret Mode or not (ADR 0006, owner 2026-10-31:
+        // Every vault chooses Top Secret Mode or not, its own (ADR 0007, owner 2026-10-31:
         // with the differences listed, and said it can change later).
-        if (widget.first && !NewVaultScreen.debugSkipMode) _Step.mode,
+        if (!NewVaultScreen.debugSkipMode) _Step.mode,
         _Step.password,
         if (_newWords) ...[_Step.words, _Step.check],
-        if (_bioKind != null) _Step.biometric,
+        if (_bioKind != null && !_bioTaken) _Step.biometric,
         _Step.icon,
       ];
 
@@ -188,10 +191,18 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
               icon: vaultIcons[_icon].id,
               color: vaultColors[_color].id,
               password: _pw.text,
+              topSecret: _topSecret,
             )
           : await rust.setPassword(dir: widget.libraryDir, password: _pw.text);
     } on rust.VaultError catch (e) {
       if (!mounted) return;
+      // Made, but a Top secret vault cannot open after an everyday one in this run: the
+      // app starts again and it is unlocked with its password.
+      if (e == rust.VaultError.restartForMode) {
+        _pw.clear();
+        _pwAgain.clear();
+        return restartForMode(context);
+      }
       setState(() {
         _busy = false;
         _step = _Step.password;
@@ -213,7 +224,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     _bioKind ??= await BiometricUnlock.available();
     if (!mounted) return;
     setState(() => _busy = false);
-    _go(_bioKind != null ? _Step.biometric : _Step.icon);
+    _go(_bioKind != null && !_bioTaken ? _Step.biometric : _Step.icon);
   }
 
   // ---------- look, then in ----------
@@ -238,6 +249,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       } catch (_) {} // the suggested look stays; it can be changed in Settings
     }
     if (!mounted) return;
+    TopSecretMode.opened(vault);
     // The root: from a computer's right-hand pane the vault replaces the whole window.
     final nav = Navigator.of(context, rootNavigator: true);
     await playVaultSpin(
@@ -502,10 +514,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     return switch (_step) {
       _Step.intro => button(const ValueKey('intro-start'), l.introStart,
           _words == null && NewVaultScreen.debugWords == null && widget.first ? null : () => _go(_steps[1])),
-      _Step.mode => button(const ValueKey('mode-next'), l.pinNext, () {
-          TopSecretMode.choose(_topSecret);
-          _go(_Step.password);
-        }),
+      _Step.mode => button(const ValueKey('mode-next'), l.pinNext, () => _go(_Step.password)),
       _Step.words => button(const ValueKey('words-done'), l.wordsWritten, () {
           _checkOk = false;
           _go(_Step.check);
@@ -561,7 +570,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       const SizedBox(height: 16),
       const TopSecretCompare(),
       const SizedBox(height: 10),
-      Text(l.modeChangeLater, style: TextStyle(color: ink.withValues(alpha: .6), fontSize: CsType.footnote, height: 1.35)),
+      Text('${l.topSecretPerVault} ${l.modeChangeLater}', style: TextStyle(color: ink.withValues(alpha: .6), fontSize: CsType.footnote, height: 1.35)),
     ]);
   }
 

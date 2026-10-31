@@ -71,6 +71,7 @@ const _vault = VaultInfo(
   icon: 'home',
   color: 'green',
   hasPassword: true,
+  topSecret: false,
 );
 
 Future<void> _open(WidgetTester t) async {

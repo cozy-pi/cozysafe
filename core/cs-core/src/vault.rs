@@ -38,6 +38,8 @@ pub const VAULTS_DIR: &str = "vaults";
 pub const HEADER_FILE: &str = "header.json";
 /// Master Key wrapped by a key that lives in the platform keystore behind biometrics.
 const BIOMETRIC_FILE: &str = "biometric";
+/// Vaults set to be deleted later, one file per vault id ([`Library::schedule_delete`]).
+const DELETE_AT_DIR: &str = "delete-at";
 
 use crate::format::{KdfJson, LibraryHeader, VaultHeader, VaultMeta};
 
@@ -55,6 +57,8 @@ pub struct OpenVault {
     pub name: String,
     pub icon: String,
     pub color: String,
+    /// Top Secret Mode for this vault (ADR 0007), sealed in its meta.
+    pub top_secret: bool,
     pub(crate) dir: PathBuf,
     pub(crate) master_key: Key,
     pub(crate) index: db::Index,
@@ -158,6 +162,7 @@ impl Library {
                 has_password: header.has_password(),
                 has_pin: entry.path().join(pin::PIN_FILE).is_file(),
                 has_biometric: entry.path().join(BIOMETRIC_FILE).is_file(),
+                delete_at_ms: Library::delete_at(dir, &id),
                 id,
             });
         }
@@ -176,7 +181,70 @@ impl Library {
         }
         fs::remove_file(vault_dir.join(HEADER_FILE))?;
         fs::remove_dir_all(&vault_dir)?;
+        Library::cancel_delete(dir, &id)?;
         Ok(())
+    }
+
+    /// Set a vault whose password is forgotten to be deleted at `at_ms` (the app: seven
+    /// days on). Kept beside the vaults, not in the vault's folder (backups and sync
+    /// carry that folder), as `delete-at/<id>`: the time in the clear, as the vault's
+    /// size already is. The caller asked the phone's owner first.
+    pub fn schedule_delete(dir: &Path, vault_id: &str, at_ms: i64) -> Result<()> {
+        let id = id_name(vault_id).ok_or(Error::Corrupt("vault id"))?;
+        if !dir.join(VAULTS_DIR).join(&id).join(HEADER_FILE).is_file() {
+            return Err(Error::Corrupt("no such vault"));
+        }
+        fs::create_dir_all(dir.join(DELETE_AT_DIR))?;
+        write_atomic(
+            &dir.join(DELETE_AT_DIR).join(&id),
+            at_ms.to_string().as_bytes(),
+        )
+    }
+
+    /// When `vault_id` is set to be deleted, if it is.
+    pub fn delete_at(dir: &Path, vault_id: &str) -> Option<i64> {
+        let id = id_name(vault_id)?;
+        fs::read_to_string(dir.join(DELETE_AT_DIR).join(id))
+            .ok()?
+            .trim()
+            .parse()
+            .ok()
+    }
+
+    /// Keep the vault after all: its deletion is dropped (it opened with its password,
+    /// or the owner cancelled).
+    pub fn cancel_delete(dir: &Path, vault_id: &str) -> Result<()> {
+        let id = id_name(vault_id).ok_or(Error::Corrupt("vault id"))?;
+        remove_if_exists(&dir.join(DELETE_AT_DIR).join(id))
+    }
+
+    /// Delete every vault whose time has come, never `open_id`. The ids deleted.
+    pub fn purge_due(dir: &Path, now_ms: i64, open_id: Option<&str>) -> Result<Vec<String>> {
+        let entries = match fs::read_dir(dir.join(DELETE_AT_DIR)) {
+            Ok(d) => d,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(e) => return Err(e.into()),
+        };
+        let mut gone = Vec::new();
+        for entry in entries.flatten() {
+            let Some(id) = id_name(&entry.file_name().to_string_lossy()) else {
+                continue;
+            };
+            if open_id == Some(id.as_str()) {
+                continue;
+            }
+            match Library::delete_at(dir, &id) {
+                Some(at) if at <= now_ms => {}
+                _ => continue,
+            }
+            if dir.join(VAULTS_DIR).join(&id).join(HEADER_FILE).is_file() {
+                Library::destroy_unopened(dir, &id)?;
+            } else {
+                Library::cancel_delete(dir, &id)?;
+            }
+            gone.push(id);
+        }
+        Ok(gone)
     }
 
     pub fn has_vaults(dir: &Path) -> bool {
@@ -331,10 +399,23 @@ impl Library {
         color: &str,
         password: &str,
     ) -> Result<OpenVault> {
+        self.create_vault_in_mode(icon, color, password, false)
+    }
+
+    /// [`Library::create_vault_with_password`] in a chosen mode: each vault has its own
+    /// (ADR 0007).
+    pub fn create_vault_in_mode(
+        &self,
+        icon: &str,
+        color: &str,
+        password: &str,
+        top_secret: bool,
+    ) -> Result<OpenVault> {
         self.create_with_meta(
             VaultMeta {
                 icon: icon.to_owned(),
                 color: color.to_owned(),
+                top_secret,
                 ..Default::default()
             },
             password,
@@ -380,6 +461,7 @@ impl Library {
             name: meta.name,
             icon: meta.icon,
             color: meta.color,
+            top_secret: meta.top_secret,
             dir: vault_dir,
             master_key,
             index,
@@ -520,6 +602,7 @@ impl Library {
             name: String::new(),
             icon: meta.icon,
             color: meta.color,
+            top_secret: meta.top_secret,
             dir: vault_dir,
             master_key,
             index,
@@ -714,6 +797,8 @@ pub struct VaultSlot {
     pub has_password: bool,
     pub has_pin: bool,
     pub has_biometric: bool,
+    /// When it will be deleted (ms since the epoch), when a deletion is set for it.
+    pub delete_at_ms: Option<i64>,
 }
 
 /// What came of [`Library::change_secret_key_all`].
@@ -765,12 +850,26 @@ impl OpenVault {
 
     /// Change the icon and colour (sealed with the Master Key like the rest of the meta).
     pub fn set_identity(&mut self, icon: &str, color: &str) -> Result<()> {
-        let mut header = read_header(&self.dir).ok_or(Error::Corrupt("vault header"))?;
-        let meta = VaultMeta {
+        self.write_meta(VaultMeta {
             name: self.name.clone(),
             icon: icon.to_owned(),
             color: color.to_owned(),
-        };
+            top_secret: self.top_secret,
+        })
+    }
+
+    /// Turn Top Secret Mode on or off for this vault (ADR 0007), sealed in its meta.
+    pub fn set_top_secret(&mut self, on: bool) -> Result<()> {
+        self.write_meta(VaultMeta {
+            name: self.name.clone(),
+            icon: self.icon.clone(),
+            color: self.color.clone(),
+            top_secret: on,
+        })
+    }
+
+    fn write_meta(&mut self, meta: VaultMeta) -> Result<()> {
+        let mut header = read_header(&self.dir).ok_or(Error::Corrupt("vault header"))?;
         header.meta = crate::hex::encode(wrap::seal(
             &self.master_key,
             &meta.to_json(),
@@ -779,6 +878,7 @@ impl OpenVault {
         write_atomic(&self.dir.join(HEADER_FILE), &header.to_json_pretty())?;
         self.icon = meta.icon;
         self.color = meta.color;
+        self.top_secret = meta.top_secret;
         Ok(())
     }
 
@@ -871,6 +971,7 @@ pub fn open_with(
         name: meta.name,
         icon: meta.icon,
         color: meta.color,
+        top_secret: meta.top_secret,
         dir,
         master_key,
         index,
@@ -1017,6 +1118,54 @@ pub mod tests {
         })
         .unwrap()
         .id
+    }
+
+    #[test]
+    fn a_vault_set_for_deletion_goes_when_its_time_comes() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = lib(tmp.path());
+        let a = l.create_vault("A", pw_a()).unwrap().id.clone();
+        let b = l.create_vault("B", pw_b()).unwrap().id.clone();
+        Library::schedule_delete(tmp.path(), &a, 100).unwrap();
+        Library::schedule_delete(tmp.path(), &b, 100).unwrap();
+        assert_eq!(Library::delete_at(tmp.path(), &a), Some(100));
+        assert!(Library::purge_due(tmp.path(), 99, None).unwrap().is_empty());
+        // Never the open one.
+        assert_eq!(
+            Library::purge_due(tmp.path(), 100, Some(&b)).unwrap(),
+            vec![a.clone()]
+        );
+        assert!(l.unlock(pw_a()).unwrap().is_none());
+        Library::cancel_delete(tmp.path(), &b).unwrap();
+        assert!(Library::purge_due(tmp.path(), 1_000, None)
+            .unwrap()
+            .is_empty());
+        assert!(l.unlock(pw_b()).unwrap().is_some());
+        assert_eq!(Library::delete_at(tmp.path(), &a), None);
+    }
+
+    #[test]
+    fn each_vault_keeps_its_own_mode_sealed() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = lib(tmp.path());
+        let a = l.create_vault_in_mode("i", "c", pw_a(), true).unwrap();
+        let b = l.create_vault_in_mode("i", "c", pw_b(), false).unwrap();
+        assert!(a.top_secret && !b.top_secret);
+        let header = fs::read_to_string(a.dir.join(HEADER_FILE)).unwrap();
+        assert!(
+            !header.contains("top_secret"),
+            "the mode is sealed, not in the clear"
+        );
+        drop((a, b));
+        let mut a = l.unlock(pw_a()).unwrap().unwrap();
+        assert!(a.top_secret);
+        assert!(!l.unlock(pw_b()).unwrap().unwrap().top_secret);
+        a.set_identity("j", "d").unwrap();
+        assert!(a.top_secret, "a new look keeps the mode");
+        a.set_top_secret(false).unwrap();
+        drop(a);
+        let a = l.unlock(pw_a()).unwrap().unwrap();
+        assert!(!a.top_secret && a.icon == "j");
     }
 
     #[test]

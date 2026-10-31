@@ -19,10 +19,12 @@ import 'common.dart';
 import 'debug.dart' show debugModeOn;
 import 'new_vault.dart';
 import 'restore.dart';
+import 'top_secret_page.dart' show restartForMode;
 import 'vault_home.dart';
 import '../theme.dart';
 import '../widgets/drive_logo.dart';
 import '../widgets/readable.dart';
+import '../top_secret_mode.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
 /// vault password is the fallback (decisions 2026-10-28: no more PIN, it was the
@@ -185,6 +187,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
         });
       }
     } on rust.VaultError catch (e) {
+      if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
       if (mounted) setState(() => _error = vaultErrorText(l, e));
     } finally {
       if (mounted && !_leaving) {
@@ -265,6 +268,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       });
       if (wait > Duration.zero) _startWait(DateTime.now().add(wait));
     } on rust.VaultError catch (e) {
+      if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
       if (mounted) setState(() => _error = vaultErrorText(l, e));
     } finally {
       if (mounted && !_leaving) setState(() => _busy = false);
@@ -329,6 +333,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       }
       if (_busy) setState(() => _error = l.wrongPassword);
     } on rust.VaultError catch (e) {
+      if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
       if (mounted && _busy) setState(() => _error = vaultErrorText(l, e));
     } catch (_) {
       if (mounted && _busy) setState(() => _error = l.errorStorage);
@@ -355,6 +360,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       await _maybeOfferBiometric(l);
     }
     if (!mounted) return;
+    TopSecretMode.opened(vault);
     final nav = Navigator.of(context);
     await playVaultSpin(context, opening: true,
         behind: revealIconOn() ? VaultBadge(icon: vault.icon, color: vault.color, size: 120) : null,

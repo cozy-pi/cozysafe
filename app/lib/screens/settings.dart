@@ -39,6 +39,7 @@ import '../sync/sync_screen.dart';
 import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
 import 'top_secret_page.dart';
+import 'vault_manager.dart';
 import '../widgets/edge_swipe_back.dart';
 
 /// Per-device choices, kept next to the library (not secret).
@@ -469,6 +470,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ));
   }
 
+  Future<void> _openVaults() async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => Readable(
+        child: VaultManagerScreen(libraryDir: widget.libraryDir, onDeleteOpen: () => _guarded(_deleteVault)),
+      ),
+    ));
+    if (mounted) setState(() {});
+  }
+
   Future<void> _pickLanguage() async {
     final l = AppLocalizations.of(context);
     final picked = await pushPage<String>(
@@ -525,6 +535,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    _rev.dispose();
     _scroll.dispose();
     _figures.dispose();
     super.dispose();
@@ -542,13 +553,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// The row just reached from the tour, lit up for a moment.
   SettingsSpot? _lit;
 
-  /// The page on show.
+  /// The page drawn by this screen: the main page, or (mockups only, [SettingsScreen.debugPage])
+  /// a sub-page in place.
   _Page _page = _Page.values.asNameMap()[SettingsScreen.debugPage] ?? _Page.main;
 
-  void _show(_Page page) {
-    if (_page == page) return;
-    setState(() => _page = page);
-    if (_scroll.hasClients) _scroll.jumpTo(0);
+  /// Bumped on every [setState], so a sub-page pushed over this screen redraws too.
+  final _rev = ValueNotifier(0);
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _rev.value++;
+  }
+
+  /// The list of the sub-page on show over this screen.
+  ScrollController? _subScroll;
+
+  /// [key] while [page] is the one this screen draws; null on a pushed sub-page, whose
+  /// main page stays built underneath with the same keys (the User guide's targets).
+  GlobalKey? _here(GlobalKey key, _Page page) => page == _page ? key : null;
+
+  /// A sub-page slides in as a page of its own, like Top Secret Mode (owner 2026-10-31:
+  /// the in-place pages felt poor); Back and the edge swipe come with the route.
+  Future<void> _show(_Page page) async {
+    if (page == _Page.main) {
+      if (_page != _Page.main) setState(() => _page = _Page.main);
+      return;
+    }
+    final scroll = ScrollController();
+    _subScroll = scroll;
+    await pushPage<void>(
+      context,
+      title: _pageTitle(AppLocalizations.of(context), page),
+      grouped: true,
+      builder: (context) => ValueListenableBuilder<int>(
+        valueListenable: _rev,
+        builder: (context, _, _) => ListView(
+          key: ValueKey('settings-page-${page.name}'),
+          controller: scroll,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+          children: _children(AppLocalizations.of(context), page),
+        ),
+      ),
+    );
+    if (_subScroll == scroll) _subScroll = null;
+    scroll.dispose();
+    if (mounted) setState(() {});
   }
 
   String _pageTitle(AppLocalizations l, _Page page) => switch (page) {
@@ -600,6 +650,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // people must know the feature exists).
       _TopSecretCard(onTap: _openTopSecret),
       SettingsGroup(rows: [
+        // Every vault here, to delete one (owner 2026-10-31).
+        SettingsRow(
+          key: const ValueKey('vaults-row'),
+          icon: Icons.inventory_2_rounded,
+          color: SettingsHue.cam,
+          title: l.vaultManagerTitle,
+          onTap: _openVaults,
+        ),
         nav(_Page.history, Icons.history_rounded, SettingsHue.ngoc),
         nav(_Page.look, Icons.palette_rounded, SettingsHue.cham),
         KeyedSubtree(key: _guideRowKey, child: nav(_Page.help, Icons.help_rounded, SettingsHue.xam)),
@@ -612,10 +670,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _goTo(SettingsSpot spot) async {
     if (!mounted) return;
     if (spot == SettingsSpot.sync) return _openSync();
-    _show(_pageOf(spot));
-    await WidgetsBinding.instance.endOfFrame;
+    unawaited(_show(_pageOf(spot)));
+    // The page slides in first.
+    await Future<void>.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
-    final row = await _build(_spotKeys[spot]!);
+    final row = await _build(_spotKeys[spot]!, _subScroll ?? _scroll);
     if (row == null || !row.mounted || !mounted) return;
     setState(() => _lit = spot);
     await Scrollable.ensureVisible(row, alignment: .4, duration: const Duration(milliseconds: 400), curve: Curves.easeOutCubic);
@@ -625,12 +684,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// [key]'s widget, built: rows far down are not built yet, so the list moves down a
   /// screen at a time until it is.
-  Future<BuildContext?> _build(GlobalKey key) async {
+  Future<BuildContext?> _build(GlobalKey key, [ScrollController? list]) async {
+    final scroll = list ?? _scroll;
     var row = key.currentContext;
-    for (var i = 0; row == null && i < 12 && _scroll.hasClients; i++) {
-      final p = _scroll.position;
+    for (var i = 0; row == null && i < 12 && scroll.hasClients; i++) {
+      final p = scroll.position;
       if (p.pixels >= p.maxScrollExtent) break;
-      _scroll.jumpTo((p.pixels + p.viewportDimension).clamp(0, p.maxScrollExtent));
+      scroll.jumpTo((p.pixels + p.viewportDimension).clamp(0, p.maxScrollExtent));
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted) return null;
       row = key.currentContext;
@@ -719,15 +779,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _tour() {
     widget.onTour?.call();
-    Navigator.of(context).pop();
+    // Help is a page of its own over Settings: both close.
+    final me = ModalRoute.of(context);
+    final nav = Navigator.of(context);
+    nav.popUntil((r) => r == me);
+    nav.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final vault = widget.vault();
-    final dark = Theme.of(context).brightness == Brightness.dark;
-
     final main = _page == _Page.main;
     return PopScope(
       // A sub-page goes back to the main page first.
@@ -758,17 +819,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         controller: _scroll,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
-          if (_page == _Page.main) ...[
+          ..._children(l, _page),
+        ],
+      ),
+    )))));
+  }
+
+  /// What [page] shows: the main page, or one sub-page (pushed as a page of its own, or
+  /// in place for mockups).
+  List<Widget> _children(AppLocalizations l, _Page page) {
+    final vault = widget.vault();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return [
+          if (page == _Page.main) ...[
             _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), figures: _figures.value, onTap: _openStorage),
             ..._mainRows(l),
           ],
           // Most important first, like with like (owner 2026-10-27). Groups still have no
           // names (owner 2026-10-26): the gaps set them apart.
           // 1. A copy elsewhere: syncing is done often (owner 2026-10-25), the backup file with it.
-          if (_page == _Page.syncBackup) SettingsGroup(rows: [
+          if (page == _Page.syncBackup) SettingsGroup(rows: [
             if (!kIsWeb)
               KeyedSubtree(
-                key: _syncRowKey,
+                key: _here(_syncRowKey, page),
                 child: SettingsRow(
                   key: const ValueKey('sync-row'),
                   icon: SettingsSpot.sync.icon,
@@ -780,7 +853,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             SettingsRow(
-              key: _backupRowKey,
+              key: _here(_backupRowKey, page) ?? const ValueKey('backup-row'),
               icon: Icons.cloud_upload_rounded,
               color: SettingsHue.xanh,
               title: l.backupToFile,
@@ -803,7 +876,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           // 2. The keys: how the vault opens here and on a new phone. Turning any of them
           // weaker asks for the owner first (docs/security.md).
-          if (_page == _Page.security) SettingsGroup(boxKey: _securityGroupKey, rows: [
+          if (page == _Page.security) SettingsGroup(boxKey: _here(_securityGroupKey, page), rows: [
             if (widget.canBiometric)
               SettingsRow(
                 icon: Icons.face_retouching_natural_rounded,
@@ -860,7 +933,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
           ]),
           // 3. What shows on screen and when it locks.
-          if (_page == _Page.security) SettingsGroup(boxKey: _shieldGroupKey, rows: [
+          if (page == _Page.security) SettingsGroup(boxKey: _here(_shieldGroupKey, page), rows: [
             _spot(
               SettingsSpot.autoLock,
               SettingsRow(
@@ -956,7 +1029,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ]),
           // 4. Getting things back: deleted items, older versions.
-          if (_page == _Page.history) SettingsGroup(rows: [
+          if (page == _Page.history) SettingsGroup(rows: [
             SettingsRow(
               icon: Icons.delete_sweep_rounded,
               color: SettingsHue.xam,
@@ -974,7 +1047,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ]),
           // 5. How it looks and where things are: nothing here protects the vault.
-          if (_page == _Page.look) SettingsGroup(rows: [
+          if (page == _Page.look) SettingsGroup(rows: [
             _spot(
               SettingsSpot.appearance,
               SettingsRow(
@@ -1031,11 +1104,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ]),
           // 6. Help: the guide, how the vault is protected, feedback, what went wrong.
-          if (_page == _Page.help) SettingsGroup(rows: [
+          if (page == _Page.help) SettingsGroup(rows: [
             // The guide again: tips on the vault's page, then here.
             if (widget.onTour != null)
               KeyedSubtree(
-                key: _guideRowKey,
+                key: _here(_guideRowKey, page),
                 child: SettingsRow(
                   key: const ValueKey('guide-row'),
                   icon: Icons.school_rounded,
@@ -1069,7 +1142,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           // One vault in the app (decisions 2026-10-24); another one only in debug mode, for
           // testing (the core keeps several).
-          if (debugModeOn() && _page == _Page.main)
+          if (debugModeOn() && page == _Page.main)
             SettingsGroup(rows: [
               SettingsRow(
                 key: const ValueKey('debug-new-vault'),
@@ -1079,7 +1152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: widget.onNewVault,
               ),
             ]),
-          if (_page == _Page.security) ...[
+          if (page == _Page.security) ...[
           const SizedBox(height: 22),
           Material(
             color: Theme.of(context).cardColor,
@@ -1100,7 +1173,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           // About: version and build (to match a phone with its release run, build =
           // 1000 + run), when and from which commit it was built, the licence.
-          if (_page == _Page.help) FutureBuilder<PackageInfo>(
+          if (page == _Page.help) FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
             builder: (context, snap) {
               final p = snap.data;
@@ -1153,9 +1226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 12),
           if (dark) const SizedBox(height: 4),
-        ],
-      ),
-    )))));
+    ];
   }
 }
 

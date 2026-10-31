@@ -912,12 +912,31 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     final l = AppLocalizations.of(context);
     final store = BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel);
+    // One vault per device opens with Face ID: taking it from another vault says so first
+    // (owner 2026-10-31).
+    if (!_bioOn && rust.hasBiometricUnlock(dir: widget.libraryDir) && !await _confirmBiometricMove(l)) return;
     if (_bioOn) {
       await turnOffBiometric(store);
     } else if (!await turnOnBiometric(store)) {
       if (mounted) _snack(l.biometricFailed);
     }
     if (mounted) setState(() => _bioOn = rust.biometricEnabled());
+  }
+
+  Future<bool> _confirmBiometricMove(AppLocalizations l) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const ValueKey('bio-move'),
+        title: Text(l.biometricMoveTitle),
+        content: Text(l.biometricMoveBody),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+          FilledButton(key: const ValueKey('bio-move-yes'), onPressed: () => Navigator.pop(context, true), child: Text(l.biometricMoveYes)),
+        ],
+      ),
+    );
+    return yes == true;
   }
 
   Future<void> _changeIdentity() async {

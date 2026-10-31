@@ -723,8 +723,8 @@ Color addWayColor(AddWhat w) => switch (w) {
 
 /// Every way to add, in the fixed order (camera and voice only where the device has them).
 List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
-      // Top secret takes nothing from the photo library (ADR 0005).
-      if (!TopSecretMode.on) (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
+      // Top secret too: photos come in as sealed files, never decoded (owner 2026-10-31).
+      (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, l.newNote),
@@ -756,7 +756,7 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
 List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
         {required bool camera, required bool voice}) =>
     [
-      if (!TopSecretMode.on) (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
+      (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),

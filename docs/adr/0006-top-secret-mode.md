@@ -1,6 +1,7 @@
 # ADR 0006: Top Secret Mode, one kind of vault
 
-- Status: accepted (owner, 2026-10-31)
+- Status: accepted (owner, 2026-10-31); the mode is per vault since
+  [ADR 0007](0007-mode-per-vault.md)
 - Replaces: [ADR 0005](0005-two-kinds-of-vault.md) (two kinds of vault)
 - Keeps: the Top secret core of ADR 0005 step 1 (`cs-core`, audited cryptography and
   SQLite only, built from copies in `third_party/`)

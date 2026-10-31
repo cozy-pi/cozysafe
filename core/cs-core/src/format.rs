@@ -235,26 +235,32 @@ impl VaultHeader {
     }
 }
 
-/// A vault's name and look, sealed with its Master Key (nothing on disk says what a vault
-/// is).
+/// A vault's name, look and mode, sealed with its Master Key (nothing on disk says what a
+/// vault is).
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct VaultMeta {
     pub name: String,
     pub icon: String,
     pub color: String,
+    /// Top Secret Mode (ADR 0007): nothing in this vault is decoded in the app. Written
+    /// only when on, so an everyday vault's meta is what it was before modes.
+    pub top_secret: bool,
 }
 
 impl VaultMeta {
     const WHAT: &'static str = "vault meta";
 
     pub fn to_json(&self) -> Vec<u8> {
-        json::to_vec(
-            &Object::new()
-                .str("name", &self.name)
-                .str("icon", &self.icon)
-                .str("color", &self.color)
-                .build(),
-        )
+        let o = Object::new()
+            .str("name", &self.name)
+            .str("icon", &self.icon)
+            .str("color", &self.color);
+        let o = if self.top_secret {
+            o.bool("top_secret", true)
+        } else {
+            o
+        };
+        json::to_vec(&o.build())
     }
 
     pub fn from_json(bytes: &[u8]) -> Result<Self> {
@@ -266,6 +272,7 @@ impl VaultMeta {
             name: s("name")?,
             icon: s("icon")?,
             color: s("color")?,
+            top_secret: may(f.bool("top_secret"), w)?.unwrap_or(false),
         })
     }
 }

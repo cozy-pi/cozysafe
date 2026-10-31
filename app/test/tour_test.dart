@@ -24,7 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true);
+const _vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
 
 class _Fake implements RustLibApi {
   int created = 0;
@@ -116,6 +116,9 @@ void main() {
     expect(find.byKey(const ValueKey('intro-bio')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('intro-start')));
     await _settle(t);
+    // Every vault chooses its own mode (ADR 0007).
+    await t.tap(find.byKey(const ValueKey('mode-next')));
+    await _settle(t);
     const password = 'orange kettle whispers at dawn';
     await t.enterText(find.descendant(of: find.byKey(const ValueKey('new-password')), matching: find.byType(TextField)), password);
     await t.enterText(
@@ -136,6 +139,9 @@ void main() {
     // What each key is for → the password (makes the vault; no PIN since 2026-10-28) →
     // the look (skipped). No Face ID on this device, so no Face ID step.
     await t.tap(find.byKey(const ValueKey('intro-start')));
+    await _settle(t);
+    // Every vault chooses its own mode (ADR 0007).
+    await t.tap(find.byKey(const ValueKey('mode-next')));
     await _settle(t);
     const password = 'orange kettle whispers at dawn';
     await t.enterText(find.descendant(of: find.byKey(const ValueKey('new-password')), matching: find.byType(TextField)), password);

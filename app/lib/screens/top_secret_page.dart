@@ -124,7 +124,8 @@ class TopSecretCompare extends StatelessWidget {
           row(l.compareNotesFiles, true, true),
           row(l.compareView, true, false),
           row(l.compareThumbs, true, false),
-          row(l.compareLibrary, true, false),
+          // Photos come in as sealed files, never looked at (owner 2026-10-31).
+          row(l.compareLibrary, true, true),
         ],
       ),
     );
@@ -163,7 +164,7 @@ class TopSecretModePage extends StatelessWidget {
         const TopSecretCompare(),
         const SizedBox(height: 10),
         Text(
-          l.topSecretRestarts,
+          '${l.topSecretPerVault} ${l.topSecretRestarts}',
           style: TextStyle(fontSize: CsType.footnote, height: 1.35, color: ink.withValues(alpha: .6)),
         ),
         const SizedBox(height: 20),
@@ -200,8 +201,10 @@ Future<void> turnTopSecretMode(BuildContext context, bool next) async {
 /// themselves, so this page asks the person to close Cozy Safe; nothing else can be done
 /// on it.
 class CloseAppPage extends StatelessWidget {
-  const CloseAppPage({super.key, required this.on});
+  const CloseAppPage({super.key, required this.on, this.forVault = false});
   final bool on;
+  /// A Top secret vault was asked to open after an everyday one ([restartForMode]).
+  final bool forVault;
 
   @override
   Widget build(BuildContext context) {
@@ -210,12 +213,30 @@ class CloseAppPage extends StatelessWidget {
     return ChoicePage(
       key: const ValueKey('close-app'),
       title: l.closeAppTitle,
-      lead: on ? l.closeAppBodyOn : l.closeAppBodyOff,
+      lead: forVault ? l.closeAppBodyVault : on ? l.closeAppBodyOn : l.closeAppBodyOff,
       mark: on ? const TopSecretMark(size: 72) : null,
       logo: !on,
-      choices: const [],
+      choices: [
+        if (forVault && TopSecretMode.closesItself)
+          FilledButton(key: const ValueKey('close-app-now'), onPressed: () => exit(0), child: Text(l.close)),
+      ],
     );
   }
+}
+
+/// A Top secret vault asked to open in a run that opened an everyday one
+/// (`VaultError.restartForMode`): nothing opened; the run ends and the person starts the
+/// app again, then unlocks that vault.
+Future<void> restartForMode(BuildContext context) async {
+  final nav = Navigator.of(context, rootNavigator: true);
+  await TopSecretMode.endRun();
+  nav.pushAndRemoveUntil(
+    PageRouteBuilder<void>(
+      transitionDuration: Duration.zero,
+      pageBuilder: (_, _, _) => const CloseAppPage(on: true, forVault: true),
+    ),
+    (_) => false,
+  );
 }
 
 /// [child] with Top Secret Mode's mark on its bottom-right corner, ringed in [ring] to

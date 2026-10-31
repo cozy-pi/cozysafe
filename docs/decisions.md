@@ -4,6 +4,19 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-31 (night) — Each vault has its own mode; Vaults on this device
+
+**Owner:** the mode belongs to each vault, chosen when any vault is made
+([ADR 0007](adr/0007-mode-per-vault.md)). Top Secret Mode takes photos from the library
+as sealed files (no thumbnail). Face ID opens one vault per device: it is offered only
+when no vault has it, and moving it in Settings warns that the other vault loses it.
+Settings → Vaults on this device: delete a vault with its password, or, password
+forgotten, after the owner check it goes in seven days unless opened with its password.
+Deleting is on this device; Google Drive only when ticked, and Sync → Google Drive can
+delete the open vault's copy there. No "deleted" mark on Drive (a device synced over
+Wi-Fi would send the vault back anyway). Drive syncs 5 seconds after the last change.
+Settings' sub-pages open as pages of their own.
+
 ## 2026-10-31 (evening) — Top Secret Mode replaces the two kinds of vault
 
 **Owner:** one vault (password and the 24 words, as always) with a switch, **Top Secret

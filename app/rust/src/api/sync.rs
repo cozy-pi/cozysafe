@@ -883,6 +883,19 @@ pub fn drive_clean(token: String) -> Result<u32, VaultError> {
     Ok(removed)
 }
 
+/// Delete every file of vault `vault_id` from Google Drive (the person chose to, when
+/// deleting the vault here or from Sync). How many files went. Another device that still
+/// holds the vault may send it up again. Waits for a sync with Drive running here to end
+/// first. Errors: [`VaultError::Storage`] for Drive or the network.
+pub fn drive_delete_vault(token: String, vault_id: String) -> Result<u32, VaultError> {
+    let _run = DRIVE_RUN.lock().unwrap_or_else(|p| p.into_inner());
+    let token = zeroize::Zeroizing::new(token);
+    let api = GoogleDrive::new(Permit::google_drive(), token.to_string())?;
+    let removed = drive::delete_vault(&api, &vault_id)?;
+    super::vault::debug_line(|| format!("drive: deleted a vault, {removed} files"));
+    Ok(removed)
+}
+
 /// A dropped connection mid-way is an interruption (nothing lost), not a failure.
 fn drive_failure(e: cs_vault::Error) -> SyncEvent {
     match e {
