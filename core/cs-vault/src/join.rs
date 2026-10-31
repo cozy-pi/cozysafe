@@ -18,10 +18,21 @@ use crate::{
 /// A lock is a few kilobytes.
 const MAX_LOCK: u64 = 1 << 20;
 
-#[derive(serde::Deserialize)]
+/// A vault's lock as the sync place keeps it: `{"library": …, "vault": …}`.
 struct Lock {
     vault: VaultHeader,
     library: LibraryHeader,
+}
+
+impl Lock {
+    fn from_json(bytes: &[u8]) -> Option<Self> {
+        let v = cs_core::json::parse(bytes).ok()?;
+        let f = cs_core::json::Fields::of(&v)?;
+        Some(Self {
+            vault: VaultHeader::from_value(f.get("vault")?).ok()?,
+            library: LibraryHeader::from_value(f.get("library")?).ok()?,
+        })
+    }
 }
 
 impl Library {
@@ -54,8 +65,7 @@ impl Library {
         if bytes.len() as u64 > MAX_LOCK {
             return Err(Error::Corrupt("vault lock too large"));
         }
-        let lock: Lock =
-            serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("vault lock"))?;
+        let lock = Lock::from_json(&bytes).ok_or(Error::Corrupt("vault lock"))?;
         let lib = &lock.library;
         let fits = |f: &Option<String>| {
             f.as_deref()
@@ -87,19 +97,12 @@ impl Library {
         fs::create_dir_all(dir.join(VAULTS_DIR))?;
         let header = LibraryHeader {
             format: lib.format,
-            kdf: KdfJson {
-                m_kib: params.m_kib,
-                t: params.t,
-                p: params.p,
-            },
+            kdf: KdfJson::from(params),
             salt: lib.salt.clone(),
             secret_key: Some(fp),
             prev_secret_key: None,
         };
-        write_atomic(
-            &dir.join(LIBRARY_FILE),
-            &serde_json::to_vec_pretty(&header).expect("serialisable"),
-        )?;
+        write_atomic(&dir.join(LIBRARY_FILE), &header.to_json_pretty())?;
         let vault_dir = dir.join(VAULTS_DIR).join(vault_id);
         fs::create_dir_all(&vault_dir)?;
         let mut vh = lock.vault;
@@ -111,10 +114,7 @@ impl Library {
         ));
         vh.wrapped_master_key = new_wrap;
         vh.prev_wrapped_master_key.clear();
-        write_atomic(
-            &vault_dir.join(HEADER_FILE),
-            &serde_json::to_vec_pretty(&vh).expect("serialisable"),
-        )?;
+        write_atomic(&vault_dir.join(HEADER_FILE), &vh.to_json_pretty())?;
         open_with(vault_id.to_owned(), vault_dir, &vh, master_key).map(Some)
     }
 

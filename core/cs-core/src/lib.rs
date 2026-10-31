@@ -10,6 +10,7 @@
 // No unsafe Rust in the core: the compiler refuses it (docs/supply-chain.md).
 #![forbid(unsafe_code)]
 
+pub mod format;
 pub mod hex;
 pub mod json;
 pub mod passwords;

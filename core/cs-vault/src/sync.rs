@@ -37,7 +37,7 @@ use cs_crypto::wrap;
 use serde::{Deserialize, Serialize};
 
 use crate::db::{Gone, Index};
-use crate::items::{kind, ItemRecord};
+use crate::items::{kind, ItemRecord, RecordExt};
 use crate::{Error, OpenVault, Result};
 
 /// The shared folder, seen from this device. Paths use '/' and stay inside the folder.
@@ -938,7 +938,7 @@ impl OpenVault {
             }
             let Ok(record) = wrap::open(master_key, &sealed.0, aad)
                 .ok()
-                .and_then(|json| serde_json::from_slice::<ItemRecord>(&json).ok())
+                .and_then(|json| ItemRecord::from_json(&json).ok())
                 .map(ItemRecord::upgraded)
                 .ok_or(())
             else {
@@ -949,7 +949,7 @@ impl OpenVault {
             }
             let mut files = Vec::new();
             for (ext, local) in [("data", data), ("thumb", thumb)] {
-                if ext == "thumb" && !record.has_thumbnail() {
+                if ext == "thumb" && !record.has_thumbnail {
                     continue;
                 }
                 let path = format!("{base}/blobs/{id}.{}.{ext}", record.data_rev);
@@ -1008,7 +1008,7 @@ impl OpenVault {
     fn fetch_blobs(&self, remote: &dyn Remote, id: &str, record: &ItemRecord) -> Result<()> {
         self.keep_content(id)?; // the content it replaces, into the version history
         for ext in ["data", "thumb"] {
-            if ext == "thumb" && !record.has_thumbnail() {
+            if ext == "thumb" && !record.has_thumbnail {
                 continue;
             }
             let to = self.new_path(id, ext)?;
@@ -1191,7 +1191,7 @@ impl OpenVault {
             out.wrapped_dek = theirs.wrapped_dek.clone();
             out.data_hash = theirs.data_hash.clone();
             out.thumb_hash = theirs.thumb_hash.clone();
-            out.set_thumbnail(theirs.has_thumbnail());
+            out.has_thumbnail = theirs.has_thumbnail;
         }
         out.rev = theirs.rev.clone();
         out.data_rev = if take_theirs_data {
@@ -1373,7 +1373,7 @@ impl OpenVault {
             let record = self.open_record(&id, &sealed)?;
             if record.rev.is_empty() || record.data_hash.is_empty() {
                 let thumb = record
-                    .has_thumbnail()
+                    .has_thumbnail
                     .then(|| self.read_path(&id, "thumb"))
                     .transpose()?;
                 fingerprint.push((id.clone(), self.read_path(&id, "data")?, thumb));
@@ -1439,7 +1439,7 @@ impl OpenVault {
         for (id, record, sealed) in todo {
             let mut files = Vec::new();
             for ext in ["data", "thumb"] {
-                if ext == "thumb" && !record.has_thumbnail() {
+                if ext == "thumb" && !record.has_thumbnail {
                     continue;
                 }
                 let local = self.read_path(&id, ext)?;
@@ -1562,7 +1562,7 @@ impl OpenVault {
             let mut good_here = true;
             let mut files = Vec::new();
             for (ext, want) in [("data", &record.data_hash), ("thumb", &record.thumb_hash)] {
-                if ext == "thumb" && !record.has_thumbnail() {
+                if ext == "thumb" && !record.has_thumbnail {
                     continue;
                 }
                 let path = format!("{base}/blobs/{id}.{}.{ext}", record.data_rev);

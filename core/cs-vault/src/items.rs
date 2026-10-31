@@ -26,7 +26,6 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 
 use cs_crypto::{stream, wrap, Key};
-use serde::{Deserialize, Serialize};
 
 use crate::{write_atomic, Error, OpenVault, Result};
 
@@ -81,87 +80,16 @@ const DAY_MS: i64 = 24 * 60 * 60 * 1000;
 /// Current layout of `ItemRecord`.
 const RECORD_FORMAT: u32 = 2;
 
-fn format_1() -> u32 {
-    1
+pub(crate) use cs_core::format::ItemRecord;
+
+/// What the vault does with an [`ItemRecord`] beyond reading and writing it.
+pub(crate) trait RecordExt {
+    fn upgraded(self) -> Self;
 }
 
-fn is_false(b: &bool) -> bool {
-    !*b
-}
-
-fn is_zero(n: &i64) -> bool {
-    *n == 0
-}
-
-/// One item's metadata, sealed in `<item>.meta` (and copied into the index).
-///
-/// Format 1 (0.1.0–0.1.6) wrote `size`, `has_thumb`, and folders: items of kind
-/// `folder` with `color`/`space`, and `folder` on what was inside. Format 2 reads all
-/// of that: the old names are aliases, a folder becomes a tag and an item in it carries
-/// that tag (nested folders become separate tags). Records are rewritten in format 2
-/// the next time they change; nothing is converted in bulk.
-#[derive(Clone, Serialize, Deserialize)]
-pub(crate) struct ItemRecord {
-    #[serde(default = "format_1")]
-    pub(crate) format: u32,
-    pub(crate) kind: String,
-    pub(crate) name: String,
-    pub(crate) mime: String,
-    pub(crate) created_ms: i64,
-    #[serde(alias = "size")]
-    pub(crate) size_bytes: u64,
-    #[serde(alias = "has_thumb")]
-    pub(crate) has_thumbnail: bool,
-    pub(crate) wrapped_dek: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(crate) deleted_ms: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(crate) duration_ms: Option<i64>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub(crate) tag_ids: Vec<String>,
-    /// Added in format 2 (0.1.31) without raising it: absent means no, and older apps
-    /// ignore it (no `deny_unknown_fields`), so records stay readable both ways.
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub(crate) is_favorite: bool,
-    /// Also additive in format 2 (0.1.31); absent means "not changed since created".
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(crate) modified_ms: Option<i64>,
-    /// Sync (docs/adr/0003-sync.md), additive like the two above. This revision, the one
-    /// it was made from, the hybrid logical clock and the device that wrote it, and the
-    /// revision whose content (`.data`, `.thumb`) it has.
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub(crate) rev: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(crate) base_rev: Option<String>,
-    #[serde(default, skip_serializing_if = "is_zero")]
-    pub(crate) hlc: i64,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub(crate) device: String,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub(crate) data_rev: String,
-    /// SHA-256 of the encrypted `.data` and `.thumb` files, sealed in the record: a sync
-    /// place cannot hand back older content under a newer revision (same item key, so
-    /// it would decrypt) without the check failing.
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub(crate) data_hash: String,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub(crate) thumb_hash: String,
-    /// Format 1: the folder the item was in. Read, never written.
-    #[serde(default, rename = "folder", skip_serializing)]
-    legacy_folder_id: Option<String>,
-}
-
-impl ItemRecord {
-    pub(crate) fn has_thumbnail(&self) -> bool {
-        self.has_thumbnail
-    }
-
-    pub(crate) fn set_thumbnail(&mut self, has: bool) {
-        self.has_thumbnail = has;
-    }
-
+impl RecordExt for ItemRecord {
     /// Bring a format-1 record up to date in memory.
-    pub(crate) fn upgraded(mut self) -> Self {
+    fn upgraded(mut self) -> Self {
         if self.kind == kind::LEGACY_FOLDER {
             self.kind = kind::TAG.to_owned();
         } else if let Some(f) = self.legacy_folder_id.take() {
@@ -405,7 +333,7 @@ impl OpenVault {
     /// it replaces goes into the version history ([`crate::history`]).
     pub(crate) fn store_record(&self, id: &str, record: &ItemRecord) -> Result<Vec<u8>> {
         let old = self.index.sealed_record(id)?;
-        let json = serde_json::to_vec(record).expect("serialisable");
+        let json = record.to_json();
         let sealed = wrap::seal(&self.master_key, &json, &self.item_aad(id, "meta"));
         write_atomic(&self.new_path(id, "meta")?, &sealed)?;
         self.index.upsert(id, &columns(record), &sealed)?;
@@ -471,7 +399,7 @@ impl OpenVault {
 
     pub(crate) fn open_record(&self, id: &str, sealed: &[u8]) -> Result<ItemRecord> {
         let json = wrap::open(&self.master_key, sealed, &self.item_aad(id, "meta"))?;
-        serde_json::from_slice::<ItemRecord>(&json)
+        ItemRecord::from_json(&json)
             .map(ItemRecord::upgraded)
             .map_err(|_| Error::Corrupt("item meta"))
     }
@@ -614,7 +542,7 @@ impl OpenVault {
     pub(crate) fn hold_item(&self, id: &str, now_ms: i64) -> Result<()> {
         let mut record = self.record(id)?;
         record.deleted_ms = Some(now_ms);
-        let json = serde_json::to_vec(&record).expect("serialisable");
+        let json = record.to_json();
         let sealed = wrap::seal(&self.master_key, &json, &self.item_aad(id, "held"));
         write_atomic(&self.new_path(id, "held")?, &sealed)?;
         // Content into the bucket beside it (a move into buckets cut short may have
@@ -634,7 +562,7 @@ impl OpenVault {
     fn held_record(&self, id: &str) -> Result<ItemRecord> {
         let sealed = fs::read(self.path(id, "held")?).map_err(|_| Error::NoSuchItem)?;
         let json = wrap::open(&self.master_key, &sealed, &self.item_aad(id, "held"))?;
-        serde_json::from_slice::<ItemRecord>(&json)
+        ItemRecord::from_json(&json)
             .map(ItemRecord::upgraded)
             .map_err(|_| Error::Corrupt("item meta"))
     }
@@ -1157,8 +1085,8 @@ mod tests {
         v.set_favorite(&it.id, false).unwrap();
         assert!(!v.items().unwrap()[0].is_favorite);
         // A record as 0.1.30 wrote it (no is_favorite) reads as not a favourite.
-        let old: ItemRecord = serde_json::from_str(
-            r#"{"format":2,"kind":"note","name":"n","mime":"text/plain","created_ms":1,
+        let old = ItemRecord::from_json(
+            br#"{"format":2,"kind":"note","name":"n","mime":"text/plain","created_ms":1,
                 "size_bytes":1,"has_thumbnail":false,"wrapped_dek":"x"}"#,
         )
         .unwrap();

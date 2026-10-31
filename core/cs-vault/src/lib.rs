@@ -28,7 +28,6 @@ use std::path::{Path, PathBuf};
 
 use cs_crypto::kdf::{self, KdfParams};
 use cs_crypto::{wrap, Key, SecretKey, SALT_LEN, SECRET_KEY_LEN};
-use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
 pub mod audit;
@@ -91,80 +90,7 @@ pub fn password_score(password: &str) -> u8 {
     passwords::strength(password)
 }
 
-#[derive(Serialize, Deserialize)]
-struct LibraryHeader {
-    format: u32,
-    kdf: KdfJson,
-    salt: String,
-    /// [`SecretKey::fingerprint`]; absent in libraries from the first previews.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    secret_key: Option<String>,
-    /// During a Secret Key change ([`Library::change_secret_key`]): the old key's
-    /// fingerprint, still accepted until the device holds the new key.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    prev_secret_key: Option<String>,
-}
-
-/// Argon2id cost, named as in RFC 9106: memory in KiB, passes (t), lanes (p).
-#[derive(Serialize, Deserialize, Clone, Copy)]
-pub(crate) struct KdfJson {
-    pub(crate) m_kib: u32,
-    pub(crate) t: u32,
-    pub(crate) p: u32,
-}
-
-impl From<KdfParams> for KdfJson {
-    fn from(k: KdfParams) -> Self {
-        Self {
-            m_kib: k.m_kib,
-            t: k.t,
-            p: k.p,
-        }
-    }
-}
-
-impl From<KdfJson> for KdfParams {
-    fn from(k: KdfJson) -> Self {
-        Self {
-            m_kib: k.m_kib,
-            t: k.t,
-            p: k.p,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct VaultHeader {
-    format: u32,
-    salt: String,
-    /// Master Key wrapped by the password path. Empty until a password is set: a vault
-    /// can start with only a PIN and biometrics on this device (docs/ui.md, first run).
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    wrapped_master_key: String,
-    /// During a Secret Key change: the Master Key wrapped with the password and the old
-    /// key, dropped once the device holds the new one.
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    prev_wrapped_master_key: String,
-    meta: String,
-}
-
-impl VaultHeader {
-    pub(crate) fn has_password(&self) -> bool {
-        !self.wrapped_master_key.is_empty()
-    }
-}
-
-/// Sealed with the Master Key: nothing on disk says what a vault is.
-#[derive(Serialize, Deserialize, Default)]
-struct VaultMeta {
-    #[serde(default)]
-    name: String,
-    /// Vaults are told apart by an icon and a colour, chosen from the app's sets.
-    #[serde(default)]
-    icon: String,
-    #[serde(default)]
-    color: String,
-}
+pub(crate) use cs_core::format::{KdfJson, LibraryHeader, VaultHeader, VaultMeta};
 
 /// The set of vaults in one directory, sharing a library salt and Secret Key.
 pub struct Library {
@@ -206,7 +132,7 @@ impl OpenVault {
         let bytes = hex::decode(sealed).map_err(|_| Error::Corrupt("connection log"))?;
         let plain = cs_crypto::wrap::open(&self.master_key, &bytes, CONNECTION_LOG.as_bytes())
             .map_err(|_| Error::Corrupt("connection log"))?;
-        serde_json::from_slice(&plain).map_err(|_| Error::Corrupt("connection log"))
+        cs_core::format::strings_from_json(&plain).map_err(|_| Error::Corrupt("connection log"))
     }
 
     /// Add one line to [`OpenVault::connection_log`], keeping the newest
@@ -215,7 +141,7 @@ impl OpenVault {
         let mut log = self.connection_log().unwrap_or_default();
         log.insert(0, line.to_owned());
         log.truncate(CONNECTION_LOG_LEN);
-        let plain = serde_json::to_vec(&log).expect("serialisable");
+        let plain = cs_core::format::strings_to_json(&log);
         let sealed = cs_crypto::wrap::seal(&self.master_key, &plain, CONNECTION_LOG.as_bytes());
         self.index.meta_set(CONNECTION_LOG, &hex::encode(sealed))
     }
@@ -320,10 +246,7 @@ impl Library {
                 secret_key: Some(secret_key.fingerprint()),
                 prev_secret_key: None,
             };
-            write_atomic(
-                &header_path,
-                &serde_json::to_vec_pretty(&header).expect("serialisable"),
-            )?;
+            write_atomic(&header_path, &header.to_json_pretty())?;
         }
 
         let mut header = read_library_header(dir)?;
@@ -349,18 +272,12 @@ impl Library {
             None => {
                 // Older library: record the fingerprint now.
                 header.secret_key = Some(secret_key.fingerprint());
-                write_atomic(
-                    &header_path,
-                    &serde_json::to_vec_pretty(&header).expect("serialisable"),
-                )?;
+                write_atomic(&header_path, &header.to_json_pretty())?;
             }
         }
         // Fingerprints from before 0.1.68 (16 hex) are cut to the 4 now written.
         if shorten_fingerprints(&mut header) {
-            write_atomic(
-                &header_path,
-                &serde_json::to_vec_pretty(&header).expect("serialisable"),
-            )?;
+            write_atomic(&header_path, &header.to_json_pretty())?;
         }
         let salt = decode_array::<SALT_LEN>(&header.salt, "library salt")?;
         Ok(Library {
@@ -461,7 +378,7 @@ impl Library {
         let vault_salt = cs_crypto::generate_salt();
         let kek = kdf::vault_kek(&root, &vault_salt);
         let master_key = Key::generate();
-        let sealed = serde_json::to_vec(&meta).expect("serialisable");
+        let sealed = meta.to_json();
         let header = VaultHeader {
             format: FORMAT,
             prev_wrapped_master_key: String::new(),
@@ -475,10 +392,7 @@ impl Library {
         };
         let vault_dir = self.dir.join(VAULTS_DIR).join(&id);
         fs::create_dir_all(&vault_dir)?;
-        write_atomic(
-            &vault_dir.join(HEADER_FILE),
-            &serde_json::to_vec_pretty(&header).expect("serialisable"),
-        )?;
+        write_atomic(&vault_dir.join(HEADER_FILE), &header.to_json_pretty())?;
         let index = db::Index::open(&vault_dir)?;
         Ok(OpenVault {
             id,
@@ -614,18 +528,11 @@ impl Library {
             prev_wrapped_master_key: String::new(),
             salt: hex::encode(cs_crypto::generate_salt()),
             wrapped_master_key: String::new(),
-            meta: hex::encode(wrap::seal(
-                &master_key,
-                &serde_json::to_vec(&meta).expect("serialisable"),
-                &aad(&id, "meta"),
-            )),
+            meta: hex::encode(wrap::seal(&master_key, &meta.to_json(), &aad(&id, "meta"))),
         };
         let vault_dir = self.dir.join(VAULTS_DIR).join(&id);
         fs::create_dir_all(&vault_dir)?;
-        write_atomic(
-            &vault_dir.join(HEADER_FILE),
-            &serde_json::to_vec_pretty(&header).expect("serialisable"),
-        )?;
+        write_atomic(&vault_dir.join(HEADER_FILE), &header.to_json_pretty())?;
         let index = db::Index::open(&vault_dir)?;
         let vault = OpenVault {
             id,
@@ -679,10 +586,7 @@ impl Library {
             &vault.master_key,
             &aad(&vault.id, "master-key"),
         ));
-        write_atomic(
-            &vault.dir.join(HEADER_FILE),
-            &serde_json::to_vec_pretty(&header).expect("serialisable"),
-        )
+        write_atomic(&vault.dir.join(HEADER_FILE), &header.to_json_pretty())
     }
 
     /// Move this library to `new_key` (a new Recovery Key), keeping every item: the
@@ -790,10 +694,7 @@ impl Library {
         let new_kek = kdf::vault_kek(&new_root, &salt);
         header.prev_wrapped_master_key = old_wrap;
         header.wrapped_master_key = hex::encode(wrap::wrap_key(&new_kek, &vault.master_key, &aad));
-        write_atomic(
-            &vault.dir.join(HEADER_FILE),
-            &serde_json::to_vec_pretty(&header).expect("serialisable"),
-        )?;
+        write_atomic(&vault.dir.join(HEADER_FILE), &header.to_json_pretty())?;
         Ok(true)
     }
 
@@ -802,10 +703,7 @@ impl Library {
         let mut lib = read_library_header(&self.dir)?;
         lib.prev_secret_key = Some(self.secret_key.fingerprint());
         lib.secret_key = Some(new_key.fingerprint());
-        write_atomic(
-            &self.dir.join(LIBRARY_FILE),
-            &serde_json::to_vec_pretty(&lib).expect("serialisable"),
-        )?;
+        write_atomic(&self.dir.join(LIBRARY_FILE), &lib.to_json_pretty())?;
         Ok(())
     }
 }
@@ -869,19 +767,13 @@ fn finish_key_change(dir: &Path, header: &mut LibraryHeader) -> Result<()> {
             if let Some(mut h) = read_header(&entry.path()) {
                 if !h.prev_wrapped_master_key.is_empty() {
                     h.prev_wrapped_master_key.clear();
-                    write_atomic(
-                        &entry.path().join(HEADER_FILE),
-                        &serde_json::to_vec_pretty(&h).expect("serialisable"),
-                    )?;
+                    write_atomic(&entry.path().join(HEADER_FILE), &h.to_json_pretty())?;
                 }
             }
         }
     }
     header.prev_secret_key = None;
-    write_atomic(
-        &dir.join(LIBRARY_FILE),
-        &serde_json::to_vec_pretty(&*header).expect("serialisable"),
-    )
+    write_atomic(&dir.join(LIBRARY_FILE), &header.to_json_pretty())
 }
 
 impl OpenVault {
@@ -899,13 +791,10 @@ impl OpenVault {
         };
         header.meta = hex::encode(wrap::seal(
             &self.master_key,
-            &serde_json::to_vec(&meta).expect("serialisable"),
+            &meta.to_json(),
             &aad(&self.id, "meta"),
         ));
-        write_atomic(
-            &self.dir.join(HEADER_FILE),
-            &serde_json::to_vec_pretty(&header).expect("serialisable"),
-        )?;
+        write_atomic(&self.dir.join(HEADER_FILE), &header.to_json_pretty())?;
         self.icon = meta.icon;
         self.color = meta.color;
         Ok(())
@@ -949,7 +838,7 @@ impl OpenVault {
 }
 
 fn read_library_header(dir: &Path) -> Result<LibraryHeader> {
-    let header: LibraryHeader = serde_json::from_slice(&fs::read(dir.join(LIBRARY_FILE))?)
+    let header = LibraryHeader::from_json(&fs::read(dir.join(LIBRARY_FILE))?)
         .map_err(|_| Error::Corrupt("library.json"))?;
     if header.format != FORMAT {
         return Err(Error::Corrupt("unsupported library format"));
@@ -981,7 +870,7 @@ pub fn bucket_of(item_id: &str) -> Option<&str> {
 
 pub(crate) fn read_header(vault_dir: &Path) -> Option<VaultHeader> {
     let bytes = fs::read(vault_dir.join(HEADER_FILE)).ok()?;
-    let header: VaultHeader = serde_json::from_slice(&bytes).ok()?;
+    let header = VaultHeader::from_json(&bytes).ok()?;
     (header.format == FORMAT).then_some(header)
 }
 
@@ -993,8 +882,7 @@ pub(crate) fn open_with(
 ) -> Result<OpenVault> {
     let meta_bytes = hex::decode(&header.meta).map_err(|_| Error::Corrupt("vault meta"))?;
     let meta_json = wrap::open(&master_key, &meta_bytes, &aad(&id, "meta"))?;
-    let meta: VaultMeta =
-        serde_json::from_slice(&meta_json).map_err(|_| Error::Corrupt("vault meta"))?;
+    let meta = VaultMeta::from_json(&meta_json).map_err(|_| Error::Corrupt("vault meta"))?;
     let index = db::Index::open(&dir)?;
     let vault = OpenVault {
         id,
@@ -1438,11 +1326,7 @@ pub(crate) mod tests {
         write_private(&tmp.path().join(SECRET_KEY_FILE), sk().as_bytes()).unwrap();
         let mut h = read_library_header(tmp.path()).unwrap();
         h.secret_key = None;
-        fs::write(
-            tmp.path().join(LIBRARY_FILE),
-            serde_json::to_vec(&h).unwrap(),
-        )
-        .unwrap();
+        fs::write(tmp.path().join(LIBRARY_FILE), h.to_json_pretty()).unwrap();
 
         let key = Library::legacy_secret_key(tmp.path()).unwrap().unwrap();
         assert_eq!(key, sk());

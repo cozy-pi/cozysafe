@@ -307,7 +307,7 @@ impl OpenVault {
         let mut record = self.record(id)?;
         if old.data_rev != record.data_rev {
             let data = self.kept_content(id, &old, "data")?;
-            let thumb = if old.has_thumbnail() {
+            let thumb = if old.has_thumbnail {
                 Some(self.kept_content(id, &old, "thumb")?)
             } else {
                 None
@@ -326,7 +326,7 @@ impl OpenVault {
             record.size_bytes = old.size_bytes;
             record.data_hash = old.data_hash.clone();
             record.thumb_hash = old.thumb_hash.clone();
-            record.set_thumbnail(old.has_thumbnail());
+            record.has_thumbnail = old.has_thumbnail;
             record.duration_ms = old.duration_ms;
             record.data_rev.clear(); // new content: this revision carries it
         }

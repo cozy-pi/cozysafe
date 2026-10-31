@@ -15,11 +15,10 @@ use std::path::Path;
 
 use cs_crypto::kdf::{self, KdfParams};
 use cs_crypto::{generate_salt, wrap, SecretKey, SALT_LEN};
-use serde::{Deserialize, Serialize};
 
 use crate::{
-    aad, decode_array, open_with, read_header, remove_if_exists, write_atomic, Error, KdfJson,
-    Library, OpenVault, Result, VAULTS_DIR,
+    aad, decode_array, open_with, read_header, remove_if_exists, write_atomic, Error, Library,
+    OpenVault, Result, VAULTS_DIR,
 };
 
 pub(crate) const PIN_FILE: &str = "pin";
@@ -29,36 +28,9 @@ pub const MIN_PIN_LEN: usize = 6;
 /// Not a limit people meet: only a sanity cap against garbage input.
 pub const MAX_PIN_LEN: usize = 256;
 
-/// Format 2 keeps the Argon2 cost in `kdf`, like the library header. Format 1
-/// (0.1.0–0.1.6) had `m_kib`, `t`, `p` at the top level; it is still read.
-#[derive(Serialize, Deserialize)]
-struct PinFile {
-    format: u32,
-    salt: String,
-    /// Number of digits, so unlocking only tries PINs of the typed length.
-    length: u8,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    kdf: Option<KdfJson>,
-    #[serde(default, rename = "m_kib", skip_serializing)]
-    legacy_m_kib: Option<u32>,
-    #[serde(default, rename = "t", skip_serializing)]
-    legacy_t: Option<u32>,
-    #[serde(default, rename = "p", skip_serializing)]
-    legacy_p: Option<u32>,
-    wrapped_master_key: String,
-}
+use cs_core::format::PinFile;
 
 const PIN_FORMAT: u32 = 2;
-
-impl PinFile {
-    fn kdf_params(&self) -> Option<KdfParams> {
-        match (self.kdf, self.legacy_m_kib, self.legacy_t, self.legacy_p) {
-            (Some(k), ..) => Some(k.into()),
-            (None, Some(m_kib), Some(t), Some(p)) => Some(KdfParams { m_kib, t, p }),
-            _ => None,
-        }
-    }
-}
 
 /// PINs set before 2026-10-23 may have 4 or 5 digits: they still unlock.
 const OLDEST_PIN_LEN: usize = 4;
@@ -107,10 +79,7 @@ impl OpenVault {
                 &aad(&self.id, "pin"),
             )),
         };
-        write_atomic(
-            &self.dir.join(PIN_FILE),
-            &serde_json::to_vec(&file).expect("serialisable"),
-        )
+        write_atomic(&self.dir.join(PIN_FILE), &file.to_json())
     }
 
     pub fn pin_enabled(&self) -> bool {
@@ -240,7 +209,7 @@ fn pin_files(dir: &Path) -> Vec<(std::path::PathBuf, PinFile)> {
         .flatten()
         .filter_map(|e| {
             let bytes = fs::read(e.path().join(PIN_FILE)).ok()?;
-            let f: PinFile = serde_json::from_slice(&bytes).ok()?;
+            let f = PinFile::from_json(&bytes).ok()?;
             (f.format == 1 || f.format == PIN_FORMAT).then(|| (e.path(), f))
         })
         .collect()

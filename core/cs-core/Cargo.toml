@@ -13,5 +13,6 @@ repository.workspace = true
 cs-crypto = { path = "../cs-crypto" }
 
 [dev-dependencies]
-# Tests only (never in the app): the JSON written here is compared with serde_json's.
+# Tests only (never in the app): the JSON written here is compared with serde's.
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
