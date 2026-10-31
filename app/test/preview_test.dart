@@ -945,6 +945,21 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -1100));
     await t.pumpAndSettle();
   });
+  _screen('home-grid-5', 'Tổng quan · dạng lưới, chụm hai ngón: 5 ô một hàng', home, section: 'home',
+      change: 'MỚI: chụm/kéo hai ngón đổi số ô một hàng (2·3·4·5), như Thư viện; cả lưới Tệp',
+      setup: () {
+    Prefs.write('home-view', 'grid');
+    Prefs.write('home-columns', '5');
+  }, act: (t) async {
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
+    await t.pumpAndSettle();
+  });
+  _screen('files-grid-2', 'Tệp · dạng lưới, kéo dãn: 2 ô một hàng', home, section: 'file',
+      change: 'MỚI: chụm/kéo hai ngón đổi cỡ ô',
+      setup: () {
+    Prefs.write('files-view', 'grid');
+    Prefs.write('files-columns', '2');
+  });
   _screen('home-grid', 'Tổng quan · dạng lưới, cuộn xuống', home, section: 'home',
       change: 'MỚI: Tổng quan dạng lưới: ảnh, biểu tượng theo loại tệp, tên giữ đuôi',
       setup: () => Prefs.write('home-view', 'grid'),

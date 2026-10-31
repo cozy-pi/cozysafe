@@ -856,5 +856,6 @@
   "settingsScreen": "Hiện trên màn hình",
   "restartCountdownLead": "Cozy Safe khởi động lại để hoàn tất thay đổi.",
   "closeCountdownLead": "Cozy Safe sẽ đóng để hoàn tất thay đổi. Sau đó hãy mở lại.",
-  "restartingTitle": "Đang khởi động lại Cozy Safe"
+  "restartingTitle": "Đang khởi động lại Cozy Safe",
+  "searchMore": "Đang hiện {shown} / {total}. Gõ thêm để thu hẹp."
 }

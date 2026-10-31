@@ -842,5 +842,6 @@
   "settingsScreen": "Ce qui s'affiche à l'écran",
   "restartCountdownLead": "Cozy Safe redémarre pour terminer le changement.",
   "closeCountdownLead": "Cozy Safe se ferme pour terminer le changement. Rouvrez-la ensuite.",
-  "restartingTitle": "Redémarrage de Cozy Safe"
+  "restartingTitle": "Redémarrage de Cozy Safe",
+  "searchMore": "{shown} sur {total} affichés. Tapez davantage pour affiner."
 }

@@ -842,5 +842,6 @@
   "settingsScreen": "화면에 보이는 것",
   "restartCountdownLead": "변경을 마치기 위해 Cozy Safe를 다시 시작합니다.",
   "closeCountdownLead": "변경을 마치기 위해 Cozy Safe를 닫습니다. 그다음 다시 여세요.",
-  "restartingTitle": "Cozy Safe 다시 시작 중"
+  "restartingTitle": "Cozy Safe 다시 시작 중",
+  "searchMore": "{total}개 중 {shown}개 표시 중. 더 입력해 좁혀 보세요."
 }

@@ -842,5 +842,6 @@
   "settingsScreen": "Cosa si vede sullo schermo",
   "restartCountdownLead": "Cozy Safe si riavvia per completare la modifica.",
   "closeCountdownLead": "Cozy Safe si chiude per completare la modifica. Riaprila dopo.",
-  "restartingTitle": "Riavvio di Cozy Safe"
+  "restartingTitle": "Riavvio di Cozy Safe",
+  "searchMore": "Mostrati {shown} di {total}. Scrivi altro per restringere."
 }

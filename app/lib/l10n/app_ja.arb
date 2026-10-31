@@ -842,5 +842,6 @@
   "settingsScreen": "画面に表示する内容",
   "restartCountdownLead": "変更を反映するため Cozy Safe を再起動します。",
   "closeCountdownLead": "変更を反映するため Cozy Safe を閉じます。その後もう一度開いてください。",
-  "restartingTitle": "Cozy Safe を再起動しています"
+  "restartingTitle": "Cozy Safe を再起動しています",
+  "searchMore": "{total} 件中 {shown} 件を表示中。さらに入力して絞り込めます。"
 }

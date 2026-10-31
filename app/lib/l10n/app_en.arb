@@ -1056,5 +1056,7 @@
   "settingsScreen": "What shows on screen",
   "restartCountdownLead": "Cozy Safe restarts to finish the change.",
   "closeCountdownLead": "Cozy Safe closes to finish the change. Open it again afterwards.",
-  "restartingTitle": "Restarting Cozy Safe"
+  "restartingTitle": "Restarting Cozy Safe",
+  "searchMore": "Showing {shown} of {total}. Type more to narrow it down.",
+  "@searchMore": {"placeholders": {"shown": {"type": "int"}, "total": {"type": "int"}}}
 }

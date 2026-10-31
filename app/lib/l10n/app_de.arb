@@ -842,5 +842,6 @@
   "settingsScreen": "Was auf dem Bildschirm erscheint",
   "restartCountdownLead": "Cozy Safe startet neu, um die Änderung abzuschließen.",
   "closeCountdownLead": "Cozy Safe wird geschlossen, um die Änderung abzuschließen. Öffne die App danach erneut.",
-  "restartingTitle": "Cozy Safe startet neu"
+  "restartingTitle": "Cozy Safe startet neu",
+  "searchMore": "{shown} von {total} angezeigt. Tippe weiter, um einzugrenzen."
 }

@@ -285,7 +285,7 @@ Future<void> restartForMode(BuildContext context) async {
 }
 
 /// Top Secret Mode's sign on the vault's page: the page colour washed with a little red
-/// at the top, fading out by about two fifths of the way down. Light enough to read through,
+/// at the top, fading out by half way down. Light enough to read through,
 /// strong enough to tell the mode at a glance.
 class TopSecretWash extends StatelessWidget {
   const TopSecretWash({super.key});
@@ -299,8 +299,8 @@ class TopSecretWash extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          // About two fifths of the screen (owner 2026-10-31), fading out gently.
-          stops: const [0, .2, .42],
+          // Half the screen (owner 2026-10-31), fading out gently.
+          stops: const [0, .25, .5],
           colors: [
             topSecretRed.withValues(alpha: dark ? .22 : .13),
             topSecretRed.withValues(alpha: dark ? .13 : .08),

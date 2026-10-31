@@ -18,6 +18,11 @@ import '../file_kinds.dart';
 /// for this screen only and dropped when it closes. Typing "hoa" finds "Hoá đơn":
 /// accents and case are ignored. Pops with the item to open.
 /// A long press on a result: the vault shows that item's (or group's) menu.
+
+/// At most this many matches of each kind are drawn (owner 2026-10-31: a vault may hold
+/// hundreds of thousands of items; a fairly large limit is fine). Typing more narrows it.
+const searchCap = 500;
+
 class SearchMenu {
   const SearchMenu(this.item);
   final rust.ItemInfo item;
@@ -291,7 +296,7 @@ class _SearchScreenState extends State<SearchScreen> {
             mainAxisSpacing: 4,
             crossAxisSpacing: 4,
             children: [
-              for (final it in media)
+              for (final it in media.take(searchCap))
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(it),
                   onLongPress: () => Navigator.of(context).pop(SearchMenu(it)),
@@ -307,17 +312,28 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
             ],
           ),
+          if (media.length > searchCap) _more(context, l, media.length),
           const SizedBox(height: 6),
         ],
         for (final s in [VaultSection.note, VaultSection.audio, VaultSection.file])
           if (rest.any((i) => sectionOf(i) == s)) ...[
             title('${sectionLabel(l, s)}  ${rest.where((i) => sectionOf(i) == s).length}'),
-            _card(context, [for (final it in rest.where((i) => sectionOf(i) == s)) _row(context, l, it, q)]),
+            _card(context, [for (final it in rest.where((i) => sectionOf(i) == s).take(searchCap)) _row(context, l, it, q)]),
+            if (rest.where((i) => sectionOf(i) == s).length > searchCap)
+              _more(context, l, rest.where((i) => sectionOf(i) == s).length),
             const SizedBox(height: 6),
           ],
       ],
     );
   }
+
+  /// More matches than are drawn: how many, and to type more.
+  Widget _more(BuildContext context, AppLocalizations l, int total) => Padding(
+        key: const ValueKey('search-more'),
+        padding: const EdgeInsets.fromLTRB(6, 8, 6, 0),
+        child: Text(l.searchMore(searchCap, total),
+            style: TextStyle(fontSize: CsType.footnote, color: CsColors.of(context).muted)),
+      );
 
   Widget _card(BuildContext context, List<Widget> rows) {
     final c = CsColors.of(context);

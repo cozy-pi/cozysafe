@@ -842,5 +842,6 @@
   "settingsScreen": "屏幕上显示的内容",
   "restartCountdownLead": "Cozy Safe 将重新启动以完成更改。",
   "closeCountdownLead": "Cozy Safe 将关闭以完成更改。之后请重新打开。",
-  "restartingTitle": "正在重新启动 Cozy Safe"
+  "restartingTitle": "正在重新启动 Cozy Safe",
+  "searchMore": "显示 {total} 项中的 {shown} 项。继续输入以缩小范围。"
 }

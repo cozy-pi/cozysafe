@@ -842,5 +842,6 @@
   "settingsScreen": "Что видно на экране",
   "restartCountdownLead": "Cozy Safe перезапустится, чтобы завершить изменение.",
   "closeCountdownLead": "Cozy Safe закроется, чтобы завершить изменение. Затем откройте его снова.",
-  "restartingTitle": "Перезапуск Cozy Safe"
+  "restartingTitle": "Перезапуск Cozy Safe",
+  "searchMore": "Показано {shown} из {total}. Уточните запрос."
 }

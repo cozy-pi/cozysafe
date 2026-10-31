@@ -842,5 +842,6 @@
   "settingsScreen": "Yang tampil di layar",
   "restartCountdownLead": "Cozy Safe dimulai ulang untuk menyelesaikan perubahan.",
   "closeCountdownLead": "Cozy Safe ditutup untuk menyelesaikan perubahan. Buka lagi setelahnya.",
-  "restartingTitle": "Memulai ulang Cozy Safe"
+  "restartingTitle": "Memulai ulang Cozy Safe",
+  "searchMore": "Menampilkan {shown} dari {total}. Ketik lagi untuk mempersempit."
 }

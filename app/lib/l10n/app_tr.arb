@@ -842,5 +842,6 @@
   "settingsScreen": "Ekranda görünenler",
   "restartCountdownLead": "Cozy Safe değişikliği tamamlamak için yeniden başlatılıyor.",
   "closeCountdownLead": "Cozy Safe değişikliği tamamlamak için kapanıyor. Ardından yeniden açın.",
-  "restartingTitle": "Cozy Safe yeniden başlatılıyor"
+  "restartingTitle": "Cozy Safe yeniden başlatılıyor",
+  "searchMore": "{total} sonuçtan {shown} tanesi gösteriliyor. Daraltmak için yazmaya devam edin."
 }

@@ -112,6 +112,32 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
   static const _colSteps = [3, 4, 5, 7];
   double _scaleStart = 1;
+
+  /// Tiles per row in the files' and the home page's grids, pinched like the library
+  /// (owner 2026-10-31), each remembered (Prefs `<pref>`).
+  static const _tileSteps = [2, 3, 4, 5];
+  int _tileCols(String pref) {
+    final n = int.tryParse(Prefs.read(pref) ?? '');
+    return _tileSteps.contains(n) ? n! : 3;
+  }
+
+  /// [child] that a pinch makes hold more tiles a row (in) or fewer (out).
+  Widget _pinchTiles(String pref, Widget child) => GestureDetector(
+        onScaleStart: (_) => _scaleStart = 1,
+        onScaleUpdate: (d) {
+          if (d.pointerCount < 2) return;
+          final now = _tileCols(pref);
+          final at = _tileSteps.indexOf(now);
+          int? next;
+          if (d.scale < _scaleStart * .8 && at < _tileSteps.length - 1) next = _tileSteps[at + 1];
+          if (d.scale > _scaleStart * 1.25 && at > 0) next = _tileSteps[at - 1];
+          if (next == null) return;
+          _scaleStart = d.scale;
+          Prefs.write(pref, '$next');
+          setState(() {});
+        },
+        child: child,
+      );
   /// What the vault shows, picked in the bottom capsule.
   late VaultSection _section = startSection();
   /// A section opened from the add sheet stays offered while empty (a voice memo
@@ -1563,14 +1589,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
     _dragOrder = [for (final it in list) it.id];
     if (!notes && _filesAsGrid) {
-      return Scrollbar(
+      return _pinchTiles('files-columns', Scrollbar(
         child: GridView.builder(
           key: const ValueKey('files-grid'),
           padding: EdgeInsets.fromLTRB(12, 4, 12, _bottomRoom),
-          // Three a row on a phone, as many as fit on a computer (owner 2026-10-28: three
-          // tiles across a MacBook were each the size of a page).
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 150, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78),
+          // As many a row as pinched on a phone (three at first), as many as fit on a
+          // computer (owner 2026-10-28: three tiles across a MacBook were each the size of
+          // a page).
+          gridDelegate: _wide
+              ? const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 150, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78)
+              : SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: _tileCols('files-columns'), mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: .78),
           itemCount: list.length,
           itemBuilder: (context, i) {
             final it = list[i];
@@ -1587,45 +1617,52 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             );
           },
         ),
-      );
+      ));
     }
+    // Built row by row as the list scrolls (owner 2026-10-31: hundreds of thousands of
+    // items must not be laid out at once); each row draws its part of the one card.
+    final last = list.length - 1;
     return Scrollbar(
-      child: ListView(
+      child: ListView.builder(
+        key: ValueKey('list-${_section.name}'),
         padding: EdgeInsets.fromLTRB(12, 4, 12, _bottomRoom),
-        children: [
-          Material(
+        itemCount: list.length,
+        itemBuilder: (context, i) {
+          final it = list[i];
+          return Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(i == 0 ? 14 : 0),
+              bottom: Radius.circular(i == last ? 14 : 0),
+            ),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
-                for (final (i, it) in list.indexed) ...[
-                  if (i > 0) Divider(height: 1, indent: notes ? 16 : 70, color: c.border.withValues(alpha: .6)),
-                  DragSelectItem(
-                    id: it.id,
-                    drag: _drag,
-                    onMenu: () => _itemMenu(it, notes ? const [] : list.where(_isMedia).toList()),
-                    child: notes
-                        ? _NoteRow(
-                            item: it,
-                            preview: notePreviews() ? _preview(it.id) : null,
-                            selected: _selected.contains(it.id),
-                            selecting: _selecting,
-                            onTap: () => _openItem(it, const []),
-                          )
-                        : _FileRow(
-                            item: it,
-                            thumbnail: _rowPicture(it) ? _thumbnail(it.id) : null,
-                            selected: _selected.contains(it.id),
-                            selecting: _selecting,
-                            onTap: () => _openItem(it, list.where(_isMedia).toList()),
-                          ),
-                  ),
-                ],
+                if (i > 0) Divider(height: 1, indent: notes ? 16 : 70, color: c.border.withValues(alpha: .6)),
+                DragSelectItem(
+                  id: it.id,
+                  drag: _drag,
+                  onMenu: () => _itemMenu(it, notes ? const [] : list.where(_isMedia).toList()),
+                  child: notes
+                      ? _NoteRow(
+                          item: it,
+                          preview: notePreviews() ? _preview(it.id) : null,
+                          selected: _selected.contains(it.id),
+                          selecting: _selecting,
+                          onTap: () => _openItem(it, const []),
+                        )
+                      : _FileRow(
+                          item: it,
+                          thumbnail: _rowPicture(it) ? _thumbnail(it.id) : null,
+                          selected: _selected.contains(it.id),
+                          selecting: _selecting,
+                          onTap: () => _openItem(it, list.where(_isMedia).toList()),
+                        ),
+                ),
               ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -2063,8 +2100,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final ink = Theme.of(context).colorScheme.onSurface;
     final things = items.where((i) => i.kind != ItemKind.tag).toList();
     final bytes = things.fold<BigInt>(BigInt.zero, (a, i) => a + i.sizeBytes);
-    return VaultOverview(
+    return _pinchTiles('home-columns', VaultOverview(
       items: items,
+      columns: _tileCols('home-columns'),
       thumbnail: _thumbnail,
       bottomPad: _bottomRoom,
       grid: _homeAsGrid,
@@ -2132,7 +2170,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       onOpen: (it) => _openItem(it, things.where(_isMedia).toList()),
       onMenu: (it) => _itemMenu(it, things.where(_isMedia).toList()),
       onGroupMenu: _tagMenu,
-    );
+    ));
   }
 
   /// Large title (the section, or the open tag with Back and a ⋯ menu); Search and

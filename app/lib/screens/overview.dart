@@ -52,6 +52,7 @@ class VaultOverview extends StatelessWidget {
     this.header,
     this.bottomPad = 24,
     this.grid = false,
+    this.columns = 3,
   });
 
   /// Everything in the vault, groups included.
@@ -67,6 +68,8 @@ class VaultOverview extends StatelessWidget {
   final double bottomPad;
   /// What was added last as a grid of tiles instead of rows (⋯ → View as grid).
   final bool grid;
+  /// Tiles a row in the grid (pinched, 2 to 5).
+  final int columns;
 
   @override
   Widget build(BuildContext context) {
@@ -153,11 +156,11 @@ class VaultOverview extends StatelessWidget {
         // only what is on screen.
         if (recent.isNotEmpty) title(l.searchRecent),
         if (grid)
-          for (var r = 0; r < recent.length; r += 3)
+          for (var r = 0; r < recent.length; r += columns)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Row(children: [
-                for (var i = r; i < r + 3; i++) ...[
+                for (var i = r; i < r + columns; i++) ...[
                   if (i > r) const SizedBox(width: 10),
                   Expanded(
                     child: i < recent.length
