@@ -2366,7 +2366,7 @@
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "argon2"
+   "via": "sha2"
   },
   "crypto-common@0.1.7": {
    "direct": false,

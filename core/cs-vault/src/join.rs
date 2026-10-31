@@ -35,12 +35,35 @@ impl Lock {
     }
 }
 
-impl Library {
+/// A vault onto a new device from a sync place.
+pub trait LibraryJoin {
     /// Make `dir` (no vault in it yet) hold the vault `vault_id` kept in `remote`, if
     /// `secret_key` and `password` open its newest lock: `None` for a wrong password,
     /// [`Error::WrongSecretKey`] for other 24 words. Then sync it from `remote` to bring
     /// its items.
-    pub fn join(
+    fn join(
+        dir: &Path,
+        remote: &dyn Remote,
+        vault_id: &str,
+        secret_key: SecretKey,
+        password: &str,
+    ) -> Result<Option<OpenVault>>;
+
+    /// [`Library::join`] for a place that holds several vaults (one Google Drive folder
+    /// serves them all): the two secrets say which one. `None` when the words belong to
+    /// one of them but the password opens none; [`Error::WrongSecretKey`] when none has
+    /// these words. A lock that fails to read does not stop the others being tried.
+    fn join_any(
+        dir: &Path,
+        remote: &dyn Remote,
+        vault_ids: &[String],
+        secret_key: SecretKey,
+        password: &str,
+    ) -> Result<Option<OpenVault>>;
+}
+
+impl LibraryJoin for Library {
+    fn join(
         dir: &Path,
         remote: &dyn Remote,
         vault_id: &str,
@@ -118,11 +141,7 @@ impl Library {
         open_with(vault_id.to_owned(), vault_dir, &vh, master_key).map(Some)
     }
 
-    /// [`Library::join`] for a place that holds several vaults (one Google Drive folder
-    /// serves them all): the two secrets say which one. `None` when the words belong to
-    /// one of them but the password opens none; [`Error::WrongSecretKey`] when none has
-    /// these words. A lock that fails to read does not stop the others being tried.
-    pub fn join_any(
+    fn join_any(
         dir: &Path,
         remote: &dyn Remote,
         vault_ids: &[String],
@@ -150,6 +169,7 @@ impl Library {
 mod tests {
     use super::*;
     use crate::sync::tests::{note, text, two};
+    use crate::VaultSync;
 
     const FAST: kdf::KdfParams = kdf::KdfParams {
         m_kib: 64,

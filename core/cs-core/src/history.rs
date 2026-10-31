@@ -31,9 +31,10 @@ use std::path::{Path, PathBuf};
 use cs_crypto::stream;
 
 use crate::items::{kind, ItemMeta, ItemRecord};
-use crate::{Error, OpenVault, Result};
+use crate::vault::OpenVault;
+use crate::{Error, Result};
 
-const HISTORY_DIR: &str = "history";
+pub const HISTORY_DIR: &str = "history";
 const DAYS_KEY: &str = "history-days";
 const BYTES_KEY: &str = "history-max-bytes";
 const DAY_MS: i64 = 24 * 60 * 60 * 1000;
@@ -134,8 +135,8 @@ impl OpenVault {
 
     /// The item's history folder.
     fn history_dir(&self, item: &str) -> Result<PathBuf> {
-        let name = crate::id_name(item).ok_or(Error::NoSuchItem)?;
-        let bucket = crate::bucket_of(&name).ok_or(Error::NoSuchItem)?;
+        let name = crate::vault::id_name(item).ok_or(Error::NoSuchItem)?;
+        let bucket = crate::vault::bucket_of(&name).ok_or(Error::NoSuchItem)?;
         Ok(self.history_root().join(bucket).join(name))
     }
 
@@ -160,7 +161,7 @@ impl OpenVault {
 
     /// Before new content is renamed over the item's: keep the current content, linked
     /// under its `data_rev`. Nothing to do for a new item or with history off.
-    pub(crate) fn keep_content(&self, id: &str) -> Result<()> {
+    pub fn keep_content(&self, id: &str) -> Result<()> {
         if self.history_limits()?.days == 0 {
             return Ok(());
         }
@@ -183,7 +184,7 @@ impl OpenVault {
 
     /// `old` (sealed as `old_sealed`) is being replaced by `new`: keep it when the
     /// change is one the person would call a new version.
-    pub(crate) fn keep_record(
+    pub fn keep_record(
         &self,
         id: &str,
         old: &ItemRecord,
@@ -214,7 +215,7 @@ impl OpenVault {
         let at = now.max(newest.saturating_add(1));
         let dir = self.history_dir(id)?;
         fs::create_dir_all(&dir)?;
-        crate::write_atomic(
+        crate::vault::write_atomic(
             &dir.join(format!("{at}.{}.{}.meta", old.rev, old.data_rev)),
             old_sealed,
         )?;
@@ -233,7 +234,7 @@ impl OpenVault {
     /// The item's older versions, newest first. Damaged ones are skipped.
     pub fn history(&self, id: &str) -> Result<Vec<HistoryEntry>> {
         let current = self.record(id)?;
-        let here = crate::sync::device_id(&self.index)?;
+        let here = crate::clock::device_id(&self.index)?;
         let dir = self.history_dir(id)?;
         let mut out = Vec::new();
         for k in self.kept(id)? {
@@ -320,8 +321,8 @@ impl OpenVault {
             fs::File::open(&tmp)?.sync_all()?;
             fs::rename(&tmp, &to)?;
             match thumb {
-                Some(t) => crate::write_atomic(&self.new_path(id, "thumb")?, &fs::read(t)?)?,
-                None => crate::remove_if_exists(&self.path(id, "thumb")?)?,
+                Some(t) => crate::vault::write_atomic(&self.new_path(id, "thumb")?, &fs::read(t)?)?,
+                None => crate::vault::remove_if_exists(&self.path(id, "thumb")?)?,
             }
             record.size_bytes = old.size_bytes;
             record.data_hash = old.data_hash.clone();
@@ -497,7 +498,7 @@ impl OpenVault {
 mod tests {
     use super::*;
     use crate::items::NewItem;
-    use crate::Library;
+    use crate::vault::Library;
     use cs_crypto::kdf::KdfParams;
 
     const FAST: KdfParams = KdfParams {
@@ -507,12 +508,12 @@ mod tests {
     };
     fn pw() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| crate::hex::encode(cs_crypto::generate_salt()))
     }
 
     fn vault() -> (tempfile::TempDir, OpenVault) {
         let tmp = tempfile::tempdir().unwrap();
-        let v = Library::open_or_create(tmp.path(), FAST, crate::tests::sk())
+        let v = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk())
             .unwrap()
             .create_vault("A", pw())
             .unwrap();
@@ -612,7 +613,7 @@ mod tests {
         assert!(v.history(&id).unwrap().is_empty());
         assert!(!v
             .history_root()
-            .join(crate::bucket_of(&id).unwrap())
+            .join(crate::vault::bucket_of(&id).unwrap())
             .join(&id)
             .exists());
         assert_eq!(text(&v, &id), "two");
@@ -696,25 +697,6 @@ mod tests {
     }
 
     #[test]
-    fn a_version_from_another_device_by_sync_is_kept_too() {
-        let t = crate::sync::tests::two();
-        let id = note(&t.a, "List", "milk");
-        t.a.sync(&t.cloud).unwrap();
-        t.b.sync(&t.cloud).unwrap();
-        t.b.replace_item(&id, "List", &b"milk, eggs"[..]).unwrap();
-        t.b.sync(&t.cloud).unwrap();
-        t.a.sync(&t.cloud).unwrap();
-        let h = t.a.history(&id).unwrap();
-        assert_eq!(h.len(), 1);
-        assert!(h[0].this_device);
-        assert_eq!(old_text(&t.a, &id, &h[0].rev), "milk");
-        // On B, the version A wrote is one from another device.
-        let hb = t.b.history(&id).unwrap();
-        assert_eq!(hb.len(), 1);
-        assert!(!hb[0].this_device);
-    }
-
-    #[test]
     fn revision_ids_from_outside_cannot_reach_other_files() {
         let (_d, v) = vault();
         let id = note(&v, "A", "one");
@@ -723,33 +705,5 @@ mod tests {
             assert!(v.read_history_item(&id, bad, Vec::new()).is_err());
             assert!(v.restore_history(&id, bad).is_err());
         }
-    }
-
-    #[test]
-    fn history_is_not_in_backups() {
-        let (d, v) = vault();
-        let id = note(&v, "A", "one");
-        v.replace_item(&id, "A", &b"two"[..]).unwrap();
-        assert!(v.history_bytes().unwrap() > 0);
-        let mut out = Vec::new();
-        crate::backup::export(d.path(), &mut out).unwrap();
-        let fresh = tempfile::tempdir().unwrap();
-        crate::backup::import(&out[..], fresh.path()).unwrap();
-        let has_history = walk(fresh.path())
-            .iter()
-            .any(|p| p.components().any(|c| c.as_os_str() == HISTORY_DIR));
-        assert!(!has_history);
-    }
-
-    fn walk(dir: &Path) -> Vec<PathBuf> {
-        let mut out = Vec::new();
-        for e in fs::read_dir(dir).into_iter().flatten().flatten() {
-            if e.path().is_dir() {
-                out.extend(walk(&e.path()));
-            } else {
-                out.push(e.path());
-            }
-        }
-        out
     }
 }

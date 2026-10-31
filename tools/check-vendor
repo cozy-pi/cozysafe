@@ -31,8 +31,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 VENDOR = ROOT / "third_party" / "rust"
 RECORD = VENDOR / "RECORD"
-# The Top secret core: cs-core, the cryptography crate and SQLite (step 1 of
-# docs/adr/0005-two-kinds-of-vault.md moves the vault core into cs-core).
+# The Top secret core: cs-core (the vault core, docs/adr/0005-two-kinds-of-vault.md), the
+# cryptography crate and SQLite.
 CORE = ["cs-core", "cs-crypto", "rusqlite"]
 MANIFESTS = [ROOT / "Cargo.toml", ROOT / "app" / "rust" / "Cargo.toml",
              ROOT / "tools" / "core-offline" / "Cargo.toml"]

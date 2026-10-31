@@ -14,9 +14,12 @@ cs-crypto = { path = "../cs-crypto" }
 # The vault index (docs/adr/0002): SQLite compiled from source (bundled), no system
 # library. Nothing secret reaches it in clear.
 rusqlite = { version = "0.40", features = ["bundled"] }
+sha2 = "0.11"
+zeroize = "1"
 
 [dev-dependencies]
 # Tests only (never in the app): the JSON written here is compared with serde's.
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tempfile = "3"
+cs-crypto = { path = "../cs-crypto", features = ["test-kdf"] }

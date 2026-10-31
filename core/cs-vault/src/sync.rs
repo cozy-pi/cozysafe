@@ -33,10 +33,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Mutex;
 
-use cs_crypto::wrap;
+use cs_core::clock::{device_id, now_ms, observe_hlc};
 use serde::{Deserialize, Serialize};
 
-use crate::db::{Gone, Index};
+use crate::db::Gone;
 use crate::items::{kind, ItemRecord, RecordExt};
 use crate::{Error, OpenVault, Result};
 
@@ -246,47 +246,6 @@ impl Remote for FolderRemote {
     fn removes(&self) -> bool {
         true
     }
-}
-
-/// This device's id in the vault's sync, made the first time it is asked for.
-pub(crate) fn device_id(index: &Index) -> Result<String> {
-    if let Some(id) = index.meta_get("device")? {
-        return Ok(id);
-    }
-    let id = cs_core::hex::encode(&cs_crypto::generate_salt()[..8]);
-    index.meta_set("device", &id)?;
-    Ok(id)
-}
-
-/// The next hybrid-logical-clock reading: after the wall clock, after everything this
-/// device has written or seen, and after `seen` (a record being changed or merged), so a
-/// phone whose clock is wrong cannot make its edits always win or always lose.
-pub(crate) fn next_hlc(index: &Index, seen: i64) -> Result<i64> {
-    let last: i64 = index
-        .meta_get("hlc")?
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0);
-    let next = now_ms().max(last + 1).max(seen + 1);
-    index.meta_set("hlc", &next.to_string())?;
-    Ok(next)
-}
-
-fn observe_hlc(index: &Index, seen: i64) -> Result<()> {
-    let last: i64 = index
-        .meta_get("hlc")?
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0);
-    if seen > last {
-        index.meta_set("hlc", &seen.to_string())?;
-    }
-    Ok(())
-}
-
-fn now_ms() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis() as i64)
-        .unwrap_or(0)
 }
 
 /// One journal entry: the items this device changed, at which revision, and the ones it
@@ -586,21 +545,48 @@ pub struct SyncReport {
     pub unrepaired: u32,
 }
 
-impl OpenVault {
-    fn sync_dir(&self) -> String {
-        self.id.clone()
-    }
-
+/// Sync of a vault with a place (docs/adr/0003-sync.md), on top of the Top secret core.
+pub trait VaultSync {
     /// Bring this vault and the shared folder in line: take the other devices' changes,
     /// then send this device's.
-    pub fn sync(&self, remote: &dyn Remote) -> Result<SyncReport> {
-        self.sync_with(remote, &|_| {})
-    }
+    fn sync(&self, remote: &dyn Remote) -> Result<SyncReport>;
 
     /// [`OpenVault::sync`], telling `progress` how far it is. Stopping anywhere loses
     /// nothing: what came in is kept, what went up is recorded every [`LOG_EVERY`]
     /// items, and the next sync goes on from there.
-    pub fn sync_with(
+    fn sync_with(&self, remote: &dyn Remote, progress: &dyn Fn(SyncProgress))
+        -> Result<SyncReport>;
+
+    /// A device's head read from `remote` (`None`: it has none, as devices from before
+    /// heads). Sealed under its path, so it cannot pass for another device's.
+    fn read_head(&self, remote: &dyn Remote, device: &str) -> Result<Option<Head>>;
+
+    /// What `place` last said about the heads, kept after a full sync that worked
+    /// ([`OpenVault::remember_heads`]); `None` before the first.
+    fn heads_seen(&self, place: &str) -> Result<Option<HeadsSeen>>;
+
+    /// Keep what `place` said about the heads. Called only after a full sync that worked,
+    /// with what the place said BEFORE that sync read the journals: a change written
+    /// meanwhile, or by a sync that failed, is then still seen as new.
+    fn remember_heads(&self, place: &str, seen: &HeadsSeen) -> Result<()>;
+
+    /// Whether `now` (what `place` says about the heads at this moment; `None`: it has no
+    /// folder of heads) shows another device has written since the last full sync.
+    /// Changed when nothing is remembered yet, when there is no folder of heads, or when
+    /// another device's head is new, has another version, or is gone; this device's own
+    /// head is left out. A false "changed" only costs a sync; "unchanged" is said only
+    /// when every other device's head is as it was before the last full sync read the
+    /// journals. Devices without a head (0.1.80 and older) are not seen here. A folder
+    /// found again under another id is kept for the next look.
+    fn heads_changed(&self, place: &str, now: Option<&HeadsSeen>) -> Result<bool>;
+}
+
+impl VaultSync for OpenVault {
+    fn sync(&self, remote: &dyn Remote) -> Result<SyncReport> {
+        self.sync_with(remote, &|_| {})
+    }
+
+    fn sync_with(
         &self,
         remote: &dyn Remote,
         progress: &dyn Fn(SyncProgress),
@@ -627,99 +613,32 @@ impl OpenVault {
         synced.map(|()| report)
     }
 
-    fn log_aad(&self, device: &str, n: u64) -> Vec<u8> {
-        crate::aad(&self.id, &format!("sync/log/{device}/{n}"))
-    }
-
-    fn head_aad(&self, device: &str) -> Vec<u8> {
-        crate::aad(&self.id, &format!("sync/head/{device}"))
-    }
-
-    /// This device's head as it stands for `remote`: its last journal entry there, and
-    /// the cursors it keeps of the other devices.
-    fn head(&self, remote: &dyn Remote) -> Result<Head> {
-        let rk = remote.key();
-        let n = self
-            .index
-            .meta_get(&format!("{rk}:seq"))?
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(0);
-        let prefix = format!("{rk}:cursor:");
-        let read = self
-            .index
-            .meta_prefixed(&prefix)?
-            .into_iter()
-            .filter_map(|(k, v)| Some((k[prefix.len()..].to_owned(), v.parse().ok()?)))
-            .collect();
-        Ok(Head { n, read })
-    }
-
-    /// Write this device's head to `remote` when it says something new (or the place
-    /// lost it): one small file, replaced in place.
-    fn write_head(&self, remote: &dyn Remote) -> Result<()> {
-        let me = device_id(&self.index)?;
-        let rk = remote.key();
-        let json = serde_json::to_string(&self.head(remote)?).expect("json");
-        let path = format!("{}/head/{me}", self.sync_dir());
-        let written = format!("{rk}:head");
-        if self.index.meta_get(&written)?.as_deref() == Some(json.as_str())
-            && remote.exists(&path)?
-        {
-            return Ok(());
-        }
-        let sealed = wrap::seal(&self.master_key, json.as_bytes(), &self.head_aad(&me));
-        remote.replace(&path, &mut &sealed[..])?;
-        self.index.meta_set(&written, &json)
-    }
-
-    /// [`OpenVault::write_head`], never failing the sync: a head not written now is
-    /// written by the next sync (meanwhile other devices see the change only by a full
-    /// sync).
-    fn write_head_quietly(&self, remote: &dyn Remote) {
-        let _ = self.write_head(remote);
-    }
-
-    /// A device's head read from `remote` (`None`: it has none, as devices from before
-    /// heads). Sealed under its path, so it cannot pass for another device's.
-    pub fn read_head(&self, remote: &dyn Remote, device: &str) -> Result<Option<Head>> {
+    fn read_head(&self, remote: &dyn Remote, device: &str) -> Result<Option<Head>> {
         let mut sealed = Capped::new(MAX_SMALL);
         if !remote.get(&format!("{}/head/{device}", self.sync_dir()), &mut sealed)? {
             return Ok(None);
         }
-        let json = wrap::open(&self.master_key, &sealed.0, &self.head_aad(device))?;
+        let json = self.sealer().open(&sealed.0, &self.head_aad(device))?;
         serde_json::from_slice(&json)
             .map(Some)
             .map_err(|_| Error::Corrupt("sync head"))
     }
 
-    /// What `place` last said about the heads, kept after a full sync that worked
-    /// ([`OpenVault::remember_heads`]); `None` before the first.
-    pub fn heads_seen(&self, place: &str) -> Result<Option<HeadsSeen>> {
+    fn heads_seen(&self, place: &str) -> Result<Option<HeadsSeen>> {
         Ok(self
-            .index
+            .index()
             .meta_get(&format!("{place}:heads-seen"))?
             .and_then(|v| serde_json::from_str(&v).ok()))
     }
 
-    /// Keep what `place` said about the heads. Called only after a full sync that worked,
-    /// with what the place said BEFORE that sync read the journals: a change written
-    /// meanwhile, or by a sync that failed, is then still seen as new.
-    pub fn remember_heads(&self, place: &str, seen: &HeadsSeen) -> Result<()> {
-        self.index.meta_set(
+    fn remember_heads(&self, place: &str, seen: &HeadsSeen) -> Result<()> {
+        self.index().meta_set(
             &format!("{place}:heads-seen"),
             &serde_json::to_string(seen).expect("json"),
         )
     }
 
-    /// Whether `now` (what `place` says about the heads at this moment; `None`: it has no
-    /// folder of heads) shows another device has written since the last full sync.
-    /// Changed when nothing is remembered yet, when there is no folder of heads, or when
-    /// another device's head is new, has another version, or is gone; this device's own
-    /// head is left out. A false "changed" only costs a sync; "unchanged" is said only
-    /// when every other device's head is as it was before the last full sync read the
-    /// journals. Devices without a head (0.1.80 and older) are not seen here. A folder
-    /// found again under another id is kept for the next look.
-    pub fn heads_changed(&self, place: &str, now: Option<&HeadsSeen>) -> Result<bool> {
+    fn heads_changed(&self, place: &str, now: Option<&HeadsSeen>) -> Result<bool> {
         let Some(seen) = self.heads_seen(place)? else {
             return Ok(true);
         };
@@ -735,7 +654,7 @@ impl OpenVault {
                 },
             )?;
         }
-        let me = device_id(&self.index)?;
+        let me = device_id(self.index())?;
         let others = |m: &BTreeMap<String, u64>| -> BTreeMap<String, u64> {
             m.iter()
                 .filter(|(d, _)| **d != me)
@@ -744,6 +663,212 @@ impl OpenVault {
         };
         Ok(others(&now.versions) != others(&seen.versions))
     }
+}
+
+/// The steps of [`VaultSync`].
+trait SyncSteps {
+    fn sync_dir(&self) -> String;
+
+    fn log_aad(&self, device: &str, n: u64) -> Vec<u8>;
+
+    fn head_aad(&self, device: &str) -> Vec<u8>;
+
+    /// This device's head as it stands for `remote`: its last journal entry there, and
+    /// the cursors it keeps of the other devices.
+    fn head(&self, remote: &dyn Remote) -> Result<Head>;
+
+    /// Write this device's head to `remote` when it says something new (or the place
+    /// lost it): one small file, replaced in place.
+    fn write_head(&self, remote: &dyn Remote) -> Result<()>;
+
+    /// [`OpenVault::write_head`], never failing the sync: a head not written now is
+    /// written by the next sync (meanwhile other devices see the change only by a full
+    /// sync).
+    fn write_head_quietly(&self, remote: &dyn Remote);
+
+    fn pull(
+        &self,
+        remote: &Counted<'_>,
+        report: &mut SyncReport,
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<()>;
+
+    /// The records and content of `items` this device will take, fetched several at once
+    /// into files beside where they go (`.ahead`), for [`Ahead`] to serve. Only the
+    /// network part: nothing here touches the index, and what fails is simply not
+    /// fetched (taking it reads it again and says why).
+    fn fetch_ahead(
+        &self,
+        remote: &Counted<'_>,
+        items: &[(String, String)],
+        tick: &dyn Fn(),
+    ) -> Result<std::collections::HashMap<String, Got>>;
+
+    /// Whether a journal entry's revision would change this device: not a revision it
+    /// already has, nor an item it deleted for good (judged here, without the place).
+    fn would_take(&self, id: &str, rev: &str) -> Result<bool>;
+
+    fn remote_record(
+        &self,
+        remote: &dyn Remote,
+        id: &str,
+        rev: &str,
+    ) -> Result<Option<(ItemRecord, Vec<u8>)>>;
+
+    /// Fetch a revision's content into place (sealed as it is; nothing is decrypted).
+    fn fetch_blobs(&self, remote: &dyn Remote, id: &str, record: &ItemRecord) -> Result<()>;
+
+    /// Merge revision `rev` of item `id` from another device into this vault.
+    fn take(&self, remote: &dyn Remote, id: &str, rev: &str, report: &mut SyncReport)
+        -> Result<()>;
+
+    fn merge(
+        &self,
+        remote: &dyn Remote,
+        id: &str,
+        base: Option<&ItemRecord>,
+        ours: &ItemRecord,
+        theirs: &ItemRecord,
+        report: &mut SyncReport,
+    ) -> Result<ItemRecord>;
+
+    /// The losing side of a note edited on two devices, saved as a new note so its text
+    /// is not lost. Its content is copied as it is (re-encrypted under a new item id).
+    fn keep_copy(
+        &self,
+        remote: &dyn Remote,
+        id: &str,
+        loser: &ItemRecord,
+        from_remote: bool,
+    ) -> Result<()>;
+
+    fn take_gone(
+        &self,
+        remote: &dyn Remote,
+        id: &str,
+        hlc: i64,
+        report: &mut SyncReport,
+    ) -> Result<()>;
+
+    /// The vault's lock as this device has it: its header (the Master Key wrapped with
+    /// the password and the Recovery Key, sealed meta) and the library's (salt, Argon2
+    /// cost, the key's fingerprint). What a new device needs, with the 24 words and the
+    /// password, to open the vault from the place. Nothing in it opens anything alone.
+    /// With when it last changed here (ms), so an older lock never replaces a newer one.
+    fn lock_bytes(&self) -> Result<(u64, Vec<u8>)>;
+
+    /// Put this device's lock in the place, named by its content, and only then remove
+    /// any other: after the password or Recovery Key changed, the old ones no longer
+    /// open the copy there (owner 2026-10-24).
+    ///
+    /// Names are `<ms changed>-<sha256>.json`. A device whose lock is older (its password
+    /// or key not changed yet) leaves the newer one alone.
+    fn push_lock(&self, remote: &dyn Remote, base: &str) -> Result<()>;
+
+    fn push(
+        &self,
+        remote: &Counted<'_>,
+        report: &mut SyncReport,
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<()>;
+
+    /// Every file of the revisions the place holds, checked against what the place lists
+    /// (a missing file, or one whose SHA-256 is not the one sealed in the record): sent
+    /// again from here when the copy here is right. Places that cannot tell are skipped;
+    /// a file without a checksum yet (just sent) counts as fine.
+    fn mend_place(
+        &self,
+        remote: &Counted<'_>,
+        base: &str,
+        held: &[(String, ItemRecord, Vec<u8>)],
+        report: &mut SyncReport,
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<()>;
+
+    /// Take old revisions off the place (at most once a day): the record of a revision
+    /// superseded more than [`KEEP_OLD_MS`] ago (the next newer one, by `hlc`, made
+    /// before then), and its content unless a revision that stays uses it too. A device
+    /// that has not synced for that long finds them gone and takes the newer revision
+    /// its journal names. Only items this device holds, at the revision the place has;
+    /// never their current revision or its content, nor a revision newer than it (another
+    /// device's, not told yet). Records go before content, in batches.
+    fn collect_garbage(
+        &self,
+        remote: &Counted<'_>,
+        now: i64,
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<()>;
+
+    /// Take the files of items deleted for good off the place (owner 2026-10-24: 700
+    /// deleted photos stayed in Google Drive). Only revisions made before the deletion
+    /// go: one edited on another device after it stays, with its content. The first
+    /// time on a place, deletions it was already told about are cleaned as well.
+    ///
+    /// The revision this device last had is older than the deletion and goes unread;
+    /// any other is read to compare its clock. Files go in batches of about
+    /// [`REMOVE_EVERY`], each batch's records before its content, so a device catching
+    /// up finds a record gone (and skips it) rather than a record without content.
+    fn clean_gone(
+        &self,
+        remote: &Counted<'_>,
+        base: &str,
+        unsent: &[Gone],
+        progress: &dyn Fn(SyncProgress),
+    ) -> Result<()>;
+
+    /// One journal entry up, then mark its items and deletions as told to this place.
+    fn send_entry(&self, remote: &dyn Remote, entry: Entry, report: &mut SyncReport) -> Result<()>;
+}
+
+impl SyncSteps for OpenVault {
+    fn sync_dir(&self) -> String {
+        self.id.clone()
+    }
+
+    fn log_aad(&self, device: &str, n: u64) -> Vec<u8> {
+        crate::aad(&self.id, &format!("sync/log/{device}/{n}"))
+    }
+
+    fn head_aad(&self, device: &str) -> Vec<u8> {
+        crate::aad(&self.id, &format!("sync/head/{device}"))
+    }
+
+    fn head(&self, remote: &dyn Remote) -> Result<Head> {
+        let rk = remote.key();
+        let n = self
+            .index()
+            .meta_get(&format!("{rk}:seq"))?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
+        let prefix = format!("{rk}:cursor:");
+        let read = self
+            .index()
+            .meta_prefixed(&prefix)?
+            .into_iter()
+            .filter_map(|(k, v)| Some((k[prefix.len()..].to_owned(), v.parse().ok()?)))
+            .collect();
+        Ok(Head { n, read })
+    }
+
+    fn write_head(&self, remote: &dyn Remote) -> Result<()> {
+        let me = device_id(self.index())?;
+        let rk = remote.key();
+        let json = serde_json::to_string(&self.head(remote)?).expect("json");
+        let path = format!("{}/head/{me}", self.sync_dir());
+        let written = format!("{rk}:head");
+        if self.index().meta_get(&written)?.as_deref() == Some(json.as_str())
+            && remote.exists(&path)?
+        {
+            return Ok(());
+        }
+        let sealed = self.sealer().seal(json.as_bytes(), &self.head_aad(&me));
+        remote.replace(&path, &mut &sealed[..])?;
+        self.index().meta_set(&written, &json)
+    }
+
+    fn write_head_quietly(&self, remote: &dyn Remote) {
+        let _ = self.write_head(remote);
+    }
 
     fn pull(
         &self,
@@ -751,7 +876,7 @@ impl OpenVault {
         report: &mut SyncReport,
         progress: &dyn Fn(SyncProgress),
     ) -> Result<()> {
-        let me = device_id(&self.index)?;
+        let me = device_id(self.index())?;
         let base = self.sync_dir();
         // First every new journal entry (small), so the screen knows how much is coming.
         // Fetched several at once (owner 2026-10-26: a device that had not synced for a
@@ -765,7 +890,7 @@ impl OpenVault {
             }
             let key = format!("{}:cursor:{device}", remote.key());
             let cursor: u64 = self
-                .index
+                .index()
                 .meta_get(&key)?
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(0);
@@ -780,7 +905,7 @@ impl OpenVault {
         }
         let fetched: Vec<Mutex<Option<Entry>>> = wanted.iter().map(|_| Mutex::new(None)).collect();
         // The closure runs on several threads: no `self` in it (the index is single-threaded).
-        let (master_key, vault_id) = (&self.master_key, self.id.as_str());
+        let (sealer, vault_id) = (self.sealer(), self.id.as_str());
         let read = |i: &usize| -> Result<()> {
             let (device, n) = &wanted[*i];
             let mut sealed = Capped::new(MAX_SMALL);
@@ -788,7 +913,7 @@ impl OpenVault {
                 return Ok(()); // not there (yet): this device's entries stop before it
             }
             let aad = crate::aad(vault_id, &format!("sync/log/{device}/{n}"));
-            let json = wrap::open(master_key, &sealed.0, &aad)?;
+            let json = sealer.open(&sealed.0, &aad)?;
             let entry: Entry =
                 serde_json::from_slice(&json).map_err(|_| Error::Corrupt("sync log"))?;
             *fetched[*i].lock().unwrap_or_else(|p| p.into_inner()) = Some(entry);
@@ -896,16 +1021,12 @@ impl OpenVault {
                     });
                 }
             }
-            self.index
+            self.index()
                 .meta_set(&format!("{}:cursor:{device}", remote.key()), &n.to_string())?;
         }
         Ok(())
     }
 
-    /// The records and content of `items` this device will take, fetched several at once
-    /// into files beside where they go (`.ahead`), for [`Ahead`] to serve. Only the
-    /// network part: nothing here touches the index, and what fails is simply not
-    /// fetched (taking it reads it again and says why).
     fn fetch_ahead(
         &self,
         remote: &Counted<'_>,
@@ -930,14 +1051,14 @@ impl OpenVault {
         if jobs.len() < 2 {
             return Ok(got.into_inner().unwrap_or_else(|p| p.into_inner()));
         }
-        let master_key = &self.master_key;
+        let sealer = self.sealer();
         let work = |(id, rev, aad, data, thumb): &(String, String, Vec<u8>, PathBuf, PathBuf)| -> Result<()> {
             let record_path = format!("{base}/records/{id}/{rev}");
             let mut sealed = Capped::new(MAX_SMALL);
             if !remote.get(&record_path, &mut sealed).unwrap_or(false) {
                 return Ok(());
             }
-            let Ok(record) = wrap::open(master_key, &sealed.0, aad)
+            let Ok(record) = sealer.open(&sealed.0, aad)
                 .ok()
                 .and_then(|json| ItemRecord::from_json(&json).ok())
                 .map(ItemRecord::upgraded)
@@ -975,13 +1096,11 @@ impl OpenVault {
         Ok(got.into_inner().unwrap_or_else(|p| p.into_inner()))
     }
 
-    /// Whether a journal entry's revision would change this device: not a revision it
-    /// already has, nor an item it deleted for good (judged here, without the place).
     fn would_take(&self, id: &str, rev: &str) -> Result<bool> {
         if let Some(sealed) = self.sealed_record(id)? {
             return Ok(self.open_record(id, &sealed)?.rev != rev);
         }
-        Ok(self.index.gone_hlc(id)?.is_none())
+        Ok(self.index().gone_hlc(id)?.is_none())
     }
 
     fn remote_record(
@@ -1005,7 +1124,6 @@ impl OpenVault {
         Ok(Some((record, sealed)))
     }
 
-    /// Fetch a revision's content into place (sealed as it is; nothing is decrypted).
     fn fetch_blobs(&self, remote: &dyn Remote, id: &str, record: &ItemRecord) -> Result<()> {
         self.keep_content(id)?; // the content it replaces, into the version history
         for ext in ["data", "thumb"] {
@@ -1042,7 +1160,6 @@ impl OpenVault {
         Ok(())
     }
 
-    /// Merge revision `rev` of item `id` from another device into this vault.
     fn take(
         &self,
         remote: &dyn Remote,
@@ -1054,36 +1171,36 @@ impl OpenVault {
         // entries naming revisions it already has).
         if let Some(sealed) = self.sealed_record(id)? {
             if self.open_record(id, &sealed)?.rev == rev {
-                self.index.set_synced(&remote.key(), id, rev)?;
+                self.index().set_synced(&remote.key(), id, rev)?;
                 return Ok(());
             }
         }
         let Some((theirs, _)) = self.remote_record(remote, id, rev)? else {
             return Ok(()); // not uploaded yet, or cleaned up: a later entry will name it
         };
-        observe_hlc(&self.index, theirs.hlc)?;
+        observe_hlc(self.index(), theirs.hlc)?;
         let ours = self
             .sealed_record(id)?
             .map(|s| self.open_record(id, &s))
             .transpose()?;
-        let synced = self.index.synced_rev(&remote.key(), id)?;
+        let synced = self.index().synced_rev(&remote.key(), id)?;
         let Some(ours) = ours else {
             // New here, unless this device deleted it for good after that revision.
-            if let Some(gone_hlc) = self.index.gone_hlc(id)? {
+            if let Some(gone_hlc) = self.index().gone_hlc(id)? {
                 if gone_hlc > theirs.hlc {
                     return Ok(());
                 }
-                self.index.forget_gone(id)?;
+                self.index().forget_gone(id)?;
             }
             self.fetch_blobs(remote, id, &theirs)?;
             self.store_record(id, &theirs)?;
             self.drop_held(id)?;
-            self.index.set_synced(&remote.key(), id, rev)?;
+            self.index().set_synced(&remote.key(), id, rev)?;
             report.received += 1;
             return Ok(());
         };
         if ours.rev == theirs.rev {
-            self.index.set_synced(&remote.key(), id, rev)?;
+            self.index().set_synced(&remote.key(), id, rev)?;
             return Ok(());
         }
         let changed_here = synced.as_deref() != Some(ours.rev.as_str());
@@ -1093,7 +1210,7 @@ impl OpenVault {
                 self.fetch_blobs(remote, id, &theirs)?;
             }
             self.store_record(id, &theirs)?;
-            self.index.set_synced(&remote.key(), id, rev)?;
+            self.index().set_synced(&remote.key(), id, rev)?;
             report.received += 1;
             return Ok(());
         }
@@ -1108,7 +1225,7 @@ impl OpenVault {
         let merged = self.merge(remote, id, base.as_ref(), &ours, &theirs, report)?;
         self.store_record(id, &merged)?;
         // Agreed on theirs; ours (the merge) is the newer revision and goes up next.
-        self.index.set_synced(&remote.key(), id, rev)?;
+        self.index().set_synced(&remote.key(), id, rev)?;
         report.received += 1;
         Ok(())
     }
@@ -1207,8 +1324,6 @@ impl OpenVault {
         Ok(out)
     }
 
-    /// The losing side of a note edited on two devices, saved as a new note so its text
-    /// is not lost. Its content is copied as it is (re-encrypted under a new item id).
     fn keep_copy(
         &self,
         remote: &dyn Remote,
@@ -1255,13 +1370,13 @@ impl OpenVault {
         hlc: i64,
         report: &mut SyncReport,
     ) -> Result<()> {
-        observe_hlc(&self.index, hlc)?;
+        observe_hlc(self.index(), hlc)?;
         let Some(sealed) = self.sealed_record(id)? else {
             return Ok(());
         };
         let ours = self.open_record(id, &sealed)?;
         let changed_here =
-            self.index.synced_rev(&remote.key(), id)?.as_deref() != Some(ours.rev.as_str());
+            self.index().synced_rev(&remote.key(), id)?.as_deref() != Some(ours.rev.as_str());
         if changed_here && ours.hlc > hlc {
             return Ok(()); // edited here after: it stays (and goes up again)
         }
@@ -1279,23 +1394,18 @@ impl OpenVault {
         } else {
             ""
         };
-        self.index.add_gone(id, hlc, rev)?;
-        self.index.gone_sent(&remote.key(), id)?;
+        self.index().add_gone(id, hlc, rev)?;
+        self.index().gone_sent(&remote.key(), id)?;
         if held {
             report.removed += 1;
         }
         Ok(())
     }
 
-    /// The vault's lock as this device has it: its header (the Master Key wrapped with
-    /// the password and the Recovery Key, sealed meta) and the library's (salt, Argon2
-    /// cost, the key's fingerprint). What a new device needs, with the 24 words and the
-    /// password, to open the vault from the place. Nothing in it opens anything alone.
-    /// With when it last changed here (ms), so an older lock never replaces a newer one.
     fn lock_bytes(&self) -> Result<(u64, Vec<u8>)> {
-        let header_file = self.dir.join(crate::HEADER_FILE);
+        let header_file = self.dir().join(crate::HEADER_FILE);
         let library_file = self
-            .dir
+            .dir()
             .parent()
             .and_then(Path::parent)
             .map(|d| d.join(crate::LIBRARY_FILE))
@@ -1316,12 +1426,6 @@ impl OpenVault {
         Ok((changed, bytes))
     }
 
-    /// Put this device's lock in the place, named by its content, and only then remove
-    /// any other: after the password or Recovery Key changed, the old ones no longer
-    /// open the copy there (owner 2026-10-24).
-    ///
-    /// Names are `<ms changed>-<sha256>.json`. A device whose lock is older (its password
-    /// or key not changed yet) leaves the newer one alone.
     fn push_lock(&self, remote: &dyn Remote, base: &str) -> Result<()> {
         let (changed, bytes) = self.lock_bytes()?;
         let name = format!("{changed:013}-{}.json", crate::items::sha256_hex(&bytes));
@@ -1367,7 +1471,7 @@ impl OpenVault {
         // stays in this thread.
         let mut items = Vec::new();
         let mut fingerprint = Vec::new();
-        for id in self.index.ids()? {
+        for id in self.index().ids()? {
             let Some(sealed) = self.sealed_record(&id)? else {
                 continue;
             };
@@ -1422,7 +1526,7 @@ impl OpenVault {
                 record.modified_ms = modified;
                 sealed = self.store_record(&id, &record)?;
             }
-            if self.index.synced_rev(&rk, &id)?.as_deref() == Some(record.rev.as_str()) {
+            if self.index().synced_rev(&rk, &id)?.as_deref() == Some(record.rev.as_str()) {
                 // The place has this revision: check it still holds every file of it.
                 held.push((id, record, sealed));
                 continue;
@@ -1431,7 +1535,7 @@ impl OpenVault {
         }
         self.mend_place(remote, &base, &held, report, progress)?;
         drop(held);
-        let gone = self.index.gone_unsent(&rk)?;
+        let gone = self.index().gone_unsent(&rk)?;
         // Deletions are counted apart (Removing): they are not items going up.
         let total = todo.len() as u32;
         let start = remote.bytes();
@@ -1532,10 +1636,6 @@ impl OpenVault {
         self.collect_garbage(remote, now_ms(), progress)
     }
 
-    /// Every file of the revisions the place holds, checked against what the place lists
-    /// (a missing file, or one whose SHA-256 is not the one sealed in the record): sent
-    /// again from here when the copy here is right. Places that cannot tell are skipped;
-    /// a file without a checksum yet (just sent) counts as fine.
     fn mend_place(
         &self,
         remote: &Counted<'_>,
@@ -1624,13 +1724,6 @@ impl OpenVault {
         Ok(())
     }
 
-    /// Take old revisions off the place (at most once a day): the record of a revision
-    /// superseded more than [`KEEP_OLD_MS`] ago (the next newer one, by `hlc`, made
-    /// before then), and its content unless a revision that stays uses it too. A device
-    /// that has not synced for that long finds them gone and takes the newer revision
-    /// its journal names. Only items this device holds, at the revision the place has;
-    /// never their current revision or its content, nor a revision newer than it (another
-    /// device's, not told yet). Records go before content, in batches.
     fn collect_garbage(
         &self,
         remote: &Counted<'_>,
@@ -1643,7 +1736,7 @@ impl OpenVault {
         let rk = remote.key();
         let at_key = format!("{rk}:gc-at");
         let last: i64 = self
-            .index
+            .index()
             .meta_get(&at_key)?
             .and_then(|v| v.parse().ok())
             .unwrap_or(0);
@@ -1660,13 +1753,13 @@ impl OpenVault {
         let base = self.sync_dir();
         let cutoff = now - KEEP_OLD_MS;
         let mut todo = Vec::new();
-        for id in self.index.ids()? {
+        for id in self.index().ids()? {
             let Some(sealed) = self.sealed_record(&id)? else {
                 continue;
             };
             let current = self.open_record(&id, &sealed)?;
             if current.rev.is_empty()
-                || self.index.synced_rev(&rk, &id)?.as_deref() != Some(current.rev.as_str())
+                || self.index().synced_rev(&rk, &id)?.as_deref() != Some(current.rev.as_str())
             {
                 continue;
             }
@@ -1684,9 +1777,9 @@ impl OpenVault {
                 // The other revisions, oldest first. Each record is read once per place,
                 // its clock kept here; unreadable ones are left alone (and tried again).
                 let mut known = std::collections::HashMap::new();
-                for (rev, hlc, data_rev) in self.index.rev_clocks(&rk, id)? {
+                for (rev, hlc, data_rev) in self.index().rev_clocks(&rk, id)? {
                     if rev == current.rev || !revs.contains(&rev) {
-                        self.index.forget_rev_clock(&rk, id, &rev)?;
+                        self.index().forget_rev_clock(&rk, id, &rev)?;
                     } else {
                         known.insert(rev, (hlc, data_rev));
                     }
@@ -1696,7 +1789,8 @@ impl OpenVault {
                     if let Some((hlc, data_rev)) = known.remove(rev) {
                         others.push((hlc, rev.clone(), data_rev));
                     } else if let Ok(Some((r, _))) = self.remote_record(remote, id, rev) {
-                        self.index.set_rev_clock(&rk, id, rev, r.hlc, &r.data_rev)?;
+                        self.index()
+                            .set_rev_clock(&rk, id, rev, r.hlc, &r.data_rev)?;
                         others.push((r.hlc, r.rev, r.data_rev));
                     }
                 }
@@ -1709,7 +1803,7 @@ impl OpenVault {
                         .map_or(current.hlc, |o| o.0.min(current.hlc));
                     if *hlc < current.hlc && superseded <= cutoff {
                         records.push(format!("{base}/records/{id}/{rev}"));
-                        self.index.forget_rev_clock(&rk, id, rev)?;
+                        self.index().forget_rev_clock(&rk, id, rev)?;
                         dropped.insert(data_rev.clone());
                     } else {
                         keep.insert(data_rev.clone());
@@ -1739,18 +1833,9 @@ impl OpenVault {
                 }
             }
         }
-        self.index.meta_set(&at_key, &now.to_string())
+        self.index().meta_set(&at_key, &now.to_string())
     }
 
-    /// Take the files of items deleted for good off the place (owner 2026-10-24: 700
-    /// deleted photos stayed in Google Drive). Only revisions made before the deletion
-    /// go: one edited on another device after it stays, with its content. The first
-    /// time on a place, deletions it was already told about are cleaned as well.
-    ///
-    /// The revision this device last had is older than the deletion and goes unread;
-    /// any other is read to compare its clock. Files go in batches of about
-    /// [`REMOVE_EVERY`], each batch's records before its content, so a device catching
-    /// up finds a record gone (and skips it) rather than a record without content.
     fn clean_gone(
         &self,
         remote: &Counted<'_>,
@@ -1762,11 +1847,11 @@ impl OpenVault {
             return Ok(());
         }
         let swept_key = format!("{}:gone-swept", remote.key());
-        let swept = self.index.meta_get(&swept_key)?.is_some();
+        let swept = self.index().meta_get(&swept_key)?.is_some();
         let todo: Vec<Gone> = if swept {
             unsent.to_vec()
         } else {
-            self.index.all_gone()?
+            self.index().all_gone()?
         };
         if !todo.is_empty() {
             progress(SyncProgress {
@@ -1821,33 +1906,33 @@ impl OpenVault {
             }
         }
         if !swept {
-            self.index.meta_set(&swept_key, "1")?;
+            self.index().meta_set(&swept_key, "1")?;
         }
         Ok(())
     }
 
-    /// One journal entry up, then mark its items and deletions as told to this place.
     fn send_entry(&self, remote: &dyn Remote, entry: Entry, report: &mut SyncReport) -> Result<()> {
-        let me = device_id(&self.index)?;
+        let me = device_id(self.index())?;
         let rk = remote.key();
         let n: u64 = self
-            .index
+            .index()
             .meta_get(&format!("{rk}:seq"))?
             .and_then(|v| v.parse().ok())
             .unwrap_or(0)
             + 1;
         let json = serde_json::to_vec(&entry).expect("serialisable");
-        let sealed = wrap::seal(&self.master_key, &json, &self.log_aad(&me, n));
+        let sealed = self.sealer().seal(&json, &self.log_aad(&me, n));
         remote.put(
             &format!("{}/log/{me}/{n}", self.sync_dir()),
             &mut &sealed[..],
         )?;
-        self.index.meta_set(&format!("{rk}:seq"), &n.to_string())?;
+        self.index()
+            .meta_set(&format!("{rk}:seq"), &n.to_string())?;
         for (id, rev) in &entry.items {
-            self.index.set_synced(&rk, id, rev)?;
+            self.index().set_synced(&rk, id, rev)?;
         }
         for (id, _) in &entry.gone {
-            self.index.gone_sent(&rk, id)?;
+            self.index().gone_sent(&rk, id)?;
         }
         report.sent += entry.items.len() as u32;
         Ok(())
@@ -2049,7 +2134,7 @@ pub(crate) mod tests {
             .unlock(pw())
             .unwrap()
             .unwrap();
-        assert_ne!(device_id(&a.index).unwrap(), device_id(&b.index).unwrap());
+        assert_ne!(device_id(a.index()).unwrap(), device_id(b.index()).unwrap());
         let cloud = FolderRemote::new(dc.path());
         Two {
             _dirs: (da, db, dc),
@@ -2526,7 +2611,7 @@ pub(crate) mod tests {
         t.b.sync(&t.cloud).unwrap();
         // A has not read B's journal yet (B's entry held back), so its cleaning meets
         // B's newer revision in the place.
-        let me_b = device_id(&t.b.index).unwrap();
+        let me_b = device_id(t.b.index()).unwrap();
         let log_b = t.cloud.root.join(&t.a.id).join("log").join(&me_b);
         let held = t._dirs.2.path().join("held");
         fs::rename(&log_b, &held).unwrap();
@@ -2554,7 +2639,7 @@ pub(crate) mod tests {
         let mut w = Watched::new(&t.cloud, 4);
         w.fail_after = Some(LOG_EVERY * 2 + 9);
         assert!(t.a.sync(&w).is_err());
-        let me = device_id(&t.a.index).unwrap();
+        let me = device_id(t.a.index()).unwrap();
         let base = t.a.sync_dir();
         for e in t.cloud.list(&format!("{base}/log/{me}")).unwrap() {
             let n: u64 = e.parse().unwrap();
@@ -2562,7 +2647,7 @@ pub(crate) mod tests {
             t.cloud
                 .get(&format!("{base}/log/{me}/{n}"), &mut sealed)
                 .unwrap();
-            let json = wrap::open(&t.a.master_key, &sealed, &t.a.log_aad(&me, n)).unwrap();
+            let json = t.a.sealer().open(&sealed, &t.a.log_aad(&me, n)).unwrap();
             let entry: Entry = serde_json::from_slice(&json).unwrap();
             for (id, rev) in entry.items {
                 let r = t.a.record(&id).unwrap();
@@ -2821,14 +2906,14 @@ pub(crate) mod tests {
         let left = revisions(&t, &id);
         assert_eq!(left.len(), 1);
         assert_eq!(
-            t.a.index.rev_clocks(&t.cloud.key(), &id).unwrap().len(),
+            t.a.index().rev_clocks(&t.cloud.key(), &id).unwrap().len(),
             left.len() - 1
         );
         // An item deleted for good takes its clocks along.
         t.a.delete_item(&id).unwrap();
         assert!(t
             .a
-            .index
+            .index()
             .rev_clocks(&t.cloud.key(), &id)
             .unwrap()
             .is_empty());
@@ -3005,7 +3090,7 @@ pub(crate) mod tests {
                 .join(&second[0]),
         )
         .unwrap();
-        let mine = fs::read_to_string(t.a.dir.join(crate::HEADER_FILE)).unwrap();
+        let mine = fs::read_to_string(t.a.dir().join(crate::HEADER_FILE)).unwrap();
         let v: serde_json::Value = serde_json::from_str(&body).unwrap();
         let h: serde_json::Value = serde_json::from_str(&mine).unwrap();
         assert_eq!(v["vault"], h);
@@ -3057,7 +3142,7 @@ pub(crate) mod tests {
         assert!(sending.windows(2).all(|w| w[0].bytes <= w[1].bytes));
         assert!(sending.last().unwrap().bytes >= total_bytes);
         // Two journal entries: the first LOG_EVERY items, then the rest.
-        let me = device_id(&t.a.index).unwrap();
+        let me = device_id(t.a.index()).unwrap();
         let entries = t
             .cloud
             .list(&format!("{}/log/{me}", t.a.sync_dir()))
@@ -3112,11 +3197,11 @@ pub(crate) mod tests {
                     .sum()
             })
         }
-        assert_eq!(ahead_files(&t.b.dir), 0);
+        assert_eq!(ahead_files(t.b.dir()), 0);
     }
 
     fn me(v: &OpenVault) -> String {
-        device_id(&v.index).unwrap()
+        device_id(v.index()).unwrap()
     }
 
     /// The highest journal entry of `device` in the place.
@@ -3242,5 +3327,26 @@ pub(crate) mod tests {
             t.a.heads_seen("p").unwrap(),
             Some(at("h2", &[(&a, 1), (&b, 4)]))
         );
+    }
+
+    #[test]
+    fn a_version_from_another_device_by_sync_is_kept_too() {
+        let t = two();
+        let id = note(&t.a, "List", "milk");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        t.b.replace_item(&id, "List", &b"milk, eggs"[..]).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        let h = t.a.history(&id).unwrap();
+        assert_eq!(h.len(), 1);
+        assert!(h[0].this_device);
+        let mut old = Vec::new();
+        t.a.read_history_item(&id, &h[0].rev, &mut old).unwrap();
+        assert_eq!(old, b"milk");
+        // On B, the version A wrote is one from another device.
+        let hb = t.b.history(&id).unwrap();
+        assert_eq!(hb.len(), 1);
+        assert!(!hb[0].this_device);
     }
 }

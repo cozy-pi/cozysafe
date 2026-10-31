@@ -16,19 +16,20 @@ use std::path::Path;
 use cs_crypto::kdf::{self, KdfParams};
 use cs_crypto::{generate_salt, wrap, SecretKey, SALT_LEN};
 
-use crate::{
-    aad, decode_array, open_with, read_header, remove_if_exists, write_atomic, Error, Library,
-    OpenVault, Result, VAULTS_DIR,
+use crate::vault::{
+    aad, decode_array, open_with, read_header, remove_if_exists, write_atomic, Library, OpenVault,
+    VAULTS_DIR,
 };
+use crate::{Error, Result};
 
-pub(crate) const PIN_FILE: &str = "pin";
+pub const PIN_FILE: &str = "pin";
 /// For a new or changed PIN (owner 2026-10-23: at least 6). PINs set earlier with 4 or 5
 /// digits still unlock: only setting one checks this.
 pub const MIN_PIN_LEN: usize = 6;
 /// Not a limit people meet: only a sanity cap against garbage input.
 pub const MAX_PIN_LEN: usize = 256;
 
-use cs_core::format::PinFile;
+use crate::format::PinFile;
 
 const PIN_FORMAT: u32 = 2;
 
@@ -67,13 +68,13 @@ impl OpenVault {
         let kek = kdf::vault_kek(&root, &salt);
         let file = PinFile {
             format: PIN_FORMAT,
-            salt: cs_core::hex::encode(salt),
+            salt: crate::hex::encode(salt),
             length: pin.len() as u8,
             kdf: Some(params.into()),
             legacy_m_kib: None,
             legacy_t: None,
             legacy_p: None,
-            wrapped_master_key: cs_core::hex::encode(wrap::wrap_key(
+            wrapped_master_key: crate::hex::encode(wrap::wrap_key(
                 &kek,
                 &self.master_key,
                 &aad(&self.id, "pin"),
@@ -109,11 +110,7 @@ impl Library {
     }
 
     /// The id of the vault this PIN opens, without opening it.
-    pub(crate) fn pin_owner(
-        dir: &Path,
-        pin: &str,
-        device_key: &SecretKey,
-    ) -> Result<Option<String>> {
+    pub fn pin_owner(dir: &Path, pin: &str, device_key: &SecretKey) -> Result<Option<String>> {
         if !valid(pin) {
             return Ok(None);
         }
@@ -134,7 +131,7 @@ impl Library {
             let root = kdf::derive_root(pin.as_bytes(), device_key, &salt, params)?;
             let kek = kdf::vault_kek(&root, &salt);
             let wrapped =
-                cs_core::hex::decode(&file.wrapped_master_key).ok_or(Error::Corrupt("pin"))?;
+                crate::hex::decode(&file.wrapped_master_key).ok_or(Error::Corrupt("pin"))?;
             if wrap::unwrap_key(&kek, &wrapped, &aad(&id, "pin")).is_ok() {
                 return Ok(Some(id));
             }
@@ -167,7 +164,7 @@ impl Library {
             let root = kdf::derive_root(pin.as_bytes(), device_key, &salt, params)?;
             let kek = kdf::vault_kek(&root, &salt);
             let wrapped =
-                cs_core::hex::decode(&file.wrapped_master_key).ok_or(Error::Corrupt("pin"))?;
+                crate::hex::decode(&file.wrapped_master_key).ok_or(Error::Corrupt("pin"))?;
             if let Ok(mk) = wrap::unwrap_key(&kek, &wrapped, &aad(&id, "pin")) {
                 return open_with(id, vault_dir, &header, mk).map(Some);
             }
@@ -218,7 +215,7 @@ fn pin_files(dir: &Path) -> Vec<(std::path::PathBuf, PinFile)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tests::sk;
+    use crate::vault::tests::sk;
 
     const FAST: KdfParams = KdfParams {
         m_kib: 64,
@@ -228,7 +225,7 @@ mod tests {
     /// A vault password, random each run: none is written in the code.
     fn pw() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| crate::hex::encode(cs_crypto::generate_salt()))
     }
 
     #[test]
@@ -355,12 +352,11 @@ mod tests {
             b.id
         );
 
-        // No password yet: no password opens anything, and backups leave the vault out.
+        // No password yet: no password opens anything (backups leave the vault out:
+        // cs-vault's backup tests).
         assert!(!a.has_password());
         assert!(!Library::any_password(tmp.path()));
         assert!(l.unlock(pw()).unwrap().is_none());
-        let mut out = Vec::new();
-        assert_eq!(crate::backup::export(tmp.path(), &mut out).unwrap(), 1); // library.json only
 
         // Set a password later: it opens the vault; the same password for B is refused.
         l.set_password(&a, pw()).unwrap();

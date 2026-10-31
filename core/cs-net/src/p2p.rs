@@ -44,7 +44,7 @@ use std::time::{Duration, Instant};
 use cs_crypto::{kdf, wrap, Key, SecretKey};
 use cs_vault::sync::{FolderRemote, Remote, SyncReport, Telling};
 use cs_vault::sync::{SyncPhase, SyncProgress};
-use cs_vault::{Error, Library, OpenVault, Result};
+use cs_vault::{Error, Library, LibraryJoin, OpenVault, Result, VaultSync};
 
 use crate::Permit;
 

@@ -32,10 +32,13 @@ path: what it needs beyond those is written here, in our own code.
 - **Allowed:** the RustCrypto crates, the small crates they are made of, and SQLite
   (`rusqlite`, built from the bundled source). The cryptography is all Rust: no C
   cryptography library (owner 2026-10-31, for memory safety). SQLite is the only C.
-- **Not allowed:** everything else. Today the vault core also uses `serde`,
-  `serde_json`, `hex`, `thiserror` and `zxcvbn` (which alone brings 25 crates); a Top
-  secret vault is built without them (its own small encoding, its own errors, its own
-  password check: length plus a list of common passwords).
+- **Not allowed:** everything else. The vault core, `core/cs-core` (the library, the
+  vaults, their items, PINs, version history and index), is built without `serde`,
+  `serde_json`, `hex`, `thiserror` and `zxcvbn`, which it used before: its own small
+  JSON (byte for byte what serde wrote, `tests/format_serde.rs`), its own errors, its own
+  hex, its own password check (length plus a list of common passwords). `cs-vault`
+  (sync, backups, joining) still uses `serde` for the sync journal, until sync per kind
+  (ADR 0005, step 5).
 - **"Audited" means one of two things, with the evidence kept here** (owner
   2026-10-31):
   1. a public, independent audit report, linked below; or
@@ -139,7 +142,7 @@ to the crate it comes from. The policy forbids the `net` API to every crate but
 config records which crates may use `unsafe`, the file system, or start processes
 (build scripts). Linux only. The CI job blocks; when it fails it uploads the config
 cackle suggests, and still fails outright if that config would hand `net` to another crate.
-The core crates (`cs-vault`, `cs-crypto`, `cs-photo`) also carry
+The core crates (`cs-core`, `cs-vault`, `cs-crypto`, `cs-photo`) also carry
 `#![forbid(unsafe_code)]`: the compiler refuses unsafe Rust there.
 
 **cargo-deny** checks both lockfiles (the core workspace and `app/rust`) against the
@@ -195,9 +198,9 @@ passwords). Source: SecLists,
 `Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt` at commit
 `c205c36a445bff37f8e58a9ec829105cd4975c58`; the downloaded file's SHA-256 is
 `1472aafa2561df5e3293aee252aee3ca660c12b399a283cf808bb01b39be388b`. The list is not
-kept as text: `core/cs-vault/data/common-passwords.bin` is a sorted table of the first
+kept as text: `core/cs-core/data/common-passwords.bin` is a sorted table of the first
 4 bytes of the SHA-256 of each normalised entry, built by the ignored test
-`make_blocklist` in `core/cs-vault` from that file at that commit (its SHA-256 checked
+`make_blocklist` in `core/cs-core` from that file at that commit (its SHA-256 checked
 first). The app ships only the table.
 
 Attribution: SecLists is MIT licensed, Copyright (c) 2018 Daniel Miessler (the MIT

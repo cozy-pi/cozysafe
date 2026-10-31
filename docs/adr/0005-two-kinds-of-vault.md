@@ -70,6 +70,11 @@ fixed.
   bundled list of common passwords) replace `hex` and `zxcvbn`.
 - **`cs-vault`** keeps what Private needs on top of `cs-core` (history, audit, imports,
   photos) and may keep its present dependencies.
+- Done in step 1 (2026-10-31): the library, vaults, items, PINs, the index and version
+  history are in `cs-core` (history too for now: items keep versions as they change;
+  which kind keeps history is decided in steps 3–4); sync, the audit, backups and
+  joining are in `cs-vault`, as traits on the core's types. The Master Key stays in
+  `cs-core`: sync seals and opens through `OpenVault::sealer`.
 - **Sync** carries only sealed data, for both kinds. For Top secret it uses `rustls`
   (audited) and a small JSON reader of our own for Google Drive's answers, in place of
   `serde_json`.

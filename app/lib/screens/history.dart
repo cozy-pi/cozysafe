@@ -16,7 +16,7 @@ import 'file_view.dart' show fileSize;
 
 /// How much (owner 2026-10-27, space first to keep versions as long as possible):
 /// 500 MB · 1 GB · 5 GB · no limit, or Off; 1 GB unless changed. Under it nothing goes;
-/// once full, versions older than [historyKeptDays] go first (core/cs-vault/src/history.rs).
+/// once full, versions older than [historyKeptDays] go first (core/cs-core/src/history.rs).
 const historyKeptDays = 30;
 final historySizeChoices = [
   BigInt.from(500) * BigInt.from(1 << 20),

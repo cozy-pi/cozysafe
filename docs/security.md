@@ -229,10 +229,10 @@ unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.m
 
 - **Sealed:** item names, kinds, tags, note text and file contents (each item's record
   and blobs, XChaCha20-Poly1305).
-- **In the clear in `vault.db`** (the SQLite index, `core/cs-vault/src/db.rs`): each
+- **In the clear in `vault.db`** (the SQLite index, `core/cs-core/src/db.rs`): each
   item's id, when it was created, modified and deleted (ms), and its size. The files on
   disk show times and sizes anyway.
-- **Version history** (`history/` beside `items/`, `core/cs-vault/src/history.rs`): an
+- **Version history** (`history/` beside `items/`, `core/cs-core/src/history.rs`): an
   item's older records, sealed exactly as they were, and its older content, encrypted as
   it was. File names hold only a time and random revision ids. Local only: never synced,
   never in backups. Deleting an item for good deletes its history; Settings → Version

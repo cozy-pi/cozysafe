@@ -11,6 +11,7 @@ use cs_net::drive::{self, DrivePhase, DriveRemote, DriveSetup, GoogleDrive};
 use cs_net::p2p::{self, PairCode};
 use cs_net::Permit;
 use cs_vault::sync::SyncReport;
+use cs_vault::{LibraryJoin, VaultAudit, VaultSync};
 
 use super::vault::{hold_for_sync, with_open, SyncHold, VaultError};
 use crate::frb_generated::StreamSink;

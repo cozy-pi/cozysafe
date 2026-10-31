@@ -32,7 +32,9 @@ the copies byte for byte, and a weekly job compares them with upstream and recom
 what to update (supply-chain.md). New passwords: at least 12 characters (or 4 words,
 which always are) and not among the most common; zxcvbn is gone (security.md,
 "Passwords"). Passwords already in use keep working. On a computer unlocking takes
-about 0.9 s (no threading library in the core).
+about 0.9 s (no threading library in the core). The vault core moved into `cs-core`
+(library, vaults, items, PINs, history, index) and reads and writes the same files as
+before; sync, backups and joining stay in `cs-vault` on top of it.
 
 ## 2026-10-30 (later) — Top secret is top secret
 
@@ -234,7 +236,7 @@ Released 0.1.76 (#31–#37) the same day after the owner approved mockup v13.
 (500 MB · 1 GB · 5 GB · no limit, default 1 GB). Asked whether the setting syncs: no,
 each device has its own (choice a, simpler and less risk). History is local, sealed like
 the items, not synced and not in backups; pruning never touches the current version
-(`core/cs-vault/src/history.rs`, docs/security.md). The note editor's Undo/Redo is the
+(`core/cs-core/src/history.rs`, docs/security.md). The note editor's Undo/Redo is the
 in-session half of the same request.
 
 ## 2026-10-27 — Drive errors named, an error log, Drive checked each sync (0.1.76)

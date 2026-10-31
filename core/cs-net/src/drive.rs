@@ -1822,6 +1822,7 @@ mod tests {
     use super::*;
     use crate::testkit::{note, text, two};
     use cs_vault::audit::Tally;
+    use cs_vault::{VaultAudit, VaultSync};
     use std::sync::atomic::AtomicU64;
     use std::sync::Arc;
 

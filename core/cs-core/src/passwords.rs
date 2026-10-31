@@ -152,7 +152,7 @@ mod tests {
     const SOURCE_SHA256: &str = "1472aafa2561df5e3293aee252aee3ca660c12b399a283cf808bb01b39be388b";
 
     /// Build `data/common-passwords.bin` from the SecLists text file:
-    /// `COZYSAFE_BLOCKLIST_SRC=<file> cargo test -p cs-vault --lib -- --ignored make_blocklist`.
+    /// `COZYSAFE_BLOCKLIST_SRC=<file> cargo test -p cs-core --lib -- --ignored make_blocklist`.
     /// Only lower-case entries a password could equal (8+ characters) and the
     /// normalised forms go in.
     #[test]

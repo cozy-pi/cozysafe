@@ -252,7 +252,7 @@ Rust and Dart that ships in the app.
 | Rust [cmov](https://crates.io/crates/cmov/0.5.4) | 0.5.4 | 2026-05-28 | ctutils | github:rustcrypto:utils, tarcieri | cackle: unsafe |
 | Rust [const-oid](https://crates.io/crates/const-oid/0.10.2) | 0.10.2 | 2026-01-07 | digest | github:rustcrypto:formats, tarcieri | cackle: unsafe |
 | Rust [cpufeatures](https://crates.io/crates/cpufeatures/0.2.17) | 0.2.17 | 2025-01-25 | chacha20 | github:rustcrypto:utils, tarcieri | cackle: unsafe |
-| Rust [cpufeatures](https://crates.io/crates/cpufeatures/0.3.1) | 0.3.1 | 2026-08-26 | argon2 | github:rustcrypto:utils, tarcieri | cackle: unsafe |
+| Rust [cpufeatures](https://crates.io/crates/cpufeatures/0.3.1) | 0.3.1 | 2026-08-26 | sha2 | github:rustcrypto:utils, tarcieri | cackle: unsafe |
 | Rust [crypto-common](https://crates.io/crates/crypto-common/0.1.7) | 0.1.7 | 2025-11-12 | aead | github:rustcrypto:traits, newpavlov |  |
 | Rust [crypto-common](https://crates.io/crates/crypto-common/0.2.2) | 0.2.2 | 2026-05-19 | digest | github:rustcrypto:traits, newpavlov |  |
 | Rust [ctutils](https://crates.io/crates/ctutils/0.4.4) | 0.4.4 | 2026-10-23 | digest | github:rustcrypto:utils, tarcieri |  |

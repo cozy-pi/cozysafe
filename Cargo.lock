@@ -154,7 +154,9 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
+ "zeroize",
 ]
 
 [[package]]
@@ -196,12 +198,9 @@ version = "0.1.0"
 dependencies = [
  "cs-core",
  "cs-crypto",
- "rusqlite",
  "serde",
  "serde_json",
- "sha2",
  "tempfile",
- "zeroize",
 ]
 
 [[package]]

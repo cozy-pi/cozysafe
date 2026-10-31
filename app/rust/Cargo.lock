@@ -262,6 +262,8 @@ version = "0.1.0"
 dependencies = [
  "cs-crypto",
  "rusqlite",
+ "sha2",
+ "zeroize",
 ]
 
 [[package]]
@@ -301,11 +303,8 @@ version = "0.1.0"
 dependencies = [
  "cs-core",
  "cs-crypto",
- "rusqlite",
  "serde",
  "serde_json",
- "sha2",
- "zeroize",
 ]
 
 [[package]]
