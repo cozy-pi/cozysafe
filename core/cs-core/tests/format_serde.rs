@@ -23,6 +23,8 @@ struct SLibraryHeader {
     secret_key: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     prev_secret_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    kind: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -130,6 +132,7 @@ fn library(s: &SLibraryHeader) -> LibraryHeader {
         salt: s.salt.clone(),
         secret_key: s.secret_key.clone(),
         prev_secret_key: s.prev_secret_key.clone(),
+        kind: s.kind.clone(),
     }
 }
 
@@ -309,6 +312,7 @@ fn library_header() {
             salt: r.string(),
             secret_key: r.opt_string(),
             prev_secret_key: r.opt_string(),
+            kind: r.opt_string(),
         };
         let o = library(&s);
         same!(

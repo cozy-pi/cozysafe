@@ -25,6 +25,11 @@ pub const OLDEST_MIN_PASSWORD_LEN: usize = 8;
 /// What the strength bars call good enough: [`strength`] gives it to every password the
 /// rule accepts.
 pub const MIN_PASSWORD_SCORE: u8 = 3;
+/// A new Private password needs at least this many characters (ADR 0005): no Secret
+/// Key stands beside it. A phrase of [`MIN_WORDS`] words always has this many too (three
+/// letters or more each, with the spaces), so "or a phrase of four words" needs no rule
+/// of its own here either.
+pub const MIN_PRIVATE_PASSWORD_LEN: usize = 14;
 /// A new password needs at least this many different characters, upper and lower case
 /// counted as one.
 pub const MIN_DISTINCT_CHARS: usize = 5;
@@ -62,6 +67,16 @@ pub fn check_new_password(password: &str) -> PasswordCheck {
         PasswordCheck::Common
     } else {
         PasswordCheck::Ok
+    }
+}
+
+/// Whether `password` may become a Private vault's password: [`check_new_password`]
+/// with [`MIN_PRIVATE_PASSWORD_LEN`] characters.
+pub fn check_new_private_password(password: &str) -> PasswordCheck {
+    if password.chars().count() < MIN_PRIVATE_PASSWORD_LEN {
+        PasswordCheck::TooShort
+    } else {
+        check_new_password(password)
     }
 }
 
@@ -263,6 +278,25 @@ mod tests {
 
     /// "Or a phrase of four words": four words of three letters or more, apart, are
     /// always at least 12 characters, so the length rule covers them.
+    #[test]
+    fn private_passwords_are_longer() {
+        let random = crate::hex::encode(cs_crypto::generate_salt());
+        let one_short = &random[..MIN_PRIVATE_PASSWORD_LEN - 1];
+        assert_eq!(
+            check_new_private_password(one_short),
+            PasswordCheck::TooShort
+        );
+        assert_eq!(
+            check_new_private_password(&random),
+            check_new_password(&random)
+        );
+        // Four words are always long enough.
+        assert!(["abc"; MIN_WORDS].join(" ").chars().count() >= MIN_PRIVATE_PASSWORD_LEN);
+        for pw in cases("common") {
+            assert_ne!(check_new_private_password(&pw), PasswordCheck::Ok);
+        }
+    }
+
     /// Long but made of few characters: refused, whatever the length.
     #[test]
     fn few_different_characters_are_refused() {

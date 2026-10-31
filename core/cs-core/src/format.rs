@@ -138,6 +138,9 @@ pub struct LibraryHeader {
     pub secret_key: Option<String>,
     /// During a Secret Key change: the old key's fingerprint.
     pub prev_secret_key: Option<String>,
+    /// The kind of vault (ADR 0005): `private` for a Private library (password only, no
+    /// Secret Key); absent for Top secret, as every library made before the split.
+    pub kind: Option<String>,
 }
 
 impl LibraryHeader {
@@ -149,7 +152,8 @@ impl LibraryHeader {
             .put("kdf", self.kdf.value())
             .str("salt", &self.salt);
         let o = opt_str(o, "secret_key", &self.secret_key);
-        opt_str(o, "prev_secret_key", &self.prev_secret_key).build()
+        let o = opt_str(o, "prev_secret_key", &self.prev_secret_key);
+        opt_str(o, "kind", &self.kind).build()
     }
 
     pub fn to_json_pretty(&self) -> Vec<u8> {
@@ -170,6 +174,7 @@ impl LibraryHeader {
             salt: need(f.str("salt"), w)?.to_owned(),
             secret_key: may(f.str("secret_key"), w)?.map(str::to_owned),
             prev_secret_key: may(f.str("prev_secret_key"), w)?.map(str::to_owned),
+            kind: may(f.str("kind"), w)?.map(str::to_owned),
         })
     }
 }

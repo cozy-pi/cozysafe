@@ -315,7 +315,7 @@ mod tests {
     #[test]
     fn private_floor_is_higher() {
         assert!(KdfParams::PRIVATE_PHONE_FLOOR.meets(&KdfParams::PHONE_FLOOR));
-        assert!(KdfParams::PRIVATE_PHONE_FLOOR.m_kib > KdfParams::PHONE_FLOOR.m_kib);
+        const { assert!(KdfParams::PRIVATE_PHONE_FLOOR.m_kib > KdfParams::PHONE_FLOOR.m_kib) };
         assert!(KdfParams::PRIVATE_DESKTOP_FLOOR.meets(&KdfParams::DESKTOP_FLOOR));
         assert!(KdfParams::PRIVATE_DESKTOP_FLOOR.meets(&KdfParams::PRIVATE_PHONE_FLOOR));
         assert!(KdfParams::PRIVATE_PHONE_FLOOR.meets(&KdfParams::PRIVATE_ACCEPTED_FLOOR));
