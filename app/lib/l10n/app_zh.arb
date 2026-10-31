@@ -803,7 +803,7 @@
   "closeAppBodyOff": "完全关闭 Cozy Safe（在应用切换器中将它划走），然后重新打开。启动时绝密模式将关闭。",
   "modeChooseTitle": "你的保险箱要怎样工作？",
   "modeChooseLead": "两种锁法完全相同。区别在于应用是否打开里面的内容。",
-  "modeEveryday": "日常",
+  "modeEveryday": "私密",
   "modeEverydayNote": "在应用内直接查看照片、视频和文件",
   "modeTopSecretNote": "应用内不打开任何内容。最安全。",
   "modeChangeLater": "之后可以在设置中更改。",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "笔记，以及来自“文件”应用的文件",
   "compareView": "在应用内显示照片、视频和 PDF",
   "compareThumbs": "缩略图",
-  "compareLibrary": "从照片图库添加"
+  "compareLibrary": "从照片图库添加",
+  "compareEncrypted": "所有数据均以最高级别加密"
 }

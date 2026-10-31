@@ -803,7 +803,7 @@
   "closeAppBodyOff": "Cozy Safe'i tamamen kapatın (uygulama değiştiricide kaydırarak), sonra yeniden açın. Çok Gizli Mod kapalı olarak başlayacak.",
   "modeChooseTitle": "Kasanız nasıl çalışsın?",
   "modeChooseLead": "İkisi de aynı şekilde kilitlenir. Fark, uygulamanın içeriği açıp açmamasıdır.",
-  "modeEveryday": "Günlük",
+  "modeEveryday": "Özel",
   "modeEverydayNote": "Fotoğraf, video ve dosyaları doğrudan uygulamada görün",
   "modeTopSecretNote": "Uygulamada hiçbir şey açılmaz. En güvenlisi.",
   "modeChangeLater": "Bunu daha sonra Ayarlar'dan değiştirebilirsiniz.",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "Notlar ve Dosyalar uygulamasından dosyalar",
   "compareView": "Fotoğraf, video ve PDF'leri uygulamada gösterme",
   "compareThumbs": "Küçük resimler",
-  "compareLibrary": "Fotoğraf arşivinden ekleme"
+  "compareLibrary": "Fotoğraf arşivinden ekleme",
+  "compareEncrypted": "Tüm veriler en üst düzeyde şifrelenir"
 }

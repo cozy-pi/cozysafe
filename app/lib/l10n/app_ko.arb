@@ -803,7 +803,7 @@
   "closeAppBodyOff": "Cozy Safe를 완전히 닫은 뒤(앱 전환기에서 쓸어 올리기) 다시 여세요. 극비 모드가 꺼진 상태로 시작됩니다.",
   "modeChooseTitle": "금고를 어떻게 사용할까요?",
   "modeChooseLead": "둘 다 똑같이 잠깁니다. 앱이 안의 내용을 여는지가 다릅니다.",
-  "modeEveryday": "일반",
+  "modeEveryday": "개인",
   "modeEverydayNote": "사진, 동영상, 파일을 앱에서 바로 보기",
   "modeTopSecretNote": "앱에서 아무것도 열지 않습니다. 가장 안전합니다.",
   "modeChangeLater": "나중에 설정에서 바꿀 수 있습니다.",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "메모, 파일 앱의 파일",
   "compareView": "앱에서 사진, 동영상, PDF 보기",
   "compareThumbs": "썸네일",
-  "compareLibrary": "사진 보관함에서 추가"
+  "compareLibrary": "사진 보관함에서 추가",
+  "compareEncrypted": "모든 데이터를 최고 수준으로 암호화"
 }

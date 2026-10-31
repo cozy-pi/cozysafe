@@ -446,7 +446,6 @@ void _screen(String name, String caption, Widget Function() home,
       QuickLook.debugPdfPage = null;
       CoachTour.debugStart = 0;
       TopSecretMode.on = _topSecretShot(name);
-      TopSecretPlaces.shown = {TopSecretPlace.settings, TopSecretPlace.lock};
       NewVaultScreen.debugSkipMode = false;
       TopSecretMode.debugClosesItself = false; // the owner's iPhone
       // A MacBook or Windows frame is a computer: Finder-style rows and toolbar.
@@ -1084,19 +1083,8 @@ void main() {
     unawaited(nameNewItem(t.element(find.byType(VaultHomeScreen)), _items.firstWhere((i) => i.kind == ItemKind.photo)));
     await t.pumpAndSettle();
   });
-  // Where the mark goes (owner 2026-10-31: the old one and its place are gone; show the
-  // choices). Each shot shows one place.
-  _screen('ts-place-settings', 'Dấu tuyệt mật · CHỖ A: góc nút Cài đặt (nơi bật/tắt)', home, section: 'home',
-      change: 'MỚI · chỗ A: khiên đỏ nhỏ ở góc nút Cài đặt',
-      setup: () => TopSecretPlaces.shown = {TopSecretPlace.settings},
-      marks: [() => find.byKey(const ValueKey('top-secret-corner'))]);
-  _screen('ts-place-title', 'Dấu tuyệt mật · CHỖ B: cạnh tiêu đề lớn', home, section: 'file',
-      change: 'MỚI · chỗ B: viên "Tuyệt mật" cạnh tiêu đề',
-      setup: () => TopSecretPlaces.shown = {TopSecretPlace.title},
-      marks: [() => find.byKey(const ValueKey('top-secret-badge'))]);
-  _screen('ts-place-lock', 'Dấu tuyệt mật · CHỖ C: góc biểu tượng ở màn khoá', lock,
-      change: 'MỚI · chỗ C: khiên đỏ ở góc biểu tượng màn khoá',
-      setup: () => TopSecretPlaces.shown = {TopSecretPlace.lock},
+  _screen('ts-place-settings', 'Chế độ tuyệt mật · khiên đỏ nhỏ ở góc nút Cài đặt', home, section: 'home',
+      change: 'CHỐT: dấu tuyệt mật chỉ ở góc nút Cài đặt (nơi bật/tắt), khi chế độ bật',
       marks: [() => find.byKey(const ValueKey('top-secret-corner'))]);
   _screen('settings-mode-off', 'Cài đặt · thẻ Chế độ tuyệt mật (đang tắt)', () => settings(vault),
       change: 'MỚI: thẻ Chế độ tuyệt mật ngay dưới thẻ két, ai cũng thấy; bỏ dòng Két Riêng tư',

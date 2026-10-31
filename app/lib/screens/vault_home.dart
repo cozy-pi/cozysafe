@@ -2145,10 +2145,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w800, letterSpacing: -.5),
                     ),
                   ),
-                  if (TopSecretPlaces.show(TopSecretPlace.title)) ...[
-                    const SizedBox(width: 10),
-                    const TopSecretBadge(),
-                  ],
                 ]),
                 if (count != null)
                   Text(l.itemsCount(count),
@@ -2189,8 +2185,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
-  /// The Settings button, with Top Secret Mode's mark on its corner while the mode is on.
-  Widget _withTopSecretCorner(Widget button) => TopSecretPlaces.show(TopSecretPlace.settings)
+  /// The Settings button, with Top Secret Mode's mark on its corner while the mode is on
+  /// (owner 2026-10-31: there, where the mode is changed, and nowhere else).
+  Widget _withTopSecretCorner(Widget button) => TopSecretMode.on
       ? TopSecretCorner(ring: Theme.of(context).scaffoldBackgroundColor, size: 15, offset: -4, child: button)
       : button;
 

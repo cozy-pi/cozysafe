@@ -294,6 +294,11 @@ person imports. A decoder is where a phone gets taken over (libwebp 2023, FORCED
   temporary file first; nothing is shared between them (no key, no cache, no state in
   memory). The Top secret core uses only audited cryptography and SQLite
   ([supply-chain.md](supply-chain.md#top-secret-means-top-secret-owner-2026-10-30-absolute)).
+  **Replaced (owner 2026-10-31): one vault with Top Secret Mode**
+  ([ADR 0006](adr/0006-top-secret-mode.md)). In the mode nothing inside the vault is
+  decoded and nothing is taken from the photo library; Rust refuses thumbnails, the
+  content of anything but notes, and thumbnails made from outside data. Turning it on or
+  off asks for the owner and restarts the app.
 
 ## OS backups
 

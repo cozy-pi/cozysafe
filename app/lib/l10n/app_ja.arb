@@ -803,7 +803,7 @@
   "closeAppBodyOff": "Cozy Safe を完全に閉じて（App スイッチャーで上にスワイプ）、もう一度開いてください。極秘モードがオフの状態で起動します。",
   "modeChooseTitle": "金庫の動作を選んでください",
   "modeChooseLead": "どちらも同じように施錠されます。違いは、アプリが中身を開くかどうかです。",
-  "modeEveryday": "通常",
+  "modeEveryday": "プライベート",
   "modeEverydayNote": "写真・動画・ファイルをアプリ内で見られます",
   "modeTopSecretNote": "アプリ内で何も開きません。最も安全です。",
   "modeChangeLater": "あとで設定から変更できます。",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "メモ、ファイル App からのファイル",
   "compareView": "写真・動画・PDF をアプリ内で表示",
   "compareThumbs": "サムネイル",
-  "compareLibrary": "写真ライブラリから追加"
+  "compareLibrary": "写真ライブラリから追加",
+  "compareEncrypted": "すべてのデータを最高レベルで暗号化"
 }

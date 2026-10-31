@@ -20,7 +20,6 @@ import 'debug.dart' show debugModeOn;
 import 'new_vault.dart';
 import 'restore.dart';
 import 'vault_home.dart';
-import 'top_secret_page.dart';
 import '../theme.dart';
 import '../widgets/drive_logo.dart';
 import '../widgets/readable.dart';
@@ -487,14 +486,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                   boxShadow: const [BoxShadow(color: Color(0x4D041410), blurRadius: 24, offset: Offset(0, 10))],
                 ),
                 // The launch hand-over flies the splash dial onto this one.
-                child: TopSecretPlaces.show(TopSecretPlace.lock)
-                    ? TopSecretCorner(
-                        ring: page,
-                        size: 24,
-                        offset: -6,
-                        child: BrandMark(key: LaunchHandoff.running ? LaunchHandoff.target : null, size: 78, color: accent),
-                      )
-                    : BrandMark(key: LaunchHandoff.running ? LaunchHandoff.target : null, size: 78, color: accent),
+                child: BrandMark(key: LaunchHandoff.running ? LaunchHandoff.target : null, size: 78, color: accent),
               ),
             ),
           ],

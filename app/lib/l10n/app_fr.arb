@@ -803,7 +803,7 @@
   "closeAppBodyOff": "Fermez complètement Cozy Safe (balayez-le dans le sélecteur d'apps), puis rouvrez-le. Il démarrera avec le mode Top secret désactivé.",
   "modeChooseTitle": "Comment votre coffre doit-il fonctionner ?",
   "modeChooseLead": "Les deux sont verrouillés pareil. La différence : l'app ouvre ou non le contenu.",
-  "modeEveryday": "Quotidien",
+  "modeEveryday": "Privé",
   "modeEverydayNote": "Voir photos, vidéos et fichiers dans l'app",
   "modeTopSecretNote": "Rien n'est ouvert dans l'app. Le plus sûr.",
   "modeChangeLater": "Vous pourrez changer plus tard dans Réglages.",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "Notes et fichiers de l'app Fichiers",
   "compareView": "Photos, vidéos et PDF affichés dans l'app",
   "compareThumbs": "Vignettes",
-  "compareLibrary": "Ajouter depuis la photothèque"
+  "compareLibrary": "Ajouter depuis la photothèque",
+  "compareEncrypted": "Toutes les données chiffrées au plus haut niveau"
 }

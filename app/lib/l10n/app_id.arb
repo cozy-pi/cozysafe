@@ -803,7 +803,7 @@
   "closeAppBodyOff": "Tutup Cozy Safe sepenuhnya (geser keluar di pengalih aplikasi), lalu buka lagi. Aplikasi akan dimulai dengan Mode Sangat Rahasia nonaktif.",
   "modeChooseTitle": "Bagaimana brankas Anda bekerja?",
   "modeChooseLead": "Keduanya terkunci dengan cara yang sama. Bedanya: apakah aplikasi membuka isinya.",
-  "modeEveryday": "Sehari-hari",
+  "modeEveryday": "Privat",
   "modeEverydayNote": "Lihat foto, video, dan file langsung di aplikasi",
   "modeTopSecretNote": "Tidak ada yang dibuka di aplikasi. Paling aman.",
   "modeChangeLater": "Anda bisa mengubahnya nanti di Pengaturan.",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "Catatan, dan file dari aplikasi File",
   "compareView": "Foto, video, dan PDF ditampilkan di aplikasi",
   "compareThumbs": "Thumbnail",
-  "compareLibrary": "Tambah dari galeri foto"
+  "compareLibrary": "Tambah dari galeri foto",
+  "compareEncrypted": "Semua data dienkripsi di tingkat tertinggi"
 }

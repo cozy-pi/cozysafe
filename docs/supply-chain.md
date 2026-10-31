@@ -37,8 +37,7 @@ path: what it needs beyond those is written here, in our own code.
   `serde_json`, `hex`, `thiserror` and `zxcvbn`, which it used before: its own small
   JSON (byte for byte what serde wrote, `tests/format_serde.rs`), its own errors, its own
   hex, its own password check (length plus a list of common passwords). `cs-vault`
-  (sync, backups, joining) still uses `serde` for the sync journal, until sync per kind
-  (ADR 0005, step 5).
+  (sync, backups, joining) still uses `serde` for the sync journal.
 - **"Audited" means one of two things, with the evidence kept here** (owner
   2026-10-31):
   1. a public, independent audit report, linked below; or

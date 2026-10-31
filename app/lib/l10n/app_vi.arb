@@ -817,14 +817,15 @@
   "closeAppBodyOff": "Đóng hẳn Cozy Safe (vuốt nó đi trong màn chuyển app) rồi mở lại. Lần mở tới, Chế độ tuyệt mật sẽ tắt.",
   "modeChooseTitle": "Két của bạn hoạt động thế nào?",
   "modeChooseLead": "Cả hai khoá như nhau. Khác nhau ở chỗ app có mở thứ trong két hay không.",
-  "modeEveryday": "Thường",
+  "modeEveryday": "Riêng tư",
   "modeEverydayNote": "Xem ảnh, video, tệp ngay trong app",
   "modeTopSecretNote": "App không mở gì trong két. An toàn nhất.",
   "modeChangeLater": "Đổi được sau trong Cài đặt.",
-  "compareLock": "Khoá bằng mật khẩu và 24 từ",
+  "compareLock": "Mở bằng mật khẩu + 24 từ",
   "compareCapture": "Chụp ảnh, quay video, ghi âm",
-  "compareNotesFiles": "Ghi chú, tệp từ ứng dụng Tệp",
-  "compareView": "Xem ảnh, video, PDF ngay trong app",
+  "compareNotesFiles": "Ghi chú, tệp từ app Tệp",
+  "compareView": "Xem ảnh, video, PDF trong app",
   "compareThumbs": "Ảnh thu nhỏ",
-  "compareLibrary": "Thêm từ thư viện ảnh"
+  "compareLibrary": "Thêm từ thư viện ảnh",
+  "compareEncrypted": "Mã hoá ở mức cao nhất"
 }

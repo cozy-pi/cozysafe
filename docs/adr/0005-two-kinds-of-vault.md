@@ -1,6 +1,7 @@
 # ADR 0005: Two kinds of vault, Top secret and Private
 
-- Status: proposed (waiting for the owner's approval before any code)
+- Status: replaced by [ADR 0006](0006-top-secret-mode.md) (2026-10-31): one vault with Top
+  Secret Mode. Step 1 (`cs-core`) and the step-4 screens stay; the rest went away.
 - Date: 2026-10-30
 - Decisions it rests on: [decisions.md](../decisions.md) (2026-10-30), the rule in
   [supply-chain.md](../supply-chain.md#top-secret-means-top-secret-owner-2026-10-30-absolute)

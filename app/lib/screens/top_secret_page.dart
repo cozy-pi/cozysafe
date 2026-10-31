@@ -10,11 +10,42 @@ import 'welcome.dart' show ChoicePage;
 /// Top Secret Mode's colour (owner 2026-10-31: red).
 const topSecretRed = Color(0xFFE5383B);
 
+/// The everyday (Private) mode's colour, next to Top Secret's red.
+const privateGreen = Color(0xFF2E9E5B);
+
 /// Top Secret Mode's mark: a red shield with a lock (ADR 0006). Shown only while the mode
 /// is on, small, where it does not get in the way.
 class TopSecretMark extends StatelessWidget {
   const TopSecretMark({super.key, this.size = 20});
   final double size;
+
+  @override
+  Widget build(BuildContext context) => _ShieldMark(
+        size: size,
+        colors: const [Color(0xFFFF6B5E), topSecretRed, Color(0xFFB71C2C)],
+        inner: Icons.lock_rounded,
+      );
+}
+
+/// The Private (everyday) mode's mark, the same shape: a green shield with a photo, as it
+/// shows what is inside.
+class PrivateMark extends StatelessWidget {
+  const PrivateMark({super.key, this.size = 20});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => _ShieldMark(
+        size: size,
+        colors: const [Color(0xFF5FD38D), privateGreen, Color(0xFF1E7A44)],
+        inner: Icons.image_rounded,
+      );
+}
+
+class _ShieldMark extends StatelessWidget {
+  const _ShieldMark({required this.size, required this.colors, required this.inner});
+  final double size;
+  final List<Color> colors;
+  final IconData inner;
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
@@ -24,57 +55,20 @@ class TopSecretMark extends StatelessWidget {
           children: [
             ShaderMask(
               blendMode: BlendMode.srcIn,
-              shaderCallback: (r) => const LinearGradient(
+              shaderCallback: (r) => LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFFF6B5E), topSecretRed, Color(0xFFB71C2C)],
+                colors: colors,
               ).createShader(r),
               child: Icon(Icons.shield_rounded, size: size),
             ),
             Padding(
               padding: EdgeInsets.only(top: size * .04),
-              child: Icon(Icons.lock_rounded, size: size * .44, color: Colors.white),
+              child: Icon(inner, size: size * .44, color: Colors.white),
             ),
           ],
         ),
       );
-}
-
-/// The mark with the mode's short name, in a soft red pill.
-class TopSecretBadge extends StatelessWidget {
-  const TopSecretBadge({super.key, this.compact = false});
-  /// The mark alone in the pill, no name.
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      key: const ValueKey('top-secret-badge'),
-      padding: EdgeInsets.fromLTRB(5, 3, compact ? 5 : 9, 3),
-      decoration: BoxDecoration(
-        color: topSecretRed.withValues(alpha: dark ? .22 : .12),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const TopSecretMark(size: 16),
-          if (!compact) ...[
-            const SizedBox(width: 4),
-            Text(
-              AppLocalizations.of(context).topSecretShort,
-              style: TextStyle(
-                fontSize: CsType.caption1,
-                fontWeight: FontWeight.w700,
-                color: dark ? const Color(0xFFFF8A80) : const Color(0xFFC62828),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 }
 
 /// What changes with Top Secret Mode, side by side (owner 2026-10-31: people must see the
@@ -94,7 +88,13 @@ class TopSecretCompare extends StatelessWidget {
     TableRow row(String what, bool everyday, bool topSecret) => TableRow(children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 9),
-            child: Text(what, style: TextStyle(fontSize: CsType.subhead, color: ink, height: 1.3)),
+            // One line each (owner 2026-10-31): a long translation shrinks a little
+            // instead of wrapping.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(what, maxLines: 1, softWrap: false, style: TextStyle(fontSize: CsType.subhead, color: ink)),
+            ),
           ),
           Center(child: everyday ? yes() : no()),
           Center(child: topSecret ? yes() : no()),
@@ -108,19 +108,17 @@ class TopSecretCompare extends StatelessWidget {
         borderRadius: BorderRadius.circular(Ui.radius),
       ),
       child: Table(
-        columnWidths: const {0: FlexColumnWidth(), 1: FixedColumnWidth(74), 2: FixedColumnWidth(74)},
+        columnWidths: const {0: FlexColumnWidth(), 1: IntrinsicColumnWidth(), 2: IntrinsicColumnWidth()},
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children: [
           TableRow(children: [
             const SizedBox.shrink(),
-            Center(child: Text(l.modeEveryday, style: head, textAlign: TextAlign.center)),
-            Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const TopSecretMark(size: 18),
-                Text(l.topSecretShort, style: head.copyWith(color: topSecretRed), textAlign: TextAlign.center),
-              ]),
-            ),
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(l.modeEveryday, style: head.copyWith(color: privateGreen), textAlign: TextAlign.center)),
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(l.topSecretShort, style: head.copyWith(color: topSecretRed), textAlign: TextAlign.center)),
           ]),
+          // Both modes keep the same encryption (ADR 0001); said first so no one thinks
+          // the everyday mode is less encrypted (owner 2026-10-31).
+          row(l.compareEncrypted, true, true),
           row(l.compareLock, true, true),
           row(l.compareCapture, true, true),
           row(l.compareNotesFiles, true, true),
@@ -220,25 +218,8 @@ class CloseAppPage extends StatelessWidget {
   }
 }
 
-/// Where the mark shows while Top Secret Mode is on (owner 2026-10-31: somewhere that
-/// does not bother; the mockup compares the places before one is chosen).
-enum TopSecretPlace {
-  /// Next to the vault page's big title.
-  title,
-  /// A small badge on the Settings button's corner, where the mode is changed.
-  settings,
-  /// On the corner of the lock screen's dial.
-  lock,
-}
-
-abstract final class TopSecretPlaces {
-  /// The places in use.
-  static Set<TopSecretPlace> shown = {TopSecretPlace.settings, TopSecretPlace.lock};
-
-  static bool show(TopSecretPlace place) => TopSecretMode.on && shown.contains(place);
-}
-
-/// [child] with the mark on its bottom-right corner, ringed in [ring] to stand off it.
+/// [child] with Top Secret Mode's mark on its bottom-right corner, ringed in [ring] to
+/// stand off it.
 class TopSecretCorner extends StatelessWidget {
   const TopSecretCorner({super.key, required this.child, required this.ring, this.size = 18, this.offset = -3});
   final Widget child;

@@ -803,7 +803,7 @@
   "closeAppBodyOff": "Feche o Cozy Safe por completo (deslize-o para fora no seletor de apps) e abra de novo. Ele vai iniciar com o Modo Ultrassecreto desativado.",
   "modeChooseTitle": "Como seu cofre deve funcionar?",
   "modeChooseLead": "Os dois são trancados do mesmo jeito. A diferença é se o app abre o que está dentro.",
-  "modeEveryday": "Normal",
+  "modeEveryday": "Privado",
   "modeEverydayNote": "Veja fotos, vídeos e arquivos direto no app",
   "modeTopSecretNote": "Nada é aberto no app. O mais seguro.",
   "modeChangeLater": "Você pode mudar depois em Ajustes.",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "Notas e arquivos do app Arquivos",
   "compareView": "Fotos, vídeos e PDFs exibidos no app",
   "compareThumbs": "Miniaturas",
-  "compareLibrary": "Adicionar da fototeca"
+  "compareLibrary": "Adicionar da fototeca",
+  "compareEncrypted": "Todos os dados criptografados no nível mais alto"
 }

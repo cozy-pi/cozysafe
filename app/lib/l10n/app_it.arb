@@ -803,7 +803,7 @@
   "closeAppBodyOff": "Chiudi del tutto Cozy Safe (scorrilo via nel selettore app), poi riaprilo. Si avvierà con la modalità Top secret disattivata.",
   "modeChooseTitle": "Come deve funzionare la tua cassaforte?",
   "modeChooseLead": "Entrambe sono chiuse allo stesso modo. Cambia se l'app apre ciò che c'è dentro.",
-  "modeEveryday": "Normale",
+  "modeEveryday": "Privata",
   "modeEverydayNote": "Vedi foto, video e file direttamente nell'app",
   "modeTopSecretNote": "Niente viene aperto nell'app. Il più sicuro.",
   "modeChangeLater": "Puoi cambiarlo dopo in Impostazioni.",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "Note e file dall'app File",
   "compareView": "Foto, video e PDF mostrati nell'app",
   "compareThumbs": "Miniature",
-  "compareLibrary": "Aggiungere dalla libreria foto"
+  "compareLibrary": "Aggiungere dalla libreria foto",
+  "compareEncrypted": "Tutti i dati cifrati al massimo livello"
 }

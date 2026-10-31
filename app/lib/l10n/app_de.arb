@@ -803,7 +803,7 @@
   "closeAppBodyOff": "Schließen Sie Cozy Safe ganz (im App-Umschalter wegwischen) und öffnen Sie es erneut. Es startet dann ohne Streng-geheim-Modus.",
   "modeChooseTitle": "Wie soll Ihr Tresor arbeiten?",
   "modeChooseLead": "Beide sind gleich verschlossen. Der Unterschied: ob die App den Inhalt öffnet.",
-  "modeEveryday": "Alltag",
+  "modeEveryday": "Privat",
   "modeEverydayNote": "Fotos, Videos und Dateien direkt in der App ansehen",
   "modeTopSecretNote": "Nichts wird in der App geöffnet. Am sichersten.",
   "modeChangeLater": "Sie können das später in den Einstellungen ändern.",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "Notizen und Dateien aus der Dateien-App",
   "compareView": "Fotos, Videos und PDFs in der App ansehen",
   "compareThumbs": "Vorschaubilder",
-  "compareLibrary": "Aus der Fotomediathek hinzufügen"
+  "compareLibrary": "Aus der Fotomediathek hinzufügen",
+  "compareEncrypted": "Alle Daten mit höchster Stufe verschlüsselt"
 }

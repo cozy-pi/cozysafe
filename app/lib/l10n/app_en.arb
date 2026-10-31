@@ -1016,14 +1016,15 @@
   "closeAppBodyOff": "Close Cozy Safe fully (swipe it away in the app switcher), then open it again. It will start with Top Secret Mode off.",
   "modeChooseTitle": "How should your vault work?",
   "modeChooseLead": "Both are locked the same way. They differ in whether the app opens what is inside.",
-  "modeEveryday": "Everyday",
+  "modeEveryday": "Private",
   "modeEverydayNote": "See photos, videos and files right in the app",
   "modeTopSecretNote": "Nothing is opened in the app. Safest.",
   "modeChangeLater": "You can change this later in Settings.",
-  "compareLock": "Locked with the password and 24 words",
+  "compareLock": "Opens with password + 24 words",
   "compareCapture": "Take photos, record video and voice",
-  "compareNotesFiles": "Notes, and files from the Files app",
-  "compareView": "Photos, videos and PDFs shown in the app",
+  "compareNotesFiles": "Notes, files from Files",
+  "compareView": "Photos, videos, PDFs in the app",
   "compareThumbs": "Thumbnails",
-  "compareLibrary": "Add from the photo library"
+  "compareLibrary": "Add from the photo library",
+  "compareEncrypted": "Encrypted at the highest level"
 }

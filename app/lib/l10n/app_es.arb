@@ -803,7 +803,7 @@
   "closeAppBodyOff": "Cierra Cozy Safe del todo (deslízalo fuera en el selector de apps) y vuelve a abrirlo. Se abrirá con el modo Alto secreto desactivado.",
   "modeChooseTitle": "¿Cómo quieres que funcione tu caja fuerte?",
   "modeChooseLead": "Las dos se cierran igual. Cambia si la app abre lo que hay dentro.",
-  "modeEveryday": "Normal",
+  "modeEveryday": "Privada",
   "modeEverydayNote": "Ver fotos, vídeos y archivos en la app",
   "modeTopSecretNote": "La app no abre nada. Lo más seguro.",
   "modeChangeLater": "Puedes cambiarlo después en Ajustes.",
@@ -812,5 +812,6 @@
   "compareNotesFiles": "Notas y archivos de la app Archivos",
   "compareView": "Fotos, vídeos y PDF en la app",
   "compareThumbs": "Miniaturas",
-  "compareLibrary": "Añadir desde la fototeca"
+  "compareLibrary": "Añadir desde la fototeca",
+  "compareEncrypted": "Todos los datos cifrados al máximo nivel"
 }

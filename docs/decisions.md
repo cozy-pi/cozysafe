@@ -4,7 +4,29 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-10-31 (evening) — Top Secret Mode replaces the two kinds of vault
+
+**Owner:** one vault (password and the 24 words, as always) with a switch, **Top Secret
+Mode** ("Chế độ tuyệt mật"), like the iPhone's Lockdown Mode; the Private vault is gone.
+[ADR 0006](adr/0006-top-secret-mode.md) replaces ADR 0005.
+
+- The mode changes only what the app does with what is inside: in it nothing is decoded
+  (photos, videos, PDFs, thumbnails), files open in another app, nothing comes from the
+  photo library. Encryption is the same in both modes; the comparison list says so first.
+- Enforced in Rust as well as in the screens. Turning it on or off restarts the app and
+  asks for the owner first.
+- Chosen when the first vault is made (Private · Top secret, with the differences and
+  "you can change this later in Settings"); a card for it near the top of Settings.
+- The everyday mode is called **Private** ("Riêng tư"). Marks: red shield with a lock,
+  green shield with a photo. While on, a small red shield on the Settings button's
+  corner, nowhere else.
+- Settings' sub-pages go back with an edge swipe (iPhone; they are shown in place).
+- Test build from the branch only; merge into `main` once tried.
+
 ## 2026-10-30 (later) — Two kinds of vault: what is decided
+
+Replaced 2026-10-31 by Top Secret Mode (above).
+
 
 **Owner:**
 - **Top secret syncs**, over Google Drive and with a device nearby. Only the vault core

@@ -525,7 +525,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final ink = Theme.of(context).colorScheme.onSurface;
     Widget choice(bool topSecret, Widget mark, String title, String note) {
       final on = _topSecret == topSecret;
-      final edge = topSecret ? topSecretRed : ink;
+      final edge = topSecret ? topSecretRed : privateGreen;
       return Material(
         color: solidTint(context, (on ? edge : ink).withValues(alpha: on ? .12 : .06)),
         shape: RoundedRectangleBorder(
@@ -555,9 +555,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      choice(false, Icon(Icons.photo_library_rounded, size: 30, color: ink.withValues(alpha: .8)), l.modeEveryday, l.modeEverydayNote),
+      choice(false, const PrivateMark(size: 30), l.modeEveryday, l.modeEverydayNote),
       const SizedBox(height: 10),
-      choice(true, const TopSecretMark(size: 30), l.topSecretMode, l.modeTopSecretNote),
+      choice(true, const TopSecretMark(size: 30), l.topSecretShort, l.modeTopSecretNote),
       const SizedBox(height: 16),
       const TopSecretCompare(),
       const SizedBox(height: 10),
