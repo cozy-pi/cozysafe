@@ -1024,17 +1024,27 @@ void main() {
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
   _screen('settings', 'Cài đặt · màn chính: thẻ két + các dòng mở trang con', () => settings(vault),
-      change: 'ĐỀ XUẤT: một trang duy nhất, mọi mục hiện thẳng theo nhóm (Bản sao · Mở khoá & khoá khôi phục · Khoá & màn hình · Két này · Giao diện · Trợ giúp); chỉ Giới thiệu còn trang riêng',
+      change: 'ĐỀ XUẤT (kiểu lai): trang chính có mục hay dùng (đồng bộ, sao lưu, Face ID, mật khẩu, khoá khôi phục, tự khoá, két); ít dùng gom vào 3 trang con: Hiện trên màn hình · Giao diện và ngôn ngữ · Giới thiệu',
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
-  for (final (i, dy) in [(2, 700.0), (3, 1400.0), (4, 2100.0)]) {
-    _screen('settings-all-$i', 'Cài đặt · một trang, cuộn xuống ($i/4)', () => settings(vault),
-        change: i == 3 ? 'ĐỀ XUẤT: nhóm Két này: Đổi biểu tượng · Đã xoá gần đây · Lịch sử phiên bản · Két trên máy này (tạo/xoá két ở đó)' : 'ĐỀ XUẤT: cuộn tiếp trang Cài đặt',
-        marks: i == 3 ? [() => find.byKey(const ValueKey('vaults-row'))] : const [],
+  for (final (i, dy) in [(2, 700.0), (3, 1400.0)]) {
+    _screen('settings-all-$i', 'Cài đặt · trang chính, cuộn xuống ($i/3)', () => settings(vault),
+        change: i == 2
+            ? 'ĐỀ XUẤT: nhóm khoá: Tự khoá · Khoá khi rời app · Giữ nút để khoá · › Hiện trên màn hình · › Giao diện và ngôn ngữ'
+            : 'ĐỀ XUẤT: nhóm Két này (Đổi biểu tượng · Đã xoá · Lịch sử · Két trên máy này: tạo/xoá két ở đó) và Trợ giúp',
+        marks: i == 3 ? [() => find.byKey(const ValueKey('vaults-row'))] : [() => find.byKey(const ValueKey('settings-screen'))],
         setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
         act: (t) async {
       await t.drag(find.byType(Scrollable).first, Offset(0, -dy));
       await t.pumpAndSettle();
     });
+  }
+  for (final (name, page, what) in [
+    ('settings-sub-screen', 'screen', 'Chặn chụp màn hình · Làm mờ ảnh thu nhỏ · Ẩn nội dung ghi chú'),
+    ('settings-sub-look', 'look', 'Giao diện · Ngôn ngữ · Vị trí nút thêm · Hiện biểu tượng khi mở két'),
+    ('settings-sub-about', 'help', 'Phiên bản · Ngày build · Mã nguồn · Giấy phép'),
+  ]) {
+    _screen(name, 'Cài đặt → trang con', () => settings(vault),
+        change: 'ĐỀ XUẤT: trang con: $what', setup: () => SettingsScreen.debugPage = page);
   }
   _screen('settings-sync-failed', 'Cài đặt · lần tự động đồng bộ gần nhất bị lỗi', () => settings(vault),
       setup: () {

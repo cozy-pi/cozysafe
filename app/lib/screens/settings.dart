@@ -105,8 +105,9 @@ enum SettingsSpot {
 /// Settings' sub-pages (owner 2026-10-31: too many settings on one page). The main page
 /// shows the vault's card and one row per sub-page; each row opens its page in place, so
 /// the rows' switches, the User guide and the jumps to a setting keep working.
-/// The main page, or About (version, build, source, licence) on a page of its own.
-enum _Page { main, help }
+/// The main page with what is used most (owner 2026-10-31, the mix of one page and
+/// sub-pages); what shows on screen, the look, and About each on a page of their own.
+enum _Page { main, screen, look, help }
 
 /// A setting's symbol: white on its own colour, as at the start of each row.
 class SettingTile extends StatelessWidget {
@@ -560,7 +561,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// The page drawn by this screen: the main page, or (mockups only, [SettingsScreen.debugPage])
   /// a sub-page in place.
-  _Page _page = SettingsScreen.debugPage == _Page.help.name ? _Page.help : _Page.main;
+  _Page _page = _Page.values.asNameMap()[SettingsScreen.debugPage] ?? _Page.main;
 
   /// Bumped on every [setState], so a sub-page pushed over this screen redraws too.
   final _rev = ValueNotifier(0);
@@ -608,11 +609,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String _pageTitle(AppLocalizations l, _Page page) => switch (page) {
         _Page.main => l.settings,
+        _Page.screen => l.settingsScreen,
+        _Page.look => l.settingsLook,
         _Page.help => l.aboutTitle,
       };
 
   /// Where each setting the tour points at lives.
-  static _Page _pageOf(SettingsSpot spot) => _Page.main;
+  static _Page _pageOf(SettingsSpot spot) => switch (spot) {
+        SettingsSpot.sync || SettingsSpot.autoLock => _Page.main,
+        SettingsSpot.blurThumbs || SettingsSpot.hideNoteText => _Page.screen,
+        SettingsSpot.appearance || SettingsSpot.language => _Page.look,
+      };
 
   /// Takes the person to [spot]: Sync opens; any other row scrolls into the middle and
   /// lights up, so it is easy to see which one to change.
@@ -889,7 +896,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
           ]),
-          // 3. What shows on screen and when it locks.
+          // 3. When it locks; what shows on screen on a page of its own.
           if (page == _Page.main) SettingsGroup(boxKey: _here(_shieldGroupKey, page), rows: [
             _spot(
               SettingsSpot.autoLock,
@@ -930,6 +937,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (on) => setState(() => Prefs.write(holdHomePref, on ? '1' : '0')),
               ),
             ),
+            SettingsRow(
+              key: const ValueKey('settings-screen'),
+              icon: Icons.visibility_off_rounded,
+              color: SettingsHue.hong,
+              title: l.settingsScreen,
+              onTap: () => _show(_Page.screen),
+            ),
+            SettingsRow(
+              key: const ValueKey('settings-look'),
+              icon: Icons.brightness_6_rounded,
+              color: SettingsHue.cham,
+              title: l.settingsLook,
+              onTap: () => _show(_Page.look),
+            ),
+          ]),
+          if (page == _Page.screen) SettingsGroup(rows: [
             if (Device.android || Device.iOS || Settings.debugIOS)
               SettingsRow(
                 key: const ValueKey('screenshots-row'),
@@ -1019,7 +1042,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ]),
           // 5. How it looks and where things are: nothing here protects the vault.
-          if (page == _Page.main) SettingsGroup(rows: [
+          if (page == _Page.look) SettingsGroup(rows: [
             _spot(
               SettingsSpot.appearance,
               SettingsRow(

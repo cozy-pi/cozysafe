@@ -838,5 +838,6 @@
   "driveDeleteTitle": "Eliminare questa cassaforte da Google Drive?",
   "driveDeleteBody": "La sua copia su Google Drive viene eliminata; questo dispositivo mantiene la cassaforte. La sincronizzazione automatica si disattiva, altrimenti rimanderebbe tutto su. Un altro dispositivo che sincronizza ancora questa cassaforte può rimetterla.",
   "driveDeleted": "Eliminata da Google Drive.",
-  "aboutTitle": "Informazioni"
+  "aboutTitle": "Informazioni",
+  "settingsScreen": "Cosa si vede sullo schermo"
 }

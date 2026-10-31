@@ -838,5 +838,6 @@
   "driveDeleteTitle": "Excluir este cofre do Google Drive?",
   "driveDeleteBody": "A cópia dele no Google Drive é excluída; este dispositivo mantém o cofre. A sincronização automática é desativada, senão ela enviaria tudo de novo. Outro dispositivo que ainda sincronize este cofre pode enviá-lo de volta.",
   "driveDeleted": "Excluído do Google Drive.",
-  "aboutTitle": "Sobre"
+  "aboutTitle": "Sobre",
+  "settingsScreen": "O que aparece na tela"
 }

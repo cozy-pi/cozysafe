@@ -838,5 +838,6 @@
   "driveDeleteTitle": "この金庫を Google Drive から削除しますか？",
   "driveDeleteBody": "Google Drive 上のコピーは削除され、この端末の金庫は残ります。自動同期はオフになります（オフにしないとまた全部送信されます）。この金庫をまだ同期している別の端末が、戻すことがあります。",
   "driveDeleted": "Google Drive から削除しました。",
-  "aboutTitle": "情報"
+  "aboutTitle": "情報",
+  "settingsScreen": "画面に表示する内容"
 }

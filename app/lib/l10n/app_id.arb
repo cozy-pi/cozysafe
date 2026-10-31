@@ -838,5 +838,6 @@
   "driveDeleteTitle": "Hapus brankas ini dari Google Drive?",
   "driveDeleteBody": "Salinannya di Google Drive dihapus; perangkat ini tetap menyimpan brankas. Sinkronisasi otomatis dimatikan, kalau tidak semuanya akan terkirim lagi. Perangkat lain yang masih menyinkronkan brankas ini bisa mengunggahnya kembali.",
   "driveDeleted": "Dihapus dari Google Drive.",
-  "aboutTitle": "Tentang"
+  "aboutTitle": "Tentang",
+  "settingsScreen": "Yang tampil di layar"
 }
