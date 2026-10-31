@@ -238,6 +238,29 @@ Future<void> restartForMode(BuildContext context) async {
   );
 }
 
+/// Top Secret Mode's sign on the vault's page: the page colour washed with a little red
+/// at the top, fading out by about a third of the way down. Light enough to read through,
+/// strong enough to tell the mode at a glance.
+class TopSecretWash extends StatelessWidget {
+  const TopSecretWash({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return DecoratedBox(
+      key: const ValueKey('top-secret-wash'),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0, .38],
+          colors: [topSecretRed.withValues(alpha: dark ? .22 : .13), topSecretRed.withValues(alpha: 0)],
+        ),
+      ),
+    );
+  }
+}
+
 /// [child] with Top Secret Mode's mark on its bottom-right corner, ringed in [ring] to
 /// stand off it.
 class TopSecretCorner extends StatelessWidget {

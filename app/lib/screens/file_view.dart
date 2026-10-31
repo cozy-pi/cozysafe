@@ -36,18 +36,13 @@ import '../item_kind.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show GlassButton;
 import '../top_secret_mode.dart';
+import '../file_kinds.dart';
 
 /// Icon for an item kind / type.
 IconData fileIcon(rust.ItemInfo item) {
   if (item.kind == ItemKind.note) return Icons.book_rounded;
   if (item.kind == ItemKind.video) return Icons.movie_rounded;
-  final m = item.mime;
-  if (m == 'application/pdf') return Icons.picture_as_pdf_rounded;
-  if (m.startsWith('image/')) return Icons.image_rounded;
-  if (m.startsWith('video/')) return Icons.movie_rounded;
-  if (m.startsWith('audio/')) return Icons.audiotrack_rounded;
-  if (m.contains('zip') || m.contains('compressed')) return Icons.folder_zip_rounded;
-  return Icons.insert_drive_file_rounded;
+  return fileKindOf(item.name, item.mime).icon;
 }
 
 String fileSize(BigInt bytes) {

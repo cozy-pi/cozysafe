@@ -16,8 +16,10 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
    the colour per kind of item where kinds are counted (storage). Since 2026-10-31
    (owner: more colour in the icons) also: each section's colour on its tab and on the
    ways to add (`sectionColor`, `addWayColor`), and the two modes' shields (`topSecretRed`
-   with a lock, `privateGreen` with a photo; Top Secret Mode's shield also sits on the
-   Settings button's corner while the mode is on).
+   with a lock, `privateGreen` with a photo); a vault in Top Secret Mode washes the top
+   of its page with a little red (`TopSecretWash`, owner 2026-10-31, in place of a shield
+   on the Settings button); and each common kind of file its icon and colour
+   (`FileKind`, `lib/file_kinds.dart`).
 2. **Few buttons, each on its own.** A button that does one thing is its own glass
    circle, apart from the others. Buttons share one glass only when they are one set to
    pick from (the section tabs, a segmented switch).

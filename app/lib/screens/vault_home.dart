@@ -69,6 +69,7 @@ import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
 import 'top_secret_page.dart';
 import 'sealed_item.dart';
+import '../file_kinds.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -2204,11 +2205,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
   }
 
-  /// The Settings button, with Top Secret Mode's mark on its corner while the mode is on
-  /// (owner 2026-10-31: there, where the mode is changed, and nowhere else).
-  Widget _withTopSecretCorner(Widget button) => TopSecretMode.on
-      ? TopSecretCorner(ring: Theme.of(context).scaffoldBackgroundColor, size: 15, offset: -4, child: button)
-      : button;
+  /// The mode shows as the page's red wash now ([TopSecretWash]), not on this button.
+  Widget _withTopSecretCorner(Widget button) => button;
 
   /// What the header's ⋯ offers: Select, Sort, and inside a group its rename and delete.
   List<MenuEntry> _moreEntries(AppLocalizations l, rust.ItemInfo? open) {
@@ -2692,6 +2690,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             : null,
         body: Stack(
           children: [
+            // Top Secret Mode: a faint red wash from the top of the page, enough to tell
+            // which mode this vault is in without getting in the way (owner 2026-10-31: in
+            // place of the shield on the Settings button).
+            if (TopSecretMode.on) const Positioned.fill(child: IgnorePointer(child: TopSecretWash())),
             SafeArea(
               bottom: false,
               child: Column(
@@ -3161,8 +3163,6 @@ class _FileRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = CsColors.of(context);
     final when = MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs));
-    final dot = item.name.lastIndexOf('.');
-    final ext = dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     return SelectableRow(
       selected: selected,
       selecting: selecting,
@@ -3183,13 +3183,10 @@ class _FileRow extends StatelessWidget {
                           ? PrivateThumb(snap.data!)
                           : const SizedBox.expand(),
                     )
-                  : Center(
-                child: item.kind == ItemKind.note || ext.isEmpty || ext.length > 4
-                    ? Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary)
-                    : Text(ext,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary, fontSize: CsType.caption2, fontWeight: FontWeight.w800)),
-              ),
+                  : item.kind == ItemKind.note
+                      ? Center(child: Icon(fileIcon(item), color: Theme.of(context).colorScheme.primary))
+                      // Each kind of file its icon and colour (owner 2026-10-31).
+                      : FileKindBadge(name: item.name, mime: item.mime),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -3230,8 +3227,6 @@ class _FileTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = CsColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
-    final dot = item.name.lastIndexOf('.');
-    final ext = dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     return InkWell(
       onTap: onTap,
       // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
@@ -3249,12 +3244,9 @@ class _FileTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(10)),
-                    alignment: Alignment.center,
-                    child: ext.isEmpty || ext.length > 4
-                        ? Icon(fileIcon(item), color: primary, size: 30)
-                        : Text(ext, style: TextStyle(color: primary, fontSize: CsType.subhead, fontWeight: FontWeight.w800)),
+                  child: LayoutBuilder(
+                    builder: (context, box) =>
+                        FileKindBadge(name: item.name, mime: item.mime, width: box.maxWidth, height: box.maxHeight, big: true),
                   ),
                 ),
                 const SizedBox(height: 8),

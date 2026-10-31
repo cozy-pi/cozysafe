@@ -351,12 +351,18 @@ class _CentreTabs extends StatelessWidget {
     final at = centrePlusSlot(sections);
     final slots = sections.length + 1;
     return LayoutBuilder(builder: (context, box) {
+      // The + always in the very middle (owner 2026-10-31: with three tabs, in Top Secret
+      // Mode, it sat right of centre); the tabs share each side evenly.
+      final slotW = box.maxWidth / slots;
+      final side = (box.maxWidth - slotW) / 2;
+      final leftN = at, rightN = sections.length - at;
+      double tabW(int i) => side / (i < at ? leftN : rightN);
+      double tabX(int i) => i < at ? i * tabW(i) : side + slotW + (i - at) * tabW(i);
       // Where the lit pill sits: under the section on show, sliding from one to the
       // next (owner 2026-10-24: "like Instagram").
-      final slotW = box.maxWidth / slots;
       final i = sections.indexOf(section);
-      final double? pillX = i < 0 ? null : (i < at ? i : i + 1) * slotW;
       const pillW = 52.0, pillH = Ui.bar - 12;
+      final double? pillX = i < 0 ? null : tabX(i) + (tabW(i) - pillW) / 2;
       return Stack(
         alignment: Alignment.center,
         children: [
@@ -364,7 +370,7 @@ class _CentreTabs extends StatelessWidget {
             AnimatedPositioned(
               duration: const Duration(milliseconds: 280),
               curve: Curves.easeOutCubic,
-              left: pillX + (slotW - pillW) / 2,
+              left: pillX,
               top: (box.maxHeight - pillH) / 2,
               width: pillW,
               height: pillH,
@@ -378,9 +384,9 @@ class _CentreTabs extends StatelessWidget {
             ),
           Row(
             children: [
-              for (final s in sections.take(at)) tab(s),
-              Expanded(child: Center(child: centre)),
-              for (final s in sections.skip(at)) tab(s),
+              SizedBox(width: side, child: Row(children: [for (final s in sections.take(at)) tab(s)])),
+              SizedBox(width: slotW, child: Center(child: centre)),
+              SizedBox(width: side, child: Row(children: [for (final s in sections.skip(at)) tab(s)])),
             ],
           ),
         ],
@@ -396,9 +402,9 @@ const double centrePlusSize = 46;
 /// one, so overview and library sit left of it, files and notes right (owner 2026-10-24).
 int centrePlusSlot(List<VaultSection> sections) => (sections.length + 1) ~/ 2;
 
-/// The + button's centre across the middle bar, as a share of the bar's width.
-double centrePlusShare(List<VaultSection> sections) =>
-    (centrePlusSlot(sections) + .5) / (sections.length + 1);
+/// The + button's centre across the middle bar, as a share of the bar's width: always
+/// the middle ([_CentreTabs] shares each side among its tabs).
+double centrePlusShare(List<VaultSection> sections) => .5;
 
 /// The tabs inside the capsule. The home tab stays put on the left; the others share
 /// the rest equally when their words fit, and scroll sideways (no loop) when they do not

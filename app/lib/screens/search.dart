@@ -10,9 +10,9 @@ import '../theme.dart';
 import '../widgets/private_thumb.dart';
 import '../widgets/item_menu.dart';
 import '../widgets/vault_bar.dart';
-import 'file_view.dart';
 import 'overview.dart';
 import '../item_kind.dart';
+import '../file_kinds.dart';
 
 /// Search the open vault by name, and inside notes. Note text is decrypted into memory
 /// for this screen only and dropped when it closes. Typing "hoa" finds "Hoá đơn":
@@ -363,10 +363,12 @@ class _SearchScreenState extends State<SearchScreen> {
                             : ColoredBox(color: c.soft),
                       ),
                     )
-                  : DecoratedBox(
-                      decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(12)),
-                      child: Icon(s == VaultSection.file ? fileIcon(it) : searchKindIcon(s), color: color),
-                    ),
+                  : s == VaultSection.file
+                      ? FileKindBadge(name: it.name, mime: it.mime, width: 46, height: 46)
+                      : DecoratedBox(
+                          decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(12)),
+                          child: Icon(searchKindIcon(s), color: color),
+                        ),
             ),
             const SizedBox(width: 12),
             Expanded(

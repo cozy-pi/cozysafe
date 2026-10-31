@@ -27,6 +27,10 @@ Dates are UTC.
 - Notes are indigo with a notebook icon, and voice memos pink, so the two no longer look
   alike.
 - The quick buttons above + go video, photo, voice.
+- Files show an icon and a colour for their kind (PDF, pictures, video, sound, documents,
+  sheets, slides, archives, text, code, keys…), in the list, the grid, Recent and search.
+- A vault in Top Secret Mode has a faint red wash at the top of its page, instead of the
+  small shield on the Settings button.
 - "Open in another app" shows only the apps that can open the file: Android's own
   "Open with" (the app gets read-only access to that one copy), the iPhone's "Open in…".
   Where there is none, the share sheet as before.
@@ -42,6 +46,7 @@ Dates are UTC.
 - Deleting for good from Recently deleted starts an automatic sync, like any other
   change.
 - A tap beside the quick buttons above + closes them, as a tap anywhere else does.
+- With + in the middle and three sections (Top Secret Mode), + sat right of centre.
 
 ## 0.1.92 (2026-10-30)
 

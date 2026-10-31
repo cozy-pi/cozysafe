@@ -10,9 +10,9 @@ import '../theme.dart';
 import '../widgets/private_thumb.dart';
 import '../widgets/selectable_row.dart';
 import '../widgets/vault_bar.dart';
-import 'file_view.dart';
 import 'search.dart' show MarkedText;
 import '../top_secret_mode.dart';
+import '../file_kinds.dart';
 
 /// The colour of each section, the same as the storage bar in Settings.
 Color searchKindColor(VaultSection s) => sectionColor(s);
@@ -193,10 +193,12 @@ class OverviewRow extends StatelessWidget {
                             : ColoredBox(color: c.soft),
                       ),
                     )
-                  : DecoratedBox(
-                      decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(12)),
-                      child: Icon(s == VaultSection.file ? fileIcon(item) : searchKindIcon(s), color: color),
-                    ),
+                  : s == VaultSection.file
+                      ? FileKindBadge(name: item.name, mime: item.mime, width: 46, height: 46)
+                      : DecoratedBox(
+                          decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(12)),
+                          child: Icon(searchKindIcon(s), color: color),
+                        ),
             ),
             const SizedBox(width: 12),
             Expanded(
