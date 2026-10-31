@@ -12,7 +12,7 @@ import '../widgets/selectable_row.dart';
 import '../widgets/vault_bar.dart';
 import 'file_view.dart';
 import 'search.dart' show MarkedText;
-import '../vault_kind.dart';
+import '../top_secret_mode.dart';
 
 /// The colour of each section, the same as the storage bar in Settings.
 Color searchKindColor(VaultSection s) => sectionColor(s);
@@ -28,7 +28,7 @@ IconData searchKindIcon(VaultSection s) => switch (s) {
 VaultSection? sectionOf(rust.ItemInfo i) => switch (i.kind) {
       ItemKind.note => VaultSection.note,
       // Top secret has no Library (ADR 0005): its photos and videos are files.
-      ItemKind.photo || ItemKind.video => RunKind.topSecret ? VaultSection.file : VaultSection.library,
+      ItemKind.photo || ItemKind.video => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       ItemKind.audio => VaultSection.audio,
       ItemKind.file => VaultSection.file,
       _ => null,

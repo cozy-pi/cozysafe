@@ -1,9 +1,7 @@
 //! Two-stage unlock (ADR 0001):
 //!
 //! 1. [`derive_root`]: Argon2id over `HKDF(SecretKey) ‖ password` with the library salt.
-//!    Runs once per unlock; this is where the whole time budget goes. A Private library
-//!    (ADR 0005) has no Secret Key: [`derive_root_password_only`] puts a fixed value of
-//!    its own in the Secret Key's place, at a higher cost.
+//!    Runs once per unlock; this is where the whole time budget goes.
 //! 2. [`vault_kek`]: HKDF of the root with each vault's own salt. Microseconds per vault.
 
 use argon2::{Algorithm, Argon2, Block, Params, Version};
@@ -17,7 +15,6 @@ const INFO_SECRET_KEY: &[u8] = b"cozysafe/v1/secret-key";
 const INFO_VAULT_KEK: &[u8] = b"cozysafe/v1/vault-kek";
 const INFO_SUBKEY: &[u8] = b"cozysafe/v1/subkey/";
 const INFO_RESTORE_PAIRING: &[u8] = b"cozysafe/v1/p2p-restore";
-const INFO_PASSWORD_ONLY: &[u8] = b"cozysafe/v1/private/password-only";
 
 /// Argon2id cost parameters, stored in the clear in the library header.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -42,33 +39,6 @@ impl KdfParams {
         m_kib: 512 * 1024,
         t: 3,
         p: 4,
-    };
-
-    /// What a phone creates a Private library with (ADR 0005, owner 2026-10-31: about
-    /// one second): no Secret Key, so the password alone stands against a copy of the
-    /// files, and guessing it costs twice the Top secret floor. 256 MiB, t = 3, p = 1;
-    /// to be checked on the slowest supported phone before it ships.
-    pub const PRIVATE_PHONE_FLOOR: KdfParams = KdfParams {
-        m_kib: 256 * 1024,
-        t: 3,
-        p: 1,
-    };
-    /// What a desktop creates a Private library with: 1 GiB, t = 3, p = 4.
-    pub const PRIVATE_DESKTOP_FLOOR: KdfParams = KdfParams {
-        m_kib: 1024 * 1024,
-        t: 3,
-        p: 4,
-    };
-
-    /// The least accepted when opening a Private library, as [`Self::ACCEPTED_FLOOR`].
-    #[cfg(not(any(test, feature = "test-kdf")))]
-    pub const PRIVATE_ACCEPTED_FLOOR: KdfParams = KdfParams::PRIVATE_PHONE_FLOOR;
-    /// Test builds only: tiny, but above [`Self::ACCEPTED_FLOOR`] so the two differ.
-    #[cfg(any(test, feature = "test-kdf"))]
-    pub const PRIVATE_ACCEPTED_FLOOR: KdfParams = KdfParams {
-        m_kib: 16,
-        t: 1,
-        p: 1,
     };
 
     /// The least accepted when *opening*, joining or restoring: a library.json, a cloud
@@ -104,16 +74,6 @@ impl KdfParams {
         self.to_argon2().map(|_| ())
     }
 
-    /// [`Self::check`] for a Private library: [`Error::KdfTooWeak`] below
-    /// [`KdfParams::PRIVATE_ACCEPTED_FLOOR`].
-    pub fn check_private(&self) -> Result<()> {
-        self.check()?;
-        if !self.meets(&Self::PRIVATE_ACCEPTED_FLOOR) {
-            return Err(Error::KdfTooWeak);
-        }
-        Ok(())
-    }
-
     fn to_argon2(self) -> Result<Params> {
         if self.m_kib > Self::MAX_M_KIB
             || self.t == 0
@@ -143,27 +103,8 @@ pub fn derive_root(
     let mut input = Zeroizing::new(Vec::with_capacity(KEY_LEN + password.len()));
     input.extend_from_slice(hkdf_expand(secret_key.as_bytes(), None, INFO_SECRET_KEY).as_bytes());
     input.extend_from_slice(password);
-    argon2id(&input, library_salt, params.to_argon2()?)
-}
 
-/// Stage 1 for a Private library (ADR 0005): password only → root key. The Secret Key's
-/// 32 bytes are replaced by a fixed value of this derivation's own (HKDF of nothing,
-/// with its own label), so the same password and salt never give a Top secret library's
-/// root, whatever its Secret Key. Only for Private: refused under
-/// [`KdfParams::PRIVATE_ACCEPTED_FLOOR`].
-pub fn derive_root_password_only(
-    password: &[u8],
-    library_salt: &[u8; SALT_LEN],
-    params: KdfParams,
-) -> Result<Key> {
-    params.check_private()?;
-    let mut input = Zeroizing::new(Vec::with_capacity(KEY_LEN + password.len()));
-    input.extend_from_slice(hkdf_expand(&[], None, INFO_PASSWORD_ONLY).as_bytes());
-    input.extend_from_slice(password);
-    argon2id(&input, library_salt, params.to_argon2()?)
-}
-
-fn argon2id(input: &[u8], library_salt: &[u8; SALT_LEN], params: Params) -> Result<Key> {
+    let params = params.to_argon2()?;
     // Argon2's working memory (up to 512 MiB, all derived from the password) is ours, so
     // it is wiped when this returns: the crate frees its own without wiping it, even with
     // its `zeroize` feature (review of argon2 0.6.0, docs/supply-chain.md).
@@ -175,7 +116,7 @@ fn argon2id(input: &[u8], library_salt: &[u8; SALT_LEN], params: Params) -> Resu
     let argon = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
     let mut out = Zeroizing::new([0u8; KEY_LEN]);
     argon
-        .hash_password_into_with_memory(input, library_salt, out.as_mut(), &mut memory[..])
+        .hash_password_into_with_memory(&input, library_salt, out.as_mut(), &mut memory[..])
         .map_err(|_| Error::KdfParams)?;
     Ok(Key::from_bytes(*out))
 }
@@ -255,76 +196,6 @@ mod tests {
             )
             .unwrap()
         );
-    }
-
-    /// Random each run: no password is written in the code.
-    fn random_pw() -> Vec<u8> {
-        crate::generate_salt().to_vec()
-    }
-
-    const FAST_PRIVATE: KdfParams = KdfParams::PRIVATE_ACCEPTED_FLOOR;
-
-    #[test]
-    fn password_only_roots_are_their_own() {
-        let pw = random_pw();
-        let a = derive_root_password_only(&pw, &[7; 16], FAST_PRIVATE).unwrap();
-        assert_eq!(
-            a,
-            derive_root_password_only(&pw, &[7; 16], FAST_PRIVATE).unwrap()
-        );
-        assert_ne!(
-            a,
-            derive_root_password_only(&random_pw(), &[7; 16], FAST_PRIVATE).unwrap()
-        );
-        assert_ne!(
-            a,
-            derive_root_password_only(&pw, &[8; 16], FAST_PRIVATE).unwrap()
-        );
-        // Never a Top secret root for the same password and salt, whatever the key,
-        // not even a Secret Key of zeros or the fixed value itself.
-        let fixed = hkdf_expand(&[], None, INFO_PASSWORD_ONLY);
-        for key in [
-            sk(0),
-            sk(1),
-            SecretKey::from_slice(fixed.as_bytes()).unwrap(),
-        ] {
-            assert_ne!(a, derive_root(&pw, &key, &[7; 16], FAST_PRIVATE).unwrap());
-        }
-    }
-
-    /// A fixed result, so the derivation can never change unnoticed (a Private library
-    /// made today must open tomorrow). Computed apart with OpenSSL 4.0.3 (2026-10-31):
-    /// `openssl kdf -keylen 32 -kdfopt digest:SHA256 -kdfopt hexkey: -kdfopt
-    /// hexinfo:<label hex> HKDF` gives the fixed 32 bytes, then `openssl kdf -keylen 32
-    /// -kdfopt hexpass:<those bytes ‖ 00..13> -kdfopt hexsalt:07×16 -kdfopt memcost:16
-    /// -kdfopt iter:1 -kdfopt lanes:1 ARGON2ID` gives the root below.
-    #[test]
-    fn password_only_root_is_fixed() {
-        let pw: Vec<u8> = (0u8..20).collect();
-        let root = derive_root_password_only(&pw, &[7; 16], FAST_PRIVATE).unwrap();
-        assert_eq!(
-            hex(root.as_bytes()),
-            "8df744c1e5f0329a54ce2e2b9a89b8530a5d320d6328705d9b4a8bf9fe7dd602"
-        );
-    }
-
-    fn hex(b: &[u8]) -> String {
-        b.iter().map(|x| format!("{x:02x}")).collect()
-    }
-
-    #[test]
-    fn private_floor_is_higher() {
-        assert!(KdfParams::PRIVATE_PHONE_FLOOR.meets(&KdfParams::PHONE_FLOOR));
-        const { assert!(KdfParams::PRIVATE_PHONE_FLOOR.m_kib > KdfParams::PHONE_FLOOR.m_kib) };
-        assert!(KdfParams::PRIVATE_DESKTOP_FLOOR.meets(&KdfParams::DESKTOP_FLOOR));
-        assert!(KdfParams::PRIVATE_DESKTOP_FLOOR.meets(&KdfParams::PRIVATE_PHONE_FLOOR));
-        assert!(KdfParams::PRIVATE_PHONE_FLOOR.meets(&KdfParams::PRIVATE_ACCEPTED_FLOOR));
-        // A Top secret cost is not enough for Private.
-        assert!(matches!(
-            derive_root_password_only(&random_pw(), &[0; 16], KdfParams::ACCEPTED_FLOOR),
-            Err(Error::KdfTooWeak)
-        ));
-        KdfParams::PRIVATE_PHONE_FLOOR.check_private().unwrap();
     }
 
     #[test]

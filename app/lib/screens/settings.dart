@@ -37,8 +37,9 @@ import 'key_check.dart';
 import 'tour.dart';
 import '../sync/sync_screen.dart';
 import '../widgets/readable.dart';
-import '../vault_kind.dart';
-import 'vault_kinds.dart';
+import '../top_secret_mode.dart';
+import 'top_secret_page.dart';
+import '../widgets/edge_swipe_back.dart';
 
 /// Per-device choices, kept next to the library (not secret).
 abstract final class Settings {
@@ -577,7 +578,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           alert: alert,
           onTap: () => _show(page),
         );
-    final other = RunKind.topSecret ? VaultKind.private : VaultKind.topSecret;
     return [
       SettingsGroup(rows: [
         if (!kIsWeb)
@@ -596,18 +596,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: KeyedSubtree(key: _shieldGroupKey, child: nav(_Page.security, Icons.shield_rounded, SettingsHue.xanhLa)),
         ),
       ]),
-      // The other kind of vault (ADR 0005): only here, after unlocking (owner
-      // 2026-10-31: nothing on the lock screen tells there is a second kind).
-      SettingsGroup(rows: [
-        SettingsRow(
-          key: const ValueKey('other-kind-row'),
-          icon: kindBadge(other),
-          color: kindColor(other),
-          glyph: KindMark(kind: other, size: 21, color: Colors.white, cut: kindColor(other)),
-          title: RunKind.topSecret ? l.privateVault : l.topSecretVault,
-          onTap: _openOtherKind,
-        ),
-      ]),
+      // Top Secret Mode (ADR 0006) in a card of its own, near the top (owner 2026-10-31:
+      // people must know the feature exists).
+      _TopSecretCard(onTap: _openTopSecret),
       SettingsGroup(rows: [
         nav(_Page.history, Icons.history_rounded, SettingsHue.ngoc),
         nav(_Page.look, Icons.palette_rounded, SettingsHue.cham),
@@ -716,12 +707,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: row,
       );
 
-  Future<void> _openOtherKind() async {
+  Future<void> _openTopSecret() async {
     final l = AppLocalizations.of(context);
-    if (!RunKind.topSecret) return switchKind(context, VaultKind.topSecret);
-    final exists = PrivateVaultPage.debugExists ?? await privateLibraryExists();
-    if (!mounted) return;
-    await pushPage<void>(context, title: l.privateVault, builder: (_) => PrivateVaultPage(exists: exists));
+    await pushPage<void>(
+      context,
+      title: l.topSecretMode,
+      grouped: true,
+      builder: (_) => TopSecretModePage(verify: () => confirmOwnerForSetting(l.ownerCheckSettings)),
+    );
   }
 
   void _tour() {
@@ -742,6 +735,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onPopInvokedWithResult: (popped, _) {
         if (!popped) _show(_Page.main);
       },
+      // Sub-pages are shown in place, so the system swipe has nothing to pop: an edge
+      // swipe goes back to the main page (iPhone).
+      child: EdgeSwipeBack(
+      enabled: !main,
+      onBack: () => _show(_Page.main),
       child: groupedPage(context, Builder(builder: (context) => Scaffold(
       appBar: AppBar(
         title: Text(main ? l.settings : _pageTitle(l, _page)),
@@ -818,9 +816,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (_) => _then(widget.onToggleBiometric),
                 ),
               ),
-            // A Private vault's password is changed from the Top secret vault, where it is
-            // kept (owner 2026-10-31): changing it here would leave that copy behind.
-            if (RunKind.topSecret)
             SettingsRow(
               icon: Icons.key_rounded,
               color: SettingsHue.vang,
@@ -828,8 +823,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: vault.hasPassword ? l.isSet : l.notSet,
               onTap: () => _then(widget.onPassword),
             ),
-            // The 24 words are Top secret's (ADR 0005); a Private vault has none.
-            if (vault.hasPassword && RunKind.topSecret)
+            if (vault.hasPassword)
               SettingsRow(
                 key: const ValueKey('kit-row'),
                 icon: Icons.medical_services_rounded,
@@ -838,7 +832,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: widget.onShowKit,
               ),
             // Type them back to know they still open this vault (owner 2026-10-26).
-            if (RunKind.topSecret)
             SettingsRow(
               key: const ValueKey('key-check-row'),
               icon: Icons.fact_check_rounded,
@@ -850,7 +843,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             // Off unless turned on; turning it on is weaker, so it asks for the owner and
             // says the trade (owner 2026-10-26).
-            if (KeyBackup.supported && RunKind.topSecret)
+            if (KeyBackup.supported)
               SettingsRow(
                 key: const ValueKey('key-backup-row'),
                 icon: Icons.cloud_rounded,
@@ -1162,7 +1155,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (dark) const SizedBox(height: 4),
         ],
       ),
-    ))));
+    )))));
+  }
+}
+
+/// Top Secret Mode on the main page: its mark, its name, whether it is on, one line on
+/// what it does. A tap opens its page.
+class _TopSecretCard extends StatelessWidget {
+  const _TopSecretCard({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final on = TopSecretMode.on;
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Material(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const ValueKey('top-secret-row'),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+            child: Row(children: [
+              const TopSecretMark(size: 34),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Flexible(
+                      child: Text(l.topSecretMode,
+                          style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      on ? l.statusOn : l.statusOff,
+                      style: TextStyle(
+                        fontSize: CsType.footnote,
+                        fontWeight: FontWeight.w700,
+                        color: on ? topSecretRed : c.muted,
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 2),
+                  Text(l.topSecretCardNote,
+                      style: TextStyle(fontSize: CsType.footnote, height: 1.3, color: c.muted)),
+                ]),
+              ),
+              Icon(Icons.chevron_right_rounded, color: c.muted),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,10 +20,9 @@ import 'widgets/brand.dart';
 import 'widgets/native_bar.dart';
 import 'prefs.dart';
 import 'privacy.dart';
-import 'screens/vault_kinds.dart';
 import 'screens/welcome.dart';
 import 'temp_files.dart';
-import 'vault_kind.dart';
+import 'top_secret_mode.dart';
 
 Future<void> main() async {
   installNetworkGuard(); // before any plugin or library code runs
@@ -34,16 +32,14 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSizeBytes = 64 << 20;
   await RustLib.init();
   final support = await getApplicationSupportDirectory();
-  // One kind of vault per run (ADR 0005): fixed here, before anything reads a library,
-  // a preference or the keystore.
-  final libraryDir = RunKind.start(support.path);
-  Prefs.dir = RunKind.prefsDir(RunKind.current);
-  Directory(Prefs.dir).createSync(recursive: true);
+  // Top Secret Mode or not (ADR 0006): fixed here, before anything reads the library.
+  final libraryDir = TopSecretMode.start(support.path);
+  Prefs.dir = support.path;
   Settings.apply(); // Android: honour "block screenshots" off
   PrivacyCover.listen(); // iOS: screenshots taken (they cannot be stopped there)
   await clearTemp(); // plain copies a crash or a kill left: an import, a share, a video
   unawaited(KeyBackup.sweep()); // no copy of the words in iCloud / Google in this build
-  final hasKey = RunKind.topSecret && await loadSecretKey(libraryDir);
+  final hasKey = await loadSecretKey(libraryDir);
   await AppLanguage.load();
   await NativeBar.probe(); // iOS 26: the system's own bottom bar
   DebugLog.sync(); // keep debug lines only if debug mode is on
@@ -97,9 +93,8 @@ class CozySafeApp extends StatelessWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: !rust.hasVaults(dir: libraryDir)
-          ? (RunKind.topSecret ? WelcomeScreen(libraryDir: libraryDir) : PrivateWelcomeScreen(libraryDir: libraryDir))
-          // A Private vault has no Secret Key (ADR 0005).
-          : hasSecretKey || !RunKind.topSecret
+          ? WelcomeScreen(libraryDir: libraryDir)
+          : hasSecretKey
               ? UnlockScreen(libraryDir: libraryDir)
               // Vaults are here but this device has no Secret Key (reinstall,
               // restored phone): ask for the Emergency Kit.

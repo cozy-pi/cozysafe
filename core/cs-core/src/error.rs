@@ -15,9 +15,6 @@ pub enum Error {
     WrongSecretKey,
     BadBackup,
     LibraryExists,
-    /// A library of the other kind (ADR 0005): a Top secret call found a Private
-    /// library, or the other way round.
-    WrongKind,
     Corrupt(&'static str),
     Index(String),
     Crypto(cs_crypto::Error),
@@ -38,7 +35,6 @@ impl fmt::Display for Error {
             Error::WrongSecretKey => f.write_str("this Secret Key belongs to another library"),
             Error::BadBackup => f.write_str("not a Cozy Safe backup, or the file is damaged"),
             Error::LibraryExists => f.write_str("a library already exists here"),
-            Error::WrongKind => f.write_str("this library is of the other kind"),
             Error::Corrupt(what) => write!(f, "library data is damaged: {what}"),
             Error::Index(e) => write!(f, "vault index: {e}"),
             // Transparent, as before: the inner error's own words.

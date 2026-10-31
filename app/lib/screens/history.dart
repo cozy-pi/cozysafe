@@ -13,7 +13,7 @@ import '../widgets/confirm_delete.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart';
 import 'file_view.dart' show fileSize;
-import '../vault_kind.dart';
+import '../top_secret_mode.dart';
 
 /// How much (owner 2026-10-27, space first to keep versions as long as possible):
 /// 500 MB · 1 GB · 5 GB · no limit, or Off; 1 GB unless changed. Under it nothing goes;
@@ -240,7 +240,7 @@ class _VersionPageState extends State<_VersionPage> {
 
   // Top secret shows a note's older text, never an older photo (ADR 0005).
   bool get _previewable =>
-      widget.version.item.kind == ItemKind.note || (widget.version.item.kind == ItemKind.photo && !RunKind.topSecret);
+      widget.version.item.kind == ItemKind.note || (widget.version.item.kind == ItemKind.photo && !TopSecretMode.on);
 
   @override
   void initState() {

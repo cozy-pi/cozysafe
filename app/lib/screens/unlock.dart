@@ -20,11 +20,10 @@ import 'debug.dart' show debugModeOn;
 import 'new_vault.dart';
 import 'restore.dart';
 import 'vault_home.dart';
+import 'top_secret_page.dart';
 import '../theme.dart';
 import '../widgets/drive_logo.dart';
 import '../widgets/readable.dart';
-import '../vault_kind.dart';
-import 'vault_kinds.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
 /// vault password is the fallback (decisions 2026-10-28: no more PIN, it was the
@@ -435,11 +434,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                     _mode == _Mode.pin ? l.pinEnter : (_remind ? l.passwordRemindTitle : l.unlockTitle),
                     style: TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w700, color: ink, letterSpacing: -.3),
                   ),
-                  // Which kind this is (owner 2026-10-31): its icon and name, nothing of
-                  // the other kind.
-                  const SizedBox(height: 6),
-                  const KindLabel(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 22),
                   if (_mode == _Mode.pin)
                     PinDots(filled: _pin.length, color: accent)
                   else
@@ -492,7 +487,14 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                   boxShadow: const [BoxShadow(color: Color(0x4D041410), blurRadius: 24, offset: Offset(0, 10))],
                 ),
                 // The launch hand-over flies the splash dial onto this one.
-                child: BrandMark(key: LaunchHandoff.running ? LaunchHandoff.target : null, size: 78, color: accent),
+                child: TopSecretPlaces.show(TopSecretPlace.lock)
+                    ? TopSecretCorner(
+                        ring: page,
+                        size: 24,
+                        offset: -6,
+                        child: BrandMark(key: LaunchHandoff.running ? LaunchHandoff.target : null, size: 78, color: accent),
+                      )
+                    : BrandMark(key: LaunchHandoff.running ? LaunchHandoff.target : null, size: 78, color: accent),
               ),
             ),
           ],
@@ -636,19 +638,6 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
               onPressed: _busy ? null : _newVault,
               child: Text(l.newVault),
             ),
-          // A Private vault whose password is forgotten: the way back to the Top secret
-          // vault, where it is kept as a note (owner 2026-10-31). Only on Private's lock
-          // screen; Top secret's says nothing of a second kind.
-          if (!RunKind.topSecret)
-            MenuItemButton(
-              key: const ValueKey('lock-to-top-secret'),
-              style: _menuItem,
-              leadingIcon: const Icon(Icons.shield_outlined),
-              onPressed: _busy ? null : () => switchKind(context, VaultKind.topSecret),
-              child: Text(l.switchToTopSecret),
-            ),
-          // Restoring takes the 24 words: Top secret only.
-          if (RunKind.topSecret)
           MenuItemButton(
             style: _menuItem,
             leadingIcon: const Icon(Icons.settings_backup_restore_rounded),

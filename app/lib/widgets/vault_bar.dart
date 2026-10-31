@@ -11,7 +11,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
 import 'readable.dart';
-import '../vault_kind.dart';
+import '../top_secret_mode.dart';
 
 /// The four sections of a vault, picked in the bottom capsule (docs/ui.md, vault bar;
 /// docs/naming.md). A section shows items of some kinds: Library shows photos and
@@ -24,7 +24,7 @@ enum VaultSection { home, note, library, audio, file }
 /// among the files.
 List<VaultSection> vaultSections() => [
       VaultSection.home,
-      if (!RunKind.topSecret) VaultSection.library,
+      if (!TopSecretMode.on) VaultSection.library,
       VaultSection.file,
       VaultSection.note,
       if (Device.iOS || Device.android || debugVoice) VaultSection.audio,
@@ -724,7 +724,7 @@ Color addWayColor(AddWhat w) => switch (w) {
 /// Every way to add, in the fixed order (camera and voice only where the device has them).
 List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
       // Top secret takes nothing from the photo library (ADR 0005).
-      if (!RunKind.topSecret) (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
+      if (!TopSecretMode.on) (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, l.newNote),
@@ -756,7 +756,7 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
 List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
         {required bool camera, required bool voice}) =>
     [
-      if (!RunKind.topSecret) (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
+      if (!TopSecretMode.on) (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),

@@ -35,7 +35,7 @@ import '../capture_name.dart';
 import '../item_kind.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show GlassButton;
-import '../vault_kind.dart';
+import '../top_secret_mode.dart';
 
 /// Icon for an item kind / type.
 IconData fileIcon(rust.ItemInfo item) {
@@ -330,7 +330,7 @@ Future<void> importOne(
   final watch = Stopwatch()..start();
   var way = isVideo ? 'video' : '';
   // Top secret seals the bytes as they are: no picture or video is decoded (ADR 0005).
-  final thumbnail = RunKind.topSecret
+  final thumbnail = TopSecretMode.on
       ? null
       : isImage
           ? await imageThumbnail(f.path, way: (w) => way = w)
@@ -341,7 +341,7 @@ Future<void> importOne(
   final item = await rust.addFile(
     path: f.path,
     // Top secret: files picked stay files; a video from the app's camera stays a video.
-    kind: RunKind.topSecret
+    kind: TopSecretMode.on
         ? (isVideo && photos ? ItemKind.video : ItemKind.file)
         : isVideo
             ? ItemKind.video
@@ -354,7 +354,7 @@ Future<void> importOne(
   ImportStats.vaultMs += watch.elapsedMilliseconds;
   DebugLog.add('import $tag ${isVideo ? 'video' : isImage ? 'image' : 'file'} ${(item.sizeBytes ~/ BigInt.from(1024))} KB: '
       'thumbnail $way $thumbMs ms (${thumbnail == null ? 'none' : '${thumbnail.length ~/ 1024} KB'}) · vault ${watch.elapsedMilliseconds} ms');
-  if (isVideo && !RunKind.topSecret) {
+  if (isVideo && !TopSecretMode.on) {
     final ms = await videoLength(f.path);
     if (ms != null) await rust.setItemDuration(id: item.id, durationMs: i64(ms));
   }

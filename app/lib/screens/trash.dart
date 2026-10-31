@@ -16,7 +16,7 @@ import '../widgets/vault_bar.dart';
 import 'file_view.dart';
 import 'item_info.dart';
 import 'quick_look.dart';
-import '../vault_kind.dart';
+import '../top_secret_mode.dart';
 
 /// Recently deleted (owner 2026-10-26, "cho tử tế"): items stay here, still encrypted, for
 /// 30 days, then go for good. Laid out like the vault: photos and videos as a grid of
@@ -105,7 +105,7 @@ class _TrashScreenState extends State<TrashScreen> {
   Future<void> _preview(rust.ItemInfo it) async {
     // Top secret previews nothing but notes (ADR 0005): the details only; Restore and
     // Delete for good stay in the long-press menu.
-    if (RunKind.topSecret && it.kind != ItemKind.note) {
+    if (TopSecretMode.on && it.kind != ItemKind.note) {
       return showItemInfo(context, it, held: _held.contains(it.id));
     }
     final pick = await QuickLook.show(context, it,
@@ -180,7 +180,7 @@ class _TrashScreenState extends State<TrashScreen> {
 
   Future<Uint8List> _thumb(String id) =>
       // Top secret reads no thumbnail (ADR 0005).
-      RunKind.topSecret ? Future.value(Uint8List(0)) : _thumbnails[id] ??= rust.itemThumbnail(id: id);
+      TopSecretMode.on ? Future.value(Uint8List(0)) : _thumbnails[id] ??= rust.itemThumbnail(id: id);
 
   @override
   Widget build(BuildContext context) {

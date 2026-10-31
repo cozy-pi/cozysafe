@@ -16,7 +16,7 @@ import 'common.dart';
 import 'file_view.dart';
 import '../widgets/toast.dart';
 import '../theme.dart';
-import '../vault_kind.dart';
+import '../top_secret_mode.dart';
 import 'sealed_item.dart';
 
 /// The camera, opened from the Library's + menu (docs/ui.md, vault bar): Photo | Video,
@@ -498,7 +498,7 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     setState(() => _saving = true);
     final item = await _finishVideo(c);
     if (!mounted) return;
-    if (item != null && RunKind.topSecret) {
+    if (item != null && TopSecretMode.on) {
       // Top secret: nothing of the video is shown; it is named at once (ADR 0005).
       await nameNewItem(context, item);
       if (!mounted) return;
@@ -580,7 +580,7 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       if (tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
       // Top secret: no thumbnail, nothing shown of the shot; it is named at once so it
       // can be found without opening it (ADR 0005).
-      if (RunKind.topSecret) {
+      if (TopSecretMode.on) {
         if (!mounted) return;
         await nameNewItem(context, item);
         if (!mounted) return;

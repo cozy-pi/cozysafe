@@ -14,7 +14,7 @@ import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
-import 'package:cozysafe/vault_kind.dart';
+import 'package:cozysafe/top_secret_mode.dart';
 import 'package:cozysafe/widgets/private_thumb.dart';
 import 'package:cozysafe/widgets/vault_bar.dart'
     show VaultSection, debugVoice, vaultSections;
@@ -129,12 +129,12 @@ void main() {
     Prefs.write('add-column-hint', '3'); // the drag hint has been seen
     _fake.thumbnails = 0;
   });
-  tearDown(() => RunKind.current = VaultKind.topSecret);
+  tearDown(() => TopSecretMode.on = false);
 
   testWidgets(
     'Top secret: every item is a sealed row; tapping one opens nothing',
     (t) async {
-      RunKind.current = VaultKind.topSecret;
+      TopSecretMode.on = true;
       await _open(t);
       for (final it in _items.where((i) => i.kind != 'audio')) {
         final row = find.text(it.name);
@@ -156,7 +156,7 @@ void main() {
   );
 
   testWidgets('Top secret: a recording is sealed too, never played', (t) async {
-    RunKind.current = VaultKind.topSecret;
+    TopSecretMode.on = true;
     debugVoice = true;
     addTearDown(() => debugVoice = false);
     Prefs.write('vault-section', 'audio');
@@ -166,15 +166,15 @@ void main() {
     _nothingDecoded();
   });
 
-  test('Private keeps the Library and every way to add', () {
-    RunKind.current = VaultKind.private;
+  test('Everyday keeps the Library and every way to add', () {
+    TopSecretMode.on = false;
     expect(vaultSections(), contains(VaultSection.library));
   });
 
   testWidgets(
-    'Private: the same file opens its preview (the gate above is real)',
+    'Everyday: the same file opens its preview (the gate above is real)',
     (t) async {
-      RunKind.current = VaultKind.private;
+      TopSecretMode.on = false;
       await _open(t);
       await _tapRow(t, find.text('contract.pdf').first);
       expect(find.byType(QuickLook), findsOneWidget);

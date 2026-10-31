@@ -124,8 +124,6 @@ impl LibraryJoin for Library {
             salt: lib.salt.clone(),
             secret_key: Some(fp),
             prev_secret_key: None,
-            // Top secret only: a Private lock has no Secret Key and is refused above.
-            kind: None,
         };
         write_atomic(&dir.join(LIBRARY_FILE), &header.to_json_pretty())?;
         let vault_dir = dir.join(VAULTS_DIR).join(vault_id);

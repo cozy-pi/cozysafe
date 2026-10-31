@@ -148,30 +148,13 @@ fn params_for_this_device() -> KdfParams {
     }
 }
 
-/// Argon2id cost for a Private library created on this device (ADR 0005: about one
-/// second on a phone).
-pub(crate) fn private_params_for_this_device() -> KdfParams {
-    if cfg!(any(target_os = "android", target_os = "ios")) {
-        KdfParams::PRIVATE_PHONE_FLOOR
-    } else {
-        KdfParams::PRIVATE_DESKTOP_FLOOR
-    }
-}
-
-/// This run's library (api/run.rs), created if absent: Top secret with the device's
-/// Secret Key, Private with none.
+/// This run's library (api/run.rs), created if absent, with the device's Secret Key.
 fn library(dir: &str) -> Result<Library, VaultError> {
-    let dir = super::run::library_dir(dir)?;
-    Ok(match super::run::run_kind() {
-        Some(super::run::VaultKind::Private) => {
-            Library::open_or_create_private(dir, private_params_for_this_device())?
-        }
-        _ => Library::open_or_create(dir, params_for_this_device(), secret()?)?,
-    })
-}
-
-fn private_run() -> bool {
-    super::run::run_kind() == Some(super::run::VaultKind::Private)
+    Ok(Library::open_or_create(
+        super::run::library_dir(dir)?,
+        params_for_this_device(),
+        secret()?,
+    )?)
 }
 
 #[flutter_rust_bridge::frb(sync)]
@@ -192,16 +175,12 @@ pub fn min_password_score() -> u8 {
     cs_vault::MIN_PASSWORD_SCORE
 }
 
-/// A new vault password needs at least this many characters in this run's kind (12, or
-/// 14 for Private; and see [`password_problem`]). Unlocking counts wrong passwords from 8 characters, the least
+/// A new vault password needs at least this many characters (and see
+/// [`password_problem`]). Unlocking counts wrong passwords from 8 characters, the least
 /// the earlier rule allowed (app/lib/screens/unlock.dart).
 #[flutter_rust_bridge::frb(sync)]
 pub fn min_password_length() -> u32 {
-    if private_run() {
-        cs_vault::MIN_PRIVATE_PASSWORD_LEN as u32
-    } else {
-        cs_vault::MIN_PASSWORD_LEN as u32
-    }
+    cs_vault::MIN_PASSWORD_LEN as u32
 }
 
 /// Why a new password would be refused, to say so while it is typed.
@@ -218,25 +197,7 @@ pub enum PasswordProblem {
 #[flutter_rust_bridge::frb(sync)]
 pub fn password_problem(password: String) -> PasswordProblem {
     let password = Zeroizing::new(password);
-    problem_of(if private_run() {
-        cs_vault::check_new_private_password(&password)
-    } else {
-        cs_vault::check_new_password(&password)
-    })
-}
-
-/// [`password_problem`] by the Private rule, whatever this run's kind: a Top secret run
-/// sets the Private vault's password before switching (ADR 0005).
-#[flutter_rust_bridge::frb(sync)]
-pub fn private_password_problem(password: String) -> PasswordProblem {
-    let password = Zeroizing::new(password);
-    problem_of(cs_vault::check_new_private_password(&password))
-}
-
-/// The least a Private vault's password may be, whatever this run's kind.
-#[flutter_rust_bridge::frb(sync)]
-pub fn min_private_password_length() -> u32 {
-    cs_vault::MIN_PRIVATE_PASSWORD_LEN as u32
+    problem_of(cs_vault::check_new_password(&password))
 }
 
 fn problem_of(check: cs_vault::PasswordCheck) -> PasswordProblem {
@@ -657,6 +618,7 @@ pub fn open_vault_info() -> Option<VaultInfo> {
 
 /// The vault just opened becomes the open one (the one a sync still holds, if the same).
 pub(crate) fn set_open(vault: OpenVault) -> VaultInfo {
+    super::run::vault_opened();
     OPEN.put(vault).info
 }
 
@@ -793,6 +755,10 @@ pub fn add_file(
     created_ms: i64,
     thumbnail: Option<Vec<u8>>,
 ) -> Result<ItemInfo, VaultError> {
+    if thumbnail.is_some() {
+        // A preview made from outside data means it was decoded.
+        super::run::refuse_in_top_secret("thumbnail from outside")?;
+    }
     let f = std::fs::File::open(&path).map_err(|_| VaultError::Storage)?;
     let thumb = thumb_bytes(thumbnail);
     let waited = std::time::Instant::now();
@@ -884,12 +850,14 @@ pub fn list_items() -> Result<Vec<ItemInfo>, VaultError> {
 
 /// Decrypted preview (JPEG), empty when the item has none.
 pub fn item_thumbnail(id: String) -> Result<Vec<u8>, VaultError> {
+    super::run::refuse_in_top_secret("thumbnail")?;
     with_open(|v| Ok(v.read_thumbnail(&id)?.unwrap_or_default()))
 }
 
 /// Decrypted content. Kept in memory only; Dart shows it and drops it.
 pub fn item_content(id: String) -> Result<Vec<u8>, VaultError> {
     with_open(|v| {
+        readable_in_app(v, &id)?;
         let mut out = Vec::new();
         v.read_item(&id, &mut out)?;
         Ok(out)
@@ -918,6 +886,7 @@ pub fn item_content_head(id: String, max: u32) -> Result<Vec<u8>, VaultError> {
         }
     }
     with_open(|v| {
+        readable_in_app(v, &id)?;
         let mut head = Head {
             buf: Vec::new(),
             max: max as usize,
@@ -929,6 +898,15 @@ pub fn item_content_head(id: String, max: u32) -> Result<Vec<u8>, VaultError> {
             Err(e) => Err(e.into()),
         }
     })
+}
+
+/// Top Secret Mode (ADR 0006): only notes are read into the app; anything else leaves
+/// the vault by [`export_item`] alone, to be opened in another app.
+fn readable_in_app(v: &OpenVault, id: &str) -> Result<(), VaultError> {
+    if super::run::top_secret() && v.record(id)?.kind != cs_vault::items::kind::NOTE {
+        return super::run::refuse_in_top_secret("content");
+    }
+    Ok(())
 }
 
 /// Delete for good (from Recently deleted).

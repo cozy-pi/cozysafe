@@ -27,7 +27,7 @@ use cs_crypto::kdf::{self, KdfParams};
 use cs_crypto::{wrap, Key, SecretKey, SALT_LEN, SECRET_KEY_LEN};
 use zeroize::Zeroizing;
 
-use crate::passwords::{check_new_password, check_new_private_password, PasswordCheck};
+use crate::passwords::{check_new_password, PasswordCheck};
 use crate::{db, pin};
 use crate::{Error, Result};
 
@@ -41,24 +41,12 @@ const BIOMETRIC_FILE: &str = "biometric";
 
 use crate::format::{KdfJson, LibraryHeader, VaultHeader, VaultMeta};
 
-/// The set of vaults in one directory, sharing a library salt and, for Top secret, a
-/// Secret Key.
+/// The set of vaults in one directory, sharing a library salt and Secret Key.
 pub struct Library {
     dir: PathBuf,
     params: KdfParams,
     salt: [u8; SALT_LEN],
-    kind: Kind,
-}
-
-/// [`LibraryHeader::kind`] of a Private library.
-pub const PRIVATE_KIND: &str = "private";
-
-/// What a library's vaults open with besides their password (ADR 0005).
-enum Kind {
-    /// Top secret: the device's Secret Key (the 24 words).
-    TopSecret(SecretKey),
-    /// Private: nothing; the password alone, at a higher Argon2 cost.
-    Private,
+    secret_key: SecretKey,
 }
 
 /// An unlocked vault. Holds the Master Key until dropped (wiped on drop).
@@ -217,10 +205,9 @@ impl Library {
         }
     }
 
-    /// Open the Top secret library in `dir` with the app's Secret Key, creating the
-    /// library (salt, fingerprint) with `params_if_new` if absent. A Secret Key from
-    /// another library is refused with [`Error::WrongSecretKey`] instead of failing every
-    /// password; a Private library with [`Error::WrongKind`].
+    /// Open the library in `dir` with the app's Secret Key, creating the library (salt,
+    /// fingerprint) with `params_if_new` if absent. A Secret Key from another library is
+    /// refused with [`Error::WrongSecretKey`] instead of failing every password.
     pub fn open_or_create(
         dir: &Path,
         params_if_new: KdfParams,
@@ -239,15 +226,11 @@ impl Library {
                 salt: crate::hex::encode(cs_crypto::generate_salt()),
                 secret_key: Some(secret_key.fingerprint()),
                 prev_secret_key: None,
-                kind: None,
             };
             write_atomic(&header_path, &header.to_json_pretty())?;
         }
 
         let mut header = read_library_header(dir)?;
-        if header.kind.is_some() {
-            return Err(Error::WrongKind);
-        }
         // A cost under the floor means a tampered library.json: refused before any
         // password is tried with it.
         let params = KdfParams::from(header.kdf);
@@ -282,76 +265,8 @@ impl Library {
             dir: dir.to_path_buf(),
             params,
             salt,
-            kind: Kind::TopSecret(secret_key),
+            secret_key,
         })
-    }
-
-    /// Open the Private library in `dir` (ADR 0005: password only), creating it with
-    /// `params_if_new` if absent. A Top secret library is refused with
-    /// [`Error::WrongKind`], and a cost under [`KdfParams::PRIVATE_ACCEPTED_FLOOR`] (a
-    /// tampered library.json) with [`cs_crypto::Error::KdfTooWeak`].
-    pub fn open_or_create_private(dir: &Path, params_if_new: KdfParams) -> Result<Library> {
-        let header_path = dir.join(LIBRARY_FILE);
-        if !header_path.exists() {
-            params_if_new.check_private()?;
-            fs::create_dir_all(dir.join(VAULTS_DIR))?;
-            let header = LibraryHeader {
-                format: FORMAT,
-                kdf: KdfJson::from(params_if_new),
-                salt: crate::hex::encode(cs_crypto::generate_salt()),
-                secret_key: None,
-                prev_secret_key: None,
-                kind: Some(PRIVATE_KIND.to_owned()),
-            };
-            write_atomic(&header_path, &header.to_json_pretty())?;
-        }
-        let header = read_library_header(dir)?;
-        if header.kind.as_deref() != Some(PRIVATE_KIND) {
-            return Err(Error::WrongKind);
-        }
-        let params = KdfParams::from(header.kdf);
-        params.check_private()?;
-        let salt = decode_array::<SALT_LEN>(&header.salt, "library salt")?;
-        Ok(Library {
-            dir: dir.to_path_buf(),
-            params,
-            salt,
-            kind: Kind::Private,
-        })
-    }
-
-    /// Whether this is a Private library.
-    pub fn is_private(&self) -> bool {
-        matches!(self.kind, Kind::Private)
-    }
-
-    /// The root key `password` gives in this library.
-    fn root(&self, password: &str) -> Result<Key> {
-        Ok(match &self.kind {
-            Kind::TopSecret(key) => {
-                kdf::derive_root(password.as_bytes(), key, &self.salt, self.params)?
-            }
-            Kind::Private => {
-                kdf::derive_root_password_only(password.as_bytes(), &self.salt, self.params)?
-            }
-        })
-    }
-
-    /// Whether `password` may become a vault password here: Private asks for more.
-    fn new_password_ok(&self, password: &str) -> bool {
-        let check = match self.kind {
-            Kind::TopSecret(_) => check_new_password(password),
-            Kind::Private => check_new_private_password(password),
-        };
-        check == PasswordCheck::Ok
-    }
-
-    /// The Secret Key, for what only Top secret has (changing it).
-    fn secret_key(&self) -> Result<&SecretKey> {
-        match &self.kind {
-            Kind::TopSecret(key) => Ok(key),
-            Kind::Private => Err(Error::WrongKind),
-        }
     }
 
     /// Whether `secret_key` belongs to the library in `dir` (true when the library
@@ -427,10 +342,15 @@ impl Library {
     }
 
     fn create_with_meta(&self, meta: VaultMeta, password: &str) -> Result<OpenVault> {
-        if !self.new_password_ok(password) {
+        if check_new_password(password) != PasswordCheck::Ok {
             return Err(Error::WeakPassword);
         }
-        let root = self.root(password)?;
+        let root = kdf::derive_root(
+            password.as_bytes(),
+            &self.secret_key,
+            &self.salt,
+            self.params,
+        )?;
         if self.find_vault(&root)?.is_some() {
             return Err(Error::PasswordInUse);
         }
@@ -468,7 +388,12 @@ impl Library {
 
     /// Open whichever vault this password belongs to, or `None`.
     pub fn unlock(&self, password: &str) -> Result<Option<OpenVault>> {
-        let root = self.root(password)?;
+        let root = kdf::derive_root(
+            password.as_bytes(),
+            &self.secret_key,
+            &self.salt,
+            self.params,
+        )?;
         self.find_vault(&root)
     }
 
@@ -620,10 +545,15 @@ impl Library {
     /// re-encrypted, so it is instant whatever the vault's size. A password that already
     /// opens another vault is refused (the password picks the vault).
     pub fn set_password(&self, vault: &OpenVault, password: &str) -> Result<()> {
-        if !self.new_password_ok(password) {
+        if check_new_password(password) != PasswordCheck::Ok {
             return Err(Error::WeakPassword);
         }
-        let root = self.root(password)?;
+        let root = kdf::derive_root(
+            password.as_bytes(),
+            &self.secret_key,
+            &self.salt,
+            self.params,
+        )?;
         if let Some(other) = self.find_vault(&root)? {
             if other.id != vault.id {
                 return Err(Error::PasswordInUse);
@@ -656,7 +586,6 @@ impl Library {
         password: &str,
         new_key: &SecretKey,
     ) -> Result<bool> {
-        self.secret_key()?; // Top secret only
         if self.password_vaults()?.iter().any(|id| *id != vault.id) {
             return Err(Error::Corrupt("another vault uses this Recovery Key"));
         }
@@ -677,7 +606,6 @@ impl Library {
         passwords: &[&str],
         new_key: &SecretKey,
     ) -> Result<KeyChange> {
-        self.secret_key()?; // Top secret only
         let mut opened: Vec<(OpenVault, &str)> = Vec::new();
         for &password in passwords {
             let Some(vault) = self.unlock(password)? else {
@@ -719,7 +647,12 @@ impl Library {
     /// Step 1 for one vault: its Master Key wrapped with `password` and `new_key`, the old
     /// wrap kept beside it. False if `password` is not this vault's.
     fn rewrap(&self, vault: &OpenVault, password: &str, new_key: &SecretKey) -> Result<bool> {
-        let old_root = self.root(password)?;
+        let old_root = kdf::derive_root(
+            password.as_bytes(),
+            &self.secret_key,
+            &self.salt,
+            self.params,
+        )?;
         let mut header = read_header(&vault.dir).ok_or(Error::Corrupt("vault header"))?;
         let salt = decode_array::<SALT_LEN>(&header.salt, "vault salt")?;
         let old_kek = kdf::vault_kek(&old_root, &salt);
@@ -750,7 +683,7 @@ impl Library {
     /// Step 2: the library accepts both keys.
     fn accept_key(&self, new_key: &SecretKey) -> Result<()> {
         let mut lib = read_library_header(&self.dir)?;
-        lib.prev_secret_key = Some(self.secret_key()?.fingerprint());
+        lib.prev_secret_key = Some(self.secret_key.fingerprint());
         lib.secret_key = Some(new_key.fingerprint());
         write_atomic(&self.dir.join(LIBRARY_FILE), &lib.to_json_pretty())?;
         Ok(())
@@ -1516,102 +1449,5 @@ pub mod tests {
         assert!(Library::secret_key_fits(tmp.path(), &other));
         let l = Library::open_or_create(tmp.path(), FAST, other).unwrap();
         assert!(l.unlock(pw_a()).unwrap().is_none(), "the unwrap decides");
-    }
-
-    const FAST_PRIVATE: KdfParams = KdfParams::PRIVATE_ACCEPTED_FLOOR;
-
-    #[test]
-    fn a_private_library_opens_with_the_password_alone() {
-        let tmp = tempfile::tempdir().unwrap();
-        let l = Library::open_or_create_private(tmp.path(), FAST_PRIVATE).unwrap();
-        assert!(l.is_private());
-        let v = l.create_vault("Riêng tư", pw_a()).unwrap();
-        let id = note(&v, "ảnh");
-        drop(v);
-        // Opened again from the files, with no Secret Key anywhere.
-        let l = Library::open_or_create_private(tmp.path(), FAST_PRIVATE).unwrap();
-        let v = l.unlock(pw_a()).unwrap().expect("opens");
-        let mut back = Vec::new();
-        v.read_item(&id, &mut back).unwrap();
-        assert_eq!(back, "ảnh".as_bytes());
-        assert!(l.unlock(pw_b()).unwrap().is_none());
-        let header = read_library_header(tmp.path()).unwrap();
-        assert_eq!(header.kind.as_deref(), Some(PRIVATE_KIND));
-        assert_eq!(header.secret_key, None);
-    }
-
-    #[test]
-    fn a_private_password_is_longer() {
-        let tmp = tempfile::tempdir().unwrap();
-        let l = Library::open_or_create_private(tmp.path(), FAST_PRIVATE).unwrap();
-        let short = &pw_a()[..crate::passwords::MIN_PRIVATE_PASSWORD_LEN - 1];
-        assert!(short.chars().count() >= crate::passwords::MIN_PASSWORD_LEN);
-        assert!(matches!(
-            l.create_vault("R", short),
-            Err(Error::WeakPassword)
-        ));
-        let v = l.create_vault("R", pw_a()).unwrap();
-        assert!(matches!(
-            l.set_password(&v, short),
-            Err(Error::WeakPassword)
-        ));
-        // The same length is fine for Top secret.
-        let tmp = tempfile::tempdir().unwrap();
-        lib(tmp.path()).create_vault("T", short).unwrap();
-    }
-
-    #[test]
-    fn each_kind_refuses_the_others_library() {
-        let top = tempfile::tempdir().unwrap();
-        let private = tempfile::tempdir().unwrap();
-        lib(top.path());
-        Library::open_or_create_private(private.path(), FAST_PRIVATE).unwrap();
-        assert!(matches!(
-            Library::open_or_create_private(top.path(), FAST_PRIVATE),
-            Err(Error::WrongKind)
-        ));
-        assert!(matches!(
-            Library::open_or_create(private.path(), FAST, sk()),
-            Err(Error::WrongKind)
-        ));
-        // Nothing was written into either: the Private library still has no Secret Key.
-        let header = read_library_header(private.path()).unwrap();
-        assert_eq!(header.secret_key, None);
-        assert_eq!(read_library_header(top.path()).unwrap().kind, None);
-    }
-
-    #[test]
-    fn a_private_library_has_no_secret_key_to_change() {
-        let tmp = tempfile::tempdir().unwrap();
-        let l = Library::open_or_create_private(tmp.path(), FAST_PRIVATE).unwrap();
-        let v = l.create_vault("R", pw_a()).unwrap();
-        let new = SecretKey::generate();
-        assert!(matches!(
-            l.change_secret_key(&v, pw_a(), &new),
-            Err(Error::WrongKind)
-        ));
-        assert!(matches!(
-            l.change_secret_key_all(&[pw_a()], &new),
-            Err(Error::WrongKind)
-        ));
-    }
-
-    #[test]
-    fn a_private_library_under_its_floor_is_refused() {
-        let tmp = tempfile::tempdir().unwrap();
-        // Made at a Top secret cost (as a tampered library.json would say): refused.
-        assert!(matches!(
-            Library::open_or_create_private(tmp.path(), KdfParams::ACCEPTED_FLOOR),
-            Err(Error::Crypto(cs_crypto::Error::KdfTooWeak))
-        ));
-        Library::open_or_create_private(tmp.path(), FAST_PRIVATE).unwrap();
-        let path = tmp.path().join(LIBRARY_FILE);
-        let mut header = read_library_header(tmp.path()).unwrap();
-        header.kdf = KdfJson::from(KdfParams::ACCEPTED_FLOOR);
-        write_atomic(&path, &header.to_json_pretty()).unwrap();
-        assert!(matches!(
-            Library::open_or_create_private(tmp.path(), FAST_PRIVATE),
-            Err(Error::Crypto(cs_crypto::Error::KdfTooWeak))
-        ));
     }
 }

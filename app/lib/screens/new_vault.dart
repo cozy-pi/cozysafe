@@ -6,7 +6,6 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
-import '../vault_kind.dart';
 import '../widgets/edge_swipe_back.dart';
 import '../widgets/password_strength.dart';
 import '../widgets/recovery_words.dart';
@@ -15,6 +14,8 @@ import '../widgets/brand.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'tour.dart' show TourKind;
+import 'top_secret_page.dart';
+import '../top_secret_mode.dart';
 import 'vault_home.dart';
 
 /// Create a vault (owner 2026-10-23, order 2026-10-29): what each key is for → the vault
@@ -37,12 +38,15 @@ class NewVaultScreen extends StatefulWidget {
   /// For the mockup renders: open on the Face ID step.
   @visibleForTesting
   static bool debugBiometricStep = false;
+  /// Mockups of the later steps: start at the password, as before the mode step.
+  @visibleForTesting
+  static bool debugSkipMode = false;
 
   @override
   State<NewVaultScreen> createState() => _NewVaultScreenState();
 }
 
-enum _Step { intro, words, check, password, biometric, icon, color }
+enum _Step { intro, mode, words, check, password, biometric, icon, color }
 
 class _NewVaultScreenState extends State<NewVaultScreen> {
   _Step _step = _Step.intro;
@@ -63,11 +67,16 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   final _pw = TextEditingController();
   final _pwAgain = TextEditingController();
   rust.VaultInfo? _vault;
+  /// The mode chosen on [_Step.mode].
+  bool _topSecret = TopSecretMode.on;
 
   /// One thing per step, said briefly (owner 2026-10-24: no screen explaining all three
   /// at once). The first vault starts from the welcome screen, so it has no intro.
   List<_Step> get _steps => [
         if (!widget.first) _Step.intro,
+        // The first vault chooses Top Secret Mode or not (ADR 0006, owner 2026-10-31:
+        // with the differences listed, and said it can change later).
+        if (widget.first && !NewVaultScreen.debugSkipMode) _Step.mode,
         _Step.password,
         if (_newWords) ...[_Step.words, _Step.check],
         if (_bioKind != null) _Step.biometric,
@@ -101,14 +110,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   /// left half-way are never shown again (owner 2026-10-24): someone may have seen
   /// them, so a device with no vault yet always gets fresh ones.
   Future<void> _loadWords() async {
-    // A Private vault has no 24 words (ADR 0005): its password is the five words kept in
-    // the Top secret vault.
-    if (_private) {
-      setState(() {
-        if (_step == _Step.intro) _step = _steps.first;
-      });
-      return;
-    }
     // Fixed words only in tests and mockups, never in a release build.
     final debug = kReleaseMode ? null : NewVaultScreen.debugWords;
     if (debug != null) {
@@ -170,11 +171,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   // ---------- password ----------
 
-  /// A Private run (ADR 0005): one field, for the words already written in the Top
-  /// secret vault, so no typing twice.
-  bool get _private => !RunKind.topSecret;
-
-  bool get _passwordOk => PasswordStrength.acceptable(_pw.text) && (_private || _pw.text == _pwAgain.text);
+  bool get _passwordOk => PasswordStrength.acceptable(_pw.text) && _pw.text == _pwAgain.text;
 
   /// The vault is made with its password (decisions 2026-10-28: no PIN), after the words
   /// are checked; then Face ID, then the look. An error goes back to the password, where
@@ -283,24 +280,27 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     });
     final title = switch (_step) {
       _Step.intro => widget.first ? l.firstVaultTitle : l.newVaultTitle,
+      _Step.mode => l.modeChooseTitle,
       _Step.words => l.wordsTitle,
       _Step.check => l.wordsCheckTitle,
-      _Step.password => _private ? l.privatePasswordTitle : l.backupPasswordTitle,
+      _Step.password => l.backupPasswordTitle,
       _Step.biometric => l.biometricAskTitle,
       _Step.icon => l.pickIconHint,
       _Step.color => l.pickColorTitle,
     };
     final hint = switch (_step) {
       _Step.intro => l.introLead,
+      _Step.mode => l.modeChooseLead,
       _Step.words => l.wordsLead,
       _Step.check => l.wordsCheckLead,
-      _Step.password => _private ? l.privatePasswordLead : l.passwordLead,
+      _Step.password => l.passwordLead,
       _Step.biometric => l.biometricAskBody,
       _Step.icon => l.lookLead,
       _Step.color => l.lookLead,
     };
     final body = switch (_step) {
       _Step.intro => _intro(l),
+      _Step.mode => _modeBody(l),
       _Step.words => _wordsBody(l),
       _Step.check => _checkBody(l),
       _Step.password => _passwordBody(l),
@@ -335,7 +335,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     };
     // The badge is the vault being made; forms (words, password) need the room, and the
     // Face ID step has its own glyph.
-    final badge = switch (_step) { _Step.words || _Step.check || _Step.password || _Step.biometric => false, _ => true };
+    final badge = switch (_step) { _Step.mode || _Step.words || _Step.check || _Step.password || _Step.biometric => false, _ => true };
 
     return PopScope(
       // The system back gesture steps back too; on the first step it leaves.
@@ -502,6 +502,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     return switch (_step) {
       _Step.intro => button(const ValueKey('intro-start'), l.introStart,
           _words == null && NewVaultScreen.debugWords == null && widget.first ? null : () => _go(_steps[1])),
+      _Step.mode => button(const ValueKey('mode-next'), l.pinNext, () {
+          TopSecretMode.choose(_topSecret);
+          _go(_Step.password);
+        }),
       _Step.words => button(const ValueKey('words-done'), l.wordsWritten, () {
           _checkOk = false;
           _go(_Step.check);
@@ -514,6 +518,51 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       _Step.biometric => button(const ValueKey('bio-yes'), l.biometricOfferYes, _busy ? null : () => _biometricAnswer(true)),
       _ => null,
     };
+  }
+
+  /// Everyday or Top Secret Mode: the two as choices, the differences under them.
+  Widget _modeBody(AppLocalizations l) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    Widget choice(bool topSecret, Widget mark, String title, String note) {
+      final on = _topSecret == topSecret;
+      final edge = topSecret ? topSecretRed : ink;
+      return Material(
+        color: solidTint(context, (on ? edge : ink).withValues(alpha: on ? .12 : .06)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: on ? edge : Colors.transparent, width: 2),
+        ),
+        child: InkWell(
+          key: ValueKey(topSecret ? 'mode-top-secret' : 'mode-everyday'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => setState(() => _topSecret = topSecret),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+            child: Row(children: [
+              mark,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: TextStyle(color: ink, fontSize: CsType.callout, fontWeight: FontWeight.w700)),
+                  Text(note, style: TextStyle(color: ink.withValues(alpha: .65), fontSize: CsType.footnote, height: 1.3)),
+                ]),
+              ),
+              Icon(on ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, color: on ? edge : ink.withValues(alpha: .4)),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      choice(false, Icon(Icons.photo_library_rounded, size: 30, color: ink.withValues(alpha: .8)), l.modeEveryday, l.modeEverydayNote),
+      const SizedBox(height: 10),
+      choice(true, const TopSecretMark(size: 30), l.topSecretMode, l.modeTopSecretNote),
+      const SizedBox(height: 16),
+      const TopSecretCompare(),
+      const SizedBox(height: 10),
+      Text(l.modeChangeLater, style: TextStyle(color: ink.withValues(alpha: .6), fontSize: CsType.footnote, height: 1.35)),
+    ]);
   }
 
   /// The four words typed back are right.
@@ -592,16 +641,14 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         ),
         const SizedBox(height: 8),
         PasswordStrength(password: _pw.text),
-        if (!_private) ...[
-          const SizedBox(height: 12),
-          SecretField(
-            key: const ValueKey('new-password-again'),
-            controller: _pwAgain,
-            label: l.typeAgain,
-            errorText: _pwAgain.text.isNotEmpty && _pwAgain.text != _pw.text ? l.passwordsDiffer : null,
-            onChanged: (_) => setState(() {}),
-          ),
-        ],
+        const SizedBox(height: 12),
+        SecretField(
+          key: const ValueKey('new-password-again'),
+          controller: _pwAgain,
+          label: l.typeAgain,
+          errorText: _pwAgain.text.isNotEmpty && _pwAgain.text != _pw.text ? l.passwordsDiffer : null,
+          onChanged: (_) => setState(() {}),
+        ),
         if (_error != null) ...[
           const SizedBox(height: 12),
           Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),

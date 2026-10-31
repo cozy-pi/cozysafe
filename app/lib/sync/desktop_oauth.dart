@@ -9,7 +9,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../lock_guard.dart';
 import '../platform.dart';
 import '../src/rust/api/google.dart' as rust;
-import '../vault_kind.dart';
 
 /// Google sign-in for Drive on computers (macOS, Windows, Linux), where Google's sign-in
 /// SDKs do not run: the "installed app" flow (RFC 8252) with an OAuth client of type
@@ -359,9 +358,9 @@ class _RustIo implements DesktopOAuthIo {
 /// The system's secure store: Keychain (legacy, no keychain-sharing entitlement needed,
 /// like the Secret Key), Windows Credential Manager, libsecret on Linux.
 class _SecureStore implements RefreshTokenStore {
-  static String get _key => RunKind.key('drive-refresh-token');
-  static FlutterSecureStorage get _storage => FlutterSecureStorage(
-    mOptions: MacOsOptions(accountName: RunKind.account('drive'), usesDataProtectionKeychain: false, synchronizable: false),
+  static const _key = 'drive-refresh-token';
+  static const _storage = FlutterSecureStorage(
+    mOptions: MacOsOptions(accountName: 'cozysafe.drive', usesDataProtectionKeychain: false, synchronizable: false),
   );
 
   @override

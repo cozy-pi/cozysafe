@@ -9,32 +9,26 @@ import '../theme.dart';
 /// not one of the most common passwords; longer is stronger. Why it would be refused is
 /// said with the way out.
 class PasswordStrength extends StatelessWidget {
-  const PasswordStrength({super.key, required this.password, this.private = false});
+  const PasswordStrength({super.key, required this.password});
 
   final String password;
-  /// By the Private vault's rule (ADR 0005), whatever this run's kind: a Top secret run
-  /// sets the Private vault's password.
-  final bool private;
-
-  static rust.PasswordProblem _problem(String password, bool private) =>
-      private ? rust.privatePasswordProblem(password: password) : rust.passwordProblem(password: password);
 
   /// Whether [password] may be saved as a new password (the vault checks it again).
-  static bool acceptable(String password, {bool private = false}) =>
-      password.isNotEmpty && _problem(password, private) == rust.PasswordProblem.none;
+  static bool acceptable(String password) =>
+      password.isNotEmpty && rust.passwordProblem(password: password) == rust.PasswordProblem.none;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final min = private ? rust.minPrivatePasswordLength() : rust.minPasswordLength();
+    final min = rust.minPasswordLength();
     final short = password.characters.length < min;
     final score = password.isEmpty ? 0 : rust.passwordScore(password: password).clamp(0, 4);
     // 0–1 weak, 2 fair, 3 good, 4 strong; a short one shows no bars.
     final bars = short ? 0 : score.clamp(1, 4);
     final strong = Theme.of(context).colorScheme.primary;
     final color = switch (bars) { 0 || 1 => recordRed(context), 2 => c.warnInk, _ => strong };
-    final problem = short ? rust.PasswordProblem.tooShort : _problem(password, private);
+    final problem = short ? rust.PasswordProblem.tooShort : rust.passwordProblem(password: password);
     final common = problem == rust.PasswordProblem.common;
     final word = short
         ? l.passwordMinLength(min)

@@ -66,9 +66,9 @@ import '../sync/sync_status.dart';
 import 'history.dart';
 import 'wide_home.dart';
 import '../widgets/readable.dart';
-import '../vault_kind.dart';
+import '../top_secret_mode.dart';
+import 'top_secret_page.dart';
 import 'sealed_item.dart';
-import 'vault_kinds.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -615,7 +615,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _add(AddWhat what) async {
     final target = switch (what) {
       AddWhat.note => VaultSection.note,
-      AddWhat.photo || AddWhat.video || AddWhat.photos => RunKind.topSecret ? VaultSection.file : VaultSection.library,
+      AddWhat.photo || AddWhat.video || AddWhat.photos => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       AddWhat.voice => VaultSection.audio,
       AddWhat.file => VaultSection.file,
     };
@@ -1024,7 +1024,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<Uint8List> _thumbnail(String id) {
     // Top secret reads no thumbnail (ADR 0005): rows show the kind's icon.
-    if (RunKind.topSecret) return Future.value(Uint8List(0));
+    if (TopSecretMode.on) return Future.value(Uint8List(0));
     final had = _thumbnails.remove(id);
     if (had != null) return _thumbnails[id] = had; // now the most recent
     while (_thumbnails.length >= _thumbCap) {
@@ -1049,14 +1049,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   /// Whether a row draws the item's picture: never in Top secret (ADR 0005), where a
   /// photo or video row shows its kind, as a file does.
-  bool _rowPicture(rust.ItemInfo i) => _isMedia(i) && !RunKind.topSecret;
+  bool _rowPicture(rust.ItemInfo i) => _isMedia(i) && !TopSecretMode.on;
 
   Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
     if (_selecting) return _toggle(item.id);
     if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
     // Top secret opens notes only (ADR 0005); anything else is a sealed row: its details
     // and Export, after the warning. No viewer, player or preview is ever built.
-    if (RunKind.topSecret && item.kind != ItemKind.note) {
+    if (TopSecretMode.on && item.kind != ItemKind.note) {
       await showSealedItem(context, item, vaultId: _vault.id);
       return;
     }
@@ -1625,7 +1625,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         VaultSection.audio => i.kind == ItemKind.audio,
         // Top secret has no Library: its photos and videos (camera shots, and those
         // from before the split) are files there.
-        VaultSection.file => i.kind == ItemKind.file || (RunKind.topSecret && (i.kind == ItemKind.photo || i.kind == ItemKind.video)),
+        VaultSection.file => i.kind == ItemKind.file || (TopSecretMode.on && (i.kind == ItemKind.photo || i.kind == ItemKind.video)),
       };
 
   /// What the section on show holds, narrowed to the open tag.
@@ -1927,10 +1927,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         if (open != null)
           IconButton(
               tooltip: l.back, icon: const Icon(Icons.chevron_left_rounded), onPressed: () => setState(() => _tagId = null)),
-        Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: KindMark(kind: RunKind.current, size: 18),
-        ),
         Expanded(
           child: Text(
             open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
@@ -2138,17 +2134,22 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 if (open != null)
                   Text('${l.tagAction} · ${sectionLabel(l, _section)}',
                       key: const ValueKey('group-label'),
-                      style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: CsColors.of(context).muted))
-                // Which kind of vault is open, always (owner 2026-10-31: one icon each).
-                else
-                  const KindLabel(),
-                Text(
-                  open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
-                  key: const ValueKey('vault-title'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w800, letterSpacing: -.5),
-                ),
+                      style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
+                Row(children: [
+                  Flexible(
+                    child: Text(
+                      open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
+                      key: const ValueKey('vault-title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w800, letterSpacing: -.5),
+                    ),
+                  ),
+                  if (TopSecretPlaces.show(TopSecretPlace.title)) ...[
+                    const SizedBox(width: 10),
+                    const TopSecretBadge(),
+                  ],
+                ]),
                 if (count != null)
                   Text(l.itemsCount(count),
                       key: const ValueKey('vault-count'),
@@ -2173,13 +2174,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               key: _settingsKey,
               // A red dot when automatic sync failed (owner 2026-10-27).
               child: SyncAlertBadge(
-                child: GlassButton(
+                child: _withTopSecretCorner(GlassButton(
                   key: const ValueKey('settings-button'),
                   icon: Icons.settings_rounded,
                   tooltip: l.settings,
                   size: Ui.circle,
                   onTap: _openSettings,
-                ),
+                )),
               ),
             ),
           ],
@@ -2187,6 +2188,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       ),
     );
   }
+
+  /// The Settings button, with Top Secret Mode's mark on its corner while the mode is on.
+  Widget _withTopSecretCorner(Widget button) => TopSecretPlaces.show(TopSecretPlace.settings)
+      ? TopSecretCorner(ring: Theme.of(context).scaffoldBackgroundColor, size: 15, offset: -4, child: button)
+      : button;
 
   /// What the header's ⋯ offers: Select, Sort, and inside a group its rename and delete.
   List<MenuEntry> _moreEntries(AppLocalizations l, rust.ItemInfo? open) {
