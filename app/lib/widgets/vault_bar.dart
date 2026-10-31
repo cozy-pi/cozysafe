@@ -708,7 +708,8 @@ Color sectionColor(VaultSection s) => switch (s) {
       VaultSection.home => const Color(0xFF8E8E93),
       VaultSection.note => const Color(0xFFFFB300),
       VaultSection.library => const Color(0xFF0A84FF),
-      VaultSection.audio => const Color(0xFFFF9F0A),
+      // Pink, apart from the notes' yellow (owner 2026-10-31: the two looked alike).
+      VaultSection.audio => const Color(0xFFFF375F),
       VaultSection.file => const Color(0xFF30D158),
     };
 

@@ -33,7 +33,7 @@ const storageParts = [
   (ItemKind.photo, Color(0xFF0A84FF)),
   (ItemKind.video, Color(0xFFBF5AF2)),
   (ItemKind.note, Color(0xFFFFD60A)),
-  (ItemKind.audio, Color(0xFFFF9F0A)),
+  (ItemKind.audio, Color(0xFFFF375F)),
   (ItemKind.file, Color(0xFF30D158)),
   (storageTrash, Color(0xFFFF453A)),
   (storageHistory, Color(0xFF8E8E93)),
