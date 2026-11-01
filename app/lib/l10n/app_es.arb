@@ -760,6 +760,7 @@
   "debugDriveCleaned": "{count} archivos limpiados",
   "debugDriveFailed": "No se pudo revisar. Comprueba la red e inténtalo de nuevo.",
   "debugSyncLog": "Registro de sincronización",
+  "debugSyncNow": "Sincronizando ahora",
   "debugLines": "{count} líneas",
   "debugClearShort": "Borrar",
   "deskKind": "Tipo",

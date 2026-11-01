@@ -115,6 +115,25 @@ impl Index {
         }
     }
 
+    /// A second connection to an index already open, that can only read. WAL lets it read
+    /// while the other one writes (a sync), seeing each write once it is committed.
+    pub fn open_reader(vault_dir: &Path) -> Result<Index> {
+        use rusqlite::OpenFlags;
+        let db = Connection::open_with_flags(
+            vault_dir.join(INDEX_FILE),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .map_err(sql)?;
+        db.execute_batch(
+            "PRAGMA query_only = ON;
+             PRAGMA temp_store = MEMORY;",
+        )
+        .map_err(sql)?;
+        db.busy_timeout(std::time::Duration::from_secs(2))
+            .map_err(sql)?;
+        Ok(Index { db })
+    }
+
     fn open_at(path: &Path) -> Result<Index> {
         let db = Connection::open(path).map_err(sql)?;
         db.execute_batch(
@@ -443,6 +462,23 @@ mod tests {
             deleted_ms,
             size_bytes: 1,
         }
+    }
+
+    #[test]
+    fn a_reader_reads_during_a_write_and_sees_it_once_committed() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = "a".repeat(32);
+        let b = "b".repeat(32);
+        let ix = Index::open(dir.path()).unwrap();
+        ix.upsert(&a, &cols(1, None), b"A").unwrap();
+        let r = Index::open_reader(dir.path()).unwrap();
+        // A sync's write under way: the reader neither waits nor sees it.
+        ix.db.execute_batch("BEGIN IMMEDIATE").unwrap();
+        ix.upsert(&b, &cols(2, None), b"B").unwrap();
+        assert_eq!(r.rows(false).unwrap().len(), 1);
+        ix.db.execute_batch("COMMIT").unwrap();
+        assert_eq!(r.rows(false).unwrap().len(), 2);
+        assert!(r.upsert(&a, &cols(1, None), b"X").is_err(), "reads only");
     }
 
     #[test]

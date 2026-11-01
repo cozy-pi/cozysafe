@@ -774,6 +774,7 @@
   "debugDriveCleaned": "Đã dọn {count} tệp",
   "debugDriveFailed": "Không kiểm tra được. Kiểm tra mạng rồi thử lại.",
   "debugSyncLog": "Sổ đồng bộ",
+  "debugSyncNow": "Đang đồng bộ",
   "debugLines": "{count} dòng",
   "debugClearShort": "Xoá",
   "introBioBody": "Mở nhanh hằng ngày, chỉ trên máy này. Không thay được mật khẩu hay 24 từ.",

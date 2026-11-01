@@ -15,11 +15,19 @@ pub(crate) trait Kept {
     type Glance: Clone;
     fn id(&self) -> &str;
     fn glance(&self) -> Self::Glance;
+    /// A second handle on the same vault that only reads, for the UI to open and list
+    /// items while a sync works with the vault; None if it cannot be made (the UI then
+    /// waits for the vault as before).
+    fn reader(&self) -> Option<Self>
+    where
+        Self: Sized;
 }
 
 struct Entry<V: Kept> {
     id: String,
     vault: Arc<Mutex<V>>,
+    /// [`Kept::reader`] of `vault`, dropped (keys wiped) with the entry on lock.
+    reader: Option<Arc<Mutex<V>>>,
     glance: V::Glance,
 }
 
@@ -47,6 +55,7 @@ impl<V: Kept> Slot<V> {
     pub(crate) fn put(&self, vault: V) -> V::Glance {
         let glance = vault.glance();
         let id = vault.id().to_owned();
+        let reader = vault.reader().map(|r| Arc::new(Mutex::new(r)));
         let held = lock(&self.held)
             .as_ref()
             .filter(|(held_id, _)| *held_id == id)
@@ -61,6 +70,7 @@ impl<V: Kept> Slot<V> {
         let old = lock(&self.open).replace(Entry {
             id,
             vault,
+            reader,
             glance: glance.clone(),
         });
         drop(old);
@@ -107,6 +117,25 @@ impl<V: Kept> Slot<V> {
             return None;
         }
         Some(f(&v))
+    }
+
+    /// [`Slot::with`] for a call that only reads: through the reader, so it does not wait
+    /// for a sync working with the vault. Without a reader it is [`Slot::with`].
+    pub(crate) fn read<T>(&self, f: impl FnOnce(&V) -> T) -> Option<T> {
+        let reader = lock(&self.open).as_ref()?.reader.clone();
+        let Some(reader) = reader else {
+            return self.with(f);
+        };
+        let r = lock(&reader);
+        // Locked (or another vault opened) while it waited for another read.
+        let still = lock(&self.open)
+            .as_ref()
+            .and_then(|e| e.reader.as_ref())
+            .is_some_and(|cur| Arc::ptr_eq(cur, &reader));
+        if !still {
+            return None;
+        }
+        Some(f(&r))
     }
 
     /// [`Slot::with`] for a change to what [`Kept::glance`] shows (PIN, Face ID, name…).
@@ -190,6 +219,8 @@ mod tests {
         id: String,
         alive: Arc<AtomicUsize>,
         writes: Arc<AtomicUsize>,
+        /// Whether it gives a reader (a copy counted in `alive` too).
+        reads: bool,
     }
 
     impl Fake {
@@ -199,7 +230,12 @@ mod tests {
                 id: id.to_owned(),
                 alive: alive.clone(),
                 writes: writes.clone(),
+                reads: false,
             }
+        }
+        fn reading(mut self) -> Self {
+            self.reads = true;
+            self
         }
         fn write(&self) {
             self.writes.fetch_add(1, Ordering::SeqCst);
@@ -219,6 +255,10 @@ mod tests {
         }
         fn glance(&self) -> String {
             self.id.clone()
+        }
+        fn reader(&self) -> Option<Self> {
+            self.reads
+                .then(|| Fake::new(&self.id, &self.alive, &self.writes))
         }
     }
 
@@ -363,6 +403,47 @@ mod tests {
         assert!(ui.is_none());
         assert_eq!(writes.load(Ordering::SeqCst), 0);
         drop(hold);
+        assert_eq!(alive.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn a_read_does_not_wait_for_the_sync_and_the_reader_goes_on_lock() {
+        static SLOT: Slot<Fake> = Slot::new();
+        let (alive, writes) = counters();
+        SLOT.put(Fake::new("v1", &alive, &writes).reading());
+        assert_eq!(alive.load(Ordering::SeqCst), 2, "the vault and its reader");
+        let hold = SLOT.hold().unwrap();
+        let (busy_tx, busy) = mpsc::channel();
+        let (go, go_rx) = mpsc::channel::<()>();
+        let held = &hold;
+        thread::scope(|s| {
+            // The sync works with the vault, its lock taken, until told to stop.
+            s.spawn(move || {
+                held.with(|_| {
+                    busy_tx.send(()).unwrap();
+                    go_rx.recv().unwrap();
+                })
+            });
+            busy.recv().unwrap();
+            // A read meanwhile comes back at once, from the reader.
+            assert_eq!(SLOT.read(|v| v.id.clone()).as_deref(), Some("v1"));
+            SLOT.clear();
+            assert!(SLOT.read(|_| ()).is_none(), "locked: nothing reads");
+            assert_eq!(alive.load(Ordering::SeqCst), 1, "the reader went on lock");
+            go.send(()).unwrap();
+        });
+        drop(hold);
+        assert_eq!(alive.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn without_a_reader_a_read_is_a_with() {
+        static SLOT: Slot<Fake> = Slot::new();
+        let (alive, writes) = counters();
+        SLOT.put(Fake::new("v1", &alive, &writes));
+        assert_eq!(SLOT.read(|v| v.id.clone()).as_deref(), Some("v1"));
+        SLOT.clear();
+        assert!(SLOT.read(|_| ()).is_none());
         assert_eq!(alive.load(Ordering::SeqCst), 0);
     }
 }

@@ -970,6 +970,7 @@
   "@debugDriveCleaned": {"placeholders": {"count": {"type": "int"}}},
   "debugDriveFailed": "Could not check. Check the network and try again.",
   "debugSyncLog": "Sync log",
+  "debugSyncNow": "Syncing now",
   "debugLines": "{count, plural, =1{1 line} other{{count} lines}}",
   "@debugLines": {"placeholders": {"count": {"type": "int"}}},
   "debugClearShort": "Clear",

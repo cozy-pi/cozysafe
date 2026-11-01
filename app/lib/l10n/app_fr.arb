@@ -760,6 +760,7 @@
   "debugDriveCleaned": "{count} fichiers nettoyés",
   "debugDriveFailed": "Vérification impossible. Vérifiez le réseau et réessayez.",
   "debugSyncLog": "Journal de synchro",
+  "debugSyncNow": "Synchro en cours",
   "debugLines": "{count} lignes",
   "debugClearShort": "Effacer",
   "deskKind": "Type",

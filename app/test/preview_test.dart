@@ -410,6 +410,7 @@ void _screen(String name, String caption, Widget Function() home,
       QuickLook.debugVideo = null;
       NewVaultScreen.debugWords = null;
       DebugScreen.debugNetworkBlocked = null;
+      DebugScreen.debugSyncNow = null;
       _itemsNow = null;
       _noTrash = false;
       SyncScreen.debugLog = null;
@@ -1635,6 +1636,7 @@ void main() {
   _screen('settings-debug-on', 'Cài đặt · đã bật gỡ lỗi', () => settings(vault), setup: () => Prefs.write('debug-mode', '1'), act: toAbout);
   void debugSetup() {
     DebugScreen.debugNetworkBlocked = true;
+    DebugScreen.debugSyncNow = 'Sending · 1/2 · 35/120 MB · 84 s';
     Prefs.write('debug-mode', '1');
     for (final (k, v) in [('run', 'start-open'), ('run', 'done-r2-s0-x0-4100ms'), ('look', 'same'), ('look', 'same'), ('run', 'start-change'), ('run', 'done-r0-s1-x0-2300ms')]) {
       SyncLog.add(k, v);

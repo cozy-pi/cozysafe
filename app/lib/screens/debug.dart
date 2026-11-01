@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
+import '../src/rust/api/sync.dart' as rust_sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../temp_files.dart';
 import '../sync/drive_check.dart';
@@ -26,7 +28,7 @@ import 'video_view.dart';
 import '../widgets/readable.dart';
 
 /// Hidden debug mode (docs/security.md, debug): seven taps on the version in Settings →
-/// About, after the owner check. Technical facts and a few safe actions only: it never
+/// About, no owner check (owner 2026-11-01). Technical facts and a few safe actions only: it never
 /// shows keys, PINs, passwords or anything stored in the vault, and changes no setting
 /// that protects it.
 const debugPref = 'debug-mode';
@@ -42,6 +44,9 @@ class DebugScreen extends StatefulWidget {
   /// network check cannot run there.
   static bool? debugNetworkBlocked;
 
+  /// For the mockup renders: the line [rust_sync.driveSyncNow] would give.
+  static String? debugSyncNow;
+
   @override
   State<DebugScreen> createState() => _DebugScreenState();
 }
@@ -52,10 +57,32 @@ class _DebugScreenState extends State<DebugScreen> {
   List<rust.ItemInfo>? _items;
   PackageInfo? _pkg;
 
+  /// The Drive sync under way, read each second ('' when none).
+  String _syncNow = '';
+  Timer? _syncTimer;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _readSyncNow();
+    _syncTimer = Timer.periodic(const Duration(seconds: 1), (_) => _readSyncNow());
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    super.dispose();
+  }
+
+  void _readSyncNow() {
+    String now;
+    try {
+      now = DebugScreen.debugSyncNow ?? rust_sync.driveSyncNow();
+    } catch (_) {
+      now = '';
+    }
+    if (mounted && now != _syncNow) setState(() => _syncNow = now);
   }
 
   static String _mb(int bytes) => '${(bytes / (1 << 20)).round()}';
@@ -154,6 +181,16 @@ class _DebugScreenState extends State<DebugScreen> {
                   title: l.debugDriveCheck,
                   onTap: () => _open(l.debugDriveCheck, (_) => const DriveCheckScreen()),
                 ),
+                // A sync under way: its step, counts and time, even when it started before
+                // debug mode was on (owner 2026-11-01).
+                if (_syncNow.isNotEmpty)
+                  SettingsRow(
+                    key: const ValueKey('debug-sync-now'),
+                    icon: Icons.cloud_upload_rounded,
+                    color: SettingsHue.xanh,
+                    title: l.debugSyncNow,
+                    value: _syncNow,
+                  ),
                 SettingsRow(
                   key: const ValueKey('debug-sync-log'),
                   icon: Icons.sync_rounded,

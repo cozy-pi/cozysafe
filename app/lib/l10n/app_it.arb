@@ -760,6 +760,7 @@
   "debugDriveCleaned": "{count} file puliti",
   "debugDriveFailed": "Controllo non riuscito. Verifica la rete e riprova.",
   "debugSyncLog": "Registro sincronizzazione",
+  "debugSyncNow": "Sincronizzazione in corso",
   "debugLines": "{count} righe",
   "debugClearShort": "Cancella",
   "deskKind": "Tipo",

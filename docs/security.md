@@ -119,7 +119,7 @@ running."
   app from decrypted bytes, never written to a file; copying from them is wiped like
   any copy (`file_view.dart`, `_textView`).
 - **Debug mode is hidden and harmless.** Seven taps on the version in Settings → About,
-  then the owner check. It shows technical facts (build, device, biometrics, whether the
+  with no owner check since it reveals nothing (2026-11-01). It shows technical facts (build, device, biometrics, whether the
   network guard is on, item counts, temporary copies) and can clear temporary copies; it
   never shows keys, PINs, passwords or vault content, and changes no protection.
 - **Big files are not loaded whole.** Text previews decrypt only their first 1 MB
