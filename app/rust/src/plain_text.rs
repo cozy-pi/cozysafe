@@ -36,8 +36,14 @@ pub(crate) fn checked(bytes: &[u8]) -> Option<String> {
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let clean = text
         .chars()
-        .all(|c| !c.is_control() || matches!(c, '\t' | '\n' | '\r'));
+        .all(|c| (!c.is_control() || matches!(c, '\t' | '\n' | '\r')) && !reorders(c));
     clean.then(|| text.to_owned())
+}
+
+/// Characters that change the order text is drawn in, so what shows is not what the file
+/// says (a key, a setting): bidi embeddings, overrides, isolates and marks.
+fn reorders(c: char) -> bool {
+    matches!(c, '\u{061c}' | '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')
 }
 
 #[cfg(test)]
@@ -80,6 +86,9 @@ mod tests {
         assert!(checked(b"a\0b").is_none());
         assert!(checked(b"\x1b[31mred").is_none());
         assert!(checked("a\u{0085}b".as_bytes()).is_none());
+        // Text drawn in another order than it is written.
+        assert!(checked("key = abc\u{202e}fed".as_bytes()).is_none());
+        assert!(checked("a\u{2067}b".as_bytes()).is_none());
         // Past the size limit.
         assert!(checked(&vec![b'a'; MAX + 1]).is_none());
         assert!(checked(&vec![b'a'; MAX]).is_some());

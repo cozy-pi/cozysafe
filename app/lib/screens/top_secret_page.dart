@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme.dart';
+import '../widgets/toast.dart';
 import '../top_secret_mode.dart';
 import 'welcome.dart' show ChoicePage;
 
@@ -181,7 +182,13 @@ class TopSecretModePage extends StatelessWidget {
 /// quits (Android, computers) or asks to be closed (iPhone, iPad).
 Future<void> turnTopSecretMode(BuildContext context, bool next) async {
   final nav = Navigator.of(context, rootNavigator: true);
-  await TopSecretMode.turn(next);
+  try {
+    await TopSecretMode.turn(next);
+  } catch (_) {
+    // Not changed (the vault locked meanwhile, or the disk failed): say so, stay here.
+    if (context.mounted) showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+    return;
+  }
   nav.pushAndRemoveUntil(
     PageRouteBuilder<void>(
       transitionDuration: Duration.zero,

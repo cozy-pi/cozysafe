@@ -3099,6 +3099,32 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn forgetting_a_place_starts_its_journal_over() {
+        let t = two();
+        note(&t.a, "N", "x");
+        t.a.sync(&t.cloud).unwrap();
+        let key = t.cloud.key();
+        assert!(t
+            .a
+            .index()
+            .meta_get(&format!("{key}:seq"))
+            .unwrap()
+            .is_some());
+        // Its copy there deleted (Settings → Google Drive): nothing about it is kept, so the
+        // next sync sends everything and numbers its journal from the start.
+        t.a.forget_sync_place(&key).unwrap();
+        for k in ["seq", "head", "heads-seen", "gc-at"] {
+            assert!(
+                t.a.index()
+                    .meta_get(&format!("{key}:{k}"))
+                    .unwrap()
+                    .is_none(),
+                "{k}"
+            );
+        }
+    }
+
+    #[test]
     fn only_what_changes_here_is_counted_as_coming_in() {
         let t = two();
         let ids: Vec<String> = (0..10).map(|i| note(&t.a, &format!("N{i}"), "x")).collect();

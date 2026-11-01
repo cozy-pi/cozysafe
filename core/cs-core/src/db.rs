@@ -401,6 +401,21 @@ impl Index {
         self.db
             .execute("DELETE FROM sync_rev_clock WHERE remote = ?1", [remote])
             .map_err(sql)?;
+        // Its journal number, read positions and heads (`<remote>:seq`, `:cursor…`,
+        // `:head`, `:heads-seen`, `:gc-at`): an empty place starts them over.
+        let prefix = format!("{remote}:");
+        let keys: Vec<String> = {
+            let mut q = self.db.prepare("SELECT key FROM sync_meta").map_err(sql)?;
+            let rows = q.query_map([], |r| r.get::<_, String>(0)).map_err(sql)?;
+            rows.filter_map(|r| r.ok())
+                .filter(|k| k.starts_with(&prefix))
+                .collect()
+        };
+        for k in keys {
+            self.db
+                .execute("DELETE FROM sync_meta WHERE key = ?1", [k])
+                .map_err(sql)?;
+        }
         Ok(())
     }
 

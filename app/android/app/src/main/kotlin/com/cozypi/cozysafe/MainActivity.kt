@@ -99,8 +99,11 @@ class MainActivity : FlutterFragmentActivity() {
                 val view = Intent(Intent.ACTION_VIEW)
                     .setDataAndType(uri, mime)
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                // No check for apps first (Android 11 hides other apps without a <queries>
-                // entry): the system's chooser says so itself when none can open it.
+                // Nothing opens this kind of file: false, and Dart offers the share sheet
+                // (the manifest's <queries> lets this see the viewers).
+                if (packageManager.queryIntentActivities(view, 0).isEmpty()) {
+                    return@setMethodCallHandler result.success(false)
+                }
                 openResult?.success(true)
                 openResult = result
                 openWith.launch(Intent.createChooser(view, call.argument<String>("title")))

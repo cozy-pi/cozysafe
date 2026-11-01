@@ -248,10 +248,14 @@ pub fn create_vault_with_password(
 /// Turn Top Secret Mode on or off for the open vault. The caller then ends the run
 /// ([`super::run::end_run`]) and the app starts again.
 pub fn set_top_secret(top_secret: bool) -> Result<VaultInfo, VaultError> {
-    change_open(|v| {
+    let info = change_open(|v| {
         v.set_top_secret(top_secret)?;
         Ok(info_of(v))
-    })
+    })?;
+    // The run ends here, not only when Dart asks: nothing more is decoded under the old
+    // mode, whatever happens on the way to the restart.
+    super::run::end_run();
+    Ok(info)
 }
 
 /// Open the vault this password belongs to; `None` when no vault matches.
@@ -643,13 +647,15 @@ pub fn open_vault_info() -> Option<VaultInfo> {
 /// dropped (keys wiped) and [`VaultError::RestartForMode`]. Opening it with its password,
 /// Face ID or PIN keeps it: a deletion set for it is dropped.
 pub(crate) fn set_open(vault: OpenVault) -> Result<VaultInfo, VaultError> {
-    super::run::vault_opening(vault.top_secret)?;
+    // Opened with its password, Face ID or PIN: its deletion is dropped first, so a
+    // failure here leaves the run as it was.
     if let Some(library) = vault.dir().parent().and_then(std::path::Path::parent) {
         if Library::delete_at(library, &vault.id).is_some() {
             Library::cancel_delete(library, &vault.id)?;
             debug_line(|| "vault opened: its deletion is cancelled".into());
         }
     }
+    super::run::vault_opening(vault.top_secret)?;
     Ok(OPEN.put(vault).info)
 }
 
@@ -938,8 +944,9 @@ pub fn item_content_head(id: String, max: u32) -> Result<Vec<u8>, VaultError> {
 /// passes: a file named as plain text, at most 1 MB, valid UTF-8 without control
 /// characters. Anything else is refused, as for any file in that mode.
 pub fn item_plain_text(id: String) -> Result<String, VaultError> {
-    /// Collects up to one byte past the limit, then stops the decryption.
-    struct Capped(Vec<u8>);
+    /// Collects up to one byte past the limit, then stops the decryption. Wiped when
+    /// dropped.
+    struct Capped(Zeroizing<Vec<u8>>);
     impl std::io::Write for Capped {
         fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
             let room = crate::plain_text::MAX + 1 - self.0.len();
@@ -962,7 +969,7 @@ pub fn item_plain_text(id: String) -> Result<String, VaultError> {
             debug_line(|| "plain text refused: not a small text file".into());
             return Err(VaultError::Storage);
         }
-        let mut out = Capped(Vec::new());
+        let mut out = Capped(Zeroizing::new(Vec::new()));
         if v.read_item(&id, &mut out).is_err() {
             return Err(VaultError::Storage);
         }
@@ -1097,7 +1104,7 @@ pub fn delete_other_vault(
     password: String,
 ) -> Result<bool, VaultError> {
     let password = Zeroizing::new(password);
-    if OPEN.open_id().as_deref() == Some(vault_id.as_str()) {
+    if OPEN.in_use(&vault_id) {
         return Ok(false);
     }
     let library = library(&dir)?;
@@ -1119,7 +1126,7 @@ pub fn schedule_vault_delete(
     vault_id: String,
     at_ms: i64,
 ) -> Result<bool, VaultError> {
-    if OPEN.open_id().as_deref() == Some(vault_id.as_str()) {
+    if OPEN.in_use(&vault_id) {
         return Ok(false);
     }
     Library::schedule_delete(super::run::library_dir(&dir)?, &vault_id, at_ms)?;
@@ -1138,8 +1145,9 @@ pub fn cancel_vault_delete(dir: String, vault_id: String) -> Result<(), VaultErr
 /// Delete the vaults whose time has come (at start and on the vault list), never the open
 /// one. How many went.
 pub fn purge_due_vaults(dir: String, now_ms: i64) -> Result<u32, VaultError> {
-    let open = OPEN.open_id();
-    let gone = Library::purge_due(super::run::library_dir(&dir)?, now_ms, open.as_deref())?;
+    let gone = Library::purge_due(super::run::library_dir(&dir)?, now_ms, &|id| {
+        OPEN.in_use(id)
+    })?;
     if !gone.is_empty() {
         debug_line(|| format!("deleted {} vault(s) whose time came", gone.len()));
     }
@@ -1149,8 +1157,7 @@ pub fn purge_due_vaults(dir: String, now_ms: i64) -> Result<u32, VaultError> {
 /// Delete a vault whose password and PIN are forgotten, without opening it; never the
 /// open one. The app asks the phone's owner first (Face ID or the phone's passcode).
 pub fn delete_vault_unopened(dir: String, vault_id: String) -> Result<bool, VaultError> {
-    let open = OPEN.open_id();
-    if open.as_deref() == Some(vault_id.as_str()) {
+    if OPEN.in_use(&vault_id) {
         return Ok(false);
     }
     Library::destroy_unopened(super::run::library_dir(&dir)?, &vault_id).map_err(|e| {

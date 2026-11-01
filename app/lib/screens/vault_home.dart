@@ -1012,7 +1012,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           ItemKind.note => VaultSection.note,
           ItemKind.audio => VaultSection.audio,
           ItemKind.file => VaultSection.file,
-          _ => VaultSection.library,
+          // Top secret has no Library: its photos and videos are among the files.
+          _ => TopSecretMode.on ? VaultSection.file : VaultSection.library,
         }),
         onSynced: _reload,
         focus: focus,

@@ -30,6 +30,7 @@ import 'vault_home.dart';
 import 'welcome.dart';
 import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
+import 'top_secret_page.dart' show restartForMode;
 
 /// Restore, step 1 (owner 2026-10-24): the two secrets first, pasted or typed, the
 /// same for every way the vault can come back.
@@ -260,6 +261,8 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
       }
       await _opened(vault);
     } on rust.VaultError catch (e) {
+      // Restored, but a Top secret vault cannot open after an everyday one in this run.
+      if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
       if (mounted) showToast(context, vaultErrorText(l, e));
     } catch (_) {
       if (mounted) showToast(context, l.errorBadBackup);

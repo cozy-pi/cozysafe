@@ -66,6 +66,11 @@ Dates are UTC.
 - A tap beside the quick buttons above + closes them, as a tap anywhere else does.
 - With + in the middle and three sections (Top Secret Mode), + sat right of centre.
 - Deleting a vault from Google Drive removes its folders too; empty ones were left.
+- Typing a long password slowly no longer counts its beginnings as wrong tries.
+- Deleting a vault's copy from Google Drive also forgets what this device had sent there,
+  so syncing again later sends the whole vault.
+- A vault a sync still holds in the background cannot be deleted until the sync ends.
+- Plain text that changes the order it is drawn in (hidden bidi characters) stays sealed.
 - Deleting from Google Drive shows that it is under way (a card, and the cloud moving)
   until it is done; it ran unseen.
 

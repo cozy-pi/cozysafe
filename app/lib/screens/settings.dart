@@ -586,6 +586,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (_page != _Page.main) setState(() => _page = _Page.main);
       return;
     }
+    // One sub-page at a time: a quick double tap must not push it twice (its rows share
+    // keys).
+    if (_subScroll != null) return;
     final scroll = ScrollController();
     _subScroll = scroll;
     await pushPage<void>(
@@ -603,7 +606,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
     if (_subScroll == scroll) _subScroll = null;
-    scroll.dispose();
+    // The page is still sliding away with its list: let it go first.
+    Future<void>.delayed(const Duration(seconds: 1), scroll.dispose);
     if (mounted) setState(() {});
   }
 

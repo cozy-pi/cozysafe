@@ -721,9 +721,17 @@ Future<void> openWithById(BuildContext context, String id, String mime, String n
   final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
   LockGuard.allowAway();
   var shown = false;
+  // Android: the chosen app may read the copy after the chooser has answered (a viewer
+  // that starts another screen, or opens in a task of its own), so it stays until the
+  // vault locks or the app starts again (clearTemp), never longer.
+  var keep = false;
   try {
     await rust.exportItem(id: id, path: path);
+    // Decrypting a big file can outlast the first allowance: leaving for the chooser
+    // must not lock the vault and wipe the copy under it.
+    LockGuard.allowAway();
     shown = await _openChannel.invokeMethod<bool>('openWith', {'path': path, 'mime': mime, 'title': l.openWith}) ?? false;
+    keep = shown && Device.android;
   } on rust.VaultError catch (e) {
     shown = true;
     if (context.mounted) showToast(context, vaultErrorText(l, e), icon: Icons.error_outline_rounded);
@@ -731,9 +739,11 @@ Future<void> openWithById(BuildContext context, String id, String mime, String n
     shown = false;
   } finally {
     LockGuard.clear();
-    try {
-      dir.deleteSync(recursive: true);
-    } catch (_) {}
+    if (!keep) {
+      try {
+        dir.deleteSync(recursive: true);
+      } catch (_) {}
+    }
   }
   // No app for it here: the share sheet still lets it go somewhere (Files, AirDrop).
   if (!shown && context.mounted) await shareById(context, id, mime, name, vaultId, from: from, askFirst: false);

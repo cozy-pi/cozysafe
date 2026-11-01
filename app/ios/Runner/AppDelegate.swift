@@ -443,7 +443,14 @@ extension AppDelegate: UIDocumentInteractionControllerDelegate {
   }
 
   func documentInteractionControllerDidDismissOpenInMenu(_ controller: UIDocumentInteractionController) {
-    if !openSending { finishOpen() }
+    if !openSending { return finishOpen() }
+    // Sending began; the end is not always reported (iOS 13+): Dart hears in any case
+    // a little later, so the page never waits for ever. The receiving app has its own
+    // copy by then.
+    let doc = openIn
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+      if let self, self.openIn === doc, doc != nil { self.finishOpen() }
+    }
   }
 }
 

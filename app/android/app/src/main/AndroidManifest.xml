@@ -81,5 +81,11 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- "Open with" (MainActivity, cozysafe/open): whether any app opens a kind of
+             file, so a file nothing opens goes to the share sheet instead. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="*/*"/>
+        </intent>
     </queries>
 </manifest>

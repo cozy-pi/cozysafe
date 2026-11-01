@@ -892,6 +892,15 @@ pub fn drive_delete_vault(token: String, vault_id: String) -> Result<u32, VaultE
     let token = zeroize::Zeroizing::new(token);
     let api = GoogleDrive::new(Permit::google_drive(), token.to_string())?;
     let removed = drive::delete_vault(&api, &vault_id)?;
+    // The vault open here forgets what it had agreed with Drive: syncing again later
+    // sends everything and numbers its journal from the start, so a device joining from
+    // Drive gets the whole vault, not only what changed after the deletion.
+    let _ = with_open(|v| {
+        if v.id == vault_id {
+            v.forget_sync_place(drive::PLACE_KEY)?;
+        }
+        Ok(())
+    });
     super::vault::debug_line(|| format!("drive: deleted a vault, {removed} files"));
     Ok(removed)
 }

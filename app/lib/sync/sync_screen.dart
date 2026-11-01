@@ -295,11 +295,12 @@ class _SyncScreenState extends State<SyncScreen> {
     final ok = await confirmDelete(context,
         title: l.driveDeleteTitle, body: l.driveDeleteBody, action: l.driveDeleteRow, icon: Icons.cloud_off_rounded);
     if (!ok || !mounted) return;
-    AutoSync.enabled = false;
     try {
       final session = await driveSignInQuietly() ?? await driveSignIn();
       if (session == null) throw StateError('no sign-in');
       if (!mounted) return;
+      // Off only now that the deletion goes ahead (a cancelled sign-in leaves it as it was).
+      AutoSync.enabled = false;
       await whileWorking(context, l.driveDeleting,
           () => AutoSync.busyWith(() => sync.driveDeleteVault(token: session.token, vaultId: id)));
       if (mounted) showToast(context, l.driveDeleted, icon: Icons.check_rounded);

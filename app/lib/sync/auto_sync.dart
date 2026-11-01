@@ -198,14 +198,16 @@ abstract final class AutoSync {
   /// [work] with Google Drive (deleting the vault's copy there) shown as a sync under way:
   /// the cloud turns blue and moves until it ends (owner 2026-11-01). Waits for any run.
   static Future<T> busyWith<T>(Future<T> Function() work) async {
-    final was = (running.value, moving.value);
+    // Drive's own lock makes [work] wait for any sync under way, so when it ends nothing
+    // else runs: both flags go down (putting back what they were before could leave
+    // them up for good).
     running.value = true;
     moving.value = true;
     try {
       return await work();
     } finally {
-      running.value = was.$1;
-      moving.value = was.$2;
+      running.value = false;
+      moving.value = false;
     }
   }
 

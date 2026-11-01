@@ -118,7 +118,8 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       }
       if (!mounted) return;
       if (widget.otherId != null) {
-        Navigator.of(context).pop(true);
+        // Only this page: the vault may have locked meanwhile and put its lock screen on top.
+        if (ModalRoute.of(context)?.isCurrent ?? false) Navigator.of(context).pop(true);
         return;
       }
       await LockGuard.clearCopied();

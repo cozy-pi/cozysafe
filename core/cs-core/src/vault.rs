@@ -218,8 +218,13 @@ impl Library {
         remove_if_exists(&dir.join(DELETE_AT_DIR).join(id))
     }
 
-    /// Delete every vault whose time has come, never `open_id`. The ids deleted.
-    pub fn purge_due(dir: &Path, now_ms: i64, open_id: Option<&str>) -> Result<Vec<String>> {
+    /// Delete every vault whose time has come, never one `in_use` says is (the open one, or
+    /// one a sync still holds). The ids deleted.
+    pub fn purge_due(
+        dir: &Path,
+        now_ms: i64,
+        in_use: &dyn Fn(&str) -> bool,
+    ) -> Result<Vec<String>> {
         let entries = match fs::read_dir(dir.join(DELETE_AT_DIR)) {
             Ok(d) => d,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
@@ -230,7 +235,7 @@ impl Library {
             let Some(id) = id_name(&entry.file_name().to_string_lossy()) else {
                 continue;
             };
-            if open_id == Some(id.as_str()) {
+            if in_use(&id) {
                 continue;
             }
             match Library::delete_at(dir, &id) {
@@ -1129,15 +1134,17 @@ pub mod tests {
         Library::schedule_delete(tmp.path(), &a, 100).unwrap();
         Library::schedule_delete(tmp.path(), &b, 100).unwrap();
         assert_eq!(Library::delete_at(tmp.path(), &a), Some(100));
-        assert!(Library::purge_due(tmp.path(), 99, None).unwrap().is_empty());
-        // Never the open one.
+        assert!(Library::purge_due(tmp.path(), 99, &|_| false)
+            .unwrap()
+            .is_empty());
+        // Never one in use.
         assert_eq!(
-            Library::purge_due(tmp.path(), 100, Some(&b)).unwrap(),
+            Library::purge_due(tmp.path(), 100, &|id| id == b).unwrap(),
             vec![a.clone()]
         );
         assert!(l.unlock(pw_a()).unwrap().is_none());
         Library::cancel_delete(tmp.path(), &b).unwrap();
-        assert!(Library::purge_due(tmp.path(), 1_000, None)
+        assert!(Library::purge_due(tmp.path(), 1_000, &|_| false)
             .unwrap()
             .is_empty());
         assert!(l.unlock(pw_b()).unwrap().is_some());

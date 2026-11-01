@@ -79,6 +79,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   static const _pause = Duration(milliseconds: 350);
   Timer? _debounce;
   String? _tried;
+  /// A wrong password tried quietly while typing, not counted yet ([_attempt]).
+  String? _quietMiss;
 
   /// Set when the app really went to the background. The biometric prompt itself makes
   /// the app inactive and active again; that must not count, or it would ask forever.
@@ -302,6 +304,14 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       }
     });
     try {
+      // A wrong try made while typing counts once the person leaves that text for another
+      // one, never while they go on typing it (a long password typed slowly was locking
+      // its owner out on its own beginnings).
+      final missed = _quietMiss;
+      if (missed != null && !text.startsWith(missed)) {
+        _quietMiss = null;
+        await PinStore.addPasswordFail();
+      }
       final until = await PinStore.passwordWaitUntil();
       if (until != null) {
         final m = (until.difference(DateTime.now()).inSeconds / 60).ceil();
@@ -314,7 +324,10 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       // From 8 characters, the least any vault password was ever allowed (the rule
       // was 8 until 2026-10-31, 12 since): shorter text cannot be a password.
       final possible = text.characters.length >= _oldestMinPasswordLength;
-      if (vault == null && possible) {
+      if (vault == null && possible && quiet) {
+        _quietMiss = text;
+      } else if (vault == null && possible) {
+        _quietMiss = null;
         final wait = await PinStore.addPasswordFail();
         if (wait > Duration.zero && mounted) {
           final m = (wait.inSeconds / 60).ceil();

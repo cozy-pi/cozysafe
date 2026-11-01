@@ -1761,21 +1761,24 @@ impl DriveApi for GoogleDrive {
             }
             let meta = serde_json::to_vec(&meta).expect("json");
             if let Some(body) = one_request_body(&meta, &b) {
+                drop(b);
                 let kind = format!("multipart/related; boundary={UPLOAD_BOUNDARY}");
-                let v = again(|| {
-                    let r = self.http.request(
-                        "POST",
-                        "/upload/drive/v3/files?uploadType=multipart&fields=id",
-                        &self.token,
-                        &[],
-                        Body::Bytes(&kind, body.clone()),
-                    )?;
-                    let status = r.status;
-                    let bytes = r.bytes()?;
-                    answer_ok(status, &bytes)?;
-                    serde_json::from_slice::<Value>(&bytes)
-                        .map_err(|_| Error::Corrupt("drive json"))
-                })?;
+                // Sent once, never again by itself (a stream is not resent): a retry after
+                // Drive had made the file would make a second one. A failure ends this
+                // sync; the next one sees what is there and sends only what is missing.
+                let len = body.len() as u64;
+                let r = self.http.request(
+                    "POST",
+                    "/upload/drive/v3/files?uploadType=multipart&fields=id",
+                    &self.token,
+                    &[],
+                    Body::Stream(&kind, len, &mut &body[..]),
+                )?;
+                let status = r.status;
+                let bytes = r.bytes()?;
+                answer_ok(status, &bytes)?;
+                let v: Value =
+                    serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("drive json"))?;
                 return v["id"]
                     .as_str()
                     .map(str::to_owned)
