@@ -100,18 +100,25 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
           ],
           VaultFacts(slot: s, open: open, mainLibrary: widget.libraryDir),
           const SizedBox(height: 18),
-          FilledButton(
-            key: const ValueKey('vault-details-delete'),
-            style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l.deleteVaultAction),
-          ),
-          const SizedBox(height: 6),
-          TextButton(
-            key: const ValueKey('vault-details-close'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l.close),
-          ),
+          // One row (owner 2026-11-02): Close, then Delete, red, on the far right.
+          Row(children: [
+            Expanded(
+              child: OutlinedButton(
+                key: const ValueKey('vault-details-close'),
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(l.close),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                key: const ValueKey('vault-details-delete'),
+                style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(l.deleteVaultAction),
+              ),
+            ),
+          ]),
         ]),
       );
     });
