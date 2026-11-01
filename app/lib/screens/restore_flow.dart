@@ -61,9 +61,15 @@ class RestorePickScreen extends StatefulWidget {
 }
 
 class _RestorePickScreenState extends State<RestorePickScreen> {
-  void _keys(RestoreSource source) => Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => Readable(child: RestoreKeysScreen(libraryDir: widget.libraryDir, source: source)),
-      ));
+  /// The file first (owner 2026-11-01: the source before the secrets, as for another
+  /// device), then the words and the password.
+  Future<void> _file() async {
+    final file = await openFile();
+    if (file == null || !mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => Readable(child: RestoreKeysScreen(libraryDir: widget.libraryDir, filePath: file.path, fileName: file.name)),
+    ));
+  }
 
   void _nothingLeft() {
     final l = AppLocalizations.of(context);
@@ -113,14 +119,17 @@ class _RestorePickScreenState extends State<RestorePickScreen> {
             icon: Icons.cloud_download_rounded,
             title: l.restoreFromDrive,
             note: l.restoreFromDriveNote,
-            onTap: () => _keys(RestoreSource.drive),
+            // Signed in first, then the words and the password, on that page.
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => Readable(child: DriveJoinScreen(libraryDir: widget.libraryDir)),
+            )),
           ),
         BigChoice(
           key: const ValueKey('restore-file'),
           icon: Icons.insert_drive_file_rounded,
           title: l.restoreFromFile,
           note: l.restoreFromFileNote,
-          onTap: () => _keys(RestoreSource.file),
+          onTap: _file,
         ),
         TextButton(
           key: const ValueKey('restore-none'),
@@ -176,15 +185,14 @@ class InviteScanPage extends StatelessWidget {
   }
 }
 
-/// Where a vault restored with its two secrets comes from.
-enum RestoreSource { drive, file }
-
-/// Restore from Google Drive or a backup file, step 2: the two secrets, pasted or typed;
-/// then it goes.
+/// Restore from a backup file, once it is chosen: the two secrets, pasted or typed; then
+/// it goes.
 class RestoreKeysScreen extends StatefulWidget {
-  const RestoreKeysScreen({super.key, required this.libraryDir, required this.source});
+  const RestoreKeysScreen({super.key, required this.libraryDir, required this.filePath, required this.fileName});
   final String libraryDir;
-  final RestoreSource source;
+  final String filePath;
+  /// Shown, so the person sees which file.
+  final String fileName;
 
   @override
   State<RestoreKeysScreen> createState() => _RestoreKeysScreenState();
@@ -224,24 +232,15 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       setState(() => _error = l.secretKeyTypo);
       return;
     }
-    switch (widget.source) {
-      case RestoreSource.drive:
-        Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => Readable(child: DriveJoinScreen(libraryDir: widget.libraryDir, words: _words.text, password: _password.text)),
-        ));
-      case RestoreSource.file:
-        _fromFile();
-    }
+    _fromFile();
   }
 
   Future<void> _fromFile() async {
     final l = AppLocalizations.of(context);
-    final file = await openFile();
-    if (file == null || !mounted) return;
     setState(() => _busy = true);
     final target = restoreTarget(widget.libraryDir);
     try {
-      await rust.importBackup(path: file.path, dir: target);
+      await rust.importBackup(path: widget.filePath, dir: target);
       final key = Uint8List.fromList(rust.parseSecretKey(text: _words.text)!);
       if (!mounted) return;
       if (!rust.secretKeyFits(dir: target, key: key)) {
@@ -288,12 +287,17 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
           FilledButton(
             key: const ValueKey('restore-next'),
             onPressed: _busy || _words.text.trim().isEmpty || _password.text.isEmpty ? null : _next,
-            child: Text(widget.source == RestoreSource.file ? l.restorePickFile : l.restoreContinue),
+            child: BusyLabel(busy: _busy, idle: l.restoreContinue, working: l.restoring),
           ),
         ],
         children: [
-          Text(widget.source == RestoreSource.drive ? l.restoreFromDrive : l.restoreFromFile,
-              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text(l.restoreFromFile, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Row(children: [
+            Icon(Icons.insert_drive_file_rounded, size: 18, color: c.muted),
+            const SizedBox(width: 6),
+            Expanded(child: Text(widget.fileName, key: const ValueKey('restore-file-name'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
+          ]),
           const SizedBox(height: 8),
           Text(l.restoreKeysLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
           const SizedBox(height: 24),

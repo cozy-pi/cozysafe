@@ -4,7 +4,22 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../widgets/bottom_bar.dart';
 
-String vaultErrorText(AppLocalizations l, rust.VaultError e) => switch (e) {
+/// An error as the person sees it: the sentence, then a short code to copy (owner
+/// 2026-11-01: every error message carries one, so a report says which step failed).
+String withCode(AppLocalizations l, String text, Object error) => '$text\n${l.errorCode(errorWord(error))}';
+
+/// A short fixed word for an error: the core's name for it, else its kind. Never text
+/// from the error itself (it could hold a path or a name).
+String errorWord(Object error) => switch (error) {
+      rust.VaultError e => e.name,
+      String s => s,
+      _ => error.runtimeType.toString(),
+    };
+
+/// A vault error as the person sees it, with its code.
+String vaultErrorText(AppLocalizations l, rust.VaultError e) => withCode(l, _vaultErrorSentence(l, e), e);
+
+String _vaultErrorSentence(AppLocalizations l, rust.VaultError e) => switch (e) {
       rust.VaultError.weakPassword => l.errorWeakPassword,
       rust.VaultError.passwordInUse => l.errorPasswordInUse,
       rust.VaultError.emptyName => l.errorEmptyName,

@@ -128,6 +128,24 @@ pub enum VaultError {
     Storage,
 }
 
+/// A short fixed word for a [`VaultError`], for error codes the person can copy.
+pub(crate) fn error_word(e: &VaultError) -> &'static str {
+    match e {
+        VaultError::WeakPassword => "weak-password",
+        VaultError::PasswordInUse => "password-in-use",
+        VaultError::EmptyName => "empty-name",
+        VaultError::BadPin => "bad-pin",
+        VaultError::PinInUse => "pin-in-use",
+        VaultError::Locked => "locked",
+        VaultError::WrongSecretKey => "wrong-secret-key",
+        VaultError::BadBackup => "bad-backup",
+        VaultError::LibraryExists => "library-exists",
+        VaultError::WeakKdf => "weak-kdf",
+        VaultError::RestartForMode => "restart-for-mode",
+        VaultError::Storage => "storage",
+    }
+}
+
 impl From<cs_vault::Error> for VaultError {
     fn from(e: cs_vault::Error) -> Self {
         super::errors::note("vault", &super::sync::error_code(&e));

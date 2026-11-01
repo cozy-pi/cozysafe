@@ -869,5 +869,6 @@
   "inviteTypeLead": "Diğer cihazda gösterilen kodu yazın (“Kamera yok mu?” seçeneğinden sonra görünür).",
   "restoreFromDeviceInviteNote": "Diğer cihazınızda bir kod tarayın, ardından parolayı girin",
   "restorePickFile": "Yedek dosyasını seç",
-  "testVault": "Test kasası"
+  "testVault": "Test kasası",
+  "restoredRestart": "Geri yüklendi. Bu kasayı açmak için Cozy Safe'i yeniden açın."
 }

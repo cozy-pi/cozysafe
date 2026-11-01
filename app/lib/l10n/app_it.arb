@@ -869,5 +869,6 @@
   "inviteTypeLead": "Digita il codice mostrato sull'altro dispositivo (appare dopo «Niente fotocamera?»).",
   "restoreFromDeviceInviteNote": "Scansiona un codice sull'altro dispositivo, poi la password",
   "restorePickFile": "Scegli il file di backup",
-  "testVault": "Cassaforte di prova"
+  "testVault": "Cassaforte di prova",
+  "restoredRestart": "Ripristinata. Riapri Cozy Safe per aprire questa cassaforte."
 }

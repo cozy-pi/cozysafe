@@ -92,6 +92,9 @@ pub enum SyncStep {
     AskPassword,
     /// The invite was not the other device's (any more): ended, used or mistyped.
     InviteInvalid,
+    /// Restored, its words kept; a Top secret vault after an everyday one in this run, so
+    /// the app starts again before it opens.
+    RestoredRestart,
     /// Waiting, not the end: a new device restoring with the 24 words (`name`) asks to be
     /// let in; `check` is the number its screen shows. Answer with [`p2p_answer`].
     AskRestore,
@@ -854,20 +857,31 @@ pub fn p2p_invite_restore(
     let event = match r {
         // Opened the usual way, from this device's folder with the two secrets.
         Ok(Some(key)) => {
+            // The vault is here now: its words are kept whatever happens next, or it could
+            // never be opened again.
+            *INVITE_KEY.lock().unwrap_or_else(|p| p.into_inner()) =
+                Some(zeroize::Zeroizing::new(key.as_bytes().to_vec()));
             let pw = typed.lock().unwrap_or_else(|p| p.into_inner()).take();
-            let bytes = zeroize::Zeroizing::new(key.as_bytes().to_vec());
             super::vault::use_secret(dir, key);
-            let opened = pw.is_some_and(|pw| {
-                matches!(
-                    super::vault::unlock(dir.to_string_lossy().into_owned(), pw.to_string()),
-                    Ok(Some(_))
-                )
-            });
-            if opened {
-                *INVITE_KEY.lock().unwrap_or_else(|p| p.into_inner()) = Some(bytes);
-                step(SyncStep::Done)
-            } else {
-                step(SyncStep::Failed)
+            let opened = match pw {
+                Some(pw) => {
+                    super::vault::unlock(dir.to_string_lossy().into_owned(), pw.to_string())
+                }
+                None => Ok(None),
+            };
+            match opened {
+                Ok(Some(_)) => step(SyncStep::Done),
+                // Top secret, and this run opened an everyday vault: in, but the app starts
+                // again before it opens (owner 2026-11-01: the screen said a network error).
+                Err(VaultError::RestartForMode) => step(SyncStep::RestoredRestart),
+                Ok(None) => SyncEvent {
+                    code: "restored-not-opened".into(),
+                    ..step(SyncStep::Failed)
+                },
+                Err(e) => SyncEvent {
+                    code: format!("restored-open-{}", super::vault::error_word(&e)),
+                    ..step(SyncStep::Failed)
+                },
             }
         }
         Ok(None) => step(SyncStep::Cancelled),
@@ -1127,6 +1141,9 @@ pub enum JoinOutcome {
     SignIn,
     /// The network or Drive failed.
     Failed,
+    /// In, its words to keep; a Top secret vault after an everyday one in this run, so
+    /// the app starts again before it opens (and syncs its items in then).
+    Restart,
 }
 
 pub struct JoinResult {
@@ -1192,6 +1209,7 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
                 vault: Some(vault),
             }
         }
+        Err(VaultError::RestartForMode) => join_result(JoinOutcome::Restart),
         _ => join_result(JoinOutcome::Failed),
     }
 }
@@ -1237,6 +1255,7 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         SyncStep::Interrupted => "interrupted",
         SyncStep::OtherVault => "othervault",
         SyncStep::InviteInvalid => "invite",
+        SyncStep::RestoredRestart => "ok",
         SyncStep::Unreachable => "unreachable",
         SyncStep::SignIn
         | SyncStep::Failed

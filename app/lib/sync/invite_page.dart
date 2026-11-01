@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
+import '../screens/top_secret_page.dart' show restartForMode;
 import '../theme.dart';
 import '../widgets/readable.dart';
 import '../widgets/toast.dart';
@@ -193,10 +194,13 @@ Future<rust.VaultInfo?> restoreByInvite(BuildContext context, {required String d
       ),
     )),
   ));
-  final vault = rust.openVaultInfo();
+  // The vault came in whenever its words did: keep them first, whatever comes next.
   final key = sync.p2PInviteKey();
-  if (vault == null || key == null) return null;
-  await SecretKeyStore.write(key, vault.libraryDir);
+  if (key == null) return null;
+  await SecretKeyStore.write(key, dir);
+  final vault = rust.openVaultInfo();
+  // Top secret after an everyday vault in this run: the app starts again, then it opens.
+  if (vault == null && context.mounted) await restartForMode(context);
   return vault;
 }
 

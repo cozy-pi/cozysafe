@@ -869,5 +869,6 @@
   "inviteTypeLead": "다른 기기에 표시된 코드를 입력하세요(그 기기에서 “카메라가 없나요?”를 누르면 표시됩니다).",
   "restoreFromDeviceInviteNote": "다른 기기에서 코드를 스캔한 뒤 비밀번호 입력",
   "restorePickFile": "백업 파일 선택",
-  "testVault": "테스트 금고"
+  "testVault": "테스트 금고",
+  "restoredRestart": "복원했습니다. 이 금고를 열려면 Cozy Safe를 다시 여세요."
 }

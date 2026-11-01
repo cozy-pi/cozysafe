@@ -869,5 +869,6 @@
   "inviteTypeLead": "Geben Sie den Code ein, der auf dem anderen Gerät angezeigt wird (er erscheint nach „Keine Kamera?“).",
   "restoreFromDeviceInviteNote": "Code auf Ihrem anderen Gerät scannen, dann das Passwort",
   "restorePickFile": "Backup-Datei auswählen",
-  "testVault": "Test-Tresor"
+  "testVault": "Test-Tresor",
+  "restoredRestart": "Wiederhergestellt. Öffnen Sie Cozy Safe erneut, um diesen Tresor zu öffnen."
 }

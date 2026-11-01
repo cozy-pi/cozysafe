@@ -869,5 +869,6 @@
   "inviteTypeLead": "もう一方のデバイスに表示されたコードを入力してください（そちらで「カメラがない？」を押すと表示されます）。",
   "restoreFromDeviceInviteNote": "もう一方のデバイスでコードをスキャンし、パスワードを入力",
   "restorePickFile": "バックアップファイルを選択",
-  "testVault": "テスト用金庫"
+  "testVault": "テスト用金庫",
+  "restoredRestart": "復元しました。この金庫を開くには Cozy Safe を開き直してください。"
 }

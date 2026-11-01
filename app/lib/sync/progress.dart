@@ -114,6 +114,16 @@ class _SyncProgressState extends State<SyncProgress>
 
   bool get _over => _last != null && !_running.contains(_last!.kind);
 
+  /// Ends that are not errors: no error code under them.
+  static const _notErrors = {
+    sync.SyncStep.done,
+    sync.SyncStep.cancelled,
+    sync.SyncStep.peerCancelled,
+    sync.SyncStep.expired,
+    sync.SyncStep.locked,
+    sync.SyncStep.restoredRestart,
+  };
+
   bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;
 
   /// Moving items (or about to, the person having said Sync): what goes on behind the
@@ -757,6 +767,7 @@ class _SyncProgressState extends State<SyncProgress>
           ),
         sync.SyncStep.askPassword => _passwordCard(l, c, wrong: e.check == 1),
         sync.SyncStep.inviteInvalid => _Status(icon: Icons.qr_code_2_rounded, color: const Color(0xFFFF9500), title: l.inviteInvalid),
+        sync.SyncStep.restoredRestart => _Status(icon: Icons.check_circle_rounded, color: const Color(0xFF34C759), title: l.restoredRestart),
         sync.SyncStep.confirm => _confirmCard(l, c),
         sync.SyncStep.peerCancelled => _Status(icon: Icons.cancel_rounded, color: const Color(0xFFFF9500), title: l.syncPeerCancelled),
         sync.SyncStep.connected => Column(
@@ -822,12 +833,14 @@ class _SyncProgressState extends State<SyncProgress>
         // Never the last word (handled above); kept for an exhaustive switch.
         sync.SyncStep.rejected || sync.SyncStep.knock || sync.SyncStep.found => _Status(icon: null, title: l.syncWorking),
       };
-      // What went wrong, as a code to copy (owner 2026-10-26: errors nobody could tell).
-      if (_over && e.code.isNotEmpty) {
+      // What went wrong, as a code to copy (owner 2026-10-26: errors nobody could tell;
+      // 2026-11-01: every error has one, the step's name when nothing more is known).
+      final code = e.code.isNotEmpty ? e.code : (_notErrors.contains(e.kind) ? '' : e.kind.name);
+      if (_over && code.isNotEmpty) {
         body = Column(mainAxisSize: MainAxisSize.min, children: [
           body,
           const SizedBox(height: 18),
-          Text(l.errorCode(e.code), key: const ValueKey('sync-error-code'), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
+          Text(l.errorCode(code), key: const ValueKey('sync-error-code'), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
           TextButton.icon(
             key: const ValueKey('sync-copy-details'),
             onPressed: () => _copyDetails(e),

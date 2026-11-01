@@ -12,6 +12,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
+import '../screens/top_secret_page.dart' show restartForMode;
 import '../theme.dart';
 import '../widgets/secret.dart';
 import '../widgets/words_input.dart';
@@ -99,6 +100,12 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
           : widget.libraryDir;
       final r = await sync.driveJoin(dir: target, token: session.token, words: words, password: password);
       if (!mounted) return;
+      // In, but Top secret after an everyday vault in this run: keep its words, start again.
+      if (r.outcome == sync.JoinOutcome.restart) {
+        await SecretKeyStore.write(Uint8List.fromList(parsed), target);
+        if (mounted) await restartForMode(context);
+        return;
+      }
       final vault = r.vault;
       if (r.outcome != sync.JoinOutcome.joined || vault == null) {
         setState(() => _error = switch (r.outcome) {
@@ -138,8 +145,11 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
             builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, tour: TourKind.restored)),
         (_) => false,
       );
-    } catch (_) {
-      if (mounted) setState(() => _error = l.syncFailed);
+    } catch (e) {
+      // Which step, by name (owner 2026-11-01: a bare "check the Wi-Fi" told nothing).
+      final why = e is rust.VaultError ? e.name : e.runtimeType.toString();
+      ErrorLog.add('drive-join', why);
+      if (mounted) setState(() => _error = '${l.syncFailed}\n(${l.errorCode(why)})');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

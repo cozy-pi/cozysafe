@@ -1953,15 +1953,15 @@ void main() {
       change: 'ĐỔI: Đăng nhập thử nghiệm hiện ngay dưới ô mật khẩu (không còn giấu trong ⋯)',
       marks: [() => find.byKey(const ValueKey('lock-test-login'))],
       setup: () => TestLogin.debugShown = true);
-  _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive));
-  _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive), act: (t) async {
+  _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'));
+  _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'), act: (t) async {
     await t.enterText(find.byKey(const ValueKey('words-field-0')), 'boun');
     await t.enterText(find.byKey(const ValueKey('words-field-1')), 'announce');
     await t.enterText(find.byKey(const ValueKey('words-field-2')), 'episod3');
     await t.enterText(find.byKey(const ValueKey('words-field-3')), 'wre');
     await t.pump();
   });
-  _screen('restore-keys-wrong-order', 'Khôi phục · đủ 24 từ có thật nhưng hai từ đổi chỗ', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive), setup: () => RecoveryWords.makesKey = (w) => w == words, act: (t) async {
+  _screen('restore-keys-wrong-order', 'Khôi phục · đủ 24 từ có thật nhưng hai từ đổi chỗ', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'), setup: () => RecoveryWords.makesKey = (w) => w == words, act: (t) async {
     final w = words.split(' ');
     final first = w[0];
     w[0] = w[1];
@@ -1971,7 +1971,7 @@ void main() {
     await t.ensureVisible(find.byKey(const ValueKey('words-no-key')));
     await t.pumpAndSettle();
   });
-  _screen('restore-keys-legacy', 'Khôi phục · bấm "Tôi có khoá kiểu cũ (CS1-…)"', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive), act: (t) async {
+  _screen('restore-keys-legacy', 'Khôi phục · bấm "Tôi có khoá kiểu cũ (CS1-…)"', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'), act: (t) async {
     await t.ensureVisible(find.byKey(const ValueKey('words-legacy-switch')));
     await t.tap(find.byKey(const ValueKey('words-legacy-switch')));
     await t.pumpAndSettle();
@@ -1980,9 +1980,12 @@ void main() {
       change: 'ĐỔI: khôi phục bắt đầu bằng chọn nguồn. Máy khác = quét mã rồi nhập mật khẩu (không gõ 24 từ). Drive / tệp sao lưu = nhập 24 từ + mật khẩu rồi làm luôn',
       marks: [() => find.byKey(const ValueKey('restore-device'))],
       setup: () => RestorePickScreen.debugDrive = true);
-  _screen('restore-keys-file', 'Khôi phục từ tệp sao lưu · 24 từ + mật khẩu, rồi chọn tệp', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.file),
-      change: 'ĐỔI: Drive/tệp: nhập 24 từ + mật khẩu ở bước 2 (sau khi chọn nguồn); nút cuối là Chọn tệp sao lưu',
-      marks: [() => find.byKey(const ValueKey('restore-next'))]);
+  _screen('restore-keys-file', 'Khôi phục từ tệp sao lưu · đã chọn tệp → 24 từ + mật khẩu', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'),
+      change: 'ĐỔI: tệp sao lưu: chọn tệp trước (giống máy khác), rồi mới nhập 24 từ + mật khẩu; tên tệp hiện trên đầu',
+      marks: [() => find.byKey(const ValueKey('restore-file-name'))]);
+  _screen('restore-drive-first', 'Khôi phục từ Google Drive · đăng nhập Drive trước, rồi 24 từ + mật khẩu', () => const DriveJoinScreen(libraryDir: ''),
+      change: 'ĐỔI: Google Drive: chọn nguồn trước — đăng nhập Drive, rồi mới nhập 24 từ + mật khẩu',
+      setup: () => DriveJoinScreen.debugAccount = 'ban.do@gmail.com');
   _screen('invite-scan', 'Khôi phục từ máy khác · quét mã trên máy kia', () => const InviteScanPage(libraryDir: ''),
       change: 'MỚI: quét mã "Thêm máy mới" trên máy cũ; không có camera thì Gõ mã',
       marks: [() => find.byKey(const ValueKey('invite-scan-lead')), () => find.byKey(const ValueKey('invite-type'))],

@@ -869,5 +869,6 @@
   "inviteTypeLead": "输入另一台设备上显示的代码（在那台设备上点“没有相机？”即可显示）。",
   "restoreFromDeviceInviteNote": "在另一台设备上扫码，然后输入密码",
   "restorePickFile": "选择备份文件",
-  "testVault": "测试保险箱"
+  "testVault": "测试保险箱",
+  "restoredRestart": "已恢复。重新打开 Cozy Safe 以打开这个保险箱。"
 }

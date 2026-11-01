@@ -1084,5 +1084,6 @@
   "inviteTypeLead": "Type the code shown on the other device (it shows after “No camera?”).",
   "restoreFromDeviceInviteNote": "Scan a code on your other device, then the password",
   "restorePickFile": "Choose the backup file",
-  "testVault": "Test vault"
+  "testVault": "Test vault",
+  "restoredRestart": "Restored. Open Cozy Safe again to open this vault."
 }

@@ -869,5 +869,6 @@
   "inviteTypeLead": "Saisissez le code affiché sur l'autre appareil (il apparaît après « Pas d’appareil photo ? »).",
   "restoreFromDeviceInviteNote": "Scannez un code sur votre autre appareil, puis le mot de passe",
   "restorePickFile": "Choisir le fichier de sauvegarde",
-  "testVault": "Coffre de test"
+  "testVault": "Coffre de test",
+  "restoredRestart": "Restauré. Rouvrez Cozy Safe pour ouvrir ce coffre."
 }

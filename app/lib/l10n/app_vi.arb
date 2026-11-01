@@ -883,5 +883,6 @@
   "inviteTypeLead": "Gõ mã hiện trên máy kia (bấm “Không có camera?” trên đó).",
   "restoreFromDeviceInviteNote": "Quét mã trên máy kia, rồi nhập mật khẩu",
   "restorePickFile": "Chọn tệp sao lưu",
-  "testVault": "Két thử nghiệm"
+  "testVault": "Két thử nghiệm",
+  "restoredRestart": "Đã khôi phục. Mở lại Cozy Safe để mở két này."
 }

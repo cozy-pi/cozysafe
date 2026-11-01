@@ -869,5 +869,6 @@
   "inviteTypeLead": "Digite o código exibido no outro dispositivo (ele aparece após “Sem câmera?”).",
   "restoreFromDeviceInviteNote": "Escaneie um código no seu outro dispositivo e depois a senha",
   "restorePickFile": "Escolher o arquivo de backup",
-  "testVault": "Cofre de teste"
+  "testVault": "Cofre de teste",
+  "restoredRestart": "Restaurado. Abra o Cozy Safe de novo para abrir este cofre."
 }

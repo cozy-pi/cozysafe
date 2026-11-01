@@ -869,5 +869,6 @@
   "inviteTypeLead": "Ketik kode yang tampil di perangkat lain (muncul setelah “Tidak ada kamera?”).",
   "restoreFromDeviceInviteNote": "Pindai kode di perangkat Anda yang lain, lalu kata sandinya",
   "restorePickFile": "Pilih file cadangan",
-  "testVault": "Brankas uji coba"
+  "testVault": "Brankas uji coba",
+  "restoredRestart": "Dipulihkan. Buka lagi Cozy Safe untuk membuka brankas ini."
 }
