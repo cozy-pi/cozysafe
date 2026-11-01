@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 /// Keeps a sync alive while it runs (native: AppDelegate / MainActivity "cozysafe/awake").
 /// The screen stays on; on Android a foreground service with a notification keeps the
@@ -41,4 +42,33 @@ abstract final class Awake {
       // Desktop and tests have no such channel.
     }
   }
+}
+
+/// The screen stays on, and the vault does not lock itself, while [child] is up: two
+/// devices getting connected (scanning or typing a code) must not be cut by the phone
+/// going to sleep (owner 2026-11-01).
+class KeepAwake extends StatefulWidget {
+  const KeepAwake({super.key, required this.who, required this.child});
+  final String who;
+  final Widget child;
+
+  @override
+  State<KeepAwake> createState() => _KeepAwakeState();
+}
+
+class _KeepAwakeState extends State<KeepAwake> {
+  @override
+  void initState() {
+    super.initState();
+    Awake.set(true, who: widget.who);
+  }
+
+  @override
+  void dispose() {
+    Awake.set(false, who: widget.who);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

@@ -28,6 +28,10 @@ on:
       internal_only:
         type: boolean
         default: false
+      # Android: the Test sign-in button for closed testing (lib/test_login.dart).
+      test_login:
+        type: boolean
+        default: false
     # Named one by one (release.yml passes exactly these, never `secrets: inherit`).
     secrets:
       ANDROID_KEYSTORE_BASE64:
@@ -80,14 +84,16 @@ jobs:
           BUILD_NUMBER: ${{ inputs.build || github.run_number }}
           VERSION: ${{ inputs.version }}
           BUILD: ${{ inputs.build }}
-        run: flutter build apk --release --target-platform android-arm64 --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
+          TEST_LOGIN: ${{ inputs.test_login && 'true' || '' }}
+        run: flutter build apk --release --target-platform android-arm64 --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA" ${TEST_LOGIN:+--dart-define=TEST_LOGIN=true}
       - name: App bundle for Google Play (all ABIs; Play serves each device its own)
         working-directory: app
         env: # inputs reach the shell as variables, never pasted into the script
           BUILD_NUMBER: ${{ inputs.build || github.run_number }}
           VERSION: ${{ inputs.version }}
           BUILD: ${{ inputs.build }}
-        run: flutter build appbundle --release --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
+          TEST_LOGIN: ${{ inputs.test_login && 'true' || '' }}
+        run: flutter build appbundle --release --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA" ${TEST_LOGIN:+--dart-define=TEST_LOGIN=true}
       - run: |
           mv app/build/app/outputs/flutter-apk/app-release.apk built-android.apk
           mv app/build/app/outputs/bundle/release/app-release.aab built-android.aab

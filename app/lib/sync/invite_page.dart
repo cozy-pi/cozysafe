@@ -12,6 +12,7 @@ import '../widgets/toast.dart';
 import '../widgets/words_awake.dart';
 import 'consent.dart';
 import 'device_name.dart';
+import 'awake.dart';
 import 'progress.dart';
 import 'qr_view.dart';
 import 'wifi.dart';
@@ -224,7 +225,7 @@ class _InviteTypePageState extends State<InviteTypePage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    return Padding(
+    return KeepAwake(who: 'invite-type', child: Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(l.inviteTypeLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
@@ -247,6 +248,6 @@ class _InviteTypePageState extends State<InviteTypePage> {
           child: Text(l.pinNext),
         ),
       ]),
-    );
+    ));
   }
 }

@@ -12,6 +12,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../sync/drive_join.dart';
 import '../sync/drive.dart' show driveOffered;
 import '../sync/join_page.dart';
+import '../sync/awake.dart';
 import '../sync/invite_page.dart';
 import '../theme.dart';
 import '../widgets/secret.dart';
@@ -148,7 +149,7 @@ class InviteScanPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    return Scaffold(
+    return KeepAwake(who: 'invite-scan', child: Scaffold(
       appBar: AppBar(title: Text(l.restoreFromDevice)),
       body: SafeArea(
         top: false,
@@ -172,7 +173,7 @@ class InviteScanPage extends StatelessWidget {
           const SizedBox(height: 12),
         ]),
       ),
-    );
+    ));
   }
 }
 
