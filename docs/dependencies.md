@@ -128,7 +128,7 @@ Plugins and SDKs in Kotlin/Java, Swift/Objective-C or C/C++, and Rust crates tha
 | Rust [dart-sys](https://crates.io/crates/dart-sys/4.1.5) | 4.1.5 | 2024-03-09 | flutter_rust_bridge | OptimisticPeach, gutenfries | compiles C or links a system library; cackle: unsafe, build: fs |
 | Rust [libsqlite3-sys](https://crates.io/crates/libsqlite3-sys/0.38.2) | 0.38.2 | 2026-08-08 | rusqlite | gwenn, thomcc | compiles C or links a system library; cackle: unsafe, build: fs |
 | Rust [oslog](https://crates.io/crates/oslog/0.2.0) | 0.2.0 | 2022-02-17 | flutter_rust_bridge | madsmtm, steven-joruk | compiles C or links a system library |
-| Rust [ring](https://crates.io/crates/ring/0.17.14) | 0.17.14 | 2025-03-11 | rustls | briansmith | compiles C or links a system library; cackle: unsafe, build: fs, build: process |
+| Rust [ring](https://crates.io/crates/ring/0.17.14) | 0.17.14 | 2025-03-11 | direct | briansmith | compiles C or links a system library; cackle: unsafe, build: fs, build: process |
 | Swift [app-check](https://github.com/google/app-check) | 11.3.2 |  | google_sign_in (iOS, macOS) | google | native SDK (Swift Package Manager) |
 | Swift [appauth-ios](https://github.com/openid/AppAuth-iOS) | 2.1.0 |  | google_sign_in (iOS, macOS) | openid | native SDK (Swift Package Manager) |
 | Swift [googlesignin-ios](https://github.com/google/GoogleSignIn-iOS) | 9.2.0 |  | google_sign_in (iOS, macOS) | google | native SDK (Swift Package Manager) |
@@ -287,7 +287,7 @@ Rust and Dart that ships in the app.
 | Rust [inout](https://crates.io/crates/inout/0.1.4) | 0.1.4 | 2025-02-21 | cipher | github:rustcrypto:utils, newpavlov | cackle: unsafe |
 | Rust [itoa](https://crates.io/crates/itoa/1.0.18) | 1.0.18 | 2026-03-20 | serde_json | dtolnay | cackle: unsafe |
 | Rust [lazy_static](https://crates.io/crates/lazy_static/1.5.1) | 1.5.1 | 2026-10-01 | flutter_rust_bridge | rust-lang-owner | cackle: unsafe |
-| Rust [libc](https://crates.io/crates/libc/0.2.191) | 0.2.191 | 2026-10-16 | cpufeatures | rust-lang-owner | cackle: unsafe, build: process |
+| Rust [libc](https://crates.io/crates/libc/0.2.191) | 0.2.191 | 2026-10-16 | ring | rust-lang-owner | cackle: unsafe, build: process |
 | Rust [lock_api](https://crates.io/crates/lock_api/0.4.14) | 0.4.14 | 2025-10-03 | dashmap | Amanieu, faern |  |
 | Rust [log](https://crates.io/crates/log/0.4.34) | 0.4.34 | 2026-08-22 | flutter_rust_bridge | rust-lang-owner | cackle: unsafe |
 | Rust [lru](https://crates.io/crates/lru/0.18.5) | 0.18.5 | 2026-09-23 | rqrr | jeromefroe | cackle: unsafe |

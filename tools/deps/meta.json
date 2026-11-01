@@ -2654,7 +2654,7 @@
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "cpufeatures"
+   "via": "ring"
   },
   "libsqlite3-sys@0.38.2": {
    "direct": false,
@@ -2849,10 +2849,10 @@
    "via": "env_filter"
   },
   "ring@0.17.14": {
-   "direct": false,
+   "direct": true,
    "kind": "runtime",
    "native": true,
-   "via": "rustls"
+   "via": ""
   },
   "rqrr@0.11.0": {
    "direct": true,
