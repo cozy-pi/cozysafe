@@ -1271,7 +1271,7 @@ void main() {
   _screen('sync-local-row', 'Đồng bộ: Google Drive · Mạng nội bộ · Các lần kết nối', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       change: 'ĐỔI: hai dòng "Két của bạn ở máy khác" + "Thêm máy mới" gộp thành một dòng Mạng nội bộ',
       marks: [() => find.byKey(const ValueKey('sync-local'))], setup: () => SyncScreen.debugDrive = true);
-  _screen('sync-local', 'Đồng bộ → Mạng nội bộ: Đồng bộ với két cũ · Khởi tạo két mới', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+  _screen('sync-local', 'Đồng bộ → Mạng nội bộ: Đồng bộ với két cũ · Thiết lập máy mới', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
       change: 'MỚI: trang Mạng nội bộ với hai lựa chọn, có hình hai máy kết nối ở đầu',
       marks: [() => find.byKey(const ValueKey('sync-nearby')), () => find.byKey(const ValueKey('sync-invite'))], act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-local')));
@@ -1279,9 +1279,9 @@ void main() {
   });
   // Adding a device by an 8-digit code instead of a QR (owner 2026-11-01): the real
   // pages, fed the events the core sends.
-  Widget invite() => page('Khởi tạo két mới', InvitePage(address: '192.168.1.37', mirror: '', onSynced: () {}));
+  Widget invite() => page('Thiết lập máy mới', InvitePage(address: '192.168.1.37', mirror: '', onSynced: () {}));
   Widget added(List<SyncEvent> events) => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.fromIterable(events), onSynced: () {}, waiting: const AddCodeSearching()));
-  _screen('add-code-waiting', 'Máy cũ · Khởi tạo két mới: chờ máy mới tìm tới (2 phút)', invite,
+  _screen('add-code-waiting', 'Máy cũ · Thiết lập máy mới: chờ máy mới tìm tới (2 phút)', invite,
       change: 'MỚI: bỏ mã QR — máy cũ chỉ chờ, máy mới tự tìm trên Wi-Fi',
       marks: [() => find.byKey(const ValueKey('add-code-waiting'))], setup: () => InvitePage.debugSeconds = 107);
   _screen('add-code-shown', 'Máy cũ · máy mới đã nối: hiện mã 8 số để gõ bên kia', invite,
