@@ -1964,7 +1964,7 @@ void main() {
       change: 'ĐỔI: bỏ nút ba chấm ở mỗi két — chạm cả dòng là mở thông tin két',
       setup: () => VaultManagerScreen.debugSlots = slots());
   _screen('vault-manager-menu', 'Quản lý két · chạm một két đang khoá (bộ 24 từ riêng)', () => const VaultManagerScreen(libraryDir: ''),
-      change: 'MỚI: thông tin két đang khoá — những gì máy biết mà không cần mở (tên, chế độ niêm phong); nút Xoá két + Đóng',
+      change: 'MỚI: thông tin két đang khoá — những gì máy biết mà không cần mở (biểu tượng, chế độ niêm phong); nút Xoá két + Đóng',
       marks: [() => find.byKey(const ValueKey('vault-details'))],
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
@@ -1988,12 +1988,12 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('vault-manager-open', 'Quản lý két · chạm két đang mở', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
-      change: 'MỚI: thông tin két đầy đủ: tên, chế độ, số mục, dung lượng, ngày tạo, mở khoá bằng gì, bộ 24 từ, Google Drive, mã két; nút Xoá két + Đóng',
+      change: 'MỚI: thông tin két đầy đủ: chế độ, số mục, dung lượng, ngày tạo, mở khoá bằng gì, bộ 24 từ, Google Drive, mã két; nút Xoá két + Đóng',
       marks: [() => find.byKey(const ValueKey('vault-details'))],
       setup: () {
     VaultManagerScreen.debugSlots = slots();
     VaultManagerScreen.debugItems = 342;
-    VaultManagerScreen.debugOpen = const VaultInfo(libraryDir: '', id: 'e0a966aed6bec8151ebb59139e5aa773', name: 'Nhà mình', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
+    VaultManagerScreen.debugOpen = const VaultInfo(libraryDir: '', id: 'e0a966aed6bec8151ebb59139e5aa773', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
     VaultManagerScreen.debugDrive = 'ban.do@gmail.com';
   },
       act: (t) async {
@@ -2006,8 +2006,21 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-slot-9b3ad0e1f2c4475a8e61d39b2f0c18d3')));
     await t.pumpAndSettle();
   });
-  _screen('vault-delete-other', 'Quản lý két · Xoá bằng mật khẩu của két (kiểm mật khẩu trước, rồi mới đếm ngược 10 giây)', () => const DeleteVaultScreen(libraryDir: '', otherId: '3fa9c1d2e4b5a6978877665544332211', sizeText: '37 MB'),
+  _screen('vault-delete-other', 'Quản lý két · Xoá két đang khoá: thông tin két + mật khẩu của két', () => DeleteVaultScreen(libraryDir: '', otherId: '3fa9c1d2e4b5a6978877665544332211', sizeText: '37 MB', slot: slots()[1]),
+      change: 'ĐỔI: trang xoá hiện cùng thông tin như thẻ két, để biết rõ xoá két nào',
+      marks: [() => find.byKey(const ValueKey('vault-details'))],
       setup: () => DeleteVaultScreen.debugDrive = true);
+  _screen('vault-delete-pending', 'Quản lý két · Xoá két đang chờ xoá: giờ yêu cầu + giờ xoá, nút Giữ két lại', () => DeleteVaultScreen(libraryDir: '', otherId: '9b3ad0e1f2c4475a8e61d39b2f0c18d3', sizeText: '212 KB', slot: slots()[2], deleteAtMs: _now + 5 * Duration.millisecondsPerDay),
+      change: 'MỚI: két đang chờ xoá: hiện lúc yêu cầu xoá + lúc sẽ xoá; vẫn xoá ngay được bằng mật khẩu, hoặc Giữ két lại',
+      marks: [() => find.byKey(const ValueKey('vault-details')), () => find.byKey(const ValueKey('vault-keep'))]);
+  _screen('vault-delete-open', 'Cài đặt → Quản lý két → két đang mở → Xoá két', () => DeleteVaultScreen(libraryDir: '', vault: const VaultInfo(libraryDir: '', id: 'e0a966aed6bec8151ebb59139e5aa773', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false), sizeText: '1.8 GB · 342 mục', slot: slots()[0]),
+      change: 'ĐỔI: xoá két đang mở: thông tin đầy đủ (chế độ, số mục, Drive…) trước khi nhập mật khẩu',
+      marks: [() => find.byKey(const ValueKey('vault-details'))],
+      setup: () {
+    DeleteVaultScreen.debugDrive = true;
+    VaultManagerScreen.debugItems = 342;
+    VaultManagerScreen.debugDrive = 'ban.do@gmail.com';
+  });
   _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''));
   _screen('welcome-adding', 'Quản lý két → Tạo két mới: về màn đầu như lúc mới cài, có nút quay lại', () => const WelcomeScreen(libraryDir: '', adding: true));
   _screen('welcome-test', 'Màn đầu tiên · bản test kín Android: thêm Đăng nhập thử nghiệm', () => const WelcomeScreen(libraryDir: ''),
