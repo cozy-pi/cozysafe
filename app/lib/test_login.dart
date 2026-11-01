@@ -46,7 +46,7 @@ abstract final class TestLogin {
         if (await SecretKeyStore.read() == null) {
           final key = rust.newSecretKey();
           await SecretKeyStore.write(key);
-          rust.setSecretKey(key: key);
+          rust.setSecretKey(dir: libraryDir, key: key);
         }
         password = rust.suggestPassphrase();
         vault = await rust.createVaultWithPassword(

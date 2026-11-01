@@ -4,6 +4,18 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-01 — A vault may have its own 24 words; restore by QR; test sign-in
+
+**Owner:** making a vault asks which 24 words it uses: the device's set, or a new set of
+its own. Each set is a library of its own (`<library>-<16 hex>` beside the first, its key
+under its own keystore name; formats unchanged); unlocking tries each, Face ID still opens
+one vault per device, and a library goes with its last vault. Restoring onto a device that
+has vaults goes into a new library. Restore starts with the source (Google Drive, a
+backup file: then the words and the password; another device: scan its QR code, then the
+password only, [ADR 0003](adr/0003-sync.md) point 11 — nothing in the middle can read or
+join, the old device checks the password before the words cross). Android test builds
+show "Test sign-in". Not yet: the source-first restore screens and the QR restore.
+
 ## 2026-10-31 (night) — Each vault has its own mode; Vaults on this device
 
 **Owner:** the mode belongs to each vault, chosen when any vault is made

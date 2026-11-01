@@ -116,8 +116,10 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
           return;
         case rust.KeyChangeStep.changed:
       }
-      await SecretKeyStore.write(Uint8List.fromList(_key));
-      await rust.finishSecretKeyChange(dir: widget.libraryDir, newKey: _key);
+      // Under the open vault's library: its words are the ones changed (api/run.rs).
+      final own = SecretKeyStore.openLibrary ?? widget.libraryDir;
+      await SecretKeyStore.write(Uint8List.fromList(_key), own);
+      await rust.finishSecretKeyChange(dir: own, newKey: _key);
       _passwords.clear();
       _typed.clear();
       if (mounted) setState(() => _step = _Step.done);

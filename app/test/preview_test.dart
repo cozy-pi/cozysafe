@@ -259,7 +259,7 @@ class _Fake implements RustLibApi {
     if (n.contains('PinLengths')) return Uint32List(0); // no PIN since 2026-10-28
     if (n.contains('ForgetPinsWithPassword')) return 0;
     if (n.contains('CreateVaultWithPassword')) {
-      return Future<VaultInfo>.value(const VaultInfo(id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false));
+      return Future<VaultInfo>.value(const VaultInfo(libraryDir: '', id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false));
     }
     if (n.contains('AnyPassword')) return true;
     if (n.contains('HasBiometricUnlock')) return true;
@@ -513,7 +513,7 @@ void main() {
     File('test/preview/manifest.json').writeAsStringSync(const JsonEncoder.withIndent('  ').convert(_manifest));
   });
 
-  const vault = VaultInfo(id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
+  const vault = VaultInfo(libraryDir: '', id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
   Widget settings(VaultInfo v, {int? guideFrom}) => Readable(child: SettingsScreen(
         libraryDir: '',
         vault: () => v,
@@ -1865,10 +1865,9 @@ void main() {
     await t.pump(const Duration(milliseconds: 3200));
   });
   List<VaultSlot> slots() => [
-        VaultSlot(id: 'e0a966aed6bec8151ebb59139e5aa773', sizeBytes: BigInt.from(1843 << 20), hasPassword: true, hasPin: false, hasBiometric: true, isOpen: true),
-        VaultSlot(id: '3fa9c1d2e4b5a6978877665544332211', sizeBytes: BigInt.from(37 << 20), hasPassword: true, hasPin: false, hasBiometric: false, isOpen: false),
-        VaultSlot(
-            id: '9b3ad0e1f2c4475a8e61d39b2f0c18d3',
+        VaultSlot(libraryDir: '', id: 'e0a966aed6bec8151ebb59139e5aa773', sizeBytes: BigInt.from(1843 << 20), hasPassword: true, hasPin: false, hasBiometric: true, isOpen: true),
+        VaultSlot(libraryDir: '', id: '3fa9c1d2e4b5a6978877665544332211', sizeBytes: BigInt.from(37 << 20), hasPassword: true, hasPin: false, hasBiometric: false, isOpen: false),
+        VaultSlot(libraryDir: '', id: '9b3ad0e1f2c4475a8e61d39b2f0c18d3',
             sizeBytes: BigInt.from(212 << 10),
             hasPassword: true,
             hasPin: false,

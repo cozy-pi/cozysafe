@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
+import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/edge_swipe_back.dart';
@@ -145,7 +146,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       key = rust.newSecretKey();
       await SecretKeyStore.write(key);
     }
-    rust.setSecretKey(key: key);
+    rust.setSecretKey(dir: widget.libraryDir, key: key);
     final text = rust.secretKeyText(key: key);
     if (!mounted) return;
     setState(() {
@@ -195,7 +196,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     try {
       _vault = _vault == null
           ? await rust.createVaultWithPassword(
-              dir: widget.libraryDir,
+              dir: await _libraryForNew(),
               icon: vaultIcons[_icon].id,
               color: vaultColors[_color].id,
               password: _pw.text,
@@ -597,6 +598,20 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   /// [_Step.keys] chose a set of its own: its key, made once.
   Uint8List? _freshKey;
+  /// The library of a vault with its own words (api/run.rs), once its key is kept.
+  String? _ownDir;
+
+  /// Where the new vault goes: the device's library, or with its own words a new library
+  /// beside it, whose key is kept first (under its own name, SecretKeyStore).
+  Future<String> _libraryForNew() async {
+    final key = _freshKey;
+    if (!_ownKey || key == null || widget.first) return widget.libraryDir;
+    final dir = _ownDir ??= run_api.newLibraryDir();
+    if (dir == null) throw StateError('no library folder');
+    await SecretKeyStore.write(key, dir);
+    rust.setSecretKey(dir: dir, key: key);
+    return dir;
+  }
 
   /// A new set of 24 words for this vault, or the one this device already has.
   Widget _keysBody(AppLocalizations l) {

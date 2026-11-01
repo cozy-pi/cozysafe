@@ -24,7 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
+const _vault = VaultInfo(libraryDir: '', id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
 
 class _Fake implements RustLibApi {
   int created = 0;

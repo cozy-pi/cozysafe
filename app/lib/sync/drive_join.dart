@@ -10,6 +10,7 @@ import '../screens/tour.dart' show TourKind;
 import '../screens/vault_home.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
+import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/secret.dart';
@@ -45,6 +46,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
   DriveSession? _session;
   bool _busy = false;
   String? _error;
+  String? _target;
 
   @override
   void dispose() {
@@ -91,8 +93,11 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       _error = null;
     });
     try {
-      final r = await sync.driveJoin(
-          dir: widget.libraryDir, token: session.token, words: words, password: password);
+      // This device's library while it holds no vault, else a new one for these words.
+      final target = _target ??= rust.libraryHasVaults(dir: widget.libraryDir)
+          ? (run_api.newLibraryDir() ?? widget.libraryDir)
+          : widget.libraryDir;
+      final r = await sync.driveJoin(dir: target, token: session.token, words: words, password: password);
       if (!mounted) return;
       final vault = r.vault;
       if (r.outcome != sync.JoinOutcome.joined || vault == null) {
@@ -107,7 +112,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
         return;
       }
       // This device keeps the words now, like a device that made the vault.
-      await SecretKeyStore.write(Uint8List.fromList(parsed));
+      await SecretKeyStore.write(Uint8List.fromList(parsed), vault.libraryDir);
       if (!mounted) return;
       // The items come down with progress on screen; stopping loses nothing.
       await Navigator.of(context).push<void>(MaterialPageRoute(

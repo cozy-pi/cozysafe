@@ -342,7 +342,7 @@ pub fn p2p_wait_start(ip: String, mirror: String, name: String) -> Result<Hostin
     let _ = std::fs::remove_dir_all(dir);
     std::fs::create_dir_all(dir).map_err(|_| VaultError::Storage)?;
     // With the library's words, a device restoring this vault may ask to join as well.
-    let secret = super::vault::secret().ok();
+    let secret = super::vault::open_secret().ok();
     let prepared = with_open(|v| Ok(p2p::host_prepare(v, secret.as_ref(), &name, dir)?))?;
     *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
     let waiting = p2p::wait(prepared, permit, p2p::PORT)?;
@@ -555,7 +555,7 @@ fn restored(
     match r {
         // Opened the usual way, from this device's folder with the two secrets.
         Ok(true) => {
-            super::vault::use_secret(key);
+            super::vault::use_secret(dir, key);
             match super::vault::unlock(dir.to_string_lossy().into_owned(), password.to_owned()) {
                 Ok(Some(_)) => step(SyncStep::Done),
                 _ => step(SyncStep::Failed),
@@ -983,7 +983,7 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
     }
     // Opened the usual way, from this device's folder with the two secrets; the items
     // come next, through drive_sync, with progress on screen.
-    super::vault::use_secret(key);
+    super::vault::use_secret(dir, key);
     match super::vault::unlock(dir.to_string_lossy().into_owned(), password.to_string()) {
         Ok(Some(vault)) => {
             JOIN_MOVED.store(remote.moved(), Ordering::Relaxed);

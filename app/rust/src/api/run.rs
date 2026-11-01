@@ -15,6 +15,11 @@
 //! a Top secret one (nothing was decoded); a Top secret vault after an everyday one needs a
 //! fresh run ([`VaultError::RestartForMode`]): something decoded may have touched the app.
 //! Turning a vault's mode on or off ends the run ([`end_run`]).
+//!
+//! One library per set of 24 words (owner 2026-11-01: a new vault may take the device's
+//! words or its own): the run's folder holds the first, and each other set has a folder
+//! beside it, `<run folder>-<16 hex>`, with its own salt, fingerprint and Secret Key in
+//! the keystore. Nothing in a library's format changes; a call may name any of them.
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -122,7 +127,8 @@ fn opening(run: &mut Run, top_secret: bool) -> bool {
     }
 }
 
-/// `dir` as a path when it is this run's library folder; refused otherwise.
+/// `dir` as a path when it is this run's library folder or one beside it; refused
+/// otherwise.
 pub(crate) fn library_dir(dir: &str) -> Result<&Path, VaultError> {
     if allowed(&run(), Path::new(dir)) {
         Ok(Path::new(dir))
@@ -168,7 +174,72 @@ fn choose(run: &mut Run, next: RunMode) -> bool {
 }
 
 fn allowed(run: &Run, dir: &Path) -> bool {
-    matches!(run, Run::Started { dir: d, .. } if d == dir)
+    matches!(run, Run::Started { dir: d, .. } if d == dir || beside(d, dir))
+}
+
+/// Whether `dir` is `<main>-<16 lowercase hex>`, in the same parent folder.
+fn beside(main: &Path, dir: &Path) -> bool {
+    let (Some(name), Some(main_name)) = (
+        dir.file_name().and_then(|n| n.to_str()),
+        main.file_name().and_then(|n| n.to_str()),
+    ) else {
+        return false;
+    };
+    dir.parent() == main.parent()
+        && name
+            .strip_prefix(main_name)
+            .and_then(|rest| rest.strip_prefix('-'))
+            .is_some_and(|id| {
+                id.len() == 16 && id.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+            })
+}
+
+/// This run's libraries that exist: its own folder first, then those beside it by name.
+/// Empty before the run starts and after it ends.
+pub(crate) fn libraries() -> Vec<PathBuf> {
+    let main = match &*run() {
+        Run::Started { dir, .. } => dir.clone(),
+        _ => return Vec::new(),
+    };
+    let mut others: Vec<PathBuf> = main
+        .parent()
+        .and_then(|p| std::fs::read_dir(p).ok())
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| beside(&main, p) && p.is_dir())
+        .collect();
+    others.sort();
+    let mut all = vec![main];
+    all.append(&mut others);
+    all
+}
+
+/// Every library folder of this run (Dart loads each one's Secret Key at start).
+#[flutter_rust_bridge::frb(sync)]
+pub fn library_dirs() -> Vec<String> {
+    libraries()
+        .into_iter()
+        .map(|p| p.to_string_lossy().into_owned())
+        .collect()
+}
+
+/// A folder for a new library beside this run's (not made until a vault goes in): a
+/// new vault with its own 24 words, or a restore on a device that has vaults already.
+#[flutter_rust_bridge::frb(sync)]
+pub fn new_library_dir() -> Option<String> {
+    let main = match &*run() {
+        Run::Started { dir, .. } => dir.clone(),
+        _ => return None,
+    };
+    let name = main.file_name()?.to_str()?;
+    loop {
+        let id = format!("{:08x}{:08x}", cs_crypto::rand_u32(), cs_crypto::rand_u32());
+        let dir = main.with_file_name(format!("{name}-{id}"));
+        if !dir.exists() {
+            return Some(dir.to_string_lossy().into_owned());
+        }
+    }
 }
 
 #[cfg(test)]
@@ -228,6 +299,25 @@ mod tests {
         assert!(!opening(&mut r, true), "everyday, then Top secret: restart");
         r = Run::Ended;
         assert!(!opening(&mut r, false));
+    }
+
+    #[test]
+    fn libraries_beside_the_runs_folder_are_allowed() {
+        let lib = PathBuf::from("/support/library");
+        let mut r = Run::NotStarted;
+        assert!(start(&mut r, RunMode::Everyday, lib));
+        assert!(allowed(&r, Path::new("/support/library-0123456789abcdef")));
+        for no in [
+            "/support/library-0123456789ABCDEF",
+            "/support/library-0123456789abcde",
+            "/support/library-0123456789abcdef0",
+            "/support/library-../library",
+            "/support/libraryx0123456789abcdef",
+            "/other/library-0123456789abcdef",
+            "/support/library-0123456789abcdef/x",
+        ] {
+            assert!(!allowed(&r, Path::new(no)), "{no}");
+        }
     }
 
     #[test]

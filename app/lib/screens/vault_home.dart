@@ -909,7 +909,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // anywhere (owner 2026-10-24).
     String? password = await KitPasswordScreen.ask(context, widget.libraryDir);
     if (password == null || !mounted) return;
-    final key = await SecretKeyStore.read();
+    final key = await SecretKeyStore.readOpen();
     if (key == null || !mounted) return;
     // The page stays under the lock, the password typed for it does not: a Recovery Key
     // change after that asks for it again.

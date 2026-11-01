@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../key_backup.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
+import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
 import '../sync/consent.dart';
 import '../sync/drive_join.dart';
@@ -146,11 +147,17 @@ class RestoreSourceScreen extends StatefulWidget {
 class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
   bool _busy = false;
 
+  /// Where the vault comes in: this device's library while it holds no vault, otherwise a
+  /// new library beside it, for these words (api/run.rs).
+  late final String _target = rust.libraryHasVaults(dir: widget.libraryDir)
+      ? (run_api.newLibraryDir() ?? widget.libraryDir)
+      : widget.libraryDir;
+
   /// The vault is open here: keep the words on this device, offer Face ID, go in.
   Future<void> _opened(rust.VaultInfo vault) async {
     TopSecretMode.opened(vault);
     final key = rust.parseSecretKey(text: widget.words);
-    if (key != null) await SecretKeyStore.write(Uint8List.fromList(key));
+    if (key != null) await SecretKeyStore.write(Uint8List.fromList(key), vault.libraryDir);
     if (!mounted) return;
     await offerBiometric(context);
     if (!mounted) return;
@@ -183,7 +190,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
           top: false,
           child: SyncProgress(
             restoring: true,
-            events: sync.p2PRestoreNearby(dir: widget.libraryDir, ip: address, words: widget.words, password: widget.password, name: name),
+            events: sync.p2PRestoreNearby(dir: _target, ip: address, words: widget.words, password: widget.password, name: name),
             onSynced: () {},
             waiting: NearbyLooking(
               lead: l.restoreNearbyLead,
@@ -220,7 +227,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
           top: false,
           child: SyncProgress(
             restoring: true,
-            events: sync.p2PRestore(dir: widget.libraryDir, code: code, words: widget.words, password: widget.password, name: name),
+            events: sync.p2PRestore(dir: _target, code: code, words: widget.words, password: widget.password, name: name),
             onSynced: () {},
           ),
         ),
@@ -236,10 +243,10 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
     if (file == null || !mounted) return;
     setState(() => _busy = true);
     try {
-      await rust.importBackup(path: file.path, dir: widget.libraryDir);
+      await rust.importBackup(path: file.path, dir: _target);
       final key = Uint8List.fromList(rust.parseSecretKey(text: widget.words)!);
       if (!mounted) return;
-      if (!rust.secretKeyFits(dir: widget.libraryDir, key: key)) {
+      if (!rust.secretKeyFits(dir: _target, key: key)) {
         // The file is in; these words are not its own. Ask for them again.
         await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute<void>(builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: false))),
@@ -247,8 +254,8 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
         );
         return;
       }
-      await SecretKeyStore.write(key);
-      rust.setSecretKey(key: key);
+      await SecretKeyStore.write(key, _target);
+      rust.setSecretKey(dir: _target, key: key);
       final vault = await rust.unlock(dir: widget.libraryDir, password: widget.password);
       if (!mounted) return;
       if (vault == null) {

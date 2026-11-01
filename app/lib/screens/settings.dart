@@ -334,6 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     });
     if (yes != true || !mounted) return;
+    // Only the device's own words go to iCloud / Google, never a vault's own set.
     final key = await SecretKeyStore.read();
     final ok = key != null && await KeyBackup.turnOn(key);
     if (!mounted) return;
@@ -896,8 +897,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword)),
             ),
             // Off unless turned on; turning it on is weaker, so it asks for the owner and
-            // says the trade (owner 2026-10-26).
-            if (KeyBackup.supported)
+            // says the trade (owner 2026-10-26). Only the device's own words go there: a
+            // vault with its own set does not show it (api/run.rs).
+            if (KeyBackup.supported && (SecretKeyStore.openLibrary ?? widget.libraryDir) == widget.libraryDir)
               SettingsRow(
                 key: const ValueKey('key-backup-row'),
                 icon: Icons.cloud_rounded,

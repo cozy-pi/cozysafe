@@ -97,6 +97,9 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
         return;
       }
       final id = _id;
+      // Its library (each set of 24 words has one, api/run.rs): its words go with its last
+      // vault.
+      final own = (await rust.listVaults(dir: widget.libraryDir)).where((s) => s.id == id).firstOrNull?.libraryDir;
       final ok = widget.otherId != null
           ? await rust.deleteOtherVault(dir: widget.libraryDir, vaultId: id, password: _pw.text)
           : await rust.deleteVault(dir: widget.libraryDir, password: _pw.text);
@@ -125,18 +128,19 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       await LockGuard.clearCopied();
       if (!mounted) return;
       final any = rust.hasVaults(dir: widget.libraryDir);
-      // The last vault: its 24 words go too, and the next vault starts afresh (owner
-      // 2026-10-24: keeping the old key after deleting the vault was not safe).
-      if (!any) {
-        try {
-          await rust.resetEmptyLibrary(dir: widget.libraryDir);
-          await SecretKeyStore.delete();
-          rust.forgetSecretKey();
+      // The last vault of its library: its 24 words go too, and the next vault starts
+      // afresh (owner 2026-10-24: keeping the old key after deleting the vault was not
+      // safe).
+      try {
+        if (own != null && !rust.libraryHasVaults(dir: own) && await rust.resetEmptyLibrary(dir: own)) {
+          await SecretKeyStore.delete(own);
+        }
+        if (!any) {
           await PinStore.resetFails();
           await PinStore.resetPasswordFails();
-        } catch (_) {
-          // The new-vault screen still starts afresh from an empty library.
         }
+      } catch (_) {
+        // The new-vault screen still starts afresh from an empty library.
       }
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(

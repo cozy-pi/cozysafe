@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_resume.dart';
+import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/secret.dart';
@@ -59,7 +60,7 @@ class _KeyCheckScreenState extends State<KeyCheckScreen> with VaultLockAware {
     try {
       if (_words.text.trim().isNotEmpty) {
         final key = rust.parseSecretKey(text: _words.text);
-        _wordsOk = key != null && rust.secretKeyFits(dir: widget.libraryDir, key: key);
+        _wordsOk = key != null && rust.secretKeyFits(dir: SecretKeyStore.openLibrary ?? widget.libraryDir, key: key);
       }
       if (widget.hasPassword && _password.text.isNotEmpty) {
         // An Argon2id run, as when opening.

@@ -60,7 +60,7 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
       _again.clear();
       if (!mounted) return;
       if (!widget.change) {
-        final key = await SecretKeyStore.read();
+        final key = await SecretKeyStore.readOpen();
         if (key != null && mounted) {
           await Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (kitContext) => Readable(child: EmergencyKitScreen(
