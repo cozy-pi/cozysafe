@@ -17,7 +17,7 @@ import '../widgets/vault_bar.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'debug.dart' show debugModeOn;
-import 'new_vault.dart';
+import 'welcome.dart';
 import 'restore.dart';
 import 'top_secret_page.dart' show restartForMode;
 import 'vault_home.dart';
@@ -490,6 +490,17 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                       style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600, fontSize: CsType.footnote),
                     ),
                   ],
+                  // Android test builds: straight into the test vault, on the screen
+                  // itself (owner 2026-11-01: hidden in ⋯ it was not found).
+                  if (TestLogin.shown) ...[
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      key: const ValueKey('lock-test-login'),
+                      icon: const Icon(Icons.bolt_rounded),
+                      label: Text(l.testLogin),
+                      onPressed: _busy ? null : () => TestLogin.run(context, widget.libraryDir),
+                    ),
+                  ],
                   const SizedBox(height: 6),
                 ],
               ),
@@ -642,15 +653,6 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
               onPressed: () => setState(() => _mode = _Mode.pin),
               child: Text(l.usePin),
             ),
-          // Android test builds: straight into the test vault (owner 2026-11-01).
-          if (TestLogin.shown)
-            MenuItemButton(
-              key: const ValueKey('lock-test-login'),
-              style: _menuItem,
-              leadingIcon: const Icon(Icons.bolt_rounded),
-              onPressed: _busy ? null : () => TestLogin.run(context, widget.libraryDir),
-              child: Text(l.testLogin),
-            ),
           // One vault in the app; another only in debug mode (decisions 2026-10-24).
           if (debugModeOn())
             MenuItemButton(
@@ -684,7 +686,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   Future<void> _newVault() async {
     final l = AppLocalizations.of(context);
     if (!await confirmOwner(l.ownerCheckReason) || !mounted) return;
-    await Navigator.of(context).push(fadeRoute<void>((_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: false))));
+    await Navigator.of(context).push(fadeRoute<void>((_) => Readable(child: WelcomeScreen(libraryDir: widget.libraryDir, adding: true))));
   }
 
   Widget _passwordField(AppLocalizations l, Color ink) {

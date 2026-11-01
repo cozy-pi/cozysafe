@@ -427,10 +427,29 @@ impl Library {
         )
     }
 
+    /// The test vault of Android test builds (owner 2026-11-01): an everyday vault opened
+    /// by [`TEST_VAULT_PASSWORD`], which testers type on their other devices. The only
+    /// vault made without the new-password rules, and only with that fixed password: no
+    /// caller can pass a weak one of its own.
+    pub fn create_test_vault(&self, icon: &str, color: &str) -> Result<OpenVault> {
+        self.create_unchecked(
+            VaultMeta {
+                icon: icon.to_owned(),
+                color: color.to_owned(),
+                ..Default::default()
+            },
+            TEST_VAULT_PASSWORD,
+        )
+    }
+
     fn create_with_meta(&self, meta: VaultMeta, password: &str) -> Result<OpenVault> {
         if check_new_password(password) != PasswordCheck::Ok {
             return Err(Error::WeakPassword);
         }
+        self.create_unchecked(meta, password)
+    }
+
+    fn create_unchecked(&self, meta: VaultMeta, password: &str) -> Result<OpenVault> {
         let root = kdf::derive_root(
             password.as_bytes(),
             &self.secret_key,
@@ -923,6 +942,10 @@ impl OpenVault {
         self.dir.join(BIOMETRIC_FILE).is_file()
     }
 }
+
+/// The test vault's password (Android test builds, owner 2026-11-01: "1 to 9"). Known
+/// to everyone: that vault is for trying the app, never for real things.
+pub const TEST_VAULT_PASSWORD: &str = "123456789";
 
 pub fn read_library_header(dir: &Path) -> Result<LibraryHeader> {
     let header = LibraryHeader::from_json(&fs::read(dir.join(LIBRARY_FILE))?)
@@ -1461,6 +1484,25 @@ pub mod tests {
             Err(Error::EmptyName)
         ));
         assert!(!Library::has_vaults(tmp.path()));
+    }
+
+    #[test]
+    fn only_the_test_vault_opens_with_its_fixed_weak_password() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = lib(tmp.path());
+        // The rules hold for every other way of making a vault.
+        assert!(matches!(
+            l.create_vault_with_password("home", "green", TEST_VAULT_PASSWORD),
+            Err(Error::WeakPassword)
+        ));
+        let v = l.create_test_vault("bolt", "orange").unwrap();
+        assert!(!v.top_secret);
+        let id = v.id.clone();
+        drop(v);
+        assert_eq!(
+            l.unlock(TEST_VAULT_PASSWORD).unwrap().map(|v| v.id),
+            Some(id)
+        );
     }
 
     #[test]

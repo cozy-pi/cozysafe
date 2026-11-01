@@ -16,48 +16,58 @@ const testLoginBuild = bool.fromEnvironment('TEST_LOGIN');
 
 /// "Test sign-in" (owner 2026-11-01), for testers of the Android builds: one tap opens a
 /// vault. With none made this way yet, it makes one: the device's 24 words (new ones
-/// when the device has none) and a password made up here, kept in the Android Keystore.
-/// Made already, it opens that same vault with the kept password. Anyone who can unlock
-/// the phone can open that vault, so it is for trying the app, never for real things.
+/// when the device has none) and the fixed password "123456789"
+/// ([rust.testVaultPassword]), which testers also type on their other devices. Made
+/// already, it opens that same vault. Anyone can open that vault, so it is for trying the
+/// app, never for real things (its note says so).
 abstract final class TestLogin {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(storageNamespace: 'cozysafe_test_login', resetOnError: false),
   );
-  static const _password = 'password';
+  /// A made-up password of the first test builds (0.2.1 build 1129), still tried.
+  static const _oldPassword = 'password';
+  static const _vault = 'vault';
 
-  /// Mockups: show the button on any platform.
+  /// Mockups: show the button on any platform; this vault is the test vault.
   static bool debugShown = false;
+  static String? debugVaultId;
 
   /// Whether the button shows: Android test builds only.
   static bool get shown => debugShown || (testLoginBuild && Device.android);
+
+  /// The passwords a test vault here opens with: the fixed one, and one kept by a first
+  /// test build.
+  static Future<List<String>> _passwords() async {
+    String? old;
+    try {
+      old = await _storage.read(key: _oldPassword);
+    } catch (_) {}
+    return [rust.testVaultPassword(), ?old];
+  }
 
   /// Open the test vault, made first when there is none.
   static Future<void> run(BuildContext context, String libraryDir) async {
     final l = AppLocalizations.of(context);
     final nav = Navigator.of(context, rootNavigator: true);
     try {
-      var password = await _storage.read(key: _password);
       rust.VaultInfo? vault;
-      if (password != null && rust.hasVaults(dir: libraryDir)) {
-        vault = await rust.unlock(dir: libraryDir, password: password);
+      if (rust.hasVaults(dir: libraryDir)) {
+        for (final password in await _passwords()) {
+          vault = await rust.unlock(dir: libraryDir, password: password);
+          if (vault != null) break;
+        }
       }
       if (vault == null) {
-        // The device's words; new ones when it has none yet.
+        // None yet, or the one from before is gone: a new one, with the device's words
+        // (new ones when it has none yet).
         if (await SecretKeyStore.read() == null) {
           final key = rust.newSecretKey();
           await SecretKeyStore.write(key);
           rust.setSecretKey(dir: libraryDir, key: key);
         }
-        password = rust.suggestPassphrase();
-        vault = await rust.createVaultWithPassword(
-          dir: libraryDir,
-          icon: 'bolt',
-          color: 'orange',
-          password: password,
-          topSecret: false,
-        );
-        await _storage.write(key: _password, value: password);
+        vault = await rust.createTestVault(dir: libraryDir);
       }
+      await _storage.write(key: _vault, value: vault.id);
       TopSecretMode.opened(vault);
       final opened = vault;
       nav.pushAndRemoveUntil(
@@ -67,5 +77,39 @@ abstract final class TestLogin {
     } catch (_) {
       if (context.mounted) showToast(context, l.testLoginFailed, icon: Icons.error_outline_rounded);
     }
+  }
+
+  /// The test vault's id, when this is a test build and one was made (or opened) here.
+  static Future<String?> vaultId() async {
+    if (debugVaultId != null) return debugVaultId;
+    if (!shown) return null;
+    try {
+      return await _storage.read(key: _vault);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Delete the test vault (owner 2026-11-01: no password to type for it). False when
+  /// [id] is not the test vault or it did not go.
+  static Future<bool> delete(String libraryDir, String id) async {
+    if (await vaultId() != id) return false;
+    for (final password in await _passwords()) {
+      final ok = rust.openVaultInfo()?.id == id
+          ? await rust.deleteVault(dir: libraryDir, password: password)
+          : await rust.deleteOtherVault(dir: libraryDir, vaultId: id, password: password);
+      if (ok) {
+        await _storage.delete(key: _vault);
+        await _storage.delete(key: _oldPassword);
+        // Its library's last vault: its 24 words go too, as for any vault.
+        try {
+          if (!rust.libraryHasVaults(dir: libraryDir) && await rust.resetEmptyLibrary(dir: libraryDir)) {
+            await SecretKeyStore.delete();
+          }
+        } catch (_) {}
+        return true;
+      }
+    }
+    return false;
   }
 }

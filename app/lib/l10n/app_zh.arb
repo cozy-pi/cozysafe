@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "另一台设备上的密码错误。",
   "syncPeerStopped": "另一台设备已停止同步。",
   "syncItemsSoFar": "{done} 项",
-  "vaultManagerTitle": "此设备上的保险箱",
+  "vaultManagerTitle": "管理保险箱",
   "vaultManagerLead": "仅在开启 Debug 时显示。未打开的保险箱名称仍保持加密；每个保险箱只能用独立的密码或 PIN 码打开。",
   "vaultManagerOpen": "当前已打开",
   "vaultManagerPassword": "密码",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "此文件为空。",
   "driveDeleting": "正在从 Google 云端硬盘删除…",
   "testLogin": "测试登录",
-  "testLoginNote": "供测试人员使用：打开一个用来试用应用的保险箱。不要存放任何真实内容。",
+  "testLoginNote": "请勿存放重要数据。密码：1 到 9",
   "testLoginFailed": "无法打开测试保险箱。",
   "keysTitle": "这个保险箱的 24 个单词",
   "keysLead": "保险箱用它的密码加一组 24 个单词打开。保险箱可以共用这台设备的那组单词，也可以有自己的一组。",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "改为输入代码",
   "inviteTypeLead": "输入另一台设备上显示的代码（在那台设备上点“没有相机？”即可显示）。",
   "restoreFromDeviceInviteNote": "在另一台设备上扫码，然后输入密码",
-  "restorePickFile": "选择备份文件"
+  "restorePickFile": "选择备份文件",
+  "testVault": "测试保险箱"
 }

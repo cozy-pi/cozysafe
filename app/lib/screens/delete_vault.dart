@@ -90,7 +90,23 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
         });
         return;
       }
-      // Ten seconds to change one's mind (owner 2026-10-25).
+      // The password first (owner 2026-11-01): a wrong one never reaches the countdown.
+      final right = widget.otherId != null
+          ? await rust.vaultPasswordOpens(dir: widget.libraryDir, vaultId: _id, password: _pw.text)
+          : await rust.checkPassword(dir: widget.libraryDir, password: _pw.text);
+      if (!right) {
+        await PinStore.addPasswordFail();
+        HapticFeedback.heavyImpact();
+        if (mounted) {
+          setState(() {
+            _busy = false;
+            _error = l.wrongPassword;
+          });
+        }
+        return;
+      }
+      await PinStore.resetPasswordFails();
+      // Then ten seconds to change one's mind (owner 2026-10-25).
       if (!mounted) return;
       if (!await confirmCountdown(context, title: l.deleteVaultTitle) || !mounted) {
         if (mounted) setState(() => _busy = false);

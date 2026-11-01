@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "Mauvais mot de passe sur l’autre appareil.",
   "syncPeerStopped": "L’autre appareil a arrêté la synchronisation.",
   "syncItemsSoFar": "{done} éléments",
-  "vaultManagerTitle": "Coffres sur cet appareil",
+  "vaultManagerTitle": "Gérer les coffres",
   "vaultManagerLead": "Visible uniquement en mode Debug. Les noms des coffres non ouverts restent chiffrés ; chacun s'ouvre avec son propre mot de passe ou code PIN.",
   "vaultManagerOpen": "Ouvert actuellement",
   "vaultManagerPassword": "Mot de passe",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "Ce fichier est vide.",
   "driveDeleting": "Suppression de Google Drive…",
   "testLogin": "Connexion de test",
-  "testLoginNote": "Pour les testeurs : ouvre un coffre fait pour essayer l'app. N'y mettez rien de réel.",
+  "testLoginNote": "N'y gardez rien d'important. Mot de passe : 1 à 9",
   "testLoginFailed": "Impossible d'ouvrir le coffre de test.",
   "keysTitle": "24 mots pour ce coffre",
   "keysLead": "Un coffre s'ouvre avec son mot de passe et une série de 24 mots. Les coffres peuvent partager la série de cet appareil ou avoir la leur.",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "Saisir le code à la place",
   "inviteTypeLead": "Saisissez le code affiché sur l'autre appareil (il apparaît après « Pas d’appareil photo ? »).",
   "restoreFromDeviceInviteNote": "Scannez un code sur votre autre appareil, puis le mot de passe",
-  "restorePickFile": "Choisir le fichier de sauvegarde"
+  "restorePickFile": "Choisir le fichier de sauvegarde",
+  "testVault": "Coffre de test"
 }

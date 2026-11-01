@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "Falsches Passwort auf dem anderen Gerät.",
   "syncPeerStopped": "Das andere Gerät hat die Synchronisierung beendet.",
   "syncItemsSoFar": "{done} Elemente",
-  "vaultManagerTitle": "Tresore auf diesem Gerät",
+  "vaultManagerTitle": "Tresore verwalten",
   "vaultManagerLead": "Nur sichtbar, wenn Debug aktiviert ist. Die Namen nicht geöffneter Tresore bleiben verschlüsselt; jeder öffnet sich nur mit seinem eigenen Passwort oder seiner PIN.",
   "vaultManagerOpen": "Jetzt geöffnet",
   "vaultManagerPassword": "Passwort",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "Diese Datei ist leer.",
   "driveDeleting": "Wird aus Google Drive gelöscht …",
   "testLogin": "Test-Anmeldung",
-  "testLoginNote": "Für Tester: öffnet einen Tresor zum Ausprobieren der App. Bewahren Sie darin nichts Echtes auf.",
+  "testLoginNote": "Speichern Sie nichts Wichtiges. Passwort: 1 bis 9",
   "testLoginFailed": "Der Test-Tresor konnte nicht geöffnet werden.",
   "keysTitle": "24 Wörter für diesen Tresor",
   "keysLead": "Ein Tresor öffnet sich mit seinem Passwort und einem Satz aus 24 Wörtern. Tresore können den Satz dieses Geräts teilen oder einen eigenen haben.",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "Code stattdessen eingeben",
   "inviteTypeLead": "Geben Sie den Code ein, der auf dem anderen Gerät angezeigt wird (er erscheint nach „Keine Kamera?“).",
   "restoreFromDeviceInviteNote": "Code auf Ihrem anderen Gerät scannen, dann das Passwort",
-  "restorePickFile": "Backup-Datei auswählen"
+  "restorePickFile": "Backup-Datei auswählen",
+  "testVault": "Test-Tresor"
 }

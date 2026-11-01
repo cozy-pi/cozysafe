@@ -407,7 +407,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(minHeight: box.maxHeight),
-                        child: Center(
+                        // In the upper part, not the middle (owner 2026-11-01): the steps
+                        // hold more now, and the room is below them.
+                        child: Align(
+                          alignment: const Alignment(0, -.6),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 380),
                             child: Column(

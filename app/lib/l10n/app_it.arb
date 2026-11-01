@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "Password errata sull’altro dispositivo.",
   "syncPeerStopped": "L’altro dispositivo ha interrotto la sincronizzazione.",
   "syncItemsSoFar": "{done} elementi",
-  "vaultManagerTitle": "Casseforti su questo dispositivo",
+  "vaultManagerTitle": "Gestisci casseforti",
   "vaultManagerLead": "Visibile solo con Debug attivo. I nomi delle casseforti non aperte restano cifrati; ognuna si apre con la propria password o il proprio PIN.",
   "vaultManagerOpen": "Aperta ora",
   "vaultManagerPassword": "Password",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "Questo file è vuoto.",
   "driveDeleting": "Eliminazione da Google Drive…",
   "testLogin": "Accesso di prova",
-  "testLoginNote": "Per i tester: apre una cassaforte fatta per provare l'app. Non metterci nulla di reale.",
+  "testLoginNote": "Non salvare nulla di importante. Password: da 1 a 9",
   "testLoginFailed": "Impossibile aprire la cassaforte di prova.",
   "keysTitle": "24 parole per questa cassaforte",
   "keysLead": "Una cassaforte si apre con la sua password e una serie di 24 parole. Le casseforti possono condividere la serie di questo dispositivo o averne una propria.",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "Digita invece il codice",
   "inviteTypeLead": "Digita il codice mostrato sull'altro dispositivo (appare dopo «Niente fotocamera?»).",
   "restoreFromDeviceInviteNote": "Scansiona un codice sull'altro dispositivo, poi la password",
-  "restorePickFile": "Scegli il file di backup"
+  "restorePickFile": "Scegli il file di backup",
+  "testVault": "Cassaforte di prova"
 }

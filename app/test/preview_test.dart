@@ -437,6 +437,7 @@ void _screen(String name, String caption, Widget Function() home,
       VaultManagerScreen.debugSlots = null;
       DeleteVaultScreen.debugDrive = false;
       TestLogin.debugShown = false;
+      TestLogin.debugVaultId = null;
       TopSecretMode.debugClosesItself = null;
       NewVaultScreen.debugBiometricStep = false;
       Device.debugDesktop = null;
@@ -1904,15 +1905,29 @@ void main() {
             isOpen: false,
             deleteAtMs: PlatformInt64Util.from(_now + 5 * Duration.millisecondsPerDay)),
       ];
-  _screen('vault-manager', 'Cài đặt → Két trên máy này', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
+  _screen('vault-manager', 'Cài đặt → Quản lý két', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
+      change: 'ĐỔI: tên "Quản lý két"; nút Tạo két mới đưa về màn đầu như lúc mới cài',
       setup: () => VaultManagerScreen.debugSlots = slots());
-  _screen('vault-manager-menu', 'Két trên máy này · chạm một két khoá', () => const VaultManagerScreen(libraryDir: ''),
+  _screen('vault-manager-menu', 'Quản lý két · chạm một két khoá', () => const VaultManagerScreen(libraryDir: ''),
+      change: 'MỚI: chạm két → thẻ thông tin (dung lượng, Face ID, mã) + nút Xoá két',
+      marks: [() => find.byKey(const ValueKey('vault-details-delete'))],
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-3fa9c1d2e4b5a6978877665544332211')));
     await t.pumpAndSettle();
   });
-  _screen('vault-manager-open', 'Két trên máy này · chạm két đang mở', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
+  _screen('vault-manager-test', 'Quản lý két · chạm két thử nghiệm (bản test kín)', () => const VaultManagerScreen(libraryDir: ''),
+      change: 'MỚI: két thử nghiệm có tên riêng; Xoá két không cần mật khẩu (chỉ đếm ngược)',
+      marks: [() => find.byKey(const ValueKey('vault-details-delete'))],
+      setup: () {
+    VaultManagerScreen.debugSlots = slots();
+    TestLogin.debugVaultId = '3fa9c1d2e4b5a6978877665544332211';
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-slot-3fa9c1d2e4b5a6978877665544332211')));
+    await t.pumpAndSettle();
+  });
+  _screen('vault-manager-open', 'Quản lý két · chạm két đang mở', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
+      change: 'MỚI: thẻ thông tin của két đang mở + nút Xoá két',
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-e0a966aed6bec8151ebb59139e5aa773')));
@@ -1924,17 +1939,20 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-slot-9b3ad0e1f2c4475a8e61d39b2f0c18d3')));
     await t.pumpAndSettle();
   });
-  _screen('vault-delete-other', 'Két trên máy này · Xoá bằng mật khẩu của két', () => const DeleteVaultScreen(libraryDir: '', otherId: '3fa9c1d2e4b5a6978877665544332211', sizeText: '37 MB'),
+  _screen('vault-delete-other', 'Quản lý két · Xoá bằng mật khẩu của két (kiểm mật khẩu trước, rồi mới đếm ngược 10 giây)', () => const DeleteVaultScreen(libraryDir: '', otherId: '3fa9c1d2e4b5a6978877665544332211', sizeText: '37 MB'),
       setup: () => DeleteVaultScreen.debugDrive = true);
-  _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''));
+  _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''),
+      change: 'ĐỔI: các lựa chọn cùng màu, không tô sáng Tạo két mới');
+  _screen('welcome-adding', 'Quản lý két → Tạo két mới: về màn đầu như lúc mới cài, có nút quay lại', () => const WelcomeScreen(libraryDir: '', adding: true),
+      change: 'MỚI: tạo két khi đã có két bắt đầu từ màn đầu (Tạo mới / Khôi phục), có nút quay lại');
   _screen('welcome-test', 'Màn đầu tiên · bản test kín Android: thêm Đăng nhập thử nghiệm', () => const WelcomeScreen(libraryDir: ''),
-      change: 'MỚI: Đăng nhập thử nghiệm (chỉ bản test kín Android): chưa có két thì tự tạo (24 từ + mật khẩu tự sinh, cất trong Keystore), có rồi thì mở đúng két đó',
+      change: 'ĐỔI: Đăng nhập thử nghiệm (chỉ bản test kín Android): chú thích "Không lưu dữ liệu quan trọng, mật khẩu từ 1→9"; mật khẩu két thử nghiệm cố định 123456789',
       marks: [() => find.byKey(const ValueKey('welcome-test-login'))],
       setup: () => TestLogin.debugShown = true);
-  _screen('lock-menu-test', 'Màn khoá · ⋯ ở bản test kín: Đăng nhập thử nghiệm', lock,
-      change: 'MỚI: Đăng nhập thử nghiệm ở menu ⋯ màn khoá (mở thẳng két thử nghiệm)',
-      setup: () => TestLogin.debugShown = true,
-      act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
+  _screen('lock-test', 'Màn khoá · bản test kín: nút Đăng nhập thử nghiệm ngay trên màn', lock,
+      change: 'ĐỔI: Đăng nhập thử nghiệm hiện ngay dưới ô mật khẩu (không còn giấu trong ⋯)',
+      marks: [() => find.byKey(const ValueKey('lock-test-login'))],
+      setup: () => TestLogin.debugShown = true);
   _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive));
   _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive), act: (t) async {
     await t.enterText(find.byKey(const ValueKey('words-field-0')), 'boun');
@@ -2036,7 +2054,7 @@ void main() {
     await t.pumpAndSettle();
   }
   _screen('new-vault-keys', 'Tạo két (máy đã có két) · chọn bộ 24 từ: dùng bộ của máy', () => const NewVaultScreen(libraryDir: '', first: false),
-      change: 'MỚI: két thứ hai chọn bộ 24 từ: Dùng bộ của máy này · Tạo bộ mới (két có 24 từ riêng)',
+      change: 'ĐỔI: nội dung các bước tạo két đặt cao hơn (không còn ở giữa màn)',
       setup: () => NewVaultScreen.debugWords = words,
       act: toKeys);
   _screen('new-vault-keys-new', 'Tạo két · chọn Tạo bộ mới → sau mật khẩu là chép và kiểm 24 từ mới', () => const NewVaultScreen(libraryDir: '', first: false),

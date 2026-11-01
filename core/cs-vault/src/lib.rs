@@ -18,7 +18,9 @@ pub mod sync;
 pub use audit::VaultAudit;
 pub use cs_core::passwords::{self, check_new_password, PasswordCheck};
 pub use cs_core::passwords::{MIN_PASSWORD_LEN, MIN_PASSWORD_SCORE, OLDEST_MIN_PASSWORD_LEN};
-pub use cs_core::vault::{bucket_of, KeyChange, Library, OpenVault, VaultSlot, CONNECTION_LOG_LEN};
+pub use cs_core::vault::{
+    bucket_of, KeyChange, Library, OpenVault, VaultSlot, CONNECTION_LOG_LEN, TEST_VAULT_PASSWORD,
+};
 pub use cs_core::{db, history, items, pin, Error, Result};
 pub use items::ItemMeta;
 pub use join::LibraryJoin;

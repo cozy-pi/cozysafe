@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "Diğer cihazda yanlış parola.",
   "syncPeerStopped": "Diğer cihaz eşitlemeyi durdurdu.",
   "syncItemsSoFar": "{done} öğe",
-  "vaultManagerTitle": "Bu cihazdaki kasalar",
+  "vaultManagerTitle": "Kasaları yönet",
   "vaultManagerLead": "Yalnızca Debug açıkken görünür. Açık olmayan kasaların adları şifreli kalır; her biri yalnızca kendi parolası veya PIN'i ile açılır.",
   "vaultManagerOpen": "Şu anda açık",
   "vaultManagerPassword": "Parola",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "Bu dosya boş.",
   "driveDeleting": "Google Drive'dan siliniyor…",
   "testLogin": "Test girişi",
-  "testLoginNote": "Test edenler için: uygulamayı denemeye yönelik bir kasa açar. İçinde gerçek bir şey saklamayın.",
+  "testLoginNote": "Önemli bir şey saklamayın. Şifre: 1'den 9'a",
   "testLoginFailed": "Test kasası açılamadı.",
   "keysTitle": "Bu kasa için 24 kelime",
   "keysLead": "Bir kasa, parolası ve 24 kelimelik bir setle açılır. Kasalar bu cihazın setini paylaşabilir ya da kendi setine sahip olabilir.",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "Bunun yerine kodu yaz",
   "inviteTypeLead": "Diğer cihazda gösterilen kodu yazın (“Kamera yok mu?” seçeneğinden sonra görünür).",
   "restoreFromDeviceInviteNote": "Diğer cihazınızda bir kod tarayın, ardından parolayı girin",
-  "restorePickFile": "Yedek dosyasını seç"
+  "restorePickFile": "Yedek dosyasını seç",
+  "testVault": "Test kasası"
 }

@@ -724,7 +724,7 @@
   "syncDriveMoved": "{n, plural, =1{Rearranged 1 file in Google Drive.} other{Rearranged {n} files in Google Drive.}}",
   "@syncDriveMoved": {"placeholders": {"n": {"type": "int"}}},
   "syncNothingNew": "Nothing new to send or receive.",
-  "vaultManagerTitle": "Vaults on this device",
+  "vaultManagerTitle": "Manage vaults",
   "vaultManagerLead": "Shown only with Debug on. The names of vaults that are not open stay sealed; each one opens with its own password or PIN.",
   "vaultManagerOpen": "Open now",
   "vaultManagerPassword": "Password",
@@ -1063,7 +1063,7 @@
   "plainTextEmpty": "This file is empty.",
   "driveDeleting": "Deleting from Google Drive…",
   "testLogin": "Test sign-in",
-  "testLoginNote": "For testers: opens a vault made for trying the app. Keep nothing real in it.",
+  "testLoginNote": "Don't keep anything important. Password: 1 to 9",
   "testLoginFailed": "Couldn't open the test vault.",
   "keysTitle": "24 words for this vault",
   "keysLead": "A vault opens with its password and a set of 24 words. Vaults can share this device's set, or have one of their own.",
@@ -1083,5 +1083,6 @@
   "inviteTypeInstead": "Type the code instead",
   "inviteTypeLead": "Type the code shown on the other device (it shows after “No camera?”).",
   "restoreFromDeviceInviteNote": "Scan a code on your other device, then the password",
-  "restorePickFile": "Choose the backup file"
+  "restorePickFile": "Choose the backup file",
+  "testVault": "Test vault"
 }

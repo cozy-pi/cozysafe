@@ -1280,7 +1280,7 @@ pub fn qr_matrix(text: String) -> Option<QrMatrix> {
 }
 
 /// Read a QR from a camera frame's brightness plane (`width` × `height`, `stride` bytes
-/// a row). Only Cozy Safe pairing codes come back.
+/// a row). Only Cozy Safe codes come back: a pairing code, or an invite (ADR 0003, 11).
 pub fn qr_read(luma: Vec<u8>, width: u32, height: u32, stride: u32) -> Option<String> {
     let (w, h, stride) = (width as usize, height as usize, stride as usize);
     if luma.len() < stride * h.saturating_sub(1) + w {
@@ -1290,12 +1290,55 @@ pub fn qr_read(luma: Vec<u8>, width: u32, height: u32, stride: u32) -> Option<St
     img.detect_grids()
         .into_iter()
         .filter_map(|g| g.decode().ok().map(|(_, text)| text))
-        .find(|t| PairCode::parse(t).is_some())
+        .find(|t| {
+            PairCode::parse(t).is_some() || p2p::Invite::parse(t).is_some_and(|i| i.at.is_some())
+        })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `text` drawn as a camera would see it: 4 pixels a module, a light margin.
+    fn photo(text: &str) -> (Vec<u8>, u32) {
+        let m = qr_matrix(text.to_owned()).expect("fits a QR");
+        let (scale, margin) = (4usize, 16usize);
+        let side = m.size as usize * scale + 2 * margin;
+        let mut luma = vec![255u8; side * side];
+        for y in 0..m.size as usize {
+            for x in 0..m.size as usize {
+                if m.dark[y * m.size as usize + x] {
+                    for dy in 0..scale {
+                        let row = (margin + y * scale + dy) * side;
+                        for dx in 0..scale {
+                            luma[row + margin + x * scale + dx] = 0;
+                        }
+                    }
+                }
+            }
+        }
+        (luma, side as u32)
+    }
+
+    #[test]
+    fn the_camera_reads_pairing_codes_and_invites_only() {
+        let code = PairCode::parse("4K9M2Q-7XWB3H-NTD8RF").map(|c| c.qr());
+        // 192.168.1.5:47823, token 1…5, a secret of sevens.
+        let invite = "cozysafe:invite:1:R2M021DTSW0G40R40M3GE1R70W3GE1R70W3GE1R70W3G".to_owned();
+        assert!(
+            p2p::Invite::parse(&invite).is_some_and(|i| i.at.is_some()),
+            "a well-formed invite"
+        );
+        for text in code.iter().chain([&invite]) {
+            let (luma, side) = photo(text);
+            assert_eq!(
+                qr_read(luma, side, side, side).as_deref(),
+                Some(text.as_str())
+            );
+        }
+        let (luma, side) = photo("https://example.com");
+        assert_eq!(qr_read(luma, side, side, side), None);
+    }
 
     #[test]
     fn error_codes_are_short_fixed_words() {

@@ -34,7 +34,7 @@ import 'emergency_kit.dart';
 import 'kit_password.dart';
 import 'change_key.dart';
 import 'file_view.dart';
-import 'new_vault.dart';
+import 'welcome.dart';
 import 'photo_viewer.dart';
 import 'quick_look.dart';
 import 'note.dart';
@@ -1035,16 +1035,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// owner may: knowing this vault's PIN is not enough.
   Future<void> _newVault() async {
     if (!await confirmOwner(AppLocalizations.of(context).ownerCheckReason) || !mounted) return;
-    final avoid = (_vault.icon, _vault.color);
     _locked = true;
     _idleTimer?.cancel();
     rust.lock();
-    // The new vault fades in over this page; once it covers the screen, the lock screen
-    // takes the place of everything under it, so Cancel goes back there. (Swapping to the
-    // lock screen first flashed it for a moment.)
+    // As on a fresh install (owner 2026-11-01): the first screen, new or restored, fades in
+    // over this page; once it covers the screen, the lock screen takes the place of
+    // everything under it, so Back goes there. (Swapping to the lock screen first flashed
+    // it for a moment.)
     final nav = Navigator.of(context);
     final libraryDir = widget.libraryDir;
-    final route = fadeRoute<void>((_) => Readable(child: NewVaultScreen(libraryDir: libraryDir, first: false, avoid: avoid)));
+    final route = fadeRoute<void>((_) => Readable(child: WelcomeScreen(libraryDir: libraryDir, adding: true)));
     nav.push(route);
     void swap(AnimationStatus s) {
       if (s != AnimationStatus.completed) return;

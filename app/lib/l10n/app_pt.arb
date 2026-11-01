@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "Senha errada no outro dispositivo.",
   "syncPeerStopped": "O outro dispositivo interrompeu a sincronização.",
   "syncItemsSoFar": "{done} itens",
-  "vaultManagerTitle": "Cofres neste dispositivo",
+  "vaultManagerTitle": "Gerenciar cofres",
   "vaultManagerLead": "Só aparece com o Debug ativado. Os nomes dos cofres que não estão abertos continuam criptografados; cada um abre com a própria senha ou PIN.",
   "vaultManagerOpen": "Aberto agora",
   "vaultManagerPassword": "Senha",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "Este arquivo está vazio.",
   "driveDeleting": "Excluindo do Google Drive…",
   "testLogin": "Entrada de teste",
-  "testLoginNote": "Para testadores: abre um cofre feito para experimentar o app. Não guarde nada real nele.",
+  "testLoginNote": "Não guarde nada importante. Senha: de 1 a 9",
   "testLoginFailed": "Não foi possível abrir o cofre de teste.",
   "keysTitle": "24 palavras para este cofre",
   "keysLead": "Um cofre abre com a sua senha e um conjunto de 24 palavras. Os cofres podem compartilhar o conjunto deste dispositivo ou ter um próprio.",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "Digitar o código",
   "inviteTypeLead": "Digite o código exibido no outro dispositivo (ele aparece após “Sem câmera?”).",
   "restoreFromDeviceInviteNote": "Escaneie um código no seu outro dispositivo e depois a senha",
-  "restorePickFile": "Escolher o arquivo de backup"
+  "restorePickFile": "Escolher o arquivo de backup",
+  "testVault": "Cofre de teste"
 }

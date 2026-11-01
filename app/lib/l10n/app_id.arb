@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "Kata sandi salah di perangkat lain.",
   "syncPeerStopped": "Perangkat lain menghentikan sinkronisasi.",
   "syncItemsSoFar": "{done} item",
-  "vaultManagerTitle": "Brankas di perangkat ini",
+  "vaultManagerTitle": "Kelola brankas",
   "vaultManagerLead": "Hanya tampil saat Debug aktif. Nama brankas yang belum dibuka tetap terenkripsi; masing-masing dibuka dengan kata sandi atau PIN-nya sendiri.",
   "vaultManagerOpen": "Sedang dibuka",
   "vaultManagerPassword": "Kata sandi",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "File ini kosong.",
   "driveDeleting": "Menghapus dari Google Drive…",
   "testLogin": "Masuk uji coba",
-  "testLoginNote": "Untuk penguji: membuka brankas khusus untuk mencoba aplikasi. Jangan simpan apa pun yang asli di dalamnya.",
+  "testLoginNote": "Jangan simpan data penting. Kata sandi: 1 sampai 9",
   "testLoginFailed": "Tidak dapat membuka brankas uji coba.",
   "keysTitle": "24 kata untuk brankas ini",
   "keysLead": "Brankas dibuka dengan kata sandinya dan satu set 24 kata. Brankas bisa memakai set milik perangkat ini, atau punya set sendiri.",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "Ketik kode saja",
   "inviteTypeLead": "Ketik kode yang tampil di perangkat lain (muncul setelah “Tidak ada kamera?”).",
   "restoreFromDeviceInviteNote": "Pindai kode di perangkat Anda yang lain, lalu kata sandinya",
-  "restorePickFile": "Pilih file cadangan"
+  "restorePickFile": "Pilih file cadangan",
+  "testVault": "Brankas uji coba"
 }

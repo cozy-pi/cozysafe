@@ -45,8 +45,8 @@ Future<void> openRestored(BuildContext context, String libraryDir, rust.VaultInf
   );
 }
 
-/// Restore, step 1 (owner 2026-11-01: the source first): where the vault is. Another
-/// device first: scan its code, then the password only. Google Drive or a backup file:
+/// Restore, step 1 (owner 2026-11-01: the source first): where the vault is, all choices
+/// alike (none lit up). Another device: scan its code, then the password only. Google Drive or a backup file:
 /// the 24 words and the password, then it goes. Works on a device that holds vaults too
 /// (the restored one gets a library of its own).
 class RestorePickScreen extends StatefulWidget {
@@ -102,7 +102,6 @@ class _RestorePickScreenState extends State<RestorePickScreen> {
           icon: Icons.qr_code_scanner_rounded,
           title: l.restoreFromDevice,
           note: l.restoreFromDeviceInviteNote,
-          strong: true,
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => Readable(child: InviteScanPage(libraryDir: widget.libraryDir)),
           )),

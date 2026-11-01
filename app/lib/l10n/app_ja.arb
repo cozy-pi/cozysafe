@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "もう一台でパスワードが違っていました。",
   "syncPeerStopped": "もう一台のデバイスが同期を中止しました。",
   "syncItemsSoFar": "{done} 件",
-  "vaultManagerTitle": "この端末の金庫",
+  "vaultManagerTitle": "金庫の管理",
   "vaultManagerLead": "Debug がオンのときだけ表示されます。開いていない金庫の名前は暗号化されたままで、それぞれ自分のパスワードまたは PIN でのみ開けます。",
   "vaultManagerOpen": "現在開いています",
   "vaultManagerPassword": "パスワード",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "このファイルは空です。",
   "driveDeleting": "Google ドライブから削除しています…",
   "testLogin": "テスト用サインイン",
-  "testLoginNote": "テスター向け：アプリを試すための金庫を開きます。大切なものは入れないでください。",
+  "testLoginNote": "大切なデータは保存しないでください。パスワード：1〜9",
   "testLoginFailed": "テスト用の金庫を開けませんでした。",
   "keysTitle": "この金庫の24語",
   "keysLead": "金庫はパスワードと24語のセットで開きます。金庫ごとに、このデバイスのセットを共有することも、専用のセットを持つこともできます。",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "代わりにコードを入力",
   "inviteTypeLead": "もう一方のデバイスに表示されたコードを入力してください（そちらで「カメラがない？」を押すと表示されます）。",
   "restoreFromDeviceInviteNote": "もう一方のデバイスでコードをスキャンし、パスワードを入力",
-  "restorePickFile": "バックアップファイルを選択"
+  "restorePickFile": "バックアップファイルを選択",
+  "testVault": "テスト用金庫"
 }

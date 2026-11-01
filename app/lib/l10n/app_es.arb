@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "Contraseña incorrecta en el otro dispositivo.",
   "syncPeerStopped": "El otro dispositivo detuvo la sincronización.",
   "syncItemsSoFar": "{done} elementos",
-  "vaultManagerTitle": "Cajas fuertes en este dispositivo",
+  "vaultManagerTitle": "Gestionar cajas fuertes",
   "vaultManagerLead": "Solo se muestra con Debug activado. Los nombres de las cajas fuertes que no están abiertas siguen cifrados; cada una se abre con su propia contraseña o PIN.",
   "vaultManagerOpen": "Abierta ahora",
   "vaultManagerPassword": "Contraseña",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "Este archivo está vacío.",
   "driveDeleting": "Eliminando de Google Drive…",
   "testLogin": "Inicio de sesión de prueba",
-  "testLoginNote": "Para testers: abre una caja fuerte hecha para probar la app. No guardes nada real en ella.",
+  "testLoginNote": "No guardes nada importante. Contraseña: del 1 al 9",
   "testLoginFailed": "No se pudo abrir la caja fuerte de prueba.",
   "keysTitle": "24 palabras para esta caja fuerte",
   "keysLead": "Una caja fuerte se abre con su contraseña y un juego de 24 palabras. Las cajas fuertes pueden compartir el juego de este dispositivo o tener uno propio.",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "Escribir el código",
   "inviteTypeLead": "Escribe el código que aparece en el otro dispositivo (se muestra tras «¿Sin cámara?»).",
   "restoreFromDeviceInviteNote": "Escanea un código en tu otro dispositivo y luego la contraseña",
-  "restorePickFile": "Elegir el archivo de copia de seguridad"
+  "restorePickFile": "Elegir el archivo de copia de seguridad",
+  "testVault": "Caja fuerte de prueba"
 }

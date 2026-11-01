@@ -308,6 +308,20 @@ pub fn create_vault_with_password(
     set_open(vault)
 }
 
+/// The test vault of Android test builds (lib/test_login.dart), opened by the fixed
+/// [`test_vault_password`], left open. Runs Argon2id: call it off the UI thread.
+pub fn create_test_vault(dir: String) -> Result<VaultInfo, VaultError> {
+    let library = library(&dir)?;
+    let vault = library.create_test_vault("bolt", "orange")?;
+    set_open(vault)
+}
+
+/// The test vault's password: "1 to 9", typed by testers on their other devices.
+#[flutter_rust_bridge::frb(sync)]
+pub fn test_vault_password() -> String {
+    cs_vault::TEST_VAULT_PASSWORD.to_owned()
+}
+
 /// Turn Top Secret Mode on or off for the open vault. The caller then ends the run
 /// ([`super::run::end_run`]) and the app starts again.
 pub fn set_top_secret(top_secret: bool) -> Result<VaultInfo, VaultError> {
@@ -1253,6 +1267,21 @@ pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
     Ok(all)
 }
 
+/// Whether `password` opens the vault `vault_id` (open or not), in whatever library it is:
+/// asked before the countdown to delete it (owner 2026-11-01: the password first). Opens
+/// nothing that is kept. Runs Argon2id: call it off the UI thread.
+pub fn vault_password_opens(
+    dir: String,
+    vault_id: String,
+    password: String,
+) -> Result<bool, VaultError> {
+    let password = Zeroizing::new(password);
+    super::run::library_dir(&dir)?;
+    let own = library_holding(&vault_id)?;
+    let library = Library::open_or_create(&own, params_for_this_device(), secret(&own)?)?;
+    Ok(library.unlock(&password)?.is_some_and(|v| v.id == vault_id))
+}
+
 /// Delete a vault that is not open, confirmed by its own password: the password must open
 /// that very vault (it is opened only to check, never kept). False for any other password.
 /// Runs Argon2id: call it off the UI thread.
@@ -1449,6 +1478,23 @@ mod tests {
         let slots = ok(list_vaults(main.clone()));
         assert_eq!(slots.len(), 2);
         assert!(slots.iter().any(|s| s.id == b.id && s.library_dir == other));
+
+        // Each password checks its own vault only, wherever it is.
+        assert!(ok(vault_password_opens(
+            main.clone(),
+            b.id.clone(),
+            pb2.clone()
+        )));
+        assert!(!ok(vault_password_opens(
+            main.clone(),
+            b.id.clone(),
+            pa.clone()
+        )));
+        assert!(ok(vault_password_opens(
+            main.clone(),
+            a.id.clone(),
+            pa.clone()
+        )));
 
         // Its last vault gone, a library beside the run's goes altogether; the run's stays.
         assert!(

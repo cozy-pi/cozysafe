@@ -547,7 +547,7 @@
   "syncPeerWrongPassword": "다른 기기에서 비밀번호가 틀렸습니다.",
   "syncPeerStopped": "다른 기기에서 동기화를 중지했습니다.",
   "syncItemsSoFar": "항목 {done}개",
-  "vaultManagerTitle": "이 기기의 금고",
+  "vaultManagerTitle": "금고 관리",
   "vaultManagerLead": "Debug가 켜져 있을 때만 표시됩니다. 열려 있지 않은 금고의 이름은 암호화된 상태로 유지되며, 각 금고는 자체 비밀번호나 PIN으로만 열립니다.",
   "vaultManagerOpen": "지금 열려 있음",
   "vaultManagerPassword": "비밀번호",
@@ -848,7 +848,7 @@
   "plainTextEmpty": "이 파일은 비어 있습니다.",
   "driveDeleting": "Google Drive에서 삭제하는 중…",
   "testLogin": "테스트 로그인",
-  "testLoginNote": "테스터용: 앱을 체험하기 위한 금고를 엽니다. 실제 정보는 넣지 마세요.",
+  "testLoginNote": "중요한 데이터는 저장하지 마세요. 비밀번호: 1~9",
   "testLoginFailed": "테스트 금고를 열 수 없습니다.",
   "keysTitle": "이 금고의 24개 단어",
   "keysLead": "금고는 비밀번호와 24개 단어 세트로 열립니다. 금고마다 이 기기의 세트를 함께 쓰거나 자기만의 세트를 가질 수 있습니다.",
@@ -868,5 +868,6 @@
   "inviteTypeInstead": "대신 코드 입력",
   "inviteTypeLead": "다른 기기에 표시된 코드를 입력하세요(그 기기에서 “카메라가 없나요?”를 누르면 표시됩니다).",
   "restoreFromDeviceInviteNote": "다른 기기에서 코드를 스캔한 뒤 비밀번호 입력",
-  "restorePickFile": "백업 파일 선택"
+  "restorePickFile": "백업 파일 선택",
+  "testVault": "테스트 금고"
 }
