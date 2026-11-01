@@ -1695,6 +1695,8 @@ void main() {
     }
   }
   _screen('trash', 'Đã xoá gần đây', () => const Readable(child: TrashScreen()));
+  _screen('ts-trash', 'Chế độ tuyệt mật · Đã xoá gần đây: ảnh, video thành dòng có biểu tượng (không ô trống)', () => const Readable(child: TrashScreen()),
+      change: 'SỬA: ở chế độ tuyệt mật, ảnh và video trong thùng rác hiện thành dòng như tệp, không còn lưới ô trống trông như lỗi');
   if (selectShown) {
     _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 2 mục', () => const Readable(child: TrashScreen()),
       act: (t) async {
