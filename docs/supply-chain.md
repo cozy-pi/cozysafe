@@ -275,7 +275,9 @@ validate a build with Apple instead of uploading it (`upload: false`).
   two are the only names the app ever looks up, so the compiled-library check allows
   `getaddrinfo`. The sign-in's loopback listener (127.0.0.1 only) is in `oauth.rs` too;
   Dart opens the browser and parses Google's answers but opens no connection itself,
-  so the Dart guard stays as it is. TLS is rustls with ring and Mozilla's roots
+  so the Dart guard stays as it is. Adding a device by its 8-digit code (ADR 0003,
+  point 11) uses ring's X25519 and SHA-256 directly from `cs-net` (no new crate). TLS is
+  rustls with ring and Mozilla's roots
   bundled (6 crates; a ready-made HTTP client pulled in 44, so the few HTTP/1.1 requests
   are written in cs-net, with tests for chunked bodies and size caps). Up to four
   connections are kept and reused (HTTP/1.1 keep-alive), one per item a sync sends at

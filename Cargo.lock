@@ -177,6 +177,7 @@ dependencies = [
  "cs-crypto",
  "cs-vault",
  "hex",
+ "ring",
  "rustls",
  "serde_json",
  "sha2",

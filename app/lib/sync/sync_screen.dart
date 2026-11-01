@@ -100,9 +100,27 @@ class _SyncScreenState extends State<SyncScreen> {
     await AutoSync.idle();
     if (!mounted) return;
     await pushPage<void>(context,
-        title: l.inviteRow,
+        title: l.syncLocalNew,
         builder: (_) => InvitePage(address: address, mirror: '${widget.libraryDir}-sync', onSynced: _synced));
     _loadLog();
+  }
+
+  /// The local network's page: sync with a device that has the vault, or set one up.
+  Future<void> _local() async {
+    final l = AppLocalizations.of(context);
+    await pushPage<void>(context,
+        title: l.syncLocalRow,
+        builder: (_) => ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+              children: [
+                const Padding(padding: EdgeInsets.only(top: 12), child: SyncLink(moving: false)),
+                const SizedBox(height: 24),
+                _Card(children: [
+                  _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncLocalExisting, onTap: _nearby),
+                  _Action(key: const ValueKey('sync-invite'), icon: Icons.add_to_home_screen_rounded, color: const Color(0xFF5856D6), title: l.syncLocalNew, onTap: _invite),
+                ]),
+              ],
+            ));
   }
 
   /// Google Drive: sign in, ask, then one sync (the vault's sealed files only).
@@ -197,9 +215,10 @@ class _SyncScreenState extends State<SyncScreen> {
           ]),
           const SizedBox(height: 24),
         ],
+        // Both ways over the Wi-Fi behind one row (owner 2026-11-01): a device that has
+        // the vault, or a new one to set up.
         _Card(children: [
-          _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncRow, onTap: _nearby),
-          _Action(key: const ValueKey('sync-invite'), icon: Icons.qr_code_2_rounded, color: const Color(0xFF5856D6), title: l.inviteRow, onTap: _invite),
+          _Action(key: const ValueKey('sync-local'), icon: Icons.wifi_rounded, color: const Color(0xFF007AFF), title: l.syncLocalRow, onTap: _local),
         ]),
         const SizedBox(height: 24),
         // The log behind one row (owner 2026-10-26): most people never need it.
@@ -358,6 +377,8 @@ class _SyncScreenState extends State<SyncScreen> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           children: [
+            const SyncLink(moving: false),
+            const SizedBox(height: 24),
             if (_log.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
