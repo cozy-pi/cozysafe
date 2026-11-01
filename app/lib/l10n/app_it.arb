@@ -843,5 +843,8 @@
   "restartCountdownLead": "Cozy Safe si riavvia per completare la modifica.",
   "closeCountdownLead": "Cozy Safe si chiude per completare la modifica. Riaprila dopo.",
   "restartingTitle": "Riavvio di Cozy Safe",
-  "searchMore": "Mostrati {shown} di {total}. Scrivi altro per restringere."
+  "searchMore": "Mostrati {shown} di {total}. Scrivi altro per restringere.",
+  "compareText": "File di testo semplice",
+  "plainTextEmpty": "Questo file è vuoto.",
+  "driveDeleting": "Eliminazione da Google Drive…"
 }

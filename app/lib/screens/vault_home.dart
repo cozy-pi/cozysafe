@@ -71,6 +71,7 @@ import 'top_secret_page.dart';
 import 'sealed_item.dart';
 import '../file_kinds.dart';
 import '../widgets/file_name.dart';
+import 'plain_text_view.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -1104,7 +1105,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // Top secret opens notes only (ADR 0005); anything else is a sealed row: its details
     // and Export, after the warning. No viewer, player or preview is ever built.
     if (TopSecretMode.on && item.kind != ItemKind.note) {
-      await showSealedItem(context, item, vaultId: _vault.id);
+      // Plain text reads in the app, after the core's checks (owner 2026-11-01); anything
+      // else, or text that fails them, stays sealed.
+      if (opensAsPlainText(item)) {
+        await showPlainText(context, item, onRefused: () => showSealedItem(context, item, vaultId: _vault.id));
+      } else {
+        await showSealedItem(context, item, vaultId: _vault.id);
+      }
       return;
     }
     // A wide window opens it in the pane beside the list, not over the page.

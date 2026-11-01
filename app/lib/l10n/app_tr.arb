@@ -843,5 +843,8 @@
   "restartCountdownLead": "Cozy Safe değişikliği tamamlamak için yeniden başlatılıyor.",
   "closeCountdownLead": "Cozy Safe değişikliği tamamlamak için kapanıyor. Ardından yeniden açın.",
   "restartingTitle": "Cozy Safe yeniden başlatılıyor",
-  "searchMore": "{total} sonuçtan {shown} tanesi gösteriliyor. Daraltmak için yazmaya devam edin."
+  "searchMore": "{total} sonuçtan {shown} tanesi gösteriliyor. Daraltmak için yazmaya devam edin.",
+  "compareText": "Düz metin dosyaları",
+  "plainTextEmpty": "Bu dosya boş.",
+  "driveDeleting": "Google Drive'dan siliniyor…"
 }

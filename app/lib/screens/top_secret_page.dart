@@ -117,6 +117,8 @@ class TopSecretCompare extends StatelessWidget {
           row(l.compareCapture, true, true),
           // Photos from the library and files from Files in one row (owner 2026-10-31).
           row(l.compareNotesFiles, true, true),
+          // Read in the app in both modes, after the core's checks (owner 2026-11-01).
+          row(l.compareText, true, true),
           row(l.compareView, true, false),
           row(l.compareThumbs, true, false),
         ],

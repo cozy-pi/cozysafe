@@ -9,6 +9,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/toast.dart';
+import '../widgets/working_card.dart';
 import '../widgets/vault_bar.dart' show pushPage;
 import 'auto_sync.dart';
 import 'sync_log.dart';
@@ -298,7 +299,9 @@ class _SyncScreenState extends State<SyncScreen> {
     try {
       final session = await driveSignInQuietly() ?? await driveSignIn();
       if (session == null) throw StateError('no sign-in');
-      await sync.driveDeleteVault(token: session.token, vaultId: id);
+      if (!mounted) return;
+      await whileWorking(context, l.driveDeleting,
+          () => AutoSync.busyWith(() => sync.driveDeleteVault(token: session.token, vaultId: id)));
       if (mounted) showToast(context, l.driveDeleted, icon: Icons.check_rounded);
     } catch (e) {
       ErrorLog.add('drive-delete', e.runtimeType.toString());

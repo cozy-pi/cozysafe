@@ -843,5 +843,8 @@
   "restartCountdownLead": "Cozy Safe startet neu, um die Änderung abzuschließen.",
   "closeCountdownLead": "Cozy Safe wird geschlossen, um die Änderung abzuschließen. Öffne die App danach erneut.",
   "restartingTitle": "Cozy Safe startet neu",
-  "searchMore": "{shown} von {total} angezeigt. Tippe weiter, um einzugrenzen."
+  "searchMore": "{shown} von {total} angezeigt. Tippe weiter, um einzugrenzen.",
+  "compareText": "Reine Textdateien",
+  "plainTextEmpty": "Diese Datei ist leer.",
+  "driveDeleting": "Wird aus Google Drive gelöscht …"
 }

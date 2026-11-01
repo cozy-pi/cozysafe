@@ -843,5 +843,8 @@
   "restartCountdownLead": "Cozy Safe redémarre pour terminer le changement.",
   "closeCountdownLead": "Cozy Safe se ferme pour terminer le changement. Rouvrez-la ensuite.",
   "restartingTitle": "Redémarrage de Cozy Safe",
-  "searchMore": "{shown} sur {total} affichés. Tapez davantage pour affiner."
+  "searchMore": "{shown} sur {total} affichés. Tapez davantage pour affiner.",
+  "compareText": "Fichiers texte brut",
+  "plainTextEmpty": "Ce fichier est vide.",
+  "driveDeleting": "Suppression de Google Drive…"
 }

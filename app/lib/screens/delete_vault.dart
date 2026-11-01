@@ -19,6 +19,7 @@ import 'common.dart';
 import 'unlock.dart';
 import '../widgets/bottom_bar.dart';
 import '../widgets/toast.dart';
+import '../widgets/working_card.dart';
 import 'vault_manager.dart' show VaultManagerScreen;
 import 'welcome.dart';
 
@@ -112,7 +113,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       }
       await PinStore.resetPasswordFails();
       _pw.clear();
-      if (_alsoDrive && !await _deleteFromDrive(id) && mounted) {
+      if (_alsoDrive && mounted && !await whileWorking(context, l.driveDeleting, () => _deleteFromDrive(id)) && mounted) {
         showToast(context, l.deleteDriveFailed, icon: Icons.error_outline_rounded);
       }
       if (!mounted) return;

@@ -933,6 +933,46 @@ pub fn item_content_head(id: String, max: u32) -> Result<Vec<u8>, VaultError> {
 
 /// Top Secret Mode (ADR 0006): only notes are read into the app; anything else leaves
 /// the vault by [`export_item`] alone, to be opened in another app.
+/// A plain text file's text, for the plain text page; in Top Secret Mode too, where it is
+/// the only file content handed over, and only when every check in [`crate::plain_text`]
+/// passes: a file named as plain text, at most 1 MB, valid UTF-8 without control
+/// characters. Anything else is refused, as for any file in that mode.
+pub fn item_plain_text(id: String) -> Result<String, VaultError> {
+    /// Collects up to one byte past the limit, then stops the decryption.
+    struct Capped(Vec<u8>);
+    impl std::io::Write for Capped {
+        fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
+            let room = crate::plain_text::MAX + 1 - self.0.len();
+            self.0.extend_from_slice(&b[..b.len().min(room)]);
+            if self.0.len() > crate::plain_text::MAX {
+                return Err(std::io::Error::other("too big"));
+            }
+            Ok(b.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    with_open(|v| {
+        let r = v.record(&id)?;
+        if r.kind != cs_vault::items::kind::FILE
+            || !crate::plain_text::allowed_name(&r.name)
+            || r.size_bytes > crate::plain_text::MAX as u64
+        {
+            debug_line(|| "plain text refused: not a small text file".into());
+            return Err(VaultError::Storage);
+        }
+        let mut out = Capped(Vec::new());
+        if v.read_item(&id, &mut out).is_err() {
+            return Err(VaultError::Storage);
+        }
+        crate::plain_text::checked(&out.0).ok_or_else(|| {
+            debug_line(|| "plain text refused: not plain text".into());
+            VaultError::Storage
+        })
+    })
+}
+
 fn readable_in_app(v: &OpenVault, id: &str) -> Result<(), VaultError> {
     if super::run::top_secret() && v.record(id)?.kind != cs_vault::items::kind::NOTE {
         return super::run::refuse_in_top_secret("content");

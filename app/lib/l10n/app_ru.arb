@@ -843,5 +843,8 @@
   "restartCountdownLead": "Cozy Safe перезапустится, чтобы завершить изменение.",
   "closeCountdownLead": "Cozy Safe закроется, чтобы завершить изменение. Затем откройте его снова.",
   "restartingTitle": "Перезапуск Cozy Safe",
-  "searchMore": "Показано {shown} из {total}. Уточните запрос."
+  "searchMore": "Показано {shown} из {total}. Уточните запрос.",
+  "compareText": "Простые текстовые файлы",
+  "plainTextEmpty": "Этот файл пуст.",
+  "driveDeleting": "Удаление из Google Диска…"
 }

@@ -34,6 +34,9 @@ Dates are UTC.
 - A vault in Top Secret Mode has a faint red wash over the top half of its page and
   of Settings, instead of the small shield on the Settings button.
 - A long file name keeps its extension: "Ket qua xet nghiem… .pdf".
+- Top Secret Mode reads plain text files (txt, md, csv, json, keys…, up to 1 MB) in the
+  app, as plain characters: no formatting, no links. The core hands one over only after
+  checking it is real text; anything else stays sealed.
 - Grid or list is chosen in ⋯ (no longer under Sort), on Files and now on Overview too.
 - Overview lists everything, newest first, as far as you scroll (it stopped at six).
 - In the grid, the extension sits on the file's icon (or on a picture's corner); the name
@@ -63,6 +66,8 @@ Dates are UTC.
 - A tap beside the quick buttons above + closes them, as a tap anywhere else does.
 - With + in the middle and three sections (Top Secret Mode), + sat right of centre.
 - Deleting a vault from Google Drive removes its folders too; empty ones were left.
+- Deleting from Google Drive shows that it is under way (a card, and the cloud moving)
+  until it is done; it ran unseen.
 
 ## 0.1.92 (2026-10-30)
 

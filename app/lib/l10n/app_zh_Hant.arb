@@ -843,5 +843,8 @@
   "restartCountdownLead": "Cozy Safe 將重新啟動以完成變更。",
   "closeCountdownLead": "Cozy Safe 將關閉以完成變更。之後請重新開啟。",
   "restartingTitle": "正在重新啟動 Cozy Safe",
-  "searchMore": "顯示 {total} 項中的 {shown} 項。繼續輸入以縮小範圍。"
+  "searchMore": "顯示 {total} 項中的 {shown} 項。繼續輸入以縮小範圍。",
+  "compareText": "純文字檔案",
+  "plainTextEmpty": "此檔案為空。",
+  "driveDeleting": "正在從 Google 雲端硬碟刪除…"
 }
