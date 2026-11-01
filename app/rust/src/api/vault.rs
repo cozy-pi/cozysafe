@@ -36,6 +36,11 @@ impl Kept for OpenVault {
             biometric: self.biometric_enabled(),
         }
     }
+    fn reader(&self) -> Option<Self> {
+        OpenVault::reader(self)
+            .inspect_err(|_| debug_line(|| "vault reader: could not open".into()))
+            .ok()
+    }
 }
 
 /// A sync's own handle on the vault it syncs, kept through a lock until the sync ends.
@@ -727,6 +732,15 @@ pub(crate) fn with_open<T>(
     OPEN.with(f).unwrap_or(Err(VaultError::Locked))
 }
 
+/// [`with_open`] for a call that only reads (open, preview, list): it does not wait for a
+/// sync working with the vault (owner 2026-11-01: a note stayed on its spinner while
+/// Drive uploaded two videos).
+pub(crate) fn read_open<T>(
+    f: impl FnOnce(&OpenVault) -> Result<T, VaultError>,
+) -> Result<T, VaultError> {
+    OPEN.read(f).unwrap_or(Err(VaultError::Locked))
+}
+
 /// [`with_open`] for a change the lock screen or settings show (PIN, Face ID, password,
 /// icon): what they read without waiting is brought up to date.
 fn change_open<T>(
@@ -848,7 +862,7 @@ pub fn update_note(id: String, title: String, text: String) -> Result<ItemInfo, 
 /// Decrypt an item to `path` (a private temporary file), to open it in another app.
 /// The caller deletes it afterwards.
 pub fn export_item(id: String, path: String) -> Result<(), VaultError> {
-    with_open(|v| {
+    read_open(|v| {
         let f = std::fs::File::create(&path).map_err(|_| VaultError::Storage)?;
         let mut w = std::io::BufWriter::new(f);
         let r = v.read_item(&id, &mut w);
@@ -870,7 +884,7 @@ pub fn suggest_passphrase() -> String {
 /// Items in the open vault, newest first.
 pub fn list_items() -> Result<Vec<ItemInfo>, VaultError> {
     let waited = std::time::Instant::now();
-    with_open(|v| {
+    read_open(|v| {
         let wait_ms = waited.elapsed().as_millis();
         let start = std::time::Instant::now();
         let items: Vec<ItemInfo> = v.items()?.into_iter().map(Into::into).collect();
@@ -888,12 +902,12 @@ pub fn list_items() -> Result<Vec<ItemInfo>, VaultError> {
 /// Decrypted preview (JPEG), empty when the item has none.
 pub fn item_thumbnail(id: String) -> Result<Vec<u8>, VaultError> {
     super::run::refuse_in_top_secret("thumbnail")?;
-    with_open(|v| Ok(v.read_thumbnail(&id)?.unwrap_or_default()))
+    read_open(|v| Ok(v.read_thumbnail(&id)?.unwrap_or_default()))
 }
 
 /// Decrypted content. Kept in memory only; Dart shows it and drops it.
 pub fn item_content(id: String) -> Result<Vec<u8>, VaultError> {
-    with_open(|v| {
+    read_open(|v| {
         readable_in_app(v, &id)?;
         let mut out = Vec::new();
         v.read_item(&id, &mut out)?;
@@ -922,7 +936,7 @@ pub fn item_content_head(id: String, max: u32) -> Result<Vec<u8>, VaultError> {
             Ok(())
         }
     }
-    with_open(|v| {
+    read_open(|v| {
         readable_in_app(v, &id)?;
         let mut head = Head {
             buf: Vec::new(),
@@ -960,7 +974,7 @@ pub fn item_plain_text(id: String) -> Result<String, VaultError> {
             Ok(())
         }
     }
-    with_open(|v| {
+    read_open(|v| {
         let r = v.record(&id)?;
         if r.kind != cs_vault::items::kind::FILE
             || !crate::plain_text::allowed_name(&r.name)
@@ -1040,13 +1054,13 @@ pub fn restore_item(id: String) -> Result<(), VaultError> {
 
 /// Recently deleted, most recently deleted first.
 pub fn list_trash() -> Result<Vec<ItemInfo>, VaultError> {
-    with_open(|v| Ok(v.trashed()?.into_iter().map(Into::into).collect()))
+    read_open(|v| Ok(v.trashed()?.into_iter().map(Into::into).collect()))
 }
 
 /// Items another device deleted for good, held here for 30 days (shown in Recently
 /// deleted, marked, never synced). Their content and preview read like any item's.
 pub fn list_held() -> Result<Vec<ItemInfo>, VaultError> {
-    with_open(|v| Ok(v.held()?.into_iter().map(Into::into).collect()))
+    read_open(|v| Ok(v.held()?.into_iter().map(Into::into).collect()))
 }
 
 /// Bring a held item back here and, at the next sync, everywhere.

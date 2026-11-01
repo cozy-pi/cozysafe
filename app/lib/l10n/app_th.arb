@@ -760,6 +760,7 @@
   "debugDriveCleaned": "ล้างแล้ว {count} ไฟล์",
   "debugDriveFailed": "ตรวจไม่ได้ ตรวจเครือข่ายแล้วลองใหม่",
   "debugSyncLog": "บันทึกการซิงค์",
+  "debugSyncNow": "กำลังซิงค์",
   "debugLines": "{count} บรรทัด",
   "debugClearShort": "ล้าง",
   "deskKind": "ประเภท",

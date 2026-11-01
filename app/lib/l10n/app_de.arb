@@ -760,6 +760,7 @@
   "debugDriveCleaned": "{count} Dateien entfernt",
   "debugDriveFailed": "Prüfen fehlgeschlagen. Netzwerk prüfen und erneut versuchen.",
   "debugSyncLog": "Sync-Protokoll",
+  "debugSyncNow": "Synchronisiert gerade",
   "debugLines": "{count} Zeilen",
   "debugClearShort": "Löschen",
   "deskKind": "Art",

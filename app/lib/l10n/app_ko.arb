@@ -760,6 +760,7 @@
   "debugDriveCleaned": "파일 {count}개 정리됨",
   "debugDriveFailed": "확인하지 못했습니다. 네트워크를 확인하고 다시 시도하세요.",
   "debugSyncLog": "동기화 기록",
+  "debugSyncNow": "동기화 중",
   "debugLines": "{count}줄",
   "debugClearShort": "지우기",
   "deskKind": "종류",

@@ -760,6 +760,7 @@
   "debugDriveCleaned": "Удалено файлов: {count}",
   "debugDriveFailed": "Не удалось проверить. Проверьте сеть и повторите.",
   "debugSyncLog": "Журнал синхронизации",
+  "debugSyncNow": "Идёт синхронизация",
   "debugLines": "Строк: {count}",
   "debugClearShort": "Очистить",
   "deskKind": "Тип",

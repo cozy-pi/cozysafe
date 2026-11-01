@@ -693,6 +693,7 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
         return;
     };
     let _ = sink.add(step(SyncStep::Checking));
+    let live = DriveNow::start();
     // How long each step takes, in Debug's log (owner 2026-10-26: "Looking at Google
     // Drive" was slow after a while without syncing; the log says where the time goes).
     let started = std::time::Instant::now();
@@ -709,6 +710,7 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
         .and_then(|api| {
             DriveRemote::open_with(api, &|s| {
                 let e = setup_event(s);
+                live.step(&e);
                 mark(format!("{:?}", e.kind));
                 let _ = sink.add(e);
             })
@@ -720,6 +722,7 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
         Ok(remote) => match hold.with(|v| {
             let r = v.sync_with(&remote, &|p| {
                 let e = progress_event(p);
+                live.step(&e);
                 mark(format!("{:?}", e.kind));
                 let _ = sink.add(e);
             })?;
@@ -781,6 +784,78 @@ pub fn drive_changed(token: String) -> bool {
 /// never sees a sync half-way (files going up, the index changing), and never removes
 /// a file a sync is about to rely on. Each waits for the other to end.
 static DRIVE_RUN: Mutex<()> = Mutex::new(());
+
+/// The Drive sync under way: when it started and its last step, for the Debug page to
+/// show at any moment (owner 2026-11-01: a sync ran a long time and the logs, written
+/// as it ends or only while debug mode was on, said nothing).
+static DRIVE_NOW: Mutex<Option<(std::time::Instant, Step)>> = Mutex::new(None);
+
+/// A [`SyncEvent`]'s step and counts, as [`drive_sync_now`] shows them.
+#[flutter_rust_bridge::frb(ignore)]
+#[derive(Default)]
+struct Step {
+    kind: String,
+    done: u32,
+    total: u32,
+    bytes: u64,
+    bytes_total: u64,
+}
+
+/// Ends [`DRIVE_NOW`] however the sync ends.
+#[flutter_rust_bridge::frb(ignore)]
+struct DriveNow;
+
+impl DriveNow {
+    fn start() -> DriveNow {
+        *DRIVE_NOW.lock().unwrap_or_else(|p| p.into_inner()) = Some((
+            std::time::Instant::now(),
+            Step {
+                kind: format!("{:?}", SyncStep::Checking),
+                ..Step::default()
+            },
+        ));
+        DriveNow
+    }
+    fn step(&self, e: &SyncEvent) {
+        if let Some((_, now)) = DRIVE_NOW.lock().unwrap_or_else(|p| p.into_inner()).as_mut() {
+            *now = Step {
+                kind: format!("{:?}", e.kind),
+                done: e.done,
+                total: e.total,
+                bytes: e.bytes,
+                bytes_total: e.bytes_total,
+            };
+        }
+    }
+}
+
+impl Drop for DriveNow {
+    fn drop(&mut self) {
+        *DRIVE_NOW.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    }
+}
+
+/// The Drive sync under way in one technical line ("Sending 1/2 · 35/120 MB · 84 s"),
+/// or empty when none runs.
+#[flutter_rust_bridge::frb(sync)]
+pub fn drive_sync_now() -> String {
+    let now = DRIVE_NOW.lock().unwrap_or_else(|p| p.into_inner());
+    let Some((started, e)) = now.as_ref() else {
+        return String::new();
+    };
+    let mut parts = vec![e.kind.clone()];
+    if e.total > 0 {
+        parts.push(format!("{}/{}", e.done, e.total));
+    }
+    const MB: u64 = 1 << 20;
+    if e.bytes_total > 0 {
+        parts.push(format!("{}/{} MB", e.bytes / MB, e.bytes_total / MB));
+    } else if e.bytes > 0 {
+        parts.push(format!("{} MB", e.bytes / MB));
+    }
+    parts.push(format!("{} s", started.elapsed().as_secs()));
+    parts.join(" · ")
+}
 
 /// What the vault's folder in Google Drive holds, counted by what each file is (see
 /// `cs_vault::audit::classify`); counts and bytes only, no ids or names.

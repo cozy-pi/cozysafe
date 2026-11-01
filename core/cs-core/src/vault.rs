@@ -81,6 +81,22 @@ impl Sealer<'_> {
 }
 
 impl OpenVault {
+    /// The same vault for reading only, on its own SQLite connection ([`db::Index::
+    /// open_reader`]): it opens items and lists them while this one is busy (a sync), and
+    /// any write through it fails. Its copy of the Master Key is wiped when it is dropped.
+    pub fn reader(&self) -> Result<OpenVault> {
+        Ok(OpenVault {
+            id: self.id.clone(),
+            name: self.name.clone(),
+            icon: self.icon.clone(),
+            color: self.color.clone(),
+            top_secret: self.top_secret,
+            dir: self.dir.clone(),
+            master_key: self.master_key.clone(),
+            index: db::Index::open_reader(&self.dir)?,
+        })
+    }
+
     /// The vault's folder on this device.
     pub fn dir(&self) -> &Path {
         &self.dir

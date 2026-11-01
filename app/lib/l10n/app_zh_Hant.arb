@@ -760,6 +760,7 @@
   "debugDriveCleaned": "已清理 {count} 個檔案",
   "debugDriveFailed": "無法檢查。請檢查網路後重試。",
   "debugSyncLog": "同步記錄",
+  "debugSyncNow": "正在同步",
   "debugLines": "{count} 行",
   "debugClearShort": "清除",
   "deskKind": "種類",

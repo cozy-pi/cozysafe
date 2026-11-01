@@ -760,6 +760,7 @@
   "debugDriveCleaned": "{count} dosya temizlendi",
   "debugDriveFailed": "Denetlenemedi. Ağı kontrol edip yeniden deneyin.",
   "debugSyncLog": "Eşitleme günlüğü",
+  "debugSyncNow": "Şu an eşitleniyor",
   "debugLines": "{count} satır",
   "debugClearShort": "Temizle",
   "deskKind": "Tür",

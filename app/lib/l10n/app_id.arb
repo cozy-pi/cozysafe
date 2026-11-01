@@ -760,6 +760,7 @@
   "debugDriveCleaned": "{count} file dibersihkan",
   "debugDriveFailed": "Gagal memeriksa. Periksa jaringan lalu coba lagi.",
   "debugSyncLog": "Log sinkronisasi",
+  "debugSyncNow": "Sedang sinkron",
   "debugLines": "{count} baris",
   "debugClearShort": "Hapus",
   "deskKind": "Jenis",
