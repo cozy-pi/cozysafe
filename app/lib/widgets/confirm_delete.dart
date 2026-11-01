@@ -20,6 +20,8 @@ Future<bool> confirmDelete(
   IconData icon = Icons.delete_outline_rounded,
   /// The icon's and the button's colour; red unless given (blue for Restore).
   Color? color,
+  /// The quiet choice under the button, Cancel unless given.
+  String? keep,
 }) async {
   HapticFeedback.lightImpact();
   final still = MediaQuery.disableAnimationsOf(context);
@@ -29,7 +31,7 @@ Future<bool> confirmDelete(
     barrierLabel: AppLocalizations.of(context).cancel,
     barrierColor: Colors.transparent,
     transitionDuration: Duration(milliseconds: still ? 0 : 220),
-    pageBuilder: (context, _, _) => _ConfirmSheet(title: title, action: action, name: name, body: body, icon: icon, color: color),
+    pageBuilder: (context, _, _) => _ConfirmSheet(title: title, action: action, name: name, body: body, icon: icon, color: color, keep: keep),
     transitionBuilder: (context, a, _, child) {
       final curve = CurvedAnimation(parent: a, curve: Curves.easeOutCubic);
       return FadeTransition(
@@ -92,8 +94,9 @@ Future<bool> confirmDeleteForGood(BuildContext context, {required int count, Str
 }
 
 class _ConfirmSheet extends StatelessWidget {
-  const _ConfirmSheet({required this.title, required this.action, required this.icon, this.name, this.body, this.color});
+  const _ConfirmSheet({required this.title, required this.action, required this.icon, this.name, this.body, this.color, this.keep});
   final Color? color;
+  final String? keep;
   final String title;
   final String action;
   final IconData icon;
@@ -184,7 +187,7 @@ class _ConfirmSheet extends StatelessWidget {
                           minimumSize: const Size(0, Ui.bar),
                           shape: const StadiumBorder(),
                         ),
-                        child: Text(l.cancel, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w600)),
+                        child: Text(keep ?? l.cancel, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w600)),
                       ),
                     ],
                   ),

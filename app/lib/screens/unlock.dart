@@ -176,13 +176,33 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   BiometricUnlock _bioStore(AppLocalizations l) =>
       BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel);
 
-  Future<void> _unlockBiometric() async {
-    if (_busy || _leaving) return;
+  /// The biometric prompts asked so far; a prompt that never answers is left behind by
+  /// the next one (see [_unlockBiometric]).
+  int _bioRun = 0;
+  bool _bioAsking = false;
+
+  /// The system prompt, then the vault. The screen is not made busy meanwhile: the prompt
+  /// covers it anyway, and on Android a prompt closed with its Cancel button never answers
+  /// (flutter_secure_storage 11.2.0 gives that button an empty listener), which left the
+  /// whole screen disabled (owner 2026-11-01: "after Cancel the fingerprint never shows
+  /// again"). A tap on the button always asks again; asking by itself (on show, on coming
+  /// back) only when no prompt is out.
+  Future<void> _unlockBiometric({bool tapped = false}) async {
+    if (_busy || _leaving || (_bioAsking && !tapped)) return;
     final l = AppLocalizations.of(context);
-    setState(() => _busy = true);
+    final run = ++_bioRun;
+    _bioAsking = true;
     try {
       final vault = await _bioStore(l).unlock(widget.libraryDir);
-      if (vault != null) return await _open(vault);
+      // A prompt left behind that answers late still opens the vault if it was a yes.
+      if (vault != null && mounted && !_leaving && !_busy) {
+        setState(() => _busy = true);
+        try {
+          return await _open(vault);
+        } finally {
+          if (mounted && !_leaving) setState(() => _busy = false);
+        }
+      }
     } on BiometricKeyGone {
       if (mounted) {
         setState(() {
@@ -194,10 +214,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
       if (mounted) setState(() => _error = vaultErrorText(l, e));
     } finally {
-      if (mounted && !_leaving) {
-        setState(() => _busy = false);
-        _focusOnComputer();
-      }
+      if (run == _bioRun) _bioAsking = false;
+      if (mounted && !_leaving) _focusOnComputer();
     }
   }
 
@@ -597,7 +615,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                               key: const ValueKey('biometric-button'),
                               kind: bio,
                               label: unlockWithLabel(l, bio),
-                              onTap: _busy ? null : _unlockBiometric,
+                              onTap: _busy ? null : () => _unlockBiometric(tapped: true),
                             ),
                           ),
                       ],

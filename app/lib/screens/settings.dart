@@ -36,6 +36,8 @@ import 'error_report.dart';
 import 'key_check.dart';
 import 'tour.dart';
 import '../sync/sync_screen.dart';
+import 'delete_vault.dart';
+import 'vault_manager.dart';
 import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
 import 'top_secret_page.dart';
@@ -303,6 +305,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Security settings changed here ask for the owner first (docs/security.md); the ones
   /// that live in the vault screen (password, backup, kit, biometrics) ask there.
+  /// Delete the open vault: its password confirms it; a vault without one (made with a
+  /// PIN before) gets one first.
+  Future<void> _deleteVault() async {
+    if (!widget.vault().hasPassword) {
+      await widget.onPassword();
+      if (!mounted || !widget.vault().hasPassword) return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => Readable(child: DeleteVaultScreen(libraryDir: widget.libraryDir, vault: widget.vault(), sizeText: _sizeText)),
+    ));
+  }
+
+  Future<void> _openVaults() async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => Readable(
+        child: VaultManagerScreen(
+          libraryDir: widget.libraryDir,
+          onDeleteOpen: () => _guarded(_deleteVault),
+          onNewVault: widget.onNewVault,
+        ),
+      ),
+    ));
+    if (mounted) setState(() {});
+  }
+
   Future<void> _guarded(Future<void> Function() action) async {
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
     await action();
@@ -1027,6 +1054,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: l.versionHistory,
               value: _historyDays == 0 ? l.historyOff : historySizeText(l, _historyMax),
               onTap: _openHistory,
+            ),
+            // Also from Settings (owner 2026-11-01), not only from the lock screen.
+            SettingsRow(
+              key: const ValueKey('vaults-row'),
+              icon: Icons.inventory_2_rounded,
+              color: SettingsHue.cam,
+              title: l.vaultManagerTitle,
+              onTap: _openVaults,
             ),
           ]),
           // 5. How it looks and where things are: nothing here protects the vault.

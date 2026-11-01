@@ -437,6 +437,9 @@ void _screen(String name, String caption, Widget Function() home,
       SecondPlaceNudge.debugShow = false;
       debugHoldToasts = true;
       VaultManagerScreen.debugSlots = null;
+      VaultManagerScreen.debugItems = null;
+      VaultManagerScreen.debugOpen = null;
+      VaultManagerScreen.debugDrive = null;
       DeleteVaultScreen.debugDrive = false;
       TestLogin.debugShown = false;
       TestLogin.debugVaultId = null;
@@ -1069,6 +1072,12 @@ void main() {
   _screen('text-md', 'Tệp · mở gia-han-ho-chieu.md', () => FileViewScreen(item: _item('m1', ItemKind.file, 'gia-han-ho-chieu.md', 420), vaultId: 'v'));
   _screen('file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('text-txt', 'Tệp · mở ghi-chu-wifi.txt', () => FileViewScreen(item: _item('tx1', ItemKind.file, 'ghi-chu-wifi.txt', 240), vaultId: 'v'));
+  _screen('settings-vaults', 'Cài đặt · dòng Quản lý két (dưới Lịch sử phiên bản)', () => settings(vault),
+      change: 'MỚI: Quản lý két có lại trong Cài đặt (vẫn có ở màn khoá)',
+      marks: [() => find.byKey(const ValueKey('vaults-row'))], act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('vaults-row')), 300, scrollable: find.byType(Scrollable).first);
+    await t.pumpAndSettle();
+  });
   _screen('settings', 'Cài đặt · màn chính: thẻ két + các dòng mở trang con', () => settings(vault),
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   for (final (i, dy) in [(2, 700.0), (3, 1400.0)]) {
@@ -1324,6 +1333,12 @@ void main() {
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0, int moved = 0}) =>
       SyncEvent(kind: k, check: check, name: '', peers: const [], peerIds: const [], received: received, sent: sent, removed: 0, copies: copies, done: done, total: total, bytes: BigInt.from(bytes), bytesTotal: BigInt.from(bytesTotal), moved: moved, repaired: 0, unrepaired: 0, code: '');
+  _screen('sync-stop-confirm', 'Đang đồng bộ Google Drive · bấm Huỷ (hoặc Back) → hỏi lại', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.sending, done: 2, total: 5, bytes: 35 << 20, bytesTotal: 120 << 20)), onSynced: () {})),
+      change: 'MỚI: đang đồng bộ mà bấm Huỷ hoặc Back thì hỏi lại; phần đã đồng bộ được giữ',
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-cancel')));
+    await t.pump(const Duration(milliseconds: 400));
+  });
   _screen('sync-drive-listing', 'Google Drive: đang đọc những gì có trên Drive', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveListing, done: 3000)), onSynced: () {})));
   _screen('sync-drive-folders', 'Google Drive: tạo thư mục (bản cập nhật thư mục, lần đầu)', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveFolders, done: 212, total: 517)), onSynced: () {})));
   _screen('sync-drive-moving', 'Google Drive: dời tệp cũ vào thư mục', () => page('Đồng bộ với Google Drive', SyncProgress(place: SyncPlace.drive, events: Stream.value(ev(SyncStep.driveMoving, done: 1400, total: 2986)), onSynced: () {})));
@@ -1932,19 +1947,25 @@ void main() {
     await t.pump(const Duration(milliseconds: 3200));
   });
   List<VaultSlot> slots() => [
-        VaultSlot(libraryDir: '', id: 'e0a966aed6bec8151ebb59139e5aa773', sizeBytes: BigInt.from(1843 << 20), hasPassword: true, hasPin: false, hasBiometric: true, isOpen: true),
-        VaultSlot(libraryDir: '', id: '3fa9c1d2e4b5a6978877665544332211', sizeBytes: BigInt.from(37 << 20), hasPassword: true, hasPin: false, hasBiometric: false, isOpen: false),
+        VaultSlot(libraryDir: '', id: 'e0a966aed6bec8151ebb59139e5aa773', sizeBytes: BigInt.from(1843 << 20), hasPassword: true, hasPin: false, hasBiometric: true, isOpen: true,
+            createdMs: PlatformInt64Util.from(_now - 40 * Duration.millisecondsPerDay)),
+        VaultSlot(libraryDir: '-3fa9', id: '3fa9c1d2e4b5a6978877665544332211', sizeBytes: BigInt.from(37 << 20), hasPassword: true, hasPin: false, hasBiometric: false, isOpen: false,
+            createdMs: PlatformInt64Util.from(_now - 12 * Duration.millisecondsPerDay)),
         VaultSlot(libraryDir: '', id: '9b3ad0e1f2c4475a8e61d39b2f0c18d3',
             sizeBytes: BigInt.from(212 << 10),
             hasPassword: true,
             hasPin: false,
             hasBiometric: false,
             isOpen: false,
+            createdMs: PlatformInt64Util.from(_now - 90 * Duration.millisecondsPerDay),
             deleteAtMs: PlatformInt64Util.from(_now + 5 * Duration.millisecondsPerDay)),
       ];
   _screen('vault-manager', 'Cài đặt → Quản lý két', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
+      change: 'ĐỔI: bỏ nút ba chấm ở mỗi két — chạm cả dòng là mở thông tin két',
       setup: () => VaultManagerScreen.debugSlots = slots());
-  _screen('vault-manager-menu', 'Quản lý két · chạm một két khoá', () => const VaultManagerScreen(libraryDir: ''),
+  _screen('vault-manager-menu', 'Quản lý két · chạm một két đang khoá (bộ 24 từ riêng)', () => const VaultManagerScreen(libraryDir: ''),
+      change: 'MỚI: thông tin két đang khoá — những gì máy biết mà không cần mở (tên, chế độ niêm phong); nút Xoá két + Đóng',
+      marks: [() => find.byKey(const ValueKey('vault-details'))],
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-3fa9c1d2e4b5a6978877665544332211')));
@@ -1958,8 +1979,23 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-slot-3fa9c1d2e4b5a6978877665544332211')));
     await t.pumpAndSettle();
   });
-  _screen('vault-manager-open', 'Quản lý két · chạm két đang mở', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
+  _screen('vault-manager-deleting', 'Quản lý két · chạm két đang chờ xoá (quên mật khẩu)', () => const VaultManagerScreen(libraryDir: ''),
+      change: 'MỚI: két đang chờ xoá: lúc yêu cầu xoá + lúc sẽ xoá (còn mấy ngày), chữ đỏ',
+      marks: [() => find.byKey(const ValueKey('vault-details'))],
       setup: () => VaultManagerScreen.debugSlots = slots(),
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-slot-9b3ad0e1f2c4475a8e61d39b2f0c18d3')));
+    await t.pumpAndSettle();
+  });
+  _screen('vault-manager-open', 'Quản lý két · chạm két đang mở', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
+      change: 'MỚI: thông tin két đầy đủ: tên, chế độ, số mục, dung lượng, ngày tạo, mở khoá bằng gì, bộ 24 từ, Google Drive, mã két; nút Xoá két + Đóng',
+      marks: [() => find.byKey(const ValueKey('vault-details'))],
+      setup: () {
+    VaultManagerScreen.debugSlots = slots();
+    VaultManagerScreen.debugItems = 342;
+    VaultManagerScreen.debugOpen = const VaultInfo(libraryDir: '', id: 'e0a966aed6bec8151ebb59139e5aa773', name: 'Nhà mình', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
+    VaultManagerScreen.debugDrive = 'ban.do@gmail.com';
+  },
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-e0a966aed6bec8151ebb59139e5aa773')));
     await t.pumpAndSettle();

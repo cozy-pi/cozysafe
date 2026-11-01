@@ -179,6 +179,7 @@ impl Library {
                 has_pin: entry.path().join(pin::PIN_FILE).is_file(),
                 has_biometric: entry.path().join(BIOMETRIC_FILE).is_file(),
                 delete_at_ms: Library::delete_at(dir, &id),
+                created_ms: created_ms(&entry.path()),
                 id,
             });
         }
@@ -839,6 +840,15 @@ pub struct VaultSlot {
     pub has_biometric: bool,
     /// When it will be deleted (ms since the epoch), when a deletion is set for it.
     pub delete_at_ms: Option<i64>,
+    /// When its folder was made on this device (ms since the epoch), where the file
+    /// system keeps that (not every Android one does). A restored vault: when it came.
+    pub created_ms: Option<i64>,
+}
+
+fn created_ms(dir: &Path) -> Option<i64> {
+    let t = fs::metadata(dir).ok()?.created().ok()?;
+    let ms = t.duration_since(std::time::UNIX_EPOCH).ok()?.as_millis();
+    i64::try_from(ms).ok()
 }
 
 /// What came of [`Library::change_secret_key_all`].
