@@ -1368,7 +1368,10 @@ mod tests {
     /// The only test here that touches this run's state (RUN, SECRET, OPEN).
     #[test]
     fn each_set_of_words_has_its_own_library() {
-        let root = std::env::temp_dir().join(format!("cs-libraries-{:08x}", cs_crypto::rand_u32()));
+        // In this crate's own build folder, not the shared temporary one.
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join(format!("test-libraries-{:08x}", cs_crypto::rand_u32()));
         std::fs::create_dir_all(&root).unwrap();
         let main = root.join("library").to_string_lossy().into_owned();
         assert!(run::start_run(RunMode::Everyday, main.clone()));
