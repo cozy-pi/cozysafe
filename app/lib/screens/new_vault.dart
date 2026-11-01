@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
+import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/edge_swipe_back.dart';
@@ -46,7 +49,7 @@ class NewVaultScreen extends StatefulWidget {
   State<NewVaultScreen> createState() => _NewVaultScreenState();
 }
 
-enum _Step { intro, mode, words, check, password, biometric, icon, color }
+enum _Step { intro, mode, keys, words, check, password, biometric, icon, color }
 
 class _NewVaultScreenState extends State<NewVaultScreen> {
   _Step _step = _Step.intro;
@@ -67,6 +70,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   final _pw = TextEditingController();
   final _pwAgain = TextEditingController();
   rust.VaultInfo? _vault;
+  /// [_Step.keys]: a new set of 24 words for this vault, or the device's set.
+  bool _ownKey = false;
+
   /// The mode chosen on [_Step.mode]: this vault's own (ADR 0007).
   bool _topSecret = TopSecretMode.on;
   /// Face ID opens one vault per device; while another vault has it, making this one does
@@ -80,6 +86,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         // Every vault chooses Top Secret Mode or not, its own (ADR 0007, owner 2026-10-31:
         // with the differences listed, and said it can change later).
         if (!NewVaultScreen.debugSkipMode) _Step.mode,
+        // Another vault on this device: its 24 words, a new set or the one the device
+        // already has (owner 2026-11-01: a choice). The first vault always makes its set.
+        if (!widget.first) _Step.keys,
         _Step.password,
         if (_newWords) ...[_Step.words, _Step.check],
         if (_bioKind != null && !_bioTaken) _Step.biometric,
@@ -137,7 +146,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       key = rust.newSecretKey();
       await SecretKeyStore.write(key);
     }
-    rust.setSecretKey(key: key);
+    rust.setSecretKey(dir: widget.libraryDir, key: key);
     final text = rust.secretKeyText(key: key);
     if (!mounted) return;
     setState(() {
@@ -187,7 +196,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     try {
       _vault = _vault == null
           ? await rust.createVaultWithPassword(
-              dir: widget.libraryDir,
+              dir: await _libraryForNew(),
               icon: vaultIcons[_icon].id,
               color: vaultColors[_color].id,
               password: _pw.text,
@@ -209,12 +218,12 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         _error = vaultErrorText(l, e);
       });
       return;
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
           _busy = false;
           _step = _Step.password;
-          _error = l.errorStorage;
+          _error = withCode(l, l.errorStorage, e);
         });
       }
       return;
@@ -293,6 +302,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final title = switch (_step) {
       _Step.intro => widget.first ? l.firstVaultTitle : l.newVaultTitle,
       _Step.mode => l.modeChooseTitle,
+      _Step.keys => l.keysTitle,
       _Step.words => l.wordsTitle,
       _Step.check => l.wordsCheckTitle,
       _Step.password => l.backupPasswordTitle,
@@ -303,6 +313,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final hint = switch (_step) {
       _Step.intro => l.introLead,
       _Step.mode => l.modeChooseLead,
+      _Step.keys => l.keysLead,
       _Step.words => l.wordsLead,
       _Step.check => l.wordsCheckLead,
       _Step.password => l.passwordLead,
@@ -313,6 +324,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final body = switch (_step) {
       _Step.intro => _intro(l),
       _Step.mode => _modeBody(l),
+      _Step.keys => _keysBody(l),
       _Step.words => _wordsBody(l),
       _Step.check => _checkBody(l),
       _Step.password => _passwordBody(l),
@@ -347,7 +359,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     };
     // The badge is the vault being made; forms (words, password) need the room, and the
     // Face ID step has its own glyph.
-    final badge = switch (_step) { _Step.mode || _Step.words || _Step.check || _Step.password || _Step.biometric => false, _ => true };
+    final badge = switch (_step) { _Step.mode || _Step.keys || _Step.words || _Step.check || _Step.password || _Step.biometric => false, _ => true };
 
     return PopScope(
       // The system back gesture steps back too; on the first step it leaves.
@@ -395,7 +407,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(minHeight: box.maxHeight),
-                        child: Center(
+                        // In the upper part, not the middle (owner 2026-11-01): the steps
+                        // hold more now, and the room is below them.
+                        child: Align(
+                          alignment: const Alignment(0, -.6),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 380),
                             child: Column(
@@ -514,7 +529,17 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     return switch (_step) {
       _Step.intro => button(const ValueKey('intro-start'), l.introStart,
           _words == null && NewVaultScreen.debugWords == null && widget.first ? null : () => _go(_steps[1])),
-      _Step.mode => button(const ValueKey('mode-next'), l.pinNext, () => _go(_Step.password)),
+      _Step.mode => button(const ValueKey('mode-next'), l.pinNext, () => _go(_steps[_steps.indexOf(_Step.mode) + 1])),
+      _Step.keys => button(const ValueKey('keys-next'), l.pinNext, () {
+          setState(() {
+            _newWords = _ownKey;
+            if (_ownKey && NewVaultScreen.debugWords == null) {
+              // A set of its own, made now and shown once this vault exists.
+              _words = rust.secretKeyText(key: _freshKey ??= rust.newSecretKey()).split(' ');
+            }
+          });
+          _go(_Step.password);
+        }),
       _Step.words => button(const ValueKey('words-done'), l.wordsWritten, () {
           _checkOk = false;
           _go(_Step.check);
@@ -571,6 +596,63 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       const TopSecretCompare(),
       const SizedBox(height: 10),
       Text('${l.topSecretPerVault} ${l.modeChangeLater}', style: TextStyle(color: ink.withValues(alpha: .6), fontSize: CsType.footnote, height: 1.35)),
+    ]);
+  }
+
+  /// [_Step.keys] chose a set of its own: its key, made once.
+  Uint8List? _freshKey;
+  /// The library of a vault with its own words (api/run.rs), once its key is kept.
+  String? _ownDir;
+
+  /// Where the new vault goes: the device's library, or with its own words a new library
+  /// beside it, whose key is kept first (under its own name, SecretKeyStore).
+  Future<String> _libraryForNew() async {
+    final key = _freshKey;
+    if (!_ownKey || key == null || widget.first) return widget.libraryDir;
+    final dir = _ownDir ??= run_api.newLibraryDir();
+    if (dir == null) throw StateError('no library folder');
+    await SecretKeyStore.write(key, dir);
+    rust.setSecretKey(dir: dir, key: key);
+    return dir;
+  }
+
+  /// A new set of 24 words for this vault, or the one this device already has.
+  Widget _keysBody(AppLocalizations l) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    Widget choice(bool own, IconData icon, String title, String note) {
+      final on = _ownKey == own;
+      return Material(
+        color: solidTint(context, ink.withValues(alpha: on ? .1 : .05)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: on ? ink : Colors.transparent, width: 2),
+        ),
+        child: InkWell(
+          key: ValueKey(own ? 'keys-new' : 'keys-device'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => setState(() => _ownKey = own),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+            child: Row(children: [
+              Icon(icon, size: 30, color: ink),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: TextStyle(color: ink, fontSize: CsType.callout, fontWeight: FontWeight.w700)),
+                  Text(note, style: TextStyle(color: ink.withValues(alpha: .65), fontSize: CsType.footnote, height: 1.3)),
+                ]),
+              ),
+              Icon(on ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, color: on ? ink : ink.withValues(alpha: .4)),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      choice(false, Icons.phone_iphone_rounded, l.keysDevice, l.keysDeviceNote),
+      const SizedBox(height: 10),
+      choice(true, Icons.key_rounded, l.keysNew, l.keysNewNote),
     ]);
   }
 

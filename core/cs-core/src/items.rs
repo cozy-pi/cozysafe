@@ -936,6 +936,29 @@ mod tests {
     }
 
     #[test]
+    fn a_reader_reads_what_the_vault_writes_and_writes_nothing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk())
+            .unwrap()
+            .create_vault("A", pw())
+            .unwrap();
+        let r = v.reader().unwrap();
+        // Written after the reader opened, seen by it at once.
+        let a = v.add_item(photo(b"first", 1)).unwrap();
+        assert_eq!(r.items().unwrap().len(), 1);
+        let mut out = Vec::new();
+        r.read_item(&a.id, &mut out).unwrap();
+        assert_eq!(out, b"first");
+        assert_eq!(
+            r.read_thumbnail(&a.id).unwrap().as_deref(),
+            Some(&b"thumb"[..])
+        );
+        // A write through it fails, and the index is as it was.
+        assert!(r.add_item(photo(b"second", 2)).is_err());
+        assert_eq!(v.items().unwrap().len(), 1);
+    }
+
+    #[test]
     fn rejects_path_like_ids() {
         let tmp = tempfile::tempdir().unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk())

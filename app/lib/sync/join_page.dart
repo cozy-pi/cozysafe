@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_resume.dart';
+import '../screens/common.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
 import 'consent.dart';
@@ -58,6 +59,8 @@ class ScanCodePage extends StatefulWidget {
 class _ScanCodePageState extends State<ScanCodePage> with VaultLockAware {
   CameraController? _camera;
   bool _none = false;
+  /// Why there is no camera, for the code under the message.
+  Object _noneWhy = 'no-camera';
   bool _reading = false;
   bool _found = false;
 
@@ -71,7 +74,10 @@ class _ScanCodePageState extends State<ScanCodePage> with VaultLockAware {
     try {
       final all = await availableCameras();
       final back = all.where((c) => c.lensDirection == CameraLensDirection.back).firstOrNull ?? all.firstOrNull;
-      if (back == null) throw StateError('no camera');
+      if (back == null) {
+        if (mounted) setState(() => _none = true);
+        return;
+      }
       // High: a code on another phone's screen is small and needs the detail (reading a
       // 720p frame takes ~10 ms).
       final c = CameraController(back, ResolutionPreset.high, enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
@@ -82,8 +88,13 @@ class _ScanCodePageState extends State<ScanCodePage> with VaultLockAware {
       }
       setState(() => _camera = c);
       await c.startImageStream(_onFrame);
-    } catch (_) {
-      if (mounted) setState(() => _none = true);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _none = true;
+          _noneWhy = e;
+        });
+      }
     }
   }
 
@@ -160,7 +171,7 @@ class _ScanCodePageState extends State<ScanCodePage> with VaultLockAware {
                           child: Center(
                             child: Padding(
                               padding: const EdgeInsets.all(24),
-                              child: Text(l.syncNoCamera, textAlign: TextAlign.center, style: TextStyle(color: c.muted)),
+                              child: Text(withCode(l, l.syncNoCamera, _noneWhy), textAlign: TextAlign.center, style: TextStyle(color: c.muted)),
                             ),
                           ),
                         )

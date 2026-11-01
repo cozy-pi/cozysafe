@@ -15,6 +15,7 @@ const INFO_SECRET_KEY: &[u8] = b"cozysafe/v1/secret-key";
 const INFO_VAULT_KEK: &[u8] = b"cozysafe/v1/vault-kek";
 const INFO_SUBKEY: &[u8] = b"cozysafe/v1/subkey/";
 const INFO_RESTORE_PAIRING: &[u8] = b"cozysafe/v1/p2p-restore";
+const INFO_INVITE_PAIRING: &[u8] = b"cozysafe/v1/p2p-invite";
 
 /// Argon2id cost parameters, stored in the clear in the library header.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -139,6 +140,13 @@ pub fn subkey(master: &Key, label: &str) -> Key {
 /// lets the new device fetch the sealed vault; opening it still takes the password.
 pub fn restore_pairing_key(secret: &SecretKey) -> Key {
     hkdf_expand(secret.as_bytes(), None, INFO_RESTORE_PAIRING)
+}
+
+/// The key a new device pairs with when the old one invites it (ADR 0003, point 11): from
+/// the invite's random secret, which goes from screen to camera and never over the
+/// network. Someone in the middle cannot derive it, so cannot read or join the channel.
+pub fn invite_pairing_key(invite: &[u8]) -> Key {
+    hkdf_expand(invite, None, INFO_INVITE_PAIRING)
 }
 
 fn hkdf_expand(ikm: &[u8], salt: Option<&[u8]>, info: &[u8]) -> Key {

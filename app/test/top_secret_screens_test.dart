@@ -69,8 +69,7 @@ late _Fake _fake;
 /// A file's name as the lists draw it ([FileNameText]: the name and its extension apart).
 Finder _name(String name) => find.byWidgetPredicate((w) => w is FileNameText && w.name == name);
 
-const _vault = VaultInfo(
-  id: 'v1',
+const _vault = VaultInfo(libraryDir: '', id: 'v1',
   name: '',
   icon: 'home',
   color: 'green',

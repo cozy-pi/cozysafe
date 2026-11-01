@@ -19,6 +19,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../secret_key_store.dart';
 import '../theme.dart';
 import '../sync/sync_status.dart';
+import 'common.dart';
 import 'debug.dart';
 import 'security_info.dart';
 import '../widgets/toast.dart';
@@ -27,7 +28,6 @@ import '../item_kind.dart';
 import '../prefs.dart';
 import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
-import 'delete_vault.dart';
 import 'history.dart';
 import 'storage.dart';
 import '../src/rust/api/history.dart' as hist;
@@ -39,7 +39,6 @@ import '../sync/sync_screen.dart';
 import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
 import 'top_secret_page.dart';
-import 'vault_manager.dart';
 import '../widgets/edge_swipe_back.dart';
 
 /// Per-device choices, kept next to the library (not secret).
@@ -334,15 +333,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     });
     if (yes != true || !mounted) return;
+    // Only the device's own words go to iCloud / Google, never a vault's own set.
     final key = await SecretKeyStore.read();
     final ok = key != null && await KeyBackup.turnOn(key);
     if (!mounted) return;
     // Block Store keeps nothing without a screen lock (end to end encryption) or Google.
-    if (!ok && google) showToast(context, l.keyBackupGoogleFailed);
+    if (!ok && google) {
+      showToast(context, withCode(l, l.keyBackupGoogleFailed, key == null ? 'no-recovery-key' : 'key-backup-google'),
+          icon: Icons.error_outline_rounded);
+    }
     setState(() {});
   }
 
-  // Seven taps on the version turn on debug mode, after the owner check (docs/security.md).
+  // Seven taps on the version turn on debug mode, with no owner check: it shows no keys
+  // or content and changes no protection (owner 2026-11-01, docs/security.md).
   int _taps = 0;
   DateTime _tapAt = DateTime(0);
   final _debugRowKey = GlobalKey(debugLabel: 'debug-row');
@@ -359,18 +363,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (_taps >= 3 && _taps < 7) showToast(context, l.debugTapsLeft(7 - _taps));
     if (_taps < 7) return;
     _taps = 0;
-    await _guarded(() async {
-      Prefs.write(debugPref, '1');
-      DebugLog.sync();
-      if (!mounted) return;
-      setState(() {});
-      // No toast: it covered the Debug row that had just appeared (owner 2026-10-24).
-      // The row itself, scrolled into view with a tick, says debug mode is on.
-      HapticFeedback.mediumImpact();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final row = _debugRowKey.currentContext;
-        if (row != null) Scrollable.ensureVisible(row, alignment: .5, duration: const Duration(milliseconds: 300));
-      });
+    Prefs.write(debugPref, '1');
+    DebugLog.sync();
+    if (!mounted) return;
+    setState(() {});
+    // No toast: it covered the Debug row that had just appeared (owner 2026-10-24).
+    // The row itself, scrolled into view with a tick, says debug mode is on.
+    HapticFeedback.mediumImpact();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final row = _debugRowKey.currentContext;
+      if (row != null) Scrollable.ensureVisible(row, alignment: .5, duration: const Duration(milliseconds: 300));
     });
   }
 
@@ -459,31 +461,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// What protects the vault, explained with drawings: its own page (long content).
   Future<void> _showSecurity() =>
       Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => Readable(child: const SecurityInfoScreen())));
-
-  Future<void> _deleteVault() async {
-    // The vault's password confirms it; a vault without one (made with a PIN before)
-    // gets one first.
-    if (!widget.vault().hasPassword) {
-      await widget.onPassword();
-      if (!mounted || !widget.vault().hasPassword) return;
-    }
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => Readable(child: DeleteVaultScreen(libraryDir: widget.libraryDir, vault: widget.vault(), sizeText: _sizeText)),
-    ));
-  }
-
-  Future<void> _openVaults() async {
-    await Navigator.of(context).push<void>(MaterialPageRoute(
-      builder: (_) => Readable(
-        child: VaultManagerScreen(
-          libraryDir: widget.libraryDir,
-          onDeleteOpen: () => _guarded(_deleteVault),
-          onNewVault: widget.onNewVault,
-        ),
-      ),
-    ));
-    if (mounted) setState(() {});
-  }
 
   Future<void> _pickLanguage() async {
     final l = AppLocalizations.of(context);
@@ -896,8 +873,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword)),
             ),
             // Off unless turned on; turning it on is weaker, so it asks for the owner and
-            // says the trade (owner 2026-10-26).
-            if (KeyBackup.supported)
+            // says the trade (owner 2026-10-26). Only the device's own words go there: a
+            // vault with its own set does not show it (api/run.rs).
+            if (KeyBackup.supported && (SecretKeyStore.openLibrary ?? widget.libraryDir) == widget.libraryDir)
               SettingsRow(
                 key: const ValueKey('key-backup-row'),
                 icon: Icons.cloud_rounded,
@@ -1049,13 +1027,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: l.versionHistory,
               value: _historyDays == 0 ? l.historyOff : historySizeText(l, _historyMax),
               onTap: _openHistory,
-            ),
-            SettingsRow(
-              key: const ValueKey('vaults-row'),
-              icon: Icons.inventory_2_rounded,
-              color: SettingsHue.cam,
-              title: l.vaultManagerTitle,
-              onTap: _openVaults,
             ),
           ]),
           // 5. How it looks and where things are: nothing here protects the vault.

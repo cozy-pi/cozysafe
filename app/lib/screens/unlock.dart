@@ -17,7 +17,8 @@ import '../widgets/vault_bar.dart';
 import '../widgets/identity.dart';
 import 'common.dart';
 import 'debug.dart' show debugModeOn;
-import 'new_vault.dart';
+import 'vault_manager.dart';
+import 'welcome.dart';
 import 'restore.dart';
 import 'top_secret_page.dart' show restartForMode;
 import 'vault_home.dart';
@@ -25,6 +26,7 @@ import '../theme.dart';
 import '../widgets/drive_logo.dart';
 import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
+import '../test_login.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
 /// vault password is the fallback (decisions 2026-10-28: no more PIN, it was the
@@ -348,8 +350,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     } on rust.VaultError catch (e) {
       if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
       if (mounted && _busy) setState(() => _error = vaultErrorText(l, e));
-    } catch (_) {
-      if (mounted && _busy) setState(() => _error = l.errorStorage);
+    } catch (e) {
+      if (mounted && _busy) setState(() => _error = withCode(l, l.errorStorage, e));
     } finally {
       if (mounted && !_leaving) {
         setState(() {
@@ -487,6 +489,17 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                       _error!,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600, fontSize: CsType.footnote),
+                    ),
+                  ],
+                  // Android test builds: straight into the test vault, on the screen
+                  // itself (owner 2026-11-01: hidden in ⋯ it was not found).
+                  if (TestLogin.shown) ...[
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      key: const ValueKey('lock-test-login'),
+                      icon: const Icon(Icons.bolt_rounded),
+                      label: Text(l.testLogin),
+                      onPressed: _busy ? null : () => TestLogin.run(context, widget.libraryDir),
                     ),
                   ],
                   const SizedBox(height: 6),
@@ -641,6 +654,15 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
               onPressed: () => setState(() => _mode = _Mode.pin),
               child: Text(l.usePin),
             ),
+          // Every vault on this device (owner 2026-11-01: out of Settings, here), after
+          // the phone's owner check.
+          MenuItemButton(
+            key: const ValueKey('lock-vaults'),
+            style: _menuItem,
+            leadingIcon: const Icon(Icons.inventory_2_rounded),
+            onPressed: _busy ? null : _vaults,
+            child: Text(l.vaultManagerTitle),
+          ),
           // One vault in the app; another only in debug mode (decisions 2026-10-24).
           if (debugModeOn())
             MenuItemButton(
@@ -669,12 +691,39 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
         ),
       );
 
+  /// Manage vaults from the lock screen: Face ID, fingerprint or the phone's passcode
+  /// first (owner 2026-11-01). No vault is open there: deleting one takes its password,
+  /// a new one starts at the first screen. None left afterwards: the first screen.
+  Future<void> _vaults() async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmOwner(l.ownerCheckVaults) || !mounted) return;
+    final nav = Navigator.of(context);
+    await nav.push(MaterialPageRoute<void>(
+      builder: (_) => Readable(
+        child: VaultManagerScreen(
+          libraryDir: widget.libraryDir,
+          onNewVault: () => nav.push(fadeRoute<void>((_) => Readable(child: WelcomeScreen(libraryDir: widget.libraryDir, adding: true)))),
+        ),
+      ),
+    ));
+    if (!mounted) return;
+    if (!rust.hasVaults(dir: widget.libraryDir)) {
+      await nav.pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => WelcomeScreen(libraryDir: widget.libraryDir)), (_) => false);
+      return;
+    }
+    // Face ID or passwords may have gone with a vault.
+    setState(() {
+      _anyPassword = rust.anyPassword(dir: widget.libraryDir);
+      _bioOn = BiometricUnlock.platformSupported && rust.hasBiometricUnlock(dir: widget.libraryDir);
+    });
+  }
+
   /// Only the owner of the phone makes vaults here (Face ID, fingerprint or the
   /// phone's passcode), so nobody holding it can add vaults or probe PINs.
   Future<void> _newVault() async {
     final l = AppLocalizations.of(context);
     if (!await confirmOwner(l.ownerCheckReason) || !mounted) return;
-    await Navigator.of(context).push(fadeRoute<void>((_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: false))));
+    await Navigator.of(context).push(fadeRoute<void>((_) => Readable(child: WelcomeScreen(libraryDir: widget.libraryDir, adding: true))));
   }
 
   Widget _passwordField(AppLocalizations l, Color ink) {

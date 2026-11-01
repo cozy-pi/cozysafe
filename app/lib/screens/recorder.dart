@@ -12,6 +12,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../widgets/drag_select.dart';
 import '../widgets/selectable_row.dart';
 import '../theme.dart';
+import 'common.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
 import '../item_kind.dart';
@@ -102,7 +103,7 @@ class RecorderViewState extends State<RecorderView> {
     if (_saving) return;
     try {
       if (!await _rec.hasPermission()) {
-        if (mounted) _snack(l.micDenied);
+        if (mounted) _snack(withCode(l, l.micDenied, 'no-mic'));
         return;
       }
       final dir = await recordingDir();
@@ -124,8 +125,8 @@ class RecorderViewState extends State<RecorderView> {
       setState(() => _started = DateTime.now());
       _tick = Timer.periodic(const Duration(milliseconds: 250), (_) => setState(() {}));
       widget.onRecordingChanged(true);
-    } catch (_) {
-      if (mounted) _snack(l.recordFailed);
+    } catch (e) {
+      if (mounted) _snack(withCode(l, l.recordFailed, e));
     }
   }
 
@@ -158,8 +159,11 @@ class RecorderViewState extends State<RecorderView> {
         if (tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
         widget.onSaved();
       }
-    } catch (_) {
-      if (mounted) _snack(AppLocalizations.of(context).recordFailed);
+    } catch (e) {
+      if (mounted) {
+        final l = AppLocalizations.of(context);
+        _snack(withCode(l, l.recordFailed, e));
+      }
     } finally {
       if (path != null) {
         try {

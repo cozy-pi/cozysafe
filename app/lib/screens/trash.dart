@@ -38,8 +38,10 @@ class TrashScreen extends StatefulWidget {
 /// The kinds, in the order they show (the vault's sections).
 const _sections = [VaultSection.library, VaultSection.note, VaultSection.audio, VaultSection.file];
 
+/// Top secret reads no thumbnail (ADR 0005): photos and videos are rows with their kind's
+/// icon among the files, as in the vault, not a grid of empty squares (owner 2026-11-01).
 VaultSection _sectionOf(rust.ItemInfo it) => switch (it.kind) {
-      ItemKind.photo || ItemKind.video => VaultSection.library,
+      ItemKind.photo || ItemKind.video => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       ItemKind.note => VaultSection.note,
       ItemKind.audio => VaultSection.audio,
       _ => VaultSection.file,

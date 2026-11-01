@@ -227,7 +227,9 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
       future: _load(item.id),
       builder: (context, snap) {
         if (snap.hasError) {
-          return Center(child: Text(AppLocalizations.of(context).errorStorage, style: const TextStyle(color: Colors.white70)));
+          final l = AppLocalizations.of(context);
+          return Center(
+              child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)));
         }
         final bytes = snap.data;
         if (bytes == null) return still;

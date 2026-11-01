@@ -34,7 +34,7 @@ import 'emergency_kit.dart';
 import 'kit_password.dart';
 import 'change_key.dart';
 import 'file_view.dart';
-import 'new_vault.dart';
+import 'welcome.dart';
 import 'photo_viewer.dart';
 import 'quick_look.dart';
 import 'note.dart';
@@ -695,8 +695,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (pending != null) {
       try {
         await pending;
-      } catch (_) {
-        if (mounted) showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+      } catch (e) {
+        if (mounted) showToast(context, withCode(AppLocalizations.of(context), AppLocalizations.of(context).errorStorage, e), icon: Icons.error_outline_rounded);
       }
     }
     final gone = NoteScreen.lastDeleted;
@@ -771,8 +771,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     } on rust.VaultError catch (e) {
       // Stopped by the lock: nothing to say over the lock screen.
       if (mounted && !_locked) _snack(vaultErrorText(l, e));
-    } catch (_) {
-      if (mounted && !_locked) _snack(l.errorStorage);
+    } catch (e) {
+      if (mounted && !_locked) _snack(withCode(l, l.errorStorage, e));
     } finally {
       LockGuard.clear();
     }
@@ -792,12 +792,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       final r = await Originals.delete(ids, photos: photos);
       if (!mounted || r.cancelled) return;
       if (r.failed > 0) {
-        _snack(l.originalsFailed(r.failed));
+        _snack(withCode(l, l.originalsFailed(r.failed), 'delete-originals'));
       } else if (r.deleted > 0) {
         _snack(l.originalsDeleted(r.deleted));
       }
-    } catch (_) {
-      if (mounted) _snack(l.originalsFailed(ids.length));
+    } catch (e) {
+      if (mounted) _snack(withCode(l, l.originalsFailed(ids.length), e));
     } finally {
       LockGuard.clear();
     }
@@ -857,8 +857,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (tmp.existsSync()) tmp.deleteSync();
       // Android reports "unavailable" for most targets; count it, only a cancel is not a backup.
       if (shared.status != ShareResultStatus.dismissed) _backedUp();
-    } catch (_) {
-      if (mounted) _snack(l.backupFailed);
+    } catch (e) {
+      if (mounted) _snack(withCode(l, l.backupFailed, e));
     } finally {
       LockGuard.clear();
     }
@@ -909,7 +909,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // anywhere (owner 2026-10-24).
     String? password = await KitPasswordScreen.ask(context, widget.libraryDir);
     if (password == null || !mounted) return;
-    final key = await SecretKeyStore.read();
+    final key = await SecretKeyStore.readOpen();
     if (key == null || !mounted) return;
     // The page stays under the lock, the password typed for it does not: a Recovery Key
     // change after that asks for it again.
@@ -947,7 +947,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (_bioOn) {
       await turnOffBiometric(store);
     } else if (!await turnOnBiometric(store)) {
-      if (mounted) _snack(l.biometricFailed);
+      if (mounted) _snack(withCode(l, l.biometricFailed, 'biometric-on'));
     }
     if (mounted) setState(() => _bioOn = rust.biometricEnabled());
   }
@@ -1035,16 +1035,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// owner may: knowing this vault's PIN is not enough.
   Future<void> _newVault() async {
     if (!await confirmOwner(AppLocalizations.of(context).ownerCheckReason) || !mounted) return;
-    final avoid = (_vault.icon, _vault.color);
     _locked = true;
     _idleTimer?.cancel();
     rust.lock();
-    // The new vault fades in over this page; once it covers the screen, the lock screen
-    // takes the place of everything under it, so Cancel goes back there. (Swapping to the
-    // lock screen first flashed it for a moment.)
+    // As on a fresh install (owner 2026-11-01): the first screen, new or restored, fades in
+    // over this page; once it covers the screen, the lock screen takes the place of
+    // everything under it, so Back goes there. (Swapping to the lock screen first flashed
+    // it for a moment.)
     final nav = Navigator.of(context);
     final libraryDir = widget.libraryDir;
-    final route = fadeRoute<void>((_) => Readable(child: NewVaultScreen(libraryDir: libraryDir, first: false, avoid: avoid)));
+    final route = fadeRoute<void>((_) => Readable(child: WelcomeScreen(libraryDir: libraryDir, adding: true)));
     nav.push(route);
     void swap(AnimationStatus s) {
       if (s != AnimationStatus.completed) return;
@@ -1293,8 +1293,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       ));
       if (mounted) setState(_endSelect);
-    } catch (_) {
-      if (mounted) _snack(l.errorStorage);
+    } catch (e) {
+      if (mounted) _snack(withCode(l, l.errorStorage, e));
     } finally {
       LockGuard.clear();
       try {

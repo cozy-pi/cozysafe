@@ -32,6 +32,13 @@
 //!
 //! Nothing is advertised on the network: no Bonjour, no broadcast. A QR code (address,
 //! port and token) stays for networks where the knock does not get through.
+//!
+//! Adding a device by invite (ADR 0003, point 11): the old device shows a QR code holding
+//! a random secret ([`Invite`]); the new device, with neither the vault nor its words,
+//! scans it and pairs with a key from that secret alone, so nothing on the network can be
+//! in the middle. It then sends the password the person typed; the old device checks it
+//! and only then sends the 24 words and the vault's id, and the restore goes on as above
+//! (the lock, the Master Key proof, the items).
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -45,6 +52,7 @@ use cs_crypto::{kdf, wrap, Key, SecretKey};
 use cs_vault::sync::{FolderRemote, Remote, SyncReport, Telling};
 use cs_vault::sync::{SyncPhase, SyncProgress};
 use cs_vault::{Error, Library, LibraryJoin, OpenVault, Result, VaultSync};
+use zeroize::Zeroizing;
 
 use crate::Permit;
 
@@ -62,6 +70,14 @@ const MODE_PROBE: u8 = 3;
 const MODE_INTRO: u8 = 4;
 /// [`MODE_INTRO`] for a device restoring (the 24 words' key).
 const MODE_INTRO_RESTORE: u8 = 5;
+/// A new device that scanned (or typed) an invite: neither the vault nor its words.
+const MODE_INVITE: u8 = 7;
+/// Bytes of an invite's secret: 128 bits, 26 letters and digits when typed.
+pub const INVITE_LEN: usize = 16;
+/// How long an invite works (ADR 0003, point 11).
+pub const INVITE_LIFETIME: Duration = Duration::from_secs(120);
+/// Wrong passwords before an invite ends.
+pub const INVITE_TRIES: u32 = 3;
 /// Digits of the number both screens show (owner 2026-10-26: three, like the old code).
 pub const CHECK_DIGITS: usize = 3;
 const CHECK_SPACE: u16 = 1000;
@@ -406,7 +422,9 @@ fn handshake_host(
     let mode = hello[1];
     let restoring = matches!(mode, MODE_RESTORE | MODE_INTRO_RESTORE);
     let pk = match mode {
-        MODE_SYNC | MODE_INTRO => &keys.key,
+        // A device showing an invite serves no one else meanwhile.
+        MODE_SYNC | MODE_INTRO if keys.invite.is_none() => &keys.key,
+        MODE_INVITE => keys.invite.as_ref().ok_or(Error::Corrupt("p2p hello"))?,
         // Only with the library's words (a device without them restores no one).
         MODE_RESTORE | MODE_INTRO_RESTORE => keys
             .restore_key
@@ -429,7 +447,9 @@ fn handshake_host(
         Ok::<_, Error>(())
     })();
     if proven.is_err() {
-        return Err(Error::Corrupt(if restoring {
+        return Err(Error::Corrupt(if mode == MODE_INVITE {
+            "p2p invite wrong"
+        } else if restoring {
             "p2p restore wrong words"
         } else {
             "p2p joiner not proven"
@@ -545,7 +565,11 @@ fn token_block(token: &Token) -> [u8; TAG_LEN] {
 fn answer_probe(keys: &Keys, nj: &[u8], stream: &mut TcpStream) -> Result<()> {
     let nh: [u8; NONCE_LEN] = random();
     let mut reply = nh.to_vec();
-    for pk in [Some(&keys.key), keys.restore_key.as_ref()] {
+    // An invite answers in the restoring device's place (a device shows one or the other).
+    for pk in [
+        Some(&keys.key),
+        keys.restore_key.as_ref().or(keys.invite.as_ref()),
+    ] {
         match pk {
             Some(pk) => {
                 reply.extend(tag(pk, "vault", nj, &nh));
@@ -564,6 +588,8 @@ struct Keys {
     /// From the Recovery Key, to let a device with no vault restore this one (only
     /// once the person here allowed it, and only the lock until it proves the vault).
     restore_key: Option<Key>,
+    /// From the invite this device shows (ADR 0003, point 11).
+    invite: Option<Key>,
     token: Token,
     name: String,
     /// Devices that asked to be connected to (their person picked this one), by token.
@@ -797,6 +823,11 @@ const ABORT_STOPPED: u8 = 0;
 const ABORT_WRONG_PASSWORD: u8 = 1;
 /// A restoring device opened the lock: `[OP_PROVE, seal…]` ([`restore_proof`]).
 const OP_PROVE: u8 = 11;
+/// An invited device's password, `[OP_PASSWORD, utf-8…]`; the answer `[OP_PASSWORD, 1]`
+/// (right) or `[OP_PASSWORD, 0]` (wrong, try again).
+const OP_PASSWORD: u8 = 12;
+/// After a right password: `[OP_WORDS, the Recovery Key…, b'/', vault id…]`.
+const OP_WORDS: u8 = 13;
 
 /// The host's folder, seen by the joiner through the channel.
 pub struct ChannelRemote {
@@ -1105,7 +1136,11 @@ pub struct Ask<'a> {
     /// the other person said no (or the other device went): stop asking then.
     pub confirm: &'a Confirm<'a>,
     /// A new device (named so) restoring with the 24 words asks to come in: allow it?
+    /// Also the device that came by this one's invite (no number to compare then).
     pub allow: &'a dyn Fn(&str, u16) -> bool,
+    /// Whether this password, typed on a device that came by this one's invite, opens the
+    /// vault (checked the way unlocking does). Never asked otherwise.
+    pub password: &'a dyn Fn(&str) -> bool,
     pub progress: &'a dyn Fn(SyncProgress),
 }
 
@@ -1124,6 +1159,11 @@ pub struct Prepared {
     keys: Arc<Keys>,
     vault_id: String,
     mirror: PathBuf,
+    /// The vault's pairing key: a restoring device proves the Master Key with it.
+    vault_pk: Key,
+    /// What an invite hands over after a right password (ADR 0003, point 11): the secret
+    /// shown, and the library's Recovery Key.
+    invite: Option<([u8; INVITE_LEN], SecretKey)>,
 }
 
 /// Sync the vault into `mirror` (an empty private folder) for the other device to read,
@@ -1144,13 +1184,41 @@ pub fn host_prepare(
         keys: Arc::new(Keys {
             key: pairing_key(vault),
             restore_key: secret.map(kdf::restore_pairing_key),
+            invite: None,
             token: random(),
             name: clean_name(name),
             calls: Mutex::new(Vec::new()),
         }),
         vault_id: vault.id.clone(),
         mirror: mirror.to_path_buf(),
+        vault_pk: pairing_key(vault),
+        invite: None,
     })
+}
+
+/// [`host_prepare`] for adding a device by invite (ADR 0003, point 11): a fresh random
+/// secret to show ([`Waiting::invite`]), and `secret`, the library's Recovery Key, which
+/// goes to the new device only after it sent a right password. Meanwhile this device
+/// answers no other device of the vault (no sync, no look), only the invite.
+pub fn host_invite(
+    vault: &OpenVault,
+    secret: &SecretKey,
+    name: &str,
+    mirror: &Path,
+) -> Result<Prepared> {
+    let mut prepared = host_prepare(vault, None, name, mirror)?;
+    let invite: [u8; INVITE_LEN] = random();
+    prepared.keys = Arc::new(Keys {
+        // A key no one holds: devices of the vault find nothing here.
+        key: Key::from_bytes(random()),
+        restore_key: None,
+        invite: Some(kdf::invite_pairing_key(&invite)),
+        token: random(),
+        name: clean_name(name),
+        calls: Mutex::new(Vec::new()),
+    });
+    prepared.invite = Some((invite, secret.clone()));
+    Ok(prepared)
 }
 
 /// A device waiting on the local network for its other device.
@@ -1174,13 +1242,18 @@ pub fn wait(prepared: Prepared, permit: Permit, port: u16) -> Result<Waiting> {
     let listener = TcpListener::bind(SocketAddrV4::new(ip, port))
         .or_else(|_| TcpListener::bind(SocketAddrV4::new(ip, 0)))?;
     let port = listener.local_addr()?.port();
+    let lifetime = if prepared.invite.is_some() {
+        INVITE_LIFETIME
+    } else {
+        WAIT_LIFETIME
+    };
     Ok(Waiting {
         listener,
         code: PairCode {
             addr: SocketAddrV4::new(ip, port),
             token: prepared.keys.token,
         },
-        deadline: Instant::now() + WAIT_LIFETIME,
+        deadline: Instant::now() + lifetime,
         prepared,
     })
 }
@@ -1265,6 +1338,14 @@ impl Waiting {
         self.code.addr.port() == PORT
     }
 
+    /// The invite to show, for a wait made by [`host_invite`].
+    pub fn invite(&self) -> Option<Invite> {
+        self.prepared.invite.as_ref().map(|(secret, _)| Invite {
+            secret: *secret,
+            at: Some((self.code.addr, self.code.token)),
+        })
+    }
+
     /// Wait for the other device and look for it (`look` gives a permit for each look,
     /// or none to skip it), until the two pair and sync, the wait runs out, three failed
     /// tries, or `stop` is set (the person tapped Cancel).
@@ -1284,6 +1365,9 @@ impl Waiting {
         listener.set_nonblocking(true)?;
         let keys = prepared.keys.clone();
         let me = keys.token;
+        // Showing an invite: no look, no device of the vault connected to.
+        let inviting = prepared.invite.is_some();
+        let look: &dyn Fn() -> Option<Permit> = if inviting { &|| None } else { look };
         let looker = Arc::new(Looker {
             pk: keys.key.clone(),
             restoring: false,
@@ -1317,7 +1401,11 @@ impl Waiting {
                     // A Cozy Safe device that could not prove itself (it came by the QR,
                     // since a look never finds this one for it): stop and say so.
                     Err(
-                        e @ Error::Corrupt("p2p restore wrong words" | "p2p joiner not proven"),
+                        e @ Error::Corrupt(
+                            "p2p restore wrong words"
+                            | "p2p joiner not proven"
+                            | "p2p invite wrong",
+                        ),
                     ) => {
                         (ask.seen)(Seen::Rejected);
                         return Err(e);
@@ -1450,9 +1538,17 @@ fn host_side(
     let paired = (|| {
         let mut ch = ch;
         let theirs = swap_names_host(&mut ch, &prepared.keys.name)?;
-        let restoring = mode == MODE_RESTORE;
+        let invited = mode == MODE_INVITE;
+        let restoring = mode == MODE_RESTORE || invited;
         if !restoring {
             confirm(&mut ch, &theirs, ask, stop)?;
+        }
+        if invited {
+            let (_, secret) = prepared
+                .invite
+                .as_ref()
+                .ok_or(Error::Corrupt("p2p hello"))?;
+            hand_over(&mut ch, &theirs, ask, secret, &prepared.vault_id)?;
         }
         ch.stream.set_read_timeout(Some(IDLE))?;
         let session = Session {
@@ -1460,9 +1556,9 @@ fn host_side(
             ch,
             vault_id: prepared.vault_id,
             mirror: prepared.mirror,
-            vault_pk: prepared.keys.key.clone(),
+            vault_pk: prepared.vault_pk,
             restoring,
-            allowed: !restoring,
+            allowed: !restoring || invited,
         };
         let session = allowed(session, &|check| (ask.allow)(&theirs, check))?;
         let mut served = Some(session.serve_with(ask.progress)?);
@@ -1579,7 +1675,7 @@ pub fn host_finish_with(
 
 /// A restoring device goes on only if the person allows it; the same vault at once.
 fn allowed(mut session: Session, allow: &dyn Fn(u16) -> bool) -> Result<Session> {
-    if session.restoring() {
+    if session.restoring() && !session.allowed {
         // The socket is live meanwhile, so Cancel can end the wait.
         set_live(session.ch.stream.try_clone().ok());
         let yes = allow(session.check);
@@ -1692,8 +1788,21 @@ fn restore_inner(
         return Err(Error::Corrupt("p2p peer stopped"));
     }
     let id = String::from_utf8(first).map_err(|_| Error::Corrupt("p2p vault id"))?;
+    restore_over(dir, ch, &id, secret, password, progress)
+}
+
+/// The vault `id` comes over `ch` into `dir`: its lock first, opened with the two
+/// secrets, then the proof of the Master Key, then its items. False for a wrong password.
+fn restore_over(
+    dir: &Path,
+    ch: Channel,
+    id: &str,
+    secret: SecretKey,
+    password: &str,
+    progress: &dyn Fn(SyncProgress),
+) -> Result<bool> {
     let remote = ChannelRemote { ch: Mutex::new(ch) };
-    let vault = match Library::join(dir, &remote, &id, secret, password) {
+    let vault = match Library::join(dir, &remote, id, secret, password) {
         Ok(Some(vault)) => vault,
         Ok(None) => {
             remote.abort(ABORT_WRONG_PASSWORD);
@@ -1820,6 +1929,311 @@ pub fn restore_nearby(
     }
 }
 
+// ---------- adding a device by invite (ADR 0003, point 11) ----------
+
+/// What the old device's QR code holds: a random secret, and where it listens. Typed (no
+/// camera), it is the secret alone, and the new device looks for the old one on the
+/// Wi-Fi with a key from it. Never logged, never written: it lets a device in (with the
+/// password).
+#[derive(Clone, PartialEq, Eq)]
+pub struct Invite {
+    secret: [u8; INVITE_LEN],
+    /// Where the old device listens and its id (from the QR code; none when typed).
+    pub at: Option<(SocketAddrV4, Token)>,
+}
+
+impl std::fmt::Debug for Invite {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Invite(<redacted>)")
+    }
+}
+
+impl Drop for Invite {
+    fn drop(&mut self) {
+        zeroize::Zeroize::zeroize(&mut self.secret);
+    }
+}
+
+/// Crockford base32 of `bytes`, most significant bit first, padded with zero bits.
+fn base32(bytes: &[u8]) -> String {
+    let (mut acc, mut bits, mut out) = (0u32, 0, String::new());
+    for &b in bytes {
+        acc = (acc << 8) | b as u32;
+        bits += 8;
+        while bits >= 5 {
+            bits -= 5;
+            out.push(ALPHABET[((acc >> bits) & 31) as usize] as char);
+        }
+        acc &= (1 << bits) - 1;
+    }
+    if bits > 0 {
+        out.push(ALPHABET[((acc << (5 - bits)) & 31) as usize] as char);
+    }
+    out
+}
+
+/// [`base32`] read back into exactly `len` bytes; the padding bits must be zero. Spaces,
+/// dashes and case do not matter; O and I/L read as 0 and 1.
+fn from_base32(text: &str, len: usize) -> Option<Vec<u8>> {
+    let (mut acc, mut bits, mut out) = (0u32, 0, Vec::with_capacity(len));
+    let mut symbols = 0;
+    for c in text.chars() {
+        let c = match c.to_ascii_uppercase() {
+            '-' | ' ' => continue,
+            'O' => '0',
+            'I' | 'L' => '1',
+            c => c,
+        };
+        let v = ALPHABET.iter().position(|&a| a as char == c)? as u32;
+        acc = (acc << 5) | v;
+        bits += 5;
+        symbols += 1;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((acc >> bits) as u8);
+            acc &= (1 << bits) - 1;
+        }
+    }
+    (symbols == (len * 8).div_ceil(5) && out.len() == len && acc == 0).then_some(out)
+}
+
+const INVITE_QR: &str = "cozysafe:invite:1:";
+
+impl Invite {
+    /// The text in the QR code: where the old device listens, its id and the secret.
+    pub fn qr(&self) -> String {
+        let mut b = Zeroizing::new(Vec::with_capacity(11 + INVITE_LEN));
+        if let Some((addr, token)) = &self.at {
+            b.extend_from_slice(&addr.ip().octets());
+            b.extend_from_slice(&addr.port().to_be_bytes());
+            b.extend_from_slice(token);
+        }
+        b.extend_from_slice(&self.secret);
+        format!("{INVITE_QR}{}", base32(&b))
+    }
+
+    /// The secret alone, to type on a device without a camera: 26 letters and digits in
+    /// five groups ("4K9M2-…").
+    pub fn typed(&self) -> String {
+        let s = base32(&self.secret);
+        [&s[..5], &s[5..10], &s[10..15], &s[15..20], &s[20..]].join("-")
+    }
+
+    /// Read a scanned QR text or a typed invite.
+    pub fn parse(text: &str) -> Option<Invite> {
+        let t = text.trim();
+        if let Some(rest) = t.strip_prefix(INVITE_QR) {
+            let b = Zeroizing::new(from_base32(rest, 11 + INVITE_LEN)?);
+            let ip = Ipv4Addr::new(b[0], b[1], b[2], b[3]);
+            let port = u16::from_be_bytes([b[4], b[5]]);
+            if port == 0 || ip.is_unspecified() {
+                return None;
+            }
+            return Some(Invite {
+                secret: b[11..].try_into().ok()?,
+                at: Some((SocketAddrV4::new(ip, port), b[6..11].try_into().ok()?)),
+            });
+        }
+        let b = Zeroizing::new(from_base32(t, INVITE_LEN)?);
+        Some(Invite {
+            secret: b[..].try_into().ok()?,
+            at: None,
+        })
+    }
+
+    /// The address it points at, to name it when asking the person.
+    pub fn ip_text(&self) -> Option<String> {
+        self.at.map(|(a, _)| a.ip().to_string())
+    }
+
+    fn key(&self) -> Key {
+        kdf::invite_pairing_key(&self.secret)
+    }
+}
+
+/// After the handshake on the old device: the person may still cancel; then the new
+/// device's password, checked here ([`Ask::password`]), [`INVITE_TRIES`] times at most;
+/// only a right one makes this send the Recovery Key and the vault's id.
+fn hand_over(
+    ch: &mut Channel,
+    theirs: &str,
+    ask: &Ask,
+    secret: &SecretKey,
+    vault_id: &str,
+) -> Result<()> {
+    set_live(ch.stream.try_clone().ok());
+    if !(ask.allow)(theirs, ch.check) {
+        let _ = ch.send(&[OP_ABORT, ABORT_STOPPED]);
+        return Err(Error::Corrupt("p2p restore declined"));
+    }
+    // Time for the person there to type it.
+    ch.stream.set_read_timeout(Some(ALLOW_WAIT))?;
+    let mut wrong = 0;
+    loop {
+        let msg = Zeroizing::new(ch.recv()?);
+        match msg.split_first() {
+            Some((&OP_PASSWORD, pw)) => {
+                let pw = Zeroizing::new(String::from_utf8_lossy(pw).into_owned());
+                if (ask.password)(&pw) {
+                    break;
+                }
+                wrong += 1;
+                if wrong >= INVITE_TRIES {
+                    let _ = ch.send(&[OP_ABORT, ABORT_WRONG_PASSWORD]);
+                    return Err(Error::Corrupt("p2p restore wrong password"));
+                }
+                ch.send(&[OP_PASSWORD, 0])?;
+            }
+            Some((&OP_ABORT, _)) => return Err(Error::Corrupt("p2p peer stopped")),
+            _ => return Err(Error::Corrupt("p2p request")),
+        }
+    }
+    ch.send(&[OP_PASSWORD, 1])?;
+    let mut words = Zeroizing::new(vec![OP_WORDS]);
+    words.extend_from_slice(secret.as_bytes());
+    words.push(b'/');
+    words.extend_from_slice(vault_id.as_bytes());
+    ch.send(&words)
+}
+
+/// What the person on the new device sees and says while it comes in by an invite.
+pub struct InviteAsk<'a> {
+    /// Connected to the old device, named so (it proved the invite).
+    pub connected: &'a dyn Fn(&str),
+    /// The vault's password, typed now; `true` after a wrong one. None: the person stopped.
+    pub password: &'a dyn Fn(bool) -> Option<Zeroizing<String>>,
+    pub progress: &'a dyn Fn(SyncProgress),
+}
+
+/// Restore onto this device (`dir`, no vault in it) the vault of the device whose invite
+/// was scanned (the permit must be for its address). Some Recovery Key (to keep in the
+/// keystore) once the vault is in `dir`; None when the person stopped. The vault is then
+/// opened the usual way, from `dir` with the two secrets.
+pub fn restore_invite(
+    dir: &Path,
+    permit: Permit,
+    invite: &Invite,
+    name: &str,
+    ask: &InviteAsk,
+) -> Result<Option<SecretKey>> {
+    let (addr, token) = invite
+        .at
+        .ok_or(Error::Corrupt("p2p invite has no address"))?;
+    if permit.connect_to() != Some(addr) {
+        return Err(Error::Corrupt("permit is for another address"));
+    }
+    set_live(None);
+    let out = invite_inner(dir, addr, &token, invite, name, ask);
+    set_live(None);
+    out
+}
+
+/// [`restore_invite`] for a typed invite: look on the Wi-Fi (`look` gives a permit for
+/// each look) for the device showing it.
+pub fn restore_invite_nearby(
+    dir: &Path,
+    look: &dyn Fn() -> Option<Permit>,
+    invite: &Invite,
+    name: &str,
+    ask: &InviteAsk,
+    stop: &AtomicBool,
+) -> Result<Option<SecretKey>> {
+    let looker = Looker {
+        pk: invite.key(),
+        restoring: true,
+    };
+    let deadline = Instant::now() + INVITE_LIFETIME;
+    loop {
+        if stop.load(Ordering::Relaxed) {
+            return Err(Error::Corrupt("p2p cancelled"));
+        }
+        if Instant::now() > deadline {
+            return Err(Error::Corrupt("p2p code expired"));
+        }
+        if let Some(permit) = look() {
+            let found = looker.scan(permit).unwrap_or_default();
+            if let Some(p) = found.first() {
+                if look().is_some_and(|permit| covers(&permit, p.addr)) {
+                    set_live(None);
+                    let out = invite_inner(dir, p.addr, &p.token, invite, name, ask);
+                    set_live(None);
+                    return out;
+                }
+            }
+        }
+        let next = Instant::now() + LOOK_EVERY;
+        while Instant::now() < next && !stop.load(Ordering::Relaxed) {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    }
+}
+
+fn invite_inner(
+    dir: &Path,
+    addr: SocketAddrV4,
+    token: &Token,
+    invite: &Invite,
+    name: &str,
+    ask: &InviteAsk,
+) -> Result<Option<SecretKey>> {
+    if !on_local_network(*addr.ip()) {
+        return Err(Error::Corrupt("p2p address is not on a local network"));
+    }
+    let stream = TcpStream::connect_timeout(&SocketAddr::V4(addr), Duration::from_secs(10))?;
+    stream.set_read_timeout(Some(Duration::from_secs(60)))?;
+    set_live(stream.try_clone().ok());
+    let mut ch = match handshake_join(&invite.key(), MODE_INVITE, token, stream) {
+        Ok(ch) => ch,
+        // The other device does not show this invite (any more).
+        Err(Error::Corrupt("p2p host not proven")) => {
+            return Err(Error::Corrupt("p2p invite wrong"))
+        }
+        Err(e) => return Err(e),
+    };
+    let theirs = swap_names_join(&mut ch, &clean_name(name))?;
+    (ask.connected)(&theirs);
+    let mut wrong = false;
+    let (password, secret, id) = loop {
+        let Some(password) = (ask.password)(wrong) else {
+            let _ = ch.send(&[OP_ABORT, ABORT_STOPPED]);
+            return Ok(None);
+        };
+        let mut msg = Zeroizing::new(vec![OP_PASSWORD]);
+        msg.extend_from_slice(password.as_bytes());
+        ch.send(&msg)?;
+        // The old device checks it (an Argon2id run there).
+        ch.stream.set_read_timeout(Some(Duration::from_secs(60)))?;
+        match ch.recv()?.as_slice() {
+            [OP_PASSWORD, 1] => {}
+            [OP_PASSWORD, 0] => {
+                wrong = true;
+                continue;
+            }
+            [OP_ABORT, ABORT_WRONG_PASSWORD] => {
+                return Err(Error::Corrupt("p2p invite wrong password"))
+            }
+            [OP_ABORT, _] => return Err(Error::Corrupt("p2p peer stopped")),
+            _ => return Err(Error::Corrupt("p2p request")),
+        }
+        let words = Zeroizing::new(ch.recv()?);
+        let (&op, rest) = words.split_first().ok_or(Error::Corrupt("p2p words"))?;
+        let at = rest.iter().position(|&b| b == b'/');
+        let (Some(at), OP_WORDS) = (at, op) else {
+            return Err(Error::Corrupt("p2p words"));
+        };
+        let secret = SecretKey::from_slice(&rest[..at]).ok_or(Error::Corrupt("p2p words"))?;
+        let id = String::from_utf8(rest[at + 1..].to_vec())
+            .map_err(|_| Error::Corrupt("p2p vault id"))?;
+        break (password, secret, id);
+    };
+    // The id is checked by Library::join (32 hex, nothing else reaches a path).
+    match restore_over(dir, ch, &id, secret.clone(), &password, ask.progress)? {
+        true => Ok(Some(secret)),
+        // The old device took this password: a lock it does not open is not this vault's.
+        false => Err(Error::Corrupt("p2p restore wrong password")),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1906,6 +2320,7 @@ mod tests {
             found: &|p| me.found.lock().unwrap().push(p.to_vec()),
             picked: &|| me.pick.lock().unwrap().take(),
             confirm: &confirm,
+            password: &|_| false,
             allow: &|_, _| me.allow,
             progress: &|p| me.told.lock().unwrap().push(p),
         };
@@ -2186,6 +2601,7 @@ mod tests {
             found: &|_| (),
             picked: &|| None,
             confirm: &confirm,
+            password: &|_| false,
             allow: &|_, _| false,
             progress: &|_| (),
         };
@@ -2237,6 +2653,7 @@ mod tests {
             found: &|_| (),
             picked: &|| None,
             confirm: &|_, _, _| panic!("not proven"),
+            password: &|_| false,
             allow: &|_, _| false,
             progress: &|_| (),
         };
@@ -2273,6 +2690,7 @@ mod tests {
             found: &|_| (),
             picked: &|| None,
             confirm: &|_, _, _| true,
+            password: &|_| false,
             allow: &|_, _| false,
             progress: &|_| (),
         };
@@ -2292,6 +2710,7 @@ mod tests {
         let keys = Keys {
             key: pk.clone(),
             restore_key: None,
+            invite: None,
             token,
             name: String::new(),
             calls: Mutex::new(Vec::new()),
@@ -2441,6 +2860,7 @@ mod tests {
             found: &|_| (),
             picked: &|| None,
             confirm: &|_, _, _| true,
+            password: &|_| false,
             allow: &|_, _| false,
             progress: &|_| (),
         };
@@ -2531,6 +2951,7 @@ mod tests {
             found: &|_| (),
             picked: &|| None,
             confirm: &|_, _, _| true,
+            password: &|_| false,
             allow: &|n, c| {
                 *asked.lock().unwrap() = Some((n.to_owned(), c));
                 allow
@@ -2685,5 +3106,298 @@ mod tests {
         let r = run_as(w, &t.a, vec![], &Person::says(true), &AtomicBool::new(true));
         assert!(r.is_err());
         assert!(started.elapsed() < Duration::from_secs(1));
+    }
+
+    #[test]
+    fn invites_round_trip_and_tolerate_typing() {
+        let at = (
+            SocketAddrV4::new(Ipv4Addr::new(192, 168, 1, 23), PORT),
+            [1, 2, 3, 4, 250],
+        );
+        let invite = Invite {
+            secret: random(),
+            at: Some(at),
+        };
+        let qr = invite.qr();
+        assert!(qr.starts_with("cozysafe:invite:1:"));
+        assert_eq!(Invite::parse(&qr), Some(invite.clone()));
+        let typed = invite.typed();
+        assert_eq!(typed.len(), 26 + 4);
+        let back = Invite::parse(&typed.to_lowercase().replace('-', " ")).unwrap();
+        assert_eq!((back.secret, back.at), (invite.secret, None));
+        // One symbol short, one too many, a non-zero padding bit: refused.
+        let plain = typed.replace('-', "");
+        assert!(Invite::parse(&plain[1..]).is_none());
+        assert!(Invite::parse(&format!("{plain}0")).is_none());
+        let last = ALPHABET
+            .iter()
+            .position(|&a| a as char == plain.chars().last().unwrap())
+            .unwrap();
+        let odd = format!("{}{}", &plain[..25], ALPHABET[last ^ 1] as char);
+        assert!(Invite::parse(&odd).is_none());
+        // A pairing code is not an invite, and the secret never shows in a log.
+        assert!(Invite::parse(
+            &PairCode {
+                addr: at.0,
+                token: at.1
+            }
+            .qr()
+        )
+        .is_none());
+        assert_eq!(format!("{invite:?}"), "Invite(<redacted>)");
+        for n in 0..40 {
+            let b: Vec<u8> = (0..n).map(|i| (i * 37 + n) as u8).collect();
+            assert_eq!(from_base32(&base32(&b), n as usize), Some(b));
+        }
+    }
+
+    /// What the new device was asked, and what it ended with.
+    struct Invited {
+        got: Result<Option<SecretKey>>,
+        hosted: Result<Paired>,
+        dir: tempfile::TempDir,
+        /// Each password asked, with whether the one before was wrong.
+        asked: Vec<bool>,
+        /// The old device's name, as the new one was told.
+        shown: Option<String>,
+    }
+
+    /// The old device shows an invite; a new one comes in by `use_invite` (the QR's, or
+    /// another), typing `passwords` one after the other (None: it stops), by the QR or
+    /// (`typed`) by looking on the Wi-Fi with the typed invite.
+    fn invite_with(
+        t: &Two,
+        passwords: Vec<Option<String>>,
+        other_invite: bool,
+        typed: bool,
+    ) -> Invited {
+        let mirror = tempfile::tempdir().unwrap();
+        let fresh = tempfile::tempdir().unwrap();
+        let prepared = host_invite(&t.a, &t.sk, "Old phone", mirror.path()).unwrap();
+        let w = wait(prepared, Permit::listen(Ipv4Addr::LOCALHOST), 0).unwrap();
+        let shown = w.invite().unwrap();
+        let mut invite = Invite::parse(&shown.qr()).unwrap();
+        if other_invite {
+            invite.secret = random();
+        }
+        if typed {
+            invite = Invite::parse(&invite.typed()).unwrap();
+        }
+        let addr = w.code.addr;
+        let stop = Arc::new(AtomicBool::new(false));
+        let (dir, s2) = (fresh.path().to_path_buf(), stop.clone());
+        let new_device = std::thread::spawn(move || {
+            let asked = Mutex::new(Vec::new());
+            let left = Mutex::new(passwords.into_iter());
+            let name = Mutex::new(None);
+            let ask = InviteAsk {
+                connected: &|n| *name.lock().unwrap() = Some(n.to_owned()),
+                password: &|wrong| {
+                    asked.lock().unwrap().push(wrong);
+                    left.lock().unwrap().next().flatten().map(Zeroizing::new)
+                },
+                progress: &|_| (),
+            };
+            let got = if typed {
+                let mine = Arc::new(AtomicBool::new(false));
+                stop_after(&mine, 5);
+                restore_invite_nearby(
+                    &dir,
+                    &|| Some(Permit::scan_at(vec![addr])),
+                    &invite,
+                    "New phone",
+                    &ask,
+                    &mine,
+                )
+            } else {
+                restore_invite(&dir, Permit::connect(addr), &invite, "New phone", &ask)
+            };
+            s2.store(true, Ordering::Relaxed);
+            (got, asked.into_inner().unwrap(), name.into_inner().unwrap())
+        });
+        let pw = t.pw.clone();
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|_| (),
+            picked: &|| None,
+            confirm: &|_, _, _| panic!("an invite asks no question of this kind"),
+            allow: &|n, _| n == "New phone",
+            password: &|p| p == pw,
+            progress: &|_| (),
+        };
+        let hosted = w.run(&t.a, &|| None, &ask, &stop);
+        let (got, asked, shown) = new_device.join().unwrap();
+        Invited {
+            got,
+            hosted,
+            dir: fresh,
+            asked,
+            shown,
+        }
+    }
+
+    fn served_of(id: &str) -> Vec<String> {
+        SERVED
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(v, _)| v == id)
+            .map(|(_, p)| p.clone())
+            .collect()
+    }
+
+    #[test]
+    fn a_new_device_comes_in_by_the_invite_and_the_password_alone() {
+        for typed in [false, true] {
+            let t = two();
+            let id = note(&t.a, "bank", "PIN 4821");
+            let wrong: String = t.pw.chars().rev().collect();
+            let r = invite_with(&t, vec![Some(wrong), Some(t.pw.clone())], false, typed);
+            let sk = r.got.unwrap().expect("in");
+            assert_eq!(sk, t.sk, "the 24 words came with it");
+            assert!(r.hosted.unwrap().hosted);
+            assert_eq!(r.asked, vec![false, true], "asked again after a wrong one");
+            assert_eq!(r.shown.as_deref(), Some("Old phone"));
+            let v = crate::testkit::open(r.dir.path(), &sk, &t.pw);
+            assert_eq!(v.id, t.a.id);
+            assert_eq!(text(&v, &id), "PIN 4821");
+        }
+    }
+
+    #[test]
+    fn wrong_passwords_get_nothing_and_end_the_invite() {
+        let t = two();
+        let wrong: String = t.pw.chars().rev().collect();
+        let r = invite_with(&t, vec![Some(wrong); 5], false, false);
+        assert!(
+            matches!(r.got, Err(Error::Corrupt("p2p invite wrong password"))),
+            "{:?}",
+            r.got
+        );
+        assert!(
+            matches!(r.hosted, Err(Error::Corrupt("p2p restore wrong password"))),
+            "{:?}",
+            r.hosted
+        );
+        assert_eq!(r.asked.len(), INVITE_TRIES as usize);
+        // Not even the lock: the words never crossed.
+        assert!(served_of(&t.a.id).is_empty());
+        assert!(!Library::has_vaults(r.dir.path()));
+        // Stopping instead of typing: nothing either, and the old device is told.
+        let r = invite_with(&t, vec![None], false, false);
+        assert!(matches!(r.got, Ok(None)), "{:?}", r.got);
+        assert!(
+            matches!(r.hosted, Err(Error::Corrupt("p2p peer stopped"))),
+            "{:?}",
+            r.hosted
+        );
+        assert!(served_of(&t.a.id).is_empty());
+    }
+
+    #[test]
+    fn a_device_without_the_invite_is_refused_before_anything() {
+        let t = two();
+        // Right address and id (someone in the middle could learn those), another secret.
+        let r = invite_with(&t, vec![Some(t.pw.clone())], true, false);
+        assert!(
+            matches!(r.got, Err(Error::Corrupt("p2p invite wrong"))),
+            "{:?}",
+            r.got
+        );
+        assert!(
+            matches!(r.hosted, Err(Error::Corrupt("p2p invite wrong"))),
+            "{:?}",
+            r.hosted
+        );
+        assert!(r.asked.is_empty(), "no password typed for a stranger");
+        assert!(r.shown.is_none(), "no name either");
+        assert!(served_of(&t.a.id).is_empty());
+        assert!(!Library::has_vaults(r.dir.path()));
+    }
+
+    #[test]
+    fn a_device_showing_an_invite_answers_no_one_else() {
+        let t = two();
+        let mirror = tempfile::tempdir().unwrap();
+        let prepared = host_invite(&t.a, &t.sk, "A", mirror.path()).unwrap();
+        let w = wait(prepared, Permit::listen(Ipv4Addr::LOCALHOST), 0).unwrap();
+        let (addr, invite, code) = (w.code.addr, w.invite().unwrap(), w.code.clone());
+        let Two { a, b, sk, dirs, .. } = t;
+        let stop = Arc::new(AtomicBool::new(false));
+        let s2 = stop.clone();
+        let host = std::thread::spawn(move || run_as(w, &a, vec![], &Person::says(true), &s2));
+        // Found only with the invite: not by the vault, not by the 24 words.
+        assert_eq!(probe_all(&[addr], &invite.key(), true).len(), 1);
+        assert!(probe_all(&[addr], &pairing_key(&b), false).is_empty());
+        assert!(probe_all(&[addr], &kdf::restore_pairing_key(&sk), true).is_empty());
+        // A device holding the vault cannot sync with it either.
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|_| (),
+            picked: &|| None,
+            confirm: &|_, _, _| true,
+            allow: &|_, _| true,
+            password: &|_| true,
+            progress: &|_| (),
+        };
+        assert!(join_code(
+            &b,
+            Permit::connect(code.addr),
+            &code,
+            "B",
+            &ask,
+            &AtomicBool::new(false)
+        )
+        .is_err());
+        stop.store(true, Ordering::Relaxed);
+        assert!(host.join().unwrap().is_err());
+        drop(dirs);
+    }
+
+    #[test]
+    fn an_invite_works_once() {
+        let t = two();
+        let mirror = tempfile::tempdir().unwrap();
+        let prepared = host_invite(&t.a, &t.sk, "Old phone", mirror.path()).unwrap();
+        let w = wait(prepared, Permit::listen(Ipv4Addr::LOCALHOST), 0).unwrap();
+        let invite = w.invite().unwrap();
+        let addr = w.code.addr;
+        let pw = t.pw.clone();
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|_| (),
+            picked: &|| None,
+            confirm: &|_, _, _| true,
+            allow: &|_, _| true,
+            password: &|p| p == pw,
+            progress: &|_| (),
+        };
+        let (first, second) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let (i1, d1, p1) = (invite.clone(), first.path().to_path_buf(), t.pw.clone());
+        let new_device = std::thread::spawn(move || {
+            let ask = InviteAsk {
+                connected: &|_| (),
+                password: &|_| Some(Zeroizing::new(p1.clone())),
+                progress: &|_| (),
+            };
+            restore_invite(&d1, Permit::connect(addr), &i1, "New", &ask)
+        });
+        assert!(w.run(&t.a, &|| None, &ask, &AtomicBool::new(false)).is_ok());
+        assert!(new_device.join().unwrap().unwrap().is_some());
+        // The wait is over: the same invite opens nothing more.
+        let again = InviteAsk {
+            connected: &|_| panic!("no one there"),
+            password: &|_| panic!("no one there"),
+            progress: &|_| (),
+        };
+        assert!(restore_invite(
+            second.path(),
+            Permit::connect(addr),
+            &invite,
+            "Other",
+            &again
+        )
+        .is_err());
+        assert!(!Library::has_vaults(second.path()));
     }
 }

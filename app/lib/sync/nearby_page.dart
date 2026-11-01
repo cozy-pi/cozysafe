@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../screens/common.dart';
 import '../platform.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
@@ -42,7 +43,8 @@ class NearbyPage extends StatefulWidget {
 class _NearbyPageState extends State<NearbyPage> {
   sync.Hosting? _hosting;
   Stream<sync.SyncEvent>? _events;
-  bool _failed = false;
+  /// What stopped the start, for the code under the message; null while all is well.
+  Object? _failure;
 
   @override
   void initState() {
@@ -65,8 +67,8 @@ class _NearbyPageState extends State<NearbyPage> {
         _hosting = h;
         _events = debug != null ? (NearbyPage.debugEvents ?? const Stream.empty()) : sync.p2PWaitRun(ip: widget.address);
       });
-    } catch (_) {
-      if (mounted) setState(() => _failed = true);
+    } catch (e) {
+      if (mounted) setState(() => _failure = e);
     }
   }
 
@@ -93,7 +95,10 @@ class _NearbyPageState extends State<NearbyPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final h = _hosting;
-    if (_failed) return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(l.syncFailed, textAlign: TextAlign.center)));
+    final failure = _failure;
+    if (failure != null) {
+      return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(withCode(l, l.syncFailed, failure), textAlign: TextAlign.center)));
+    }
     if (h == null || _events == null) return const Center(child: CircularProgressIndicator());
     return SyncProgress(
       events: _events!,

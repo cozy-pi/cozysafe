@@ -4,6 +4,27 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.7 (2026-11-01)
+
+### Added
+- Add a new device with a QR invite: the old device checks the vault password before
+  the 24 words cross.
+- A test sign-in and a test vault for testers.
+- Every error message carries an error code.
+
+### Changed
+- Restoring picks its source first (file, Google Drive or a nearby device) and never
+  loses the 24 words once a vault came in.
+- Managing vaults is on the lock screen, after the owner check.
+- Recently deleted in Top Secret Mode lists photos and videos as rows with their kind.
+- iPhone: Open with opens the file in Quick Look, not the share sheet.
+- Debug mode turns on with seven taps on the version, without asking for the owner,
+  and shows the Google Drive sync under way.
+
+### Fixed
+- Notes, photos and files open at once while Google Drive syncs; they waited for the
+  sync to end (a note could spin for minutes while videos uploaded).
+
 ## 0.2.0 (2026-11-01)
 
 ### Changed

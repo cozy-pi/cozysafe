@@ -7,16 +7,13 @@ import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../key_backup.dart';
 import '../secret_key_store.dart';
-import '../src/rust/api/sync.dart' as sync;
+import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
-import '../sync/consent.dart';
 import '../sync/drive_join.dart';
-import '../sync/device_name.dart';
 import '../sync/drive.dart' show driveOffered;
 import '../sync/join_page.dart';
-import '../sync/nearby_page.dart';
-import '../sync/progress.dart';
-import '../sync/wifi.dart';
+import '../sync/awake.dart';
+import '../sync/invite_page.dart';
 import '../theme.dart';
 import '../widgets/secret.dart';
 import '../widgets/words_input.dart';
@@ -32,11 +29,170 @@ import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
 import 'top_secret_page.dart' show restartForMode;
 
-/// Restore, step 1 (owner 2026-10-24): the two secrets first, pasted or typed, the
-/// same for every way the vault can come back.
-class RestoreKeysScreen extends StatefulWidget {
-  const RestoreKeysScreen({super.key, required this.libraryDir});
+/// Where a restored vault goes: this device's library while it holds no vault, otherwise
+/// a new library beside it, for the vault's own 24 words (api/run.rs).
+String restoreTarget(String libraryDir) =>
+    rust.libraryHasVaults(dir: libraryDir) ? (run_api.newLibraryDir() ?? libraryDir) : libraryDir;
+
+/// The vault is open here and its words kept: offer Face ID, go in.
+Future<void> openRestored(BuildContext context, String libraryDir, rust.VaultInfo vault) async {
+  TopSecretMode.opened(vault);
+  await offerBiometric(context);
+  if (!context.mounted) return;
+  await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+    MaterialPageRoute<void>(builder: (_) => VaultHomeScreen(libraryDir: libraryDir, vault: vault, tour: TourKind.restored)),
+    (_) => false,
+  );
+}
+
+/// Restore, step 1 (owner 2026-11-01: the source first): where the vault is, all choices
+/// alike (none lit up). Another device: scan its code, then the password only. Google Drive or a backup file:
+/// the 24 words and the password, then it goes. Works on a device that holds vaults too
+/// (the restored one gets a library of its own).
+class RestorePickScreen extends StatefulWidget {
+  const RestorePickScreen({super.key, required this.libraryDir});
   final String libraryDir;
+
+  /// For the mockup renders: offer Google Drive on any platform.
+  static bool debugDrive = false;
+
+  @override
+  State<RestorePickScreen> createState() => _RestorePickScreenState();
+}
+
+class _RestorePickScreenState extends State<RestorePickScreen> {
+  /// The file first (owner 2026-11-01: the source before the secrets, as for another
+  /// device), then the words and the password.
+  Future<void> _file() async {
+    final file = await openFile();
+    if (file == null || !mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => Readable(child: RestoreKeysScreen(libraryDir: widget.libraryDir, filePath: file.path, fileName: file.name)),
+    ));
+  }
+
+  void _nothingLeft() {
+    final l = AppLocalizations.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.restoreNoneTitle),
+        content: Text(l.restoreNoneBody),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l.cancel)),
+          FilledButton(
+            key: const ValueKey('restore-none-new'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: !rust.hasVaults(dir: widget.libraryDir))),
+              ));
+            },
+            child: Text(l.welcomeNew),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return ChoicePage(
+      title: l.welcomeRestore,
+      lead: l.restoreChooseLead,
+      back: true,
+      choices: [
+        BigChoice(
+          key: const ValueKey('restore-device'),
+          icon: Icons.qr_code_scanner_rounded,
+          title: l.restoreFromDevice,
+          note: l.restoreFromDeviceInviteNote,
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => Readable(child: InviteScanPage(libraryDir: widget.libraryDir)),
+          )),
+        ),
+        // Where Drive sync is offered (phones; computers with the desktop client).
+        if (RestorePickScreen.debugDrive || driveOffered)
+          BigChoice(
+            key: const ValueKey('restore-drive'),
+            icon: Icons.cloud_download_rounded,
+            title: l.restoreFromDrive,
+            note: l.restoreFromDriveNote,
+            // Signed in first, then the words and the password, on that page.
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => Readable(child: DriveJoinScreen(libraryDir: widget.libraryDir)),
+            )),
+          ),
+        BigChoice(
+          key: const ValueKey('restore-file'),
+          icon: Icons.insert_drive_file_rounded,
+          title: l.restoreFromFile,
+          note: l.restoreFromFileNote,
+          onTap: _file,
+        ),
+        TextButton(
+          key: const ValueKey('restore-none'),
+          onPressed: _nothingLeft,
+          child: Text(l.restoreNoneLink),
+        ),
+      ],
+    );
+  }
+}
+
+/// Restore from another device (ADR 0003, point 11): on the old one, Sync → Add a new
+/// device shows a code; scan it here (or type it), then type the vault password. The 24
+/// words come from the old device once it took the password.
+class InviteScanPage extends StatelessWidget {
+  const InviteScanPage({super.key, required this.libraryDir});
+  final String libraryDir;
+
+  Future<void> _code(BuildContext context, String code) async {
+    final vault = await restoreByInvite(context, dir: restoreTarget(libraryDir), code: code);
+    if (vault != null && context.mounted) await openRestored(context, libraryDir, vault);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    return KeepAwake(who: 'invite-scan', child: Scaffold(
+      appBar: AppBar(title: Text(l.restoreFromDevice)),
+      body: SafeArea(
+        top: false,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+            child: Text(l.inviteScanLead, key: const ValueKey('invite-scan-lead'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
+          ),
+          Expanded(child: ScanCodePage(onSynced: () {}, onCode: _code)),
+          TextButton.icon(
+            key: const ValueKey('invite-type'),
+            icon: const Icon(Icons.keyboard_rounded),
+            label: Text(l.inviteTypeInstead),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => Readable(child: Scaffold(
+                appBar: AppBar(title: Text(l.inviteTypeInstead)),
+                body: SafeArea(top: false, child: InviteTypePage(onCode: _code)),
+              )),
+            )),
+          ),
+          const SizedBox(height: 12),
+        ]),
+      ),
+    ));
+  }
+}
+
+/// Restore from a backup file, once it is chosen: the two secrets, pasted or typed; then
+/// it goes.
+class RestoreKeysScreen extends StatefulWidget {
+  const RestoreKeysScreen({super.key, required this.libraryDir, required this.filePath, required this.fileName});
+  final String libraryDir;
+  final String filePath;
+  /// Shown, so the person sees which file.
+  final String fileName;
 
   @override
   State<RestoreKeysScreen> createState() => _RestoreKeysScreenState();
@@ -46,6 +202,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   final _words = TextEditingController();
   final _password = TextEditingController();
   String? _error;
+  bool _busy = false;
   /// The words came from the iCloud Keychain or Block Store (Settings on the old phone).
   bool _found = false;
 
@@ -75,9 +232,47 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       setState(() => _error = l.secretKeyTypo);
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => Readable(child: RestoreSourceScreen(libraryDir: widget.libraryDir, words: _words.text, password: _password.text)),
-    ));
+    _fromFile();
+  }
+
+  Future<void> _fromFile() async {
+    final l = AppLocalizations.of(context);
+    setState(() => _busy = true);
+    final target = restoreTarget(widget.libraryDir);
+    try {
+      await rust.importBackup(path: widget.filePath, dir: target);
+      final key = Uint8List.fromList(rust.parseSecretKey(text: _words.text)!);
+      if (!mounted) return;
+      if (!rust.secretKeyFits(dir: target, key: key)) {
+        // The file is in; these words are not its own. Ask for them again.
+        await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute<void>(builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: false))),
+          (_) => false,
+        );
+        return;
+      }
+      await SecretKeyStore.write(key, target);
+      rust.setSecretKey(dir: target, key: key);
+      final vault = await rust.unlock(dir: widget.libraryDir, password: _password.text);
+      if (!mounted) return;
+      if (vault == null) {
+        // Right words, another password: the unlock screen asks for it.
+        await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute<void>(builder: (_) => UnlockScreen(libraryDir: widget.libraryDir)),
+          (_) => false,
+        );
+        return;
+      }
+      await openRestored(context, widget.libraryDir, vault);
+    } on rust.VaultError catch (e) {
+      // Restored, but a Top secret vault cannot open after an everyday one in this run.
+      if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
+      if (mounted) showToast(context, vaultErrorText(l, e));
+    } catch (e) {
+      if (mounted) showToast(context, withCode(l, l.errorBadBackup, e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -91,12 +286,18 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
         actions: [
           FilledButton(
             key: const ValueKey('restore-next'),
-            onPressed: _words.text.trim().isEmpty || _password.text.isEmpty ? null : _next,
-            child: Text(l.restoreContinue),
+            onPressed: _busy || _words.text.trim().isEmpty || _password.text.isEmpty ? null : _next,
+            child: BusyLabel(busy: _busy, idle: l.restoreContinue, working: l.restoring),
           ),
         ],
         children: [
-          Text(l.restoreTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text(l.restoreFromFile, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Row(children: [
+            Icon(Icons.insert_drive_file_rounded, size: 18, color: c.muted),
+            const SizedBox(width: 6),
+            Expanded(child: Text(widget.fileName, key: const ValueKey('restore-file-name'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
+          ]),
           const SizedBox(height: 8),
           Text(l.restoreKeysLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
           const SizedBox(height: 24),
@@ -124,219 +325,6 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Restore, step 2: where the vault is. Another device first, the way that needs no
-/// cloud and no file.
-class RestoreSourceScreen extends StatefulWidget {
-  const RestoreSourceScreen({super.key, required this.libraryDir, required this.words, required this.password});
-  final String libraryDir;
-  final String words;
-  final String password;
-
-  /// For the mockup renders: offer Google Drive on any platform.
-  static bool debugDrive = false;
-
-  @override
-  State<RestoreSourceScreen> createState() => _RestoreSourceScreenState();
-}
-
-class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
-  bool _busy = false;
-
-  /// The vault is open here: keep the words on this device, offer Face ID, go in.
-  Future<void> _opened(rust.VaultInfo vault) async {
-    TopSecretMode.opened(vault);
-    final key = rust.parseSecretKey(text: widget.words);
-    if (key != null) await SecretKeyStore.write(Uint8List.fromList(key));
-    if (!mounted) return;
-    await offerBiometric(context);
-    if (!mounted) return;
-    await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-          builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, tour: TourKind.restored)),
-      (_) => false,
-    );
-  }
-
-  /// The old device waits on its Sync screen with "Help a new device restore" on: ask
-  /// once to look on this Wi-Fi, then find it with the 24 words (no vault here yet); its
-  /// person allows this device, comparing a number. The QR stays for networks that block
-  /// looking.
-  Future<void> _fromDevice() async {
-    final address = await localAddress();
-    if (!mounted) return;
-    if (address == null) {
-      showToast(context, l10n.syncNoWifi, icon: Icons.wifi_off_rounded);
-      return;
-    }
-    if (!await allowConnection(context, l10n.syncAllowFindRestore) || !mounted) return;
-    final name = await deviceName();
-    if (!mounted) return;
-    final l = l10n;
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (context) => Readable(child: Scaffold(
-        appBar: AppBar(title: Text(l.restoreFromDevice)),
-        body: SafeArea(
-          top: false,
-          child: SyncProgress(
-            restoring: true,
-            events: sync.p2PRestoreNearby(dir: widget.libraryDir, ip: address, words: widget.words, password: widget.password, name: name),
-            onSynced: () {},
-            waiting: NearbyLooking(
-              lead: l.restoreNearbyLead,
-              restoring: true,
-              // Looking ends with this page; the scanner takes its place.
-              onScan: () => Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-                builder: (_) => Readable(child: Scaffold(
-                  appBar: AppBar(title: Text(l.syncScanCode)),
-                  body: SafeArea(top: false, child: ScanCodePage(onSynced: () {}, onCode: _restoreWithCode)),
-                )),
-              )),
-            ),
-          ),
- )       ),
-      ),
-    ));
-    final vault = rust.openVaultInfo();
-    if (vault != null && mounted) await _opened(vault);
-  }
-
-  AppLocalizations get l10n => AppLocalizations.of(context);
-
-  Future<void> _restoreWithCode(BuildContext context, String code) async {
-    final l = AppLocalizations.of(context);
-    final address = sync.p2PCodeAddress(code: code);
-    if (address == null) return;
-    if (!await allowConnection(context, l.syncAllowJoin)) return;
-    final name = await deviceName();
-    if (!context.mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => Readable(child: Scaffold(
-        appBar: AppBar(title: Text(l.restoreTitle), automaticallyImplyLeading: false),
-        body: SafeArea(
-          top: false,
-          child: SyncProgress(
-            restoring: true,
-            events: sync.p2PRestore(dir: widget.libraryDir, code: code, words: widget.words, password: widget.password, name: name),
-            onSynced: () {},
-          ),
-        ),
-      )),
-    ));
-    final vault = rust.openVaultInfo();
-    if (vault != null && mounted) await _opened(vault);
-  }
-
-  Future<void> _fromFile() async {
-    final l = AppLocalizations.of(context);
-    final file = await openFile();
-    if (file == null || !mounted) return;
-    setState(() => _busy = true);
-    try {
-      await rust.importBackup(path: file.path, dir: widget.libraryDir);
-      final key = Uint8List.fromList(rust.parseSecretKey(text: widget.words)!);
-      if (!mounted) return;
-      if (!rust.secretKeyFits(dir: widget.libraryDir, key: key)) {
-        // The file is in; these words are not its own. Ask for them again.
-        await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute<void>(builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: false))),
-          (_) => false,
-        );
-        return;
-      }
-      await SecretKeyStore.write(key);
-      rust.setSecretKey(key: key);
-      final vault = await rust.unlock(dir: widget.libraryDir, password: widget.password);
-      if (!mounted) return;
-      if (vault == null) {
-        // Right words, another password: the unlock screen asks for it.
-        await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute<void>(builder: (_) => UnlockScreen(libraryDir: widget.libraryDir)),
-          (_) => false,
-        );
-        return;
-      }
-      await _opened(vault);
-    } on rust.VaultError catch (e) {
-      // Restored, but a Top secret vault cannot open after an everyday one in this run.
-      if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
-      if (mounted) showToast(context, vaultErrorText(l, e));
-    } catch (_) {
-      if (mounted) showToast(context, l.errorBadBackup);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  void _nothingLeft() {
-    final l = AppLocalizations.of(context);
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.restoreNoneTitle),
-        content: Text(l.restoreNoneBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l.cancel)),
-          FilledButton(
-            key: const ValueKey('restore-none-new'),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: true)),
-              ));
-            },
-            child: Text(l.welcomeNew),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return ChoicePage(
-      title: l.welcomeRestore,
-      lead: l.restoreChooseLead,
-      back: true,
-      choices: [
-        BigChoice(
-          key: const ValueKey('restore-device'),
-          icon: Icons.phonelink_rounded,
-          title: l.restoreFromDevice,
-          note: l.restoreFromDeviceNote,
-          strong: true,
-          onTap: _busy ? null : _fromDevice,
-        ),
-        // Where Drive sync is offered (phones; computers with the desktop client).
-        if (RestoreSourceScreen.debugDrive || driveOffered)
-          BigChoice(
-            key: const ValueKey('restore-drive'),
-            icon: Icons.cloud_download_rounded,
-            title: l.restoreFromDrive,
-            note: l.restoreFromDriveNote,
-            onTap: _busy
-                ? null
-                : () => Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) => Readable(child: DriveJoinScreen(libraryDir: widget.libraryDir, words: widget.words, password: widget.password)),
-                    )),
-          ),
-        BigChoice(
-          key: const ValueKey('restore-file'),
-          icon: Icons.insert_drive_file_rounded,
-          title: l.restoreFromFile,
-          note: l.restoreFromFileNote,
-          onTap: _busy ? null : _fromFile,
-        ),
-        TextButton(
-          key: const ValueKey('restore-none'),
-          onPressed: _nothingLeft,
-          child: Text(l.restoreNoneLink),
-        ),
-      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
+import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/words_input.dart';
@@ -49,8 +50,8 @@ class _RestoreScreenState extends State<RestoreScreen> {
       if (mounted) setState(() => _needFile = false);
     } on rust.VaultError catch (e) {
       if (mounted) setState(() => _error = vaultErrorText(l, e));
-    } catch (_) {
-      if (mounted) setState(() => _error = l.errorBadBackup);
+    } catch (e) {
+      if (mounted) setState(() => _error = withCode(l, l.errorBadBackup, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -64,21 +65,23 @@ class _RestoreScreenState extends State<RestoreScreen> {
       return;
     }
     final key = Uint8List.fromList(parsed);
-    if (!rust.secretKeyFits(dir: widget.libraryDir, key: key)) {
+    // The library these words belong to (each set has its own, api/run.rs).
+    final dir = run_api.libraryDirs().where((d) => rust.secretKeyFits(dir: d, key: key)).firstOrNull;
+    if (dir == null) {
       setState(() => _error = l.errorWrongSecretKey);
       return;
     }
     setState(() => _busy = true);
     try {
-      await SecretKeyStore.write(key);
-      rust.setSecretKey(key: key);
+      await SecretKeyStore.write(key, dir);
+      rust.setSecretKey(dir: dir, key: key);
       if (!mounted) return;
       await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => UnlockScreen(libraryDir: widget.libraryDir)),
         (_) => false,
       );
-    } catch (_) {
-      if (mounted) setState(() => _error = l.errorStorage);
+    } catch (e) {
+      if (mounted) setState(() => _error = withCode(l, l.errorStorage, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../error_log.dart';
 import '../l10n/app_localizations.dart';
+import '../screens/common.dart';
 import '../biometric.dart' show confirmOwnerForSetting;
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
@@ -16,6 +17,7 @@ import 'sync_log.dart';
 import 'sync_status.dart';
 import 'consent.dart';
 import 'drive.dart';
+import 'invite_page.dart';
 import 'nearby_page.dart';
 import 'progress.dart';
 import 'wifi.dart';
@@ -84,6 +86,25 @@ class _SyncScreenState extends State<SyncScreen> {
     _loadLog();
   }
 
+  /// "Add a new device" (ADR 0003, point 11): a one-time code for a device that has no
+  /// vault yet; it gets the vault after its person types the vault password there.
+  Future<void> _invite() async {
+    final l = AppLocalizations.of(context);
+    final address = SyncScreen.debugAddress ?? await localAddress();
+    if (!mounted) return;
+    if (address == null) {
+      showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
+      return;
+    }
+    if (!await allowConnection(context, l.syncAllowNearby) || !mounted) return;
+    await AutoSync.idle();
+    if (!mounted) return;
+    await pushPage<void>(context,
+        title: l.inviteRow,
+        builder: (_) => InvitePage(address: address, mirror: '${widget.libraryDir}-sync', onSynced: _synced));
+    _loadLog();
+  }
+
   /// Google Drive: sign in, ask, then one sync (the vault's sealed files only).
   Future<void> _drive() async {
     final l = AppLocalizations.of(context);
@@ -100,7 +121,7 @@ class _SyncScreenState extends State<SyncScreen> {
       session = SyncScreen.debugSession ?? await driveSignIn();
     } catch (e) {
       ErrorLog.add('drive-sign-in', driveErrorCode(e));
-      if (mounted) showToast(context, '${l.driveSignInFailed} (${driveErrorCode(e)})', icon: Icons.error_rounded);
+      if (mounted) showToast(context, withCode(l, l.driveSignInFailed, driveErrorCode(e)), icon: Icons.error_rounded);
       return;
     }
     if (session == null || !mounted) return;
@@ -178,6 +199,7 @@ class _SyncScreenState extends State<SyncScreen> {
         ],
         _Card(children: [
           _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncRow, onTap: _nearby),
+          _Action(key: const ValueKey('sync-invite'), icon: Icons.qr_code_2_rounded, color: const Color(0xFF5856D6), title: l.inviteRow, onTap: _invite),
         ]),
         const SizedBox(height: 24),
         // The log behind one row (owner 2026-10-26): most people never need it.
@@ -297,8 +319,11 @@ class _SyncScreenState extends State<SyncScreen> {
     if (!ok || !mounted) return;
     try {
       final session = await driveSignInQuietly() ?? await driveSignIn();
-      if (session == null) throw StateError('no sign-in');
       if (!mounted) return;
+      if (session == null) {
+        showToast(context, withCode(l, l.deleteDriveFailed, 'drive-sign-in'), icon: Icons.error_outline_rounded);
+        return;
+      }
       // Off only now that the deletion goes ahead (a cancelled sign-in leaves it as it was).
       AutoSync.enabled = false;
       await whileWorking(context, l.driveDeleting,
@@ -306,7 +331,7 @@ class _SyncScreenState extends State<SyncScreen> {
       if (mounted) showToast(context, l.driveDeleted, icon: Icons.check_rounded);
     } catch (e) {
       ErrorLog.add('drive-delete', e.runtimeType.toString());
-      if (mounted) showToast(context, l.deleteDriveFailed, icon: Icons.error_outline_rounded);
+      if (mounted) showToast(context, withCode(l, l.deleteDriveFailed, driveErrorCode(e)), icon: Icons.error_outline_rounded);
     }
   }
 
@@ -512,7 +537,8 @@ class _AutoState extends StatelessWidget {
       builder: (context, _) {
         final failed = AutoSync.failed.value && AutoSync.enabled;
         final text = failed
-            ? switch (AutoSync.failWhy) { 'drive-full' => l.syncDriveFull, 'sign-in' => l.syncSignInAgain, _ => l.syncProblem }
+            ? withCode(l, switch (AutoSync.failWhy) { 'drive-full' => l.syncDriveFull, 'sign-in' => l.syncSignInAgain, _ => l.syncProblem },
+                AutoSync.failWhy.isEmpty ? 'auto-sync' : AutoSync.failWhy)
             : !AutoSync.pending.value
                 ? null
                 : switch (AutoSync.waiting.value) { SyncWait.wifi => l.syncWaitWifi, SyncWait.network => l.syncWaitNetwork, null => null };

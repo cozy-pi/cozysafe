@@ -14,6 +14,7 @@ import 'screens/settings.dart';
 import 'screens/restore.dart';
 import 'screens/unlock.dart';
 import 'secret_key_store.dart';
+import 'src/rust/api/run.dart' as run_api;
 import 'src/rust/api/vault.dart' as rust;
 import 'src/rust/frb_generated.dart';
 import 'theme.dart';
@@ -69,7 +70,21 @@ Future<bool> loadSecretKey(String libraryDir) async {
       // Keep the file; the move is tried again next start.
     }
   }
-  return key != null && rust.setSecretKey(key: key);
+  final ok = key != null && rust.setSecretKey(dir: libraryDir, key: key);
+  // The libraries beside this one (their own 24 words): each key from its own entry.
+  for (final dir in run_api.libraryDirs().skip(1)) {
+    try {
+      // One left without a vault (a new vault or a restore given up half-way, the last
+      // vault deleted): it goes, with its key.
+      if (!rust.libraryHasVaults(dir: dir)) {
+        if (await rust.resetEmptyLibrary(dir: dir)) await SecretKeyStore.delete(dir);
+        continue;
+      }
+      final other = await SecretKeyStore.read(dir);
+      if (other != null) rust.setSecretKey(dir: dir, key: other);
+    } catch (_) {} // tried again next start
+  }
+  return ok;
 }
 
 class CozySafeApp extends StatelessWidget {

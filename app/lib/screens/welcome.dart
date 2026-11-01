@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/brand.dart';
 import 'new_vault.dart';
 import 'restore_flow.dart';
 import '../widgets/readable.dart';
+import '../test_login.dart';
 
 /// The first screen on a device with no vault (owner 2026-10-24): two choices, nothing
-/// else to read. "Restore" asks the two secrets, then where the vault is.
+/// else to read. "Restore" asks where the vault is first. A new vault on a device that
+/// has vaults starts here too, as on a fresh install (owner 2026-11-01), with Back.
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key, required this.libraryDir});
+  const WelcomeScreen({super.key, required this.libraryDir, this.adding = false});
   final String libraryDir;
+  /// Another vault on a device that has one (Vault manager → New vault): Back returns.
+  final bool adding;
 
   @override
   Widget build(BuildContext context) {
@@ -20,15 +25,16 @@ class WelcomeScreen extends StatelessWidget {
       title: 'Cozy Safe',
       lead: l.welcomeLead,
       logo: true,
+      back: adding,
       choices: [
+        // Not set apart from the others (owner 2026-11-01).
         BigChoice(
           key: const ValueKey('welcome-new'),
           icon: Icons.add_rounded,
           title: l.welcomeNew,
           note: l.welcomeNewNote,
-          strong: true,
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => Readable(child: NewVaultScreen(libraryDir: libraryDir, first: true)),
+            builder: (_) => Readable(child: NewVaultScreen(libraryDir: libraryDir, first: !rust.hasVaults(dir: libraryDir))),
           )),
         ),
         BigChoice(
@@ -37,9 +43,18 @@ class WelcomeScreen extends StatelessWidget {
           title: l.welcomeRestore,
           note: l.welcomeRestoreNote,
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => Readable(child: RestoreKeysScreen(libraryDir: libraryDir)),
+            builder: (_) => Readable(child: RestorePickScreen(libraryDir: libraryDir)),
           )),
         ),
+        // Android test builds (owner 2026-11-01): one tap to a vault made for trying.
+        if (TestLogin.shown)
+          BigChoice(
+            key: const ValueKey('welcome-test-login'),
+            icon: Icons.bolt_rounded,
+            title: l.testLogin,
+            note: l.testLoginNote,
+            onTap: () => TestLogin.run(context, libraryDir),
+          ),
       ],
     );
   }

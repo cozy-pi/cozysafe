@@ -97,7 +97,38 @@ const _textKinds = <String, TextKind>{
   'scala': TextKind.code, 'swift': TextKind.code, 'm': TextKind.code, 'mm': TextKind.code,
   'c': TextKind.code, 'h': TextKind.code, 'cc': TextKind.code, 'cpp': TextKind.code,
   'hpp': TextKind.code, 'cs': TextKind.code,
+  // More plain text kept in vaults (owner 2026-11-01: as many as can be read as text):
+  // subtitles, playlists, translations.
+  'sub': TextKind.prose, 'ass': TextKind.prose, 'ssa': TextKind.prose,
+  'lrc': TextKind.prose, 'textile': TextKind.prose, 'wiki': TextKind.prose,
+  'mdx': TextKind.prose, 'po': TextKind.prose, 'pot': TextKind.prose,
+  'strings': TextKind.prose, 'm3u': TextKind.prose, 'm3u8': TextKind.prose,
+  'pls': TextKind.prose, 'cue': TextKind.prose, 'url': TextKind.prose,
+  // Build files, more languages, settings, feeds and maps.
+  'cmake': TextKind.code, 'mk': TextKind.code, 'groovy': TextKind.code,
+  'clj': TextKind.code, 'ex': TextKind.code, 'exs': TextKind.code, 'erl': TextKind.code,
+  'hs': TextKind.code, 'ml': TextKind.code, 'fs': TextKind.code, 'jl': TextKind.code,
+  'nim': TextKind.code, 'zig': TextKind.code, 'sol': TextKind.code, 'tf': TextKind.code,
+  'hcl': TextKind.code, 'nix': TextKind.code, 'dockerignore': TextKind.code,
+  'npmrc': TextKind.code, 'htaccess': TextKind.code, 'service': TextKind.code,
+  'desktop': TextKind.code, 'opml': TextKind.code,
+  'rss': TextKind.code, 'atom': TextKind.code, 'gpx': TextKind.code, 'kml': TextKind.code,
+  'resx': TextKind.code, 'xlf': TextKind.code, 'arb': TextKind.code, 'psql': TextKind.code,
+  'ovpn': TextKind.code, 'wg': TextKind.code, 'cmd': TextKind.code,
+  'vbs': TextKind.code, 'ahk': TextKind.code, 'pas': TextKind.code, 'asm': TextKind.code,
+  's': TextKind.code, 'f90': TextKind.code, 'tcl': TextKind.code, 'vim': TextKind.code,
+  'el': TextKind.code, 'lisp': TextKind.code, 'scm': TextKind.code, 'rkt': TextKind.code,
+  'prisma': TextKind.code, 'gql': TextKind.code, 'bib': TextKind.code,
+  'cls': TextKind.code, 'sty': TextKind.code, 'lock': TextKind.code,
+  
 };
+
+/// Every extension read as text in the app (Top Secret Mode reads the same, after the
+/// core's checks: rust/src/plain_text.rs keeps the same list).
+Set<String> get textExtensions => _textKinds.keys.toSet();
+
+/// Names read as text without an extension.
+Set<String> get textNames => _textNames;
 
 /// Files with no extension that are text by name.
 const _textNames = {'readme', 'license', 'licence', 'changelog', 'makefile', 'dockerfile', 'authors', 'notice'};
@@ -471,7 +502,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
           future: _imageBytes ??= photoBytes(_item.id),
           builder: (context, snap) {
             if (snap.hasError) {
-              return Center(child: Text(l.videoFailed, style: const TextStyle(color: Colors.white)));
+              return Center(
+                  child: Text(withCode(l, l.videoFailed, snap.error!), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)));
             }
             if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
             return InteractiveViewer(
@@ -481,8 +513,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 child: Image.memory(snap.data!,
                     fit: BoxFit.contain,
                     cacheWidth: (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context) * 2).round(),
-                    errorBuilder: (_, _, _) =>
-                        Text(l.videoFailed, style: const TextStyle(color: Colors.white))),
+                    errorBuilder: (_, e, _) => Text(withCode(l, l.videoFailed, e),
+                        textAlign: TextAlign.center, style: const TextStyle(color: Colors.white))),
               ),
             );
           },
@@ -528,7 +560,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 // Only the first part is decrypted: a 1 GB log never sits in memory.
                 future: _bytes ??= rust.itemContentHead(id: _item.id, max: _textLimit + 1),
                 builder: (context, snap) {
-                  if (snap.hasError) return Center(child: Text(l.errorStorage));
+                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center));
                   final data = snap.data;
                   if (data == null) return const Center(child: CircularProgressIndicator());
                   final cut = data.length > _textLimit;
@@ -581,7 +613,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
             ? FutureBuilder<File>(
                 future: _pdfCopy ??= readThroughLock(() => playbackCopy(_item, fallbackExt: '.pdf')),
                 builder: (context, snap) {
-                  if (snap.hasError) return Center(child: Text(l.errorStorage));
+                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center));
                   final f = snap.data;
                   if (f == null) return const Center(child: CircularProgressIndicator());
                   return PdfViewer.file(f.path);
@@ -590,7 +622,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
             : FutureBuilder<Uint8List>(
                 future: _bytes ??= itemBytes(_item.id),
                 builder: (context, snap) {
-                  if (snap.hasError) return Center(child: Text(l.errorStorage));
+                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center));
                   final data = snap.data;
                   if (data == null) return const Center(child: CircularProgressIndicator());
                   return PdfViewer.data(data, sourceName: _item.id);
@@ -671,6 +703,37 @@ class _FileViewScreenState extends State<FileViewScreen> {
 Future<void> shareItem(BuildContext context, rust.ItemInfo item, String vaultId, {String? name, BuildContext? from}) =>
     shareById(context, item.id, item.mime, name ?? item.name, vaultId, from: from);
 
+/// The name a decrypted copy goes out with: no path characters, and an extension from
+/// its kind when it has none (a photo taken in the vault is named without one), so the
+/// other app and the system know what it is (owner 2026-11-01: on iPhone every file got
+/// the same list of apps).
+@visibleForTesting
+String outsideName(String name, String mime) {
+  final clean = name.replaceAll(RegExp(r'[/\\:]'), '-').trim();
+  final base = clean.isEmpty ? 'file' : clean;
+  final dot = base.lastIndexOf('.');
+  if (dot > 0 && dot < base.length - 1) return base;
+  final ext = _extensionOf[mime.toLowerCase()];
+  return ext == null ? base : '$base.$ext';
+}
+
+const _extensionOf = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'audio/mp4': 'm4a',
+  'audio/aac': 'aac',
+  'audio/mpeg': 'mp3',
+  'audio/wav': 'wav',
+  'application/pdf': 'pdf',
+  'text/plain': 'txt',
+};
+
 /// [shareItem] by id, for an item whose details are not at hand (a note just saved).
 /// [askFirst] false: the caller has just said what sending means (a Top secret item's
 /// card says it every time).
@@ -679,7 +742,7 @@ Future<void> shareById(BuildContext context, String id, String mime, String name
   final l = AppLocalizations.of(context);
   if (askFirst && !await confirmShareOut(context, vaultId) || !context.mounted) return;
   final dir = await (await privateTemp()).createTemp('send');
-  final file = name.replaceAll(RegExp(r'[/\\:]'), '-');
+  final file = outsideName(name, mime);
   final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
   LockGuard.allowAway();
   try {
@@ -703,8 +766,9 @@ const _openChannel = MethodChannel('cozysafe/open');
 
 /// Open one item in another app, as a computer's "Open with" (owner 2026-10-31: the share
 /// sheet only sent it): Android's own "Open with" (a read-only link to the copy, for the
-/// app picked) and the iPhone's "Open in…" (only apps that open this kind of file; the
-/// one picked gets a copy). Elsewhere, or when the system has nothing to offer, the share
+/// app picked); on iPhone, Quick Look as the Files app opens it (drawn by the system, not
+/// in this app; its share button reaches other apps), or for a kind it cannot show, the
+/// share sheet without sending, copying and saving. Elsewhere, or when the system has nothing to offer, the share
 /// sheet as before. The decrypted copy is removed once the person is back.
 Future<void> openWithById(BuildContext context, String id, String mime, String name, String vaultId,
     {BuildContext? from, bool askFirst = true}) async {
@@ -717,7 +781,7 @@ Future<void> openWithById(BuildContext context, String id, String mime, String n
   final base = Directory('${(await privateTemp()).path}${Platform.pathSeparator}open');
   base.createSync(recursive: true);
   final dir = base.createTempSync('o');
-  final file = name.replaceAll(RegExp(r'[/\\:]'), '-');
+  final file = outsideName(name, mime);
   final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
   LockGuard.allowAway();
   var shown = false;

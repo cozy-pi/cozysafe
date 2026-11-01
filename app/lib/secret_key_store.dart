@@ -5,13 +5,34 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'hw_key.dart';
 import 'key_backup.dart';
+import 'src/rust/api/vault.dart' as rust;
 
 /// This device's Secret Key in the platform keystore (ADR 0001): Keychain on Apple
 /// devices (this device only, readable after the first unlock since boot), the Android
 /// Keystore, the Windows credential store, libsecret on Linux. Not synced while Cozy Safe
 /// has no sync; the Emergency Kit is the copy that leaves the device.
+///
+/// One key per library (api/run.rs, owner 2026-11-01: a vault may have its own 24 words):
+/// the run's folder keeps the name `secret-key`, a library beside it `<run folder>-<id>`
+/// is kept as `secret-key-<id>`. A call without `dir` is the run's own library. Only that
+/// one goes to iCloud Keychain / Google ([KeyBackup]).
 class SecretKeyStore {
   static const _name = 'secret-key';
+  static final _beside = RegExp(r'-([0-9a-f]{16})$');
+
+  static String _nameOf(String? dir) {
+    final id = dir == null ? null : _beside.firstMatch(dir)?.group(1);
+    return id == null ? _name : '$_name-$id';
+  }
+
+  /// The library folder of the open vault, or null when none is open.
+  static String? get openLibrary {
+    final dir = rust.openVaultInfo()?.libraryDir;
+    return dir == null || dir.isEmpty ? null : dir;
+  }
+
+  /// The open vault's key (its 24 words).
+  static Future<Uint8List?> readOpen() => read(openLibrary);
 
   static const _storage = FlutterSecureStorage(
     iOptions: IOSOptions(
@@ -31,9 +52,9 @@ class SecretKeyStore {
 
   /// The stored key, or null when there is none or the store cannot read it (for
   /// example data restored onto a new phone without its keystore).
-  static Future<Uint8List?> read() async {
+  static Future<Uint8List?> read([String? dir]) async {
     try {
-      final v = await _storage.read(key: _name);
+      final v = await _storage.read(key: _nameOf(dir));
       return v == null ? null : base64Decode(v);
     } catch (_) {
       return null;
@@ -41,22 +62,24 @@ class SecretKeyStore {
   }
 
   /// Store the key and read it back: callers delete other copies only after this.
-  static Future<void> write(Uint8List key) async {
-    await _storage.write(key: _name, value: base64Encode(key));
-    final back = await read();
+  static Future<void> write(Uint8List key, [String? dir]) async {
+    final name = _nameOf(dir);
+    await _storage.write(key: name, value: base64Encode(key));
+    final back = await read(dir);
     if (back == null || !listEquals(back, key)) {
       throw StateError('The keystore did not keep the Secret Key');
     }
     // A new Recovery Key replaces the iCloud Keychain copy, when that is on.
-    if (KeyBackup.on) await KeyBackup.turnOn(key);
+    if (name == _name && KeyBackup.on) await KeyBackup.turnOn(key);
   }
 
   /// Forget the key (the last vault on this device was deleted): a new vault starts
   /// with new words, and backups of the old one cannot be opened with this device's copy.
-  static Future<void> delete() async {
-    await _storage.delete(key: _name);
-    if (await read() != null) throw StateError('The keystore still holds the Secret Key');
-    await KeyBackup.turnOff();
+  static Future<void> delete([String? dir]) async {
+    final name = _nameOf(dir);
+    await _storage.delete(key: name);
+    if (await read(dir) != null) throw StateError('The keystore still holds the Secret Key');
+    if (name == _name) await KeyBackup.turnOff();
   }
 }
 

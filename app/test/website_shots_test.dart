@@ -178,7 +178,7 @@ void main() {
     }
   });
 
-  const vault = VaultInfo(id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
+  const vault = VaultInfo(libraryDir: '', id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
   Widget home() => const VaultHomeScreen(libraryDir: '', vault: vault);
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
   Widget settings() => SettingsScreen(

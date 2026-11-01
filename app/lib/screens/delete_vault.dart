@@ -11,7 +11,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart' show
 import '../biometric.dart' show confirmOwnerForSetting;
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
-import '../sync/drive.dart' show driveAccount, driveSignInQuietly;
+import '../sync/drive.dart' show driveAccount, driveErrorCode, driveSignInQuietly;
 import '../theme.dart';
 import '../widgets/secret.dart';
 import '../widgets/identity.dart';
@@ -90,13 +90,32 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
         });
         return;
       }
-      // Ten seconds to change one's mind (owner 2026-10-25).
+      // The password first (owner 2026-11-01): a wrong one never reaches the countdown.
+      final right = widget.otherId != null
+          ? await rust.vaultPasswordOpens(dir: widget.libraryDir, vaultId: _id, password: _pw.text)
+          : await rust.checkPassword(dir: widget.libraryDir, password: _pw.text);
+      if (!right) {
+        await PinStore.addPasswordFail();
+        HapticFeedback.heavyImpact();
+        if (mounted) {
+          setState(() {
+            _busy = false;
+            _error = l.wrongPassword;
+          });
+        }
+        return;
+      }
+      await PinStore.resetPasswordFails();
+      // Then ten seconds to change one's mind (owner 2026-10-25).
       if (!mounted) return;
       if (!await confirmCountdown(context, title: l.deleteVaultTitle) || !mounted) {
         if (mounted) setState(() => _busy = false);
         return;
       }
       final id = _id;
+      // Its library (each set of 24 words has one, api/run.rs): its words go with its last
+      // vault.
+      final own = (await rust.listVaults(dir: widget.libraryDir)).where((s) => s.id == id).firstOrNull?.libraryDir;
       final ok = widget.otherId != null
           ? await rust.deleteOtherVault(dir: widget.libraryDir, vaultId: id, password: _pw.text)
           : await rust.deleteVault(dir: widget.libraryDir, password: _pw.text);
@@ -113,8 +132,24 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       }
       await PinStore.resetPasswordFails();
       _pw.clear();
-      if (_alsoDrive && mounted && !await whileWorking(context, l.driveDeleting, () => _deleteFromDrive(id)) && mounted) {
-        showToast(context, l.deleteDriveFailed, icon: Icons.error_outline_rounded);
+      if (_alsoDrive && mounted) {
+        final failure = await whileWorking(context, l.driveDeleting, () => _deleteFromDrive(id));
+        if (failure != null && mounted) showToast(context, withCode(l, l.deleteDriveFailed, failure), icon: Icons.error_outline_rounded);
+      }
+      final any = rust.hasVaults(dir: widget.libraryDir);
+      // The last vault of its library, open or not: its 24 words go too, and the next
+      // vault starts afresh (owner 2026-10-24: keeping the old key after deleting the
+      // vault was not safe).
+      try {
+        if (own != null && !rust.libraryHasVaults(dir: own) && await rust.resetEmptyLibrary(dir: own)) {
+          await SecretKeyStore.delete(own);
+        }
+        if (!any) {
+          await PinStore.resetFails();
+          await PinStore.resetPasswordFails();
+        }
+      } catch (_) {
+        // The new-vault screen still starts afresh from an empty library.
       }
       if (!mounted) return;
       if (widget.otherId != null) {
@@ -123,21 +158,6 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
         return;
       }
       await LockGuard.clearCopied();
-      if (!mounted) return;
-      final any = rust.hasVaults(dir: widget.libraryDir);
-      // The last vault: its 24 words go too, and the next vault starts afresh (owner
-      // 2026-10-24: keeping the old key after deleting the vault was not safe).
-      if (!any) {
-        try {
-          await rust.resetEmptyLibrary(dir: widget.libraryDir);
-          await SecretKeyStore.delete();
-          rust.forgetSecretKey();
-          await PinStore.resetFails();
-          await PinStore.resetPasswordFails();
-        } catch (_) {
-          // The new-vault screen still starts afresh from an empty library.
-        }
-      }
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(
@@ -208,14 +228,15 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
     }
   }
 
-  Future<bool> _deleteFromDrive(String id) async {
+  /// Null once deleted, else what stopped it (for the code under the message).
+  Future<Object?> _deleteFromDrive(String id) async {
     try {
       final session = await driveSignInQuietly();
-      if (session == null) return false;
+      if (session == null) return 'drive-sign-in';
       await sync.driveDeleteVault(token: session.token, vaultId: id);
-      return true;
-    } catch (_) {
-      return false;
+      return null;
+    } catch (e) {
+      return driveErrorCode(e);
     }
   }
 

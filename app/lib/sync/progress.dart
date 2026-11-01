@@ -81,9 +81,15 @@ class _SyncProgressState extends State<SyncProgress>
   static const autoSeconds = 5;
   int _left = 0;
   Timer? _auto;
+  /// Came by an invite: the vault password, typed here and checked by the other device.
+  final _password = TextEditingController();
+  /// Sent: waiting for the other device to check it.
+  bool _passwordSent = false;
 
   static const _running = {
     sync.SyncStep.askRestore,
+    sync.SyncStep.invited,
+    sync.SyncStep.askPassword,
     sync.SyncStep.confirm,
     sync.SyncStep.connected,
     sync.SyncStep.checking,
@@ -107,6 +113,16 @@ class _SyncProgressState extends State<SyncProgress>
   };
 
   bool get _over => _last != null && !_running.contains(_last!.kind);
+
+  /// Ends that are not errors: no error code under them.
+  static const _notErrors = {
+    sync.SyncStep.done,
+    sync.SyncStep.cancelled,
+    sync.SyncStep.peerCancelled,
+    sync.SyncStep.expired,
+    sync.SyncStep.locked,
+    sync.SyncStep.restoredRestart,
+  };
 
   bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;
 
@@ -196,7 +212,8 @@ class _SyncProgressState extends State<SyncProgress>
         final asks = (e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) && _last?.kind != e.kind;
         if (e.kind != sync.SyncStep.askRestore && e.kind != sync.SyncStep.confirm) _stopCountDown();
         _last = e;
-        if (e.kind == sync.SyncStep.connected || e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) {
+        if (e.kind == sync.SyncStep.askPassword) _passwordSent = false;
+        if (e.kind == sync.SyncStep.connected || e.kind == sync.SyncStep.invited || e.kind == sync.SyncStep.askRestore || e.kind == sync.SyncStep.confirm) {
           _check = e.check;
           _name = e.name;
         }
@@ -352,6 +369,8 @@ class _SyncProgressState extends State<SyncProgress>
     WidgetsBinding.instance.removeObserver(this);
     _flow.dispose();
     _auto?.cancel();
+    _password.clear();
+    _password.dispose();
     if (!_over) sync.p2PCancel();
     Awake.set(false);
     _sub?.cancel();
@@ -662,6 +681,50 @@ class _SyncProgressState extends State<SyncProgress>
     );
   }
 
+  /// Came by an invite: the vault password, which the other device checks before it sends
+  /// anything (ADR 0003, point 11).
+  Widget _passwordCard(AppLocalizations l, CsColors c, {required bool wrong}) {
+    void send() {
+      if (_password.text.isEmpty || _passwordSent) return;
+      sync.p2PInvitePassword(password: _password.text);
+      _password.clear();
+      setState(() => _passwordSent = true);
+    }
+
+    return Column(
+      key: const ValueKey('invite-password'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(_name.isEmpty ? l.syncConnected : l.syncConnectedTo(_name),
+            textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Text(l.invitePasswordLead, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
+        const SizedBox(height: 18),
+        if (_passwordSent)
+          const Center(child: SizedBox(width: 160, child: LinearProgressIndicator()))
+        else ...[
+          TextField(
+            key: const ValueKey('invite-password-field'),
+            controller: _password,
+            obscureText: true,
+            autofocus: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => send(),
+            decoration: InputDecoration(
+              hintText: l.backupPasswordLabel,
+              errorText: wrong ? l.wrongPassword : null,
+            ),
+          ),
+          const SizedBox(height: 14),
+          FilledButton(key: const ValueKey('invite-password-send'), onPressed: send, child: Text(l.pinNext)),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -690,6 +753,21 @@ class _SyncProgressState extends State<SyncProgress>
     } else {
       body = switch (e.kind) {
         sync.SyncStep.askRestore => _allowCard(l, c),
+        sync.SyncStep.invited => Column(
+            key: const ValueKey('invite-connected'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_name.isEmpty ? l.syncConnected : l.syncConnectedTo(_name),
+                  textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              Text(l.inviteWaitPassword, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.35)),
+              const SizedBox(height: 28),
+              const SizedBox(width: 160, child: LinearProgressIndicator()),
+            ],
+          ),
+        sync.SyncStep.askPassword => _passwordCard(l, c, wrong: e.check == 1),
+        sync.SyncStep.inviteInvalid => _Status(icon: Icons.qr_code_2_rounded, color: const Color(0xFFFF9500), title: l.inviteInvalid),
+        sync.SyncStep.restoredRestart => _Status(icon: Icons.check_circle_rounded, color: const Color(0xFF34C759), title: l.restoredRestart),
         sync.SyncStep.confirm => _confirmCard(l, c),
         sync.SyncStep.peerCancelled => _Status(icon: Icons.cancel_rounded, color: const Color(0xFFFF9500), title: l.syncPeerCancelled),
         sync.SyncStep.connected => Column(
@@ -755,12 +833,14 @@ class _SyncProgressState extends State<SyncProgress>
         // Never the last word (handled above); kept for an exhaustive switch.
         sync.SyncStep.rejected || sync.SyncStep.knock || sync.SyncStep.found => _Status(icon: null, title: l.syncWorking),
       };
-      // What went wrong, as a code to copy (owner 2026-10-26: errors nobody could tell).
-      if (_over && e.code.isNotEmpty) {
+      // What went wrong, as a code to copy (owner 2026-10-26: errors nobody could tell;
+      // 2026-11-01: every error has one, the step's name when nothing more is known).
+      final code = e.code.isNotEmpty ? e.code : (_notErrors.contains(e.kind) ? '' : e.kind.name);
+      if (_over && code.isNotEmpty) {
         body = Column(mainAxisSize: MainAxisSize.min, children: [
           body,
           const SizedBox(height: 18),
-          Text(l.errorCode(e.code), key: const ValueKey('sync-error-code'), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
+          Text(l.errorCode(code), key: const ValueKey('sync-error-code'), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
           TextButton.icon(
             key: const ValueKey('sync-copy-details'),
             onPressed: () => _copyDetails(e),

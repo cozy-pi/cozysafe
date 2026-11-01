@@ -84,6 +84,17 @@ pub enum SyncStep {
     Rejected,
     /// Host only, not the end: a device has just connected and is proving the vault.
     Knock,
+    /// Showing an invite, not the end: the device that scanned it (`name`) is connected
+    /// and its person types the vault password next. Cancel with [`p2p_cancel`].
+    Invited,
+    /// Came by an invite, not the end: type the vault password and give it with
+    /// [`p2p_invite_password`]; `check` is 1 after a wrong one.
+    AskPassword,
+    /// The invite was not the other device's (any more): ended, used or mistyped.
+    InviteInvalid,
+    /// Restored, its words kept; a Top secret vault after an everyday one in this run, so
+    /// the app starts again before it opens.
+    RestoredRestart,
     /// Waiting, not the end: a new device restoring with the 24 words (`name`) asks to be
     /// let in; `check` is the number its screen shows. Answer with [`p2p_answer`].
     AskRestore,
@@ -255,6 +266,8 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
         cs_vault::Error::Corrupt("p2p restore wrong words") => SyncStep::PeerWrongWords,
         cs_vault::Error::Corrupt("p2p restore wrong password") => SyncStep::PeerWrongPassword,
         cs_vault::Error::Corrupt("p2p peer stopped") => SyncStep::PeerStopped,
+        cs_vault::Error::Corrupt("p2p invite wrong") => SyncStep::InviteInvalid,
+        cs_vault::Error::Corrupt("p2p invite wrong password") => SyncStep::WrongPassword,
         cs_vault::Error::Corrupt(
             "p2p host not proven" | "p2p joiner not proven" | "p2p too many failed tries",
         ) => SyncStep::OtherVault,
@@ -342,7 +355,7 @@ pub fn p2p_wait_start(ip: String, mirror: String, name: String) -> Result<Hostin
     let _ = std::fs::remove_dir_all(dir);
     std::fs::create_dir_all(dir).map_err(|_| VaultError::Storage)?;
     // With the library's words, a device restoring this vault may ask to join as well.
-    let secret = super::vault::secret().ok();
+    let secret = super::vault::open_secret().ok();
     let prepared = with_open(|v| Ok(p2p::host_prepare(v, secret.as_ref(), &name, dir)?))?;
     *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
     let waiting = p2p::wait(prepared, permit, p2p::PORT)?;
@@ -350,6 +363,43 @@ pub fn p2p_wait_start(ip: String, mirror: String, name: String) -> Result<Hostin
         qr: waiting.code.qr(),
         findable: waiting.findable(),
         seconds: p2p::WAIT_LIFETIME.as_secs() as u32,
+    };
+    *PENDING.lock().unwrap_or_else(|p| p.into_inner()) = Some(waiting);
+    Ok(shown)
+}
+
+/// What a device showing an invite shows (ADR 0003, point 11).
+pub struct Invitation {
+    /// The QR's text: where this device listens and the invite's secret.
+    pub qr: String,
+    /// The secret alone, to type on a device without a camera.
+    pub typed: String,
+    pub seconds: u32,
+}
+
+/// "Add a device": like [`p2p_wait_start`], but this device shows an invite and answers
+/// nothing else. The device that scans it pairs with it, its person types the vault
+/// password, and only a right one makes this device send the 24 words
+/// ([`p2p_wait_run`] then runs it, asking [`SyncStep::Invited`]).
+pub fn p2p_invite_start(
+    ip: String,
+    mirror: String,
+    name: String,
+) -> Result<Invitation, VaultError> {
+    STOP.store(false, Ordering::Relaxed);
+    let permit = Permit::listen_on(&ip).ok_or(VaultError::Storage)?;
+    let dir = Path::new(&mirror);
+    let _ = std::fs::remove_dir_all(dir);
+    std::fs::create_dir_all(dir).map_err(|_| VaultError::Storage)?;
+    let secret = super::vault::open_secret()?;
+    let prepared = with_open(|v| Ok(p2p::host_invite(v, &secret, &name, dir)?))?;
+    *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
+    let waiting = p2p::wait(prepared, permit, p2p::PORT)?;
+    let invite = waiting.invite().ok_or(VaultError::Storage)?;
+    let shown = Invitation {
+        qr: invite.qr(),
+        typed: invite.typed(),
+        seconds: p2p::INVITE_LIFETIME.as_secs() as u32,
     };
     *PENDING.lock().unwrap_or_else(|p| p.into_inner()) = Some(waiting);
     Ok(shown)
@@ -435,6 +485,8 @@ fn named(kind: SyncStep, name: &str, check: u16) -> SyncEvent {
 fn with_ask<T>(
     sink: &StreamSink<SyncEvent>,
     peer: &Mutex<String>,
+    invited: bool,
+    password: &dyn Fn(&str) -> bool,
     f: impl FnOnce(&p2p::Ask) -> T,
 ) -> T {
     let remember = |name: &str| *peer.lock().unwrap_or_else(|p| p.into_inner()) = name.to_owned();
@@ -449,6 +501,12 @@ fn with_ask<T>(
     };
     let allow = |name: &str, check: u16| {
         remember(name);
+        // The device that scanned this one's invite: named, and on to its password at
+        // once (Cancel ends it, the socket being live).
+        if invited {
+            let _ = sink.add(named(SyncStep::Invited, name, 0));
+            return true;
+        }
         ask(
             sink,
             named(SyncStep::AskRestore, name, check),
@@ -469,6 +527,7 @@ fn with_ask<T>(
         picked: &picked,
         confirm: &confirm,
         allow: &allow,
+        password,
         progress: &|p| {
             let _ = sink.add(progress_event(p));
         },
@@ -488,7 +547,17 @@ pub fn p2p_wait_run(ip: String, sink: StreamSink<SyncEvent>) {
         (None, _) => step(SyncStep::Expired),
         (Some(_), None) => step(SyncStep::Locked),
         (Some(w), Some(h)) => {
-            let paired = with_ask(&sink, &peer, |a| {
+            let invited = w.invite().is_some();
+            // An invited device's password: does it open this very vault (ADR 0003, 11)?
+            let opens = |pw: &str| {
+                let mut yes = false;
+                let _ = h.with(|v| {
+                    yes = super::vault::password_opens(v, pw);
+                    Ok::<_, VaultError>(())
+                });
+                yes
+            };
+            let paired = with_ask(&sink, &peer, invited, &opens, |a| {
                 w.run(&Held(h), &|| Permit::scan_on(&ip), a, &STOP)
             });
             match paired {
@@ -529,7 +598,7 @@ pub fn p2p_join(code: String, name: String, sink: StreamSink<SyncEvent>) {
         return;
     };
     let peer = Mutex::new(String::new());
-    let joined = with_ask(&sink, &peer, |a| {
+    let joined = with_ask(&sink, &peer, false, &|_| false, |a| {
         p2p::join_code(&Held(&hold), Permit::connect_for(&c), &c, &name, a, &STOP)
     });
     let event = match joined {
@@ -555,7 +624,7 @@ fn restored(
     match r {
         // Opened the usual way, from this device's folder with the two secrets.
         Ok(true) => {
-            super::vault::use_secret(key);
+            super::vault::use_secret(dir, key);
             match super::vault::unlock(dir.to_string_lossy().into_owned(), password.to_owned()) {
                 Ok(Some(_)) => step(SyncStep::Done),
                 _ => step(SyncStep::Failed),
@@ -678,6 +747,151 @@ pub fn p2p_restore(
     let _ = sink.add(event);
 }
 
+/// The password typed for [`SyncStep::AskPassword`] (None: the person stopped).
+static INVITE_PASSWORD: Mutex<Option<Option<String>>> = Mutex::new(None);
+static INVITE_TYPED: Condvar = Condvar::new();
+/// The 24 words an invite brought, until Dart keeps them in the keystore.
+static INVITE_KEY: Mutex<Option<zeroize::Zeroizing<Vec<u8>>>> = Mutex::new(None);
+
+/// What a scanned or typed text is as an invite: None when it is not one; the address
+/// it names (to ask the person) for a QR; empty for a typed one (found on the Wi-Fi).
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_invite_address(code: String) -> Option<String> {
+    let code = zeroize::Zeroizing::new(code);
+    let invite = p2p::Invite::parse(&code)?;
+    match invite.at {
+        Some((addr, _)) => p2p::on_local_network(*addr.ip()).then(|| addr.ip().to_string()),
+        None => Some(String::new()),
+    }
+}
+
+/// The answer to [`SyncStep::AskPassword`].
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_invite_password(password: Option<String>) {
+    *INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner()) = Some(password);
+    INVITE_TYPED.notify_all();
+}
+
+/// After [`p2p_invite_restore`] ended Done: the 24 words it brought, once, for the
+/// keystore (under the library the vault went into).
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_invite_key() -> Option<Vec<u8>> {
+    INVITE_KEY
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .take()
+        .map(|k| k.to_vec())
+}
+
+/// A new device with no vault in `dir` comes in by the invite `code` (scanned, or typed:
+/// then it looks on the Wi-Fi where it has `ip`): it pairs with the old device, asks the
+/// person for the vault password ([`SyncStep::AskPassword`]), and once the old device
+/// took it, gets the 24 words and the vault. On Done the vault is open here and
+/// [`p2p_invite_key`] holds the words.
+pub fn p2p_invite_restore(
+    dir: String,
+    code: String,
+    ip: String,
+    name: String,
+    sink: StreamSink<SyncEvent>,
+) {
+    STOP.store(false, Ordering::Relaxed);
+    *INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    *INVITE_KEY.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    let code = zeroize::Zeroizing::new(code);
+    let Some(invite) = p2p::Invite::parse(&code) else {
+        let _ = sink.add(step(SyncStep::InviteInvalid));
+        return;
+    };
+    let Ok(dir) = super::run::library_dir(&dir) else {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    };
+    if cs_vault::Library::reset_if_empty(dir).is_err() {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    }
+    let peer = Mutex::new(String::new());
+    // The last password typed: the vault is opened with it the usual way afterwards.
+    let typed: Mutex<Option<zeroize::Zeroizing<String>>> = Mutex::new(None);
+    let password = |wrong: bool| {
+        let mut slot = INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner());
+        *slot = None;
+        let _ = sink.add(SyncEvent {
+            check: wrong as u16,
+            ..step(SyncStep::AskPassword)
+        });
+        let until = Instant::now() + p2p::ALLOW_WAIT;
+        loop {
+            if let Some(answer) = slot.take() {
+                let pw = answer.map(zeroize::Zeroizing::new);
+                *typed.lock().unwrap_or_else(|p| p.into_inner()) = pw.clone();
+                return pw;
+            }
+            if STOP.load(Ordering::Relaxed) || Instant::now() > until {
+                return None;
+            }
+            slot = INVITE_TYPED
+                .wait_timeout(slot, Duration::from_millis(200))
+                .unwrap_or_else(|p| p.into_inner())
+                .0;
+        }
+    };
+    let connected = |n: &str| {
+        *peer.lock().unwrap_or_else(|p| p.into_inner()) = n.to_owned();
+        let _ = sink.add(named(SyncStep::Connected, n, 0));
+    };
+    let ask = p2p::InviteAsk {
+        connected: &connected,
+        password: &password,
+        progress: &|p| {
+            let _ = sink.add(progress_event(p));
+        },
+    };
+    let r = match invite.at {
+        Some((addr, _)) => p2p::restore_invite(dir, Permit::connect(addr), &invite, &name, &ask),
+        None => {
+            p2p::restore_invite_nearby(dir, &|| Permit::scan_on(&ip), &invite, &name, &ask, &STOP)
+        }
+    };
+    let event = match r {
+        // Opened the usual way, from this device's folder with the two secrets.
+        Ok(Some(key)) => {
+            // The vault is here now: its words are kept whatever happens next, or it could
+            // never be opened again.
+            *INVITE_KEY.lock().unwrap_or_else(|p| p.into_inner()) =
+                Some(zeroize::Zeroizing::new(key.as_bytes().to_vec()));
+            let pw = typed.lock().unwrap_or_else(|p| p.into_inner()).take();
+            super::vault::use_secret(dir, key);
+            let opened = match pw {
+                Some(pw) => {
+                    super::vault::unlock(dir.to_string_lossy().into_owned(), pw.to_string())
+                }
+                None => Ok(None),
+            };
+            match opened {
+                Ok(Some(_)) => step(SyncStep::Done),
+                // Top secret, and this run opened an everyday vault: in, but the app starts
+                // again before it opens (owner 2026-11-01: the screen said a network error).
+                Err(VaultError::RestartForMode) => step(SyncStep::RestoredRestart),
+                Ok(None) => SyncEvent {
+                    code: "restored-not-opened".into(),
+                    ..step(SyncStep::Failed)
+                },
+                Err(e) => SyncEvent {
+                    code: format!("restored-open-{}", super::vault::error_word(&e)),
+                    ..step(SyncStep::Failed)
+                },
+            }
+        }
+        Ok(None) => step(SyncStep::Cancelled),
+        Err(e) => failure(e),
+    };
+    let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
+    log_event(None, "restore", Some(&name), &event);
+    let _ = sink.add(event);
+}
+
 /// The person allowed syncing with their Google Drive; `token` is the access token from
 /// their sign-in on this device (scope `drive.file`). The run keeps its own hold on the
 /// vault from start to end, so the vault locking meanwhile does not stop it; the vault
@@ -693,6 +907,7 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
         return;
     };
     let _ = sink.add(step(SyncStep::Checking));
+    let live = DriveNow::start();
     // How long each step takes, in Debug's log (owner 2026-10-26: "Looking at Google
     // Drive" was slow after a while without syncing; the log says where the time goes).
     let started = std::time::Instant::now();
@@ -709,6 +924,7 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
         .and_then(|api| {
             DriveRemote::open_with(api, &|s| {
                 let e = setup_event(s);
+                live.step(&e);
                 mark(format!("{:?}", e.kind));
                 let _ = sink.add(e);
             })
@@ -720,6 +936,7 @@ pub fn drive_sync(token: String, sink: StreamSink<SyncEvent>) {
         Ok(remote) => match hold.with(|v| {
             let r = v.sync_with(&remote, &|p| {
                 let e = progress_event(p);
+                live.step(&e);
                 mark(format!("{:?}", e.kind));
                 let _ = sink.add(e);
             })?;
@@ -781,6 +998,78 @@ pub fn drive_changed(token: String) -> bool {
 /// never sees a sync half-way (files going up, the index changing), and never removes
 /// a file a sync is about to rely on. Each waits for the other to end.
 static DRIVE_RUN: Mutex<()> = Mutex::new(());
+
+/// The Drive sync under way: when it started and its last step, for the Debug page to
+/// show at any moment (owner 2026-11-01: a sync ran a long time and the logs, written
+/// as it ends or only while debug mode was on, said nothing).
+static DRIVE_NOW: Mutex<Option<(std::time::Instant, Step)>> = Mutex::new(None);
+
+/// A [`SyncEvent`]'s step and counts, as [`drive_sync_now`] shows them.
+#[flutter_rust_bridge::frb(ignore)]
+#[derive(Default)]
+struct Step {
+    kind: String,
+    done: u32,
+    total: u32,
+    bytes: u64,
+    bytes_total: u64,
+}
+
+/// Ends [`DRIVE_NOW`] however the sync ends.
+#[flutter_rust_bridge::frb(ignore)]
+struct DriveNow;
+
+impl DriveNow {
+    fn start() -> DriveNow {
+        *DRIVE_NOW.lock().unwrap_or_else(|p| p.into_inner()) = Some((
+            std::time::Instant::now(),
+            Step {
+                kind: format!("{:?}", SyncStep::Checking),
+                ..Step::default()
+            },
+        ));
+        DriveNow
+    }
+    fn step(&self, e: &SyncEvent) {
+        if let Some((_, now)) = DRIVE_NOW.lock().unwrap_or_else(|p| p.into_inner()).as_mut() {
+            *now = Step {
+                kind: format!("{:?}", e.kind),
+                done: e.done,
+                total: e.total,
+                bytes: e.bytes,
+                bytes_total: e.bytes_total,
+            };
+        }
+    }
+}
+
+impl Drop for DriveNow {
+    fn drop(&mut self) {
+        *DRIVE_NOW.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    }
+}
+
+/// The Drive sync under way in one technical line ("Sending 1/2 · 35/120 MB · 84 s"),
+/// or empty when none runs.
+#[flutter_rust_bridge::frb(sync)]
+pub fn drive_sync_now() -> String {
+    let now = DRIVE_NOW.lock().unwrap_or_else(|p| p.into_inner());
+    let Some((started, e)) = now.as_ref() else {
+        return String::new();
+    };
+    let mut parts = vec![e.kind.clone()];
+    if e.total > 0 {
+        parts.push(format!("{}/{}", e.done, e.total));
+    }
+    const MB: u64 = 1 << 20;
+    if e.bytes_total > 0 {
+        parts.push(format!("{}/{} MB", e.bytes / MB, e.bytes_total / MB));
+    } else if e.bytes > 0 {
+        parts.push(format!("{} MB", e.bytes / MB));
+    }
+    parts.push(format!("{} s", started.elapsed().as_secs()));
+    parts.join(" · ")
+}
 
 /// What the vault's folder in Google Drive holds, counted by what each file is (see
 /// `cs_vault::audit::classify`); counts and bytes only, no ids or names.
@@ -927,6 +1216,9 @@ pub enum JoinOutcome {
     SignIn,
     /// The network or Drive failed.
     Failed,
+    /// In, its words to keep; a Top secret vault after an everyday one in this run, so
+    /// the app starts again before it opens (and syncs its items in then).
+    Restart,
 }
 
 pub struct JoinResult {
@@ -983,7 +1275,7 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
     }
     // Opened the usual way, from this device's folder with the two secrets; the items
     // come next, through drive_sync, with progress on screen.
-    super::vault::use_secret(key);
+    super::vault::use_secret(dir, key);
     match super::vault::unlock(dir.to_string_lossy().into_owned(), password.to_string()) {
         Ok(Some(vault)) => {
             JOIN_MOVED.store(remote.moved(), Ordering::Relaxed);
@@ -992,6 +1284,7 @@ pub fn drive_join(dir: String, token: String, words: String, password: String) -
                 vault: Some(vault),
             }
         }
+        Err(VaultError::RestartForMode) => join_result(JoinOutcome::Restart),
         _ => join_result(JoinOutcome::Failed),
     }
 }
@@ -1022,6 +1315,8 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         | SyncStep::Rejected
         | SyncStep::Knock
         | SyncStep::AskRestore
+        | SyncStep::Invited
+        | SyncStep::AskPassword
         | SyncStep::Checking
         | SyncStep::Preparing
         | SyncStep::Repairing
@@ -1034,6 +1329,8 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         | SyncStep::DriveMoving => return,
         SyncStep::Interrupted => "interrupted",
         SyncStep::OtherVault => "othervault",
+        SyncStep::InviteInvalid => "invite",
+        SyncStep::RestoredRestart => "ok",
         SyncStep::Unreachable => "unreachable",
         SyncStep::SignIn
         | SyncStep::Failed
@@ -1077,7 +1374,7 @@ pub fn qr_matrix(text: String) -> Option<QrMatrix> {
 }
 
 /// Read a QR from a camera frame's brightness plane (`width` × `height`, `stride` bytes
-/// a row). Only Cozy Safe pairing codes come back.
+/// a row). Only Cozy Safe codes come back: a pairing code, or an invite (ADR 0003, 11).
 pub fn qr_read(luma: Vec<u8>, width: u32, height: u32, stride: u32) -> Option<String> {
     let (w, h, stride) = (width as usize, height as usize, stride as usize);
     if luma.len() < stride * h.saturating_sub(1) + w {
@@ -1087,12 +1384,55 @@ pub fn qr_read(luma: Vec<u8>, width: u32, height: u32, stride: u32) -> Option<St
     img.detect_grids()
         .into_iter()
         .filter_map(|g| g.decode().ok().map(|(_, text)| text))
-        .find(|t| PairCode::parse(t).is_some())
+        .find(|t| {
+            PairCode::parse(t).is_some() || p2p::Invite::parse(t).is_some_and(|i| i.at.is_some())
+        })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `text` drawn as a camera would see it: 4 pixels a module, a light margin.
+    fn photo(text: &str) -> (Vec<u8>, u32) {
+        let m = qr_matrix(text.to_owned()).expect("fits a QR");
+        let (scale, margin) = (4usize, 16usize);
+        let side = m.size as usize * scale + 2 * margin;
+        let mut luma = vec![255u8; side * side];
+        for y in 0..m.size as usize {
+            for x in 0..m.size as usize {
+                if m.dark[y * m.size as usize + x] {
+                    for dy in 0..scale {
+                        let row = (margin + y * scale + dy) * side;
+                        for dx in 0..scale {
+                            luma[row + margin + x * scale + dx] = 0;
+                        }
+                    }
+                }
+            }
+        }
+        (luma, side as u32)
+    }
+
+    #[test]
+    fn the_camera_reads_pairing_codes_and_invites_only() {
+        let code = PairCode::parse("4K9M2Q-7XWB3H-NTD8RF").map(|c| c.qr());
+        // 192.168.1.5:47823, token 1…5, a secret of sevens.
+        let invite = "cozysafe:invite:1:R2M021DTSW0G40R40M3GE1R70W3GE1R70W3GE1R70W3G".to_owned();
+        assert!(
+            p2p::Invite::parse(&invite).is_some_and(|i| i.at.is_some()),
+            "a well-formed invite"
+        );
+        for text in code.iter().chain([&invite]) {
+            let (luma, side) = photo(text);
+            assert_eq!(
+                qr_read(luma, side, side, side).as_deref(),
+                Some(text.as_str())
+            );
+        }
+        let (luma, side) = photo("https://example.com");
+        assert_eq!(qr_read(luma, side, side, side), None);
+    }
 
     #[test]
     fn error_codes_are_short_fixed_words() {

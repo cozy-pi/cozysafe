@@ -14,6 +14,7 @@ import '../widgets/bottom_bar.dart';
 import '../widgets/format_bar.dart';
 import '../widgets/toast.dart';
 import '../widgets/text_styles.dart';
+import 'common.dart';
 import 'file_view.dart' show shareById;
 
 /// A note's title for the list: its first line, at most 80 characters.
@@ -174,10 +175,11 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
         NoteScreen.lastDeleted = id;
       }
       nav.pop(true);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+      final l = AppLocalizations.of(context);
+      showToast(context, withCode(l, l.errorStorage, e), icon: Icons.error_outline_rounded);
     }
   }
 
@@ -188,10 +190,11 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
     try {
       await _saveNow();
       nav.pop(_wrote);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+      final l = AppLocalizations.of(context);
+      showToast(context, withCode(l, l.errorStorage, e), icon: Icons.error_outline_rounded);
     }
   }
 

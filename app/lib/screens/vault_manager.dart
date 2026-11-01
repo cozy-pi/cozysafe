@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../test_login.dart';
 import '../theme.dart';
+import '../widgets/countdown.dart';
 import '../widgets/identity.dart';
 import '../widgets/toast.dart';
+import '../widgets/vault_bar.dart' show showCard;
 import '../widgets/bottom_bar.dart' show PinnedAction;
 import 'delete_vault.dart';
+import 'unlock.dart';
+import 'welcome.dart';
 import '../platform.dart' show nowMs;
 import 'file_view.dart' show fileSize;
 import 'top_secret_page.dart' show TopSecretMark;
@@ -39,6 +44,8 @@ class VaultManagerScreen extends StatefulWidget {
 class _VaultManagerScreenState extends State<VaultManagerScreen> {
   List<rust.VaultSlot>? _slots;
   rust.VaultInfo? _open;
+  /// The test vault of Android test builds, when one is here (lib/test_login.dart).
+  String? _testId;
 
   @override
   void initState() {
@@ -54,17 +61,93 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
       } catch (_) {}
     }
     final slots = debug ?? await rust.listVaults(dir: widget.libraryDir);
+    final testId = await TestLogin.vaultId();
     if (mounted) {
       setState(() {
         _slots = slots;
         _open = rust.openVaultInfo();
+        _testId = testId;
       });
     }
   }
 
-  /// A tap on a vault opens its delete screen (owner 2026-10-31): there, its password,
-  /// or "Forgot the password" for another vault.
-  Future<void> _menu(rust.VaultSlot slot, BuildContext from) async {
+  /// A tap on a vault shows what is known of it, with Delete under it (owner 2026-11-01).
+  Future<void> _details(rust.VaultSlot s) async {
+    final l = AppLocalizations.of(context);
+    final open = _open;
+    final test = s.id == _testId;
+    final delete = await showCard<bool>(context, title: _title(l, s), closeButton: true, builder: (context) {
+      final c = CsColors.of(context);
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Center(
+            child: s.isOpen && open != null
+                ? VaultBadge(icon: open.icon, color: open.color, size: 56)
+                : Icon(Icons.lock_rounded, color: c.muted, size: 44),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            [
+              fileSize(s.sizeBytes),
+              if (s.hasBiometric) l.vaultManagerBiometric,
+              '${s.id.substring(0, 6)}…',
+            ].join(' · '),
+            key: const ValueKey('vault-details'),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: c.muted, fontSize: CsType.subhead),
+          ),
+          if (test) ...[
+            const SizedBox(height: 6),
+            Text(l.testLoginNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
+          ],
+          if (s.deleteAtMs case final at?) ...[
+            const SizedBox(height: 6),
+            Text(_left(l, at.toInt()),
+                textAlign: TextAlign.center, style: TextStyle(color: recordRed(context), fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
+          ],
+          const SizedBox(height: 18),
+          FilledButton(
+            key: const ValueKey('vault-details-delete'),
+            style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l.deleteVaultAction),
+          ),
+        ]),
+      );
+    });
+    if (delete != true || !mounted) return;
+    if (test) return _deleteTest(s);
+    await _menu(s);
+  }
+
+  /// The test vault goes without its password (owner 2026-11-01), after the countdown.
+  Future<void> _deleteTest(rust.VaultSlot s) async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmCountdown(context, title: l.deleteVaultTitle) || !mounted) return;
+    final gone = await TestLogin.delete(widget.libraryDir, s.id);
+    if (!mounted) return;
+    if (gone && s.isOpen) {
+      // The open one went: to the lock screen, or the first screen when none is left.
+      final any = rust.hasVaults(dir: widget.libraryDir);
+      await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          builder: (_) => any ? UnlockScreen(libraryDir: widget.libraryDir, askBiometricNow: false) : WelcomeScreen(libraryDir: widget.libraryDir),
+        ),
+        (_) => false,
+      );
+      return;
+    }
+    if (gone) showToast(context, l.vaultDeleted, icon: Icons.check_rounded);
+    await _load();
+  }
+
+  String _title(AppLocalizations l, rust.VaultSlot s) =>
+      s.id == _testId ? l.testVault : (s.isOpen ? l.vaultThis : l.vaultLocked);
+
+  /// Delete: the open vault by Settings' own flow; another on its delete screen (its
+  /// password, or "Forgot the password").
+  Future<void> _menu(rust.VaultSlot slot) async {
     if (slot.isOpen) {
       await widget.onDeleteOpen?.call();
       if (mounted) await _load();
@@ -128,7 +211,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                       clipBehavior: Clip.antiAlias,
                       child: Builder(
                         builder: (tile) => InkWell(
-                          onTap: () => _menu(s, tile),
+                          onTap: () => _details(s),
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
                             child: Row(children: [
@@ -142,7 +225,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                                   Row(children: [
                                     Flexible(
                                       child: Text(
-                                        s.isOpen ? l.vaultThis : l.vaultLocked,
+                                        _title(l, s),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w600),

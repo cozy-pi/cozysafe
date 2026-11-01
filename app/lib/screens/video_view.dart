@@ -17,6 +17,7 @@ import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../temp_files.dart';
 import 'file_view.dart';
+import 'common.dart';
 import 'glass.dart';
 
 /// A video, played inside the app. The player needs a file, so the video is decrypted
@@ -104,6 +105,7 @@ class Playback extends ChangeNotifier {
   VideoPlayerController? _player;
   File? _copy;
   bool _failed = false;
+  Object? _error;
   bool _disposed = false;
   /// Each lock starts a new round: an opening from before it is thrown away.
   int _round = 0;
@@ -113,6 +115,8 @@ class Playback extends ChangeNotifier {
   VideoPlayerController? get player => _player;
   File? get copy => _copy;
   bool get failed => _failed;
+  /// What stopped the playing, for the code under the message.
+  Object get error => _error ?? 'play-video';
 
   Future<void> _open(int round) async {
     File? copy;
@@ -131,13 +135,14 @@ class Playback extends ChangeNotifier {
       _player = p..addListener(notifyListeners);
       notifyListeners();
       if (_playing) await p.play();
-    } catch (_) {
+    } catch (e) {
       if (round != _round) {
         await p?.dispose();
         _delete(copy);
         return;
       }
       _failed = true;
+      _error = e;
       notifyListeners();
     }
   }
@@ -262,7 +267,7 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                   ? Padding(
                       padding: const EdgeInsets.all(32),
                       child: Text(
-                        l.videoFailed,
+                        withCode(l, l.videoFailed, _playback.error),
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.white),
                       ),

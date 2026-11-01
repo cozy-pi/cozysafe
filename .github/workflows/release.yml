@@ -29,6 +29,10 @@ on:
         description: "Internal testers only (TestFlight, Play internal): no alpha, no GitHub release"
         type: boolean
         default: false
+      test_login:
+        description: "Android: show Test sign-in (closed testing); off for a build for everyone"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -106,6 +110,7 @@ jobs:
       build: ${{ needs.version.outputs.build }}
       publish: true
       internal_only: ${{ inputs.internal_only }}
+      test_login: ${{ inputs.test_login }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

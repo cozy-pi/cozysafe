@@ -182,6 +182,7 @@ dependencies = [
  "sha2",
  "tempfile",
  "webpki-roots",
+ "zeroize",
 ]
 
 [[package]]

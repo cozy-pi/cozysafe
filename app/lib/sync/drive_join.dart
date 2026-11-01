@@ -10,7 +10,9 @@ import '../screens/tour.dart' show TourKind;
 import '../screens/vault_home.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
+import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
+import '../screens/top_secret_page.dart' show restartForMode;
 import '../theme.dart';
 import '../widgets/secret.dart';
 import '../widgets/words_input.dart';
@@ -45,6 +47,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
   DriveSession? _session;
   bool _busy = false;
   String? _error;
+  String? _target;
 
   @override
   void dispose() {
@@ -71,7 +74,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       if (widget.words != null) await _open();
     } catch (e) {
       ErrorLog.add('drive-sign-in', driveErrorCode(e));
-      if (mounted) setState(() => _error = '${l.driveSignInFailed} (${driveErrorCode(e)})');
+      if (mounted) setState(() => _error = withCode(l, l.driveSignInFailed, driveErrorCode(e)));
     }
   }
 
@@ -91,9 +94,18 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       _error = null;
     });
     try {
-      final r = await sync.driveJoin(
-          dir: widget.libraryDir, token: session.token, words: words, password: password);
+      // This device's library while it holds no vault, else a new one for these words.
+      final target = _target ??= rust.libraryHasVaults(dir: widget.libraryDir)
+          ? (run_api.newLibraryDir() ?? widget.libraryDir)
+          : widget.libraryDir;
+      final r = await sync.driveJoin(dir: target, token: session.token, words: words, password: password);
       if (!mounted) return;
+      // In, but Top secret after an everyday vault in this run: keep its words, start again.
+      if (r.outcome == sync.JoinOutcome.restart) {
+        await SecretKeyStore.write(Uint8List.fromList(parsed), target);
+        if (mounted) await restartForMode(context);
+        return;
+      }
       final vault = r.vault;
       if (r.outcome != sync.JoinOutcome.joined || vault == null) {
         setState(() => _error = switch (r.outcome) {
@@ -101,13 +113,13 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
               sync.JoinOutcome.wrongWords => l.joinWrongWords,
               sync.JoinOutcome.wrongPassword => l.wrongPassword,
               sync.JoinOutcome.signIn => l.syncSignInAgain,
-              _ => l.syncFailed,
+              final other => withCode(l, l.syncFailed, other.name),
             });
         if (r.outcome == sync.JoinOutcome.signIn) _session = null;
         return;
       }
       // This device keeps the words now, like a device that made the vault.
-      await SecretKeyStore.write(Uint8List.fromList(parsed));
+      await SecretKeyStore.write(Uint8List.fromList(parsed), vault.libraryDir);
       if (!mounted) return;
       // The items come down with progress on screen; stopping loses nothing.
       await Navigator.of(context).push<void>(MaterialPageRoute(
@@ -133,8 +145,10 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
             builder: (_) => VaultHomeScreen(libraryDir: widget.libraryDir, vault: vault, tour: TourKind.restored)),
         (_) => false,
       );
-    } catch (_) {
-      if (mounted) setState(() => _error = l.syncFailed);
+    } catch (e) {
+      // Which step, by name (owner 2026-11-01: a bare "check the Wi-Fi" told nothing).
+      ErrorLog.add('drive-join', errorWord(e));
+      if (mounted) setState(() => _error = withCode(l, l.syncFailed, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
