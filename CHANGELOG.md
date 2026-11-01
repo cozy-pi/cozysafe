@@ -4,6 +4,24 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.9 (2026-11-02)
+
+### Added
+- Settings has Manage vaults again (it stays on the lock screen too).
+- A tap on a vault in Manage vaults shows everything known of it: mode, items, size,
+  when it was created on this device, what opens it, which 24 words it uses, its Google
+  Drive account and its ID. A locked vault shows only what the device knows without
+  opening it. A vault set to be deleted shows when that was asked and when it goes.
+- The delete page shows the same facts, so it is clear which vault goes.
+
+### Changed
+- Manage vaults: no ⋯ on each vault; Close and Delete sit on one row.
+- Stopping a sync with Cancel or Back asks first; what has synced is kept.
+
+### Fixed
+- Android: after Cancel on the fingerprint prompt, the lock screen stopped responding
+  and the fingerprint never showed again.
+
 ## 0.2.8 (2026-11-01)
 
 ### Changed
