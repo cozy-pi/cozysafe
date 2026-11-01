@@ -411,6 +411,21 @@ pub(crate) fn secret(dir: &Path) -> Result<SecretKey, VaultError> {
         .ok_or(VaultError::WrongSecretKey)
 }
 
+/// Whether `password` opens `vault` itself, through its own library: the password a
+/// device typed after scanning this one's invite (ADR 0003, point 11). Runs Argon2id;
+/// opens nothing that is kept.
+pub(crate) fn password_opens(vault: &OpenVault, password: &str) -> bool {
+    let Some(dir) = library_of(vault) else {
+        return false;
+    };
+    let Ok(key) = secret(&dir) else {
+        return false;
+    };
+    Library::open_or_create(&dir, params_for_this_device(), key)
+        .and_then(|l| l.unlock(password))
+        .is_ok_and(|v| v.is_some_and(|v| v.id == vault.id))
+}
+
 /// The Secret Key of the open vault's library.
 pub(crate) fn open_secret() -> Result<SecretKey, VaultError> {
     secret(&open_library_dir()?)

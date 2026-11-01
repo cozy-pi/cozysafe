@@ -869,5 +869,18 @@
   "keysDevice": "Dùng bộ của máy này",
   "keysDeviceNote": "Không phải chép thêm gì: đó là bộ đã có trong Khoá khôi phục.",
   "keysNew": "Tạo bộ mới",
-  "keysNewNote": "Két này có 24 từ riêng. Bạn chép lại ở bước sau."
+  "keysNewNote": "Két này có 24 từ riêng. Bạn chép lại ở bước sau.",
+  "inviteRow": "Thêm máy mới",
+  "inviteTitle": "Quét mã này trên máy mới",
+  "inviteLead": "Trên máy mới: Khôi phục két → Từ máy khác. Rồi nhập mật khẩu két này trên máy đó.",
+  "inviteShowTyped": "Không có camera? Hiện mã để gõ",
+  "inviteSafety": "Mã dùng một lần, trong 2 phút. Chỉ máy quét mã mới kết nối được, và chưa gửi gì cho tới khi máy đó nhập đúng mật khẩu.",
+  "inviteWaitPassword": "Nhập mật khẩu két trên máy đó. Chưa gửi gì cho tới khi mật khẩu đúng.",
+  "invitePasswordLead": "Nhập mật khẩu của két. Máy kia kiểm tra rồi mới gửi két sang.",
+  "inviteInvalid": "Mã này không dùng được nữa. Trên máy kia, tạo mã mới: Đồng bộ → Thêm máy mới.",
+  "inviteScanLead": "Trên máy kia, mở két: Đồng bộ → Thêm máy mới. Rồi quét mã hiện trên đó.",
+  "inviteTypeInstead": "Gõ mã thay vì quét",
+  "inviteTypeLead": "Gõ mã hiện trên máy kia (bấm “Không có camera?” trên đó).",
+  "restoreFromDeviceInviteNote": "Quét mã trên máy kia, rồi nhập mật khẩu",
+  "restorePickFile": "Chọn tệp sao lưu"
 }

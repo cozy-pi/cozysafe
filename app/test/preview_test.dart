@@ -54,6 +54,7 @@ import 'package:cozysafe/sync/drive_check.dart';
 import 'package:cozysafe/sync/sync_log.dart';
 import 'package:cozysafe/sync/drive_join.dart';
 import 'package:cozysafe/sync/join_page.dart';
+import 'package:cozysafe/sync/invite_page.dart';
 import 'package:cozysafe/sync/nearby_page.dart';
 import 'package:cozysafe/sync/progress.dart';
 import 'package:cozysafe/sync/qr_view.dart';
@@ -379,6 +380,9 @@ const _settingsPages = {
 /// Shots in Top Secret Mode (ADR 0006): every name starting with `ts-`.
 bool _topSecretShot(String name) => name.startsWith('ts-');
 
+SyncEvent _named(SyncStep k, String name, int check) =>
+    SyncEvent(kind: k, check: check, name: name, peers: const [], peerIds: const [], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: '');
+
 void _screen(String name, String caption, Widget Function() home,
     {String? section, Future<void> Function(WidgetTester)? act, int after = 6, void Function()? setup,
     String? change, List<Finder Function()> marks = const [], Size size = _phone}) {
@@ -437,7 +441,9 @@ void _screen(String name, String caption, Widget Function() home,
       NewVaultScreen.debugBiometricStep = false;
       Device.debugDesktop = null;
       EditableText.debugDeterministicCursor = false;
-      RestoreSourceScreen.debugDrive = false;
+      RestorePickScreen.debugDrive = false;
+      InvitePage.debugInvitation = null;
+      InvitePage.debugEvents = null;
       DriveJoinScreen.debugAccount = null;
       NearbyPage.debugHosting = null;
       NearbyPage.debugEvents = null;
@@ -1182,6 +1188,8 @@ void main() {
     '${_now - 2 * 86400000}|join|192.168.1.21|ok|0|5',
   ];
   _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (email tài khoản, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      change: 'MỚI: dòng Thêm máy mới (mời máy chưa có két bằng mã QR + mật khẩu)',
+      marks: [() => find.byKey(const ValueKey('sync-invite'))],
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
@@ -1254,6 +1262,27 @@ void main() {
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-nearby')));
     await t.pumpAndSettle();
+  });
+  const invitation = Invitation(qr: _qrText, typed: '4K9M2-Q7XWB-3HNTD-8RFJC-5VZPY0', seconds: 104);
+  Widget invite() => page('Thêm máy mới', InvitePage(address: '192.168.1.37', mirror: '', onSynced: () {}));
+  _screen('invite-shown', 'Máy cũ · Đồng bộ → Thêm máy mới: mã QR dùng một lần, 2 phút', invite,
+      change: 'MỚI: mã QR mời máy mới (một lần, 2 phút, chặn chụp màn hình)',
+      marks: [() => find.byKey(const ValueKey('invite-qr'))],
+      setup: () => InvitePage.debugInvitation = invitation);
+  _screen('invite-shown-typed', 'Máy cũ · bấm "Không có camera?": hiện mã để gõ', invite,
+      change: 'MỚI: mã 26 ký tự cho máy không có camera',
+      marks: [() => find.byKey(const ValueKey('invite-typed'))],
+      setup: () => InvitePage.debugInvitation = invitation, act: (t) async {
+    await t.ensureVisible(find.byKey(const ValueKey('invite-show-typed')));
+    await t.tap(find.byKey(const ValueKey('invite-show-typed')));
+    await t.pumpAndSettle();
+  });
+  _screen('invite-connected', 'Máy cũ · máy mới đã quét mã, chờ nhập mật khẩu bên đó', invite,
+      change: 'MỚI: hiện tên máy mới; chưa gửi gì cho tới khi bên đó nhập đúng mật khẩu (Huỷ được)',
+      marks: [() => find.byKey(const ValueKey('invite-connected'))],
+      setup: () {
+    InvitePage.debugInvitation = invitation;
+    InvitePage.debugEvents = Stream.value(_named(SyncStep.invited, 'Google Pixel 8', 0));
   });
   _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
@@ -1906,15 +1935,15 @@ void main() {
       change: 'MỚI: Đăng nhập thử nghiệm ở menu ⋯ màn khoá (mở thẳng két thử nghiệm)',
       setup: () => TestLogin.debugShown = true,
       act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
-  _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: ''));
-  _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: ''), act: (t) async {
+  _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive));
+  _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive), act: (t) async {
     await t.enterText(find.byKey(const ValueKey('words-field-0')), 'boun');
     await t.enterText(find.byKey(const ValueKey('words-field-1')), 'announce');
     await t.enterText(find.byKey(const ValueKey('words-field-2')), 'episod3');
     await t.enterText(find.byKey(const ValueKey('words-field-3')), 'wre');
     await t.pump();
   });
-  _screen('restore-keys-wrong-order', 'Khôi phục · đủ 24 từ có thật nhưng hai từ đổi chỗ', () => const RestoreKeysScreen(libraryDir: ''), setup: () => RecoveryWords.makesKey = (w) => w == words, act: (t) async {
+  _screen('restore-keys-wrong-order', 'Khôi phục · đủ 24 từ có thật nhưng hai từ đổi chỗ', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive), setup: () => RecoveryWords.makesKey = (w) => w == words, act: (t) async {
     final w = words.split(' ');
     final first = w[0];
     w[0] = w[1];
@@ -1924,14 +1953,34 @@ void main() {
     await t.ensureVisible(find.byKey(const ValueKey('words-no-key')));
     await t.pumpAndSettle();
   });
-  _screen('restore-keys-legacy', 'Khôi phục · bấm "Tôi có khoá kiểu cũ (CS1-…)"', () => const RestoreKeysScreen(libraryDir: ''), act: (t) async {
+  _screen('restore-keys-legacy', 'Khôi phục · bấm "Tôi có khoá kiểu cũ (CS1-…)"', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive), act: (t) async {
     await t.ensureVisible(find.byKey(const ValueKey('words-legacy-switch')));
     await t.tap(find.byKey(const ValueKey('words-legacy-switch')));
     await t.pumpAndSettle();
   });
-  _screen('restore-source', 'Khôi phục · 2. Két đang ở đâu?', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake'),
-      setup: () => RestoreSourceScreen.debugDrive = true);
-  _screen('restore-none', 'Khôi phục · không còn nơi nào giữ két', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake'),
+  _screen('restore-source', 'Khôi phục · 1. Két đang ở đâu? (chọn nguồn trước)', () => const RestorePickScreen(libraryDir: ''),
+      change: 'ĐỔI: khôi phục bắt đầu bằng chọn nguồn. Máy khác = quét mã rồi nhập mật khẩu (không gõ 24 từ). Drive / tệp sao lưu = nhập 24 từ + mật khẩu rồi làm luôn',
+      marks: [() => find.byKey(const ValueKey('restore-device'))],
+      setup: () => RestorePickScreen.debugDrive = true);
+  _screen('restore-keys-file', 'Khôi phục từ tệp sao lưu · 24 từ + mật khẩu, rồi chọn tệp', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.file),
+      change: 'ĐỔI: Drive/tệp: nhập 24 từ + mật khẩu ở bước 2 (sau khi chọn nguồn); nút cuối là Chọn tệp sao lưu',
+      marks: [() => find.byKey(const ValueKey('restore-next'))]);
+  _screen('invite-scan', 'Khôi phục từ máy khác · quét mã trên máy kia', () => const InviteScanPage(libraryDir: ''),
+      change: 'MỚI: quét mã "Thêm máy mới" trên máy cũ; không có camera thì Gõ mã',
+      marks: [() => find.byKey(const ValueKey('invite-scan-lead')), () => find.byKey(const ValueKey('invite-type'))],
+      setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
+  _screen('invite-type', 'Khôi phục từ máy khác · gõ mã (máy không có camera)', () => page('Gõ mã thay vì quét', InviteTypePage(onCode: (_, _) async {})),
+      change: 'MỚI: gõ mã 26 ký tự hiện trên máy cũ',
+      marks: [() => find.byKey(const ValueKey('invite-type-field'))]);
+  _screen('invite-password', 'Máy mới · đã nối với máy cũ, nhập mật khẩu két', () => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.fromIterable([_named(SyncStep.connected, 'iPhone 15 Pro Max', 0), _named(SyncStep.askPassword, '', 0)]), onSynced: () {})),
+      change: 'MỚI: nối xong thì nhập mật khẩu; máy cũ kiểm tra rồi mới gửi 24 từ và két',
+      marks: [() => find.byKey(const ValueKey('invite-password-field'))]);
+  _screen('invite-password-wrong', 'Máy mới · mật khẩu sai (tối đa 3 lần)', () => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.fromIterable([_named(SyncStep.connected, 'iPhone 15 Pro Max', 0), _named(SyncStep.askPassword, '', 1)]), onSynced: () {})),
+      change: 'MỚI: sai mật khẩu thì báo và cho nhập lại; sai 3 lần thì mã hết hiệu lực',
+      marks: [() => find.byKey(const ValueKey('invite-password-field'))]);
+  _screen('invite-invalid', 'Máy mới · mã đã dùng / hết hạn / gõ sai', () => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.value(_named(SyncStep.inviteInvalid, '', 0)), onSynced: () {})),
+      change: 'MỚI: mã không dùng được nữa → chỉ cách tạo mã mới');
+  _screen('restore-none', 'Khôi phục · không còn nơi nào giữ két', () => const RestorePickScreen(libraryDir: ''),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('restore-none')));
     await t.pumpAndSettle();

@@ -84,6 +84,14 @@ pub enum SyncStep {
     Rejected,
     /// Host only, not the end: a device has just connected and is proving the vault.
     Knock,
+    /// Showing an invite, not the end: the device that scanned it (`name`) is connected
+    /// and its person types the vault password next. Cancel with [`p2p_cancel`].
+    Invited,
+    /// Came by an invite, not the end: type the vault password and give it with
+    /// [`p2p_invite_password`]; `check` is 1 after a wrong one.
+    AskPassword,
+    /// The invite was not the other device's (any more): ended, used or mistyped.
+    InviteInvalid,
     /// Waiting, not the end: a new device restoring with the 24 words (`name`) asks to be
     /// let in; `check` is the number its screen shows. Answer with [`p2p_answer`].
     AskRestore,
@@ -255,6 +263,8 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
         cs_vault::Error::Corrupt("p2p restore wrong words") => SyncStep::PeerWrongWords,
         cs_vault::Error::Corrupt("p2p restore wrong password") => SyncStep::PeerWrongPassword,
         cs_vault::Error::Corrupt("p2p peer stopped") => SyncStep::PeerStopped,
+        cs_vault::Error::Corrupt("p2p invite wrong") => SyncStep::InviteInvalid,
+        cs_vault::Error::Corrupt("p2p invite wrong password") => SyncStep::WrongPassword,
         cs_vault::Error::Corrupt(
             "p2p host not proven" | "p2p joiner not proven" | "p2p too many failed tries",
         ) => SyncStep::OtherVault,
@@ -355,6 +365,43 @@ pub fn p2p_wait_start(ip: String, mirror: String, name: String) -> Result<Hostin
     Ok(shown)
 }
 
+/// What a device showing an invite shows (ADR 0003, point 11).
+pub struct Invitation {
+    /// The QR's text: where this device listens and the invite's secret.
+    pub qr: String,
+    /// The secret alone, to type on a device without a camera.
+    pub typed: String,
+    pub seconds: u32,
+}
+
+/// "Add a device": like [`p2p_wait_start`], but this device shows an invite and answers
+/// nothing else. The device that scans it pairs with it, its person types the vault
+/// password, and only a right one makes this device send the 24 words
+/// ([`p2p_wait_run`] then runs it, asking [`SyncStep::Invited`]).
+pub fn p2p_invite_start(
+    ip: String,
+    mirror: String,
+    name: String,
+) -> Result<Invitation, VaultError> {
+    STOP.store(false, Ordering::Relaxed);
+    let permit = Permit::listen_on(&ip).ok_or(VaultError::Storage)?;
+    let dir = Path::new(&mirror);
+    let _ = std::fs::remove_dir_all(dir);
+    std::fs::create_dir_all(dir).map_err(|_| VaultError::Storage)?;
+    let secret = super::vault::open_secret()?;
+    let prepared = with_open(|v| Ok(p2p::host_invite(v, &secret, &name, dir)?))?;
+    *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
+    let waiting = p2p::wait(prepared, permit, p2p::PORT)?;
+    let invite = waiting.invite().ok_or(VaultError::Storage)?;
+    let shown = Invitation {
+        qr: invite.qr(),
+        typed: invite.typed(),
+        seconds: p2p::INVITE_LIFETIME.as_secs() as u32,
+    };
+    *PENDING.lock().unwrap_or_else(|p| p.into_inner()) = Some(waiting);
+    Ok(shown)
+}
+
 fn forget_mirror() {
     if let Some(dir) = MIRROR.lock().unwrap_or_else(|p| p.into_inner()).take() {
         // The copy was sealed, but it has done its job.
@@ -435,6 +482,8 @@ fn named(kind: SyncStep, name: &str, check: u16) -> SyncEvent {
 fn with_ask<T>(
     sink: &StreamSink<SyncEvent>,
     peer: &Mutex<String>,
+    invited: bool,
+    password: &dyn Fn(&str) -> bool,
     f: impl FnOnce(&p2p::Ask) -> T,
 ) -> T {
     let remember = |name: &str| *peer.lock().unwrap_or_else(|p| p.into_inner()) = name.to_owned();
@@ -449,6 +498,12 @@ fn with_ask<T>(
     };
     let allow = |name: &str, check: u16| {
         remember(name);
+        // The device that scanned this one's invite: named, and on to its password at
+        // once (Cancel ends it, the socket being live).
+        if invited {
+            let _ = sink.add(named(SyncStep::Invited, name, 0));
+            return true;
+        }
         ask(
             sink,
             named(SyncStep::AskRestore, name, check),
@@ -469,6 +524,7 @@ fn with_ask<T>(
         picked: &picked,
         confirm: &confirm,
         allow: &allow,
+        password,
         progress: &|p| {
             let _ = sink.add(progress_event(p));
         },
@@ -488,7 +544,17 @@ pub fn p2p_wait_run(ip: String, sink: StreamSink<SyncEvent>) {
         (None, _) => step(SyncStep::Expired),
         (Some(_), None) => step(SyncStep::Locked),
         (Some(w), Some(h)) => {
-            let paired = with_ask(&sink, &peer, |a| {
+            let invited = w.invite().is_some();
+            // An invited device's password: does it open this very vault (ADR 0003, 11)?
+            let opens = |pw: &str| {
+                let mut yes = false;
+                let _ = h.with(|v| {
+                    yes = super::vault::password_opens(v, pw);
+                    Ok::<_, VaultError>(())
+                });
+                yes
+            };
+            let paired = with_ask(&sink, &peer, invited, &opens, |a| {
                 w.run(&Held(h), &|| Permit::scan_on(&ip), a, &STOP)
             });
             match paired {
@@ -529,7 +595,7 @@ pub fn p2p_join(code: String, name: String, sink: StreamSink<SyncEvent>) {
         return;
     };
     let peer = Mutex::new(String::new());
-    let joined = with_ask(&sink, &peer, |a| {
+    let joined = with_ask(&sink, &peer, false, &|_| false, |a| {
         p2p::join_code(&Held(&hold), Permit::connect_for(&c), &c, &name, a, &STOP)
     });
     let event = match joined {
@@ -673,6 +739,140 @@ pub fn p2p_restore(
         },
     );
     let event = restored(dir, key, &password, r);
+    let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
+    log_event(None, "restore", Some(&name), &event);
+    let _ = sink.add(event);
+}
+
+/// The password typed for [`SyncStep::AskPassword`] (None: the person stopped).
+static INVITE_PASSWORD: Mutex<Option<Option<String>>> = Mutex::new(None);
+static INVITE_TYPED: Condvar = Condvar::new();
+/// The 24 words an invite brought, until Dart keeps them in the keystore.
+static INVITE_KEY: Mutex<Option<zeroize::Zeroizing<Vec<u8>>>> = Mutex::new(None);
+
+/// What a scanned or typed text is as an invite: None when it is not one; the address
+/// it names (to ask the person) for a QR; empty for a typed one (found on the Wi-Fi).
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_invite_address(code: String) -> Option<String> {
+    let code = zeroize::Zeroizing::new(code);
+    let invite = p2p::Invite::parse(&code)?;
+    match invite.at {
+        Some((addr, _)) => p2p::on_local_network(*addr.ip()).then(|| addr.ip().to_string()),
+        None => Some(String::new()),
+    }
+}
+
+/// The answer to [`SyncStep::AskPassword`].
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_invite_password(password: Option<String>) {
+    *INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner()) = Some(password);
+    INVITE_TYPED.notify_all();
+}
+
+/// After [`p2p_invite_restore`] ended Done: the 24 words it brought, once, for the
+/// keystore (under the library the vault went into).
+#[flutter_rust_bridge::frb(sync)]
+pub fn p2p_invite_key() -> Option<Vec<u8>> {
+    INVITE_KEY
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .take()
+        .map(|k| k.to_vec())
+}
+
+/// A new device with no vault in `dir` comes in by the invite `code` (scanned, or typed:
+/// then it looks on the Wi-Fi where it has `ip`): it pairs with the old device, asks the
+/// person for the vault password ([`SyncStep::AskPassword`]), and once the old device
+/// took it, gets the 24 words and the vault. On Done the vault is open here and
+/// [`p2p_invite_key`] holds the words.
+pub fn p2p_invite_restore(
+    dir: String,
+    code: String,
+    ip: String,
+    name: String,
+    sink: StreamSink<SyncEvent>,
+) {
+    STOP.store(false, Ordering::Relaxed);
+    *INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    *INVITE_KEY.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    let code = zeroize::Zeroizing::new(code);
+    let Some(invite) = p2p::Invite::parse(&code) else {
+        let _ = sink.add(step(SyncStep::InviteInvalid));
+        return;
+    };
+    let Ok(dir) = super::run::library_dir(&dir) else {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    };
+    if cs_vault::Library::reset_if_empty(dir).is_err() {
+        let _ = sink.add(step(SyncStep::Failed));
+        return;
+    }
+    let peer = Mutex::new(String::new());
+    // The last password typed: the vault is opened with it the usual way afterwards.
+    let typed: Mutex<Option<zeroize::Zeroizing<String>>> = Mutex::new(None);
+    let password = |wrong: bool| {
+        let mut slot = INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner());
+        *slot = None;
+        let _ = sink.add(SyncEvent {
+            check: wrong as u16,
+            ..step(SyncStep::AskPassword)
+        });
+        let until = Instant::now() + p2p::ALLOW_WAIT;
+        loop {
+            if let Some(answer) = slot.take() {
+                let pw = answer.map(zeroize::Zeroizing::new);
+                *typed.lock().unwrap_or_else(|p| p.into_inner()) = pw.clone();
+                return pw;
+            }
+            if STOP.load(Ordering::Relaxed) || Instant::now() > until {
+                return None;
+            }
+            slot = INVITE_TYPED
+                .wait_timeout(slot, Duration::from_millis(200))
+                .unwrap_or_else(|p| p.into_inner())
+                .0;
+        }
+    };
+    let connected = |n: &str| {
+        *peer.lock().unwrap_or_else(|p| p.into_inner()) = n.to_owned();
+        let _ = sink.add(named(SyncStep::Connected, n, 0));
+    };
+    let ask = p2p::InviteAsk {
+        connected: &connected,
+        password: &password,
+        progress: &|p| {
+            let _ = sink.add(progress_event(p));
+        },
+    };
+    let r = match invite.at {
+        Some((addr, _)) => p2p::restore_invite(dir, Permit::connect(addr), &invite, &name, &ask),
+        None => {
+            p2p::restore_invite_nearby(dir, &|| Permit::scan_on(&ip), &invite, &name, &ask, &STOP)
+        }
+    };
+    let event = match r {
+        // Opened the usual way, from this device's folder with the two secrets.
+        Ok(Some(key)) => {
+            let pw = typed.lock().unwrap_or_else(|p| p.into_inner()).take();
+            let bytes = zeroize::Zeroizing::new(key.as_bytes().to_vec());
+            super::vault::use_secret(dir, key);
+            let opened = pw.is_some_and(|pw| {
+                matches!(
+                    super::vault::unlock(dir.to_string_lossy().into_owned(), pw.to_string()),
+                    Ok(Some(_))
+                )
+            });
+            if opened {
+                *INVITE_KEY.lock().unwrap_or_else(|p| p.into_inner()) = Some(bytes);
+                step(SyncStep::Done)
+            } else {
+                step(SyncStep::Failed)
+            }
+        }
+        Ok(None) => step(SyncStep::Cancelled),
+        Err(e) => failure(e),
+    };
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
     log_event(None, "restore", Some(&name), &event);
     let _ = sink.add(event);
@@ -1022,6 +1222,8 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         | SyncStep::Rejected
         | SyncStep::Knock
         | SyncStep::AskRestore
+        | SyncStep::Invited
+        | SyncStep::AskPassword
         | SyncStep::Checking
         | SyncStep::Preparing
         | SyncStep::Repairing
@@ -1034,6 +1236,7 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         | SyncStep::DriveMoving => return,
         SyncStep::Interrupted => "interrupted",
         SyncStep::OtherVault => "othervault",
+        SyncStep::InviteInvalid => "invite",
         SyncStep::Unreachable => "unreachable",
         SyncStep::SignIn
         | SyncStep::Failed
