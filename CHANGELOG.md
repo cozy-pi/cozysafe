@@ -4,6 +4,18 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.8 (2026-11-01)
+
+### Changed
+- Adding a new device no longer uses a QR code. On the old device: Sync → Local network →
+  Set up a new device; on the new one: Restore → From another device. The old device
+  shows an 8-digit code to type on the new one, then the vault password. Three tries for
+  each; nothing is sent until both are right, and a device in the middle cannot make the
+  codes match.
+- Sync: the two Wi-Fi rows are one, Local network, with Sync with your vault on another
+  device and Set up a new device.
+- Every sync page shows the two devices joined by a lock.
+
 ## 0.2.7 (2026-11-01)
 
 ### Added

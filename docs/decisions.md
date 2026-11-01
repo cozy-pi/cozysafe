@@ -4,6 +4,19 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-01 (evening) — Add a device by an 8-digit code, no QR; Local network page
+
+**Owner:** the QR invite was often not read, so it goes: the old device (Sync → Local
+network → Set up a new device) waits on the Wi-Fi, the new one (Restore → From another
+device) finds it, the two make a key (X25519, the new device committing first) and the old
+device shows 8 digits from it, typed on the new device; then the vault password. Three
+tries for the code, three for the password; nothing crosses before both are right, and
+no device name before the code. Someone in the middle gets codes that do not match
+([ADR 0003](adr/0003-sync.md) point 11). Sync's two Wi-Fi rows become one, Local network,
+with Sync with your vault on another device and Set up a new device; the two devices
+joined by a lock head every sync page. Reading items no longer waits for a sync (a
+read-only SQLite connection), and debug mode turns on without the owner check.
+
 ## 2026-11-01 — Open with is not Share; on iPhone it is Quick Look
 
 **Owner:** "open is open, share is share": tapping an item in Top Secret Mode, or a file

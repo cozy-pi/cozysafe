@@ -55,6 +55,7 @@ import 'package:cozysafe/sync/sync_log.dart';
 import 'package:cozysafe/sync/drive_join.dart';
 import 'package:cozysafe/sync/join_page.dart';
 import 'package:cozysafe/sync/invite_page.dart';
+import 'package:cozysafe/sync/add_code.dart';
 import 'package:cozysafe/sync/nearby_page.dart';
 import 'package:cozysafe/sync/progress.dart';
 import 'package:cozysafe/sync/qr_view.dart';
@@ -444,7 +445,7 @@ void _screen(String name, String caption, Widget Function() home,
       Device.debugDesktop = null;
       EditableText.debugDeterministicCursor = false;
       RestorePickScreen.debugDrive = false;
-      InvitePage.debugInvitation = null;
+      InvitePage.debugSeconds = null;
       InvitePage.debugEvents = null;
       DriveJoinScreen.debugAccount = null;
       NearbyPage.debugHosting = null;
@@ -569,8 +570,6 @@ void main() {
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock,
-      change: 'MỚI: Quản lý két chuyển từ Cài đặt ra menu ⋯ ở màn khoá; bấm vào phải qua Face ID / vân tay / mã máy',
-      marks: [() => find.byKey(const ValueKey('lock-vaults'))],
       act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   // A sync that went on as the vault locked (owner 2026-10-26): how far it is.
   _screen('lock-sync-drive', 'Màn khoá · đồng bộ Google Drive vẫn chạy (40%)', lock,
@@ -1193,8 +1192,6 @@ void main() {
     '${_now - 2 * 86400000}|join|192.168.1.21|ok|0|5',
   ];
   _screen('sync', 'Đồng bộ: nhóm không tên — máy gần đây · Google Drive (email tài khoản, Gỡ tài khoản) · Các lần kết nối gần đây (một dòng, bấm mới mở)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
-      change: 'MỚI: dòng Thêm máy mới (mời máy chưa có két bằng mã QR + mật khẩu)',
-      marks: [() => find.byKey(const ValueKey('sync-invite'))],
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
@@ -1242,6 +1239,7 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('sync-log', 'Đồng bộ · bấm Các lần kết nối gần đây: danh sách + một dòng giải thích (chỉ tên máy, không địa chỉ IP)', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      change: 'ĐỔI: thêm hình hai máy kết nối ở đầu trang',
       setup: () {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugDrive = true;
@@ -1265,30 +1263,63 @@ void main() {
     SyncScreen.debugLog = syncLog;
     SyncScreen.debugAddress = '192.168.1.37';
   }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-local')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('sync-nearby')));
     await t.pumpAndSettle();
   });
-  const invitation = Invitation(qr: _qrText, typed: '4K9M2-Q7XWB-3HNTD-8RFJC-5VZPY0', seconds: 104);
-  Widget invite() => page('Thêm máy mới', InvitePage(address: '192.168.1.37', mirror: '', onSynced: () {}));
-  _screen('invite-shown', 'Máy cũ · Đồng bộ → Thêm máy mới: mã QR dùng một lần, 2 phút', invite,
-      change: 'MỚI: mã QR mời máy mới (một lần, 2 phút, chặn chụp màn hình)',
-      marks: [() => find.byKey(const ValueKey('invite-qr'))],
-      setup: () => InvitePage.debugInvitation = invitation);
-  _screen('invite-shown-typed', 'Máy cũ · bấm "Không có camera?": hiện mã để gõ', invite,
-      change: 'MỚI: mã 26 ký tự cho máy không có camera',
-      marks: [() => find.byKey(const ValueKey('invite-typed'))],
-      setup: () => InvitePage.debugInvitation = invitation, act: (t) async {
-    await t.ensureVisible(find.byKey(const ValueKey('invite-show-typed')));
-    await t.tap(find.byKey(const ValueKey('invite-show-typed')));
+  _screen('sync-local-row', 'Đồng bộ: Google Drive · Mạng nội bộ · Các lần kết nối', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      change: 'ĐỔI: hai dòng "Két của bạn ở máy khác" + "Thêm máy mới" gộp thành một dòng Mạng nội bộ',
+      marks: [() => find.byKey(const ValueKey('sync-local'))], setup: () => SyncScreen.debugDrive = true);
+  _screen('sync-local', 'Đồng bộ → Mạng nội bộ: Đồng bộ với két cũ · Khởi tạo két mới', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      change: 'MỚI: trang Mạng nội bộ với hai lựa chọn, có hình hai máy kết nối ở đầu',
+      marks: [() => find.byKey(const ValueKey('sync-nearby')), () => find.byKey(const ValueKey('sync-invite'))], act: (t) async {
+    await t.tap(find.byKey(const ValueKey('sync-local')));
     await t.pumpAndSettle();
   });
-  _screen('invite-connected', 'Máy cũ · máy mới đã quét mã, chờ nhập mật khẩu bên đó', invite,
-      change: 'MỚI: hiện tên máy mới; chưa gửi gì cho tới khi bên đó nhập đúng mật khẩu (Huỷ được)',
-      marks: [() => find.byKey(const ValueKey('invite-connected'))],
-      setup: () {
-    InvitePage.debugInvitation = invitation;
+  // Adding a device by an 8-digit code instead of a QR (owner 2026-11-01): the real
+  // pages, fed the events the core sends.
+  Widget invite() => page('Khởi tạo két mới', InvitePage(address: '192.168.1.37', mirror: '', onSynced: () {}));
+  Widget added(List<SyncEvent> events) => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.fromIterable(events), onSynced: () {}, waiting: const AddCodeSearching()));
+  _screen('add-code-waiting', 'Máy cũ · Khởi tạo két mới: chờ máy mới tìm tới (2 phút)', invite,
+      change: 'MỚI: bỏ mã QR — máy cũ chỉ chờ, máy mới tự tìm trên Wi-Fi',
+      marks: [() => find.byKey(const ValueKey('add-code-waiting'))], setup: () => InvitePage.debugSeconds = 107);
+  _screen('add-code-shown', 'Máy cũ · máy mới đã nối: hiện mã 8 số để gõ bên kia', invite,
+      change: 'MỚI: mã 8 số sinh từ chính lần kết nối này (máy đứng giữa không làm cho khớp được)',
+      marks: [() => find.byKey(const ValueKey('add-code-digits'))], setup: () {
+    InvitePage.debugSeconds = 107;
+    InvitePage.debugEvents = Stream.value(_named(SyncStep.addCode, '12345678', 0));
+  });
+  _screen('invite-connected', 'Máy cũ · máy mới gõ đúng mã, chờ nhập mật khẩu bên đó', invite, setup: () {
+    InvitePage.debugSeconds = 107;
     InvitePage.debugEvents = Stream.value(_named(SyncStep.invited, 'Google Pixel 8', 0));
   });
+  _screen('add-code-closed', 'Máy cũ · máy mới sai mã 3 lần: đóng', invite,
+      change: 'MỚI: quá 3 lần là đóng',
+      marks: [() => find.byKey(const ValueKey('add-code-ended-closed'))], setup: () {
+    InvitePage.debugSeconds = 107;
+    InvitePage.debugEvents = Stream.value(_named(SyncStep.addWrongCode, '', 0));
+  });
+  _screen('add-code-searching', 'Máy mới · Khôi phục → Từ máy khác: tìm máy cũ trên Wi-Fi', () => added(const []),
+      change: 'MỚI: không quét mã nữa — máy mới tự tìm máy cũ',
+      marks: [() => find.byKey(const ValueKey('add-code-searching'))]);
+  _screen('add-code-entry', 'Máy mới · gõ 8 số máy cũ đang hiện', () => added([_named(SyncStep.askCode, '', 3)]),
+      change: 'MỚI: gõ mã 8 số (bàn phím số, tự chia 1234 - 5678); gõ đúng mới tới bước mật khẩu',
+      marks: [() => find.byKey(const ValueKey('add-code-field'))], act: (t) async {
+    await t.enterText(find.byKey(const ValueKey('add-code-field')), '12345678');
+    await t.pumpAndSettle();
+  });
+  _screen('add-code-entry-wrong', 'Máy mới · gõ nhầm mã: còn 2 lần', () => added([_named(SyncStep.askCode, '', 2)]),
+      change: 'MỚI: gõ nhầm mã được gõ lại, tối đa 3 lần (mã không bao giờ rời máy này, nên gõ lại không giúp gì máy đứng giữa)',
+      marks: [() => find.byKey(const ValueKey('add-code-field'))]);
+  _screen('add-code-wrong', 'Máy mới · sai mã 3 lần: đóng kết nối', () => added([_named(SyncStep.addWrongCode, '', 0)]),
+      change: 'MỚI: sai mã 3 lần → đóng, không gửi gì; bắt đầu lại cả hai máy',
+      marks: [() => find.byKey(const ValueKey('add-code-ended-wrongCode'))]);
+  _screen('add-password-wrong', 'Máy mới · sai mật khẩu két 3 lần: máy cũ đóng kết nối', () => added([_named(SyncStep.addWrongPassword, '', 0)]),
+      change: 'MỚI: sai mật khẩu két 3 lần là hết (màn báo khi hết lượt)',
+      marks: [() => find.byKey(const ValueKey('add-code-ended-wrongPassword'))]);
+  _screen('add-code-several', 'Máy mới · hai máy cùng đang chờ trên Wi-Fi này', () => added([_named(SyncStep.addSeveral, '', 0)]),
+      change: 'MỚI: hai máy cùng chờ thì không đoán — bảo đóng bớt một máy');
   _screen('sync-scan', 'Máy kia: quét mã bằng camera (hoặc nhập mã)', () => page('Quét mã', ScanCodePage(onSynced: () {})),
       setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
   SyncEvent ev(SyncStep k, {int check = 0, int received = 0, int sent = 0, int copies = 0, int done = 0, int total = 0, int bytes = 0, int bytesTotal = 0, int moved = 0}) =>
@@ -1697,8 +1728,7 @@ void main() {
     }
   }
   _screen('trash', 'Đã xoá gần đây', () => const Readable(child: TrashScreen()));
-  _screen('ts-trash', 'Chế độ tuyệt mật · Đã xoá gần đây: ảnh, video thành dòng có biểu tượng (không ô trống)', () => const Readable(child: TrashScreen()),
-      change: 'SỬA: ở chế độ tuyệt mật, ảnh và video trong thùng rác hiện thành dòng như tệp, không còn lưới ô trống trông như lỗi');
+  _screen('ts-trash', 'Chế độ tuyệt mật · Đã xoá gần đây: ảnh, video thành dòng có biểu tượng (không ô trống)', () => const Readable(child: TrashScreen()));
   if (selectShown) {
     _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 2 mục', () => const Readable(child: TrashScreen()),
       act: (t) async {
@@ -1913,19 +1943,14 @@ void main() {
             deleteAtMs: PlatformInt64Util.from(_now + 5 * Duration.millisecondsPerDay)),
       ];
   _screen('vault-manager', 'Cài đặt → Quản lý két', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
-      change: 'ĐỔI: tên "Quản lý két"; nút Tạo két mới đưa về màn đầu như lúc mới cài',
       setup: () => VaultManagerScreen.debugSlots = slots());
   _screen('vault-manager-menu', 'Quản lý két · chạm một két khoá', () => const VaultManagerScreen(libraryDir: ''),
-      change: 'MỚI: chạm két → thẻ thông tin (dung lượng, Face ID, mã) + nút Xoá két',
-      marks: [() => find.byKey(const ValueKey('vault-details-delete'))],
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-3fa9c1d2e4b5a6978877665544332211')));
     await t.pumpAndSettle();
   });
   _screen('vault-manager-test', 'Quản lý két · chạm két thử nghiệm (bản test kín)', () => const VaultManagerScreen(libraryDir: ''),
-      change: 'MỚI: két thử nghiệm có tên riêng; Xoá két không cần mật khẩu (chỉ đếm ngược)',
-      marks: [() => find.byKey(const ValueKey('vault-details-delete'))],
       setup: () {
     VaultManagerScreen.debugSlots = slots();
     TestLogin.debugVaultId = '3fa9c1d2e4b5a6978877665544332211';
@@ -1934,7 +1959,6 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('vault-manager-open', 'Quản lý két · chạm két đang mở', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}),
-      change: 'MỚI: thẻ thông tin của két đang mở + nút Xoá két',
       setup: () => VaultManagerScreen.debugSlots = slots(),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-slot-e0a966aed6bec8151ebb59139e5aa773')));
@@ -1948,17 +1972,11 @@ void main() {
   });
   _screen('vault-delete-other', 'Quản lý két · Xoá bằng mật khẩu của két (kiểm mật khẩu trước, rồi mới đếm ngược 10 giây)', () => const DeleteVaultScreen(libraryDir: '', otherId: '3fa9c1d2e4b5a6978877665544332211', sizeText: '37 MB'),
       setup: () => DeleteVaultScreen.debugDrive = true);
-  _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''),
-      change: 'ĐỔI: các lựa chọn cùng màu, không tô sáng Tạo két mới');
-  _screen('welcome-adding', 'Quản lý két → Tạo két mới: về màn đầu như lúc mới cài, có nút quay lại', () => const WelcomeScreen(libraryDir: '', adding: true),
-      change: 'MỚI: tạo két khi đã có két bắt đầu từ màn đầu (Tạo mới / Khôi phục), có nút quay lại');
+  _screen('welcome', 'Màn đầu tiên: Tạo két mới · Khôi phục két', () => const WelcomeScreen(libraryDir: ''));
+  _screen('welcome-adding', 'Quản lý két → Tạo két mới: về màn đầu như lúc mới cài, có nút quay lại', () => const WelcomeScreen(libraryDir: '', adding: true));
   _screen('welcome-test', 'Màn đầu tiên · bản test kín Android: thêm Đăng nhập thử nghiệm', () => const WelcomeScreen(libraryDir: ''),
-      change: 'ĐỔI: Đăng nhập thử nghiệm (chỉ bản test kín Android): chú thích "Không lưu dữ liệu quan trọng, mật khẩu từ 1→9"; mật khẩu két thử nghiệm cố định 123456789',
-      marks: [() => find.byKey(const ValueKey('welcome-test-login'))],
       setup: () => TestLogin.debugShown = true);
   _screen('lock-test', 'Màn khoá · bản test kín: nút Đăng nhập thử nghiệm ngay trên màn', lock,
-      change: 'ĐỔI: Đăng nhập thử nghiệm hiện ngay dưới ô mật khẩu (không còn giấu trong ⋯)',
-      marks: [() => find.byKey(const ValueKey('lock-test-login'))],
       setup: () => TestLogin.debugShown = true);
   _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'));
   _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'), act: (t) async {
@@ -1984,30 +2002,15 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('restore-source', 'Khôi phục · 1. Két đang ở đâu? (chọn nguồn trước)', () => const RestorePickScreen(libraryDir: ''),
-      change: 'ĐỔI: khôi phục bắt đầu bằng chọn nguồn. Máy khác = quét mã rồi nhập mật khẩu (không gõ 24 từ). Drive / tệp sao lưu = nhập 24 từ + mật khẩu rồi làm luôn',
-      marks: [() => find.byKey(const ValueKey('restore-device'))],
       setup: () => RestorePickScreen.debugDrive = true);
-  _screen('restore-keys-file', 'Khôi phục từ tệp sao lưu · đã chọn tệp → 24 từ + mật khẩu', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'),
-      change: 'ĐỔI: tệp sao lưu: chọn tệp trước (giống máy khác), rồi mới nhập 24 từ + mật khẩu; tên tệp hiện trên đầu',
-      marks: [() => find.byKey(const ValueKey('restore-file-name'))]);
+  _screen('restore-keys-file', 'Khôi phục từ tệp sao lưu · đã chọn tệp → 24 từ + mật khẩu', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'));
   _screen('restore-drive-first', 'Khôi phục từ Google Drive · đăng nhập Drive trước, rồi 24 từ + mật khẩu', () => const DriveJoinScreen(libraryDir: ''),
-      change: 'ĐỔI: Google Drive: chọn nguồn trước — đăng nhập Drive, rồi mới nhập 24 từ + mật khẩu',
       setup: () => DriveJoinScreen.debugAccount = 'ban.do@gmail.com');
-  _screen('invite-scan', 'Khôi phục từ máy khác · quét mã trên máy kia', () => const InviteScanPage(libraryDir: ''),
-      change: 'MỚI: quét mã "Thêm máy mới" trên máy cũ; không có camera thì Gõ mã',
-      marks: [() => find.byKey(const ValueKey('invite-scan-lead')), () => find.byKey(const ValueKey('invite-type'))],
-      setup: () => ScanCodePage.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
-  _screen('invite-type', 'Khôi phục từ máy khác · gõ mã (máy không có camera)', () => page('Gõ mã thay vì quét', InviteTypePage(onCode: (_, _) async {})),
-      change: 'MỚI: gõ mã 26 ký tự hiện trên máy cũ',
-      marks: [() => find.byKey(const ValueKey('invite-type-field'))]);
   _screen('invite-password', 'Máy mới · đã nối với máy cũ, nhập mật khẩu két', () => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.fromIterable([_named(SyncStep.connected, 'iPhone 15 Pro Max', 0), _named(SyncStep.askPassword, '', 0)]), onSynced: () {})),
-      change: 'MỚI: nối xong thì nhập mật khẩu; máy cũ kiểm tra rồi mới gửi 24 từ và két',
+      change: 'ĐỔI: thêm hình hai máy kết nối; chỉ tới bước này sau khi gõ đúng mã');
+  _screen('invite-password-wrong', 'Máy mới · sai mật khẩu két: còn 2 lần', () => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.fromIterable([_named(SyncStep.connected, 'iPhone 15 Pro Max', 0), _named(SyncStep.askPassword, '', 2)]), onSynced: () {})),
+      change: 'ĐỔI: báo còn mấy lần thử mật khẩu két; thêm hình hai máy kết nối',
       marks: [() => find.byKey(const ValueKey('invite-password-field'))]);
-  _screen('invite-password-wrong', 'Máy mới · mật khẩu sai (tối đa 3 lần)', () => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.fromIterable([_named(SyncStep.connected, 'iPhone 15 Pro Max', 0), _named(SyncStep.askPassword, '', 1)]), onSynced: () {})),
-      change: 'MỚI: sai mật khẩu thì báo và cho nhập lại; sai 3 lần thì mã hết hiệu lực',
-      marks: [() => find.byKey(const ValueKey('invite-password-field'))]);
-  _screen('invite-invalid', 'Máy mới · mã đã dùng / hết hạn / gõ sai', () => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.value(_named(SyncStep.inviteInvalid, '', 0)), onSynced: () {})),
-      change: 'MỚI: mã không dùng được nữa → chỉ cách tạo mã mới');
   _screen('restore-none', 'Khôi phục · không còn nơi nào giữ két', () => const RestorePickScreen(libraryDir: ''),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('restore-none')));
@@ -2064,11 +2067,9 @@ void main() {
     await t.pumpAndSettle();
   }
   _screen('new-vault-keys', 'Tạo két (máy đã có két) · chọn bộ 24 từ: dùng bộ của máy', () => const NewVaultScreen(libraryDir: '', first: false),
-      change: 'ĐỔI: nội dung các bước tạo két đặt cao hơn (không còn ở giữa màn)',
       setup: () => NewVaultScreen.debugWords = words,
       act: toKeys);
   _screen('new-vault-keys-new', 'Tạo két · chọn Tạo bộ mới → sau mật khẩu là chép và kiểm 24 từ mới', () => const NewVaultScreen(libraryDir: '', first: false),
-      change: 'MỚI: chọn Tạo bộ mới',
       setup: () => NewVaultScreen.debugWords = words,
       act: (t) async {
     await toKeys(t);

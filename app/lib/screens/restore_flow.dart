@@ -11,8 +11,6 @@ import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
 import '../sync/drive_join.dart';
 import '../sync/drive.dart' show driveOffered;
-import '../sync/join_page.dart';
-import '../sync/awake.dart';
 import '../sync/invite_page.dart';
 import '../theme.dart';
 import '../widgets/secret.dart';
@@ -105,12 +103,14 @@ class _RestorePickScreenState extends State<RestorePickScreen> {
       choices: [
         BigChoice(
           key: const ValueKey('restore-device'),
-          icon: Icons.qr_code_scanner_rounded,
+          icon: Icons.devices_rounded,
           title: l.restoreFromDevice,
           note: l.restoreFromDeviceInviteNote,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => Readable(child: InviteScanPage(libraryDir: widget.libraryDir)),
-          )),
+          // The old device: Sync → Local network → Set up a new device (ADR 0003, 11).
+          onTap: () async {
+            final vault = await restoreByCode(context, dir: restoreTarget(widget.libraryDir));
+            if (vault != null && context.mounted) await openRestored(context, widget.libraryDir, vault);
+          },
         ),
         // Where Drive sync is offered (phones; computers with the desktop client).
         if (RestorePickScreen.debugDrive || driveOffered)
@@ -138,50 +138,6 @@ class _RestorePickScreenState extends State<RestorePickScreen> {
         ),
       ],
     );
-  }
-}
-
-/// Restore from another device (ADR 0003, point 11): on the old one, Sync → Add a new
-/// device shows a code; scan it here (or type it), then type the vault password. The 24
-/// words come from the old device once it took the password.
-class InviteScanPage extends StatelessWidget {
-  const InviteScanPage({super.key, required this.libraryDir});
-  final String libraryDir;
-
-  Future<void> _code(BuildContext context, String code) async {
-    final vault = await restoreByInvite(context, dir: restoreTarget(libraryDir), code: code);
-    if (vault != null && context.mounted) await openRestored(context, libraryDir, vault);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
-    return KeepAwake(who: 'invite-scan', child: Scaffold(
-      appBar: AppBar(title: Text(l.restoreFromDevice)),
-      body: SafeArea(
-        top: false,
-        child: Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
-            child: Text(l.inviteScanLead, key: const ValueKey('invite-scan-lead'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
-          ),
-          Expanded(child: ScanCodePage(onSynced: () {}, onCode: _code)),
-          TextButton.icon(
-            key: const ValueKey('invite-type'),
-            icon: const Icon(Icons.keyboard_rounded),
-            label: Text(l.inviteTypeInstead),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-              builder: (_) => Readable(child: Scaffold(
-                appBar: AppBar(title: Text(l.inviteTypeInstead)),
-                body: SafeArea(top: false, child: InviteTypePage(onCode: _code)),
-              )),
-            )),
-          ),
-          const SizedBox(height: 12),
-        ]),
-      ),
-    ));
   }
 }
 

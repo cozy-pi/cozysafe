@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../error_log.dart';
+import 'add_code.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_resume.dart';
 import '../platform.dart';
@@ -683,7 +684,8 @@ class _SyncProgressState extends State<SyncProgress>
 
   /// Came by an invite: the vault password, which the other device checks before it sends
   /// anything (ADR 0003, point 11).
-  Widget _passwordCard(AppLocalizations l, CsColors c, {required bool wrong}) {
+  /// [left]: after a wrong password, the tries left (three in all, ADR 0003 point 11).
+  Widget _passwordCard(AppLocalizations l, CsColors c, {required bool wrong, int left = 0}) {
     void send() {
       if (_password.text.isEmpty || _passwordSent) return;
       sync.p2PInvitePassword(password: _password.text);
@@ -696,6 +698,8 @@ class _SyncProgressState extends State<SyncProgress>
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const SyncLink(moving: false),
+        const SizedBox(height: 22),
         Text(_name.isEmpty ? l.syncConnected : l.syncConnectedTo(_name),
             textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
@@ -715,7 +719,7 @@ class _SyncProgressState extends State<SyncProgress>
             onSubmitted: (_) => send(),
             decoration: InputDecoration(
               hintText: l.backupPasswordLabel,
-              errorText: wrong ? l.wrongPassword : null,
+              errorText: wrong ? l.addPasswordWrongLeft(left) : null,
             ),
           ),
           const SizedBox(height: 14),
@@ -765,8 +769,19 @@ class _SyncProgressState extends State<SyncProgress>
               const SizedBox(width: 160, child: LinearProgressIndicator()),
             ],
           ),
-        sync.SyncStep.askPassword => _passwordCard(l, c, wrong: e.check == 1),
-        sync.SyncStep.inviteInvalid => _Status(icon: Icons.qr_code_2_rounded, color: const Color(0xFFFF9500), title: l.inviteInvalid),
+        sync.SyncStep.askPassword => _passwordCard(l, c, wrong: e.check > 0, left: e.check),
+        // Adding a device by its code (ADR 0003, point 11).
+        sync.SyncStep.addCode => AddCodeShown(code: e.name),
+        sync.SyncStep.askCode => KeyedSubtree(
+            key: ValueKey('add-code-try-${e.check}'),
+            child: AddCodeEntry(
+              left: e.check < 3 ? e.check : null,
+              onCode: (c) => sync.p2PAddCode(code: c),
+            ),
+          ),
+        sync.SyncStep.addWrongCode => AddCodeEnded(end: widget.restoring ? AddCodeEnd.wrongCode : AddCodeEnd.closed),
+        sync.SyncStep.addWrongPassword => const AddCodeEnded(end: AddCodeEnd.wrongPassword),
+        sync.SyncStep.addSeveral => _Status(icon: Icons.devices_rounded, color: const Color(0xFFFF9500), title: l.addCodeSeveral),
         sync.SyncStep.restoredRestart => _Status(icon: Icons.check_circle_rounded, color: const Color(0xFF34C759), title: l.restoredRestart),
         sync.SyncStep.confirm => _confirmCard(l, c),
         sync.SyncStep.peerCancelled => _Status(icon: Icons.cancel_rounded, color: const Color(0xFFFF9500), title: l.syncPeerCancelled),

@@ -84,14 +84,25 @@ pub enum SyncStep {
     Rejected,
     /// Host only, not the end: a device has just connected and is proving the vault.
     Knock,
-    /// Showing an invite, not the end: the device that scanned it (`name`) is connected
-    /// and its person types the vault password next. Cancel with [`p2p_cancel`].
+    /// Adding a device, not the end: the new device (`name`) typed the code and its
+    /// person types the vault password next. Cancel with [`p2p_cancel`].
     Invited,
-    /// Came by an invite, not the end: type the vault password and give it with
-    /// [`p2p_invite_password`]; `check` is 1 after a wrong one.
+    /// Being added, not the end: type the vault password and give it with
+    /// [`p2p_invite_password`]; `check` is the tries left after a wrong one (0 at first).
     AskPassword,
-    /// The invite was not the other device's (any more): ended, used or mistyped.
-    InviteInvalid,
+    /// Adding a device, not the end: a new device connected; show the 8 digits in `name`
+    /// for its person to type there (ADR 0003, point 11).
+    AddCode,
+    /// Being added, not the end: type the 8 digits the old device shows and give them with
+    /// [`p2p_add_code`]; `check` is the tries left (3 at first).
+    AskCode,
+    /// Adding a device ended: the code was typed wrong three times (or someone was in
+    /// the middle). Nothing crossed.
+    AddWrongCode,
+    /// Being added: two devices on this Wi-Fi are adding one; close one of them.
+    AddSeveral,
+    /// Being added: the vault password was wrong three times; the old device closed.
+    AddWrongPassword,
     /// Restored, its words kept; a Top secret vault after an everyday one in this run, so
     /// the app starts again before it opens.
     RestoredRestart,
@@ -266,8 +277,9 @@ fn failure(e: cs_vault::Error) -> SyncEvent {
         cs_vault::Error::Corrupt("p2p restore wrong words") => SyncStep::PeerWrongWords,
         cs_vault::Error::Corrupt("p2p restore wrong password") => SyncStep::PeerWrongPassword,
         cs_vault::Error::Corrupt("p2p peer stopped") => SyncStep::PeerStopped,
-        cs_vault::Error::Corrupt("p2p invite wrong") => SyncStep::InviteInvalid,
-        cs_vault::Error::Corrupt("p2p invite wrong password") => SyncStep::WrongPassword,
+        cs_vault::Error::Corrupt("p2p add wrong code") => SyncStep::AddWrongCode,
+        cs_vault::Error::Corrupt("p2p add several") => SyncStep::AddSeveral,
+        cs_vault::Error::Corrupt("p2p invite wrong password") => SyncStep::AddWrongPassword,
         cs_vault::Error::Corrupt(
             "p2p host not proven" | "p2p joiner not proven" | "p2p too many failed tries",
         ) => SyncStep::OtherVault,
@@ -368,41 +380,23 @@ pub fn p2p_wait_start(ip: String, mirror: String, name: String) -> Result<Hostin
     Ok(shown)
 }
 
-/// What a device showing an invite shows (ADR 0003, point 11).
-pub struct Invitation {
-    /// The QR's text: where this device listens and the invite's secret.
-    pub qr: String,
-    /// The secret alone, to type on a device without a camera.
-    pub typed: String,
-    pub seconds: u32,
-}
-
-/// "Add a device": like [`p2p_wait_start`], but this device shows an invite and answers
-/// nothing else. The device that scans it pairs with it, its person types the vault
-/// password, and only a right one makes this device send the 24 words
-/// ([`p2p_wait_run`] then runs it, asking [`SyncStep::Invited`]).
-pub fn p2p_invite_start(
-    ip: String,
-    mirror: String,
-    name: String,
-) -> Result<Invitation, VaultError> {
+/// "Set up a new device" (ADR 0003, point 11): like [`p2p_wait_start`], but this device
+/// waits for a new device alone and answers nothing else. When one connects, the code to
+/// show comes as [`SyncStep::AddCode`]; its person types it and the vault password there,
+/// and only both right make this device send the 24 words ([`p2p_wait_run`] runs it).
+/// Returns the seconds it waits.
+pub fn p2p_add_start(ip: String, mirror: String, name: String) -> Result<u32, VaultError> {
     STOP.store(false, Ordering::Relaxed);
     let permit = Permit::listen_on(&ip).ok_or(VaultError::Storage)?;
     let dir = Path::new(&mirror);
     let _ = std::fs::remove_dir_all(dir);
     std::fs::create_dir_all(dir).map_err(|_| VaultError::Storage)?;
     let secret = super::vault::open_secret()?;
-    let prepared = with_open(|v| Ok(p2p::host_invite(v, &secret, &name, dir)?))?;
+    let prepared = with_open(|v| Ok(p2p::host_add(v, &secret, &name, dir)?))?;
     *MIRROR.lock().unwrap_or_else(|p| p.into_inner()) = Some(dir.to_path_buf());
     let waiting = p2p::wait(prepared, permit, p2p::PORT)?;
-    let invite = waiting.invite().ok_or(VaultError::Storage)?;
-    let shown = Invitation {
-        qr: invite.qr(),
-        typed: invite.typed(),
-        seconds: p2p::INVITE_LIFETIME.as_secs() as u32,
-    };
     *PENDING.lock().unwrap_or_else(|p| p.into_inner()) = Some(waiting);
-    Ok(shown)
+    Ok(p2p::ADD_LIFETIME.as_secs() as u32)
 }
 
 fn forget_mirror() {
@@ -501,8 +495,8 @@ fn with_ask<T>(
     };
     let allow = |name: &str, check: u16| {
         remember(name);
-        // The device that scanned this one's invite: named, and on to its password at
-        // once (Cancel ends it, the socket being live).
+        // The device being added typed the code: named, and on to its password at once
+        // (Cancel ends it, the socket being live).
         if invited {
             let _ = sink.add(named(SyncStep::Invited, name, 0));
             return true;
@@ -528,6 +522,9 @@ fn with_ask<T>(
         confirm: &confirm,
         allow: &allow,
         password,
+        code: &|c| {
+            let _ = sink.add(named(SyncStep::AddCode, c, 0));
+        },
         progress: &|p| {
             let _ = sink.add(progress_event(p));
         },
@@ -547,7 +544,7 @@ pub fn p2p_wait_run(ip: String, sink: StreamSink<SyncEvent>) {
         (None, _) => step(SyncStep::Expired),
         (Some(_), None) => step(SyncStep::Locked),
         (Some(w), Some(h)) => {
-            let invited = w.invite().is_some();
+            let invited = w.adding();
             // An invited device's password: does it open this very vault (ADR 0003, 11)?
             let opens = |pw: &str| {
                 let mut yes = false;
@@ -753,16 +750,16 @@ static INVITE_TYPED: Condvar = Condvar::new();
 /// The 24 words an invite brought, until Dart keeps them in the keystore.
 static INVITE_KEY: Mutex<Option<zeroize::Zeroizing<Vec<u8>>>> = Mutex::new(None);
 
-/// What a scanned or typed text is as an invite: None when it is not one; the address
-/// it names (to ask the person) for a QR; empty for a typed one (found on the Wi-Fi).
+/// The digits typed for [`SyncStep::AskCode`] (None: the person stopped).
+static ADD_CODE: Mutex<Option<Option<String>>> = Mutex::new(None);
+static ADD_TYPED: Condvar = Condvar::new();
+
+/// The answer to [`SyncStep::AskCode`]: the 8 digits typed, compared on this device and
+/// never sent.
 #[flutter_rust_bridge::frb(sync)]
-pub fn p2p_invite_address(code: String) -> Option<String> {
-    let code = zeroize::Zeroizing::new(code);
-    let invite = p2p::Invite::parse(&code)?;
-    match invite.at {
-        Some((addr, _)) => p2p::on_local_network(*addr.ip()).then(|| addr.ip().to_string()),
-        None => Some(String::new()),
-    }
+pub fn p2p_add_code(code: Option<String>) {
+    *ADD_CODE.lock().unwrap_or_else(|p| p.into_inner()) = Some(code);
+    ADD_TYPED.notify_all();
 }
 
 /// The answer to [`SyncStep::AskPassword`].
@@ -772,7 +769,7 @@ pub fn p2p_invite_password(password: Option<String>) {
     INVITE_TYPED.notify_all();
 }
 
-/// After [`p2p_invite_restore`] ended Done: the 24 words it brought, once, for the
+/// After [`p2p_add_restore`] ended Done: the 24 words it brought, once, for the
 /// keystore (under the library the vault went into).
 #[flutter_rust_bridge::frb(sync)]
 pub fn p2p_invite_key() -> Option<Vec<u8>> {
@@ -783,26 +780,16 @@ pub fn p2p_invite_key() -> Option<Vec<u8>> {
         .map(|k| k.to_vec())
 }
 
-/// A new device with no vault in `dir` comes in by the invite `code` (scanned, or typed:
-/// then it looks on the Wi-Fi where it has `ip`): it pairs with the old device, asks the
-/// person for the vault password ([`SyncStep::AskPassword`]), and once the old device
-/// took it, gets the 24 words and the vault. On Done the vault is open here and
-/// [`p2p_invite_key`] holds the words.
-pub fn p2p_invite_restore(
-    dir: String,
-    code: String,
-    ip: String,
-    name: String,
-    sink: StreamSink<SyncEvent>,
-) {
+/// A new device with no vault in `dir` is added: it looks on the Wi-Fi where it has `ip`
+/// for the device adding one, asks the person for the code it shows
+/// ([`SyncStep::AskCode`]), then the vault password ([`SyncStep::AskPassword`]), and once
+/// the old device took both, gets the 24 words and the vault. On Done the vault is open
+/// here and [`p2p_invite_key`] holds the words.
+pub fn p2p_add_restore(dir: String, ip: String, name: String, sink: StreamSink<SyncEvent>) {
     STOP.store(false, Ordering::Relaxed);
     *INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    *ADD_CODE.lock().unwrap_or_else(|p| p.into_inner()) = None;
     *INVITE_KEY.lock().unwrap_or_else(|p| p.into_inner()) = None;
-    let code = zeroize::Zeroizing::new(code);
-    let Some(invite) = p2p::Invite::parse(&code) else {
-        let _ = sink.add(step(SyncStep::InviteInvalid));
-        return;
-    };
     let Ok(dir) = super::run::library_dir(&dir) else {
         let _ = sink.add(step(SyncStep::Failed));
         return;
@@ -814,11 +801,32 @@ pub fn p2p_invite_restore(
     let peer = Mutex::new(String::new());
     // The last password typed: the vault is opened with it the usual way afterwards.
     let typed: Mutex<Option<zeroize::Zeroizing<String>>> = Mutex::new(None);
-    let password = |wrong: bool| {
+    let code = |left: u32| {
+        let mut slot = ADD_CODE.lock().unwrap_or_else(|p| p.into_inner());
+        *slot = None;
+        let _ = sink.add(SyncEvent {
+            check: left as u16,
+            ..step(SyncStep::AskCode)
+        });
+        let until = Instant::now() + p2p::ALLOW_WAIT;
+        loop {
+            if let Some(answer) = slot.take() {
+                return answer.map(zeroize::Zeroizing::new);
+            }
+            if STOP.load(Ordering::Relaxed) || Instant::now() > until {
+                return None;
+            }
+            slot = ADD_TYPED
+                .wait_timeout(slot, Duration::from_millis(200))
+                .unwrap_or_else(|p| p.into_inner())
+                .0;
+        }
+    };
+    let password = |left: u32| {
         let mut slot = INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner());
         *slot = None;
         let _ = sink.add(SyncEvent {
-            check: wrong as u16,
+            check: left as u16,
             ..step(SyncStep::AskPassword)
         });
         let until = Instant::now() + p2p::ALLOW_WAIT;
@@ -841,19 +849,15 @@ pub fn p2p_invite_restore(
         *peer.lock().unwrap_or_else(|p| p.into_inner()) = n.to_owned();
         let _ = sink.add(named(SyncStep::Connected, n, 0));
     };
-    let ask = p2p::InviteAsk {
+    let ask = p2p::AddAsk {
+        code: &code,
         connected: &connected,
         password: &password,
         progress: &|p| {
             let _ = sink.add(progress_event(p));
         },
     };
-    let r = match invite.at {
-        Some((addr, _)) => p2p::restore_invite(dir, Permit::connect(addr), &invite, &name, &ask),
-        None => {
-            p2p::restore_invite_nearby(dir, &|| Permit::scan_on(&ip), &invite, &name, &ask, &STOP)
-        }
-    };
+    let r = p2p::restore_add(dir, &|| Permit::scan_on(&ip), &name, &ask, &STOP);
     let event = match r {
         // Opened the usual way, from this device's folder with the two secrets.
         Ok(Some(key)) => {
@@ -1317,6 +1321,8 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         | SyncStep::AskRestore
         | SyncStep::Invited
         | SyncStep::AskPassword
+        | SyncStep::AddCode
+        | SyncStep::AskCode
         | SyncStep::Checking
         | SyncStep::Preparing
         | SyncStep::Repairing
@@ -1329,7 +1335,9 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         | SyncStep::DriveMoving => return,
         SyncStep::Interrupted => "interrupted",
         SyncStep::OtherVault => "othervault",
-        SyncStep::InviteInvalid => "invite",
+        SyncStep::AddWrongCode => "wrongcode",
+        SyncStep::AddSeveral => "several",
+        SyncStep::AddWrongPassword => "wrongpassword",
         SyncStep::RestoredRestart => "ok",
         SyncStep::Unreachable => "unreachable",
         SyncStep::SignIn
@@ -1374,7 +1382,7 @@ pub fn qr_matrix(text: String) -> Option<QrMatrix> {
 }
 
 /// Read a QR from a camera frame's brightness plane (`width` × `height`, `stride` bytes
-/// a row). Only Cozy Safe codes come back: a pairing code, or an invite (ADR 0003, 11).
+/// a row). Only Cozy Safe pairing codes come back.
 pub fn qr_read(luma: Vec<u8>, width: u32, height: u32, stride: u32) -> Option<String> {
     let (w, h, stride) = (width as usize, height as usize, stride as usize);
     if luma.len() < stride * h.saturating_sub(1) + w {
@@ -1384,9 +1392,7 @@ pub fn qr_read(luma: Vec<u8>, width: u32, height: u32, stride: u32) -> Option<St
     img.detect_grids()
         .into_iter()
         .filter_map(|g| g.decode().ok().map(|(_, text)| text))
-        .find(|t| {
-            PairCode::parse(t).is_some() || p2p::Invite::parse(t).is_some_and(|i| i.at.is_some())
-        })
+        .find(|t| PairCode::parse(t).is_some())
 }
 
 #[cfg(test)]
@@ -1415,15 +1421,13 @@ mod tests {
     }
 
     #[test]
-    fn the_camera_reads_pairing_codes_and_invites_only() {
+    fn the_camera_reads_pairing_codes_only() {
         let code = PairCode::parse("4K9M2Q-7XWB3H-NTD8RF").map(|c| c.qr());
-        // 192.168.1.5:47823, token 1…5, a secret of sevens.
+        // The QR invite of 0.2.2–0.2.7: no longer taken.
         let invite = "cozysafe:invite:1:R2M021DTSW0G40R40M3GE1R70W3GE1R70W3GE1R70W3G".to_owned();
-        assert!(
-            p2p::Invite::parse(&invite).is_some_and(|i| i.at.is_some()),
-            "a well-formed invite"
-        );
-        for text in code.iter().chain([&invite]) {
+        let (luma, side) = photo(&invite);
+        assert_eq!(qr_read(luma, side, side, side), None);
+        for text in code.iter() {
             let (luma, side) = photo(text);
             assert_eq!(
                 qr_read(luma, side, side, side).as_deref(),
