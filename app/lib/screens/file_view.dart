@@ -111,16 +111,16 @@ const _textKinds = <String, TextKind>{
   'nim': TextKind.code, 'zig': TextKind.code, 'sol': TextKind.code, 'tf': TextKind.code,
   'hcl': TextKind.code, 'nix': TextKind.code, 'dockerignore': TextKind.code,
   'npmrc': TextKind.code, 'htaccess': TextKind.code, 'service': TextKind.code,
-  'desktop': TextKind.code, 'plist': TextKind.code, 'opml': TextKind.code,
+  'desktop': TextKind.code, 'opml': TextKind.code,
   'rss': TextKind.code, 'atom': TextKind.code, 'gpx': TextKind.code, 'kml': TextKind.code,
   'resx': TextKind.code, 'xlf': TextKind.code, 'arb': TextKind.code, 'psql': TextKind.code,
-  'ovpn': TextKind.code, 'wg': TextKind.code, 'reg': TextKind.code, 'cmd': TextKind.code,
+  'ovpn': TextKind.code, 'wg': TextKind.code, 'cmd': TextKind.code,
   'vbs': TextKind.code, 'ahk': TextKind.code, 'pas': TextKind.code, 'asm': TextKind.code,
   's': TextKind.code, 'f90': TextKind.code, 'tcl': TextKind.code, 'vim': TextKind.code,
   'el': TextKind.code, 'lisp': TextKind.code, 'scm': TextKind.code, 'rkt': TextKind.code,
   'prisma': TextKind.code, 'gql': TextKind.code, 'bib': TextKind.code,
   'cls': TextKind.code, 'sty': TextKind.code, 'lock': TextKind.code,
-  'webloc': TextKind.code,
+  
 };
 
 /// Every extension read as text in the app (Top Secret Mode reads the same, after the

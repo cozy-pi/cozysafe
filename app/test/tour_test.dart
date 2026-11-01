@@ -119,6 +119,9 @@ void main() {
     // Every vault chooses its own mode (ADR 0007).
     await t.tap(find.byKey(const ValueKey('mode-next')));
     await _settle(t);
+    // Another vault on this device: its 24 words (the device's set, as chosen).
+    await t.tap(find.byKey(const ValueKey('keys-next')));
+    await _settle(t);
     const password = 'orange kettle whispers at dawn';
     await t.enterText(find.descendant(of: find.byKey(const ValueKey('new-password')), matching: find.byType(TextField)), password);
     await t.enterText(
@@ -142,6 +145,9 @@ void main() {
     await _settle(t);
     // Every vault chooses its own mode (ADR 0007).
     await t.tap(find.byKey(const ValueKey('mode-next')));
+    await _settle(t);
+    // Another vault on this device: its 24 words (the device's set, as chosen).
+    await t.tap(find.byKey(const ValueKey('keys-next')));
     await _settle(t);
     const password = 'orange kettle whispers at dawn';
     await t.enterText(find.descendant(of: find.byKey(const ValueKey('new-password')), matching: find.byType(TextField)), password);
