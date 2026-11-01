@@ -218,12 +218,12 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         _error = vaultErrorText(l, e);
       });
       return;
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
           _busy = false;
           _step = _Step.password;
-          _error = l.errorStorage;
+          _error = withCode(l, l.errorStorage, e);
         });
       }
       return;

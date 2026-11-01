@@ -214,7 +214,8 @@ class _Toast extends StatelessWidget {
               Expanded(
                 child: Text(
                   text,
-                  maxLines: 2,
+                  // An error is its sentence plus a line with its code (withCode): room for both.
+                  maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: ink, fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.25),
                 ),

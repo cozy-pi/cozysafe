@@ -695,8 +695,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (pending != null) {
       try {
         await pending;
-      } catch (_) {
-        if (mounted) showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+      } catch (e) {
+        if (mounted) showToast(context, withCode(AppLocalizations.of(context), AppLocalizations.of(context).errorStorage, e), icon: Icons.error_outline_rounded);
       }
     }
     final gone = NoteScreen.lastDeleted;
@@ -771,8 +771,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     } on rust.VaultError catch (e) {
       // Stopped by the lock: nothing to say over the lock screen.
       if (mounted && !_locked) _snack(vaultErrorText(l, e));
-    } catch (_) {
-      if (mounted && !_locked) _snack(l.errorStorage);
+    } catch (e) {
+      if (mounted && !_locked) _snack(withCode(l, l.errorStorage, e));
     } finally {
       LockGuard.clear();
     }
@@ -792,12 +792,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       final r = await Originals.delete(ids, photos: photos);
       if (!mounted || r.cancelled) return;
       if (r.failed > 0) {
-        _snack(l.originalsFailed(r.failed));
+        _snack(withCode(l, l.originalsFailed(r.failed), 'delete-originals'));
       } else if (r.deleted > 0) {
         _snack(l.originalsDeleted(r.deleted));
       }
-    } catch (_) {
-      if (mounted) _snack(l.originalsFailed(ids.length));
+    } catch (e) {
+      if (mounted) _snack(withCode(l, l.originalsFailed(ids.length), e));
     } finally {
       LockGuard.clear();
     }
@@ -857,8 +857,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (tmp.existsSync()) tmp.deleteSync();
       // Android reports "unavailable" for most targets; count it, only a cancel is not a backup.
       if (shared.status != ShareResultStatus.dismissed) _backedUp();
-    } catch (_) {
-      if (mounted) _snack(l.backupFailed);
+    } catch (e) {
+      if (mounted) _snack(withCode(l, l.backupFailed, e));
     } finally {
       LockGuard.clear();
     }
@@ -947,7 +947,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (_bioOn) {
       await turnOffBiometric(store);
     } else if (!await turnOnBiometric(store)) {
-      if (mounted) _snack(l.biometricFailed);
+      if (mounted) _snack(withCode(l, l.biometricFailed, 'biometric-on'));
     }
     if (mounted) setState(() => _bioOn = rust.biometricEnabled());
   }
@@ -1293,8 +1293,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       ));
       if (mounted) setState(_endSelect);
-    } catch (_) {
-      if (mounted) _snack(l.errorStorage);
+    } catch (e) {
+      if (mounted) _snack(withCode(l, l.errorStorage, e));
     } finally {
       LockGuard.clear();
       try {

@@ -268,8 +268,8 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       // Restored, but a Top secret vault cannot open after an everyday one in this run.
       if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
       if (mounted) showToast(context, vaultErrorText(l, e));
-    } catch (_) {
-      if (mounted) showToast(context, l.errorBadBackup);
+    } catch (e) {
+      if (mounted) showToast(context, withCode(l, l.errorBadBackup, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

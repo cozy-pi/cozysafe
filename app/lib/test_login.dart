@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'l10n/app_localizations.dart';
 import 'platform.dart';
+import 'screens/common.dart';
 import 'screens/vault_home.dart';
 import 'secret_key_store.dart';
 import 'src/rust/api/vault.dart' as rust;
@@ -74,8 +75,8 @@ abstract final class TestLogin {
         MaterialPageRoute<void>(builder: (_) => Readable(child: VaultHomeScreen(libraryDir: libraryDir, vault: opened))),
         (_) => false,
       );
-    } catch (_) {
-      if (context.mounted) showToast(context, l.testLoginFailed, icon: Icons.error_outline_rounded);
+    } catch (e) {
+      if (context.mounted) showToast(context, withCode(l, l.testLoginFailed, e), icon: Icons.error_outline_rounded);
     }
   }
 

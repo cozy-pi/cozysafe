@@ -7,6 +7,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../screens/top_secret_page.dart' show restartForMode;
+import '../screens/common.dart';
 import '../theme.dart';
 import '../widgets/readable.dart';
 import '../widgets/toast.dart';
@@ -41,7 +42,8 @@ class InvitePage extends StatefulWidget {
 class _InvitePageState extends State<InvitePage> {
   sync.Invitation? _invitation;
   Stream<sync.SyncEvent>? _events;
-  bool _failed = false;
+  /// What stopped the start, for the code under the message; null while all is well.
+  Object? _failure;
 
   @override
   void initState() {
@@ -61,8 +63,8 @@ class _InvitePageState extends State<InvitePage> {
         _invitation = i;
         _events = debug != null ? (InvitePage.debugEvents ?? const Stream.empty()) : sync.p2PWaitRun(ip: widget.address);
       });
-    } catch (_) {
-      if (mounted) setState(() => _failed = true);
+    } catch (e) {
+      if (mounted) setState(() => _failure = e);
     }
   }
 
@@ -76,7 +78,10 @@ class _InvitePageState extends State<InvitePage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final i = _invitation;
-    if (_failed) return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(l.syncFailed, textAlign: TextAlign.center)));
+    final failure = _failure;
+    if (failure != null) {
+      return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(withCode(l, l.syncFailed, failure), textAlign: TextAlign.center)));
+    }
     if (i == null || _events == null) return const Center(child: CircularProgressIndicator());
     // Kept awake, out of screenshots and recordings, while the code is up.
     return WordsAwake(
@@ -168,7 +173,7 @@ Future<rust.VaultInfo?> restoreByInvite(BuildContext context, {required String d
   final l = AppLocalizations.of(context);
   final address = sync.p2PInviteAddress(code: code);
   if (address == null) {
-    showToast(context, l.inviteInvalid, icon: Icons.error_outline_rounded);
+    showToast(context, withCode(l, l.inviteInvalid, 'bad-invite'), icon: Icons.error_outline_rounded);
     return null;
   }
   // Typed: the old device is found on this Wi-Fi.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../screens/common.dart';
 import '../screens/file_view.dart';
 import '../screens/settings.dart';
 import '../theme.dart';
@@ -74,12 +75,13 @@ Future<int> _coreClean(String token) => sync.driveClean(token: token);
 class _DriveCheckScreenState extends State<DriveCheckScreen> {
   DriveCounts? _result = DriveCheckScreen.debugResult;
   bool _busy = false;
-  bool _failed = false;
+  /// Why the last check stopped (its code goes under the message); null when it did not.
+  String? _failure;
 
   Future<void> _run(Future<void> Function(String token) job) async {
     setState(() {
       _busy = true;
-      _failed = false;
+      _failure = null;
     });
     try {
       final session = await driveSignIn();
@@ -87,7 +89,7 @@ class _DriveCheckScreenState extends State<DriveCheckScreen> {
       await job(session.token);
     } catch (e) {
       SyncLog.add('check', 'failed-${e.runtimeType}');
-      if (mounted) setState(() => _failed = true);
+      if (mounted) setState(() => _failure = driveErrorCode(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -159,10 +161,10 @@ class _DriveCheckScreenState extends State<DriveCheckScreen> {
               ),
             ]),
         ],
-        if (_failed)
+        if (_failure != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
-            child: Text(l.debugDriveFailed, style: TextStyle(color: red, fontSize: CsType.footnote)),
+            child: Text(withCode(l, l.debugDriveFailed, _failure!), style: TextStyle(color: red, fontSize: CsType.footnote)),
           ),
         SettingsGroup(rows: [
           InkWell(

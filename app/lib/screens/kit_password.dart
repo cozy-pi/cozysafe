@@ -69,8 +69,9 @@ class _KitPasswordScreenState extends State<KitPasswordScreen> with VaultLockAwa
       if (!mounted) return;
       final m = (wait.inSeconds / 60).ceil();
       setState(() => _error = wait > Duration.zero ? l.pinWait(m < 1 ? 1 : m) : l.wrongPassword);
-    } catch (_) {
-      if (mounted) setState(() => _error = l.wrongPassword);
+    } catch (e) {
+      // A failure, not a wrong password: say so, with its code.
+      if (mounted) setState(() => _error = withCode(l, l.errorStorage, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

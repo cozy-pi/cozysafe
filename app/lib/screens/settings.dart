@@ -19,6 +19,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../secret_key_store.dart';
 import '../theme.dart';
 import '../sync/sync_status.dart';
+import 'common.dart';
 import 'debug.dart';
 import 'security_info.dart';
 import '../widgets/toast.dart';
@@ -339,7 +340,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ok = key != null && await KeyBackup.turnOn(key);
     if (!mounted) return;
     // Block Store keeps nothing without a screen lock (end to end encryption) or Google.
-    if (!ok && google) showToast(context, l.keyBackupGoogleFailed);
+    if (!ok && google) {
+      showToast(context, withCode(l, l.keyBackupGoogleFailed, key == null ? 'no-recovery-key' : 'key-backup-google'),
+          icon: Icons.error_outline_rounded);
+    }
     setState(() {});
   }
 

@@ -320,10 +320,11 @@ class _QuickLookState extends State<QuickLook> {
     QuickLook.edited.add(id);
     try {
       await write;
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       if (_noteText == after) setState(() => _noteText = before);
-      showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+      final l = AppLocalizations.of(context);
+      showToast(context, withCode(l, l.errorStorage, e), icon: Icons.error_outline_rounded);
     }
   }
 
@@ -433,7 +434,7 @@ class _QuickLookState extends State<QuickLook> {
       return SizedBox(
         width: 260,
         height: 160,
-        child: Center(child: Text(l.videoFailed, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white))),
+        child: Center(child: Text(withCode(l, l.videoFailed, _playback!.error), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white))),
       );
     }
     final still = debug ??
@@ -538,7 +539,10 @@ class _QuickLookState extends State<QuickLook> {
           SizedBox(
               height: 200,
               child: Center(
-                  child: _noteFailed ? Text(AppLocalizations.of(context).errorStorage) : const CircularProgressIndicator())));
+                  child: _noteFailed
+                      ? Text(withCode(AppLocalizations.of(context), AppLocalizations.of(context).errorStorage, 'read-note'),
+                          textAlign: TextAlign.center)
+                      : const CircularProgressIndicator())));
     }
     // The title is the first line with something on it; the lines after it are drawn
     // as Markdown, and a box's line is counted in the whole text so a tick lands on it.
@@ -583,7 +587,10 @@ class _QuickLookState extends State<QuickLook> {
         FutureBuilder<Uint8List>(
           future: _bytes,
           builder: (context, snap) {
-            if (snap.hasError) return SizedBox(height: 200, child: Center(child: Text(AppLocalizations.of(context).errorStorage)));
+            if (snap.hasError) {
+              final l = AppLocalizations.of(context);
+              return SizedBox(height: 200, child: Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center)));
+            }
             if (!snap.hasData) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
             final text = _head(utf8.decode(snap.data!, allowMalformed: true));
             final kind = textKindOf(_item.name) ?? TextKind.prose;
@@ -657,7 +664,7 @@ class _QuickLookState extends State<QuickLook> {
             ),
           const SizedBox(height: 4),
           if (_failed)
-            Text(l.videoFailed, style: TextStyle(color: c.muted, fontSize: CsType.footnote))
+            Text(withCode(l, l.videoFailed, _playback!.error), style: TextStyle(color: c.muted, fontSize: CsType.footnote))
           else
             Row(
               children: [

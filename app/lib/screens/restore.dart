@@ -50,8 +50,8 @@ class _RestoreScreenState extends State<RestoreScreen> {
       if (mounted) setState(() => _needFile = false);
     } on rust.VaultError catch (e) {
       if (mounted) setState(() => _error = vaultErrorText(l, e));
-    } catch (_) {
-      if (mounted) setState(() => _error = l.errorBadBackup);
+    } catch (e) {
+      if (mounted) setState(() => _error = withCode(l, l.errorBadBackup, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -80,8 +80,8 @@ class _RestoreScreenState extends State<RestoreScreen> {
         MaterialPageRoute<void>(builder: (_) => UnlockScreen(libraryDir: widget.libraryDir)),
         (_) => false,
       );
-    } catch (_) {
-      if (mounted) setState(() => _error = l.errorStorage);
+    } catch (e) {
+      if (mounted) setState(() => _error = withCode(l, l.errorStorage, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../theme.dart';
 import '../widgets/toast.dart';
 import '../top_secret_mode.dart';
+import 'common.dart';
 import 'welcome.dart' show ChoicePage;
 
 /// Top Secret Mode's colour (owner 2026-10-31: red).
@@ -184,9 +185,9 @@ Future<void> turnTopSecretMode(BuildContext context, bool next) async {
   final nav = Navigator.of(context, rootNavigator: true);
   try {
     await TopSecretMode.turn(next);
-  } catch (_) {
+  } catch (e) {
     // Not changed (the vault locked meanwhile, or the disk failed): say so, stay here.
-    if (context.mounted) showToast(context, AppLocalizations.of(context).errorStorage, icon: Icons.error_outline_rounded);
+    if (context.mounted) showToast(context, withCode(AppLocalizations.of(context), AppLocalizations.of(context).errorStorage, e), icon: Icons.error_outline_rounded);
     return;
   }
   nav.pushAndRemoveUntil(

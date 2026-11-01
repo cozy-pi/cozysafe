@@ -11,7 +11,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart' show
 import '../biometric.dart' show confirmOwnerForSetting;
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
-import '../sync/drive.dart' show driveAccount, driveSignInQuietly;
+import '../sync/drive.dart' show driveAccount, driveErrorCode, driveSignInQuietly;
 import '../theme.dart';
 import '../widgets/secret.dart';
 import '../widgets/identity.dart';
@@ -132,8 +132,9 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       }
       await PinStore.resetPasswordFails();
       _pw.clear();
-      if (_alsoDrive && mounted && !await whileWorking(context, l.driveDeleting, () => _deleteFromDrive(id)) && mounted) {
-        showToast(context, l.deleteDriveFailed, icon: Icons.error_outline_rounded);
+      if (_alsoDrive && mounted) {
+        final failure = await whileWorking(context, l.driveDeleting, () => _deleteFromDrive(id));
+        if (failure != null && mounted) showToast(context, withCode(l, l.deleteDriveFailed, failure), icon: Icons.error_outline_rounded);
       }
       if (!mounted) return;
       if (widget.otherId != null) {
@@ -228,14 +229,15 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
     }
   }
 
-  Future<bool> _deleteFromDrive(String id) async {
+  /// Null once deleted, else what stopped it (for the code under the message).
+  Future<Object?> _deleteFromDrive(String id) async {
     try {
       final session = await driveSignInQuietly();
-      if (session == null) return false;
+      if (session == null) return 'drive-sign-in';
       await sync.driveDeleteVault(token: session.token, vaultId: id);
-      return true;
-    } catch (_) {
-      return false;
+      return null;
+    } catch (e) {
+      return driveErrorCode(e);
     }
   }
 

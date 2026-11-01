@@ -349,8 +349,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     } on rust.VaultError catch (e) {
       if (e == rust.VaultError.restartForMode && mounted) return restartForMode(context);
       if (mounted && _busy) setState(() => _error = vaultErrorText(l, e));
-    } catch (_) {
-      if (mounted && _busy) setState(() => _error = l.errorStorage);
+    } catch (e) {
+      if (mounted && _busy) setState(() => _error = withCode(l, l.errorStorage, e));
     } finally {
       if (mounted && !_leaving) {
         setState(() {

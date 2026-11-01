@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../error_log.dart';
 import '../l10n/app_localizations.dart';
+import '../screens/common.dart';
 import '../biometric.dart' show confirmOwnerForSetting;
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
@@ -120,7 +121,7 @@ class _SyncScreenState extends State<SyncScreen> {
       session = SyncScreen.debugSession ?? await driveSignIn();
     } catch (e) {
       ErrorLog.add('drive-sign-in', driveErrorCode(e));
-      if (mounted) showToast(context, '${l.driveSignInFailed} (${driveErrorCode(e)})', icon: Icons.error_rounded);
+      if (mounted) showToast(context, withCode(l, l.driveSignInFailed, driveErrorCode(e)), icon: Icons.error_rounded);
       return;
     }
     if (session == null || !mounted) return;
@@ -318,8 +319,11 @@ class _SyncScreenState extends State<SyncScreen> {
     if (!ok || !mounted) return;
     try {
       final session = await driveSignInQuietly() ?? await driveSignIn();
-      if (session == null) throw StateError('no sign-in');
       if (!mounted) return;
+      if (session == null) {
+        showToast(context, withCode(l, l.deleteDriveFailed, 'drive-sign-in'), icon: Icons.error_outline_rounded);
+        return;
+      }
       // Off only now that the deletion goes ahead (a cancelled sign-in leaves it as it was).
       AutoSync.enabled = false;
       await whileWorking(context, l.driveDeleting,
@@ -327,7 +331,7 @@ class _SyncScreenState extends State<SyncScreen> {
       if (mounted) showToast(context, l.driveDeleted, icon: Icons.check_rounded);
     } catch (e) {
       ErrorLog.add('drive-delete', e.runtimeType.toString());
-      if (mounted) showToast(context, l.deleteDriveFailed, icon: Icons.error_outline_rounded);
+      if (mounted) showToast(context, withCode(l, l.deleteDriveFailed, driveErrorCode(e)), icon: Icons.error_outline_rounded);
     }
   }
 
@@ -533,7 +537,8 @@ class _AutoState extends StatelessWidget {
       builder: (context, _) {
         final failed = AutoSync.failed.value && AutoSync.enabled;
         final text = failed
-            ? switch (AutoSync.failWhy) { 'drive-full' => l.syncDriveFull, 'sign-in' => l.syncSignInAgain, _ => l.syncProblem }
+            ? withCode(l, switch (AutoSync.failWhy) { 'drive-full' => l.syncDriveFull, 'sign-in' => l.syncSignInAgain, _ => l.syncProblem },
+                AutoSync.failWhy.isEmpty ? 'auto-sync' : AutoSync.failWhy)
             : !AutoSync.pending.value
                 ? null
                 : switch (AutoSync.waiting.value) { SyncWait.wifi => l.syncWaitWifi, SyncWait.network => l.syncWaitNetwork, null => null };

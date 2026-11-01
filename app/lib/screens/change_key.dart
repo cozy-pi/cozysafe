@@ -10,6 +10,7 @@ import '../lock_resume.dart';
 import '../widgets/bottom_bar.dart';
 import '../widgets/recovery_words.dart';
 import '../widgets/secret.dart';
+import 'common.dart';
 
 /// A new Recovery Key for this device (owner 2026-10-24), from 24 words or from a key
 /// made before them: what changes → the new words, written down → four typed back →
@@ -125,8 +126,7 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
       if (mounted) setState(() => _step = _Step.done);
     } catch (e) {
       // What went wrong, by name, after the plain sentence (Settings → Debug has the rest).
-      final why = e is rust.VaultError ? e.name : e.runtimeType.toString();
-      if (mounted) setState(() => _error = '${l.changeKeyFailed}\n($why)');
+      if (mounted) setState(() => _error = withCode(l, l.changeKeyFailed, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

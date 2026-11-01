@@ -74,7 +74,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       if (widget.words != null) await _open();
     } catch (e) {
       ErrorLog.add('drive-sign-in', driveErrorCode(e));
-      if (mounted) setState(() => _error = '${l.driveSignInFailed} (${driveErrorCode(e)})');
+      if (mounted) setState(() => _error = withCode(l, l.driveSignInFailed, driveErrorCode(e)));
     }
   }
 
@@ -113,7 +113,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
               sync.JoinOutcome.wrongWords => l.joinWrongWords,
               sync.JoinOutcome.wrongPassword => l.wrongPassword,
               sync.JoinOutcome.signIn => l.syncSignInAgain,
-              _ => l.syncFailed,
+              final other => withCode(l, l.syncFailed, other.name),
             });
         if (r.outcome == sync.JoinOutcome.signIn) _session = null;
         return;
@@ -147,9 +147,8 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       );
     } catch (e) {
       // Which step, by name (owner 2026-11-01: a bare "check the Wi-Fi" told nothing).
-      final why = e is rust.VaultError ? e.name : e.runtimeType.toString();
-      ErrorLog.add('drive-join', why);
-      if (mounted) setState(() => _error = '${l.syncFailed}\n(${l.errorCode(why)})');
+      ErrorLog.add('drive-join', errorWord(e));
+      if (mounted) setState(() => _error = withCode(l, l.syncFailed, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

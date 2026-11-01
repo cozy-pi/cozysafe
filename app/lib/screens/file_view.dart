@@ -502,7 +502,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
           future: _imageBytes ??= photoBytes(_item.id),
           builder: (context, snap) {
             if (snap.hasError) {
-              return Center(child: Text(l.videoFailed, style: const TextStyle(color: Colors.white)));
+              return Center(
+                  child: Text(withCode(l, l.videoFailed, snap.error!), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)));
             }
             if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
             return InteractiveViewer(
@@ -512,8 +513,8 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 child: Image.memory(snap.data!,
                     fit: BoxFit.contain,
                     cacheWidth: (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context) * 2).round(),
-                    errorBuilder: (_, _, _) =>
-                        Text(l.videoFailed, style: const TextStyle(color: Colors.white))),
+                    errorBuilder: (_, e, _) => Text(withCode(l, l.videoFailed, e),
+                        textAlign: TextAlign.center, style: const TextStyle(color: Colors.white))),
               ),
             );
           },
@@ -559,7 +560,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 // Only the first part is decrypted: a 1 GB log never sits in memory.
                 future: _bytes ??= rust.itemContentHead(id: _item.id, max: _textLimit + 1),
                 builder: (context, snap) {
-                  if (snap.hasError) return Center(child: Text(l.errorStorage));
+                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center));
                   final data = snap.data;
                   if (data == null) return const Center(child: CircularProgressIndicator());
                   final cut = data.length > _textLimit;
@@ -612,7 +613,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
             ? FutureBuilder<File>(
                 future: _pdfCopy ??= readThroughLock(() => playbackCopy(_item, fallbackExt: '.pdf')),
                 builder: (context, snap) {
-                  if (snap.hasError) return Center(child: Text(l.errorStorage));
+                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center));
                   final f = snap.data;
                   if (f == null) return const Center(child: CircularProgressIndicator());
                   return PdfViewer.file(f.path);
@@ -621,7 +622,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
             : FutureBuilder<Uint8List>(
                 future: _bytes ??= itemBytes(_item.id),
                 builder: (context, snap) {
-                  if (snap.hasError) return Center(child: Text(l.errorStorage));
+                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center));
                   final data = snap.data;
                   if (data == null) return const Center(child: CircularProgressIndicator());
                   return PdfViewer.data(data, sourceName: _item.id);

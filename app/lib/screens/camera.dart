@@ -320,6 +320,8 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
   List<CameraDescription> _cameras = const [];
   int _camera = 0;
   bool _failed = false;
+  /// Why the camera did not start, for the code under the message.
+  Object _failure = 'no-camera';
   bool _wantShot = false;
   bool _saving = false;
   bool _flash = false;
@@ -370,8 +372,13 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       }
       setState(() => _controller = c);
       widget.onChanged?.call();
-    } catch (_) {
-      if (mounted) setState(() => _failed = true);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _failed = true;
+          _failure = e;
+        });
+      }
     }
   }
 
@@ -486,8 +493,8 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       LockGuard.beforeLock = _saveBeforeLock;
       setState(() => _recording = true);
       widget.onRecordingChanged?.call(true);
-    } catch (_) {
-      _snack(failed);
+    } catch (e) {
+      _snack(withCode(l, failed, e));
     }
   }
 
@@ -514,7 +521,8 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       widget.onChanged?.call();
       widget.onSaved(item);
     } else {
-      _snack(AppLocalizations.of(context).videoSaveFailed);
+      final l = AppLocalizations.of(context);
+      _snack(withCode(l, l.videoSaveFailed, 'save-video'));
     }
     setState(() => _saving = false);
     try {
@@ -598,8 +606,8 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       widget.onSaved(item);
     } on rust.VaultError catch (e) {
       _snack(vaultErrorText(l, e));
-    } catch (_) {
-      _snack(l.photoSaveFailed);
+    } catch (e) {
+      _snack(withCode(l, l.photoSaveFailed, e));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -636,7 +644,7 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
                   ? Padding(
                       padding: const EdgeInsets.all(32),
                       child: Text(
-                        l.cameraUnavailable,
+                        withCode(l, l.cameraUnavailable, _failure),
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.white, height: 1.5),
                       ),

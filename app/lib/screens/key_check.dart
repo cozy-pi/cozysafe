@@ -6,6 +6,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/secret.dart';
+import '../widgets/toast.dart';
 import '../widgets/words_input.dart';
 import 'common.dart';
 
@@ -66,8 +67,9 @@ class _KeyCheckScreenState extends State<KeyCheckScreen> with VaultLockAware {
         // An Argon2id run, as when opening.
         _passwordOk = await rust.checkPassword(dir: widget.libraryDir, password: _password.text);
       }
-    } catch (_) {
-      _passwordOk ??= false;
+    } catch (e) {
+      // A failure, not a wrong answer: nothing is marked wrong, the toast says what failed.
+      if (mounted) showToast(context, withCode(AppLocalizations.of(context), AppLocalizations.of(context).errorStorage, e), icon: Icons.error_outline_rounded);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
