@@ -22,7 +22,8 @@ with a switch, like the iPhone's Lockdown Mode, and named it Top Secret Mode.
   is locked:
   - nothing inside the vault is decoded in the app: no photo, video, PDF or thumbnail;
     a file, recording, video or camera photo is a named row, opened only in another app
-    after a warning (the screens of ADR 0005 step 4);
+    after a warning (the screens of ADR 0005 step 4); on iPhone, Quick Look counts as
+    another app: it draws in a system extension, outside the app (decisions 2026-11-01);
   - nothing is taken from the photo library;
   - camera photos, video, voice notes, notes and files from the Files app are kept.
 - **Enforced in Rust**, not only in the screens (`app/rust/src/api/run.rs`): in Top

@@ -703,6 +703,37 @@ class _FileViewScreenState extends State<FileViewScreen> {
 Future<void> shareItem(BuildContext context, rust.ItemInfo item, String vaultId, {String? name, BuildContext? from}) =>
     shareById(context, item.id, item.mime, name ?? item.name, vaultId, from: from);
 
+/// The name a decrypted copy goes out with: no path characters, and an extension from
+/// its kind when it has none (a photo taken in the vault is named without one), so the
+/// other app and the system know what it is (owner 2026-11-01: on iPhone every file got
+/// the same list of apps).
+@visibleForTesting
+String outsideName(String name, String mime) {
+  final clean = name.replaceAll(RegExp(r'[/\\:]'), '-').trim();
+  final base = clean.isEmpty ? 'file' : clean;
+  final dot = base.lastIndexOf('.');
+  if (dot > 0 && dot < base.length - 1) return base;
+  final ext = _extensionOf[mime.toLowerCase()];
+  return ext == null ? base : '$base.$ext';
+}
+
+const _extensionOf = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'audio/mp4': 'm4a',
+  'audio/aac': 'aac',
+  'audio/mpeg': 'mp3',
+  'audio/wav': 'wav',
+  'application/pdf': 'pdf',
+  'text/plain': 'txt',
+};
+
 /// [shareItem] by id, for an item whose details are not at hand (a note just saved).
 /// [askFirst] false: the caller has just said what sending means (a Top secret item's
 /// card says it every time).
@@ -711,7 +742,7 @@ Future<void> shareById(BuildContext context, String id, String mime, String name
   final l = AppLocalizations.of(context);
   if (askFirst && !await confirmShareOut(context, vaultId) || !context.mounted) return;
   final dir = await (await privateTemp()).createTemp('send');
-  final file = name.replaceAll(RegExp(r'[/\\:]'), '-');
+  final file = outsideName(name, mime);
   final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
   LockGuard.allowAway();
   try {
@@ -735,8 +766,9 @@ const _openChannel = MethodChannel('cozysafe/open');
 
 /// Open one item in another app, as a computer's "Open with" (owner 2026-10-31: the share
 /// sheet only sent it): Android's own "Open with" (a read-only link to the copy, for the
-/// app picked) and the iPhone's "Open in…" (only apps that open this kind of file; the
-/// one picked gets a copy). Elsewhere, or when the system has nothing to offer, the share
+/// app picked); on iPhone, Quick Look as the Files app opens it (drawn by the system, not
+/// in this app; its share button reaches other apps), or for a kind it cannot show, the
+/// share sheet without sending, copying and saving. Elsewhere, or when the system has nothing to offer, the share
 /// sheet as before. The decrypted copy is removed once the person is back.
 Future<void> openWithById(BuildContext context, String id, String mime, String name, String vaultId,
     {BuildContext? from, bool askFirst = true}) async {
@@ -749,7 +781,7 @@ Future<void> openWithById(BuildContext context, String id, String mime, String n
   final base = Directory('${(await privateTemp()).path}${Platform.pathSeparator}open');
   base.createSync(recursive: true);
   final dir = base.createTempSync('o');
-  final file = name.replaceAll(RegExp(r'[/\\:]'), '-');
+  final file = outsideName(name, mime);
   final path = '${dir.path}${Platform.pathSeparator}${file.isEmpty ? 'file' : file}';
   LockGuard.allowAway();
   var shown = false;

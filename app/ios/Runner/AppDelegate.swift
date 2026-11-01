@@ -1,6 +1,7 @@
 import Flutter
 import ImageIO
 import Photos
+import QuickLook
 import PhotosUI
 import Security
 import UIKit
@@ -322,11 +323,11 @@ import UniformTypeIdentifiers
   /// Copies still on their way, so a cancelled import can stop them.
   private var copying: [Progress] = []
   private var copyStopped = false
-  /// "cozysafe/open": the system's "Open in…" menu for one decrypted copy, kept until the
-  /// menu closes or the chosen app has its copy; then Dart hears and removes the file.
-  private var openIn: UIDocumentInteractionController?
+  /// "cozysafe/open": Quick Look (or the narrowed share sheet) showing one decrypted copy,
+  /// until it closes (and a chosen app has its copy); then Dart hears and removes the file.
   private var openResult: FlutterResult?
-  private var openSending = false
+  /// Quick Look's data source while a file is open in it (it holds its source weakly).
+  private var openItem: OpenItem?
   /// Picked files, by the id given to Dart, still open for their security scope.
   private var pickedFiles: [String: URL] = [:]
 
@@ -408,50 +409,62 @@ import UniformTypeIdentifiers
   }
 }
 
-extension AppDelegate: UIDocumentInteractionControllerDelegate {
-  /// The apps that can open this kind of file, in the system's own menu; false (Dart
-  /// falls back to the share sheet) when there is none or nothing to show it on.
+extension AppDelegate {
+  /// Open with (owner 2026-11-01: "open is open, share is share"). iOS has no "Open
+  /// with" list of apps, so a file is opened the way the Files app opens it: Quick Look,
+  /// full screen, whose own share button reaches other apps. Quick Look draws in a system
+  /// extension, not in this process, so the vault still decodes nothing (ADR 0006). A
+  /// kind Quick Look cannot show gets the share sheet with sending, copying and saving
+  /// taken away (share extensions of other apps cannot be). False (Dart falls back to the
+  /// share sheet) when there is nothing to show it on.
   func openWith(path: String, result: @escaping FlutterResult) {
     finishOpen()
-    guard let view = topController?.view else { return result(false) }
-    let doc = UIDocumentInteractionController(url: URL(fileURLWithPath: path))
-    doc.delegate = self
-    openIn = doc
+    guard let top = topController, let view = top.view else { return result(false) }
+    let url = URL(fileURLWithPath: path)
     openResult = result
-    openSending = false
-    let rect = CGRect(x: view.bounds.midX, y: view.bounds.maxY - 80, width: 1, height: 1)
-    if !doc.presentOpenInMenu(from: rect, in: view, animated: true) {
-      openIn = nil
-      openResult = nil
-      result(false)
+    if QLPreviewController.canPreview(url as NSURL) {
+      let viewer = QLPreviewController()
+      let item = OpenItem(url: url) { [weak self] in self?.finishOpen() }
+      viewer.dataSource = item
+      viewer.delegate = item
+      openItem = item
+      viewer.modalPresentationStyle = .fullScreen
+      top.present(viewer, animated: true)
+      return
     }
+    let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    sheet.excludedActivityTypes = AppDelegate.notOpening
+    sheet.completionWithItemsHandler = { [weak self] _, completed, _, _ in
+      // An app was chosen: it copies the file as it opens; the copy goes a little later.
+      if completed {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self?.finishOpen() }
+      } else {
+        self?.finishOpen()
+      }
+    }
+    if let pop = sheet.popoverPresentationController {
+      pop.sourceView = view
+      pop.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.maxY - 80, width: 1, height: 1)
+    }
+    top.present(sheet, animated: true)
   }
 
   private func finishOpen() {
     openResult?(true)
     openResult = nil
-    openIn = nil
-    openSending = false
+    openItem = nil
   }
 
-  func documentInteractionController(_ controller: UIDocumentInteractionController, willBeginSendingToApplication application: String?) {
-    openSending = true
-  }
-
-  func documentInteractionController(_ controller: UIDocumentInteractionController, didEndSendingToApplication application: String?) {
-    finishOpen()
-  }
-
-  func documentInteractionControllerDidDismissOpenInMenu(_ controller: UIDocumentInteractionController) {
-    if !openSending { return finishOpen() }
-    // Sending began; the end is not always reported (iOS 13+): Dart hears in any case
-    // a little later, so the page never waits for ever. The receiving app has its own
-    // copy by then.
-    let doc = openIn
-    DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-      if let self, self.openIn === doc, doc != nil { self.finishOpen() }
-    }
-  }
+  /// What Share does, not Open with: sending the copy on, copying, printing, saving.
+  private static let notOpening: [UIActivity.ActivityType] = [
+    .airDrop, .message, .mail, .copyToPasteboard, .print, .saveToCameraRoll,
+    .assignToContact, .addToReadingList, .markupAsPDF, .sharePlay,
+    .postToFacebook, .postToTwitter, .postToWeibo, .postToTencentWeibo, .postToFlickr, .postToVimeo,
+    .collaborationInviteWithLink, .collaborationCopyLink,
+    UIActivity.ActivityType("com.apple.DocumentManagerUICore.SaveToFiles"),
+    UIActivity.ActivityType("com.apple.mobilenotes.SharingExtension"),
+    UIActivity.ActivityType("com.apple.reminders.sharingextension"),
+  ]
 }
 
 extension AppDelegate: PHPickerViewControllerDelegate {
@@ -776,4 +789,24 @@ enum HwKey {
     guard let key = key(create: false) else { return nil }
     return SecKeyCreateDecryptedData(key, algorithm, blob as CFData, nil) as Data?
   }
+}
+
+/// The one file Quick Look shows for Open with; tells the app when the viewer is gone, so
+/// the decrypted copy can be removed.
+final class OpenItem: NSObject, QLPreviewControllerDataSource, QLPreviewControllerDelegate {
+  private let url: URL
+  private let closed: () -> Void
+  init(url: URL, closed: @escaping () -> Void) {
+    self.url = url
+    self.closed = closed
+  }
+  func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+  func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+    url as NSURL
+  }
+  /// Read only: no markup or trimming written back to a copy that is about to go.
+  func previewController(_ controller: QLPreviewController, editingModeFor previewItem: QLPreviewItem) -> QLPreviewItemEditingMode {
+    .disabled
+  }
+  func previewControllerDidDismiss(_ controller: QLPreviewController) { closed() }
 }

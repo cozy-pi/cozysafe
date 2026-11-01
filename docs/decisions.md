@@ -4,6 +4,17 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-01 — Open with is not Share; on iPhone it is Quick Look
+
+**Owner:** "open is open, share is share": tapping an item in Top Secret Mode, or a file
+the app cannot show, opens it; the Share button stays the full share sheet. Android keeps
+its own "Open with". iPhone has no list of apps that open a file (every way out is the
+share sheet), so the file opens in Quick Look, full screen, as the Files app opens it; its
+own share button reaches other apps. Quick Look draws in a system extension, not in the
+app, so ADR 0006 holds (the app decodes nothing; the decrypted copy is removed when the
+viewer closes). A kind Quick Look cannot show gets the share sheet without AirDrop,
+Messages, Mail, copy, print and save. Copies leave with an extension from their kind.
+
 ## 2026-11-01 — A vault may have its own 24 words; restore by QR; test sign-in
 
 **Owner:** making a vault asks which 24 words it uses: the device's set, or a new set of
