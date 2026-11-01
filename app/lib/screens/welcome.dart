@@ -38,7 +38,7 @@ class WelcomeScreen extends StatelessWidget {
           title: l.welcomeRestore,
           note: l.welcomeRestoreNote,
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => Readable(child: RestorePickScreen(libraryDir: libraryDir)),
+            builder: (_) => Readable(child: RestoreKeysScreen(libraryDir: libraryDir)),
           )),
         ),
         // Android test builds (owner 2026-11-01): one tap to a vault made for trying.

@@ -97,7 +97,38 @@ const _textKinds = <String, TextKind>{
   'scala': TextKind.code, 'swift': TextKind.code, 'm': TextKind.code, 'mm': TextKind.code,
   'c': TextKind.code, 'h': TextKind.code, 'cc': TextKind.code, 'cpp': TextKind.code,
   'hpp': TextKind.code, 'cs': TextKind.code,
+  // More plain text kept in vaults (owner 2026-11-01: as many as can be read as text):
+  // subtitles, playlists, translations.
+  'sub': TextKind.prose, 'ass': TextKind.prose, 'ssa': TextKind.prose,
+  'lrc': TextKind.prose, 'textile': TextKind.prose, 'wiki': TextKind.prose,
+  'mdx': TextKind.prose, 'po': TextKind.prose, 'pot': TextKind.prose,
+  'strings': TextKind.prose, 'm3u': TextKind.prose, 'm3u8': TextKind.prose,
+  'pls': TextKind.prose, 'cue': TextKind.prose, 'url': TextKind.prose,
+  // Build files, more languages, settings, feeds and maps.
+  'cmake': TextKind.code, 'mk': TextKind.code, 'groovy': TextKind.code,
+  'clj': TextKind.code, 'ex': TextKind.code, 'exs': TextKind.code, 'erl': TextKind.code,
+  'hs': TextKind.code, 'ml': TextKind.code, 'fs': TextKind.code, 'jl': TextKind.code,
+  'nim': TextKind.code, 'zig': TextKind.code, 'sol': TextKind.code, 'tf': TextKind.code,
+  'hcl': TextKind.code, 'nix': TextKind.code, 'dockerignore': TextKind.code,
+  'npmrc': TextKind.code, 'htaccess': TextKind.code, 'service': TextKind.code,
+  'desktop': TextKind.code, 'plist': TextKind.code, 'opml': TextKind.code,
+  'rss': TextKind.code, 'atom': TextKind.code, 'gpx': TextKind.code, 'kml': TextKind.code,
+  'resx': TextKind.code, 'xlf': TextKind.code, 'arb': TextKind.code, 'psql': TextKind.code,
+  'ovpn': TextKind.code, 'wg': TextKind.code, 'reg': TextKind.code, 'cmd': TextKind.code,
+  'vbs': TextKind.code, 'ahk': TextKind.code, 'pas': TextKind.code, 'asm': TextKind.code,
+  's': TextKind.code, 'f90': TextKind.code, 'tcl': TextKind.code, 'vim': TextKind.code,
+  'el': TextKind.code, 'lisp': TextKind.code, 'scm': TextKind.code, 'rkt': TextKind.code,
+  'prisma': TextKind.code, 'gql': TextKind.code, 'bib': TextKind.code,
+  'cls': TextKind.code, 'sty': TextKind.code, 'lock': TextKind.code,
+  'webloc': TextKind.code,
 };
+
+/// Every extension read as text in the app (Top Secret Mode reads the same, after the
+/// core's checks: rust/src/plain_text.rs keeps the same list).
+Set<String> get textExtensions => _textKinds.keys.toSet();
+
+/// Names read as text without an extension.
+Set<String> get textNames => _textNames;
 
 /// Files with no extension that are text by name.
 const _textNames = {'readme', 'license', 'licence', 'changelog', 'makefile', 'dockerfile', 'authors', 'notice'};

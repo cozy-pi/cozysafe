@@ -1907,15 +1907,6 @@ void main() {
       change: 'MỚI: Đăng nhập thử nghiệm ở menu ⋯ màn khoá (mở thẳng két thử nghiệm)',
       setup: () => TestLogin.debugShown = true,
       act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
-  _screen('restore-pick', 'Khôi phục · 1. Két đang ở đâu? (chọn nguồn trước)', () => const RestorePickScreen(libraryDir: ''),
-      change: 'ĐỔI: khôi phục chọn nguồn TRƯỚC: Google Drive · Máy khác gần đây · Tệp sao lưu',
-      setup: () => RestoreSourceScreen.debugDrive = true);
-  _screen('restore-keys-drive', 'Khôi phục · 2. Nhập 24 từ và mật khẩu (đã chọn Google Drive)', () => const RestoreKeysScreen(libraryDir: '', source: RestoreSource.drive),
-      change: 'ĐỔI: bước 2 là 24 từ + mật khẩu; Tiếp → bước 3 kết nối nguồn đã chọn');
-  _screen('restore-run-device', 'Khôi phục · 3. Kết nối máy khác (đã chọn ở bước 1)', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake', only: RestoreSource.device),
-      change: 'ĐỔI: bước 3 chỉ còn đúng nguồn đã chọn: Kết nối và khôi phục');
-  _screen('restore-run-file', 'Khôi phục · 3. Chọn tệp sao lưu (đã chọn ở bước 1)', () => const RestoreSourceScreen(libraryDir: '', words: 'fake', password: 'fake', only: RestoreSource.file),
-      change: 'ĐỔI: bước 3 với tệp sao lưu');
   _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: ''));
   _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: ''), act: (t) async {
     await t.enterText(find.byKey(const ValueKey('words-field-0')), 'boun');

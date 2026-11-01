@@ -34,59 +34,9 @@ import 'top_secret_page.dart' show restartForMode;
 
 /// Restore, step 1 (owner 2026-10-24): the two secrets first, pasted or typed, the
 /// same for every way the vault can come back.
-/// Where a vault comes back from, chosen first (owner 2026-11-01).
-enum RestoreSource { drive, device, file }
-
-/// Restore, step 1: where the vault is (owner 2026-11-01: the place first, then the two
-/// secrets, then connecting).
-class RestorePickScreen extends StatelessWidget {
-  const RestorePickScreen({super.key, required this.libraryDir});
-  final String libraryDir;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    void go(RestoreSource s) => Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => Readable(child: RestoreKeysScreen(libraryDir: libraryDir, source: s)),
-        ));
-    return ChoicePage(
-      title: l.welcomeRestore,
-      lead: l.restoreChooseLead,
-      back: true,
-      choices: [
-        if (RestoreSourceScreen.debugDrive || driveOffered)
-          BigChoice(
-            key: const ValueKey('restore-drive'),
-            icon: Icons.cloud_download_rounded,
-            title: l.restoreFromDrive,
-            note: l.restoreFromDriveNote,
-            strong: true,
-            onTap: () => go(RestoreSource.drive),
-          ),
-        BigChoice(
-          key: const ValueKey('restore-device'),
-          icon: Icons.phonelink_rounded,
-          title: l.restoreFromDevice,
-          note: l.restoreFromDeviceNote,
-          onTap: () => go(RestoreSource.device),
-        ),
-        BigChoice(
-          key: const ValueKey('restore-file'),
-          icon: Icons.insert_drive_file_rounded,
-          title: l.restoreFromFile,
-          note: l.restoreFromFileNote,
-          onTap: () => go(RestoreSource.file),
-        ),
-      ],
-    );
-  }
-}
-
-/// Restore, step 2: the two secrets, pasted or typed, the same for every place.
 class RestoreKeysScreen extends StatefulWidget {
-  const RestoreKeysScreen({super.key, required this.libraryDir, this.source = RestoreSource.device});
+  const RestoreKeysScreen({super.key, required this.libraryDir});
   final String libraryDir;
-  final RestoreSource source;
 
   @override
   State<RestoreKeysScreen> createState() => _RestoreKeysScreenState();
@@ -125,13 +75,8 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       setState(() => _error = l.secretKeyTypo);
       return;
     }
-    // Step 3: connect and bring the vault back, from the place chosen first.
     Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => Readable(
-        child: widget.source == RestoreSource.drive
-            ? DriveJoinScreen(libraryDir: widget.libraryDir, words: _words.text, password: _password.text)
-            : RestoreSourceScreen(libraryDir: widget.libraryDir, words: _words.text, password: _password.text, only: widget.source),
-      ),
+      builder: (_) => Readable(child: RestoreSourceScreen(libraryDir: widget.libraryDir, words: _words.text, password: _password.text)),
     ));
   }
 
@@ -186,12 +131,10 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
 /// Restore, step 2: where the vault is. Another device first, the way that needs no
 /// cloud and no file.
 class RestoreSourceScreen extends StatefulWidget {
-  const RestoreSourceScreen({super.key, required this.libraryDir, required this.words, required this.password, this.only});
+  const RestoreSourceScreen({super.key, required this.libraryDir, required this.words, required this.password});
   final String libraryDir;
   final String words;
   final String password;
-  /// The place chosen first: only its way is offered.
-  final RestoreSource? only;
 
   /// For the mockup renders: offer Google Drive on any platform.
   static bool debugDrive = false;
@@ -360,7 +303,6 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
       lead: l.restoreChooseLead,
       back: true,
       choices: [
-        if (widget.only == null || widget.only == RestoreSource.device)
         BigChoice(
           key: const ValueKey('restore-device'),
           icon: Icons.phonelink_rounded,
@@ -370,7 +312,7 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
           onTap: _busy ? null : _fromDevice,
         ),
         // Where Drive sync is offered (phones; computers with the desktop client).
-        if (widget.only == null && (RestoreSourceScreen.debugDrive || driveOffered))
+        if (RestoreSourceScreen.debugDrive || driveOffered)
           BigChoice(
             key: const ValueKey('restore-drive'),
             icon: Icons.cloud_download_rounded,
@@ -382,13 +324,11 @@ class _RestoreSourceScreenState extends State<RestoreSourceScreen> {
                       builder: (_) => Readable(child: DriveJoinScreen(libraryDir: widget.libraryDir, words: widget.words, password: widget.password)),
                     )),
           ),
-        if (widget.only == null || widget.only == RestoreSource.file)
         BigChoice(
           key: const ValueKey('restore-file'),
           icon: Icons.insert_drive_file_rounded,
           title: l.restoreFromFile,
           note: l.restoreFromFileNote,
-          strong: widget.only == RestoreSource.file,
           onTap: _busy ? null : _fromFile,
         ),
         TextButton(

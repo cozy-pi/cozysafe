@@ -4,13 +4,8 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/vault_bar.dart' show pushPage;
+import 'file_view.dart' show textExtensions, textNames;
 
-/// The extensions Top Secret Mode reads as plain text: the same list as the Rust core's
-/// `plain_text::EXTENSIONS`, which decides (this one only picks the page to open).
-const plainTextExtensions = {
-  'txt', 'text', 'md', 'markdown', 'log', 'csv', 'tsv', 'json', 'yaml', 'yml', 'ini',
-  'conf', 'cfg', 'env', 'pem', 'pub', 'crt', 'cer', 'csr', 'asc',
-};
 
 /// The largest file read as text (the Rust core's `plain_text::MAX`).
 const plainTextMax = 1 << 20;
@@ -19,8 +14,10 @@ const plainTextMax = 1 << 20;
 /// extension, at most 1 MB. The core checks again, and checks the bytes.
 bool opensAsPlainText(rust.ItemInfo item) {
   if (item.kind != 'file' || item.sizeBytes > BigInt.from(plainTextMax)) return false;
-  final dot = item.name.lastIndexOf('.');
-  return dot > 0 && plainTextExtensions.contains(item.name.substring(dot + 1).toLowerCase());
+  // The same names as the everyday mode reads as text (file_view.dart).
+  final name = item.name.toLowerCase();
+  final dot = name.lastIndexOf('.');
+  return dot < 0 ? textNames.contains(name) : textExtensions.contains(name.substring(dot + 1));
 }
 
 /// A plain text file in Top Secret Mode (owner 2026-11-01): its characters as they are,
