@@ -13,7 +13,7 @@ Dates are UTC.
   no longer uses a threading library. Your password and key work as before.
 - A new vault password needs at least 12 characters (4 words always do) and must not be
   one of the most common passwords. Passwords you already use keep working.
-- Google Drive syncs 5 seconds after your last change (it was 15).
+- Google Drive syncs 1 second after your last change (it was 15).
 - Google Drive syncs faster: files up to 4 MB go up in one request instead of two, eight
   items go at once instead of four, and larger files are sent in bigger pieces.
 - Each vault has its own mode: Private or Top secret is chosen for every new vault, and
