@@ -846,5 +846,14 @@
   "searchMore": "顯示 {total} 項中的 {shown} 項。繼續輸入以縮小範圍。",
   "compareText": "純文字檔案",
   "plainTextEmpty": "此檔案為空。",
-  "driveDeleting": "正在從 Google 雲端硬碟刪除…"
+  "driveDeleting": "正在從 Google 雲端硬碟刪除…",
+  "testLogin": "Test sign-in",
+  "testLoginNote": "For testers: opens a vault made for trying the app. Keep nothing real in it.",
+  "testLoginFailed": "Couldn't open the test vault.",
+  "keysTitle": "24 words for this vault",
+  "keysLead": "A vault opens with its password and a set of 24 words. Vaults can share this device's set, or have one of their own.",
+  "keysDevice": "Use this device's set",
+  "keysDeviceNote": "Nothing new to write down: it is the one already in your Recovery Key.",
+  "keysNew": "Make a new set",
+  "keysNewNote": "This vault gets its own 24 words. You write them down next."
 }

@@ -846,5 +846,14 @@
   "searchMore": "{shown} sur {total} affichés. Tapez davantage pour affiner.",
   "compareText": "Fichiers texte brut",
   "plainTextEmpty": "Ce fichier est vide.",
-  "driveDeleting": "Suppression de Google Drive…"
+  "driveDeleting": "Suppression de Google Drive…",
+  "testLogin": "Test sign-in",
+  "testLoginNote": "For testers: opens a vault made for trying the app. Keep nothing real in it.",
+  "testLoginFailed": "Couldn't open the test vault.",
+  "keysTitle": "24 words for this vault",
+  "keysLead": "A vault opens with its password and a set of 24 words. Vaults can share this device's set, or have one of their own.",
+  "keysDevice": "Use this device's set",
+  "keysDeviceNote": "Nothing new to write down: it is the one already in your Recovery Key.",
+  "keysNew": "Make a new set",
+  "keysNewNote": "This vault gets its own 24 words. You write them down next."
 }

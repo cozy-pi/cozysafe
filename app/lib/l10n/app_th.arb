@@ -846,5 +846,14 @@
   "searchMore": "แสดง {shown} จาก {total} พิมพ์เพิ่มเพื่อให้แคบลง",
   "compareText": "ไฟล์ข้อความธรรมดา",
   "plainTextEmpty": "ไฟล์นี้ว่างเปล่า",
-  "driveDeleting": "กำลังลบออกจาก Google Drive…"
+  "driveDeleting": "กำลังลบออกจาก Google Drive…",
+  "testLogin": "Test sign-in",
+  "testLoginNote": "For testers: opens a vault made for trying the app. Keep nothing real in it.",
+  "testLoginFailed": "Couldn't open the test vault.",
+  "keysTitle": "24 words for this vault",
+  "keysLead": "A vault opens with its password and a set of 24 words. Vaults can share this device's set, or have one of their own.",
+  "keysDevice": "Use this device's set",
+  "keysDeviceNote": "Nothing new to write down: it is the one already in your Recovery Key.",
+  "keysNew": "Make a new set",
+  "keysNewNote": "This vault gets its own 24 words. You write them down next."
 }

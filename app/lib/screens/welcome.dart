@@ -6,6 +6,7 @@ import '../widgets/brand.dart';
 import 'new_vault.dart';
 import 'restore_flow.dart';
 import '../widgets/readable.dart';
+import '../test_login.dart';
 
 /// The first screen on a device with no vault (owner 2026-10-24): two choices, nothing
 /// else to read. "Restore" asks the two secrets, then where the vault is.
@@ -37,9 +38,18 @@ class WelcomeScreen extends StatelessWidget {
           title: l.welcomeRestore,
           note: l.welcomeRestoreNote,
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => Readable(child: RestoreKeysScreen(libraryDir: libraryDir)),
+            builder: (_) => Readable(child: RestorePickScreen(libraryDir: libraryDir)),
           )),
         ),
+        // Android test builds (owner 2026-11-01): one tap to a vault made for trying.
+        if (TestLogin.shown)
+          BigChoice(
+            key: const ValueKey('welcome-test-login'),
+            icon: Icons.bolt_rounded,
+            title: l.testLogin,
+            note: l.testLoginNote,
+            onTap: () => TestLogin.run(context, libraryDir),
+          ),
       ],
     );
   }

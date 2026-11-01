@@ -846,5 +846,14 @@
   "searchMore": "{total}개 중 {shown}개 표시 중. 더 입력해 좁혀 보세요.",
   "compareText": "일반 텍스트 파일",
   "plainTextEmpty": "이 파일은 비어 있습니다.",
-  "driveDeleting": "Google Drive에서 삭제하는 중…"
+  "driveDeleting": "Google Drive에서 삭제하는 중…",
+  "testLogin": "Test sign-in",
+  "testLoginNote": "For testers: opens a vault made for trying the app. Keep nothing real in it.",
+  "testLoginFailed": "Couldn't open the test vault.",
+  "keysTitle": "24 words for this vault",
+  "keysLead": "A vault opens with its password and a set of 24 words. Vaults can share this device's set, or have one of their own.",
+  "keysDevice": "Use this device's set",
+  "keysDeviceNote": "Nothing new to write down: it is the one already in your Recovery Key.",
+  "keysNew": "Make a new set",
+  "keysNewNote": "This vault gets its own 24 words. You write them down next."
 }

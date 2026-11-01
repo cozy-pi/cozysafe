@@ -25,6 +25,7 @@ import '../theme.dart';
 import '../widgets/drive_logo.dart';
 import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
+import '../test_login.dart';
 
 /// The lock screen (design B2, docs/ui.md). Biometrics are asked for right away; the
 /// vault password is the fallback (decisions 2026-10-28: no more PIN, it was the
@@ -640,6 +641,15 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
               leadingIcon: const Icon(Icons.dialpad),
               onPressed: () => setState(() => _mode = _Mode.pin),
               child: Text(l.usePin),
+            ),
+          // Android test builds: straight into the test vault (owner 2026-11-01).
+          if (TestLogin.shown)
+            MenuItemButton(
+              key: const ValueKey('lock-test-login'),
+              style: _menuItem,
+              leadingIcon: const Icon(Icons.bolt_rounded),
+              onPressed: _busy ? null : () => TestLogin.run(context, widget.libraryDir),
+              child: Text(l.testLogin),
             ),
           // One vault in the app; another only in debug mode (decisions 2026-10-24).
           if (debugModeOn())

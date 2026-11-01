@@ -860,5 +860,14 @@
   "searchMore": "Đang hiện {shown} / {total}. Gõ thêm để thu hẹp.",
   "compareText": "Tệp chữ trơn",
   "plainTextEmpty": "Tệp này trống.",
-  "driveDeleting": "Đang xoá khỏi Google Drive…"
+  "driveDeleting": "Đang xoá khỏi Google Drive…",
+  "testLogin": "Đăng nhập thử nghiệm",
+  "testLoginNote": "Cho người thử: mở một két dùng để thử app. Đừng cất đồ thật vào đó.",
+  "testLoginFailed": "Chưa mở được két thử nghiệm.",
+  "keysTitle": "24 từ cho két này",
+  "keysLead": "Két mở bằng mật khẩu của nó cùng một bộ 24 từ. Các két có thể dùng chung bộ của máy này, hoặc có bộ riêng.",
+  "keysDevice": "Dùng bộ của máy này",
+  "keysDeviceNote": "Không phải chép thêm gì: đó là bộ đã có trong Khoá khôi phục.",
+  "keysNew": "Tạo bộ mới",
+  "keysNewNote": "Két này có 24 từ riêng. Bạn chép lại ở bước sau."
 }
