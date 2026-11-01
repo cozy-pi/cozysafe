@@ -50,6 +50,13 @@ pub const PLACE_KEY: &str = "google-drive";
 const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
 /// Uploads up to this size are held in memory while sent.
 const SMALL_UPLOAD: u64 = 1 << 20;
+/// Uploads up to this size go in one request, the name and the bytes together
+/// (`uploadType=multipart`), instead of two (owner 2026-11-01: syncing 100 MB was slow;
+/// every round trip to Google counts). Larger ones stream through a resumable upload.
+const ONE_REQUEST_UPLOAD: u64 = 4 << 20;
+/// Between the two parts of a one-request upload; an upload whose bytes hold it goes the
+/// resumable way instead.
+const UPLOAD_BOUNDARY: &str = "cozysafe_upload_7f3a91d2c5e84b06";
 /// Items a sync sends at once: one kept connection each (round trips overlap).
 const AT_ONCE: usize = https::POOL;
 /// Most calls in one batch request (Google takes up to 100 calls in one).
@@ -1053,6 +1060,40 @@ pub fn clean_vault<A: DriveApi>(
     Ok(checked.orphans.len() as u32)
 }
 
+/// Delete every file of `vault` in Drive, the person's own choice (owner 2026-10-31: their
+/// copy there must be deletable too). How many files went. Nothing stops another device
+/// that still holds the vault from sending it up again: the app says so.
+pub fn delete_vault<A: DriveApi>(api: &A, vault: &str) -> Result<u32> {
+    let listed = vault_files(api, vault)?;
+    api.delete_many(&listed.ids)?;
+    // Its folders too, the vault's own and every one under it (owner 2026-10-31: empty
+    // "head" and "lock" were left behind), the deepest first.
+    if let Some(root) = api.find_folder(None, FOLDER)? {
+        let nodes = api.tree(&|_| {})?;
+        let mut depth: HashMap<&str, usize> = nodes
+            .iter()
+            .filter(|n| n.folder && n.parent == root && n.name == vault)
+            .map(|n| (n.id.as_str(), 0))
+            .collect();
+        loop {
+            let more: Vec<(&str, usize)> = nodes
+                .iter()
+                .filter(|n| n.folder && !depth.contains_key(n.id.as_str()))
+                .filter_map(|n| depth.get(n.parent.as_str()).map(|d| (n.id.as_str(), d + 1)))
+                .collect();
+            if more.is_empty() {
+                break;
+            }
+            depth.extend(more);
+        }
+        let mut folders: Vec<(&str, usize)> = depth.into_iter().collect();
+        folders.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
+        let ids: Vec<String> = folders.into_iter().map(|(id, _)| id.to_owned()).collect();
+        api.delete_many(&ids)?;
+    }
+    Ok(listed.ids.len() as u32)
+}
+
 /// The real Drive, through [`https`].
 pub struct GoogleDrive {
     token: String,
@@ -1074,6 +1115,56 @@ impl GoogleDrive {
             token,
             http: https::Client::new(),
         })
+    }
+
+    /// Resumable upload: the metadata first, then the bytes to the URL Drive gives,
+    /// which must be on the same host.
+    fn upload_resumable(&self, meta: &[u8], len: u64, src: &mut dyn Read) -> Result<String> {
+        let r = again(|| {
+            let r = self.http.request(
+                "POST",
+                "/upload/drive/v3/files?uploadType=resumable&fields=id",
+                &self.token,
+                &[("X-Upload-Content-Length", len.to_string())],
+                Body::Bytes("application/json; charset=UTF-8", meta.to_vec()),
+            )?;
+            match r.status {
+                200..=299 => Ok(r),
+                s => Err(drive_error(s, &r.bytes_max(ERROR_ANSWER)?)),
+            }
+        })?;
+        let at = r
+            .header("Location")
+            .ok_or(Error::Corrupt("drive upload url"))?
+            .to_owned();
+        drop(r);
+        let path = at
+            .strip_prefix(&format!("https://{}", https::HOST))
+            .ok_or(Error::Corrupt("drive upload url on another host"))?;
+        // Small ones (records, journal entries) from memory, so the request can be sent
+        // again if a kept connection turns out closed; files stream.
+        // Small ones from memory can be sent again after a passing fault; a stream cannot.
+        let put = |body: Body| -> Result<Value> {
+            let r = self.http.request("PUT", path, &self.token, &[], body)?;
+            let status = r.status;
+            let bytes = r.bytes()?;
+            answer_ok(status, &bytes)?;
+            serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("drive json"))
+        };
+        let v = if len <= SMALL_UPLOAD {
+            let mut b = Vec::new();
+            src.take(len).read_to_end(&mut b)?;
+            if b.len() as u64 != len {
+                return Err(Error::Corrupt("drive upload short"));
+            }
+            again(|| put(Body::Bytes("application/octet-stream", b.clone())))?
+        } else {
+            put(Body::Stream("application/octet-stream", len, src))?
+        };
+        v["id"]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or(Error::Corrupt("drive upload"))
     }
 
     fn json(&self, method: &str, path: &str, body: Option<&Value>) -> Result<Value> {
@@ -1152,6 +1243,29 @@ impl GoogleDrive {
         answer_ok(status, &body)?;
         batch_statuses(&answer_kind, &body, parts.len())
     }
+}
+
+/// The body of a one-request upload (`multipart/related`): the file's name and folder as
+/// JSON, then its bytes. None when the bytes hold the boundary (then the upload goes the
+/// resumable way); sealed bytes are random, so that never really happens.
+fn one_request_body(meta: &[u8], bytes: &[u8]) -> Option<Vec<u8>> {
+    let b = UPLOAD_BOUNDARY.as_bytes();
+    if bytes.windows(b.len()).any(|w| w == b) {
+        return None;
+    }
+    let mut out = Vec::with_capacity(bytes.len() + meta.len() + 200);
+    out.extend_from_slice(
+        format!("--{UPLOAD_BOUNDARY}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n")
+            .as_bytes(),
+    );
+    out.extend_from_slice(meta);
+    out.extend_from_slice(
+        format!("\r\n--{UPLOAD_BOUNDARY}\r\nContent-Type: application/octet-stream\r\n\r\n")
+            .as_bytes(),
+    );
+    out.extend_from_slice(bytes);
+    out.extend_from_slice(format!("\r\n--{UPLOAD_BOUNDARY}--\r\n").as_bytes());
+    Some(out)
 }
 
 /// Google's answer to a failed call, as one of a few fixed codes (never the answer's own
@@ -1637,57 +1751,43 @@ impl DriveApi for GoogleDrive {
     }
 
     fn upload(&self, folder: &str, name: &str, len: u64, src: &mut dyn Read) -> Result<String> {
-        // Resumable upload: the metadata first, then the bytes to the URL Drive gives,
-        // which must be on the same host.
         let meta = serde_json::json!({ "name": name, "parents": [folder] });
-        let r = again(|| {
-            let r = self.http.request(
-                "POST",
-                "/upload/drive/v3/files?uploadType=resumable&fields=id",
-                &self.token,
-                &[("X-Upload-Content-Length", len.to_string())],
-                Body::Bytes(
-                    "application/json; charset=UTF-8",
-                    serde_json::to_vec(&meta).expect("json"),
-                ),
-            )?;
-            match r.status {
-                200..=299 => Ok(r),
-                s => Err(drive_error(s, &r.bytes_max(ERROR_ANSWER)?)),
-            }
-        })?;
-        let at = r
-            .header("Location")
-            .ok_or(Error::Corrupt("drive upload url"))?
-            .to_owned();
-        drop(r);
-        let path = at
-            .strip_prefix(&format!("https://{}", https::HOST))
-            .ok_or(Error::Corrupt("drive upload url on another host"))?;
-        // Small ones (records, journal entries) from memory, so the request can be sent
-        // again if a kept connection turns out closed; files stream.
-        // Small ones from memory can be sent again after a passing fault; a stream cannot.
-        let put = |body: Body| -> Result<Value> {
-            let r = self.http.request("PUT", path, &self.token, &[], body)?;
-            let status = r.status;
-            let bytes = r.bytes()?;
-            answer_ok(status, &bytes)?;
-            serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("drive json"))
-        };
-        let v = if len <= SMALL_UPLOAD {
-            let mut b = Vec::new();
+        // Small enough: the name and the bytes in one request.
+        if len <= ONE_REQUEST_UPLOAD {
+            let mut b = Vec::with_capacity(len as usize);
             src.take(len).read_to_end(&mut b)?;
             if b.len() as u64 != len {
                 return Err(Error::Corrupt("drive upload short"));
             }
-            again(|| put(Body::Bytes("application/octet-stream", b.clone())))?
-        } else {
-            put(Body::Stream("application/octet-stream", len, src))?
-        };
-        v["id"]
-            .as_str()
-            .map(str::to_owned)
-            .ok_or(Error::Corrupt("drive upload"))
+            let meta = serde_json::to_vec(&meta).expect("json");
+            if let Some(body) = one_request_body(&meta, &b) {
+                drop(b);
+                let kind = format!("multipart/related; boundary={UPLOAD_BOUNDARY}");
+                // Sent once, never again by itself (a stream is not resent): a retry after
+                // Drive had made the file would make a second one. A failure ends this
+                // sync; the next one sees what is there and sends only what is missing.
+                let len = body.len() as u64;
+                let r = self.http.request(
+                    "POST",
+                    "/upload/drive/v3/files?uploadType=multipart&fields=id",
+                    &self.token,
+                    &[],
+                    Body::Stream(&kind, len, &mut &body[..]),
+                )?;
+                let status = r.status;
+                let bytes = r.bytes()?;
+                answer_ok(status, &bytes)?;
+                let v: Value =
+                    serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("drive json"))?;
+                return v["id"]
+                    .as_str()
+                    .map(str::to_owned)
+                    .ok_or(Error::Corrupt("drive upload"));
+            }
+            return self.upload_resumable(&meta, len, &mut &b[..]);
+        }
+        let meta = serde_json::to_vec(&meta).expect("json");
+        self.upload_resumable(&meta, len, src)
     }
 
     /// `PATCH` of the file's media: the id stays, Drive raises its version.
@@ -1822,6 +1922,7 @@ mod tests {
     use super::*;
     use crate::testkit::{note, text, two};
     use cs_vault::audit::Tally;
+    use cs_vault::{VaultAudit, VaultSync};
     use std::sync::atomic::AtomicU64;
     use std::sync::Arc;
 
@@ -2237,6 +2338,45 @@ mod tests {
         t.b.sync(&DriveRemote::open(drive.clone()).unwrap())
             .unwrap();
         assert_eq!(text(&t.b, &kept), "stays");
+    }
+
+    #[test]
+    fn a_one_request_upload_holds_the_name_then_the_bytes() {
+        let body = one_request_body(br#"{"name":"x"}"#, &[0, 1, 2, 255]).unwrap();
+        let text = String::from_utf8_lossy(&body);
+        assert!(text.starts_with(&format!("--{UPLOAD_BOUNDARY}\r\n")));
+        assert!(text.ends_with(&format!("\r\n--{UPLOAD_BOUNDARY}--\r\n")));
+        let at = body.windows(4).position(|w| w == [0, 1, 2, 255]).unwrap();
+        assert!(text[..at].contains(r#"{"name":"x"}"#));
+        // Bytes holding the boundary go the other way.
+        let tricky = format!("ab{UPLOAD_BOUNDARY}cd");
+        assert!(one_request_body(b"{}", tricky.as_bytes()).is_none());
+    }
+
+    #[test]
+    fn deleting_a_vault_from_drive_takes_only_its_files() {
+        let t = two();
+        let drive = Fake::default();
+        note(&t.a, "One", "x");
+        t.a.sync(&DriveRemote::open(drive.clone()).unwrap())
+            .unwrap();
+        let v = t.a.id.clone();
+        let other = "f".repeat(32);
+        let elsewhere = drive.add("F", &other, Vec::new(), true);
+        drive.add(&elsewhere, "header.json", vec![1; 3], false);
+        assert!(delete_vault(&drive, &v).unwrap() > 0);
+        assert!(!drive.layout().iter().any(|(f, _, _)| f.starts_with(&v)));
+        assert!(
+            !drive.folders().iter().any(|f| f.starts_with(&v)),
+            "its folders go too: {:?}",
+            drive.folders()
+        );
+        assert!(drive.folders().iter().any(|f| f == &other));
+        assert!(drive
+            .layout()
+            .iter()
+            .any(|(f, n, _)| f == &other && n == "header.json"));
+        assert_eq!(delete_vault(&drive, &v).unwrap(), 0);
     }
 
     /// A full sync as the app runs it: what Drive said of the heads on open is kept
@@ -2838,7 +2978,7 @@ mod tests {
             .map(|i| note(&t.a, &format!("N{i}"), &format!("text {i}")))
             .collect();
         let r = DriveRemote::open(drive.clone()).unwrap();
-        assert_eq!(r.parallel(), 4);
+        assert_eq!(r.parallel(), 8);
         t.a.sync(&r).unwrap();
         // One file per name and each folder once, though several went up together.
         let folders = drive.folders();

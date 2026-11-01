@@ -23,7 +23,7 @@ class _Fake implements RustLibApi {
     if (name.contains('UnlockWithBiometric')) {
       unlockedWith = call.namedArguments[#key] as Uint8List;
       return Future<VaultInfo?>.value(
-          VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true));
+          VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false));
     }
     if (name.contains('ForgetBiometricUnlock')) {
       forgets++;

@@ -167,7 +167,7 @@ class _DeskTableState extends State<DeskTable> {
                                             : ColoredBox(color: c.soft),
                                       ),
                                     )
-                                  : Icon(it.kind == ItemKind.note ? Icons.sticky_note_2_outlined : fileIcon(it),
+                                  : Icon(it.kind == ItemKind.note ? Icons.book_outlined : fileIcon(it),
                                       size: 18, color: picked ? Colors.white : Theme.of(context).colorScheme.primary),
                             ),
                             const SizedBox(width: 8),

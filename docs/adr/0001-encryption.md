@@ -110,7 +110,7 @@ biometrics ─ platform keystore (Secure Enclave / StrongBox) ─► wrapped cop
   named by a random 128-bit ID. Names, types, tags and contents live only inside
   sealed records and blobs. As built, the vault index (`vault.db`, SQLite) keeps
   each item's id, `created_ms`, `modified_ms`, `deleted_ms` and `size_bytes` in
-  the clear, next to the sealed record (`core/cs-vault/src/db.rs`); the files on
+  the clear, next to the sealed record (`core/cs-core/src/db.rs`); the files on
   disk show times and sizes anyway.
 - Blobs are encrypted with their own DEK in **STREAM** mode (64 KiB chunks,
   nonce prefix + chunk counter + last-chunk flag). AAD binds vault ID, object

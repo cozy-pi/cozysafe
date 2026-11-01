@@ -15,6 +15,7 @@ String vaultErrorText(AppLocalizations l, rust.VaultError e) => switch (e) {
       rust.VaultError.badBackup => l.errorBadBackup,
       rust.VaultError.libraryExists => l.errorLibraryExists,
       rust.VaultError.weakKdf => l.errorWeakKdf,
+      rust.VaultError.restartForMode => l.closeAppBodyVault,
       rust.VaultError.storage => l.errorStorage,
     };
 

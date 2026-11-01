@@ -50,6 +50,11 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: none
           queries: security-extended
+          # Upstream crates kept as published for the Top secret core: reviewed and
+          # checked byte for byte (tools/check-vendor), not our code to scan.
+          config: |
+            paths-ignore:
+              - third_party/rust
       - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           category: /language:${{ matrix.language }}
@@ -63,7 +68,7 @@ jobs:
       - run: |
           python3 -m venv "$RUNNER_TEMP/sg"
           "$RUNNER_TEMP/sg/bin/pip" install --quiet --require-hashes --no-deps -r tools/semgrep-requirements.txt
-      - run: $RUNNER_TEMP/sg/bin/semgrep scan --error --metrics=off --config p/rust --config p/kotlin --config p/swift --config p/secrets --config p/github-actions --exclude target --exclude app/build .
+      - run: $RUNNER_TEMP/sg/bin/semgrep scan --error --metrics=off --config p/rust --config p/kotlin --config p/swift --config p/secrets --config p/github-actions --exclude target --exclude app/build --exclude third_party/rust .
 
   # Secrets ever committed, in the whole history (keys, tokens, private keys).
   gitleaks:
@@ -80,7 +85,7 @@ jobs:
           curl -fsSLO https://github.com/gitleaks/gitleaks/releases/download/v$v/gitleaks_${v}_checksums.txt
           grep " $f\$" gitleaks_${v}_checksums.txt | sha256sum -c -
           tar xzf $f gitleaks
-          ./gitleaks git --redact --exit-code 1 .
+          ./gitleaks git --redact --verbose --exit-code 1 .
 
   # Owners of every crate and publisher of every Dart package, compared with
   # tools/deps/meta.json: a new maintainer is how hijacked releases start (xz). Not on
@@ -92,6 +97,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: tools/deps-report --refresh-owners
       - run: git diff --exit-code tools/deps/meta.json docs/dependencies.md
+
+  # The Top secret core's copies (third_party/rust/) against upstream: an advisory on our
+  # version, a yanked version or a sha256 that differs from crates.io stops the run (so
+  # every release); newer versions only show up in the report and the weekly issue
+  # (vendor-watch.yml).
+  vendored:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: tools/vendor-watch >> "$GITHUB_STEP_SUMMARY"
 
   # No crate or package version younger than 14 days: most hijacked releases are found
   # and pulled within days (tools/check-age).

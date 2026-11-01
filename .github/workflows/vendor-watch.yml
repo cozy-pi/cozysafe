@@ -1,0 +1,39 @@
+# Weekly check of the crates the Top secret core is built from (third_party/rust/,
+# docs/supply-chain.md): opens an issue with a recommendation per crate when something
+# upstream changed (an advisory, a yanked or a newer version). Updating stays by hand.
+name: vendor-watch
+
+on:
+  schedule:
+    - cron: "41 3 * * 1" # Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  issue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tools/vendor-watch --issue > "$RUNNER_TEMP/body.md"
+          cat "$RUNNER_TEMP/body.md" >> "$GITHUB_STEP_SUMMARY"
+          if grep -q '^🔴 0 · 🟡 0 ·' "$RUNNER_TEMP/body.md"; then
+            echo "Nothing to update."
+            exit 0
+          fi
+          # One open issue at a time: this week's report replaces last week's.
+          title="Top secret core: upstream check"
+          n=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"$title\"" \
+                --json number --jq '.[0].number // empty')
+          if [ -n "$n" ]; then
+            gh issue edit "$n" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/body.md"
+            gh issue comment "$n" --repo "$GITHUB_REPOSITORY" --body "Report updated $(date -u +%Y-%m-%d)."
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" \
+              --body-file "$RUNNER_TEMP/body.md"
+          fi

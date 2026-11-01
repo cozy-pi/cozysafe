@@ -65,8 +65,8 @@ first code).
   warning inside the vault.
 - Add a device: scan a QR code from an unlocked device, or type the Secret
   Key from the Emergency Kit.
-- Create a vault with a name and a password; refuse weak passwords (zxcvbn
-  score < 3) and require an explicit "I understand there is no recovery"
+- Create a vault with a name and a password; refuse weak passwords (under 12
+  characters or among the most common; docs/security.md) and require an explicit "I understand there is no recovery"
   confirmation.
 - Unlock screen shows **one password field and no vault list**. The password
   entered determines which vault opens. Only that vault's contents are shown

@@ -4,10 +4,10 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 
-/// How strong a new vault password is: four bars and a word, from the same zxcvbn score
-/// the vault uses, and why it would be refused (2026-10-25, NIST SP 800-63B): under
-/// [rust.minPasswordLength] characters, one of the most common passwords, or easy to
-/// guess without being a phrase of four words. The way out is said with it.
+/// How strong a new vault password is: four bars and a word, from the vault's own rule
+/// (owner 2026-10-31, NIST SP 800-63B): at least [rust.minPasswordLength] characters and
+/// not one of the most common passwords; longer is stronger. Why it would be refused is
+/// said with the way out.
 class PasswordStrength extends StatelessWidget {
   const PasswordStrength({super.key, required this.password});
 

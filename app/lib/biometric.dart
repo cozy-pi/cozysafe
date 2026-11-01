@@ -13,6 +13,7 @@ import 'privacy.dart';
 import 'widgets/brand.dart';
 
 import 'src/rust/api/vault.dart' as rust;
+import 'top_secret_mode.dart';
 
 /// What the device unlocks with, for the button label.
 enum BiometricKind { face, fingerprint }
@@ -248,6 +249,8 @@ Future<bool> turnOnBiometric(BiometricUnlock store) async {
 /// password here). Replaces the PIN offered there before 2026-10-28.
 Future<void> offerBiometric(BuildContext context) async {
   if (!BiometricUnlock.platformSupported || rust.biometricEnabled()) return;
+  // One vault per device: never taken from another one by this question.
+  if (rust.hasBiometricUnlock(dir: TopSecretMode.libraryDir)) return;
   final kind = await BiometricUnlock.available();
   if (kind == null || !context.mounted) return;
   final l = AppLocalizations.of(context);

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Open with" (MainActivity, channel cozysafe/open): only the folder the app decrypts a
+     copy into for that, inside its private cache; every other file stays unreachable. -->
+<paths>
+    <cache-path name="open" path="open/" />
+</paths>

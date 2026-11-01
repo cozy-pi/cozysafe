@@ -23,8 +23,8 @@ abstract final class AutoSync {
   static const wifiPref = 'drive-auto-wifi-only';
 
   /// After a change here, wait this long for more (twenty photos added: one sync); each
-  /// change starts it again (owner 2026-10-30: 15 seconds after the last change).
-  static const settle = Duration(seconds: 15);
+  /// change starts it again (owner 2026-10-30: 15 seconds; 2026-10-31: 5; 2026-11-01: 1).
+  static const settle = Duration(seconds: 1);
 
   /// While the vault stays open, look for the other devices' changes this often: a cheap
   /// look at their small heads on Drive (one request), a full sync only when one moved.
@@ -184,6 +184,30 @@ abstract final class AutoSync {
     if (before != null && before != sig) {
       pending.value = true;
       if (enabled) changed();
+    }
+  }
+
+  /// A change the item list does not show (deleted for good from Recently deleted: it
+  /// was not in the list already): waits to be sent, and a sync follows as for any change
+  /// (owner 2026-10-31: emptying the trash started no sync).
+  static void changedOutOfList() {
+    pending.value = true;
+    if (enabled && _onSynced != null) changed();
+  }
+
+  /// [work] with Google Drive (deleting the vault's copy there) shown as a sync under way:
+  /// the cloud turns blue and moves until it ends (owner 2026-11-01). Waits for any run.
+  static Future<T> busyWith<T>(Future<T> Function() work) async {
+    // Drive's own lock makes [work] wait for any sync under way, so when it ends nothing
+    // else runs: both flags go down (putting back what they were before could leave
+    // them up for good).
+    running.value = true;
+    moving.value = true;
+    try {
+      return await work();
+    } finally {
+      running.value = false;
+      moving.value = false;
     }
   }
 

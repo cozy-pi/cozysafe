@@ -241,7 +241,7 @@ pub(crate) mod tests {
     use super::*;
     use crate::items::NewItem;
     use crate::tests::sk;
-    use crate::Library;
+    use crate::{Library, OpenVault};
     use cs_crypto::kdf::KdfParams;
 
     const FAST: KdfParams = KdfParams {
@@ -252,7 +252,7 @@ pub(crate) mod tests {
     /// A vault password, random each run: none is written in the code.
     fn pw() -> &'static str {
         static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-        P.get_or_init(|| hex::encode(cs_crypto::generate_salt()))
+        P.get_or_init(|| cs_core::hex::encode(cs_crypto::generate_salt()))
     }
 
     #[test]
@@ -357,5 +357,127 @@ pub(crate) mod tests {
             Err(Error::Crypto(cs_crypto::Error::KdfTooWeak))
         ));
         assert!(!target.exists() && !staging_dir(&target).exists());
+    }
+
+    fn note(v: &OpenVault, name: &str, text: &str) -> String {
+        v.add_item(NewItem {
+            kind: crate::items::kind::NOTE,
+            name,
+            mime: "text/plain",
+            created_ms: 1,
+            content: text.as_bytes(),
+            thumbnail: None,
+        })
+        .unwrap()
+        .id
+    }
+
+    fn walk(dir: &Path) -> Vec<std::path::PathBuf> {
+        let mut out = Vec::new();
+        for e in fs::read_dir(dir).into_iter().flatten().flatten() {
+            if e.path().is_dir() {
+                out.extend(walk(&e.path()));
+            } else {
+                out.push(e.path());
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn history_is_not_in_backups() {
+        let d = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(d.path(), FAST, sk())
+            .unwrap()
+            .create_vault("A", pw())
+            .unwrap();
+        let id = note(&v, "A", "one");
+        v.replace_item(&id, "A", &b"two"[..]).unwrap();
+        assert!(v.history_bytes().unwrap() > 0);
+        let mut out = Vec::new();
+        export(d.path(), &mut out).unwrap();
+        let fresh = tempfile::tempdir().unwrap();
+        import(&out[..], fresh.path()).unwrap();
+        let has_history = walk(fresh.path()).iter().any(|p| {
+            p.components()
+                .any(|c| c.as_os_str() == crate::history::HISTORY_DIR)
+        });
+        assert!(!has_history);
+    }
+
+    #[test]
+    fn a_vault_with_only_a_pin_is_left_out() {
+        let tmp = tempfile::tempdir().unwrap();
+        let device = cs_crypto::SecretKey::from_bytes([3; cs_crypto::SECRET_KEY_LEN]);
+        let l = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
+        let pin: String = cs_crypto::generate_salt()[..6]
+            .iter()
+            .map(|b| char::from(b'0' + b % 10))
+            .collect();
+        l.create_vault_with_pin("lock", "blue", &pin, &device, FAST)
+            .unwrap();
+        let mut out = Vec::new();
+        assert_eq!(export(tmp.path(), &mut out).unwrap(), 1); // library.json only
+    }
+
+    /// Every item file of the vault: (folder name under items/, file name).
+    fn files_of(v: &OpenVault) -> Vec<(String, String)> {
+        let mut out = Vec::new();
+        for e in fs::read_dir(v.items_dir()).unwrap().flatten() {
+            let n = e.file_name().to_string_lossy().into_owned();
+            if e.path().is_dir() {
+                for f in fs::read_dir(e.path()).unwrap().flatten() {
+                    out.push((n.clone(), f.file_name().to_string_lossy().into_owned()));
+                }
+            } else {
+                out.push((String::new(), n));
+            }
+        }
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn a_backup_of_files_half_moved_into_buckets_restores_into_buckets() {
+        let tmp = tempfile::tempdir().unwrap();
+        let lib = Library::open_or_create(tmp.path(), FAST, sk()).unwrap();
+        let v = lib.create_vault("A", pw()).unwrap();
+        let items: Vec<_> = (0..3)
+            .map(|i| {
+                v.add_item(NewItem {
+                    kind: "photo",
+                    name: "IMG.jpg",
+                    mime: "image/jpeg",
+                    created_ms: i,
+                    content: format!("photo {i}").as_bytes(),
+                    thumbnail: Some(b"thumb"),
+                })
+                .unwrap()
+            })
+            .collect();
+        // Half the files back where 0.1.57 kept them, flat in items/.
+        let all = files_of(&v);
+        for (b, f) in all.iter().take(all.len() / 2) {
+            fs::rename(v.items_dir().join(b).join(f), v.items_dir().join(f)).unwrap();
+        }
+        v.index().meta_set(crate::items::BUCKETS_DONE, "0").unwrap();
+        // A backup made now has every file once.
+        let mut backup = Vec::new();
+        assert_eq!(export(tmp.path(), &mut backup).unwrap(), 2 + 3 * 3);
+        drop(v);
+        let done = files_of(&lib.unlock(pw()).unwrap().unwrap());
+        // It restores into buckets.
+        let other = tempfile::tempdir().unwrap();
+        let target = other.path().join("library");
+        import(&backup[..], &target).unwrap();
+        let w = Library::open_or_create(&target, FAST, sk())
+            .unwrap()
+            .unlock(pw())
+            .unwrap()
+            .unwrap();
+        assert_eq!(files_of(&w), done);
+        let mut out = Vec::new();
+        w.read_item(&items[2].id, &mut out).unwrap();
+        assert_eq!(out, b"photo 2");
     }
 }

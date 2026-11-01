@@ -22,6 +22,23 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked
+      # The Top secret core is built from third_party/rust/ only (docs/supply-chain.md):
+      # every copy matches the published crate byte for byte, nothing else reaches it.
+      - name: Vendored Top secret core unchanged, nothing outside it
+        run: tools/check-vendor
+      # Proof: from an empty cargo home, building the core downloads no crate at all
+      # (cargo reads the crates.io index, a list of versions, but fetches no source).
+      - name: Top secret core builds without downloading any crate
+        run: |
+          export CARGO_HOME="$RUNNER_TEMP/empty-cargo-home"
+          cargo build --locked --manifest-path tools/core-offline/Cargo.toml \
+            --target-dir "$RUNNER_TEMP/core-offline"
+          n=$(find "$CARGO_HOME" -name '*.crate' | wc -l)
+          if [ "$n" != 0 ]; then
+            echo "::error::building the Top secret core downloaded $n crate(s):"
+            find "$CARGO_HOME" -name '*.crate'
+            exit 1
+          fi
 
   app:
     runs-on: ubuntu-latest

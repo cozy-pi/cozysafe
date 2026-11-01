@@ -22,6 +22,147 @@ url = "https://raw.githubusercontent.com/mozilla/supply-chain/main/audits.toml"
 [imports.zcash]
 url = "https://raw.githubusercontent.com/zcash/rust-ecosystem/main/supply-chain/audits.toml"
 
+[policy.aead]
+audit-as-crates-io = true
+
+[policy.argon2]
+audit-as-crates-io = true
+
+[policy.base64ct]
+audit-as-crates-io = true
+
+[policy.bitflags]
+audit-as-crates-io = true
+
+[policy.blake2]
+audit-as-crates-io = true
+
+[policy.block-buffer]
+audit-as-crates-io = true
+
+[policy.cc]
+audit-as-crates-io = true
+
+[policy.cfg-if]
+audit-as-crates-io = true
+
+[policy.chacha20]
+audit-as-crates-io = true
+
+[policy.chacha20poly1305]
+audit-as-crates-io = true
+
+[policy.cipher]
+audit-as-crates-io = true
+
+[policy.cmov]
+audit-as-crates-io = true
+
+[policy.const-oid]
+audit-as-crates-io = true
+
+[policy.cpufeatures]
+audit-as-crates-io = true
+
+[policy.crypto-common]
+audit-as-crates-io = true
+
+[policy.ctutils]
+audit-as-crates-io = true
+
+[policy.digest]
+audit-as-crates-io = true
+
+[policy.fallible-iterator]
+audit-as-crates-io = true
+
+[policy.fallible-streaming-iterator]
+audit-as-crates-io = true
+
+[policy.find-msvc-tools]
+audit-as-crates-io = true
+
+[policy.foldhash]
+audit-as-crates-io = true
+
+[policy.generic-array]
+audit-as-crates-io = true
+
+[policy.getrandom]
+audit-as-crates-io = true
+
+[policy.hashbrown]
+audit-as-crates-io = true
+
+[policy.hashlink]
+audit-as-crates-io = true
+
+[policy.hkdf]
+audit-as-crates-io = true
+
+[policy.hmac]
+audit-as-crates-io = true
+
+[policy.hybrid-array]
+audit-as-crates-io = true
+
+[policy.inout]
+audit-as-crates-io = true
+
+[policy.libc]
+audit-as-crates-io = true
+
+[policy.libsqlite3-sys]
+audit-as-crates-io = true
+
+[policy.opaque-debug]
+audit-as-crates-io = true
+
+[policy.password-hash]
+audit-as-crates-io = true
+
+[policy.phc]
+audit-as-crates-io = true
+
+[policy.pkg-config]
+audit-as-crates-io = true
+
+[policy.poly1305]
+audit-as-crates-io = true
+
+[policy.rand_core]
+audit-as-crates-io = true
+
+[policy.rusqlite]
+audit-as-crates-io = true
+
+[policy.sha2]
+audit-as-crates-io = true
+
+[policy.shlex]
+audit-as-crates-io = true
+
+[policy.smallvec]
+audit-as-crates-io = true
+
+[policy.subtle]
+audit-as-crates-io = true
+
+[policy.typenum]
+audit-as-crates-io = true
+
+[policy.universal-hash]
+audit-as-crates-io = true
+
+[policy.vcpkg]
+audit-as-crates-io = true
+
+[policy.version_check]
+audit-as-crates-io = true
+
+[policy.zeroize]
+audit-as-crates-io = true
+
 [[exemptions.aead]]
 version = "0.5.2"
 criteria = "safe-to-deploy"
@@ -34,10 +175,6 @@ criteria = "safe-to-deploy"
 version = "0.1.6"
 criteria = "safe-to-deploy"
 
-[[exemptions.argon2]]
-version = "0.6.0"
-criteria = "safe-to-deploy"
-
 [[exemptions.autocfg]]
 version = "1.5.1"
 criteria = "safe-to-deploy"
@@ -48,14 +185,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.bitflags]]
 version = "2.13.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.blake2]]
-version = "0.11.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.block-buffer]]
-version = "0.12.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.bytemuck]]
@@ -86,10 +215,6 @@ criteria = "safe-to-deploy"
 version = "0.4.45"
 criteria = "safe-to-deploy"
 
-[[exemptions.cmov]]
-version = "0.5.4"
-criteria = "safe-to-deploy"
-
 [[exemptions.const-oid]]
 version = "0.10.2"
 criteria = "safe-to-deploy"
@@ -112,14 +237,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.crypto-common]]
 version = "0.1.7"
-criteria = "safe-to-deploy"
-
-[[exemptions.crypto-common]]
-version = "0.2.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.ctutils]]
-version = "0.4.4"
 criteria = "safe-to-deploy"
 
 [[exemptions.darling]]
@@ -148,10 +265,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.derive_builder_macro]]
 version = "0.20.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.digest]]
-version = "0.11.3"
 criteria = "safe-to-deploy"
 
 [[exemptions.either]]
@@ -192,18 +305,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.hashlink]]
 version = "0.12.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.hkdf]]
-version = "0.13.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.hmac]]
-version = "0.13.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.hybrid-array]]
-version = "0.4.15"
 criteria = "safe-to-deploy"
 
 [[exemptions.iana-time-zone]]
@@ -352,10 +453,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.serde_json]]
 version = "1.0.154"
-criteria = "safe-to-deploy"
-
-[[exemptions.sha2]]
-version = "0.11.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.slab]]

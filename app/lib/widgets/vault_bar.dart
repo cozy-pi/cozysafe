@@ -11,6 +11,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
 import 'readable.dart';
+import '../top_secret_mode.dart';
 
 /// The four sections of a vault, picked in the bottom capsule (docs/ui.md, vault bar;
 /// docs/naming.md). A section shows items of some kinds: Library shows photos and
@@ -18,10 +19,12 @@ import 'readable.dart';
 /// [home] is the overview of everything (owner 2026-10-21); it holds no items itself.
 enum VaultSection { home, note, library, audio, file }
 
-/// The sections this device offers: voice memos need a phone's microphone.
+/// The sections this device offers: voice memos need a phone's microphone. Top secret
+/// has no Library (ADR 0005: no picture is shown there); its photos and videos are rows
+/// among the files.
 List<VaultSection> vaultSections() => [
       VaultSection.home,
-      VaultSection.library,
+      if (!TopSecretMode.on) VaultSection.library,
       VaultSection.file,
       VaultSection.note,
       if (Device.iOS || Device.android || debugVoice) VaultSection.audio,
@@ -101,7 +104,7 @@ VaultSection startSection() {
 /// A section's icon, as in the bar (and the wide window's sidebar).
 IconData sectionIcon(VaultSection s) => switch (s) {
       VaultSection.home => Icons.home_rounded,
-      VaultSection.note => Icons.edit_note_rounded,
+      VaultSection.note => Icons.book_rounded,
       VaultSection.library => Icons.photo_library_rounded,
       VaultSection.audio => Icons.mic_none_rounded,
       VaultSection.file => Icons.folder_rounded,
@@ -294,7 +297,7 @@ class _CentreTabs extends StatelessWidget {
 
   static IconData _icon(VaultSection s) => switch (s) {
         VaultSection.home => Icons.home_rounded,
-        VaultSection.note => Icons.edit_note_rounded,
+        VaultSection.note => Icons.book_rounded,
         VaultSection.library => Icons.photo_library_rounded,
         VaultSection.audio => Icons.mic_none_rounded,
         VaultSection.file => Icons.folder_rounded,
@@ -304,7 +307,6 @@ class _CentreTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final primary = Theme.of(context).colorScheme.primary;
-    final ink = Theme.of(context).colorScheme.onSurface;
     Widget tab(VaultSection s) {
       final on = s == section;
       return Expanded(
@@ -334,7 +336,8 @@ class _CentreTabs extends StatelessWidget {
                   curve: Curves.easeOutBack,
                   child: s == VaultSection.home && home != null
                       ? home!
-                      : Icon(_icon(s), size: 28, color: on ? primary : ink.withValues(alpha: .7)),
+                      // Each tab in its section's colour (owner 2026-10-31), brighter on show.
+                      : Icon(_icon(s), size: 28, color: on ? sectionColor(s) : sectionColor(s).withValues(alpha: .7)),
                 ),
               ),
             ),
@@ -348,12 +351,18 @@ class _CentreTabs extends StatelessWidget {
     final at = centrePlusSlot(sections);
     final slots = sections.length + 1;
     return LayoutBuilder(builder: (context, box) {
+      // The + always in the very middle (owner 2026-10-31: with three tabs, in Top Secret
+      // Mode, it sat right of centre); the tabs share each side evenly.
+      final slotW = box.maxWidth / slots;
+      final side = (box.maxWidth - slotW) / 2;
+      final leftN = at, rightN = sections.length - at;
+      double tabW(int i) => side / (i < at ? leftN : rightN);
+      double tabX(int i) => i < at ? i * tabW(i) : side + slotW + (i - at) * tabW(i);
       // Where the lit pill sits: under the section on show, sliding from one to the
       // next (owner 2026-10-24: "like Instagram").
-      final slotW = box.maxWidth / slots;
       final i = sections.indexOf(section);
-      final double? pillX = i < 0 ? null : (i < at ? i : i + 1) * slotW;
       const pillW = 52.0, pillH = Ui.bar - 12;
+      final double? pillX = i < 0 ? null : tabX(i) + (tabW(i) - pillW) / 2;
       return Stack(
         alignment: Alignment.center,
         children: [
@@ -361,7 +370,7 @@ class _CentreTabs extends StatelessWidget {
             AnimatedPositioned(
               duration: const Duration(milliseconds: 280),
               curve: Curves.easeOutCubic,
-              left: pillX + (slotW - pillW) / 2,
+              left: pillX,
               top: (box.maxHeight - pillH) / 2,
               width: pillW,
               height: pillH,
@@ -375,9 +384,9 @@ class _CentreTabs extends StatelessWidget {
             ),
           Row(
             children: [
-              for (final s in sections.take(at)) tab(s),
-              Expanded(child: Center(child: centre)),
-              for (final s in sections.skip(at)) tab(s),
+              SizedBox(width: side, child: Row(children: [for (final s in sections.take(at)) tab(s)])),
+              SizedBox(width: slotW, child: Center(child: centre)),
+              SizedBox(width: side, child: Row(children: [for (final s in sections.skip(at)) tab(s)])),
             ],
           ),
         ],
@@ -393,9 +402,9 @@ const double centrePlusSize = 46;
 /// one, so overview and library sit left of it, files and notes right (owner 2026-10-24).
 int centrePlusSlot(List<VaultSection> sections) => (sections.length + 1) ~/ 2;
 
-/// The + button's centre across the middle bar, as a share of the bar's width.
-double centrePlusShare(List<VaultSection> sections) =>
-    (centrePlusSlot(sections) + .5) / (sections.length + 1);
+/// The + button's centre across the middle bar, as a share of the bar's width: always
+/// the middle ([_CentreTabs] shares each side among its tabs).
+double centrePlusShare(List<VaultSection> sections) => .5;
 
 /// The tabs inside the capsule. The home tab stays put on the left; the others share
 /// the rest equally when their words fit, and scroll sideways (no loop) when they do not
@@ -699,12 +708,34 @@ class _ActionButtonState extends State<ActionButton> {
 /// The ways to add something to a vault.
 enum AddWhat { note, photo, video, photos, voice, file }
 
+/// Each section's colour (owner 2026-10-31: more colour in the icons): the tiles on the
+/// overview, the storage bar, the tabs and the ways to add.
+Color sectionColor(VaultSection s) => switch (s) {
+      VaultSection.home => const Color(0xFF8E8E93),
+      // Indigo (owner 2026-10-31: the yellow was not liked).
+      VaultSection.note => const Color(0xFF5E5CE6),
+      VaultSection.library => const Color(0xFF0A84FF),
+      // Pink, apart from the notes' yellow (owner 2026-10-31: the two looked alike).
+      VaultSection.audio => const Color(0xFFFF375F),
+      VaultSection.file => const Color(0xFF30D158),
+    };
+
+/// A way to add, in the colour of what it makes; a video its own purple.
+Color addWayColor(AddWhat w) => switch (w) {
+      AddWhat.note => sectionColor(VaultSection.note),
+      AddWhat.photo || AddWhat.photos => sectionColor(VaultSection.library),
+      AddWhat.video => const Color(0xFFBF5AF2),
+      AddWhat.voice => sectionColor(VaultSection.audio),
+      AddWhat.file => sectionColor(VaultSection.file),
+    };
+
 /// Every way to add, in the fixed order (camera and voice only where the device has them).
 List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
+      // Top secret too: photos come in as sealed files, never decoded (owner 2026-10-31).
       (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
-      (AddWhat.note, Icons.edit_note_rounded, l.newNote),
+      (AddWhat.note, Icons.book_rounded, l.newNote),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
       (AddWhat.file, Icons.folder_rounded, l.addFiles),
     ];
@@ -736,12 +767,23 @@ List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection se
       (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
-      (AddWhat.note, Icons.edit_note_rounded, sectionLabel(l, VaultSection.note)),
+      (AddWhat.note, Icons.book_rounded, sectionLabel(l, VaultSection.note)),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
       (AddWhat.file, Icons.folder_rounded, sectionLabel(l, VaultSection.file)),
     ];
 
-/// + never does one thing at once any more: it always offers every way ([addRowWays]).
+/// The round quick buttons just above + (owner 2026-10-31: the long row was slow and had
+/// to be swiped): only what records on the spot, camera, video and voice memo. The card
+/// above them still lists every way ([addWays]).
+List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, {required bool camera, required bool voice}) => [
+      // Video, photo, voice (owner 2026-10-31).
+      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
+      if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
+      if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
+    ];
+
+/// + never does one thing at once: it always opens the card of every way and the quick
+/// buttons ([quickWays]).
 AddWhat? addDirect(VaultSection section, {required bool camera}) => null;
 
 /// The + button's row: the page dims and the ways to add spread out sideways from the
@@ -876,16 +918,25 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
                 ),
               ),
             );
+              // The row spans the screen: a tap beside the buttons closes, as anywhere
+              // outside them (owner 2026-10-31: it did nothing there). A button's own tap
+              // still wins.
+              final closing = GestureDetector(
+                key: const ValueKey('add-row-gap'),
+                behavior: HitTestBehavior.opaque,
+                onTap: w.onClose,
+                child: row,
+              );
               // More to the right: the right edge fades, the last way half shows.
               return !overflows
-                  ? row
+                  ? closing
                   : ShaderMask(
                       blendMode: BlendMode.dstIn,
                       shaderCallback: (r) => const LinearGradient(
                         colors: [Colors.white, Colors.white, Colors.transparent],
                         stops: [0, .85, 1],
                       ).createShader(r),
-                      child: row,
+                      child: closing,
                     );
             },
           ),
@@ -987,8 +1038,8 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
                           Container(
                             width: Ui.tap,
                             height: Ui.tap,
-                            decoration: BoxDecoration(color: ink.withValues(alpha: .07), shape: BoxShape.circle),
-                            child: Icon(icon, color: ink, size: 24),
+                            decoration: BoxDecoration(color: addWayColor(what).withValues(alpha: .16), shape: BoxShape.circle),
+                            child: Icon(icon, color: addWayColor(what), size: 24),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -1083,7 +1134,6 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
     {required bool hovered, required VoidCallback onTap, double width = AddRow.width}) {
   final circle = (width - 4).clamp(44.0, Ui.bar);
   final page = Theme.of(context).scaffoldBackgroundColor;
-  final ink = Theme.of(context).colorScheme.onSurface;
   return MetaData(
     metaData: what,
     behavior: HitTestBehavior.opaque,
@@ -1106,10 +1156,10 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
                 height: circle,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: hovered ? ink : Color.alphaBlend(ink.withValues(alpha: .1), page),
+                  color: hovered ? addWayColor(what) : Color.alphaBlend(addWayColor(what).withValues(alpha: .16), page),
                   boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
                 ),
-                child: Icon(icon, size: 26, color: hovered ? page : ink),
+                child: Icon(icon, size: 26, color: hovered ? Colors.white : addWayColor(what)),
               ),
             ),
           ),
@@ -1444,7 +1494,7 @@ class AddTiles extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon, size: 32, color: ink),
+                    Icon(icon, size: 32, color: addWayColor(what)),
                     const SizedBox(height: 8),
                     Text(label, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.2)),

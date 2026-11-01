@@ -13,7 +13,13 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
 1. **Black and white.** One ink (black in light mode, white in dark) on the page colour.
    Everything else is that ink at an opacity. The only colours: a vault's own icon and
    colour, the system red for Delete and recording, Settings' small coloured icons, and
-   the colour per kind of item where kinds are counted (storage).
+   the colour per kind of item where kinds are counted (storage). Since 2026-10-31
+   (owner: more colour in the icons) also: each section's colour on its tab and on the
+   ways to add (`sectionColor`, `addWayColor`), and the two modes' shields (`topSecretRed`
+   with a lock, `privateGreen` with a photo); a vault in Top Secret Mode washes the top
+   of its page with a little red (`TopSecretWash`, owner 2026-10-31, in place of a shield
+   on the Settings button); and each common kind of file its icon and colour
+   (`FileKind`, `lib/file_kinds.dart`).
 2. **Few buttons, each on its own.** A button that does one thing is its own glass
    circle, apart from the others. Buttons share one glass only when they are one set to
    pick from (the section tabs, a segmented switch).
@@ -61,7 +67,7 @@ Icons: Material rounded, 28 in an action circle, about 0.44 of a header circle.
 | Glass behind anything | `Glass` (page glass), `GlassPill` (dark, over photos) | `widgets/vault_bar.dart`, `screens/glass.dart` |
 | A row in a vault list | `SelectableRow` | `widgets/selectable_row.dart` |
 | A small menu at the finger (long press, ⋯) | `showItemMenu` + `MenuEntry` | `widgets/item_menu.dart` |
-| A long page | `pushPage` | `widgets/vault_bar.dart` |
+| A long page, and every sub-page of Settings (never swapped in place: owner 2026-10-31) | `pushPage` | `widgets/vault_bar.dart` |
 | Short content over the page | `showCard` | `widgets/vault_bar.dart` |
 | A group of settings rows | `SettingsGroup` | `screens/settings.dart` |
 | A secret (password, 24 words) | `SecretField` | `widgets/secret.dart` |

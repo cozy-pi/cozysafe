@@ -18,6 +18,7 @@ import 'consent.dart';
 import 'drive.dart';
 import 'progress.dart';
 import '../widgets/readable.dart';
+import '../top_secret_mode.dart';
 
 /// A new device with no vault: open the one kept in Google Drive with the 24 words and
 /// the vault password, no backup file (owner 2026-10-24). Sign in, allow the
@@ -124,6 +125,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
         )),
       ));
       if (!mounted) return;
+      TopSecretMode.opened(vault);
       await offerBiometric(context);
       if (!mounted) return;
       await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(

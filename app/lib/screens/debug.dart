@@ -211,7 +211,7 @@ class _DebugScreenState extends State<DebugScreen> {
                         SettingsGroup(rows: [
                           SettingsRow(icon: Icons.photo_rounded, color: SettingsHue.xanh, title: l.kindPhotos, value: '${count(ItemKind.photo)}'),
                           SettingsRow(icon: Icons.videocam_rounded, color: SettingsHue.tim, title: l.cameraVideo, value: '${count(ItemKind.video)}'),
-                          SettingsRow(icon: Icons.edit_note_rounded, color: SettingsHue.vang, title: l.kindNotes, value: '${count(ItemKind.note)}'),
+                          SettingsRow(icon: Icons.book_rounded, color: SettingsHue.vang, title: l.kindNotes, value: '${count(ItemKind.note)}'),
                           SettingsRow(icon: Icons.mic_rounded, color: SettingsHue.cam, title: l.modeAudio, value: '${count(ItemKind.audio)}'),
                           SettingsRow(icon: Icons.folder_rounded, color: SettingsHue.xanhLa, title: l.kindFiles, value: '${count(ItemKind.file)}'),
                         ]),

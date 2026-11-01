@@ -10,6 +10,11 @@
 # above every build made before this workflow existed).
 #
 # Run: gh workflow run release.yml -R cozy-pi/cozysafe [-f bump=minor]
+# A test build from a branch, for the owner's own devices only (owner 2026-10-31: work in
+# progress is tried on a branch before it reaches main):
+#   gh workflow run release.yml -R cozy-pi/cozysafe --ref <branch> -f internal_only=true
+# TestFlight (internal testers) and Google Play internal testing only: no closed test
+# (alpha) and no GitHub release, so the website's download links stay on the last release.
 name: release
 
 on:
@@ -20,6 +25,10 @@ on:
         type: choice
         options: [patch, minor]
         default: patch
+      internal_only:
+        description: "Internal testers only (TestFlight, Play internal): no alpha, no GitHub release"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -51,6 +60,7 @@ jobs:
       - id: v
         env:
           BUMP: ${{ inputs.bump }}
+          INTERNAL: ${{ inputs.internal_only && 'yes' || '' }}
         run: |
           # Base: the highest vX.Y.Z tag, or used/vX.Y.Z (a name a run took that never
           # became a release: a failed build must not hand its name to the next run;
@@ -69,7 +79,7 @@ jobs:
           git push origin "refs/tags/used/v$name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "build=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_OUTPUT"
-          echo "### Cozy Safe $name (build $((1000 + GITHUB_RUN_NUMBER)))" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Cozy Safe $name (build $((1000 + GITHUB_RUN_NUMBER)))${INTERNAL:+, internal testers only}" >> "$GITHUB_STEP_SUMMARY"
 
   ios:
     needs: version
@@ -95,6 +105,7 @@ jobs:
       version: ${{ needs.version.outputs.name }}
       build: ${{ needs.version.outputs.build }}
       publish: true
+      internal_only: ${{ inputs.internal_only }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

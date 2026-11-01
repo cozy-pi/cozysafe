@@ -10,21 +10,17 @@ import '../theme.dart';
 import '../widgets/private_thumb.dart';
 import '../widgets/selectable_row.dart';
 import '../widgets/vault_bar.dart';
-import 'file_view.dart';
 import 'search.dart' show MarkedText;
+import '../top_secret_mode.dart';
+import '../file_kinds.dart';
+import '../widgets/file_name.dart';
 
 /// The colour of each section, the same as the storage bar in Settings.
-Color searchKindColor(VaultSection s) => switch (s) {
-      VaultSection.home => const Color(0xFF8E8E93),
-      VaultSection.note => const Color(0xFFFFB300),
-      VaultSection.library => const Color(0xFF0A84FF),
-      VaultSection.audio => const Color(0xFFFF9F0A),
-      VaultSection.file => const Color(0xFF30D158),
-    };
+Color searchKindColor(VaultSection s) => sectionColor(s);
 
 IconData searchKindIcon(VaultSection s) => switch (s) {
       VaultSection.home => Icons.home_rounded,
-      VaultSection.note => Icons.edit_note_rounded,
+      VaultSection.note => Icons.book_rounded,
       VaultSection.library => Icons.photo_library_rounded,
       VaultSection.audio => Icons.mic_none_rounded,
       VaultSection.file => Icons.folder_rounded,
@@ -32,7 +28,8 @@ IconData searchKindIcon(VaultSection s) => switch (s) {
 
 VaultSection? sectionOf(rust.ItemInfo i) => switch (i.kind) {
       ItemKind.note => VaultSection.note,
-      ItemKind.photo || ItemKind.video => VaultSection.library,
+      // Top secret has no Library (ADR 0005): its photos and videos are files.
+      ItemKind.photo || ItemKind.video => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       ItemKind.audio => VaultSection.audio,
       ItemKind.file => VaultSection.file,
       _ => null,
@@ -54,7 +51,8 @@ class VaultOverview extends StatelessWidget {
     this.onGroupMenu,
     this.header,
     this.bottomPad = 24,
-    this.recentCount = 5,
+    this.grid = false,
+    this.columns = 3,
   });
 
   /// Everything in the vault, groups included.
@@ -68,7 +66,10 @@ class VaultOverview extends StatelessWidget {
   final ValueChanged<rust.ItemInfo>? onGroupMenu;
   final Widget? header;
   final double bottomPad;
-  final int recentCount;
+  /// What was added last as a grid of tiles instead of rows (⋯ → View as grid).
+  final bool grid;
+  /// Tiles a row in the grid (pinched, 2 to 5).
+  final int columns;
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +84,7 @@ class VaultOverview extends StatelessWidget {
     final recent = [...things]..sort((a, b) => b.createdMs.compareTo(a.createdMs));
     final groups = items.where((g) => g.kind == ItemKind.tag && count(g) > 0).toList();
     final favorites = recent.where((i) => i.isFavorite).toList();
-    // A card of rows (favourites, what was added last).
+    // A card of rows (favourites).
     Widget rows(List<rust.ItemInfo> list) => Material(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(14),
@@ -150,11 +151,128 @@ class VaultOverview extends StatelessWidget {
                   onLongPress: onGroupMenu == null ? null : () => onGroupMenu!(g))],
           ),
         ],
-        if (recent.isNotEmpty) ...[
-          title(l.searchRecent),
-          rows(recent.take(recentCount).toList()),
-        ],
+        // Everything, newest first, as far as the person scrolls (owner 2026-10-31: not
+        // only the last few). One child per row or row of tiles, so the list builds
+        // only what is on screen.
+        if (recent.isNotEmpty) title(l.searchRecent),
+        if (grid)
+          for (var r = 0; r < recent.length; r += columns)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(children: [
+                for (var i = r; i < r + columns; i++) ...[
+                  if (i > r) const SizedBox(width: 10),
+                  Expanded(
+                    child: i < recent.length
+                        ? OverviewTile(
+                            item: recent[i],
+                            thumbnail: thumbnail,
+                            onTap: () => onOpen(recent[i]),
+                            onLongPress: onMenu == null ? null : () => onMenu!(recent[i]))
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ]),
+            )
+        else
+          for (final (i, it) in recent.indexed)
+            Material(
+              key: ValueKey('recent-${it.id}'),
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(i == 0 ? 14 : 0),
+                bottom: Radius.circular(i == recent.length - 1 ? 14 : 0),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(children: [
+                if (i > 0) Divider(height: 1, indent: 70, color: c.border.withValues(alpha: .6)),
+                OverviewRow(
+                    item: it,
+                    thumbnail: thumbnail,
+                    onTap: () => onOpen(it),
+                    onLongPress: onMenu == null ? null : () => onMenu!(it)),
+              ]),
+            ),
       ],
+    );
+  }
+}
+
+/// An item's mark, filling its box: the photo for a picture or video, the kind's icon
+/// and colour for a file ([FileKindBadge]), the section's icon for a note or recording.
+class ItemMark extends StatelessWidget {
+  const ItemMark({super.key, required this.item, required this.thumbnail, this.big = false});
+  final rust.ItemInfo item;
+  final Future<Uint8List> Function(String id) thumbnail;
+  final bool big;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CsColors.of(context);
+    final s = sectionOf(item) ?? VaultSection.file;
+    final color = searchKindColor(s);
+    return LayoutBuilder(
+      builder: (context, box) => s == VaultSection.library
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: FutureBuilder<Uint8List>(
+                future: thumbnail(item.id),
+                builder: (context, snap) =>
+                    snap.hasData && snap.data!.isNotEmpty ? PrivateThumb(snap.data!) : ColoredBox(color: c.soft),
+              ),
+            )
+          : s == VaultSection.file
+              ? FileKindBadge(name: item.name, mime: item.mime, width: box.maxWidth, height: box.maxHeight, big: big)
+              : DecoratedBox(
+                  decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(searchKindIcon(s), color: color, size: big ? 34 : 24),
+                ),
+    );
+  }
+}
+
+/// An item as a tile in the home page's grid: its mark, then its name.
+class OverviewTile extends StatelessWidget {
+  const OverviewTile({super.key, required this.item, required this.thumbnail, required this.onTap, this.onLongPress});
+  final rust.ItemInfo item;
+  final Future<Uint8List> Function(String id) thumbnail;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final name = item.name.isEmpty
+        ? l.untitledNote
+        : item.kind == ItemKind.audio
+            ? item.name.replaceAll(RegExp(r'\.m4a$'), '')
+            : item.name;
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: Stack(fit: StackFit.expand, children: [
+                ItemMark(item: item, thumbnail: thumbnail, big: true),
+                // A picture's extension on its corner; a file's is in its mark already.
+                if (sectionOf(item) == VaultSection.library)
+                  Positioned(left: 6, bottom: 6, child: ExtensionTag(item.name)),
+              ]),
+            ),
+            const SizedBox(height: 6),
+            // The extension is on the mark (owner 2026-10-31): the name alone here.
+            Text(item.kind == ItemKind.note || item.kind == ItemKind.audio ? name : nameWithoutExtension(name),
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -171,8 +289,6 @@ class OverviewRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final s = sectionOf(item) ?? VaultSection.file;
-    final color = searchKindColor(s);
     final name = item.name.isEmpty
         ? l.untitledNote
         : item.kind == ItemKind.audio
@@ -185,23 +301,7 @@ class OverviewRow extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Row(
           children: [
-            SizedBox.square(
-              dimension: 46,
-              child: s == VaultSection.library
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: FutureBuilder<Uint8List>(
-                        future: thumbnail(item.id),
-                        builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                            ? PrivateThumb(snap.data!)
-                            : ColoredBox(color: c.soft),
-                      ),
-                    )
-                  : DecoratedBox(
-                      decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(12)),
-                      child: Icon(s == VaultSection.file ? fileIcon(item) : searchKindIcon(s), color: color),
-                    ),
-            ),
+            SizedBox.square(dimension: 46, child: ItemMark(item: item, thumbnail: thumbnail)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -210,8 +310,7 @@ class OverviewRow extends StatelessWidget {
                   Row(
                     children: [
                       Flexible(
-                        child: Text(name,
-                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600)),
+                        child: FileNameText(name, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600)),
                       ),
                       if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],

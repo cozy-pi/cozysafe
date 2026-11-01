@@ -74,6 +74,15 @@ impl<V: Kept> Slot<V> {
         drop(old);
     }
 
+    /// Whether vault `id` is open now or still held by a running sync behind the lock: it
+    /// must not be deleted then.
+    pub(crate) fn in_use(&self, id: &str) -> bool {
+        self.open_id().as_deref() == Some(id)
+            || lock(&self.held)
+                .as_ref()
+                .is_some_and(|(held, w)| held == id && w.strong_count() > 0)
+    }
+
     /// The id of the vault open now.
     pub(crate) fn open_id(&self) -> Option<String> {
         lock(&self.open).as_ref().map(|e| e.id.clone())

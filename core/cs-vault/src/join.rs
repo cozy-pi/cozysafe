@@ -18,18 +18,52 @@ use crate::{
 /// A lock is a few kilobytes.
 const MAX_LOCK: u64 = 1 << 20;
 
-#[derive(serde::Deserialize)]
+/// A vault's lock as the sync place keeps it: `{"library": …, "vault": …}`.
 struct Lock {
     vault: VaultHeader,
     library: LibraryHeader,
 }
 
-impl Library {
+impl Lock {
+    fn from_json(bytes: &[u8]) -> Option<Self> {
+        let v = cs_core::json::parse(bytes).ok()?;
+        let f = cs_core::json::Fields::of(&v)?;
+        Some(Self {
+            vault: VaultHeader::from_value(f.get("vault")?).ok()?,
+            library: LibraryHeader::from_value(f.get("library")?).ok()?,
+        })
+    }
+}
+
+/// A vault onto a new device from a sync place.
+pub trait LibraryJoin {
     /// Make `dir` (no vault in it yet) hold the vault `vault_id` kept in `remote`, if
     /// `secret_key` and `password` open its newest lock: `None` for a wrong password,
     /// [`Error::WrongSecretKey`] for other 24 words. Then sync it from `remote` to bring
     /// its items.
-    pub fn join(
+    fn join(
+        dir: &Path,
+        remote: &dyn Remote,
+        vault_id: &str,
+        secret_key: SecretKey,
+        password: &str,
+    ) -> Result<Option<OpenVault>>;
+
+    /// [`Library::join`] for a place that holds several vaults (one Google Drive folder
+    /// serves them all): the two secrets say which one. `None` when the words belong to
+    /// one of them but the password opens none; [`Error::WrongSecretKey`] when none has
+    /// these words. A lock that fails to read does not stop the others being tried.
+    fn join_any(
+        dir: &Path,
+        remote: &dyn Remote,
+        vault_ids: &[String],
+        secret_key: SecretKey,
+        password: &str,
+    ) -> Result<Option<OpenVault>>;
+}
+
+impl LibraryJoin for Library {
+    fn join(
         dir: &Path,
         remote: &dyn Remote,
         vault_id: &str,
@@ -54,8 +88,7 @@ impl Library {
         if bytes.len() as u64 > MAX_LOCK {
             return Err(Error::Corrupt("vault lock too large"));
         }
-        let lock: Lock =
-            serde_json::from_slice(&bytes).map_err(|_| Error::Corrupt("vault lock"))?;
+        let lock = Lock::from_json(&bytes).ok_or(Error::Corrupt("vault lock"))?;
         let lib = &lock.library;
         let fits = |f: &Option<String>| {
             f.as_deref()
@@ -78,7 +111,7 @@ impl Library {
         ]
         .into_iter()
         .filter(|w| !w.is_empty())
-        .filter_map(|w| hex::decode(w).ok())
+        .filter_map(cs_core::hex::decode)
         .find_map(|w| wrap::unwrap_key(&kek, &w, &aad(vault_id, "master-key")).ok());
         let Some(master_key) = opened else {
             return Ok(None);
@@ -87,42 +120,28 @@ impl Library {
         fs::create_dir_all(dir.join(VAULTS_DIR))?;
         let header = LibraryHeader {
             format: lib.format,
-            kdf: KdfJson {
-                m_kib: params.m_kib,
-                t: params.t,
-                p: params.p,
-            },
+            kdf: KdfJson::from(params),
             salt: lib.salt.clone(),
             secret_key: Some(fp),
             prev_secret_key: None,
         };
-        write_atomic(
-            &dir.join(LIBRARY_FILE),
-            &serde_json::to_vec_pretty(&header).expect("serialisable"),
-        )?;
+        write_atomic(&dir.join(LIBRARY_FILE), &header.to_json_pretty())?;
         let vault_dir = dir.join(VAULTS_DIR).join(vault_id);
         fs::create_dir_all(&vault_dir)?;
         let mut vh = lock.vault;
         // The wrap that opened becomes the only one.
-        let new_wrap = hex::encode(wrap::wrap_key(
+        let new_wrap = cs_core::hex::encode(wrap::wrap_key(
             &kek,
             &master_key,
             &aad(vault_id, "master-key"),
         ));
         vh.wrapped_master_key = new_wrap;
         vh.prev_wrapped_master_key.clear();
-        write_atomic(
-            &vault_dir.join(HEADER_FILE),
-            &serde_json::to_vec_pretty(&vh).expect("serialisable"),
-        )?;
+        write_atomic(&vault_dir.join(HEADER_FILE), &vh.to_json_pretty())?;
         open_with(vault_id.to_owned(), vault_dir, &vh, master_key).map(Some)
     }
 
-    /// [`Library::join`] for a place that holds several vaults (one Google Drive folder
-    /// serves them all): the two secrets say which one. `None` when the words belong to
-    /// one of them but the password opens none; [`Error::WrongSecretKey`] when none has
-    /// these words. A lock that fails to read does not stop the others being tried.
-    pub fn join_any(
+    fn join_any(
         dir: &Path,
         remote: &dyn Remote,
         vault_ids: &[String],
@@ -150,6 +169,7 @@ impl Library {
 mod tests {
     use super::*;
     use crate::sync::tests::{note, text, two};
+    use crate::VaultSync;
 
     const FAST: kdf::KdfParams = kdf::KdfParams {
         m_kib: 64,
@@ -206,7 +226,7 @@ mod tests {
     fn of_several_vaults_in_one_place_the_password_picks_its_own() {
         let t = two();
         // A second vault in the same library (same words), its own password.
-        let pw2 = hex::encode(cs_crypto::generate_salt());
+        let pw2 = cs_core::hex::encode(cs_crypto::generate_salt());
         let lib = Library::open_or_create(t._dirs.0.path(), FAST, crate::tests::sk()).unwrap();
         let w = lib.create_vault("W", &pw2).unwrap();
         let id = note(&w, "W", "second");

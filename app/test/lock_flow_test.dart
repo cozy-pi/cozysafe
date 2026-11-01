@@ -54,9 +54,9 @@ class _Fake implements RustLibApi {
       syncCancels++;
       return null;
     }
-    if (name.contains('MinPasswordLength')) return 8;
+    if (name.contains('MinPasswordLength')) return 12;
     if (name.contains('MinPinLength')) return 6;
-    final vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: anyPassword);
+    final vault = VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: anyPassword, topSecret: false);
     if (name.contains('MinPasswordScore')) return 3;
     if (name.contains('PasswordProblem')) return PasswordProblem.none;
     if (name.contains('PasswordScore')) return 4;
@@ -347,7 +347,9 @@ void main() {
       await t.pump();
     }
     expect(button().onPressed, isNull); // three right, one wrong
-    await t.enterText(fields.at(3), list[asked[3]].substring(0, 4).toUpperCase()); // four letters are enough
+    // Four letters are enough (a three-letter word, such as "mom", is typed whole).
+    final last = list[asked[3]];
+    await t.enterText(fields.at(3), last.substring(0, last.length < 4 ? last.length : 4).toUpperCase());
     await t.pump();
     await t.ensureVisible(find.widgetWithText(FilledButton, "I've saved it"));
     await t.tap(find.widgetWithText(FilledButton, "I've saved it"));
@@ -573,7 +575,7 @@ void main() {
       await t.pumpWidget(
           _app(SettingsScreen(
             libraryDir: 'lib',
-            vault: () => const VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true),
+            vault: () => const VaultInfo(id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false),
             canBiometric: false,
             biometricOn: () => false,
             onToggleBiometric: () async {},
@@ -586,6 +588,7 @@ void main() {
             onNewVault: () async {},
           )));
       await _settle(t);
+      // On Settings' one page (2026-10-31).
       final row = find.byKey(const ValueKey('lock-on-leave-row'));
       await t.scrollUntilVisible(row, 200, scrollable: find.byType(Scrollable).first);
       await t.pumpAndSettle();

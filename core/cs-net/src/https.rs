@@ -42,8 +42,9 @@ pub(crate) const MAX_SMALL: usize = 8 << 20;
 const MAX_HEADERS: usize = 64 << 10;
 /// A connection idle longer than this is not reused (servers drop idle ones after ~60 s).
 const MAX_IDLE: Duration = Duration::from_secs(50);
-/// Idle connections kept, one per request a sync runs at once.
-pub(crate) const POOL: usize = 4;
+/// Idle connections kept, one per request a sync runs at once (8 since 2026-11-01: every
+/// file is a round trip or two, and 4 at once left Drive syncs waiting).
+pub(crate) const POOL: usize = 8;
 /// A body nobody read is read away up to this much to keep the connection; past it the
 /// connection is closed instead.
 const DRAIN: u64 = 64 << 10;
@@ -53,6 +54,25 @@ pub(crate) enum Body<'a> {
     Bytes(&'a str, Vec<u8>),
     /// Read once as it is sent, so a request with it is never sent twice.
     Stream(&'a str, u64, &'a mut dyn Read),
+}
+
+/// [`std::io::copy`] in 256 KB pieces instead of 8 KB (owner 2026-11-01: uploads were slow):
+/// fewer writes, each filling TLS records whole.
+fn copy_big(src: &mut dyn Read, w: &mut dyn Write) -> std::io::Result<u64> {
+    let mut buf = vec![0u8; 256 << 10];
+    let mut sent = 0u64;
+    loop {
+        let n = match src.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(e) => return Err(e),
+        };
+        w.write_all(&buf[..n])?;
+        sent += n as u64;
+    }
+    w.flush()?;
+    Ok(sent)
 }
 
 /// What HTTP is spoken over: TLS to a [`Host`] in the app, bytes in memory in tests.
@@ -208,7 +228,7 @@ impl Client {
             Body::None => {}
             Body::Bytes(_, b) => w.write_all(b).map_err(quiet)?,
             Body::Stream(_, len, src) => {
-                let sent = std::io::copy(&mut src.take(*len), w).map_err(quiet)?;
+                let sent = copy_big(&mut src.take(*len), w).map_err(quiet)?;
                 if sent != *len {
                     return Err(Failed {
                         quiet: false,

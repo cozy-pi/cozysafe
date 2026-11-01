@@ -12,6 +12,8 @@ void main() {
       'lib/screens/vault_home.dart': 1,
       // The countdown before deleting a vault: only Cancel stops it, on purpose.
       'lib/widgets/countdown.dart': 1,
+      // The card while a slow call runs (deleting from Google Drive): it goes when done.
+      'lib/widgets/working_card.dart': 1,
     };
     final found = <String, int>{};
     for (final f in Directory('lib').listSync(recursive: true).whereType<File>()) {

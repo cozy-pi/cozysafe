@@ -1,6 +1,7 @@
 # ADR 0005: Two kinds of vault, Top secret and Private
 
-- Status: proposed (waiting for the owner's approval before any code)
+- Status: replaced by [ADR 0006](0006-top-secret-mode.md) (2026-10-31): one vault with Top
+  Secret Mode. Step 1 (`cs-core`) and the step-4 screens stay; the rest went away.
 - Date: 2026-10-30
 - Decisions it rests on: [decisions.md](../decisions.md) (2026-10-30), the rule in
   [supply-chain.md](../supply-chain.md#top-secret-means-top-secret-owner-2026-10-30-absolute)
@@ -70,6 +71,11 @@ fixed.
   bundled list of common passwords) replace `hex` and `zxcvbn`.
 - **`cs-vault`** keeps what Private needs on top of `cs-core` (history, audit, imports,
   photos) and may keep its present dependencies.
+- Done in step 1 (2026-10-31): the library, vaults, items, PINs, the index and version
+  history are in `cs-core` (history too for now: items keep versions as they change;
+  which kind keeps history is decided in steps 3–4); sync, the audit, backups and
+  joining are in `cs-vault`, as traits on the core's types. The Master Key stays in
+  `cs-core`: sync seals and opens through `OpenVault::sealer`.
 - **Sync** carries only sealed data, for both kinds. For Top secret it uses `rustls`
   (audited) and a small JSON reader of our own for Google Drive's answers, in place of
   `serde_json`.
@@ -105,10 +111,48 @@ new version:
 
 ## Open
 
-- Whether audit reports exist for `argon2`, `hkdf`, `sha2`, `zeroize` (the NCC Group
-  audit of 2020 covers `chacha20poly1305`). A crate without one is reported to the owner.
-- `webpki-roots` (the list of trusted certificate authorities) is data, not code; to be
-  confirmed as allowed on the Top secret sync path.
+- Decided 2026-10-31: the cryptography stays RustCrypto (memory safe, no C). `argon2`,
+  `sha2`, `hmac` and `hkdf` have no public audit, so they are covered by our own review
+  and the standard test vectors (see supply-chain.md); the core builds offline from
+  copies kept in `third_party/`.
+- Decided 2026-10-31: `webpki-roots` (Mozilla's list of certificate authorities, data
+  not code) is allowed on the Top secret sync path, kept as a copy in the repo like the
+  rest.
+- Decided 2026-10-31: Top secret keeps version history (a note or password changed by
+  mistake can be brought back); the code is already in `cs-core`.
+- Decided 2026-10-31: the Private password is made from a Top secret run (Settings →
+  Private vault): the app suggests four words and saves them at once as a note
+  "Private vault password" in the open Top secret vault, then switches; the first
+  Private start asks for those words to make the library. Private's key derivation is
+  its own (password only, a fixed value under its own label in the Secret Key's place).
+- Decided 2026-10-31: switching kinds is only in Settings, after unlocking (nothing on
+  the lock screen tells that a second kind exists).
+- Decided 2026-10-31 (step 4): Top secret takes files picked in the system's Files
+  (bytes sealed as they are, never opened), but nothing from the photo library or from
+  another app's Share. Voice notes stay in Top secret, kept like a file: recorded, never
+  played back in the app, opened only by exporting. Photos and videos already in a Top
+  secret vault (until step 6 moves them) show as rows like files, no thumbnail; opening
+  one exports it after the warning.
+- Decided 2026-10-31 (later): Top secret records video too, kept like a voice memo
+  (sealed at once, never played in the app, opened only in another app; the camera's
+  plain file is deleted as soon as it is sealed). Marks in colour: Top secret red,
+  Private green.
+- Decided 2026-10-31: the Private password is kept sealed inside the Top secret vault,
+  never shown and not as a note; Settings → Private vault offers Reset password, which
+  opens the Private vault for a moment only to wrap its key again (a second exception).
+  A Private run has no Change password row. Settings is grouped into sub-pages.
+- Decided 2026-10-31 (changed the same day): both kinds share the vault mark (the dial of
+  the app's icon) with a small badge: a shield for Top secret, a person for Private.
+  Shown above the vault's title, in Settings and the switching pages, and on the lock
+  screen.
+- Decided 2026-10-31: the Private vault is made, for real, from the Top secret run when
+  its password is saved (owner: the first Private start must be an ordinary unlock, not
+  "create" again). The one exception to "one kind per run": the Top secret run may
+  create a Private library where there is none, and nothing else; it never opens it, and
+  every key made for it is dropped at once.
+- Decided 2026-10-31: steps 2–6 are built on the branch and merged into `main` only when
+  all are done; each step still gets a mockup, the owner's approval and an internal test
+  build (TestFlight, Play internal) made from the branch, with no public GitHub release.
 - Exporting a file writes it decrypted to the temporary folder for the other app; it is
   wiped on lock and at start, but the other app may keep its own copy. The warning says
   so.

@@ -165,6 +165,9 @@ allow_unsafe = true
 [pkg."rustls-pki-types"]
 allow_unsafe = true
 
+[pkg."cs-core"]
+allow_apis = ["fs"]
+
 [pkg."cs-vault"]
 allow_apis = ["fs"]
 allow_unsafe = true

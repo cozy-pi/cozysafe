@@ -49,7 +49,12 @@ mod tests {
         let got = take_errors();
         assert_eq!(got.len(), KEEP);
         assert!(got.iter().all(|e| e.split('|').count() == 3));
-        assert!(got.iter().filter(|e| e.ends_with("|test|only-here")).count() >= KEEP - 10);
+        assert!(
+            got.iter()
+                .filter(|e| e.ends_with("|test|only-here"))
+                .count()
+                >= KEEP - 10
+        );
         assert!(!take_errors().iter().any(|e| e.ends_with("|test|only-here")));
     }
 }

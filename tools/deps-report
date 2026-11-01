@@ -67,15 +67,29 @@ TIERS = {
 
 # ---------------------------------------------------------------- reading the lock files
 
+def vendored():
+    """{name@version} of the crates.io crates kept in third_party/rust/ (tools/check-vendor):
+    built from the copy, so the lock files list them as paths, but they are crates.io's."""
+    record = ROOT / "third_party" / "rust" / "RECORD"
+    if not record.exists():
+        return set()
+    return {f"{n}@{v}" for n, v, _ in (l.split() for l in record.read_text().splitlines()
+                                        if l and not l.startswith("#"))}
+
+
 def rust_locked():
     """{name@version} of crates.io crates over both Cargo.lock files."""
     out = set()
+    copies = vendored()
     for lock in CARGO_LOCKS:
         for block in lock.read_text().split("[[package]]")[1:]:
             name = re.search(r'^name = "([^"]+)"', block, re.M)
             ver = re.search(r'^version = "([^"]+)"', block, re.M)
-            if name and ver and f'source = "{CRATES_IO}"' in block:
-                out.add(f"{name.group(1)}@{ver.group(1)}")
+            if not (name and ver):
+                continue
+            k = f"{name.group(1)}@{ver.group(1)}"
+            if f'source = "{CRATES_IO}"' in block or ("source = " not in block and k in copies):
+                out.add(k)
     return out
 
 
@@ -218,6 +232,7 @@ def shipped_targets():
 def rust_graph():
     """{name@version: {kind, native, via, direct}} from cargo metadata of both workspaces."""
     out = {}
+    copies = vendored()
     rank = {"runtime": 0, "build": 1, "dev": 2, "none": 3}
     for ws, manifest in CARGO.items():
         platforms = [a for t in shipped_targets() for a in ("--filter-platform", t)]
@@ -271,9 +286,9 @@ def rust_graph():
         for kind, seen in (("runtime", runtime), ("build", build), ("dev", dev)):
             for pid, parent in seen.items():
                 p = pkgs[pid]
-                if p.get("source") != CRATES_IO:
-                    continue
                 k = key(pid)
+                if p.get("source") != CRATES_IO and k not in copies:
+                    continue
                 native = bool(p.get("links")) or any(
                     d["name"] in RUST_NATIVE_BUILD and d.get("kind") == "build" for d in p["dependencies"])
                 direct = parent in members

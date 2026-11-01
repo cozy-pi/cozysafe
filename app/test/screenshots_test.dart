@@ -23,7 +23,7 @@ class _FakeRust implements RustLibApi {
   @override
   dynamic noSuchMethod(Invocation call) {
     final name = call.memberName.toString();
-    if (name.contains('MinPasswordLength')) return 8;
+    if (name.contains('MinPasswordLength')) return 12;
     if (name.contains('MinPinLength')) return 6;
     if (name.contains('MinPasswordScore')) return 3;
     if (name.contains('PasswordProblem')) return PasswordProblem.none;
@@ -122,7 +122,7 @@ void main() {
         brightness: Brightness.dark,
         home: VaultHomeScreen(
           libraryDir: '',
-          vault: VaultInfo(id: 'preview', name: '', icon: 'home', color: 'green', hasPassword: true),
+          vault: VaultInfo(id: 'preview', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false),
         ),
       );
     });
