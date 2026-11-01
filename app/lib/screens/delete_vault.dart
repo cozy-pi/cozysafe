@@ -20,7 +20,7 @@ import 'unlock.dart';
 import '../widgets/bottom_bar.dart';
 import '../widgets/toast.dart';
 import '../widgets/working_card.dart';
-import 'vault_manager.dart' show VaultManagerScreen;
+import 'vault_manager.dart' show VaultFacts, VaultManagerScreen;
 import 'welcome.dart';
 
 /// Delete a vault from this device, confirmed with its own password (no PIN since
@@ -37,7 +37,12 @@ class DeleteVaultScreen extends StatefulWidget {
     this.otherId,
     this.deleteAtMs,
     required this.sizeText,
+    this.slot,
   }) : assert((vault == null) != (otherId == null));
+
+  /// What is known of the vault, shown as on its card in Manage vaults (owner
+  /// 2026-11-01); looked up when not given.
+  final rust.VaultSlot? slot;
 
   /// [otherId] is already set to be deleted then (ms since the epoch).
   final int? deleteAtMs;
@@ -64,6 +69,19 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
   bool _alsoDrive = false;
 
   String get _id => widget.vault?.id ?? widget.otherId!;
+
+  late rust.VaultSlot? _slot = widget.slot;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_slot == null) {
+      rust.listVaults(dir: widget.libraryDir).then((all) {
+        final s = all.where((s) => s.id == _id).firstOrNull;
+        if (mounted && s != null) setState(() => _slot = s);
+      }, onError: (Object _) {});
+    }
+  }
 
   /// The password typed is not kept while the vault is locked (the countdown, if open,
   /// closes as Cancel).
@@ -292,6 +310,10 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
                     textAlign: TextAlign.center,
                     style: TextStyle(color: ink.withValues(alpha: .85), height: 1.45),
                   ),
+                  if (_slot case final s?) ...[
+                    const SizedBox(height: 14),
+                    VaultFacts(slot: s, open: widget.vault, mainLibrary: widget.libraryDir),
+                  ],
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

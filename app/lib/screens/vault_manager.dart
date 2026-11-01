@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../biometric.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../sync/drive.dart' show driveAccount;
 import '../test_login.dart';
 import '../theme.dart';
 import '../widgets/countdown.dart';
@@ -31,8 +33,12 @@ class VaultManagerScreen extends StatefulWidget {
   /// Make another vault (the vault page's flow: the owner first, this vault locks).
   final Future<void> Function()? onNewVault;
 
-  /// For the mockup renders: these vaults instead of the library's.
+  /// For the mockup renders: these vaults instead of the library's, the open vault's item
+  /// count and its Google Drive account.
   static List<rust.VaultSlot>? debugSlots;
+  static int? debugItems;
+  static rust.VaultInfo? debugOpen;
+  static String? debugDrive;
 
   /// How long a vault whose password is forgotten waits before it goes.
   static const forgotWait = Duration(days: 7);
@@ -65,54 +71,54 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
     if (mounted) {
       setState(() {
         _slots = slots;
-        _open = rust.openVaultInfo();
+        _open = VaultManagerScreen.debugOpen ?? rust.openVaultInfo();
         _testId = testId;
       });
     }
   }
 
-  /// A tap on a vault shows what is known of it, with Delete under it (owner 2026-11-01).
+  /// A tap on a vault shows everything known of it ([VaultFacts]), then Delete or Close
+  /// (owner 2026-11-01).
   Future<void> _details(rust.VaultSlot s) async {
     final l = AppLocalizations.of(context);
-    final open = _open;
+    final open = s.isOpen ? _open : null;
     final test = s.id == _testId;
-    final delete = await showCard<bool>(context, title: _title(l, s), closeButton: true, builder: (context) {
+    final delete = await showCard<bool>(context, title: _title(l, s), builder: (context) {
       final c = CsColors.of(context);
       return Padding(
         padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Center(
-            child: s.isOpen && open != null
+            child: open != null
                 ? VaultBadge(icon: open.icon, color: open.color, size: 56)
                 : Icon(Icons.lock_rounded, color: c.muted, size: 44),
           ),
           const SizedBox(height: 14),
-          Text(
-            [
-              fileSize(s.sizeBytes),
-              if (s.hasBiometric) l.vaultManagerBiometric,
-              '${s.id.substring(0, 6)}…',
-            ].join(' · '),
-            key: const ValueKey('vault-details'),
-            textAlign: TextAlign.center,
-            style: TextStyle(color: c.muted, fontSize: CsType.subhead),
-          ),
           if (test) ...[
-            const SizedBox(height: 6),
             Text(l.testLoginNote, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
+            const SizedBox(height: 10),
           ],
-          if (s.deleteAtMs case final at?) ...[
-            const SizedBox(height: 6),
-            Text(_left(l, at.toInt()),
-                textAlign: TextAlign.center, style: TextStyle(color: recordRed(context), fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
-          ],
+          VaultFacts(slot: s, open: open, mainLibrary: widget.libraryDir),
           const SizedBox(height: 18),
-          FilledButton(
-            key: const ValueKey('vault-details-delete'),
-            style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l.deleteVaultAction),
-          ),
+          // One row (owner 2026-11-02): Close, then Delete, red, on the far right.
+          Row(children: [
+            Expanded(
+              child: OutlinedButton(
+                key: const ValueKey('vault-details-close'),
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(l.close),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                key: const ValueKey('vault-details-delete'),
+                style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(l.deleteVaultAction),
+              ),
+            ),
+          ]),
         ]),
       );
     });
@@ -159,6 +165,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
         otherId: slot.id,
         deleteAtMs: slot.deleteAtMs?.toInt(),
         sizeText: fileSize(slot.sizeBytes),
+        slot: slot,
       ),
     ));
     if (gone == true && mounted) showToast(context, AppLocalizations.of(context).vaultDeleted, icon: Icons.check_rounded);
@@ -257,7 +264,6 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                                   ],
                                 ]),
                               ),
-                              Icon(Icons.more_horiz_rounded, color: c.muted),
                             ]),
                           ),
                         ),
@@ -269,5 +275,124 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
             ),
             ),
     );
+  }
+}
+
+/// Everything known of a vault, as label and value rows (owner 2026-11-01: "show it
+/// all"): on its card in Manage vaults and on its delete page. A locked vault's icon,
+/// mode and items stay sealed, so only what the device knows without opening it shows.
+class VaultFacts extends StatefulWidget {
+  const VaultFacts({super.key, required this.slot, this.open, required this.mainLibrary});
+  final rust.VaultSlot slot;
+  /// The vault open now, when [slot] is it.
+  final rust.VaultInfo? open;
+  /// This device's first library: a vault elsewhere has its own 24 words.
+  final String mainLibrary;
+
+  @override
+  State<VaultFacts> createState() => _VaultFactsState();
+}
+
+class _VaultFactsState extends State<VaultFacts> {
+  BiometricKind? _kind;
+  int? _items;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final kind = widget.slot.hasBiometric ? await BiometricUnlock.available() : null;
+    int? items = VaultManagerScreen.debugItems;
+    if (widget.open != null && items == null) {
+      try {
+        items = (await rust.listItems()).length;
+      } catch (_) {}
+    }
+    if (mounted) {
+      setState(() {
+        _kind = kind;
+        _items = widget.open != null ? items : null;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    final ml = MaterialLocalizations.of(context);
+    final s = widget.slot;
+    final open = widget.open;
+    String when(int ms) {
+      final t = DateTime.fromMillisecondsSinceEpoch(ms);
+      return '${ml.formatMediumDate(t)} ${ml.formatTimeOfDay(TimeOfDay.fromDateTime(t))}';
+    }
+
+    String left(int atMs) {
+      final ms = atMs - DateTime.now().millisecondsSinceEpoch;
+      return l.vaultDeletesIn(ms <= 0 ? 0 : (ms / Duration.millisecondsPerDay).ceil());
+    }
+
+    final unlock = [
+      if (s.hasPassword) l.password,
+      if (s.hasBiometric) _kind == BiometricKind.face ? l.vaultInfoFace : l.vaultInfoFingerprint,
+      if (s.hasPin) l.vaultInfoPin,
+    ];
+    final drive = VaultManagerScreen.debugDrive ?? driveAccount;
+    // (label, value, red)
+    final rows = <(String, String, bool)>[
+      if (open != null) (l.vaultInfoMode, open.topSecret ? l.topSecretShort : l.modeEveryday, false),
+      if (_items case final n?) (l.vaultInfoItems, '$n', false),
+      (l.vaultInfoSize, fileSize(s.sizeBytes), false),
+      (
+        l.vaultInfoCreated,
+        switch (s.createdMs) {
+          final ms? => ml.formatMediumDate(DateTime.fromMillisecondsSinceEpoch(ms.toInt())),
+          null => l.vaultInfoUnknown,
+        },
+        false
+      ),
+      (l.vaultInfoUnlock, unlock.join(' · '), false),
+      (l.vaultInfoWords, s.libraryDir == widget.mainLibrary ? l.vaultInfoWordsShared : l.vaultInfoWordsOwn, false),
+      if (open != null) (l.vaultInfoDrive, drive ?? l.vaultInfoDriveOff, false),
+      // Set to go with its password forgotten: when that was asked, and when it goes
+      // (owner 2026-11-01). The wait is always [VaultManagerScreen.forgotWait].
+      if (s.deleteAtMs case final at?) ...[
+        (l.vaultInfoDeleteAsked, when(at.toInt() - VaultManagerScreen.forgotWait.inMilliseconds), true),
+        (l.vaultInfoDeletes, '${when(at.toInt())}\n${left(at.toInt())}', true),
+      ],
+      (l.vaultInfoId, '${s.id.substring(0, 6)}…', false),
+    ];
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (open == null) ...[
+        Text(l.vaultInfoSealed, key: const ValueKey('vault-details-sealed'), textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
+        const SizedBox(height: 10),
+      ],
+      Container(
+        key: const ValueKey('vault-details'),
+        decoration: BoxDecoration(color: c.muted.withValues(alpha: .08), borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Column(children: [
+          for (final (label, value, red) in rows)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(label, style: TextStyle(color: red ? recordRed(context) : c.muted, fontSize: CsType.subhead)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.end,
+                    style: TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: red ? recordRed(context) : null),
+                  ),
+                ),
+              ]),
+            ),
+        ]),
+      ),
+    ]);
   }
 }

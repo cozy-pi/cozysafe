@@ -1274,6 +1274,8 @@ pub struct VaultSlot {
     pub is_open: bool,
     /// When it will be deleted (ms since the epoch), when a deletion is set.
     pub delete_at_ms: Option<i64>,
+    /// When it was made (or came) on this device, when the file system knows.
+    pub created_ms: Option<i64>,
 }
 
 /// Every vault on this device, in every library (Vault manager, Debug).
@@ -1293,6 +1295,7 @@ pub fn list_vaults(dir: String) -> Result<Vec<VaultSlot>, VaultError> {
                 has_pin: s.has_pin,
                 has_biometric: s.has_biometric,
                 delete_at_ms: s.delete_at_ms,
+                created_ms: s.created_ms,
             });
         }
     }

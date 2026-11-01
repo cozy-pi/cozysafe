@@ -13,6 +13,7 @@ import '../platform.dart';
 import '../screens/file_view.dart' show fileSize;
 import '../src/rust/api/sync.dart' as sync;
 import '../theme.dart';
+import '../widgets/confirm_delete.dart';
 import '../widgets/toast.dart';
 import 'awake.dart';
 import 'auto_sync.dart';
@@ -865,7 +866,13 @@ class _SyncProgressState extends State<SyncProgress>
         ]);
       }
     }
-    return Padding(
+    // While it runs, Back asks first, as Cancel does (owner 2026-11-01: it left at once).
+    return PopScope(
+      canPop: _over,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _stop();
+      },
+      child: Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
       child: Column(
         children: [
@@ -897,16 +904,31 @@ class _SyncProgressState extends State<SyncProgress>
                   )
                 : OutlinedButton(
                     key: const ValueKey('sync-cancel'),
-                    onPressed: () {
-                      sync.p2PCancel();
-                      Navigator.of(context).pop();
-                    },
+                    onPressed: _stop,
                     child: Text(l.cancel),
                   ),
           ),
         ],
       ),
+      ),
     );
+  }
+
+  /// Cancel or Back while it runs: stop only once the person says so.
+  Future<void> _stop() async {
+    final l = AppLocalizations.of(context);
+    final yes = await confirmDelete(
+      context,
+      title: l.syncStopTitle,
+      body: l.syncStopBody,
+      action: l.syncStopAction,
+      icon: Icons.stop_circle_outlined,
+      color: const Color(0xFFFF9500),
+      keep: l.syncStopKeep,
+    );
+    if (!yes || !mounted || _over) return;
+    sync.p2PCancel();
+    Navigator.of(context).pop();
   }
 }
 

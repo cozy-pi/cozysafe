@@ -4,6 +4,17 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-02 — Vault facts; Manage vaults in Settings again; ask before stopping a sync
+
+**Owner:** Settings has Manage vaults again, beside the lock screen's. No ⋯ on a vault: a
+tap shows all that is known of it (mode, items, size, created on this device, what opens
+it, its 24-word set, Google Drive, ID; a locked vault only what the device knows without
+opening it), with Close and Delete on one row; a vault set to be deleted shows when that
+was asked and when it goes. The delete page shows the same facts. Vaults have no name
+(icon and colour only). Cancel or Back during a sync asks first. Android: a fingerprint
+prompt closed with its Cancel button never answers (flutter_secure_storage 11.2.0), so
+the lock screen no longer waits on it.
+
 ## 2026-11-01 (evening) — Add a device by an 8-digit code, no QR; Local network page
 
 **Owner:** the QR invite was often not read, so it goes: the old device (Sync → Local
