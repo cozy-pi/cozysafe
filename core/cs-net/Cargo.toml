@@ -10,6 +10,8 @@ repository.workspace = true
 cs-crypto = { path = "../cs-crypto" }
 cs-vault = { path = "../cs-vault" }
 hex = "0.4"
+# Already in the tree (cs-crypto): wipes the password and the words that cross an invite.
+zeroize = "1"
 serde_json = "1"
 # Google Drive over HTTPS: rustls alone (ring for crypto, Mozilla's roots bundled), with
 # the few HTTP/1.1 requests written here. A ready-made client (ureq) pulled in 44 crates.
