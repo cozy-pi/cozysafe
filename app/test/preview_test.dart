@@ -567,7 +567,10 @@ void main() {
   }
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
-  _screen('lock-menu', 'Màn khoá · nút ⋯', lock, act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
+  _screen('lock-menu', 'Màn khoá · nút ⋯', lock,
+      change: 'MỚI: Quản lý két chuyển từ Cài đặt ra menu ⋯ ở màn khoá; bấm vào phải qua Face ID / vân tay / mã máy',
+      marks: [() => find.byKey(const ValueKey('lock-vaults'))],
+      act: (t) => t.tap(find.byKey(const ValueKey('more-button'))));
   // A sync that went on as the vault locked (owner 2026-10-26): how far it is.
   _screen('lock-sync-drive', 'Màn khoá · đồng bộ Google Drive vẫn chạy (40%)', lock,
       setup: () => syncStatus.value = const SyncStatus(drive: true, kind: SyncStep.receiving, done: 12, total: 30, bytes: 40, bytesTotal: 100));

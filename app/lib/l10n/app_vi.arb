@@ -884,5 +884,6 @@
   "restoreFromDeviceInviteNote": "Quét mã trên máy kia, rồi nhập mật khẩu",
   "restorePickFile": "Chọn tệp sao lưu",
   "testVault": "Két thử nghiệm",
-  "restoredRestart": "Đã khôi phục. Mở lại Cozy Safe để mở két này."
+  "restoredRestart": "Đã khôi phục. Mở lại Cozy Safe để mở két này.",
+  "ownerCheckVaults": "Xác nhận bạn là chủ máy để quản lý két"
 }

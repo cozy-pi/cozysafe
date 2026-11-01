@@ -870,5 +870,6 @@
   "restoreFromDeviceInviteNote": "Scansiona un codice sull'altro dispositivo, poi la password",
   "restorePickFile": "Scegli il file di backup",
   "testVault": "Cassaforte di prova",
-  "restoredRestart": "Ripristinata. Riapri Cozy Safe per aprire questa cassaforte."
+  "restoredRestart": "Ripristinata. Riapri Cozy Safe per aprire questa cassaforte.",
+  "ownerCheckVaults": "Conferma di essere il proprietario di questo telefono per gestirne le casseforti"
 }

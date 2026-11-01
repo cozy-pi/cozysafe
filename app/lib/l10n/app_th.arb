@@ -870,5 +870,6 @@
   "restoreFromDeviceInviteNote": "สแกนรหัสบนอุปกรณ์อีกเครื่อง แล้วใส่รหัสผ่าน",
   "restorePickFile": "เลือกไฟล์สำรอง",
   "testVault": "ตู้นิรภัยทดสอบ",
-  "restoredRestart": "กู้คืนแล้ว เปิด Cozy Safe ใหม่เพื่อเปิดตู้นิรภัยนี้"
+  "restoredRestart": "กู้คืนแล้ว เปิด Cozy Safe ใหม่เพื่อเปิดตู้นิรภัยนี้",
+  "ownerCheckVaults": "ยืนยันว่าคุณเป็นเจ้าของเครื่องเพื่อจัดการตู้นิรภัย"
 }

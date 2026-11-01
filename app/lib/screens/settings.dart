@@ -28,7 +28,6 @@ import '../item_kind.dart';
 import '../prefs.dart';
 import '../widgets/identity.dart';
 import '../widgets/vault_bar.dart';
-import 'delete_vault.dart';
 import 'history.dart';
 import 'storage.dart';
 import '../src/rust/api/history.dart' as hist;
@@ -40,7 +39,6 @@ import '../sync/sync_screen.dart';
 import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
 import 'top_secret_page.dart';
-import 'vault_manager.dart';
 import '../widgets/edge_swipe_back.dart';
 
 /// Per-device choices, kept next to the library (not secret).
@@ -464,31 +462,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// What protects the vault, explained with drawings: its own page (long content).
   Future<void> _showSecurity() =>
       Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => Readable(child: const SecurityInfoScreen())));
-
-  Future<void> _deleteVault() async {
-    // The vault's password confirms it; a vault without one (made with a PIN before)
-    // gets one first.
-    if (!widget.vault().hasPassword) {
-      await widget.onPassword();
-      if (!mounted || !widget.vault().hasPassword) return;
-    }
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => Readable(child: DeleteVaultScreen(libraryDir: widget.libraryDir, vault: widget.vault(), sizeText: _sizeText)),
-    ));
-  }
-
-  Future<void> _openVaults() async {
-    await Navigator.of(context).push<void>(MaterialPageRoute(
-      builder: (_) => Readable(
-        child: VaultManagerScreen(
-          libraryDir: widget.libraryDir,
-          onDeleteOpen: () => _guarded(_deleteVault),
-          onNewVault: widget.onNewVault,
-        ),
-      ),
-    ));
-    if (mounted) setState(() {});
-  }
 
   Future<void> _pickLanguage() async {
     final l = AppLocalizations.of(context);
@@ -1055,13 +1028,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: l.versionHistory,
               value: _historyDays == 0 ? l.historyOff : historySizeText(l, _historyMax),
               onTap: _openHistory,
-            ),
-            SettingsRow(
-              key: const ValueKey('vaults-row'),
-              icon: Icons.inventory_2_rounded,
-              color: SettingsHue.cam,
-              title: l.vaultManagerTitle,
-              onTap: _openVaults,
             ),
           ]),
           // 5. How it looks and where things are: nothing here protects the vault.

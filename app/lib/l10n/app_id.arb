@@ -870,5 +870,6 @@
   "restoreFromDeviceInviteNote": "Pindai kode di perangkat Anda yang lain, lalu kata sandinya",
   "restorePickFile": "Pilih file cadangan",
   "testVault": "Brankas uji coba",
-  "restoredRestart": "Dipulihkan. Buka lagi Cozy Safe untuk membuka brankas ini."
+  "restoredRestart": "Dipulihkan. Buka lagi Cozy Safe untuk membuka brankas ini.",
+  "ownerCheckVaults": "Konfirmasi bahwa Anda pemilik ponsel ini untuk mengelola brankasnya"
 }

@@ -136,18 +136,10 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
         final failure = await whileWorking(context, l.driveDeleting, () => _deleteFromDrive(id));
         if (failure != null && mounted) showToast(context, withCode(l, l.deleteDriveFailed, failure), icon: Icons.error_outline_rounded);
       }
-      if (!mounted) return;
-      if (widget.otherId != null) {
-        // Only this page: the vault may have locked meanwhile and put its lock screen on top.
-        if (ModalRoute.of(context)?.isCurrent ?? false) Navigator.of(context).pop(true);
-        return;
-      }
-      await LockGuard.clearCopied();
-      if (!mounted) return;
       final any = rust.hasVaults(dir: widget.libraryDir);
-      // The last vault of its library: its 24 words go too, and the next vault starts
-      // afresh (owner 2026-10-24: keeping the old key after deleting the vault was not
-      // safe).
+      // The last vault of its library, open or not: its 24 words go too, and the next
+      // vault starts afresh (owner 2026-10-24: keeping the old key after deleting the
+      // vault was not safe).
       try {
         if (own != null && !rust.libraryHasVaults(dir: own) && await rust.resetEmptyLibrary(dir: own)) {
           await SecretKeyStore.delete(own);
@@ -159,6 +151,13 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       } catch (_) {
         // The new-vault screen still starts afresh from an empty library.
       }
+      if (!mounted) return;
+      if (widget.otherId != null) {
+        // Only this page: the vault may have locked meanwhile and put its lock screen on top.
+        if (ModalRoute.of(context)?.isCurrent ?? false) Navigator.of(context).pop(true);
+        return;
+      }
+      await LockGuard.clearCopied();
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(

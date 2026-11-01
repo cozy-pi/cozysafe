@@ -870,5 +870,6 @@
   "restoreFromDeviceInviteNote": "もう一方のデバイスでコードをスキャンし、パスワードを入力",
   "restorePickFile": "バックアップファイルを選択",
   "testVault": "テスト用金庫",
-  "restoredRestart": "復元しました。この金庫を開くには Cozy Safe を開き直してください。"
+  "restoredRestart": "復元しました。この金庫を開くには Cozy Safe を開き直してください。",
+  "ownerCheckVaults": "金庫を管理するには、この端末の持ち主であることを確認してください"
 }

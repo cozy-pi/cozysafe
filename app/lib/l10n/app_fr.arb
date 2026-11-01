@@ -870,5 +870,6 @@
   "restoreFromDeviceInviteNote": "Scannez un code sur votre autre appareil, puis le mot de passe",
   "restorePickFile": "Choisir le fichier de sauvegarde",
   "testVault": "Coffre de test",
-  "restoredRestart": "Restauré. Rouvrez Cozy Safe pour ouvrir ce coffre."
+  "restoredRestart": "Restauré. Rouvrez Cozy Safe pour ouvrir ce coffre.",
+  "ownerCheckVaults": "Confirmez que ce téléphone est le vôtre pour gérer ses coffres"
 }
