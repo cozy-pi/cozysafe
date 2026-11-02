@@ -10,6 +10,8 @@ Dates are UTC.
 - Setting up a new device: the 8-digit code connects as soon as the last digit is
   typed; no Next or Close button, explanation, or error code under it (Back leaves,
   and ends the connection).
+- Setting up a new device: fewer words on both devices. The code page shows just the
+  code; a wrong code or password no longer shows an error code to copy.
 
 ### Fixed
 - Restoring from another device on a phone that already had a vault (such as the

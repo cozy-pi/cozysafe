@@ -128,6 +128,10 @@ class _SyncProgressState extends State<SyncProgress>
     // (owner 2026-11-02: "error code: askCode" with Copy details under the field).
     sync.SyncStep.addCode,
     sync.SyncStep.askCode,
+    // A wrong code or password, two devices waiting: the person's doing, said in words.
+    sync.SyncStep.addWrongCode,
+    sync.SyncStep.addWrongPassword,
+    sync.SyncStep.addSeveral,
   };
 
   bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;
@@ -377,8 +381,8 @@ class _SyncProgressState extends State<SyncProgress>
     _auto?.cancel();
     _password.clear();
     _password.dispose();
-    // Left while typing the code (Back is the way out there): end the session too.
-    if (!_over || _last?.kind == sync.SyncStep.askCode) sync.p2PCancel();
+    // Left while a code is shown or typed (Back is the way out there): end the session too.
+    if (!_over || _last?.kind == sync.SyncStep.askCode || _last?.kind == sync.SyncStep.addCode) sync.p2PCancel();
     Awake.set(false);
     _sub?.cancel();
     // Not now: the lock screen listening must not rebuild while the tree is torn down.
@@ -708,8 +712,6 @@ class _SyncProgressState extends State<SyncProgress>
         const SizedBox(height: 22),
         Text(_name.isEmpty ? l.syncConnected : l.syncConnectedTo(_name),
             textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        Text(l.invitePasswordLead, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
         const SizedBox(height: 18),
         if (_passwordSent)
           const Center(child: SizedBox(width: 160, child: LinearProgressIndicator()))
@@ -767,10 +769,10 @@ class _SyncProgressState extends State<SyncProgress>
             key: const ValueKey('invite-connected'),
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SyncLink(moving: false),
+              const SizedBox(height: 22),
               Text(_name.isEmpty ? l.syncConnected : l.syncConnectedTo(_name),
                   textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 10),
-              Text(l.inviteWaitPassword, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.35)),
               const SizedBox(height: 28),
               const SizedBox(width: 160, child: LinearProgressIndicator()),
             ],
@@ -882,9 +884,9 @@ class _SyncProgressState extends State<SyncProgress>
       child: Column(
         children: [
           Expanded(child: Center(child: SingleChildScrollView(child: body))),
-          // Typing the code: the keyboard is up and Back leaves; no button under it
-          // (owner 2026-11-02).
-          if (e?.kind == sync.SyncStep.askCode)
+          // A code shown or being typed: Back leaves; no button under it (owner
+          // 2026-11-02).
+          if (e?.kind == sync.SyncStep.askCode || e?.kind == sync.SyncStep.addCode)
             const SizedBox.shrink()
           else if ((e?.kind == sync.SyncStep.askRestore || e?.kind == sync.SyncStep.confirm) && !_answered)
             // It goes on by itself; Cancel is the one button, within the thumb's reach.

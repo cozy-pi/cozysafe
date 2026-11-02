@@ -45,8 +45,6 @@ class AddCodeWaiting extends StatelessWidget {
         const SizedBox(height: 14),
         Text(l.syncWaitLeft(left),
             textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, fontFeatures: const [FontFeature.tabularFigures()])),
-        const SizedBox(height: 22),
-        _OneTry(text: l.addCodeTries),
       ],
     );
   }
@@ -77,7 +75,6 @@ class AddCodeShown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     return Column(
       key: const ValueKey('add-code-shown'),
       mainAxisSize: MainAxisSize.min,
@@ -96,10 +93,6 @@ class AddCodeShown extends StatelessWidget {
                 style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: 2, fontFeatures: [FontFeature.tabularFigures()])),
           ),
         ),
-        const SizedBox(height: 12),
-        Text(l.addCodeShowHint, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
-        const SizedBox(height: 22),
-        _OneTry(text: l.addCodeTries),
       ],
     );
   }
@@ -208,20 +201,5 @@ class AddCodeEnded extends StatelessWidget {
         Text(lead, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
       ],
     );
-  }
-}
-
-class _OneTry extends StatelessWidget {
-  const _OneTry({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = CsColors.of(context);
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(Icons.lock_rounded, size: 18, color: c.muted),
-      const SizedBox(width: 8),
-      Expanded(child: Text(text, style: TextStyle(color: c.muted, fontSize: CsType.footnote, height: 1.35))),
-    ]);
   }
 }
