@@ -91,6 +91,12 @@ abstract final class TestLogin {
     }
   }
 
+  /// Whether the vault open now is this test build's test vault.
+  static Future<bool> isOpen() async {
+    final open = rust.openVaultInfo()?.id;
+    return open != null && await vaultId() == open;
+  }
+
   /// Delete the test vault (owner 2026-11-01: no password to type for it). False when
   /// [id] is not the test vault or it did not go.
   static Future<bool> delete(String libraryDir, String id) async {

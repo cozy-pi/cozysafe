@@ -48,7 +48,9 @@ why.
 
 Android builds for testers have **Test sign-in**: a test vault whose password is fixed
 (`123456789`), for trying the app only. Anyone holding that phone opens the test vault;
-its note says never to keep anything real in it. Builds for everyone are made without it
+its note says never to keep anything real in it. While it is open, screenshots and
+recordings are allowed (testers send them); every other vault stays protected. Builds for
+everyone are made without it
 (`release.yml`, `test_login`).
 
 ## When this page changes

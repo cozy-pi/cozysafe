@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import '../platform.dart';
 import '../screens/settings.dart' show Settings;
 import '../sync/awake.dart';
+import '../test_login.dart';
 
 /// Around a screen that shows the 24 words, so they can be copied out by hand (owner
 /// 2026-10-30): the screen stays on and the vault does not lock for lack of touches for
@@ -50,7 +51,8 @@ class _WordsAwakeState extends State<WordsAwake> {
 
   Future<void> _secure(bool on) async {
     if (!Device.android && !Device.iOS) return;
-    if (!on) return Settings.apply();
+    // The test vault of a test build: screenshots always (owner 2026-11-02).
+    if (!on || await TestLogin.isOpen()) return Settings.apply();
     try {
       await _privacy.invokeMethod<void>('setSecure', true);
     } catch (_) {}

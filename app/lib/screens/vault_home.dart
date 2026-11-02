@@ -253,6 +253,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     rust.purgeExpired(nowMs: nowMs()).catchError((_) => 0).whenComplete(_reload);
     // Google Drive kept up to date while the vault is open, when turned on.
     AutoSync.start(onSynced: _reload);
+    Settings.apply(); // screenshots allowed while a test build's test vault is open
     _bioOn = rust.biometricEnabled();
     BiometricUnlock.available().then((k) {
       if (mounted) setState(() => _canBio = k != null);
@@ -412,6 +413,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   @override
   void dispose() {
     AutoSync.stop();
+    Settings.apply();
     PrivacyCover.onScreenshot = null;
     _drag.dispose();
     _addScroll.dispose();
@@ -534,6 +536,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         } catch (_) {} // locking must not wait on a failed write
       }
       rust.lock();
+      Settings.apply();
       LockGuard.clearCopied();
       clearTemp(); // the video being played, and anything else decrypted for a moment
       _thumbnails.clear();
@@ -557,6 +560,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         _locked = false;
       });
       vaultLock.set(false);
+      Settings.apply();
       _reload();
       _touch();
     }

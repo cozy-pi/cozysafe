@@ -38,6 +38,7 @@ import 'tour.dart';
 import '../sync/sync_screen.dart';
 import 'delete_vault.dart';
 import 'vault_manager.dart';
+import '../test_login.dart';
 import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
 import 'top_secret_page.dart';
@@ -79,11 +80,14 @@ abstract final class Settings {
     await apply();
   }
 
-  /// Called at start-up: the window starts protected, this turns it off if asked.
+  /// Called at start-up, and as a vault opens or locks: the window starts protected, this
+  /// turns it off if asked, or while the test vault of a test build is open (owner
+  /// 2026-11-02: testers send screenshots of it; it holds nothing real).
   static Future<void> apply() async {
     if (!Device.android && !Device.iOS) return;
+    final test = await TestLogin.isOpen();
     try {
-      await _privacy.invokeMethod<void>('setSecure', blockScreenshots);
+      await _privacy.invokeMethod<void>('setSecure', blockScreenshots && !test);
     } catch (_) {}
   }
 }
