@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.11 (2026-11-02)
+
+### Changed
+- Android test builds: screenshots and screen recordings work while the test vault is
+  open, the 24 words too, whatever the setting says, so testers can send what they
+  see. Every other vault is still protected.
+
 ## 0.2.10 (2026-11-02)
 
 ### Changed
