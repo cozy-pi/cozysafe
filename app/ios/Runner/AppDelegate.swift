@@ -449,7 +449,7 @@ import UniformTypeIdentifiers
 extension AppDelegate {
   /// Open with (owner 2026-11-01: "open is open, share is share"). iOS has no "Open
   /// with" list of apps, so a file is opened the way the Files app opens it: Quick Look,
-  /// full screen, whose own share button reaches other apps. Quick Look draws in a system
+  /// in a card, whose own share button reaches other apps. Quick Look draws in a system
   /// extension, not in this process, so the vault still decodes nothing (ADR 0006). A
   /// kind Quick Look cannot show gets the share sheet with sending, copying and saving
   /// taken away (share extensions of other apps cannot be). False (Dart falls back to the
@@ -465,7 +465,11 @@ extension AppDelegate {
       viewer.dataSource = item
       viewer.delegate = item
       openItem = item
-      viewer.modalPresentationStyle = .fullScreen
+      // A card, not full screen (owner 2026-11-02: full screen hid its bar until a tap, and
+      // nothing said the app was still there): the app shows above it, a swipe down closes.
+      viewer.modalPresentationStyle = .pageSheet
+      // Swiped down: Quick Look's own dismiss call may not come, so the sheet says so too.
+      viewer.presentationController?.delegate = item
       top.present(viewer, animated: true)
       return
     }
@@ -830,7 +834,8 @@ enum HwKey {
 
 /// The one file Quick Look shows for Open with; tells the app when the viewer is gone, so
 /// the decrypted copy can be removed.
-final class OpenItem: NSObject, QLPreviewControllerDataSource, QLPreviewControllerDelegate {
+final class OpenItem: NSObject, QLPreviewControllerDataSource, QLPreviewControllerDelegate,
+  UIAdaptivePresentationControllerDelegate {
   private let url: URL
   private let closed: () -> Void
   init(url: URL, closed: @escaping () -> Void) {
@@ -846,4 +851,6 @@ final class OpenItem: NSObject, QLPreviewControllerDataSource, QLPreviewControll
     .disabled
   }
   func previewControllerDidDismiss(_ controller: QLPreviewController) { closed() }
+  /// The card swiped away (either call may come; the second finds nothing left to do).
+  func presentationControllerDidDismiss(_ presentationController: UIPresentationController) { closed() }
 }

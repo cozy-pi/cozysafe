@@ -43,8 +43,10 @@ read-only SQLite connection), and debug mode turns on without the owner check.
 **Owner:** "open is open, share is share": tapping an item in Top Secret Mode, or a file
 the app cannot show, opens it; the Share button stays the full share sheet. Android keeps
 its own "Open with". iPhone has no list of apps that open a file (every way out is the
-share sheet), so the file opens in Quick Look, full screen, as the Files app opens it; its
-own share button reaches other apps. Quick Look draws in a system extension, not in the
+share sheet), so the file opens in Quick Look, as the Files app opens it; its
+own share button reaches other apps. It opens as a card, not full screen (owner
+2026-11-02: full screen hid its bar until a tap and did not show the app was still
+there); a swipe down closes it. Quick Look draws in a system extension, not in the
 app, so ADR 0006 holds (the app decodes nothing; the decrypted copy is removed when the
 viewer closes). A kind Quick Look cannot show gets the share sheet without AirDrop,
 Messages, Mail, copy, print and save. Copies leave with an extension from their kind.
