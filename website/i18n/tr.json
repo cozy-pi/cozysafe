@@ -50,7 +50,7 @@
   "f_priv": "Gizlilik",
   "h_see": "Her şey tek bir kasada",
   "p_see": "Notlar, fotoğraflar, videolar, ses kayıtları ve her türlü dosya. Bunlar uygulamanın gerçek ekranları, örnek içerikle.",
-  "s_lock": "<strong>Face ID, parmak izi veya PIN ile açılır.</strong> Kilit ekranı içeride ne olduğunu hiç göstermez.",
+  "s_lock": "<strong>Face ID, parmak izi veya parola ile açılır.</strong> Kilit ekranı içeride ne olduğunu hiç göstermez.",
   "s_library": "<strong>Fotoğraflar ve videolar.</strong> Uygulamanın kendi kamerasıyla çekin: fotoğraf arşivinize asla düşmezler.",
   "s_notes": "<strong>Notlar.</strong> Listeler ve arama yalnızca başlıkları gösterir, yanınızdaki kimse okuyamaz.",
   "s_voice": "<strong>Ses kayıtları,</strong> kaydı durdurduğunuz anda şifrelenir.",

@@ -55,6 +55,7 @@ phc = { path = "../../third_party/rust/phc-0.6.1" }
 pkg-config = { path = "../../third_party/rust/pkg-config-0.3.34" }
 poly1305 = { path = "../../third_party/rust/poly1305-0.8.0" }
 rand_core = { path = "../../third_party/rust/rand_core-0.6.4" }
+ring = { path = "../../third_party/rust/ring-0.17.14" }
 rusqlite = { path = "../../third_party/rust/rusqlite-0.40.2" }
 sha2 = { path = "../../third_party/rust/sha2-0.11.1" }
 shlex = { path = "../../third_party/rust/shlex-2.0.1" }
@@ -62,6 +63,7 @@ smallvec = { path = "../../third_party/rust/smallvec-1.16.3" }
 subtle = { path = "../../third_party/rust/subtle-2.6.1" }
 typenum = { path = "../../third_party/rust/typenum-1.20.1" }
 universal-hash = { path = "../../third_party/rust/universal-hash-0.5.1" }
+untrusted = { path = "../../third_party/rust/untrusted-0.9.0" }
 vcpkg = { path = "../../third_party/rust/vcpkg-0.2.15" }
 version_check = { path = "../../third_party/rust/version_check-0.9.5" }
 zeroize = { path = "../../third_party/rust/zeroize-1.9.1" }

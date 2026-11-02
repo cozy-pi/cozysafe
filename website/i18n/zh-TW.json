@@ -50,7 +50,7 @@
   "f_priv": "隱私權",
   "h_see": "一個保險箱，收納所有內容",
   "p_see": "筆記、照片、影片、語音備忘錄以及任何檔案。以下是 App 的實際畫面，內容為範例。",
-  "s_lock": "<strong>用 Face ID、指紋或 PIN 碼開啟。</strong>鎖定畫面不會透露任何內容。",
+  "s_lock": "<strong>用 Face ID、指紋或密碼開啟。</strong>鎖定畫面不會透露任何內容。",
   "s_library": "<strong>照片和影片。</strong>用 App 內建的相機拍攝，絕不會進入手機的相簿。",
   "s_notes": "<strong>筆記。</strong>列表和搜尋只顯示標題，旁人看不到內容。",
   "s_voice": "<strong>語音備忘錄，</strong>停止錄音的那一刻就完成加密。",

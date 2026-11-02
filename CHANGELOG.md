@@ -4,6 +4,19 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.10 (2026-11-02)
+
+### Changed
+- iPhone: the app's files are also locked by iOS Data Protection while the phone is
+  locked (temporary decrypted copies at once; vault files except those a sync has open).
+- The network's own cryptography (ring) is built from a copy kept in the source and
+  checked byte for byte, like the core.
+
+### Fixed
+- Restoring a Top secret vault while an everyday one was open in this run said it failed;
+  it now says to open the app again.
+- The website no longer says the vault opens with a PIN.
+
 ## 0.2.9 (2026-11-02)
 
 ### Added

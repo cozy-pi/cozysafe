@@ -75,7 +75,11 @@ path: what it needs beyond those is written here, in our own code.
   exactly as published with its upstream checksum or signature, so it can be checked
   again at any time. A change we need goes in a separate patch file, never into the
   copy. Only the compilers (Rust, Xcode, the Android NDK) come from outside, pinned by
-  version. How: the copies are wired in with `[patch.crates-io]` (`Cargo.toml`,
+  version. Since 2026-11-02 the network's own cryptography is a copy too: `ring` (X25519
+  and SHA-256 for adding a device, TLS for Google Drive) and `untrusted`, checked byte for
+  byte like the core; only the Windows API declarations ring takes on Windows on ARM
+  (`windows-sys` and its link libraries) come from crates.io, pinned by the lock file.
+  How: the copies are wired in with `[patch.crates-io]` (`Cargo.toml`,
   `app/rust/Cargo.toml`), so the app is built from them too; CI builds
   `tools/core-offline` from an empty cargo home and fails if a single crate is downloaded
   (cargo still reads the crates.io index, the list of versions, but no source). Two
@@ -276,7 +280,8 @@ validate a build with Apple instead of uploading it (`upload: false`).
   `getaddrinfo`. The sign-in's loopback listener (127.0.0.1 only) is in `oauth.rs` too;
   Dart opens the browser and parses Google's answers but opens no connection itself,
   so the Dart guard stays as it is. Adding a device by its 8-digit code (ADR 0003,
-  point 11) uses ring's X25519 and SHA-256 directly from `cs-net` (no new crate). TLS is
+  point 11) uses ring's X25519 and SHA-256 directly from `cs-net` (no new crate; ring is
+  a copy in `third_party/rust/`, see above). TLS is
   rustls with ring and Mozilla's roots
   bundled (6 crates; a ready-made HTTP client pulled in 44, so the few HTTP/1.1 requests
   are written in cs-net, with tests for chunked bodies and size caps). Up to four

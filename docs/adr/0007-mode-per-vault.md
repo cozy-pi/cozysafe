@@ -53,6 +53,15 @@ the others as locked tiles with their size (names, icons and modes stay sealed).
   still holds the vault can send it up again; the app says so. No mark is left on Drive:
   a device that synced over Wi-Fi would bring the vault back anyway (owner).
 
+## Known limit (2026-11-02)
+
+The mode is sealed in the vault's meta, in its lock. An app from before modes (0.1.x)
+that changes the vault's icon writes the meta without the mode, and a device that joins
+from that newer lock gets an everyday vault. An old app cannot be changed; every build
+since 0.2.0 keeps the mode, testers are on those builds, and from the beta on the format
+is frozen (old vaults and backups keep opening). The vault on the devices that hold it
+is not affected: each keeps its own lock.
+
 ## Not changed
 
 How a vault is locked (password and the 24 words), sync and backups, and the rule that

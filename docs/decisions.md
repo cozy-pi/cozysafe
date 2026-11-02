@@ -4,6 +4,16 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-02 (later) — Ready for beta: file protection, ring copied, formats frozen
+
+**Owner:** before the beta: iOS Data Protection on (vaults *complete unless open*,
+temporary copies *complete*); the website drops "PIN"; restoring a Top secret vault in an
+everyday run shows the restart page; ring and untrusted are copies in `third_party/rust/`
+like the core; `docs/threat-model.md` written. Test sign-in stays on Android test builds.
+From the beta on, the storage formats are frozen: every later version opens the vaults
+and backups made by the beta builds. A 0.1.x app can drop a vault's Top secret mode from
+its lock (ADR 0007, known limit); not fixable in old apps.
+
 ## 2026-11-02 — Vault facts; Manage vaults in Settings again; ask before stopping a sync
 
 **Owner:** Settings has Manage vaults again, beside the lock screen's. No ⋯ on a vault: a

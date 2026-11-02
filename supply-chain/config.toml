@@ -133,6 +133,9 @@ audit-as-crates-io = true
 [policy.rand_core]
 audit-as-crates-io = true
 
+[policy.ring]
+audit-as-crates-io = true
+
 [policy.rusqlite]
 audit-as-crates-io = true
 
@@ -152,6 +155,9 @@ audit-as-crates-io = true
 audit-as-crates-io = true
 
 [policy.universal-hash]
+audit-as-crates-io = true
+
+[policy.untrusted]
 audit-as-crates-io = true
 
 [policy.vcpkg]
