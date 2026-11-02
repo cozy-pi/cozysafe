@@ -4,6 +4,18 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.14 (2026-11-02)
+
+### Changed
+- The 24 words can be copied and saved to a file again, and opened from a file or
+  pasted wherever they are typed back. No more copying them out by hand. They are
+  still never kept in iCloud or your Google account.
+- The check after the 24 words asks for four other words each time you come back to it.
+
+### Removed
+- Recovery Keys of the old kind (`CS1-…`, before 21 Oct 2026) and the move of the very
+  first previews' key file. A vault still on such a key no longer opens.
+
 ## 0.2.13 (2026-11-02)
 
 ### Changed
