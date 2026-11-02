@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../debug_log.dart';
 import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/sync.dart' as sync;
 import '../src/rust/api/vault.dart' as rust;
 import '../screens/top_secret_page.dart' show restartForMode;
 import '../screens/common.dart';
+import '../screens/unlock.dart' show UnlockScreen;
 import '../widgets/readable.dart';
 import '../widgets/toast.dart';
 import '../widgets/words_awake.dart';
@@ -131,7 +133,7 @@ class _CountdownState extends State<_Countdown> {
 /// The new device, with no vault in `dir`, is added: ask before looking on the Wi-Fi,
 /// then find the old device, the code, the password, restore. Returns the vault opened
 /// here, its 24 words kept under the library it went into; null otherwise.
-Future<rust.VaultInfo?> restoreByCode(BuildContext context, {required String dir}) async {
+Future<rust.VaultInfo?> restoreByCode(BuildContext context, {required String libraryDir, required String dir}) async {
   final l = AppLocalizations.of(context);
   final ip = await localAddress();
   if (!context.mounted) return null;
@@ -142,6 +144,8 @@ Future<rust.VaultInfo?> restoreByCode(BuildContext context, {required String dir
   if (!await allowConnection(context, l.syncAllowFindRestore)) return null;
   final name = await deviceName();
   if (!context.mounted) return null;
+  // How the run ended decides where the person goes after the page.
+  sync.SyncStep? last;
   await Navigator.of(context).push(MaterialPageRoute<void>(
     builder: (_) => Readable(child: KeepAwake(who: 'add-code', child: Scaffold(
       appBar: AppBar(title: Text(l.restoreFromDevice)),
@@ -149,7 +153,10 @@ Future<rust.VaultInfo?> restoreByCode(BuildContext context, {required String dir
         top: false,
         child: SyncProgress(
           restoring: true,
-          events: sync.p2PAddRestore(dir: dir, ip: ip, name: name),
+          events: sync.p2PAddRestore(dir: dir, ip: ip, name: name).map((e) {
+            last = e.kind;
+            return e;
+          }),
           onSynced: () {},
           waiting: const AddCodeSearching(),
         ),
@@ -158,10 +165,22 @@ Future<rust.VaultInfo?> restoreByCode(BuildContext context, {required String dir
   ));
   // The vault came in whenever its words did: keep them first, whatever comes next.
   final key = sync.p2PInviteKey();
+  DebugLog.add('restore by code: page closed after ${last?.name}, words ${key != null}');
   if (key == null) return null;
   await SecretKeyStore.write(key, dir);
   final vault = rust.openVaultInfo();
+  DebugLog.add('restore by code: vault open ${vault != null}');
+  if (vault != null || !context.mounted) return vault;
   // Top secret after an everyday vault in this run: the app starts again, then it opens.
-  if (vault == null && context.mounted) await restartForMode(context);
-  return vault;
+  if (last == sync.SyncStep.restoredRestart) {
+    await restartForMode(context);
+    return null;
+  }
+  // In but not open (owner 2026-11-02: a restore beside the test vault ended on the
+  // first screen): the lock screen, where its password opens it.
+  await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+    MaterialPageRoute<void>(builder: (_) => UnlockScreen(libraryDir: libraryDir)),
+    (_) => false,
+  );
+  return null;
 }

@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../biometric.dart';
+import '../debug_log.dart';
 import '../l10n/app_localizations.dart';
 import '../key_backup.dart';
 import '../secret_key_store.dart';
@@ -35,7 +36,12 @@ String restoreTarget(String libraryDir) =>
 /// The vault is open here and its words kept: offer Face ID, go in.
 Future<void> openRestored(BuildContext context, String libraryDir, rust.VaultInfo vault) async {
   TopSecretMode.opened(vault);
-  await offerBiometric(context);
+  // The question failing (a fingerprint error) must not keep the person out of the vault.
+  try {
+    await offerBiometric(context);
+  } catch (e) {
+    DebugLog.add('restore: biometric offer failed: $e');
+  }
   if (!context.mounted) return;
   await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
     MaterialPageRoute<void>(builder: (_) => VaultHomeScreen(libraryDir: libraryDir, vault: vault, tour: TourKind.restored)),
@@ -108,7 +114,7 @@ class _RestorePickScreenState extends State<RestorePickScreen> {
           note: l.restoreFromDeviceInviteNote,
           // The old device: Sync → Local network → Set up a new device (ADR 0003, 11).
           onTap: () async {
-            final vault = await restoreByCode(context, dir: restoreTarget(widget.libraryDir));
+            final vault = await restoreByCode(context, libraryDir: widget.libraryDir, dir: restoreTarget(widget.libraryDir));
             if (vault != null && context.mounted) await openRestored(context, widget.libraryDir, vault);
           },
         ),

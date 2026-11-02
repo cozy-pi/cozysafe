@@ -4,6 +4,17 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.12 (2026-11-02)
+
+### Changed
+- Setting up a new device: the 8-digit code connects as soon as the last digit is
+  typed; no Next or Close button under it (Back leaves, and ends the connection).
+
+### Fixed
+- Restoring from another device on a phone that already had a vault (such as the
+  test vault) could end on the first screen instead of in the restored vault. It now
+  always ends in the vault, or on the lock screen where its password opens it.
+
 ## 0.2.11 (2026-11-02)
 
 ### Changed
