@@ -870,7 +870,6 @@
   "addCodeShowHint": "Kode ini hanya untuk kali ini. Jangan bacakan kepada orang lain.",
   "addCodeSearching": "Mencari perangkat Anda yang lain di Wi-Fi ini…",
   "addCodeEnterTitle": "Ketik kode dari perangkat Anda yang lain",
-  "addCodeEnterLead": "Perangkat Anda yang lain menampilkan 8 angka. Ketik angka itu untuk memastikan kedua perangkat terhubung langsung satu sama lain.",
   "addCodeWrong": "Kode tidak cocok",
   "addCodeWrongLead": "Salah ketik 3 kali, atau ada perangkat lain di tengah. Koneksi ditutup dan tidak ada yang dikirim. Mulai lagi di kedua perangkat.",
   "addPasswordWrong": "Kata sandi salah",

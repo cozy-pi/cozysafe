@@ -124,6 +124,10 @@ class _SyncProgressState extends State<SyncProgress>
     sync.SyncStep.expired,
     sync.SyncStep.locked,
     sync.SyncStep.restoredRestart,
+    // Waiting on a code (shown on one device, typed on the other): nothing went wrong
+    // (owner 2026-11-02: "error code: askCode" with Copy details under the field).
+    sync.SyncStep.addCode,
+    sync.SyncStep.askCode,
   };
 
   bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;

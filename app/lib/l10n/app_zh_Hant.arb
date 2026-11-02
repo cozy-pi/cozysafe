@@ -870,7 +870,6 @@
   "addCodeShowHint": "此代碼僅限這次使用。請勿唸給其他人聽。",
   "addCodeSearching": "正在此 Wi-Fi 上尋找你的另一台裝置…",
   "addCodeEnterTitle": "輸入另一台裝置上的代碼",
-  "addCodeEnterLead": "你的另一台裝置上顯示了 8 位數字。輸入這些數字，以確認兩台裝置正在直接通訊。",
   "addCodeWrong": "代碼不符",
   "addCodeWrongLead": "已輸錯 3 次，或有其他裝置介入中間。連線已關閉，未傳送任何內容。請在兩台裝置上重新開始。",
   "addPasswordWrong": "密碼錯誤",

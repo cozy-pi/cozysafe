@@ -133,7 +133,6 @@ class _AddCodeEntryState extends State<AddCodeEntry> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     return Column(
       key: const ValueKey('add-code-entry'),
       mainAxisSize: MainAxisSize.min,
@@ -142,8 +141,6 @@ class _AddCodeEntryState extends State<AddCodeEntry> {
         const SyncLink(moving: false),
         const SizedBox(height: 22),
         Text(l.addCodeEnterTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700, height: 1.3)),
-        const SizedBox(height: 8),
-        Text(l.addCodeEnterLead, textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
         const SizedBox(height: 18),
         TextField(
           key: const ValueKey('add-code-field'),

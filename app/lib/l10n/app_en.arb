@@ -1085,7 +1085,6 @@
   "addCodeShowHint": "The code is for this time only. Do not read it out to anyone else.",
   "addCodeSearching": "Looking for your other device on this Wi-Fi…",
   "addCodeEnterTitle": "Type the code from your other device",
-  "addCodeEnterLead": "Your other device shows 8 digits. Type them to make sure the two devices are talking to each other directly.",
   "addCodeWrong": "The code does not match",
   "addCodeWrongLead": "Typed wrong 3 times, or another device is in the middle. The connection is closed and nothing was sent. Start again on both devices.",
   "addPasswordWrong": "Wrong password",

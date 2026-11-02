@@ -870,7 +870,6 @@
   "addCodeShowHint": "Kod yalnızca bu sefer için geçerli. Başka kimseye okumayın.",
   "addCodeSearching": "Diğer cihazınız bu Wi-Fi'da aranıyor…",
   "addCodeEnterTitle": "Diğer cihazınızdaki kodu girin",
-  "addCodeEnterLead": "Diğer cihazınız 8 rakam gösteriyor. İki cihazın doğrudan birbiriyle konuştuğundan emin olmak için bu rakamları girin.",
   "addCodeWrong": "Kod eşleşmiyor",
   "addCodeWrongLead": "3 kez yanlış girildi ya da araya başka bir cihaz girdi. Bağlantı kapatıldı, hiçbir şey gönderilmedi. İki cihazda da baştan başlayın.",
   "addPasswordWrong": "Yanlış parola",

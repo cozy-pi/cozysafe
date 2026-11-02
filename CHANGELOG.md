@@ -8,7 +8,8 @@ Dates are UTC.
 
 ### Changed
 - Setting up a new device: the 8-digit code connects as soon as the last digit is
-  typed; no Next or Close button under it (Back leaves, and ends the connection).
+  typed; no Next or Close button, explanation, or error code under it (Back leaves,
+  and ends the connection).
 
 ### Fixed
 - Restoring from another device on a phone that already had a vault (such as the

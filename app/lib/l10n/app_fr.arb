@@ -870,7 +870,6 @@
   "addCodeShowHint": "Ce code ne sert que cette fois. Ne le lisez à personne d’autre.",
   "addCodeSearching": "Recherche de votre autre appareil sur ce Wi-Fi…",
   "addCodeEnterTitle": "Saisissez le code de votre autre appareil",
-  "addCodeEnterLead": "Votre autre appareil affiche 8 chiffres. Saisissez-les pour vérifier que les deux appareils communiquent directement.",
   "addCodeWrong": "Le code ne correspond pas",
   "addCodeWrongLead": "Code erroné 3 fois, ou un autre appareil s’est interposé. La connexion est fermée et rien n’a été envoyé. Recommencez sur les deux appareils.",
   "addPasswordWrong": "Mot de passe incorrect",

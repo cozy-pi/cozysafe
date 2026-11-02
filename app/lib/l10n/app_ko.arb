@@ -870,7 +870,6 @@
   "addCodeShowHint": "이 코드는 이번 한 번만 쓸 수 있습니다. 다른 사람에게 읽어 주지 마세요.",
   "addCodeSearching": "이 Wi-Fi에서 다른 기기를 찾는 중…",
   "addCodeEnterTitle": "다른 기기에 표시된 코드를 입력하세요",
-  "addCodeEnterLead": "다른 기기에 숫자 8개가 표시됩니다. 두 기기가 서로 직접 연결되어 있는지 확인하려면 이 숫자를 입력하세요.",
   "addCodeWrong": "코드가 일치하지 않습니다",
   "addCodeWrongLead": "3번 잘못 입력했거나 다른 기기가 중간에 끼어들었습니다. 연결이 닫혔으며 아무것도 보내지 않았습니다. 두 기기에서 모두 다시 시작하세요.",
   "addPasswordWrong": "비밀번호가 틀렸습니다",

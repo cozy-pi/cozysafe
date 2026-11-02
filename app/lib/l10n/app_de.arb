@@ -870,7 +870,6 @@
   "addCodeShowHint": "Der Code gilt nur für dieses Mal. Lesen Sie ihn niemandem sonst vor.",
   "addCodeSearching": "Suche nach Ihrem anderen Gerät in diesem WLAN…",
   "addCodeEnterTitle": "Code von Ihrem anderen Gerät eingeben",
-  "addCodeEnterLead": "Ihr anderes Gerät zeigt 8 Ziffern. Geben Sie sie ein, damit sicher ist, dass die beiden Geräte direkt miteinander verbunden sind.",
   "addCodeWrong": "Der Code stimmt nicht",
   "addCodeWrongLead": "3-mal falsch eingegeben, oder ein anderes Gerät hat sich dazwischengeschaltet. Die Verbindung ist geschlossen, es wurde nichts gesendet. Beginnen Sie auf beiden Geräten neu.",
   "addPasswordWrong": "Falsches Passwort",

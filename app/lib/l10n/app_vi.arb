@@ -884,7 +884,6 @@
   "addCodeShowHint": "Mã chỉ dùng cho lần này. Đừng đọc cho ai khác.",
   "addCodeSearching": "Đang tìm máy cũ trên Wi-Fi này…",
   "addCodeEnterTitle": "Gõ mã trên máy cũ",
-  "addCodeEnterLead": "Máy cũ đang hiện 8 số. Gõ đúng 8 số đó để chắc chắn hai máy đang nói chuyện trực tiếp với nhau.",
   "addCodeWrong": "Mã không khớp",
   "addCodeWrongLead": "Gõ sai 3 lần, hoặc có máy lạ chen vào giữa. Kết nối đã đóng, không có gì được gửi đi. Bắt đầu lại trên cả hai máy.",
   "addPasswordWrong": "Sai mật khẩu",

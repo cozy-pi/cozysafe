@@ -870,7 +870,6 @@
   "addCodeShowHint": "O código vale só para esta vez. Não o leia para mais ninguém.",
   "addCodeSearching": "Procurando seu outro dispositivo nesta Wi-Fi…",
   "addCodeEnterTitle": "Digite o código do seu outro dispositivo",
-  "addCodeEnterLead": "Seu outro dispositivo mostra 8 dígitos. Digite-os para garantir que os dois dispositivos estão se comunicando diretamente.",
   "addCodeWrong": "O código não confere",
   "addCodeWrongLead": "Digitado errado 3 vezes, ou outro dispositivo se colocou no meio. A conexão foi fechada e nada foi enviado. Comece de novo nos dois dispositivos.",
   "addPasswordWrong": "Senha incorreta",
