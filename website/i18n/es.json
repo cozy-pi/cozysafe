@@ -50,7 +50,7 @@
   "f_priv": "Privacidad",
   "h_see": "Todo en una sola caja fuerte",
   "p_see": "Notas, fotos, vídeos, notas de voz y cualquier archivo. Son las pantallas reales de la app, con contenido de ejemplo.",
-  "s_lock": "<strong>Se abre con Face ID, huella dactilar o PIN.</strong> La pantalla de bloqueo no muestra nada de lo que hay dentro.",
+  "s_lock": "<strong>Se abre con Face ID, huella dactilar o la contraseña.</strong> La pantalla de bloqueo no muestra nada de lo que hay dentro.",
   "s_library": "<strong>Fotos y vídeos.</strong> Hazlos con la cámara propia de la app: nunca llegan a tu galería.",
   "s_notes": "<strong>Notas.</strong> Las listas y la búsqueda solo muestran títulos, así nadie a tu lado puede leerlas.",
   "s_voice": "<strong>Notas de voz,</strong> cifradas en cuanto dejas de grabar.",

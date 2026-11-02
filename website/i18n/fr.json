@@ -50,7 +50,7 @@
   "f_priv": "Confidentialité",
   "h_see": "Tout dans un seul coffre",
   "p_see": "Notes, photos, vidéos, mémos vocaux et n'importe quel fichier. Voici les vrais écrans de l'app, avec du contenu d'exemple.",
-  "s_lock": "<strong>S'ouvre avec Face ID, une empreinte ou un code PIN.</strong> L'écran de verrouillage ne laisse rien voir du contenu.",
+  "s_lock": "<strong>S'ouvre avec Face ID, une empreinte ou le mot de passe.</strong> L'écran de verrouillage ne laisse rien voir du contenu.",
   "s_library": "<strong>Photos et vidéos.</strong> Prenez-les avec l'appareil photo de l'app : elles n'arrivent jamais dans votre photothèque.",
   "s_notes": "<strong>Notes.</strong> Les listes et la recherche n'affichent que les titres : personne à côté ne peut les lire.",
   "s_voice": "<strong>Mémos vocaux,</strong> chiffrés dès que vous arrêtez l'enregistrement.",

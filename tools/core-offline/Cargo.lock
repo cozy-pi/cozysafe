@@ -518,3 +518,11 @@ dependencies = [
 [[package]]
 name = "zeroize"
 version = "1.9.1"
+
+[[patch.unused]]
+name = "ring"
+version = "0.17.14"
+
+[[patch.unused]]
+name = "untrusted"
+version = "0.9.0"

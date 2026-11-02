@@ -50,7 +50,7 @@
   "f_priv": "Quyền riêng tư",
   "h_see": "Mọi thứ trong một két",
   "p_see": "Ghi chú, ảnh, video, ghi âm và tệp bất kỳ. Đây là màn hình thật của app, với nội dung mẫu.",
-  "s_lock": "<strong>Mở bằng Face ID, vân tay hoặc mã PIN.</strong> Màn khoá không lộ chút gì bên trong.",
+  "s_lock": "<strong>Mở bằng Face ID, vân tay hoặc mật khẩu.</strong> Màn khoá không lộ chút gì bên trong.",
   "s_library": "<strong>Ảnh và video.</strong> Chụp bằng camera riêng của app: không bao giờ lọt vào thư viện ảnh của máy.",
   "s_notes": "<strong>Ghi chú.</strong> Danh sách và tìm kiếm chỉ hiện tiêu đề, người đứng cạnh không đọc được.",
   "s_voice": "<strong>Ghi âm,</strong> được mã hoá ngay khi bạn bấm dừng.",

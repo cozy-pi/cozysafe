@@ -300,6 +300,17 @@ person imports. A decoder is where a phone gets taken over (libwebp 2023, FORCED
   content of anything but notes, and thumbnails made from outside data. Turning it on or
   off asks for the owner and restarts the app.
 
+## Files at rest on an iPhone (2026-11-02)
+
+On top of the vault's own encryption, iOS Data Protection locks the app's files with the
+phone's own key (`AppDelegate.protectFiles`). The vaults (Application Support) are
+*complete unless open*: once the phone locks, no file can be opened until it is unlocked
+again, except those already open (the index, a file a sync is writing), so a sync that
+finishes in the background still can; new files can still be made. Temporary decrypted
+copies (tmp, Caches) are *complete*: unreadable as soon as the phone locks. Files made
+before 0.2.10 get it once at start; folders get it at every start. Android has no such
+per-file class; its file-based encryption locks app data until the first unlock.
+
 ## OS backups
 
 The library is kept out of the system's own backups (2026-10-25). iOS: the library

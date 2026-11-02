@@ -46,6 +46,7 @@ import UniformTypeIdentifiers
     center.addObserver(self, selector: #selector(screenshotTaken),
                        name: UIApplication.userDidTakeScreenshotNotification, object: nil)
     excludeLibraryFromBackup()
+    protectFiles()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -61,6 +62,42 @@ import UniformTypeIdentifiers
     var values = URLResourceValues()
     values.isExcludedFromBackup = true
     try? dir.setResourceValues(values)
+  }
+
+  /// iOS Data Protection on the app's files (docs/security.md, "Files at rest"): on top
+  /// of the vault's own encryption, the phone's key also locks them once it is locked.
+  /// - The vaults (Application Support): complete unless open. A file the app has open
+  ///   (the index, a file a sync is writing) stays usable for the sync that finishes in
+  ///   the background after the phone locks; any other file cannot be read until it is
+  ///   unlocked again, and new files are still made (a sync bringing items in).
+  /// - Temporary copies (decrypted, to open in another app; tmp and Caches): complete,
+  ///   unreadable as soon as the phone locks.
+  /// New files take their folder's class; files made before this version get it once
+  /// (`fileProtection` in UserDefaults), and the folders get it at every start.
+  private func protectFiles() {
+    let fm = FileManager.default
+    var plans: [(URL, FileProtectionType)] = []
+    if let support = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+      plans.append((support, .completeUnlessOpen))
+    }
+    if let caches = fm.urls(for: .cachesDirectory, in: .userDomainMask).first {
+      plans.append((caches, .complete))
+    }
+    plans.append((URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true), .complete))
+    let done = UserDefaults.standard.integer(forKey: "fileProtection") >= 1
+    for (dir, level) in plans {
+      try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+      try? fm.setAttributes([.protectionKey: level], ofItemAtPath: dir.path)
+      if done { continue }
+      // Once: everything already inside, in the background (a vault may hold many files).
+      DispatchQueue.global(qos: .utility).async {
+        guard let all = fm.enumerator(at: dir, includingPropertiesForKeys: nil) else { return }
+        for case let url as URL in all {
+          try? fm.setAttributes([.protectionKey: level], ofItemAtPath: url.path)
+        }
+      }
+    }
+    if !done { UserDefaults.standard.set(1, forKey: "fileProtection") }
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {

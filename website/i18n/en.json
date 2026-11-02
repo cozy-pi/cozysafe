@@ -50,7 +50,7 @@
   "f_priv": "Privacy",
   "h_see": "Everything in one vault",
   "p_see": "Notes, photos, videos, voice memos and any file. These are the app's real screens, with sample content.",
-  "s_lock": "<strong>Opens with Face ID, a fingerprint or a PIN.</strong> The lock screen shows nothing of what is inside.",
+  "s_lock": "<strong>Opens with Face ID, a fingerprint or the password.</strong> The lock screen shows nothing of what is inside.",
   "s_library": "<strong>Photos and videos.</strong> Shoot them with the app's own camera: they never reach your photo library.",
   "s_notes": "<strong>Notes.</strong> Lists and search show titles only, so nobody nearby can read them.",
   "s_voice": "<strong>Voice memos,</strong> encrypted the moment you stop recording.",

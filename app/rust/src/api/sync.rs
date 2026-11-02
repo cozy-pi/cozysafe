@@ -624,6 +624,9 @@ fn restored(
             super::vault::use_secret(dir, key);
             match super::vault::unlock(dir.to_string_lossy().into_owned(), password.to_owned()) {
                 Ok(Some(_)) => step(SyncStep::Done),
+                // Top secret, and this run opened an everyday vault: in, and the app starts
+                // again before it opens (it said Failed before 0.2.10).
+                Err(VaultError::RestartForMode) => step(SyncStep::RestoredRestart),
                 _ => step(SyncStep::Failed),
             }
         }

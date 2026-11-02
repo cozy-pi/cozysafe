@@ -50,7 +50,7 @@
   "f_priv": "隐私政策",
   "h_see": "一个保险箱，装下所有内容",
   "p_see": "笔记、照片、视频、语音备忘录以及任何文件。以下是应用的真实界面，内容为示例。",
-  "s_lock": "<strong>用 Face ID、指纹或 PIN 码打开。</strong>锁定界面不会透露任何内容。",
+  "s_lock": "<strong>用 Face ID、指纹或密码打开。</strong>锁定界面不会透露任何内容。",
   "s_library": "<strong>照片和视频。</strong>用应用自带的相机拍摄，绝不会进入系统相册。",
   "s_notes": "<strong>笔记。</strong>列表和搜索只显示标题，旁人看不到内容。",
   "s_voice": "<strong>语音备忘录，</strong>停止录音的那一刻即完成加密。",

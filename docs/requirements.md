@@ -44,8 +44,8 @@ not assume more protection than they have.
 | Malware on the device | No | Out of scope |
 | Someone who coerces the user into unlocking | Partly | Each vault opens only with its own PIN, so the user can open a harmless one. Not true deniability: the storage shows how many vault containers exist |
 
-A full threat model lives in `docs/threat-model.md` (to be written with the
-first code).
+This table is from the first plan (PINs and a 128-bit key have gone since). The current
+threat model is `docs/threat-model.md`.
 
 ## Functional requirements
 

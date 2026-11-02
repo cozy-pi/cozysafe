@@ -50,7 +50,7 @@
   "f_priv": "Privacy",
   "h_see": "Tutto in un'unica cassaforte",
   "p_see": "Note, foto, video, memo vocali e qualsiasi file. Queste sono le vere schermate dell'app, con contenuti di esempio.",
-  "s_lock": "<strong>Si apre con Face ID, impronta digitale o PIN.</strong> La schermata di blocco non mostra nulla del contenuto.",
+  "s_lock": "<strong>Si apre con Face ID, impronta digitale o la password.</strong> La schermata di blocco non mostra nulla del contenuto.",
   "s_library": "<strong>Foto e video.</strong> Scattali con la fotocamera dell'app: non finiscono mai nella tua galleria.",
   "s_notes": "<strong>Note.</strong> Elenchi e ricerca mostrano solo i titoli, così nessuno vicino a te può leggerle.",
   "s_voice": "<strong>Memo vocali,</strong> cifrati appena smetti di registrare.",

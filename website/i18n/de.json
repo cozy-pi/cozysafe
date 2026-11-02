@@ -50,7 +50,7 @@
   "f_priv": "Datenschutz",
   "h_see": "Alles in einem Tresor",
   "p_see": "Notizen, Fotos, Videos, Sprachmemos und beliebige Dateien. Das sind die echten Bildschirme der App, mit Beispielinhalten.",
-  "s_lock": "<strong>Öffnet mit Face ID, Fingerabdruck oder PIN.</strong> Der Sperrbildschirm verrät nichts vom Inhalt.",
+  "s_lock": "<strong>Öffnet mit Face ID, Fingerabdruck oder dem Passwort.</strong> Der Sperrbildschirm verrät nichts vom Inhalt.",
   "s_library": "<strong>Fotos und Videos.</strong> Mit der eigenen Kamera der App aufgenommen: Sie landen nie in Ihrer Fotomediathek.",
   "s_notes": "<strong>Notizen.</strong> Listen und Suche zeigen nur Titel, so kann niemand in der Nähe mitlesen.",
   "s_voice": "<strong>Sprachmemos,</strong> verschlüsselt, sobald Sie die Aufnahme beenden.",

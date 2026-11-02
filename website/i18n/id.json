@@ -50,7 +50,7 @@
   "f_priv": "Privasi",
   "h_see": "Semuanya dalam satu brankas",
   "p_see": "Catatan, foto, video, memo suara, dan file apa pun. Ini tampilan asli aplikasinya, dengan konten contoh.",
-  "s_lock": "<strong>Dibuka dengan Face ID, sidik jari, atau PIN.</strong> Layar kunci tidak menampilkan apa pun dari isinya.",
+  "s_lock": "<strong>Dibuka dengan Face ID, sidik jari, atau kata sandi.</strong> Layar kunci tidak menampilkan apa pun dari isinya.",
   "s_library": "<strong>Foto dan video.</strong> Ambil dengan kamera bawaan aplikasi: tidak pernah masuk ke galeri foto Anda.",
   "s_notes": "<strong>Catatan.</strong> Daftar dan pencarian hanya menampilkan judul, jadi orang di dekat Anda tidak bisa membacanya.",
   "s_voice": "<strong>Memo suara,</strong> dienkripsi begitu Anda berhenti merekam.",
