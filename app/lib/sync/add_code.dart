@@ -118,6 +118,8 @@ class AddCodeEntry extends StatefulWidget {
 
 class _AddCodeEntryState extends State<AddCodeEntry> {
   final _text = TextEditingController();
+  /// Sent once; a wrong code comes back as a new entry (keyed by the try).
+  bool _sent = false;
 
   @override
   void dispose() {
@@ -157,11 +159,14 @@ class _AddCodeEntryState extends State<AddCodeEntry> {
             hintText: '0000 - 0000',
             errorText: widget.left == null ? null : l.addCodeWrongLeft(widget.left!),
           ),
-          onChanged: (_) => setState(() {}),
-          onSubmitted: (_) => _ready ? widget.onCode(_digits) : null,
+          // The 8th digit connects; no Next to tap (owner 2026-11-02).
+          onChanged: (_) {
+            if (_ready && !_sent) {
+              _sent = true;
+              widget.onCode(_digits);
+            }
+          },
         ),
-        const SizedBox(height: 14),
-        FilledButton(key: const ValueKey('add-code-next'), onPressed: _ready ? () => widget.onCode(_digits) : null, child: Text(l.pinNext)),
       ],
     );
   }

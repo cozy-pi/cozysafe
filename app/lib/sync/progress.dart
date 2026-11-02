@@ -373,7 +373,8 @@ class _SyncProgressState extends State<SyncProgress>
     _auto?.cancel();
     _password.clear();
     _password.dispose();
-    if (!_over) sync.p2PCancel();
+    // Left while typing the code (Back is the way out there): end the session too.
+    if (!_over || _last?.kind == sync.SyncStep.askCode) sync.p2PCancel();
     Awake.set(false);
     _sub?.cancel();
     // Not now: the lock screen listening must not rebuild while the tree is torn down.
@@ -877,7 +878,11 @@ class _SyncProgressState extends State<SyncProgress>
       child: Column(
         children: [
           Expanded(child: Center(child: SingleChildScrollView(child: body))),
-          if ((e?.kind == sync.SyncStep.askRestore || e?.kind == sync.SyncStep.confirm) && !_answered)
+          // Typing the code: the keyboard is up and Back leaves; no button under it
+          // (owner 2026-11-02).
+          if (e?.kind == sync.SyncStep.askCode)
+            const SizedBox.shrink()
+          else if ((e?.kind == sync.SyncStep.askRestore || e?.kind == sync.SyncStep.confirm) && !_answered)
             // It goes on by itself; Cancel is the one button, within the thumb's reach.
             SizedBox(
               width: double.infinity,
