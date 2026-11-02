@@ -299,7 +299,13 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$APP"
       - name: Disk image, signed
         run: |
-          hdiutil create -volname "Cozy Safe" -srcfolder "app/build/macos/Build/Products/Release/Cozy Safe.app" -ov -format UDZO signed-macos.dmg
+          # The app next to a link to /Applications: drag one onto the other to install.
+          # With the app alone, people opened it from the disk image and it never got installed.
+          STAGE="$RUNNER_TEMP/dmg"
+          mkdir -p "$STAGE"
+          ditto "app/build/macos/Build/Products/Release/Cozy Safe.app" "$STAGE/Cozy Safe.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "Cozy Safe" -srcfolder "$STAGE" -ov -format UDZO signed-macos.dmg
           codesign --force --timestamp --sign "$IDENTITY" signed-macos.dmg
       - name: Remove the keychain
         if: always()
