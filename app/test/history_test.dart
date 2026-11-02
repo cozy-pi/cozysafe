@@ -103,7 +103,7 @@ void main() {
     await t.pumpWidget(app(const HistorySettingsScreen()));
     await t.pumpAndSettle();
     expect(find.textContaining('History uses'), findsOneWidget);
-    expect(find.textContaining('the last 30 days always stay'), findsOneWidget);
+    expect(find.textContaining('over 30 days'), findsOneWidget);
     await t.tap(find.byKey(ValueKey('history-max-${BigInt.from(5) * BigInt.from(1 << 30)}')));
     await t.pumpAndSettle();
     expect(_fake.calls.last, 'set 30 ${5 * (1 << 30)}');

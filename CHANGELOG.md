@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.13 (2026-11-02)
+
+### Changed
+- Fewer words: 56 of the longest texts (security, Top Secret Mode, password and 24
+  words, backup and restore, Google Drive, sync, vaults, tips) are now one or two short
+  sentences, in every language.
+- iPhone: a file opened in Quick Look shows as a card over the app instead of full
+  screen. The app stays visible above it, and a swipe down closes it.
+
 ## 0.2.12 (2026-11-02)
 
 ### Changed
