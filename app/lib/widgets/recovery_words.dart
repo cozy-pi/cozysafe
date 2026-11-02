@@ -19,6 +19,9 @@ import 'toast.dart';
 import 'words_awake.dart';
 import 'words_input.dart';
 
+/// The words as copied and saved: "1. word", one per line.
+String numberedWords(List<String> words) => [for (final (i, w) in words.indexed) '${i + 1}. $w'].join('\n');
+
 /// Four positions (0-based, in order) to ask back, never the same four as [not] (the
 /// last check shown). Fixed in tests and mockups.
 List<int> pickFourWords({bool fixed = false, List<int>? not}) {
@@ -45,7 +48,8 @@ class RecoveryWordsPanel extends StatelessWidget {
   Future<void> _copy(BuildContext context) async {
     if (!wordsExport) return;
     final l = AppLocalizations.of(context);
-    final text = words.join(' ');
+    // Numbered, one per line (owner 2026-11-03), as the file and the grid; Paste reads it back.
+    final text = numberedWords(words);
     await Clipboard.setData(ClipboardData(text: text));
     LockGuard.copied(text);
     if (context.mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
@@ -167,7 +171,7 @@ Future<void> saveWordsFile(BuildContext button, List<String> words) async {
   // Where to keep it, first (owner 2026-10-29): no password of its own on the file (a
   // third secret to forget), a reminder instead.
   if (await _askBeforeSaving(button) != true || !button.mounted) return;
-  final plain = [for (final (i, w) in words.indexed) '${i + 1}. $w'].join('\n');
+  final plain = numberedWords(words);
   final text = '${l.kitTitle}\n\n$plain\n\n${l.kitShareNote}\n';
   final name = '${l.kitTitle} - Cozy Safe.txt'.replaceAll(RegExp(r'[\\/:*?"<>|]'), '-');
   final box = button.findRenderObject() as RenderBox?;

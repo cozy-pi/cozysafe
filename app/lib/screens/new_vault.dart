@@ -76,7 +76,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   bool _ownKey = false;
 
   /// The mode chosen on [_Step.mode]: this vault's own (ADR 0007).
-  bool _topSecret = TopSecretMode.on;
+  /// Nothing chosen at first (owner 2026-11-03: the person picks; none is lit up). With
+  /// the mode step skipped (tests), the run's own mode.
+  bool? _topSecret = NewVaultScreen.debugSkipMode ? TopSecretMode.on : null;
   /// Face ID opens one vault per device; while another vault has it, making this one does
   /// not ask (owner 2026-10-31: asking took it from the other). Settings can move it.
   late final bool _bioTaken = rust.hasBiometricUnlock(dir: widget.libraryDir);
@@ -202,7 +204,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
               icon: vaultIcons[_icon].id,
               color: vaultColors[_color].id,
               password: _pw.text,
-              topSecret: _topSecret,
+              topSecret: _topSecret ?? TopSecretMode.on,
             )
           : await rust.setPassword(dir: widget.libraryDir, password: _pw.text);
     } on rust.VaultError catch (e) {
@@ -373,6 +375,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       // Steps live in one page, so the system swipe has nothing to pop: swipe = Back.
       child: EdgeSwipeBack(
       enabled: _canGoBack,
+      follow: true,
       onBack: _back,
       child: Scaffold(
       backgroundColor: page,
@@ -531,7 +534,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     return switch (_step) {
       _Step.intro => button(const ValueKey('intro-start'), l.introStart,
           _words == null && NewVaultScreen.debugWords == null && widget.first ? null : () => _go(_steps[1])),
-      _Step.mode => button(const ValueKey('mode-next'), l.pinNext, () => _go(_steps[_steps.indexOf(_Step.mode) + 1])),
+      _Step.mode => button(const ValueKey('mode-next'), l.pinNext,
+          _topSecret == null ? null : () => _go(_steps[_steps.indexOf(_Step.mode) + 1])),
       _Step.keys => button(const ValueKey('keys-next'), l.pinNext, () {
           setState(() {
             _newWords = _ownKey;
@@ -595,9 +599,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       choice(false, const PrivateMark(size: 30), l.modeEveryday, l.modeEverydayNote),
       const SizedBox(height: 10),
       choice(true, const TopSecretMark(size: 30), l.topSecretShort, l.modeTopSecretNote),
-      const SizedBox(height: 16),
-      const TopSecretCompare(),
-      const SizedBox(height: 10),
+      // No table (owner 2026-11-03: hard to follow; five of its seven rows were the same
+      // on both sides): each choice says what it does and whom it suits.
+      const SizedBox(height: 14),
       Text('${l.topSecretPerVault} ${l.modeChangeLater}', style: TextStyle(color: ink.withValues(alpha: .6), fontSize: CsType.footnote, height: 1.35)),
     ]);
   }

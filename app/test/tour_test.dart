@@ -108,6 +108,18 @@ void main() {
     SettingsScreen.debugSyncLog = null;
   });
 
+  testWidgets('no mode is chosen for the person: Next waits for a tap', (t) async {
+    await _pump(t, _app(const NewVaultScreen(libraryDir: 'lib', first: false)));
+    await _settle(t);
+    await t.tap(find.byKey(const ValueKey('intro-start')));
+    await _settle(t);
+    FilledButton next() => t.widget<FilledButton>(find.byKey(const ValueKey('mode-next')));
+    expect(next().onPressed, isNull);
+    await t.tap(find.byKey(const ValueKey('mode-top-secret')));
+    await t.pump();
+    expect(next().onPressed, isNotNull);
+  });
+
   testWidgets('with Face ID, its own step comes right after the password', (t) async {
     BiometricUnlock.debugKind = BiometricKind.face;
     await _pump(t, _app(const NewVaultScreen(libraryDir: 'lib', first: false)));
@@ -116,7 +128,9 @@ void main() {
     expect(find.byKey(const ValueKey('intro-bio')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('intro-start')));
     await _settle(t);
-    // Every vault chooses its own mode (ADR 0007).
+    // Every vault chooses its own mode (ADR 0007); none is chosen for the person.
+    await t.tap(find.byKey(const ValueKey('mode-everyday')));
+    await t.pump();
     await t.tap(find.byKey(const ValueKey('mode-next')));
     await _settle(t);
     // Another vault on this device: its 24 words (the device's set, as chosen).
@@ -143,7 +157,9 @@ void main() {
     // the look (skipped). No Face ID on this device, so no Face ID step.
     await t.tap(find.byKey(const ValueKey('intro-start')));
     await _settle(t);
-    // Every vault chooses its own mode (ADR 0007).
+    // Every vault chooses its own mode (ADR 0007); none is chosen for the person.
+    await t.tap(find.byKey(const ValueKey('mode-everyday')));
+    await t.pump();
     await t.tap(find.byKey(const ValueKey('mode-next')));
     await _settle(t);
     // Another vault on this device: its 24 words (the device's set, as chosen).

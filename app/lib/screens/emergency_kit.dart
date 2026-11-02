@@ -5,7 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../theme.dart';
-import '../widgets/recovery_words.dart' show RecoveryWordsCheck, pickFourWords, saveWordsFile;
+import '../widgets/recovery_words.dart' show RecoveryWordsCheck, numberedWords, pickFourWords, saveWordsFile;
 import '../widgets/secret.dart';
 import '../widgets/words_awake.dart';
 import '../words_export.dart';
@@ -42,8 +42,9 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
   Future<void> _copy() async {
     if (!wordsExport) return;
     final l = AppLocalizations.of(context);
-    await Clipboard.setData(ClipboardData(text: widget.keyText));
-    LockGuard.copied(widget.keyText); // wiped from the clipboard after 60 s and on lock
+    final text = numberedWords(_words); // "1. word" per line, as Paste reads it back
+    await Clipboard.setData(ClipboardData(text: text));
+    LockGuard.copied(text); // wiped from the clipboard after 60 s and on lock
     if (mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
   }
 

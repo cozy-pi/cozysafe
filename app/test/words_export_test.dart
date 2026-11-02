@@ -65,6 +65,14 @@ void main() {
     expect(find.byKey(const ValueKey('words-open-file')), findsOneWidget);
   });
 
+  test('copied words are numbered, one per line, and paste back in order', () {
+    final words = _words.split(' ');
+    final copied = numberedWords(words);
+    expect(copied.split('\n').first, '1. ${words.first}');
+    expect(copied.split('\n').last, '24. ${words.last}');
+    expect(RecoveryWords.fromText(copied), words);
+  });
+
   testWidgets('the screen stays on for 3 minutes after the last touch', (t) async {
     await t.pumpWidget(_app(const WordsAwake(child: SizedBox.expand())));
     expect(Awake.busy, isTrue);
