@@ -4,13 +4,6 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.2.11 (2026-11-02)
-
-### Fixed
-- macOS: the disk image shows the app next to an Applications folder, so it can be
-  dragged in and installed. Before, it held only the app, which then ran from the disk
-  image and never appeared in Applications.
-
 ## 0.2.10 (2026-11-02)
 
 ### Changed
@@ -23,6 +16,9 @@ Dates are UTC.
 - Restoring a Top secret vault while an everyday one was open in this run said it failed;
   it now says to open the app again.
 - The website no longer says the vault opens with a PIN.
+- macOS: the disk image shows the app next to an Applications folder, so it can be
+  dragged in and installed. Before, it held only the app, which then ran from the disk
+  image and never appeared in Applications.
 
 ## 0.2.9 (2026-11-02)
 
