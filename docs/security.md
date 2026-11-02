@@ -159,7 +159,7 @@ Key as people see it (it was the Emergency Kit); "vault password" was the backup
 
 | | Bitcoin, 12 words | Bitcoin, 24 words | Cozy Safe |
 |---|---|---|---|
-| Random key | 128 bits | 256 bits | 256 bits as 24 BIP39 words (libraries before 21 Oct 2026: 128 bits) |
+| Random key | 128 bits | 256 bits | 256 bits as 24 BIP39 words |
 | Opens with | the words alone | the words alone | Recovery Key **and** vault password **and** the files |
 | Cost per guess | low (PBKDF2, 2048 rounds) | low | Argon2id, 128 MiB × 3 passes on phones (512 MiB on computers) |
 | Extra password | optional ("25th word") | optional | mandatory: 12+ characters (or 4 words), 5+ different characters, not a common password |
@@ -251,15 +251,17 @@ unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.m
   4 lanes on computers). A library, sync lock or backup naming less than the phone floor
   is refused, so a tampered file cannot make guessing cheaper.
 
-## The 24 words stay on the screen (2026-10-30)
+## How the 24 words leave the app (2026-10-30, changed 2026-11-02)
 
-The owner: the words are never written to disk, absolutely. A build has no Copy, no
-Save to a file, no share and no Open file for the words or an earlier `CS1-` key
-(`lib/words_export.dart`, `wordsExport`, off unless built with
-`--dart-define=WORDS_EXPORT=true`). The clipboard is a disk in practice (Android
-keyboards keep a history, an iPhone hands it to a nearby Mac), and a file or the share
-sheet puts the words where the app can never wipe them (Notes, Drive, a chat). The only
-way out is a pen: the pages that show the words stay on and keep the vault from locking
+From 2026-10-30 the words never left the screen (owner: "never written to disk,
+absolutely"). On 2026-11-02 the owner turned Copy, Save to a file and Open file back on:
+copying 24 words by hand was too much (`lib/words_export.dart`, `wordsExport`, on unless
+built with `--dart-define=WORDS_EXPORT=false`). The cost is accepted: the clipboard is a
+disk in practice (Android keyboards keep a history, an iPhone hands it to a nearby Mac;
+the app empties it after 60 s and on lock), and a saved file or the share sheet puts the
+words where the app can never wipe them (Notes, Drive, a chat). The words alone open
+nothing: the vault password is needed as well. The copy in the iCloud Keychain / Google
+Block Store stays off. The pages that show the words stay on and keep the vault from locking
 for 3 minutes after the last touch, and block screenshots and recordings whatever
 Settings says (`widgets/words_awake.dart`). The word typed back to confirm is kept out
 of the keyboard's learning. `test/words_export_test.dart` fails if a new way out is not
@@ -376,9 +378,8 @@ sign in to Google Drive through the browser, not Google's SDK:
 - Grover's algorithm halves the strength of symmetric keys. Everything here is symmetric:
   XChaCha20-Poly1305, HKDF-SHA256, Argon2id.
   - Master Keys and item keys are 256-bit: about 128-bit against a quantum attacker. Safe.
-  - The Recovery Key is 256-bit (24 BIP39 words) since 2026-10-21: about 128-bit against
-    Grover. Libraries made before keep a 128-bit key (about 64-bit against Grover in
-    theory); there are no users yet, so the owner's test libraries are the only ones.
+  - The Recovery Key is 256-bit (24 BIP39 words): about 128-bit against Grover. The
+    128-bit keys of libraries made before 2026-10-21 are no longer read (2026-11-02).
   - Password guessing goes through Argon2id (128 MiB per try); running that inside a
     quantum computer is not realistic.
 - **When sync between devices comes (v0.2 cloud folder needs no key exchange; v0.3 server

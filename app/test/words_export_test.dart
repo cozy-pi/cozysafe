@@ -1,16 +1,18 @@
-// The 24 words never leave the screen (owner 2026-10-30: "never written to disk,
-// absolutely"): no Copy, no Save to a file, no share, no Open file, unless the app is
-// built with --dart-define=WORDS_EXPORT=true. The screens that show them stay on for a
-// few minutes after the last touch, so they can be written down by hand.
+// The 24 words may leave the app (owner 2026-11-02: copying them by hand was too much):
+// Copy, Save to a file and Open file, unless the app is built with
+// --dart-define=WORDS_EXPORT=false. Never the iCloud Keychain or Google Block Store. The
+// screens that show them stay on for a few minutes after the last touch.
 
 import 'dart:io';
 
+import 'package:cozysafe/key_backup.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/sync/awake.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:cozysafe/widgets/recovery_words.dart';
 import 'package:cozysafe/widgets/secret.dart';
+import 'package:cozysafe/widgets/words_input.dart';
 import 'package:cozysafe/widgets/words_awake.dart';
 import 'package:cozysafe/words_export.dart';
 import 'package:flutter/material.dart';
@@ -28,21 +30,21 @@ Widget _app(Widget home) => MaterialApp(
     );
 
 void main() {
-  test('builds keep the words in the app unless told otherwise', () {
-    expect(wordsExport, isFalse);
+  test('builds let the words out by default, never to an account', () {
+    expect(wordsExport, isTrue);
+    expect(KeyBackup.supported, isFalse);
   });
 
-  testWidgets('new vault and key change: no Copy, no Save', (t) async {
+  testWidgets('new vault and key change: Copy and Save', (t) async {
     await t.pumpWidget(_app(Scaffold(body: SingleChildScrollView(child: RecoveryWordsPanel(words: _words.split(' '))))));
-    expect(find.byIcon(Icons.copy_rounded), findsNothing);
-    expect(find.byKey(const ValueKey('words-save')), findsNothing);
-    expect(find.byIcon(Icons.ios_share), findsNothing);
+    expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
+    expect(find.byKey(const ValueKey('words-save')), findsOneWidget);
   });
 
-  testWidgets('Recovery Key page: no Copy, no Save, and the words typed back are not learnt', (t) async {
+  testWidgets('Recovery Key page: Copy and Save, and the words typed back are not learnt', (t) async {
     await t.pumpWidget(_app(const EmergencyKitScreen(keyText: _words, confirm: true)));
-    expect(find.byIcon(Icons.copy_rounded), findsNothing);
-    expect(find.byIcon(Icons.ios_share), findsNothing);
+    expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.ios_share), findsOneWidget);
     final fields = find.descendant(of: find.byKey(const ValueKey('kit-confirm-words')), matching: find.byType(TextField));
     expect(fields, findsNWidgets(4));
     for (final field in t.widgetList<TextField>(fields)) {
@@ -52,12 +54,15 @@ void main() {
     }
   });
 
-  testWidgets('typing the words in to restore: Paste, but no Open file', (t) async {
+  testWidgets('typing the words in to restore: Paste and Open file', (t) async {
     final c = TextEditingController();
     addTearDown(c.dispose);
     await t.pumpWidget(_app(Scaffold(body: SecretField(controller: c, label: 'Words', paste: true))));
     expect(find.byKey(const ValueKey('secret-paste')), findsOneWidget);
-    expect(find.byKey(const ValueKey('secret-open-file')), findsNothing);
+    expect(find.byKey(const ValueKey('secret-open-file')), findsOneWidget);
+    await t.pumpWidget(_app(Scaffold(body: SingleChildScrollView(child: WordsInput(controller: c)))));
+    expect(find.byKey(const ValueKey('words-paste')), findsOneWidget);
+    expect(find.byKey(const ValueKey('words-open-file')), findsOneWidget);
   });
 
   testWidgets('the screen stays on for 3 minutes after the last touch', (t) async {
@@ -80,7 +85,7 @@ void main() {
     final guarded = {
       'lib/widgets/recovery_words.dart': ['Future<void> _copy(', 'Future<void> saveWordsFile('],
       'lib/screens/emergency_kit.dart': ['Future<void> _copy(', 'Future<void> _share('],
-      'lib/widgets/secret.dart': ['Future<void> _openFile('],
+      'lib/widgets/secret.dart': ['Future<String?> openWordsFile('],
       'lib/widgets/words_input.dart': <String>[],
     };
     for (final MapEntry(key: path, value: heads) in guarded.entries) {
@@ -90,7 +95,7 @@ void main() {
         expect(at, isNot(-1), reason: '$path: $head');
         final body = source.substring(at, source.indexOf('\n}', at).clamp(at, source.length));
         final firstLines = body.split('\n').skip(1).take(2).join('\n');
-        expect(firstLines, contains('if (!wordsExport) return;'), reason: '$path: $head');
+        expect(firstLines, contains('if (!wordsExport) return'), reason: '$path: $head');
       }
       // And nothing else in these files reaches the clipboard, a file or the share sheet.
       final reaches = RegExp(r'Clipboard\.setData|SharePlus\.instance|getSaveLocation|writeAsString|openFile\(')
@@ -98,9 +103,9 @@ void main() {
           .length;
       final allowed = {
         'lib/widgets/recovery_words.dart': 5, // _copy; saveWordsFile: save dialog, two writes, share
-        'lib/screens/emergency_kit.dart': 2, // _copy, _share
+        'lib/screens/emergency_kit.dart': 1, // _copy (_share goes through saveWordsFile)
         'lib/widgets/secret.dart': 3, // _openFile, the picker it calls; Paste empties the clipboard
-        'lib/widgets/words_input.dart': 2, // both empty the clipboard after a paste
+        'lib/widgets/words_input.dart': 3, // both empty the clipboard after a paste; _openFile calls openWordsFile
       }[path];
       expect(reaches, allowed, reason: '$path: a new way out must sit behind wordsExport');
     }

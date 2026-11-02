@@ -630,18 +630,6 @@ pub fn secret_key_fits(dir: String, key: Vec<u8>) -> bool {
         .is_ok_and(|d| key_from(&key).is_some_and(|k| Library::secret_key_fits(d, &k)))
 }
 
-/// Secret Key from a first-preview install (a file), to move into the keystore.
-pub fn legacy_secret_key(dir: String) -> Result<Option<Vec<u8>>, VaultError> {
-    Ok(Library::legacy_secret_key(super::run::library_dir(&dir)?)?.map(|k| k.as_bytes().to_vec()))
-}
-
-/// Wipe the first-preview file once the keystore holds the key.
-pub fn forget_legacy_secret_key(dir: String) -> Result<(), VaultError> {
-    Ok(Library::forget_legacy_secret_key(super::run::library_dir(
-        &dir,
-    )?)?)
-}
-
 /// Write a backup of the library `dir` (every vault sharing its 24 words) to `path`.
 /// Returns the number of files.
 pub fn export_backup(dir: String, path: String) -> Result<u32, VaultError> {

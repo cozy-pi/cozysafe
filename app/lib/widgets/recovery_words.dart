@@ -19,15 +19,19 @@ import 'toast.dart';
 import 'words_awake.dart';
 import 'words_input.dart';
 
-/// Four positions (0-based, in order) to ask back. Fixed in tests and mockups.
-List<int> pickFourWords({bool fixed = false}) {
+/// Four positions (0-based, in order) to ask back, never the same four as [not] (the
+/// last check shown). Fixed in tests and mockups.
+List<int> pickFourWords({bool fixed = false, List<int>? not}) {
   if (fixed && !kReleaseMode) return [2, 8, 14, 21];
   final r = Random.secure();
-  final picked = <int>{};
-  while (picked.length < 4) {
-    picked.add(r.nextInt(24));
+  while (true) {
+    final picked = <int>{};
+    while (picked.length < 4) {
+      picked.add(r.nextInt(24));
+    }
+    final four = picked.toList()..sort();
+    if (not == null || four.join(',') != not.join(',')) return four;
   }
-  return picked.toList()..sort();
 }
 
 /// The 24 words to write down (new vault, Recovery Key change): masked until Show, then

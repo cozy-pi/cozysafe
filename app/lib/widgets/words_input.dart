@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_resume.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../words_export.dart';
 import 'secret.dart';
 
 /// The Recovery Key's word list (BIP39 English, from the core), for checking each word
@@ -204,6 +205,14 @@ class _WordsInputState extends State<WordsInput> with WidgetsBindingObserver, Va
     setState(() {});
   }
 
+  /// The 24 words from a saved .txt file (owner 2026-11-02: no typing them by hand).
+  Future<void> _openFile() async {
+    final text = await openWordsFile();
+    if (text == null || !mounted) return;
+    final words = RecoveryWords.fromText(text);
+    if (words.isNotEmpty) _spread(words, 0);
+  }
+
   Future<void> _pasteAll() async {
     final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
     if (text == null || !mounted) return;
@@ -253,12 +262,21 @@ class _WordsInputState extends State<WordsInput> with WidgetsBindingObserver, Va
               icon: const Icon(Icons.content_paste_rounded, size: 18),
               label: Text(l.modePaste),
             ),
+          if (widget.paste && wordsExport)
+            TextButton.icon(
+              key: const ValueKey('words-open-file'),
+              onPressed: widget.enabled ? _openFile : null,
+              icon: const Icon(Icons.file_open_outlined, size: 18),
+              label: Text(l.wordsOpenFile),
+            ),
           const Spacer(),
-          TextButton.icon(
+          // An eye, as on every secret field: with Open file beside Paste the three
+          // labelled buttons did not fit a small phone.
+          IconButton(
             key: const ValueKey('words-show'),
+            tooltip: _shown ? l.secretHide : l.secretShow,
             onPressed: () => _show(!_shown),
-            icon: Icon(_shown ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18),
-            label: Text(_shown ? l.secretHide : l.secretShow),
+            icon: Icon(_shown ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
           ),
         ]),
         const SizedBox(height: 4),
@@ -368,54 +386,15 @@ class _WordsInputState extends State<WordsInput> with WidgetsBindingObserver, Va
 }
 
 /// Where a Recovery Key is typed back (restore, joining from Drive, the check in
-/// Settings): the 24-word grid, or one field for a key made before the words
-/// (`CS1-…`, 2026-10-21), behind a quiet link.
-class RecoveryKeyInput extends StatefulWidget {
+/// Settings): the 24-word grid. (A `CS1-…` key from before 2026-10-21 is no longer
+/// taken: owner 2026-11-02.)
+class RecoveryKeyInput extends StatelessWidget {
   const RecoveryKeyInput({super.key, required this.controller, required this.onChanged, this.enabled = true});
   final TextEditingController controller;
   final VoidCallback onChanged;
   final bool enabled;
 
   @override
-  State<RecoveryKeyInput> createState() => _RecoveryKeyInputState();
-}
-
-class _RecoveryKeyInputState extends State<RecoveryKeyInput> {
-  late bool _legacy = widget.controller.text.trim().toUpperCase().startsWith('CS1');
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_legacy)
-          SecretField(
-            key: const ValueKey('legacy-key'),
-            controller: widget.controller,
-            enabled: widget.enabled,
-            capitalization: TextCapitalization.characters,
-            paste: true,
-            label: l.secretKeyLabel,
-            onChanged: (_) => widget.onChanged(),
-          )
-        else
-          WordsInput(controller: widget.controller, enabled: widget.enabled, onCells: (_) => widget.onChanged()),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            key: const ValueKey('words-legacy-switch'),
-            onPressed: widget.enabled
-                ? () {
-                    widget.controller.clear();
-                    setState(() => _legacy = !_legacy);
-                    widget.onChanged();
-                  }
-                : null,
-            child: Text(_legacy ? l.wordsUseGrid : l.wordsUseLegacy),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) =>
+      WordsInput(controller: controller, enabled: enabled, onCells: (_) => onChanged());
 }

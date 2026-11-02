@@ -31,8 +31,6 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 pub const KEY_LEN: usize = 32;
 /// Length of a new Secret Key, in bytes (256 bits, shown as 24 BIP39 words).
 pub const SECRET_KEY_LEN: usize = 32;
-/// Secret Keys made before 2026-10-21 (128 bits, the `CS1-` text). Still opened.
-pub const LEGACY_SECRET_KEY_LEN: usize = 16;
 /// Length of every salt, in bytes.
 pub const SALT_LEN: usize = 16;
 
@@ -115,18 +113,17 @@ impl std::fmt::Debug for Key {
     }
 }
 
-/// The Secret Key mixed into every unlock (people see it as the Recovery Key): 256 bits
-/// for new libraries, 128 bits for earlier ones. Never printed, wiped on drop.
+/// The Secret Key mixed into every unlock (people see it as the Recovery Key): 256 bits,
+/// shown as 24 words. Never printed, wiped on drop. (128-bit keys from before 2026-10-21
+/// are no longer read: owner 2026-11-02, nobody uses them.)
 #[derive(Clone, PartialEq, Eq)]
 pub struct SecretKey {
     bytes: [u8; SECRET_KEY_LEN],
-    len: u8,
 }
 
 impl Drop for SecretKey {
     fn drop(&mut self) {
         self.bytes.zeroize();
-        self.len.zeroize();
     }
 }
 impl ZeroizeOnDrop for SecretKey {}
@@ -136,39 +133,21 @@ impl SecretKey {
     pub fn generate() -> Self {
         let mut bytes = [0u8; SECRET_KEY_LEN];
         OsRng.fill_bytes(&mut bytes);
-        SecretKey {
-            bytes,
-            len: SECRET_KEY_LEN as u8,
-        }
+        SecretKey { bytes }
     }
 
     pub fn from_bytes(bytes: [u8; SECRET_KEY_LEN]) -> Self {
-        SecretKey {
-            bytes,
-            len: SECRET_KEY_LEN as u8,
-        }
+        SecretKey { bytes }
     }
 
-    /// A key read back from storage: 32 bytes, or 16 for an earlier library.
+    /// A key read back from storage: 32 bytes.
     pub fn from_slice(b: &[u8]) -> Option<Self> {
-        if b.len() != SECRET_KEY_LEN && b.len() != LEGACY_SECRET_KEY_LEN {
-            return None;
-        }
-        let mut bytes = [0u8; SECRET_KEY_LEN];
-        bytes[..b.len()].copy_from_slice(b);
-        Some(SecretKey {
-            bytes,
-            len: b.len() as u8,
-        })
+        let bytes: [u8; SECRET_KEY_LEN] = b.try_into().ok()?;
+        Some(SecretKey { bytes })
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        &self.bytes[..self.len as usize]
-    }
-
-    /// A 128-bit key from before the move to 24 words.
-    pub fn is_legacy(&self) -> bool {
-        self.len as usize == LEGACY_SECRET_KEY_LEN
+        &self.bytes
     }
 
     /// A short public fingerprint stored beside the library, so a wrong Secret Key

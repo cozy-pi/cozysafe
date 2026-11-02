@@ -31,8 +31,7 @@ without AES instructions.
 ### Secret Key (mandatory)
 
 Each library (the set of vaults on a user's devices) has a **Secret Key**:
-256 random bits generated on the first device (128 bits for libraries made before
-2026-10-21), stored in the platform
+256 random bits generated on the first device, stored in the platform
 keystore (Keychain / Android Keystore / DPAPI / libsecret), never synced
 through the vault transport (the cloud folder never holds it).
 
@@ -213,7 +212,8 @@ v0.1 is single-device (no sync), which changes three things for now:
   and share, confirmed by typing the last 4 characters (PDF and periodic re-check
   later).
 - **Text form now** (2026-10-21): new keys are 256 bits, written as 24 BIP39 English
-  words with their 8 checksum bits; `CS1-…` keys still read.
+  words with their 8 checksum bits. Since 2026-11-02 `CS1-…` and 128-bit keys are no
+  longer read (owner: nobody uses them).
 - **Fingerprint:** `library.json`, cloud locks and backups store 16 bits (4 hex
   characters) of HKDF(Secret Key), so a wrong Recovery Key is told apart from a wrong
   password. Libraries before 0.1.68 stored 64 bits (16 hex): they are still accepted
@@ -221,9 +221,8 @@ v0.1 is single-device (no sync), which changes three things for now:
   opens. It is a hint, never authentication: opening is the AEAD unwrap, and a wrong
   key that matches by chance still fails to unwrap. 16 bits also tell an attacker
   too little to confirm a guessed key.
-- First-preview installs kept the key in a `secret-key` file; the app reads it
-  once, stores it in the keystore, reads it back, and only then overwrites and
-  deletes the file.
+- First-preview installs kept the key in a `secret-key` file, moved into the keystore
+  at start until 2026-11-02; that move is gone.
 
 ### Biometric unlock (built)
 Rust wraps the vault's Master Key with a random key K (`vaults/<id>/biometric`).

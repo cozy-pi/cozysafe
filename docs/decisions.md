@@ -4,6 +4,20 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-02 (night) — The 24 words can be copied and saved again; old keys gone
+
+**Owner:** writing 24 words down by hand is too much; the old kind of key is not used.
+Decided:
+
+- Copy, Save to a file and Open file for the 24 words are back (`WORDS_EXPORT` now on by
+  default; this replaces 2026-10-30's "never written to disk"). Open file sits beside
+  Paste wherever the words are typed back. The iCloud Keychain / Google Block Store copy
+  stays off. The risks are written in [security.md](security.md#how-the-24-words-leave-the-app-2026-10-30-changed-2026-11-02).
+- The check after the words still asks four of them, typed; going back and forth picks
+  four other cells each time (they stayed the same).
+- `CS1-…` keys and 128-bit Secret Keys (libraries before 2026-10-21) are no longer read,
+  in the app or the core, and the first-preview `secret-key` file is no longer moved.
+
 ## 2026-11-02 (later) — Ready for beta: file protection, ring copied, formats frozen
 
 **Owner:** before the beta: iOS Data Protection on (vaults *complete unless open*,

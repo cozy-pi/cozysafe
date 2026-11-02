@@ -312,24 +312,6 @@ void main() {
     expect(find.byKey(const ValueKey('sync-close')), findsOneWidget);
   });
 
-  testWidgets('Emergency Kit goes on only with the last 4 characters', (t) async {
-    var done = false;
-    const key = 'CS1-ABCD-EFGH-JKMN-PQRS-TVWX-YZ01-2345';
-    await _pump(t, _app(EmergencyKitScreen(keyText: key, confirm: true, onDone: () => done = true)));
-    await t.pump();
-    FilledButton button() => t.widget<FilledButton>(find.widgetWithText(FilledButton, "I've saved it"));
-    expect(button().onPressed, isNull);
-    await t.enterText(find.byType(TextField), '2344');
-    await t.pump();
-    expect(button().onPressed, isNull);
-    await t.enterText(find.byType(TextField), '2345');
-    await t.pump();
-    await t.ensureVisible(find.widgetWithText(FilledButton, "I've saved it"));
-    await t.pump();
-    await t.tap(find.widgetWithText(FilledButton, "I've saved it"));
-    expect(done, isTrue);
-  });
-
   testWidgets('Recovery Key (24 words) goes on only with the four asked words', (t) async {
     var done = false;
     const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';

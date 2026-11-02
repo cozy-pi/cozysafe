@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
@@ -33,35 +32,12 @@ class EmergencyKitScreen extends StatefulWidget {
 }
 
 class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockAware {
-  final _last = TextEditingController();
-
-  /// 24 words for keys made since 2026-10-21; earlier keys are `CS1-XXXX-…`.
-  late final List<String> _words = widget.keyText.contains(' ') ? widget.keyText.split(' ') : const [];
-  bool get _isWords => _words.length == 24;
+  late final List<String> _words = widget.keyText.split(' ');
   /// To go on, four of the words, as when the vault was made (owner 2026-10-30: one was
-  /// too few), or the last 4 characters of an earlier key.
+  /// too few).
   late final List<int> _ask = pickFourWords(fixed: EmergencyKitScreen.debugFixedWords);
   bool _wordsOk = false;
-  String get _tail => widget.keyText.replaceAll('-', '').substring(widget.keyText.replaceAll('-', '').length - 4);
-  bool get _ok {
-    if (!widget.confirm) return true;
-    final typed = _last.text.trim().toLowerCase();
-    if (!_isWords) return typed.toUpperCase() == _tail;
-    return _wordsOk;
-  }
-
-  /// For copying and saving: one numbered word per line.
-  String get _plain => _isWords ? [for (final (i, w) in _words.indexed) '${i + 1}. $w'].join('\n') : widget.keyText;
-
-  /// The word typed to go on is not kept while the vault is locked.
-  @override
-  void vaultLocking() => setState(_last.clear);
-
-  @override
-  void dispose() {
-    _last.dispose();
-    super.dispose();
-  }
+  bool get _ok => !widget.confirm || _wordsOk;
 
   Future<void> _copy() async {
     if (!wordsExport) return;
@@ -71,17 +47,10 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
     if (mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
   }
 
-  /// The words as a real .txt file (recovery_words.dart); an old CS1- key as plain text.
+  /// The words as a real .txt file (recovery_words.dart).
   Future<void> _share(BuildContext buttonContext) async {
     if (!wordsExport) return;
-    if (_isWords) return saveWordsFile(buttonContext, _words);
-    final l = AppLocalizations.of(context);
-    final box = buttonContext.findRenderObject() as RenderBox?;
-    await SharePlus.instance.share(ShareParams(
-      subject: l.kitTitle,
-      text: '${l.kitTitle}\n\n$_plain\n\n${l.kitShareNote}',
-      sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-    ));
+    return saveWordsFile(buttonContext, _words);
   }
 
   @override
@@ -96,7 +65,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
         children: [
           Text(l.kitTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Text(_isWords ? l.kitLead : l.kitLeadLegacy, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
+          Text(l.kitLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -107,7 +76,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
             ),
             child: SecretText(
               text: widget.keyText,
-              builder: _isWords ? (context, shown) => WordGrid(words: _words, shown: shown) : null,
+              builder: (context, shown) => WordGrid(words: _words, shown: shown),
               style: const TextStyle(
                 fontFamily: 'monospace',
                 fontFamilyFallback: ['Menlo', 'Consolas', 'Roboto Mono'],
@@ -153,34 +122,18 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
               key: const ValueKey('kit-change'),
               onPressed: widget.onChange,
               icon: const Icon(Icons.autorenew_rounded, size: 18),
-              label: Text(_isWords ? l.changeKeyButton : l.changeKeyLegacy),
+              label: Text(l.changeKeyButton),
             ),
           ],
           if (widget.confirm) ...[
             const SizedBox(height: 20),
-            if (_isWords) ...[
-              Text(l.wordsCheckLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
-              const SizedBox(height: 8),
-              RecoveryWordsCheck(
-                key: const ValueKey('kit-confirm-words'),
-                words: _words,
-                ask: _ask,
-                onValid: (ok) => setState(() => _wordsOk = ok),
-              ),
-            ] else
-            TextField(
-              controller: _last,
-              key: const ValueKey('kit-confirm'),
-              maxLength: 4,
-              autocorrect: false,
-              enableSuggestions: false,
-              enableIMEPersonalizedLearning: false,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(
-                labelText: l.kitConfirmLabel,
-                counterText: '',
-              ),
-              onChanged: (_) => setState(() {}),
+            Text(l.wordsCheckLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
+            const SizedBox(height: 8),
+            RecoveryWordsCheck(
+              key: const ValueKey('kit-confirm-words'),
+              words: _words,
+              ask: _ask,
+              onValid: (ok) => setState(() => _wordsOk = ok),
             ),
             const SizedBox(height: 16),
             FilledButton(onPressed: _ok ? widget.onDone : null, child: Text(l.kitDone)),

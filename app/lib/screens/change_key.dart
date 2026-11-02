@@ -49,9 +49,11 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
   late final List<int> _key = rust.newSecretKey();
   late final List<String> _words =
       (ChangeKeyScreen.debugWords ?? rust.secretKeyText(key: _key)).split(' ');
-  late final List<int> _ask = pickFourWords(
-    fixed: ChangeKeyScreen.debugWords != null,
-  );
+  /// Picked again each time the check opens (owner 2026-11-02: back and forth showed the
+  /// same four cells).
+  late List<int> _ask = _pick();
+  List<int> _pick() => pickFourWords(fixed: ChangeKeyScreen.debugWords != null, not: _shownAsk);
+  List<int>? _shownAsk;
   bool _busy = false;
   String? _error;
 
@@ -209,6 +211,7 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
             const SizedBox(height: 16),
           ],
           RecoveryWordsCheck(
+            key: ValueKey(_ask.join(',')),
             words: _words,
             ask: _ask,
             onValid: (ok) => setState(() => _checkOk = ok),
@@ -251,6 +254,8 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
         _button(const ValueKey('words-done'), l.wordsWritten, () => setState(() {
           _checkOk = false;
           _step = _Step.check;
+          _shownAsk = _ask;
+          _ask = _pick();
         })),
       ],
       _Step.check => [

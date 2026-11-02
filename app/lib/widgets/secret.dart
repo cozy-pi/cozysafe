@@ -124,6 +124,25 @@ class SecretField extends StatefulWidget {
   State<SecretField> createState() => _SecretFieldState();
 }
 
+/// The words from a file (the .txt "Save to a file" writes, or any text with the 24
+/// words): numbered lines ("1. word") in order, otherwise the whole text. Null when none
+/// was picked or the build keeps the words in the app ([wordsExport]).
+Future<String?> openWordsFile() async {
+  if (!wordsExport) return null;
+  LockGuard.allowAway();
+  XFile? file;
+  try {
+    file = await openFile(acceptedTypeGroups: const [
+      XTypeGroup(label: 'text', extensions: ['txt'], mimeTypes: ['text/plain'], uniformTypeIdentifiers: ['public.plain-text']),
+    ]);
+  } finally {
+    LockGuard.clear();
+  }
+  if (file == null) return null;
+  final text = wordsFromText(await file.readAsString());
+  return text.isEmpty ? null : text;
+}
+
 class _SecretFieldState extends State<SecretField> {
   bool _obscure = true;
 
@@ -136,22 +155,9 @@ class _SecretFieldState extends State<SecretField> {
     widget.onChanged?.call(text);
   }
 
-  /// The words from a file (the .txt "Save to a file" writes, or any text with the 24
-  /// words). Numbered lines ("1. word") are read in order; otherwise the whole text.
   Future<void> _openFile() async {
-    if (!wordsExport) return;
-    LockGuard.allowAway();
-    XFile? file;
-    try {
-      file = await openFile(acceptedTypeGroups: const [
-        XTypeGroup(label: 'text', extensions: ['txt'], mimeTypes: ['text/plain'], uniformTypeIdentifiers: ['public.plain-text']),
-      ]);
-    } finally {
-      LockGuard.clear();
-    }
-    if (file == null || !mounted) return;
-    final text = wordsFromText(await file.readAsString());
-    if (text.isEmpty || !mounted) return;
+    final text = await openWordsFile();
+    if (text == null || !mounted) return;
     widget.controller.text = text;
     widget.controller.selection = TextSelection.collapsed(offset: text.length);
     widget.onChanged?.call(text);

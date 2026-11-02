@@ -15,16 +15,14 @@
 //! the clear.
 //!
 //! The Secret Key is not stored here: the app keeps it in the platform keystore and
-//! passes it in (`docs/adr/0001-encryption.md`). Libraries from the first previews kept
-//! it in a `secret-key` file; [`Library::legacy_secret_key`] reads that once for the
-//! move, [`Library::forget_legacy_secret_key`] wipes it afterwards.
+//! passes it in (`docs/adr/0001-encryption.md`).
 
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use cs_crypto::kdf::{self, KdfParams};
-use cs_crypto::{wrap, Key, SecretKey, SALT_LEN, SECRET_KEY_LEN};
+use cs_crypto::{wrap, Key, SecretKey, SALT_LEN};
 use zeroize::Zeroizing;
 
 use crate::passwords::{check_new_password, PasswordCheck};
@@ -33,7 +31,6 @@ use crate::{Error, Result};
 
 const FORMAT: u32 = 1;
 pub const LIBRARY_FILE: &str = "library.json";
-const SECRET_KEY_FILE: &str = "secret-key";
 pub const VAULTS_DIR: &str = "vaults";
 pub const HEADER_FILE: &str = "header.json";
 /// Master Key wrapped by a key that lives in the platform keystore behind biometrics.
@@ -369,31 +366,6 @@ impl Library {
                 .is_none_or(|f| secret_key.fingerprint_matches(&f)),
             Err(_) => false,
         }
-    }
-
-    /// The Secret Key from a first-preview `secret-key` file, if there is one.
-    pub fn legacy_secret_key(dir: &Path) -> Result<Option<SecretKey>> {
-        let bytes = match fs::read(dir.join(SECRET_KEY_FILE)) {
-            Ok(b) => Zeroizing::new(b),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(e) => return Err(e.into()),
-        };
-        Ok(Some(
-            SecretKey::from_slice(&bytes).ok_or(Error::Corrupt("secret key length"))?,
-        ))
-    }
-
-    /// Overwrite and delete the `secret-key` file once the key is in the keystore.
-    pub fn forget_legacy_secret_key(dir: &Path) -> Result<()> {
-        let path = dir.join(SECRET_KEY_FILE);
-        if path.exists() {
-            let mut f = fs::OpenOptions::new().write(true).open(&path)?;
-            f.write_all(&[0u8; SECRET_KEY_LEN])?; // at least as long as the file
-            f.sync_all()?;
-            drop(f);
-            fs::remove_file(path)?;
-        }
-        Ok(())
     }
 
     /// Create a vault. Refuses passwords [`check_new_password`] refuses and passwords another
@@ -1069,23 +1041,9 @@ pub fn write_atomic(path: &Path, data: &[u8]) -> Result<()> {
 }
 
 #[cfg(test)]
-fn write_private(path: &Path, data: &[u8]) -> Result<()> {
-    let mut opts = fs::OpenOptions::new();
-    opts.write(true).create_new(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        opts.mode(0o600);
-    }
-    let mut f = opts.open(path)?;
-    f.write_all(data)?;
-    f.sync_all()?;
-    Ok(())
-}
-
-#[cfg(test)]
 pub mod tests {
     use super::*;
+    use cs_crypto::SECRET_KEY_LEN;
 
     #[test]
     fn only_exact_lowercase_hex_ids_reach_a_path() {
@@ -1225,9 +1183,9 @@ pub mod tests {
     }
 
     #[test]
-    fn the_recovery_key_changes_from_the_old_kind_to_24_words() {
+    fn the_recovery_key_changes_to_new_24_words() {
         let tmp = tempfile::tempdir().unwrap();
-        let old = SecretKey::from_slice(&[9u8; 16]).unwrap();
+        let old = SecretKey::from_slice(&[9u8; 32]).unwrap();
         let new = SecretKey::generate();
         let l = Library::open_or_create(tmp.path(), FAST, old.clone()).unwrap();
         let v = l.create_vault("Két", pw_a()).unwrap();
@@ -1376,7 +1334,7 @@ pub mod tests {
     #[test]
     fn an_empty_library_can_start_again_with_a_new_key() {
         let tmp = tempfile::tempdir().unwrap();
-        let old = SecretKey::from_slice(&[9u8; 16]).unwrap();
+        let old = SecretKey::from_slice(&[9u8; 32]).unwrap();
         let v = Library::open_or_create(tmp.path(), FAST, old.clone())
             .unwrap()
             .create_vault("Cũ", pw_a())
@@ -1556,21 +1514,14 @@ pub mod tests {
     }
 
     #[test]
-    fn legacy_secret_key_file_moves_out() {
+    fn a_library_without_a_fingerprint_records_it_on_open() {
         let tmp = tempfile::tempdir().unwrap();
         lib(tmp.path()).create_vault("A", pw_a()).unwrap();
-        // A first-preview library: key in a file, no fingerprint in library.json.
-        write_private(&tmp.path().join(SECRET_KEY_FILE), sk().as_bytes()).unwrap();
         let mut h = read_library_header(tmp.path()).unwrap();
         h.secret_key = None;
         fs::write(tmp.path().join(LIBRARY_FILE), h.to_json_pretty()).unwrap();
-
-        let key = Library::legacy_secret_key(tmp.path()).unwrap().unwrap();
-        assert_eq!(key, sk());
-        Library::forget_legacy_secret_key(tmp.path()).unwrap();
-        assert!(Library::legacy_secret_key(tmp.path()).unwrap().is_none());
         // Opening records the fingerprint; the vault still opens.
-        assert!(Library::open_or_create(tmp.path(), FAST, key)
+        assert!(Library::open_or_create(tmp.path(), FAST, sk())
             .unwrap()
             .unlock(pw_a())
             .unwrap()

@@ -54,22 +54,9 @@ Future<void> main() async {
   runApp(CozySafeApp(libraryDir: libraryDir, hasSecretKey: hasKey));
 }
 
-/// Hand this device's Secret Key to Rust. First-preview installs kept it in a file:
-/// move it into the keystore, and wipe the file only once the keystore has it.
+/// Hand this device's Secret Key to Rust.
 Future<bool> loadSecretKey(String libraryDir) async {
-  var key = await SecretKeyStore.read();
-  if (key == null) {
-    try {
-      final legacy = await rust.legacySecretKey(dir: libraryDir);
-      if (legacy != null) {
-        await SecretKeyStore.write(legacy);
-        await rust.forgetLegacySecretKey(dir: libraryDir);
-        key = legacy;
-      }
-    } catch (_) {
-      // Keep the file; the move is tried again next start.
-    }
-  }
+  final key = await SecretKeyStore.read();
   final ok = key != null && rust.setSecretKey(dir: libraryDir, key: key);
   // The libraries beside this one (their own 24 words): each key from its own entry.
   for (final dir in run_api.libraryDirs().skip(1)) {

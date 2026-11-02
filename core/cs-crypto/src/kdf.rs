@@ -161,7 +161,7 @@ mod tests {
     };
 
     fn sk(b: u8) -> SecretKey {
-        SecretKey::from_slice(&[b; 16]).unwrap() // a 128-bit (earlier) key: their roots must not change
+        SecretKey::from_slice(&[b; 32]).unwrap()
     }
 
     #[test]
@@ -264,7 +264,8 @@ mod tests {
     /// Known-answer test with the shape of DESKTOP_FLOOR (p = 4, t = 3), small memory.
     /// The value was computed with single-threaded Argon2, kept while computers ran the
     /// lanes on threads (rayon, until 0.1.93): how the lanes are run must never change
-    /// the root, or every library made on a computer would stop opening.
+    /// the root, or every library made on a computer would stop opening. Recomputed for a
+    /// 256-bit Secret Key on 2026-11-02, when 128-bit keys stopped being read.
     #[test]
     fn lanes_on_threads_give_the_same_root() {
         let p4 = KdfParams {
@@ -276,7 +277,7 @@ mod tests {
         let hex: String = root.as_bytes().iter().map(|b| format!("{b:02x}")).collect();
         assert_eq!(
             hex,
-            "3b2b018310c20a3acfbb95f530ab636387f07db49a7c193cf7bed832c8774f93"
+            "507fa1fb0eb7581cd9312c70d665a04b9f15093ce8422bd76abba58f821459c9"
         );
     }
 

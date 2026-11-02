@@ -6,7 +6,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'platform.dart';
 import 'prefs.dart';
-import 'words_export.dart';
 
 /// The 24 words kept in the person's iCloud Keychain too (owner 2026-10-26, option 2):
 /// off unless turned on in Settings. Apple encrypts the iCloud Keychain end to end; a new
@@ -32,10 +31,9 @@ abstract final class KeyBackup {
   @visibleForTesting
   static bool? debugSupported;
 
-  /// Only in a build where the words may leave the app ([wordsExport]): the iCloud
-  /// Keychain and Block Store keep them on Apple's or Google's servers (owner
-  /// 2026-10-30: the words are never written anywhere but on paper).
-  static bool get supported => debugSupported ?? (wordsExport && (Device.iOS || Device.android));
+  /// Off (owner 2026-10-30, kept 2026-11-02 when Copy and Save came back): the iCloud
+  /// Keychain and Block Store would keep the words on Apple's or Google's servers.
+  static bool get supported => debugSupported ?? false;
 
   /// For tests and mockups: the Google wording on any platform.
   @visibleForTesting
@@ -77,10 +75,10 @@ abstract final class KeyBackup {
     } catch (_) {}
   }
 
-  /// At start: a copy kept before this build forbade it is taken out (from every device
-  /// signed in to the account), so no build of this kind leaves one behind.
+  /// At start: a copy kept before it was turned off is taken out (from every device
+  /// signed in to the account), so no build leaves one behind.
   static Future<void> sweep() async {
-    if (wordsExport || !on || !(Device.iOS || Device.android)) return;
+    if (!on || !(Device.iOS || Device.android)) return;
     await turnOff();
   }
 

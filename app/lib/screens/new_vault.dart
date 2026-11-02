@@ -66,7 +66,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   List<String>? _words;
   bool _newWords = false;
   /// The four words asked back, by position (0-based), in order.
-  late final List<int> _ask = pickFourWords(fixed: NewVaultScreen.debugWords != null);
+  /// Picked again each time the check opens (owner 2026-11-02: back and forth showed the
+  /// same four cells).
+  late List<int> _ask = pickFourWords(fixed: NewVaultScreen.debugWords != null);
   final _pw = TextEditingController();
   final _pwAgain = TextEditingController();
   rust.VaultInfo? _vault;
@@ -542,6 +544,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         }),
       _Step.words => button(const ValueKey('words-done'), l.wordsWritten, () {
           _checkOk = false;
+          _ask = pickFourWords(fixed: NewVaultScreen.debugWords != null, not: _ask);
           _go(_Step.check);
         }),
       // The words are checked: now the vault is made, with the password set before.
@@ -713,6 +716,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   Widget _wordsBody(AppLocalizations l) => RecoveryWordsPanel(words: _words ?? const []);
 
   Widget _checkBody(AppLocalizations l) => RecoveryWordsCheck(
+        key: ValueKey(_ask.join(',')),
         words: _words ?? const [],
         ask: _ask,
         onValid: (ok) => setState(() => _checkOk = ok),
