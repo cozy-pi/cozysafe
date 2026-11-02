@@ -1,0 +1,46 @@
+# Public TestFlight beta: external group "Public Testers", public invite link, Beta App
+# Review (tools/testflight-public.mjs). Run after a release once Apple has processed its
+# iOS build; the first run submits for review, run again after approval for the link.
+#
+# Run: gh workflow run testflight-public.yml -R cozy-pi/cozysafe [-f build=1141]
+name: testflight-public
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: "Build number (empty: newest build of the newest release)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testflight-public
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # release tags pick the build
+          persist-credentials: false
+      - name: TestFlight
+        env:
+          KEY_ID: ${{ secrets.ASC_ADMIN_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_B64: ${{ secrets.ASC_ADMIN_KEY_P8_BASE64 }}
+          ASC_REVIEW_FIRST_NAME: ${{ secrets.ASC_REVIEW_FIRST_NAME }}
+          ASC_REVIEW_LAST_NAME: ${{ secrets.ASC_REVIEW_LAST_NAME }}
+          ASC_REVIEW_PHONE: ${{ secrets.ASC_REVIEW_PHONE }}
+          BUILD: ${{ inputs.build }}
+        run: |
+          set -o pipefail # tee must not hide a failure
+          echo "$KEY_B64" | base64 --decode > "$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
+          trap 'rm -f "$RUNNER_TEMP/AuthKey_$KEY_ID.p8"' EXIT
+          node tools/testflight-public.mjs "$RUNNER_TEMP/AuthKey_$KEY_ID.p8" "$ISSUER" $BUILD | tee tf.log
+          grep -E 'PUBLIC LINK|Beta App Review|MISSING' tf.log >> "$GITHUB_STEP_SUMMARY" || true
