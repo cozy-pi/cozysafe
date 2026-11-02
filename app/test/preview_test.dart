@@ -1313,9 +1313,10 @@ void main() {
       change: 'MỚI: không quét mã nữa — máy mới tự tìm máy cũ',
       marks: [() => find.byKey(const ValueKey('add-code-searching'))]);
   _screen('add-code-entry', 'Máy mới · gõ 8 số máy cũ đang hiện', () => added([_named(SyncStep.askCode, '', 3)]),
-      change: 'MỚI: gõ mã 8 số (bàn phím số, tự chia 1234 - 5678); gõ đúng mới tới bước mật khẩu',
+      change: 'ĐỔI: bỏ nút Đóng và nút Tiếp — gõ đủ 8 số là tự kết nối',
       marks: [() => find.byKey(const ValueKey('add-code-field'))], act: (t) async {
-    await t.enterText(find.byKey(const ValueKey('add-code-field')), '12345678');
+    // 7 digits: the 8th would connect (no device in a render).
+    await t.enterText(find.byKey(const ValueKey('add-code-field')), '1234567');
     await t.pumpAndSettle();
   });
   _screen('add-code-entry-wrong', 'Máy mới · gõ nhầm mã: còn 2 lần', () => added([_named(SyncStep.askCode, '', 2)]),
