@@ -263,14 +263,14 @@ Rust and Dart that ships in the app.
 | Rust [fallible-streaming-iterator](https://crates.io/crates/fallible-streaming-iterator/0.1.9) | 0.1.9 | 2018-05-02 | rusqlite | sfackler |  |
 | Rust [flutter_rust_bridge](https://crates.io/crates/flutter_rust_bridge/2.13.0) | 2.13.0 | 2026-08-23 | direct | fzyzcjy | cackle: unsafe |
 | Rust [foldhash](https://crates.io/crates/foldhash/0.2.0) | 0.2.0 | 2025-08-23 | hashbrown | orlp | cackle: unsafe |
-| Rust [futures](https://crates.io/crates/futures/0.3.34) | 0.3.34 | 2026-08-11 | flutter_rust_bridge | cramertj, rust-lang-owner, taiki-e |  |
-| Rust [futures-channel](https://crates.io/crates/futures-channel/0.3.34) | 0.3.34 | 2026-08-11 | futures | cramertj, rust-lang-owner, taiki-e | cackle: unsafe |
-| Rust [futures-core](https://crates.io/crates/futures-core/0.3.34) | 0.3.34 | 2026-08-11 | futures | cramertj, rust-lang-owner, taiki-e | cackle: unsafe |
-| Rust [futures-executor](https://crates.io/crates/futures-executor/0.3.34) | 0.3.34 | 2026-08-11 | futures | cramertj, rust-lang-owner, taiki-e | cackle: unsafe |
-| Rust [futures-io](https://crates.io/crates/futures-io/0.3.34) | 0.3.34 | 2026-08-11 | futures | cramertj, rust-lang-owner, taiki-e |  |
-| Rust [futures-sink](https://crates.io/crates/futures-sink/0.3.34) | 0.3.34 | 2026-08-11 | futures | cramertj, rust-lang-owner, taiki-e | cackle: unsafe |
-| Rust [futures-task](https://crates.io/crates/futures-task/0.3.34) | 0.3.34 | 2026-08-11 | futures | cramertj, rust-lang-owner, taiki-e | cackle: unsafe |
-| Rust [futures-util](https://crates.io/crates/futures-util/0.3.34) | 0.3.34 | 2026-08-11 | futures | cramertj, rust-lang-owner, taiki-e | cackle: unsafe |
+| Rust [futures](https://crates.io/crates/futures/0.3.34) | 0.3.34 | 2026-08-11 | flutter_rust_bridge | rust-lang-owner |  |
+| Rust [futures-channel](https://crates.io/crates/futures-channel/0.3.34) | 0.3.34 | 2026-08-11 | futures | rust-lang-owner | cackle: unsafe |
+| Rust [futures-core](https://crates.io/crates/futures-core/0.3.34) | 0.3.34 | 2026-08-11 | futures | rust-lang-owner | cackle: unsafe |
+| Rust [futures-executor](https://crates.io/crates/futures-executor/0.3.34) | 0.3.34 | 2026-08-11 | futures | rust-lang-owner | cackle: unsafe |
+| Rust [futures-io](https://crates.io/crates/futures-io/0.3.34) | 0.3.34 | 2026-08-11 | futures | rust-lang-owner |  |
+| Rust [futures-sink](https://crates.io/crates/futures-sink/0.3.34) | 0.3.34 | 2026-08-11 | futures | rust-lang-owner | cackle: unsafe |
+| Rust [futures-task](https://crates.io/crates/futures-task/0.3.34) | 0.3.34 | 2026-08-11 | futures | rust-lang-owner | cackle: unsafe |
+| Rust [futures-util](https://crates.io/crates/futures-util/0.3.34) | 0.3.34 | 2026-08-11 | futures | rust-lang-owner | cackle: unsafe |
 | Rust [g2p](https://crates.io/crates/g2p/1.2.2) | 1.2.2 | 2025-03-23 | rqrr | WanzenBug |  |
 | Rust [g2poly](https://crates.io/crates/g2poly/1.2.2) | 1.2.2 | 2025-03-23 | g2p | WanzenBug |  |
 | Rust [generic-array](https://crates.io/crates/generic-array/0.14.7) | 0.14.7 | 2023-03-28 | aead | fizyk20, novacrazy | cackle: unsafe |
@@ -375,7 +375,7 @@ Never ships in the app, but runs on the build machines (build scripts, proc macr
 | Rust [fastrand](https://crates.io/crates/fastrand/2.5.0) | 2.5.0 | 2026-07-19 | tempfile | github:smol-rs:admins, taiki-e |  |
 | Rust [find-msvc-tools](https://crates.io/crates/find-msvc-tools/0.1.14) | 0.1.14 | 2026-09-25 | cc | rust-lang-owner |  |
 | Rust [flutter_rust_bridge_macros](https://crates.io/crates/flutter_rust_bridge_macros/2.13.0) | 2.13.0 | 2026-08-23 | flutter_rust_bridge | fzyzcjy |  |
-| Rust [futures-macro](https://crates.io/crates/futures-macro/0.3.34) | 0.3.34 | 2026-08-11 | futures-util | cramertj, rust-lang-owner, taiki-e |  |
+| Rust [futures-macro](https://crates.io/crates/futures-macro/0.3.34) | 0.3.34 | 2026-08-11 | futures-util | rust-lang-owner |  |
 | Rust [g2gen](https://crates.io/crates/g2gen/1.2.2) | 1.2.2 | 2025-03-23 | g2p | WanzenBug |  |
 | Rust [getrandom](https://crates.io/crates/getrandom/0.4.3) | 0.4.3 | 2026-06-17 | tempfile | dhardy, github:rust-random:maintainers |  |
 | Rust [hashbrown](https://crates.io/crates/hashbrown/0.16.1) | 0.16.1 | 2025-11-20 |  | rust-lang-owner | in the lock file, but built for none of the platforms the app ships on |

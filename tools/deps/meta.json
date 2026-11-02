@@ -3368,49 +3368,31 @@
    "orlp"
   ],
   "futures": [
-   "cramertj",
-   "rust-lang-owner",
-   "taiki-e"
+   "rust-lang-owner"
   ],
   "futures-channel": [
-   "cramertj",
-   "rust-lang-owner",
-   "taiki-e"
+   "rust-lang-owner"
   ],
   "futures-core": [
-   "cramertj",
-   "rust-lang-owner",
-   "taiki-e"
+   "rust-lang-owner"
   ],
   "futures-executor": [
-   "cramertj",
-   "rust-lang-owner",
-   "taiki-e"
+   "rust-lang-owner"
   ],
   "futures-io": [
-   "cramertj",
-   "rust-lang-owner",
-   "taiki-e"
+   "rust-lang-owner"
   ],
   "futures-macro": [
-   "cramertj",
-   "rust-lang-owner",
-   "taiki-e"
+   "rust-lang-owner"
   ],
   "futures-sink": [
-   "cramertj",
-   "rust-lang-owner",
-   "taiki-e"
+   "rust-lang-owner"
   ],
   "futures-task": [
-   "cramertj",
-   "rust-lang-owner",
-   "taiki-e"
+   "rust-lang-owner"
   ],
   "futures-util": [
-   "cramertj",
-   "rust-lang-owner",
-   "taiki-e"
+   "rust-lang-owner"
   ],
   "g2gen": [
    "WanzenBug"
