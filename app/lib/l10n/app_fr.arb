@@ -592,8 +592,6 @@
   "syncRestoreAllowNo": "Ne pas autoriser",
   "restoreTapAllow": "Sur votre autre appareil, touchez Autoriser.",
   "hideNoteText": "Masquer le texte des notes",
-  "syncAllowNearby": "Rechercher vos appareils sur ce Wi‑Fi.",
-  "syncAllowFindRestore": "Rechercher votre ancien appareil sur ce Wi‑Fi.",
   "syncNearbyLead": "Ouvrez aussi cet écran sur l’autre appareil.",
   "syncNearbyNone": "Aucun appareil trouvé pour l’instant. Les deux doivent être sur le même Wi‑Fi, avec cet écran ouvert.",
   "syncNearbyNoneRestore": "Aucun appareil pour l’instant. Sur l’ancien, ouvrez Synchroniser avec un appareil à proximité, sur le même Wi‑Fi.",

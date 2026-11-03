@@ -82,6 +82,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cozysafe/screens/history.dart';
 import 'package:cozysafe/src/rust/api/history.dart' show HistoryVersion;
 import 'package:cozysafe/screens/sealed_item.dart';
+import 'package:cozysafe/widgets/file_name.dart';
 import 'package:cozysafe/screens/top_secret_page.dart';
 import 'package:cozysafe/top_secret_mode.dart';
 
@@ -652,16 +653,12 @@ void main() {
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
       section: 'home',
-      change: 'ĐỀ XUẤT: "Xem theo loại" thành lưới ô nhỏ 3 cột: Ảnh · Video · Ghi chú · Ghi âm · Tài liệu · Tệp khác (loại trống thì ẩn); chạm một ô mở đúng chỗ, chip lọc bật sẵn',
       marks: [() => find.byKey(const ValueKey('kind-card'))]);
-  _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home',
-      change: 'MỚI: Thư viện có chip Tất cả · Ảnh · Video',
-      marks: [() => find.byKey(const ValueKey('file-chip-video'))], act: (t) async {
+  _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home', act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-video')));
     await t.pumpAndSettle();
   });
-  _screen('home-tap-documents', 'Tổng quan → chạm Tài liệu: mở Tệp, chip Tài liệu bật sẵn', home, section: 'home',
-      change: 'MỚI', marks: [() => find.byKey(const ValueKey('file-chip-document'))], act: (t) async {
+  _screen('home-tap-documents', 'Tổng quan → chạm Tài liệu: mở Tệp, chip Tài liệu bật sẵn', home, section: 'home', act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-document')));
     await t.pumpAndSettle();
   });
@@ -882,7 +879,10 @@ void main() {
       setup: () => QuickLook.debugStillAudio = true,
       act: (t) => t.tap(find.text('Cuộc họp với luật sư')));
   Future<void> openRow(WidgetTester t, String text) async {
-    final row = find.text(text, skipOffstage: false).first;
+    // A file's name is drawn by FileNameText (the name and its extension apart).
+    final row = find.byWidgetPredicate(
+        (w) => (w is Text && w.data == text) || (w is FileNameText && w.name == text),
+        skipOffstage: false).first;
     await t.scrollUntilVisible(row, 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
     await t.tap(row);
@@ -952,16 +952,12 @@ void main() {
     }
   });
   _screen('files', 'Tệp', home, section: 'file',
-      change: 'MỚI: hàng chip luôn đủ Tất cả · Ảnh · Video · Tài liệu · Khác',
       marks: [() => find.byKey(const ValueKey('file-chips'))]);
-  _screen('files-video-empty', 'Tệp · chạm chip Video khi chưa có tệp video', home, section: 'file',
-      change: 'MỚI: chip không có gì thì báo trống', act: (t) async {
+  _screen('files-video-empty', 'Tệp · chạm chip Video khi chưa có tệp video', home, section: 'file', act: (t) async {
     await t.tap(find.byKey(const ValueKey('file-chip-video')));
     await t.pumpAndSettle();
   });
-  _screen('files-documents', 'Tệp · chạm chip Tài liệu', home, section: 'file',
-      change: 'MỚI: chip Tài liệu = PDF, Word, Excel, PowerPoint, văn bản, sách',
-      marks: [() => find.byKey(const ValueKey('file-chip-document'))], act: (t) async {
+  _screen('files-documents', 'Tệp · chạm chip Tài liệu', home, section: 'file', act: (t) async {
     await t.tap(find.byKey(const ValueKey('file-chip-document')));
     await t.pumpAndSettle();
   });
@@ -1162,11 +1158,8 @@ void main() {
   Widget modePage(Widget body) =>
       Readable(child: Builder(builder: (context) => Scaffold(appBar: pageBar(context, 'Chế độ tuyệt mật'), body: SafeArea(top: false, child: body))));
   _screen('ts-files', 'Két Tuyệt mật · Tệp: ảnh, video thành dòng như tệp', home, section: 'file',
-      change: 'MỚI: chip Tất cả · Ảnh · Video · Tài liệu · Khác',
       marks: [() => find.byKey(const ValueKey('file-chips'))]);
-  _screen('ts-files-video', 'Két Tuyệt mật · Tệp · chạm chip Video', home, section: 'file',
-      change: 'MỚI: chỉ còn video (vẫn là dòng, không hiện hình)',
-      marks: [() => find.byKey(const ValueKey('file-chip-video'))], act: (t) async {
+  _screen('ts-files-video', 'Két Tuyệt mật · Tệp · chạm chip Video', home, section: 'file', act: (t) async {
     await t.tap(find.byKey(const ValueKey('file-chip-video')));
     await t.pumpAndSettle();
   });
@@ -1189,7 +1182,6 @@ void main() {
   });
   _screen('ts-place-settings', 'Chế độ tuyệt mật · khiên đỏ nhỏ ở góc nút Cài đặt', home, section: 'home',);
   _screen('ts-home', 'Két Tuyệt mật · Tổng quan', home, section: 'home',
-      change: 'ĐỀ XUẤT: cùng lưới; ảnh/video mở Tệp với chip Ảnh/Video',
       marks: [() => find.byKey(const ValueKey('kind-card'))]);
   _screen('settings-mode-off', 'Cài đặt · thẻ Chế độ tuyệt mật (đang tắt)', () => settings(vault),);
   _screen('ts-settings', 'Cài đặt · thẻ Chế độ tuyệt mật (đang bật)', () => settings(vault),);
@@ -1301,18 +1293,10 @@ void main() {
     await t.tap(find.byKey(const ValueKey('sync-drive-remove')));
     await t.pumpAndSettle();
   });
-  _screen('sync-allow', 'Đồng bộ · bấm Đồng bộ với máy gần đây → hỏi cho phép tìm và chờ trên Wi‑Fi', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
-      setup: () {
-    SyncScreen.debugLog = syncLog;
-    SyncScreen.debugAddress = '192.168.1.37';
-  }, act: (t) async {
-    await t.tap(find.byKey(const ValueKey('sync-local')));
-    await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('sync-nearby')));
-    await t.pumpAndSettle();
-  });
   _screen('sync-local-row', 'Đồng bộ: Google Drive · Mạng nội bộ · Các lần kết nối', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})), setup: () => SyncScreen.debugDrive = true);
-  _screen('sync-local', 'Đồng bộ → Mạng nội bộ: Đồng bộ với két cũ · Thiết lập máy mới', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})), act: (t) async {
+  _screen('sync-local', 'Đồng bộ → Mạng nội bộ: Đồng bộ với két cũ · Thiết lập máy mới', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      change: 'ĐỔI: bấm một trong hai dòng là vào thẳng, không còn thẻ "Cho phép kết nối" (Google Drive → Đồng bộ ngay cũng vậy)',
+      marks: [() => find.byKey(const ValueKey('sync-nearby')), () => find.byKey(const ValueKey('sync-invite'))], act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-local')));
     await t.pumpAndSettle();
   });
@@ -1385,6 +1369,7 @@ void main() {
   SyncEvent found(List<String> names) =>
       SyncEvent(kind: SyncStep.found, check: 0, name: '', peers: names, peerIds: [for (var i = 0; i < names.length; i++) 'a$i'], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: '');
   _screen('sync-nearby-waiting', 'Máy gần đây: cả hai máy mở màn hình này và chờ — tự tìm nhau, không cần nhập mã', nearby,
+      change: 'ĐỔI: màn này mở ngay sau khi bấm Đồng bộ với két cũ',
       setup: () => NearbyPage.debugHosting = hosting);
   _screen('sync-nearby-none', 'Máy gần đây: chờ một lúc chưa thấy máy nào — gợi ý cách sửa', nearby, setup: () {
     NearbyPage.debugHosting = hosting;
@@ -1436,7 +1421,6 @@ void main() {
   _screen('sync-peer-wrong-password', 'Máy cũ: máy mới nhập sai mật khẩu — máy cũ dừng, chỉ mới gửi ổ khoá của két', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.peerWrongPassword)), onSynced: () {})));
   _screen('restore-already-here', 'Khôi phục một két đã có trên máy này (cùng 24 từ + mật khẩu)',
       () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.alreadyHere)), onSynced: () {})),
-      change: 'MỚI: không khôi phục thêm bản thứ hai; báo két đã có, mở ở màn khoá. Khôi phục từ Drive / tệp báo cùng câu dưới nút',
       marks: [() => find.byKey(const ValueKey('add-code-ended-alreadyHere'))]);
   _screen('restore-wrong-password', 'Máy mới: sai mật khẩu', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.wrongPassword)), onSynced: () {})));
   _screen('sync-device-sending', 'Máy gần đây: đang gửi — ổ khoá trên đường truyền', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.sending, done: 21, total: 90, bytes: 64 << 20, bytesTotal: 230 << 20)), onSynced: () {})),

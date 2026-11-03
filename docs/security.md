@@ -327,9 +327,10 @@ attack. Moving a vault is done by the app's own backup file or sync.
 
 (Details: [ADR 0003](adr/0003-sync.md), "P2P security".)
 
-- **Nothing connects on its own.** The person opens Sync → Sync with a nearby device and
-  allows looking on this Wi-Fi, by address, each time; the wait ends after 5 minutes or
-  when the page closes.
+- **Nothing connects on its own.** The person opens Sync → Local network and taps Sync
+  with your vault on another device or Set up a new device; that tap is the allowing (owner
+  2026-11-03: a card asking again after it was "too many questions"). The wait ends
+  after 5 minutes or when the page closes.
 - **Both people confirm, comparing a number** (0.1.73), like Bluetooth pairing: both
   screens ask "Sync with iPhone 15 Pro Max?" next to the same 3-digit number, and nothing
   is served until both tapped Sync; Cancel on either stops both. Strangers are already

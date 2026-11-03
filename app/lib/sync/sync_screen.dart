@@ -67,8 +67,9 @@ class _SyncScreenState extends State<SyncScreen> {
     _loadLog();
   }
 
-  /// Both devices open this and wait: ask once to look and wait on this Wi-Fi, then they
-  /// find each other and both people confirm (docs/adr/0003-sync.md).
+  /// Both devices open this and wait: they find each other on this Wi-Fi and both people
+  /// confirm (docs/adr/0003-sync.md). The tap is the consent: no card asking first (owner
+  /// 2026-11-03: "they tapped it already"); the same for [_invite] and Sync now.
   Future<void> _nearby() async {
     final l = AppLocalizations.of(context);
     final address = SyncScreen.debugAddress ?? await localAddress();
@@ -77,7 +78,6 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    if (!await allowConnection(context, l.syncAllowNearby) || !mounted) return;
     await AutoSync.idle();
     if (!mounted) return;
     await pushPage<void>(context,
@@ -96,7 +96,6 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    if (!await allowConnection(context, l.syncAllowNearby) || !mounted) return;
     await AutoSync.idle();
     if (!mounted) return;
     await pushPage<void>(context,
@@ -123,7 +122,8 @@ class _SyncScreenState extends State<SyncScreen> {
             ));
   }
 
-  /// Google Drive: sign in, ask, then one sync (the vault's sealed files only).
+  /// Google Drive: sign in, then one sync (the vault's sealed files only). Only adding the
+  /// account asks first (naming it, with automatic sync); Sync now just syncs.
   Future<void> _drive() async {
     final l = AppLocalizations.of(context);
     if (!driveReady) {
@@ -158,7 +158,7 @@ class _SyncScreenState extends State<SyncScreen> {
               ],
             ),
           );
-    if (!await allowConnection(context, l.syncAllowDrive(session.email), below: below) || !mounted) return;
+    if (adding && !await allowConnection(context, l.syncAllowDrive(session.email), below: below) || !mounted) return;
     if (adding) setState(() => AutoSync.enabled = auto);
     await AutoSync.idle();
     if (!mounted) return;

@@ -50,8 +50,13 @@ in `test/preview_test.dart`; the page lists them at the top and outlines the mar
   theme's own greys (2026-10-21: light shapes on the dark theme showed as bright
   patches) under an even veil, so it shows over the whole page.
 - The collage is a **fixed illustration bundled with the app**, never thumbnails
-  of the user's data: the screen runs while every vault is locked. Ship it as a
-  pre-blurred image, not a live blur.
+  of the user's data: the screen runs while every vault is locked. It is drawn by
+  `VaultBackdrop` (`widgets/brand.dart`): the painter blurs and fades each shape
+  itself, no blur or opacity layer.
+- **Keep the collage clipped to its page** (`ClipRect`, 2026-11-03). The tilted columns
+  are drawn far past the page's edges so the corners stay covered; unclipped, the page
+  being swiped away on iPhone drew its collage over the page underneath (the first
+  screen's logo and buttons). `test/backdrop_test.dart` guards it.
 - No motion on this screen. Floating/appearing items were tried and dropped as
   too playful for a vault.
 - The one exception is the moment it opens (approved 2026-10-19): a vault-green

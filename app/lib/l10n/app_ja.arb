@@ -592,8 +592,6 @@
   "syncRestoreAllowNo": "許可しない",
   "restoreTapAllow": "もう一台の端末で「許可」をタップしてください。",
   "hideNoteText": "メモの本文を隠す",
-  "syncAllowNearby": "この Wi‑Fi であなたの端末を探します。",
-  "syncAllowFindRestore": "この Wi‑Fi で古い端末を探します。",
   "syncNearbyLead": "もう一台でもこの画面を開いてください。",
   "syncNearbyNone": "まだ端末が見つかりません。両方が同じWi‑Fiにつながり、この画面を開いている必要があります。",
   "syncNearbyNoneRestore": "まだ見つかりません。古い端末で同じWi‑Fiにつなぎ、「近くのデバイスと同期」を開いてください。",

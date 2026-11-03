@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
+import '../prefs.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/vault_bar.dart' show showCard;
@@ -12,20 +13,34 @@ import 'item_info.dart' show itemKindLabel, shownName;
 /// A Top secret item that is not a note (ADR 0005): never opened, previewed or played in
 /// the app. Tapping it shows what it is, says why it does not open, and offers Open in
 /// another app (owner 2026-10-31: not "Send"): a plain copy for the app picked, after the
-/// same warning every time (no "don't ask again" here).
+/// warning. "Don't ask again" for this vault opens it at once from then on (owner
+/// 2026-11-03: Quick Look works well, the card every time was too much); kept apart
+/// from the everyday vault's choice, so a vault turned Top secret asks again.
+/// Tests: stands in for the opening itself (the system's Quick Look or share sheet).
+@visibleForTesting
+Future<void> Function(rust.ItemInfo item)? debugOpenSealed;
+
+Future<void> _openSealed(BuildContext context, rust.ItemInfo item, String vaultId) =>
+    debugOpenSealed?.call(item) ?? openWithById(context, item.id, item.mime, item.name, vaultId, askFirst: false);
+
 Future<void> showSealedItem(
   BuildContext context,
   rust.ItemInfo item, {
   required String vaultId,
 }) async {
+  final key = 'sealed-open-ok-$vaultId';
+  if (Prefs.read(key) == '1') {
+    return _openSealed(context, item, vaultId);
+  }
   final l = AppLocalizations.of(context);
   final ml = MaterialLocalizations.of(context);
   final added = dateOf(item.createdMs);
   final c = CsColors.of(context);
+  var again = false;
   final send = await showCard<bool>(
     context,
     title: shownName(l, item),
-    builder: (context) => Padding(
+    builder: (context) => StatefulBuilder(builder: (context, set) => Padding(
       key: const ValueKey('sealed-item'),
       padding: const EdgeInsets.fromLTRB(22, 0, 22, 18),
       child: Column(
@@ -50,7 +65,14 @@ Future<void> showSealedItem(
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 18),
+          SwitchListTile(
+            key: const ValueKey('sealed-dont-ask'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.dontAskAgain),
+            value: again,
+            onChanged: (v) => set(() => again = v),
+          ),
+          const SizedBox(height: 6),
           FilledButton.icon(
             key: const ValueKey('sealed-send'),
             onPressed: () => Navigator.of(context).pop(true),
@@ -63,17 +85,11 @@ Future<void> showSealedItem(
           ),
         ],
       ),
-    ),
+    )),
   );
   if (send != true || !context.mounted) return;
-  await openWithById(
-    context,
-    item.id,
-    item.mime,
-    item.name,
-    vaultId,
-    askFirst: false,
-  );
+  if (again) Prefs.write(key, '1');
+  await _openSealed(context, item, vaultId);
 }
 
 /// Name a photo just taken in a Top secret vault, at once (ADR 0005: it is never shown,

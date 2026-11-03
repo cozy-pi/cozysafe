@@ -592,8 +592,6 @@
   "syncRestoreAllowNo": "허용 안 함",
   "restoreTapAllow": "다른 기기에서 허용을 누르세요.",
   "hideNoteText": "메모 내용 숨기기",
-  "syncAllowNearby": "이 Wi‑Fi에서 내 기기를 찾습니다.",
-  "syncAllowFindRestore": "이 Wi‑Fi에서 이전 기기를 찾습니다.",
   "syncNearbyLead": "다른 기기에서도 이 화면을 여세요.",
   "syncNearbyNone": "아직 찾은 기기가 없습니다. 두 기기가 같은 Wi‑Fi에 있고 이 화면을 열어 두어야 합니다.",
   "syncNearbyNoneRestore": "아직 기기가 없습니다. 이전 기기에서 같은 Wi‑Fi로 근처 기기와 동기화를 여세요.",

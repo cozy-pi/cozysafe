@@ -95,8 +95,8 @@ automatic sync with Google Drive): **syncing with
 your other device on the same Wi‑Fi** (one address on your local network) and **syncing
 through your Google Drive** (`www.googleapis.com`, and `oauth2.googleapis.com` for the
 sign-in on computers, over TLS 1.3 with the
-`drive.file` scope, so the app sees only the files it made). You allow each connection
-by hand, or once for automatic sync, which runs only while the vault is open and can be
+`drive.file` scope, so the app sees only the files it made). Nothing connects until you
+tap a sync (or allow automatic sync once, when you add Google Drive), which runs only while the vault is open and can be
 limited to Wi-Fi; everything sent is already encrypted with your vault's keys. A link in a
 note opens in your browser only after you confirm it. A vault app is only as safe as every library inside it, and libraries do
 get hijacked, so this is checked on every build, in layers (details and limits:

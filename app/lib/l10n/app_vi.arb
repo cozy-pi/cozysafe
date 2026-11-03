@@ -606,8 +606,6 @@
   "syncRestoreAllowNo": "Không cho",
   "restoreTapAllow": "Trên máy kia, chạm Cho phép.",
   "hideNoteText": "Ẩn nội dung ghi chú",
-  "syncAllowNearby": "Tìm máy của bạn trên Wi‑Fi này.",
-  "syncAllowFindRestore": "Tìm máy cũ trên Wi‑Fi này.",
   "syncNearbyLead": "Mở màn này trên máy kia nữa.",
   "syncNearbyNone": "Chưa thấy máy nào. Hai máy phải cùng Wi‑Fi và cùng mở màn hình này.",
   "syncNearbyNoneRestore": "Chưa thấy máy nào. Trên máy cũ, mở Đồng bộ với máy gần đây, cùng Wi‑Fi.",

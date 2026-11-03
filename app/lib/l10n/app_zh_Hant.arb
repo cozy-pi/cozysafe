@@ -592,8 +592,6 @@
   "syncRestoreAllowNo": "不允許",
   "restoreTapAllow": "請在另一台裝置上點一下「允許」。",
   "hideNoteText": "隱藏筆記內容",
-  "syncAllowNearby": "在此 Wi‑Fi 上尋找你的裝置。",
-  "syncAllowFindRestore": "在此 Wi‑Fi 上尋找你的舊裝置。",
   "syncNearbyLead": "在另一台裝置上也開啟此畫面。",
   "syncNearbyNone": "尚未找到裝置。兩台裝置必須連上同一個 Wi‑Fi，並開啟此畫面。",
   "syncNearbyNoneRestore": "還沒找到裝置。請在舊裝置上連同一個 Wi‑Fi，開啟「與附近的裝置同步」。",
