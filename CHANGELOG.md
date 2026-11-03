@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.17 (2026-11-03)
+
+### Fixed
+- After deleting a vault, a phone with other vaults could open on the "type your 24
+  words" page every time, even though it still had those vaults' words. It opens on the
+  lock screen again.
+
 ## 0.2.16 (2026-11-03)
 
 ### Changed
