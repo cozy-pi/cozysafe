@@ -30,10 +30,20 @@ List<VaultSection> vaultSections() => [
       if (Device.iOS || Device.android || debugVoice) VaultSection.audio,
     ];
 
-/// The sections with a tab in the bar: all but Voice (owner 2026-10-24: overview,
-/// library, +, files, notes). Voice memos stay, reached from the overview and the +.
-List<VaultSection> barSections(List<VaultSection> sections) =>
-    [for (final s in sections) if (s != VaultSection.audio) s];
+/// The kinds of item ranked by how many the vault holds, most first; a tie keeps the
+/// fixed order of [vaultSections]. Every kind this device offers, held or not.
+List<VaultSection> rankedSections(int Function(VaultSection) count) {
+  final kinds = [for (final s in vaultSections()) if (s != VaultSection.home) s];
+  final order = {for (final (i, s) in kinds.indexed) s: i};
+  return kinds..sort((a, b) => count(a) != count(b) ? count(b) - count(a) : order[a]! - order[b]!);
+}
+
+/// The sections with a tab in the bar: the overview, then the three kinds the vault holds
+/// most of, left to right (owner 2026-11-03). The rest stay reached from the overview.
+List<VaultSection> barSections(List<VaultSection> sections, int Function(VaultSection) count) => [
+      if (sections.contains(VaultSection.home)) VaultSection.home,
+      ...rankedSections(count).where(sections.contains).take(3),
+    ];
 
 /// For tests and the browser preview: offer voice memos on any platform.
 bool debugVoice = false;
@@ -772,15 +782,23 @@ List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection se
       (AddWhat.file, Icons.folder_rounded, sectionLabel(l, VaultSection.file)),
     ];
 
-/// The round quick buttons just above + (owner 2026-10-31: the long row was slow and had
-/// to be swiped): only what records on the spot, camera, video and voice memo. The card
-/// above them still lists every way ([addWays]).
-List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, {required bool camera, required bool voice}) => [
-      // Video, photo, voice (owner 2026-10-31).
-      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
-      if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
-      if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
-    ];
+/// The round quick buttons just above +: one for each of the three kinds the vault holds
+/// most of ([rankedSections]), the most in the middle over +, the second on its left and
+/// the third on its right (owner 2026-11-03). The card above them still lists every way
+/// ([addWays]).
+List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, int Function(VaultSection) count,
+    {required bool camera}) {
+  (AddWhat, IconData, String) way(VaultSection s) => switch (s) {
+        VaultSection.library => camera
+            ? (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto)
+            : (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
+        VaultSection.note => (AddWhat.note, Icons.book_rounded, l.newNote),
+        VaultSection.audio => (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
+        _ => (AddWhat.file, Icons.folder_rounded, l.addFiles),
+      };
+  final top = rankedSections(count).take(3).map(way).toList();
+  return top.length < 2 ? top : [top[1], top[0], ...top.skip(2)];
+}
 
 /// + never does one thing at once: it always opens the card of every way and the quick
 /// buttons ([quickWays]).

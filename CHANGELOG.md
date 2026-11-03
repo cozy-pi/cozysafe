@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.22 (2026-11-03)
+
+### Changed
+- The bottom bar shows the three kinds of item your vault holds most of, the most on the
+  left. Voice memos get a tab too when there are enough of them; the other kind is still
+  one tap away on the overview.
+- The quick buttons above + add those same three kinds, the most in the middle: take a
+  photo, add files, new note or record. Every way to add is still in the card above them.
+
 ## 0.2.21 (2026-11-03)
 
 ### Changed
