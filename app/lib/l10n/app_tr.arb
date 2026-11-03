@@ -592,8 +592,6 @@
   "syncRestoreAllowNo": "İzin verme",
   "restoreTapAllow": "Diğer cihazınızda İzin ver'e dokunun.",
   "hideNoteText": "Not metnini gizle",
-  "syncAllowNearby": "Bu Wi‑Fi'da cihazlarınızı ara.",
-  "syncAllowFindRestore": "Bu Wi‑Fi'da eski cihazınızı ara.",
   "syncNearbyLead": "Bu ekranı diğer cihazda da açın.",
   "syncNearbyNone": "Henüz cihaz bulunamadı. İkisi de aynı Wi‑Fi'da olmalı ve bu ekran açık olmalı.",
   "syncNearbyNoneRestore": "Henüz cihaz bulunamadı. Eski cihazda, aynı Wi‑Fi’da Yakındaki bir cihazla eşitle’yi açın.",

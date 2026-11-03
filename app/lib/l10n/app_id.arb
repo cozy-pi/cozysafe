@@ -592,8 +592,6 @@
   "syncRestoreAllowNo": "Jangan izinkan",
   "restoreTapAllow": "Di perangkat Anda yang lain, ketuk Izinkan.",
   "hideNoteText": "Sembunyikan isi catatan",
-  "syncAllowNearby": "Cari perangkat Anda di Wi‑Fi ini.",
-  "syncAllowFindRestore": "Cari perangkat lama Anda di Wi‑Fi ini.",
   "syncNearbyLead": "Buka layar ini juga di perangkat lain.",
   "syncNearbyNone": "Belum ada perangkat yang ditemukan. Keduanya harus di Wi‑Fi yang sama, dengan layar ini terbuka.",
   "syncNearbyNoneRestore": "Belum ada perangkat. Di perangkat lama, buka Sinkronkan dengan perangkat terdekat, di Wi‑Fi yang sama.",

@@ -1164,8 +1164,6 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('ts-sealed', 'Két Tuyệt mật · chạm một ảnh: không mở, chỉ thông tin + Mở bằng app khác', home, section: 'file',
-      change: 'MỚI: ô "Không hỏi lại với két này": bật rồi thì lần sau chạm là mở thẳng (Quick Look trên iPhone), không qua thẻ này',
-      marks: [() => find.byKey(const ValueKey('sealed-dont-ask'))],
       act: (t) => openRow(t, 'Sinh nhật bé Na.MOV'));
   _screen('ts-add', 'Két Tuyệt mật · Tổng quan · bấm +', home, section: 'home',
       setup: () {
@@ -1295,18 +1293,10 @@ void main() {
     await t.tap(find.byKey(const ValueKey('sync-drive-remove')));
     await t.pumpAndSettle();
   });
-  _screen('sync-allow', 'Đồng bộ · bấm Đồng bộ với máy gần đây → hỏi cho phép tìm và chờ trên Wi‑Fi', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
-      setup: () {
-    SyncScreen.debugLog = syncLog;
-    SyncScreen.debugAddress = '192.168.1.37';
-  }, act: (t) async {
-    await t.tap(find.byKey(const ValueKey('sync-local')));
-    await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('sync-nearby')));
-    await t.pumpAndSettle();
-  });
   _screen('sync-local-row', 'Đồng bộ: Google Drive · Mạng nội bộ · Các lần kết nối', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})), setup: () => SyncScreen.debugDrive = true);
-  _screen('sync-local', 'Đồng bộ → Mạng nội bộ: Đồng bộ với két cũ · Thiết lập máy mới', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})), act: (t) async {
+  _screen('sync-local', 'Đồng bộ → Mạng nội bộ: Đồng bộ với két cũ · Thiết lập máy mới', () => page('Đồng bộ', SyncScreen(libraryDir: '', onSynced: () {})),
+      change: 'ĐỔI: bấm một trong hai dòng là vào thẳng, không còn thẻ "Cho phép kết nối" (Google Drive → Đồng bộ ngay cũng vậy)',
+      marks: [() => find.byKey(const ValueKey('sync-nearby')), () => find.byKey(const ValueKey('sync-invite'))], act: (t) async {
     await t.tap(find.byKey(const ValueKey('sync-local')));
     await t.pumpAndSettle();
   });
@@ -1379,6 +1369,7 @@ void main() {
   SyncEvent found(List<String> names) =>
       SyncEvent(kind: SyncStep.found, check: 0, name: '', peers: names, peerIds: [for (var i = 0; i < names.length; i++) 'a$i'], received: 0, sent: 0, removed: 0, copies: 0, done: 0, total: 0, bytes: BigInt.zero, bytesTotal: BigInt.zero, moved: 0, repaired: 0, unrepaired: 0, code: '');
   _screen('sync-nearby-waiting', 'Máy gần đây: cả hai máy mở màn hình này và chờ — tự tìm nhau, không cần nhập mã', nearby,
+      change: 'ĐỔI: màn này mở ngay sau khi bấm Đồng bộ với két cũ',
       setup: () => NearbyPage.debugHosting = hosting);
   _screen('sync-nearby-none', 'Máy gần đây: chờ một lúc chưa thấy máy nào — gợi ý cách sửa', nearby, setup: () {
     NearbyPage.debugHosting = hosting;

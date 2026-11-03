@@ -592,8 +592,6 @@
   "syncRestoreAllowNo": "Nicht zulassen",
   "restoreTapAllow": "Tippe auf deinem anderen Gerät auf Zulassen.",
   "hideNoteText": "Notiztext ausblenden",
-  "syncAllowNearby": "Ihre Geräte in diesem WLAN suchen.",
-  "syncAllowFindRestore": "Ihr altes Gerät in diesem WLAN suchen.",
   "syncNearbyLead": "Öffne diesen Bildschirm auch auf dem anderen Gerät.",
   "syncNearbyNone": "Noch kein Gerät gefunden. Beide müssen im selben WLAN sein und diesen Bildschirm geöffnet haben.",
   "syncNearbyNoneRestore": "Noch kein Gerät gefunden. Öffne auf dem alten Gerät „Mit einem Gerät in der Nähe synchronisieren“, im selben WLAN.",

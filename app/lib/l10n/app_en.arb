@@ -776,8 +776,6 @@
   "syncRestoreAllowNo": "Don't allow",
   "restoreTapAllow": "On your other device, tap Allow.",
   "hideNoteText": "Hide note text",
-  "syncAllowNearby": "Look for your devices on this Wi‑Fi.",
-  "syncAllowFindRestore": "Look for your old device on this Wi‑Fi.",
   "syncNearbyLead": "Open this screen on your other device too.",
   "syncNearbyNone": "No device found yet. Both must be on the same Wi‑Fi, with this screen open.",
   "syncNearbyNoneRestore": "No device found yet. On the old device, open Sync with a nearby device, on the same Wi‑Fi.",

@@ -592,8 +592,6 @@
   "syncRestoreAllowNo": "No permitir",
   "restoreTapAllow": "En tu otro dispositivo, toca Permitir.",
   "hideNoteText": "Ocultar el texto de las notas",
-  "syncAllowNearby": "Buscar tus dispositivos en esta Wi‑Fi.",
-  "syncAllowFindRestore": "Buscar tu dispositivo antiguo en esta Wi‑Fi.",
   "syncNearbyLead": "Abre esta pantalla también en el otro dispositivo.",
   "syncNearbyNone": "Aún no se ha encontrado ningún dispositivo. Ambos deben estar en la misma Wi‑Fi, con esta pantalla abierta.",
   "syncNearbyNoneRestore": "Aún no hay ningún dispositivo. En el antiguo, abre Sincronizar con un dispositivo cercano, en la misma Wi‑Fi.",

@@ -13,7 +13,6 @@ import '../screens/unlock.dart' show UnlockScreen;
 import '../widgets/readable.dart';
 import '../widgets/toast.dart';
 import '../widgets/words_awake.dart';
-import 'consent.dart';
 import 'device_name.dart';
 import 'awake.dart';
 import 'add_code.dart';
@@ -130,8 +129,9 @@ class _CountdownState extends State<_Countdown> {
   }
 }
 
-/// The new device, with no vault in `dir`, is added: ask before looking on the Wi-Fi,
-/// then find the old device, the code, the password, restore. Returns the vault opened
+/// The new device, with no vault in `dir`, is added: the tap on restore from another
+/// device is the allowing (owner 2026-11-03, no card asking again), then find the old
+/// device, the code, the password, restore. Returns the vault opened
 /// here, its 24 words kept under the library it went into; null otherwise.
 Future<rust.VaultInfo?> restoreByCode(BuildContext context, {required String libraryDir, required String dir}) async {
   final l = AppLocalizations.of(context);
@@ -141,7 +141,6 @@ Future<rust.VaultInfo?> restoreByCode(BuildContext context, {required String lib
     showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
     return null;
   }
-  if (!await allowConnection(context, l.syncAllowFindRestore)) return null;
   final name = await deviceName();
   if (!context.mounted) return null;
   // How the run ended decides where the person goes after the page.

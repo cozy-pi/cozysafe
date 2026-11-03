@@ -8,6 +8,15 @@ depends on memory. Details live in the linked docs; this page is the index.
 
 **Owner:**
 
+- **A sync tap is the allowing; no card after it** ("they tapped it already, too many
+  questions"). Google Drive's Sync now, Sync with your vault on another device and Set up a new device
+  start at once, and so does Restore → From another device on the new device. Only
+  adding the Google account still shows the card (it names the account and carries
+  "Sync automatically"); a scanned QR code (Use QR code, when the network keeps two
+  devices from finding each other) still names its address and asks. This changes 2026-10-24's "each time, the app asks": the person's
+  tap on a named sync is the by-hand step. Nothing else changes: still one permit per
+  run in `cs-net`, bound to that destination, logged, local addresses only.
+
 - **Top secret files can skip the card.** Quick Look on iPhone works well, and the card
   before every open was too much. The card a Top secret file shows (what it is, why it
   does not open in the app, Open in another app) now has "Don't ask again for this
