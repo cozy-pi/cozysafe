@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.21 (2026-11-03)
+
+### Changed
+- Top Secret Mode: the card a file shows before it opens in another app has "Don't ask
+  again for this vault". Once ticked, a tap opens the file at once (Quick Look on
+  iPhone). The everyday vault's choice is kept apart, so a vault turned Top secret asks
+  again.
+
 ## 0.2.20 (2026-11-03)
 
 ### Fixed

@@ -4,6 +4,29 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-03 (afternoon) — Top secret "Don't ask again"; words file name; backdrop clipped
+
+**Owner:**
+
+- **Top secret files can skip the card.** Quick Look on iPhone works well, and the card
+  before every open was too much. The card a Top secret file shows (what it is, why it
+  does not open in the app, Open in another app) now has "Don't ask again for this
+  vault"; once ticked, a tap opens the file at once (Quick Look on iPhone, the system's
+  Open with on Android). This replaces 2026-10-31's "the same warning every time".
+  The choice is its own (`sealed-open-ok-<vault>`), apart from the everyday vault's
+  ask-once (`share-ok-<vault>`), so a vault turned Top secret asks again. Nothing else
+  changes: the app still decodes nothing.
+- **The saved 24 words have a technical file name:** `cozysafe-recovery-key-YYYY-MM-DD.txt`,
+  the same in every language: ASCII, lower case, no spaces (was "Khoá khôi phục - Cozy
+  Safe.txt", accents and spaces, the same name every time). The text inside stays in
+  the app's language. 0.2.19.
+- **The lock-screen backdrop is clipped to its page.** Trap: the tilted collage is
+  drawn far past the page's edges (`half = 0.8 × the longer side`). On the iPhone back
+  swipe from a new vault, the page sliding away drew its collage over the first screen,
+  logo and buttons included. 0.2.19 only took the blur layer away (wrong guess, and it
+  got worse: that layer had been bounding the drawing). 0.2.20 adds a `ClipRect`;
+  `test/backdrop_test.dart` paints it in a small box and checks nothing lands outside.
+
 ## 2026-11-03 — One password per vault on a device; kinds and chips
 
 **Owner:** three restores of one vault left three copies, and only the first ever opened

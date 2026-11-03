@@ -10,6 +10,7 @@ import 'package:cozysafe/platform.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/screens/photo_viewer.dart';
 import 'package:cozysafe/screens/quick_look.dart';
+import 'package:cozysafe/screens/sealed_item.dart';
 import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/vault.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
@@ -168,6 +169,30 @@ void main() {
     await _tapRow(t, find.text('memo').first);
     expect(find.byKey(const ValueKey('sealed-item')), findsOneWidget);
     _nothingDecoded();
+  });
+
+  testWidgets("Top secret: Don't ask again opens a file at once from then on", (t) async {
+    TopSecretMode.on = true;
+    final opened = <String>[];
+    debugOpenSealed = (item) async => opened.add(item.name);
+    addTearDown(() => debugOpenSealed = null);
+    await _open(t);
+    final row = _name('contract.pdf').first;
+    await _tapRow(t, row);
+    expect(find.byKey(const ValueKey('sealed-item')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('sealed-dont-ask')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('sealed-send')));
+    await t.pumpAndSettle();
+    expect(opened, ['contract.pdf']);
+    expect(Prefs.read('sealed-open-ok-v1'), '1');
+    // The next tap opens it without the card, and still decodes nothing in the app.
+    await _tapRow(t, row);
+    expect(find.byKey(const ValueKey('sealed-item')), findsNothing);
+    _nothingDecoded();
+    expect(opened, ['contract.pdf', 'contract.pdf']);
+    // The everyday choice is kept apart: a vault turned Top secret asks again.
+    expect(Prefs.read('share-ok-v1'), isNull);
   });
 
   test('Everyday keeps the Library and every way to add', () {
