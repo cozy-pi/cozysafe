@@ -73,6 +73,12 @@ void main() {
     expect(RecoveryWords.fromText(copied), words);
   });
 
+  test('the saved file has a plain, dated name: no accents, no spaces', () {
+    final name = wordsFileName(DateTime(2026, 3, 7));
+    expect(name, 'cozysafe-recovery-key-2026-03-07.txt');
+    expect(RegExp(r'^[a-z0-9.-]+$').hasMatch(name), isTrue);
+  });
+
   testWidgets('the screen stays on for 3 minutes after the last touch', (t) async {
     await t.pumpWidget(_app(const WordsAwake(child: SizedBox.expand())));
     expect(Awake.busy, isTrue);

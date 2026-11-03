@@ -6,6 +6,11 @@ Dates are UTC.
 
 ## Unreleased
 
+### Changed
+- Saving the 24 words to a file suggests a plain, dated name in every language,
+  `cozysafe-recovery-key-2026-11-03.txt`: no accents, no spaces, so it keeps its name
+  on USB sticks, older computers and in mail, and a later save does not clash.
+
 ### Fixed
 - iPhone: swiping back to the first screen no longer shows its background drawn over
   the buttons, as a bright sheet.
