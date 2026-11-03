@@ -3063,6 +3063,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                           final h = _hover;
                           if (h != null) _pickAdd(h);
                         },
+                  // Taken away by the system: nothing stays lit as if under the finger.
+                  onVerticalDragCancel: _recordingNow ? null : () => setState(() => _hover = null),
                   child: _actionButton(context),
                 ),
               ),
