@@ -78,6 +78,8 @@ class _EdgeSwipeBackState extends State<EdgeSwipeBack> with SingleTickerProvider
                   widget.follow ? setState(() => _dx = dx) : _dx = dx;
                 },
                 onHorizontalDragEnd: _end,
+                // Taken away by the system: slide back rather than stay shifted.
+                onHorizontalDragCancel: () => _end(DragEndDetails()),
               ),
             ),
         ],

@@ -156,11 +156,26 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
 
   void _dragEnd(DragEndDetails d) {
     final v = d.velocity.pixelsPerSecond;
-    if (_drag.value.dy > 120 || (v.dy > 700 && _drag.value.dy > 0)) {
+    // Only while the viewer is on top: pop() closes whatever is, and closing a menu
+    // opened mid-drag left the viewer behind, see-through and in the way.
+    final onTop = ModalRoute.of(context)?.isCurrent ?? true;
+    if (onTop && (_drag.value.dy > 120 || (v.dy > 700 && _drag.value.dy > 0))) {
       // Fades out from where it is (the route is a fade).
       Navigator.of(context).pop();
       return;
     }
+    _springBack(v);
+  }
+
+  /// A drag that stops without an end (its recognizer dropped, as when a zoom starts
+  /// under it) puts the photo back: left where the finger was, the black gone and the
+  /// page showing through, the viewer stayed over the page and took its taps (owner
+  /// 2026-11-03, after heavy use on iPhone).
+  void _dragCancel() {
+    if (_drag.value != Offset.zero && !_back.isAnimating) _springBack(Offset.zero);
+  }
+
+  void _springBack(Offset v) {
     _backFrom = _drag.value;
     final distance = _backFrom.distance;
     // The finger's speed towards home, so the spring picks up where the hand left off.
@@ -235,7 +250,10 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
         if (bytes == null) return still;
         return _ZoomPhoto(
           onZoomed: (z) {
-            if (_zoomed.value != z) _zoomed.value = z;
+            if (_zoomed.value == z) return;
+            _zoomed.value = z;
+            // Zoomed, the drag to close is taken off the photo and never ends.
+            if (z) _dragCancel();
           },
           child: Center(
             child: Image.memory(bytes,
@@ -367,6 +385,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
               onVerticalDragStart: zoomed ? null : _dragBegin,
               onVerticalDragUpdate: zoomed ? null : _dragMove,
               onVerticalDragEnd: zoomed ? null : _dragEnd,
+              onVerticalDragCancel: zoomed ? null : _dragCancel,
               child: child,
             ),
             // With the bars shown, the photo sits between them, as in Photos (owner
@@ -471,7 +490,8 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
         return AnimatedOpacity(
           opacity: shown ? 1 : 0,
           duration: const Duration(milliseconds: 180),
-          child: IgnorePointer(ignoring: !_bars.value, child: child),
+          // Taps only where the bars can be seen: faded during a drag, they take none.
+          child: IgnorePointer(ignoring: !shown, child: child),
         );
       },
       child: grouped,

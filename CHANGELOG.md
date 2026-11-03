@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.23 (2026-11-03)
+
+### Fixed
+- A full-screen photo could stay over the vault invisibly after a drag to close was
+  interrupted (a second finger on its faded buttons, or a zoom starting mid-drag): the
+  page showed, but taps went to the hidden photo and its buttons, even after locking,
+  until the app was quit. The faded buttons no longer take taps, letting go closes only
+  the photo, and an interrupted drag puts the photo back.
+
 ## 0.2.22 (2026-11-03)
 
 ### Changed
