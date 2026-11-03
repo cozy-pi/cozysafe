@@ -4,16 +4,19 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## Unreleased
+## 0.2.20 (2026-11-03)
+
+### Fixed
+- iPhone: swiping back to the first screen no longer shows the background of the page
+  being swiped away drawn over the logo and buttons, as a bright sheet (0.2.19 did not
+  fix it yet).
+
+## 0.2.19 (2026-11-03)
 
 ### Changed
 - Saving the 24 words to a file suggests a plain, dated name in every language,
   `cozysafe-recovery-key-2026-11-03.txt`: no accents, no spaces, so it keeps its name
   on USB sticks, older computers and in mail, and a later save does not clash.
-
-### Fixed
-- iPhone: swiping back to the first screen no longer shows its background drawn over
-  the buttons, as a bright sheet.
 
 ## 0.2.18 (2026-11-03)
 
