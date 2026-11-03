@@ -4,6 +4,20 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.16 (2026-11-03)
+
+### Changed
+- Copied 24 words are numbered, one per line ("1. word"), like the saved file; pasting
+  that list back fills the words in order.
+- Making a vault: neither Private nor Top Secret is picked for you; Next waits until you
+  choose. The two choices now say what each does and what it suits, instead of a table.
+- Making a vault: swiping from the left edge goes back a step, and the page follows your
+  finger.
+
+## 0.2.15 (2026-11-02)
+
+The same as 0.2.14, built again for Google Play's closed test (Android only).
+
 ## 0.2.14 (2026-11-02)
 
 ### Changed

@@ -4,6 +4,14 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-03 — Mode never chosen for the person; copied words numbered
+
+**Owner:** when a vault is made, neither Private nor Top Secret is picked by default: the
+person must choose (Next stays off until then). The comparison table under the choices
+is gone (five of seven rows were the same); each choice says what it does and what it
+suits. Copied words are numbered one per line like the saved file, and Paste reads that
+back. The new-vault steps' edge swipe follows the finger.
+
 ## 2026-11-02 (night) — The 24 words can be copied and saved again; old keys gone
 
 **Owner:** writing 24 words down by hand is too much; the old kind of key is not used.
