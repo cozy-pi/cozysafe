@@ -161,6 +161,14 @@ class _RecoveryWordsCheckState extends State<RecoveryWordsCheck> {
   }
 }
 
+/// The file name "Save to a file" suggests: ASCII, lower case, no spaces, the same in
+/// every language (owner 2026-11-03: a technical name — no accents, no spaces, so it
+/// survives USB sticks, old Windows and mail), dated so a later save does not clash.
+String wordsFileName(DateTime day) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return 'cozysafe-recovery-key-${day.year}-${two(day.month)}-${two(day.day)}.txt';
+}
+
 /// "Save to a file" writes a real .txt file (owner 2026-10-29: it used to share plain
 /// text, which is not a file): on a computer through the Save dialog; on a phone a file
 /// in the app's temporary folder, handed to the share sheet (Save to Files) and deleted
@@ -173,7 +181,7 @@ Future<void> saveWordsFile(BuildContext button, List<String> words) async {
   if (await _askBeforeSaving(button) != true || !button.mounted) return;
   final plain = numberedWords(words);
   final text = '${l.kitTitle}\n\n$plain\n\n${l.kitShareNote}\n';
-  final name = '${l.kitTitle} - Cozy Safe.txt'.replaceAll(RegExp(r'[\\/:*?"<>|]'), '-');
+  final name = wordsFileName(DateTime.now());
   final box = button.findRenderObject() as RenderBox?;
   LockGuard.allowAway();
   try {
