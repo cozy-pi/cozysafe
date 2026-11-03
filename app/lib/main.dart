@@ -57,7 +57,7 @@ Future<void> main() async {
 /// Hand this device's Secret Key to Rust.
 Future<bool> loadSecretKey(String libraryDir) async {
   final key = await SecretKeyStore.read();
-  final ok = key != null && rust.setSecretKey(dir: libraryDir, key: key);
+  var ok = key != null && rust.setSecretKey(dir: libraryDir, key: key);
   // The libraries beside this one (their own 24 words): each key from its own entry.
   for (final dir in run_api.libraryDirs().skip(1)) {
     try {
@@ -68,7 +68,10 @@ Future<bool> loadSecretKey(String libraryDir) async {
         continue;
       }
       final other = await SecretKeyStore.read(dir);
-      if (other != null) rust.setSecretKey(dir: dir, key: other);
+      // A vault with its words kept is enough for the lock screen, whichever library it
+      // is in (owner 2026-11-03: the first vault deleted, its words went with it, and the
+      // others were left behind the "type your 24 words" page).
+      if (other != null && rust.setSecretKey(dir: dir, key: other)) ok = true;
     } catch (_) {} // tried again next start
   }
   return ok;
