@@ -4,6 +4,22 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-03 (evening) — The bar shows the three kinds held most
+
+**Owner:** the bottom bar shows the three kinds of item the vault holds most of, most on
+the left (1 → 2 → 3); the quick buttons above + add those three, in the order 2 → 1 → 3
+(the most in the middle, over +).
+
+- Ranked by number of items; a tie keeps the old order Library, Files, Notes, Voice.
+  Voice gets a tab when it is among the three (it had none since 2026-10-24).
+- A kind with no items gets no tab; the quick buttons are always three (an empty vault
+  ranks every kind equal). The fourth kind is reached from the overview; the card above
+  + still lists every way.
+- Library's quick button takes a photo (owner); with no camera, add photos. Record video
+  is no longer a quick button, only in the card.
+- The order changes as soon as the counts do (owner asked whether that is heavy: the
+  counts are taken once per change of the item list, not on every frame).
+
 ## 2026-11-03 (afternoon) — Top secret "Don't ask again"; words file name; backdrop clipped
 
 **Owner:**

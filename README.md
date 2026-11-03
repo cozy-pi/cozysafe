@@ -163,8 +163,9 @@ get hijacked, so this is checked on every build, in layers (details and limits:
   passwords stay masked until you tap Show, and every security setting asks for Face ID,
   fingerprint or the phone's passcode first ([security rules](docs/security.md)).
 - **Simple to start:** an empty vault offers big tiles to add the first thing; the bottom
-  bar shows the overview, library, +, files and notes, and + always offers every way to
-  add (photos, camera, video, note, voice memo, file).
+  bar shows the overview and the three kinds the vault holds most of, with a quick add
+  button for each above +, and + always offers every way to add (photos, camera, video,
+  note, voice memo, file).
 - **Sync with your other device on the same Wi‑Fi:** one shows a 3-digit code, the other
   finds it on the network by itself and takes the code (a QR works too). Only a device
   holding the same vault can answer; the code works once, for 5 minutes. Both devices end

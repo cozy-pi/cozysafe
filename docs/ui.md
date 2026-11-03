@@ -459,10 +459,15 @@ everywhere, easy to hit with a thumb.
   in the system's destructive red, like Delete for good in Recently deleted (exception to
   black and white, owner 2026-10-21). One component for both (`SelectionBar`,
   `lib/widgets/selection_bar.dart`): Done · Select all · the actions.
-- **Only what the vault holds.** The bottom capsule offers the home tab and the sections
-  that have items, in the fixed order Overview · Library · (+) · Files · Notes (owner
-  2026-10-24). Voice has no tab: it opens from the overview and from +. An empty vault
-  shows its icon, one line, and big add tiles.
+- **Only what the vault holds, most first.** The bottom capsule offers the home tab, then
+  the three kinds with the most items, most on the left: Overview · 1 · (+) · 2 · 3
+  (owner 2026-11-03; a tie keeps Library, Files, Notes, Voice). A kind with no items has
+  no tab; the fourth opens from the overview. An empty vault shows its icon, one line,
+  and big add tiles.
+- **Quick buttons above +** add those same three kinds, the most in the middle: 2 · 1 · 3
+  (Library: take a photo, or add photos with no camera; Files: add files; Notes: new
+  note; Voice: record). `rankedSections`, `barSections`, `quickWays` in
+  `lib/widgets/vault_bar.dart`.
 - **The + sits in the middle of the bar by default** (Settings can float it left or
   right): a little smaller than the bar, filled with the ink, so it stands out. It always
   offers every way to add, three to a row (add photos, take a photo, record a video,

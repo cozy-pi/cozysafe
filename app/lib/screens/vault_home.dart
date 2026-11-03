@@ -638,13 +638,30 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   /// The quick buttons above +.
   List<(AddWhat, IconData, String)> _addWays() =>
-      quickWays(AppLocalizations.of(context), camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
+      quickWays(AppLocalizations.of(context), _countIn, camera: _hasCamera);
 
   /// Every way, for the card above the quick buttons and the computer's Add.
   List<(AddWhat, IconData, String)> _allWays() =>
       addWays(AppLocalizations.of(context), camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
 
   AddWhat? get _directAdd => addDirect(_section, camera: _hasCamera);
+
+  /// How many items [s] holds, for ranking the bar's tabs and the quick buttons. Counted
+  /// once each time the list changes (it is replaced, never changed in place): a build
+  /// asks many times, and a big vault would walk every item for each ask.
+  int _countIn(VaultSection s) {
+    final items = _items ?? const <rust.ItemInfo>[];
+    if (!identical(items, _countedItems)) {
+      _countedItems = items;
+      _counts = {
+        for (final k in VaultSection.values) k: items.where((i) => _inSection(k, i)).length,
+      };
+    }
+    return _counts[s] ?? 0;
+  }
+
+  List<rust.ItemInfo>? _countedItems;
+  Map<VaultSection, int> _counts = const {};
 
 
   /// One way of adding, from the add column or the empty vault's tiles. The section it fills
@@ -2791,7 +2808,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // Left of the bar: a lock button, and the vault's badge (the overview tab).
     final leftOfBar = (lockShown ? Ui.bar + 4 : 0);
     final barW = MediaQuery.sizeOf(context).width - 20 - leftOfBar;
-    final centreX = 10 + leftOfBar + barW * centrePlusShare(barSections(sections).length < 2 ? const [] : barSections(sections));
+    final centreX = 10 + leftOfBar + barW * centrePlusShare(barSections(sections, _countIn).length < 2 ? const [] : barSections(sections, _countIn));
 
     // Selecting: only the count on top; Done and Select all sit in the bar at the bottom
     // with the actions (owner 2026-10-25: every button within the thumb's reach).
@@ -2933,7 +2950,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   child: NativeVaultBar(
                     key: _barKey,
                     section: _section,
-                    sections: barSections(sections),
+                    sections: barSections(sections, _countIn),
                     onSection: _pickSection,
                     onLock: _lock,
                     showLock: !_noLockButton(sections),
@@ -2949,7 +2966,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   key: _barKey,
                   tabsKey: _tabsKey,
                   section: _section,
-                  sections: barSections(sections),
+                  sections: barSections(sections, _countIn),
                   home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 32),
                   centre: centreMode && !empty ? const SizedBox(width: centrePlusSize, height: centrePlusSize) : null,
                   onSection: _pickSection,
