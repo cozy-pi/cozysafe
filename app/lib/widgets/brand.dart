@@ -170,9 +170,10 @@ class _MarkPainter extends CustomPainter {
 /// ID card, a receipt, notes, a PDF, a passport), tilted and softly blurred under a veil
 /// of the page colour. Drawn in the theme's own greys (2026-10-21: light shapes on the
 /// dark theme showed as bright patches). Never the user's data: this screen runs while
-/// every vault is locked. Blur and fade are drawn by the painter itself, not by layers
-/// (owner 2026-11-03: on iPhone, during the back swipe, a blur layer was drawn over the
-/// veil and the page's own buttons).
+/// every vault is locked. Blur and fade are drawn by the painter itself, not by layers.
+/// Clipped to the page (owner 2026-11-03): the tilted collage is drawn well past the
+/// page's edges, so during the iPhone back swipe the sliding page's collage covered the
+/// first screen, logo and buttons included.
 class VaultBackdrop extends StatelessWidget {
   const VaultBackdrop({super.key});
 
@@ -184,7 +185,7 @@ class VaultBackdrop extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         AnimatedContainer(duration: const Duration(milliseconds: 350), color: tint),
-        RepaintBoundary(child: CustomPaint(painter: _CollagePainter(dark: dark, tint: tint))),
+        RepaintBoundary(child: ClipRect(child: CustomPaint(painter: _CollagePainter(dark: dark, tint: tint)))),
         AnimatedContainer(
           duration: const Duration(milliseconds: 350),
           decoration: BoxDecoration(
