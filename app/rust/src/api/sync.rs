@@ -103,6 +103,9 @@ pub enum SyncStep {
     AddSeveral,
     /// Being added: the vault password was wrong three times; the old device closed.
     AddWrongPassword,
+    /// Not restored: a vault on this device already opens with that password (likely the
+    /// same vault, restored before). Two vaults with one password: only one would open.
+    AlreadyHere,
     /// Restored, its words kept; a Top secret vault after an everyday one in this run, so
     /// the app starts again before it opens.
     RestoredRestart,
@@ -804,6 +807,8 @@ pub fn p2p_add_restore(dir: String, ip: String, name: String, sink: StreamSink<S
     let peer = Mutex::new(String::new());
     // The last password typed: the vault is opened with it the usual way afterwards.
     let typed: Mutex<Option<zeroize::Zeroizing<String>>> = Mutex::new(None);
+    // The password typed opens a vault here already: stopped before anything comes in.
+    let clash = std::sync::atomic::AtomicBool::new(false);
     let code = |left: u32| {
         let mut slot = ADD_CODE.lock().unwrap_or_else(|p| p.into_inner());
         *slot = None;
@@ -836,6 +841,13 @@ pub fn p2p_add_restore(dir: String, ip: String, name: String, sink: StreamSink<S
         loop {
             if let Some(answer) = slot.take() {
                 let pw = answer.map(zeroize::Zeroizing::new);
+                if pw
+                    .as_deref()
+                    .is_some_and(|pw| super::vault::password_on_device(pw))
+                {
+                    clash.store(true, Ordering::Relaxed);
+                    return None;
+                }
                 *typed.lock().unwrap_or_else(|p| p.into_inner()) = pw.clone();
                 return pw;
             }
@@ -891,7 +903,10 @@ pub fn p2p_add_restore(dir: String, ip: String, name: String, sink: StreamSink<S
                 },
             }
         }
+        Ok(None) if clash.load(Ordering::Relaxed) => step(SyncStep::AlreadyHere),
         Ok(None) => step(SyncStep::Cancelled),
+        // The password refused here ends the run on the old device's side as well.
+        Err(_) if clash.load(Ordering::Relaxed) => step(SyncStep::AlreadyHere),
         Err(e) => failure(e),
     };
     let name = peer.into_inner().unwrap_or_else(|p| p.into_inner());
@@ -1341,6 +1356,7 @@ fn log_event(hold: Option<&SyncHold>, side: &str, peer: Option<&str>, event: &Sy
         SyncStep::AddWrongCode => "wrongcode",
         SyncStep::AddSeveral => "several",
         SyncStep::AddWrongPassword => "wrongpassword",
+        SyncStep::AlreadyHere => "alreadyhere",
         SyncStep::RestoredRestart => "ok",
         SyncStep::Unreachable => "unreachable",
         SyncStep::SignIn

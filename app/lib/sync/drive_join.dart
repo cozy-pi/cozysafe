@@ -6,6 +6,7 @@ import '../error_log.dart';
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../screens/common.dart';
+import '../screens/restore_flow.dart' show restoreClash;
 import '../screens/tour.dart' show TourKind;
 import '../screens/vault_home.dart';
 import '../secret_key_store.dart';
@@ -94,6 +95,11 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
       _error = null;
     });
     try {
+      final clash = await restoreClash(l, widget.libraryDir, words, password);
+      if (clash != null) {
+        if (mounted) setState(() => _error = clash);
+        return;
+      }
       // This device's library while it holds no vault, else a new one for these words.
       final target = _target ??= rust.libraryHasVaults(dir: widget.libraryDir)
           ? (run_api.newLibraryDir() ?? widget.libraryDir)

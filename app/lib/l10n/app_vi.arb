@@ -908,5 +908,12 @@
   "syncStopTitle": "Dừng đồng bộ?",
   "syncStopBody": "Phần đã đồng bộ được giữ lại; lần sau đồng bộ tiếp từ đó.",
   "syncStopAction": "Dừng",
-  "syncStopKeep": "Tiếp tục đồng bộ"
+  "syncStopKeep": "Tiếp tục đồng bộ",
+  "fileGroupVideos": "Video",
+  "fileGroupDocuments": "Tài liệu",
+  "fileGroupOther": "Khác",
+  "restoreAlreadyHere": "Két này đã có trên máy này.",
+  "restoreAlreadyHereLead": "Hãy mở nó ở màn khoá bằng mật khẩu của két.",
+  "ownerCheckFailed": "Không xác minh được chủ máy.",
+  "fileGroupOtherFiles": "Tệp khác"
 }

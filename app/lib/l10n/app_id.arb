@@ -894,5 +894,12 @@
   "syncStopTitle": "Hentikan sinkronisasi?",
   "syncStopBody": "Yang sudah tersinkron tetap disimpan; sinkronisasi berikutnya lanjut dari situ.",
   "syncStopAction": "Hentikan",
-  "syncStopKeep": "Lanjut sinkronkan"
+  "syncStopKeep": "Lanjut sinkronkan",
+  "fileGroupVideos": "Video",
+  "fileGroupDocuments": "Dokumen",
+  "fileGroupOther": "Lainnya",
+  "restoreAlreadyHere": "Brankas ini sudah ada di perangkat ini.",
+  "restoreAlreadyHereLead": "Buka di layar kunci dengan kata sandinya.",
+  "ownerCheckFailed": "Tidak dapat memastikan bahwa ini Anda.",
+  "fileGroupOtherFiles": "File lainnya"
 }

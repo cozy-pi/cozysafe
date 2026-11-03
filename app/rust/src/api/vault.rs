@@ -230,6 +230,63 @@ fn libraries_with_vaults() -> Vec<(PathBuf, SecretKey)> {
         .collect()
 }
 
+/// Whether `password` opens a vault in some library of this run other than `except`
+/// (each library costs one Argon2id). The password picks the vault and libraries are
+/// tried in turn, so two vaults with one password would leave all but the first shut
+/// (owner 2026-11-03: three restores of one vault, only one ever opened).
+fn password_used(password: &str, except: Option<&Path>) -> Result<Option<PathBuf>, VaultError> {
+    for (d, key) in libraries_with_vaults() {
+        if except == Some(d.as_path()) {
+            continue;
+        }
+        if Library::open_or_create(&d, params_for_this_device(), key)?.opens_with(password)? {
+            return Ok(Some(d));
+        }
+    }
+    Ok(None)
+}
+
+/// Whether a vault on this device opens with `password` (a damaged library counts as
+/// no). For a restore from another device, where the password is typed mid-way.
+pub(crate) fn password_on_device(password: &str) -> bool {
+    password_used(password, None).is_ok_and(|d| d.is_some())
+}
+
+/// What a vault password would clash with on this device, asked before a restore or a
+/// new vault.
+pub enum PasswordClash {
+    /// No vault here opens with it.
+    Free,
+    /// A vault with these 24 words already opens with it: the same vault, on this device.
+    SameVault,
+    /// A vault with other words opens with it.
+    OtherVault,
+}
+
+/// Whether a vault on this device already opens with `password` (`words`: the 24 words
+/// the new or restored vault will have, when known). Opens nothing.
+pub fn password_clash(
+    dir: String,
+    words: Option<String>,
+    password: String,
+) -> Result<PasswordClash, VaultError> {
+    let password = Zeroizing::new(password);
+    let words = words.map(Zeroizing::new);
+    super::run::library_dir(&dir)?;
+    let Some(found) = password_used(&password, None)? else {
+        return Ok(PasswordClash::Free);
+    };
+    let same = words
+        .as_deref()
+        .and_then(|w| SecretKey::from_text(w))
+        .is_some_and(|k| Library::secret_key_fits(&found, &k));
+    Ok(if same {
+        PasswordClash::SameVault
+    } else {
+        PasswordClash::OtherVault
+    })
+}
+
 /// The library holding the vault `vault_id`, among this run's.
 fn library_holding(vault_id: &str) -> Result<PathBuf, VaultError> {
     super::run::libraries()
@@ -327,6 +384,10 @@ pub fn create_vault_with_password(
 ) -> Result<VaultInfo, VaultError> {
     let password = Zeroizing::new(password);
     let library = library(&dir)?;
+    // Its own library refuses it too (cs-vault); the others are asked here.
+    if password_used(&password, Some(library.dir()))?.is_some() {
+        return Err(VaultError::PasswordInUse);
+    }
     let vault = library.create_vault_in_mode(&icon, &color, &password, top_secret)?;
     set_open(vault)
 }
@@ -751,6 +812,9 @@ pub fn set_password(dir: String, password: String) -> Result<VaultInfo, VaultErr
     let password = Zeroizing::new(password);
     super::run::library_dir(&dir)?;
     let library = open_library()?;
+    if password_used(&password, Some(library.dir()))?.is_some() {
+        return Err(VaultError::PasswordInUse);
+    }
     change_open(|vault| {
         library.set_password(vault, &password)?;
         Ok(info_of(vault))

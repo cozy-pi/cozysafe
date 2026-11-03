@@ -894,5 +894,12 @@
   "syncStopTitle": "Остановить синхронизацию?",
   "syncStopBody": "Уже синхронизированное сохранится; в следующий раз синхронизация продолжится с этого места.",
   "syncStopAction": "Остановить",
-  "syncStopKeep": "Продолжить"
+  "syncStopKeep": "Продолжить",
+  "fileGroupVideos": "Видео",
+  "fileGroupDocuments": "Документы",
+  "fileGroupOther": "Другое",
+  "restoreAlreadyHere": "Этот сейф уже есть на этом устройстве.",
+  "restoreAlreadyHereLead": "Откройте его на экране блокировки его паролем.",
+  "ownerCheckFailed": "Не удалось подтвердить, что это вы.",
+  "fileGroupOtherFiles": "Другие файлы"
 }

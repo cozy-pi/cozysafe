@@ -894,5 +894,12 @@
   "syncStopTitle": "Synchronisierung stoppen?",
   "syncStopBody": "Was bisher synchronisiert wurde, bleibt erhalten; die nächste Synchronisierung macht dort weiter.",
   "syncStopAction": "Stoppen",
-  "syncStopKeep": "Weiter synchronisieren"
+  "syncStopKeep": "Weiter synchronisieren",
+  "fileGroupVideos": "Videos",
+  "fileGroupDocuments": "Dokumente",
+  "fileGroupOther": "Andere",
+  "restoreAlreadyHere": "Dieser Tresor ist schon auf diesem Gerät.",
+  "restoreAlreadyHereLead": "Öffne ihn auf dem Sperrbildschirm mit seinem Passwort.",
+  "ownerCheckFailed": "Deine Identität konnte nicht bestätigt werden.",
+  "fileGroupOtherFiles": "Andere Dateien"
 }

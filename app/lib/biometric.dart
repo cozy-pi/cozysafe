@@ -6,11 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'error_log.dart';
 import 'l10n/app_localizations.dart';
 import 'lock_guard.dart';
 import 'platform.dart';
 import 'privacy.dart';
+import 'screens/common.dart' show errorWord, withCode;
 import 'widgets/brand.dart';
+import 'widgets/toast.dart';
 
 import 'src/rust/api/vault.dart' as rust;
 import 'top_secret_mode.dart';
@@ -202,7 +205,10 @@ String opensThisVaultLabel(AppLocalizations l, BiometricKind kind) => kind == Bi
 /// For tests and mockup renders in debug builds only; see [confirmOwner].
 bool debugOwnerConfirmed = false;
 
-Future<bool> confirmOwner(String reason) async {
+///
+/// A failure other than the person cancelling is said on [context], with its code
+/// (owner 2026-11-03: "Forgot the password" did nothing at all the second time).
+Future<bool> confirmOwner(String reason, {BuildContext? context}) async {
   // Mockup renders only: a debug build can act as if the owner confirmed. Release builds
   // compile this away (kDebugMode is a constant false there), so it is never a bypass.
   if (kDebugMode && debugOwnerConfirmed) return true;
@@ -210,7 +216,20 @@ Future<bool> confirmOwner(String reason) async {
     final auth = LocalAuthentication();
     if (!await auth.isDeviceSupported()) return true;
     return await PrivacyCover.whileAsking(() => auth.authenticate(localizedReason: reason));
-  } catch (_) {
+  } catch (e) {
+    final word = switch (e) {
+      LocalAuthException(code: LocalAuthExceptionCode.userCanceled || LocalAuthExceptionCode.systemCanceled) => null,
+      LocalAuthException(:final code) => 'owner-${code.name}',
+      PlatformException(:final code) => 'owner-$code',
+      _ => 'owner-${errorWord(e)}',
+    };
+    if (word != null) {
+      ErrorLog.add('owner-check', word);
+      if (context != null && context.mounted) {
+        final l = AppLocalizations.of(context);
+        showToast(context, withCode(l, l.ownerCheckFailed, word), icon: Icons.error_outline_rounded);
+      }
+    }
     return false;
   }
 }
@@ -218,10 +237,10 @@ Future<bool> confirmOwner(String reason) async {
 /// Every security setting asks who is holding the phone first (docs/security.md,
 /// security settings): Face ID, fingerprint, or the phone's passcode. The vault stays
 /// open while the system prompt is up.
-Future<bool> confirmOwnerForSetting(String reason) async {
+Future<bool> confirmOwnerForSetting(String reason, {BuildContext? context}) async {
   LockGuard.allowAway();
   try {
-    return await confirmOwner(reason);
+    return await confirmOwner(reason, context: context);
   } finally {
     LockGuard.clear();
   }

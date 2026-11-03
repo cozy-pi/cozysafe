@@ -241,7 +241,7 @@ class _Fake implements RustLibApi {
       final full = call.namedArguments[#id] as String;
       final media = _items.where((x) => x.kind == 'photo' || x.kind == 'video').toList();
       final m = media.indexWhere((x) => x.id == full);
-      if (m >= 0) return Future<Uint8List>.value(_photos[m % _photos.length] ?? _thumbnails[0]);
+      if (m >= 0) return Future<Uint8List>.value((_photos.isEmpty ? null : _photos[m % _photos.length]) ?? _thumbnails[m % 4]!);
       final id = full.replaceAll('_', '');
       // Deleted photos and videos, and a picture added from Files.
       final picture = {..._trashPictures, 'f6': 3}[id];
@@ -256,7 +256,7 @@ class _Fake implements RustLibApi {
       final it = _items.where((x) => x.id == id).firstOrNull;
       if (it == null || (it.kind != 'photo' && it.kind != 'video')) return Future<Uint8List>.value(Uint8List(0));
       final media = _items.where((x) => x.kind == 'photo' || x.kind == 'video').toList();
-      return Future<Uint8List>.value(_photos[media.indexOf(it) % _photos.length] ?? _thumbnails[0]);
+      return Future<Uint8List>.value((_photos.isEmpty ? null : _photos[media.indexOf(it) % _photos.length]) ?? _thumbnails[media.indexOf(it) % 4]!);
     }
     if (n.contains('PinLengths')) return Uint32List(0); // no PIN since 2026-10-28
     if (n.contains('ForgetPinsWithPassword')) return 0;
@@ -651,7 +651,20 @@ void main() {
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
-      section: 'home');
+      section: 'home',
+      change: 'ĐỀ XUẤT: "Xem theo loại" thành lưới ô nhỏ 3 cột: Ảnh · Video · Ghi chú · Ghi âm · Tài liệu · Tệp khác (loại trống thì ẩn); chạm một ô mở đúng chỗ, chip lọc bật sẵn',
+      marks: [() => find.byKey(const ValueKey('kind-card'))]);
+  _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home',
+      change: 'MỚI: Thư viện có chip Tất cả · Ảnh · Video',
+      marks: [() => find.byKey(const ValueKey('file-chip-video'))], act: (t) async {
+    await t.tap(find.byKey(const ValueKey('kind-row-video')));
+    await t.pumpAndSettle();
+  });
+  _screen('home-tap-documents', 'Tổng quan → chạm Tài liệu: mở Tệp, chip Tài liệu bật sẵn', home, section: 'home',
+      change: 'MỚI', marks: [() => find.byKey(const ValueKey('file-chip-document'))], act: (t) async {
+    await t.tap(find.byKey(const ValueKey('kind-row-document')));
+    await t.pumpAndSettle();
+  });
   _screen('home-synced', 'Trang chủ · đã đồng bộ', home,
       section: 'home', setup: drive);
   _screen('home-syncing', 'Trang chủ · đang gửi / nhận mục', home,
@@ -938,7 +951,20 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   });
-  _screen('files', 'Tệp', home, section: 'file');
+  _screen('files', 'Tệp', home, section: 'file',
+      change: 'MỚI: hàng chip luôn đủ Tất cả · Ảnh · Video · Tài liệu · Khác',
+      marks: [() => find.byKey(const ValueKey('file-chips'))]);
+  _screen('files-video-empty', 'Tệp · chạm chip Video khi chưa có tệp video', home, section: 'file',
+      change: 'MỚI: chip không có gì thì báo trống', act: (t) async {
+    await t.tap(find.byKey(const ValueKey('file-chip-video')));
+    await t.pumpAndSettle();
+  });
+  _screen('files-documents', 'Tệp · chạm chip Tài liệu', home, section: 'file',
+      change: 'MỚI: chip Tài liệu = PDF, Word, Excel, PowerPoint, văn bản, sách',
+      marks: [() => find.byKey(const ValueKey('file-chip-document'))], act: (t) async {
+    await t.tap(find.byKey(const ValueKey('file-chip-document')));
+    await t.pumpAndSettle();
+  });
   _screen('files-grid', 'Tệp · dạng lưới', home, section: 'file', setup: () => Prefs.write('files-view', 'grid'));
   _screen('files-more', 'Tệp · bấm ⋯: Chọn · Sắp xếp · Dạng lưới', home, section: 'file',
       act: (t) async {
@@ -1135,7 +1161,15 @@ void main() {
   });
   Widget modePage(Widget body) =>
       Readable(child: Builder(builder: (context) => Scaffold(appBar: pageBar(context, 'Chế độ tuyệt mật'), body: SafeArea(top: false, child: body))));
-  _screen('ts-files', 'Két Tuyệt mật · Tệp: ảnh, video thành dòng như tệp', home, section: 'file');
+  _screen('ts-files', 'Két Tuyệt mật · Tệp: ảnh, video thành dòng như tệp', home, section: 'file',
+      change: 'MỚI: chip Tất cả · Ảnh · Video · Tài liệu · Khác',
+      marks: [() => find.byKey(const ValueKey('file-chips'))]);
+  _screen('ts-files-video', 'Két Tuyệt mật · Tệp · chạm chip Video', home, section: 'file',
+      change: 'MỚI: chỉ còn video (vẫn là dòng, không hiện hình)',
+      marks: [() => find.byKey(const ValueKey('file-chip-video'))], act: (t) async {
+    await t.tap(find.byKey(const ValueKey('file-chip-video')));
+    await t.pumpAndSettle();
+  });
   _screen('ts-sealed', 'Két Tuyệt mật · chạm một ảnh: không mở, chỉ thông tin + Mở bằng app khác', home, section: 'file',
       act: (t) => openRow(t, 'Sinh nhật bé Na.MOV'));
   _screen('ts-add', 'Két Tuyệt mật · Tổng quan · bấm +', home, section: 'home',
@@ -1154,6 +1188,9 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('ts-place-settings', 'Chế độ tuyệt mật · khiên đỏ nhỏ ở góc nút Cài đặt', home, section: 'home',);
+  _screen('ts-home', 'Két Tuyệt mật · Tổng quan', home, section: 'home',
+      change: 'ĐỀ XUẤT: cùng lưới; ảnh/video mở Tệp với chip Ảnh/Video',
+      marks: [() => find.byKey(const ValueKey('kind-card'))]);
   _screen('settings-mode-off', 'Cài đặt · thẻ Chế độ tuyệt mật (đang tắt)', () => settings(vault),);
   _screen('ts-settings', 'Cài đặt · thẻ Chế độ tuyệt mật (đang bật)', () => settings(vault),);
   _screen('settings-mode-page', 'Cài đặt → Chế độ tuyệt mật (đang tắt): giải thích + so sánh + nút bật',
@@ -1165,10 +1202,8 @@ void main() {
   _screen('ts-close-app', 'iPhone/iPad sau khi bật: đóng app rồi mở lại', () => const CloseAppPage(on: true));
   _screen('new-vault-mode', 'Tạo két đầu tiên · bước 1: chọn chế độ, "đổi được sau"',
       () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'ĐỀ XUẤT: bỏ bảng so sánh (5/7 dòng giống nhau); mỗi ô nói làm được gì + hợp với ai; không chọn sẵn, Tiếp mờ tới khi chọn',
       setup: () => NewVaultScreen.debugWords = List.filled(24, 'word').join(' '),);
   _screen('new-vault-mode-ts', 'Tạo két đầu tiên · chọn Tuyệt mật', () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'ĐỀ XUẤT: chọn Tuyệt mật (viền đỏ), Tiếp sáng lên',
       setup: () => NewVaultScreen.debugWords = List.filled(24, 'word').join(' '),
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('mode-top-secret')));
@@ -1399,6 +1434,10 @@ void main() {
       )));
   _screen('sync-restore-connected', 'Máy mới (khôi phục): đã kết nối với máy cũ, cùng mã — không phải bấm gì', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(named(SyncStep.connected, 'iPhone 15 Pro Max', 318)), onSynced: () {})));
   _screen('sync-peer-wrong-password', 'Máy cũ: máy mới nhập sai mật khẩu — máy cũ dừng, chỉ mới gửi ổ khoá của két', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.peerWrongPassword)), onSynced: () {})));
+  _screen('restore-already-here', 'Khôi phục một két đã có trên máy này (cùng 24 từ + mật khẩu)',
+      () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.alreadyHere)), onSynced: () {})),
+      change: 'MỚI: không khôi phục thêm bản thứ hai; báo két đã có, mở ở màn khoá. Khôi phục từ Drive / tệp báo cùng câu dưới nút',
+      marks: [() => find.byKey(const ValueKey('add-code-ended-alreadyHere'))]);
   _screen('restore-wrong-password', 'Máy mới: sai mật khẩu', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.wrongPassword)), onSynced: () {})));
   _screen('sync-device-sending', 'Máy gần đây: đang gửi — ổ khoá trên đường truyền', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.sending, done: 21, total: 90, bytes: 64 << 20, bytesTotal: 230 << 20)), onSynced: () {})),
       setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3));

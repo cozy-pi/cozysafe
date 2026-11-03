@@ -175,7 +175,7 @@ class _CodeFormatter extends TextInputFormatter {
 
 /// How adding a device ended when it did not: on either device, one message and nothing
 /// to try again here (after three wrong codes or three wrong passwords).
-enum AddCodeEnd { wrongCode, wrongPassword, closed }
+enum AddCodeEnd { wrongCode, wrongPassword, closed, alreadyHere }
 
 class AddCodeEnded extends StatelessWidget {
   const AddCodeEnded({super.key, required this.end});
@@ -189,6 +189,7 @@ class AddCodeEnded extends StatelessWidget {
       AddCodeEnd.wrongCode => (l.addCodeWrong, l.addCodeWrongLead),
       AddCodeEnd.wrongPassword => (l.addPasswordWrong, l.addPasswordWrongLead),
       AddCodeEnd.closed => (l.addCodeClosed, l.addCodeClosedLead),
+      AddCodeEnd.alreadyHere => (l.restoreAlreadyHere, l.restoreAlreadyHereLead),
     };
     return Column(
       key: ValueKey('add-code-ended-${end.name}'),

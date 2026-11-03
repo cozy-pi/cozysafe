@@ -4,6 +4,25 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.18 (2026-11-03)
+
+### Added
+- Files has chips over the list: All, Photos, Videos, Documents, Other. The Library has
+  All, Photos, Videos. In Top Secret Mode, photos and videos are picked out among the files.
+- The overview shows what the vault holds as a small grid: Photos, Videos, Notes, Voice,
+  Documents, Other files. A tap opens the Library or Files on that chip.
+
+### Changed
+- Storage: a tap on Photos or Videos opens them on their own chip, not every file.
+- iPhone: a file opened with Quick Look has a bar that stays, with its name and Close.
+
+### Fixed
+- Restoring a vault that is already on this device no longer adds a second copy that
+  never opens; the restore says the vault is here and opens on the lock screen. A new
+  vault or a new password is refused when another vault on this device uses it.
+- When Face ID, a fingerprint or the phone's passcode cannot be asked (for example
+  before "Forgot the password"), the app says so with an error code instead of nothing.
+
 ## 0.2.17 (2026-11-03)
 
 ### Fixed

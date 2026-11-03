@@ -132,6 +132,7 @@ class _SyncProgressState extends State<SyncProgress>
     sync.SyncStep.addWrongCode,
     sync.SyncStep.addWrongPassword,
     sync.SyncStep.addSeveral,
+    sync.SyncStep.alreadyHere,
   };
 
   bool get _canContinue => _over && _last?.kind == sync.SyncStep.interrupted && widget.retry != null;
@@ -789,6 +790,7 @@ class _SyncProgressState extends State<SyncProgress>
           ),
         sync.SyncStep.addWrongCode => AddCodeEnded(end: widget.restoring ? AddCodeEnd.wrongCode : AddCodeEnd.closed),
         sync.SyncStep.addWrongPassword => const AddCodeEnded(end: AddCodeEnd.wrongPassword),
+        sync.SyncStep.alreadyHere => const AddCodeEnded(end: AddCodeEnd.alreadyHere),
         sync.SyncStep.addSeveral => _Status(icon: Icons.devices_rounded, color: const Color(0xFFFF9500), title: l.addCodeSeveral),
         sync.SyncStep.restoredRestart => _Status(icon: Icons.check_circle_rounded, color: const Color(0xFF34C759), title: l.restoredRestart),
         sync.SyncStep.confirm => _confirmCard(l, c),

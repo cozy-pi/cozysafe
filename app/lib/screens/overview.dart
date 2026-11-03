@@ -45,6 +45,7 @@ class VaultOverview extends StatelessWidget {
     required this.items,
     required this.thumbnail,
     required this.onKind,
+    this.onCategory,
     required this.onGroup,
     required this.onOpen,
     this.onMenu,
@@ -59,6 +60,10 @@ class VaultOverview extends StatelessWidget {
   final List<rust.ItemInfo> items;
   final Future<Uint8List> Function(String id) thumbnail;
   final ValueChanged<VaultSection> onKind;
+  /// The vault's own overview (owner 2026-11-03): one card, a row per kind of thing
+  /// (photos, videos, notes, voice, documents, other files), each opening where it lives
+  /// on its chip. None (search): the tiles by section.
+  final ValueChanged<OverviewKind>? onCategory;
   final ValueChanged<rust.ItemInfo> onGroup;
   final ValueChanged<rust.ItemInfo> onOpen;
   /// A long press: the item's menu, or the group's (owner 2026-10-22).
@@ -80,6 +85,10 @@ class VaultOverview extends StatelessWidget {
     final sections = [
       for (final s in VaultSection.values)
         if (things.any((i) => sectionOf(i) == s)) s,
+    ];
+    final kinds = [
+      for (final k in OverviewKind.values)
+        if (things.where((i) => overviewKindOf(i) == k).length case final n when n > 0) (k, n),
     ];
     final recent = [...things]..sort((a, b) => b.createdMs.compareTo(a.createdMs));
     final groups = items.where((g) => g.kind == ItemKind.tag && count(g) > 0).toList();
@@ -108,7 +117,10 @@ class VaultOverview extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(14, 0, 14, bottomPad),
       children: [
         ?header,
-        if (sections.isNotEmpty) ...[
+        if (onCategory != null && kinds.isNotEmpty) ...[
+          title(l.searchKinds),
+          KindCard(kinds: kinds, onTap: onCategory!),
+        ] else if (sections.isNotEmpty) ...[
           title(l.searchKinds),
           // Two a row on a phone, all in one row on a computer, each as tall as on the
           // phone (owner 2026-10-28: on a MacBook four tiles stood 200 px tall, mostly empty).
@@ -329,6 +341,93 @@ class OverviewRow extends StatelessWidget {
 }
 
 /// A section on the empty search screen: its colour, symbol, name and how many.
+/// What the overview counts: each row is what a tap shows (Library or Files on a chip).
+enum OverviewKind { photo, video, note, audio, document, other }
+
+/// Where [i] is counted on the overview. In an everyday vault a photo or video file
+/// (imported as a file) is a file, as Files lists it; in Top secret, with no Library,
+/// it is a photo or a video.
+OverviewKind? overviewKindOf(rust.ItemInfo i) => switch (i.kind) {
+      ItemKind.photo => OverviewKind.photo,
+      ItemKind.video => OverviewKind.video,
+      ItemKind.note => OverviewKind.note,
+      ItemKind.audio => OverviewKind.audio,
+      ItemKind.file => switch (fileGroupOf(fileKindOf(i.name, i.mime))) {
+          FileGroup.photo when TopSecretMode.on => OverviewKind.photo,
+          FileGroup.video when TopSecretMode.on => OverviewKind.video,
+          FileGroup.document => OverviewKind.document,
+          _ => OverviewKind.other,
+        },
+      _ => null,
+    };
+
+/// The kinds on the overview, small tiles in a grid: icon and count, the name under.
+class KindCard extends StatelessWidget {
+  const KindCard({super.key, required this.kinds, required this.onTap});
+  final List<(OverviewKind, int)> kinds;
+  final ValueChanged<OverviewKind> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    (IconData, Color, String) look(OverviewKind k) => switch (k) {
+          OverviewKind.photo => (Icons.photo_rounded, sectionColor(VaultSection.library), l.kindPhotos),
+          OverviewKind.video => (FileKind.video.icon, FileKind.video.color, l.fileGroupVideos),
+          OverviewKind.note => (Icons.book_rounded, sectionColor(VaultSection.note), l.kindNotes),
+          OverviewKind.audio => (Icons.mic_rounded, sectionColor(VaultSection.audio), l.modeAudio),
+          OverviewKind.document => (FileKind.document.icon, FileKind.document.color, l.fileGroupDocuments),
+          OverviewKind.other => (Icons.folder_rounded, sectionColor(VaultSection.file), l.fileGroupOtherFiles),
+        };
+    // Three a row on a phone (owner 2026-11-03: a row each took too much room), all in
+    // one row on a wide window.
+    return LayoutBuilder(builder: (context, box) => GridView(
+      key: const ValueKey('kind-card'),
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: box.maxWidth >= 560 ? kinds.length.clamp(3, 6) : 3,
+        mainAxisExtent: 84,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+      ),
+      children: [
+        for (final (k, n) in kinds)
+          Material(
+            key: ValueKey('kind-row-${k.name}'),
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(Ui.radius - 6),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => onTap(k),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 10, 10),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(color: look(k).$2.withValues(alpha: .16), borderRadius: BorderRadius.circular(8)),
+                      child: Icon(look(k).$1, color: look(k).$2, size: 18),
+                    ),
+                    const Spacer(),
+                    Text('$n', style: TextStyle(fontSize: CsType.subhead, color: c.muted)),
+                  ]),
+                  const Spacer(),
+                  Text(look(k).$3,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
+          ),
+      ],
+    ));
+  }
+}
+
 class KindTile extends StatelessWidget {
   const KindTile({super.key, required this.section, required this.label, required this.count, required this.onTap});
   final VaultSection section;

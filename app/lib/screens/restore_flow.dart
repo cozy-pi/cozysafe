@@ -33,6 +33,18 @@ import 'top_secret_page.dart' show restartForMode;
 String restoreTarget(String libraryDir) =>
     rust.libraryHasVaults(dir: libraryDir) ? (run_api.newLibraryDir() ?? libraryDir) : libraryDir;
 
+/// Null when no vault on this device opens with `password` yet; else what stops the
+/// restore: the same vault is here already, or another vault uses that password (the
+/// password picks the vault, so only one of the two would ever open).
+Future<String?> restoreClash(AppLocalizations l, String libraryDir, String words, String password) async {
+  final clash = await rust.passwordClash(dir: libraryDir, words: words, password: password);
+  return switch (clash) {
+    rust.PasswordClash.free => null,
+    rust.PasswordClash.sameVault => '${l.restoreAlreadyHere} ${l.restoreAlreadyHereLead}',
+    rust.PasswordClash.otherVault => l.errorPasswordInUse,
+  };
+}
+
 /// The vault is open here and its words kept: offer Face ID, go in.
 Future<void> openRestored(BuildContext context, String libraryDir, rust.VaultInfo vault) async {
   TopSecretMode.opened(vault);
@@ -200,8 +212,13 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   Future<void> _fromFile() async {
     final l = AppLocalizations.of(context);
     setState(() => _busy = true);
-    final target = restoreTarget(widget.libraryDir);
     try {
+      final clash = await restoreClash(l, widget.libraryDir, _words.text, _password.text);
+      if (clash != null) {
+        if (mounted) setState(() => _error = clash);
+        return;
+      }
+      final target = restoreTarget(widget.libraryDir);
       await rust.importBackup(path: widget.filePath, dir: target);
       final key = Uint8List.fromList(rust.parseSecretKey(text: _words.text)!);
       if (!mounted) return;

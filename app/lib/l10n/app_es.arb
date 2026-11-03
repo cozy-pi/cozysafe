@@ -894,5 +894,12 @@
   "syncStopTitle": "¿Detener la sincronización?",
   "syncStopBody": "Lo sincronizado hasta ahora se conserva; la próxima sincronización sigue desde ahí.",
   "syncStopAction": "Detener",
-  "syncStopKeep": "Seguir sincronizando"
+  "syncStopKeep": "Seguir sincronizando",
+  "fileGroupVideos": "Vídeos",
+  "fileGroupDocuments": "Documentos",
+  "fileGroupOther": "Otros",
+  "restoreAlreadyHere": "Esta caja fuerte ya está en este dispositivo.",
+  "restoreAlreadyHereLead": "Ábrela en la pantalla de bloqueo con su contraseña.",
+  "ownerCheckFailed": "No se pudo confirmar que eres tú.",
+  "fileGroupOtherFiles": "Otros archivos"
 }

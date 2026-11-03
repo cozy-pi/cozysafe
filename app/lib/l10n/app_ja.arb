@@ -894,5 +894,12 @@
   "syncStopTitle": "同期を中止しますか？",
   "syncStopBody": "ここまで同期した分は残ります。次回はその続きから同期します。",
   "syncStopAction": "中止",
-  "syncStopKeep": "同期を続ける"
+  "syncStopKeep": "同期を続ける",
+  "fileGroupVideos": "ビデオ",
+  "fileGroupDocuments": "書類",
+  "fileGroupOther": "その他",
+  "restoreAlreadyHere": "この金庫はすでにこのデバイスにあります。",
+  "restoreAlreadyHereLead": "ロック画面でパスワードを入力して開いてください。",
+  "ownerCheckFailed": "本人確認ができませんでした。",
+  "fileGroupOtherFiles": "その他のファイル"
 }

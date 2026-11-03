@@ -467,10 +467,14 @@ extension AppDelegate {
       openItem = item
       // A card, not full screen (owner 2026-11-02: full screen hid its bar until a tap, and
       // nothing said the app was still there): the app shows above it, a swipe down closes.
-      viewer.modalPresentationStyle = .pageSheet
-      // Swiped down: Quick Look's own dismiss call may not come, so the sheet says so too.
-      viewer.presentationController?.delegate = item
-      top.present(viewer, animated: true)
+      // Quick Look sits in a card of the app's own whose bar never hides, with Close and
+      // the grabber (owner 2026-11-03: "always a way back, or some sign of it").
+      let card = OpenCard(viewer: viewer, title: url.lastPathComponent) { [weak self] in self?.finishOpen() }
+      card.modalPresentationStyle = .pageSheet
+      card.sheetPresentationController?.prefersGrabberVisible = true
+      // Swiped down: the sheet says so.
+      card.presentationController?.delegate = item
+      top.present(card, animated: true)
       return
     }
     let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
@@ -829,6 +833,49 @@ enum HwKey {
   static func unwrap(_ blob: Data) -> Data? {
     guard let key = key(create: false) else { return nil }
     return SecKeyCreateDecryptedData(key, algorithm, blob as CFData, nil) as Data?
+  }
+}
+
+/// Quick Look as the content of a card with a bar that stays: the file's name and Close.
+/// As a child, Quick Look shows no bar of its own, so nothing hides on a tap.
+final class OpenCard: UIViewController {
+  private let viewer: QLPreviewController
+  private let closed: () -> Void
+  init(viewer: QLPreviewController, title: String, closed: @escaping () -> Void) {
+    self.viewer = viewer
+    self.closed = closed
+    super.init(nibName: nil, bundle: nil)
+    self.title = title
+  }
+  required init?(coder: NSCoder) { nil }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .systemBackground
+    let bar = UINavigationBar()
+    let item = UINavigationItem(title: title ?? "")
+    item.rightBarButtonItem = UIBarButtonItem(
+      systemItem: .close,
+      primaryAction: UIAction { [weak self] _ in
+        self?.dismiss(animated: true) { self?.closed() }
+      })
+    bar.items = [item]
+    bar.translatesAutoresizingMaskIntoConstraints = false
+    addChild(viewer)
+    viewer.view.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(viewer.view)
+    view.addSubview(bar)
+    NSLayoutConstraint.activate([
+      // Under the grabber.
+      bar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+      bar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      bar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      viewer.view.topAnchor.constraint(equalTo: bar.bottomAnchor),
+      viewer.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      viewer.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      viewer.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+    ])
+    viewer.didMove(toParent: self)
   }
 }
 

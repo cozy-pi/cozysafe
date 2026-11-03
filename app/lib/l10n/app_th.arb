@@ -894,5 +894,12 @@
   "syncStopTitle": "หยุดซิงค์ไหม",
   "syncStopBody": "ส่วนที่ซิงค์แล้วจะยังอยู่ ครั้งหน้าจะซิงค์ต่อจากตรงนั้น",
   "syncStopAction": "หยุด",
-  "syncStopKeep": "ซิงค์ต่อ"
+  "syncStopKeep": "ซิงค์ต่อ",
+  "fileGroupVideos": "วิดีโอ",
+  "fileGroupDocuments": "เอกสาร",
+  "fileGroupOther": "อื่นๆ",
+  "restoreAlreadyHere": "ตู้นิรภัยนี้มีอยู่ในอุปกรณ์นี้แล้ว",
+  "restoreAlreadyHereLead": "เปิดที่หน้าจอล็อกด้วยรหัสผ่านของตู้นิรภัย",
+  "ownerCheckFailed": "ยืนยันตัวตนไม่สำเร็จ",
+  "fileGroupOtherFiles": "ไฟล์อื่นๆ"
 }

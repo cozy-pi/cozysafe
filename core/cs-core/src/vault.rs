@@ -492,7 +492,35 @@ impl Library {
         self.find_vault(&root)
     }
 
+    /// This library's folder.
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+
+    /// Whether `password` opens a vault in this library. Opens nothing: asked before a
+    /// restore or a new vault, so that two vaults on a device never share a password
+    /// (the password picks the vault, and only the first would ever open).
+    pub fn opens_with(&self, password: &str) -> Result<bool> {
+        let root = kdf::derive_root(
+            password.as_bytes(),
+            &self.secret_key,
+            &self.salt,
+            self.params,
+        )?;
+        Ok(self.find_key(&root)?.is_some())
+    }
+
     fn find_vault(&self, root: &Key) -> Result<Option<OpenVault>> {
+        match self.find_key(root)? {
+            Some((id, path, header, master_key)) => {
+                open_with(id, path, &header, master_key).map(Some)
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// The vault `root` unwraps: its id, folder, header and master key.
+    fn find_key(&self, root: &Key) -> Result<Option<(String, PathBuf, VaultHeader, Key)>> {
         let dir = match fs::read_dir(self.dir.join(VAULTS_DIR)) {
             Ok(d) => d,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -521,7 +549,7 @@ impl Library {
             let Some(master_key) = opened else {
                 continue;
             };
-            return open_with(id, entry.path(), &header, master_key).map(Some);
+            return Ok(Some((id, entry.path(), header, master_key)));
         }
         Ok(None)
     }
@@ -1442,6 +1470,16 @@ pub mod tests {
         assert!(Library::unlock_biometric(tmp.path(), &kb)
             .unwrap()
             .is_none());
+    }
+
+    #[test]
+    fn opens_with_says_whether_a_password_opens_a_vault_without_opening_it() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = lib(tmp.path());
+        assert!(!l.opens_with(pw_a()).unwrap());
+        l.create_vault("A", pw_a()).unwrap();
+        assert!(l.opens_with(pw_a()).unwrap());
+        assert!(!l.opens_with(pw_c()).unwrap());
     }
 
     #[test]

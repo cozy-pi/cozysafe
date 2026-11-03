@@ -894,5 +894,12 @@
   "syncStopTitle": "Interrompere la sincronizzazione?",
   "syncStopBody": "Ciò che è già sincronizzato resta; la prossima sincronizzazione riparte da lì.",
   "syncStopAction": "Interrompi",
-  "syncStopKeep": "Continua a sincronizzare"
+  "syncStopKeep": "Continua a sincronizzare",
+  "fileGroupVideos": "Video",
+  "fileGroupDocuments": "Documenti",
+  "fileGroupOther": "Altro",
+  "restoreAlreadyHere": "Questa cassaforte è già su questo dispositivo.",
+  "restoreAlreadyHereLead": "Aprila dalla schermata di blocco con la sua password.",
+  "ownerCheckFailed": "Impossibile confermare che sei tu.",
+  "fileGroupOtherFiles": "Altri file"
 }

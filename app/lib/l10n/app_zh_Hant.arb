@@ -894,5 +894,12 @@
   "syncStopTitle": "停止同步？",
   "syncStopBody": "已同步的部分會保留，下次從那裡繼續同步。",
   "syncStopAction": "停止",
-  "syncStopKeep": "繼續同步"
+  "syncStopKeep": "繼續同步",
+  "fileGroupVideos": "影片",
+  "fileGroupDocuments": "文件",
+  "fileGroupOther": "其他",
+  "restoreAlreadyHere": "這個保險箱已在這台裝置上。",
+  "restoreAlreadyHereLead": "請在鎖定畫面用它的密碼開啟。",
+  "ownerCheckFailed": "無法確認是你本人。",
+  "fileGroupOtherFiles": "其他檔案"
 }

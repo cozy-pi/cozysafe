@@ -28,6 +28,19 @@ enum FileKind {
   final Color color;
 }
 
+/// The chips over Files (owner 2026-11-03: videos, and documents, picked out among files).
+enum FileGroup { all, photo, video, document, other }
+
+/// The chip a file of [kind] falls under: a document is anything made to be read (PDF,
+/// text, sheet, slides, book).
+FileGroup fileGroupOf(FileKind kind) => switch (kind) {
+      FileKind.image => FileGroup.photo,
+      FileKind.video => FileGroup.video,
+      FileKind.pdf || FileKind.document || FileKind.sheet || FileKind.slides || FileKind.text || FileKind.book =>
+        FileGroup.document,
+      _ => FileGroup.other,
+    };
+
 const _byExt = <String, FileKind>{
   'pdf': FileKind.pdf,
   // Pictures.

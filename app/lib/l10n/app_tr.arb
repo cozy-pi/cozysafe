@@ -894,5 +894,12 @@
   "syncStopTitle": "Eşitleme durdurulsun mu?",
   "syncStopBody": "Şimdiye kadar eşitlenenler korunur; sonraki eşitleme oradan devam eder.",
   "syncStopAction": "Durdur",
-  "syncStopKeep": "Eşitlemeye devam et"
+  "syncStopKeep": "Eşitlemeye devam et",
+  "fileGroupVideos": "Videolar",
+  "fileGroupDocuments": "Belgeler",
+  "fileGroupOther": "Diğer",
+  "restoreAlreadyHere": "Bu kasa zaten bu cihazda.",
+  "restoreAlreadyHereLead": "Kilit ekranında kasanın parolasıyla açın.",
+  "ownerCheckFailed": "Siz olduğunuz doğrulanamadı.",
+  "fileGroupOtherFiles": "Diğer dosyalar"
 }

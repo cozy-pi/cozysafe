@@ -894,5 +894,12 @@
   "syncStopTitle": "Parar de sincronizar?",
   "syncStopBody": "O que já foi sincronizado fica guardado; a próxima sincronização continua daí.",
   "syncStopAction": "Parar",
-  "syncStopKeep": "Continuar sincronizando"
+  "syncStopKeep": "Continuar sincronizando",
+  "fileGroupVideos": "Vídeos",
+  "fileGroupDocuments": "Documentos",
+  "fileGroupOther": "Outros",
+  "restoreAlreadyHere": "Este cofre já está neste dispositivo.",
+  "restoreAlreadyHereLead": "Abra-o na tela de bloqueio com a senha dele.",
+  "ownerCheckFailed": "Não foi possível confirmar que é você.",
+  "fileGroupOtherFiles": "Outros arquivos"
 }

@@ -894,5 +894,12 @@
   "syncStopTitle": "Arrêter la synchronisation ?",
   "syncStopBody": "Ce qui est déjà synchronisé est conservé ; la prochaine synchronisation reprendra à partir de là.",
   "syncStopAction": "Arrêter",
-  "syncStopKeep": "Continuer"
+  "syncStopKeep": "Continuer",
+  "fileGroupVideos": "Vidéos",
+  "fileGroupDocuments": "Documents",
+  "fileGroupOther": "Autres",
+  "restoreAlreadyHere": "Ce coffre est déjà sur cet appareil.",
+  "restoreAlreadyHereLead": "Ouvrez-le sur l'écran de verrouillage avec son mot de passe.",
+  "ownerCheckFailed": "Impossible de confirmer que c'est vous.",
+  "fileGroupOtherFiles": "Autres fichiers"
 }

@@ -894,5 +894,12 @@
   "syncStopTitle": "동기화를 중지할까요?",
   "syncStopBody": "지금까지 동기화된 내용은 유지되며, 다음 동기화는 거기서부터 이어집니다.",
   "syncStopAction": "중지",
-  "syncStopKeep": "계속 동기화"
+  "syncStopKeep": "계속 동기화",
+  "fileGroupVideos": "비디오",
+  "fileGroupDocuments": "문서",
+  "fileGroupOther": "기타",
+  "restoreAlreadyHere": "이 금고는 이미 이 기기에 있습니다.",
+  "restoreAlreadyHereLead": "잠금 화면에서 비밀번호로 여세요.",
+  "ownerCheckFailed": "본인 확인을 할 수 없습니다.",
+  "fileGroupOtherFiles": "기타 파일"
 }

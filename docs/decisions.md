@@ -4,6 +4,18 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-03 — One password per vault on a device; kinds and chips
+
+**Owner:** three restores of one vault left three copies, and only the first ever opened
+(the password picks the vault, library after library). Now no two vaults on a device
+share a password: a restore that would add one stops with "already on this device", a
+new vault or a password change is refused. Kinds: the overview is a 3-column grid
+(Photos, Videos, Notes, Voice, Documents, Other files; empty kinds hidden); Files always
+has the chips All, Photos, Videos, Documents, Other, the Library All, Photos, Videos. A
+count is what the tap shows: in an everyday vault a photo file imported as a file is
+counted with Other files (it lives in Files). Quick Look on iPhone sits in a card with a
+bar that never hides (name, Close).
+
 ## 2026-11-03 — Mode never chosen for the person; copied words numbered
 
 **Owner:** when a vault is made, neither Private nor Top Secret is picked by default: the

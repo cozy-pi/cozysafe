@@ -714,7 +714,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   /// a new one starts at the first screen. None left afterwards: the first screen.
   Future<void> _vaults() async {
     final l = AppLocalizations.of(context);
-    if (!await confirmOwner(l.ownerCheckVaults) || !mounted) return;
+    if (!await confirmOwner(l.ownerCheckVaults, context: context) || !mounted) return;
     final nav = Navigator.of(context);
     await nav.push(MaterialPageRoute<void>(
       builder: (_) => Readable(
@@ -740,7 +740,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   /// phone's passcode), so nobody holding it can add vaults or probe PINs.
   Future<void> _newVault() async {
     final l = AppLocalizations.of(context);
-    if (!await confirmOwner(l.ownerCheckReason) || !mounted) return;
+    if (!await confirmOwner(l.ownerCheckReason, context: context) || !mounted) return;
     await Navigator.of(context).push(fadeRoute<void>((_) => Readable(child: WelcomeScreen(libraryDir: widget.libraryDir, adding: true))));
   }
 

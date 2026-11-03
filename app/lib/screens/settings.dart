@@ -335,7 +335,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _guarded(Future<void> Function() action) async {
-    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings, context: context) || !mounted) return;
     await action();
   }
 
@@ -745,7 +745,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context,
       title: l.topSecretMode,
       grouped: true,
-      builder: (_) => TopSecretModePage(verify: () => confirmOwnerForSetting(l.ownerCheckSettings)),
+      builder: (_) => TopSecretModePage(verify: () => confirmOwnerForSetting(l.ownerCheckSettings, context: context)),
     );
   }
 

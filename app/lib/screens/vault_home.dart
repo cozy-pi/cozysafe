@@ -169,6 +169,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The tag open on top of the sections ("Hộ chiếu"): every section then shows only
   /// what carries it. None: everything.
   String? _tagId;
+  /// The chip picked over Files.
+  FileGroup _fileGroup = FileGroup.all;
+  /// The chip picked over the Library: all, photos or videos.
+  FileGroup _libraryGroup = FileGroup.all;
   /// A wide window (iPad, computer): three columns, and the item open beside the list.
   bool _wide = false;
   rust.ItemInfo? _focus;
@@ -823,7 +827,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   // Security settings (password, backup, Emergency Kit, biometrics) ask for the owner
   // first, wherever they are opened from (docs/security.md, security settings).
   Future<void> _password() async {
-    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings, context: context) || !mounted) return;
     final info = await Navigator.of(context).push<rust.VaultInfo>(
       MaterialPageRoute(builder: (_) => Readable(child: BackupPasswordScreen(libraryDir: widget.libraryDir, change: _vault.hasPassword))),
     );
@@ -835,7 +839,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// the temp copy.
   Future<void> _backup() async {
     final l = AppLocalizations.of(context);
-    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings, context: context) || !mounted) return;
     if (!await _ensurePassword() || !mounted) return;
     if (await _confirmBackup(l) != true || !mounted) return;
     final d = DateTime.now();
@@ -908,7 +912,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       );
 
   Future<void> _showKit() async {
-    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings, context: context) || !mounted) return;
     // Face ID, then the vault password too: the 24 words are half of what opens the vault
     // anywhere (owner 2026-10-24).
     String? password = await KitPasswordScreen.ask(context, widget.libraryDir);
@@ -942,7 +946,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<void> _toggleBiometric() async {
-    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings) || !mounted) return;
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings, context: context) || !mounted) return;
     final l = AppLocalizations.of(context);
     final store = BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel);
     // One vault per device opens with Face ID: taking it from another vault says so first
@@ -1012,13 +1016,26 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         onChangeIdentity: _changeIdentity,
         onOpenTrash: _openTrash,
         onNewVault: _newVault,
-        onShowKind: (kind) => _pickSection(switch (kind) {
-          ItemKind.note => VaultSection.note,
-          ItemKind.audio => VaultSection.audio,
-          ItemKind.file => VaultSection.file,
-          // Top secret has no Library: its photos and videos are among the files.
-          _ => TopSecretMode.on ? VaultSection.file : VaultSection.library,
-        }),
+        onShowKind: (kind) {
+          // Top secret has no Library: its photos and videos are among the files, on
+          // their own chip (owner 2026-11-03: Videos in Storage opened every file).
+          final group = switch (kind) {
+            ItemKind.photo => FileGroup.photo,
+            ItemKind.video => FileGroup.video,
+            _ => FileGroup.all,
+          };
+          if (!TopSecretMode.on && group != FileGroup.all) {
+            _libraryGroup = group;
+          } else {
+            _fileGroup = group;
+          }
+          _pickSection(switch (kind) {
+            ItemKind.note => VaultSection.note,
+            ItemKind.audio => VaultSection.audio,
+            ItemKind.file => VaultSection.file,
+            _ => TopSecretMode.on ? VaultSection.file : VaultSection.library,
+          });
+        },
         onSynced: _reload,
         focus: focus,
         guideFrom: guideFrom,
@@ -1038,7 +1055,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// Creating another vault locks this one first (one open at a time). Only the phone's
   /// owner may: knowing this vault's PIN is not enough.
   Future<void> _newVault() async {
-    if (!await confirmOwner(AppLocalizations.of(context).ownerCheckReason) || !mounted) return;
+    if (!await confirmOwner(AppLocalizations.of(context).ownerCheckReason, context: context) || !mounted) return;
     _locked = true;
     _idleTimer?.cancel();
     rust.lock();
@@ -1590,6 +1607,85 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   /// Notes or files: one neutral card of rows.
+  static FileGroup _groupOf(rust.ItemInfo i) => switch (i.kind) {
+        ItemKind.photo => FileGroup.photo,
+        ItemKind.video => FileGroup.video,
+        _ => fileGroupOf(fileKindOf(i.name, i.mime)),
+      };
+
+  /// Files with a row of chips over them, always all of them (owner 2026-11-03): All ·
+  /// Photos · Videos · Documents · Other. None while Files is empty.
+  Widget _files(BuildContext context, List<rust.ItemInfo> shown) {
+    if (shown.isEmpty) return _list(context, shown, notes: false);
+    final group = _fileGroup;
+    final list = group == FileGroup.all ? shown : [for (final i in shown) if (_groupOf(i) == group) i];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _fileChips(context, FileGroup.values, group),
+        Expanded(child: _list(context, list, notes: false)),
+      ],
+    );
+  }
+
+  /// The Library with All · Photos · Videos over it, always (as Files). None while empty.
+  Widget _libraryWithChips(BuildContext context, List<rust.ItemInfo> shown) {
+    if (shown.isEmpty) return _library(context, shown);
+    final group = _libraryGroup;
+    final list = group == FileGroup.all ? shown : [for (final i in shown) if (_groupOf(i) == group) i];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _fileChips(context, const [FileGroup.all, FileGroup.photo, FileGroup.video], group,
+            onPick: (g) => setState(() => _libraryGroup = g)),
+        Expanded(child: _library(context, list)),
+      ],
+    );
+  }
+
+  Widget _fileChips(BuildContext context, List<FileGroup> groups, FileGroup on, {ValueChanged<FileGroup>? onPick}) {
+    final l = AppLocalizations.of(context);
+    final cs = Theme.of(context).colorScheme;
+    String label(FileGroup g) => switch (g) {
+          FileGroup.all => l.searchAll,
+          FileGroup.photo => l.kindPhotos,
+          FileGroup.video => l.fileGroupVideos,
+          FileGroup.document => l.fileGroupDocuments,
+          FileGroup.other => l.fileGroupOther,
+        };
+    return SizedBox(
+      height: Ui.chip + 12,
+      child: ListView(
+        key: const ValueKey('file-chips'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(14, 2, 6, 8),
+        children: [
+          for (final g in groups)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Material(
+                key: ValueKey('file-chip-${g.name}'),
+                color: g == on ? cs.onSurface : cs.onSurface.withValues(alpha: .07),
+                shape: const StadiumBorder(),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: () => onPick != null ? onPick(g) : setState(() => _fileGroup = g),
+                  child: Container(
+                    height: Ui.chip,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    alignment: Alignment.center,
+                    child: Text(label(g),
+                        style: TextStyle(
+                            fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: g == on ? cs.surface : cs.onSurface)),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _list(BuildContext context, List<rust.ItemInfo> list, {required bool notes}) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
@@ -2083,7 +2179,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     return switch (_section) {
       VaultSection.home => _home(context, items),
       VaultSection.note => _list(context, shown, notes: true),
-      VaultSection.file => _list(context, shown, notes: false),
+      VaultSection.file => _files(context, shown),
       VaultSection.audio when _tagId != null && shown.isEmpty && !_recordingNow => _tagEmpty(context),
       VaultSection.audio => RecorderView(
           key: _recorder,
@@ -2100,7 +2196,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           drag: _drag,
           onOrder: (ids) => _dragOrder = ids,
         ),
-      VaultSection.library => _library(context, shown),
+      VaultSection.library => _libraryWithChips(context, shown),
     };
   }
 
@@ -2167,6 +2263,31 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         ],
       ),
       onKind: (s) => setState(() {
+        _section = s;
+        _keepSection = false;
+        if (s == VaultSection.file) _fileGroup = FileGroup.all;
+        Prefs.write('vault-section', s.name);
+      }),
+      onCategory: (k) => setState(() {
+        final inLibrary = !TopSecretMode.on && (k == OverviewKind.photo || k == OverviewKind.video);
+        final s = switch (k) {
+          OverviewKind.note => VaultSection.note,
+          OverviewKind.audio => VaultSection.audio,
+          _ when inLibrary => VaultSection.library,
+          _ => VaultSection.file,
+        };
+        final group = switch (k) {
+          OverviewKind.photo => FileGroup.photo,
+          OverviewKind.video => FileGroup.video,
+          OverviewKind.document => FileGroup.document,
+          OverviewKind.other => FileGroup.other,
+          _ => FileGroup.all,
+        };
+        if (inLibrary) {
+          _libraryGroup = group;
+        } else {
+          _fileGroup = group;
+        }
         _section = s;
         _keepSection = false;
         Prefs.write('vault-section', s.name);

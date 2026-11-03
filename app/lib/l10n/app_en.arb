@@ -1109,5 +1109,12 @@
   "syncStopTitle": "Stop syncing?",
   "syncStopBody": "What has synced so far is kept; the next sync goes on from there.",
   "syncStopAction": "Stop",
-  "syncStopKeep": "Keep syncing"
+  "syncStopKeep": "Keep syncing",
+  "fileGroupVideos": "Videos",
+  "fileGroupDocuments": "Documents",
+  "fileGroupOther": "Other",
+  "restoreAlreadyHere": "This vault is already on this device.",
+  "restoreAlreadyHereLead": "Open it on the lock screen with its password.",
+  "ownerCheckFailed": "Couldn't confirm it's you.",
+  "fileGroupOtherFiles": "Other files"
 }
