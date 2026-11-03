@@ -170,7 +170,9 @@ class _MarkPainter extends CustomPainter {
 /// ID card, a receipt, notes, a PDF, a passport), tilted and softly blurred under a veil
 /// of the page colour. Drawn in the theme's own greys (2026-10-21: light shapes on the
 /// dark theme showed as bright patches). Never the user's data: this screen runs while
-/// every vault is locked.
+/// every vault is locked. Blur and fade are drawn by the painter itself, not by layers
+/// (owner 2026-11-03: on iPhone, during the back swipe, a blur layer was drawn over the
+/// veil and the page's own buttons).
 class VaultBackdrop extends StatelessWidget {
   const VaultBackdrop({super.key});
 
@@ -182,12 +184,7 @@ class VaultBackdrop extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         AnimatedContainer(duration: const Duration(milliseconds: 350), color: tint),
-        RepaintBoundary(
-          child: ImageFiltered(
-            imageFilter: ui.ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
-            child: Opacity(opacity: dark ? .85 : .6, child: CustomPaint(painter: _CollagePainter(dark: dark))),
-          ),
-        ),
+        RepaintBoundary(child: CustomPaint(painter: _CollagePainter(dark: dark, tint: tint))),
         AnimatedContainer(
           duration: const Duration(milliseconds: 350),
           decoration: BoxDecoration(
@@ -208,14 +205,22 @@ class VaultBackdrop extends StatelessWidget {
 
 /// Columns of cards of different kinds and heights, like a pinboard.
 class _CollagePainter extends CustomPainter {
-  _CollagePainter({required this.dark});
+  _CollagePainter({required this.dark, required this.tint});
   final bool dark;
+  /// The page colour under the collage: each grey is faded into it (as an opacity of
+  /// .85 dark, .6 light over it was), so no layer is needed.
+  final Color tint;
+
+  Color _faded(Color c) => Color.lerp(tint, c, dark ? .85 : .6)!;
 
   // The theme's greys: card, line, accent, deep.
-  Color get _card => dark ? const Color(0xFF2B2D31) : const Color(0xFFFFFFFF);
-  Color get _line => dark ? const Color(0xFF4A4D54) : const Color(0xFFC9CDD3);
-  Color get _soft => dark ? const Color(0xFF383B41) : const Color(0xFFE6E8EC);
-  Color get _deep => dark ? const Color(0xFF55585F) : const Color(0xFF8E939B);
+  Color get _card => _faded(dark ? const Color(0xFF2B2D31) : const Color(0xFFFFFFFF));
+  Color get _line => _faded(dark ? const Color(0xFF4A4D54) : const Color(0xFFC9CDD3));
+  Color get _soft => _faded(dark ? const Color(0xFF383B41) : const Color(0xFFE6E8EC));
+  Color get _deep => _faded(dark ? const Color(0xFF55585F) : const Color(0xFF8E939B));
+
+  /// Every shape softly blurred, as the blur layer did.
+  static const _blur = MaskFilter.blur(BlurStyle.normal, 3.5);
 
   // Everything a vault keeps (owner 2026-10-24: not only landscapes): photos of several
   // kinds, videos, passwords, keys and codes, notes, documents, cards, voice.
@@ -252,10 +257,10 @@ class _CollagePainter extends CustomPainter {
   }
 
   void _draw(Canvas canvas, String kind, Rect r) {
-    final fill = Paint()..color = _card;
-    final line = Paint()..color = _line;
-    final soft = Paint()..color = _soft;
-    final deep = Paint()..color = _deep;
+    final fill = Paint()..color = _card..maskFilter = _blur;
+    final line = Paint()..color = _line..maskFilter = _blur;
+    final soft = Paint()..color = _soft..maskFilter = _blur;
+    final deep = Paint()..color = _deep..maskFilter = _blur;
     RRect round(Rect x, double rad) => RRect.fromRectAndRadius(x, Radius.circular(rad));
     void bar(double dx, double dy, double len, {Paint? p, double t = 6}) =>
         canvas.drawRRect(round(Rect.fromLTWH(r.left + dx, r.top + dy, len, t), t / 2), p ?? line);
@@ -404,6 +409,7 @@ class _CollagePainter extends CustomPainter {
         canvas.drawRRect(round(r, 10), deep);
         canvas.drawCircle(Offset(r.center.dx, r.top + 54), 22, Paint()
           ..color = _soft
+          ..maskFilter = _blur
           ..style = PaintingStyle.stroke
           ..strokeWidth = 4);
         canvas.drawCircle(Offset(r.center.dx, r.top + 54), 9, soft);
@@ -413,7 +419,7 @@ class _CollagePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CollagePainter old) => old.dark != dark;
+  bool shouldRepaint(_CollagePainter old) => old.dark != dark || old.tint != tint;
 }
 
 /// The moment a vault opens (or closes): an overlay in the page colour, the brand mark large in the

@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## Unreleased
+
+### Fixed
+- iPhone: swiping back to the first screen no longer shows its background drawn over
+  the buttons, as a bright sheet.
+
 ## 0.2.18 (2026-11-03)
 
 ### Added
