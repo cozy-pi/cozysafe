@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.25 (2026-11-04)
+
+### Changed
+- Every tab shows the same line under its title: how many items, how much space, and
+  the Google Drive cloud right after it. The overview used to show size first, below
+  the search field, with the cloud far to the right.
+
 ## 0.2.24 (2026-11-04)
 
 ### Changed
