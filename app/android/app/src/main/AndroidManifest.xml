@@ -7,6 +7,8 @@
     <!-- A plugin asks for this; sync never reads the network state. CI refuses it. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove"/>
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- Android 14+: told when a screenshot is taken, to warn it is not encrypted. -->
+    <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- Off for now (owner 2026-10-25), until Google Play's foreground service declaration
          is filed with its video; turn on with SYNC_SERVICE in MainActivity.kt and

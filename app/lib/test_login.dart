@@ -32,6 +32,8 @@ abstract final class TestLogin {
   /// Mockups: show the button on any platform; this vault is the test vault.
   static bool debugShown = false;
   static String? debugVaultId;
+  /// Mockups: whether the vault open is the test vault (no vault is really open there).
+  static bool? debugOpen;
 
   /// Whether the button shows: Android test builds only.
   static bool get shown => debugShown || (testLoginBuild && Device.android);
@@ -91,10 +93,22 @@ abstract final class TestLogin {
     }
   }
 
+  /// A vault opened with the test password on a test build is the test vault, however it
+  /// was opened: typed on a second device, restored, or after a reinstall (owner
+  /// 2026-11-04: only the button marked it, so those still blocked screenshots).
+  static Future<void> noteUnlocked(rust.VaultInfo vault, String password) async {
+    if (!shown || password != rust.testVaultPassword()) return;
+    try {
+      await _storage.write(key: _vault, value: vault.id);
+    } catch (_) {}
+  }
+
   /// Whether the vault open now is this test build's test vault.
   static Future<bool> isOpen() async {
-    final open = rust.openVaultInfo()?.id;
-    return open != null && await vaultId() == open;
+    if (debugOpen case final open?) return open;
+    // Not a test build (or none made here): no need to ask the core.
+    final test = await vaultId();
+    return test != null && rust.openVaultInfo()?.id == test;
   }
 
   /// Delete the test vault (owner 2026-11-01: no password to type for it). False when

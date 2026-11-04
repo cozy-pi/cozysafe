@@ -20,6 +20,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../sync/awake.dart';
 import '../theme.dart';
 import '../temp_files.dart';
+import '../test_login.dart';
 import '../originals.dart';
 import '../prefs.dart';
 import '../privacy.dart';
@@ -258,6 +259,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     // Google Drive kept up to date while the vault is open, when turned on.
     AutoSync.start(onSynced: _reload);
     Settings.apply(); // screenshots allowed while a test build's test vault is open
+    // A test build's test vault shows thumbnails clearly too (owner 2026-11-04).
+    thumbsRevealed.value = false;
+    TestLogin.isOpen().then((test) {
+      if (test && mounted) thumbsRevealed.value = true;
+    });
     _bioOn = rust.biometricEnabled();
     BiometricUnlock.available().then((k) {
       if (mounted) setState(() => _canBio = k != null);
@@ -505,6 +511,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       // Hidden groups are left out of every list, chip and count here (hidden_features.dart).
       setState(() => _items = groupsShown ? items : items.where((i) => i.kind != ItemKind.tag).toList());
       AutoSync.seen(items); // a change here: a sync follows shortly
+      _blurTip();
     } on rust.VaultError catch (e) {
       if (!mounted) return;
       if (e == rust.VaultError.locked) return _lock(animate: false);
@@ -540,6 +547,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         } catch (_) {} // locking must not wait on a failed write
       }
       rust.lock();
+      thumbsRevealed.value = false;
       Settings.apply();
       LockGuard.clearCopied();
       clearTemp(); // the video being played, and anything else decrypted for a moment
@@ -1076,6 +1084,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _locked = true;
     _idleTimer?.cancel();
     rust.lock();
+    thumbsRevealed.value = false;
     // As on a fresh install (owner 2026-11-01): the first screen, new or restored, fades in
     // over this page; once it covers the screen, the lock screen takes the place of
     // everything under it, so Back goes there. (Swapping to the lock screen first flashed
@@ -1343,60 +1352,89 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   bool _shotCardOpen = false;
 
+  /// After a screenshot (iOS, Android 14+). Blocked, it came out black: a card says why
+  /// and how to allow one. Allowed, it sits outside the vault unencrypted: a card the first
+  /// time, then a short line, or nothing once "Don't remind me again" is on (owner
+  /// 2026-11-04). The test vault of a test build says nothing: testers send screenshots.
   Future<void> _screenshotNotice() async {
     if (_shotCardOpen) return; // a burst of screenshots: one card
-    _shotCardOpen = true;
+    if (await TestLogin.isOpen() || !mounted) return;
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     final blocked = Settings.blockScreenshots;
+    if (!blocked) {
+      if (Prefs.read(_shotQuietPref) == '1') return;
+      if (Prefs.read(_shotSeenPref) == '1') {
+        showToast(context, l.shotToast, icon: Icons.warning_amber_rounded);
+        return;
+      }
+      Prefs.write(_shotSeenPref, '1');
+    }
+    _shotCardOpen = true;
+    final c = CsColors.of(context);
+    var quiet = false;
     final go = await showCard<bool>(
       context,
       title: blocked ? l.shotBlockedTitle : l.shotSavedTitle,
-      builder: (context) => Padding(
-        key: const ValueKey('shot-card'),
-        padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Icon(blocked ? Icons.visibility_off_rounded : Icons.warning_amber_rounded,
-                size: 40, color: blocked ? c.muted : recordRed(context)),
-            const SizedBox(height: 12),
-            Text(blocked ? l.shotBlockedBody : l.screenshotWarning, style: const TextStyle(fontSize: CsType.callout, height: 1.45)),
-            if (blocked) ...[
-              const SizedBox(height: 10),
-              Text(l.shotBlockedHow, style: TextStyle(fontSize: CsType.subhead, height: 1.45, color: c.muted)),
-            ],
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                if (blocked)
-                  Expanded(
-                    child: OutlinedButton(
-                      key: const ValueKey('shot-settings'),
-                      onPressed: () => Navigator.of(context).pop(true),
-                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ui.circle), shape: const StadiumBorder()),
-                      child: Text(l.settings),
-                    ),
-                  ),
-                if (blocked) const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton(
-                    key: const ValueKey('shot-ok'),
-                    onPressed: () => Navigator.of(context).pop(false),
-                    style: FilledButton.styleFrom(minimumSize: const Size(0, Ui.circle), shape: const StadiumBorder()),
-                    child: Text(l.gotIt),
-                  ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setCard) => Padding(
+          key: const ValueKey('shot-card'),
+          padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(blocked ? Icons.visibility_off_rounded : Icons.warning_amber_rounded,
+                  size: 40, color: blocked ? c.muted : recordRed(context)),
+              const SizedBox(height: 12),
+              Text(blocked ? l.shotBlockedBody : l.shotSavedBody, style: const TextStyle(fontSize: CsType.callout, height: 1.45)),
+              if (blocked) ...[
+                const SizedBox(height: 10),
+                Text(l.shotBlockedHow(l.blockScreenshots, settingsPath(l, SettingsSpot.blockScreenshots)), style: TextStyle(fontSize: CsType.subhead, height: 1.45, color: c.muted)),
+              ] else ...[
+                const SizedBox(height: 6),
+                SwitchListTile.adaptive(
+                  key: const ValueKey('shot-quiet'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l.dontRemindAgain, style: const TextStyle(fontSize: CsType.subhead)),
+                  value: quiet,
+                  onChanged: (v) => setCard(() => quiet = v),
                 ),
               ],
-            ),
-          ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  if (blocked)
+                    Expanded(
+                      child: OutlinedButton(
+                        key: const ValueKey('shot-settings'),
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ui.circle), shape: const StadiumBorder()),
+                        child: Text(l.settings),
+                      ),
+                    ),
+                  if (blocked) const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      key: const ValueKey('shot-ok'),
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: FilledButton.styleFrom(minimumSize: const Size(0, Ui.circle), shape: const StadiumBorder()),
+                      child: Text(l.gotIt),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
     _shotCardOpen = false;
-    if (go == true && mounted && !_locked) _openSettings();
+    if (quiet) Prefs.write(_shotQuietPref, '1');
+    if (go == true && mounted && !_locked) _openSettings(focus: SettingsSpot.blockScreenshots);
   }
+
+  static const _shotSeenPref = 'shot-notice-seen';
+  static const _shotQuietPref = 'shot-notice-quiet';
 
   // ---------- one item's menu (long press) ----------
 
@@ -2739,6 +2777,51 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       _keepSection = false;
       _selected.clear();
     });
+    _blurTip();
+  }
+
+  static const _blurTipPref = 'blur-tip-seen';
+  bool _blurTipBusy = false;
+
+  /// Once, the first time the Library shows blurred thumbnails: a tip on the first one
+  /// saying why (owner 2026-11-04: blurred squares looked like a fault, and a button or a
+  /// line for it crowded the header; a tour at the start is skipped and forgotten, so the
+  /// tip comes where the thing is met).
+  Future<void> _blurTip() async {
+    if (_blurTipBusy || Prefs.read(_blurTipPref) == '1') return;
+    bool ready() =>
+        mounted &&
+        !_locked &&
+        !_adding &&
+        !_selecting &&
+        _section == VaultSection.library &&
+        !TopSecretMode.on &&
+        blurThumbnails() &&
+        (ModalRoute.of(context)?.isCurrent ?? false) &&
+        (_items ?? const <rust.ItemInfo>[]).any((i) => i.kind == ItemKind.photo || i.kind == ItemKind.video);
+    if (!ready()) return;
+    _blurTipBusy = true;
+    try {
+      // A test build's test vault shows thumbnails clearly: nothing to explain there.
+      if (await TestLogin.isOpen()) return;
+      // Let the blurred squares draw first.
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      if (!ready()) return;
+      final target = _firstItemRect();
+      if (target == null || !mounted) return;
+      Prefs.write(_blurTipPref, '1');
+      final l = AppLocalizations.of(context);
+      await showCoachTour(context, [
+        TourTip(id: 'blur', target: () => _firstItemRect() ?? target, title: l.blurTipTitle,
+            body: l.blurTipBody(l.blurThumbs, settingsPath(l, SettingsSpot.blurThumbs)),
+            // As the screenshot card: Settings opens on the very row, lit.
+            action: (l.settings, () {
+              if (mounted && !_locked) _openSettings(focus: SettingsSpot.blurThumbs);
+            })),
+      ]);
+    } finally {
+      _blurTipBusy = false;
+    }
   }
 
   /// Holding the home tab locks (on by default, Settings): no lock button, as long as
@@ -3730,3 +3813,4 @@ class DeleteOriginalsSheet extends StatelessWidget {
 
 /// How a section is ordered (the ⇅ menu). Saved per section.
 enum ItemSort { newest, oldest, name, size, smallest, edited }
+

@@ -25,6 +25,7 @@ import 'tour.dart' show TourKind;
 import 'vault_home.dart';
 import 'welcome.dart';
 import '../widgets/readable.dart';
+import '../test_login.dart';
 import '../top_secret_mode.dart';
 import 'top_secret_page.dart' show restartForMode;
 
@@ -233,6 +234,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       await SecretKeyStore.write(key, target);
       rust.setSecretKey(dir: target, key: key);
       final vault = await rust.unlock(dir: widget.libraryDir, password: _password.text);
+      if (vault != null) await TestLogin.noteUnlocked(vault, _password.text);
       if (!mounted) return;
       if (vault == null) {
         // Right words, another password: the unlock screen asks for it.

@@ -382,7 +382,7 @@
   "infoNoGroup": "없음",
   "shotBlockedTitle": "스크린샷이 차단됨",
   "shotBlockedBody": "금고 안의 스크린샷과 화면 녹화는 검은 화면으로 나옵니다.",
-  "shotBlockedHow": "필요하면 설정 → 화면에서 ‘스크린샷 차단’을 끄세요. 끝나면 다시 켜세요.",
+  "shotBlockedHow": "필요하면 {where}에서 ‘{setting}’을 끄세요. 끝나면 다시 켜세요.",
   "shotSavedTitle": "스크린샷이 암호화되지 않음",
   "gotIt": "확인",
   "favorite": "즐겨찾기",
@@ -899,5 +899,12 @@
   "restoreAlreadyHere": "이 금고는 이미 이 기기에 있습니다.",
   "restoreAlreadyHereLead": "잠금 화면에서 비밀번호로 여세요.",
   "ownerCheckFailed": "본인 확인을 할 수 없습니다.",
-  "fileGroupOtherFiles": "기타 파일"
+  "fileGroupOtherFiles": "기타 파일",
+  "shotSavedBody": "스크린샷은 금고 밖 사진에 저장되며 암호화되지 않습니다. 개인적인 내용이 보이면 삭제하세요.",
+  "shotToast": "스크린샷이 금고 밖에 저장됨, 암호화되지 않음",
+  "dontRemindAgain": "다시 알리지 않기",
+  "blurTipTitle": "썸네일이 흐리게 보입니다",
+  "blurTipBody": "옆 사람이 보지 못하게 하기 위해서입니다. 탭하면 선명하게 볼 수 있습니다. 끄려면 {where}에서 ‘{setting}’을 끄세요.",
+  "testVaultShots": "테스트 금고에서는 항상 허용되며 바꿀 수 없습니다",
+  "testVaultThumbs": "테스트 금고에서는 항상 선명하게 보이며 바꿀 수 없습니다"
 }

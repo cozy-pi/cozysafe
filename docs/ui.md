@@ -265,6 +265,10 @@ deniability).
   protects) · Delete this vault alone · About. Little text (owner 2026-10-26): titles,
   labels and values; no row notes or group footers; a sentence only where a mistake would
   cost the vault (the 24 words and password, the 30-day trash rule, deleting a vault).
+- **Settings → What shows on screen** (since 2026-10-31): block screenshots (off by
+  default since 2026-11-04, on in Top secret), blur thumbnails, hide note text. Text that
+  sends someone to a setting names its place with `settingsPath()` and offers a Settings
+  button that opens on the lit row.
 - **Checking the build against the mockups**: `flutter test test/preview_test.dart
   --update-goldens --dart-define=PREVIEW=true` renders the real screens (fake vault
   data) to `app/test/preview/*.png` in a few seconds.

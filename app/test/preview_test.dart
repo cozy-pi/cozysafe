@@ -406,6 +406,7 @@ void _screen(String name, String caption, Widget Function() home,
       EmergencyKitScreen.debugFixedWords = true;
       if (section != null) Prefs.write('vault-section', section);
       Prefs.write('add-column-hint', '3'); // the drag hint has been seen; no mid-nudge shots
+      Prefs.write('blur-tip-seen', '1'); // the Library's one-off tip too (its own shot: blur-tip)
       debugCamera = false;
       CameraView.debugPreview = null;
       CameraView.debugLast = null;
@@ -444,6 +445,7 @@ void _screen(String name, String caption, Widget Function() home,
       DeleteVaultScreen.debugDrive = false;
       TestLogin.debugShown = false;
       TestLogin.debugVaultId = null;
+      TestLogin.debugOpen = null;
       TopSecretMode.debugClosesItself = null;
       NewVaultScreen.debugBiometricStep = false;
       Device.debugDesktop = null;
@@ -460,6 +462,7 @@ void _screen(String name, String caption, Widget Function() home,
       ChangeKeyScreen.debugStep = null;
       ScanCodePage.debugPreview = null;
       VaultHomeScreen.debugReveal = false;
+      thumbsRevealed.value = false;
       QuickLook.debugStillAudio = false;
       QuickLook.debugPdfPage = null;
       CoachTour.debugStart = 0;
@@ -601,6 +604,28 @@ void main() {
     });
   }
   _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library');
+  _screen('blur-tip', 'Thư viện · lần đầu thấy ảnh bị làm mờ', home, section: 'library', after: 0,
+      setup: () => Prefs.write('blur-tip-seen', '0'),
+      change: 'MỚI: mẹo hiện MỘT lần, đúng lúc lần đầu mở Thư viện có ảnh đang mờ: vì sao mờ, chạm để xem rõ, tắt ở đâu. Không thêm nút hay chữ nào lên trang',
+      act: (t) async {
+    for (var i = 0; i < 12; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    await t.pump(const Duration(milliseconds: 400));
+  });
+  _screen('blur-tip-settings', 'Mẹo ảnh mờ · bấm Cài đặt', home, section: 'library', after: 0,
+      setup: () => Prefs.write('blur-tip-seen', '0'),
+      change: 'MỚI: nút Cài đặt (như thẻ chặn chụp màn hình) mở thẳng trang có mục đó, mục được làm sáng lên. Thẻ chặn chụp màn hình giờ cũng mở thẳng tới mục của nó',
+      act: (t) async {
+    for (var i = 0; i < 12; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    await t.pump(const Duration(milliseconds: 400));
+    await t.tap(find.byKey(const ValueKey('tip-action')));
+    for (var i = 0; i < 14; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+  });
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
   _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
@@ -652,9 +677,7 @@ void main() {
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
-      section: 'home',
-      change: 'ĐỔI: thanh dưới hiện 3 loại két đang có nhiều nhất, nhiều nhất bên trái (Ghi âm cũng được lên tab nếu đủ nhiều)',
-      marks: [() => find.byType(VaultBar)]);
+      section: 'home',);
   _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home', act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-video')));
     await t.pumpAndSettle();
@@ -732,14 +755,47 @@ void main() {
       });
   _screen('home-nudge', 'Trang chủ: két chỉ ở máy này', home, section: 'home',
       setup: () => SecondPlaceNudge.debugShow = true);
-  _screen('shot-blocked', 'Vừa chụp màn hình · đang chặn', home, section: 'library', act: (t) async {
+  _screen('shot-blocked', 'Vừa chụp màn hình · đang bật chặn (két Tuyệt mật mặc định, hoặc tự bật)', home, section: 'library',
+      setup: () => Prefs.write('block-screenshots', '1'), act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
   });
-  _screen('shot-saved', 'Vừa chụp màn hình · không chặn', home, section: 'library', setup: () => Prefs.write('block-screenshots', '0'),
-      act: (t) async {
+  _screen('shot-saved', 'Vừa chụp màn hình lần đầu · không chặn (mặc định)', home, section: 'library',
+      change: 'MỚI: giờ mặc định cho chụp. Lần chụp đầu hiện thẻ này (iPhone và Android 14+), có ô "Không nhắc lại"',
+      marks: [() => find.byKey(const ValueKey('shot-quiet'))], act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
+  });
+  _screen('shot-toast', 'Vừa chụp màn hình lần sau · không chặn', home, section: 'library',
+      change: 'MỚI: từ lần chụp thứ hai chỉ hiện một dòng nhỏ (bật "Không nhắc lại" thì không hiện gì)',
+      setup: () => Prefs.write('shot-notice-seen', '1'), act: (t) async {
+    PrivacyCover.onScreenshot?.call();
+    await t.pump(const Duration(milliseconds: 600));
+  });
+  _screen('settings-page-screen', 'Cài đặt → Hiện trên màn hình', () => settings(vault),
+      change: 'ĐỔI: "Chặn chụp màn hình" giờ tắt sẵn (két Tuyệt mật vẫn bật sẵn). 24 cụm từ, Secret Key, mã ghép máy vẫn luôn chặn',
+      marks: [() => find.byKey(const ValueKey('screenshots-row'))],
+      setup: () {
+    Settings.debugIOS = true;
+    SettingsScreen.debugPage = 'screen';
+  });
+  _screen('settings-page-screen-test', 'Cài đặt → Hiện trên màn hình · két thử nghiệm (bản build thử nghiệm)', () => settings(vault),
+      change: 'MỚI: trong két thử nghiệm, "Chặn chụp màn hình" và "Làm mờ ảnh thu nhỏ" luôn tắt, mờ đi, không bật được (két này luôn chụp được, ảnh luôn rõ)',
+      setup: () {
+    Settings.debugIOS = true;
+    SettingsScreen.debugPage = 'screen';
+    TestLogin.debugOpen = true;
+    Prefs.write('block-screenshots', '1'); // turned on before: still shows off here
+  });
+  _screen('settings-page-screen-test-tap', 'Két thử nghiệm · bấm vào "Chặn chụp màn hình"', () => settings(vault),
+      change: 'MỚI: bấm vào công tắc bị khoá → dòng báo "Két thử nghiệm luôn cho chụp màn hình, không đổi được"',
+      setup: () {
+    Settings.debugIOS = true;
+    SettingsScreen.debugPage = 'screen';
+    TestLogin.debugOpen = true;
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('screenshots-row')));
+    await t.pump(const Duration(milliseconds: 400));
   });
   _screen('home-recording', 'Trang chủ · chạm một bản ghi âm', home, section: 'home',
       setup: () {
@@ -771,9 +827,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home',
-      change: 'ĐỔI: 3 nút nhanh trên + là nút thêm của 3 loại trên thanh: nhiều nhất ở giữa, thứ 2 bên trái, thứ 3 bên phải',
-      marks: [() => find.byKey(const ValueKey('add-row'))], setup: () {
+  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {

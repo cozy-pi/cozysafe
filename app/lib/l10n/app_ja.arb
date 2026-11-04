@@ -382,7 +382,7 @@
   "infoNoGroup": "なし",
   "shotBlockedTitle": "スクリーンショットはブロック中",
   "shotBlockedBody": "金庫の中のスクリーンショットと画面収録は、真っ黒になります。",
-  "shotBlockedHow": "必要なときは、設定 → 表示 で「スクリーンショットをブロック」をオフにしてください。終わったらオンに戻しましょう。",
+  "shotBlockedHow": "必要なときは、{where} で「{setting}」をオフにしてください。終わったらオンに戻しましょう。",
   "shotSavedTitle": "スクリーンショットは暗号化されていません",
   "gotIt": "OK",
   "favorite": "お気に入り",
@@ -899,5 +899,12 @@
   "restoreAlreadyHere": "この金庫はすでにこのデバイスにあります。",
   "restoreAlreadyHereLead": "ロック画面でパスワードを入力して開いてください。",
   "ownerCheckFailed": "本人確認ができませんでした。",
-  "fileGroupOtherFiles": "その他のファイル"
+  "fileGroupOtherFiles": "その他のファイル",
+  "shotSavedBody": "スクリーンショットは金庫の外の写真に保存され、暗号化されません。個人的な内容が写っていれば削除してください。",
+  "shotToast": "スクリーンショットは金庫の外に保存され、暗号化されていません",
+  "dontRemindAgain": "今後表示しない",
+  "blurTipTitle": "サムネイルはぼかしています",
+  "blurTipBody": "隣の人に見られないためです。タップするとはっきり見られます。オフにするには {where} の「{setting}」。",
+  "testVaultShots": "テスト用金庫では常に許可されており、変更できません",
+  "testVaultThumbs": "テスト用金庫では常にはっきり表示され、変更できません"
 }

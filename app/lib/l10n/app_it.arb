@@ -382,7 +382,7 @@
   "infoNoGroup": "Nessuno",
   "shotBlockedTitle": "Screenshot bloccati",
   "shotBlockedBody": "Screenshot e registrazioni nella cassaforte vengono neri.",
-  "shotBlockedHow": "Ti serve? Disattiva «Blocca screenshot» in Impostazioni → Schermo. Poi riattivalo.",
+  "shotBlockedHow": "Ti serve? Disattiva «{setting}» in {where}. Poi riattivalo.",
   "shotSavedTitle": "Screenshot non cifrato",
   "gotIt": "Ho capito",
   "favorite": "Preferito",
@@ -899,5 +899,12 @@
   "restoreAlreadyHere": "Questa cassaforte è già su questo dispositivo.",
   "restoreAlreadyHereLead": "Aprila dalla schermata di blocco con la sua password.",
   "ownerCheckFailed": "Impossibile confermare che sei tu.",
-  "fileGroupOtherFiles": "Altri file"
+  "fileGroupOtherFiles": "Altri file",
+  "shotSavedBody": "Lo screenshot è salvato fuori dalla cassaforte, nelle tue foto, senza crittografia. Eliminalo se mostra qualcosa di privato.",
+  "shotToast": "Screenshot salvato fuori dalla cassaforte, non crittografato",
+  "dontRemindAgain": "Non ricordarmelo più",
+  "blurTipTitle": "Le miniature sono sfocate",
+  "blurTipBody": "Così chi ti sta accanto non le vede. Toccane una per vederla nitida. Per disattivare: «{setting}» in {where}.",
+  "testVaultShots": "Sempre consentito nella cassaforte di prova, non modificabile",
+  "testVaultThumbs": "Sempre nitide nella cassaforte di prova, non modificabile"
 }

@@ -382,7 +382,7 @@
   "infoNoGroup": "Ninguno",
   "shotBlockedTitle": "Las capturas están bloqueadas",
   "shotBlockedBody": "Las capturas y grabaciones de pantalla en la caja fuerte salen en negro.",
-  "shotBlockedHow": "¿Necesitas una? Desactiva «Bloquear capturas de pantalla» en Ajustes → Pantalla. Actívalo de nuevo después.",
+  "shotBlockedHow": "¿Necesitas una? Desactiva «{setting}» en {where}. Actívalo de nuevo después.",
   "shotSavedTitle": "Captura sin cifrar",
   "gotIt": "Entendido",
   "favorite": "Favorito",
@@ -899,5 +899,12 @@
   "restoreAlreadyHere": "Esta caja fuerte ya está en este dispositivo.",
   "restoreAlreadyHereLead": "Ábrela en la pantalla de bloqueo con su contraseña.",
   "ownerCheckFailed": "No se pudo confirmar que eres tú.",
-  "fileGroupOtherFiles": "Otros archivos"
+  "fileGroupOtherFiles": "Otros archivos",
+  "shotSavedBody": "La captura se guarda fuera de la caja fuerte, en tus fotos, sin cifrar. Bórrala si muestra algo privado.",
+  "shotToast": "Captura guardada fuera de la caja fuerte, sin cifrar",
+  "dontRemindAgain": "No volver a recordar",
+  "blurTipTitle": "Las miniaturas están difuminadas",
+  "blurTipBody": "Para que nadie a tu lado las vea. Toca una para verla nítida. Para desactivarlo: «{setting}» en {where}.",
+  "testVaultShots": "Siempre permitido en la caja de prueba, no se puede cambiar",
+  "testVaultThumbs": "Siempre nítidas en la caja de prueba, no se puede cambiar"
 }

@@ -9,15 +9,17 @@ import 'platform.dart';
 abstract final class PrivacyCover {
   static const _channel = MethodChannel('cozysafe/privacy');
 
-  /// Called after the person takes a screenshot (iOS tells us; it cannot be stopped).
+  /// Called after the person takes a screenshot: iOS tells us, Android from 14
+  /// (MainActivity.kt, a screen capture callback); older Android cannot.
   static void Function()? onScreenshot;
 
   /// Start listening to the platform side (main, once).
   static void listen() {
-    if (!Device.iOS) return;
+    if (!Device.iOS && !Device.android) return;
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'screenshot') onScreenshot?.call();
     });
+    if (!Device.iOS) return;
     // Back in the app the cover stays up until a new frame is on screen (AppDelegate):
     // Flutter draws nothing in the background, so the screen still holds the vault as it
     // was left. Two frames: the first builds the lock screen, the second is sure to have
