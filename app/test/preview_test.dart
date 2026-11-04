@@ -603,10 +603,11 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library');
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library',
+      change: 'ĐỔI: dưới tiêu đề, mọi tab giống nhau: số mục · dung lượng, biểu tượng đồng bộ ngay sau (trước: Tổng quan ghi dung lượng · số mục dưới ô tìm, mây nằm tận bên phải)',
+      marks: [() => find.byKey(const ValueKey('vault-count'))]);
   _screen('blur-tip', 'Thư viện · lần đầu thấy ảnh bị làm mờ', home, section: 'library', after: 0,
       setup: () => Prefs.write('blur-tip-seen', '0'),
-      change: 'MỚI: mẹo hiện MỘT lần, đúng lúc lần đầu mở Thư viện có ảnh đang mờ: vì sao mờ, chạm để xem rõ, tắt ở đâu. Không thêm nút hay chữ nào lên trang',
       act: (t) async {
     for (var i = 0; i < 12; i++) {
       await t.pump(const Duration(milliseconds: 100));
@@ -615,7 +616,6 @@ void main() {
   });
   _screen('blur-tip-settings', 'Mẹo ảnh mờ · bấm Cài đặt', home, section: 'library', after: 0,
       setup: () => Prefs.write('blur-tip-seen', '0'),
-      change: 'MỚI: nút Cài đặt (như thẻ chặn chụp màn hình) mở thẳng trang có mục đó, mục được làm sáng lên. Thẻ chặn chụp màn hình giờ cũng mở thẳng tới mục của nó',
       act: (t) async {
     for (var i = 0; i < 12; i++) {
       await t.pump(const Duration(milliseconds: 100));
@@ -677,7 +677,9 @@ void main() {
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
-      section: 'home',);
+      section: 'home',
+      change: 'ĐỔI: dưới tiêu đề, mọi tab giống nhau: số mục · dung lượng, biểu tượng đồng bộ ngay sau (trước: Tổng quan ghi dung lượng · số mục dưới ô tìm, mây nằm tận bên phải)',
+      marks: [() => find.byKey(const ValueKey('vault-count'))]);
   _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home', act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-video')));
     await t.pumpAndSettle();
@@ -760,27 +762,21 @@ void main() {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
   });
-  _screen('shot-saved', 'Vừa chụp màn hình lần đầu · không chặn (mặc định)', home, section: 'library',
-      change: 'MỚI: giờ mặc định cho chụp. Lần chụp đầu hiện thẻ này (iPhone và Android 14+), có ô "Không nhắc lại"',
-      marks: [() => find.byKey(const ValueKey('shot-quiet'))], act: (t) async {
+  _screen('shot-saved', 'Vừa chụp màn hình lần đầu · không chặn (mặc định)', home, section: 'library', act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pumpAndSettle();
   });
   _screen('shot-toast', 'Vừa chụp màn hình lần sau · không chặn', home, section: 'library',
-      change: 'MỚI: từ lần chụp thứ hai chỉ hiện một dòng nhỏ (bật "Không nhắc lại" thì không hiện gì)',
       setup: () => Prefs.write('shot-notice-seen', '1'), act: (t) async {
     PrivacyCover.onScreenshot?.call();
     await t.pump(const Duration(milliseconds: 600));
   });
   _screen('settings-page-screen', 'Cài đặt → Hiện trên màn hình', () => settings(vault),
-      change: 'ĐỔI: "Chặn chụp màn hình" giờ tắt sẵn (két Tuyệt mật vẫn bật sẵn). 24 cụm từ, Secret Key, mã ghép máy vẫn luôn chặn',
-      marks: [() => find.byKey(const ValueKey('screenshots-row'))],
       setup: () {
     Settings.debugIOS = true;
     SettingsScreen.debugPage = 'screen';
   });
   _screen('settings-page-screen-test', 'Cài đặt → Hiện trên màn hình · két thử nghiệm (bản build thử nghiệm)', () => settings(vault),
-      change: 'MỚI: trong két thử nghiệm, "Chặn chụp màn hình" và "Làm mờ ảnh thu nhỏ" luôn tắt, mờ đi, không bật được (két này luôn chụp được, ảnh luôn rõ)',
       setup: () {
     Settings.debugIOS = true;
     SettingsScreen.debugPage = 'screen';
@@ -788,7 +784,6 @@ void main() {
     Prefs.write('block-screenshots', '1'); // turned on before: still shows off here
   });
   _screen('settings-page-screen-test-tap', 'Két thử nghiệm · bấm vào "Chặn chụp màn hình"', () => settings(vault),
-      change: 'MỚI: bấm vào công tắc bị khoá → dòng báo "Két thử nghiệm luôn cho chụp màn hình, không đổi được"',
       setup: () {
     Settings.debugIOS = true;
     SettingsScreen.debugPage = 'screen';
@@ -843,7 +838,9 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('notes', 'Ghi chú', home, section: 'note');
+  _screen('notes', 'Ghi chú', home, section: 'note',
+      change: 'ĐỔI: dưới tiêu đề, mọi tab giống nhau: số mục · dung lượng, biểu tượng đồng bộ ngay sau (trước: Tổng quan ghi dung lượng · số mục dưới ô tìm, mây nằm tận bên phải)',
+      marks: [() => find.byKey(const ValueKey('vault-count'))]);
   _screen('more-menu', 'Ghi chú · bấm ⋯', home, section: 'note', act: (t) async {
     await t.tap(find.byKey(const ValueKey('more-button')));
     await t.pumpAndSettle();
@@ -1009,7 +1006,8 @@ void main() {
     }
   });
   _screen('files', 'Tệp', home, section: 'file',
-      marks: [() => find.byKey(const ValueKey('file-chips'))]);
+      change: 'ĐỔI: dưới tiêu đề, mọi tab giống nhau: số mục · dung lượng, biểu tượng đồng bộ ngay sau (trước: Tổng quan ghi dung lượng · số mục dưới ô tìm, mây nằm tận bên phải)',
+      marks: [() => find.byKey(const ValueKey('vault-count'))]);
   _screen('files-video-empty', 'Tệp · chạm chip Video khi chưa có tệp video', home, section: 'file', act: (t) async {
     await t.tap(find.byKey(const ValueKey('file-chip-video')));
     await t.pumpAndSettle();
@@ -1214,8 +1212,7 @@ void main() {
   });
   Widget modePage(Widget body) =>
       Readable(child: Builder(builder: (context) => Scaffold(appBar: pageBar(context, 'Chế độ tuyệt mật'), body: SafeArea(top: false, child: body))));
-  _screen('ts-files', 'Két Tuyệt mật · Tệp: ảnh, video thành dòng như tệp', home, section: 'file',
-      marks: [() => find.byKey(const ValueKey('file-chips'))]);
+  _screen('ts-files', 'Két Tuyệt mật · Tệp: ảnh, video thành dòng như tệp', home, section: 'file');
   _screen('ts-files-video', 'Két Tuyệt mật · Tệp · chạm chip Video', home, section: 'file', act: (t) async {
     await t.tap(find.byKey(const ValueKey('file-chip-video')));
     await t.pumpAndSettle();
@@ -1238,8 +1235,7 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('ts-place-settings', 'Chế độ tuyệt mật · khiên đỏ nhỏ ở góc nút Cài đặt', home, section: 'home',);
-  _screen('ts-home', 'Két Tuyệt mật · Tổng quan', home, section: 'home',
-      marks: [() => find.byKey(const ValueKey('kind-card'))]);
+  _screen('ts-home', 'Két Tuyệt mật · Tổng quan', home, section: 'home');
   _screen('settings-mode-off', 'Cài đặt · thẻ Chế độ tuyệt mật (đang tắt)', () => settings(vault),);
   _screen('ts-settings', 'Cài đặt · thẻ Chế độ tuyệt mật (đang bật)', () => settings(vault),);
   _screen('settings-mode-page', 'Cài đặt → Chế độ tuyệt mật (đang tắt): giải thích + so sánh + nút bật',
@@ -1474,8 +1470,7 @@ void main() {
   _screen('sync-restore-connected', 'Máy mới (khôi phục): đã kết nối với máy cũ, cùng mã — không phải bấm gì', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(named(SyncStep.connected, 'iPhone 15 Pro Max', 318)), onSynced: () {})));
   _screen('sync-peer-wrong-password', 'Máy cũ: máy mới nhập sai mật khẩu — máy cũ dừng, chỉ mới gửi ổ khoá của két', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.peerWrongPassword)), onSynced: () {})));
   _screen('restore-already-here', 'Khôi phục một két đã có trên máy này (cùng 24 từ + mật khẩu)',
-      () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.alreadyHere)), onSynced: () {})),
-      marks: [() => find.byKey(const ValueKey('add-code-ended-alreadyHere'))]);
+      () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.alreadyHere)), onSynced: () {})));
   _screen('restore-wrong-password', 'Máy mới: sai mật khẩu', () => page('Khôi phục', SyncProgress(restoring: true, events: Stream.value(ev(SyncStep.wrongPassword)), onSynced: () {})));
   _screen('sync-device-sending', 'Máy gần đây: đang gửi — ổ khoá trên đường truyền', () => page('Đồng bộ với máy gần đây', SyncProgress(events: Stream.value(ev(SyncStep.sending, done: 21, total: 90, bytes: 64 << 20, bytesTotal: 230 << 20)), onSynced: () {})),
       setup: () => SyncProgress.debugRate = (9.8 * (1 << 20), 3));

@@ -2259,10 +2259,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// sections, the groups, what was added last), each a tap away.
   Widget _home(BuildContext context, List<rust.ItemInfo> items) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     final ink = Theme.of(context).colorScheme.onSurface;
     final things = items.where((i) => i.kind != ItemKind.tag).toList();
-    final bytes = things.fold<BigInt>(BigInt.zero, (a, i) => a + i.sizeBytes);
     return _pinchTiles('home-columns', VaultOverview(
       items: items,
       columns: _tileCols('home-columns'),
@@ -2295,22 +2293,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(6, 12, 6, 0),
-            // Size and count; on the right, where Google Drive stands (one small icon).
-            child: Row(children: [
-              Text(l.storageUsed(fileSize(bytes), things.length), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: HomeSyncIcon(
-                    onTap: _openSync,
-                  ),
-                ),
-              ),
-            ]),
-          ),
+          // Count, size and Google Drive are under the title now, as on every tab.
+          const SizedBox(height: 8),
           if (things.isNotEmpty)
             SecondPlaceNudge(
               onAdd: _openSync,
@@ -2366,9 +2350,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Widget _header(BuildContext context) {
     final l = AppLocalizations.of(context);
     final open = _openTag;
-    // Under the big title, how many items it holds, as the iPhone's Photos (owner
-    // 2026-10-29); not on the home tab, which shows its own sizes.
-    final count = _section == VaultSection.home || _items == null || _empty ? null : _shown(_items!).length;
+    // Under the big title, on every tab alike: how many, how big, and where Google Drive
+    // stands right after it (owner 2026-11-04; the count as the iPhone's Photos,
+    // 2026-10-29). The home tab counts the whole vault.
+    final List<rust.ItemInfo>? held = _items == null || _empty
+        ? null
+        : (_section == VaultSection.home && _tagId == null ? _items! : _shown(_items!)).where((i) => i.kind != ItemKind.tag).toList();
+    final count = held?.length;
+    final bytes = held?.fold<BigInt>(BigInt.zero, (a, i) => a + i.sizeBytes);
     return Padding(
       padding: const EdgeInsets.fromLTRB(Ui.side, 8, Ui.side, 4),
       child: Row(
@@ -2399,10 +2388,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                     ),
                   ),
                 ]),
-                if (count != null)
-                  Text(l.itemsCount(count),
-                      key: const ValueKey('vault-count'),
-                      style: TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
+                if (count != null && bytes != null)
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Flexible(
+                      child: Text('${l.itemsCount(count)} · ${fileSize(bytes)}',
+                          key: const ValueKey('vault-count'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
+                    ),
+                    const SizedBox(width: 8),
+                    HomeSyncIcon(dense: true, onTap: _openSync),
+                  ]),
               ],
             ),
           ),

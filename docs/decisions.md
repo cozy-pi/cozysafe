@@ -4,6 +4,12 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-04 (later) — One summary line under every tab's title
+
+**Owner:** `N items · size`, then the Drive cloud close after the size (not far right),
+on every tab with the same structure; the overview's line under the search field is
+gone. Each tab counts what it shows; the overview counts the whole vault.
+
 ## 2026-11-04 — Screenshots allowed by default; tips where a thing is met
 
 **Owner:** a black screenshot looked like a fault and Android said nothing, so people

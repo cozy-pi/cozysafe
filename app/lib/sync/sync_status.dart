@@ -86,8 +86,11 @@ Color _amber(BuildContext context) =>
 /// something to do such as a full Drive (red "!"). The words are the tooltip and what a
 /// screen reader says. A tap opens Sync.
 class HomeSyncIcon extends StatelessWidget {
-  const HomeSyncIcon({super.key, required this.onTap});
+  const HomeSyncIcon({super.key, required this.onTap, this.dense = false});
   final VoidCallback onTap;
+  /// Right after a line of text (the count and size under a tab's title): a smaller box,
+  /// so the cloud sits next to the words.
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +121,7 @@ class HomeSyncIcon extends StatelessWidget {
               key: ValueKey('home-sync-$key'),
               onTap: onTap,
               radius: 20,
-              child: SizedBox.square(dimension: 32, child: Center(child: ExcludeSemantics(child: icon))),
+              child: SizedBox.square(dimension: dense ? 26 : 32, child: Center(child: ExcludeSemantics(child: icon))),
             ),
           ),
         );

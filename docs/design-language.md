@@ -45,7 +45,8 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
 
 Type: the phone's own font, sizes from `CsType` only:
 
-- big title 34 bold (`largeTitle`), with a 15 grey line under it (the item count)
+- big title 34 bold (`largeTitle`), with a 15 grey line under it on every tab alike:
+  `N items · size`, then the Google Drive cloud (`HomeSyncIcon(dense: true)`, 8 after)
 - page title in a bar 17 semibold (`headline`)
 - body and row names 17 (`body`)
 - second line of a row 15 (`subhead`)
