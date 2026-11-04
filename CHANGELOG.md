@@ -4,6 +4,30 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.24 (2026-11-04)
+
+### Changed
+- Screenshots are allowed by default. Top Secret Mode still blocks them unless you
+  turn that off, and the 24 words, the Secret Key and the code that adds a device are
+  always kept out of screenshots. If you turned "Block screenshots" on yourself, it
+  stays on.
+- After a screenshot, the app reminds you that it is saved outside the vault, in your
+  photos, not encrypted: a card the first time (with "Don't remind me again"), then a
+  short line. Android 14 and later now say so too.
+- The app switcher's preview of the vault is hidden on every Android version, also
+  when screenshots are allowed.
+- The first time the Library shows blurred thumbnails, a tip says why, how to see a
+  photo clearly, and where to turn the blur off, with a Settings button that opens on
+  that very switch.
+- The card shown when a screenshot was blocked names the right place in Settings
+  ("What shows on screen") and its Settings button opens on the switch.
+
+### Testing
+- In a test build, the test vault always allows screenshots, shows thumbnails clearly
+  and shows the app switcher preview. It is recognised whenever it is opened with the
+  test password: typed on a second device, after restoring, or after a reinstall.
+  Its "Block screenshots" and "Blur thumbnails" switches show off and cannot be turned on.
+
 ## 0.2.23 (2026-11-03)
 
 ### Fixed

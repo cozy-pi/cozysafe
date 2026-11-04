@@ -339,6 +339,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
         return;
       }
       final vault = await rust.unlock(dir: widget.libraryDir, password: text);
+      if (vault != null) await TestLogin.noteUnlocked(vault, text);
       _tried = text;
       if (!mounted) return;
       // From 8 characters, the least any vault password was ever allowed (the rule

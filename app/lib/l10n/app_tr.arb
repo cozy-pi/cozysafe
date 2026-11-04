@@ -382,7 +382,7 @@
   "infoNoGroup": "Yok",
   "shotBlockedTitle": "Ekran görüntüleri engellendi",
   "shotBlockedBody": "Kasadaki ekran görüntüleri ve kayıtlar siyah çıkar.",
-  "shotBlockedHow": "Bir tane mi lazım? Ayarlar → Görünüm'de “Ekran görüntülerini engelle”yi kapatın. Sonra yeniden açın.",
+  "shotBlockedHow": "Bir tane mi lazım? {where} bölümünde “{setting}” seçeneğini kapatın. Sonra yeniden açın.",
   "shotSavedTitle": "Ekran görüntüsü şifrelenmedi",
   "gotIt": "Anladım",
   "favorite": "Favori",
@@ -899,5 +899,12 @@
   "restoreAlreadyHere": "Bu kasa zaten bu cihazda.",
   "restoreAlreadyHereLead": "Kilit ekranında kasanın parolasıyla açın.",
   "ownerCheckFailed": "Siz olduğunuz doğrulanamadı.",
-  "fileGroupOtherFiles": "Diğer dosyalar"
+  "fileGroupOtherFiles": "Diğer dosyalar",
+  "shotSavedBody": "Ekran görüntüsü kasanın dışında, fotoğraflarında şifrelenmeden saklanır. Özel bir şey gösteriyorsa sil.",
+  "shotToast": "Ekran görüntüsü kasanın dışına kaydedildi, şifrelenmedi",
+  "dontRemindAgain": "Bir daha hatırlatma",
+  "blurTipTitle": "Küçük resimler bulanık",
+  "blurTipBody": "Yanınızdaki kişi görmesin diye. Net görmek için birine dokunun. Kapatmak için: {where} bölümünde “{setting}”.",
+  "testVaultShots": "Test kasasında her zaman izinli, değiştirilemez",
+  "testVaultThumbs": "Test kasasında her zaman net, değiştirilemez"
 }

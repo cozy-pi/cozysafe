@@ -1,5 +1,6 @@
 package com.cozypi.cozysafe
 
+import android.app.Activity
 import android.app.LocaleManager
 import android.content.ContentUris
 import android.content.Intent
@@ -43,6 +44,14 @@ class MainActivity : FlutterFragmentActivity() {
     // "cozysafe/open": Android's own "Open with" for one decrypted copy; answers once the
     // person is back in the app (the copy is removed then).
     private lateinit var openWith: ActivityResultLauncher<Intent>
+    // "cozysafe/privacy": what Dart asked for (lib/screens/settings.dart, Settings.apply).
+    private var privacy: MethodChannel? = null
+    private var secureWanted = true
+    private var recentsHidden = true
+    // Android 14+ says when a screenshot is taken; Dart shows the warning (owner
+    // 2026-11-04: with screenshots allowed, Android said nothing at all).
+    private val screenshotSeen: Any? =
+        if (Build.VERSION.SDK_INT >= 34) Activity.ScreenCaptureCallback { privacy?.invokeMethod("screenshot", null) } else null
     private var openResult: MethodChannel.Result? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -154,7 +163,8 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
-        MethodChannel(messenger, "cozysafe/privacy").setMethodCallHandler { call, result ->
+        privacy = MethodChannel(messenger, "cozysafe/privacy")
+        privacy!!.setMethodCallHandler { call, result ->
             if (call.method == "openUrl") {
                 // Our own pages only (lib/links.dart); the system opens the browser.
                 val uri = Uri.parse(call.arguments as? String ?: "")
@@ -181,11 +191,13 @@ class MainActivity : FlutterFragmentActivity() {
                     result.success(false)
                 }
             } else if (call.method == "setSecure") {
-                if (call.arguments == true) {
-                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                } else {
-                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                }
+                secureWanted = call.arguments == true
+                setSecure(secureWanted)
+                result.success(null)
+            } else if (call.method == "setRecentsHidden") {
+                // Hidden for every vault but a test build's test vault (owner 2026-11-04).
+                recentsHidden = call.arguments != false
+                if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!recentsHidden)
                 result.success(null)
             } else {
                 result.notImplemented()
@@ -265,6 +277,36 @@ class MainActivity : FlutterFragmentActivity() {
         askedNotifications = true
         if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
         requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7302)
+    }
+
+    private fun setSecure(on: Boolean) {
+        if (on) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (Build.VERSION.SDK_INT >= 34) registerScreenCaptureCallback(mainExecutor, screenshotSeen as Activity.ScreenCaptureCallback)
+    }
+
+    override fun onStop() {
+        if (Build.VERSION.SDK_INT >= 34) unregisterScreenCaptureCallback(screenshotSeen as Activity.ScreenCaptureCallback)
+        super.onStop()
+    }
+
+    // Before Android 13 only FLAG_SECURE keeps the vault out of recent apps: on while the
+    // app is away, back to what was asked on return.
+    override fun onPause() {
+        if (Build.VERSION.SDK_INT < 33 && recentsHidden) setSecure(true)
+        super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (Build.VERSION.SDK_INT < 33) setSecure(secureWanted)
     }
 
     override fun onDestroy() {

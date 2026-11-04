@@ -396,7 +396,7 @@
   "infoNoGroup": "Chưa có",
   "shotBlockedTitle": "Đang chặn chụp màn hình",
   "shotBlockedBody": "Chụp hay quay màn hình trong két chỉ ra màn đen.",
-  "shotBlockedHow": "Cần chụp? Tắt “Chặn chụp màn hình” ở Cài đặt → Hiển thị. Chụp xong bật lại.",
+  "shotBlockedHow": "Cần chụp? Tắt “{setting}” ở {where}. Chụp xong bật lại.",
   "shotSavedTitle": "Ảnh chụp không được mã hoá",
   "gotIt": "Đã hiểu",
   "favorite": "Yêu thích",
@@ -913,5 +913,12 @@
   "restoreAlreadyHere": "Két này đã có trên máy này.",
   "restoreAlreadyHereLead": "Hãy mở nó ở màn khoá bằng mật khẩu của két.",
   "ownerCheckFailed": "Không xác minh được chủ máy.",
-  "fileGroupOtherFiles": "Tệp khác"
+  "fileGroupOtherFiles": "Tệp khác",
+  "shotSavedBody": "Ảnh chụp màn hình được lưu ngoài két, trong ảnh của máy, không mã hoá. Có nội dung riêng thì xoá đi.",
+  "shotToast": "Ảnh chụp màn hình nằm ngoài két, không mã hoá",
+  "dontRemindAgain": "Không nhắc lại",
+  "blurTipTitle": "Ảnh thu nhỏ được làm mờ",
+  "blurTipBody": "Để người bên cạnh không nhìn thấy. Chạm vào ảnh để xem rõ. Muốn tắt: “{setting}” ở {where}.",
+  "testVaultShots": "Két thử nghiệm luôn cho chụp màn hình, không đổi được",
+  "testVaultThumbs": "Két thử nghiệm luôn hiện rõ ảnh, không đổi được"
 }

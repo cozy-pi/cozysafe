@@ -382,7 +382,7 @@
   "infoNoGroup": "Aucun",
   "shotBlockedTitle": "Captures d’écran bloquées",
   "shotBlockedBody": "Les captures d'écran et enregistrements du coffre sortent noirs.",
-  "shotBlockedHow": "Besoin d'une capture ? Désactivez « Bloquer les captures d'écran » dans Réglages → Affichage. Réactivez-le ensuite.",
+  "shotBlockedHow": "Besoin d'une capture ? Désactivez « {setting} » dans {where}. Réactivez-le ensuite.",
   "shotSavedTitle": "Capture non chiffrée",
   "gotIt": "J’ai compris",
   "favorite": "Favori",
@@ -899,5 +899,12 @@
   "restoreAlreadyHere": "Ce coffre est déjà sur cet appareil.",
   "restoreAlreadyHereLead": "Ouvrez-le sur l'écran de verrouillage avec son mot de passe.",
   "ownerCheckFailed": "Impossible de confirmer que c'est vous.",
-  "fileGroupOtherFiles": "Autres fichiers"
+  "fileGroupOtherFiles": "Autres fichiers",
+  "shotSavedBody": "La capture est enregistrée hors du coffre, dans vos photos, sans chiffrement. Supprimez-la si elle montre quelque chose de privé.",
+  "shotToast": "Capture enregistrée hors du coffre, non chiffrée",
+  "dontRemindAgain": "Ne plus me le rappeler",
+  "blurTipTitle": "Les miniatures sont floutées",
+  "blurTipBody": "Pour que personne à côté de vous ne les voie. Touchez-en une pour la voir nette. Pour désactiver : « {setting} » dans {where}.",
+  "testVaultShots": "Toujours autorisé dans le coffre de test, non modifiable",
+  "testVaultThumbs": "Toujours nettes dans le coffre de test, non modifiable"
 }

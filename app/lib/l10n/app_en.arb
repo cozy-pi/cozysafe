@@ -539,7 +539,7 @@
   "infoNoGroup": "None",
   "shotBlockedTitle": "Screenshots are blocked",
   "shotBlockedBody": "Screenshots and recordings in the vault come out black.",
-  "shotBlockedHow": "Need one? Turn off “Block screenshots” in Settings → Display. Turn it back on after.",
+  "shotBlockedHow": "Need one? Turn off “{setting}” in {where}. Turn it back on after.",
   "shotSavedTitle": "Screenshot not encrypted",
   "gotIt": "Got It",
   "favorite": "Favorite",
@@ -1114,5 +1114,24 @@
   "restoreAlreadyHere": "This vault is already on this device.",
   "restoreAlreadyHereLead": "Open it on the lock screen with its password.",
   "ownerCheckFailed": "Couldn't confirm it's you.",
-  "fileGroupOtherFiles": "Other files"
+  "fileGroupOtherFiles": "Other files",
+  "shotSavedBody": "The screenshot is saved outside the vault, in your photos, and is not encrypted. Delete it if it shows anything private.",
+  "shotToast": "Screenshot saved outside the vault, not encrypted",
+  "dontRemindAgain": "Don't remind me again",
+  "blurTipTitle": "Thumbnails are blurred",
+  "blurTipBody": "So someone beside you can't see them. Tap one to see it clearly. To turn this off: “{setting}” in {where}.",
+  "@blurTipBody": {
+    "placeholders": {
+      "setting": {"type": "String"},
+      "where": {"type": "String"}
+    }
+  },
+  "@shotBlockedHow": {
+    "placeholders": {
+      "setting": {"type": "String"},
+      "where": {"type": "String"}
+    }
+  },
+  "testVaultShots": "Always allowed in the test vault, can't be changed here",
+  "testVaultThumbs": "Always clear in the test vault, can't be changed here"
 }

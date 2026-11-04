@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import 'vault_bar.dart' show blurThumbnails;
+import 'vault_bar.dart' show blurThumbnails, thumbsRevealed;
 import '../top_secret_mode.dart';
 
 /// Width a blurred thumbnail is made at: blurred, so drawing it larger loses nothing.
@@ -45,7 +45,10 @@ class PrivateThumb extends StatelessWidget {
   final Uint8List bytes;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      ValueListenableBuilder<bool>(valueListenable: thumbsRevealed, builder: (context, _, _) => _build());
+
+  Widget _build() {
     // A Top secret run decodes no picture (ADR 0005): the last guard, whatever asked.
     if (TopSecretMode.on) return const SizedBox.expand();
     if (!blurThumbnails()) return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);

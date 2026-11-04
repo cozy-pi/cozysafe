@@ -382,7 +382,7 @@
   "infoNoGroup": "Nenhum",
   "shotBlockedTitle": "Capturas de tela bloqueadas",
   "shotBlockedBody": "Capturas e gravações de tela no cofre saem pretas.",
-  "shotBlockedHow": "Precisa de uma? Desative “Bloquear capturas de tela” em Ajustes → Exibição. Ative de novo depois.",
+  "shotBlockedHow": "Precisa de uma? Desative “{setting}” em {where}. Ative de novo depois.",
   "shotSavedTitle": "Captura de tela sem criptografia",
   "gotIt": "Entendi",
   "favorite": "Favorito",
@@ -899,5 +899,12 @@
   "restoreAlreadyHere": "Este cofre já está neste dispositivo.",
   "restoreAlreadyHereLead": "Abra-o na tela de bloqueio com a senha dele.",
   "ownerCheckFailed": "Não foi possível confirmar que é você.",
-  "fileGroupOtherFiles": "Outros arquivos"
+  "fileGroupOtherFiles": "Outros arquivos",
+  "shotSavedBody": "A captura fica salva fora do cofre, nas suas fotos, sem criptografia. Apague-a se mostrar algo privado.",
+  "shotToast": "Captura salva fora do cofre, sem criptografia",
+  "dontRemindAgain": "Não lembrar de novo",
+  "blurTipTitle": "As miniaturas estão desfocadas",
+  "blurTipBody": "Para quem estiver do seu lado não ver. Toque em uma para vê-la nítida. Para desativar: “{setting}” em {where}.",
+  "testVaultShots": "Sempre permitido no cofre de teste, não pode ser alterado",
+  "testVaultThumbs": "Sempre nítidas no cofre de teste, não pode ser alterado"
 }

@@ -382,7 +382,7 @@
   "infoNoGroup": "Tidak ada",
   "shotBlockedTitle": "Tangkapan layar diblokir",
   "shotBlockedBody": "Tangkapan layar dan rekaman di brankas hasilnya hitam.",
-  "shotBlockedHow": "Butuh satu? Matikan “Blokir tangkapan layar” di Pengaturan → Tampilan. Nyalakan lagi setelahnya.",
+  "shotBlockedHow": "Butuh satu? Matikan “{setting}” di {where}. Nyalakan lagi setelahnya.",
   "shotSavedTitle": "Tangkapan layar tidak dienkripsi",
   "gotIt": "Mengerti",
   "favorite": "Favorit",
@@ -899,5 +899,12 @@
   "restoreAlreadyHere": "Brankas ini sudah ada di perangkat ini.",
   "restoreAlreadyHereLead": "Buka di layar kunci dengan kata sandinya.",
   "ownerCheckFailed": "Tidak dapat memastikan bahwa ini Anda.",
-  "fileGroupOtherFiles": "File lainnya"
+  "fileGroupOtherFiles": "File lainnya",
+  "shotSavedBody": "Tangkapan layar disimpan di luar brankas, di foto Anda, tanpa enkripsi. Hapus jika menampilkan sesuatu yang pribadi.",
+  "shotToast": "Tangkapan layar disimpan di luar brankas, tidak terenkripsi",
+  "dontRemindAgain": "Jangan ingatkan lagi",
+  "blurTipTitle": "Thumbnail diburamkan",
+  "blurTipBody": "Agar orang di sebelah Anda tidak melihatnya. Ketuk salah satu untuk melihat jelas. Untuk mematikan: “{setting}” di {where}.",
+  "testVaultShots": "Selalu diizinkan di brankas uji, tidak bisa diubah",
+  "testVaultThumbs": "Selalu jelas di brankas uji, tidak bisa diubah"
 }

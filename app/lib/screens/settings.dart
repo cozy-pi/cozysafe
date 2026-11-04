@@ -66,9 +66,16 @@ abstract final class Settings {
   static bool get lockOnLeave => Prefs.read(_lockOnLeave) != '0';
   static set lockOnLeave(bool on) => Prefs.write(_lockOnLeave, on ? '1' : '0');
 
-  /// Keep the vault out of screenshots and recordings: Android FLAG_SECURE (and the
-  /// recent-apps preview), iPhone a secure layer (AppDelegate.swift). On by default.
-  static bool get blockScreenshots => Prefs.read(_secure) != '0';
+  /// Keep the vault out of screenshots and recordings: Android FLAG_SECURE, iPhone a
+  /// secure layer (AppDelegate.swift). Off by default, with a warning after a screenshot
+  /// (owner 2026-11-04: a black screenshot looked broken, and Android said nothing); on by
+  /// default in a Top secret vault. The 24 words, the Secret Key and a sync code are kept
+  /// out whatever this says (WordsAwake), and the recent-apps preview is always hidden.
+  static bool get blockScreenshots => switch (Prefs.read(_secure)) {
+        '1' => true,
+        '0' => false,
+        _ => TopSecretMode.on,
+      };
 
   /// Mockups: show the iPhone row on any platform.
   static bool debugIOS = false;
@@ -81,13 +88,15 @@ abstract final class Settings {
   }
 
   /// Called at start-up, and as a vault opens or locks: the window starts protected, this
-  /// turns it off if asked, or while the test vault of a test build is open (owner
-  /// 2026-11-02: testers send screenshots of it; it holds nothing real).
+  /// turns it off unless asked, and always while the test vault of a test build is open
+  /// (owner 2026-11-02: testers send screenshots of it; it holds nothing real). The test
+  /// vault also shows in recent apps (owner 2026-11-04); every other vault is hidden there.
   static Future<void> apply() async {
     if (!Device.android && !Device.iOS) return;
     final test = await TestLogin.isOpen();
     try {
       await _privacy.invokeMethod<void>('setSecure', blockScreenshots && !test);
+      if (Device.android) await _privacy.invokeMethod<void>('setRecentsHidden', !test);
     } catch (_) {}
   }
 }
@@ -97,6 +106,7 @@ abstract final class Settings {
 enum SettingsSpot {
   sync(Icons.sync_rounded, SettingsHue.xanhLa),
   autoLock(Icons.timer_rounded, SettingsHue.cam),
+  blockScreenshots(Icons.visibility_off_rounded, SettingsHue.hong),
   blurThumbs(Icons.blur_on_rounded, SettingsHue.ngoc),
   hideNoteText(Icons.notes_rounded, SettingsHue.bacHa),
   appearance(Icons.contrast_rounded, SettingsHue.cham),
@@ -106,6 +116,23 @@ enum SettingsSpot {
   final IconData icon;
   final Color color;
 }
+
+/// Where [spot] is in Settings, as the person reads it ("Settings → What shows on
+/// screen"), made from the pages themselves: text that sends someone to a setting uses
+/// this, so moving the setting names the new place (owner 2026-11-04: two texts sent
+/// people to "Display", a page that no longer exists). test/settings_path_test.dart opens
+/// that page and finds the row there.
+String settingsPath(AppLocalizations l, SettingsSpot spot) {
+  final page = _SettingsScreenState._pageOf(spot);
+  return page == _Page.main ? l.settings : '${l.settings} → ${_SettingsScreenState._pageTitle(l, page)}';
+}
+
+/// The page [spot] is on, for tests: null for the main page.
+@visibleForTesting
+String? settingsPageOf(SettingsSpot spot) => switch (_SettingsScreenState._pageOf(spot)) {
+      _Page.main => null,
+      final page => page.name,
+    };
 
 /// Settings' sub-pages (owner 2026-10-31: too many settings on one page). The main page
 /// shows the vault's card and one row per sub-page; each row opens its page in place, so
@@ -200,6 +227,10 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   int _minutes = Settings.autoLockMinutes;
   bool _secure = Settings.blockScreenshots;
+  /// A test build's test vault: screenshots and clear thumbnails always, so those two
+  /// switches show off and cannot be turned on (owner 2026-11-04: on, yet screenshots
+  /// worked, made no sense).
+  bool _testVault = false;
   bool _lockOnLeave = Settings.lockOnLeave;
   /// What the vault takes, part by part; the card and the Storage page follow it.
   final _figures = ValueNotifier(const StorageFigures());
@@ -214,6 +245,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (_lastSizes[widget.vault().id] case final last?) _figures.value = last;
     _measure();
     _loadLastSync();
+    TestLogin.isOpen().then((test) {
+      if (mounted && test) setState(() => _testVault = true);
+    });
     if (widget.focus case final spot?) WidgetsBinding.instance.addPostFrameCallback((_) => _goTo(spot));
     if (widget.guideFrom case final from?) WidgetsBinding.instance.addPostFrameCallback((_) => _guide(from));
     if (widget.canBiometric) {
@@ -619,7 +653,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() {});
   }
 
-  String _pageTitle(AppLocalizations l, _Page page) => switch (page) {
+  static String _pageTitle(AppLocalizations l, _Page page) => switch (page) {
         _Page.main => l.settings,
         _Page.screen => l.settingsScreen,
         _Page.look => l.settingsLook,
@@ -629,7 +663,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Where each setting the tour points at lives.
   static _Page _pageOf(SettingsSpot spot) => switch (spot) {
         SettingsSpot.sync || SettingsSpot.autoLock => _Page.main,
-        SettingsSpot.blurThumbs || SettingsSpot.hideNoteText => _Page.screen,
+        SettingsSpot.blockScreenshots || SettingsSpot.blurThumbs || SettingsSpot.hideNoteText => _Page.screen,
         SettingsSpot.appearance || SettingsSpot.language => _Page.look,
       };
 
@@ -736,7 +770,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         key: spot == SettingsSpot.autoLock || spot == SettingsSpot.appearance ? null : _spotKeys[spot],
         duration: const Duration(milliseconds: 250),
         color: _lit == spot ? Theme.of(context).colorScheme.onSurface.withValues(alpha: .12) : Colors.transparent,
-        child: row,
+        // Found by test/settings_path_test.dart on the page [settingsPath] names.
+        child: KeyedSubtree(key: ValueKey('spot-${spot.name}'), child: row),
       );
 
   Future<void> _openTopSecret() async {
@@ -829,16 +864,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // 1. A copy elsewhere: syncing is done often (owner 2026-10-25), the backup file with it.
           if (page == _Page.main) SettingsGroup(rows: [
             if (!kIsWeb)
-              KeyedSubtree(
-                key: _here(_syncRowKey, page),
-                child: SettingsRow(
-                  key: const ValueKey('sync-row'),
-                  icon: SettingsSpot.sync.icon,
-                  color: SettingsSpot.sync.color,
-                  title: l.syncTitle,
-                  value: _lastSyncText(l),
-                  alert: true,
-                  onTap: _openSync,
+              _spot(
+                SettingsSpot.sync,
+                KeyedSubtree(
+                  key: _here(_syncRowKey, page),
+                  child: SettingsRow(
+                    key: const ValueKey('sync-row'),
+                    icon: SettingsSpot.sync.icon,
+                    color: SettingsSpot.sync.color,
+                    title: l.syncTitle,
+                    value: _lastSyncText(l),
+                    alert: true,
+                    onTap: _openSync,
+                  ),
                 ),
               ),
             SettingsRow(
@@ -980,37 +1018,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ]),
           if (page == _Page.screen) SettingsGroup(rows: [
             if (Device.android || Device.iOS || Settings.debugIOS)
-              SettingsRow(
+              _spot(
+                SettingsSpot.blockScreenshots,
+                SettingsRow(
                 key: const ValueKey('screenshots-row'),
-                icon: Icons.visibility_off_rounded,
-                color: SettingsHue.hong,
+                // Fixed in the test vault: a tap says so (owner 2026-11-04).
+                onTap: _testVault ? () => showToast(context, l.testVaultShots, icon: Icons.science_outlined) : null,
+                icon: SettingsSpot.blockScreenshots.icon,
+                color: SettingsSpot.blockScreenshots.color,
                 title: l.blockScreenshots,
                 trailing: SettingsSwitch(
-                  value: _secure,
+                  value: _secure && !_testVault,
                   // Turning it on only makes the vault safer: no Face ID for that
                   // (owner 2026-10-24). Turning it off still asks.
-                  onChanged: (v) {
-                    void apply() {
-                      setState(() => _secure = v);
-                      Settings.setBlockScreenshots(v);
-                    }
+                  onChanged: _testVault
+                      ? null
+                      : (v) {
+                          void apply() {
+                            setState(() => _secure = v);
+                            Settings.setBlockScreenshots(v);
+                          }
 
-                    v ? apply() : _guarded(() async => apply());
-                  },
+                          v ? apply() : _guarded(() async => apply());
+                        },
                 ),
+              ),
               ),
             _spot(
               SettingsSpot.blurThumbs,
               SettingsRow(
                 key: const ValueKey('blur-row'),
+                onTap: _testVault ? () => showToast(context, l.testVaultThumbs, icon: Icons.science_outlined) : null,
                 icon: SettingsSpot.blurThumbs.icon,
                 color: SettingsSpot.blurThumbs.color,
                 title: l.blurThumbs,
                 trailing: SettingsSwitch(
-                  value: blurThumbnails(),
+                  // The test vault shows thumbnails clearly always: off, and fixed, as above.
+                  value: blurThumbsOn() && !_testVault,
                   // Turning it on protects more; turning it off asks for the owner.
-                  onChanged: (v) => v
-                      ? setState(() => Prefs.write(blurThumbsPref, '1'))
+                  onChanged: _testVault ? null : (v) => v
+                      ? setState(() {
+                          Prefs.write(blurThumbsPref, '1');
+                          thumbsRevealed.value = false;
+                        })
                       : _guarded(() async => setState(() => Prefs.write(blurThumbsPref, '0'))),
                 ),
               ),
@@ -1458,7 +1508,8 @@ class SettingsRow extends StatelessWidget {
 class SettingsSwitch extends StatelessWidget {
   const SettingsSwitch({super.key, required this.value, required this.onChanged});
   final bool value;
-  final ValueChanged<bool> onChanged;
+  /// Null: shown greyed, it cannot be changed here.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) => Switch.adaptive(

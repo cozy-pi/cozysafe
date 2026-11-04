@@ -38,7 +38,7 @@ Cozy Safe does about it; the details are in the linked documents.
 |---|---|
 | **someone copies your files or your backup** | encrypts everything on the device before it is written; the vault's key needs both your vault password and your Recovery Key (24 words) kept in the device's keystore ([how](#how-your-data-is-protected)) |
 | **someone picks up your phone while a vault is open** | locks the vault as soon as the app leaves the screen (60 seconds of grace only when the app itself opened the share sheet or a picker), and after a few minutes without a touch (2 by default) |
-| **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Recovery Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher and while the screen is being recorded, and warns after a screenshot (iPhone); blocks screenshots and screen recording (Android, and iPhone through a secure layer) |
+| **someone looks over your shoulder, or a camera does** | shows notes by title only, in lists and in search; hides passwords as you type them; keeps the Recovery Key masked until you tap Show, and masks it again after 30 seconds; wipes anything you copy from the clipboard after 60 seconds and on lock; covers the app in the app switcher and while the screen is being recorded, and warns after a screenshot that it is not encrypted (iPhone, Android 14+); keeps the 24 words and the Secret Key out of screenshots, and blocks every screenshot and screen recording once you turn that on (on by default in Top Secret Mode; Android, and iPhone through a secure layer) |
 | **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing auto-lock, backups, the Recovery Key, showing note text, deleting a vault ([rules](docs/security.md)) |
 | **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; only its icon and colour tell a vault apart |
 | **something is left behind on the device** | encodes camera photos in memory (never the photo library, no location data); videos, voice memos and files being played or sent exist only as copies in the app's private temporary folder, deleted when done, on lock and at every start |
@@ -156,7 +156,7 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 - **Overview:** the first tab shows the whole vault at a glance: each section with its
   count, the groups, what was added last, and search.
 - Search (names and note text, grouped by kind), Recently deleted (30 days), auto-lock,
-  blocked screenshots, light / dark / automatic appearance.
+  blocking screenshots (off by default, on in Top Secret Mode), light / dark / automatic appearance.
 - **How the vault is protected:** a page in Settings explains the protection in plain
   words, with pictures, and the technical details folded at the end.
 - **Private on screen:** note lists and search show titles only, the Recovery Key and

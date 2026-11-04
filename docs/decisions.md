@@ -4,6 +4,38 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-04 — Screenshots allowed by default; tips where a thing is met
+
+**Owner:** a black screenshot looked like a fault and Android said nothing, so people
+did not know why. Now:
+
+- "Block screenshots" is **off by default** (`Settings.blockScreenshots`: no choice
+  stored → off, or on in Top secret). A stored choice wins either way. People who never
+  touched the switch go from blocked to allowed with this update. The 24 words, the
+  Secret Key and the device code stay blocked whatever the switch (`WordsAwake`).
+  This replaces the default of "2026-10-21 — Block screenshots on iPhone too" (the
+  iPhone technique stays).
+- After a screenshot: a card the first time ("saved outside the vault, not encrypted",
+  "Don't remind me again"), a short toast after that, nothing once quieted. iOS, and
+  Android 14+ (`registerScreenCaptureCallback`, `DETECT_SCREEN_CAPTURE`). Android 13
+  and older cannot tell.
+- The Recents preview stays hidden on every Android (13+: `setRecentsScreenshotEnabled`;
+  older: FLAG_SECURE while paused).
+- A test build's test vault: screenshots, clear thumbnails, the Recents preview, no
+  notices. It is the test vault when opened with the test password
+  (`TestLogin.noteUnlocked`), not only through the button. A vault opened with a
+  fingerprint is recognised once the password has been typed on that device.
+  There, "Block screenshots" and "Blur thumbnails" show off and greyed: a switch that
+  says on while screenshots work made no sense (owner).
+- **Explaining a feature:** a lone tip, once, where the person first meets it (blurred
+  thumbnails: the first time the Library shows them). A header eye button and a status
+  line were both turned down as clutter; a tour at the start is skipped and forgotten.
+  Rule in design-language.md.
+- **Text that sends someone to a setting** names it with `settingsPath()` and offers a
+  Settings button that opens on the lit row (`_openSettings(focus:)`). Two texts named
+  "Settings → Display", a page that no longer exists; `test/settings_path_test.dart`
+  now checks every spot is on the page its path names.
+
 ## 2026-11-03 (evening) — The bar shows the three kinds held most
 
 **Owner:** the bottom bar shows the three kinds of item the vault holds most of, most on

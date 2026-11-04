@@ -152,7 +152,17 @@ under it.
 page's cloud, Version history) opens on the right through `_pageContext`; the left column
 stays.
 
-**Tour tips**: no button that leaves the tour; Next, Skip, Done only.
+**Tour tips**: no button that leaves the tour; Next, Skip, Done only (a lone tip may have a Settings button, below).
+
+**Explaining a feature** (owner 2026-11-04): something that could pass for a fault (blurred
+thumbnails) gets one tip, shown once, where the person first meets it: `showCoachTour`
+with a single `TourTip` on the thing itself, remembered by a `*-tip-seen` pref. No
+lasting button or status line for it on the page (both read as clutter), and do not count
+on the tour at the start: people skip it and forget it. A lone tip shows no "1/1", and its
+button says "Got it". When it names a setting, it also has a Settings button that opens on
+that very row, lit (`_openSettings(focus:)`), as the screenshot card does: every text
+that sends someone to a setting offers that same button. The words name the place with
+`settingsPath()`, never typed by hand (test/settings_path_test.dart keeps it true).
 
 **Hidden for the beta** (owner 2026-10-29: a simpler app first): groups and selecting
 many, each behind one switch in `lib/hidden_features.dart`. Nothing is deleted; a screen

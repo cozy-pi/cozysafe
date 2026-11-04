@@ -20,6 +20,7 @@ class TourTip {
     required this.body,
     this.note,
     this.prepare,
+    this.action,
   });
 
   /// Names the bubble in tests (`tip-<id>`).
@@ -32,6 +33,9 @@ class TourTip {
   final String? note;
   /// Run before the tip shows, to bring its widget into view (a row far down Settings).
   final Future<void> Function()? prepare;
+  /// A lone tip's second button (owner 2026-11-04): its word, and what it opens after
+  /// the tip closes, the setting it is about. A tour of many tips has none (below).
+  final (String, VoidCallback)? action;
 }
 
 /// How the tour ended: Done ([done]) or Skip ([skipped]); null after Back. No tip has a
@@ -189,18 +193,21 @@ class _CoachTourState extends State<CoachTour> {
                   Expanded(
                     child: Text(tip.title, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700, height: 1.25)),
                   ),
-                  const SizedBox(width: 10),
-                  // Where we are: 2/6.
-                  Semantics(
-                    label: l.tourStep(n, _total),
-                    excludeSemantics: true,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text('$n/$_total',
-                          key: const ValueKey('tip-count'),
-                          style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: muted)),
+                  // Where we are: 2/6. A tip on its own (a one-off where the thing is met)
+                  // counts nothing.
+                  if (_total > 1) ...[
+                    const SizedBox(width: 10),
+                    Semantics(
+                      label: l.tourStep(n, _total),
+                      excludeSemantics: true,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text('$n/$_total',
+                            key: const ValueKey('tip-count'),
+                            style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600, color: muted)),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -233,6 +240,20 @@ class _CoachTourState extends State<CoachTour> {
               children: [
                 // Skip on every tip but the very last, where Done ends it anyway.
                 // A real button, not grey words (owner 2026-10-27: it went unseen).
+                if (_total == 1 && tip.action != null)
+                  OutlinedButton(
+                    key: const ValueKey('tip-action'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(88, Ui.tap),
+                      shape: const StadiumBorder(),
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop(TourEnd.done);
+                      tip.action!.$2();
+                    },
+                    child: Text(tip.action!.$1),
+                  ),
                 if (!end)
                   OutlinedButton(
                     key: const ValueKey('tip-skip'),
@@ -249,7 +270,7 @@ class _CoachTourState extends State<CoachTour> {
                   key: const ValueKey('tip-next'),
                   style: FilledButton.styleFrom(minimumSize: const Size(88, Ui.tap), shape: const StadiumBorder()),
                   onPressed: _next,
-                  child: Text(end ? l.tourDone : l.tourNext),
+                  child: Text(_total == 1 ? l.gotIt : end ? l.tourDone : l.tourNext),
                 ),
               ],
             ),

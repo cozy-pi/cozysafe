@@ -382,7 +382,7 @@
   "infoNoGroup": "Keine",
   "shotBlockedTitle": "Bildschirmfotos sind gesperrt",
   "shotBlockedBody": "Bildschirmfotos und Aufnahmen im Tresor werden schwarz.",
-  "shotBlockedHow": "Brauchen Sie eines? Schalten Sie „Screenshots blockieren“ unter Einstellungen → Anzeige aus. Danach wieder einschalten.",
+  "shotBlockedHow": "Brauchen Sie eines? Schalten Sie „{setting}“ unter {where} aus. Danach wieder einschalten.",
   "shotSavedTitle": "Bildschirmfoto nicht verschlüsselt",
   "gotIt": "Verstanden",
   "favorite": "Favorit",
@@ -899,5 +899,12 @@
   "restoreAlreadyHere": "Dieser Tresor ist schon auf diesem Gerät.",
   "restoreAlreadyHereLead": "Öffne ihn auf dem Sperrbildschirm mit seinem Passwort.",
   "ownerCheckFailed": "Deine Identität konnte nicht bestätigt werden.",
-  "fileGroupOtherFiles": "Andere Dateien"
+  "fileGroupOtherFiles": "Andere Dateien",
+  "shotSavedBody": "Der Screenshot liegt außerhalb des Tresors in deinen Fotos und ist nicht verschlüsselt. Lösche ihn, wenn er etwas Privates zeigt.",
+  "shotToast": "Screenshot außerhalb des Tresors gespeichert, nicht verschlüsselt",
+  "dontRemindAgain": "Nicht mehr erinnern",
+  "blurTipTitle": "Miniaturen sind unscharf",
+  "blurTipBody": "Damit niemand neben Ihnen sie sieht. Tippen Sie auf eine, um sie scharf zu sehen. Ausschalten: „{setting}“ unter {where}.",
+  "testVaultShots": "Im Testtresor immer erlaubt, hier nicht änderbar",
+  "testVaultThumbs": "Im Testtresor immer scharf, hier nicht änderbar"
 }

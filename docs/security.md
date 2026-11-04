@@ -67,8 +67,8 @@ that needs a provisioning profile the Developer ID build does not have. Instead:
 - **The app switcher never shows the vault**, whatever this setting: iOS covers the
   window whenever the app is not active (AppDelegate); Android hides it from Recents with
   FLAG_SECURE and, on Android 13+, `setRecentsScreenshotEnabled(false)` even when
-  screenshots are allowed (MainActivity). Android 12 and older with screenshots allowed
-  can still show a Recents preview.
+  screenshots are allowed (MainActivity); on Android 12 and older, FLAG_SECURE is set
+  while the app is paused. A test build's test vault shows its Recents preview.
 - **Coming back never flashes the vault** (iOS, owner 2026-10-29): Flutter draws nothing
   in the background, so the last frame on screen is still the open vault. The cover
   stays up when the app comes back until Dart has drawn two new frames (the lock screen)
@@ -125,15 +125,19 @@ running."
 - **Big files are not loaded whole.** Text previews decrypt only their first 1 MB
   (`item_content_head`); photos decode at screen size; PDFs over 40 MB open from a private
   temporary copy deleted on close, on lock and at start.
-- **Thumbnails are blurred** in lists by default, for crowded places (Settings → Security);
-  opening an item shows it clearly. Turning it off asks for the owner.
-- **Screen capture.** Android: screenshots and recordings show black (FLAG_SECURE, on by
-  default). iOS has no official switch: the app window's layer sits inside a secure text
-  field's layer (AppDelegate `applySecure`, same switch, on by default), which iOS leaves
-  out of screenshots and recordings, as banking and dating apps do. It is undocumented,
-  so the older guards stay: while the screen is recorded or mirrored the app is covered
-  (page colour and dial), and after a screenshot the app warns that it is in Photos,
-  unencrypted. Turning the switch off (owner check) allows screenshots for bug reports.
+- **Thumbnails are blurred** in lists by default, for crowded places (Settings → What
+  shows on screen); opening an item shows it clearly. Turning it off asks for the owner.
+  The first time the Library shows them, a one-off tip says why.
+- **Screen capture.** "Block screenshots" is **off by default** since 0.2.24 (owner
+  2026-11-04: a black screenshot looked broken), on by default in Top secret; a stored
+  choice wins. On: Android uses FLAG_SECURE; iOS has no official switch, so the app
+  window's layer sits inside a secure text field's layer (AppDelegate `applySecure`),
+  which iOS leaves out of screenshots and recordings, as banking and dating apps do. The
+  24 words, the Secret Key and the device code are blocked whatever the switch. Off:
+  after a screenshot the app warns that it is in Photos, unencrypted (iOS, and Android 14+
+  through `registerScreenCaptureCallback`; Android 13 and older cannot tell). While the
+  screen is recorded or mirrored, iOS covers the app (page colour and dial). Turning the
+  switch off asks for the owner. A test build's test vault allows screenshots always.
 - **Links in notes ask first, and only reach the web** (0.1.67). A web address in a
   note (`http://`, `https://`, `www.`; `lib/note_format.dart`) is underlined and does
   nothing until tapped; the tap opens a card naming the host and the full address, with

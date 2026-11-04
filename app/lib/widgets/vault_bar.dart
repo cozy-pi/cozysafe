@@ -101,7 +101,15 @@ bool notePreviews() => Prefs.read(notePreviewsPref) == '1';
 /// 2026-10-21). Opening an item still shows it clearly.
 const blurThumbsPref = 'blur-thumbnails';
 /// On unless turned off (owner 2026-10-21: blurred by default).
-bool blurThumbnails() => Prefs.read(blurThumbsPref) != '0';
+bool blurThumbsOn() => Prefs.read(blurThumbsPref) != '0';
+
+/// Thumbnails shown clearly for now, Settings unchanged: the eye in the Library's header
+/// (owner 2026-11-04: blurred squares looked like a fault, with nothing saying why), and
+/// a test build's test vault. Blurred again on lock.
+final thumbsRevealed = ValueNotifier<bool>(false);
+
+/// Whether thumbnails are drawn blurred right now.
+bool blurThumbnails() => blurThumbsOn() && !thumbsRevealed.value;
 
 /// Drawn by [PrivateThumb] (widgets/private_thumb.dart).
 
