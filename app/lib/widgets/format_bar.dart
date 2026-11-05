@@ -96,10 +96,12 @@ abstract final class NoteFormat {
 }
 
 /// The small bar over the keyboard while a note is edited: Undo · Redo (owner
-/// 2026-10-27: the editor had none), then Bold · Italic · Heading · List · Checklist ·
-/// Link, each typing its Markdown marks at the selection, then Done typing, which puts
-/// the keyboard away. It scrolls sideways on a narrow phone.
-class NoteFormatBar extends StatelessWidget {
+/// 2026-10-27: the editor had none) · Bold · Italic · Checklist · Aa. Aa swaps the bar,
+/// in place, for Heading · List · Link · Done typing (which puts the keyboard away), as
+/// the phone's own Notes does: a menu would take the focus and drop the keyboard. Six
+/// buttons at most, sized to fit (owner 2026-11-05: nine scrolled sideways and the last
+/// was cut in half on an iPhone, which read as broken).
+class NoteFormatBar extends StatefulWidget {
   const NoteFormatBar({super.key, required this.controller, this.undo, this.onDoneTyping});
   final TextEditingController controller;
   /// The field's history: typing and the marks these buttons put (Cmd+Z / Shift+Cmd+Z
@@ -108,77 +110,85 @@ class NoteFormatBar extends StatelessWidget {
   /// Hides the keyboard; the note's own buttons come back at the bottom.
   final VoidCallback? onDoneTyping;
 
+  @override
+  State<NoteFormatBar> createState() => _NoteFormatBarState();
+}
+
+class _NoteFormatBarState extends State<NoteFormatBar> {
+  /// Showing the second set (after Aa).
+  bool _more = false;
+
   void _apply(TextEditingValue Function(TextEditingValue) f) {
     // The keyboard may be composing a word (Vietnamese Telex): it is finished first.
-    final v = controller.value.copyWith(composing: TextRange.empty);
-    controller.value = f(v);
+    final v = widget.controller.value.copyWith(composing: TextRange.empty);
+    widget.controller.value = f(v);
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final ink = Theme.of(context).colorScheme.onSurface;
-    Widget button(String key, IconData icon, String tip, TextEditingValue Function(TextEditingValue) f) => IconButton(
-          key: ValueKey('format-$key'),
-          tooltip: tip,
-          onPressed: () => _apply(f),
-          iconSize: 24,
-          style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
-          icon: Icon(icon, color: ink),
-        );
-    final done = onDoneTyping;
-    return Glass(
-      key: const ValueKey('format-bar'),
-      radius: 28,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (undo case final u?)
-              ValueListenableBuilder<UndoHistoryValue>(
-                valueListenable: u,
-                builder: (context, h, _) => Row(mainAxisSize: MainAxisSize.min, children: [
-                  IconButton(
-                    key: const ValueKey('format-undo'),
-                    tooltip: l.formatUndo,
-                    onPressed: h.canUndo ? u.undo : null,
-                    iconSize: 24,
-                    style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
-                    icon: Icon(Icons.undo_rounded, color: h.canUndo ? ink : ink.withValues(alpha: .3)),
-                  ),
-                  IconButton(
-                    key: const ValueKey('format-redo'),
-                    tooltip: l.formatRedo,
-                    onPressed: h.canRedo ? u.redo : null,
-                    iconSize: 24,
-                    style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
-                    icon: Icon(Icons.redo_rounded, color: h.canRedo ? ink : ink.withValues(alpha: .3)),
-                  ),
-                  Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 2), color: ink.withValues(alpha: .15)),
-                ]),
-              ),
-            button('bold', Icons.format_bold_rounded, l.formatBold, (v) => NoteFormat.wrap(v, '**')),
-            button('italic', Icons.format_italic_rounded, l.formatItalic, (v) => NoteFormat.wrap(v, '*')),
-            button('heading', Icons.title_rounded, l.formatHeading, (v) => NoteFormat.line(v, '# ')),
-            button('list', Icons.format_list_bulleted_rounded, l.formatList, (v) => NoteFormat.line(v, '- ')),
-            button('checklist', Icons.checklist_rounded, l.formatChecklist, (v) => NoteFormat.line(v, '- [ ] ')),
-            button('link', Icons.link_rounded, l.formatLink, NoteFormat.link),
-            if (done != null) ...[
-              Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 2), color: ink.withValues(alpha: .15)),
-              IconButton(
-                key: const ValueKey('format-done-typing'),
-                tooltip: l.doneTyping,
-                onPressed: done,
-                iconSize: 24,
-                style: IconButton.styleFrom(minimumSize: const Size(Ui.tap, Ui.tap)),
-                icon: Icon(Icons.keyboard_hide_rounded, color: ink),
-              ),
-            ],
-          ],
+    final undo = widget.undo;
+    final done = widget.onDoneTyping;
+    return LayoutBuilder(builder: (context, box) {
+      // Six buttons and one divider inside the glass (padding 8, border 2); smaller on a
+      // narrow phone.
+      final size = box.maxWidth.isFinite ? ((box.maxWidth - 10 - 5) / 6).clamp(36.0, Ui.tap) : Ui.tap;
+      Widget icon(String key, IconData glyph, String tip, VoidCallback? onTap) => IconButton(
+            key: ValueKey('format-$key'),
+            tooltip: tip,
+            onPressed: onTap,
+            iconSize: 24,
+            padding: EdgeInsets.zero,
+            style: IconButton.styleFrom(
+              minimumSize: Size(size, Ui.tap),
+              fixedSize: Size(size, Ui.tap),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: Icon(glyph, color: onTap == null ? ink.withValues(alpha: .3) : ink),
+          );
+      Widget mark(String key, IconData glyph, String tip, TextEditingValue Function(TextEditingValue) f) =>
+          icon(key, glyph, tip, () => setState(() {
+                _apply(f);
+                _more = false;
+              }));
+      final divider = Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 2), color: ink.withValues(alpha: .15));
+      final children = _more
+          ? [
+              icon('less', Icons.chevron_left_rounded, l.back, () => setState(() => _more = false)),
+              divider,
+              mark('heading', Icons.title_rounded, l.formatHeading, (v) => NoteFormat.line(v, '# ')),
+              mark('list', Icons.format_list_bulleted_rounded, l.formatList, (v) => NoteFormat.line(v, '- ')),
+              mark('link', Icons.link_rounded, l.formatLink, NoteFormat.link),
+              if (done != null)
+                icon('done-typing', Icons.keyboard_hide_rounded, l.doneTyping, () {
+                  setState(() => _more = false);
+                  done();
+                }),
+            ]
+          : [
+              if (undo != null)
+                ValueListenableBuilder<UndoHistoryValue>(
+                  valueListenable: undo,
+                  builder: (context, h, _) => Row(mainAxisSize: MainAxisSize.min, children: [
+                    icon('undo', Icons.undo_rounded, l.formatUndo, h.canUndo ? undo.undo : null),
+                    icon('redo', Icons.redo_rounded, l.formatRedo, h.canRedo ? undo.redo : null),
+                    divider,
+                  ]),
+                ),
+              mark('bold', Icons.format_bold_rounded, l.formatBold, (v) => NoteFormat.wrap(v, '**')),
+              mark('italic', Icons.format_italic_rounded, l.formatItalic, (v) => NoteFormat.wrap(v, '*')),
+              mark('checklist', Icons.checklist_rounded, l.formatChecklist, (v) => NoteFormat.line(v, '- [ ] ')),
+              icon('more', Icons.text_format_rounded, l.more, () => setState(() => _more = true)),
+            ];
+      return Glass(
+        key: const ValueKey('format-bar'),
+        radius: 28,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Row(mainAxisSize: MainAxisSize.min, children: children),
         ),
-      ),
-    );
+      );
+    });
   }
 }

@@ -257,6 +257,7 @@ class _TrashScreenState extends State<TrashScreen> {
                         child: CustomScrollView(
                           key: const ValueKey('trash-list'),
                           slivers: [
+                            SliverToBoxAdapter(child: _Summary(items)),
                             const SliverToBoxAdapter(child: _Lead()),
                             if (hasMine && hasHeld)
                               SliverToBoxAdapter(child: _PartTitle(l.trashMineTitle, key: const ValueKey('trash-part-mine'))),
@@ -388,6 +389,28 @@ class _TrashScreenState extends State<TrashScreen> {
 /// the cards all start here.
 const _gutter = 12.0;
 const _cardRadius = 14.0;
+
+/// How many and how big, as under every vault tab's title (owner 2026-11-04). No Drive
+/// cloud: the part kept only on this device is not synced.
+class _Summary extends StatelessWidget {
+  const _Summary(this.items);
+
+  final List<rust.ItemInfo> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final bytes = items.fold<BigInt>(BigInt.zero, (a, i) => a + i.sizeBytes);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_gutter, 0, _gutter, 8),
+      child: Text('${l.itemsCount(items.length)} · ${fileSize(bytes)}',
+          key: const ValueKey('trash-count'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: CsColors.of(context).muted)),
+    );
+  }
+}
 
 /// The line on top: the 30-day rule, in a few words (owner 2026-10-26).
 class _Lead extends StatelessWidget {
