@@ -980,7 +980,7 @@ void main() {
         await t.pump();
       });
   // iPhone 15/16 width (393 pt): nine buttons were cut in half here (owner 2026-11-05).
-  for (final more in [false, true])
+  for (final more in [false, true]) {
     _screen(more ? 'note-format-bar-393-more' : 'note-format-bar-393',
         more ? 'iPhone 393 pt · bấm Aa: Tiêu đề · Danh sách · Link · Ẩn bàn phím, ‹ quay lại' : 'iPhone 393 pt · thanh định dạng khi gõ',
         () => _FakeKeyboard(child: NoteScreen(item: _formatted)),
@@ -1001,6 +1001,7 @@ void main() {
             await t.pump();
           }
         });
+  }
   _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
       act: (t) => openRow(t, 'Thuốc của mẹ'));
