@@ -250,6 +250,9 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                     maxLines: null,
                     expands: true,
                     keyboardType: TextInputType.multiline,
+                    // Capital after a full stop and on the first word, as the phone's
+                    // own Notes: a field without it gets none (owner 2026-11-05).
+                    textCapitalization: TextCapitalization.sentences,
                     textAlignVertical: TextAlignVertical.top,
                     style: NoteTextController.body,
                     decoration: InputDecoration(

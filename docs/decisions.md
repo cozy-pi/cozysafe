@@ -4,6 +4,17 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-05 — Note format bar fits the phone; trash gets the summary line
+
+**Owner:** the note's format bar was cut off at the right on an iPhone (nine buttons,
+scrolled sideways; mockups were 430 wide and hid it). Now six buttons at most, sized to
+fit: Undo · Redo · Bold · Italic · Checklist · Aa. Aa swaps the bar in place for
+Heading · List · Link · Hide keyboard (as iPhone Notes); a menu would take the focus
+and drop the keyboard. Hide keyboard stays, in the second set: the note fills the
+screen, so there is no "outside" to tap. Notes capitalise sentences (a Flutter field
+gets no capitals unless it asks). Recently deleted shows `N items · size` on top, both
+parts together; no Drive cloud, since the part kept only on this device does not sync.
+
 ## 2026-11-04 (later) — One summary line under every tab's title
 
 **Owner:** `N items · size`, then the Drive cloud close after the size (not far right),
@@ -525,7 +536,7 @@ addresses. A tapped address opens nothing by itself: a card names the real host
 https go to the browser, through a new native door next to the one for our own pages
 (docs/security.md, links in notes); no link previews, no network. The editor gets a
 small format bar over the keyboard (Bold, Italic, Heading, List, Checklist, Link) that
-types the marks. Markdown files in the vault use the same links.
+types the marks (since 2026-11-05 Heading, List and Link sit behind Aa). Markdown files in the vault use the same links.
 
 ## 2026-10-24 — Google Drive sync, item by item, newest lock only
 

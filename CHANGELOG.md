@@ -4,6 +4,18 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.26 (2026-11-05)
+
+### Added
+- Recently deleted shows how many items it holds and how much space they take, as
+  every tab does.
+
+### Fixed
+- The format bar over the keyboard in a note no longer runs off the edge of the screen
+  on most iPhones. It now holds Undo, Redo, Bold, Italic, Checklist and Aa; Aa swaps in
+  Heading, List, Link and Hide keyboard, and the keyboard stays up.
+- Notes start each sentence with a capital letter, as the phone's own Notes app does.
+
 ## 0.2.25 (2026-11-04)
 
 ### Changed

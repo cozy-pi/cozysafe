@@ -173,7 +173,9 @@ that offers either checks its switch.
 
 - [ ] Only pieces from section 3, only numbers from section 2.
 - [ ] Every button that does one thing is its own circle; Delete red and far right.
-- [ ] Looked at the mockup in light **and** dark, on the iPhone frame (430 wide).
+- [ ] Looked at the mockup in light **and** dark, on the iPhone frame (430 wide). A bar
+      or row of buttons is also shot at 393 wide (iPhone 15/16): the note's format bar
+      overflowed there unseen (2026-11-05).
 - [ ] Any new word is in all 15 languages.
 - [ ] Mockup approved by the owner before release.
 

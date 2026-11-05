@@ -603,9 +603,7 @@ void main() {
       await t.pump(Duration(milliseconds: ms));
     });
   }
-  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library',
-      change: 'ĐỔI: dưới tiêu đề, mọi tab giống nhau: số mục · dung lượng, biểu tượng đồng bộ ngay sau (trước: Tổng quan ghi dung lượng · số mục dưới ô tìm, mây nằm tận bên phải)',
-      marks: [() => find.byKey(const ValueKey('vault-count'))]);
+  _screen('library', 'Thư viện (mặc định: nút + ở giữa thanh)', home, section: 'library');
   _screen('blur-tip', 'Thư viện · lần đầu thấy ảnh bị làm mờ', home, section: 'library', after: 0,
       setup: () => Prefs.write('blur-tip-seen', '0'),
       act: (t) async {
@@ -677,9 +675,7 @@ void main() {
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
-      section: 'home',
-      change: 'ĐỔI: dưới tiêu đề, mọi tab giống nhau: số mục · dung lượng, biểu tượng đồng bộ ngay sau (trước: Tổng quan ghi dung lượng · số mục dưới ô tìm, mây nằm tận bên phải)',
-      marks: [() => find.byKey(const ValueKey('vault-count'))]);
+      section: 'home');
   _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home', act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-video')));
     await t.pumpAndSettle();
@@ -838,9 +834,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('notes', 'Ghi chú', home, section: 'note',
-      change: 'ĐỔI: dưới tiêu đề, mọi tab giống nhau: số mục · dung lượng, biểu tượng đồng bộ ngay sau (trước: Tổng quan ghi dung lượng · số mục dưới ô tìm, mây nằm tận bên phải)',
-      marks: [() => find.byKey(const ValueKey('vault-count'))]);
+  _screen('notes', 'Ghi chú', home, section: 'note');
   _screen('more-menu', 'Ghi chú · bấm ⋯', home, section: 'note', act: (t) async {
     await t.tap(find.byKey(const ValueKey('more-button')));
     await t.pumpAndSettle();
@@ -985,6 +979,28 @@ void main() {
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
       });
+  // iPhone 15/16 width (393 pt): nine buttons were cut in half here (owner 2026-11-05).
+  for (final more in [false, true])
+    _screen(more ? 'note-format-bar-393-more' : 'note-format-bar-393',
+        more ? 'iPhone 393 pt · bấm Aa: Tiêu đề · Danh sách · Link · Ẩn bàn phím, ‹ quay lại' : 'iPhone 393 pt · thanh định dạng khi gõ',
+        () => _FakeKeyboard(child: NoteScreen(item: _formatted)),
+        size: const Size(393, 852),
+        change: more
+            ? 'MỚI: Aa đổi thanh tại chỗ sang nhóm thứ hai (không mở menu để bàn phím không sụp)'
+            : 'ĐỔI: 6 nút vừa khít, không kéo ngang, không nút nào bị cắt: ↶ ↷ | B I ☑ Aa (trước: 9 nút, nút cuối bị cắt nửa)',
+        marks: [() => find.byKey(const ValueKey('format-bar'))],
+        act: (t) async {
+          t.view.viewInsets = const FakeViewPadding(bottom: 336 * 2);
+          t.view.padding = const FakeViewPadding(top: 59 * 2);
+          await t.pump();
+          final r = t.getRect(find.byType(TextField));
+          await t.tapAt(r.topLeft + const Offset(150, 108));
+          await t.pump();
+          if (more) {
+            await t.tap(find.byKey(const ValueKey('format-more')));
+            await t.pump();
+          }
+        });
   _screen('quick-note-shown', 'Ghi chú · chạm một ghi chú (tắt “Ẩn nội dung ghi chú”)', home, section: 'note',
       setup: () => Prefs.write('note-previews', '1'),
       act: (t) => openRow(t, 'Thuốc của mẹ'));
@@ -1005,9 +1021,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   });
-  _screen('files', 'Tệp', home, section: 'file',
-      change: 'ĐỔI: dưới tiêu đề, mọi tab giống nhau: số mục · dung lượng, biểu tượng đồng bộ ngay sau (trước: Tổng quan ghi dung lượng · số mục dưới ô tìm, mây nằm tận bên phải)',
-      marks: [() => find.byKey(const ValueKey('vault-count'))]);
+  _screen('files', 'Tệp', home, section: 'file');
   _screen('files-video-empty', 'Tệp · chạm chip Video khi chưa có tệp video', home, section: 'file', act: (t) async {
     await t.tap(find.byKey(const ValueKey('file-chip-video')));
     await t.pumpAndSettle();
@@ -1792,7 +1806,9 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
   }
-  _screen('trash', 'Đã xoá gần đây', () => const Readable(child: TrashScreen()));
+  _screen('trash', 'Đã xoá gần đây', () => const Readable(child: TrashScreen()),
+      change: 'MỚI: dòng thống kê trên cùng như các tab: số mục · dung lượng (không có mây: phần “chỉ còn trên máy này” không đồng bộ)',
+      marks: [() => find.byKey(const ValueKey('trash-count'))]);
   _screen('ts-trash', 'Chế độ tuyệt mật · Đã xoá gần đây: ảnh, video thành dòng có biểu tượng (không ô trống)', () => const Readable(child: TrashScreen()));
   if (selectShown) {
     _screen('trash-select', 'Đã xoá · bấm Chọn rồi chạm 2 mục', () => const Readable(child: TrashScreen()),
