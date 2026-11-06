@@ -34,6 +34,9 @@ RECORD = VENDOR / "RECORD"
 # The Top secret core: cs-core (the vault core, docs/adr/0005-two-kinds-of-vault.md), the
 # cryptography crate and SQLite.
 CORE = ["cs-core", "cs-crypto", "rusqlite",
+        # The vault identity (ADR 0008): hybrid Ed25519 + ML-DSA-65 signing and X-Wing
+        # (ML-KEM-768 + X25519) sealing, derived from the Master Key.
+        "cs-identity",
         # The network's own cryptography (2026-11-02): X25519 and SHA-256 for adding a
         # device by its code (ADR 0003, point 11), and TLS for Google Drive. Kept as a copy
         # like the core, so it is checked byte for byte too.

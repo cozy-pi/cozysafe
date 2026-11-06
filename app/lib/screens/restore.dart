@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
+import '../key_backup.dart';
 import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/run.dart' as run_api;
@@ -30,6 +31,19 @@ class _RestoreScreenState extends State<RestoreScreen> {
   late bool _needFile = widget.needFile;
   bool _busy = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // The vaults are here without their words: a set kept in the iCloud Keychain / Google
+    // Block Store that fits one of the libraries fills the field (ADR 0008).
+    KeyBackup.findAll().then((all) {
+      final dirs = run_api.libraryDirs();
+      final fits = all.where((c) => dirs.any((d) => rust.secretKeyFits(dir: d, key: c.key))).firstOrNull;
+      if (fits == null || !mounted || _key.text.isNotEmpty) return;
+      setState(() => _key.text = rust.secretKeyText(key: fits.key));
+    });
+  }
 
   @override
   void dispose() {

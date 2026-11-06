@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core/cs-crypto", "core/cs-core", "core/cs-vault", "core/cs-photo", "core/cs-net"]
+members = ["core/cs-crypto", "core/cs-identity", "core/cs-core", "core/cs-vault", "core/cs-photo", "core/cs-net"]
 # The Flutter app's FFI crate joins once the app scaffold exists (bootstrap workflow).
 # third_party/rust/: the crates the Top secret core is built from, as published (not
 # members: their tests and lints are upstream's).
@@ -19,6 +19,7 @@ opt-level = 3
 [patch.crates-io]
 aead = { path = "third_party/rust/aead-0.5.2" }
 argon2 = { path = "third_party/rust/argon2-0.6.0" }
+autocfg = { path = "third_party/rust/autocfg-1.5.1" }
 base64ct = { path = "third_party/rust/base64ct-1.8.3" }
 bitflags = { path = "third_party/rust/bitflags-2.13.2" }
 blake2 = { path = "third_party/rust/blake2-0.11.0" }
@@ -34,8 +35,11 @@ cpufeatures = { path = "third_party/rust/cpufeatures-0.3.1" }
 cpufeatures_0_2_17 = { package = "cpufeatures", path = "third_party/rust/cpufeatures-0.2.17" }
 crypto-common = { path = "third_party/rust/crypto-common-0.2.2" }
 crypto-common_0_1_7 = { package = "crypto-common", path = "third_party/rust/crypto-common-0.1.7" }
-ctutils = { path = "third_party/rust/ctutils-0.4.4" }
+ctutils = { path = "third_party/rust/ctutils-0.4.8" }
+curve25519-dalek = { path = "third_party/rust/curve25519-dalek-5.0.0" }
 digest = { path = "third_party/rust/digest-0.11.3" }
+ed25519 = { path = "third_party/rust/ed25519-3.0.0" }
+ed25519-dalek = { path = "third_party/rust/ed25519-dalek-3.0.0" }
 fallible-iterator = { path = "third_party/rust/fallible-iterator-0.3.0" }
 fallible-streaming-iterator = { path = "third_party/rust/fallible-streaming-iterator-0.1.9" }
 find-msvc-tools = { path = "third_party/rust/find-msvc-tools-0.1.14" }
@@ -48,24 +52,38 @@ hkdf = { path = "third_party/rust/hkdf-0.13.0" }
 hmac = { path = "third_party/rust/hmac-0.13.0" }
 hybrid-array = { path = "third_party/rust/hybrid-array-0.4.15" }
 inout = { path = "third_party/rust/inout-0.1.4" }
+keccak = { path = "third_party/rust/keccak-0.2.2" }
+kem = { path = "third_party/rust/kem-0.3.0" }
 libc = { path = "third_party/rust/libc-0.2.191" }
 libsqlite3-sys = { path = "third_party/rust/libsqlite3-sys-0.38.2" }
+ml-dsa = { path = "third_party/rust/ml-dsa-0.1.2" }
+ml-kem = { path = "third_party/rust/ml-kem-0.3.4" }
+module-lattice = { path = "third_party/rust/module-lattice-0.2.4" }
+num-traits = { path = "third_party/rust/num-traits-0.2.19" }
 opaque-debug = { path = "third_party/rust/opaque-debug-0.3.1" }
 password-hash = { path = "third_party/rust/password-hash-0.6.1" }
 phc = { path = "third_party/rust/phc-0.6.1" }
 pkg-config = { path = "third_party/rust/pkg-config-0.3.34" }
 poly1305 = { path = "third_party/rust/poly1305-0.8.0" }
-rand_core = { path = "third_party/rust/rand_core-0.6.4" }
+rand_core = { path = "third_party/rust/rand_core-0.10.1" }
+rand_core_0_6_4 = { package = "rand_core", path = "third_party/rust/rand_core-0.6.4" }
 ring = { path = "third_party/rust/ring-0.17.14" }
 rusqlite = { path = "third_party/rust/rusqlite-0.40.2" }
+rustc_version = { path = "third_party/rust/rustc_version-0.4.1" }
+semver = { path = "third_party/rust/semver-1.0.28" }
 sha2 = { path = "third_party/rust/sha2-0.11.1" }
+sha3 = { path = "third_party/rust/sha3-0.12.0" }
+shake = { path = "third_party/rust/shake-0.1.0" }
 shlex = { path = "third_party/rust/shlex-2.0.1" }
+signature = { path = "third_party/rust/signature-3.0.0" }
 smallvec = { path = "third_party/rust/smallvec-1.16.3" }
+sponge-cursor = { path = "third_party/rust/sponge-cursor-0.1.0" }
 subtle = { path = "third_party/rust/subtle-2.6.1" }
 typenum = { path = "third_party/rust/typenum-1.20.1" }
 universal-hash = { path = "third_party/rust/universal-hash-0.5.1" }
 untrusted = { path = "third_party/rust/untrusted-0.9.0" }
 vcpkg = { path = "third_party/rust/vcpkg-0.2.15" }
 version_check = { path = "third_party/rust/version_check-0.9.5" }
+x25519-dalek = { path = "third_party/rust/x25519-dalek-3.0.0" }
 zeroize = { path = "third_party/rust/zeroize-1.9.1" }
 # --- END vendored Top secret core ---

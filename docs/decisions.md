@@ -4,6 +4,30 @@ What was decided, when, and what is still open. Newest first. Update this page i
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
 
+## 2026-11-06 — A vault in a few taps; its identity; words and password kept by the system
+
+**Owner (2026-11-05 to 11-06):** security first, not to the extreme: a balance with
+convenience. Making a vault should be taps only. The 24 words and the password may be
+kept by the system so a vault is not lost; the word check may be skipped, with a
+warning. What is kept outside needs an identity that cannot change, and later vaults
+and devices will exchange data: an identity with keys, resistant to quantum computers.
+As built:
+- [ADR 0008](adr/0008-vault-identity.md): every vault has hybrid identity keys from its
+  Master Key (Ed25519 + ML-DSA-65 signing, X-Wing sealing) and a code `7F3A-9K2Q` from
+  their fingerprint. 18 crates added to the Top secret core, each a reviewed copy with
+  standard vectors (docs/supply-chain.md).
+- New vault: mode → (words) the 24 words with the cloud copy on by default → (no copy)
+  four words back, skippable after a warning, reminded once later → the password
+  (system password manager, under `Cozy Safe <code>`) → Face ID → in. No intro, no
+  look steps. The vault is drafted before the password so its code is known.
+- The cloud copy is one item per set of words, named by its fingerprint, labelled with
+  the vaults' codes; restore screens fill in the set that fits. Never for a Top secret
+  vault (docs/security.md).
+- Needs, outside the repo: Associated Domains on the App ID and a new provisioning
+  profile (owner), and `/.well-known/apple-app-site-association` on cozypi.com (the
+  cozypi-site Worker). Until both, iOS shows no strong-password suggestion and does not
+  save the password; Android works without them.
+
 ## 2026-11-05 — Note format bar fits the phone; trash gets the summary line
 
 **Owner:** the note's format bar was cut off at the right on an iPhone (nine buttons,

@@ -133,6 +133,9 @@ jobs:
         run: cargo install --locked --force cargo-acl@0.9.0
       - name: cargo acl
         working-directory: app/rust
+        # As in flutter-setup: should cackle set RUSTFLAGS, keep curve25519-dalek serial.
+        env:
+          RUSTFLAGS: --cfg curve25519_dalek_backend="serial"
         run: cargo acl --no-ui
       - name: Suggested config (every fix auto-accepted; still fails on any net grant)
         if: failure()

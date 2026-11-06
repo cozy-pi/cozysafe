@@ -115,6 +115,13 @@ impl OpenVault {
         cs_crypto::kdf::subkey(&self.master_key, &format!("p2p/v1/{}", self.id))
     }
 
+    /// The seed of the vault's identity keys (cs-identity, docs/adr/0008-vault-identity.md):
+    /// from the Master Key, which never changes, so every device holding the vault, and a
+    /// restore from the 24 words, gets the same identity.
+    pub fn identity_seed(&self) -> Key {
+        identity_seed(&self.master_key, &self.id)
+    }
+
     /// Forget what was agreed with a sync place that starts empty again.
     pub fn forget_sync_place(&self, key: &str) -> Result<()> {
         self.index.forget_remote(key)
@@ -416,6 +423,29 @@ impl Library {
         )
     }
 
+    /// [`Library::create_vault_in_mode`] for a vault drafted first ([`VaultDraft`]): it
+    /// gets the draft's id and Master Key, so the identity shown before the password was
+    /// typed is the vault's.
+    pub fn create_vault_from_draft(
+        &self,
+        draft: VaultDraft,
+        icon: &str,
+        color: &str,
+        password: &str,
+        top_secret: bool,
+    ) -> Result<OpenVault> {
+        if check_new_password(password) != PasswordCheck::Ok {
+            return Err(Error::WeakPassword);
+        }
+        let meta = VaultMeta {
+            icon: icon.to_owned(),
+            color: color.to_owned(),
+            top_secret,
+            ..Default::default()
+        };
+        self.create_unchecked_with(meta, password, Some(draft))
+    }
+
     /// The test vault of Android test builds (owner 2026-11-01): an everyday vault opened
     /// by [`TEST_VAULT_PASSWORD`], which testers type on their other devices. The only
     /// vault made without the new-password rules, and only with that fixed password: no
@@ -439,6 +469,15 @@ impl Library {
     }
 
     fn create_unchecked(&self, meta: VaultMeta, password: &str) -> Result<OpenVault> {
+        self.create_unchecked_with(meta, password, None)
+    }
+
+    fn create_unchecked_with(
+        &self,
+        meta: VaultMeta,
+        password: &str,
+        draft: Option<VaultDraft>,
+    ) -> Result<OpenVault> {
         let root = kdf::derive_root(
             password.as_bytes(),
             &self.secret_key,
@@ -449,10 +488,9 @@ impl Library {
             return Err(Error::PasswordInUse);
         }
 
-        let id = crate::hex::encode(cs_crypto::generate_salt());
+        let VaultDraft { id, master_key } = draft.unwrap_or_default();
         let vault_salt = cs_crypto::generate_salt();
         let kek = kdf::vault_kek(&root, &vault_salt);
-        let master_key = Key::generate();
         let sealed = meta.to_json();
         let header = VaultHeader {
             format: FORMAT,
@@ -1068,6 +1106,46 @@ pub fn write_atomic(path: &Path, data: &[u8]) -> Result<()> {
     Ok(())
 }
 
+/// The seed of a vault's identity keys (ADR 0008), from its Master Key and id.
+fn identity_seed(master_key: &Key, id: &str) -> Key {
+    cs_crypto::kdf::subkey(master_key, &format!("identity/v1/{id}"))
+}
+
+/// A vault about to be made (ADR 0008): its id and Master Key are chosen first, so its
+/// identity, and the code that names it, are known while the password is typed (the
+/// system's password manager saves the password under that code).
+/// [`Library::create_vault_from_draft`] makes the vault from it. Dropped unused, nothing
+/// is left anywhere: the Master Key is wiped.
+pub struct VaultDraft {
+    id: String,
+    master_key: Key,
+}
+
+impl Default for VaultDraft {
+    fn default() -> Self {
+        Self {
+            id: crate::hex::encode(cs_crypto::generate_salt()),
+            master_key: Key::generate(),
+        }
+    }
+}
+
+impl VaultDraft {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// The id the vault will have.
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    /// What [`OpenVault::identity_seed`] will give once the vault is made.
+    pub fn identity_seed(&self) -> Key {
+        identity_seed(&self.master_key, &self.id)
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -1158,6 +1236,28 @@ pub mod tests {
         })
         .unwrap()
         .id
+    }
+
+    /// ADR 0008: the identity known from the draft is the one the vault has, before and
+    /// after it is locked and opened again.
+    #[test]
+    fn a_drafted_vault_keeps_the_drafts_identity() {
+        let tmp = tempfile::tempdir().unwrap();
+        let l = lib(tmp.path());
+        let draft = VaultDraft::new();
+        let id = draft.id().to_owned();
+        let seed = draft.identity_seed();
+        let v = l
+            .create_vault_from_draft(draft, "house", "green", pw_a(), false)
+            .unwrap();
+        assert_eq!(v.id, id);
+        assert_eq!(v.identity_seed().as_bytes(), seed.as_bytes());
+        drop(v);
+        let again = l.unlock(pw_a()).unwrap().unwrap();
+        assert_eq!(again.identity_seed().as_bytes(), seed.as_bytes());
+        // A vault made without a draft gets an identity of its own.
+        let other = l.create_vault("B", pw_b()).unwrap();
+        assert_ne!(other.identity_seed().as_bytes(), seed.as_bytes());
     }
 
     #[test]

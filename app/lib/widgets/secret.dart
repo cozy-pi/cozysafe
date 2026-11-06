@@ -101,7 +101,13 @@ class SecretField extends StatefulWidget {
     this.onSubmitted,
     this.multiline = false,
     this.paste = false,
+    this.autofillHints,
   });
+
+  /// For the system's password manager (ADR 0008): `newPassword` where a vault password
+  /// is set, so it offers a strong one and saves it; `password` where one is typed to
+  /// open. None for the 24 words, and none in a Top secret vault.
+  final Iterable<String>? autofillHints;
 
   /// A Paste button (the 24 words come from a password manager or a note; the clipboard
   /// is emptied after, so the words do not linger there) and, in a build with
@@ -176,6 +182,7 @@ class _SecretFieldState extends State<SecretField> {
       enableSuggestions: false,
       enableIMEPersonalizedLearning: false,
       textCapitalization: widget.capitalization,
+      autofillHints: widget.autofillHints,
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hint,

@@ -56,7 +56,7 @@ class _Fake implements RustLibApi {
     }
     if (name.contains('MinPasswordLength')) return 12;
     if (name.contains('MinPinLength')) return 6;
-    final vault = VaultInfo(libraryDir: '', id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: anyPassword, topSecret: false);
+    final vault = VaultInfo(code: '7F3A-9K2Q', libraryDir: '', id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: anyPassword, topSecret: false);
     if (name.contains('MinPasswordScore')) return 3;
     if (name.contains('PasswordProblem')) return PasswordProblem.none;
     if (name.contains('PasswordScore')) return 4;
@@ -557,7 +557,7 @@ void main() {
       await t.pumpWidget(
           _app(SettingsScreen(
             libraryDir: 'lib',
-            vault: () => const VaultInfo(libraryDir: '', id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false),
+            vault: () => const VaultInfo(code: '7F3A-9K2Q', libraryDir: '', id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false),
             canBiometric: false,
             biometricOn: () => false,
             onToggleBiometric: () async {},

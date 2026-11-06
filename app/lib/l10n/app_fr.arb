@@ -906,5 +906,20 @@
   "blurTipTitle": "Les miniatures sont floutées",
   "blurTipBody": "Pour que personne à côté de vous ne les voie. Touchez-en une pour la voir nette. Pour désactiver : « {setting} » dans {where}.",
   "testVaultShots": "Toujours autorisé dans le coffre de test, non modifiable",
-  "testVaultThumbs": "Toujours nettes dans le coffre de test, non modifiable"
+  "testVaultThumbs": "Toujours nettes dans le coffre de test, non modifiable",
+  "vaultCode": "Code du coffre",
+  "vaultCodeCopied": "Code du coffre copié",
+  "wordsCloud": "Garder une copie dans le trousseau iCloud",
+  "wordsCloudGoogle": "Garder une copie chez Google",
+  "wordsCloudNote": "Un nouvel iPhone avec votre compte Apple remplit les 24 mots tout seul. Le mot de passe du coffre reste nécessaire.",
+  "wordsCloudNoteGoogle": "Un nouveau téléphone Android avec votre compte Google remplit les 24 mots tout seul. Le mot de passe du coffre reste nécessaire.",
+  "wordsCloudFailed": "Le trousseau iCloud ne les a pas gardés. Notez les 24 mots et retapez-en quatre.",
+  "wordsCloudFailedGoogle": "Google ne les a pas gardés (ce téléphone doit avoir un verrouillage de l'écran). Notez les 24 mots et retapez-en quatre.",
+  "wordsCheckSkip": "Passer, vérifier plus tard",
+  "wordsSkipTitle": "Passer la vérification ?",
+  "wordsSkipBody": "Si un mot est mal noté, le coffre ne pourra pas s'ouvrir sur un autre téléphone. Vous pouvez vérifier à tout moment dans {where}.",
+  "wordsCheckNow": "Vérifier maintenant",
+  "wordsSkipConfirm": "Passer",
+  "wordsUncheckedTipTitle": "Vos 24 mots ne sont pas encore vérifiés",
+  "wordsUncheckedTipBody": "Retapez-les une fois pour être sûr qu'ils ouvrent ce coffre. C'est dans {where}."
 }

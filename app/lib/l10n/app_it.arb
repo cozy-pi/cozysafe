@@ -906,5 +906,20 @@
   "blurTipTitle": "Le miniature sono sfocate",
   "blurTipBody": "Così chi ti sta accanto non le vede. Toccane una per vederla nitida. Per disattivare: «{setting}» in {where}.",
   "testVaultShots": "Sempre consentito nella cassaforte di prova, non modificabile",
-  "testVaultThumbs": "Sempre nitide nella cassaforte di prova, non modificabile"
+  "testVaultThumbs": "Sempre nitide nella cassaforte di prova, non modificabile",
+  "vaultCode": "Codice della cassaforte",
+  "vaultCodeCopied": "Codice della cassaforte copiato",
+  "wordsCloud": "Conserva una copia nel Portachiavi iCloud",
+  "wordsCloudGoogle": "Conserva una copia con Google",
+  "wordsCloudNote": "Un nuovo iPhone con il tuo account Apple inserisce da solo le 24 parole. Serve comunque la password della cassaforte.",
+  "wordsCloudNoteGoogle": "Un nuovo telefono Android con il tuo account Google inserisce da solo le 24 parole. Serve comunque la password della cassaforte.",
+  "wordsCloudFailed": "Il Portachiavi iCloud non le ha conservate. Annota le 24 parole e riscrivine quattro.",
+  "wordsCloudFailedGoogle": "Google non le ha conservate (questo telefono richiede un blocco schermo). Annota le 24 parole e riscrivine quattro.",
+  "wordsCheckSkip": "Salta, controlla dopo",
+  "wordsSkipTitle": "Saltare il controllo?",
+  "wordsSkipBody": "Se una parola è annotata male, la cassaforte non si apre su un altro telefono. Puoi controllarle quando vuoi in {where}.",
+  "wordsCheckNow": "Controlla ora",
+  "wordsSkipConfirm": "Salta",
+  "wordsUncheckedTipTitle": "Le tue 24 parole non sono ancora controllate",
+  "wordsUncheckedTipBody": "Riscrivile una volta per essere sicuro che aprano questa cassaforte. Si trova in {where}."
 }

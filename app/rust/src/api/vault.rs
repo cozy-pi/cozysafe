@@ -105,6 +105,10 @@ pub struct VaultInfo {
     pub has_password: bool,
     /// Top Secret Mode for this vault (ADR 0007).
     pub top_secret: bool,
+    /// The vault's code, `7F3A-9K2Q` (ADR 0008): from its identity keys, so it never
+    /// changes and is the same on every device. Names the vault in the system's
+    /// password manager and in the cloud copy of its 24 words.
+    pub code: String,
 }
 
 /// Errors Dart shows to the user; each maps to a translated message.
@@ -388,8 +392,33 @@ pub fn create_vault_with_password(
     if password_used(&password, Some(library.dir()))?.is_some() {
         return Err(VaultError::PasswordInUse);
     }
-    let vault = library.create_vault_in_mode(&icon, &color, &password, top_secret)?;
+    let draft = DRAFT.lock().unwrap_or_else(|e| e.into_inner()).take();
+    let vault = match draft {
+        Some(d) => library.create_vault_from_draft(d, &icon, &color, &password, top_secret)?,
+        None => library.create_vault_in_mode(&icon, &color, &password, top_secret)?,
+    };
     set_open(vault)
+}
+
+/// The vault being made ([`prepare_vault`]), taken by the next
+/// [`create_vault_with_password`].
+static DRAFT: std::sync::Mutex<Option<cs_vault::VaultDraft>> = std::sync::Mutex::new(None);
+
+/// Choose the next vault's id and Master Key now and return its code (ADR 0008): the new
+/// vault screen saves the password under it in the system's password manager, before the
+/// vault exists. Called again, it starts over with a new draft.
+#[flutter_rust_bridge::frb(sync)]
+pub fn prepare_vault() -> String {
+    let draft = cs_vault::VaultDraft::new();
+    let code = cs_identity::Identity::from_seed(draft.identity_seed().as_bytes()).public().code();
+    *DRAFT.lock().unwrap_or_else(|e| e.into_inner()) = Some(draft);
+    code
+}
+
+/// Drop the draft (the new vault screen was left): its Master Key is wiped.
+#[flutter_rust_bridge::frb(sync)]
+pub fn forget_vault_draft() {
+    DRAFT.lock().unwrap_or_else(|e| e.into_inner()).take();
 }
 
 /// The test vault of Android test builds (lib/test_login.dart), opened by the fixed
@@ -667,6 +696,15 @@ pub fn secret_key_text(key: Vec<u8>) -> String {
         .unwrap_or_default()
 }
 
+/// The short public fingerprint of a Secret Key (the one libraries and backups keep, 4
+/// hex): names its copy in the iCloud Keychain / Google Block Store (lib/key_backup.dart).
+/// Empty if malformed.
+#[flutter_rust_bridge::frb(sync)]
+pub fn secret_key_fingerprint(key: Vec<u8>) -> String {
+    let key = Zeroizing::new(key);
+    key_from(&key).map(|k| k.fingerprint()).unwrap_or_default()
+}
+
 /// The 2048 words of the Recovery Key list (BIP39 English), for the typing grid.
 #[flutter_rust_bridge::frb(sync)]
 pub fn recovery_word_list() -> Vec<String> {
@@ -865,7 +903,22 @@ fn info_of(vault: &OpenVault) -> VaultInfo {
         color: vault.color.clone(),
         has_password: vault.has_password(),
         top_secret: vault.top_secret,
+        code: vault_code(vault),
     }
+}
+
+/// [`VaultInfo::code`]: worked out once per vault per run (ML-DSA key generation is a
+/// few hundred microseconds; the info is asked for often).
+fn vault_code(vault: &OpenVault) -> String {
+    static CODES: std::sync::Mutex<Vec<(String, String)>> = std::sync::Mutex::new(Vec::new());
+    let mut codes = CODES.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((_, code)) = codes.iter().find(|(id, _)| *id == vault.id) {
+        return code.clone();
+    }
+    let seed = vault.identity_seed();
+    let code = cs_identity::Identity::from_seed(seed.as_bytes()).public().code();
+    codes.push((vault.id.clone(), code.clone()));
+    code
 }
 
 /// Close the open vault and wipe its keys. A sync running with it keeps it, out of the

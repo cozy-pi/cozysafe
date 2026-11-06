@@ -151,10 +151,17 @@ flows (internal mockup)
   2. Pick a colour (11 + "⋯" for the full set of 20, hand-picked so no two look
      alike; generated hue steps looked the same). The whole screen background
      takes the colour.
-  (Since 2026-10-28 the order is: what each key is for → 24 words → vault password,
-  which makes the vault → "Open with Face ID?" Turn on / Not now, whenever the device
-  has biometrics → icon and colour. No PIN step.)
-- **No vault names.** Icon + colour (35 × 20 = 700 combinations) identify a vault;
+  (Since 2026-11-05, a few taps: mode → (another vault here) its words, the device's
+  set or its own → (new words) the 24 words with "Keep a copy in iCloud Keychain /
+  with Google", on for an everyday vault → (no copy) four words typed back, "Skip,
+  check later" after a warning card → vault password, which makes the vault, the
+  system's password manager offering a strong one and keeping it → "Open with Face
+  ID?" → in. No intro, no icon and colour steps: the random look stays, Settings
+  changes it. A Top secret vault: no copy, no skip, no password manager.)
+- **No vault names.** Icon + colour (35 × 20 = 700 combinations) tell vaults apart;
+  what identifies one outside the app is its code (`7F3A-9K2Q`, ADR 0008: fixed, from
+  its identity keys), shown in Settings and naming its password and its words in the
+  cloud;
   inside the vault only the coloured icon is shown, no text. A new vault (the first one too) starts with a random
   icon and colour from the 11 shown on each grid (grid order stays fixed, only the
   preselection changes), avoiding the open vault's own when created from inside it.

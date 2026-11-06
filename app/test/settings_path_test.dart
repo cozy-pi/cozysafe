@@ -5,6 +5,7 @@
 
 import 'dart:io';
 
+import 'package:cozysafe/key_backup.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/screens/settings.dart';
@@ -17,6 +18,7 @@ void main() {
   setUp(() {
     Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
     Settings.debugIOS = true; // the screenshots row shows on phones only
+    KeyBackup.debugSupported = true; // the iCloud Keychain row shows on phones only
     SettingsScreen.debugSyncLog = const [];
   });
   tearDown(() {
@@ -41,7 +43,7 @@ void main() {
           l = AppLocalizations.of(context);
           return SettingsScreen(
             libraryDir: '',
-            vault: () => const VaultInfo(libraryDir: '', id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false),
+            vault: () => const VaultInfo(code: '7F3A-9K2Q', libraryDir: '', id: 'v', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false),
             canBiometric: false,
             biometricOn: () => false,
             onToggleBiometric: () async {},

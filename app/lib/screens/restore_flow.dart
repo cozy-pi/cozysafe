@@ -178,16 +178,20 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   final _password = TextEditingController();
   String? _error;
   bool _busy = false;
-  /// The words came from the iCloud Keychain or Block Store (Settings on the old phone).
+  /// The words came from the iCloud Keychain or Block Store (the old phone kept them).
   bool _found = false;
+  /// Every set kept there (ADR 0008: one per set); the first fills the field, the others
+  /// are tried when it does not open the file.
+  List<KeyCopy> _copies = const [];
 
   @override
   void initState() {
     super.initState();
-    KeyBackup.find().then((key) {
-      if (key == null || !mounted || _words.text.isNotEmpty) return;
+    KeyBackup.findAll().then((all) {
+      if (all.isEmpty || !mounted || _words.text.isNotEmpty) return;
       setState(() {
-        _words.text = rust.secretKeyText(key: key);
+        _copies = all;
+        _words.text = rust.secretKeyText(key: all.first.key);
         _found = true;
       });
     });
@@ -221,7 +225,16 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       }
       final target = restoreTarget(widget.libraryDir);
       await rust.importBackup(path: widget.filePath, dir: target);
-      final key = Uint8List.fromList(rust.parseSecretKey(text: _words.text)!);
+      var key = Uint8List.fromList(rust.parseSecretKey(text: _words.text)!);
+      // The filled-in set is another vault's: one of the other sets kept may be this one's.
+      if (_found && !rust.secretKeyFits(dir: target, key: key)) {
+        for (final c in _copies) {
+          if (rust.secretKeyFits(dir: target, key: c.key)) {
+            key = c.key;
+            break;
+          }
+        }
+      }
       if (!mounted) return;
       if (!rust.secretKeyFits(dir: target, key: key)) {
         // The file is in; these words are not its own. Ask for them again.

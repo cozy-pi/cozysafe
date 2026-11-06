@@ -10,6 +10,15 @@ Every src/ file read. Argon2id v0x13 checked against RFC 9106 (H0 with all lengt
 Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
 """
 
+[[audits.autocfg]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "1.5.1"
+notes = """
+Build-time only (num-traits build script, probe "1f64.total_cmp(&2f64)"). Every src/ file read. No unsafe, no network. Runs $RUSTC (through RUSTC_WRAPPER/RUSTC_WORKSPACE_WRAPPER if set) for --version and to compile probes from stdin with --emit=llvm-ir into OUT_DIR, then deletes each .ll; writes nothing else. Prints cargo: directives only.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
 [[audits.blake2]]
 who = "Cozy Pi <dev@cozypi.com>"
 criteria = "safe-to-deploy"
@@ -64,6 +73,34 @@ forbid(unsafe_code). ct_eq on byte slices goes through cmov, result via black_bo
 Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
 """
 
+[[audits.ctutils]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.4.8"
+notes = """
+Delta from 0.4.4 (reviewed 2026-10-31) read in full: still forbid(unsafe_code). New public primitives module (bitle/bitlt/bitnz moved there, borrowing subtraction, carry-out addition, zero counts) with black_box barriers; Thumb-1 (arm without pointer atomics) and riscv32 get hardened comparisons; ct_gt now calls ct_lt with operands swapped; usize ct_lt via the pointer-width integer; ct_neg uses wrapping_neg (MIN no longer panics in debug). On aarch64 and x86_64 the comparison and equality code is unchanged. cmov requirement 0.5.3 -> 0.5.4.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.curve25519-dalek]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "5.0.0"
+notes = """
+Independent audit: Quarkslab for Tari Labs, 2019 (https://blog.quarkslab.com/security-audit-of-dalek-libraries.html), of version 1.2.1 (u64 and avx2 backends, Edwards, Ristretto, Scalar); no critical finding. Four major versions old, so our own review is the evidence for 5.0.0.
+Configuration: features digest and zeroize only (no alloc, no precomputed-tables, no rand_core, group, serde, lizard, legacy_compatibility), backend serial: build.rs picks serial on every non-x86_64 target, and .cargo/config.toml forces it on x86_64. 64-bit targets (arm64 phones, Apple Silicon, x86_64) compile the u64 backend; the Play bundle's armeabi-v7a library compiles the u32 backend. Our code reaches the crate only through ed25519-dalek and x25519-dalek: Scalar from_bytes_mod_order, from_canonical_bytes, from_hash, add and mul; EdwardsPoint mul_base, mul_base_clamped, compress, decompress, is_small_order, vartime_double_scalar_mul_basepoint, to_montgomery; MontgomeryPoint mul_clamped; clamp_integer.
+Read, every compiled line (test modules and doc comments excepted): lib.rs, macros.rs, traits.rs, constants.rs, window.rs, field.rs, scalar.rs, edwards.rs, edwards/affine.rs, montgomery.rs, ristretto.rs, ristretto/elligator.rs, backend.rs, backend/serial.rs, serial/curve_models.rs, serial/scalar_mul.rs, scalar_mul/variable_base.rs, scalar_mul/vartime_double_base.rs, the u64 backend (field.rs, scalar.rs, constants.rs outside the tables) and the u32 backend (u32.rs, field.rs, scalar.rs, constants.rs outside the tables), build.rs.
+Not compiled, not read: backend/vector (AVX2, AVX-512 IFMA), fiat_u32/fiat_u64, lizard, diagnostics.rs (needs a cfg we do not set), the precomputed basepoint tables and AFFINE_ODD_MULTIPLES tables in both constants files, the alloc-only code (straus, precomputed_straus, pippenger, multiscalar impls, batch inversion and batch compression), and the group, serde and rand_core impls.
+Arithmetic: u64 field (radix 2^51 mul/square bounds, reduce, sub with 16p, canonical to_bytes, from_bytes ignoring bit 255); u64 scalar (radix 2^52, Montgomery reduce, sub with ct conditional add of l via subtle, the RUSTSEC-2024-0344 fix); u32 field (radix 2^25.5: 19*y and 2*x fit u32 for limbs up to 1.75 excess bits, products below 2^64, reduce carries, add left unreduced and every caller stays inside that headroom, sub and negate with 16p, canonical to_bytes). u32 scalar Scalar29 (9 limbs of 29 bits): the one-level Karatsuba mul_internal and square_internal ported to Python with 64-bit wrapping and checked equal to the schoolbook product on 40,000 inputs including all-ones limbs; non-wrapping sums stay below 2^63 (no overflow seen); montgomery_reduce is correct whenever the product is below l*2^261, which holds for every caller (inputs below 2^256, so unreduced clamped scalars too), worst-case sums 62 bits; mul, from_bytes_wide (incl. 2^512-1), add, sub, reduce and from_montgomery checked against Python big integers. Scalar inversion chain recomputed: exponent l-2. Field invert and pow_p58 chains, sqrt_ratio_i, from_bytes_wide (19 and 722 for the top bits), expand_msg_xmd and hash_to_field per RFC 9380.
+Constants recomputed independently for both backends: d, 2d, sqrt(-1), 1-d^2, (d-1)^2, sqrt(ad-1), 1/sqrt(a-d), sqrt(-486664), A, -A, (A+2)/4, -1, l, R (2^260 or 2^261 mod l), R^2, LFACTOR, the basepoint, the eight 8-torsion points ([i]P, order 8), FE_C2 = 2^((p+3)/8); in constants.rs the compressed Ed25519 and Ristretto basepoints, BASEPOINT_ORDER = l and the seven X25519 low-order u values.
+Curve code: Edwards decompress, compress, add, sub and double formulas, ct radix-16 window multiply (all 8 table entries scanned with ct_eq; mul_base without tables uses it), vartime double-base (public inputs only), mul_by_pow_2, is_small_order, Montgomery ladder (fixed 255 steps, ct swap, clamping per RFC 7748). Reached by nothing we call: Ristretto decode, encode and Elligator map (checked against RFC 9496), Edwards hash_to_curve and Elligator2 map (RFC 9380 G.2), to_edwards.
+Decompression accepts non-canonical y (y >= p) and x = -0, as upstream documents; verify_strict in ed25519-dalek compensates for R, not for the public key (see that entry). Not zeroized: the radix-16 digits of the secret scalar and the ladder state on the stack.
+The u32 backend assumes a constant-time 32x32->64 multiply (UMULL on ARMv7-A cores, which is).
+No unsafe compiled in this configuration (the one outside backend/vector is behind precomputed-tables). No I/O, no global mutable state, no_std. build.rs runs at build time: reads cargo env vars, asks rustc_version for the compiler version, prints cfgs; no network, no file writes.
+RFC 8032 and RFC 7748 vectors run in core/cs-identity/tests/vectors_25519.rs, on the u64 backend and again with --cfg curve25519_dalek_bits="32" (Scalar29 and FieldElement2625 confirmed in the test binary): all pass.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
 [[audits.digest]]
 who = "Cozy Pi <dev@cozypi.com>"
 criteria = "safe-to-deploy"
@@ -71,6 +108,28 @@ version = "0.11.3"
 notes = """
 forbid(unsafe_code). Padding (0x80, zeros, big-endian bit length, extra block past 55/111) and MAC verify (length check on public size, then ct_eq) read.
 Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.ed25519]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "3.0.0"
+notes = """
+No independent audit found. forbid(unsafe_code). No features: lib.rs (Signature as R and s byte arrays, no validation, which ed25519-dalek does) and hex.rs (formatting and parsing) read; pkcs8.rs not compiled. No I/O, no build script.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.ed25519-dalek]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "3.0.0"
+notes = """
+Independent audit: only a brief look at version 1.0.0-pre.1 in the Quarkslab 2019 dalek report (https://blog.quarkslab.com/security-audit-of-dalek-libraries.html); our own review is the evidence for 3.0.0.
+Built with feature zeroize only (no fast, batch, digest, hazmat, pkcs8, serde, rand_core): forbid(unsafe_code) applies. Read: signing.rs, verifying.rs, hazmat.rs, signature.rs, errors.rs, constants.rs, lib.rs. batch.rs, context.rs and stream.rs not compiled.
+Pure Ed25519 per RFC 8032: SHA-512 of the seed, clamp, reduce mod l; r = H(prefix || M) mod l; S = r + H(R || A || M) a mod l. The public key is fixed at SigningKey construction (no RUSTSEC-2022-0093 oracle). Signature S must be canonical (< l). verify_strict decompresses R, rejects small-order R and A, and compares [S]B - [k]A, recompressed, byte for byte with R, so a non-canonical R never verifies. Not checked by the crate: a non-canonical public key encoding (y >= p) of a large-order point decodes and verifies; nobody knows such a key's secret, and cs-identity hashes the key bytes into the fingerprint and the signed frame, so it only gives a different identity, not a forgery.
+Zeroized: the seed (SigningKey drop) and ExpandedSecretKey (scalar and prefix). Not zeroized: the SHA-512 output and copies during key expansion, the nonce r and its hash, left on the stack.
+RFC 8032 section 7.1 vectors (all five) and strict-mode rejections run in core/cs-identity/tests/vectors_25519.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
 """
 
 [[audits.hkdf]]
@@ -100,6 +159,87 @@ Skimmed: unsafe relies on the sealed ArraySize trait implemented only for [T; N]
 Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
 """
 
+[[audits.keccak]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.2.2"
+notes = """
+Every src/ file read. Keccak-f[1600] checked against FIPS 202: round constants recomputed from the rc(t) LFSR, rho offsets and pi lane walk recomputed, theta, chi, iota, 24 rounds (Keccak-p takes the last ROUNDS constants). Backends: portable soft (x86_64 and everything else); ARMv8 FEAT_SHA3 intrinsics on aarch64, chosen at run time by cpufeatures; portable-SIMD only with a keccak_backend cfg on nightly (not built). 10 unsafe, all in the aarch64 path: calls into target_feature(sha3) functions after the run-time check, intrinsics on local arrays; sound. The aarch64 lane schedule (adapted from XKCP) was not traced by hand: it is covered by the vectors, which pass on FEAT_SHA3 hardware and with keccak_backend="soft". Low (cpufeatures): Linux/Android accept SHA3 or SHA512 hwcap for "sha3" (a SHA512-only core would fault, not miscompute); Apple panics if the sysctl key is missing. No I/O, no build script. Vectors in core/cs-identity/tests/vectors_keccak.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.kem]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.3.0"
+notes = """
+forbid(unsafe_code); KEM traits only (Kem, Encapsulate, Decapsulate, FromSeed) and blanket impls, no cryptography of its own. getrandom feature off. No I/O, no build script.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.ml-dsa]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.1.2"
+notes = """
+Every src/ file read except pkcs8.rs (feature off). ML-DSA-65 checked against FIPS 204: parameters (q, d, tau 49, lambda 192, gamma1 2^19, gamma2 (q-1)/32, k 6, l 5, eta 4, beta 196, omega 55), KeyGen_internal (H(xi||k||l), ExpandA, ExpandS, Power2Round, tr = H(pk)), Sign_internal (M' = 0||len(ctx)||ctx||M with ctx <= 255 checked, rho'' = H(K||rnd||mu), ExpandMask nonces bounded below 2^16, all four rejection checks), Verify (z bound and HintBitUnpack order, count and zero-padding checks in sigDecode, so one encoding per signature), NTT zetas and 256^-1, Decompose/UseHint/MakeHint (constant-time selects, Barrett division), SampleInBall over the whole c~, bit packing. No unsafe, no I/O, no build script. Timing: beyond the rejection loop (which check failed), the s1/s2 rejection sampling and SampleInBall branch and index on secret-derived data, as the reference code does. BitUnPack asserts instead of failing, so from_expanded panics on a malformed expanded key; not used (keys come from the seed). Not wiped by the crate: per-signature intermediates (rho'', y, w, cs1, cs2, z) and KeyGen's rho'; the keys themselves are wiped on drop. Field arithmetic and SimpleBitPack live in module-lattice, reviewed separately. ACVP keyGen, sigGen (deterministic, with context and with mu) and sigVer vectors run in core/cs-identity/tests/vectors_ml_dsa.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.ml-kem]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.3.4"
+notes = """
+Every compiled src/ file read (pkcs8.rs is cfg'd out: pkcs8 and alloc features off). Checked against FIPS 203: K-PKE KeyGen/Encrypt/Decrypt, KeyGen_internal from (d, z) with G(d || k), Encaps_internal, Decaps_internal with implicit rejection (re-encryption, constant-time ciphertext compare and select of K' or J(z || c)), encapsulation key modulus check by ByteEncode12/ByteDecode12 round trip, XOF(rho, j, i) matrix order and transpose, PRF counters, NTT/inverse NTT and base-case constants (match Appendix A; 3303 = 128^-1), compression without division (checked exhaustively for d = 1, 4, 10), ML-KEM-768 parameters k=3, eta1=eta2=2, du=10, dv=4. No branch or index on secret data: CBD by count_ones, reductions branch-free, SampleNTT rejection loop on public rho only. unsafe_code denied, none present. No I/O, no build script. Drop wipes s_hat, d and z; not wiped: intermediates (sigma, noise, m', K', r', K-bar), the returned shared key and the seed passed by value. NIST ACVP keyGen, encapsulation, decapsulation (with modified ciphertexts) and key-check vectors run in core/cs-identity/tests/vectors_ml_kem.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.module-lattice]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.2.4"
+notes = """
+Every src/ file read. Field arithmetic: small_reduce is a ctutils constant-time conditional subtraction, Barrett reduction (shift 24, multiplier 5039 for q = 3329) leaves a remainder below 2q for every input up to 2*3328^2 (checked exhaustively), so one subtraction suffices. ByteEncode/ByteDecode via u128 chunks; 12-bit decode reduces mod q so the ML-KEM modulus check works by round trip. Matrix, vector and dot products as specified; zeroize impls for every type. MaybeBox is inline without alloc (feature off here). unsafe_code denied, none present. No I/O, no build script.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.num-traits]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.2.19"
+notes = """
+Every src/ file read (lib, macros, bounds, cast, float, identities, int, pow, real, sign, ops/*), all code lines; doc comments skimmed, tests not built. module-lattice takes it with default-features = false, so cs-identity alone builds with no features; in both workspaces image and moxcms turn on std (default), which only adds the Float/Real/float Pow/MulAdd impls forwarding to std inherent methods. libm is not in either lockfile. no_std, deny(unconditional_recursion). One unsafe in the whole crate: to_int_unchecked in float-to-int ToPrimitive, behind exclusive (MIN-1, MAX+1) range checks that also reject NaN and infinity, sound for every float/int size pair; not reached from module-lattice. No I/O, no statics, no global state. What module-lattice uses (PrimInt and One::one() on u16/u32/u64) are one-line delegations to core inherent methods or operators, no branching in num-traits on the value. Variable-time code (generic pow/checked_pow square-and-multiply, FloatCore rounding, from_str_radix) branches only on the exponent or on float values, and none of it is called by module-lattice. build.rs only probes rustc for f64::total_cmp via autocfg and emits a cfg; no other build-time action.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.rand_core]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.10.1"
+notes = """
+Every src/ file read. No unsafe, no dependencies, no features, no OS RNG: traits (TryRng, Rng, CryptoRng, SeedableRng), UnwrapErr, BlockRng and LE helpers only. seed_from_u64 (PCG32) is documented as not for cryptography; nothing in the core calls it. No I/O, no build script.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.rustc_version]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.4.1"
+notes = """
+Build-time only (curve25519-dalek build script). Every src/ file read. No unsafe, no network, no file writes: runs $RUSTC -vV (through RUSTC_WRAPPER if set) and parses the output with semver.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.semver]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "1.0.28"
+notes = """
+Build-time only (via rustc_version), parses rustc's own version string. Every src/ file read; no I/O, no build script, serde off. 48 unsafe, in the packed Identifier (inline up to 8 bytes, else a varint-length heap buffer with the tag in the pointer's top bit) and in VersionReq parsing writing into reserved Vec capacity; the parser admits only ASCII [0-9A-Za-z-.], as Identifier::new_unchecked requires. Read, sound as far as checked; not proven.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
 [[audits.sha2]]
 who = "Cozy Pi <dev@cozypi.com>"
 criteria = "safe-to-deploy"
@@ -107,4 +247,51 @@ version = "0.11.1"
 notes = """
 SHA-256/512: constants recomputed from prime roots, schedule, compression and padding checked against FIPS 180-4. Unsafe in the SHA-NI, AVX2 and ARMv8 backends in bounds and gated by cpufeatures. Differential test of lengths 0-599 (one-shot and split) against OpenSSL, hardware and soft backends: no mismatch. Low: aarch64 Linux/Android SHA-512 detection accepts SHA3 or SHA512 hwcap; old Apple OSes without the sysctl key would panic on SHA-512 detection. NIST examples run in core/cs-crypto/tests/vectors.rs.
 Machine-assisted review of the copy in third_party/rust/ (2026-10-31).
+"""
+
+[[audits.sha3]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.12.0"
+notes = """
+forbid(unsafe_code). Every src/ file read. SHA3-256 rate 136, output 32; domain byte 0x06 at the cursor position and 0x80 in the last rate byte (XOR, so a full-minus-one block gives 0x86); one permutation then the output read little-endian. Absorbing through sponge-cursor. Serialized state rejects a cursor >= rate. Without its zeroize feature the permuted state (invertible, so it reveals the last absorbed block: the X-Wing combiner input, ML-KEM's G/H input) stays in freed stack memory after finalize; found in this review, cs-identity now turns the feature on, which wipes the state on drop. NIST FIPS 202 examples and CAVP vectors run in core/cs-identity/tests/vectors_keccak.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.shake]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = """
+forbid(unsafe_code). Every src/ file read. Rates 168 (SHAKE128) and 136 (SHAKE256), checked at compile time; domain byte 0x1F and 0x80 in the last rate byte; the reader permutes before each block it squeezes, cursor from 0. finalize_xof_reset copies the padded state before reset. State and reader wiped on drop with the zeroize feature, which cs-identity asks for itself (ml-dsa turns it on too). NIST FIPS 202 examples and CAVP vectors (outputs up to 512 bytes, split reads) run in core/cs-identity/tests/vectors_keccak.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.signature]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "3.0.0"
+notes = """
+forbid(unsafe_code); traits (Signer, Verifier, Keypair, encoding) and an opaque Error only. No I/O, no build script.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.sponge-cursor]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = """
+Every src/ file read. Absorb: finish the partial block, permute; full blocks XORed little-endian then permuted; tail kept with pos = tail length (a block that fills exactly is permuted at once, so padding goes into a fresh block). Squeeze: pos 0 means permute before reading, partial reads advance pos. 5 unsafe: two unreachable_unchecked on pos < RATE (kept by new() and set_pos's assert), three casts of [u64; N] to a [u8; RATE] prefix (RATE <= 8N asserted at compile time, little-endian only); sound. No I/O, no build script.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.x25519-dalek]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+version = "3.0.0"
+notes = """
+Independent audit: a brief review of version 0.5.2 in the Quarkslab 2019 dalek report (https://blog.quarkslab.com/security-audit-of-dalek-libraries.html); our own review is the evidence for 3.0.0.
+Built with static_secrets and zeroize (no precomputed-tables, getrandom, serde). Both files read; no unsafe. DH is MontgomeryPoint::mul_clamped (RFC 7748 clamping, ladder in curve25519-dalek); the public key is the clamped scalar times the Edwards basepoint, mapped to u. StaticSecret, EphemeralSecret and SharedSecret are zeroized on drop; StaticSecret::to_bytes and From<[u8; 32]> make unzeroized copies (caller's care). No contributory check unless was_contributory is called (X-Wing does not need it). rand_core is a non-optional dependency, used for traits only.
+RFC 7748 section 5.2 (two cases, 1 and 1,000 iterations) and section 6.1 vectors run in core/cs-identity/tests/vectors_25519.rs.
+Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
 """

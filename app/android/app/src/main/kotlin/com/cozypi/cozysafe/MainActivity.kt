@@ -123,7 +123,7 @@ class MainActivity : FlutterFragmentActivity() {
         }
         // The 24 words in Google Block Store, when Settings turns it on (BlockStore).
         MethodChannel(messenger, "cozysafe/blockstore").setMethodCallHandler { call, result ->
-            BlockStore.handle(this, call.method, call.argument<ByteArray>("bytes"), result)
+            BlockStore.handle(this, call.method, call.argument<String>("key"), call.argument<ByteArray>("bytes"), result)
         }
         // The PIN's device key wrapped by a key in the Android Keystore (HwKey).
         MethodChannel(messenger, "cozysafe/hwkey").setMethodCallHandler { call, result ->

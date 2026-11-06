@@ -906,5 +906,20 @@
   "blurTipTitle": "Miniaturen sind unscharf",
   "blurTipBody": "Damit niemand neben Ihnen sie sieht. Tippen Sie auf eine, um sie scharf zu sehen. Ausschalten: „{setting}“ unter {where}.",
   "testVaultShots": "Im Testtresor immer erlaubt, hier nicht änderbar",
-  "testVaultThumbs": "Im Testtresor immer scharf, hier nicht änderbar"
+  "testVaultThumbs": "Im Testtresor immer scharf, hier nicht änderbar",
+  "vaultCode": "Tresor-Code",
+  "vaultCodeCopied": "Tresor-Code kopiert",
+  "wordsCloud": "Eine Kopie im iCloud-Schlüsselbund behalten",
+  "wordsCloudGoogle": "Eine Kopie bei Google behalten",
+  "wordsCloudNote": "Ein neues iPhone mit Ihrem Apple-Account füllt die 24 Wörter selbst aus. Das Tresor-Passwort brauchen Sie trotzdem.",
+  "wordsCloudNoteGoogle": "Ein neues Android-Handy mit Ihrem Google-Konto füllt die 24 Wörter selbst aus. Das Tresor-Passwort brauchen Sie trotzdem.",
+  "wordsCloudFailed": "Der iCloud-Schlüsselbund hat sie nicht aufbewahrt. Notieren Sie die 24 Wörter und geben Sie vier davon erneut ein.",
+  "wordsCloudFailedGoogle": "Google hat sie nicht aufbewahrt (dieses Telefon braucht eine Displaysperre). Notieren Sie die 24 Wörter und geben Sie vier davon erneut ein.",
+  "wordsCheckSkip": "Überspringen, später prüfen",
+  "wordsSkipTitle": "Prüfung überspringen?",
+  "wordsSkipBody": "Ist ein Wort falsch notiert, lässt sich der Tresor auf einem anderen Telefon nicht öffnen. Sie können jederzeit unter {where} prüfen.",
+  "wordsCheckNow": "Jetzt prüfen",
+  "wordsSkipConfirm": "Überspringen",
+  "wordsUncheckedTipTitle": "Ihre 24 Wörter sind noch nicht geprüft",
+  "wordsUncheckedTipBody": "Geben Sie sie einmal ein, um sicherzugehen, dass sie diesen Tresor öffnen. Zu finden unter {where}."
 }

@@ -10,8 +10,8 @@ Every third-party package Cozy Safe is built from, grouped by how much harm a bu
 |---|---|---|---|---|---|
 | 1 | Reads data from outside | 4 | 12 | 0 | 16 |
 | 2 | Native code in the app | 4 | 38 | 8 | 50 |
-| 3 | Other code in the app | 106 | 81 | 0 | 187 |
-| 4 | Build, test and tooling only | 56 | 19 | 0 | 75 |
+| 3 | Other code in the app | 120 | 81 | 0 | 201 |
+| 4 | Build, test and tooling only | 60 | 19 | 0 | 79 |
 
 Plus 443 Gradle artifacts in 151 groups (Android build tools and libraries, [below](#android-gradle)).
 
@@ -21,6 +21,23 @@ Last review: **2026-10-28**.
 
 | Change | Package | Versions / owners |
 |---|---|---|
+| added | Rust curve25519-dalek | 5.0.0 |
+| added | Rust curve25519-dalek-derive | 0.1.1 |
+| added | Rust ed25519 | 3.0.0 |
+| added | Rust ed25519-dalek | 3.0.0 |
+| added | Rust fiat-crypto | 0.3.0 |
+| added | Rust keccak | 0.2.2 |
+| added | Rust kem | 0.3.0 |
+| added | Rust ml-dsa | 0.1.2 |
+| added | Rust ml-kem | 0.3.4 |
+| added | Rust module-lattice | 0.2.4 |
+| added | Rust rustc_version | 0.4.1 |
+| added | Rust semver | 1.0.28 |
+| added | Rust sha3 | 0.12.0 |
+| added | Rust shake | 0.1.0 |
+| added | Rust signature | 3.0.0 |
+| added | Rust sponge-cursor | 0.1.0 |
+| added | Rust x25519-dalek | 3.0.0 |
 | removed | Rust android_system_properties | 0.1.6 |
 | removed | Rust bit-set | 0.8.0 |
 | removed | Rust bit-vec | 0.8.0 |
@@ -57,6 +74,8 @@ Last review: **2026-10-28**.
 | removed | Rust windows-strings | 0.5.1 |
 | removed | Rust zeroize_derive | 1.5.0 |
 | removed | Rust zxcvbn | 3.1.1 |
+| updated | Rust ctutils | 0.4.4 → 0.4.8 |
+| updated | Rust rand_core | 0.6.4 → 0.10.1, 0.6.4 |
 
 ## Tier 1: Reads data from outside
 
@@ -142,7 +161,7 @@ Plugins and SDKs in Kotlin/Java, Swift/Objective-C or C/C++, and Rust crates tha
 
 Rust and Dart that ships in the app.
 
-<details><summary>187 packages</summary>
+<details><summary>201 packages</summary>
 
 | Package | Version | Released | Comes in through | Owners / publisher | Notes |
 |---|---|---|---|---|---|
@@ -254,10 +273,13 @@ Rust and Dart that ships in the app.
 | Rust [cpufeatures](https://crates.io/crates/cpufeatures/0.2.17) | 0.2.17 | 2025-01-25 | chacha20 | github:rustcrypto:utils, tarcieri | cackle: unsafe |
 | Rust [cpufeatures](https://crates.io/crates/cpufeatures/0.3.1) | 0.3.1 | 2026-08-26 | sha2 | github:rustcrypto:utils, tarcieri | cackle: unsafe |
 | Rust [crypto-common](https://crates.io/crates/crypto-common/0.1.7) | 0.1.7 | 2025-11-12 | aead | github:rustcrypto:traits, newpavlov |  |
-| Rust [crypto-common](https://crates.io/crates/crypto-common/0.2.2) | 0.2.2 | 2026-05-19 | digest | github:rustcrypto:traits, newpavlov |  |
-| Rust [ctutils](https://crates.io/crates/ctutils/0.4.4) | 0.4.4 | 2026-10-23 | digest | github:rustcrypto:utils, tarcieri |  |
+| Rust [crypto-common](https://crates.io/crates/crypto-common/0.2.2) | 0.2.2 | 2026-05-19 | ml-dsa | github:rustcrypto:traits, newpavlov |  |
+| Rust [ctutils](https://crates.io/crates/ctutils/0.4.8) | 0.4.8 | 2026-11-02 | ml-dsa | github:rustcrypto:utils, tarcieri |  |
+| Rust [curve25519-dalek](https://crates.io/crates/curve25519-dalek/5.0.0) | 5.0.0 | 2026-07-06 | ed25519-dalek | github:dalek-cryptography:curve-maintainers, isislovecruft | cackle: unsafe, build: process |
 | Rust [dashmap](https://crates.io/crates/dashmap/5.5.3) | 5.5.3 | 2023-08-29 | oslog | xacrimon |  |
 | Rust [digest](https://crates.io/crates/digest/0.11.3) | 0.11.3 | 2026-05-03 | sha2 | github:rustcrypto:traits, newpavlov |  |
+| Rust [ed25519](https://crates.io/crates/ed25519/3.0.0) | 3.0.0 | 2026-05-03 | ed25519-dalek | github:rustcrypto:signatures, newpavlov |  |
+| Rust [ed25519-dalek](https://crates.io/crates/ed25519-dalek/3.0.0) | 3.0.0 | 2026-07-06 | direct | github:dalek-cryptography:ed25519-maintainers, isislovecruft |  |
 | Rust [env_filter](https://crates.io/crates/env_filter/0.1.4) | 0.1.4 | 2025-10-13 | android_logger | epage, github:rust-cli:maintainers |  |
 | Rust [fallible-iterator](https://crates.io/crates/fallible-iterator/0.3.0) | 0.3.0 | 2023-05-22 | rusqlite | dpc, sfackler |  |
 | Rust [fallible-streaming-iterator](https://crates.io/crates/fallible-streaming-iterator/0.1.9) | 0.1.9 | 2018-05-02 | rusqlite | sfackler |  |
@@ -282,10 +304,12 @@ Rust and Dart that ships in the app.
 | Rust [hex](https://crates.io/crates/hex/0.4.3) | 0.4.3 | 2021-03-03 | direct | KokaKiwi |  |
 | Rust [hkdf](https://crates.io/crates/hkdf/0.13.0) | 0.13.0 | 2026-03-30 | direct | github:rustcrypto:kdfs, newpavlov |  |
 | Rust [hmac](https://crates.io/crates/hmac/0.13.0) | 0.13.0 | 2026-03-29 | hkdf | github:rustcrypto:macs, newpavlov |  |
-| Rust [hybrid-array](https://crates.io/crates/hybrid-array/0.4.15) | 0.4.15 | 2026-09-08 | block-buffer | github:rustcrypto:utils, tarcieri | cackle: unsafe |
+| Rust [hybrid-array](https://crates.io/crates/hybrid-array/0.4.15) | 0.4.15 | 2026-09-08 | ml-dsa | github:rustcrypto:utils, tarcieri | cackle: unsafe |
 | Rust [image](https://crates.io/crates/image/0.25.10) | 0.25.10 | 2026-03-10 | direct | 197g, fintelia, github:image-rs:publish, theotherphil | cackle: unsafe |
 | Rust [inout](https://crates.io/crates/inout/0.1.4) | 0.1.4 | 2025-02-21 | cipher | github:rustcrypto:utils, newpavlov | cackle: unsafe |
 | Rust [itoa](https://crates.io/crates/itoa/1.0.18) | 1.0.18 | 2026-03-20 | serde_json | dtolnay | cackle: unsafe |
+| Rust [keccak](https://crates.io/crates/keccak/0.2.2) | 0.2.2 | 2026-08-21 | sha3 | github:rustcrypto:hashes, newpavlov | cackle: unsafe |
+| Rust [kem](https://crates.io/crates/kem/0.3.0) | 0.3.0 | 2026-04-03 | ml-kem | github:rustcrypto:traits, newpavlov, tarcieri |  |
 | Rust [lazy_static](https://crates.io/crates/lazy_static/1.5.1) | 1.5.1 | 2026-10-01 | flutter_rust_bridge | rust-lang-owner | cackle: unsafe |
 | Rust [libc](https://crates.io/crates/libc/0.2.191) | 0.2.191 | 2026-10-16 | ring | rust-lang-owner | cackle: unsafe, build: process |
 | Rust [lock_api](https://crates.io/crates/lock_api/0.4.14) | 0.4.14 | 2025-10-03 | dashmap | Amanieu, faern |  |
@@ -293,6 +317,9 @@ Rust and Dart that ships in the app.
 | Rust [lru](https://crates.io/crates/lru/0.18.5) | 0.18.5 | 2026-09-23 | rqrr | jeromefroe | cackle: unsafe |
 | Rust [memchr](https://crates.io/crates/memchr/2.8.3) | 2.8.3 | 2026-07-08 | serde_json | BurntSushi | cackle: unsafe |
 | Rust [miniz_oxide](https://crates.io/crates/miniz_oxide/0.8.9) | 0.8.9 | 2025-06-09 | backtrace | Frommi, oyvindln | cackle: unsafe |
+| Rust [ml-dsa](https://crates.io/crates/ml-dsa/0.1.2) | 0.1.2 | 2026-10-31 | direct | github:rustcrypto:signatures, tarcieri |  |
+| Rust [ml-kem](https://crates.io/crates/ml-kem/0.3.4) | 0.3.4 | 2026-10-31 | direct | github:rustcrypto:kems, tarcieri |  |
+| Rust [module-lattice](https://crates.io/crates/module-lattice/0.2.4) | 0.2.4 | 2026-10-31 | ml-dsa | github:rustcrypto:kems, github:rustcrypto:signatures, tarcieri |  |
 | Rust [moxcms](https://crates.io/crates/moxcms/0.8.1) | 0.8.1 | 2026-03-07 | image | awxkee | cackle: unsafe |
 | Rust [num-traits](https://crates.io/crates/num-traits/0.2.19) | 0.2.19 | 2024-05-03 | image | cuviper | cackle: unsafe |
 | Rust [num_cpus](https://crates.io/crates/num_cpus/1.17.0) | 1.17.0 | 2025-05-30 | threadpool | seanmonstar | cackle: unsafe, fs |
@@ -307,6 +334,7 @@ Rust and Dart that ships in the app.
 | Rust [portable-atomic](https://crates.io/crates/portable-atomic/1.15.0) | 1.15.0 | 2026-08-09 | flutter_rust_bridge | taiki-e | cackle: unsafe, process |
 | Rust [pxfm](https://crates.io/crates/pxfm/0.1.30) | 0.1.30 | 2026-07-06 | moxcms | awxkee | cackle: unsafe |
 | Rust [qrcode](https://crates.io/crates/qrcode/0.14.1) | 0.14.1 | 2024-07-05 | direct | kennytm |  |
+| Rust [rand_core](https://crates.io/crates/rand_core/0.10.1) | 0.10.1 | 2026-04-13 | ml-kem | dhardy, github:rust-random:maintainers | cackle: unsafe |
 | Rust [rand_core](https://crates.io/crates/rand_core/0.6.4) | 0.6.4 | 2022-09-15 | crypto-common | dhardy, github:rust-random:maintainers | cackle: unsafe |
 | Rust [regex](https://crates.io/crates/regex/1.13.1) | 1.13.1 | 2026-07-15 | env_filter | BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner | cackle: unsafe |
 | Rust [regex-automata](https://crates.io/crates/regex-automata/0.4.18) | 0.4.18 | 2026-08-04 | regex | BurntSushi, rust-lang-owner | cackle: unsafe |
@@ -318,17 +346,22 @@ Rust and Dart that ships in the app.
 | Rust [serde](https://crates.io/crates/serde/1.0.229) | 1.0.229 | 2026-07-18 | direct | dtolnay, github:serde-rs:publish | cackle: unsafe, fs, build: fs, build: process |
 | Rust [serde_core](https://crates.io/crates/serde_core/1.0.229) | 1.0.229 | 2026-07-18 | serde_json | dtolnay, github:serde-rs:publish | cackle: unsafe, fs, build: fs, build: process |
 | Rust [sha2](https://crates.io/crates/sha2/0.11.1) | 0.11.1 | 2026-10-12 | direct | github:rustcrypto:hashes, newpavlov, tarcieri | cackle: unsafe |
+| Rust [sha3](https://crates.io/crates/sha3/0.12.0) | 0.12.0 | 2026-05-15 | direct | github:rustcrypto:hashes, newpavlov |  |
+| Rust [shake](https://crates.io/crates/shake/0.1.0) | 0.1.0 | 2026-05-15 | direct | github:rustcrypto:hashes, newpavlov |  |
+| Rust [signature](https://crates.io/crates/signature/3.0.0) | 3.0.0 | 2026-05-02 | ml-dsa | github:rustcrypto:traits, newpavlov, tarcieri |  |
 | Rust [slab](https://crates.io/crates/slab/0.4.12) | 0.4.12 | 2026-01-31 | futures-util | carllerche, github:tokio-rs:core | cackle: unsafe |
 | Rust [smallvec](https://crates.io/crates/smallvec/1.16.3) | 1.16.3 | 2026-10-10 | rusqlite | Ms2ger, SimonSapin, alejandro-vaz, github:servo:cargo-publish | cackle: unsafe |
-| Rust [subtle](https://crates.io/crates/subtle/2.6.1) | 2.6.1 | 2024-06-24 | rustls | github:dalek-cryptography:subtle-maintainers, isislovecruft | cackle: unsafe |
+| Rust [sponge-cursor](https://crates.io/crates/sponge-cursor/0.1.0) | 0.1.0 | 2026-05-08 | sha3 | github:rustcrypto:utils, newpavlov | cackle: unsafe |
+| Rust [subtle](https://crates.io/crates/subtle/2.6.1) | 2.6.1 | 2024-06-24 | ed25519-dalek | github:dalek-cryptography:subtle-maintainers, isislovecruft | cackle: unsafe |
 | Rust [thiserror](https://crates.io/crates/thiserror/2.0.21) | 2.0.21 | 2026-09-23 | direct | dtolnay | cackle: fs, build: fs, build: process |
 | Rust [threadpool](https://crates.io/crates/threadpool/1.8.1) | 1.8.1 | 2020-05-11 | flutter_rust_bridge | frewsxcv, github:rust-threadpool:publishers, github:servo:cargo-publish, huonw | cackle: unsafe |
 | Rust [tokio](https://crates.io/crates/tokio/1.53.3) | 1.53.3 | 2026-10-13 | flutter_rust_bridge | Darksonn, carllerche, github:tokio-rs:core | cackle: unsafe |
-| Rust [typenum](https://crates.io/crates/typenum/1.20.1) | 1.20.1 | 2026-05-29 | crypto-common | paholg |  |
+| Rust [typenum](https://crates.io/crates/typenum/1.20.1) | 1.20.1 | 2026-05-29 | hybrid-array | paholg |  |
 | Rust [universal-hash](https://crates.io/crates/universal-hash/0.5.1) | 0.5.1 | 2023-05-19 | poly1305 | github:rustcrypto:traits, newpavlov, tarcieri | cackle: unsafe |
 | Rust [untrusted](https://crates.io/crates/untrusted/0.9.0) | 0.9.0 | 2021-07-13 | ring | briansmith |  |
 | Rust [webpki-roots](https://crates.io/crates/webpki-roots/1.0.10) | 1.0.10 | 2026-10-19 | direct | ctz, djc, github:rustls:publishers |  |
 | Rust [windows-link](https://crates.io/crates/windows-link/0.2.1) | 0.2.1 | 2025-10-06 | backtrace | kennykerr |  |
+| Rust [x25519-dalek](https://crates.io/crates/x25519-dalek/3.0.0) | 3.0.0 | 2026-07-06 | direct | github:dalek-cryptography:x25519-maintainers, isislovecruft |  |
 | Rust [zeroize](https://crates.io/crates/zeroize/1.9.1) | 1.9.1 | 2026-10-06 | direct | github:rustcrypto:utils, tarcieri | cackle: unsafe |
 | Rust [zmij](https://crates.io/crates/zmij/1.0.23) | 1.0.23 | 2026-07-13 | serde_json | dtolnay | cackle: unsafe, build: process |
 | Rust [zune-core](https://crates.io/crates/zune-core/0.5.3) | 0.5.3 | 2026-08-07 | image | etemesi254 | cackle: unsafe |
@@ -340,7 +373,7 @@ Rust and Dart that ships in the app.
 
 Never ships in the app, but runs on the build machines (build scripts, proc macros, code generators, test frameworks).
 
-<details><summary>75 packages</summary>
+<details><summary>79 packages</summary>
 
 | Package | Version | Released | Comes in through | Owners / publisher | Notes |
 |---|---|---|---|---|---|
@@ -369,10 +402,12 @@ Never ships in the app, but runs on the build machines (build scripts, proc macr
 | Rust [bumpalo](https://crates.io/crates/bumpalo/3.20.3) | 3.20.3 | 2026-05-22 |  | alexcrichton, fitzgen | in the lock file, but built for none of the platforms the app ships on |
 | Rust [cc](https://crates.io/crates/cc/1.8.0) | 1.8.0 | 2026-10-11 | libsqlite3-sys | rust-lang-owner |  |
 | Rust [console_error_panic_hook](https://crates.io/crates/console_error_panic_hook/0.1.7) | 0.1.7 | 2021-10-11 |  | alexcrichton, fitzgen | in the lock file, but built for none of the platforms the app ships on |
+| Rust [curve25519-dalek-derive](https://crates.io/crates/curve25519-dalek-derive/0.1.1) | 0.1.1 | 2023-10-31 |  | rozbb | in the lock file, but built for none of the platforms the app ships on |
 | Rust [delegate-attr](https://crates.io/crates/delegate-attr/0.3.1) | 0.3.1 | 2026-08-02 | flutter_rust_bridge | upsuper |  |
 | Rust [digest](https://crates.io/crates/digest/0.10.7) | 0.10.7 | 2023-05-19 | md-5 | github:rustcrypto:traits, newpavlov |  |
 | Rust [errno](https://crates.io/crates/errno/0.3.14) | 0.3.14 | 2025-09-09 | rustix | lambda-fairy, sunfishcode |  |
 | Rust [fastrand](https://crates.io/crates/fastrand/2.5.0) | 2.5.0 | 2026-07-19 | tempfile | github:smol-rs:admins, taiki-e |  |
+| Rust [fiat-crypto](https://crates.io/crates/fiat-crypto/0.3.0) | 0.3.0 | 2025-06-04 |  | JasonGross | in the lock file, but built for none of the platforms the app ships on |
 | Rust [find-msvc-tools](https://crates.io/crates/find-msvc-tools/0.1.14) | 0.1.14 | 2026-09-25 | cc | rust-lang-owner |  |
 | Rust [flutter_rust_bridge_macros](https://crates.io/crates/flutter_rust_bridge_macros/2.13.0) | 2.13.0 | 2026-08-23 | flutter_rust_bridge | fzyzcjy |  |
 | Rust [futures-macro](https://crates.io/crates/futures-macro/0.3.34) | 0.3.34 | 2026-08-11 | futures-util | rust-lang-owner |  |
@@ -389,8 +424,10 @@ Never ships in the app, but runs on the build machines (build scripts, proc macr
 | Rust [r-efi](https://crates.io/crates/r-efi/6.0.0) | 6.0.0 | 2026-02-03 |  | dvdhrm | in the lock file, but built for none of the platforms the app ships on |
 | Rust [redox_syscall](https://crates.io/crates/redox_syscall/0.5.18) | 0.5.18 | 2025-10-04 |  | 4lDO2, jackpot51 | in the lock file, but built for none of the platforms the app ships on |
 | Rust [rsqlite-vfs](https://crates.io/crates/rsqlite-vfs/0.1.1) | 0.1.1 | 2026-05-19 |  | Spxg | in the lock file, but built for none of the platforms the app ships on |
+| Rust [rustc_version](https://crates.io/crates/rustc_version/0.4.1) | 0.4.1 | 2024-08-28 | curve25519-dalek | Kimundi, djc |  |
 | Rust [rustix](https://crates.io/crates/rustix/1.1.5) | 1.1.5 | 2026-09-16 | tempfile | sunfishcode |  |
 | Rust [rustversion](https://crates.io/crates/rustversion/1.0.23) | 1.0.23 | 2026-07-07 |  | dtolnay | in the lock file, but built for none of the platforms the app ships on |
+| Rust [semver](https://crates.io/crates/semver/1.0.28) | 1.0.28 | 2026-04-04 | rustc_version | dtolnay |  |
 | Rust [serde_derive](https://crates.io/crates/serde_derive/1.0.229) | 1.0.229 | 2026-07-18 | serde | dtolnay, github:serde-rs:publish |  |
 | Rust [shlex](https://crates.io/crates/shlex/2.0.1) | 2.0.1 | 2026-05-17 | cc | comex, fenhl |  |
 | Rust [sqlite-wasm-rs](https://crates.io/crates/sqlite-wasm-rs/0.5.5) | 0.5.5 | 2026-05-25 |  | Spxg | in the lock file, but built for none of the platforms the app ships on |

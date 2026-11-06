@@ -189,6 +189,11 @@ class AndroidEnvironment {
     if (rustFlags.isNotEmpty) {
       rustFlags = '$rustFlags\x1f';
     }
+    // This variable replaces the rustflags in .cargo/config.toml, so repeat the one
+    // that matters: curve25519-dalek's serial backend on x86_64 (core/cs-identity).
+    if (target.android == "x86_64") {
+      rustFlags = '$rustFlags--cfg\x1fcurve25519_dalek_backend="serial"\x1f';
+    }
     if (["arm64-v8a", "x86_64"].contains(target.android)) {
       rustFlags = '$rustFlags-L\x1f$workaroundDir\x1f';
 

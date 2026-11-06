@@ -28,6 +28,9 @@ audit-as-crates-io = true
 [policy.argon2]
 audit-as-crates-io = true
 
+[policy.autocfg]
+audit-as-crates-io = true
+
 [policy.base64ct]
 audit-as-crates-io = true
 
@@ -70,7 +73,16 @@ audit-as-crates-io = true
 [policy.ctutils]
 audit-as-crates-io = true
 
+[policy.curve25519-dalek]
+audit-as-crates-io = true
+
 [policy.digest]
+audit-as-crates-io = true
+
+[policy.ed25519]
+audit-as-crates-io = true
+
+[policy.ed25519-dalek]
 audit-as-crates-io = true
 
 [policy.fallible-iterator]
@@ -109,10 +121,28 @@ audit-as-crates-io = true
 [policy.inout]
 audit-as-crates-io = true
 
+[policy.keccak]
+audit-as-crates-io = true
+
+[policy.kem]
+audit-as-crates-io = true
+
 [policy.libc]
 audit-as-crates-io = true
 
 [policy.libsqlite3-sys]
+audit-as-crates-io = true
+
+[policy.ml-dsa]
+audit-as-crates-io = true
+
+[policy.ml-kem]
+audit-as-crates-io = true
+
+[policy.module-lattice]
+audit-as-crates-io = true
+
+[policy.num-traits]
 audit-as-crates-io = true
 
 [policy.opaque-debug]
@@ -136,13 +166,31 @@ audit-as-crates-io = true
 [policy.rusqlite]
 audit-as-crates-io = true
 
+[policy.rustc_version]
+audit-as-crates-io = true
+
+[policy.semver]
+audit-as-crates-io = true
+
 [policy.sha2]
+audit-as-crates-io = true
+
+[policy.sha3]
+audit-as-crates-io = true
+
+[policy.shake]
 audit-as-crates-io = true
 
 [policy.shlex]
 audit-as-crates-io = true
 
+[policy.signature]
+audit-as-crates-io = true
+
 [policy.smallvec]
+audit-as-crates-io = true
+
+[policy.sponge-cursor]
 audit-as-crates-io = true
 
 [policy.subtle]
@@ -158,6 +206,9 @@ audit-as-crates-io = true
 audit-as-crates-io = true
 
 [policy.version_check]
+audit-as-crates-io = true
+
+[policy.x25519-dalek]
 audit-as-crates-io = true
 
 [policy.zeroize]
@@ -275,6 +326,11 @@ criteria = "safe-to-deploy"
 version = "0.1.7"
 criteria = "safe-to-deploy"
 
+[[exemptions.curve25519-dalek-derive]]
+version = "0.1.1"
+criteria = "safe-to-deploy"
+notes = "In the lock file, never built: curve25519-dalek takes it only for its SIMD backend on x86_64, and .cargo/config.toml selects the serial backend (cs-identity refuses to build without it). ADR 0008."
+
 [[exemptions.darling]]
 version = "0.20.11"
 criteria = "safe-to-deploy"
@@ -330,6 +386,11 @@ criteria = "safe-to-deploy"
 [[exemptions.fancy-regex]]
 version = "0.18.0"
 criteria = "safe-to-deploy"
+
+[[exemptions.fiat-crypto]]
+version = "0.3.0"
+criteria = "safe-to-deploy"
+notes = 'In the lock file, never built: curve25519-dalek takes it only with --cfg curve25519_dalek_backend="fiat", which no build sets. ADR 0008.'
 
 [[exemptions.find-msvc-tools]]
 version = "0.1.14"

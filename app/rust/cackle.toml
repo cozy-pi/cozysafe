@@ -276,6 +276,7 @@ allow_unsafe = true
 [pkg.moxcms]
 allow_unsafe = true
 
+# One float-to-int conversion behind range checks; module-lattice never reaches it.
 [pkg."num-traits"]
 allow_unsafe = true
 
@@ -459,3 +460,32 @@ allow_unsafe = true
 
 [pkg.smallvec]
 allow_unsafe = true
+
+# The vault identity (ADR 0008, core/cs-identity), reviewed in supply-chain/audits.toml.
+# curve25519-dalek's build script asks rustc its version (through rustc_version) to pick
+# its field arithmetic, and prints cfgs.
+# cackle reads tokens, so it sees the one `unsafe` in src/constants.rs: a cast behind the
+# precomputed-tables feature, which we do not turn on (supply-chain/audits.toml). Nothing
+# unsafe is compiled with digest and zeroize on the serial backend.
+[pkg."curve25519-dalek"]
+allow_unsafe = true
+build.allow_apis = ["process"]
+
+[pkg.rustc_version]
+from.build.allow_apis = ["process"]
+
+# Build-time only (rustc_version parses rustc's version with it).
+[pkg.semver]
+allow_unsafe = true
+
+# SHA-3 on the ARMv8 SHA3 instructions, picked at run time.
+[pkg.keccak]
+allow_unsafe = true
+
+[pkg."sponge-cursor"]
+allow_unsafe = true
+
+# In the dependency graph for x86_64 only; .cargo/config.toml picks curve25519-dalek's
+# serial backend, which does not use it (core/cs-identity stops a build that would).
+[pkg."curve25519-dalek-derive"]
+allow_proc_macro = true

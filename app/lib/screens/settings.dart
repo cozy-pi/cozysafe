@@ -105,6 +105,8 @@ abstract final class Settings {
 /// its row's symbol and colour.
 enum SettingsSpot {
   sync(Icons.sync_rounded, SettingsHue.xanhLa),
+  keyCheck(Icons.fact_check_rounded, SettingsHue.xanhLa),
+  keyBackup(Icons.cloud_rounded, SettingsHue.troi),
   autoLock(Icons.timer_rounded, SettingsHue.cam),
   blockScreenshots(Icons.visibility_off_rounded, SettingsHue.hong),
   blurThumbs(Icons.blur_on_rounded, SettingsHue.ngoc),
@@ -231,6 +233,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// switches show off and cannot be turned on (owner 2026-11-04: on, yet screenshots
   /// worked, made no sense).
   bool _testVault = false;
+  /// The open vault's 24 words have a copy in the iCloud Keychain / Google Block Store.
+  bool _keyBackup = false;
   bool _lockOnLeave = Settings.lockOnLeave;
   /// What the vault takes, part by part; the card and the Storage page follow it.
   final _figures = ValueNotifier(const StorageFigures());
@@ -248,6 +252,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     TestLogin.isOpen().then((test) {
       if (mounted && test) setState(() => _testVault = true);
     });
+    final open = widget.vault();
+    if (KeyBackup.supported && !open.topSecret) {
+      SecretKeyStore.read(open.libraryDir.isEmpty ? null : open.libraryDir).then((key) {
+        if (mounted && key != null && KeyBackup.isOn(key)) setState(() => _keyBackup = true);
+      });
+    }
     if (widget.focus case final spot?) WidgetsBinding.instance.addPostFrameCallback((_) => _goTo(spot));
     if (widget.guideFrom case final from?) WidgetsBinding.instance.addPostFrameCallback((_) => _guide(from));
     if (widget.canBiometric) {
@@ -398,16 +408,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     });
     if (yes != true || !mounted) return;
-    // Only the device's own words go to iCloud / Google, never a vault's own set.
-    final key = await SecretKeyStore.read();
-    final ok = key != null && await KeyBackup.turnOn(key);
+    // The open vault's set: the device's, or the vault's own (ADR 0008, one copy per set).
+    final key = await SecretKeyStore.readOpen();
+    final ok = key != null && await KeyBackup.save(key, vault: widget.vault().code);
     if (!mounted) return;
     // Block Store keeps nothing without a screen lock (end to end encryption) or Google.
     if (!ok && google) {
       showToast(context, withCode(l, l.keyBackupGoogleFailed, key == null ? 'no-recovery-key' : 'key-backup-google'),
           icon: Icons.error_outline_rounded);
     }
-    setState(() {});
+    setState(() => _keyBackup = ok);
+  }
+
+  Future<void> _keyBackupOff() async {
+    final key = await SecretKeyStore.readOpen();
+    if (key != null) await KeyBackup.remove(key);
+    if (mounted) setState(() => _keyBackup = false);
   }
 
   // Seven taps on the version turn on debug mode, with no owner check: it shows no keys
@@ -662,7 +678,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Where each setting the tour points at lives.
   static _Page _pageOf(SettingsSpot spot) => switch (spot) {
-        SettingsSpot.sync || SettingsSpot.autoLock => _Page.main,
+        SettingsSpot.sync || SettingsSpot.keyCheck || SettingsSpot.keyBackup || SettingsSpot.autoLock => _Page.main,
         SettingsSpot.blockScreenshots || SettingsSpot.blurThumbs || SettingsSpot.hideNoteText => _Page.screen,
         SettingsSpot.appearance || SettingsSpot.language => _Page.look,
       };
@@ -932,32 +948,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: widget.onShowKit,
               ),
             // Type them back to know they still open this vault (owner 2026-10-26).
-            SettingsRow(
-              key: const ValueKey('key-check-row'),
-              icon: Icons.fact_check_rounded,
-              color: SettingsHue.xanhLa,
-              title: l.keyCheckRow,
-              onTap: () => pushPage<void>(context,
-                  title: l.keyCheckRow,
-                  builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword)),
-            ),
-            // Off unless turned on; turning it on is weaker, so it asks for the owner and
-            // says the trade (owner 2026-10-26). Only the device's own words go there: a
-            // vault with its own set does not show it (api/run.rs).
-            if (KeyBackup.supported && (SecretKeyStore.openLibrary ?? widget.libraryDir) == widget.libraryDir)
+            _spot(
+              SettingsSpot.keyCheck,
               SettingsRow(
-                key: const ValueKey('key-backup-row'),
-                icon: Icons.cloud_rounded,
-                color: SettingsHue.troi,
-                title: KeyBackup.google ? l.keyBackupRowGoogle : l.keyBackupRow,
-                trailing: SettingsSwitch(
-                  value: KeyBackup.on,
-                  onChanged: (on) => on
-                      ? _guarded(_keyBackupOn)
-                      : KeyBackup.turnOff().then((_) {
-                          if (mounted) setState(() {});
-                        }),
+                key: const ValueKey('key-check-row'),
+                icon: SettingsSpot.keyCheck.icon,
+                color: SettingsSpot.keyCheck.color,
+                title: l.keyCheckRow,
+                onTap: () => pushPage<void>(context,
+                    title: l.keyCheckRow,
+                    builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword)),
+              ),
+            ),
+            // Turning it on is weaker, so it asks for the owner and says the trade (owner
+            // 2026-10-26); a new vault offers it, on by default (2026-11-05). Never for a
+            // Top secret vault (ADR 0008).
+            if (KeyBackup.supported && !vault.topSecret)
+              _spot(
+                SettingsSpot.keyBackup,
+                SettingsRow(
+                  key: const ValueKey('key-backup-row'),
+                  icon: SettingsSpot.keyBackup.icon,
+                  color: SettingsSpot.keyBackup.color,
+                  title: KeyBackup.google ? l.keyBackupRowGoogle : l.keyBackupRow,
+                  trailing: SettingsSwitch(
+                    value: _keyBackup,
+                    onChanged: (on) => on ? _guarded(_keyBackupOn) : _keyBackupOff(),
+                  ),
                 ),
+              ),
+            // The vault's code (ADR 0008): the name of its password and of its words in
+            // the cloud; never changes. Tap to copy.
+            if (vault.code.isNotEmpty)
+              SettingsRow(
+                key: const ValueKey('vault-code-row'),
+                icon: Icons.tag_rounded,
+                color: SettingsHue.cham,
+                title: l.vaultCode,
+                value: vault.code,
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: vault.code));
+                  showToast(context, l.vaultCodeCopied, icon: Icons.copy_rounded);
+                },
               ),
           ]),
           // 3. When it locks; what shows on screen on a page of its own.

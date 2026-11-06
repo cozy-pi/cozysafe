@@ -1,0 +1,173 @@
+//! SHA3-256 and SHAKE256 (sha3, shake, keccak, sponge-cursor in third_party/rust/) against
+//! NIST's published values: the FIPS 202 example files (SHA3-256_Msg0, SHA3-256_1600,
+//! SHAKE256_Msg0, SHAKE256_Msg1600) and a selection from the CAVP byte-oriented response
+//! files (sha-3bytetestvectors.zip, shakebytetestvectors.zip), copied as published.
+//! Every vector is also run with the input and the output split at block-boundary offsets,
+//! so the sponge cursor's partial-block paths are covered. On aarch64 with FEAT_SHA3
+//! (Apple Silicon) this runs the ARMv8 SHA3 backend; elsewhere the portable one.
+
+use sha3::{Digest, Sha3_256};
+use shake::{ExtendableOutput, Shake256, Update, XofReader};
+
+fn hex(s: &str) -> Vec<u8> {
+    let s: String = s.chars().filter(|c| !c.is_whitespace()).collect();
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
+        .collect()
+}
+
+fn sha3_256(msg: &[u8]) -> Vec<u8> {
+    Sha3_256::digest(msg).to_vec()
+}
+
+fn shake256(msg: &[u8], len: usize) -> Vec<u8> {
+    let mut h = Shake256::default();
+    h.update(msg);
+    let mut out = vec![0u8; len];
+    h.finalize_xof().read(&mut out);
+    out
+}
+
+/// Absorbs `msg` in pieces of `step` bytes, squeezes in pieces of `out_step` bytes.
+fn shake256_split(msg: &[u8], len: usize, step: usize, out_step: usize) -> Vec<u8> {
+    let mut h = Shake256::default();
+    for piece in msg.chunks(step) {
+        h.update(piece);
+    }
+    let mut r = h.finalize_xof();
+    let mut out = vec![0u8; len];
+    for piece in out.chunks_mut(out_step) {
+        r.read(piece);
+    }
+    out
+}
+
+fn sha3_256_split(msg: &[u8], step: usize) -> Vec<u8> {
+    let mut h = Sha3_256::new();
+    for piece in msg.chunks(step) {
+        Digest::update(&mut h, piece);
+    }
+    h.finalize().to_vec()
+}
+
+// Rate of SHA3-256 and SHAKE256 is 136 bytes.
+const STEPS: [usize; 7] = [1, 7, 8, 135, 136, 137, 300];
+
+// SHA3_256ShortMsg.rsp (Len 0, 8, 1080, 1088) and SHA3_256LongMsg.rsp (first 2)
+const CAVP_SHA3_256: &[(&str, &str)] = &[
+    ("", "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"), // ShortMsg Len = 0
+    ("e9", "f0d04dd1e6cfc29a4460d521796852f25d9ef8d28b44ee91ff5b759d72c1e6d6"), // ShortMsg Len = 8
+    ("b1f6076509938432145bb15dbe1a7b2e007934be5f753908b50fd24333455970a7429f2ffbd28bd6fe1804c4688311f318fe3fcd9f6744410243e115bcb00d7e039a4fee4c326c2d119c42abd2e8f4155a44472643704cc0bc72403b8a8ab0fd4d68e04a059d6e5ed45033b906326abb4eb4147052779bad6a03b55ca5bd8b140e131bed2dfada", "f82d9602b231d332d902cb6436b15aef89acc591cb8626233ced20c0a6e80d7a"), // ShortMsg Len = 1080
+    ("56ea14d7fcb0db748ff649aaa5d0afdc2357528a9aad6076d73b2805b53d89e73681abfad26bee6c0f3d20215295f354f538ae80990d2281be6de0f6919aa9eb048c26b524f4d91ca87b54c0c54aa9b54ad02171e8bf31e8d158a9f586e92ffce994ecce9a5185cc80364d50a6f7b94849a914242fcb73f33a86ecc83c3403630d20650ddb8cd9c4", "4beae3515ba35ec8cbd1d94567e22b0d7809c466abfbafe9610349597ba15b45"), // ShortMsg Len = 1088
+    ("b1caa396771a09a1db9bc20543e988e359d47c2a616417bbca1b62cb02796a888fc6eeff5c0b5c3d5062fcb4256f6ae1782f492c1cf03610b4a1fb7b814c057878e1190b9835425c7a4a0e182ad1f91535ed2a35033a5d8c670e21c575ff43c194a58a82d4a1a44881dd61f9f8161fc6b998860cbe4975780be93b6f87980bad0a99aa2cb7556b478ca35d1f3746c33e2bb7c47af426641cc7bbb3425e2144820345e1d0ea5b7da2c3236a52906acdc3b4d34e474dd714c0c40bf006a3a1d889a632983814bbc4a14fe5f159aa89249e7c738b3b73666bac2a615a83fd21ae0a1ce7352ade7b278b587158fd2fabb217aa1fe31d0bda53272045598015a8ae4d8cec226fefa58daa05500906c4d85e7567", "cb5648a1d61c6c5bdacd96f81c9591debc3950dcf658145b8d996570ba881a05"), // LongMsg Len = 2184
+    ("712b03d9ebe78d3a032a612939c518a6166ca9a161183a7596aa35b294d19d1f962da3ff64b57494cb5656e24adcf3b50e16f4e52135d2d9de76e94aa801cf49db10e384035329c54c9455bb3a9725fd9a44f44cb9078d18d3783d46ce372c31281aecef2f8b53d5702b863d71bc5786a33dd15d9256103b5ff7572f703d5cde6695e6c84f239acd1d6512ef581330590f4ab2a114ea064a693d5f8df5d908587bc7f998cde4a8b43d8821595566597dc8b3bf9ea78b154bd8907ee6c5d4d8a851f94be510962292b7ddda04d17b79fab4c022deb400e5489639dbc448f573d5cf72073a8001b36f73ac6677351b39d9bdb900e9a1121f488a7fa0aee60682e7dc7c531c85ec0154593ded3ae70e4121cae58445d8896b549cacf22d07cdace7625d57158721b44851d796d6511c38dac28dd37cbf2d7073b407fbc813149adc485e3dacee66755443c389d2d90dc70d8ff91816c0c5d7adbad7e30772a1f3ce76c72a6a2284ec7f174aefb6e9a895c118717999421b470a9665d2728c3c60c6d3e048d58b43c0d1b5b2f00be8b64bfe453d1e8fadf5699331f9", "095dcd0bc55206d2e1e715fb7173fc16a81979f278495dfc69a6d8f3174eba5a"), // LongMsg Len = 3280
+];
+
+// SHAKE256ShortMsg.rsp (Len 0, 8, 1080, 1088, 1096, 2176) and SHAKE256LongMsg.rsp (first 2), 256-bit outputs; SHAKE256VariableOut.rsp (every Outputlen = 2000, first of 1080, 1088, 1096)
+const CAVP_SHAKE256: &[(&str, &str)] = &[
+    ("", "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f"), // ShortMsg Len = 0
+    ("0f", "aabb07488ff9edd05d6a603b7791b60a16d45093608f1badc0c9cc9a9154f215"), // ShortMsg Len = 8
+    ("362f1eb00b37a9613b1ae82b90452579d42f8b1f9ede95f86badc6cdf04c9b79af08be4bc94d7cac136979026b92a2d44d2b642ea1431b47d75fce61367919f171486a007cc271d19de0d1c4c6a11c7a2251fe3aee0bb8938a7dd043d0eb0758a4768c95cc9f6f1703075839487879b47c29c10b2c3e5326ac8f363c65aa4ef76f1b8bd363eb60", "c6ce60c1852ea780ed845aac4ca6a30e09f5c0064c9675865178717cfeb1dc97"), // ShortMsg Len = 1080
+    ("d8f12b97f81d47aebbfb7314ff04172cf2be71c3778e238bcccdeecb691fbd542b00e5b7b1a0abb507f107f781fea700ea7e375fdea9e029754a0ea62216774bda3c59e8783d022360fe9625621c0d93e27f7bc03632942150716f019d048a752ccc0f93139c55df0f4aaa066a0550cf22e8c54e47d0475ba56b9842a392ffbc6bd98f1e4b64abd1", "e2e1c432dd07c2ee89a78f31211c92eeb5306c4fa4db93c4e5cd43080d6079e4"), // ShortMsg Len = 1088
+    ("a10d05d7e51e75dc150f640ec4722837220b86df2a3580ca1c826ec22ea250977e8663634cc4f212663e6f22e3ffc2a81465e194b885a1356fcbcc0072e1738d80d285e21c70a1f4f5f3296ba6e298a69f3715ff63be4850f5be6cb68cdba5948e3b94dbbce82989aa75b97073e55139aac849a894a71c2294a2776ce6588fb59007b8d796f434da6e", "02f17bf86dc7b7f9c3fb96e4b3a10ca574cd0f8dedda50f3dda8008ce9e8fec9"), // ShortMsg Len = 1096
+    ("104fefe89f08d15d36a2233f42a7defa917c5ad2642e06cac56d5cc51ad914ecfb7d984f4199b9cf5fa5a03bf69207b9a353a9681c9cf6437bea0c49d9c3e3db1f3fc76519c70c40cc1dfdd70a9c150943c272cf9eeb861f485f10100c8f4a3e259c6470501932782512225ba64d70b219cf9d5013a21d25d6d65062dcc6b3deb49d58b90d18933f118df70ff42c807ccc851233a34a221eca56b38971ef858475488988794a975d3894633a19c1ae2f05e9b9c0756affd3cfe823ccf29228f60fa7e025bc39a79943325126409460926b057a3fb28a1b098b938872883804fd2bc245d7fd6d29bcda6ca6198f2eff6ea7e03ef78133de8ba65fc8c45a688160719fa1e7646d878ea44c4b5c2e16f48b", "46293a63c235750d58a24edca5ba637b96cae74325c6c8122c4155c0d15805e6"), // ShortMsg Len = 2176
+    ("dc5a100fa16df1583c79722a0d72833d3bf22c109b8889dbd35213c6bfce205813edae3242695cfd9f59b9a1c203c1b72ef1a5423147cb990b5316a85266675894e2644c3f9578cebe451a09e58c53788fe77a9e850943f8a275f830354b0593a762bac55e984db3e0661eca3cb83f67a6fb348e6177f7dee2df40c4322602f094953905681be3954fe44c4c902c8f6bba565a788b38f13411ba76ce0f9f6756a2a2687424c5435a51e62df7a8934b6e141f74c6ccf539e3782d22b5955d3baf1ab2cf7b5c3f74ec2f9447344e937957fd7f0bdfec56d5d25f61cde18c0986e244ecf780d6307e313117256948d4230ebb9ea62bb302cfe80d7dfebabc4a51d7687967ed5b416a139e974c005fff507a96", "2bac5716803a9cda8f9e84365ab0a681327b5ba34fdedfb1c12e6e807f45284b"), // LongMsg Len = 2184
+    ("16caf60da14b4fa9174a6d40c23cff93ed8fc9279990f749718db1500036ef2222498ffab86fa568a0611299e54e58d83281ac558d3f4d2541ee158b1c7d4d76dbffc64ae39925e3329f7fd894fa26fc1acdc22bc858a3438e1c55707a3f75ad2b33c48789937a24b34ddd85390611088cba3231b2a3a0a93e5d9a8780470fcff92cb03811234a330db353283b3bc3036f9125efb3eaed613bfa0c59975cc2e52c33b3e6e5123e1626190a4a0261e1f5ad9bc2ee34f331736b3bd26d274536f5ae90f5186c27fdd7e8c72972f64016e72d1d32b59b8715e5b867154b99cb140a668b9d560e2c307e3904d9297f9f07dfd7629ccc526e41c109c8fc7c53b604293c6cd42933e77e11031a42f605485fe893b129bcbf705c0f45a4b087bfcead5c187ac1174322909a2d4f8b61f001c4074951000c4c550ed5564458f444dab8aae2fe8daaa6a30d209fecddf2a893df46e18b4b4460e4011d23f01d4c49a4cc1c82405f6ac5339eac41385f3295c657ac43a72fed62e6daee94ef271638f292b8e18860de0699eb45fb7d3aa81f61d44158edd68ebc244451918b", "21a48efd949c3f785179a0e340756a23f77d29a7625229a71a05731c7fbd5aa9"), // LongMsg Len = 3280
+    ("dc886df3f69c49513de3627e9481db5871e8ee88eb9f99611541930a8bc885e0", "00648afbc5e651649db1fd82936b00dbbc122fb4c877860d385c4950d56de7e096d613d7a3f27ed8f26334b0ccc1407b41dccb23dfaa529818d1125cd5348092524366b85fabb97c6cd1e6066f459bcc566da87ec9b7ba36792d118ac39a4ccef6192bbf3a54af18e57b0c146101f6aeaa822bc4b4c9708b09f0b3bab41bcce964d999d1107bd7c27af989ebe1e104a35478df362ec4c9628f5ea29cc1164b92960d42068a59b1ddcb8875722ed59df36ea654d97b6bf39e5075121ec93f8a8ea6ee5d923997ae8a9d4c315a3d074e3ff83dfa26490f0f5b00a3cc3f110f0f761eaac885a3d1eee302014191733bf77b4d58cca49258897d6460"), // VariableOut COUNT = 1240, Outputlen = 2000
+    ("e3ef127eadfafaf40408cebb28705df30b68d99dfa1893507ef3062d85461715", "7314002948c057006d4fc21e3e19c258fb5bdd57728fe93c9c6ef265b6d9f559ca73da32c427e135ba0db900d9003b19c9cf116f542a760418b1a435ac75ed5ab4ef151808c3849c3bce11c3cd285dd75e5c9fd0a0b32a89640a68e6e5b270f966f33911cfdffd03488b52b4c7fd1b2219de133e77519c426a63b9d8afac2ccab273ebd23765616b04446d6ac403f46ac0c147eda629eb7583c8bd00dc7c30fcd6711b36f99f80ac94b683ebb090581970ae7e696c4c0afa9b5dafe07d1ab80877cbd09b705a0147d62d72a506732459a54142a0892c56afb61359e910f1e67dc99c0c105325a7d9f65b9868fa6ae6338b6c153f7705173f4a22"), // VariableOut COUNT = 1241, Outputlen = 2000
+    ("76891a7bcc6c04490035b743152f64a8dd2ea18ab472b8d36ecf45858d0b0046", "e8447df87d01beeb724c9a2a38ab00fcc24e9bd17860e673b021222d621a7810e5d3dcead3f6b72810ff1ad242bf79074d2fd63503cbe7a2ffe81b1c57566568b01dda7b440ad27aee54d2f8696615008efee01c682dae7d875aa21ab3914d063d21f1d97fa9d57709ebbab376a88b1da805f0fc5ab8370cd3b714613fd8e5939f972d72fd5dff9e17c1ace1ff2980ac9aac5c3ffd2d97a95bf42a5d6bb914996ead2413e6dc1b3284e4f45f2f2531775561001a14213e0220f86ab32b65e2e2f9f03b99ff5e352cf461589a38af04611ff9418e2115ad25a826be63627650ae8797d401d7279241135b81308d4028e5408f99ce9455efa06988"), // VariableOut COUNT = 1242, Outputlen = 2000
+    ("445b17ce13727ae842b877c4750611a9eb79823bc5752da0a5e9d4e27bd40b94", "e7708cdc22f03b0bfaca03e5d11d46cac118fded60b64bf4acffb35b0b474fbe85d270e625b95d54157d6597eb4fbdfa482e636d4a44c9de13c71387654c1a254a85063dd7720ffd5c6fc50ab97914c67ce6f0da5ae14ec0f2c5cdad79c4d85415279d21e236519dc1422c5b6dd156ffe432c14f40eb458f21e20527b23c03e299736adc12620303716933509e0f8b8a8cef58a75810406b6dc47d65ae5d89f0ebbc72d8b1315f6a4a272b0da9fa19d9fa69aba98c30621cd63a4ac0b041a9439f986b728110f44817b157de7fcebf60d7a885f1c77211e5506da6d2a73806a53f33944fcbeecc9022b5f224e7dec29fb67234ec71bf69485245"), // VariableOut COUNT = 1243, Outputlen = 2000
+    ("6ae23f058f0f2264a18cd609acc26dd4dbc00f5c3ee9e13ecaea2bb5a2f0bb6b", "b9b92544fb25cfe4ec6fe437d8da2bbe00f7bdaface3de97b8775a44d753c3adca3f7c6f183cc8647e229070439aa9539ae1f8f13470c9d3527fffdeef6c94f9f0520ff0c1ba8b16e16014e1af43ac6d94cb7929188cce9d7b02f81a2746f52ba16988e5f6d93298d778dfe05ea0ef256ae3728643ce3e29c794a0370e9ca6a8bf3e7a41e86770676ac106f7ae79e67027ce7b7b38efe27d253a52b5cb54d6eb4367a87736ed48cb45ef27f42683da140ed3295dfc575d3ea38cfc2a3697cc92864305407369b4abac054e497378dd9fd0c4b352ea3185ce1178b3dc1599df69db29259d4735320c8e7d33e8226620c9a1d22761f1d35bdff79a"), // VariableOut COUNT = 1244, Outputlen = 2000
+    ("8d8001e2c096f1b88e7c9224a086efd4797fbf74a8033a2d422a2b6b8f6747e4", "2e975f6a8a14f0704d51b13667d8195c219f71e6345696c49fa4b9d08e9225d3d39393425152c97e71dd24601c11abcfa0f12f53c680bd3ae757b8134a9c10d429615869217fdd5885c4db174985703a6d6de94a667eac3023443a8337ae1bc601b76d7d38ec3c34463105f0d3949d78e562a039e4469548b609395de5a4fd43c46ca9fd6ee29ada5efc07d84d553249450dab4a49c483ded250c9338f85cd937ae66bb436f3b4026e859fda1ca571432f3bfc09e7c03ca4d183b741111ca0483d0edabc03feb23b17ee48e844ba2408d9dcfd0139d2e8c7310125aee801c61ab7900d1efc47c078281766f361c5e6111346235e1dc38325666c"), // VariableOut COUNT = 1245, Outputlen = 2000
+    ("8d8001e2c096f1b88e7c9224a086efd4797fbf74a8033a2d422a2b6b8f6747e4", "2e975f6a8a14f0704d51b13667d8195c219f71e6345696c49fa4b9d08e9225d3d39393425152c97e71dd24601c11abcfa0f12f53c680bd3ae757b8134a9c10d429615869217fdd5885c4db174985703a6d6de94a667eac3023443a8337ae1bc601b76d7d38ec3c34463105f0d3949d78e562a039e4469548b609395de5a4fd43c46ca9fd6ee29a"), // VariableOut COUNT = 665, Outputlen = 1080
+    ("dc886df3f69c49513de3627e9481db5871e8ee88eb9f99611541930a8bc885e0", "00648afbc5e651649db1fd82936b00dbbc122fb4c877860d385c4950d56de7e096d613d7a3f27ed8f26334b0ccc1407b41dccb23dfaa529818d1125cd5348092524366b85fabb97c6cd1e6066f459bcc566da87ec9b7ba36792d118ac39a4ccef6192bbf3a54af18e57b0c146101f6aeaa822bc4b4c9708b09f0b3bab41bcce964d999d1107bd7c2"), // VariableOut COUNT = 670, Outputlen = 1088
+    ("8d8001e2c096f1b88e7c9224a086efd4797fbf74a8033a2d422a2b6b8f6747e4", "2e975f6a8a14f0704d51b13667d8195c219f71e6345696c49fa4b9d08e9225d3d39393425152c97e71dd24601c11abcfa0f12f53c680bd3ae757b8134a9c10d429615869217fdd5885c4db174985703a6d6de94a667eac3023443a8337ae1bc601b76d7d38ec3c34463105f0d3949d78e562a039e4469548b609395de5a4fd43c46ca9fd6ee29ada5e"), // VariableOut COUNT = 675, Outputlen = 1096
+];
+
+/// SHAKE256_Msg1600.pdf: 200 bytes of 0xa3, 4096-bit output (lines joined as printed).
+const NIST_SHAKE256_A3_4096: &str = "cd8a920ed141aa0407a22d59288652e9d9f1a7ee0c1e7c1ca699424da84a904d2d700caae7396ece96604440577da4f3aa22aeb8857f961c4cd8e06f0ae6610b1048a7f64e1074cd629e85ad7566048efc4fb500b486a3309a8f26724c0ed628001a1099422468de726f1061d99eb9e93604d5aa7467d4b1bd6484582a384317d7f47d750b8f5499512bb85a226c4243556e696f6bd072c5aa2d9b69730244b56853d16970ad817e213e470618178001c9fb56c54fefa5fee67d2da524bb3b0b61ef0e9114a92cdbb6cccb98615cfe76e3510dd88d1cc28ff99287512f24bfafa1a76877b6f37198e3a641c68a7c42d45fa7acc10dae5f3cefb7b735f12d4e589f7a456e78c0f5e4c4471fffa5e4fa0514ae974d8c2648513b5db494cea847156d277ad0e141c24c7839064cd08851bc2e7ca109fd4e251c35bb0a04fb05b364ff8c4d8b59bc303e25328c09a882e952518e1a8ae0ff265d61c465896973d7490499dc639fb8502b39456791b1b6ec5bcc5d9ac36a6df622a070d43fed781f5f149f7b62675e7d1a4d6dec48c1c7164586eae06a51208c0b791244d307726505c3ad4b26b6822377257aa152037560a739714a3ca79bd605547c9b78dd1f596f2d4f1791bc689a0e9b799a37339c04275733740143ef5d2b58b96a363d4e08076a1a9d7846436e4dca5728b6f760eef0ca92bf0be5615e96959d767197a0beeb";
+
+#[test]
+fn sha3_256_nist_examples() {
+    // SHA3-256_Msg0.pdf
+    assert_eq!(
+        sha3_256(b""),
+        hex("a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a")
+    );
+    // "abc": the widely published value (not in NIST's example files); checked against OpenSSL
+    assert_eq!(
+        sha3_256(b"abc"),
+        hex("3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532")
+    );
+    // SHA3-256_1600.pdf: 200 bytes of 0xa3
+    let a3 = [0xa3u8; 200];
+    let want = hex("79f38adec5c20307a98ef76e8324afbfd46cfd81b22e3973c65fa1bd9de31787");
+    assert_eq!(sha3_256(&a3), want);
+    for step in STEPS {
+        assert_eq!(sha3_256_split(&a3, step), want, "step {step}");
+    }
+}
+
+#[test]
+fn shake256_nist_examples() {
+    // SHAKE256_Msg0.pdf, first 64 bytes
+    assert_eq!(
+        shake256(b"", 64),
+        hex(
+            "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f\
+             d75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be"
+        )
+    );
+    // SHAKE256_Msg1600.pdf: 512 bytes out, more than three blocks of squeezing
+    let a3 = [0xa3u8; 200];
+    let want = hex(NIST_SHAKE256_A3_4096);
+    assert_eq!(want.len(), 512);
+    assert_eq!(shake256(&a3, 512), want);
+    for step in STEPS {
+        for out_step in STEPS {
+            assert_eq!(
+                shake256_split(&a3, 512, step, out_step),
+                want,
+                "step {step}/{out_step}"
+            );
+        }
+    }
+}
+
+#[test]
+fn sha3_256_cavp() {
+    for (i, (msg, md)) in CAVP_SHA3_256.iter().enumerate() {
+        let (msg, md) = (hex(msg), hex(md));
+        assert_eq!(sha3_256(&msg), md, "vector {i}");
+        for step in STEPS {
+            assert_eq!(sha3_256_split(&msg, step), md, "vector {i}, step {step}");
+        }
+    }
+}
+
+#[test]
+fn shake256_cavp() {
+    for (i, (msg, out)) in CAVP_SHAKE256.iter().enumerate() {
+        let (msg, out) = (hex(msg), hex(out));
+        assert_eq!(shake256(&msg, out.len()), out, "vector {i}");
+        for step in STEPS {
+            for out_step in STEPS {
+                assert_eq!(
+                    shake256_split(&msg, out.len(), step, out_step),
+                    out,
+                    "vector {i}, step {step}/{out_step}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn shake256_output_is_a_prefix_stream() {
+    // Reading n bytes then more continues the same stream (XOF reader bookkeeping).
+    let long = shake256(b"", 1000);
+    for n in [1, 64, 135, 136, 137, 272, 999] {
+        assert_eq!(shake256(b"", n), long[..n]);
+    }
+}

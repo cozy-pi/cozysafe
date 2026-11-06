@@ -1,0 +1,29 @@
+[package]
+name = "cs-identity"
+version = "0.1.0"
+description = "Cozy Safe vault identity: hybrid post-quantum signing and sealing keys derived from the Master Key"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# rustdoc does not take .cargo/config.toml's rustflags, so the x86_64 backend guard in
+# lib.rs would stop the doctests; the crate has none.
+[lib]
+doctest = false
+
+[dependencies]
+cs-crypto = { path = "../cs-crypto" }
+# docs/adr/0008-vault-identity.md. Each one is a copy in third_party/rust/, reviewed
+# (docs/supply-chain.md). No default features: no getrandom, no pkcs8, no std.
+ed25519-dalek = { version = "=3.0.0", default-features = false, features = ["zeroize"] }
+x25519-dalek = { version = "=3.0.0", default-features = false, features = ["static_secrets", "zeroize"] }
+ml-dsa = { version = "=0.1.2", default-features = false, features = ["zeroize"] }
+ml-kem = { version = "=0.3.4", default-features = false, features = ["zeroize"] }
+sha3 = { version = "=0.12.0", default-features = false, features = ["zeroize"] }
+shake = { version = "=0.1.0", default-features = false, features = ["zeroize"] }
+sha2 = "0.11"
+hkdf = "0.13"
+zeroize = "1"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(curve25519_dalek_backend, values("serial"))'] }

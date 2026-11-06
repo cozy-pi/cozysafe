@@ -29,3 +29,7 @@ libc 0.2.191  # baseline 2026-10-24
 webpki-roots 1.0.10  # RUSTSEC-2026-0381: 1.0.9 still trusted distrusted emSign intermediates; Mozilla root list only (no code), reviewed 2026-10-24
 rustls 0.23.46  # RUSTSEC-2026-0346/0347/0348/0349 (TLS secrets in Debug, ECH, Brotli 1 GiB, downgrade) fixed here; reviewed 2026-10-24
 rustls-webpki 0.103.16  # RUSTSEC-2026-0382 (distrusted intermediates accepted) fixed here; reviewed 2026-10-24
+ml-dsa 0.1.2  # "Security": constant-time fixes, SHAKE state zeroized (0.1.1 leaves it); vault identity (ADR 0008); every compiled line reviewed, ACVP vectors, 2026-11-06
+ml-kem 0.3.4  # "Security": hardened reduction, equality and zeroization over 0.3.3; vault identity (ADR 0008); every compiled line reviewed, ACVP vectors, 2026-11-06
+module-lattice 0.2.4  # "Security": constant-time reduction, needed by ml-kem 0.3.4 and ml-dsa 0.1.2; reviewed 2026-11-06
+ctutils 0.4.8  # "Security": constant-time hardening; ml-dsa 0.1.2 and module-lattice 0.2.4 need >= 0.4.7; reviewed 2026-11-06

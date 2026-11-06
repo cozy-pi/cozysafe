@@ -920,5 +920,20 @@
   "blurTipTitle": "Ảnh thu nhỏ được làm mờ",
   "blurTipBody": "Để người bên cạnh không nhìn thấy. Chạm vào ảnh để xem rõ. Muốn tắt: “{setting}” ở {where}.",
   "testVaultShots": "Két thử nghiệm luôn cho chụp màn hình, không đổi được",
-  "testVaultThumbs": "Két thử nghiệm luôn hiện rõ ảnh, không đổi được"
+  "testVaultThumbs": "Két thử nghiệm luôn hiện rõ ảnh, không đổi được",
+  "vaultCode": "Mã két",
+  "vaultCodeCopied": "Đã chép mã két",
+  "wordsCloud": "Giữ bản sao trong iCloud Keychain",
+  "wordsCloudGoogle": "Giữ bản sao trong Google",
+  "wordsCloudNote": "iPhone mới cùng tài khoản Apple tự điền 24 từ. Vẫn cần mật khẩu két.",
+  "wordsCloudNoteGoogle": "Android mới cùng tài khoản Google tự điền 24 từ. Vẫn cần mật khẩu két.",
+  "wordsCloudFailed": "iCloud Keychain chưa giữ được. Hãy chép 24 từ ra giấy và gõ lại bốn từ.",
+  "wordsCloudFailedGoogle": "Google chưa giữ được (máy cần khoá màn hình). Hãy chép 24 từ ra giấy và gõ lại bốn từ.",
+  "wordsCheckSkip": "Bỏ qua, kiểm sau",
+  "wordsSkipTitle": "Bỏ qua bước kiểm tra?",
+  "wordsSkipBody": "Chép sai một từ là không mở lại được két trên máy khác. Bạn kiểm lại được bất cứ lúc nào ở {where}.",
+  "wordsCheckNow": "Kiểm ngay",
+  "wordsSkipConfirm": "Vẫn bỏ qua",
+  "wordsUncheckedTipTitle": "24 từ chưa được kiểm",
+  "wordsUncheckedTipBody": "Gõ lại một lần cho chắc chúng mở được két này. Ở {where}."
 }

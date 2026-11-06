@@ -906,5 +906,20 @@
   "blurTipTitle": "Las miniaturas están difuminadas",
   "blurTipBody": "Para que nadie a tu lado las vea. Toca una para verla nítida. Para desactivarlo: «{setting}» en {where}.",
   "testVaultShots": "Siempre permitido en la caja de prueba, no se puede cambiar",
-  "testVaultThumbs": "Siempre nítidas en la caja de prueba, no se puede cambiar"
+  "testVaultThumbs": "Siempre nítidas en la caja de prueba, no se puede cambiar",
+  "vaultCode": "Código de la caja fuerte",
+  "vaultCodeCopied": "Código de la caja fuerte copiado",
+  "wordsCloud": "Guardar una copia en el Llavero de iCloud",
+  "wordsCloudGoogle": "Guardar una copia con Google",
+  "wordsCloudNote": "Un iPhone nuevo con tu cuenta de Apple rellena las 24 palabras. Seguirás necesitando la contraseña de la caja fuerte.",
+  "wordsCloudNoteGoogle": "Un Android nuevo con tu cuenta de Google rellena las 24 palabras. Seguirás necesitando la contraseña de la caja fuerte.",
+  "wordsCloudFailed": "El Llavero de iCloud no las guardó. Anota las 24 palabras y vuelve a escribir cuatro.",
+  "wordsCloudFailedGoogle": "Google no las guardó (este teléfono necesita un bloqueo de pantalla). Anota las 24 palabras y vuelve a escribir cuatro.",
+  "wordsCheckSkip": "Omitir, comprobar luego",
+  "wordsSkipTitle": "¿Omitir la comprobación?",
+  "wordsSkipBody": "Si anotas mal una palabra, la caja fuerte no se podrá abrir en otro teléfono. Puedes comprobarlas cuando quieras en {where}.",
+  "wordsCheckNow": "Comprobar ahora",
+  "wordsSkipConfirm": "Omitir",
+  "wordsUncheckedTipTitle": "Tus 24 palabras aún no están comprobadas",
+  "wordsUncheckedTipBody": "Escríbelas una vez para asegurarte de que abren esta caja fuerte. Está en {where}."
 }
