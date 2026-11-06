@@ -7,7 +7,11 @@ runs:
       with:
         channel: stable
         flutter-version: 3.47.7
-        cache: true
+        # The SDK is about 2 GB a platform and the repository's cache holds 10 GB: kept
+        # only for the macOS runners (iOS and macOS builds, the slowest and the scarcest
+        # machines), where downloading it again took 1.5 minutes. Linux and Windows fetch
+        # it in under a minute.
+        cache: ${{ runner.os == 'macOS' }}
     - id: frb
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
@@ -22,13 +26,25 @@ runs:
     # When this build was made, for Settings → About (lib/build_info.dart).
     - shell: bash
       run: echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%MZ)" >> "$GITHUB_ENV"
+    # The Rust-Dart bindings come from the Rust API alone. Without cargo-expand the codegen
+    # compiles the whole crate to read it (about 3 minutes in every job), so the files
+    # it made from the same sources are kept and reused. Cached on this branch or main
+    # only (a pull request's cache never reaches main), and the key names every input.
+    - id: frb-out
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          app/lib/src/rust
+          app/rust/src/frb_generated.rs
+        key: frb-out-2.13.0-${{ runner.os }}-${{ hashFiles('app/rust/src/**/*.rs', 'app/rust/Cargo.toml', 'app/rust/Cargo.lock', 'app/flutter_rust_bridge.yaml', 'core/**/*.rs', 'core/**/Cargo.toml') }}
     - shell: bash
       working-directory: app
       # The codegen sets RUSTFLAGS for its own expand, which replaces .cargo/config.toml's;
       # it appends to this one, so curve25519-dalek keeps its serial backend on x86_64.
       env:
         RUSTFLAGS: --cfg curve25519_dalek_backend="serial"
+        FRB_HIT: ${{ steps.frb-out.outputs.cache-hit }}
       run: |
         flutter pub get --enforce-lockfile
-        flutter_rust_bridge_codegen generate
+        if [ "$FRB_HIT" != true ]; then flutter_rust_bridge_codegen generate; fi
         flutter gen-l10n
