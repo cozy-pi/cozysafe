@@ -45,6 +45,19 @@ line out when it is done or decided against.
 
 ## Tooling
 
+- **Android compiles Rust twice** in a release (the APK for GitHub, then the Play bundle
+  for every ABI): about 4-5 minutes. Take the APK from the bundle instead, or build the
+  native library once and reuse it. (Build timing, 2026-11-07.)
+- **The Rust build caches barely help**: vendored crates are path dependencies, which
+  cargo rebuilds whenever their files' times change (always, after a checkout). A
+  directory source (`[source]` replacement) would be fingerprinted by version instead;
+  a supply-chain change, so through tools/check-vendor and docs/supply-chain.md.
+  (Build timing, 2026-11-07.)
+- The security job is bounded by CodeQL Rust (about 5 minutes) and `owners` (about 4,
+  the crates.io API at one request a second): builds could start beside them, with only
+  the publishing jobs waiting for them (needs the publish jobs moved out of the reusable
+  workflows).
+
 - `tool/mockup.sh`: three shots fail in their setup (`mac-home-cloud`,
   `settings-security`, `bottom-delete-vault`).
 - `app_ru.arb` `confirmRestoreTitle`: gen-l10n warns that `=1` is overridden by `one`.
