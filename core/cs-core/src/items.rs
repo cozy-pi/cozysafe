@@ -380,6 +380,7 @@ impl OpenVault {
             thumb_hash,
             summary,
             legacy_folder_id: None,
+            extra: Vec::new(),
             wrapped_dek: crate::hex::encode(wrap::wrap_key(
                 &self.master_key,
                 &dek,
@@ -1130,6 +1131,42 @@ mod tests {
         assert_eq!(v.items().unwrap()[0].account, "old");
         // Written as it was, no new revision; nothing left to do.
         assert_eq!(v.restore_summaries().unwrap(), 0);
+    }
+
+    #[test]
+    fn fields_from_a_newer_app_survive_an_edit_here() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk())
+            .unwrap()
+            .create_vault("A", pw())
+            .unwrap();
+        let it = v
+            .add_item(NewItem {
+                kind: kind::NOTE,
+                name: "N",
+                mime: "text/plain",
+                created_ms: 1,
+                content: &b"x"[..],
+                thumbnail: None,
+            })
+            .unwrap();
+        // A newer app added two fields to the record.
+        let mut r = v.record(&it.id).unwrap();
+        let later = br#"{"pinned_ms":5,"links":[{"to":"ab","as":"scan"}]}"#;
+        let Ok(crate::json::Value::Object(fields)) = crate::json::parse(later) else {
+            panic!()
+        };
+        r.extra = fields.clone();
+        v.write_record(&it.id, &r).unwrap();
+        // This app renames and favours it: both fields are still there, as they were.
+        v.rename_item(&it.id, "Renamed").unwrap();
+        v.set_favorite(&it.id, true).unwrap();
+        let back = v.record(&it.id).unwrap();
+        assert_eq!(back.extra, fields);
+        assert_eq!(
+            ItemRecord::from_json(&back.to_json()).unwrap().extra,
+            fields
+        );
     }
 
     #[test]

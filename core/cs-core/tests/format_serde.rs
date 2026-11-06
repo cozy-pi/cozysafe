@@ -209,6 +209,7 @@ fn record(s: &SItemRecord) -> ItemRecord {
             of: m.of.clone(),
         }),
         legacy_folder_id: s.legacy_folder_id.clone(),
+        extra: Vec::new(),
     }
 }
 
@@ -497,7 +498,18 @@ fn older_item_records() {
         r#"[]"#,
         r#"{}"#,
     ] {
-        read_alike::<SItemRecord, _>(doc, ItemRecord::from_json, record);
+        // serde drops fields it does not know; ours keeps them in `extra` (compared
+        // apart: items.rs, fields_from_a_newer_app_survive_an_edit_here).
+        read_alike::<SItemRecord, _>(
+            doc,
+            |b| {
+                ItemRecord::from_json(b).map(|mut r| {
+                    r.extra.clear();
+                    r
+                })
+            },
+            record,
+        );
     }
 }
 

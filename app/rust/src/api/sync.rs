@@ -1466,6 +1466,10 @@ mod tests {
             "p2p-add-old-version"
         );
         assert_eq!(
+            error_code(&cs_vault::Error::Corrupt("sync needs newer app")),
+            "sync-needs-newer-app"
+        );
+        assert_eq!(
             error_code(&cs_vault::Error::Corrupt("drive rate limited")),
             "drive-rate-limited"
         );

@@ -962,5 +962,6 @@
   "entryShowCodes": "Tampilkan kode",
   "entryHideCodes": "Sembunyikan kode",
   "entryUnsavedCopy": "{name} (belum disimpan)",
-  "syncPeerOldVersion": "Perangkat lain memakai Cozy Safe versi lama. Perbarui aplikasi di kedua perangkat, lalu coba lagi."
+  "syncPeerOldVersion": "Perangkat lain memakai Cozy Safe versi lama. Perbarui aplikasi di kedua perangkat, lalu coba lagi.",
+  "syncNeedsNewerApp": "Brankas ini disinkronkan oleh Cozy Safe versi lebih baru. Perbarui aplikasi untuk terus menyinkronkannya."
 }

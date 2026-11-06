@@ -962,5 +962,6 @@
   "entryShowCodes": "コードを表示",
   "entryHideCodes": "コードを隠す",
   "entryUnsavedCopy": "{name}（未保存）",
-  "syncPeerOldVersion": "相手のデバイスの Cozy Safe が古いバージョンです。両方のデバイスでアプリを更新してから、もう一度お試しください。"
+  "syncPeerOldVersion": "相手のデバイスの Cozy Safe が古いバージョンです。両方のデバイスでアプリを更新してから、もう一度お試しください。",
+  "syncNeedsNewerApp": "この金庫は新しいバージョンの Cozy Safe で同期されています。同期を続けるにはアプリを更新してください。"
 }

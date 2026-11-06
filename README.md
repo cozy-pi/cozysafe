@@ -295,6 +295,7 @@ screen in dark and light inside an iPhone frame, with the changed parts outlined
 | [Dependencies](docs/dependencies.md) | Every third-party package, grouped by risk, and what changed since the last review |
 | [Security rules](docs/security.md) | Owner check on security settings; secrets and note text hidden on screen |
 | [Data model](docs/data-model.md) | Every file, table and record a vault stores, on the device, in backups and in the cloud |
+| [Backlog](docs/backlog.md) | Things found and judged not urgent, kept for later |
 | [Cryptography](docs/cryptography.md) | Algorithms, key hierarchy, what is encrypted and what is visible |
 | [UI](docs/ui.md) | Design language (sizes, colours, layout), approved designs, how mockups are made |
 | [Naming](docs/naming.md) | One name per concept; how stored names may change |

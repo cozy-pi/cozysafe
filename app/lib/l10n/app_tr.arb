@@ -962,5 +962,6 @@
   "entryShowCodes": "Kodları göster",
   "entryHideCodes": "Kodları gizle",
   "entryUnsavedCopy": "{name} (kaydedilmedi)",
-  "syncPeerOldVersion": "Diğer cihazda Cozy Safe'in eski bir sürümü var. Uygulamayı iki cihazda da güncelleyip yeniden deneyin."
+  "syncPeerOldVersion": "Diğer cihazda Cozy Safe'in eski bir sürümü var. Uygulamayı iki cihazda da güncelleyip yeniden deneyin.",
+  "syncNeedsNewerApp": "Bu kasa, Cozy Safe'in daha yeni bir sürümüyle eşitlendi. Eşitlemeye devam etmek için uygulamayı güncelleyin."
 }
