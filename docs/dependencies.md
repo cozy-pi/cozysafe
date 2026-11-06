@@ -275,7 +275,7 @@ Rust and Dart that ships in the app.
 | Rust [crypto-common](https://crates.io/crates/crypto-common/0.1.7) | 0.1.7 | 2025-11-12 | aead | github:rustcrypto:traits, newpavlov |  |
 | Rust [crypto-common](https://crates.io/crates/crypto-common/0.2.2) | 0.2.2 | 2026-05-19 | ml-dsa | github:rustcrypto:traits, newpavlov |  |
 | Rust [ctutils](https://crates.io/crates/ctutils/0.4.8) | 0.4.8 | 2026-11-02 | ml-dsa | github:rustcrypto:utils, tarcieri |  |
-| Rust [curve25519-dalek](https://crates.io/crates/curve25519-dalek/5.0.0) | 5.0.0 | 2026-07-06 | ed25519-dalek | github:dalek-cryptography:curve-maintainers, isislovecruft | cackle: build: process |
+| Rust [curve25519-dalek](https://crates.io/crates/curve25519-dalek/5.0.0) | 5.0.0 | 2026-07-06 | ed25519-dalek | github:dalek-cryptography:curve-maintainers, isislovecruft | cackle: unsafe, build: process |
 | Rust [dashmap](https://crates.io/crates/dashmap/5.5.3) | 5.5.3 | 2023-08-29 | oslog | xacrimon |  |
 | Rust [digest](https://crates.io/crates/digest/0.11.3) | 0.11.3 | 2026-05-03 | sha2 | github:rustcrypto:traits, newpavlov |  |
 | Rust [ed25519](https://crates.io/crates/ed25519/3.0.0) | 3.0.0 | 2026-05-03 | ed25519-dalek | github:rustcrypto:signatures, newpavlov |  |

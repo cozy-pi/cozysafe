@@ -464,7 +464,11 @@ allow_unsafe = true
 # The vault identity (ADR 0008, core/cs-identity), reviewed in supply-chain/audits.toml.
 # curve25519-dalek's build script asks rustc its version (through rustc_version) to pick
 # its field arithmetic, and prints cfgs.
+# cackle reads tokens, so it sees the one `unsafe` in src/constants.rs: a cast behind the
+# precomputed-tables feature, which we do not turn on (supply-chain/audits.toml). Nothing
+# unsafe is compiled with digest and zeroize on the serial backend.
 [pkg."curve25519-dalek"]
+allow_unsafe = true
 build.allow_apis = ["process"]
 
 [pkg.rustc_version]
