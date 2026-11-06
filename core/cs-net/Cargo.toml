@@ -8,6 +8,9 @@ repository.workspace = true
 
 [dependencies]
 cs-crypto = { path = "../cs-crypto" }
+# X-Wing (ML-KEM-768 + X25519) for adding a device (ADR 0010): the vault identity's
+# reviewed implementation, no new crate.
+cs-identity = { path = "../cs-identity" }
 cs-vault = { path = "../cs-vault" }
 hex = "0.4"
 # Already in the tree (cs-crypto): wipes the password and the words that cross an invite.
@@ -17,8 +20,8 @@ serde_json = "1"
 # the few HTTP/1.1 requests written here. A ready-made client (ureq) pulled in 44 crates.
 rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 webpki-roots = "=1.0.10"
-# Already in the tree (rustls's crypto): X25519 and SHA-256 for adding a device by an
-# 8-digit code (ADR 0003, point 11). Not in the Top secret core.
+# Already in the tree (rustls's crypto): SHA-256 for adding a device by an 8-digit code
+# (ADR 0003, point 11; the key exchange is X-Wing, above).
 ring = { version = "=0.17.14", default-features = false }
 
 [dev-dependencies]
