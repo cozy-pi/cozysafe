@@ -360,6 +360,11 @@ class _EntryScreenState extends State<EntryScreen> with WidgetsBindingObserver, 
       key: const ValueKey('entry-page'),
       padding: const EdgeInsets.fromLTRB(Ui.side, 4, Ui.side, 24),
       children: [
+        // What it is, in its kind's icon and colour (owner 2026-11-07).
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+          child: EntryKindLine(kind: _item.kind),
+        ),
         if (entry.newer)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),

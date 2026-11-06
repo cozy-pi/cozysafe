@@ -44,6 +44,8 @@ class MainActivity : FlutterFragmentActivity() {
     // "cozysafe/open": Android's own "Open with" for one decrypted copy; answers once the
     // person is back in the app (the copy is removed then).
     private lateinit var openWith: ActivityResultLauncher<Intent>
+    // "cozysafe/qr": QR codes for 2FA setup (QrCode.kt).
+    private lateinit var qr: QrCode
     // "cozysafe/privacy": what Dart asked for (lib/screens/settings.dart, Settings.apply).
     private var privacy: MethodChannel? = null
     private var secureWanted = true
@@ -65,6 +67,7 @@ class MainActivity : FlutterFragmentActivity() {
         // The system photo picker: no permission to read the whole library.
         pickMedia = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(100)) { deliver(it) }
         pickDocs = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { deliver(it) }
+        qr = QrCode(this)
         openWith = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             openResult?.success(true)
             openResult = null
@@ -125,6 +128,7 @@ class MainActivity : FlutterFragmentActivity() {
         MethodChannel(messenger, "cozysafe/blockstore").setMethodCallHandler { call, result ->
             BlockStore.handle(this, call.method, call.argument<String>("key"), call.argument<ByteArray>("bytes"), result)
         }
+        MethodChannel(messenger, "cozysafe/qr").setMethodCallHandler { call, result -> qr.handle(call, result) }
         // The PIN's device key wrapped by a key in the Android Keystore (HwKey).
         MethodChannel(messenger, "cozysafe/hwkey").setMethodCallHandler { call, result ->
             val bytes = call.argument<ByteArray>("bytes")

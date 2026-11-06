@@ -111,6 +111,44 @@ Secure items open in the app, like notes: the summary is sealed as an item's nam
 and the content is shown, never handed to another app. What could expose them outside
 the app stays off there: autofill (a later round) and keeping a copy longer than 90 s.
 
+### Adding step by step (0.2.30, owner 2026-11-07)
+
+A new item is made in steps (`lib/screens/entry_steps.dart`), one question per screen,
+mostly taps; changing an item keeps the form (`entry_editor.dart`).
+
+- First what to add: Login, Two-factor code, Recovery codes, as three cards, each kind
+  with its own icon and colour (`entryKindColor`), the same in lists and on its page.
+- Login: the site (the vault's own hosts from the summaries, most used first, then a
+  fixed list of common services by host name, never logos; search, Paste link, or any
+  name typed), the account (the summaries' accounts, most used first), the password
+  (generated, masked; Generate another, Paste, Type my own with the strength line), an
+  optional two-factor code, then a review where the name (the site by default) can be
+  changed.
+- Two-factor code alone: Scan, a picture, or Paste (key or link), then a review with
+  the service and account read from the link and the code running.
+- Recovery codes: the service, then one Paste that splits and counts them.
+- What the form promises holds: the vault locking saves what can be saved and empties
+  the secrets from the screen (they come back from the item on unlock), a save over a
+  change made elsewhere keeps both ("(unsaved)"), secret fields copy only through
+  `SecureClipboard`, and what is pasted as a secret (password, key, codes) is taken off
+  the clipboard. Only the summaries are read to offer sites and accounts: no other
+  item's content is opened.
+
+### QR codes (0.2.30)
+
+- Only an `otpauth://totp/` link is taken (`Totp.parse`); any other QR code (a web
+  link, Wi-Fi) is refused with "This QR code is not a two-factor setup code", and a
+  picture without one says so.
+- With the system's own tools: on iPhone a camera page of its own (AVFoundation's QR
+  reader) and Vision for a picked picture; on a Mac Vision for an image file; on Android
+  the app's camera (a few frames a second, the luminance plane only) and the system
+  photo picker, both read by ZXing (docs/supply-chain.md). Windows and Linux: paste only.
+- In memory only: no frame or picture is written to a file, kept in the photo library,
+  copied into the vault or logged; only the QR code's text comes back, and the picture
+  is dropped. The photo picker shows one picture without access to the library.
+- The vault locking closes the camera.
+- Top Secret Mode offers the camera and Paste only: no picture from the library.
+
 ## Rejected
 
 - **Passwords inside notes**: no safe copy, no live codes, nothing to search by site.
@@ -130,5 +168,5 @@ the app stays off there: autofill (a later round) and keeping a copy longer than
   purpose. The changelog asks people to update every device before keeping passwords.
   From 0.2.28 an item of an unknown kind is shown as "needs a newer version" and never
   opened, sent or exported (Rust refuses it too), so the next new kind is safe.
-- Autofill (iOS AutoFill provider, Android Autofill service), CSV import, QR scanning
-  and more kinds are later rounds on this format.
+- Autofill (iOS AutoFill provider, Android Autofill service), CSV import and more kinds
+  are later rounds on this format. QR scanning came in 0.2.30 (above).

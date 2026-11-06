@@ -5,14 +5,15 @@ import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import 'selectable_row.dart';
-import 'vault_bar.dart' show VaultSection, sectionColor;
+import 'symbols.dart';
+import 'vault_bar.dart' show entryKindColor;
 
-/// A secure item's symbol (ADR 0009): a key for a login, a timer for a one-time code, a
-/// keypad for recovery codes.
+/// A secure item's symbol (ADR 0009): a key for a login, a shield with a lock for a
+/// one-time code, a keypad for recovery codes; each in its colour ([entryKindColor]).
 IconData entryIcon(String kind) => switch (kind) {
-      ItemKind.otp => Icons.timer_rounded,
-      ItemKind.codes => Icons.pin_rounded,
-      _ => Icons.key_rounded,
+      ItemKind.otp => Sym.shieldLock,
+      ItemKind.codes => Sym.pin,
+      _ => Sym.key,
     };
 
 /// What a secure item is, in words.
@@ -29,7 +30,7 @@ String entryLine(rust.ItemInfo it) => [
       if (it.hosts.isNotEmpty) it.hosts.first,
     ].join(' · ');
 
-/// A secure item's mark: its symbol on a soft tile in the Passwords colour.
+/// A secure item's mark: its symbol on a soft tile in its kind's colour.
 class EntryBadge extends StatelessWidget {
   const EntryBadge({super.key, required this.kind, this.width = 42, this.height = 48, this.big = false});
   final String kind;
@@ -39,14 +40,35 @@ class EntryBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = sectionColor(VaultSection.password);
+    final color = entryKindColor(kind);
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(big ? 12 : 8)),
-      child: Icon(entryIcon(kind), color: color, size: big ? 34 : 24),
+      child: Icon(entryIcon(kind), color: color, size: big ? 34 : (width < 36 ? 18 : 24)),
     );
   }
+}
+
+/// A secure item's kind, as a line over its page and its editor: the mark, then the word.
+class EntryKindLine extends StatelessWidget {
+  const EntryKindLine({super.key, required this.kind});
+  final String kind;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        key: const ValueKey('entry-kind-line'),
+        children: [
+          EntryBadge(kind: kind, width: 30, height: 30),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(entryKindLabel(AppLocalizations.of(context), kind),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: CsColors.of(context).muted, fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      );
 }
 
 /// A secure item in a vault list: its mark, its name on one line, then the account and

@@ -10,6 +10,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/steps.dart' show StepProgress;
 import '../widgets/edge_swipe_back.dart';
 import '../widgets/password_strength.dart';
 import '../widgets/recovery_words.dart';
@@ -371,23 +372,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < steps.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 6),
-                        Expanded(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: i <= progress ? ink : ink.withValues(alpha: .22),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                  child: StepProgress(count: steps.length, at: progress),
                 ),
                 Expanded(
                   child: LayoutBuilder(

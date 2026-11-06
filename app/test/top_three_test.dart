@@ -23,14 +23,21 @@ void main() {
         [VaultSection.home, VaultSection.file, VaultSection.note]);
   });
 
-  test('quick buttons: second, most, third', () {
+  test('quick buttons: second, most, third, among the four ways to add', () {
     final count = counts({VaultSection.note: 9, VaultSection.audio: 5, VaultSection.library: 2});
     final ways = quickWays(AppLocalizationsEn(), count, camera: true).map((w) => w.$1);
-    expect(ways, [AddWhat.voice, AddWhat.note, AddWhat.photo]);
+    // Notes and Voice share Note / Voice; the third is the next way in order.
+    expect(ways, [AddWhat.camera, AddWhat.memo, AddWhat.device]);
   });
 
   test('quick buttons are three even in an empty vault', () {
     final ways = quickWays(AppLocalizationsEn(), (_) => 0, camera: false).map((w) => w.$1);
-    expect(ways, [AddWhat.file, AddWhat.photos, AddWhat.note]);
+    expect(ways, [AddWhat.memo, AddWhat.device, AddWhat.password]);
+  });
+
+  test('the add card: four ways, named by both of what they hold; Note alone where nothing records', () {
+    final l = AppLocalizationsEn();
+    expect(addWays(l, camera: true, voice: true).map((w) => w.$3), ['Photo / Video', 'Photos / Files', 'Note / Voice', 'Password']);
+    expect(addWays(l, camera: false, voice: false).map((w) => w.$1), [AddWhat.device, AddWhat.note, AddWhat.password]);
   });
 }

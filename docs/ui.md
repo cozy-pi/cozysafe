@@ -475,14 +475,22 @@ everywhere, easy to hit with a thumb.
   (owner 2026-11-03; a tie keeps Library, Files, Notes, Voice). A kind with no items has
   no tab; the fourth opens from the overview. An empty vault shows its icon, one line,
   and big add tiles.
-- **Quick buttons above +** add those same three kinds, the most in the middle: 2 · 1 · 3
-  (Library: take a photo, or add photos with no camera; Files: add files; Notes: new
-  note; Voice: record). `rankedSections`, `barSections`, `quickWays` in
+- **Quick buttons above +** are the ways to add of those same three kinds, the most in
+  the middle: 2 · 1 · 3 (Library: Photo / Video, or Photos / Files with no camera; Files:
+  Photos / Files; Notes and Voice: Note / Voice, one button for both, the next way filling
+  in; Passwords: Password). `rankedSections`, `barSections`, `quickWays` in
   `lib/widgets/vault_bar.dart`.
 - **The + sits in the middle of the bar by default** (Settings can float it left or
   right): a little smaller than the bar, filled with the ink, so it stands out. It always
-  offers every way to add, three to a row (add photos, take a photo, record a video,
-  note, voice memo, file); it never does one thing at once.
+  offers every way to add; it never does one thing at once.
+- **Four ways to add** (owner 2026-11-07: seven were too many), each named by both of
+  what it holds, each its own Material Symbols icon and colour: **Photo / Video** (the
+  camera, opening on Photo, with the Photo | Video switch inside; only with a camera),
+  **Photos / Files** (then a second question: Photos & videos, or Files), **Note / Voice**
+  (then Text or Voice; where nothing records, just **Note**, opening a note at once),
+  **Password** (the steps, ADR 0009). The second question is a card with two big
+  choices (`showChoice`, `ChoiceCard`), the same pieces as "What to add?" in Password.
+  `addWays`, `AddWhat.camera/device/memo`, `_add` in vault_home.dart.
 - **Bottom bar: the app's own by default**; on iOS 26 Debug can switch to the system's
   (`NativeVaultBar`, UIKit tab bar + glass lock). Change one, change the other.
 - **Hold the home tab to lock** (owner 2026-10-22), no lock button by default.

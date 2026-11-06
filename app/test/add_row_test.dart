@@ -14,9 +14,9 @@ void main() {
         body: AddRow(
           open: true,
           ways: const [
-            (AddWhat.video, Icons.videocam_rounded, 'Video'),
-            (AddWhat.photo, Icons.photo_camera_rounded, 'Photo'),
-            (AddWhat.voice, Icons.mic_none_rounded, 'Voice'),
+            (AddWhat.device, Icons.perm_media_rounded, 'Photos / Files'),
+            (AddWhat.camera, Icons.photo_camera_rounded, 'Photo / Video'),
+            (AddWhat.memo, Icons.mic_none_rounded, 'Note / Voice'),
           ],
           bottom: 100,
           hovered: null,
@@ -36,7 +36,7 @@ void main() {
     expect(closed, 1);
     await t.tap(find.byIcon(Icons.photo_camera_rounded));
     await t.pump();
-    expect(picked, [AddWhat.photo]);
+    expect(picked, [AddWhat.camera]);
     expect(closed, 1);
   });
 }

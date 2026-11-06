@@ -53,3 +53,8 @@ flutter:
   generate: true
   assets:
     - assets/icon.png
+  # Material Symbols Rounded, a small subset (assets/fonts/README.md, lib/widgets/symbols.dart).
+  fonts:
+    - family: MaterialSymbolsRounded
+      fonts:
+        - asset: assets/fonts/MaterialSymbolsRounded.ttf

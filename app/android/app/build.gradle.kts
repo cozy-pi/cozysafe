@@ -64,4 +64,7 @@ dependencies {
     // Google Block Store for the 24 words (BlockStore.kt); already resolved for the
     // Credential Manager, so verification-metadata.xml has it.
     implementation("com.google.android.gms:play-services-auth-blockstore:16.4.0")
+    // ZXing, to read 2FA QR codes from camera frames and picked images (QrCode.kt): pure
+    // Java, no dependencies, no network code (docs/supply-chain.md).
+    implementation("com.google.zxing:core:3.5.4")
 }

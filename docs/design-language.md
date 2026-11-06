@@ -18,8 +18,10 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
    ways to add (`sectionColor`, `addWayColor`), and the two modes' shields (`topSecretRed`
    with a lock, `privateGreen` with a photo); a vault in Top Secret Mode washes the top
    of its page with a little red (`TopSecretWash`, owner 2026-10-31, in place of a shield
-   on the Settings button); and each common kind of file its icon and colour
-   (`FileKind`, `lib/file_kinds.dart`).
+   on the Settings button); each common kind of file its icon and colour
+   (`FileKind`, `lib/file_kinds.dart`); and since 2026-11-07 each kind of password its
+   own (`entryKindColor`: a login orange, a two-factor code blue, recovery codes purple),
+   wherever its icon shows.
 2. **Few buttons, each on its own.** A button that does one thing is its own glass
    circle, apart from the others. Buttons share one glass only when they are one set to
    pick from (the section tabs, a segmented switch).
@@ -54,7 +56,13 @@ Type: the phone's own font, sizes from `CsType` only:
 
 Do not write a font size by hand.
 
-Icons: Material rounded, 28 in an action circle, about 0.44 of a header circle.
+Icons: Material rounded, 28 in an action circle, about 0.44 of a header circle. New
+pieces (since 2026-11-07, owner: modern icons) use **Material Symbols Rounded** through
+`Sym` (`lib/widgets/symbols.dart`): filled (FILL 1), weight 500, grade 0, optical size
+24, so they sit beside the older `Icons.*_rounded` with the same rounding and weight.
+`Sym` holds only the glyphs in the bundled subset; a new one means cutting the font again
+(assets/fonts/README.md). Menus keep line icons (section 8). The rest of the app moves
+later (docs/backlog.md).
 
 ## 3. Shared pieces: use these, do not rebuild them
 
@@ -73,6 +81,10 @@ Icons: Material rounded, 28 in an action circle, about 0.44 of a header circle.
 | Short content over the page | `showCard` | `widgets/vault_bar.dart` |
 | A group of settings rows | `SettingsGroup` | `screens/settings.dart` |
 | A secret (password, 24 words) | `SecretField` | `widgets/secret.dart` |
+| One question per screen: Back, progress, big title on the left, main button pinned, a second choice as text | `StepPage`, `StepProgress`, `StepMainButton`, `StepTextButton` | `widgets/steps.dart` |
+| Pick one of a few ways (the kind chooser): big cards, icon in a coloured rounded square, title and one line | `ChoiceCard`; over the page `showChoice` | `widgets/steps.dart` |
+| A kind of password's icon and colour | `entryIcon`, `entryKindColor`, `EntryBadge`, `EntryKindLine` | `widgets/entry_row.dart`, `widgets/vault_bar.dart` |
+| A new icon | `Sym` (Material Symbols Rounded) | `widgets/symbols.dart` |
 | Red for Delete | `recordRed(context)` | `theme.dart` |
 
 ## 4. Layouts
@@ -135,10 +147,13 @@ removed). The strength line under it says how to make a better one.
 
 **Selection marks**: round everywhere (the theme's `checkboxTheme`), as on a photo.
 
-**Steps** (create a vault, restore): create is Password → 24 words → four typed back →
-Face ID → look; the intro lists them in that order. Progress on top with Back, the title big on the
+**Steps** (create a vault, restore, add a password): create is Password → 24 words →
+four typed back → Face ID → look; the intro lists them in that order. Progress on top with Back, the title big on the
 left, one main button the width of the page at the bottom (`PinnedAction`), a second
-choice as plain text under it.
+choice as plain text under it (`StepPage`). Adding a password (owner 2026-11-07): what
+to add first, as big cards (`ChoiceCard`), then one question per screen, answered with
+taps where possible: what the vault already holds first, then common choices, typing
+last.
 
 **Confirm a deletion**: a sheet with one red button the width of the page, Cancel as text
 under it.
