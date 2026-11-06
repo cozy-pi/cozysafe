@@ -2361,11 +2361,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     };
   }
 
-  /// The home tab: a search field, how much the vault holds, then the overview (the
-  /// sections, the groups, what was added last), each a tap away.
+  /// The home tab: the overview (the sections, the groups, what was added last), each a
+  /// tap away; Search is the header's round button, as on every tab.
   Widget _home(BuildContext context, List<rust.ItemInfo> items) {
-    final l = AppLocalizations.of(context);
-    final ink = Theme.of(context).colorScheme.onSurface;
     final things = items.where((i) => i.kind != ItemKind.tag).toList();
     return _pinchTiles('home-columns', VaultOverview(
       items: items,
@@ -2377,28 +2375,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 4),
-          // A computer has Search in its toolbar.
-          if (!_desk) Material(
-            key: const ValueKey('home-search'),
-            color: ink.withValues(alpha: .07),
-            shape: const StadiumBorder(),
-            child: InkWell(
-              customBorder: const StadiumBorder(),
-              onTap: _openSearch,
-              child: SizedBox(
-                height: Ui.circle,
-                child: Row(children: [
-                  const SizedBox(width: 14),
-                  Icon(Icons.search, color: ink.withValues(alpha: .6)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(l.searchHint,
-                        maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: CsType.body, color: ink.withValues(alpha: .5))),
-                  ),
-                ]),
-              ),
-            ),
-          ),
+          // Search is the round button in the header, as on every tab (owner 2026-11-07:
+          // one look on every page); a computer has it in its toolbar.
           // Count, size and Google Drive are under the title now, as on every tab.
           const SizedBox(height: 8),
           if (things.isNotEmpty)
@@ -2518,9 +2496,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             GlassButton(key: const ValueKey('more-button'), icon: Icons.more_horiz, tooltip: l.more, size: Ui.circle, onTap: () => _moreMenu(open)),
             const SizedBox(width: 8),
           ],
-          // The home tab has its own search field.
-          if (_section != VaultSection.home || _tagId != null)
-            GlassButton(icon: Icons.search, tooltip: l.search, size: Ui.circle, onTap: _openSearch),
+          // Every tab, the overview too (owner 2026-11-07: one look on every page).
+          GlassButton(key: const ValueKey('search-button'), icon: Icons.search, tooltip: l.search, size: Ui.circle, onTap: _openSearch),
           // Inside a group the header is crowded; Settings is one Back away. A wide window
           // has it in the sidebar.
           if (open == null && !_wide) ...[

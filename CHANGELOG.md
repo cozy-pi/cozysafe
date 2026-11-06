@@ -4,6 +4,14 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.32 (2026-11-07)
+
+### Changed
+- The overview's kinds are listed by how many items each holds, most first, as the
+  tabs at the bottom; the kinds in search too.
+- Search is the round button at the top of the overview, as on every other tab,
+  instead of a search field.
+
 ## 0.2.31 (2026-11-07)
 
 ### Changed

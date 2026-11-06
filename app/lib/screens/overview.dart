@@ -87,10 +87,12 @@ class VaultOverview extends StatelessWidget {
     final c = CsColors.of(context);
     final things = items.where((i) => i.kind != ItemKind.tag).toList();
     int count(rust.ItemInfo tag) => things.where((i) => i.tagIds.contains(tag.id)).length;
+    int held(VaultSection s) => things.where((i) => sectionOf(i) == s).length;
+    // Most first, as the kinds below and the bar's tabs; a tie keeps the fixed order.
     final sections = [
       for (final s in VaultSection.values)
-        if (things.any((i) => sectionOf(i) == s)) s,
-    ];
+        if (held(s) > 0) s,
+    ]..sort((a, b) => held(a) != held(b) ? held(b) - held(a) : a.index - b.index);
     // The kinds held; Passwords always (owner 2026-11-07: otherwise a vault without one
     // shows no way into Passwords), its count 0 until there is one.
     final kinds = [
@@ -98,7 +100,10 @@ class VaultOverview extends StatelessWidget {
         if (things.where((i) => overviewKindOf(i) == k).length case final n
             when n > 0 || (k == OverviewKind.password && vaultSections().contains(VaultSection.password)))
           (k, n),
-    ];
+    ]
+      // Most first (owner 2026-11-07), as the bar ranks its tabs; a tie keeps the fixed
+      // order of OverviewKind. Dart's sort is not stable, so the index breaks ties.
+      ..sort((a, b) => a.$2 != b.$2 ? b.$2 - a.$2 : a.$1.index - b.$1.index);
     final recent = [...things]..sort((a, b) => b.createdMs.compareTo(a.createdMs));
     final groups = items.where((g) => g.kind == ItemKind.tag && count(g) > 0).toList();
     final favorites = recent.where((i) => i.isFavorite).toList();

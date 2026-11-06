@@ -724,7 +724,9 @@ void main() {
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
-      section: 'home');
+      section: 'home',
+      change: 'SỬA: Tổng quan có nút 🔍 tròn ở đầu trang như mọi trang khác (bỏ ô tìm kiếm to); các ô "Xem theo loại" xếp theo số lượng giảm dần',
+      marks: [() => find.byKey(const ValueKey('search-button')), () => find.byKey(const ValueKey('kind-card'))]);
   _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home', act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-video')));
     await t.pumpAndSettle();
@@ -1004,40 +1006,16 @@ void main() {
   _screen('add-four', 'Tổng quan · bấm +: bốn cách thêm', home, section: 'home', setup: addSetup, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
-  }, change: 'SỬA: thẻ + là nơi chọn duy nhất: cách nào còn hỏi tiếp (Ảnh / Tệp, Ghi chú / Ghi âm, Mật khẩu) có dấu › ở cuối dòng, và câu hỏi tiếp hiện ngay trong thẻ này',
-      marks: [
-        () => find.byKey(const ValueKey('add-card-device')),
-        () => find.byKey(const ValueKey('add-card-memo')),
-        () => find.byKey(const ValueKey('add-card-password')),
-      ]);
+  });
   for (final narrow in [false, true]) {
     _screen(narrow ? 'add-password-choice-393' : 'add-password-choice',
         '${narrow ? 'iPhone 393 pt · ' : ''}Bấm + → Mật khẩu: ba loại ngay trong thẻ', home,
-        section: 'home', size: narrow ? const Size(393, 852) : _phone, setup: addSetup, act: (t) => openWay(t, 'password'),
-        change: 'SỬA: Mật khẩu không mở trang mới nữa: thẻ + đổi tại chỗ thành "Thêm gì?" với Đăng nhập (cam), Mã xác minh (xanh), Mã dự phòng (tím), cùng vị trí trên nút +, không phủ thêm lớp tối; ‹ ở đầu thẻ để quay lại bốn cách',
-        marks: [
-          () => find.byKey(const ValueKey('add-card-back')),
-          () => find.byKey(const ValueKey('add-choice-login')),
-          () => find.byKey(const ValueKey('add-choice-otp')),
-          () => find.byKey(const ValueKey('add-choice-codes')),
-        ]);
+        section: 'home', size: narrow ? const Size(393, 852) : _phone, setup: addSetup, act: (t) => openWay(t, 'password'));
   }
   _screen('add-device-choice', 'Bấm + → Ảnh / Tệp: hỏi tiếp ngay trong thẻ', home, section: 'home', setup: addSetup,
-      act: (t) => openWay(t, 'device'),
-      change: 'SỬA: Ảnh / Tệp không mở thẻ thứ hai giữa màn hình nữa: "Ảnh và video" hay "Tệp" hiện ngay trong thẻ +, cùng chỗ, có ‹ để quay lại',
-      marks: [
-        () => find.byKey(const ValueKey('add-card-back')),
-        () => find.byKey(const ValueKey('add-choice-photos')),
-        () => find.byKey(const ValueKey('add-choice-file')),
-      ]);
+      act: (t) => openWay(t, 'device'));
   _screen('add-memo-choice', 'Bấm + → Ghi chú / Ghi âm: hỏi tiếp ngay trong thẻ', home, section: 'home', setup: addSetup,
-      act: (t) => openWay(t, 'memo'),
-      change: 'SỬA: Ghi chú / Ghi âm hỏi "Viết hay ghi âm?" ngay trong thẻ +: Văn bản hoặc Ghi âm (máy không ghi âm được thì "Ghi chú" mở ghi chú luôn)',
-      marks: [
-        () => find.byKey(const ValueKey('add-card-back')),
-        () => find.byKey(const ValueKey('add-choice-note')),
-        () => find.byKey(const ValueKey('add-choice-voice')),
-      ]);
+      act: (t) => openWay(t, 'memo'));
   _screen('steps-login-direct', 'Bấm + → Mật khẩu → Đăng nhập: mở thẳng bước 1', home, section: 'home', setup: () {
     addSetup();
     withEntries();
@@ -1045,18 +1023,13 @@ void main() {
     await openWay(t, 'password');
     await t.tap(find.byKey(const ValueKey('add-choice-login')));
     await t.pumpAndSettle();
-  }, change: 'SỬA: chọn Đăng nhập trong thẻ + thì mở thẳng bước "Trang web nào?" (không còn trang "Thêm gì?" nữa); ← ở bước đầu là thoát',
-      marks: [() => find.byKey(const ValueKey('step-progress')), () => find.byKey(const ValueKey('step-title'))]);
-  _screen('home-passwords-0', 'Tổng quan · két chưa có mật khẩu: vẫn có ô Mật khẩu', home, section: 'home',
-      change: 'MỚI: ô Mật khẩu luôn có trong "Xem theo loại", kể cả khi chưa có cái nào (số 0 nhạt); bấm vào mở mục Mật khẩu, có nút "Mật khẩu mới"',
-      marks: [() => find.byKey(const ValueKey('kind-row-password'))]);
+  });
+  _screen('home-passwords-0', 'Tổng quan · két chưa có mật khẩu: vẫn có ô Mật khẩu', home, section: 'home');
   _screen('passwords-empty', 'Tổng quan → ô Mật khẩu (0): mục trống có nút Mật khẩu mới', home, section: 'home',
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-password')));
     await t.pumpAndSettle();
-  },
-      change: 'MỚI: mục Mật khẩu trống có nút "Mật khẩu mới", mở thẻ + ngay ở ba loại',
-      marks: [() => find.byKey(const ValueKey('empty-add-password'))]);
+  });
   _screen('ts-passwords', 'Két Tuyệt mật · Mật khẩu: mở ngay trong app', () => EntryScreen(item: entry('pw2')));
   _screen('more-menu', 'Ghi chú · bấm ⋯', home, section: 'note', act: (t) async {
     await t.tap(find.byKey(const ValueKey('more-button')));
