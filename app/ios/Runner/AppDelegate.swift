@@ -941,30 +941,30 @@ final class QrCode: NSObject, PHPickerViewControllerDelegate {
       // The vault locked: the camera closes, as if Cancel were tapped.
       scanner?.finish(nil)
       result(nil)
-    case "decodeImage":
-      guard let data = (args?["bytes"] as? FlutterStandardTypedData)?.data else { return result("") }
-      DispatchQueue.global(qos: .userInitiated).async {
-        let text = QrCode.decode(data)
-        DispatchQueue.main.async { result(text ?? "") }
-      }
     default: result(FlutterMethodNotImplemented)
     }
   }
 
-  /// The camera, full screen: the first QR code seen, or nil (Cancel, no camera, no permission).
+  /// The camera, full screen: the first QR code seen, or nil (Cancel, or it could not be
+  /// shown). No camera or no permission: the error "no-camera", which Dart words.
   private func scan(cancel: String, _ result: @escaping FlutterResult) {
+    let noCamera = FlutterError(code: "no-camera", message: nil, details: nil)
     switch AVCaptureDevice.authorizationStatus(for: .video) {
     case .authorized: present(cancel, result)
     case .notDetermined:
       AVCaptureDevice.requestAccess(for: .video) { ok in
-        DispatchQueue.main.async { ok ? self.present(cancel, result) : result(nil) }
+        DispatchQueue.main.async { ok ? self.present(cancel, result) : result(noCamera) }
       }
-    default: result(nil)
+    default: result(noCamera)
     }
   }
 
   private func present(_ cancel: String, _ result: @escaping FlutterResult) {
-    guard let top = top(), let scanner = QrScanner(cancel: cancel, done: { result($0) }) else { return result(nil) }
+    // Another screen is already over the app (a picker, an alert): nothing is shown.
+    guard let top = top(), top.presentedViewController == nil else { return result(nil) }
+    guard let scanner = QrScanner(cancel: cancel, done: { result($0) }) else {
+      return result(FlutterError(code: "no-camera", message: nil, details: nil))
+    }
     scanner.modalPresentationStyle = .fullScreen
     self.scanner = scanner
     top.present(scanner, animated: true)
@@ -990,10 +990,13 @@ final class QrCode: NSObject, PHPickerViewControllerDelegate {
     pickResult = nil
     guard let provider = results.first?.itemProvider else { return result(nil) }
     provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
-      let text = data.flatMap(QrCode.decode)
+      let text = data.flatMap { $0.count <= QrCode.maxBytes ? QrCode.decode($0) : nil }
       DispatchQueue.main.async { result(text ?? "") }
     }
   }
+
+  /// A picture larger than this is not read.
+  static let maxBytes = 64 << 20
 
   /// The first QR code in a picture held in memory (Vision).
   static func decode(_ data: Data) -> String? {
@@ -1073,11 +1076,6 @@ final class QrScanner: UIViewController, AVCaptureMetadataOutputObjectsDelegate 
     queue.async { [session] in if !session.isRunning { session.startRunning() } }
   }
 
-  override func viewDidDisappear(_ animated: Bool) {
-    super.viewDidDisappear(animated)
-    stop()
-  }
-
   func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput objects: [AVMetadataObject],
                       from connection: AVCaptureConnection) {
     guard let text = objects.lazy.compactMap({ ($0 as? AVMetadataMachineReadableCodeObject)?.stringValue }).first
@@ -1085,11 +1083,23 @@ final class QrScanner: UIViewController, AVCaptureMetadataOutputObjectsDelegate 
     finish(text)
   }
 
+  /// Answers Dart once, at once, whether or not the dismissal completes.
   func finish(_ text: String?) {
     guard let done else { return }
     self.done = nil
     stop()
-    dismiss(animated: true) { done(text) }
+    done(text)
+    if presentingViewController != nil { dismiss(animated: true) }
+  }
+
+  /// Taken off the screen some other way (the system, a lock): Dart still gets its answer.
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    stop()
+    if let done {
+      self.done = nil
+      done(nil)
+    }
   }
 
   private func stop() {

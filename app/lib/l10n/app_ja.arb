@@ -1024,5 +1024,8 @@
   "addChoiceFiles": "ファイル",
   "addChoiceMemoTitle": "書く？録音する？",
   "addChoiceText": "テキスト",
-  "addChoiceVoice": "録音"
+  "addChoiceVoice": "録音",
+  "qrConfirmTitle": "サイトにこのコードが表示されていますか？",
+  "qrConfirmLead": "サイトが確認コードを求めたら、これを入力してください。30秒ごとに変わります。",
+  "qrPasteAgain": "もう一度貼り付け"
 }

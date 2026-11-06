@@ -1024,5 +1024,8 @@
   "addChoiceFiles": "文件",
   "addChoiceMemoTitle": "写还是录？",
   "addChoiceText": "文字",
-  "addChoiceVoice": "录音"
+  "addChoiceVoice": "录音",
+  "qrConfirmTitle": "网站显示的是这个码吗？",
+  "qrConfirmLead": "如果网站要求输入验证码完成设置，请输入这个。它每 30 秒变一次。",
+  "qrPasteAgain": "重新粘贴"
 }

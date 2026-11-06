@@ -442,6 +442,41 @@ void main() {
       await t.pump(const Duration(seconds: 2));
     });
 
+    testWidgets('a second scan brings its own service and account, unless typed over', (t) async {
+      scans.addAll([
+        'otpauth://totp/GitHub:na?secret=JBSWY3DPEHPK3PXP&issuer=GitHub',
+        'otpauth://totp/GitLab:nb?secret=JBSWY3DPEHPK3PXQ&issuer=GitLab',
+      ]);
+      await pushed(t, const EntryWizard());
+      await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+      await _settle(t, 2);
+      await t.enterText(find.byKey(const ValueKey('steps-otp-account')), 'mine');
+      await t.tap(find.byKey(const ValueKey('step-back')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+      await _settle(t, 2);
+      expect(t.widget<TextField>(find.byKey(const ValueKey('steps-issuer'))).controller!.text, 'GitLab');
+      expect(t.widget<TextField>(find.byKey(const ValueKey('steps-otp-account'))).controller!.text, 'mine');
+      await t.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('a scan that ends after the vault locked is dropped', (t) async {
+      await pushed(t, const EntryWizard());
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, (call) async {
+        vaultLock.set(true);
+        return 'otpauth://totp/GitHub:na?secret=JBSWY3DPEHPK3PXP&issuer=GitHub';
+      });
+      await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+      await _settle(t, 2);
+      vaultLock.set(false);
+      await _settle(t, 2);
+      expect(find.byKey(const ValueKey('steps-otpSource')), findsOneWidget, reason: 'the code did not land');
+    });
+
     testWidgets('a login takes its 2FA from a scan; the review says so', (t) async {
       scans.add('otpauth://totp/Shop:na?secret=JBSWY3DPEHPK3PXP');
       await pushed(t, const EntryWizard(debugPassword: 'gen-erated-1'));
@@ -464,6 +499,47 @@ void main() {
       expect(doc['urls'], ['https://shop.example']);
       expect((doc['otp'] as Map)['secret'], 'JBSWY3DPEHPK3PXP');
     });
+  });
+
+  testWidgets('a pasted bare key shows its code first; Paste again or go on', (t) async {
+    _clipboard.add('jbsw y3dp ehpk 3pxp');
+    await pushed(t, const EntryWizard());
+    await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-qr-paste')));
+    await _settle(t, 2);
+    expect(find.text('Does the site show this code?'), findsOneWidget);
+    expect(t.widget<Text>(find.byKey(const ValueKey('steps-code-preview'))).data, matches(RegExp(r'^\d{3} \d{3}$')));
+    await t.tap(find.byKey(const ValueKey('steps-key-confirm')));
+    await _settle(t, 2);
+    expect(find.byKey(const ValueKey('steps-otpReview')), findsOneWidget);
+    await t.pump(const Duration(seconds: 2));
+  });
+
+  test('a malformed otpauth link is not a code, and never throws', () {
+    expect(Totp.parse('otpauth://totp/a%E0?secret=JBSWY3DPEHPK3PXP'), isNull);
+    // Dart keeps a stray % as it is: still a code, not an error.
+    expect(Totp.parse('otpauth://totp/A?secret=JBSWY3DPEHPK3PXP&issuer=%ZZ')?.issuer, '%ZZ');
+    expect(QrCode.read('otpauth://totp/a%E0?secret=JBSWY3DPEHPK3PXP'), isA<QrNotTotp>());
+  });
+
+  testWidgets('locked before anything could be saved: the steps go on after, and Save works', (t) async {
+    await pushed(t, const EntryWizard(debugPassword: 'gen-erated-1'));
+    await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+    await _settle(t, 2);
+    await LockGuard.beforeLock!();
+    vaultLock.set(true);
+    await t.pump();
+    expect(_fake.items, isEmpty, reason: 'nothing to save yet');
+    vaultLock.set(false);
+    await _settle(t, 2);
+    _clipboard.add('otpauth://totp/Acme:na?secret=JBSWY3DPEHPK3PXP&issuer=Acme');
+    await t.tap(find.byKey(const ValueKey('steps-qr-paste')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-save')));
+    await _settle(t);
+    expect(_fake.items.single.name, 'Acme');
+    await t.pump(const Duration(seconds: 2));
   });
 
   testWidgets('recovery codes from a pasted list: counted, saved under the service', (t) async {

@@ -2,7 +2,7 @@
 # Cut app/assets/fonts/MaterialSymbolsRounded.ttf: the glyphs lib/widgets/symbols.dart
 # names, from Material Symbols Rounded at a pinned commit, as a static instance (FILL 1,
 # GRAD 0, opsz 24, wght 500). The same input gives the same bytes (SOURCE_DATE_EPOCH is
-# the commit's time). Needs fontTools (pip install fonttools==4.60.1, in a venv).
+# the commit's time). Needs fontTools 4.60.1 exactly (checked below).
 #
 #   tools/symbols-font <work dir> key shield_lock pin ...
 #
@@ -13,6 +13,13 @@ COMMIT=10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7
 TTF_SHA=7e74e36533ccee12c2b81e75bfcf3ccf123d3bb7e7e46d65d94445f23db0c97c
 CP_SHA=a7404d9e5a1b63f496cf05ace45d386075886b5a7f123fba9f29527cb6006fde
 export SOURCE_DATE_EPOCH=1792721923
+# Byte for byte only with the fontTools that made the committed font.
+FONTTOOLS=4.60.1
+have=$(python3 -c 'import fontTools; print(fontTools.version)' 2>/dev/null || true)
+if [ "$have" != "$FONTTOOLS" ]; then
+  echo "needs fontTools $FONTTOOLS (found: ${have:-none}): pip install fonttools==$FONTTOOLS in a venv" >&2
+  exit 1
+fi
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 WORK=$1
 shift

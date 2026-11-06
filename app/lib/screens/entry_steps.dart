@@ -99,6 +99,15 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
   String _saved = '';
   bool _busy = false;
   bool _cleared = false;
+  /// The item saved on lock could not be read back after: its secrets stay as saved
+  /// unless new ones are given.
+  bool _restoreFailed = false;
+  /// A pasted bare key, shown with its code before it is taken.
+  Totp? _pendingKey;
+  /// What the last code read filled in (a one-time code's service and account): a new
+  /// code replaces them unless the person changed them since.
+  String _filledIssuer = '';
+  String _filledAccount = '';
   Future<void>? _writing;
 
   @override
@@ -169,6 +178,7 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
       c.clear();
     }
     _totp = null;
+    _pendingKey = null;
     _cleared = true;
     _saved = _snapshot;
     if (mounted) setState(() {});
@@ -176,7 +186,22 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
 
   @override
   void vaultUnlocked() {
-    if (_cleared && _item != null) _reload();
+    if (!_cleared) return;
+    if (_item != null) {
+      _reload();
+      return;
+    }
+    // Nothing was saved (nothing could be yet): the steps go on, the secrets made again
+    // or asked again, never kept from before the lock.
+    setState(() {
+      _cleared = false;
+      if (_kind == ItemKind.login) {
+        _password.text = widget.debugPassword ?? generatePassword();
+        _ownPassword = false;
+        _typing = false;
+      }
+      _saved = _snapshot;
+    });
   }
 
   /// The item as saved on lock, back on screen.
@@ -195,9 +220,19 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
         _totp = e.totp;
         _codes.text = [for (final c in e.codes) c.code].join('\n');
         _cleared = false;
+        _restoreFailed = false;
         _saved = _snapshot;
       });
-    } catch (_) {}
+    } catch (_) {
+      // Not read back: the steps go on; what the item holds is kept where the screen
+      // has nothing in its place ([_document]).
+      if (mounted) {
+        setState(() {
+          _cleared = false;
+          _restoreFailed = true;
+        });
+      }
+    }
   }
 
   String get _snapshot =>
@@ -328,7 +363,7 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
 
   Future<void> _pastePassword() async {
     final text = await _pasteSecret();
-    if (text == null || !mounted) return;
+    if (text == null || !_here) return;
     setState(() {
       _password.text = text;
       _ownPassword = true;
@@ -337,16 +372,23 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
     });
   }
 
+  /// Still the page on screen, the vault open: a result that comes later (a scan, a
+  /// picker, the clipboard) is dropped, so no secret lands under the lock screen.
+  bool get _here => mounted && !vaultLock.locked && (ModalRoute.of(context)?.isCurrent ?? false);
+
   /// A two-factor code taken: on to the next step.
   void _tookTotp(Totp t) {
     setState(() {
       _totp = t;
+      _pendingKey = null;
       _problem = null;
       _keyField = false;
       _key.clear();
       if (_kind == ItemKind.otp) {
-        if (_issuer.text.trim().isEmpty) _issuer.text = t.issuer;
-        if (_account.text.trim().isEmpty) _account.text = t.account;
+        // A new code brings its own service and account, over what the last one filled
+        // in; what the person typed since stays.
+        if (_issuer.text.trim().isEmpty || _issuer.text == _filledIssuer) _issuer.text = _filledIssuer = t.issuer;
+        if (_account.text.trim().isEmpty || _account.text == _filledAccount) _account.text = _filledAccount = t.account;
       } else if (_name.text.trim().isEmpty && t.issuer.isNotEmpty) {
         _name.text = t.issuer;
       }
@@ -355,54 +397,84 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
   }
 
   void _qrResult(QrResult? r) {
-    if (r == null || !mounted) return;
+    if (r == null || !_here) return;
+    final l = AppLocalizations.of(context);
     switch (r) {
       case QrTotp(:final totp):
         _tookTotp(totp);
       case QrNotTotp():
-        setState(() => _problem = AppLocalizations.of(context).qrNotTotp);
+        setState(() => _problem = l.qrNotTotp);
       case QrNone():
-        setState(() => _problem = AppLocalizations.of(context).qrNone);
+        setState(() => _problem = l.qrNone);
+      case QrNoCamera():
+        setState(() => _problem = l.qrCameraFailed);
     }
   }
 
   Future<void> _scan() async {
     setState(() => _problem = null);
+    QrResult? r;
     try {
-      _qrResult(await QrCode.scan(context));
+      r = await QrCode.scan(context);
     } catch (_) {
-      if (mounted) setState(() => _problem = AppLocalizations.of(context).qrCameraFailed);
+      r = const QrNoCamera();
     }
+    _qrResult(r);
   }
 
   Future<void> _fromPhoto() async {
     setState(() => _problem = null);
+    QrResult? r;
     try {
-      _qrResult(await QrCode.readPhoto());
+      r = await QrCode.readPhoto();
     } catch (_) {
-      if (mounted) setState(() => _problem = AppLocalizations.of(context).qrNotTotp);
+      r = const QrNone();
     }
+    _qrResult(r);
   }
 
-  /// Paste setup key: the clipboard's key or link; else a field to put it in.
+  /// Paste setup key: a link is taken at once; a bare key is shown with the code it
+  /// makes first (any 16 letters pass as a key); nothing usable opens a field for it.
   Future<void> _pasteKey() async {
     final text = await _clipboard();
-    if (!mounted) return;
+    if (!_here) return;
     final t = text == null ? null : Totp.parse(text);
     if (t != null) {
       await Clipboard.setData(const ClipboardData(text: ''));
-      _tookTotp(t);
+      if (!_here) return;
+      if (text!.toLowerCase().startsWith('otpauth://')) {
+        _tookTotp(t);
+      } else {
+        setState(() {
+          _problem = null;
+          _keyField = false;
+          _pendingKey = t;
+        });
+      }
       return;
     }
     setState(() {
       _problem = null;
+      _pendingKey = null;
       _keyField = true;
+    });
+  }
+
+  /// A key typed in the field: shown with its code too.
+  void _checkTypedKey() {
+    final t = Totp.parse(_key.text);
+    if (t == null) return;
+    if (_key.text.trim().toLowerCase().startsWith('otpauth://')) return _tookTotp(t);
+    setState(() {
+      _keyField = false;
+      _key.clear();
+      _pendingKey = t;
     });
   }
 
   Future<void> _pasteCodes() async {
     final text = await _pasteSecret();
-    if (text == null || !mounted) return;
+    if (text == null || !_here) return;
     setState(() {
       _codes.text = Entry.splitCodes(text).join('\n');
       _typeCodes = false;
@@ -414,8 +486,8 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
   List<String> get _codeList => Entry.splitCodes(_codes.text);
 
   bool get _canSave => switch (_kind) {
-        ItemKind.otp => _totp != null,
-        ItemKind.codes => _codeList.isNotEmpty,
+        ItemKind.otp => _totp != null || (_restoreFailed && _base?.totp != null),
+        ItemKind.codes => _codeList.isNotEmpty || (_restoreFailed && (_base?.codes.isNotEmpty ?? false)),
         ItemKind.login => _name.text.trim().isNotEmpty || _site.isNotEmpty || _account.text.trim().isNotEmpty,
         _ => false,
       };
@@ -442,12 +514,14 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
         e.totp = _totp;
       case ItemKind.codes:
         final before = {for (final c in e.codes) c.code: c.used};
-        e.codes = [for (final c in _codeList) (code: c, used: before[c] ?? false)];
+        if (!(_restoreFailed && _codeList.isEmpty)) {
+          e.codes = [for (final c in _codeList) (code: c, used: before[c] ?? false)];
+        }
       default:
         e.account = _account.text;
-        e.password = _password.text;
+        if (!(_restoreFailed && _password.text.isEmpty)) e.password = _password.text;
         e.urls = _site.isNotEmpty && _isAddress(_site) ? ['https://$_site'] : const [];
-        e.totp = _totp;
+        if (!(_restoreFailed && _totp == null)) e.totp = _totp;
     }
     return e;
   }
@@ -850,6 +924,28 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
           child: ChoiceCard(key: ValueKey(key), icon: icon, color: color, title: title, line: line, onTap: onTap),
         );
     final keyOk = _key.text.trim().isNotEmpty && Totp.parse(_key.text) != null;
+    final pending = _pendingKey;
+    // A bare key pasted: its code, to check against the site's screen, before it is taken.
+    if (pending != null) {
+      return _page(
+        l,
+        steps,
+        title: l.qrConfirmTitle,
+        lead: l.qrConfirmLead,
+        actions: [
+          StepMainButton(key: const ValueKey('steps-key-confirm'), label: l.pinNext, onTap: () => _tookTotp(pending)),
+          StepTextButton(
+            key: const ValueKey('steps-key-again'),
+            label: l.qrPasteAgain,
+            onTap: () {
+              setState(() => _pendingKey = null);
+              _pasteKey();
+            },
+          ),
+        ],
+        body: _LiveCode(totp: pending),
+      );
+    }
     return _page(
       l,
       steps,
@@ -860,7 +956,7 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
           StepMainButton(
             key: const ValueKey('steps-key-next'),
             label: l.pinNext,
-            onTap: keyOk ? () => _tookTotp(Totp.parse(_key.text)!) : null,
+            onTap: keyOk ? _checkTypedKey : null,
           ),
         if (!otp) StepTextButton(key: const ValueKey('steps-2fa-skip'), label: l.stepSkip, onTap: _skipTwoFactor),
       ],
@@ -953,6 +1049,7 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
             onTap: () => _go(EntryStep.twoFactor),
           ),
         ]),
+        if (_totp != null) ...[const SizedBox(height: 12), _LiveCode(totp: _totp!)],
         const SizedBox(height: 10),
         Text(l.stepReviewNote, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
       ]),

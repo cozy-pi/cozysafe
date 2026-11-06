@@ -15,7 +15,8 @@ Dates are UTC.
 - Scan a two-factor QR code: with the camera on iPhone and Android, or from a screenshot
   or photo (an image file on a Mac). Only setup codes (`otpauth://` links) are taken;
   any other QR code says so. The picture or camera frame is read in memory and never
-  saved. You can still paste the setup key.
+  saved. You can still paste the setup key; a bare key shows the code it makes first,
+  to check against the site.
 - Recovery codes: one tap pastes the whole list, split and counted for you.
 
 ### Changed

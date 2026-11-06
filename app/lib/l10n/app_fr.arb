@@ -1024,5 +1024,8 @@
   "addChoiceFiles": "Fichiers",
   "addChoiceMemoTitle": "Écrire ou enregistrer ?",
   "addChoiceText": "Texte",
-  "addChoiceVoice": "Voix"
+  "addChoiceVoice": "Voix",
+  "qrConfirmTitle": "Le site affiche-t-il ce code ?",
+  "qrConfirmLead": "Si le site demande un code pour terminer, saisissez celui-ci. Il change toutes les 30 secondes.",
+  "qrPasteAgain": "Coller à nouveau"
 }

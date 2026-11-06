@@ -1038,5 +1038,8 @@
   "addChoiceFiles": "Tệp",
   "addChoiceMemoTitle": "Viết hay ghi âm?",
   "addChoiceText": "Văn bản",
-  "addChoiceVoice": "Ghi âm"
+  "addChoiceVoice": "Ghi âm",
+  "qrConfirmTitle": "Trang web có hiện mã này không?",
+  "qrConfirmLead": "Nếu trang web hỏi mã để hoàn tất, hãy nhập mã này vào đó. Mã đổi sau mỗi 30 giây.",
+  "qrPasteAgain": "Dán lại"
 }

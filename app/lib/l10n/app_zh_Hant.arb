@@ -1024,5 +1024,8 @@
   "addChoiceFiles": "檔案",
   "addChoiceMemoTitle": "寫還是錄？",
   "addChoiceText": "文字",
-  "addChoiceVoice": "錄音"
+  "addChoiceVoice": "錄音",
+  "qrConfirmTitle": "網站顯示的是這組碼嗎？",
+  "qrConfirmLead": "如果網站要求輸入驗證碼完成設定，請輸入這組。每 30 秒會變一次。",
+  "qrPasteAgain": "重新貼上"
 }

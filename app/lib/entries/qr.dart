@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../platform.dart';
+import '../src/rust/api/sync.dart' as rust;
 import '../theme.dart';
 import '../top_secret_mode.dart';
 import 'totp.dart';
@@ -33,11 +34,17 @@ final class QrNone extends QrResult {
   const QrNone();
 }
 
-/// Reading a two-factor setup code from a QR code, with the system's own tools: on iOS a
-/// camera page of its own (AVFoundation) and Vision for a photo, on a Mac Vision for an
-/// image file, on Android ZXing on the camera's frames and on a photo. Everything stays
-/// in memory: no frame or picture is written to a file, kept in the photo library or
-/// logged; only the code's text comes back, and only an `otpauth://totp/` link is taken.
+/// The camera could not be used (none, or no permission).
+final class QrNoCamera extends QrResult {
+  const QrNoCamera();
+}
+
+/// Reading a two-factor setup code from a QR code: on iOS a camera page of its own
+/// (AVFoundation) and Vision for a photo, on a Mac Vision for an image file, on Android
+/// the app's own Rust decoder (rqrr, [rust.qrReadText], as for pairing devices) on the
+/// camera's frames and on a photo turned to grey. Everything stays in memory: no frame
+/// or picture is written to a file, kept in the photo library or logged; only the code's
+/// text comes back, and only an `otpauth://totp/` link is taken.
 abstract final class QrCode {
   static const channel = MethodChannel('cozysafe/qr');
 
@@ -53,7 +60,7 @@ abstract final class QrCode {
   static bool get canReadPhoto =>
       !TopSecretMode.on && (debugAvailable?.photo ?? (Device.iOS || Device.android || Device.macOS));
 
-  /// What a QR code's text is for a two-factor setup.
+  /// What a QR code's text is for a two-factor setup. Never throws.
   static QrResult read(String? text) {
     final t = text?.trim() ?? '';
     if (t.isEmpty) return const QrNone();
@@ -66,11 +73,17 @@ abstract final class QrCode {
   static Future<QrResult?> scan(BuildContext context) async {
     final String? text;
     if (Device.android) {
-      text = await Navigator.of(context).push<String>(
+      final got = await Navigator.of(context).push<Object>(
           MaterialPageRoute(fullscreenDialog: true, builder: (_) => const QrCameraScreen()));
+      if (got is QrNoCamera) return got;
+      text = got is String ? got : null;
     } else {
       final cancel = AppLocalizations.of(context).cancel;
-      text = await channel.invokeMethod<String>('scan', {'cancel': cancel});
+      try {
+        text = await channel.invokeMethod<String>('scan', {'cancel': cancel});
+      } on PlatformException {
+        return const QrNoCamera();
+      }
     }
     return text == null ? null : read(text);
   }
@@ -88,16 +101,28 @@ abstract final class QrCode {
     // The picker is the system's: the vault does not lock while it is up.
     LockGuard.allowAway();
     try {
-      final text = await channel.invokeMethod<String>('pickImage');
-      return text == null ? null : read(text);
+      final got = await channel.invokeMethod<Object>('pickImage');
+      if (got == null) return null;
+      // Android: the picture's brightness plane, read here by the Rust decoder.
+      if (got is Map) {
+        final luma = got['luma'];
+        final width = got['width'] is int ? got['width'] as int : 0;
+        final height = got['height'] is int ? got['height'] as int : 0;
+        if (luma is! Uint8List || width <= 0 || height <= 0) return const QrNone();
+        return read(await rust.qrReadText(luma: luma, width: width, height: height, stride: width));
+      }
+      return read(got is String ? got : null);
+    } on PlatformException {
+      return const QrNone();
     } finally {
       LockGuard.clear();
     }
   }
 }
 
-/// Android's QR camera: the `camera` plugin's preview, and a few frames a second sent to
-/// ZXing (`decodeFrame`, the luminance plane only, in memory). Pops the code's text.
+/// Android's QR camera: the `camera` plugin's preview, and a few frames a second read
+/// by the Rust decoder ([rust.qrReadText], the luminance plane only, in memory). Pops the
+/// code's text, or nothing.
 class QrCameraScreen extends StatefulWidget {
   const QrCameraScreen({super.key});
 
@@ -109,6 +134,7 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
   CameraController? _controller;
   bool _failed = false;
   bool _busy = false;
+  /// Answered (a code, Cancel, the lock): nothing more pops.
   bool _done = false;
   DateTime _last = DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -118,20 +144,25 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
     _start();
   }
 
+  bool get _gone => !mounted || _done || vaultLock.locked;
+
   Future<void> _start() async {
+    CameraController? c;
     try {
       final cameras = await availableCameras();
+      if (_gone) return;
       final back = cameras.indexWhere((c) => c.lensDirection == CameraLensDirection.back);
-      final c = CameraController(cameras[back < 0 ? 0 : back], ResolutionPreset.high,
+      c = CameraController(cameras[back < 0 ? 0 : back], ResolutionPreset.high,
           enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
+      // Held from here, so [_stop] lets it go whatever happens next.
+      _controller = c;
       await c.initialize();
-      if (!mounted || vaultLock.locked) {
-        await c.dispose();
-        return;
-      }
+      if (_gone) return await _stop();
       await c.startImageStream(_onFrame);
-      setState(() => _controller = c);
+      if (_gone) return await _stop();
+      setState(() {});
     } catch (_) {
+      await _stop();
       if (mounted) setState(() => _failed = true);
     }
   }
@@ -139,21 +170,15 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
   /// About four frames a second, one at a time.
   Future<void> _onFrame(CameraImage image) async {
     final now = DateTime.now();
-    if (_busy || _done || now.difference(_last) < const Duration(milliseconds: 250)) return;
+    if (_busy || _done || image.planes.isEmpty || now.difference(_last) < const Duration(milliseconds: 250)) return;
     _busy = true;
     _last = now;
     try {
       final y = image.planes.first;
-      final text = await QrCode.channel.invokeMethod<String>('decodeFrame', {
-        'bytes': y.bytes,
-        'width': image.width,
-        'height': image.height,
-        'rowStride': y.bytesPerRow,
-      });
-      if (text != null && text.isNotEmpty && mounted && !_done) {
-        _done = true;
+      final text = await rust.qrReadText(luma: y.bytes, width: image.width, height: image.height, stride: y.bytesPerRow);
+      if (text != null && text.isNotEmpty && !_gone) {
         HapticFeedback.mediumImpact();
-        Navigator.of(context).pop(text);
+        _finish(text);
       }
     } catch (_) {
       // A frame that could not be read: the next one is tried.
@@ -162,12 +187,17 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
     }
   }
 
+  /// Close with [value], once, and only this page (never the one under it).
+  void _finish(Object? value) {
+    if (_done) return;
+    _done = true;
+    _stop();
+    if (mounted && ModalRoute.of(context)?.isCurrent == true) Navigator.of(context).pop(value);
+  }
+
   /// The camera lets go when the vault locks; the page closes.
   @override
-  void vaultLocking() {
-    _stop();
-    if (mounted) Navigator.of(context).maybePop();
-  }
+  void vaultLocking() => _finish(null);
 
   Future<void> _stop() async {
     final c = _controller;
@@ -176,11 +206,14 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
     try {
       if (c.value.isStreamingImages) await c.stopImageStream();
     } catch (_) {}
-    await c.dispose();
+    try {
+      await c.dispose();
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _done = true;
     _stop();
     super.dispose();
   }
@@ -194,7 +227,7 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          if (c != null) Center(child: CameraPreview(c)),
+          if (c != null && c.value.isInitialized) Center(child: CameraPreview(c)),
           if (_failed)
             Center(
               child: Padding(
@@ -223,7 +256,7 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
                     alignment: Alignment.topLeft,
                     child: TextButton(
                       key: const ValueKey('qr-cancel'),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => _finish(null),
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white,
                         backgroundColor: Colors.black54,

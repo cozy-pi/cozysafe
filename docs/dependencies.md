@@ -13,7 +13,7 @@ Every third-party package Cozy Safe is built from, grouped by how much harm a bu
 | 3 | Other code in the app | 120 | 81 | 0 | 201 |
 | 4 | Build, test and tooling only | 60 | 19 | 0 | 79 |
 
-Plus 445 Gradle artifacts in 152 groups (Android build tools and libraries, [below](#android-gradle)).
+Plus 443 Gradle artifacts in 151 groups (Android build tools and libraries, [below](#android-gradle)).
 
 ## Changes since the last review
 
@@ -544,7 +544,6 @@ From `app/android/gradle/verification-metadata.xml`, which pins the SHA-256 of e
 | com.google.testparameterinjector | test-parameter-injector@1.18/1.22 · test-parameter-injector-parent@1.18/1.22 |
 | com.google.truth | truth@1.4.0 · truth-parent@1.4.0 |
 | com.google.truth.extensions | truth-extensions-parent@1.4.0 · truth-java8-extension@1.4.0 |
-| com.google.zxing | core@3.5.4 · zxing-parent@3.5.4 |
 | com.googlecode.json-simple | json-simple@1.1 |
 | com.googlecode.juniversalchardet | juniversalchardet@1.0.3 |
 | com.ibm.icu | icu4j@77.1/78.3 |

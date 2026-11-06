@@ -1024,5 +1024,8 @@
   "addChoiceFiles": "Файлы",
   "addChoiceMemoTitle": "Написать или записать?",
   "addChoiceText": "Текст",
-  "addChoiceVoice": "Голос"
+  "addChoiceVoice": "Голос",
+  "qrConfirmTitle": "Сайт показывает этот код?",
+  "qrConfirmLead": "Если сайт просит код для завершения, введите этот. Он меняется каждые 30 секунд.",
+  "qrPasteAgain": "Вставить снова"
 }

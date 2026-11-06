@@ -113,8 +113,8 @@ class MainFlutterWindow: NSWindow {
       result(true)
     }
 
-    // QR codes for 2FA setup (QrCode below): one picked image, or bytes already in
-    // memory. null: cancelled; "": no QR code. The image is read into memory only.
+    // QR codes for 2FA setup (QrCode below): one picked image. null: cancelled; "": no QR
+    // code. The image is read into memory only.
     let qr = FlutterMethodChannel(
       name: "cozysafe/qr", binaryMessenger: flutterViewController.engine.binaryMessenger)
     qr.setMethodCallHandler { [weak self] call, result in
@@ -138,16 +138,6 @@ class MainFlutterWindow: NSWindow {
             DispatchQueue.main.async { result(text ?? "") }
           }
         }
-      case "decodeImage":
-        guard let data = ((call.arguments as? [String: Any])?["bytes"] as? FlutterStandardTypedData)?.data
-        else {
-          result("")
-          return
-        }
-        DispatchQueue.global(qos: .userInitiated).async {
-          let text = QrCode.decode(data)
-          DispatchQueue.main.async { result(text ?? "") }
-        }
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -159,10 +149,16 @@ class MainFlutterWindow: NSWindow {
 
 /// The first QR code in a picture (Vision), decoded in memory: nothing is written or logged.
 enum QrCode {
-  /// A picked file, read whole into memory; too large (over 64 MiB) or unreadable: nil.
+  /// A picture larger than this is not read.
+  static let maxBytes = 64 << 20
+
+  /// A picked file, read into memory, never more than [maxBytes] (whatever size the file
+  /// says it has); too large or unreadable: nil.
   static func read(_ url: URL) -> String? {
-    let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
-    guard size <= 64 << 20, let data = try? Data(contentsOf: url) else { return nil }
+    if let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize, size > maxBytes { return nil }
+    guard let file = try? FileHandle(forReadingFrom: url) else { return nil }
+    defer { try? file.close() }
+    guard let data = try? file.read(upToCount: maxBytes + 1), data.count <= maxBytes else { return nil }
     return decode(data)
   }
 

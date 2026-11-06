@@ -1024,5 +1024,8 @@
   "addChoiceFiles": "Dosyalar",
   "addChoiceMemoTitle": "Yazmak mı, kaydetmek mi?",
   "addChoiceText": "Metin",
-  "addChoiceVoice": "Ses"
+  "addChoiceVoice": "Ses",
+  "qrConfirmTitle": "Site bu kodu gösteriyor mu?",
+  "qrConfirmLead": "Site bitirmek için kod isterse bunu girin. Her 30 saniyede değişir.",
+  "qrPasteAgain": "Tekrar yapıştır"
 }

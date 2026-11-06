@@ -1024,5 +1024,8 @@
   "addChoiceFiles": "ไฟล์",
   "addChoiceMemoTitle": "เขียนหรืออัดเสียง",
   "addChoiceText": "ข้อความ",
-  "addChoiceVoice": "เสียง"
+  "addChoiceVoice": "เสียง",
+  "qrConfirmTitle": "เว็บแสดงรหัสนี้ไหม",
+  "qrConfirmLead": "ถ้าเว็บขอรหัสเพื่อยืนยัน ให้พิมพ์รหัสนี้ รหัสเปลี่ยนทุก 30 วินาที",
+  "qrPasteAgain": "วางอีกครั้ง"
 }

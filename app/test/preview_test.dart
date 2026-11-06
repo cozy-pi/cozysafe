@@ -983,8 +983,15 @@ void main() {
     withEntries();
     qrMock();
   }, act: (t) => toLogin(t, steps: 4),
-      change: 'MỚI: thẻ xem lại gọn: tên (lấy theo trang web, sửa ngay tại chỗ), trang web, tài khoản, mật khẩu che, mã xác minh có/không; chạm một dòng để quay lại sửa; "Lưu" ghim dưới đáy',
+      change: 'MỚI: thẻ xem lại gọn: tên (lấy theo trang web, sửa ngay tại chỗ), trang web, tài khoản, mật khẩu che, mã xác minh có/không kèm mã đang chạy; chạm một dòng để quay lại sửa; "Lưu" ghim dưới đáy',
       marks: [() => find.byKey(const ValueKey('steps-name')), () => find.byKey(const ValueKey('steps-save'))]);
+  _screen('steps-key-confirm', 'Mã xác minh · dán khoá trần: xem mã trước khi nhận', wizard,
+      setup: () => clipboardHolds('JBSW Y3DP EHPK 3PXP'), act: (t) async {
+    await tapStep(t, 'steps-kind-otp');
+    await tapStep(t, 'steps-qr-paste');
+    await t.pump(const Duration(milliseconds: 300));
+  }, change: 'MỚI: dán khoá thiết lập (không phải liên kết otpauth) thì hiện mã 6 số nó tạo ra để so với trang web trước khi nhận; "Dán lại" nếu sai',
+      marks: [() => find.byKey(const ValueKey('steps-code-preview')), () => find.byKey(const ValueKey('steps-key-again'))]);
   _screen('steps-otp-review', 'Mã xác minh · sau khi quét: xem lại', wizard, setup: qrMock, act: (t) async {
     await tapStep(t, 'steps-kind-otp');
     await tapStep(t, 'steps-qr-scan');

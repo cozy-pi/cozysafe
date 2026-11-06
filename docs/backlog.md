@@ -51,7 +51,7 @@ line out when it is done or decided against.
 - **QR scanning on Windows and Linux**: none (paste only). A picked image could be read
   with a small decoder if people ask.
 - **The app shows no licence page**: the Apache-2.0 notices of the fonts and libraries
-  it ships (Material Symbols, ZXing) are in the repository only.
+  it ships (Material Symbols) are in the repository only.
 
 ## Tooling
 

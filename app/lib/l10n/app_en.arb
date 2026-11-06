@@ -1356,5 +1356,11 @@
   "addChoiceText": "Text",
   "@addChoiceText": {"description": "Second choice after Note / Voice: a text note."},
   "addChoiceVoice": "Voice",
-  "@addChoiceVoice": {"description": "Second choice after Note / Voice: a voice recording."}
+  "@addChoiceVoice": {"description": "Second choice after Note / Voice: a voice recording."},
+  "qrConfirmTitle": "Does the site show this code?",
+  "@qrConfirmTitle": {"description": "A bare setup key was pasted: its code is shown to check against the site before it is kept."},
+  "qrConfirmLead": "If the site asks for a code to finish, type this one there. It changes every 30 seconds.",
+  "@qrConfirmLead": {"description": "Under the question after pasting a bare setup key."},
+  "qrPasteAgain": "Paste again",
+  "@qrPasteAgain": {"description": "Second choice when checking a pasted setup key: paste another one."}
 }

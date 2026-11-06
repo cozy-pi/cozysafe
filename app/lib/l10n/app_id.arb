@@ -1024,5 +1024,8 @@
   "addChoiceFiles": "File",
   "addChoiceMemoTitle": "Tulis atau rekam?",
   "addChoiceText": "Teks",
-  "addChoiceVoice": "Suara"
+  "addChoiceVoice": "Suara",
+  "qrConfirmTitle": "Apakah situs menampilkan kode ini?",
+  "qrConfirmLead": "Jika situs meminta kode untuk menyelesaikan, ketik kode ini di sana. Kode berganti tiap 30 detik.",
+  "qrPasteAgain": "Tempel lagi"
 }

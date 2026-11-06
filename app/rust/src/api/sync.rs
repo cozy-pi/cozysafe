@@ -1414,6 +1414,29 @@ pub fn qr_read(luma: Vec<u8>, width: u32, height: u32, stride: u32) -> Option<St
         .find(|t| PairCode::parse(t).is_some())
 }
 
+/// Read a two-factor setup QR code (ADR 0009) from a brightness plane (a camera frame,
+/// or a picked picture turned to grey in memory): an `otpauth://` link when one is seen,
+/// else the first QR code's text, so the screen can say it is not a setup code. Nothing
+/// is kept.
+pub fn qr_read_text(luma: Vec<u8>, width: u32, height: u32, stride: u32) -> Option<String> {
+    let (w, h, stride) = (width as usize, height as usize, stride as usize);
+    if w == 0 || h == 0 || stride < w || luma.len() < stride * (h - 1) + w {
+        return None;
+    }
+    let mut img = rqrr::PreparedImage::prepare_from_greyscale(w, h, |x, y| luma[y * stride + x]);
+    let texts: Vec<String> = img
+        .detect_grids()
+        .into_iter()
+        .filter_map(|g| g.decode().ok().map(|(_, text)| text))
+        .collect();
+    let otp = texts.iter().position(|t| {
+        t.get(..10)
+            .is_some_and(|p| p.eq_ignore_ascii_case("otpauth://"))
+    });
+    otp.or(if texts.is_empty() { None } else { Some(0) })
+        .map(|i| texts[i].clone())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1455,6 +1478,24 @@ mod tests {
         }
         let (luma, side) = photo("https://example.com");
         assert_eq!(qr_read(luma, side, side, side), None);
+    }
+
+    #[test]
+    fn a_two_factor_qr_is_read_as_text() {
+        let link = "otpauth://totp/Acme:na@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Acme";
+        let (luma, side) = photo(link);
+        assert_eq!(qr_read_text(luma, side, side, side).as_deref(), Some(link));
+        // Anything else comes back too, for the screen to say it is not a setup code.
+        let (luma, side) = photo("https://example.com");
+        assert_eq!(
+            qr_read_text(luma, side, side, side).as_deref(),
+            Some("https://example.com")
+        );
+        // A blank picture, a short buffer, a bad stride: nothing.
+        assert_eq!(qr_read_text(vec![255; 64 * 64], 64, 64, 64), None);
+        assert_eq!(qr_read_text(vec![0; 10], 64, 64, 64), None);
+        assert_eq!(qr_read_text(vec![0; 64 * 64], 64, 64, 10), None);
+        assert_eq!(qr_read_text(Vec::new(), 0, 0, 0), None);
     }
 
     #[test]
