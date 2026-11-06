@@ -3,6 +3,38 @@
 What was decided, when, and what is still open. Newest first. Update this page in the
 same change as the decision (or right after the conversation that made it), so nothing
 depends on memory. Details live in the linked docs; this page is the index.
+How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
+[cryptography.md](cryptography.md).
+
+## 2026-11-06 — Passwords and two-factor codes; a post-quantum rule; technical docs
+
+**Owner (2026-11-06):** a password and 2FA store, the storage format agreed first;
+readable docs of the data and the encryption, kept current; everything resistant to
+quantum computers, written down as a rule. As built:
+- [ADR 0009](adr/0009-secure-items.md): kinds `login`, `otp`, `codes`, each an ordinary
+  item; a `summary` (account, hosts) in the record for lists, rebuilt from the content
+  when an older app drops it; the content a JSON document with a version `v`, unknown
+  fields kept; password history is the version history.
+- Copying a secret: the system forgets it after 90 s (owner: 30 s too short), choice of
+  30 s / 90 s / 3 min / never; Top Secret fixed at 90 s.
+- Post-quantum rule (docs/security.md): 256-bit symmetric keys; every public-key step
+  hybrid. Gap found while writing docs/cryptography.md: adding a device used X25519
+  alone; owner approved making it X-Wing next.
+- docs/data-model.md and docs/cryptography.md, checked against the code by
+  `cs-core` tests (`docs_current`).
+- Older apps cannot be stopped from seeing new kinds (they check no version when
+  syncing); from 0.2.28 an unknown kind shows "needs a newer version" and is never
+  opened or shared.
+
+## 2026-11-06 (later) — Adding a device is post-quantum
+
+**Owner (2026-11-06):** every public-key step is hybrid, classical and post-quantum
+together, both must hold; X-Wing preferred. As built:
+- [ADR 0010](adr/0010-post-quantum-device-add.md): adding a device on the Wi-Fi makes
+  its key with X-Wing (ML-KEM-768 + X25519) instead of X25519 alone, so a recorded
+  session (the password and the 24 words cross it) cannot be opened later by a quantum
+  computer. Same commitment and 8-digit code; mode 10, labels `p2p-add/v2/…`. Older apps
+  are refused at once on both sides, no fallback.
 
 ## 2026-11-06 — A vault in a few taps; its identity; words and password kept by the system
 

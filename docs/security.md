@@ -24,6 +24,7 @@ time, wherever it is opened from:
 | Blur thumbnails (off only) | `settings.dart` (`_guarded`) |
 | Delete this vault | `settings.dart` (`_guarded`), then the vault's password |
 | New vault | `confirmOwner` (lock screen and vault) |
+| How long a copied password or code stays (longer or "never" only; Settings → Privacy; hidden in Top Secret, fixed at 90 s) | `settings.dart` (`_guarded`) |
 
 A new security setting gets the same check in the same commit, and a row in this table.
 Limit: on a device with no biometrics and no passcode support (`local_auth` reports it
@@ -154,6 +155,21 @@ running."
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
   the clipboard after 60 seconds and when the vault locks.
+- **A copied password, code or recovery code is the exception** (ADR 0009): it has to
+  outlive the lock, which happens as soon as the person switches to the app that asks
+  for it. It goes through `SecureClipboard` instead: the system forgets it after 90
+  seconds by default (Settings: 30 s, 90 s, 3 min, never; Top Secret fixed at 90 s);
+  iPhone and Mac keep it on this device only (no Universal Clipboard), the Mac marks it
+  concealed and transient for clipboard managers, Android marks it sensitive and clears
+  it on time even in the background (and when the app comes back if the process died).
+  The editor's own fields copy the same way, never to the plain clipboard.
+- **Secure items** (ADR 0009): passwords and recovery codes are masked (always the same
+  dots), revealed one tap at a time, hidden again after 30 seconds, when the app leaves
+  the foreground and on lock; one-time codes show, as in any authenticator, since they
+  expire. Lists show only the account and the site. Their content is read through
+  `entry_json` alone: Rust refuses `item_content`, `export_item` and `history_content`
+  for them, so no viewer, share or export can reach a password, whatever a screen asks.
+  Items of a kind from a newer version are refused the same way.
 - `test/secret_test.dart` checks the hiding.
 
 ## How strong is it? Compared with a Bitcoin wallet
@@ -394,24 +410,41 @@ sign in to Google Drive through the browser, not Google's SDK:
   for installed apps); PKCE and the loopback redirect are what protect the sign-in. The
   scope is still `drive.file` only.
 
-## Quantum computers
+## Quantum computers: the rule (owner 2026-11-06)
 
-- Shor's algorithm breaks public-key cryptography (RSA, elliptic curves: signatures, key
-  exchange). **The vault's contents use none**: no server and no key exchange; P2P sync
-  keys come from the vault's Master Key or the Recovery Key by HKDF. The one public-key
-  part, the vault identity (ADR 0008, 2026-11-06), is hybrid: Ed25519 **and** ML-DSA-65
-  signatures (both must hold), sealing with X-Wing (ML-KEM-768 with X25519). A quantum
-  computer breaks the curve half and leaves the lattice half; a flaw in the young lattice
-  schemes leaves the curve half. (Google Drive is reached over
-  TLS, but what goes there is already sealed. Bitcoin signs with elliptic curves, so
-  exposed public keys are at risk; Cozy Safe has no such part.)
-- Grover's algorithm halves the strength of symmetric keys. Everything here is symmetric:
-  XChaCha20-Poly1305, HKDF-SHA256, Argon2id.
-  - Master Keys and item keys are 256-bit: about 128-bit against a quantum attacker. Safe.
-  - The Recovery Key is 256-bit (24 BIP39 words): about 128-bit against Grover. The
-    128-bit keys of libraries made before 2026-10-21 are no longer read (2026-11-02).
-  - Password guessing goes through Argon2id (128 MiB per try); running that inside a
-    quantum computer is not realistic.
-- **Any key exchange must be post-quantum** (ML-KEM, hybrid with X25519), never classical
-  alone. The vault identity follows it (X-Wing); so must anything later that exchanges
-  keys between devices or vaults.
+**Cozy Safe stays safe against a quantum computer, including one built years after the
+data was taken.** Someone can record today what leaves a device (a backup, a sync, a
+Wi-Fi session) and break it later ("harvest now, decrypt later"), so the rule holds for
+anything that leaves a device, not only for what is on it.
+
+1. **Symmetric keys are 256-bit.** Grover's algorithm halves their strength; 256 bits
+   leaves about 128. No 128-bit key protects anything new.
+2. **Every public-key step is hybrid: classical and post-quantum together, both must
+   hold.** Key exchange or sealing: ML-KEM-768 with X25519 (X-Wing). Signatures:
+   ML-DSA-65 with Ed25519. Classical alone (X25519, Ed25519, ECDSA, RSA) is never enough
+   on its own; post-quantum alone is not either (the lattice schemes are young).
+3. **Prefer no public key at all.** Keys derived from a secret both sides already hold
+   (the Master Key, the 24 words, by HKDF) need no exchange and have nothing for Shor's
+   algorithm to break.
+4. **A new feature that exchanges keys, signs or seals** (sharing between vaults,
+   adding a device, talking to another person) is designed hybrid from its first
+   version, and gets a row in the table below and in docs/cryptography.md.
+5. **A gap is written down, not hidden**: the table says what is not yet hybrid and
+   what crosses it, until it is fixed.
+
+Where things stand ([details](cryptography.md#post-quantum-status)):
+
+| Part | How | Quantum-safe |
+|---|---|---|
+| Vault content, records, keys | XChaCha20-Poly1305, HKDF-SHA256, Argon2id, 256-bit keys | Yes (symmetric) |
+| The 24 words | 256-bit secret | Yes (about 128-bit against Grover) |
+| Password guessing | Argon2id, 128 MiB per try | Yes (not realistic inside a quantum computer) |
+| Sync between devices that hold the vault (nearby, Google Drive) | keys from the Master Key by HKDF; content sealed before it leaves | Yes |
+| Vault identity (ADR 0008) | Ed25519 + ML-DSA-65, X-Wing | Yes (hybrid) |
+| Adding a new device on the Wi-Fi | X-Wing (ML-KEM-768 + X25519) with a commitment and an 8-digit code ([ADR 0010](adr/0010-post-quantum-device-add.md)); X25519 alone until 0.2.27 | Yes (hybrid) since 0.2.28 |
+| HTTPS to Google Drive | TLS 1.3, classical key exchange (`rustls` + `ring`) | Content: yes (sealed before it leaves). The OAuth tokens: no. The hybrid X25519MLKEM768 group needs `rustls`' `aws-lc-rs` provider; the app uses `ring`, which has none |
+| Face ID / fingerprint wraps | Secure Enclave / Keystore, never leave the device | Not exposed |
+
+How this compares with a Bitcoin wallet: [above](#how-strong-is-it-compared-with-a-bitcoin-wallet).
+Bitcoin signs with elliptic curves alone, so exposed public keys are at risk; Cozy Safe
+has no such part.

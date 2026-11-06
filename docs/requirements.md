@@ -9,6 +9,10 @@ Cozy Safe is an encrypted vault for notes, files and photos. It is a product of
 
 - **Encrypted on device.** Everything is encrypted before it touches disk, a
   cloud folder, a peer or a server. Sync transports only ever see ciphertext.
+- **Quantum-safe.** Safe against a quantum computer, including against data recorded
+  today and broken later: 256-bit symmetric keys, and every public-key step hybrid
+  (classical and post-quantum, both must hold). Rule and status:
+  [security.md](security.md#quantum-computers-the-rule-owner-2026-11-06).
 - **Multiple vaults, separate keys.** Every vault has its own encryption keys and
   its own PIN on the device; the backup password, once set, is per vault too.
   Knowing one gives no access to another vault.

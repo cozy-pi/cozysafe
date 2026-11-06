@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/entry_row.dart' show entryKindLabel;
 import '../widgets/vault_bar.dart' show showCard;
 import 'file_view.dart' show fileSize;
 
@@ -35,6 +36,8 @@ String itemKindLabel(AppLocalizations l, rust.ItemInfo item) {
     ItemKind.video => '${l.cameraVideo}${ext.isEmpty ? '' : ' · $ext'}',
     ItemKind.note => l.modeNote,
     ItemKind.audio => l.modeAudio,
+    ItemKind.login || ItemKind.otp || ItemKind.codes => entryKindLabel(l, item.kind),
+    _ when !ItemKind.isKnown(item.kind) => l.needsNewerVersion,
     _ => ext.isEmpty ? l.modeFile : '${l.modeFile} · $ext',
   };
 }

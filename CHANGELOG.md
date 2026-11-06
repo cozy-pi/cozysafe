@@ -4,6 +4,49 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.28 (2026-11-06)
+
+**Update Cozy Safe on every device before you keep passwords.** Older versions do not
+know these items: they leave them out of every tab, but can still find one by name.
+
+### Added
+- Passwords: keep logins (account, password, web sites, notes), two-factor codes
+  (TOTP, shown live with a countdown) and a service's recovery codes, each in its own
+  section. Paste a setup key or an `otpauth://` link to add a code; tick recovery
+  codes as you use them.
+- Generate a strong password (20 random letters, digits and symbols) while editing a
+  login.
+- Copying a password or a code keeps it on the clipboard only briefly: the phone
+  forgets it after 90 seconds (Settings: 30 seconds, 3 minutes or never; a Top Secret
+  vault keeps 90 seconds). On iPhone and Mac it is never sent to your other devices; on
+  Android it is marked sensitive, so the keyboard does not keep it and the preview hides
+  it. Clipboard managers on a Mac are told not to keep it.
+- Adding a new device on the Wi-Fi is now post-quantum: the two devices make their key
+  with X-Wing (ML-KEM-768 with X25519) instead of X25519 alone, so a session recorded
+  today stays closed to a future quantum computer, and with it the password and the 24
+  words that cross it. Both devices need this version; with an older one the app says
+  to update both.
+- A rule, written down: everything resists quantum computers (256-bit keys, and every
+  public-key step classical and post-quantum together), with what is not there yet
+  listed openly (docs/security.md).
+- Technical documents for anyone who wants to check our work: how the data is stored
+  (docs/data-model.md) and how it is encrypted (docs/cryptography.md), kept in step
+  with the code by tests.
+
+### Changed
+- Lists show a password's account and web site without decrypting it; the password
+  and codes are decrypted only when you open, copy or reveal them.
+- An earlier password is kept in the item's version history when you change it, and
+  its page lists earlier versions (masked) to copy or restore.
+- Items of a kind a newer version made are shown as "needs a newer version": they
+  cannot be opened or shared until you update.
+- A password, two-factor key or recovery code can never be sent, exported or opened in
+  another app, even by mistake: the core refuses it. Recovery codes are masked until
+  you show them, like passwords.
+- When the same login is edited on two devices, neither change is lost: the other one
+  is kept as a second login next to it. A save never overwrites a change that arrived
+  from another device meanwhile.
+
 ## 0.2.27 (2026-11-06)
 
 ### Added

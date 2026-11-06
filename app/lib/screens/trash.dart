@@ -13,6 +13,7 @@ import '../widgets/item_menu.dart';
 import '../widgets/selectable_row.dart';
 import '../widgets/selection_bar.dart';
 import '../widgets/vault_bar.dart';
+import '../widgets/entry_row.dart' show entryIcon;
 import 'file_view.dart';
 import 'item_info.dart';
 import 'quick_look.dart';
@@ -36,7 +37,7 @@ class TrashScreen extends StatefulWidget {
 }
 
 /// The kinds, in the order they show (the vault's sections).
-const _sections = [VaultSection.library, VaultSection.note, VaultSection.audio, VaultSection.file];
+const _sections = [VaultSection.library, VaultSection.note, VaultSection.password, VaultSection.audio, VaultSection.file];
 
 /// Top secret reads no thumbnail (ADR 0005): photos and videos are rows with their kind's
 /// icon among the files, as in the vault, not a grid of empty squares (owner 2026-11-01).
@@ -44,6 +45,7 @@ VaultSection _sectionOf(rust.ItemInfo it) => switch (it.kind) {
       ItemKind.photo || ItemKind.video => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       ItemKind.note => VaultSection.note,
       ItemKind.audio => VaultSection.audio,
+      ItemKind.login || ItemKind.otp || ItemKind.codes => VaultSection.password,
       _ => VaultSection.file,
     };
 
@@ -108,7 +110,9 @@ class _TrashScreenState extends State<TrashScreen> {
   Future<void> _preview(rust.ItemInfo it) async {
     // Top secret previews nothing but notes (ADR 0005): the details only; Restore and
     // Delete for good stay in the long-press menu.
-    if (TopSecretMode.on && it.kind != ItemKind.note) {
+    // A secure item: its details too; it is never shown outside its own page (ADR 0009).
+    // A kind from a newer version: the details only, nothing to show.
+    if ((TopSecretMode.on && it.kind != ItemKind.note) || ItemKind.isEntry(it.kind) || !ItemKind.isKnown(it.kind)) {
       return showItemInfo(context, it, held: _held.contains(it.id));
     }
     final pick = await QuickLook.show(context, it,
@@ -638,6 +642,7 @@ class _Row extends StatelessWidget {
     final dot = item.name.lastIndexOf('.');
     final ext = item.kind != ItemKind.file || dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     final icon = switch (item.kind) {
+      ItemKind.login || ItemKind.otp || ItemKind.codes => entryIcon(item.kind),
       ItemKind.note => Icons.book_rounded,
       ItemKind.audio => Icons.mic_none_rounded,
       _ => fileIcon(item),
@@ -675,7 +680,9 @@ class _Row extends StatelessWidget {
                     ],
                     Flexible(
                       child: Text(
-                        held ? '${l.trashHeldLabel} · $days' : '${fileSize(item.sizeBytes)} · $days',
+                        held
+                            ? '${l.trashHeldLabel} · $days'
+                            : '${ItemKind.isKnown(item.kind) ? fileSize(item.sizeBytes) : l.needsNewerVersion} · $days',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: c.muted, fontSize: CsType.footnote),

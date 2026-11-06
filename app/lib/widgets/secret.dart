@@ -101,8 +101,25 @@ class SecretField extends StatefulWidget {
     this.onSubmitted,
     this.multiline = false,
     this.paste = false,
+    this.openFile = true,
+    this.shown,
     this.autofillHints,
+    this.fieldKey,
+    this.contextMenuBuilder,
   });
+
+  /// The text menu (Copy through the secure clipboard for a secure item's secrets).
+  final EditableTextContextMenuBuilder? contextMenuBuilder;
+
+  /// With [paste], also the Open file button where the build has one (the 24 words).
+  final bool openFile;
+
+  /// Whether the secret shows in clear, when the page decides too (a generated password
+  /// is shown at once); the eye flips it. Null: the field keeps its own.
+  final ValueNotifier<bool>? shown;
+
+  /// The text field's own key, for tests and mockups.
+  final Key? fieldKey;
 
   /// For the system's password manager (ADR 0008): `newPassword` where a vault password
   /// is set, so it offers a strong one and saves it; `password` where one is typed to
@@ -150,7 +167,34 @@ Future<String?> openWordsFile() async {
 }
 
 class _SecretFieldState extends State<SecretField> {
-  bool _obscure = true;
+  bool _own = true;
+  bool get _obscure => widget.shown == null ? _own : !widget.shown!.value;
+  set _obscure(bool v) => widget.shown == null ? _own = v : widget.shown!.value = !v;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.shown?.addListener(_changed);
+  }
+
+  @override
+  void didUpdateWidget(SecretField old) {
+    super.didUpdateWidget(old);
+    if (old.shown != widget.shown) {
+      old.shown?.removeListener(_changed);
+      widget.shown?.addListener(_changed);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.shown?.removeListener(_changed);
+    super.dispose();
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
 
   Future<void> _paste() async {
     final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim();
@@ -173,6 +217,8 @@ class _SecretFieldState extends State<SecretField> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return TextField(
+      key: widget.fieldKey,
+      contextMenuBuilder: widget.contextMenuBuilder ?? _defaultMenu,
       controller: widget.controller,
       enabled: widget.enabled,
       obscureText: _obscure,
@@ -195,7 +241,7 @@ class _SecretFieldState extends State<SecretField> {
               icon: const Icon(Icons.content_paste_rounded),
               onPressed: widget.enabled ? _paste : null,
             ),
-          if (widget.paste && wordsExport)
+          if (widget.paste && widget.openFile && wordsExport)
             IconButton(
               key: const ValueKey('secret-open-file'),
               tooltip: l.wordsOpenFile,
@@ -214,6 +260,9 @@ class _SecretFieldState extends State<SecretField> {
     );
   }
 }
+
+Widget _defaultMenu(BuildContext context, EditableTextState state) =>
+    AdaptiveTextSelectionToolbar.editableText(editableTextState: state);
 
 /// The 24 words in a text: the numbered lines ("1. word") in order when there are any,
 /// so the title and the note of the saved file are left out; otherwise the whole text.

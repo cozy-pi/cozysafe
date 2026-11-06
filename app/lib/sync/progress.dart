@@ -835,6 +835,9 @@ class _SyncProgressState extends State<SyncProgress>
         sync.SyncStep.locked => _Status(icon: Icons.lock_outline_rounded, title: l.syncLocked),
         sync.SyncStep.otherVault => _Status(icon: Icons.no_encryption_gmailerrorred_rounded, color: const Color(0xFFFF9500), title: l.syncOtherVault),
         sync.SyncStep.unreachable => _Status(icon: Icons.wifi_off_rounded, color: const Color(0xFFFF3B30), title: l.syncUnreachable),
+        // Adding a device between 0.2.28+ and an older app (ADR 0010): say what to do.
+        sync.SyncStep.failed when e.code == 'p2p-add-old-version' =>
+          _Status(icon: Icons.system_update_rounded, color: const Color(0xFFFF9500), title: l.syncPeerOldVersion),
         sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: const Color(0xFFFF3B30), title: l.syncFailed),
         sync.SyncStep.signIn => _Status(icon: Icons.account_circle_rounded, color: const Color(0xFFFF9500), title: l.syncSignInAgain),
         sync.SyncStep.peerWrongWords => _Status(icon: Icons.key_off_rounded, color: const Color(0xFFFF9500), title: l.syncPeerWrongWords),

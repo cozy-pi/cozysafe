@@ -73,7 +73,7 @@ class _Fake implements RustLibApi {
     if (name.contains('ForgetBiometricUnlock')) return Future<void>.value();
     final note = ItemInfo(
       id: 'n1', kind: 'note', name: '', mime: 'text/plain', createdMs: 0,
-      sizeBytes: BigInt.zero, tagIds: const [], isFavorite: false, modifiedMs: 0,
+      sizeBytes: BigInt.zero, tagIds: const [], isFavorite: false, modifiedMs: 0, account: '', hosts: const [],
     );
     if (name.contains('AddNote')) {
       notesAdded++;

@@ -22,7 +22,7 @@ ItemInfo _note(String name) => ItemInfo(
       sizeBytes: BigInt.from(5),
       tagIds: const [],
       isFavorite: false,
-      modifiedMs: 0,
+      modifiedMs: 0, account: '', hosts: const [],
     );
 
 /// The core's answers, and what the screens asked of it.

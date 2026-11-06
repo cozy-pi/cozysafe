@@ -134,6 +134,9 @@ pub enum VaultError {
     /// The vault is in Top Secret Mode and this run opened an everyday vault: the app must
     /// start again before it opens (api/run.rs). Nothing was opened.
     RestartForMode,
+    /// A secure item changed (on another device, through sync) since it was read: the
+    /// save is refused so that change is not overwritten; read it again.
+    Changed,
     Storage,
 }
 
@@ -151,6 +154,7 @@ pub(crate) fn error_word(e: &VaultError) -> &'static str {
         VaultError::LibraryExists => "library-exists",
         VaultError::WeakKdf => "weak-kdf",
         VaultError::RestartForMode => "restart-for-mode",
+        VaultError::Changed => "changed",
         VaultError::Storage => "storage",
     }
 }
@@ -410,7 +414,9 @@ static DRAFT: std::sync::Mutex<Option<cs_vault::VaultDraft>> = std::sync::Mutex:
 #[flutter_rust_bridge::frb(sync)]
 pub fn prepare_vault() -> String {
     let draft = cs_vault::VaultDraft::new();
-    let code = cs_identity::Identity::from_seed(draft.identity_seed().as_bytes()).public().code();
+    let code = cs_identity::Identity::from_seed(draft.identity_seed().as_bytes())
+        .public()
+        .code();
     *DRAFT.lock().unwrap_or_else(|e| e.into_inner()) = Some(draft);
     code
 }
@@ -916,7 +922,9 @@ fn vault_code(vault: &OpenVault) -> String {
         return code.clone();
     }
     let seed = vault.identity_seed();
-    let code = cs_identity::Identity::from_seed(seed.as_bytes()).public().code();
+    let code = cs_identity::Identity::from_seed(seed.as_bytes())
+        .public()
+        .code();
     codes.push((vault.id.clone(), code.clone()));
     code
 }
@@ -955,7 +963,8 @@ pub(crate) fn set_open(vault: OpenVault) -> Result<VaultInfo, VaultError> {
 /// Names follow docs/naming.md.
 pub struct ItemInfo {
     pub id: String,
-    /// "photo", "video", "note", "audio", "file" or "tag" (cs_vault::items::kind).
+    /// "photo", "video", "note", "audio", "file", "tag", or a secure item: "login",
+    /// "otp", "codes" (cs_vault::items::kind).
     pub kind: String,
     pub name: String,
     pub mime: String,
@@ -972,6 +981,10 @@ pub struct ItemInfo {
     pub is_favorite: bool,
     /// Last change (content, name, groups…); the creation time if never changed.
     pub modified_ms: i64,
+    /// Secure items: the account (user name or email) and the web sites' host names,
+    /// never a secret; empty for other kinds.
+    pub account: String,
+    pub hosts: Vec<String>,
 }
 
 impl From<ItemMeta> for ItemInfo {
@@ -988,6 +1001,8 @@ impl From<ItemMeta> for ItemInfo {
             tag_ids: m.tag_ids,
             is_favorite: m.is_favorite,
             modified_ms: m.modified_ms,
+            account: m.account,
+            hosts: m.hosts,
         }
     }
 }
@@ -1146,10 +1161,77 @@ pub fn update_note(id: String, title: String, text: String) -> Result<ItemInfo, 
     with_open(|v| Ok(v.replace_item(&id, &title, text.as_bytes())?.into()))
 }
 
+/// A new secure item (docs/adr/0009-secure-items.md): `kind` is "login", "otp" or
+/// "codes", `json` its document (`{"v":1, …}`), refused unless it is one.
+pub fn add_entry(
+    kind: String,
+    name: String,
+    json: String,
+    created_ms: i64,
+) -> Result<ItemInfo, VaultError> {
+    let json = Zeroizing::new(json);
+    with_open(|v| {
+        Ok(v.add_entry(&kind, &name, json.as_bytes(), created_ms)?
+            .into())
+    })
+}
+
+/// Save an edited secure item: its name and whole document. `rev` is the [`EntryDoc`]'s
+/// it was edited from: if the content changed since (sync brought another device's
+/// edit), nothing is written and [`VaultError::Changed`] says to read it again.
+pub fn update_entry(
+    id: String,
+    name: String,
+    json: String,
+    rev: String,
+) -> Result<ItemInfo, VaultError> {
+    let json = Zeroizing::new(json);
+    with_open(|v| {
+        if v.record(&id)?.data_rev != rev {
+            debug_line(|| "entry save refused: changed since read".into());
+            return Err(VaultError::Changed);
+        }
+        Ok(v.replace_entry(&id, &name, json.as_bytes())?.into())
+    })
+}
+
+/// A secure item's document and the revision of its content.
+pub struct EntryDoc {
+    pub json: String,
+    /// Passed back to [`update_entry`].
+    pub rev: String,
+}
+
+/// A secure item's document, to show and edit it. Read in Top Secret Mode too, like a
+/// note: it never leaves the app this way.
+pub fn entry_json(id: String) -> Result<EntryDoc, VaultError> {
+    read_open(|v| {
+        let record = v.record(&id)?;
+        if !cs_vault::items::kind::is_entry(&record.kind) {
+            return Err(VaultError::Storage);
+        }
+        let mut out = Zeroizing::new(Vec::new());
+        v.read_item(&id, &mut *out)?;
+        let json = String::from_utf8(out.to_vec()).map_err(|_| VaultError::Storage)?;
+        Ok(EntryDoc {
+            json,
+            rev: record.data_rev,
+        })
+    })
+}
+
 /// Decrypt an item to `path` (a private temporary file), to open it in another app.
 /// The caller deletes it afterwards.
+///
+/// Never a secure item (ADR 0009): its passwords and codes leave the vault only by a
+/// copy that expires, whatever a screen asks.
 pub fn export_item(id: String, path: String) -> Result<(), VaultError> {
     read_open(|v| {
+        let kind = v.record(&id)?.kind;
+        if cs_vault::items::kind::is_entry(&kind) || !cs_vault::items::kind::is_known(&kind) {
+            debug_line(|| "export refused: a secure item or an unknown kind".into());
+            return Err(VaultError::Storage);
+        }
         let f = std::fs::File::create(&path).map_err(|_| VaultError::Storage)?;
         let mut w = std::io::BufWriter::new(f);
         let r = v.read_item(&id, &mut w);
@@ -1282,7 +1364,16 @@ pub fn item_plain_text(id: String) -> Result<String, VaultError> {
 }
 
 fn readable_in_app(v: &OpenVault, id: &str) -> Result<(), VaultError> {
-    if super::run::top_secret() && v.record(id)?.kind != cs_vault::items::kind::NOTE {
+    let kind = v.record(id)?.kind;
+    // A secure item is read through `entry_json` alone, by its own page: never as raw
+    // content a viewer or a share could pick up (ADR 0009).
+    // A kind from a newer version is never shown either: this app cannot tell what it
+    // holds.
+    if cs_vault::items::kind::is_entry(&kind) || !cs_vault::items::kind::is_known(&kind) {
+        debug_line(|| "content refused: a secure item or an unknown kind".into());
+        return Err(VaultError::Storage);
+    }
+    if super::run::top_secret() && kind != cs_vault::items::kind::NOTE {
         return super::run::refuse_in_top_secret("content");
     }
     Ok(())

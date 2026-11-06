@@ -14,6 +14,7 @@ import 'search.dart' show MarkedText;
 import '../top_secret_mode.dart';
 import '../file_kinds.dart';
 import '../widgets/file_name.dart';
+import '../widgets/entry_row.dart';
 
 /// The colour of each section, the same as the storage bar in Settings.
 Color searchKindColor(VaultSection s) => sectionColor(s);
@@ -24,6 +25,7 @@ IconData searchKindIcon(VaultSection s) => switch (s) {
       VaultSection.library => Icons.photo_library_rounded,
       VaultSection.audio => Icons.mic_none_rounded,
       VaultSection.file => Icons.folder_rounded,
+      VaultSection.password => Icons.key_rounded,
     };
 
 VaultSection? sectionOf(rust.ItemInfo i) => switch (i.kind) {
@@ -32,7 +34,10 @@ VaultSection? sectionOf(rust.ItemInfo i) => switch (i.kind) {
       ItemKind.photo || ItemKind.video => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       ItemKind.audio => VaultSection.audio,
       ItemKind.file => VaultSection.file,
-      _ => null,
+      ItemKind.login || ItemKind.otp || ItemKind.codes => VaultSection.password,
+      ItemKind.tag => null,
+      // A kind from a newer version: among the files, opening nothing.
+      _ => VaultSection.file,
     };
 
 
@@ -235,6 +240,8 @@ class ItemMark extends StatelessWidget {
             )
           : s == VaultSection.file
               ? FileKindBadge(name: item.name, mime: item.mime, width: box.maxWidth, height: box.maxHeight, big: big)
+              : s == VaultSection.password
+              ? EntryBadge(kind: item.kind, width: box.maxWidth, height: box.maxHeight, big: big)
               : DecoratedBox(
                   decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(12)),
                   child: Icon(searchKindIcon(s), color: color, size: big ? 34 : 24),
@@ -280,7 +287,9 @@ class OverviewTile extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             // The extension is on the mark (owner 2026-10-31): the name alone here.
-            Text(item.kind == ItemKind.note || item.kind == ItemKind.audio ? name : nameWithoutExtension(name),
+            Text(!ItemKind.isKnown(item.kind)
+                    ? AppLocalizations.of(context).needsNewerVersion
+                    : item.kind == ItemKind.note || item.kind == ItemKind.audio ? name : nameWithoutExtension(name),
                 maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
           ],
         ),
@@ -328,7 +337,14 @@ class OverviewRow extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 3),
-                  Text(MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs)),
+                  // A secure item: its account and web site, as in its list.
+                  Text(!ItemKind.isKnown(item.kind)
+                          ? l.needsNewerVersion
+                          : ItemKind.isEntry(item.kind) && entryLine(item).isNotEmpty
+                          ? entryLine(item)
+                          : MaterialLocalizations.of(context).formatShortDate(dateOf(item.createdMs)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                 ],
               ),
@@ -342,7 +358,7 @@ class OverviewRow extends StatelessWidget {
 
 /// A section on the empty search screen: its colour, symbol, name and how many.
 /// What the overview counts: each row is what a tap shows (Library or Files on a chip).
-enum OverviewKind { photo, video, note, audio, document, other }
+enum OverviewKind { photo, video, note, password, audio, document, other }
 
 /// Where [i] is counted on the overview. In an everyday vault a photo or video file
 /// (imported as a file) is a file, as Files lists it; in Top secret, with no Library,
@@ -352,13 +368,15 @@ OverviewKind? overviewKindOf(rust.ItemInfo i) => switch (i.kind) {
       ItemKind.video => OverviewKind.video,
       ItemKind.note => OverviewKind.note,
       ItemKind.audio => OverviewKind.audio,
+      ItemKind.login || ItemKind.otp || ItemKind.codes => OverviewKind.password,
       ItemKind.file => switch (fileGroupOf(fileKindOf(i.name, i.mime))) {
           FileGroup.photo when TopSecretMode.on => OverviewKind.photo,
           FileGroup.video when TopSecretMode.on => OverviewKind.video,
           FileGroup.document => OverviewKind.document,
           _ => OverviewKind.other,
         },
-      _ => null,
+      ItemKind.tag => null,
+      _ => OverviewKind.other,
     };
 
 /// The kinds on the overview, small tiles in a grid: icon and count, the name under.
@@ -378,6 +396,7 @@ class KindCard extends StatelessWidget {
           OverviewKind.audio => (Icons.mic_rounded, sectionColor(VaultSection.audio), l.modeAudio),
           OverviewKind.document => (FileKind.document.icon, FileKind.document.color, l.fileGroupDocuments),
           OverviewKind.other => (Icons.folder_rounded, sectionColor(VaultSection.file), l.fileGroupOtherFiles),
+          OverviewKind.password => (Icons.key_rounded, sectionColor(VaultSection.password), l.modePassword),
         };
     // Three a row on a phone (owner 2026-11-03: a row each took too much room), all in
     // one row on a wide window.

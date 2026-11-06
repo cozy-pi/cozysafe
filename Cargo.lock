@@ -191,6 +191,7 @@ name = "cs-net"
 version = "0.1.0"
 dependencies = [
  "cs-crypto",
+ "cs-identity",
  "cs-vault",
  "hex",
  "ring",
@@ -219,6 +220,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "zeroize",
 ]
 
 [[package]]

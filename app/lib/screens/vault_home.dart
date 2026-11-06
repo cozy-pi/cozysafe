@@ -74,6 +74,9 @@ import 'sealed_item.dart';
 import '../file_kinds.dart';
 import '../widgets/file_name.dart';
 import 'plain_text_view.dart';
+import 'entry_editor.dart';
+import 'entry_page.dart';
+import '../widgets/entry_row.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -682,6 +685,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       AddWhat.photo || AddWhat.video || AddWhat.photos => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       AddWhat.voice => VaultSection.audio,
       AddWhat.file => VaultSection.file,
+      AddWhat.password => VaultSection.password,
     };
     setState(() {
       _section = target;
@@ -699,6 +703,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         await _import(photos: true);
       case AddWhat.file:
         await _import(photos: false);
+      case AddWhat.password:
+        await _newEntry();
       case AddWhat.voice:
         WidgetsBinding.instance.addPostFrameCallback((_) => _recorder.currentState?.toggle());
         return; // stays open while recording; picking another section lets it go
@@ -718,6 +724,20 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       ),
     ));
     if (!_locked) _reload();
+  }
+
+  /// A new secure item (ADR 0009): its editor, as a page.
+  Future<void> _newEntry() => Navigator.of(_pageContext).push<rust.ItemInfo>(
+      MaterialPageRoute(builder: (_) => Readable(child: EntryEditor(tagId: _tagId))));
+
+  /// A secure item opens as a page of its own, in Top secret too (ADR 0009): its rows,
+  /// Edit and Delete. Never the preview over the page.
+  Future<void> _openEntry(rust.ItemInfo item) async {
+    final result = await Navigator.of(_pageContext).push<String>(MaterialPageRoute(
+        builder: (_) => Readable(child: EntryScreen(item: item, menu: _viewerMenu, onChanged: _reload))));
+    if (!mounted || _locked) return;
+    _reload();
+    if (result == EntryScreen.deleted) _trashed([item.id]);
   }
 
   Future<void> _openNote(rust.ItemInfo? item) async {
@@ -1060,6 +1080,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             ItemKind.note => VaultSection.note,
             ItemKind.audio => VaultSection.audio,
             ItemKind.file => VaultSection.file,
+            ItemKind.login || ItemKind.otp || ItemKind.codes => VaultSection.password,
             _ => TopSecretMode.on ? VaultSection.file : VaultSection.library,
           });
         },
@@ -1152,7 +1173,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Future<void> _openItem(rust.ItemInfo item, List<rust.ItemInfo> media) async {
     if (_selecting) return _toggle(item.id);
     if (item.kind == ItemKind.tag) return setState(() => _tagId = item.id);
-    // Top secret opens notes only (ADR 0005); anything else is a sealed row: its details
+    if (ItemKind.isEntry(item.kind)) return _openEntry(item);
+    // From a newer version: nothing to open here, only Delete (its menu).
+    if (!ItemKind.isKnown(item.kind)) return _itemMenu(item, const []);
+    // Top secret opens notes and secure items only (ADR 0005, 0009); anything else is a sealed row: its details
     // and Export, after the warning. No viewer, player or preview is ever built.
     if (TopSecretMode.on && item.kind != ItemKind.note) {
       // Plain text reads in the app, after the core's checks (owner 2026-11-01); anything
@@ -1264,8 +1288,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   rust.ItemInfo? get _renamable {
     if (_selected.length != 1) return null;
     final it = (_items ?? const <rust.ItemInfo>[]).where((i) => i.id == _selected.first).firstOrNull;
-    return it == null || it.kind == ItemKind.note || it.kind == ItemKind.tag ? null : it;
+    // A secure item is renamed in its editor.
+    return it == null || it.kind == ItemKind.note || it.kind == ItemKind.tag || ItemKind.isEntry(it.kind) ? null : it;
   }
+
+  /// A secure item is among the chosen: no Send (ADR 0009).
+  bool get _selectedSecure =>
+      (_items ?? const <rust.ItemInfo>[]).any((i) => _selected.contains(i.id) && (ItemKind.isEntry(i.kind) || !ItemKind.isKnown(i.kind)));
 
   Future<void> _renameSelected() async {
     final it = _renamable;
@@ -1323,7 +1352,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     if (!await confirmShareOut(context, _vault.id) || !mounted) return;
     final items =
-        (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id) && i.kind != ItemKind.tag).toList();
+        (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id) && i.kind != ItemKind.tag && !ItemKind.isEntry(i.kind) && ItemKind.isKnown(i.kind)).toList();
     final dir = await (await privateTemp()).createTemp('send');
     LockGuard.allowAway();
     try {
@@ -1458,6 +1487,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (_selecting && viewer == null) return _toggle(item.id);
     final l = AppLocalizations.of(context);
     final all = viewer == null;
+    final secure = ItemKind.isEntry(item.kind);
+    final delete = MenuEntry(Icons.delete_outline_rounded, l.delete, () async {
+      if (!await confirmTrash(context, count: 1, name: _shownName(l, item)) || !mounted) return;
+      await rust.trashItem(id: item.id, nowMs: nowMs());
+      _reload();
+      _trashed([item.id]);
+    }, danger: true, key: const ValueKey('menu-delete'));
+    // A kind from a newer version: Delete alone, nothing that reads or hands it out.
+    if (!ItemKind.isKnown(item.kind)) {
+      return showItemMenu(context, title: l.needsNewerVersion, from: viewer, entries: [delete]);
+    }
     await showItemMenu(context, title: _shownName(l, item), from: viewer, entries: [
       if (open && all) MenuEntry(Icons.open_in_new_rounded, l.openItem, () => _openItem(item, media), key: const ValueKey('menu-open')),
       if (all && selectShown)
@@ -1465,23 +1505,22 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               _selectMode = true;
               _selected.add(item.id);
             }), key: const ValueKey('menu-select')),
-      if (item.kind != ItemKind.note)
+      // A secure item's name is changed in its editor (Edit), with the rest of it.
+      if (item.kind != ItemKind.note && !secure)
         MenuEntry(Icons.edit_outlined, l.rename, () => _rename(item), key: const ValueKey('menu-rename')),
       MenuEntry(item.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded, item.isFavorite ? l.unfavorite : l.favorite,
           () => _toggleFavorite(item), key: const ValueKey('menu-favorite')),
       if (groupsShown)
         MenuEntry(Icons.sell_outlined, l.tagAction, () => _onlyThis(item, _tagSelected), key: const ValueKey('menu-group')),
       MenuEntry(Icons.info_outline_rounded, l.info, () => _info(item), key: const ValueKey('menu-info')),
-      // Older versions of it, to look at or bring back (owner 2026-10-27).
+      // Older versions of it, to look at or bring back (owner 2026-10-27). A secure
+      // item's open on its own masked page (ADR 0009: old passwords are kept there).
       MenuEntry(Icons.history_rounded, l.versionHistory, () => _history(item), key: const ValueKey('menu-history')),
       if (all) ...[
-        MenuEntry(Icons.ios_share, l.sendOut, () => _onlyThis(item, _sendSelected), key: const ValueKey('menu-send')),
-        MenuEntry(Icons.delete_outline_rounded, l.delete, () async {
-          if (!await confirmTrash(context, count: 1, name: _shownName(l, item)) || !mounted) return;
-          await rust.trashItem(id: item.id, nowMs: nowMs());
-          _reload();
-          _trashed([item.id]);
-        }, danger: true, key: const ValueKey('menu-delete')),
+        // A secure item is never handed to another app (ADR 0009).
+        if (!secure)
+          MenuEntry(Icons.ios_share, l.sendOut, () => _onlyThis(item, _sendSelected), key: const ValueKey('menu-send')),
+        delete,
       ],
     ]);
   }
@@ -1748,12 +1787,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final c = CsColors.of(context);
     if (list.isEmpty) {
       if (_tagId != null) return _tagEmpty(context);
+      if (_section == VaultSection.password) {
+        return _Empty(icon: Icons.key_rounded, title: l.emptyPasswordsTitle, body: l.emptyPasswordsBody);
+      }
       return notes
           ? _Empty(icon: Icons.book_rounded, title: l.emptyNotesTitle, body: l.emptyNotesBody)
           : _Empty(icon: Icons.folder_rounded, title: l.emptyFilesTitle, body: l.emptyFilesBody);
     }
     _dragOrder = [for (final it in list) it.id];
-    if (!notes && _filesAsGrid) {
+    if (!notes && _filesAsGrid && _section == VaultSection.file) {
       return _pinchTiles('files-columns', Scrollbar(
         child: GridView.builder(
           key: const ValueKey('files-grid'),
@@ -1808,7 +1850,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   id: it.id,
                   drag: _drag,
                   onMenu: () => _itemMenu(it, notes ? const [] : list.where(_isMedia).toList()),
-                  child: notes
+                  child: ItemKind.isEntry(it.kind)
+                      ? EntryRow(
+                          item: it,
+                          selected: _selected.contains(it.id),
+                          selecting: _selecting,
+                          onTap: () => _openItem(it, const []),
+                        )
+                      : notes
                       ? _NoteRow(
                           item: it,
                           preview: notePreviews() ? _preview(it.id) : null,
@@ -1848,7 +1897,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         VaultSection.audio => i.kind == ItemKind.audio,
         // Top secret has no Library: its photos and videos (camera shots, and those
         // from before the split) are files there.
-        VaultSection.file => i.kind == ItemKind.file || (TopSecretMode.on && (i.kind == ItemKind.photo || i.kind == ItemKind.video)),
+        // A kind from a newer version is listed among the files, as a row that opens nothing.
+        VaultSection.file => i.kind == ItemKind.file ||
+            !ItemKind.isKnown(i.kind) ||
+            (TopSecretMode.on && (i.kind == ItemKind.photo || i.kind == ItemKind.video)),
+        VaultSection.password => ItemKind.isEntry(i.kind),
       };
 
   /// What the section on show holds, narrowed to the open tag.
@@ -1862,7 +1915,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     int by(rust.ItemInfo a, rust.ItemInfo b) => switch (sort) {
           ItemSort.newest => b.createdMs.compareTo(a.createdMs),
           ItemSort.oldest => a.createdMs.compareTo(b.createdMs),
-          ItemSort.name => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          // Case and accents aside: "Đà Lạt" sorts with "da lat".
+          ItemSort.name => fold(a.name).compareTo(fold(b.name)),
           ItemSort.size => b.sizeBytes.compareTo(a.sizeBytes),
           ItemSort.smallest => a.sizeBytes.compareTo(b.sizeBytes),
           ItemSort.edited => b.modifiedMs.compareTo(a.modifiedMs),
@@ -1879,7 +1933,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// This section's order (Prefs `sort-<section>`): newest first unless changed.
   ItemSort get _sort {
     final saved = Prefs.read('sort-${_section.name}');
-    final sort = ItemSort.values.where((v) => v.name == saved).firstOrNull ?? ItemSort.newest;
+    // Passwords are looked up by name: A to Z unless changed.
+    final sort = ItemSort.values.where((v) => v.name == saved).firstOrNull ??
+        (_section == VaultSection.password ? ItemSort.name : ItemSort.newest);
     // The library is grouped by date, or one grid by size (owner 2026-10-28): name and
     // last edit mean nothing there.
     if (_section == VaultSection.library && (sort == ItemSort.name || sort == ItemSort.edited)) return ItemSort.newest;
@@ -1907,6 +1963,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final options = switch (_section) {
       VaultSection.library => [ItemSort.newest, ItemSort.oldest, ItemSort.size, ItemSort.smallest],
       VaultSection.note => ItemSort.values,
+      // Sizes mean nothing for a password.
+      VaultSection.password => [ItemSort.newest, ItemSort.oldest, ItemSort.name, ItemSort.edited],
       _ => [ItemSort.newest, ItemSort.oldest, ItemSort.name, ItemSort.size, ItemSort.smallest],
     };
     String label(ItemSort s) => switch (s) {
@@ -2254,6 +2312,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           onOrder: (ids) => _dragOrder = ids,
         ),
       VaultSection.library => _libraryWithChips(context, shown),
+      VaultSection.password => _list(context, shown, notes: false),
     };
   }
 
@@ -2314,6 +2373,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         final s = switch (k) {
           OverviewKind.note => VaultSection.note,
           OverviewKind.audio => VaultSection.audio,
+          OverviewKind.password => VaultSection.password,
           _ when inLibrary => VaultSection.library,
           _ => VaultSection.file,
         };
@@ -2487,7 +2547,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 onDone: () => setState(_endSelect),
                 allSelected: _allShownSelected,
                 onSelectAll: _toggleSelectAll,
-                onSend: _sendSelected,
+                onSend: _selectedSecure ? null : _sendSelected,
                 onTag: _tagSelected,
                 onRename: _renamable == null ? null : _renameSelected,
                 onDelete: _deleteSelected)
@@ -3000,7 +3060,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 onDone: () => setState(_endSelect),
                 allSelected: _allShownSelected,
                 onSelectAll: _toggleSelectAll,
-                onSend: _sendSelected,
+                onSend: _selectedSecure ? null : _sendSelected,
                 onTag: _tagSelected,
                 onRename: _renamable == null ? null : _renameSelected,
                 onDelete: _deleteSelected)
@@ -3341,7 +3401,7 @@ class _SelectionBar extends StatelessWidget {
     required this.onDone,
     required this.onSelectAll,
     required this.allSelected,
-    required this.onSend,
+    this.onSend,
     required this.onTag,
     required this.onDelete,
     this.onRename,
@@ -3354,7 +3414,8 @@ class _SelectionBar extends StatelessWidget {
   final bool allSelected;
   /// Nothing chosen yet (Select mode just opened): the actions wait, dimmed.
   final bool enabled;
-  final VoidCallback onSend;
+  /// None while a secure item is among the chosen: those never leave the app.
+  final VoidCallback? onSend;
   final VoidCallback onTag;
   /// Only with one item selected that has a name of its own.
   final VoidCallback? onRename;
@@ -3369,7 +3430,7 @@ class _SelectionBar extends StatelessWidget {
       allSelected: allSelected,
       enabled: enabled,
       actions: [
-        SelectionAction(Icons.ios_share, l.sendOut, onSend),
+        if (onSend case final send?) SelectionAction(Icons.ios_share, l.sendOut, send),
         if (groupsShown) SelectionAction(Icons.sell_rounded, l.tagAction, onTag, key: const ValueKey('select-group')),
         if (onRename case final rename?) SelectionAction(Icons.edit_rounded, l.rename, rename),
         SelectionAction(Icons.delete_rounded, l.delete, onDelete, color: recordRed(context), key: const ValueKey('select-delete')),
@@ -3519,7 +3580,11 @@ class _FileRow extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text('${fileSize(item.sizeBytes)} · $when', style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
+                  Text(ItemKind.isKnown(item.kind) ? '${fileSize(item.sizeBytes)} · $when' : AppLocalizations.of(context).needsNewerVersion,
+                      key: ItemKind.isKnown(item.kind) ? null : const ValueKey('needs-newer'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                 ],
               ),
             ),
@@ -3544,6 +3609,7 @@ class _FileTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return InkWell(
@@ -3570,7 +3636,7 @@ class _FileTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 // The extension is on the mark above (owner 2026-10-31).
-                Text(nameWithoutExtension(item.name),
+                Text(ItemKind.isKnown(item.kind) ? nameWithoutExtension(item.name) : l.needsNewerVersion,
                     maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, height: 1.25)),
                 const SizedBox(height: 2),
                 Text(fileSize(item.sizeBytes), style: TextStyle(color: c.muted, fontSize: CsType.caption1)),

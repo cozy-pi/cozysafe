@@ -50,7 +50,7 @@ ItemInfo _item(String id, String kind, String name, int sizeBytes,
       durationMs: duration,
       tagIds: [for (final t in tags) t.padRight(32, '_')],
       isFavorite: false,
-      modifiedMs: _now - ago,
+      modifiedMs: _now - ago, account: '', hosts: const [],
     );
 
 /// What people keep in a vault, named in each language: (en, vi).

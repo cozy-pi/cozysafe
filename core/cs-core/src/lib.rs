@@ -5,6 +5,8 @@
 //!
 //! - [`vault`], [`items`], [`pin`], [`history`]: the library, its vaults, their items,
 //!   PINs and kept versions.
+//! - [`entries`]: logins, one-time codes and recovery codes (the content the app
+//!   writes, and the summary lists show).
 //! - [`db`]: the vault index, one SQLite file per vault.
 //! - [`format`]: the library's files (headers, PIN files, item records).
 //! - [`clock`]: the device id and logical clock sync orders changes by.
@@ -18,6 +20,7 @@
 
 pub mod clock;
 pub mod db;
+pub mod entries;
 mod error;
 pub mod format;
 pub mod hex;
@@ -29,3 +32,6 @@ pub mod pin;
 pub mod vault;
 
 pub use error::{Error, Result};
+
+#[cfg(test)]
+mod docs_current;

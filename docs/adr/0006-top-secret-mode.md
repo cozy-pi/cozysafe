@@ -31,7 +31,8 @@ with a switch, like the iPhone's Lockdown Mode, and named it Top Secret Mode.
 - **Enforced in Rust**, not only in the screens (`app/rust/src/api/run.rs`): in Top
   Secret Mode `item_thumbnail` is refused, `item_content` / `item_content_head` are
   refused for anything but notes, and `add_file` refuses a thumbnail (one made from
-  outside data means it was decoded). A run not started counts as Top Secret.
+  outside data means it was decoded). Secure items (ADR 0009) are read in the app like
+  notes, through `entry_json` alone, never as raw content or an export. A run not started counts as Top Secret.
 - **One mode per run.** Read at start from the file `top-secret-mode` (`on` / `off`,
   missing = off) next to the library and handed to Rust (`start_run`). It may change
   until a vault opens (`choose_mode`, the first vault's maker); after that, turning it on

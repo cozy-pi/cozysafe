@@ -41,6 +41,7 @@ String _symbol(VaultSection s) => switch (s) {
       VaultSection.library => 'photo.on.rectangle',
       VaultSection.audio => 'waveform',
       VaultSection.file => 'doc',
+      VaultSection.password => 'key',
     };
 
 class NativeVaultBar extends StatefulWidget {

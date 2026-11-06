@@ -32,7 +32,7 @@ ItemInfo _item(String id, String kind, String name, [int order = 0]) => ItemInfo
       deletedMs: _now - 86400000 - order * 1000, // newest first, in the order given
       tagIds: const [],
       isFavorite: false,
-      modifiedMs: _now,
+      modifiedMs: _now, account: '', hosts: const [],
     );
 
 class _Fake implements RustLibApi {

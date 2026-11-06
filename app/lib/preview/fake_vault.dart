@@ -37,7 +37,7 @@ class FakeVault implements RustLibApi {
           durationMs: duration == null ? null : i64(duration),
           tagIds: tags,
           isFavorite: false,
-          modifiedMs: i64(now - ago),
+          modifiedMs: i64(now - ago), account: '', hosts: const [],
         );
     _items.addAll([
       it('t1', ItemKind.tag, 'Giấy tờ tùy thân', 0),
@@ -91,6 +91,21 @@ class FakeVault implements RustLibApi {
     'n6': 'Danh sách quà Tết\nÔng bà nội: chè Thái, bánh. Bố mẹ vợ: rượu vang, hoa quả.',
   };
 
+  /// Secure items' documents by id, with their revision.
+  final Map<String, (String, int)> _docs = {};
+
+  ItemInfo _entryInfo(String id, String kind, String name, PlatformInt64 created) {
+    final d = jsonDecode(_docs[id]?.$1 ?? '{}') as Map<String, Object?>;
+    final urls = d['urls'] is List ? [for (final u in d['urls'] as List) if (u is String) u] : const <String>[];
+    return ItemInfo(
+      id: id, kind: kind, name: name, mime: 'application/vnd.cozysafe.$kind+json',
+      createdMs: created, sizeBytes: BigInt.from(_docs[id]?.$1.length ?? 0),
+      deletedMs: null, durationMs: null, tagIds: const [], isFavorite: false, modifiedMs: created,
+      account: '${d[kind == ItemKind.login ? 'username' : 'account'] ?? ''}',
+      hosts: [for (final u in urls) Uri.tryParse(u.contains('://') ? u : 'https://$u')?.host ?? u],
+    );
+  }
+
   ItemInfo _copy(ItemInfo i,
           {String? name, List<String>? tagIds, PlatformInt64? deleted, bool restore = false, bool? favorite}) =>
       ItemInfo(
@@ -105,6 +120,8 @@ class FakeVault implements RustLibApi {
         tagIds: tagIds ?? i.tagIds,
         isFavorite: favorite ?? i.isFavorite,
         modifiedMs: i.modifiedMs,
+        account: i.account,
+        hosts: i.hosts,
       );
 
   void _replace(String id, ItemInfo Function(ItemInfo) f) {
@@ -186,10 +203,29 @@ class FakeVault implements RustLibApi {
           id: id, kind: ItemKind.note, name: a<String>('title'), mime: 'text/plain',
           createdMs: a<PlatformInt64>('createdMs'), sizeBytes: BigInt.from(text.length),
           deletedMs: null, durationMs: null, tagIds: const [],
-          isFavorite: false, modifiedMs: a<PlatformInt64>('createdMs'),
+          isFavorite: false, modifiedMs: a<PlatformInt64>('createdMs'), account: '', hosts: const [],
         );
         _items.add(item);
         return _f(item);
+      // Secure items (ADR 0009): the document as JSON with a revision, the summary
+      // (account, hosts) from it, as the core keeps them.
+      case 'AddEntry':
+        final id = 'e${_next++}';
+        _docs[id] = (a<String>('json'), 1);
+        final item = _entryInfo(id, a<String>('kind'), a<String>('name'), a<PlatformInt64>('createdMs'));
+        _items.add(item);
+        return _f(item);
+      case 'UpdateEntry':
+        final id = a<String>('id');
+        final had = _docs[id];
+        if (had == null || a<String>('rev') != '${had.$2}') throw VaultError.changed;
+        _docs[id] = (a<String>('json'), had.$2 + 1);
+        final old = _items.firstWhere((x) => x.id == id);
+        _items[_items.indexOf(old)] = _entryInfo(id, old.kind, a<String>('name'), old.createdMs);
+        return _f(_items.firstWhere((x) => x.id == id));
+      case 'EntryJson':
+        final d = _docs[a<String>('id')] ?? ('{"v":1}', 0);
+        return _f(EntryDoc(json: d.$1, rev: '${d.$2}'));
       case 'UpdateNote':
         final id = a<String>('id');
         _text[id] = a<String>('text');
@@ -208,7 +244,7 @@ class FakeVault implements RustLibApi {
         final t = ItemInfo(
           id: 't${_next++}', kind: ItemKind.tag, name: a<String>('name'), mime: '',
           createdMs: a<PlatformInt64>('createdMs'), sizeBytes: BigInt.zero, deletedMs: null, durationMs: null,
-          tagIds: const [], isFavorite: false, modifiedMs: a<PlatformInt64>('createdMs'),
+          tagIds: const [], isFavorite: false, modifiedMs: a<PlatformInt64>('createdMs'), account: '', hosts: const [],
         );
         _items.add(t);
         return _f(t);

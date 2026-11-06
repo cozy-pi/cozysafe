@@ -36,18 +36,45 @@ pub fn item_history(id: String) -> Result<Vec<HistoryVersion>, VaultError> {
     })
 }
 
-/// An older version's content, decrypted in memory.
+/// An older version's content, decrypted in memory. Never a secure item's, nor one of a
+/// kind from a newer version: see [`history_entry_json`].
 pub fn history_content(id: String, rev: String) -> Result<Vec<u8>, VaultError> {
     with_open(|v| {
+        let kind = v.record(&id)?.kind;
+        if cs_vault::items::kind::is_entry(&kind) || !cs_vault::items::kind::is_known(&kind) {
+            return Err(VaultError::Storage);
+        }
         let mut out = Vec::new();
         v.read_history_item(&id, &rev, &mut out)?;
         Ok(out)
     })
 }
 
+/// An older version of a secure item's document, for its own page (masked like the
+/// item itself, ADR 0009). Wiped when dropped on this side.
+pub fn history_entry_json(id: String, rev: String) -> Result<String, VaultError> {
+    with_open(|v| {
+        if !cs_vault::items::kind::is_entry(&v.record(&id)?.kind) {
+            return Err(VaultError::Storage);
+        }
+        let mut out = zeroize::Zeroizing::new(Vec::new());
+        v.read_history_item(&id, &rev, &mut *out)?;
+        String::from_utf8(out.to_vec()).map_err(|_| VaultError::Storage)
+    })
+}
+
 /// Make an older version the current one (itself a new version, so it can be undone).
 pub fn restore_version(id: String, rev: String) -> Result<ItemInfo, VaultError> {
-    with_open(|v| Ok(v.restore_history(&id, &rev)?.into()))
+    with_open(|v| {
+        let restored = v.restore_history(&id, &rev)?;
+        if !cs_vault::items::kind::is_entry(&restored.kind) {
+            return Ok(restored.into());
+        }
+        // A secure item's list line follows the content it got back.
+        let _ = v.restore_summaries();
+        let fresh = v.items()?.into_iter().find(|m| m.id == id);
+        Ok(fresh.unwrap_or(restored).into())
+    })
 }
 
 /// Forget one item's history.

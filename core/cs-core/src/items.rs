@@ -27,6 +27,7 @@ use std::path::PathBuf;
 
 use cs_crypto::{stream, wrap, Key};
 
+use crate::format::Summary;
 use crate::vault::{write_atomic, OpenVault};
 use crate::{Error, Result};
 
@@ -40,7 +41,7 @@ pub const BUCKETS_DONE: &str = "items-in-buckets";
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ItemMeta {
     pub id: String,
-    /// One of [`kind`]: photo, video, note, audio, file, tag.
+    /// One of [`kind`]: photo, video, note, audio, file, tag, login, otp, codes.
     pub kind: String,
     pub name: String,
     pub mime: String,
@@ -58,6 +59,10 @@ pub struct ItemMeta {
     /// Last change to the item (its content, name, tags…); its creation time for items
     /// not changed since the index came (0.1.31).
     pub modified_ms: i64,
+    /// Secure items: the account and the web sites' host names (never a secret);
+    /// empty for every other kind.
+    pub account: String,
+    pub hosts: Vec<String>,
 }
 
 /// The item kinds. Use these, never the string literals.
@@ -70,6 +75,25 @@ pub mod kind {
     /// A tag ("group" in the app): an item with a name and no content, so it is
     /// encrypted, backed up and restored like everything else.
     pub const TAG: &str = "tag";
+    /// Secure items (docs/adr/0009-secure-items.md): a JSON document as content, and a
+    /// summary in the record ([`crate::entries`]).
+    pub const LOGIN: &str = "login";
+    /// A one-time code (TOTP) on its own; a login can carry one too.
+    pub const OTP: &str = "otp";
+    /// A service's recovery codes.
+    pub const CODES: &str = "codes";
+    /// The secure item kinds.
+    pub const ENTRIES: [&str; 3] = [LOGIN, OTP, CODES];
+    /// Every kind this version writes; anything else came from a newer version.
+    pub const KNOWN: [&str; 9] = [PHOTO, VIDEO, NOTE, AUDIO, FILE, TAG, LOGIN, OTP, CODES];
+
+    pub fn is_known(kind: &str) -> bool {
+        KNOWN.contains(&kind)
+    }
+
+    pub fn is_entry(kind: &str) -> bool {
+        ENTRIES.contains(&kind)
+    }
     /// Format 1 only: folders, read back as tags (see `ItemRecord`).
     pub const LEGACY_FOLDER: &str = "folder";
 }
@@ -79,7 +103,7 @@ pub const TRASH_DAYS: i64 = 30;
 const DAY_MS: i64 = 24 * 60 * 60 * 1000;
 
 /// Current layout of `ItemRecord`.
-const RECORD_FORMAT: u32 = 2;
+pub(crate) const RECORD_FORMAT: u32 = 2;
 
 pub use crate::format::ItemRecord;
 
@@ -220,6 +244,86 @@ impl OpenVault {
 
     /// [`Self::add_item`], and how long each step took (for the app's Debug page).
     pub fn add_item_timed<R: Read>(&self, new: NewItem<'_, R>) -> Result<(ItemMeta, AddTimings)> {
+        self.add_item_with(new, None)
+    }
+
+    /// A new secure item (login, one-time code, recovery codes): `content` is its JSON
+    /// document ([`crate::entries`]), refused unless it is one.
+    pub fn add_entry(
+        &self,
+        kind: &str,
+        name: &str,
+        content: &[u8],
+        created_ms: i64,
+    ) -> Result<ItemMeta> {
+        if !kind::is_entry(kind) {
+            return Err(Error::BadEntry);
+        }
+        let summary = crate::entries::summary_of(kind, content)?;
+        let new = NewItem {
+            kind,
+            name,
+            mime: &entry_mime(kind),
+            created_ms,
+            content,
+            thumbnail: None,
+        };
+        self.add_item_with(new, Some(summary)).map(|(m, _)| m)
+    }
+
+    /// Save an edited secure item: its new name and JSON document.
+    pub fn replace_entry(&self, id: &str, name: &str, content: &[u8]) -> Result<ItemMeta> {
+        let kind = self.record(id)?.kind;
+        if !kind::is_entry(&kind) {
+            return Err(Error::BadEntry);
+        }
+        let summary = crate::entries::summary_of(&kind, content)?;
+        self.replace_with(id, name, content, Some(summary))
+    }
+
+    /// Read again the summary of secure items whose record lost it (an older app, which
+    /// does not know the field, rewrote the record) or whose content changed without it
+    /// (sync took the other side's content; a version was restored). Run on every unlock
+    /// and after a sync; reads only records unless one needs it. The record is written
+    /// as it is, no new revision: every device does the same from the same content.
+    pub fn restore_summaries(&self) -> Result<usize> {
+        let mut fixed = 0;
+        let mut rows = self.index.rows(false)?;
+        rows.extend(self.index.rows(true)?);
+        for row in rows {
+            let id = row.id;
+            let Ok(mut record) = self.open_record(&id, &row.sealed_record) else {
+                continue;
+            };
+            let current = record
+                .summary
+                .as_ref()
+                .is_some_and(|s| s.of == record.data_hash);
+            if !kind::is_entry(&record.kind) || current {
+                continue;
+            }
+            let mut content = zeroize::Zeroizing::new(Vec::new());
+            if self.read_item(&id, &mut *content).is_err() {
+                continue;
+            }
+            // Content that is not an entry document still gets one, empty, so it is not
+            // read again on every unlock.
+            let summary = crate::entries::summary_of(&record.kind, &content).unwrap_or_default();
+            record.summary = Some(Summary {
+                of: record.data_hash.clone(),
+                ..summary
+            });
+            self.store_record(&id, &record)?;
+            fixed += 1;
+        }
+        Ok(fixed)
+    }
+
+    fn add_item_with<R: Read>(
+        &self,
+        new: NewItem<'_, R>,
+        summary: Option<crate::format::Summary>,
+    ) -> Result<(ItemMeta, AddTimings)> {
         let mut t = AddTimings::default();
         let mut clock = std::time::Instant::now();
         let mut lap = |slot: &mut u32| {
@@ -249,6 +353,10 @@ impl OpenVault {
         }
         lap(&mut t.thumbnail_ms);
 
+        let summary = summary.map(|s| Summary {
+            of: data_hash.clone(),
+            ..s
+        });
         let record = ItemRecord {
             format: RECORD_FORMAT,
             kind: new.kind.to_owned(),
@@ -268,7 +376,9 @@ impl OpenVault {
             device: String::new(),
             data_rev: String::new(),
             data_hash,
+
             thumb_hash,
+            summary,
             legacy_folder_id: None,
             wrapped_dek: crate::hex::encode(wrap::wrap_key(
                 &self.master_key,
@@ -283,7 +393,21 @@ impl OpenVault {
 
     /// Replace an item's content and name (editing a note). Same item, same key; the
     /// new content is encrypted with a fresh nonce prefix and swapped in atomically.
+    /// Secure items go through [`Self::replace_entry`], which keeps their summary right.
     pub fn replace_item<R: Read>(&self, id: &str, name: &str, content: R) -> Result<ItemMeta> {
+        if kind::is_entry(&self.record(id)?.kind) {
+            return Err(Error::BadEntry);
+        }
+        self.replace_with(id, name, content, None)
+    }
+
+    fn replace_with<R: Read>(
+        &self,
+        id: &str,
+        name: &str,
+        content: R,
+        summary: Option<crate::format::Summary>,
+    ) -> Result<ItemMeta> {
         let (mut record, dek) = self.record_and_key(id)?;
         let data_path = self.new_path(id, "data")?;
         let tmp = data_path.with_extension("data.tmp");
@@ -296,6 +420,12 @@ impl OpenVault {
         self.keep_content(id)?;
         fs::rename(&tmp, &data_path)?;
         record.size_bytes = size_bytes;
+        if let Some(s) = summary {
+            record.summary = Some(Summary {
+                of: data_hash.clone(),
+                ..s
+            });
+        }
         record.data_hash = data_hash;
         record.name = name.to_owned();
         record.data_rev.clear(); // new content: this revision carries it
@@ -747,7 +877,10 @@ pub fn now_ms() -> i64 {
 }
 
 pub fn meta(id: String, r: ItemRecord) -> ItemMeta {
+    let summary = r.summary.unwrap_or_default();
     ItemMeta {
+        account: summary.account,
+        hosts: summary.hosts,
         modified_ms: r.modified_ms.unwrap_or(r.created_ms),
         id,
         kind: r.kind,
@@ -760,6 +893,12 @@ pub fn meta(id: String, r: ItemRecord) -> ItemMeta {
         tag_ids: r.tag_ids,
         is_favorite: r.is_favorite,
     }
+}
+
+/// The media type of a secure item's content: no other app opens it as text, should an
+/// older Cozy Safe, which does not know these kinds, hand it out.
+pub fn entry_mime(kind: &str) -> String {
+    format!("application/vnd.cozysafe.{kind}+json")
 }
 
 /// Hex SHA-256 of some bytes.
@@ -903,6 +1042,102 @@ mod tests {
         }
         // Vault B cannot open A's item even if pointed at it.
         assert!(b.read_item(&item.id, Vec::new()).is_err());
+    }
+
+    #[test]
+    fn secure_items_keep_a_summary_and_nothing_secret_in_their_record() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk())
+            .unwrap()
+            .create_vault("A", pw())
+            .unwrap();
+        let doc = br#"{"v":1,"username":"kien","password":"hunter2-unique","urls":["https://github.com/x"]}"#;
+        let it = v.add_entry(kind::LOGIN, "GitHub", doc, 1).unwrap();
+        assert_eq!(
+            (it.account.as_str(), it.hosts.clone()),
+            ("kien", vec!["github.com".to_owned()])
+        );
+        assert_eq!(it.mime, "application/vnd.cozysafe.login+json");
+        let record = v.record(&it.id).unwrap().to_json();
+        assert!(!record.windows(14).any(|w| w == b"hunter2-unique"));
+
+        // Edited: the summary follows the content; the generic path is refused.
+        let doc2 = br#"{"v":1,"username":"kien2","password":"p","urls":[]}"#;
+        let it = v.replace_entry(&it.id, "GitHub work", doc2).unwrap();
+        assert_eq!(
+            (it.name.as_str(), it.account.as_str(), it.hosts.len()),
+            ("GitHub work", "kien2", 0)
+        );
+        assert!(matches!(
+            v.replace_item(&it.id, "x", &b"{}"[..]),
+            Err(Error::BadEntry)
+        ));
+        assert!(matches!(
+            v.replace_entry(&it.id, "x", b"not json"),
+            Err(Error::BadEntry)
+        ));
+        assert!(matches!(
+            v.add_entry(kind::NOTE, "x", doc, 1),
+            Err(Error::BadEntry)
+        ));
+        let mut out = Vec::new();
+        v.read_item(&it.id, &mut out).unwrap();
+        assert_eq!(out, doc2);
+    }
+
+    #[test]
+    fn a_summary_an_older_app_dropped_comes_back() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk())
+            .unwrap()
+            .create_vault("A", pw())
+            .unwrap();
+        let doc = br#"{"v":1,"account":"kien@example.com","secret":"JBSWY3DPEHPK3PXP"}"#;
+        let it = v.add_entry(kind::OTP, "GitHub", doc, 1).unwrap();
+        // An older app renames it: it writes back only the fields it knows.
+        let mut r = v.record(&it.id).unwrap();
+        r.summary = None;
+        r.name = "GitHub 2FA".into();
+        v.write_record(&it.id, &r).unwrap();
+        assert_eq!(v.items().unwrap()[0].account, "");
+
+        assert_eq!(v.restore_summaries().unwrap(), 1);
+        let back = &v.items().unwrap()[0];
+        assert_eq!(
+            (back.name.as_str(), back.account.as_str()),
+            ("GitHub 2FA", "kien@example.com")
+        );
+        assert_eq!(v.restore_summaries().unwrap(), 0);
+    }
+
+    #[test]
+    fn a_summary_follows_content_that_came_another_way() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk())
+            .unwrap()
+            .create_vault("A", pw())
+            .unwrap();
+        let it = v
+            .add_entry(kind::LOGIN, "Mail", br#"{"v":1,"username":"old"}"#, 1)
+            .unwrap();
+        v.replace_entry(&it.id, "Mail", br#"{"v":1,"username":"new"}"#)
+            .unwrap();
+        // The earlier content back from the version history, as sync or a restore does:
+        // the record's summary still says "new" until it is read again.
+        let rev = v.history(&it.id).unwrap()[0].rev.clone();
+        v.restore_history(&it.id, &rev).unwrap();
+        assert_eq!(v.restore_summaries().unwrap(), 1);
+        assert_eq!(v.items().unwrap()[0].account, "old");
+        // Written as it was, no new revision; nothing left to do.
+        assert_eq!(v.restore_summaries().unwrap(), 0);
+    }
+
+    #[test]
+    fn a_damaged_summary_never_hides_the_item() {
+        let json = br#"{"format":2,"kind":"login","name":"x","mime":"m","created_ms":1,
+            "size_bytes":1,"has_thumbnail":false,"wrapped_dek":"w","summary":{"hosts":7}}"#;
+        let r = ItemRecord::from_json(json).unwrap();
+        assert_eq!(r.summary, None);
     }
 
     #[test]
