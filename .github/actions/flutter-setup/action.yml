@@ -24,6 +24,10 @@ runs:
       run: echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%MZ)" >> "$GITHUB_ENV"
     - shell: bash
       working-directory: app
+      # The codegen sets RUSTFLAGS for its own expand, which replaces .cargo/config.toml's;
+      # it appends to this one, so curve25519-dalek keeps its serial backend on x86_64.
+      env:
+        RUSTFLAGS: --cfg curve25519_dalek_backend="serial"
       run: |
         flutter pub get --enforce-lockfile
         flutter_rust_bridge_codegen generate

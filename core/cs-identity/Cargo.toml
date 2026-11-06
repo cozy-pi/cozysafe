@@ -6,6 +6,11 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+# rustdoc does not take .cargo/config.toml's rustflags, so the x86_64 backend guard in
+# lib.rs would stop the doctests; the crate has none.
+[lib]
+doctest = false
+
 [dependencies]
 cs-crypto = { path = "../cs-crypto" }
 # docs/adr/0008-vault-identity.md. Each one is a copy in third_party/rust/, reviewed
