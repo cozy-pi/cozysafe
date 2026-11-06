@@ -7,3 +7,7 @@ useDefault = true
 [[allowlists]]
 description = "Vendored crates.io crates for the Top secret core (docs/supply-chain.md)"
 paths = ['''^third_party/rust/''']
+
+[[allowlists]]
+description = "Published test vectors (NIST ACVP, RFC 8032/7748, FIPS 202, X-Wing draft) copied by script; their keys are public on purpose"
+paths = ['''^core/cs-identity/tests/vectors_[a-z0-9_]+\.rs$''']
