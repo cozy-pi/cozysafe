@@ -275,7 +275,7 @@ Rust and Dart that ships in the app.
 | Rust [crypto-common](https://crates.io/crates/crypto-common/0.1.7) | 0.1.7 | 2025-11-12 | aead | github:rustcrypto:traits, newpavlov |  |
 | Rust [crypto-common](https://crates.io/crates/crypto-common/0.2.2) | 0.2.2 | 2026-05-19 | ml-dsa | github:rustcrypto:traits, newpavlov |  |
 | Rust [ctutils](https://crates.io/crates/ctutils/0.4.8) | 0.4.8 | 2026-11-02 | ml-dsa | github:rustcrypto:utils, tarcieri |  |
-| Rust [curve25519-dalek](https://crates.io/crates/curve25519-dalek/5.0.0) | 5.0.0 | 2026-07-06 | ed25519-dalek | github:dalek-cryptography:curve-maintainers, isislovecruft |  |
+| Rust [curve25519-dalek](https://crates.io/crates/curve25519-dalek/5.0.0) | 5.0.0 | 2026-07-06 | ed25519-dalek | github:dalek-cryptography:curve-maintainers, isislovecruft | cackle: build: process |
 | Rust [dashmap](https://crates.io/crates/dashmap/5.5.3) | 5.5.3 | 2023-08-29 | oslog | xacrimon |  |
 | Rust [digest](https://crates.io/crates/digest/0.11.3) | 0.11.3 | 2026-05-03 | sha2 | github:rustcrypto:traits, newpavlov |  |
 | Rust [ed25519](https://crates.io/crates/ed25519/3.0.0) | 3.0.0 | 2026-05-03 | ed25519-dalek | github:rustcrypto:signatures, newpavlov |  |
@@ -308,7 +308,7 @@ Rust and Dart that ships in the app.
 | Rust [image](https://crates.io/crates/image/0.25.10) | 0.25.10 | 2026-03-10 | direct | 197g, fintelia, github:image-rs:publish, theotherphil | cackle: unsafe |
 | Rust [inout](https://crates.io/crates/inout/0.1.4) | 0.1.4 | 2025-02-21 | cipher | github:rustcrypto:utils, newpavlov | cackle: unsafe |
 | Rust [itoa](https://crates.io/crates/itoa/1.0.18) | 1.0.18 | 2026-03-20 | serde_json | dtolnay | cackle: unsafe |
-| Rust [keccak](https://crates.io/crates/keccak/0.2.2) | 0.2.2 | 2026-08-21 | sha3 | github:rustcrypto:hashes, newpavlov |  |
+| Rust [keccak](https://crates.io/crates/keccak/0.2.2) | 0.2.2 | 2026-08-21 | sha3 | github:rustcrypto:hashes, newpavlov | cackle: unsafe |
 | Rust [kem](https://crates.io/crates/kem/0.3.0) | 0.3.0 | 2026-04-03 | ml-kem | github:rustcrypto:traits, newpavlov, tarcieri |  |
 | Rust [lazy_static](https://crates.io/crates/lazy_static/1.5.1) | 1.5.1 | 2026-10-01 | flutter_rust_bridge | rust-lang-owner | cackle: unsafe |
 | Rust [libc](https://crates.io/crates/libc/0.2.191) | 0.2.191 | 2026-10-16 | ring | rust-lang-owner | cackle: unsafe, build: process |
@@ -351,7 +351,7 @@ Rust and Dart that ships in the app.
 | Rust [signature](https://crates.io/crates/signature/3.0.0) | 3.0.0 | 2026-05-02 | ml-dsa | github:rustcrypto:traits, newpavlov, tarcieri |  |
 | Rust [slab](https://crates.io/crates/slab/0.4.12) | 0.4.12 | 2026-01-31 | futures-util | carllerche, github:tokio-rs:core | cackle: unsafe |
 | Rust [smallvec](https://crates.io/crates/smallvec/1.16.3) | 1.16.3 | 2026-10-10 | rusqlite | Ms2ger, SimonSapin, alejandro-vaz, github:servo:cargo-publish | cackle: unsafe |
-| Rust [sponge-cursor](https://crates.io/crates/sponge-cursor/0.1.0) | 0.1.0 | 2026-05-08 | sha3 | github:rustcrypto:utils, newpavlov |  |
+| Rust [sponge-cursor](https://crates.io/crates/sponge-cursor/0.1.0) | 0.1.0 | 2026-05-08 | sha3 | github:rustcrypto:utils, newpavlov | cackle: unsafe |
 | Rust [subtle](https://crates.io/crates/subtle/2.6.1) | 2.6.1 | 2024-06-24 | ed25519-dalek | github:dalek-cryptography:subtle-maintainers, isislovecruft | cackle: unsafe |
 | Rust [thiserror](https://crates.io/crates/thiserror/2.0.21) | 2.0.21 | 2026-09-23 | direct | dtolnay | cackle: fs, build: fs, build: process |
 | Rust [threadpool](https://crates.io/crates/threadpool/1.8.1) | 1.8.1 | 2020-05-11 | flutter_rust_bridge | frewsxcv, github:rust-threadpool:publishers, github:servo:cargo-publish, huonw | cackle: unsafe |

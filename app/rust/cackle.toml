@@ -276,6 +276,7 @@ allow_unsafe = true
 [pkg.moxcms]
 allow_unsafe = true
 
+# One float-to-int conversion behind range checks; module-lattice never reaches it.
 [pkg."num-traits"]
 allow_unsafe = true
 
@@ -478,8 +479,4 @@ allow_unsafe = true
 allow_unsafe = true
 
 [pkg."sponge-cursor"]
-allow_unsafe = true
-
-# One float-to-int conversion behind range checks; module-lattice never reaches it.
-[pkg."num-traits"]
 allow_unsafe = true
