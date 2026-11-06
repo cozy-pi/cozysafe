@@ -27,6 +27,8 @@ import '../privacy.dart';
 import '../widgets/private_thumb.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
+import '../widgets/steps.dart';
+import '../widgets/symbols.dart';
 import '../widgets/vault_bar.dart';
 import 'backup_password.dart';
 import 'camera.dart';
@@ -74,7 +76,7 @@ import 'sealed_item.dart';
 import '../file_kinds.dart';
 import '../widgets/file_name.dart';
 import 'plain_text_view.dart';
-import 'entry_editor.dart';
+import 'entry_steps.dart';
 import 'entry_page.dart';
 import '../widgets/entry_row.dart';
 
@@ -679,13 +681,27 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   /// One way of adding, from the add column or the empty vault's tiles. The section it fills
   /// opens, and stays offered until something lands in it or another is picked.
-  Future<void> _add(AddWhat what) async {
+  Future<void> _add(AddWhat way) async {
+    // Photos / Files and Note / Voice ask which first; the camera opens on Photo, with
+    // Video one switch away inside it (owner 2026-11-07: four ways, not seven).
+    final AddWhat what;
+    switch (way) {
+      case AddWhat.device || AddWhat.memo:
+        final picked = await _secondChoice(way);
+        if (picked == null || !mounted) return;
+        what = picked;
+      case AddWhat.camera:
+        what = AddWhat.photo;
+      default:
+        what = way;
+    }
     final target = switch (what) {
       AddWhat.note => VaultSection.note,
       AddWhat.photo || AddWhat.video || AddWhat.photos => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       AddWhat.voice => VaultSection.audio,
       AddWhat.file => VaultSection.file,
       AddWhat.password => VaultSection.password,
+      AddWhat.camera || AddWhat.device || AddWhat.memo => _section,
     };
     setState(() {
       _section = target;
@@ -708,6 +724,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       case AddWhat.voice:
         WidgetsBinding.instance.addPostFrameCallback((_) => _recorder.currentState?.toggle());
         return; // stays open while recording; picking another section lets it go
+      case AddWhat.camera || AddWhat.device || AddWhat.memo:
+        return; // resolved above
     }
     if (_locked || !mounted) return;
     await _reload();
@@ -726,9 +744,26 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!_locked) _reload();
   }
 
-  /// A new secure item (ADR 0009): its editor, as a page.
+  /// The add card's second question, in the same style as its ways: Photos & videos or
+  /// Files; Text or Voice.
+  Future<AddWhat?> _secondChoice(AddWhat way) {
+    final l = AppLocalizations.of(context);
+    Choice<AddWhat> choice(AddWhat w, IconData icon, String title, String line) =>
+        (value: w, icon: icon, color: addWayColor(w), title: title, line: line);
+    return way == AddWhat.device
+        ? showChoice<AddWhat>(context, title: l.addChoiceDeviceTitle, keyPrefix: 'add-choice', choices: [
+            choice(AddWhat.photos, Sym.photoLibrary, l.addChoicePhotos, l.addNotePhotos),
+            choice(AddWhat.file, Sym.folder, l.addChoiceFiles, l.addNoteFile),
+          ])
+        : showChoice<AddWhat>(context, title: l.addChoiceMemoTitle, keyPrefix: 'add-choice', choices: [
+            choice(AddWhat.note, Sym.notes, l.addChoiceText, l.addNoteNote),
+            choice(AddWhat.voice, Sym.mic, l.addChoiceVoice, l.addNoteVoice),
+          ]);
+  }
+
+  /// A new secure item (ADR 0009): step by step, as a page (owner 2026-11-07).
   Future<void> _newEntry() => Navigator.of(_pageContext).push<rust.ItemInfo>(
-      MaterialPageRoute(builder: (_) => Readable(child: EntryEditor(tagId: _tagId))));
+      MaterialPageRoute(builder: (_) => Readable(child: EntryWizard(items: _items, tagId: _tagId))));
 
   /// A secure item opens as a page of its own, in Top secret too (ADR 0009): its rows,
   /// Edit and Delete. Never the preview over the page.

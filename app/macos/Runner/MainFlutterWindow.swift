@@ -3,6 +3,8 @@ import CryptoKit
 import FlutterMacOS
 import LocalAuthentication
 import Security
+import UniformTypeIdentifiers
+import Vision
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
@@ -111,7 +113,61 @@ class MainFlutterWindow: NSWindow {
       result(true)
     }
 
+    // QR codes for 2FA setup (QrCode below): one picked image. null: cancelled; "": no QR
+    // code. The image is read into memory only.
+    let qr = FlutterMethodChannel(
+      name: "cozysafe/qr", binaryMessenger: flutterViewController.engine.binaryMessenger)
+    qr.setMethodCallHandler { [weak self] call, result in
+      switch call.method {
+      case "pickImage":
+        guard let self else {
+          result(nil)
+          return
+        }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.beginSheetModal(for: self) { response in
+          guard response == .OK, let url = panel.url else {
+            result(nil)
+            return
+          }
+          DispatchQueue.global(qos: .userInitiated).async {
+            let text = QrCode.read(url)
+            DispatchQueue.main.async { result(text ?? "") }
+          }
+        }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     super.awakeFromNib()
+  }
+}
+
+/// The first QR code in a picture (Vision), decoded in memory: nothing is written or logged.
+enum QrCode {
+  /// A picture larger than this is not read.
+  static let maxBytes = 64 << 20
+
+  /// A picked file, read into memory, never more than [maxBytes] (whatever size the file
+  /// says it has); too large or unreadable: nil.
+  static func read(_ url: URL) -> String? {
+    if let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize, size > maxBytes { return nil }
+    guard let file = try? FileHandle(forReadingFrom: url) else { return nil }
+    defer { try? file.close() }
+    guard let data = try? file.read(upToCount: maxBytes + 1), data.count <= maxBytes else { return nil }
+    return decode(data)
+  }
+
+  static func decode(_ data: Data) -> String? {
+    let request = VNDetectBarcodesRequest()
+    request.symbologies = [.qr]
+    let handler = VNImageRequestHandler(data: data, options: [:])
+    do { try handler.perform([request]) } catch { return nil }
+    return request.results?.lazy.compactMap { $0.payloadStringValue }.first
   }
 }
 

@@ -1,3 +1,4 @@
+import AVFoundation
 import Flutter
 import ImageIO
 import Photos
@@ -6,6 +7,7 @@ import PhotosUI
 import Security
 import UIKit
 import UniformTypeIdentifiers
+import Vision
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -187,6 +189,10 @@ import UniformTypeIdentifiers
         default: result(FlutterMethodNotImplemented)
         }
       }
+      // QR codes for 2FA setup (QrCode below); the handler keeps it alive.
+      let qr = QrCode(top: { [weak self] in self?.topController })
+      let qrChannel = FlutterMethodChannel(name: "cozysafe/qr", binaryMessenger: registrar.messenger())
+      qrChannel.setMethodCallHandler { call, result in qr.handle(call, result) }
       // The app's own language, the same value as Settings → Cozy Safe → Language
       // (lib/language.dart). iOS applies it from the next start.
       let language = FlutterMethodChannel(name: "cozysafe/language", binaryMessenger: registrar.messenger())
@@ -912,4 +918,191 @@ final class OpenItem: NSObject, QLPreviewControllerDataSource, QLPreviewControll
   func previewControllerDidDismiss(_ controller: QLPreviewController) { closed() }
   /// The card swiped away (either call may come; the second finds nothing left to do).
   func presentationControllerDidDismiss(_ presentationController: UIPresentationController) { closed() }
+}
+
+/// "cozysafe/qr" (2FA setup): the text of a QR code seen by the camera or found in one
+/// picked image; Dart checks it is an otpauth:// link. In memory only: nothing is written
+/// to a file or logged.
+final class QrCode: NSObject, PHPickerViewControllerDelegate {
+  private let top: () -> UIViewController?
+  private var pickResult: FlutterResult?
+  private weak var scanner: QrScanner?
+
+  init(top: @escaping () -> UIViewController?) {
+    self.top = top
+  }
+
+  func handle(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
+    let args = call.arguments as? [String: Any]
+    switch call.method {
+    case "scan": scan(cancel: args?["cancel"] as? String ?? "Cancel", result)
+    case "pickImage": pickImage(result)
+    case "cancel":
+      // The vault locked: the camera closes, as if Cancel were tapped.
+      scanner?.finish(nil)
+      result(nil)
+    default: result(FlutterMethodNotImplemented)
+    }
+  }
+
+  /// The camera, full screen: the first QR code seen, or nil (Cancel, or it could not be
+  /// shown). No camera or no permission: the error "no-camera", which Dart words.
+  private func scan(cancel: String, _ result: @escaping FlutterResult) {
+    let noCamera = FlutterError(code: "no-camera", message: nil, details: nil)
+    switch AVCaptureDevice.authorizationStatus(for: .video) {
+    case .authorized: present(cancel, result)
+    case .notDetermined:
+      AVCaptureDevice.requestAccess(for: .video) { ok in
+        DispatchQueue.main.async { ok ? self.present(cancel, result) : result(noCamera) }
+      }
+    default: result(noCamera)
+    }
+  }
+
+  private func present(_ cancel: String, _ result: @escaping FlutterResult) {
+    // Another screen is already over the app (a picker, an alert): nothing is shown.
+    guard let top = top(), top.presentedViewController == nil else { return result(nil) }
+    guard let scanner = QrScanner(cancel: cancel, done: { result($0) }) else {
+      return result(FlutterError(code: "no-camera", message: nil, details: nil))
+    }
+    scanner.modalPresentationStyle = .fullScreen
+    self.scanner = scanner
+    top.present(scanner, animated: true)
+  }
+
+  /// One image from the system picker (no access to the library), read into memory: nil if
+  /// cancelled, "" if it has no QR code.
+  private func pickImage(_ result: @escaping FlutterResult) {
+    guard let top = top() else { return result(nil) }
+    var config = PHPickerConfiguration()
+    config.selectionLimit = 1
+    config.filter = .images
+    let picker = PHPickerViewController(configuration: config)
+    picker.delegate = self
+    pickResult?(nil)
+    pickResult = result
+    top.present(picker, animated: true)
+  }
+
+  func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+    picker.dismiss(animated: true)
+    guard let result = pickResult else { return }
+    pickResult = nil
+    guard let provider = results.first?.itemProvider else { return result(nil) }
+    provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
+      let text = data.flatMap { $0.count <= QrCode.maxBytes ? QrCode.decode($0) : nil }
+      DispatchQueue.main.async { result(text ?? "") }
+    }
+  }
+
+  /// A picture larger than this is not read.
+  static let maxBytes = 64 << 20
+
+  /// The first QR code in a picture held in memory (Vision).
+  static func decode(_ data: Data) -> String? {
+    let request = VNDetectBarcodesRequest()
+    request.symbologies = [.qr]
+    let handler = VNImageRequestHandler(data: data, options: [:])
+    do { try handler.perform([request]) } catch { return nil }
+    return request.results?.lazy.compactMap { $0.payloadStringValue }.first
+  }
+}
+
+/// The camera preview with a Cancel button; reports the first QR code it sees, once.
+final class QrScanner: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
+  private let session: AVCaptureSession
+  private let cancelTitle: String
+  private var done: ((String?) -> Void)?
+  private var preview: AVCaptureVideoPreviewLayer?
+  private let queue = DispatchQueue(label: "cozysafe.qr")
+
+  /// nil when there is no camera to use.
+  init?(cancel: String, done: @escaping (String?) -> Void) {
+    let session = AVCaptureSession()
+    let output = AVCaptureMetadataOutput()
+    guard let device = AVCaptureDevice.default(for: .video),
+          let input = try? AVCaptureDeviceInput(device: device),
+          session.canAddInput(input) else { return nil }
+    session.addInput(input)
+    guard session.canAddOutput(output) else { return nil }
+    session.addOutput(output)
+    guard output.availableMetadataObjectTypes.contains(.qr) else { return nil }
+    output.metadataObjectTypes = [.qr]
+    self.session = session
+    self.cancelTitle = cancel
+    self.done = done
+    super.init(nibName: nil, bundle: nil)
+    output.setMetadataObjectsDelegate(self, queue: .main)
+  }
+
+  required init?(coder: NSCoder) { nil }
+
+  override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .black
+    let preview = AVCaptureVideoPreviewLayer(session: session)
+    preview.videoGravity = .resizeAspectFill
+    view.layer.addSublayer(preview)
+    self.preview = preview
+    var config = UIButton.Configuration.filled()
+    config.title = cancelTitle
+    config.baseForegroundColor = .white
+    config.baseBackgroundColor = UIColor(white: 0, alpha: 0.55)
+    config.cornerStyle = .capsule
+    let button = UIButton(configuration: config, primaryAction: UIAction { [weak self] _ in self?.finish(nil) })
+    button.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(button)
+    NSLayoutConstraint.activate([
+      button.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+      button.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+    ])
+  }
+
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    preview?.frame = view.bounds
+    // The preview turned with the screen (iPad); the two enums share raw values.
+    if let connection = preview?.connection, connection.isVideoOrientationSupported,
+       let turned = view.window?.windowScene?.interfaceOrientation,
+       let orientation = AVCaptureVideoOrientation(rawValue: turned.rawValue) {
+      connection.videoOrientation = orientation
+    }
+  }
+
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    queue.async { [session] in if !session.isRunning { session.startRunning() } }
+  }
+
+  func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput objects: [AVMetadataObject],
+                      from connection: AVCaptureConnection) {
+    guard let text = objects.lazy.compactMap({ ($0 as? AVMetadataMachineReadableCodeObject)?.stringValue }).first
+    else { return }
+    finish(text)
+  }
+
+  /// Answers Dart once, at once, whether or not the dismissal completes.
+  func finish(_ text: String?) {
+    guard let done else { return }
+    self.done = nil
+    stop()
+    done(text)
+    if presentingViewController != nil { dismiss(animated: true) }
+  }
+
+  /// Taken off the screen some other way (the system, a lock): Dart still gets its answer.
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    stop()
+    if let done {
+      self.done = nil
+      done(nil)
+    }
+  }
+
+  private func stop() {
+    queue.async { [session] in if session.isRunning { session.stopRunning() } }
+  }
 }

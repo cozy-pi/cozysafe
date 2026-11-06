@@ -218,6 +218,20 @@ Attribution: SecLists is MIT licensed, Copyright (c) 2018 Daniel Miessler (the M
 notice is in the SecLists repository, `LICENSE`). The underlying list is Mark
 Burnett's "10 million passwords" set, which he released into the public domain.
 
+## Material Symbols (icons)
+
+New pieces of the interface (since 0.2.30) draw their icons from Google's Material
+Symbols Rounded (Apache-2.0), kept as a small font in the repository
+(`app/assets/fonts/MaterialSymbolsRounded.ttf`, 26 glyphs, 7 KB) rather than a pub
+package: a font has no code, and a package would ship every glyph. It was cut from the
+variable font at commit `10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7` of
+github.com/google/material-design-icons (2026-10-23; original SHA-256
+`7e74e36533ccee12c2b81e75bfcf3ccf123d3bb7e7e46d65d94445f23db0c97c`) by
+`tools/symbols-font` with fontTools, on a computer, never in a build; the subset's
+SHA-256 is `82905b1bdc279fae4d55d1c4b39b2d306311c6740c67ba30699be76c3bc1543e`. The
+same input gives the same bytes. The source, the hashes, the axes, the glyph list and the
+licence are in `app/assets/fonts/README.md` and `LICENSE`.
+
 ## Builds on a person's computer
 
 Flutter, Gradle, CocoaPods and Xcode builds run only on CI. Rust is built and tested

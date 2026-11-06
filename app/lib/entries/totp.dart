@@ -34,13 +34,18 @@ class Totp {
     return secret != null ? Totp(secret: secret) : null;
   }
 
+  /// Never throws: a malformed link (bad percent-encoding in the label or a parameter)
+  /// is null, like any other text that is not a setup code.
   static Totp? _fromUri(String text) {
-    final Uri uri;
     try {
-      uri = Uri.parse(text);
+      return _fromUriOrThrow(text);
     } catch (_) {
       return null;
     }
+  }
+
+  static Totp? _fromUriOrThrow(String text) {
+    final uri = Uri.parse(text);
     // HOTP (counter-based) codes are not kept: almost no service uses them.
     if (uri.host.toLowerCase() != 'totp') return null;
     final q = uri.queryParameters;

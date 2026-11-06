@@ -33,8 +33,6 @@ line out when it is done or decided against.
 
 ## Passwords and 2FA (after 0.2.28)
 
-- QR scanning of 2FA setup codes with the system's own tools (VisionKit, CameraX), and a
-  screenshot with a QR code.
 - Import from other password managers (CSV: Chrome, Bitwarden, 1Password, Apple).
 - Autofill: iOS AutoFill credential provider, Android Autofill service (off in Top
   Secret).
@@ -42,6 +40,18 @@ line out when it is done or decided against.
   phrases, SSH and API keys, passkeys.
 - The 2FA key field's error shows in ink, not red (the theme's error colour); the
   editor's form is centred, leaving a gap above short kinds.
+
+## Interface
+
+- **Move the whole app to Material Symbols.** The pieces added in 0.2.30 (the add card,
+  the kinds of password, the steps) use `Sym` (Material Symbols Rounded, a vendored
+  subset); the rest still uses `Icons.*` (the older Material Icons). Moving means adding
+  each glyph to the subset (assets/fonts/README.md) and swapping the names. (Owner
+  2026-11-07: modern icons.)
+- **QR scanning on Windows and Linux**: none (paste only). A picked image could be read
+  with a small decoder if people ask.
+- **The app shows no licence page**: the Apache-2.0 notices of the fonts and libraries
+  it ships (Material Symbols) are in the repository only.
 
 ## Tooling
 

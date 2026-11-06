@@ -7,10 +7,12 @@ import 'package:flutter/services.dart';
 
 import '../theme.dart';
 
+import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
 import 'readable.dart';
+import 'symbols.dart';
 import '../top_secret_mode.dart';
 
 /// The four sections of a vault, picked in the bottom capsule (docs/ui.md, vault bar;
@@ -729,8 +731,11 @@ class _ActionButtonState extends State<ActionButton> {
   }
 }
 
-/// The ways to add something to a vault.
-enum AddWhat { note, photo, video, photos, voice, file, password }
+/// The ways to add something to a vault. The add card offers four (owner 2026-11-07:
+/// [camera], [device], [memo] or a plain [note], [password]); [device] and [memo] then ask
+/// which ([photos] or [file], [note] or [voice]), and the camera switches between photo
+/// and [video] inside.
+enum AddWhat { note, photo, video, photos, voice, file, password, camera, device, memo }
 
 /// Each section's colour (owner 2026-10-31: more colour in the icons): the tiles on the
 /// overview, the storage bar, the tabs and the ways to add.
@@ -745,6 +750,15 @@ Color sectionColor(VaultSection s) => switch (s) {
       VaultSection.password => const Color(0xFFFF9F0A),
     };
 
+/// Each kind of secure item its own colour (owner 2026-11-07: every kind recognisable at
+/// a glance), wherever its icon shows: the rows, its page, the way to add it. A login keeps
+/// the Passwords section's orange.
+Color entryKindColor(String kind) => switch (kind) {
+      ItemKind.otp => const Color(0xFF0A84FF),
+      ItemKind.codes => const Color(0xFFBF5AF2),
+      _ => sectionColor(VaultSection.password),
+    };
+
 /// A way to add, in the colour of what it makes; a video its own purple.
 Color addWayColor(AddWhat w) => switch (w) {
       AddWhat.note => sectionColor(VaultSection.note),
@@ -753,27 +767,29 @@ Color addWayColor(AddWhat w) => switch (w) {
       AddWhat.voice => sectionColor(VaultSection.audio),
       AddWhat.file => sectionColor(VaultSection.file),
       AddWhat.password => sectionColor(VaultSection.password),
+      AddWhat.camera => sectionColor(VaultSection.library),
+      AddWhat.device => sectionColor(VaultSection.file),
+      AddWhat.memo => sectionColor(VaultSection.note),
     };
 
-/// Every way to add, in the fixed order (camera and voice only where the device has them).
+/// The four ways to add, in the fixed order (owner 2026-11-07: seven were too many), each
+/// named by both of what it holds: Photo / Video (where there is a camera), Photos /
+/// Files, Note / Voice (Note alone where nothing records, which opens a note at once),
+/// Password. Top secret too: photos come in as sealed files, never decoded.
 List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool camera, required bool voice}) => [
-      // Top secret too: photos come in as sealed files, never decoded (owner 2026-10-31).
-      (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
-      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
-      if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
-      (AddWhat.note, Icons.book_rounded, l.newNote),
-      (AddWhat.password, Icons.key_rounded, l.newPassword),
-      if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
-      (AddWhat.file, Icons.folder_rounded, l.addFiles),
+      if (camera) (AddWhat.camera, Sym.photoCamera, l.addWayCamera),
+      (AddWhat.device, Sym.permMedia, l.addWayDevice),
+      voice ? (AddWhat.memo, Sym.editNote, l.addWayMemo) : (AddWhat.note, Sym.editNote, l.addWayNote),
+      (AddWhat.password, Sym.key, l.addWayPassword),
     ];
 
 /// The ways that fill [section], nearest the + button in the add column.
 Set<AddWhat> addWaysOf(VaultSection section) => switch (section) {
       VaultSection.home => {},
-      VaultSection.note => {AddWhat.note},
-      VaultSection.library => {AddWhat.photos, AddWhat.photo, AddWhat.video},
-      VaultSection.audio => {AddWhat.voice},
-      VaultSection.file => {AddWhat.file},
+      VaultSection.note => {AddWhat.memo, AddWhat.note},
+      VaultSection.library => {AddWhat.camera, AddWhat.device},
+      VaultSection.audio => {AddWhat.memo},
+      VaultSection.file => {AddWhat.device},
       VaultSection.password => {AddWhat.password},
     };
 
@@ -786,37 +802,29 @@ List<(AddWhat, IconData, String)> addColumnOrder(AppLocalizations l, VaultSectio
   return [...all.where((w) => mine.contains(w.$1)), ...all.where((w) => !mine.contains(w.$1))];
 }
 
-/// What + offers: every kind of item, wherever you are (owner 2026-10-24: Voice has no tab
-/// in the bar, so + is the way to it; one way per section felt like a lock-in). In the
-/// owner's order (2026-10-24): add photos, record video, take photo, note, voice, then files.
-List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection section,
-        {required bool camera, required bool voice}) =>
-    [
-      (AddWhat.photos, Icons.photo_library_rounded, l.addRowAddPhotos),
-      if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
-      if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
-      (AddWhat.note, Icons.book_rounded, sectionLabel(l, VaultSection.note)),
-      (AddWhat.password, Icons.key_rounded, sectionLabel(l, VaultSection.password)),
-      if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
-      (AddWhat.file, Icons.folder_rounded, sectionLabel(l, VaultSection.file)),
-    ];
-
-/// The round quick buttons just above +: one for each of the three kinds the vault holds
-/// most of ([rankedSections]), the most in the middle over +, the second on its left and
-/// the third on its right (owner 2026-11-03). The card above them still lists every way
-/// ([addWays]).
+/// The round quick buttons just above +: the ways to add of the three kinds the vault
+/// holds most of ([rankedSections]), the most in the middle over +, the second on its
+/// left and the third on its right (owner 2026-11-03). Two kinds with the same way (Notes
+/// and Voice) give one button; the rest is filled from the four ways in order.
 List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, int Function(VaultSection) count,
-    {required bool camera}) {
-  (AddWhat, IconData, String) way(VaultSection s) => switch (s) {
-        VaultSection.library => camera
-            ? (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto)
-            : (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
-        VaultSection.note => (AddWhat.note, Icons.book_rounded, l.newNote),
-        VaultSection.audio => (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
-        VaultSection.password => (AddWhat.password, Icons.key_rounded, l.newPassword),
-        _ => (AddWhat.file, Icons.folder_rounded, l.addFiles),
+    {required bool camera, bool? voice}) {
+  final records = voice ?? vaultSections().contains(VaultSection.audio);
+  final all = addWays(l, camera: camera, voice: records);
+  AddWhat way(VaultSection s) => switch (s) {
+        VaultSection.library => camera ? AddWhat.camera : AddWhat.device,
+        VaultSection.note || VaultSection.audio => records ? AddWhat.memo : AddWhat.note,
+        VaultSection.password => AddWhat.password,
+        _ => AddWhat.device,
       };
-  final top = rankedSections(count).take(3).map(way).toList();
+  final picked = <AddWhat>[];
+  for (final s in rankedSections(count)) {
+    final w = way(s);
+    if (!picked.contains(w)) picked.add(w);
+  }
+  for (final w in all) {
+    if (!picked.contains(w.$1)) picked.add(w.$1);
+  }
+  final top = [for (final w in picked.take(3)) all.firstWhere((a) => a.$1 == w)];
   return top.length < 2 ? top : [top[1], top[0], ...top.skip(2)];
 }
 
@@ -993,6 +1001,9 @@ String addWayNote(AppLocalizations l, AddWhat what) => switch (what) {
       AddWhat.voice => l.addNoteVoice,
       AddWhat.file => l.addNoteFile,
       AddWhat.password => l.addNotePassword,
+      AddWhat.camera => l.addNoteCamera,
+      AddWhat.device => l.addNoteDevice,
+      AddWhat.memo => l.addNoteMemo,
     };
 
 /// Opened by + with the quick row (owner 2026-10-27: "a page to choose and understand",

@@ -145,14 +145,18 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 - Unlock with Face ID, Touch ID or fingerprint, or the vault password (no PIN: a
   short code was the weakest way in). Wrong passwords make you wait longer each time.
 - **Photos and videos**: take them inside the app (never in the photo library,
-  no location data) or add them from the device. **Notes**, **voice memos** and **any
+  no location data) or add them from the device. The + card has four ways: Photo /
+  Video, Photos / Files, Note / Voice, Password. **Notes**, **voice memos** and **any
   file**, with a PDF viewer inside the app. In Top Secret Mode, files, recordings and camera
   photos are kept sealed and named, never opened in the app.
 - **Passwords and two-factor codes**: logins (account, password, web sites), live
   TOTP codes with a countdown, and recovery codes you tick off as you use them. Lists
   show the account and site without decrypting anything; a copied password or code is
   forgotten by the phone after 90 seconds (never sent to your other devices on
-  iPhone; marked sensitive on Android). A strong password is generated on request.
+  iPhone; marked sensitive on Android). Adding one goes step by step, mostly taps: the
+  site from your vault or a list of common ones, an account used before, a strong
+  password already made. A two-factor code comes from its QR code (camera on iPhone and
+  Android, or a screenshot; read in memory, never saved) or a pasted setup key.
   Format: [ADR 0009](docs/adr/0009-secure-items.md).
 - **Groups:** put anything in one or more groups ("Passport": the photo, the scan and the
   note) and open a group from any section.

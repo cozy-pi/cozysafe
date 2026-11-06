@@ -4,6 +4,29 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.30 (2026-11-07)
+
+### Added
+- Adding a password goes step by step: first what to add (Login, Two-factor code or
+  Recovery codes, each with its own icon and colour), then one question per screen,
+  mostly taps. Pick the site from the ones already in your vault or a list of common
+  services (or search, paste a link, type a name), pick an account you used before, take
+  the strong password already made for you, then check and save.
+- Scan a two-factor QR code: with the camera on iPhone and Android, or from a screenshot
+  or photo (an image file on a Mac). Only setup codes (`otpauth://` links) are taken;
+  any other QR code says so. The picture or camera frame is read in memory and never
+  saved. You can still paste the setup key; a bare key shows the code it makes first,
+  to check against the site.
+- Recovery codes: one tap pastes the whole list, split and counted for you.
+
+### Changed
+- The + card offers four ways instead of seven, each named by both of what it holds:
+  Photo / Video, Photos / Files, Note / Voice (Note on computers), Password. The camera
+  switches between photo and video inside; Photos / Files and Note / Voice ask which.
+- Logins, two-factor codes and recovery codes each have their own icon and colour in
+  lists and on their page.
+- New icons for the new pieces, from Google's newer Material Symbols.
+
 ## 0.2.29 (2026-11-06)
 
 ### Changed

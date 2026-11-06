@@ -326,6 +326,16 @@ person imports. A decoder is where a phone gets taken over (libwebp 2023, FORCED
   the screen's longer side (1024–3000 px), not 4096 (a ~50 MB bitmap); the viewer reads
   ahead one photo each side, not two. At most 800 thumbnails stay in memory; Flutter's
   picture cache is 64 MB.
+- **QR codes for two-factor setup (0.2.30)** are read in memory by the system's own
+  readers on Apple devices (iPhone: AVFoundation for the camera, Vision for a picture,
+  at most 64 MB; Mac: Vision, at most 64 MB) and on Android by the app's own Rust decoder
+  (rqrr, already used to pair devices), on the camera's luminance plane or a picture the
+  system decodes at most 2000 px on its longer side, from at most 64 MB, turned to grey
+  in memory. No frame or picture is written to a
+  file, kept, copied into the vault or logged; only the code's text comes back, and only
+  an `otpauth://totp/` link is taken ([ADR 0009](adr/0009-secure-items.md)). In Top
+  Secret Mode only the camera and Paste are offered: no picture is taken from the
+  library.
 - **Not done yet (proposed, waiting for the owner):** a file's kind is taken from its
   name and the picker, not its first bytes; there is no limit on pixels or file size
   before a decoder runs; a PDF (PDFium) and a video start as soon as the item is touched;

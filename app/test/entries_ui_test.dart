@@ -1,4 +1,4 @@
-// Secure items in the app (ADR 0009): making a login, its page, copying through
+// Secure items in the app (ADR 0009): adding one step by step (and QR codes), its page, copying through
 // SecureClipboard, a live one-time code, recovery codes marked used, and Top Secret
 // Mode opening a login in the app.
 
@@ -10,7 +10,9 @@ import 'package:cozysafe/entries/secure_clipboard.dart';
 import 'package:cozysafe/entries/totp.dart';
 import 'package:cozysafe/lock_guard.dart';
 import 'package:cozysafe/lock_resume.dart';
+import 'package:cozysafe/entries/qr.dart';
 import 'package:cozysafe/screens/entry_editor.dart';
+import 'package:cozysafe/screens/entry_steps.dart';
 import 'package:cozysafe/widgets/secure_menu.dart';
 import 'package:cozysafe/item_kind.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
@@ -194,35 +196,6 @@ void main() {
   });
   tearDown(() => TopSecretMode.on = false);
 
-  testWidgets('a new login: generate a password, save, the row shows account · host', (t) async {
-    await _pump(t, const VaultHomeScreen(libraryDir: '', vault: _vault));
-    // An empty vault offers every way to add, New password among them.
-    await t.tap(find.byKey(const ValueKey('add-password')));
-    await _settle(t);
-    expect(find.byKey(const ValueKey('entry-kind')), findsOneWidget);
-    final save = find.byKey(const ValueKey('entry-save'));
-    expect(t.widget<FilledButton>(save).onPressed, isNull, reason: 'nothing to keep yet');
-    await t.enterText(find.byKey(const ValueKey('entry-account-field')), 'na@example.com');
-    await t.tap(find.byKey(const ValueKey('entry-generate')));
-    await t.pump();
-    // Generated and shown in clear at once.
-    final password = t.widget<TextField>(find.byKey(const ValueKey('entry-password-input'))).controller!.text;
-    expect(password.length, 20);
-    expect(t.widget<TextField>(find.byKey(const ValueKey('entry-password-input'))).obscureText, isFalse);
-    await t.enterText(find.byKey(const ValueKey('entry-sites')), 'https://github.com/login');
-    await t.pump();
-    expect(t.widget<FilledButton>(save).onPressed, isNotNull);
-    await t.tap(save);
-    await _settle(t);
-    final doc = _fake.docs.values.single;
-    expect(doc['username'], 'na@example.com');
-    expect(doc['password'], password);
-    expect(doc['urls'], ['https://github.com/login']);
-    // Named after its web site, and listed with no content read.
-    expect(_fake.items.single.name, 'github.com');
-    expect(find.text('na@example.com · github.com'), findsOneWidget);
-  });
-
   testWidgets('the login page copies the password through SecureClipboard, and says for how long', (t) async {
     _fake.put('l1', ItemKind.login, 'GitHub', {
       'username': 'na@example.com',
@@ -342,6 +315,258 @@ void main() {
     await _settle(t, 3);
   }
 
+  testWidgets('+ → Password asks what to add: three kinds, each leading to its own steps', (t) async {
+    await _pump(t, const VaultHomeScreen(libraryDir: '', vault: _vault));
+    // An empty vault offers every way to add, Password among them.
+    await t.tap(find.byKey(const ValueKey('add-password')));
+    await _settle(t);
+    expect(find.text('What to add?'), findsOneWidget);
+    expect(find.byKey(const ValueKey('entry-kind')), findsNothing, reason: 'no switch in the header any more');
+    Future<void> into(String kind, String step) async {
+      await t.tap(find.byKey(ValueKey('steps-kind-$kind')));
+      await _settle(t, 2);
+      expect(find.byKey(ValueKey('steps-$step')), findsOneWidget, reason: kind);
+      await t.tap(find.byKey(const ValueKey('step-back')));
+      await _settle(t, 2);
+      expect(find.byKey(const ValueKey('steps-chooser')), findsOneWidget);
+    }
+
+    await into(ItemKind.login, 'site');
+    await into(ItemKind.otp, 'otpSource');
+    await into(ItemKind.codes, 'site');
+  });
+
+  testWidgets('the add card has four ways; Photos / Files and Note / Voice ask which', (t) async {
+    await _pump(t, const VaultHomeScreen(libraryDir: '', vault: _vault));
+    for (final k in ['add-device', 'add-password']) {
+      expect(find.byKey(ValueKey(k)), findsOneWidget, reason: k);
+    }
+    for (final k in ['add-photos', 'add-file', 'add-video', 'add-photo']) {
+      expect(find.byKey(ValueKey(k)), findsNothing, reason: '$k is a second choice now');
+    }
+    await t.tap(find.byKey(const ValueKey('add-device')));
+    await _settle(t, 2);
+    expect(find.text('Add from this device'), findsOneWidget);
+    expect(find.byKey(const ValueKey('add-choice-photos')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add-choice-file')), findsOneWidget);
+  });
+
+  testWidgets('a new login with taps only: a known site, an account used before, the password made, no 2FA', (t) async {
+    _fake.put('l0', ItemKind.login, 'GitHub work', {'username': 'na@example.com', 'urls': ['https://github.com']});
+    await pushed(t, const EntryWizard(debugPassword: 'gen-erated-1'));
+    await t.tap(find.byKey(const ValueKey('steps-kind-login')));
+    await _settle(t, 2);
+    // The vault's own site first, then the common ones; letters, no logos.
+    expect(find.text('In this vault'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('steps-site-github.com')).first);
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-account-0')));
+    await _settle(t, 2);
+    // Generated, masked until the eye.
+    expect(find.text('gen-erated-1'), findsNothing);
+    await t.tap(find.byKey(const ValueKey('steps-password-eye')));
+    await t.pump();
+    expect(find.text('gen-erated-1'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('steps-password-use')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-2fa-skip')));
+    await _settle(t, 2);
+    expect(t.widget<TextField>(find.byKey(const ValueKey('steps-name'))).controller!.text, 'github.com');
+    expect(find.text('na@example.com'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('steps-save')));
+    await _settle(t);
+    final saved = _fake.items.last;
+    expect(saved.kind, ItemKind.login);
+    expect(saved.name, 'github.com');
+    expect(_fake.docs[saved.id], {
+      'v': 1,
+      'username': 'na@example.com',
+      'password': 'gen-erated-1',
+      'urls': ['https://github.com'],
+    });
+  });
+
+  testWidgets('a one-time code from a pasted otpauth link: service and account filled, the code shown live', (t) async {
+    _clipboard.add('otpauth://totp/Acme:na@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Acme&digits=6');
+    await pushed(t, const EntryWizard());
+    await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-qr-paste')));
+    await _settle(t, 2);
+    expect(_clipboard.last, '', reason: 'the key leaves the clipboard');
+    expect(t.widget<TextField>(find.byKey(const ValueKey('steps-issuer'))).controller!.text, 'Acme');
+    expect(t.widget<TextField>(find.byKey(const ValueKey('steps-otp-account'))).controller!.text, 'na@example.com');
+    expect(t.widget<Text>(find.byKey(const ValueKey('steps-code-preview'))).data, matches(RegExp(r'^\d{3} \d{3}$')));
+    await t.tap(find.byKey(const ValueKey('steps-save')));
+    await _settle(t);
+    final saved = _fake.items.single;
+    expect(saved.kind, ItemKind.otp);
+    expect(saved.name, 'Acme');
+    expect(_fake.docs[saved.id], containsPair('secret', 'JBSWY3DPEHPK3PXP'));
+    expect(_fake.docs[saved.id], containsPair('issuer', 'Acme'));
+    expect(_fake.docs[saved.id], containsPair('account', 'na@example.com'));
+    await t.pump(const Duration(seconds: 2));
+  });
+
+  group('QR codes', () {
+    final scans = <String?>[];
+    setUp(() {
+      QrCode.debugAvailable = (camera: true, photo: true);
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, (call) async {
+        if (call.method == 'scan' || call.method == 'pickImage') return scans.removeAt(0);
+        return null;
+      });
+    });
+    tearDown(() {
+      QrCode.debugAvailable = null;
+      scans.clear();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, null);
+    });
+
+    testWidgets('a scanned otpauth link fills the review; a QR code of anything else says so', (t) async {
+      scans.addAll(['https://example.com/promo', '', 'otpauth://totp/GitHub:na?secret=JBSWY3DPEHPK3PXP&issuer=GitHub']);
+      await pushed(t, const EntryWizard());
+      await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+      await _settle(t, 2);
+      expect(find.text('This QR code is not a two-factor setup code'), findsOneWidget);
+      expect(find.byKey(const ValueKey('steps-otpSource')), findsOneWidget, reason: 'stays on the step');
+      await t.tap(find.byKey(const ValueKey('steps-qr-photo')));
+      await _settle(t, 2);
+      expect(find.text('No QR code found in this picture'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+      await _settle(t, 2);
+      expect(t.widget<TextField>(find.byKey(const ValueKey('steps-issuer'))).controller!.text, 'GitHub');
+      expect(t.widget<TextField>(find.byKey(const ValueKey('steps-otp-account'))).controller!.text, 'na');
+      await t.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('a second scan brings its own service and account, unless typed over', (t) async {
+      scans.addAll([
+        'otpauth://totp/GitHub:na?secret=JBSWY3DPEHPK3PXP&issuer=GitHub',
+        'otpauth://totp/GitLab:nb?secret=JBSWY3DPEHPK3PXQ&issuer=GitLab',
+      ]);
+      await pushed(t, const EntryWizard());
+      await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+      await _settle(t, 2);
+      await t.enterText(find.byKey(const ValueKey('steps-otp-account')), 'mine');
+      await t.tap(find.byKey(const ValueKey('step-back')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+      await _settle(t, 2);
+      expect(t.widget<TextField>(find.byKey(const ValueKey('steps-issuer'))).controller!.text, 'GitLab');
+      expect(t.widget<TextField>(find.byKey(const ValueKey('steps-otp-account'))).controller!.text, 'mine');
+      await t.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('a scan that ends after the vault locked is dropped', (t) async {
+      await pushed(t, const EntryWizard());
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, (call) async {
+        vaultLock.set(true);
+        return 'otpauth://totp/GitHub:na?secret=JBSWY3DPEHPK3PXP&issuer=GitHub';
+      });
+      await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+      await _settle(t, 2);
+      vaultLock.set(false);
+      await _settle(t, 2);
+      expect(find.byKey(const ValueKey('steps-otpSource')), findsOneWidget, reason: 'the code did not land');
+    });
+
+    testWidgets('a login takes its 2FA from a scan; the review says so', (t) async {
+      scans.add('otpauth://totp/Shop:na?secret=JBSWY3DPEHPK3PXP');
+      await pushed(t, const EntryWizard(debugPassword: 'gen-erated-1'));
+      await t.tap(find.byKey(const ValueKey('steps-kind-login')));
+      await _settle(t, 2);
+      await t.enterText(find.byKey(const ValueKey('steps-site-search')), 'shop.example');
+      await t.pump();
+      await t.tap(find.byKey(const ValueKey('steps-site-typed')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-skip')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-password-use')));
+      await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+      await _settle(t, 2);
+      expect(t.widget<Text>(find.byKey(const ValueKey('steps-review-2fa'))).data, 'Added');
+      await t.tap(find.byKey(const ValueKey('steps-save')));
+      await _settle(t);
+      final doc = _fake.docs.values.single;
+      expect(doc['urls'], ['https://shop.example']);
+      expect((doc['otp'] as Map)['secret'], 'JBSWY3DPEHPK3PXP');
+    });
+  });
+
+  testWidgets('a pasted bare key shows its code first; Paste again or go on', (t) async {
+    _clipboard.add('jbsw y3dp ehpk 3pxp');
+    await pushed(t, const EntryWizard());
+    await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-qr-paste')));
+    await _settle(t, 2);
+    expect(find.text('Does the site show this code?'), findsOneWidget);
+    expect(t.widget<Text>(find.byKey(const ValueKey('steps-code-preview'))).data, matches(RegExp(r'^\d{3} \d{3}$')));
+    await t.tap(find.byKey(const ValueKey('steps-key-confirm')));
+    await _settle(t, 2);
+    expect(find.byKey(const ValueKey('steps-otpReview')), findsOneWidget);
+    await t.pump(const Duration(seconds: 2));
+  });
+
+  test('a malformed otpauth link is not a code, and never throws', () {
+    expect(Totp.parse('otpauth://totp/a%E0?secret=JBSWY3DPEHPK3PXP'), isNull);
+    // Dart keeps a stray % as it is: still a code, not an error.
+    expect(Totp.parse('otpauth://totp/A?secret=JBSWY3DPEHPK3PXP&issuer=%ZZ')?.issuer, '%ZZ');
+    expect(QrCode.read('otpauth://totp/a%E0?secret=JBSWY3DPEHPK3PXP'), isA<QrNotTotp>());
+  });
+
+  testWidgets('locked before anything could be saved: the steps go on after, and Save works', (t) async {
+    await pushed(t, const EntryWizard(debugPassword: 'gen-erated-1'));
+    await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
+    await _settle(t, 2);
+    await LockGuard.beforeLock!();
+    vaultLock.set(true);
+    await t.pump();
+    expect(_fake.items, isEmpty, reason: 'nothing to save yet');
+    vaultLock.set(false);
+    await _settle(t, 2);
+    _clipboard.add('otpauth://totp/Acme:na?secret=JBSWY3DPEHPK3PXP&issuer=Acme');
+    await t.tap(find.byKey(const ValueKey('steps-qr-paste')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-save')));
+    await _settle(t);
+    expect(_fake.items.single.name, 'Acme');
+    await t.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('recovery codes from a pasted list: counted, saved under the service', (t) async {
+    _clipboard.add('aaaa-1111\nbbbb-2222, cccc 3333');
+    await pushed(t, const EntryWizard());
+    await t.tap(find.byKey(const ValueKey('steps-kind-codes')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-site-google.com')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-codes-paste')));
+    await _settle(t, 2);
+    expect(find.text('3 codes'), findsOneWidget);
+    expect(find.text('aaaa-1111'), findsNothing, reason: 'masked until the eye');
+    expect(_clipboard.last, '', reason: 'the codes leave the clipboard');
+    await t.tap(find.byKey(const ValueKey('steps-next')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-save')));
+    await _settle(t);
+    final saved = _fake.items.single;
+    expect(saved.name, 'google.com');
+    expect(_fake.docs[saved.id]!['codes'], [
+      {'code': 'aaaa-1111'},
+      {'code': 'bbbb-2222'},
+      {'code': 'cccc 3333'},
+    ]);
+  });
+
   Map<String, Object?> lastDoc() => jsonDecode(_fake.updates.last) as Map<String, Object?>;
 
   EntryEditor editorOf(String id) {
@@ -444,20 +669,42 @@ void main() {
     expect(lastDoc()['password'], 'typed-here');
   });
 
-  testWidgets('locking: a new item is saved, its kind is fixed and the secrets leave the fields', (t) async {
-    await pushed(t, const EntryEditor(debugPassword: 'gen-erated-1'));
-    await t.enterText(find.byKey(const ValueKey('entry-account-field')), 'na');
-    await t.tap(find.byKey(const ValueKey('entry-generate')));
+  testWidgets('locking mid-way: what was chosen is saved, the secrets leave the screen, then come back', (t) async {
+    await pushed(t, const EntryWizard(debugPassword: 'gen-erated-1'));
+    await t.tap(find.byKey(const ValueKey('steps-kind-login')));
+    await _settle(t, 2);
+    // Typing filters the list.
+    await t.enterText(find.byKey(const ValueKey('steps-site-search')), 'git');
+    await t.pump();
+    expect(find.byKey(const ValueKey('steps-site-google.com')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('steps-site-github.com')));
+    await _settle(t, 2);
+    await t.enterText(find.byKey(const ValueKey('steps-account-field')), 'na');
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('steps-next')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-password-eye')));
     await t.pump();
     await LockGuard.beforeLock!();
     vaultLock.set(true);
     await t.pump();
-    expect(_fake.docs.values.single['password'], 'gen-erated-1');
-    expect(find.byKey(const ValueKey('entry-kind')), findsNothing, reason: 'an existing item now');
-    expect(t.widget<TextField>(find.byKey(const ValueKey('entry-password-input'))).controller!.text, isEmpty);
+    final id = _fake.items.single.id;
+    expect(_fake.docs[id]!['password'], 'gen-erated-1');
+    expect(_fake.docs[id]!['username'], 'na');
+    expect(find.text('gen-erated-1'), findsNothing, reason: 'no secret under the lock screen');
     vaultLock.set(false);
     await _settle(t, 3);
-    expect(t.widget<TextField>(find.byKey(const ValueKey('entry-password-input'))).controller!.text, 'gen-erated-1');
+    await t.tap(find.byKey(const ValueKey('steps-password-eye')));
+    await t.pump();
+    expect(find.text('gen-erated-1'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('steps-password-use')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-2fa-skip')));
+    await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-save')));
+    await _settle(t);
+    expect(_fake.items, hasLength(1), reason: 'the same item, changed');
+    expect(lastDoc()['password'], 'gen-erated-1');
   });
 
   testWidgets("a secret field's Copy goes through SecureClipboard", (t) async {

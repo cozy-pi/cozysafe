@@ -20,8 +20,8 @@ import '../widgets/toast.dart';
 import 'common.dart';
 import 'entry_page.dart' show entryHost;
 
-/// Making or changing a secure item (ADR 0009): a new one picks its kind first (Login ·
-/// One-time code · Recovery codes); Save stays off until there is something to keep.
+/// Changing a secure item (ADR 0009), as a form; a new one is made step by step
+/// ([EntryWizard], entry_steps.dart). Save stays off until there is something to keep.
 /// Leaving with changes asks first; the vault locking saves what can be saved, as the
 /// note editor does. Pops the saved item.
 class EntryEditor extends StatefulWidget {
@@ -46,7 +46,7 @@ class EntryEditor extends StatefulWidget {
 }
 
 class _EntryEditorState extends State<EntryEditor> with WidgetsBindingObserver, VaultLockAware {
-  late String _kind = widget.item?.kind ?? widget.kind;
+  late final String _kind = widget.item?.kind ?? widget.kind;
   final _name = TextEditingController();
   final _account = TextEditingController();
   final _password = TextEditingController();
@@ -386,7 +386,6 @@ class _EntryEditorState extends State<EntryEditor> with WidgetsBindingObserver, 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
     const gap = SizedBox(height: 12);
     final fresh = _item == null;
     Widget field(TextEditingController controller, String label,
@@ -501,17 +500,8 @@ class _EntryEditorState extends State<EntryEditor> with WidgetsBindingObserver, 
             ),
           ],
           children: [
-            if (fresh) ...[
-              _KindSwitch(
-                kind: _kind,
-                onChanged: (k) => setState(() => _kind = k),
-              ),
-              const SizedBox(height: 20),
-            ] else ...[
-              Text(entryKindLabel(l, _kind),
-                  style: TextStyle(color: c.muted, fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 10),
-            ],
+            EntryKindLine(kind: _kind),
+            const SizedBox(height: 14),
             field(_name, l.entryName, key: const ValueKey('entry-name'), hint: _defaultName.isEmpty ? null : _defaultName,
                 caps: TextCapitalization.sentences),
             gap,
@@ -519,58 +509,6 @@ class _EntryEditorState extends State<EntryEditor> with WidgetsBindingObserver, 
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Login · One-time code · Recovery codes: one set to pick from, in one capsule.
-class _KindSwitch extends StatelessWidget {
-  const _KindSwitch({required this.kind, required this.onChanged});
-  final String kind;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final ink = Theme.of(context).colorScheme.onSurface;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    Widget part(String value) {
-      final on = kind == value;
-      return Expanded(
-        child: Semantics(
-          button: true,
-          selected: on,
-          child: GestureDetector(
-            key: ValueKey('entry-kind-$value'),
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onChanged(value),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              height: Ui.chip - 6,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              decoration: BoxDecoration(
-                color: on ? (dark ? ink.withValues(alpha: .28) : Colors.white) : Colors.transparent,
-                borderRadius: BorderRadius.circular((Ui.chip - 6) / 2),
-                boxShadow: on && !dark ? const [BoxShadow(color: Color(0x22000000), blurRadius: 4, offset: Offset(0, 1))] : null,
-              ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(entryKindLabel(l, value),
-                    maxLines: 1, style: TextStyle(fontSize: CsType.subhead, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      key: const ValueKey('entry-kind'),
-      height: Ui.chip,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(Ui.chip / 2)),
-      child: Row(children: [for (final k in ItemKind.entries) part(k)]),
     );
   }
 }
