@@ -1133,5 +1133,22 @@
     }
   },
   "testVaultShots": "Always allowed in the test vault, can't be changed here",
-  "testVaultThumbs": "Always clear in the test vault, can't be changed here"
+  "testVaultThumbs": "Always clear in the test vault, can't be changed here",
+  "vaultCode": "Vault code",
+  "vaultCodeCopied": "Vault code copied",
+  "wordsCloud": "Keep a copy in iCloud Keychain",
+  "wordsCloudGoogle": "Keep a copy with Google",
+  "wordsCloudNote": "A new iPhone with your Apple account fills them in. The vault password is still needed.",
+  "wordsCloudNoteGoogle": "A new Android phone with your Google account fills them in. The vault password is still needed.",
+  "wordsCloudFailed": "iCloud Keychain did not keep them. Write the words down and type four of them back.",
+  "wordsCloudFailedGoogle": "Google did not keep them (this phone needs a screen lock). Write the words down and type four of them back.",
+  "wordsCheckSkip": "Skip, check later",
+  "wordsSkipTitle": "Skip the check?",
+  "wordsSkipBody": "If one word is written down wrong, the vault cannot be opened on another phone. You can check them any time in {where}.",
+  "@wordsSkipBody": {"placeholders": {"where": {"type": "String"}}},
+  "wordsCheckNow": "Check now",
+  "wordsSkipConfirm": "Skip",
+  "wordsUncheckedTipTitle": "Your 24 words are not checked yet",
+  "wordsUncheckedTipBody": "Type them back once to be sure they open this vault. It is in {where}.",
+  "@wordsUncheckedTipBody": {"placeholders": {"where": {"type": "String"}}}
 }

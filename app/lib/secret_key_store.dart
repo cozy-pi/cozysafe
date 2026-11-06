@@ -14,8 +14,8 @@ import 'src/rust/api/vault.dart' as rust;
 ///
 /// One key per library (api/run.rs, owner 2026-11-01: a vault may have its own 24 words):
 /// the run's folder keeps the name `secret-key`, a library beside it `<run folder>-<id>`
-/// is kept as `secret-key-<id>`. A call without `dir` is the run's own library. Only that
-/// one goes to iCloud Keychain / Google ([KeyBackup]).
+/// is kept as `secret-key-<id>`. A call without `dir` is the run's own library. Each set
+/// can also have a copy in iCloud Keychain / Google ([KeyBackup], ADR 0008).
 class SecretKeyStore {
   static const _name = 'secret-key';
   static final _beside = RegExp(r'-([0-9a-f]{16})$');
@@ -64,22 +64,27 @@ class SecretKeyStore {
   /// Store the key and read it back: callers delete other copies only after this.
   static Future<void> write(Uint8List key, [String? dir]) async {
     final name = _nameOf(dir);
+    final old = await read(dir);
     await _storage.write(key: name, value: base64Encode(key));
     final back = await read(dir);
     if (back == null || !listEquals(back, key)) {
       throw StateError('The keystore did not keep the Secret Key');
     }
-    // A new Recovery Key replaces the iCloud Keychain copy, when that is on.
-    if (name == _name && KeyBackup.on) await KeyBackup.turnOn(key);
+    // A new Recovery Key replaces its cloud copy, when the old one had one.
+    if (old != null && !listEquals(old, key) && KeyBackup.isOn(old)) {
+      await KeyBackup.remove(old);
+      await KeyBackup.save(key);
+    }
   }
 
   /// Forget the key (the last vault on this device was deleted): a new vault starts
   /// with new words, and backups of the old one cannot be opened with this device's copy.
   static Future<void> delete([String? dir]) async {
     final name = _nameOf(dir);
+    final old = await read(dir);
     await _storage.delete(key: name);
     if (await read(dir) != null) throw StateError('The keystore still holds the Secret Key');
-    if (name == _name) await KeyBackup.turnOff();
+    if (old != null && KeyBackup.isOn(old)) await KeyBackup.remove(old);
   }
 }
 

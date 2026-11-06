@@ -906,5 +906,20 @@
   "blurTipTitle": "縮圖已模糊",
   "blurTipBody": "以免旁人看到。輕點即可看清。可在 {where} 關閉「{setting}」。",
   "testVaultShots": "測試保險箱一律允許，無法更改",
-  "testVaultThumbs": "測試保險箱一律清晰顯示，無法更改"
+  "testVaultThumbs": "測試保險箱一律清晰顯示，無法更改",
+  "vaultCode": "保險箱代碼",
+  "vaultCodeCopied": "已複製保險箱代碼",
+  "wordsCloud": "在 iCloud 鑰匙圈中保留副本",
+  "wordsCloudGoogle": "在 Google 保留副本",
+  "wordsCloudNote": "使用同一 Apple 帳號的新 iPhone 會自動填入 24 個單字。仍需保險箱密碼。",
+  "wordsCloudNoteGoogle": "使用同一 Google 帳號的新 Android 手機會自動填入 24 個單字。仍需保險箱密碼。",
+  "wordsCloudFailed": "iCloud 鑰匙圈未能保存。請抄下 24 個單字，並重新輸入其中四個。",
+  "wordsCloudFailedGoogle": "Google 未能保存（此手機需要設定螢幕鎖定）。請抄下 24 個單字，並重新輸入其中四個。",
+  "wordsCheckSkip": "略過，稍後核對",
+  "wordsSkipTitle": "略過核對？",
+  "wordsSkipBody": "只要抄錯一個單字，就無法在其他手機上開啟保險箱。你可以隨時在{where}中核對。",
+  "wordsCheckNow": "立即核對",
+  "wordsSkipConfirm": "略過",
+  "wordsUncheckedTipTitle": "你的 24 個單字尚未核對",
+  "wordsUncheckedTipBody": "重新輸入一次，確認它們能開啟這個保險箱。位於{where}。"
 }

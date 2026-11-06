@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The system's password manager keeps each vault's password under cozypi.com (ADR
+	     0008): https://cozypi.com/.well-known/apple-app-site-association names this app.
+	     Needs the Associated Domains capability in the provisioning profile. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>webcredentials:cozypi.com</string>
+	</array>
+</dict>
+</plist>

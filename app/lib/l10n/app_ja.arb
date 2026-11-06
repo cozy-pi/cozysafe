@@ -906,5 +906,20 @@
   "blurTipTitle": "サムネイルはぼかしています",
   "blurTipBody": "隣の人に見られないためです。タップするとはっきり見られます。オフにするには {where} の「{setting}」。",
   "testVaultShots": "テスト用金庫では常に許可されており、変更できません",
-  "testVaultThumbs": "テスト用金庫では常にはっきり表示され、変更できません"
+  "testVaultThumbs": "テスト用金庫では常にはっきり表示され、変更できません",
+  "vaultCode": "金庫コード",
+  "vaultCodeCopied": "金庫コードをコピーしました",
+  "wordsCloud": "iCloud キーチェーンにコピーを保管",
+  "wordsCloudGoogle": "Google にコピーを保管",
+  "wordsCloudNote": "同じ Apple アカウントの新しい iPhone では 24 語が自動入力されます。金庫のパスワードは引き続き必要です。",
+  "wordsCloudNoteGoogle": "同じ Google アカウントの新しい Android では 24 語が自動入力されます。金庫のパスワードは引き続き必要です。",
+  "wordsCloudFailed": "iCloud キーチェーンに保管できませんでした。24 語を書き留め、そのうち 4 語を入力し直してください。",
+  "wordsCloudFailedGoogle": "Google に保管できませんでした（この端末には画面ロックが必要です）。24 語を書き留め、そのうち 4 語を入力し直してください。",
+  "wordsCheckSkip": "スキップして後で確認",
+  "wordsSkipTitle": "確認をスキップしますか？",
+  "wordsSkipBody": "1 語でも書き間違えると、別の端末で金庫を開けません。確認はいつでも {where} からできます。",
+  "wordsCheckNow": "今すぐ確認",
+  "wordsSkipConfirm": "スキップ",
+  "wordsUncheckedTipTitle": "24 語はまだ確認されていません",
+  "wordsUncheckedTipBody": "一度入力し直して、この金庫を開けられるか確かめましょう。{where} にあります。"
 }

@@ -906,5 +906,20 @@
   "blurTipTitle": "Küçük resimler bulanık",
   "blurTipBody": "Yanınızdaki kişi görmesin diye. Net görmek için birine dokunun. Kapatmak için: {where} bölümünde “{setting}”.",
   "testVaultShots": "Test kasasında her zaman izinli, değiştirilemez",
-  "testVaultThumbs": "Test kasasında her zaman net, değiştirilemez"
+  "testVaultThumbs": "Test kasasında her zaman net, değiştirilemez",
+  "vaultCode": "Kasa kodu",
+  "vaultCodeCopied": "Kasa kodu kopyalandı",
+  "wordsCloud": "Bir kopyasını iCloud Anahtar Zinciri'nde tut",
+  "wordsCloudGoogle": "Bir kopyasını Google'da tut",
+  "wordsCloudNote": "Apple hesabınızla yeni bir iPhone 24 kelimeyi kendisi doldurur. Kasa parolası yine de gerekir.",
+  "wordsCloudNoteGoogle": "Google hesabınızla yeni bir Android telefon 24 kelimeyi kendisi doldurur. Kasa parolası yine de gerekir.",
+  "wordsCloudFailed": "iCloud Anahtar Zinciri bunları saklayamadı. 24 kelimeyi not edin ve dördünü yeniden yazın.",
+  "wordsCloudFailedGoogle": "Google bunları saklayamadı (bu telefonda ekran kilidi gerekir). 24 kelimeyi not edin ve dördünü yeniden yazın.",
+  "wordsCheckSkip": "Atla, sonra kontrol et",
+  "wordsSkipTitle": "Kontrol atlansın mı?",
+  "wordsSkipBody": "Bir kelime yanlış not edilirse kasa başka bir telefonda açılamaz. İstediğiniz zaman {where} bölümünden kontrol edebilirsiniz.",
+  "wordsCheckNow": "Şimdi kontrol et",
+  "wordsSkipConfirm": "Atla",
+  "wordsUncheckedTipTitle": "24 kelimeniz henüz kontrol edilmedi",
+  "wordsUncheckedTipBody": "Bu kasayı açtıklarından emin olmak için bir kez yeniden yazın. {where} bölümünde."
 }

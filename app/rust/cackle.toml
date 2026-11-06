@@ -459,3 +459,27 @@ allow_unsafe = true
 
 [pkg.smallvec]
 allow_unsafe = true
+
+# The vault identity (ADR 0008, core/cs-identity), reviewed in supply-chain/audits.toml.
+# curve25519-dalek's build script asks rustc its version (through rustc_version) to pick
+# its field arithmetic, and prints cfgs.
+[pkg."curve25519-dalek"]
+build.allow_apis = ["process"]
+
+[pkg.rustc_version]
+from.build.allow_apis = ["process"]
+
+# Build-time only (rustc_version parses rustc's version with it).
+[pkg.semver]
+allow_unsafe = true
+
+# SHA-3 on the ARMv8 SHA3 instructions, picked at run time.
+[pkg.keccak]
+allow_unsafe = true
+
+[pkg."sponge-cursor"]
+allow_unsafe = true
+
+# One float-to-int conversion behind range checks; module-lattice never reaches it.
+[pkg."num-traits"]
+allow_unsafe = true

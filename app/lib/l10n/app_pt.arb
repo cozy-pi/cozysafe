@@ -906,5 +906,20 @@
   "blurTipTitle": "As miniaturas estão desfocadas",
   "blurTipBody": "Para quem estiver do seu lado não ver. Toque em uma para vê-la nítida. Para desativar: “{setting}” em {where}.",
   "testVaultShots": "Sempre permitido no cofre de teste, não pode ser alterado",
-  "testVaultThumbs": "Sempre nítidas no cofre de teste, não pode ser alterado"
+  "testVaultThumbs": "Sempre nítidas no cofre de teste, não pode ser alterado",
+  "vaultCode": "Código do cofre",
+  "vaultCodeCopied": "Código do cofre copiado",
+  "wordsCloud": "Guardar uma cópia no Porta-chaves do iCloud",
+  "wordsCloudGoogle": "Guardar uma cópia com a Google",
+  "wordsCloudNote": "Um iPhone novo com sua conta Apple preenche as 24 palavras sozinho. A senha do cofre continua necessária.",
+  "wordsCloudNoteGoogle": "Um Android novo com sua conta Google preenche as 24 palavras sozinho. A senha do cofre continua necessária.",
+  "wordsCloudFailed": "O Porta-chaves do iCloud não as guardou. Anote as 24 palavras e digite quatro delas de novo.",
+  "wordsCloudFailedGoogle": "A Google não as guardou (este telefone precisa de um bloqueio de ecrã). Anote as 24 palavras e digite quatro delas de novo.",
+  "wordsCheckSkip": "Pular, conferir depois",
+  "wordsSkipTitle": "Pular a verificação?",
+  "wordsSkipBody": "Se uma palavra for anotada errada, o cofre não abre em outro telefone. Você pode conferir quando quiser em {where}.",
+  "wordsCheckNow": "Conferir agora",
+  "wordsSkipConfirm": "Pular",
+  "wordsUncheckedTipTitle": "Suas 24 palavras ainda não foram conferidas",
+  "wordsUncheckedTipBody": "Digite-as uma vez para ter certeza de que abrem este cofre. Fica em {where}."
 }

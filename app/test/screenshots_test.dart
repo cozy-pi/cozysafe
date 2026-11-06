@@ -122,7 +122,7 @@ void main() {
         brightness: Brightness.dark,
         home: VaultHomeScreen(
           libraryDir: '',
-          vault: VaultInfo(libraryDir: '', id: 'preview', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false),
+          vault: VaultInfo(code: '7F3A-9K2Q', libraryDir: '', id: 'preview', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false),
         ),
       );
     });

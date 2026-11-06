@@ -49,6 +49,7 @@ import 'item_info.dart';
 import '../widgets/native_bar.dart';
 import 'overview.dart';
 import 'search.dart';
+import 'new_vault.dart' show wordsUncheckedPref;
 import 'settings.dart';
 import 'tour.dart';
 import 'trash.dart';
@@ -512,6 +513,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       setState(() => _items = groupsShown ? items : items.where((i) => i.kind != ItemKind.tag).toList());
       AutoSync.seen(items); // a change here: a sync follows shortly
       _blurTip();
+      _wordsTip();
     } on rust.VaultError catch (e) {
       if (!mounted) return;
       if (e == rust.VaultError.locked) return _lock(animate: false);
@@ -2818,6 +2820,40 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       ]);
     } finally {
       _blurTipBusy = false;
+    }
+  }
+
+  bool _wordsTipBusy = false;
+
+  /// Once, on a later open (not after the tour of a new vault), when the 24 words were not
+  /// typed back as the vault was made (owner 2026-11-05: skippable, with a warning, and
+  /// reminded later): a tip on Settings, whose button opens it on the check, lit.
+  Future<void> _wordsTip() async {
+    final id = widget.vault.id;
+    if (_wordsTipBusy || widget.tour != null || Prefs.read(wordsUncheckedPref(id)) != '1') return;
+    bool ready() => mounted && !_locked && !_adding && !_selecting && (ModalRoute.of(context)?.isCurrent ?? false);
+    Rect? settingsRect() {
+      final box = _settingsKey.currentContext?.findRenderObject() as RenderBox?;
+      return box == null || !box.hasSize ? null : box.localToGlobal(Offset.zero) & box.size;
+    }
+    if (!ready()) return;
+    _wordsTipBusy = true;
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      if (!ready()) return;
+      final target = settingsRect();
+      if (target == null || !mounted) return;
+      Prefs.write(wordsUncheckedPref(id), '0');
+      final l = AppLocalizations.of(context);
+      await showCoachTour(context, [
+        TourTip(id: 'words-unchecked', target: () => settingsRect() ?? target, title: l.wordsUncheckedTipTitle,
+            body: l.wordsUncheckedTipBody(settingsPath(l, SettingsSpot.keyCheck)),
+            action: (l.wordsCheckNow, () {
+              if (mounted && !_locked) _openSettings(focus: SettingsSpot.keyCheck);
+            })),
+      ]);
+    } finally {
+      _wordsTipBusy = false;
     }
   }
 

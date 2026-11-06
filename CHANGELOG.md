@@ -4,6 +4,28 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.27 (2026-11-06)
+
+### Added
+- Every vault has a code, such as 7F3A-9K2Q, that never changes. Settings shows it.
+  Behind it the vault holds its own key pair: Ed25519 with ML-DSA-65 for signing and
+  X-Wing (ML-KEM-768 with X25519) for receiving, so it is built to resist quantum
+  computers. Nothing uses it yet; it is the ground for sharing between vaults and
+  devices.
+- The 24 words can be kept in iCloud Keychain or Google's backup, on by default when
+  you make a vault. With the copy you are not asked to type four of the words back.
+- The vault password can be saved in the Passwords app (or your password manager),
+  under "Cozy Safe" and the vault's code, and the keyboard can suggest a strong one.
+
+### Changed
+- Making a vault takes a few taps: choose the kind of vault, see the 24 words, set the
+  password, and you are in. The intro and the icon and colour steps are gone; the vault
+  gets an icon and a colour you can change in Settings.
+- Without the cloud copy you can skip checking the 24 words, after a warning. The vault
+  then reminds you once to check them.
+- A Top Secret vault keeps everything strict: no cloud copy, no skipping the check, and
+  its password is not offered to the password manager.
+
 ## 0.2.26 (2026-11-05)
 
 ### Added

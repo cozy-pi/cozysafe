@@ -178,17 +178,37 @@ By case:
   attacked at all (2¹²⁸).
 - **Recovery Key and backup both leak:** only the password remains; a password at the
   minimum score is our estimate of weeks to years for one machine (not measured).
-- **The 24 words in iCloud Keychain** (iPhone, off by default, owner 2026-10-26): a
-  copy of the Recovery Key as a synchronizable keychain item (`lib/key_backup.dart`),
-  end-to-end encrypted by Apple. On, it trades the two independent secrets for one plus
-  the Apple account: whoever takes the account has the words and still needs the vault
-  password. Turning it on asks for the owner; turning it off deletes the copy; a new
-  Recovery Key replaces it. The PIN's device key never goes there.
-- **The 24 words in Google Block Store** (Android, off by default, owner 2026-10-27): the
-  same copy kept by Google Block Store (`BlockStore.kt`) with cloud backup, and only when
-  Google says it is end-to-end encrypted (the phone has a screen lock); otherwise nothing
-  is kept and the switch stays off. Same trade as above with the Google account; a phone
-  restored from that account fills in the words on Restore.
+- **The 24 words in iCloud Keychain** (iPhone; offered when a vault is made, on by
+  default for an everyday vault since 2026-11-05, "security first, not to the
+  extreme"): a copy of the Recovery Key as a synchronizable keychain item
+  (`lib/key_backup.dart`), end-to-end encrypted by Apple. It trades the two independent
+  secrets for one plus the Apple account: whoever takes the account has the words and
+  still needs the vault password. One item per set of words (`secret-key.<4 hex
+  fingerprint>`, ADR 0008), holding the key and the codes of the vaults using it, so
+  several vaults or sets never overwrite each other; a restore picks the set that fits.
+  Turning it on in Settings asks for the owner; turning it off deletes the copy; a new
+  Recovery Key replaces it. **Never for a Top secret vault**: none is offered, the
+  switch is hidden, a Top secret vault never shares a set that has a copy (it gets its
+  own), and opening a Top secret vault takes its set's copy out. The PIN's device key
+  never goes there.
+- **The 24 words in Google Block Store** (Android, same rules): the same copy kept by
+  Google Block Store (`BlockStore.kt`, one entry per set) with cloud backup, and only
+  when Google says it is end-to-end encrypted (the phone has a screen lock); otherwise
+  nothing is kept, and the new vault screen asks for the four words instead. Same trade
+  with the Google account; a phone restored from that account fills in the words.
+- **The vault password in the system's password manager** (2026-11-05, ADR 0008): the
+  new vault and change password screens mark their fields for AutoFill, so iOS
+  (Passwords, through `webcredentials:cozypi.com`) and Android (Google Password Manager)
+  can suggest a strong password and keep it under the vault's code (`Cozy Safe
+  7F3A-9K2Q`); the unlock screen offers the kept ones and never saves. Not for a Top
+  secret vault (no AutoFill hints, nothing saved). With both the words and the
+  password in one account, that account plus a copy of the vault (the device or a
+  backup) opens it: the trade for never losing a vault, written here so it is chosen
+  knowingly.
+- **The four words typed back can be skipped** (everyday vaults, 2026-11-05), after a
+  card saying a word written wrong loses the vault on another phone; a tip reminds once
+  on a later open, and Settings → Check your 24 words clears it. With the cloud copy the
+  check is not asked. A Top secret vault always types them back.
 - **The error log** (Settings → Report a problem) keeps the last 200 failures as a time,
   a place and a fixed code (`drive-full`, `io-timed-out`), in a plain file beside the
   preferences: no names, content, keys, paths or network data, so it can be copied into
@@ -265,14 +285,15 @@ disk in practice (Android keyboards keep a history, an iPhone hands it to a near
 the app empties it after 60 s and on lock), and a saved file or the share sheet puts the
 words where the app can never wipe them (Notes, Drive, a chat). The words alone open
 nothing: the vault password is needed as well. The copy in the iCloud Keychain / Google
-Block Store stays off. The pages that show the words stay on and keep the vault from locking
+Block Store was kept off then; it is offered when a vault is made since 2026-11-05. The pages that show the words stay on and keep the vault from locking
 for 3 minutes after the last touch, and block screenshots and recordings whatever
 Settings says (`widgets/words_awake.dart`). The word typed back to confirm is kept out
 of the keyboard's learning. `test/words_export_test.dart` fails if a new way out is not
 behind the switch.
 
-Still open: the opt-in copy of the words in iCloud Keychain / Google Block Store (above)
-is not covered by the switch; it is the system's encrypted store, not a file.
+Not covered by that switch: the copy of the words in iCloud Keychain / Google Block
+Store (above, on by default for an everyday vault since 2026-11-05); it is the system's
+encrypted store, not a file.
 
 ## Things from outside, and temporary files (2026-10-30)
 
@@ -376,8 +397,12 @@ sign in to Google Drive through the browser, not Google's SDK:
 ## Quantum computers
 
 - Shor's algorithm breaks public-key cryptography (RSA, elliptic curves: signatures, key
-  exchange). **The vault uses none**: no server and no key exchange; P2P sync keys come
-  from the vault's Master Key or the Recovery Key by HKDF. (Google Drive is reached over
+  exchange). **The vault's contents use none**: no server and no key exchange; P2P sync
+  keys come from the vault's Master Key or the Recovery Key by HKDF. The one public-key
+  part, the vault identity (ADR 0008, 2026-11-06), is hybrid: Ed25519 **and** ML-DSA-65
+  signatures (both must hold), sealing with X-Wing (ML-KEM-768 with X25519). A quantum
+  computer breaks the curve half and leaves the lattice half; a flaw in the young lattice
+  schemes leaves the curve half. (Google Drive is reached over
   TLS, but what goes there is already sealed. Bitcoin signs with elliptic curves, so
   exposed public keys are at risk; Cozy Safe has no such part.)
 - Grover's algorithm halves the strength of symmetric keys. Everything here is symmetric:
@@ -387,6 +412,6 @@ sign in to Google Drive through the browser, not Google's SDK:
     128-bit keys of libraries made before 2026-10-21 are no longer read (2026-11-02).
   - Password guessing goes through Argon2id (128 MiB per try); running that inside a
     quantum computer is not realistic.
-- **When sync between devices comes (v0.2 cloud folder needs no key exchange; v0.3 server
-  or P2P may):** any key exchange must be post-quantum (ML-KEM, possibly hybrid with
-  X25519), never classical alone.
+- **Any key exchange must be post-quantum** (ML-KEM, hybrid with X25519), never classical
+  alone. The vault identity follows it (X-Wing); so must anything later that exchanges
+  keys between devices or vaults.

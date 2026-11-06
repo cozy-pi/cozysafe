@@ -358,6 +358,9 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       }
       if (vault != null) {
         await PinStore.resetPasswordFails();
+        // Filled from the password manager or typed: nothing new to keep here (one field,
+        // no account to keep it under; the new vault screen keeps it, ADR 0008).
+        TextInput.finishAutofillContext(shouldSave: false);
         Prefs.write(_passwordSeenKey, '${DateTime.now().millisecondsSinceEpoch}');
         return await _open(vault, offerBiometric: true);
       }
@@ -758,6 +761,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       enableSuggestions: false,
       enableIMEPersonalizedLearning: false,
       keyboardType: TextInputType.visiblePassword,
+      // The system's password manager offers the vaults' passwords it keeps (ADR 0008).
+      autofillHints: const [AutofillHints.password],
       textInputAction: TextInputAction.done,
       style: TextStyle(color: ink),
       decoration: InputDecoration(

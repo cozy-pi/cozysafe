@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../error_log.dart';
+import '../key_backup.dart';
 import '../biometric.dart';
 import '../l10n/app_localizations.dart';
 import '../screens/common.dart';
@@ -49,6 +50,19 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
   bool _busy = false;
   String? _error;
   String? _target;
+
+  @override
+  void initState() {
+    super.initState();
+    // A single set kept in the iCloud Keychain / Google Block Store fills the field; with
+    // several, which one this Drive holds is not known before it is read (ADR 0008).
+    if (widget.words == null) {
+      KeyBackup.findAll().then((all) {
+        if (all.length != 1 || !mounted || _words.text.isNotEmpty) return;
+        setState(() => _words.text = rust.secretKeyText(key: all.single.key));
+      });
+    }
+  }
 
   @override
   void dispose() {

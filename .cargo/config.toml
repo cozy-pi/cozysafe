@@ -1,0 +1,7 @@
+# curve25519-dalek on x86_64 picks a SIMD backend built with a derive macro (syn, quote),
+# which the Top secret core does not take (docs/supply-chain.md). The serial backend is
+# the same constant-time field arithmetic in plain Rust, without the macro; cs-identity
+# refuses to build on x86_64 without this flag, so a build that misses this file fails
+# instead of fetching the macro.
+[target.'cfg(target_arch = "x86_64")']
+rustflags = ["--cfg", "curve25519_dalek_backend=\"serial\""]

@@ -906,5 +906,20 @@
   "blurTipTitle": "썸네일이 흐리게 보입니다",
   "blurTipBody": "옆 사람이 보지 못하게 하기 위해서입니다. 탭하면 선명하게 볼 수 있습니다. 끄려면 {where}에서 ‘{setting}’을 끄세요.",
   "testVaultShots": "테스트 금고에서는 항상 허용되며 바꿀 수 없습니다",
-  "testVaultThumbs": "테스트 금고에서는 항상 선명하게 보이며 바꿀 수 없습니다"
+  "testVaultThumbs": "테스트 금고에서는 항상 선명하게 보이며 바꿀 수 없습니다",
+  "vaultCode": "금고 코드",
+  "vaultCodeCopied": "금고 코드를 복사했습니다",
+  "wordsCloud": "iCloud 키체인에 사본 보관",
+  "wordsCloudGoogle": "Google에 사본 보관",
+  "wordsCloudNote": "같은 Apple 계정의 새 iPhone에서 24개 단어가 자동으로 채워집니다. 금고 비밀번호는 여전히 필요합니다.",
+  "wordsCloudNoteGoogle": "같은 Google 계정의 새 Android 휴대폰에서 24개 단어가 자동으로 채워집니다. 금고 비밀번호는 여전히 필요합니다.",
+  "wordsCloudFailed": "iCloud 키체인에 보관하지 못했습니다. 24개 단어를 적어 두고 그중 네 개를 다시 입력하세요.",
+  "wordsCloudFailedGoogle": "Google에 보관하지 못했습니다(이 휴대폰에 화면 잠금이 필요합니다). 24개 단어를 적어 두고 그중 네 개를 다시 입력하세요.",
+  "wordsCheckSkip": "건너뛰고 나중에 확인",
+  "wordsSkipTitle": "확인을 건너뛸까요?",
+  "wordsSkipBody": "단어 하나라도 잘못 적으면 다른 휴대폰에서 금고를 열 수 없습니다. 언제든 {where}에서 확인할 수 있습니다.",
+  "wordsCheckNow": "지금 확인",
+  "wordsSkipConfirm": "건너뛰기",
+  "wordsUncheckedTipTitle": "24개 단어를 아직 확인하지 않았습니다",
+  "wordsUncheckedTipBody": "한 번 다시 입력해 이 금고를 여는지 확인하세요. {where}에 있습니다."
 }

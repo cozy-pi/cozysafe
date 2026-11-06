@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 
 import 'src/rust/api/run.dart' as rust;
 import 'src/rust/api/run.dart' show RunMode;
+import 'key_backup.dart';
+import 'prefs.dart';
+import 'secret_key_store.dart';
 import 'src/rust/api/vault.dart' show VaultInfo, setTopSecret;
 import 'temp_files.dart';
 
@@ -41,7 +44,18 @@ abstract final class TopSecretMode {
   }
 
   /// A vault opened: the screens follow its mode.
-  static void opened(VaultInfo vault) => on = vault.topSecret;
+  static void opened(VaultInfo vault) {
+    on = vault.topSecret;
+    VaultCode.remember(vault);
+    // A Top secret vault's 24 words never stay in the cloud (ADR 0008): its set may have
+    // been sent from an everyday vault sharing it, or before its mode was turned on.
+    if (vault.topSecret) _noCloudCopy(vault.libraryDir);
+  }
+
+  static Future<void> _noCloudCopy(String dir) async {
+    final key = await SecretKeyStore.read(dir.isEmpty ? null : dir);
+    if (key != null && KeyBackup.isOn(key)) await KeyBackup.remove(key);
+  }
 
   /// End this run before the app starts again: Rust locks, forgets its keys and refuses
   /// every library call; temporary files are wiped and decoded pictures dropped. The
@@ -78,4 +92,17 @@ abstract final class TopSecretMode {
 
   /// Mockups: act as a platform that quits by itself (or as iPhone, which does not).
   static bool? debugClosesItself;
+}
+
+/// A vault's code (ADR 0008) on this device: known once it has opened here, since a locked
+/// vault cannot work it out. The unlock screen and the password manager name it by this.
+abstract final class VaultCode {
+  static String _pref(String id) => 'vault-code.$id';
+
+  static void remember(VaultInfo vault) {
+    if (vault.code.isNotEmpty && Prefs.read(_pref(vault.id)) != vault.code) Prefs.write(_pref(vault.id), vault.code);
+  }
+
+  /// The code of the vault with [id], when it has opened on this device.
+  static String? of(String id) => Prefs.read(_pref(id));
 }

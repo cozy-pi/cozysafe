@@ -24,7 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _vault = VaultInfo(libraryDir: '', id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
+const _vault = VaultInfo(code: '7F3A-9K2Q', libraryDir: '', id: 'v1', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false);
 
 class _Fake implements RustLibApi {
   int created = 0;
@@ -38,6 +38,7 @@ class _Fake implements RustLibApi {
     if (name.contains('PasswordProblem')) return PasswordProblem.none;
     if (name.contains('PasswordScore')) return 4;
     if (name.contains('HasVaults')) return true;
+    if (name.contains('PrepareVault')) return '7F3A-9K2Q';
     if (name.contains('CreateVaultWithPassword')) {
       created++;
       return Future<VaultInfo>.value(_vault);
@@ -111,8 +112,6 @@ void main() {
   testWidgets('no mode is chosen for the person: Next waits for a tap', (t) async {
     await _pump(t, _app(const NewVaultScreen(libraryDir: 'lib', first: false)));
     await _settle(t);
-    await t.tap(find.byKey(const ValueKey('intro-start')));
-    await _settle(t);
     FilledButton next() => t.widget<FilledButton>(find.byKey(const ValueKey('mode-next')));
     expect(next().onPressed, isNull);
     await t.tap(find.byKey(const ValueKey('mode-top-secret')));
@@ -123,10 +122,6 @@ void main() {
   testWidgets('with Face ID, its own step comes right after the password', (t) async {
     BiometricUnlock.debugKind = BiometricKind.face;
     await _pump(t, _app(const NewVaultScreen(libraryDir: 'lib', first: false)));
-    await _settle(t);
-    // The intro names Face ID as the everyday key.
-    expect(find.byKey(const ValueKey('intro-bio')), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('intro-start')));
     await _settle(t);
     // Every vault chooses its own mode (ADR 0007); none is chosen for the person.
     await t.tap(find.byKey(const ValueKey('mode-everyday')));
@@ -147,16 +142,15 @@ void main() {
     expect(find.byKey(const ValueKey('bio-yes')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('bio-no')));
     await _settle(t);
-    expect(find.byKey(const ValueKey('new-vault-skip')), findsOneWidget);
+    // No look to pick (owner 2026-11-05): straight into the vault.
+    expect(find.byType(VaultHomeScreen), findsOneWidget);
   });
 
   testWidgets('the tour shows after a vault is made, and Skip closes it', (t) async {
     await _pump(t, _app(const NewVaultScreen(libraryDir: 'lib', first: false)));
     await _settle(t);
-    // What each key is for → the password (makes the vault; no PIN since 2026-10-28) →
-    // the look (skipped). No Face ID on this device, so no Face ID step.
-    await t.tap(find.byKey(const ValueKey('intro-start')));
-    await _settle(t);
+    // Its mode → its words (the device's set) → the password, which makes the vault and
+    // goes in. No Face ID on this device, so no Face ID step; no look to pick.
     // Every vault chooses its own mode (ADR 0007); none is chosen for the person.
     await t.tap(find.byKey(const ValueKey('mode-everyday')));
     await t.pump();
@@ -174,8 +168,6 @@ void main() {
     await _settle(t);
     expect(_fake.created, 1);
     expect(find.byKey(const ValueKey('bio-yes')), findsNothing);
-    await t.tap(find.byKey(const ValueKey('new-vault-skip')));
-    await _settle(t);
 
     // The tips cover the vault that just opened, starting at the add tiles (it is empty).
     expect(find.byType(VaultHomeScreen), findsOneWidget);

@@ -1630,9 +1630,17 @@
    "published": "2026-05-19",
    "published_by": ""
   },
-  "ctutils@0.4.4": {
-   "published": "2026-10-23",
+  "ctutils@0.4.8": {
+   "published": "2026-11-02",
    "published_by": ""
+  },
+  "curve25519-dalek-derive@0.1.1": {
+   "published": "2023-10-31",
+   "published_by": "rozbb"
+  },
+  "curve25519-dalek@5.0.0": {
+   "published": "2026-07-06",
+   "published_by": "rozbb"
   },
   "dart-sys@4.1.5": {
    "published": "2024-03-09",
@@ -1651,6 +1659,14 @@
    "published_by": "tarcieri"
   },
   "digest@0.11.3": {
+   "published": "2026-05-03",
+   "published_by": ""
+  },
+  "ed25519-dalek@3.0.0": {
+   "published": "2026-07-06",
+   "published_by": "rozbb"
+  },
+  "ed25519@3.0.0": {
    "published": "2026-05-03",
    "published_by": ""
   },
@@ -1673,6 +1689,10 @@
   "fastrand@2.5.0": {
    "published": "2026-07-19",
    "published_by": "taiki-e"
+  },
+  "fiat-crypto@0.3.0": {
+   "published": "2025-06-04",
+   "published_by": "JasonGross"
   },
   "find-msvc-tools@0.1.14": {
    "published": "2026-09-25",
@@ -1806,6 +1826,14 @@
    "published": "2026-09-25",
    "published_by": ""
   },
+  "keccak@0.2.2": {
+   "published": "2026-08-21",
+   "published_by": ""
+  },
+  "kem@0.3.0": {
+   "published": "2026-04-03",
+   "published_by": ""
+  },
   "lazy_static@1.5.1": {
    "published": "2026-10-01",
    "published_by": "rust-lang-owner"
@@ -1845,6 +1873,18 @@
   "miniz_oxide@0.8.9": {
    "published": "2025-06-09",
    "published_by": "oyvindln"
+  },
+  "ml-dsa@0.1.2": {
+   "published": "2026-10-31",
+   "published_by": ""
+  },
+  "ml-kem@0.3.4": {
+   "published": "2026-10-31",
+   "published_by": ""
+  },
+  "module-lattice@0.2.4": {
+   "published": "2026-10-31",
+   "published_by": ""
   },
   "moxcms@0.8.1": {
    "published": "2026-03-07",
@@ -1922,6 +1962,10 @@
    "published": "2026-02-03",
    "published_by": "dvdhrm"
   },
+  "rand_core@0.10.1": {
+   "published": "2026-04-13",
+   "published_by": ""
+  },
   "rand_core@0.6.4": {
    "published": "2022-09-15",
    "published_by": "dhardy"
@@ -1962,6 +2006,10 @@
    "published": "2026-07-08",
    "published_by": "rust-lang-owner"
   },
+  "rustc_version@0.4.1": {
+   "published": "2024-08-28",
+   "published_by": "djc"
+  },
   "rustix@1.1.5": {
    "published": "2026-09-16",
    "published_by": "sunfishcode"
@@ -1986,6 +2034,10 @@
    "published": "2023-07-17",
    "published_by": "Amanieu"
   },
+  "semver@1.0.28": {
+   "published": "2026-04-04",
+   "published_by": "dtolnay"
+  },
   "serde@1.0.229": {
    "published": "2026-07-18",
    "published_by": "dtolnay"
@@ -2006,9 +2058,21 @@
    "published": "2026-10-12",
    "published_by": ""
   },
+  "sha3@0.12.0": {
+   "published": "2026-05-15",
+   "published_by": ""
+  },
+  "shake@0.1.0": {
+   "published": "2026-05-15",
+   "published_by": ""
+  },
   "shlex@2.0.1": {
    "published": "2026-05-17",
    "published_by": "fenhl"
+  },
+  "signature@3.0.0": {
+   "published": "2026-05-02",
+   "published_by": ""
   },
   "slab@0.4.12": {
    "published": "2026-01-31",
@@ -2017,6 +2081,10 @@
   "smallvec@1.16.3": {
    "published": "2026-10-10",
    "published_by": "jdm"
+  },
+  "sponge-cursor@0.1.0": {
+   "published": "2026-05-08",
+   "published_by": ""
   },
   "sqlite-wasm-rs@0.5.5": {
    "published": "2026-05-25",
@@ -2157,6 +2225,10 @@
   "windows_x86_64_msvc@0.52.6": {
    "published": "2024-07-03",
    "published_by": "kennykerr"
+  },
+  "x25519-dalek@3.0.0": {
+   "published": "2026-07-06",
+   "published_by": "rozbb"
   },
   "zeroize@1.9.1": {
    "published": "2026-10-06",
@@ -2378,13 +2450,25 @@
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "digest"
+   "via": "ml-dsa"
   },
-  "ctutils@0.4.4": {
+  "ctutils@0.4.8": {
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "digest"
+   "via": "ml-dsa"
+  },
+  "curve25519-dalek-derive@0.1.1": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "curve25519-dalek@5.0.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "ed25519-dalek"
   },
   "dart-sys@4.1.5": {
    "direct": false,
@@ -2416,6 +2500,18 @@
    "native": false,
    "via": "sha2"
   },
+  "ed25519-dalek@3.0.0": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "ed25519@3.0.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "ed25519-dalek"
+  },
   "env_filter@0.1.4": {
    "direct": false,
    "kind": "runtime",
@@ -2445,6 +2541,12 @@
    "kind": "dev",
    "native": false,
    "via": "tempfile"
+  },
+  "fiat-crypto@0.3.0": {
+   "direct": false,
+   "kind": "none",
+   "native": false,
+   "via": ""
   },
   "find-msvc-tools@0.1.14": {
    "direct": false,
@@ -2618,7 +2720,7 @@
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "block-buffer"
+   "via": "ml-dsa"
   },
   "image@0.25.10": {
    "direct": true,
@@ -2643,6 +2745,18 @@
    "kind": "none",
    "native": false,
    "via": ""
+  },
+  "keccak@0.2.2": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "sha3"
+  },
+  "kem@0.3.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "ml-kem"
   },
   "lazy_static@1.5.1": {
    "direct": false,
@@ -2703,6 +2817,24 @@
    "kind": "runtime",
    "native": false,
    "via": "backtrace"
+  },
+  "ml-dsa@0.1.2": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "ml-kem@0.3.4": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "module-lattice@0.2.4": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "ml-dsa"
   },
   "moxcms@0.8.1": {
    "direct": false,
@@ -2818,6 +2950,12 @@
    "native": false,
    "via": ""
   },
+  "rand_core@0.10.1": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "ml-kem"
+  },
   "rand_core@0.6.4": {
    "direct": false,
    "kind": "runtime",
@@ -2878,6 +3016,12 @@
    "native": false,
    "via": "backtrace"
   },
+  "rustc_version@0.4.1": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "curve25519-dalek"
+  },
   "rustix@1.1.5": {
    "direct": false,
    "kind": "dev",
@@ -2914,6 +3058,12 @@
    "native": false,
    "via": "lock_api"
   },
+  "semver@1.0.28": {
+   "direct": false,
+   "kind": "build",
+   "native": false,
+   "via": "rustc_version"
+  },
   "serde@1.0.229": {
    "direct": true,
    "kind": "runtime",
@@ -2944,11 +3094,29 @@
    "native": false,
    "via": ""
   },
+  "sha3@0.12.0": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
+  "shake@0.1.0": {
+   "direct": true,
+   "kind": "runtime",
+   "native": false,
+   "via": ""
+  },
   "shlex@2.0.1": {
    "direct": false,
    "kind": "build",
    "native": false,
    "via": "cc"
+  },
+  "signature@3.0.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "ml-dsa"
   },
   "slab@0.4.12": {
    "direct": false,
@@ -2962,6 +3130,12 @@
    "native": false,
    "via": "rusqlite"
   },
+  "sponge-cursor@0.1.0": {
+   "direct": false,
+   "kind": "runtime",
+   "native": false,
+   "via": "sha3"
+  },
   "sqlite-wasm-rs@0.5.5": {
    "direct": false,
    "kind": "none",
@@ -2972,7 +3146,7 @@
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "rustls"
+   "via": "ed25519-dalek"
   },
   "syn@2.0.119": {
    "direct": false,
@@ -3020,7 +3194,7 @@
    "direct": false,
    "kind": "runtime",
    "native": false,
-   "via": "crypto-common"
+   "via": "hybrid-array"
   },
   "unicode-ident@1.0.27": {
    "direct": false,
@@ -3169,6 +3343,12 @@
   "windows_x86_64_msvc@0.52.6": {
    "direct": false,
    "kind": "none",
+   "native": false,
+   "via": ""
+  },
+  "x25519-dalek@3.0.0": {
+   "direct": true,
+   "kind": "runtime",
    "native": false,
    "via": ""
   },
@@ -3322,6 +3502,13 @@
    "github:rustcrypto:utils",
    "tarcieri"
   ],
+  "curve25519-dalek": [
+   "github:dalek-cryptography:curve-maintainers",
+   "isislovecruft"
+  ],
+  "curve25519-dalek-derive": [
+   "rozbb"
+  ],
   "dart-sys": [
    "OptimisticPeach",
    "gutenfries"
@@ -3335,6 +3522,14 @@
   "digest": [
    "github:rustcrypto:traits",
    "newpavlov"
+  ],
+  "ed25519": [
+   "github:rustcrypto:signatures",
+   "newpavlov"
+  ],
+  "ed25519-dalek": [
+   "github:dalek-cryptography:ed25519-maintainers",
+   "isislovecruft"
   ],
   "env_filter": [
    "epage",
@@ -3354,6 +3549,9 @@
   "fastrand": [
    "github:smol-rs:admins",
    "taiki-e"
+  ],
+  "fiat-crypto": [
+   "JasonGross"
   ],
   "find-msvc-tools": [
    "rust-lang-owner"
@@ -3460,6 +3658,15 @@
    "github:wasm-bindgen:wasm-bindgen-publish",
    "guybedford"
   ],
+  "keccak": [
+   "github:rustcrypto:hashes",
+   "newpavlov"
+  ],
+  "kem": [
+   "github:rustcrypto:traits",
+   "newpavlov",
+   "tarcieri"
+  ],
   "lazy_static": [
    "rust-lang-owner"
   ],
@@ -3493,6 +3700,19 @@
   "miniz_oxide": [
    "Frommi",
    "oyvindln"
+  ],
+  "ml-dsa": [
+   "github:rustcrypto:signatures",
+   "tarcieri"
+  ],
+  "ml-kem": [
+   "github:rustcrypto:kems",
+   "tarcieri"
+  ],
+  "module-lattice": [
+   "github:rustcrypto:kems",
+   "github:rustcrypto:signatures",
+   "tarcieri"
   ],
   "moxcms": [
    "awxkee"
@@ -3599,6 +3819,10 @@
   "rustc-demangle": [
    "rust-lang-owner"
   ],
+  "rustc_version": [
+   "Kimundi",
+   "djc"
+  ],
   "rustix": [
    "sunfishcode"
   ],
@@ -3623,6 +3847,9 @@
    "Amanieu",
    "bluss"
   ],
+  "semver": [
+   "dtolnay"
+  ],
   "serde": [
    "dtolnay",
    "github:serde-rs:publish"
@@ -3644,9 +3871,22 @@
    "newpavlov",
    "tarcieri"
   ],
+  "sha3": [
+   "github:rustcrypto:hashes",
+   "newpavlov"
+  ],
+  "shake": [
+   "github:rustcrypto:hashes",
+   "newpavlov"
+  ],
   "shlex": [
    "comex",
    "fenhl"
+  ],
+  "signature": [
+   "github:rustcrypto:traits",
+   "newpavlov",
+   "tarcieri"
   ],
   "slab": [
    "carllerche",
@@ -3657,6 +3897,10 @@
    "SimonSapin",
    "alejandro-vaz",
    "github:servo:cargo-publish"
+  ],
+  "sponge-cursor": [
+   "github:rustcrypto:utils",
+   "newpavlov"
   ],
   "sqlite-wasm-rs": [
    "Spxg"
@@ -3788,6 +4032,10 @@
   ],
   "windows_x86_64_msvc": [
    "kennykerr"
+  ],
+  "x25519-dalek": [
+   "github:dalek-cryptography:x25519-maintainers",
+   "isislovecruft"
   ],
   "zeroize": [
    "github:rustcrypto:utils",

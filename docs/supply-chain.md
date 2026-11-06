@@ -30,7 +30,10 @@ SQLite, and nothing else**. No other crate, however small or popular, is allowed
 path: what it needs beyond those is written here, in our own code.
 
 - **Allowed:** the RustCrypto crates, the small crates they are made of, and SQLite
-  (`rusqlite`, built from the bundled source). The cryptography is all Rust: no C
+  (`rusqlite`, built from the bundled source). Since 2026-11-06 also the dalek crates
+  (curve25519-dalek, ed25519-dalek, x25519-dalek, with `ed25519`) and `num-traits`,
+  for the vault identity (ADR 0008, owner's approval): Ed25519 and X25519 halves of the
+  hybrid keys; RustCrypto has no curve25519 of its own. The cryptography is all Rust: no C
   cryptography library (owner 2026-10-31, for memory safety). SQLite is the only C.
 - **Not allowed:** everything else. The vault core, `core/cs-core` (the library, the
   vaults, their items, PINs, version history and index), is built without `serde`,
@@ -56,6 +59,11 @@ path: what it needs beyond those is written here, in our own code.
   | `zeroize` | cargo-vet audits imported from Mozilla and Bytecode Alliance |
   | `subtle` | cargo-vet audits imported from Mozilla and ISRG |
   | `rusqlite`, `libsqlite3-sys` (SQLite) | own review of the Rust layer; SQLite's own test suite (to do) |
+  | `ml-kem` (and `module-lattice`, `kem`) | NIST ACVP ML-KEM-768 keyGen, encapsulation, decapsulation (implicit rejection) and key checks pass, plus the X-Wing draft vectors; own review (2026-11-06) |
+  | `ml-dsa` (and `signature`) | NIST ACVP ML-DSA-65 keyGen, deterministic sigGen and sigVer (failures included) pass; own review |
+  | `curve25519-dalek`, `ed25519-dalek`, `ed25519`, `x25519-dalek` | Quarkslab, 2019, of older versions: [report](https://blog.quarkslab.com/security-audit-of-dalek-libraries.html); RFC 8032 and RFC 7748 vectors pass on the 64- and 32-bit backends; own review of every line compiled (serial backend) |
+  | `sha3`, `shake`, `keccak`, `sponge-cursor` | NIST FIPS 202 examples and CAVP vectors pass (both keccak backends); own review |
+  | `num-traits`, `rand_core` 0.10 | own review (one guarded unsafe in num-traits; rand_core is traits only) |
 
   The reviews were machine-assisted (every `src/` file read, each `unsafe` block
   checked for soundness, the algorithm compared with its standard); their notes, with

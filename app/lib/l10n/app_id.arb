@@ -906,5 +906,20 @@
   "blurTipTitle": "Thumbnail diburamkan",
   "blurTipBody": "Agar orang di sebelah Anda tidak melihatnya. Ketuk salah satu untuk melihat jelas. Untuk mematikan: “{setting}” di {where}.",
   "testVaultShots": "Selalu diizinkan di brankas uji, tidak bisa diubah",
-  "testVaultThumbs": "Selalu jelas di brankas uji, tidak bisa diubah"
+  "testVaultThumbs": "Selalu jelas di brankas uji, tidak bisa diubah",
+  "vaultCode": "Kode brankas",
+  "vaultCodeCopied": "Kode brankas disalin",
+  "wordsCloud": "Simpan salinan di iCloud Keychain",
+  "wordsCloudGoogle": "Simpan salinan di Google",
+  "wordsCloudNote": "iPhone baru dengan akun Apple Anda akan mengisi 24 kata otomatis. Kata sandi brankas tetap diperlukan.",
+  "wordsCloudNoteGoogle": "Ponsel Android baru dengan akun Google Anda akan mengisi 24 kata otomatis. Kata sandi brankas tetap diperlukan.",
+  "wordsCloudFailed": "iCloud Keychain tidak menyimpannya. Catat 24 kata itu dan ketik ulang empat di antaranya.",
+  "wordsCloudFailedGoogle": "Google tidak menyimpannya (ponsel ini perlu kunci layar). Catat 24 kata itu dan ketik ulang empat di antaranya.",
+  "wordsCheckSkip": "Lewati, periksa nanti",
+  "wordsSkipTitle": "Lewati pemeriksaan?",
+  "wordsSkipBody": "Jika satu kata salah dicatat, brankas tidak bisa dibuka di ponsel lain. Anda bisa memeriksanya kapan saja di {where}.",
+  "wordsCheckNow": "Periksa sekarang",
+  "wordsSkipConfirm": "Lewati",
+  "wordsUncheckedTipTitle": "24 kata Anda belum diperiksa",
+  "wordsUncheckedTipBody": "Ketik ulang sekali agar yakin kata-kata itu membuka brankas ini. Ada di {where}."
 }

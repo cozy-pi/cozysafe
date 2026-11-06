@@ -129,6 +129,15 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 - **Top Secret Mode** ([above](#top-secret-mode)): chosen when each vault is made,
   changed in Settings. Each vault has its own icon, colour and mode; nothing on disk
   says what is inside or how it is used.
+- **A vault in a few taps:** choose its mode, see its 24 words (a copy kept in your
+  iCloud Keychain or with Google, on unless you turn it off; then you type four of them
+  back, or skip that and are reminded later), set its password (your phone's password
+  manager can suggest a strong one and keep it), Face ID. Top Secret Mode keeps neither
+  copy and always asks the four words.
+- **Each vault has a code** (`7F3A-9K2Q`, Settings) that never changes: it names the
+  vault's password and words in the cloud, and comes from the vault's own identity keys,
+  hybrid classical and post-quantum (Ed25519 + ML-DSA-65, ML-KEM-768 + X25519), for
+  vaults and devices to recognise each other later.
 - **Vaults on this device** (Settings): delete a vault with its password, or, password
   forgotten, have it deleted in seven days unless someone opens it with its password.
   Its Google Drive copy goes only if you tick it.

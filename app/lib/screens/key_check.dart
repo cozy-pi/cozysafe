@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../lock_resume.dart';
+import '../prefs.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
@@ -9,6 +10,7 @@ import '../widgets/secret.dart';
 import '../widgets/toast.dart';
 import '../widgets/words_input.dart';
 import 'common.dart';
+import 'new_vault.dart' show wordsUncheckedPref;
 
 /// Settings → Check your 24 words and password (owner 2026-10-26, instead of asking for
 /// them every so often): type them back to know they still open this vault. Only
@@ -62,6 +64,10 @@ class _KeyCheckScreenState extends State<KeyCheckScreen> with VaultLockAware {
       if (_words.text.trim().isNotEmpty) {
         final key = rust.parseSecretKey(text: _words.text);
         _wordsOk = key != null && rust.secretKeyFits(dir: SecretKeyStore.openLibrary ?? widget.libraryDir, key: key);
+        // Checked: the reminder of a check skipped when the vault was made goes.
+        if (_wordsOk == true) {
+          if (rust.openVaultInfo()?.id case final id?) Prefs.write(wordsUncheckedPref(id), '0');
+        }
       }
       if (widget.hasPassword && _password.text.isNotEmpty) {
         // An Argon2id run, as when opening.
