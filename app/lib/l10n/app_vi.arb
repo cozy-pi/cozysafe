@@ -975,5 +975,6 @@
   "entrySaveAnyway": "Vẫn lưu",
   "entryShowCodes": "Hiện mã",
   "entryHideCodes": "Ẩn mã",
-  "entryUnsavedCopy": "{name} (chưa lưu)"
+  "entryUnsavedCopy": "{name} (chưa lưu)",
+  "syncPeerOldVersion": "Máy kia đang dùng bản Cozy Safe cũ. Hãy cập nhật app trên cả hai máy rồi thử lại."
 }

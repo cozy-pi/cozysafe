@@ -47,8 +47,8 @@ flowchart TD
 - **What stays visible:** counts, sizes (within a few bytes), times and random ids. Not
   names, kinds, tags or content.
 - **Post-quantum:** the vault itself is all symmetric, so it is not exposed to quantum
-  computers. The vault identity keys are hybrid (classical and post-quantum together).
-  One gap: adding a new device on the Wi-Fi uses classical X25519 only (see
+  computers. The vault identity keys and adding a new device on the Wi-Fi are hybrid
+  (classical and post-quantum together). What is left: the TLS to Google (see
   [Post-quantum status](#post-quantum-status)).
 - **Pure Rust core**, no `unsafe`, keys wiped from memory when dropped (`zeroize`).
   Memory is not locked, so keys may be paged out.
@@ -65,7 +65,7 @@ flowchart TD
 | Ed25519 (RFC 8032) | `ed25519-dalek` 3.0.0 | `verify_strict` | Vault identity signatures (half of a hybrid pair). |
 | ML-DSA-65 (FIPS 204) | `ml-dsa` 0.1.2 | Deterministic signing, context `cozysafe/v1` | Vault identity signatures (other half). |
 | X-Wing (ML-KEM-768 + X25519, draft-connolly-cfrg-xwing-kem-11) | `ml-kem` 0.3.4, `x25519-dalek` 3.0.0, `sha3`, `shake` | 32-byte seed, SHA3-256 combiner | Sealing a message to a vault identity. |
-| X25519 | `ring` (through `rustls`) | Ephemeral, with commitment | Adding a new device over the Wi-Fi. |
+| X-Wing, ephemeral | `cs_identity::xwing` | Fresh key pair per session, the new device commits to a nonce first | Adding a new device over the Wi-Fi ([ADR 0010](adr/0010-post-quantum-device-add.md)). |
 | TLS 1.3 | `rustls` 0.23 with `ring` | Mozilla roots bundled | HTTPS to Google (content is already sealed). |
 | OS CSPRNG | `OsRng` (via `getrandom`) | | Every key, salt, nonce and id. |
 
@@ -122,7 +122,7 @@ Subkey labels in use (`kdf::subkey`):
 | `identity/v1/<vault id>` | Master Key | Identity seed. |
 | `p2p/v1/<vault id>` | Master Key | Nearby-device pairing key. Only a device holding the vault can derive it. |
 | `hello/…`, `probe/…`, `session/to-joiner/…`, `session/to-host/…`, `session/check/…`, `session/restored/…`, `restore-proof/…` | Pairing key | Nearby-device handshake, per-direction session keys, the 3-digit check number. |
-| `p2p-add/key/…`, `p2p-add/code/…` | X25519 shared secret | Adding a device: session key and 8-digit code. |
+| `p2p-add/v2/key/<T>`, `p2p-add/v2/code/<T>` | X-Wing shared secret; `T` = SHA-256 of the token, public key, ciphertext and both nonces | Adding a device: session key and 8-digit code. |
 
 Source: `core/cs-crypto/src/lib.rs` (`KEY_LEN`, `SECRET_KEY_LEN`, `SALT_LEN`,
 `SecretKey::fingerprint`), `core/cs-crypto/src/kdf.rs` (`KdfParams`, `derive_root`,
@@ -303,8 +303,9 @@ alone opens nothing.
 `subkey(MK, "p2p/v1/<vault id>")`, then talk in sealed, numbered frames. A device that is
 restoring proves the 24 words (`cozysafe/v1/p2p-restore`), gets only the lock, and must
 prove the Master Key before any item is served. **Adding a device** that has neither the
-vault nor the words uses an X25519 exchange (new device commits first) and an 8-digit
-code typed on the new device; then the password and the 24 words cross that channel.
+vault nor the words uses an X-Wing exchange (ML-KEM-768 + X25519; the new device sends
+its public key and commits to a nonce first) and an 8-digit code typed on the new device;
+then the password and the 24 words cross that channel ([ADR 0010](adr/0010-post-quantum-device-add.md)).
 
 **Share inbox.** Not built. ADR 0001 describes one; there is no inbox code.
 
@@ -392,7 +393,7 @@ The rule every part must follow: [security.md](security.md#quantum-computers-the
 | 24 words (256 bits) | About 128-bit against Grover. Safe. |
 | Nearby sync between devices that hold the vault | Keys from the Master Key by HKDF. No public-key step. Safe. |
 | Vault identity | Hybrid: Ed25519 + ML-DSA-65, X-Wing (ML-KEM-768 + X25519). Safe if either family holds. |
-| **Adding a new device on the Wi-Fi** | **X25519 only.** The password and the 24 words cross this channel. Someone who records the session today and has a quantum computer later could read them. Not yet hybrid. |
+| Adding a new device on the Wi-Fi | Hybrid since 0.2.28: X-Wing (ML-KEM-768 + X25519), [ADR 0010](adr/0010-post-quantum-device-add.md). Until 0.2.27 X25519 alone; sessions recorded then are exposed to a future quantum computer. |
 | HTTPS to Google | TLS 1.3 with `rustls` + `ring` (classical key exchange). What crosses is already sealed, except the OAuth tokens. |
 | Biometric / hardware wraps (Secure Enclave P-256, Android Keystore AES-GCM) | Local to the device, never sent. |
 

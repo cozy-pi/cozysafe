@@ -21,6 +21,14 @@ know these items: they leave them out of every tab, but can still find one by na
   vault keeps 90 seconds). On iPhone and Mac it is never sent to your other devices; on
   Android it is marked sensitive, so the keyboard does not keep it and the preview hides
   it. Clipboard managers on a Mac are told not to keep it.
+- Adding a new device on the Wi-Fi is now post-quantum: the two devices make their key
+  with X-Wing (ML-KEM-768 with X25519) instead of X25519 alone, so a session recorded
+  today stays closed to a future quantum computer, and with it the password and the 24
+  words that cross it. Both devices need this version; with an older one the app says
+  to update both.
+- A rule, written down: everything resists quantum computers (256-bit keys, and every
+  public-key step classical and post-quantum together), with what is not there yet
+  listed openly (docs/security.md).
 - Technical documents for anyone who wants to check our work: how the data is stored
   (docs/data-model.md) and how it is encrypted (docs/cryptography.md), kept in step
   with the code by tests.

@@ -1460,6 +1460,11 @@ mod tests {
     #[test]
     fn error_codes_are_short_fixed_words() {
         let io = |k| cs_vault::Error::Io(std::io::Error::from(k));
+        // lib/sync/progress.dart tells the person to update both devices on this one.
+        assert_eq!(
+            error_code(&cs_vault::Error::Corrupt("p2p add old version")),
+            "p2p-add-old-version"
+        );
         assert_eq!(
             error_code(&cs_vault::Error::Corrupt("drive rate limited")),
             "drive-rate-limited"

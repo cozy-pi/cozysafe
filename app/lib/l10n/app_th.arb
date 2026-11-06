@@ -961,5 +961,6 @@
   "entrySaveAnyway": "บันทึกต่อไป",
   "entryShowCodes": "แสดงรหัส",
   "entryHideCodes": "ซ่อนรหัส",
-  "entryUnsavedCopy": "{name} (ยังไม่บันทึก)"
+  "entryUnsavedCopy": "{name} (ยังไม่บันทึก)",
+  "syncPeerOldVersion": "อุปกรณ์อีกเครื่องใช้ Cozy Safe รุ่นเก่า อัปเดตแอปบนทั้งสองเครื่องแล้วลองอีกครั้ง"
 }

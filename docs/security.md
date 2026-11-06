@@ -441,7 +441,7 @@ Where things stand ([details](cryptography.md#post-quantum-status)):
 | Password guessing | Argon2id, 128 MiB per try | Yes (not realistic inside a quantum computer) |
 | Sync between devices that hold the vault (nearby, Google Drive) | keys from the Master Key by HKDF; content sealed before it leaves | Yes |
 | Vault identity (ADR 0008) | Ed25519 + ML-DSA-65, X-Wing | Yes (hybrid) |
-| **Adding a new device on the Wi-Fi** | **X25519 alone** (`core/cs-net/src/p2p.rs`); the password and the 24 words cross it | **No: to be made hybrid (X-Wing)** |
+| Adding a new device on the Wi-Fi | X-Wing (ML-KEM-768 + X25519) with a commitment and an 8-digit code ([ADR 0010](adr/0010-post-quantum-device-add.md)); X25519 alone until 0.2.27 | Yes (hybrid) since 0.2.28 |
 | HTTPS to Google Drive | TLS 1.3, classical key exchange (`rustls` + `ring`) | Content: yes (sealed before it leaves). The OAuth tokens: no. The hybrid X25519MLKEM768 group needs `rustls`' `aws-lc-rs` provider; the app uses `ring`, which has none |
 | Face ID / fingerprint wraps | Secure Enclave / Keystore, never leave the device | Not exposed |
 

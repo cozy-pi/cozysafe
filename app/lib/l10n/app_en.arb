@@ -1230,5 +1230,7 @@
   "entryHideCodes": "Hide codes",
   "@entryHideCodes": {"description": "Button: hide recovery codes again."},
   "entryUnsavedCopy": "{name} (unsaved)",
-  "@entryUnsavedCopy": {"description": "Name of a new item holding what was typed in the editor when the vault locked and the item had changed on another device meanwhile; both are kept.", "placeholders": {"name": {"type": "String"}}}
+  "@entryUnsavedCopy": {"description": "Name of a new item holding what was typed in the editor when the vault locked and the item had changed on another device meanwhile; both are kept.", "placeholders": {"name": {"type": "String"}}},
+  "syncPeerOldVersion": "The other device has an older Cozy Safe. Update the app on both devices, then try again.",
+  "@syncPeerOldVersion": {"description": "Adding a device failed because one of the two runs a version from before post-quantum pairing (ADR 0010)."}
 }

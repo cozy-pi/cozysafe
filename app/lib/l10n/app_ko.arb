@@ -961,5 +961,6 @@
   "entrySaveAnyway": "그래도 저장",
   "entryShowCodes": "코드 보기",
   "entryHideCodes": "코드 숨기기",
-  "entryUnsavedCopy": "{name} (저장 안 됨)"
+  "entryUnsavedCopy": "{name} (저장 안 됨)",
+  "syncPeerOldVersion": "다른 기기의 Cozy Safe가 이전 버전입니다. 두 기기 모두 앱을 업데이트한 뒤 다시 시도하세요."
 }

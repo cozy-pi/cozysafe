@@ -961,5 +961,6 @@
   "entrySaveAnyway": "Enregistrer quand même",
   "entryShowCodes": "Afficher les codes",
   "entryHideCodes": "Masquer les codes",
-  "entryUnsavedCopy": "{name} (non enregistré)"
+  "entryUnsavedCopy": "{name} (non enregistré)",
+  "syncPeerOldVersion": "L’autre appareil a une version plus ancienne de Cozy Safe. Mettez à jour l’app sur les deux appareils, puis réessayez."
 }

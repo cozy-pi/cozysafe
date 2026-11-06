@@ -961,5 +961,6 @@
   "entrySaveAnyway": "仍要儲存",
   "entryShowCodes": "顯示代碼",
   "entryHideCodes": "隱藏代碼",
-  "entryUnsavedCopy": "{name}（未儲存）"
+  "entryUnsavedCopy": "{name}（未儲存）",
+  "syncPeerOldVersion": "另一台裝置上的 Cozy Safe 版本較舊。請在兩台裝置上都更新 App，然後再試一次。"
 }

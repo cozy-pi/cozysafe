@@ -961,5 +961,6 @@
   "entrySaveAnyway": "Yine de kaydet",
   "entryShowCodes": "Kodları göster",
   "entryHideCodes": "Kodları gizle",
-  "entryUnsavedCopy": "{name} (kaydedilmedi)"
+  "entryUnsavedCopy": "{name} (kaydedilmedi)",
+  "syncPeerOldVersion": "Diğer cihazda Cozy Safe'in eski bir sürümü var. Uygulamayı iki cihazda da güncelleyip yeniden deneyin."
 }
