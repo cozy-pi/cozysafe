@@ -34,9 +34,10 @@
 //! port and token) stays for networks where the knock does not get through.
 //!
 //! Adding a device (ADR 0003, point 11): the new device, with neither the vault nor its
-//! words, finds the old one on the Wi-Fi and the two make a key together (X25519, the
-//! new device committing first); the old device shows 8 digits from that key and the new
-//! device's person types them, so someone in the middle is caught. The new device then
+//! words, finds the old one on the Wi-Fi and the two make a key together (X-Wing, hybrid
+//! ML-KEM-768 and X25519, the new device committing first; ADR 0010); the old device shows
+//! 8 digits from that key and the new device's person types them, so someone in the
+//! middle is caught. The new device then
 //! sends the password the person typed; the old device checks it and only then sends the
 //! 24 words and the vault's id, and the restore goes on as above (the lock, the Master
 //! Key proof, the items).
@@ -50,6 +51,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use cs_crypto::{kdf, wrap, Key, SecretKey};
+use cs_identity::xwing;
 use cs_vault::sync::{FolderRemote, Remote, SyncReport, Telling};
 use cs_vault::sync::{SyncPhase, SyncProgress};
 use cs_vault::{Error, Library, LibraryJoin, OpenVault, Result, VaultSync};
@@ -72,9 +74,13 @@ const MODE_INTRO: u8 = 4;
 /// [`MODE_INTRO`] for a device restoring (the 24 words' key).
 const MODE_INTRO_RESTORE: u8 = 5;
 /// A new device being added (ADR 0003, point 11): neither the vault nor its words; the
-/// two make a key together (X25519) and its person types the code the old one shows.
-/// The QR invite of 0.2.2–0.2.7 (mode 7) is refused.
-const MODE_ADD: u8 = 8;
+/// two make a key together (X-Wing, ADR 0010) and its person types the code the old one
+/// shows. The QR invite of 0.2.2–0.2.7 (mode 7) is refused, and so is the X25519-only
+/// exchange of 0.2.8–0.2.27 ([`MODE_ADD_X25519`]).
+const MODE_ADD: u8 = 10;
+/// The classical-only exchange before ADR 0010: a quantum computer could open a recorded
+/// one later, password and 24 words included. Refused, and told so ([`refuse_old_add`]).
+const MODE_ADD_X25519: u8 = 8;
 /// Not a session: a new device looking for the device that adds it.
 const MODE_PROBE_ADD: u8 = 9;
 /// How long "Set up a new device" waits.
@@ -85,8 +91,10 @@ pub const ADD_TRIES: u32 = 3;
 /// Digits of the code the old device shows ("1234 - 5678").
 pub const ADD_CODE_DIGITS: usize = 8;
 const ADD_CODE_SPACE: u64 = 100_000_000;
-/// Bytes of an X25519 public key.
-const DH_LEN: usize = 32;
+/// Bytes of the new device's X-Wing public key (ML-KEM-768, then X25519).
+const ADD_PUBLIC_LEN: usize = xwing::PUBLIC_LEN;
+/// Bytes of the old device's X-Wing ciphertext (ML-KEM-768, then X25519).
+const ADD_CIPHERTEXT_LEN: usize = xwing::CIPHERTEXT_LEN;
 /// Digits of the number both screens show (owner 2026-10-26: three, like the old code).
 pub const CHECK_DIGITS: usize = 3;
 const CHECK_SPACE: u16 = 1000;
@@ -432,12 +440,19 @@ fn handshake_host(
     hello: &[u8],
     mut stream: TcpStream,
 ) -> Result<(Channel, u8)> {
-    if hello.len() != 2 + NONCE_LEN || hello[0] != VERSION {
+    if hello.len() < 2 || hello[0] != VERSION {
         return Err(Error::Corrupt("p2p hello"));
     }
     let mode = hello[1];
-    if mode == MODE_ADD && keys.adding {
-        return Ok((add_host(token, &hello[2..], stream)?, mode));
+    if keys.adding {
+        match mode {
+            MODE_ADD => return Ok((add_host(token, &hello[2..], stream)?, mode)),
+            MODE_ADD_X25519 => return Err(refuse_old_add(stream)),
+            _ => {}
+        }
+    }
+    if hello.len() != 2 + NONCE_LEN {
+        return Err(Error::Corrupt("p2p hello"));
     }
     let restoring = matches!(mode, MODE_RESTORE | MODE_INTRO_RESTORE);
     let pk = match mode {
@@ -474,21 +489,31 @@ fn handshake_host(
     Ok((session(pk, token, nj, &nh, stream, true), mode))
 }
 
-// ---------- adding a device by a code (ADR 0003, point 11) ----------
+// ---------- adding a device by a code (ADR 0003, point 11; ADR 0010) ----------
 //
-// Neither device holds a key the other has, so they make one: an X25519 exchange, the new
-// device committing to its half first. The old device shows 8 digits drawn from that key;
-// the new device's person types them and the new device compares them with its own. Someone
-// in the middle holds two exchanges with two different keys, so the digits the old device
-// shows are not the new device's; and since the new device's half is fixed (by the
-// commitment) before the other half is seen, no one can pick a half that makes them match:
-// one chance in 10^8 per session. The typed digits never leave the new device.
+// Neither device holds a key the other has, so they make one, hybrid (classical and
+// post-quantum, both must hold): the new device sends a fresh X-Wing public key (ML-KEM-768
+// and X25519) with a commitment to a nonce it keeps back; the old device encapsulates to
+// that key and sends the ciphertext and its own nonce; the new device then reveals its
+// nonce, which must open the commitment. The old device shows 8 digits drawn from the
+// shared secret and the whole exchange; the new device's person types them and the new
+// device compares them with its own.
+//
+// Someone in the middle holds two exchanges with two different secrets, so the digits the
+// old device shows are not the new device's. No one can steer them to match: towards the
+// new device, whatever they send is fixed before the new device's nonce is known (it is
+// only committed to); towards the old device, their own key and nonce are fixed (sent and
+// committed to) before the old device's ciphertext and nonce, fresh randomness, are seen.
+// One chance in 10^8 per session. The typed digits never leave the new device.
+//
+// A recorded session stays closed to a quantum computer: the key behind the channel (the
+// password and the 24 words cross it) needs ML-KEM-768 broken as well as X25519.
 
-/// SHA-256 of the new device's half and nonce: sent first, opened after the old device's
-/// half arrived.
+/// SHA-256 of the new device's public key and nonce: sent first with the key, opened
+/// after the old device's ciphertext arrived.
 fn add_commit(public: &[u8], nonce: &[u8]) -> [u8; 32] {
     let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
-    ctx.update(b"cozysafe/p2p/v1/add-commit");
+    ctx.update(b"cozysafe/p2p/v2/add-commit");
     ctx.update(public);
     ctx.update(nonce);
     let mut out = [0u8; 32];
@@ -496,91 +521,111 @@ fn add_commit(public: &[u8], nonce: &[u8]) -> [u8; 32] {
     out
 }
 
-/// A fresh X25519 key pair for one session.
-fn add_half() -> Result<(ring::agreement::EphemeralPrivateKey, [u8; DH_LEN])> {
-    let rng = ring::rand::SystemRandom::new();
-    let private = ring::agreement::EphemeralPrivateKey::generate(&ring::agreement::X25519, &rng)
-        .map_err(|_| Error::Corrupt("p2p add key"))?;
-    let public = private
-        .compute_public_key()
-        .map_err(|_| Error::Corrupt("p2p add key"))?;
-    let mut out = [0u8; DH_LEN];
-    out.copy_from_slice(public.as_ref());
-    Ok((private, out))
+/// A fresh X-Wing key pair for one session: its 32-byte seed (the private key, wiped
+/// when dropped) and its public key.
+fn add_half() -> (Zeroizing<[u8; 32]>, [u8; ADD_PUBLIC_LEN]) {
+    let seed = Zeroizing::new(random::<32>());
+    let public = xwing::public_key(&seed);
+    (seed, public)
 }
 
-/// The session's pairing key and its code, from the exchange and everything both sides
-/// sent (the token, both halves, both nonces). ring refuses a half that gives an all-zero
-/// secret.
+/// The session's pairing key and its code, from the X-Wing shared secret and everything
+/// both sides sent: the token, the new device's public key, the old device's ciphertext,
+/// both nonces (hashed into one transcript, so the code binds both sides' messages).
 fn add_keys(
-    private: ring::agreement::EphemeralPrivateKey,
-    theirs: &[u8],
+    shared: &Key,
     token: &[u8],
-    (joiner, host): (&[u8], &[u8]),
+    (public, ciphertext): (&[u8], &[u8]),
     (nj, nh): (&[u8], &[u8]),
-) -> Result<(Key, Zeroizing<String>)> {
-    let peer = ring::agreement::UnparsedPublicKey::new(&ring::agreement::X25519, theirs);
-    let shared = ring::agreement::agree_ephemeral(private, &peer, |s| {
-        <[u8; 32]>::try_from(s).map(Key::from_bytes)
-    })
-    .map_err(|_| Error::Corrupt("p2p add key"))?
-    .map_err(|_| Error::Corrupt("p2p add key"))?;
-    let t = format!(
-        "{}/{}/{}/{}/{}",
-        hex::encode(token),
-        hex::encode(joiner),
-        hex::encode(host),
-        hex::encode(nj),
-        hex::encode(nh)
-    );
-    let key = kdf::subkey(&shared, &format!("p2p-add/key/{t}"));
-    let c = kdf::subkey(&shared, &format!("p2p-add/code/{t}"));
+) -> (Key, Zeroizing<String>) {
+    let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+    ctx.update(b"cozysafe/p2p/v2/add-transcript");
+    for part in [token, public, ciphertext, nj, nh] {
+        ctx.update(&(part.len() as u32).to_be_bytes());
+        ctx.update(part);
+    }
+    let t = hex::encode(ctx.finish().as_ref());
+    let key = kdf::subkey(shared, &format!("p2p-add/v2/key/{t}"));
+    let c = kdf::subkey(shared, &format!("p2p-add/v2/code/{t}"));
     let mut first = [0u8; 8];
     first.copy_from_slice(&c.as_bytes()[..8]);
     let code = u64::from_be_bytes(first) % ADD_CODE_SPACE;
-    Ok((key, Zeroizing::new(format!("{code:0ADD_CODE_DIGITS$}"))))
+    (key, Zeroizing::new(format!("{code:0ADD_CODE_DIGITS$}")))
 }
 
-/// The new device's side: commit, hear the old device's half, open the commitment.
+/// The new device's side: its public key and a commitment, the old device's ciphertext,
+/// then the nonce that opens the commitment.
 fn add_join(token: &[u8], mut stream: TcpStream) -> Result<Channel> {
-    let (private, mine) = add_half()?;
+    let (seed, mine) = add_half();
     let nj: [u8; NONCE_LEN] = random();
     let mut hello = vec![VERSION, MODE_ADD];
+    hello.extend_from_slice(&mine);
     hello.extend_from_slice(&add_commit(&mine, &nj));
     write_frame(&mut stream, &hello)?;
-    let reply = read_frame(&mut stream)?;
-    if reply.len() != DH_LEN + NONCE_LEN {
+    let reply = match read_frame(&mut stream) {
+        Ok(r) => r,
+        // A device of 0.2.27 or older closes on a hello it does not know.
+        Err(Error::Io(e))
+            if matches!(
+                e.kind(),
+                std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::ConnectionReset
+            ) =>
+        {
+            return Err(Error::Corrupt("p2p add old version"))
+        }
+        Err(e) => return Err(e),
+    };
+    if reply.len() != ADD_CIPHERTEXT_LEN + NONCE_LEN {
         return Err(Error::Corrupt("p2p add handshake"));
     }
-    let (theirs, nh) = reply.split_at(DH_LEN);
-    let mut open = mine.to_vec();
-    open.extend_from_slice(&nj);
-    write_frame(&mut stream, &open)?;
-    let (key, code) = add_keys(private, theirs, token, (&mine, theirs), (&nj, nh))?;
+    let (ct, nh) = reply.split_at(ADD_CIPHERTEXT_LEN);
+    let ct: &[u8; ADD_CIPHERTEXT_LEN] = ct.try_into().expect("split at its length");
+    // ML-KEM rejects implicitly: a changed ciphertext gives another secret, so the codes
+    // differ and no frame opens.
+    let shared = Key::from_bytes(xwing::decapsulate(&seed, ct));
+    drop(seed);
+    write_frame(&mut stream, &nj)?;
+    let (key, code) = add_keys(&shared, token, (&mine, ct), (&nj, nh));
     let mut ch = session(&key, token, &nj, nh, stream, false);
     ch.add_code = Some(code);
     Ok(ch)
 }
 
-/// The old device's side: its half only after the commitment, which must then open.
-fn add_host(token: &[u8], commit: &[u8], mut stream: TcpStream) -> Result<Channel> {
-    let (private, mine) = add_half()?;
+/// The old device's side: encapsulate to the new device's key, then the nonce it
+/// committed to must open the commitment.
+fn add_host(token: &[u8], hello: &[u8], mut stream: TcpStream) -> Result<Channel> {
+    if hello.len() != ADD_PUBLIC_LEN + 32 {
+        return Err(Error::Corrupt("p2p hello"));
+    }
+    let (theirs, commit) = hello.split_at(ADD_PUBLIC_LEN);
+    let theirs: &[u8; ADD_PUBLIC_LEN] = theirs.try_into().expect("split at its length");
+    // Fresh from the system's generator, used once and wiped.
+    let eseed = Zeroizing::new(random::<64>());
+    // None: not a key ML-KEM accepts (FIPS 203 modulus check).
+    let (ct, shared) =
+        xwing::encapsulate_derand(theirs, &eseed).ok_or(Error::Corrupt("p2p hello"))?;
+    drop(eseed);
+    let shared = Key::from_bytes(shared);
     let nh: [u8; NONCE_LEN] = random();
-    let mut reply = mine.to_vec();
+    let mut reply = ct.to_vec();
     reply.extend_from_slice(&nh);
     write_frame(&mut stream, &reply)?;
-    let open = read_frame(&mut stream)?;
-    if open.len() != DH_LEN + NONCE_LEN {
+    let nj = read_frame(&mut stream)?;
+    if nj.len() != NONCE_LEN || !same(&add_commit(theirs, &nj), commit) {
         return Err(Error::Corrupt("p2p add not proven"));
     }
-    let (theirs, nj) = open.split_at(DH_LEN);
-    if !same(&add_commit(theirs, nj), commit) {
-        return Err(Error::Corrupt("p2p add not proven"));
-    }
-    let (key, code) = add_keys(private, theirs, token, (theirs, &mine), (nj, &nh))?;
-    let mut ch = session(&key, token, nj, &nh, stream, true);
+    let (key, code) = add_keys(&shared, token, (theirs, &ct), (&nj, &nh));
+    let mut ch = session(&key, token, &nj, &nh, stream, true);
     ch.add_code = Some(code);
     Ok(ch)
+}
+
+/// A new device of 0.2.27 or older (X25519 alone) asked to be added: tell it this device
+/// speaks [`MODE_ADD`] (it ends there, the reply not being its exchange's) and stop
+/// waiting, so the person sees the failure on both screens rather than a wait.
+fn refuse_old_add(mut stream: TcpStream) -> Error {
+    let _ = write_frame(&mut stream, &[VERSION, MODE_ADD]);
+    Error::Corrupt("p2p add old version")
 }
 
 /// After the handshake, the joiner says its name and hears the other's: inside the
@@ -1536,6 +1581,9 @@ impl Waiting {
                         (ask.seen)(Seen::Rejected);
                         return Err(e);
                     }
+                    // A new device with an app too old to add it post-quantum: both
+                    // screens end, rather than this one waiting on.
+                    Err(e @ Error::Corrupt("p2p add old version")) => return Err(e),
                     Err(_) => {
                         failures += 1;
                         if failures >= MAX_FAILURES {
@@ -3416,21 +3464,198 @@ mod tests {
         let at = l.local_addr().unwrap();
         let host = std::thread::spawn(move || host_once(&l, token).map(|_| ()));
         let mut s = TcpStream::connect(at).unwrap();
-        let (_, committed) = add_half().unwrap();
+        let (_, public) = add_half();
         let nj: [u8; NONCE_LEN] = random();
         let mut hello = vec![VERSION, MODE_ADD];
-        hello.extend_from_slice(&add_commit(&committed, &nj));
+        hello.extend_from_slice(&public);
+        hello.extend_from_slice(&add_commit(&public, &nj));
+        assert_eq!(hello.len(), 2 + 1216 + 32);
         write_frame(&mut s, &hello).unwrap();
         let reply = read_frame(&mut s).unwrap();
-        assert_eq!(reply.len(), DH_LEN + NONCE_LEN);
-        // Another half than the one committed to, picked after seeing the old device's.
-        let (_, other) = add_half().unwrap();
-        let mut open = other.to_vec();
-        open.extend_from_slice(&nj);
-        write_frame(&mut s, &open).unwrap();
+        assert_eq!(reply.len(), 1120 + NONCE_LEN);
+        // Another nonce than the one committed to, picked after seeing the old device's.
+        let other: [u8; NONCE_LEN] = random();
+        write_frame(&mut s, &other).unwrap();
         assert!(matches!(
             host.join().unwrap(),
             Err(Error::Corrupt("p2p add not proven"))
+        ));
+    }
+
+    /// What someone relaying an add does to a frame: `(direction, index, frame)`.
+    type Change = fn(&str, usize, &mut Vec<u8>);
+    /// The old device's code and what it read from the new device, after an add.
+    type OldSide = Result<(Zeroizing<String>, Result<Vec<u8>>)>;
+
+    /// Relay one add handshake from the new device (`l`) to the old one (`to`), changing
+    /// the frames on the way with `change`, then one sealed frame from the new device.
+    fn relay(l: TcpListener, to: SocketAddr, change: Change) {
+        let (mut new, _) = l.accept().unwrap();
+        let mut old = TcpStream::connect(to).unwrap();
+        let pass = |from: &mut TcpStream, to: &mut TcpStream, dir: &str, i: usize| {
+            let mut f = read_frame(from)?;
+            change(dir, i, &mut f);
+            write_frame(to, &f)
+        };
+        let _ = pass(&mut new, &mut old, "to-old", 0)
+            .and_then(|_| pass(&mut old, &mut new, "to-new", 0))
+            .and_then(|_| pass(&mut new, &mut old, "to-old", 1))
+            .and_then(|_| pass(&mut new, &mut old, "to-old", 2));
+    }
+
+    /// The new device's channel and the old device's outcome, through [`relay`]. The new
+    /// device sends one sealed frame, which the old device then reads.
+    fn add_through(change: Change) -> (Result<Channel>, OldSide) {
+        let token: Token = random();
+        let (real, middle) = (
+            TcpListener::bind("127.0.0.1:0").unwrap(),
+            TcpListener::bind("127.0.0.1:0").unwrap(),
+        );
+        let (real_at, middle_at) = (real.local_addr().unwrap(), middle.local_addr().unwrap());
+        let old = std::thread::spawn(move || {
+            let mut ch = host_once(&real, token)?;
+            let code = ch.add_code.take().unwrap();
+            Ok((code, ch.recv()))
+        });
+        let relayed = std::thread::spawn(move || relay(middle, real_at, change));
+        let new = add_join(&token, TcpStream::connect(middle_at).unwrap()).map(|mut ch| {
+            let _ = ch.send(b"password");
+            ch
+        });
+        relayed.join().unwrap();
+        (new, old.join().unwrap())
+    }
+
+    #[test]
+    fn a_relay_that_changes_nothing_adds_the_device() {
+        let (new, old) = add_through(|_, _, _| ());
+        let (code, got) = old.unwrap();
+        assert_eq!(*new.unwrap().add_code.unwrap(), *code);
+        assert_eq!(got.unwrap(), b"password");
+    }
+
+    #[test]
+    fn a_public_key_swapped_on_the_way_is_refused() {
+        // Its X25519 half (the ML-KEM half alike, unless ML-KEM refuses the key outright):
+        // the key no longer opens the commitment.
+        let changes: [Change; 2] = [
+            |d, i, f| {
+                if (d, i) == ("to-old", 0) {
+                    f[2 + 7] ^= 1;
+                }
+            },
+            |d, i, f| {
+                if (d, i) == ("to-old", 0) {
+                    f[2 + 1184 + 7] ^= 1;
+                }
+            },
+        ];
+        for change in changes {
+            let (_, old) = add_through(change);
+            assert!(
+                matches!(old, Err(Error::Corrupt("p2p add not proven" | "p2p hello"))),
+                "{:?}",
+                old.map(|_| ())
+            );
+        }
+    }
+
+    #[test]
+    fn a_ciphertext_changed_on_the_way_gives_other_codes_and_nothing_opens() {
+        // In its ML-KEM part (rejected implicitly: another secret) and in its X25519 part.
+        let changes: [Change; 2] = [
+            |d, i, f| {
+                if (d, i) == ("to-new", 0) {
+                    f[100] ^= 1;
+                }
+            },
+            |d, i, f| {
+                if (d, i) == ("to-new", 0) {
+                    f[1088 + 3] ^= 1;
+                }
+            },
+        ];
+        for change in changes {
+            let (new, old) = add_through(change);
+            let (code, got) = old.unwrap();
+            assert_ne!(*new.unwrap().add_code.unwrap(), *code);
+            assert!(matches!(got, Err(Error::Corrupt("p2p frame"))));
+        }
+    }
+
+    #[test]
+    fn an_older_new_device_is_refused_at_once_and_both_sides_end() {
+        let t = two();
+        let mirror = tempfile::tempdir().unwrap();
+        let prepared = host_add(&t.a, &t.sk, "A", mirror.path()).unwrap();
+        let w = wait(prepared, Permit::listen(Ipv4Addr::LOCALHOST), 0).unwrap();
+        let addr = w.code.addr;
+        let Two { a, dirs, .. } = t;
+        let stop = Arc::new(AtomicBool::new(false));
+        let s2 = stop.clone();
+        let started = Instant::now();
+        let host = std::thread::spawn(move || run_as(w, &a, vec![], &Person::says(true), &s2));
+        // An app of 0.2.27 or older still finds it (the probe did not change)...
+        assert!(probe_add(addr).is_some());
+        // ...and comes with its X25519 commitment.
+        let mut s = TcpStream::connect(addr).unwrap();
+        let mut hello = vec![VERSION, MODE_ADD_X25519];
+        hello.extend_from_slice(&random::<32>());
+        write_frame(&mut s, &hello).unwrap();
+        // Not the 64 bytes its exchange waits for: it ends there.
+        let reply = read_frame(&mut s).unwrap();
+        assert_eq!(reply, vec![VERSION, MODE_ADD]);
+        let got = host.join().unwrap();
+        assert!(
+            matches!(got, Err(Error::Corrupt("p2p add old version"))),
+            "{:?}",
+            got.map(|_| ())
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(20),
+            "no wait to the end"
+        );
+        stop.store(true, Ordering::Relaxed);
+        drop(dirs);
+    }
+
+    #[test]
+    fn an_older_device_adding_is_told_apart_from_a_failure() {
+        // A device of 0.2.27 or older reads the hello, does not know it, and closes.
+        let l = TcpListener::bind("127.0.0.1:0").unwrap();
+        let at = l.local_addr().unwrap();
+        let old = std::thread::spawn(move || {
+            let (mut s, _) = l.accept().unwrap();
+            let hello = read_frame(&mut s).unwrap();
+            assert_ne!(
+                hello.len(),
+                2 + NONCE_LEN,
+                "an old device takes 34 bytes only"
+            );
+        });
+        let got = add_join(&random::<TOKEN_LEN>(), TcpStream::connect(at).unwrap());
+        old.join().unwrap();
+        assert!(
+            matches!(got, Err(Error::Corrupt("p2p add old version"))),
+            "{:?}",
+            got.map(|_| ())
+        );
+        // Another protocol version in the hello: refused like any stranger.
+        let t = two();
+        let mirror = tempfile::tempdir().unwrap();
+        let prepared = host_add(&t.a, &t.sk, "A", mirror.path()).unwrap();
+        let keys = prepared.keys.clone();
+        let l = TcpListener::bind("127.0.0.1:0").unwrap();
+        let at = l.local_addr().unwrap();
+        let _client = TcpStream::connect(at).unwrap();
+        let (s, _) = l.accept().unwrap();
+        let (_, public) = add_half();
+        let mut hello = vec![VERSION + 1, MODE_ADD];
+        hello.extend_from_slice(&public);
+        hello.extend_from_slice(&[0u8; 32]);
+        assert!(matches!(
+            handshake_host(&keys, &keys.token, &hello, s),
+            Err(Error::Corrupt("p2p hello"))
         ));
     }
 

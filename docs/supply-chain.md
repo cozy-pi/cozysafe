@@ -288,7 +288,8 @@ validate a build with Apple instead of uploading it (`upload: false`).
   `getaddrinfo`. The sign-in's loopback listener (127.0.0.1 only) is in `oauth.rs` too;
   Dart opens the browser and parses Google's answers but opens no connection itself,
   so the Dart guard stays as it is. Adding a device by its 8-digit code (ADR 0003,
-  point 11) uses ring's X25519 and SHA-256 directly from `cs-net` (no new crate; ring is
+  point 11) uses X-Wing from `cs-identity` (ADR 0010) and ring's SHA-256 directly from
+  `cs-net` (no new crate; ring is
   a copy in `third_party/rust/`, see above). TLS is
   rustls with ring and Mozilla's roots
   bundled (6 crates; a ready-made HTTP client pulled in 44, so the few HTTP/1.1 requests

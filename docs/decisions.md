@@ -26,6 +26,16 @@ quantum computers, written down as a rule. As built:
   syncing); from 0.2.28 an unknown kind shows "needs a newer version" and is never
   opened or shared.
 
+## 2026-11-06 (later) — Adding a device is post-quantum
+
+**Owner (2026-11-06):** every public-key step is hybrid, classical and post-quantum
+together, both must hold; X-Wing preferred. As built:
+- [ADR 0010](adr/0010-post-quantum-device-add.md): adding a device on the Wi-Fi makes
+  its key with X-Wing (ML-KEM-768 + X25519) instead of X25519 alone, so a recorded
+  session (the password and the 24 words cross it) cannot be opened later by a quantum
+  computer. Same commitment and 8-digit code; mode 10, labels `p2p-add/v2/…`. Older apps
+  are refused at once on both sides, no fallback.
+
 ## 2026-11-06 — A vault in a few taps; its identity; words and password kept by the system
 
 **Owner (2026-11-05 to 11-06):** security first, not to the extreme: a balance with
