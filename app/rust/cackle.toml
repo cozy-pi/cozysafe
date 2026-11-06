@@ -480,3 +480,8 @@ allow_unsafe = true
 
 [pkg."sponge-cursor"]
 allow_unsafe = true
+
+# In the dependency graph for x86_64 only; .cargo/config.toml picks curve25519-dalek's
+# serial backend, which does not use it (core/cs-identity stops a build that would).
+[pkg."curve25519-dalek-derive"]
+allow_proc_macro = true
