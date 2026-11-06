@@ -31,6 +31,9 @@ import 'package:cozysafe/screens/delete_vault.dart';
 import 'package:cozysafe/screens/file_view.dart';
 import 'package:cozysafe/screens/new_vault.dart';
 import 'package:cozysafe/screens/note.dart';
+import 'package:cozysafe/screens/entry_page.dart';
+import 'package:cozysafe/screens/entry_editor.dart';
+import 'package:cozysafe/entries/secure_clipboard.dart';
 import 'package:cozysafe/screens/search.dart';
 import 'package:cozysafe/screens/security_info.dart';
 import 'package:cozysafe/key_backup.dart';
@@ -90,7 +93,8 @@ const _enabled = bool.fromEnvironment('PREVIEW');
 final _now = DateTime.now().millisecondsSinceEpoch;
 
 ItemInfo _item(String id, String kind, String name, int sizeBytes,
-        {int ago = 0, int? deleted, int? duration, List<String> tags = const [], bool fav = false}) =>
+        {int ago = 0, int? deleted, int? duration, List<String> tags = const [], bool fav = false,
+        String account = '', List<String> hosts = const []}) =>
     ItemInfo(
       id: id.padRight(32, '_'),
       kind: kind,
@@ -108,7 +112,37 @@ ItemInfo _item(String id, String kind, String name, int sizeBytes,
       tagIds: [for (final t in tags) t.padRight(32, '_')],
       isFavorite: fav,
       modifiedMs: _now - ago,
+      account: account,
+      hosts: hosts,
     );
+
+/// Secure items (ADR 0009): a few logins, one with its one-time code, a one-time code
+/// on its own and a service's recovery codes. Listed from their summary only.
+final _entries = [
+  _item('pw1', ItemKind.login, 'Google', 420, ago: 3600000, account: 'nguyenvana@gmail.com', hosts: ['accounts.google.com'], fav: true),
+  _item('pw2', ItemKind.login, 'GitHub', 380, ago: _day, account: 'nguyenvana', hosts: ['github.com']),
+  _item('pw3', ItemKind.login, 'Vietcombank', 300, ago: _day * 4, account: '0912 345 678', hosts: ['vcbdigibank.vietcombank.com.vn']),
+  _item('pw4', ItemKind.login, 'Wifi nhà bà ngoại', 120, ago: _day * 9),
+  _item('pw5', ItemKind.otp, 'Facebook', 160, ago: _day * 2, account: 'nguyenvana@gmail.com'),
+  _item('pw6', ItemKind.codes, 'GitHub · mã dự phòng', 400, ago: _day * 20, account: 'nguyenvana'),
+];
+
+/// A document shown in place of [_entryDocs] in one shot.
+Map<String, Map<String, Object?>> _entryOverride = const {};
+
+const _totpKey = {'secret': 'JBSWY3DPEHPK3PXP', 'algo': 'SHA1', 'digits': 6, 'period': 30};
+const _entryDocs = <String, Map<String, Object?>>{
+  'pw1': {'v': 1, 'username': 'nguyenvana@gmail.com', 'password': 'k7Rq-2mXv!pL9wZe_4Hs', 'urls': ['https://accounts.google.com'], 'otp': _totpKey,
+    'notes': 'Số điện thoại khôi phục: 0912 345 678'},
+  'pw2': {'v': 1, 'username': 'nguyenvana', 'password': 'Gh!8qPz2-vNw4Ls', 'urls': ['https://github.com/login']},
+  'pw3': {'v': 1, 'username': '0912 345 678', 'password': 'Vcb#2026-an', 'urls': ['https://vcbdigibank.vietcombank.com.vn']},
+  'pw4': {'v': 1, 'password': 'hoaMai2024@', 'notes': 'Mạng 5G: TP-Link_5G_BaNgoai'},
+  'pw5': {'v': 1, ..._totpKey, 'issuer': 'Facebook', 'account': 'nguyenvana@gmail.com'},
+  'pw6': {'v': 1, 'account': 'nguyenvana', 'codes': [
+    {'code': '4f2a-91c7', 'used': true}, {'code': '8b3e-07d4'}, {'code': 'c61f-5a28'}, {'code': '29de-b083'},
+    {'code': 'e7a5-3c19'}, {'code': '0d84-f6b2'}, {'code': '73c0-a9e5'}, {'code': 'b5f9-2d61'},
+  ], 'notes': 'Dùng khi mất điện thoại.'},
+};
 
 const _day = 86400000;
 
@@ -238,6 +272,11 @@ class _Fake implements RustLibApi {
     if (n.contains('ListHeld')) return Future<List<ItemInfo>>.value(_noTrash ? const [] : _trashHeld);
     if (n.contains('ListTrash')) return Future<List<ItemInfo>>.value(_noTrash ? const [] : _trash);
     if (n.contains('PurgeExpired')) return Future<int>.value(0);
+    if (n.contains('EntryJson')) {
+      final id = (call.namedArguments[#id] as String).replaceAll('_', '');
+      if (_entryOverride[id] case final d?) return Future<EntryDoc>.value(EntryDoc(json: jsonEncode(d), rev: '1'));
+      return Future<EntryDoc>.value(EntryDoc(json: jsonEncode(_entryDocs[id] ?? const {'v': 1}), rev: '1'));
+    }
     if (n.contains('ItemContent')) {
       final full = call.namedArguments[#id] as String;
       final media = _items.where((x) => x.kind == 'photo' || x.kind == 'video').toList();
@@ -422,6 +461,8 @@ void _screen(String name, String caption, Widget Function() home,
       DebugScreen.debugNetworkBlocked = null;
       DebugScreen.debugSyncNow = null;
       _itemsNow = null;
+      _entryOverride = const {};
+      EntryScreen.debugVersionJson = null;
       _noTrash = false;
       SyncScreen.debugLog = null;
       SettingsScreen.debugSyncLog = null;
@@ -840,6 +881,76 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('notes', 'Ghi chú', home, section: 'note');
+  // Secure items (ADR 0009).
+  ItemInfo entry(String id) => _entries.firstWhere((i) => i.id.startsWith(id));
+  void withEntries() => _itemsNow = [..._items, ..._entries];
+  _screen('passwords', 'Mật khẩu · danh sách', home, section: 'password', setup: withEntries,
+      change: 'MỚI: mục Mật khẩu (màu cam, biểu tượng chìa khoá): đăng nhập, mã xác minh, mã dự phòng, xếp A–Z theo tên (yêu thích lên đầu); dòng thứ hai là tài khoản · trang web, không giải mã gì để vẽ danh sách',
+      marks: [() => find.byKey(const ValueKey('list-password')), () => find.byKey(const ValueKey('tab-password'))]);
+  _screen('password-login', 'Mật khẩu · mở một đăng nhập', () => EntryScreen(item: entry('pw1')),
+      change: 'MỚI: trang của một đăng nhập: tài khoản, mật khẩu che (mắt để hiện), mã xác minh chạy trực tiếp kèm vòng đếm ngược, chạm là chép (tự xoá sau 90 giây); trang web mở qua thẻ xác nhận; Sửa ở giữa, Xoá đỏ bên phải, không có Gửi',
+      marks: [
+        () => find.byKey(const ValueKey('entry-password')),
+        () => find.byKey(const ValueKey('entry-code')),
+        () => find.byKey(const ValueKey('entry-edit')),
+      ]);
+  _screen('password-copied', 'Mật khẩu · vừa chép mật khẩu', () => EntryScreen(item: entry('pw1')),
+      change: 'MỚI: chép mật khẩu báo "Đã chép · tự xoá sau 90 giây" (khoá két không xoá, để kịp dán sang app khác)',
+      act: (t) async {
+    // The toast a copy shows (copying itself leaves a 90-second timer behind the shot).
+    final at = t.element(find.byType(EntryScreen));
+    showToast(at, AppLocalizations.of(at).entryCopied(SecureClipboard.standard), icon: Icons.copy_rounded);
+    await t.pump(const Duration(milliseconds: 400));
+  }, marks: [() => find.textContaining('Đã chép')]);
+  _screen('password-new', 'Mật khẩu mới · đăng nhập, vừa tạo mật khẩu mạnh', () => const EntryEditor(debugPassword: 'k7Rq-2mXv!pL9wZe_4Hs'),
+      change: 'MỚI: chọn loại ở trên (Đăng nhập · Mã xác minh · Mã dự phòng); "Tạo mật khẩu mạnh" điền 20 ký tự ngẫu nhiên và hiện ra; tên để trống thì lấy theo trang web; Lưu ghim dưới đáy',
+      act: (t) async {
+    await t.enterText(find.byKey(const ValueKey('entry-account-field')), 'nguyenvana');
+    await t.enterText(find.byKey(const ValueKey('entry-sites')), 'https://github.com/login');
+    await t.tap(find.byKey(const ValueKey('entry-generate')));
+    FocusManager.instance.primaryFocus?.unfocus();
+    await t.pumpAndSettle();
+  }, marks: [() => find.byKey(const ValueKey('entry-kind')), () => find.byKey(const ValueKey('entry-generate'))]);
+  _screen('password-new-otp', 'Mật khẩu mới · mã xác minh: dán khoá thiết lập', () => const EntryEditor(kind: ItemKind.otp),
+      change: 'MỚI: mã xác minh riêng: dán khoá thiết lập hoặc liên kết otpauth (tự điền dịch vụ, tài khoản); sai thì báo ngay dưới ô',
+      act: (t) async {
+    await t.enterText(find.byKey(const ValueKey('entry-key')), 'JBSW Y3DP EHPK 3PX');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await t.pumpAndSettle();
+  }, marks: [() => find.byKey(const ValueKey('entry-key'))]);
+  _screen('password-otp', 'Mật khẩu · mã xác minh', () => EntryScreen(item: entry('pw5')),
+      change: 'MỚI: mã xác minh to, nhóm 3 số, vòng đếm ngược (đỏ 5 giây cuối); chạm để chép',
+      marks: [() => find.byKey(const ValueKey('entry-otp'))]);
+  _screen('password-codes', 'Mật khẩu · mã dự phòng', () => EntryScreen(item: entry('pw6')),
+      change: 'SỬA: mã dự phòng che bằng chấm như mật khẩu, một con mắt để hiện tất cả (tự ẩn sau 30 giây); chấm tròn đánh dấu đã dùng (lưu ngay), nút chép vẫn chép được khi đang che',
+      marks: [() => find.byKey(const ValueKey('entry-codes-reveal')), () => find.byKey(const ValueKey('entry-recovery-text-1'))]);
+  _screen('password-codes-shown', 'Mật khẩu · mã dự phòng · bấm mắt', () => EntryScreen(item: entry('pw6')),
+      change: 'MỚI: bấm mắt thì hiện mọi mã; mã đã dùng bị gạch',
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('entry-codes-reveal')));
+    await t.pump();
+  }, marks: [() => find.byKey(const ValueKey('entry-codes-reveal'))]);
+  _screen('password-version', 'Mật khẩu · ⋯ → Lịch sử phiên bản → một phiên bản cũ', () => EntryScreen(
+        item: entry('pw2'),
+        version: HistoryVersion(rev: 'r1', replacedMs: _now - 3 * _day, item: entry('pw2'), thisDevice: true, hasContent: true, sameContent: false)),
+      setup: () => EntryScreen.debugVersionJson = (_) => jsonEncode({'v': 1, 'username': 'nguyenvana', 'password': 'MatKhauCu-2025', 'urls': ['https://github.com/login']}),
+      change: 'MỚI: lịch sử phiên bản của mật khẩu: mở phiên bản cũ trên đúng trang này, mật khẩu vẫn che, chép qua bộ nhớ tạm an toàn; "Khôi phục phiên bản này" ở dưới',
+      marks: [() => find.byKey(const ValueKey('history-restore'))]);
+  _screen('password-newer', 'Mật khẩu · mục tạo bằng bản app mới hơn', () => EntryScreen(item: entry('pw3')),
+      setup: () => _entryOverride = {'pw3': {'v': 2, 'username': '0912 345 678', 'password': 'Vcb#2026-an', 'urls': ['https://vcbdigibank.vietcombank.com.vn']}},
+      change: 'MỚI: mục do bản Cozy Safe mới hơn tạo chỉ xem được, nút Sửa tắt, có dòng nhắc cập nhật app (để bản cũ không ghi đè làm mất dữ liệu)',
+      marks: [() => find.byKey(const ValueKey('entry-newer')), () => find.byKey(const ValueKey('entry-edit'))]);
+  _screen('add-password', 'Tổng quan · bấm +: có "Mật khẩu mới"', home, section: 'home', setup: () {
+    debugCamera = true;
+    Prefs.write('action-side', 'center');
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  }, change: 'MỚI: thêm cách "Mật khẩu mới" (màu cam) vào thẻ các cách thêm',
+      marks: [() => find.text('Mật khẩu mới')]);
+  _screen('ts-passwords', 'Két Tuyệt mật · Mật khẩu: mở ngay trong app', () => EntryScreen(item: entry('pw2')),
+      change: 'MỚI: két Tuyệt mật cũng có mục Mật khẩu; đăng nhập mở trong app như ghi chú (không niêm phong), không gửi ra app khác',
+      marks: [() => find.byKey(const ValueKey('entry-page'))]);
   _screen('more-menu', 'Ghi chú · bấm ⋯', home, section: 'note', act: (t) async {
     await t.tap(find.byKey(const ValueKey('more-button')));
     await t.pumpAndSettle();
@@ -1169,6 +1280,13 @@ void main() {
     await t.scrollUntilVisible(find.byKey(const ValueKey('vaults-row')), 300, scrollable: find.byType(Scrollable).first);
     await t.pumpAndSettle();
   });
+  _screen('settings-clipboard', 'Cài đặt · tự xoá mật khẩu đã chép', () => settings(vault),
+      change: 'MỚI: dòng "Tự xoá mật khẩu đã chép": 30 giây / 90 giây (mặc định) / 3 phút / Không bao giờ; để lâu hơn thì hỏi Face ID. Két Tuyệt mật không có dòng này (cố định 90 giây)',
+      act: (t) async {
+    await t.scrollUntilVisible(find.byKey(const ValueKey('clipboard-row')), 300, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -120));
+    await t.pumpAndSettle();
+  }, marks: [() => find.byKey(const ValueKey('clipboard-row'))]);
   _screen('settings', 'Cài đặt · màn chính: thẻ két + các dòng mở trang con', () => settings(vault),
       setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3']);
   for (final (i, dy) in [(2, 700.0), (3, 1400.0)]) {
@@ -1593,8 +1711,6 @@ void main() {
             (DateTime.fromMillisecondsSinceEpoch(_now - 2 * 86400000), 'vault', 'io-timed-out'),
           ]);
   _screen('settings-vault-code', 'Cài đặt · mã két và bản sao 24 từ', () => settings(vault),
-      change: 'MỚI: dòng "Mã két 7F3A-9K2Q" (không đổi được, chạm để chép); "Giữ 24 từ trong iCloud Keychain" hiện cho mọi két thường',
-      marks: [() => find.byKey(const ValueKey('vault-code-row')), () => find.byKey(const ValueKey('key-backup-row'))],
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('key-backup-row')), 200, scrollable: find.byType(Scrollable).first);
     await Scrollable.ensureVisible(t.element(find.byKey(const ValueKey('key-backup-row'))), alignment: .5);
@@ -2116,8 +2232,6 @@ void main() {
   // password last, which makes the vault.
   _screen('new-vault-words', 'Tạo két · 24 từ, bản sao iCloud Keychain bật sẵn', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords,
-      change: 'MỚI: dưới 24 từ có "Giữ bản sao trong iCloud Keychain", bật sẵn; bật thì nút là Tiếp (không phải gõ lại 4 từ). Trước: mật khẩu trước, 24 từ sau',
-      marks: [() => find.byKey(const ValueKey('words-cloud'))],
       act: (t) async {
     await t.ensureVisible(find.byKey(const ValueKey('words-cloud')));
     await t.pumpAndSettle();
@@ -2127,8 +2241,6 @@ void main() {
     useWords();
     KeyBackup.debugGoogle = true;
   },
-      change: 'MỚI: Android ghi "Giữ bản sao trong Google"',
-      marks: [() => find.byKey(const ValueKey('words-cloud'))],
       act: (t) async {
     await t.ensureVisible(find.byKey(const ValueKey('words-cloud')));
     await t.pumpAndSettle();
@@ -2141,13 +2253,9 @@ void main() {
   }
   _screen('new-vault-words-off', 'Tạo két · tắt bản sao: nút thành "Tôi đã ghi lại"', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords,
-      change: 'MỚI: tắt bản sao thì quay lại như cũ: chép ra giấy, "Tôi đã ghi lại", rồi gõ lại 4 từ',
-      marks: [() => find.byKey(const ValueKey('words-cloud')), () => find.byKey(const ValueKey('words-done'))],
       act: cloudOff);
   _screen('new-vault-check', 'Tạo két · gõ lại 4 từ, có "Bỏ qua, kiểm sau"', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords,
-      change: 'MỚI: dưới 4 ô có "Bỏ qua, kiểm sau" (két Tuyệt mật không có)',
-      marks: [() => find.byKey(const ValueKey('check-skip'))],
       act: (t) async {
     await cloudOff(t);
     await tapKey(t, 'words-done');
@@ -2155,7 +2263,6 @@ void main() {
   });
   _screen('new-vault-check-skip', 'Tạo két · bấm Bỏ qua: cảnh báo trước', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords,
-      change: 'MỚI: thẻ cảnh báo chép sai một từ là mất két trên máy khác, chỉ chỗ kiểm lại; "Kiểm ngay" / "Vẫn bỏ qua"',
       act: (t) async {
     await cloudOff(t);
     await tapKey(t, 'words-done');
@@ -2165,8 +2272,6 @@ void main() {
   });
   _screen('new-vault', 'Tạo két · mật khẩu, bước cuối: tạo két ở đây', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords,
-      change: 'ĐỔI: mật khẩu là bước cuối (trước: bước đầu). Trên iPhone/Android, bàn phím gợi ý "Dùng mật khẩu mạnh" và lưu vào app Mật khẩu với tên "Cozy Safe 7F3A-9K2Q" (chỉ thấy trên máy thật)',
-      marks: [() => find.byKey(const ValueKey('new-password'))],
       act: (t) async {
     await tapKey(t, 'words-done');
     await t.pumpAndSettle();
@@ -2180,8 +2285,7 @@ void main() {
   });
   _screen('new-vault-second', 'Tạo két (máy đã có két) · vào thẳng chọn chế độ', () => const NewVaultScreen(libraryDir: '', first: false),
       setup: () => NewVaultScreen.debugWords = words,
-      change: 'ĐỔI: bỏ màn giới thiệu, vào thẳng chọn chế độ',
-      marks: [() => find.byKey(const ValueKey('mode-everyday'))]);
+      );
   Future<void> toKeys(WidgetTester t) async {
     await t.tap(find.byKey(const ValueKey('mode-everyday')));
     await t.pump();
@@ -2201,7 +2305,6 @@ void main() {
   // Once, on a later open, when the four words were skipped.
   _screen('words-unchecked-tip', 'Mở két lần sau · 24 từ chưa kiểm: mẹo một lần', home,
       setup: () => Prefs.write(wordsUncheckedPref('v'), '1'),
-      change: 'MỚI: lần mở két sau, nếu đã bỏ qua bước kiểm, mẹo một lần chỉ vào Cài đặt; "Kiểm ngay" mở đúng dòng',
       act: (t) async {
     for (var i = 0; i < 14; i++) {
       await t.pump(const Duration(milliseconds: 100));

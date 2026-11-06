@@ -17,7 +17,7 @@ ItemInfo _file(String name, int size, {String kind = 'file'}) => ItemInfo(
       sizeBytes: BigInt.from(size),
       tagIds: const [],
       isFavorite: false,
-      modifiedMs: 0,
+      modifiedMs: 0, account: '', hosts: const [],
     );
 
 void main() {

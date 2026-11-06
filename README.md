@@ -42,6 +42,7 @@ Cozy Safe does about it; the details are in the linked documents.
 | **someone has your unlocked phone and tries to weaken the vault** | asks for Face ID, fingerprint or the phone's passcode before every security setting: turning biometrics off, changing auto-lock, backups, the Recovery Key, showing note text, deleting a vault ([rules](docs/security.md)) |
 | **someone sees the lock screen** | shows no vault names, no count and nothing of what is inside; only its icon and colour tell a vault apart |
 | **something is left behind on the device** | encodes camera photos in memory (never the photo library, no location data); videos, voice memos and files being played or sent exist only as copies in the app's private temporary folder, deleted when done, on lock and at every start |
+| **someone records your data now to break it with a quantum computer later** | follows a post-quantum rule: 256-bit symmetric keys, and every public-key step hybrid (classical **and** post-quantum, both must hold: ML-KEM-768 with X25519, ML-DSA-65 with Ed25519); the one step not yet hybrid, adding a device on the Wi‑Fi, is listed openly and being fixed ([rule](docs/security.md#quantum-computers-the-rule-owner-2026-11-06)) |
 | **a library tries to send data out** | no server of ours and no analytics: only one part of the app can open a connection, only when you allow it, only to a device on your Wi‑Fi or to Google Drive's API (if you turn Drive sync on), and only encrypted files ever leave; network calls switched off everywhere else, and every library reviewed before it gets in ([below](#no-library-can-send-your-data-out)) |
 | **someone tampers with a build** | builds in the open on GitHub, with every third-party action pinned to an exact commit; signing and store keys never reach the jobs that run other people's build code; every release file carries a build-provenance attestation, and the macOS app is notarized by Apple ([supply chain](docs/supply-chain.md)) |
 
@@ -147,6 +148,12 @@ get hijacked, so this is checked on every build, in layers (details and limits:
   no location data) or add them from the device. **Notes**, **voice memos** and **any
   file**, with a PDF viewer inside the app. In Top Secret Mode, files, recordings and camera
   photos are kept sealed and named, never opened in the app.
+- **Passwords and two-factor codes**: logins (account, password, web sites), live
+  TOTP codes with a countdown, and recovery codes you tick off as you use them. Lists
+  show the account and site without decrypting anything; a copied password or code is
+  forgotten by the phone after 90 seconds (never sent to your other devices on
+  iPhone; marked sensitive on Android). A strong password is generated on request.
+  Format: [ADR 0009](docs/adr/0009-secure-items.md).
 - **Groups:** put anything in one or more groups ("Passport": the photo, the scan and the
   note) and open a group from any section.
 - **One way to open anything:** tap any item (photo, video, note, recording, PDF, file) and
@@ -219,8 +226,8 @@ Every file has a GitHub build-provenance attestation:
 - **The Recovery Key** is a 256-bit secret made on your device, shown as 24 BIP39
   words like a hardware wallet's, and kept in its keystore (Keychain, Android Keystore,
   Windows credential store, libsecret). Someone with your backup file but not the
-  Recovery Key cannot even start guessing your password. (Libraries made before
-  21 October 2026 have a 128-bit key in the earlier `CS1-` form; it still works.)
+  Recovery Key cannot even start guessing your password. (The 128-bit keys of
+  libraries made before 21 October 2026 are no longer read since 2 November 2026.)
   How this compares with a Bitcoin wallet, and why it resists quantum computers:
   [security](docs/security.md#how-strong-is-it-compared-with-a-bitcoin-wallet).
   It comes from the system's random generator, never from anything the app seeds; tests
@@ -232,10 +239,14 @@ Every file has a GitHub build-provenance attestation:
   this device, behind the device's secure chip; a new or removed finger or face turns
   it off. There is no PIN (removed 2026-10-28): the fallback is the vault password,
   where wrong tries make you wait longer each time.
+- **Quantum-safe by rule.** Everything stored is symmetric with 256-bit keys; every
+  public-key step is hybrid, classical and post-quantum together
+  ([rule and status](docs/security.md#quantum-computers-the-rule-owner-2026-11-06)).
 - **No recovery.** Lose the vault password, or both the device and the Recovery Key, and
   the data is gone. Nobody, including us, can open it.
 
-Details: [ADR 0001: encryption](docs/adr/0001-encryption.md).
+Details: [cryptography](docs/cryptography.md) (algorithms, keys, what is visible) and
+[data model](docs/data-model.md) (every file and table); why: [ADR 0001](docs/adr/0001-encryption.md).
 
 ## Build from source
 
@@ -283,6 +294,8 @@ screen in dark and light inside an iPhone frame, with the changed parts outlined
 | [Supply chain](docs/supply-chain.md) | How no library can send data out, and the limits |
 | [Dependencies](docs/dependencies.md) | Every third-party package, grouped by risk, and what changed since the last review |
 | [Security rules](docs/security.md) | Owner check on security settings; secrets and note text hidden on screen |
+| [Data model](docs/data-model.md) | Every file, table and record a vault stores, on the device, in backups and in the cloud |
+| [Cryptography](docs/cryptography.md) | Algorithms, key hierarchy, what is encrypted and what is visible |
 | [UI](docs/ui.md) | Design language (sizes, colours, layout), approved designs, how mockups are made |
 | [Naming](docs/naming.md) | One name per concept; how stored names may change |
 | [Decision records](docs/adr/) | Why each technical choice was made |

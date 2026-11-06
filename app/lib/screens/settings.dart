@@ -43,6 +43,7 @@ import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
 import 'top_secret_page.dart';
 import '../widgets/edge_swipe_back.dart';
+import '../entries/secure_clipboard.dart';
 
 /// Per-device choices, kept next to the library (not secret).
 abstract final class Settings {
@@ -539,6 +540,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Settings.autoLockMinutes = picked;
   }
 
+  /// How long a copied password or code stays (ADR 0009): a menu at the row, as the
+  /// auto-lock. Keeping it longer asks for the owner; shorter does not.
+  final _clipboardKey = GlobalKey();
+  Future<void> _pickClipboard() async {
+    final l = AppLocalizations.of(context);
+    final box = _clipboardKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final at = box.localToGlobal(Offset.zero) & box.size;
+    final size = MediaQuery.sizeOf(context);
+    final now = SecureClipboard.seconds;
+    final picked = await showMenu<int>(
+      context: context,
+      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
+      items: [
+        for (final s in SecureClipboard.choices)
+          PopupMenuItem(
+            key: ValueKey('clipboard-$s'),
+            value: s,
+            height: Ui.circle,
+            child: Row(children: [
+              SizedBox(width: 26, child: s == now ? const Icon(Icons.check_rounded, size: 20) : null),
+              Text(clipboardChoice(l, s), style: TextStyle(fontWeight: s == now ? FontWeight.w700 : FontWeight.w500)),
+            ]),
+          ),
+      ],
+    );
+    if (picked == null || picked == now || !mounted) return;
+    void apply() => setState(() => Prefs.write(SecureClipboard.pref, '$picked'));
+    final longer = picked == 0 || (now != 0 && picked > now);
+    longer ? _guarded(() async => apply()) : apply();
+  }
+
   /// What protects the vault, explained with drawings: its own page (long content).
   Future<void> _showSecurity() =>
       Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => Readable(child: const SecurityInfoScreen())));
@@ -1033,6 +1067,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (on) => setState(() => Prefs.write(holdHomePref, on ? '1' : '0')),
               ),
             ),
+            // Copied passwords and codes are cleared after this; a Top Secret vault keeps
+            // the standard time, so the row is not there (ADR 0009).
+            if (!TopSecretMode.on)
+              KeyedSubtree(
+                key: const ValueKey('clipboard-row'),
+                child: SettingsRow(
+                  key: _clipboardKey,
+                  icon: Icons.content_paste_off_rounded,
+                  color: SettingsHue.vang,
+                  title: l.clipboardClear,
+                  value: clipboardChoice(l, SecureClipboard.seconds),
+                  onTap: _pickClipboard,
+                ),
+              ),
             SettingsRow(
               key: const ValueKey('settings-screen'),
               icon: Icons.visibility_off_rounded,
@@ -1418,6 +1466,13 @@ class _VaultCard extends StatelessWidget {
     );
   }
 }
+
+/// A choice of how long a copied password stays: "30 seconds", "3 minutes", "Never".
+String clipboardChoice(AppLocalizations l, int seconds) => switch (seconds) {
+      0 => l.clipboardNever,
+      _ when seconds % 60 == 0 => l.minutesLong(seconds ~/ 60),
+      _ => l.clipboardSeconds(seconds),
+    };
 
 /// Groups have no names, as in the iPhone's Settings (owner 2026-10-26): a gap sets them
 /// apart and the rows say what they are.

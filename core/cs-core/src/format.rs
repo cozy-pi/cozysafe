@@ -343,6 +343,37 @@ impl PinFile {
 
 // ------------------------------------------------------------------------------ items
 
+/// The part of a secure item shown without opening it: the account (user name or email)
+/// and the web sites' host names (`github.com`), never a password or a secret.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Summary {
+    pub account: String,
+    pub hosts: Vec<String>,
+    /// The `data_hash` of the content it was read from: when the record's differs (the
+    /// content came from sync or from the version history), it is read again.
+    pub of: String,
+}
+
+impl Summary {
+    fn value(&self) -> Value {
+        let hosts = self.hosts.iter().cloned().map(Value::String).collect();
+        Object::new()
+            .str("account", &self.account)
+            .put("hosts", Value::Array(hosts))
+            .str("of", &self.of)
+            .build()
+    }
+
+    /// None when it is not one: the summary is rebuilt then, never the item lost.
+    fn read(f: &Fields<'_>) -> Option<Self> {
+        Some(Self {
+            account: f.str("account").ok()?.unwrap_or_default().to_owned(),
+            hosts: f.strings("hosts").ok()?.unwrap_or_default(),
+            of: f.str("of").ok()?.unwrap_or_default().to_owned(),
+        })
+    }
+}
+
 /// One item's metadata, sealed in `<item>.meta` (and copied into the index).
 ///
 /// Format 1 (0.1.0–0.1.6) wrote `size`, `has_thumb` and `folder`; they are read (the
@@ -374,6 +405,11 @@ pub struct ItemRecord {
     /// SHA-256 of the encrypted `.data` and `.thumb` files.
     pub data_hash: String,
     pub thumb_hash: String,
+    /// Logins, one-time codes and recovery codes (docs/adr/0009-secure-items.md): what
+    /// lists, search and autofill show without opening the content. Always derived from
+    /// the content, so it is rebuilt when absent (an older app rewriting the record
+    /// drops it). `None` for every other kind.
+    pub summary: Option<Summary>,
     /// Format 1: the folder the item was in. Read, never written.
     pub legacy_folder_id: Option<String>,
 }
@@ -410,6 +446,9 @@ impl ItemRecord {
         o = str_if(o, "data_rev", &self.data_rev);
         o = str_if(o, "data_hash", &self.data_hash);
         o = str_if(o, "thumb_hash", &self.thumb_hash);
+        if let Some(summary) = &self.summary {
+            o = o.put("summary", summary.value());
+        }
         json::to_vec(&o.build())
     }
 
@@ -440,6 +479,11 @@ impl ItemRecord {
             data_rev: s_or("data_rev")?,
             data_hash: s_or("data_hash")?,
             thumb_hash: s_or("thumb_hash")?,
+            summary: f
+                .object("summary")
+                .ok()
+                .flatten()
+                .and_then(|o| Summary::read(&o)),
             legacy_folder_id: may(f.str("folder"), w)?.map(str::to_owned),
         })
     }

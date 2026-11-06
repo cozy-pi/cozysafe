@@ -17,7 +17,8 @@ import '../top_secret_mode.dart';
 /// docs/naming.md). A section shows items of some kinds: Library shows photos and
 /// videos, the others one kind each.
 /// [home] is the overview of everything (owner 2026-10-21); it holds no items itself.
-enum VaultSection { home, note, library, audio, file }
+/// [password] holds the secure items (ADR 0009): logins, one-time codes, recovery codes.
+enum VaultSection { home, note, library, audio, file, password }
 
 /// The sections this device offers: voice memos need a phone's microphone. Top secret
 /// has no Library (ADR 0005: no picture is shown there); its photos and videos are rows
@@ -27,6 +28,8 @@ List<VaultSection> vaultSections() => [
       if (!TopSecretMode.on) VaultSection.library,
       VaultSection.file,
       VaultSection.note,
+      // Top secret too: secure items open in the app there, as notes do (ADR 0009).
+      VaultSection.password,
       if (Device.iOS || Device.android || debugVoice) VaultSection.audio,
     ];
 
@@ -126,6 +129,7 @@ IconData sectionIcon(VaultSection s) => switch (s) {
       VaultSection.library => Icons.photo_library_rounded,
       VaultSection.audio => Icons.mic_none_rounded,
       VaultSection.file => Icons.folder_rounded,
+      VaultSection.password => Icons.key_rounded,
     };
 
 String sectionLabel(AppLocalizations l, VaultSection k) => switch (k) {
@@ -134,6 +138,7 @@ String sectionLabel(AppLocalizations l, VaultSection k) => switch (k) {
       VaultSection.library => l.modeLibrary,
       VaultSection.audio => l.modeAudio,
       VaultSection.file => l.modeFile,
+      VaultSection.password => l.modePassword,
     };
 
 /// Frosted glass, as in the system's own bars: a light blur of what scrolls under it.
@@ -319,6 +324,7 @@ class _CentreTabs extends StatelessWidget {
         VaultSection.library => Icons.photo_library_rounded,
         VaultSection.audio => Icons.mic_none_rounded,
         VaultSection.file => Icons.folder_rounded,
+        VaultSection.password => Icons.key_rounded,
       };
 
   @override
@@ -724,7 +730,7 @@ class _ActionButtonState extends State<ActionButton> {
 }
 
 /// The ways to add something to a vault.
-enum AddWhat { note, photo, video, photos, voice, file }
+enum AddWhat { note, photo, video, photos, voice, file, password }
 
 /// Each section's colour (owner 2026-10-31: more colour in the icons): the tiles on the
 /// overview, the storage bar, the tabs and the ways to add.
@@ -736,6 +742,7 @@ Color sectionColor(VaultSection s) => switch (s) {
       // Pink, apart from the notes' yellow (owner 2026-10-31: the two looked alike).
       VaultSection.audio => const Color(0xFFFF375F),
       VaultSection.file => const Color(0xFF30D158),
+      VaultSection.password => const Color(0xFFFF9F0A),
     };
 
 /// A way to add, in the colour of what it makes; a video its own purple.
@@ -745,6 +752,7 @@ Color addWayColor(AddWhat w) => switch (w) {
       AddWhat.video => const Color(0xFFBF5AF2),
       AddWhat.voice => sectionColor(VaultSection.audio),
       AddWhat.file => sectionColor(VaultSection.file),
+      AddWhat.password => sectionColor(VaultSection.password),
     };
 
 /// Every way to add, in the fixed order (camera and voice only where the device has them).
@@ -754,6 +762,7 @@ List<(AddWhat, IconData, String)> addWays(AppLocalizations l, {required bool cam
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.book_rounded, l.newNote),
+      (AddWhat.password, Icons.key_rounded, l.newPassword),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
       (AddWhat.file, Icons.folder_rounded, l.addFiles),
     ];
@@ -765,6 +774,7 @@ Set<AddWhat> addWaysOf(VaultSection section) => switch (section) {
       VaultSection.library => {AddWhat.photos, AddWhat.photo, AddWhat.video},
       VaultSection.audio => {AddWhat.voice},
       VaultSection.file => {AddWhat.file},
+      VaultSection.password => {AddWhat.password},
     };
 
 /// Every way to add, nearest the + button first: [section]'s own ways, then the rest
@@ -786,6 +796,7 @@ List<(AddWhat, IconData, String)> addRowWays(AppLocalizations l, VaultSection se
       if (camera) (AddWhat.video, Icons.videocam_rounded, l.recordVideo),
       if (camera) (AddWhat.photo, Icons.photo_camera_rounded, l.takePhoto),
       (AddWhat.note, Icons.book_rounded, sectionLabel(l, VaultSection.note)),
+      (AddWhat.password, Icons.key_rounded, sectionLabel(l, VaultSection.password)),
       if (voice) (AddWhat.voice, Icons.mic_none_rounded, sectionLabel(l, VaultSection.audio)),
       (AddWhat.file, Icons.folder_rounded, sectionLabel(l, VaultSection.file)),
     ];
@@ -802,6 +813,7 @@ List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, int Function(Vau
             : (AddWhat.photos, Icons.photo_library_rounded, l.addFromDevice),
         VaultSection.note => (AddWhat.note, Icons.book_rounded, l.newNote),
         VaultSection.audio => (AddWhat.voice, Icons.mic_none_rounded, l.startRecording),
+        VaultSection.password => (AddWhat.password, Icons.key_rounded, l.newPassword),
         _ => (AddWhat.file, Icons.folder_rounded, l.addFiles),
       };
   final top = rankedSections(count).take(3).map(way).toList();
@@ -980,6 +992,7 @@ String addWayNote(AppLocalizations l, AddWhat what) => switch (what) {
       AddWhat.note => l.addNoteNote,
       AddWhat.voice => l.addNoteVoice,
       AddWhat.file => l.addNoteFile,
+      AddWhat.password => l.addNotePassword,
     };
 
 /// Opened by + with the quick row (owner 2026-10-27: "a page to choose and understand",

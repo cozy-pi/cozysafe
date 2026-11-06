@@ -42,7 +42,7 @@ final _note = ItemInfo(
   sizeBytes: BigInt.from(80),
   tagIds: const [],
   isFavorite: false,
-  modifiedMs: 0,
+  modifiedMs: 0, account: '', hosts: const [],
 );
 
 late _Fake _fake;

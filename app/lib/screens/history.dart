@@ -15,6 +15,7 @@ import '../widgets/vault_bar.dart';
 import 'file_view.dart' show fileSize;
 import '../top_secret_mode.dart';
 import 'common.dart';
+import 'entry_page.dart' show EntryScreen;
 
 /// How much (owner 2026-10-27, space first to keep versions as long as possible):
 /// 500 MB · 1 GB · 5 GB · no limit, or Off; 1 GB unless changed. Under it nothing goes;
@@ -93,11 +94,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _open(hist.HistoryVersion v) async {
-    final restored = await pushPage<rust.ItemInfo>(
-      context,
-      title: _when(context, v.replacedMs),
-      builder: (_) => _VersionPage(item: widget.item, version: v),
-    );
+    // A secure item's older version opens on its own page, masked as the item is
+    // (ADR 0009); its content is never read as plain bytes here.
+    final restored = ItemKind.isEntry(widget.item.kind)
+        ? await Navigator.of(context).push<rust.ItemInfo>(
+            MaterialPageRoute(builder: (_) => EntryScreen(item: widget.item, version: v)))
+        : await pushPage<rust.ItemInfo>(
+            context,
+            title: historyWhen(context, v.replacedMs),
+            builder: (_) => _VersionPage(item: widget.item, version: v),
+          );
     if (restored == null || !mounted) return;
     widget.onRestored?.call(restored);
     showToast(context, AppLocalizations.of(context).historyRestored, icon: Icons.check_rounded);
@@ -168,7 +174,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 }
 
-String _when(BuildContext context, int ms) {
+/// When a version was replaced, as the history shows it.
+String historyWhen(BuildContext context, int ms) {
   final tag = Localizations.localeOf(context).toLanguageTag();
   return DateFormat.yMMMd(tag).add_Hm().format(DateTime.fromMillisecondsSinceEpoch(ms));
 }
@@ -199,7 +206,7 @@ class _VersionRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_when(context, v.replacedMs), style: const TextStyle(fontSize: CsType.callout)),
+                  Text(historyWhen(context, v.replacedMs), style: const TextStyle(fontSize: CsType.callout)),
                   if (v.item.name != current.name) ...[
                     const SizedBox(height: 2),
                     Text(

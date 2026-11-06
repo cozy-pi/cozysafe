@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../widgets/private_thumb.dart';
 import '../widgets/item_menu.dart';
 import '../widgets/vault_bar.dart';
+import '../widgets/entry_row.dart';
 import 'overview.dart';
 import '../item_kind.dart';
 import '../file_kinds.dart';
@@ -103,7 +104,13 @@ class _SearchScreenState extends State<SearchScreen> {
     final browsing = q.isEmpty && _kind == null;
     final hits = q.isEmpty
         ? _things
-        : _things.where((i) => fold(i.name).contains(q) || (_noteText[i.id]?.contains(q) ?? false)).toList();
+        : _things
+            .where((i) =>
+                fold(i.name).contains(q) ||
+                (_noteText[i.id]?.contains(q) ?? false) ||
+                // A secure item by its account or a web site, from its summary (ADR 0009).
+                (ItemKind.isEntry(i.kind) && (fold(i.account).contains(q) || i.hosts.any((h) => fold(h).contains(q)))))
+            .toList();
     final groupHits = q.isEmpty ? const <rust.ItemInfo>[] : _groups.where((g) => fold(g.name).contains(q)).toList();
     final counts = <VaultSection, int>{
       for (final s in VaultSection.values) s: hits.where((i) => sectionOf(i) == s).length,
@@ -315,7 +322,7 @@ class _SearchScreenState extends State<SearchScreen> {
           if (media.length > searchCap) _more(context, l, media.length),
           const SizedBox(height: 6),
         ],
-        for (final s in [VaultSection.note, VaultSection.audio, VaultSection.file])
+        for (final s in [VaultSection.password, VaultSection.note, VaultSection.audio, VaultSection.file])
           if (rest.any((i) => sectionOf(i) == s)) ...[
             title('${sectionLabel(l, s)}  ${rest.where((i) => sectionOf(i) == s).length}'),
             _card(context, [for (final it in rest.where((i) => sectionOf(i) == s).take(searchCap)) _row(context, l, it, q)]),
@@ -359,7 +366,9 @@ class _SearchScreenState extends State<SearchScreen> {
     final media = s == VaultSection.library;
     // The words around the match only when note text may show (Settings → Display);
     // otherwise just that it matched inside.
-    final under = snippet == null ? null : (notePreviews() ? snippet : l.foundInText);
+    // A secure item: its account and web site under its name, as in its list.
+    final line = !ItemKind.isKnown(it.kind) ? l.needsNewerVersion : (ItemKind.isEntry(it.kind) ? entryLine(it) : '');
+    final under = snippet == null ? (line.isEmpty ? null : line) : (notePreviews() ? snippet : l.foundInText);
     return InkWell(
       onTap: () => Navigator.of(context).pop(it),
       onLongPress: () => Navigator.of(context).pop(SearchMenu(it)),
@@ -381,6 +390,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     )
                   : s == VaultSection.file
                       ? FileKindBadge(name: it.name, mime: it.mime, width: 46, height: 46)
+                      : s == VaultSection.password
+                      ? EntryBadge(kind: it.kind, width: 46, height: 46)
                       : DecoratedBox(
                           decoration: BoxDecoration(color: color.withValues(alpha: .16), borderRadius: BorderRadius.circular(12)),
                           child: Icon(searchKindIcon(s), color: color),
@@ -395,8 +406,10 @@ class _SearchScreenState extends State<SearchScreen> {
                   MarkedText(_shownName(l, it), q,
                       maxLines: 1, style: TextStyle(fontSize: CsType.callout, fontWeight: q.isEmpty ? FontWeight.w600 : FontWeight.w400)),
                   const SizedBox(height: 3),
-                  if (under != null && notePreviews())
+                  if (under != null && snippet != null && notePreviews())
                     MarkedText(under, q, maxLines: 2, style: TextStyle(color: c.muted, fontSize: CsType.footnote, height: 1.3))
+                  else if (snippet == null && line.isNotEmpty)
+                    MarkedText(line, q, maxLines: 1, style: TextStyle(color: c.muted, fontSize: CsType.footnote))
                   else
                     Text(under ?? date, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
                 ],

@@ -190,6 +190,10 @@ class MainActivity : FlutterFragmentActivity() {
                 } catch (e: Exception) {
                     result.success(false)
                 }
+            } else if (call.method == "copySecret") {
+                // A password or one-time code (lib/entries/secure_clipboard.dart).
+                SecureClipboard.copy(this, call.argument<String>("text") ?: "", call.argument<Int>("seconds") ?: 90)
+                result.success(true)
             } else if (call.method == "setSecure") {
                 secureWanted = call.arguments == true
                 setSecure(secureWanted)

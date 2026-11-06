@@ -226,6 +226,18 @@ import UniformTypeIdentifiers
                 let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
                 let host = url.host, !host.isEmpty else { return result(false) }
           UIApplication.shared.open(url) { ok in result(ok) }
+        } else if call.method == "copySecret" {
+          // A password or one-time code (lib/entries/secure_clipboard.dart): this device
+          // only (no Universal Clipboard), and the system forgets it after `seconds`
+          // (0: kept), even with the app closed.
+          guard let args = call.arguments as? [String: Any], let text = args["text"] as? String else {
+            return result(false)
+          }
+          let seconds = (args["seconds"] as? NSNumber)?.doubleValue ?? 90
+          var options: [UIPasteboard.OptionsKey: Any] = [.localOnly: true]
+          if seconds > 0 { options[.expirationDate] = Date().addingTimeInterval(seconds) }
+          UIPasteboard.general.setItems([["public.utf8-plain-text": text]], options: options)
+          result(true)
         } else if call.method == "liquidGlass" {
           // The system's own bottom bar has Liquid Glass from iOS 26 (lib/widgets/native_bar.dart).
           if #available(iOS 26.0, *) { result(true) } else { result(false) }

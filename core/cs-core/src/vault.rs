@@ -1073,6 +1073,9 @@ pub fn open_with(
     // Every vault from before the index, every restored backup, and any change the
     // index missed (the app stopped between the two writes) comes in here.
     vault.sync_index()?;
+    // Secure items whose summary an older app dropped, or sync left behind, get it back.
+    // Never in the way of opening the vault: a failure leaves the old summary.
+    let _ = vault.restore_summaries();
     Ok(vault)
 }
 

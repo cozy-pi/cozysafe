@@ -32,7 +32,7 @@ ItemInfo _item(String id, String kind, String name, String mime) => ItemInfo(
   sizeBytes: BigInt.from(2048),
   tagIds: const [],
   isFavorite: false,
-  modifiedMs: 1,
+  modifiedMs: 1, account: '', hosts: const [],
 );
 
 final _items = [

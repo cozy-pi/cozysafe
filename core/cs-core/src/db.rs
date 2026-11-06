@@ -18,9 +18,9 @@ use crate::{Error, Result};
 
 pub const INDEX_FILE: &str = "vault.db";
 /// `PRAGMA user_version` of the schema below; each new version gets one migration.
-const SCHEMA_VERSION: i32 = 4;
+pub(crate) const SCHEMA_VERSION: i32 = 4;
 
-const SCHEMA: &str = "
+pub(crate) const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS items (
     id            TEXT    PRIMARY KEY CHECK (length(id) = 32),
     created_ms    INTEGER NOT NULL,

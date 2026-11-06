@@ -26,7 +26,7 @@ ItemInfo _photo(String id) => ItemInfo(
       durationMs: null,
       tagIds: const [],
       isFavorite: false,
-      modifiedMs: 0,
+      modifiedMs: 0, account: '', hosts: const [],
     );
 
 void main() {

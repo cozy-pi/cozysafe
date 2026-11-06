@@ -610,6 +610,8 @@ impl VaultSync for OpenVault {
             // Entries may have gone up before it failed: the head says so if it can.
             self.write_head_quietly(&counted);
         }
+        // Content taken from the other side brings its own account and sites.
+        let _ = self.restore_summaries();
         synced.map(|()| report)
     }
 
@@ -1292,7 +1294,7 @@ impl SyncSteps for OpenVault {
         if ours_changed
             && theirs_changed
             && ours.data_rev != theirs.data_rev
-            && ours.kind == kind::NOTE
+            && (ours.kind == kind::NOTE || kind::is_entry(&ours.kind))
         {
             let (loser_record, loser_is_theirs) = if take_theirs_data {
                 (ours, false)
@@ -1331,9 +1333,9 @@ impl SyncSteps for OpenVault {
         loser: &ItemRecord,
         from_remote: bool,
     ) -> Result<()> {
-        let mut plain = Vec::new();
+        let mut plain = zeroize::Zeroizing::new(Vec::new());
         if from_remote {
-            // A note: small. Capped all the same, and checked against its record.
+            // A note or a secure item: small. Capped all the same, and checked against its record.
             let mut sealed = Capped::new(MAX_NOTE);
             remote.get(
                 &format!("{}/blobs/{id}.{}.data", self.sync_dir(), loser.data_rev),
@@ -1344,19 +1346,25 @@ impl SyncSteps for OpenVault {
                 return Err(Error::Corrupt("sync content does not match its record"));
             }
             let dek = self.unwrap_dek(id, loser)?;
-            cs_crypto::stream::decrypt(&dek, &self.item_aad(id, "data"), &sealed[..], &mut plain)?;
+            cs_crypto::stream::decrypt(&dek, &self.item_aad(id, "data"), &sealed[..], &mut *plain)?;
         } else {
-            self.read_item(id, &mut plain)?;
+            self.read_item(id, &mut *plain)?;
         }
         let name = format!("{} ({})", loser.name, short_device(&loser.device));
-        let copy = self.add_item(crate::items::NewItem {
-            kind: kind::NOTE,
-            name: &name,
-            mime: &loser.mime,
-            created_ms: loser.created_ms,
-            content: &plain[..],
-            thumbnail: None,
-        })?;
+        // A secure item's copy is a secure item of its kind (ADR 0009), never a note
+        // holding its document in plain view.
+        let copy = if kind::is_entry(&loser.kind) {
+            self.add_entry(&loser.kind, &name, &plain, loser.created_ms)?
+        } else {
+            self.add_item(crate::items::NewItem {
+                kind: kind::NOTE,
+                name: &name,
+                mime: &loser.mime,
+                created_ms: loser.created_ms,
+                content: &plain[..],
+                thumbnail: None,
+            })?
+        };
         for tag in &loser.tag_ids {
             let _ = self.set_tag(&copy.id, tag, true);
         }
@@ -2253,6 +2261,41 @@ pub(crate) mod tests {
             let texts: Vec<String> = v.items().unwrap().iter().map(|m| text(v, &m.id)).collect();
             assert!(texts.contains(&"from A".to_owned()), "{texts:?}");
             assert_eq!(names(v).len(), 2);
+        }
+    }
+
+    #[test]
+    fn a_secure_item_edited_on_both_sides_keeps_both_as_secure_items() {
+        use crate::items::kind;
+        let t = two();
+        let doc =
+            |p: &str, user: &str| format!(r#"{{"v":1,"username":"{user}","password":"{p}"}}"#);
+        let id =
+            t.a.add_entry(kind::LOGIN, "Bank", doc("p1", "kien").as_bytes(), 1)
+                .unwrap()
+                .id;
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        // A changes the password; later B changes the account. Neither is lost.
+        t.a.replace_entry(&id, "Bank", doc("p2-from-A", "kien").as_bytes())
+            .unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        t.b.replace_entry(&id, "Bank", doc("p1", "kien-b").as_bytes())
+            .unwrap();
+        t.a.sync(&t.cloud).unwrap();
+        assert_eq!(t.b.sync(&t.cloud).unwrap().copies, 1);
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        for v in [&t.a, &t.b] {
+            let items = v.items().unwrap();
+            assert_eq!(items.len(), 2);
+            // Both are logins, listed by their own account: no note holds a document.
+            assert!(items.iter().all(|m| m.kind == kind::LOGIN), "{items:?}");
+            let mut accounts: Vec<&str> = items.iter().map(|m| m.account.as_str()).collect();
+            accounts.sort();
+            assert_eq!(accounts, ["kien", "kien-b"]);
+            let docs: Vec<String> = items.iter().map(|m| text(v, &m.id)).collect();
+            assert!(docs.iter().any(|d| d.contains("p2-from-A")), "{docs:?}");
         }
     }
 

@@ -83,6 +83,34 @@ class MainFlutterWindow: NSWindow {
       }
     }
 
+    // A copied password or one-time code (lib/entries/secure_clipboard.dart, ADR 0009):
+    // this Mac only (no Universal Clipboard), marked concealed and transient so clipboard
+    // managers neither show nor keep it (nspasteboard.org), and cleared after `seconds`
+    // (0: kept) unless something else was copied since.
+    let clipboard = FlutterMethodChannel(
+      name: "cozysafe/clipboard", binaryMessenger: flutterViewController.engine.binaryMessenger)
+    clipboard.setMethodCallHandler { call, result in
+      guard call.method == "copySecret", let args = call.arguments as? [String: Any],
+        let text = args["text"] as? String
+      else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      let seconds = (args["seconds"] as? NSNumber)?.doubleValue ?? 90
+      let pb = NSPasteboard.general
+      pb.prepareForNewContents(with: .currentHostOnly)
+      pb.setString(text, forType: .string)
+      pb.setData(Data(), forType: NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"))
+      pb.setData(Data(), forType: NSPasteboard.PasteboardType("org.nspasteboard.TransientType"))
+      let mine = pb.changeCount
+      if seconds > 0 {
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+          if NSPasteboard.general.changeCount == mine { NSPasteboard.general.clearContents() }
+        }
+      }
+      result(true)
+    }
+
     super.awakeFromNib()
   }
 }

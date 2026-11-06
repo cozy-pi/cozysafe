@@ -2,7 +2,9 @@
 //! up to now: the same bytes out, the same values in, both ways, on random records and
 //! on every older form. The serde types are copied from cs-vault as they were.
 
-use cs_core::format::{ItemRecord, KdfJson, LibraryHeader, PinFile, VaultHeader, VaultMeta};
+use cs_core::format::{
+    ItemRecord, KdfJson, LibraryHeader, PinFile, Summary, VaultHeader, VaultMeta,
+};
 use serde::{Deserialize, Serialize};
 
 // ------------------------------------------------------------ serde, as it was
@@ -75,6 +77,16 @@ fn is_zero(n: &i64) -> bool {
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+struct SSummary {
+    #[serde(default)]
+    account: String,
+    #[serde(default)]
+    hosts: Vec<String>,
+    #[serde(default)]
+    of: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 struct SItemRecord {
     #[serde(default = "format_1")]
     format: u32,
@@ -111,6 +123,8 @@ struct SItemRecord {
     data_hash: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     thumb_hash: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    summary: Option<SSummary>,
     #[serde(default, rename = "folder", skip_serializing)]
     legacy_folder_id: Option<String>,
 }
@@ -189,6 +203,11 @@ fn record(s: &SItemRecord) -> ItemRecord {
         data_rev: s.data_rev.clone(),
         data_hash: s.data_hash.clone(),
         thumb_hash: s.thumb_hash.clone(),
+        summary: s.summary.as_ref().map(|m| Summary {
+            account: m.account.clone(),
+            hosts: m.hosts.clone(),
+            of: m.of.clone(),
+        }),
         legacy_folder_id: s.legacy_folder_id.clone(),
     }
 }
@@ -420,6 +439,11 @@ fn item_record() {
             data_rev: r.string(),
             data_hash: r.string(),
             thumb_hash: r.string(),
+            summary: r.coin().then(|| SSummary {
+                account: r.string(),
+                hosts: (0..r.next() % 3).map(|_| r.string()).collect(),
+                of: r.string(),
+            }),
             legacy_folder_id: None,
         };
         let o = record(&s);
