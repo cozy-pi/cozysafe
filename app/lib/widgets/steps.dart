@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../theme.dart';
 import 'bottom_bar.dart' show PinnedAction;
-import 'vault_bar.dart' show GlassButton, showCard;
+import 'vault_bar.dart' show GlassButton;
 
 /// How far along the steps are: one short bar per step, the done ones in ink (create a
 /// vault, add a password).
@@ -98,36 +98,6 @@ class ChoiceCard extends StatelessWidget {
     );
   }
 }
-
-/// A choice to pick from, each a [ChoiceCard].
-typedef Choice<T> = ({T value, IconData icon, Color color, String title, String? line});
-
-/// A short question over the page with its ways as big cards (the add card's second
-/// choice: Photos or Files, Note or Voice). Null when closed.
-Future<T?> showChoice<T>(BuildContext context, {required String title, required List<Choice<T>> choices, String keyPrefix = 'choice'}) =>
-    showCard<T>(
-      context,
-      title: title,
-      builder: (context) => SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final (i, ch) in choices.indexed) ...[
-              if (i > 0) const SizedBox(height: 10),
-              ChoiceCard(
-                key: ValueKey('$keyPrefix-${ch.value is Enum ? (ch.value as Enum).name : ch.value}'),
-                icon: ch.icon,
-                color: ch.color,
-                title: ch.title,
-                line: ch.line,
-                onTap: () => Navigator.of(context).pop(ch.value),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
 
 /// A step of a flow, one question per screen (docs/design-language.md, Steps): Back and
 /// the progress on top, the title big on the left, the main button at the bottom the

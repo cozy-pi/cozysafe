@@ -37,15 +37,20 @@ const commonSites = [
 enum EntryStep { site, account, password, twoFactor, review, otpSource, otpReview, codes, codesReview }
 
 /// Adding a secure item step by step (owner 2026-11-07: "lead me step by step, keep
-/// typing to a minimum"): what to add first (Login · One-time code · Recovery codes, each
-/// its icon and colour), then one question per screen, mostly taps. Changing an item
+/// typing to a minimum"): one question per screen, mostly taps, from the first step of
+/// the [kind] picked in the add card (Login · One-time code · Recovery codes). Without a
+/// kind it asks that first, as big cards, each its icon and colour. Changing an item
 /// keeps the form ([EntryEditor]).
 ///
 /// What the editor promises holds here too: the vault locking saves what can be saved
 /// and empties the secrets from the screen; a save over a change made elsewhere keeps
 /// both ("(unsaved)"); secrets copy only through [SecureClipboard]. Pops the saved item.
 class EntryWizard extends StatefulWidget {
-  const EntryWizard({super.key, this.items, this.tagId, this.debugPassword, this.debugKind, this.debugStep});
+  const EntryWizard({super.key, this.kind, this.items, this.tagId, this.debugPassword, this.debugKind, this.debugStep});
+
+  /// What to add ([ItemKind.login], [ItemKind.otp], [ItemKind.codes]), chosen in the add
+  /// card: the steps open on its first, and Back from there leaves. None: asks first.
+  final String? kind;
 
   /// The vault's items, for the sites and accounts already used; read when null.
   final List<rust.ItemInfo>? items;
@@ -115,7 +120,7 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _password.text = widget.debugPassword ?? generatePassword();
-    final kind = widget.debugKind;
+    final kind = widget.debugKind ?? widget.kind;
     if (kind != null) _choose(kind, quiet: true);
     if (widget.debugStep != null) _step = widget.debugStep!;
     _saved = _snapshot;
@@ -173,7 +178,6 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
   @override
   void vaultLocking() {
     _hide();
-    QrCode.cancel();
     for (final c in [_password, _key, _codes]) {
       c.clear();
     }
@@ -268,11 +272,12 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
     if (i + 1 < _steps.length) _go(_steps[i + 1]);
   }
 
-  /// One step back; from the first, back to what to add (or out, once saved).
+  /// One step back; from the first, back to what to add (or out, once saved, or when the
+  /// kind was picked in the add card).
   void _back() {
     if (_busy) return;
     final kind = _kind;
-    if (kind == null || (_item != null && _step == _steps.first)) {
+    if (kind == null || ((_item != null || widget.kind != null) && _step == _steps.first)) {
       Navigator.of(context).pop(_item);
       return;
     }

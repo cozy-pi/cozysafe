@@ -27,8 +27,6 @@ import '../privacy.dart';
 import '../widgets/private_thumb.dart';
 import '../widgets/brand.dart';
 import '../widgets/identity.dart';
-import '../widgets/steps.dart';
-import '../widgets/symbols.dart';
 import '../widgets/vault_bar.dart';
 import 'backup_password.dart';
 import 'camera.dart';
@@ -158,6 +156,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The column stays on screen while it closes.
   bool _addShown = false;
   AddWhat? _hover;
+  /// The way whose second choices the add card shows in place of the four ways.
+  AddWhat? _addWay;
   ScrollController _addScroll = ScrollController();
   final _actionKey = GlobalKey();
   /// What the quick tour points at (tour.dart).
@@ -623,13 +623,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     });
   }
 
-  /// Each opening starts with the nearest way by the button.
+  /// Each opening starts with the nearest way by the button, the card on the four ways.
   void _openAdd() {
     if (!_addShown) {
       _addScroll.dispose();
       _addScroll = ScrollController();
     }
     _addShown = true;
+    _addWay = null;
   }
 
   void _closeAdd() => setState(() {
@@ -637,10 +638,33 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         _hover = null;
       });
 
+  /// A way picked in the add card, on a quick button or a tile: one with a second
+  /// question shows its choices in the same card, where it is (owner 2026-11-07: never
+  /// a second card or a page); the rest close the card and do it.
   void _pickAdd(AddWhat what) {
+    if (hasSubChoices(what)) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        if (!_adding) {
+          _adding = true;
+          _openAdd();
+        }
+        _addWay = what;
+        _hover = null;
+      });
+      return;
+    }
     _closeAdd();
     _add(what);
   }
+
+  /// ‹ in the add card: back to the four ways.
+  void _addBack() => setState(() => _addWay = null);
+
+  void _addGone() => setState(() {
+        _addShown = false;
+        _addWay = null;
+      });
 
   /// One hand: keep the finger down from + and slide; the way level with it lights up.
   void _hoverAt(Offset at) {
@@ -679,28 +703,20 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   Map<VaultSection, int> _counts = const {};
 
 
-  /// One way of adding, from the add column or the empty vault's tiles. The section it fills
-  /// opens, and stays offered until something lands in it or another is picked.
+  /// One way of adding, from the add card (its second choices answered there). The section
+  /// it fills opens, and stays offered until something lands in it or another is picked.
   Future<void> _add(AddWhat way) async {
-    // Photos / Files and Note / Voice ask which first; the camera opens on Photo, with
-    // Video one switch away inside it (owner 2026-11-07: four ways, not seven).
-    final AddWhat what;
-    switch (way) {
-      case AddWhat.device || AddWhat.memo:
-        final picked = await _secondChoice(way);
-        if (picked == null || !mounted) return;
-        what = picked;
-      case AddWhat.camera:
-        what = AddWhat.photo;
-      default:
-        what = way;
-    }
+    // Photos / Files, Note / Voice and Password ask which in the add card ([_pickAdd]);
+    // the camera opens on Photo, with Video one switch away inside it (owner 2026-11-07:
+    // four ways, not seven).
+    if (hasSubChoices(way)) return _pickAdd(way);
+    final what = way == AddWhat.camera ? AddWhat.photo : way;
     final target = switch (what) {
       AddWhat.note => VaultSection.note,
       AddWhat.photo || AddWhat.video || AddWhat.photos => TopSecretMode.on ? VaultSection.file : VaultSection.library,
       AddWhat.voice => VaultSection.audio,
       AddWhat.file => VaultSection.file,
-      AddWhat.password => VaultSection.password,
+      AddWhat.password || AddWhat.login || AddWhat.otp || AddWhat.codes => VaultSection.password,
       AddWhat.camera || AddWhat.device || AddWhat.memo => _section,
     };
     setState(() {
@@ -719,12 +735,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         await _import(photos: true);
       case AddWhat.file:
         await _import(photos: false);
-      case AddWhat.password:
-        await _newEntry();
+      case AddWhat.login || AddWhat.otp || AddWhat.codes:
+        await _newEntry(addEntryKind(what));
       case AddWhat.voice:
         WidgetsBinding.instance.addPostFrameCallback((_) => _recorder.currentState?.toggle());
         return; // stays open while recording; picking another section lets it go
-      case AddWhat.camera || AddWhat.device || AddWhat.memo:
+      case AddWhat.camera || AddWhat.device || AddWhat.memo || AddWhat.password:
         return; // resolved above
     }
     if (_locked || !mounted) return;
@@ -744,26 +760,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!_locked) _reload();
   }
 
-  /// The add card's second question, in the same style as its ways: Photos & videos or
-  /// Files; Text or Voice.
-  Future<AddWhat?> _secondChoice(AddWhat way) {
-    final l = AppLocalizations.of(context);
-    Choice<AddWhat> choice(AddWhat w, IconData icon, String title, String line) =>
-        (value: w, icon: icon, color: addWayColor(w), title: title, line: line);
-    return way == AddWhat.device
-        ? showChoice<AddWhat>(context, title: l.addChoiceDeviceTitle, keyPrefix: 'add-choice', choices: [
-            choice(AddWhat.photos, Sym.photoLibrary, l.addChoicePhotos, l.addNotePhotos),
-            choice(AddWhat.file, Sym.folder, l.addChoiceFiles, l.addNoteFile),
-          ])
-        : showChoice<AddWhat>(context, title: l.addChoiceMemoTitle, keyPrefix: 'add-choice', choices: [
-            choice(AddWhat.note, Sym.notes, l.addChoiceText, l.addNoteNote),
-            choice(AddWhat.voice, Sym.mic, l.addChoiceVoice, l.addNoteVoice),
-          ]);
-  }
-
-  /// A new secure item (ADR 0009): step by step, as a page (owner 2026-11-07).
-  Future<void> _newEntry() => Navigator.of(_pageContext).push<rust.ItemInfo>(
-      MaterialPageRoute(builder: (_) => Readable(child: EntryWizard(items: _items, tagId: _tagId))));
+  /// A new secure item (ADR 0009): step by step, as a page (owner 2026-11-07), opening on
+  /// the first step of the [kind] picked in the add card.
+  Future<void> _newEntry(String? kind) => Navigator.of(_pageContext).push<rust.ItemInfo>(
+      MaterialPageRoute(builder: (_) => Readable(child: EntryWizard(kind: kind, items: _items, tagId: _tagId))));
 
   /// A secure item opens as a page of its own, in Top secret too (ADR 0009): its rows,
   /// Edit and Delete. Never the preview over the page.
@@ -1823,7 +1823,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (list.isEmpty) {
       if (_tagId != null) return _tagEmpty(context);
       if (_section == VaultSection.password) {
-        return _Empty(icon: Icons.key_rounded, title: l.emptyPasswordsTitle, body: l.emptyPasswordsBody);
+        return _Empty(
+            icon: Icons.key_rounded,
+            title: l.emptyPasswordsTitle,
+            body: l.emptyPasswordsBody,
+            // The add card, already on what kind of password.
+            action: FilledButton.icon(
+              key: const ValueKey('empty-add-password'),
+              onPressed: () => _pickAdd(AddWhat.password),
+              icon: const Icon(Icons.add_rounded),
+              label: Text(l.newPassword),
+            ));
       }
       return notes
           ? _Empty(icon: Icons.book_rounded, title: l.emptyNotesTitle, body: l.emptyNotesBody)
@@ -2321,7 +2331,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       return _Welcome(
         vault: _vault,
         bottomPad: _bottomRoom,
-        tiles: AddTiles(key: _tilesKey, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio), onPick: _add),
+        tiles: AddTiles(key: _tilesKey, camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio), onPick: _pickAdd),
       );
     }
     final shown = _shown(items);
@@ -2425,7 +2435,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           _fileGroup = group;
         }
         _section = s;
-        _keepSection = false;
+        // Passwords show on the home page even with none (owner 2026-11-07): its empty
+        // page stays open, offering to add one.
+        _keepSection = _countIn(s) == 0;
         Prefs.write('vault-section', s.name);
       }),
       onGroup: (g) => setState(() {
@@ -2681,11 +2693,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 Positioned.fill(
                   child: AddCardOverlay(
                     open: _adding,
-                    onGone: () => setState(() => _addShown = false),
+                    onGone: _addGone,
                     ways: _allWays(),
                     bottom: 24,
                     dropFrom: _wideAddDrop(),
                     hovered: _hover,
+                    way: _addWay,
+                    onBack: _addBack,
                     onPick: _pickAdd,
                     onClose: _closeAdd,
                   ),
@@ -3203,12 +3217,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
               if (_addShown)
                 Positioned.fill(
-                  child: actionSide() == ActionSide.center
+                  // An empty vault (its tiles, no +) has the card alone, as on an edge.
+                  child: actionSide() == ActionSide.center && !empty
                       // In the middle: the ways side by side just above the + (owner
                       // 2026-10-24: the fan put them too far apart).
                       ? AddRow(
                           open: _adding,
-                          onGone: () => setState(() => _addShown = false),
+                          onGone: _addGone,
                           ways: _addWays(),
                           bottom: bottom + actionLift() + Ui.primary + 10,
                           centreX: centreX,
@@ -3220,17 +3235,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       // beside the card looked broken); its lines are the quick buttons.
                       : AddCardOverlay(
                           open: _adding,
-                          onGone: () => setState(() => _addShown = false),
+                          onGone: _addGone,
                           ways: _allWays(),
                           bottom: bottom + actionLift() + Ui.primary + 10,
                           hovered: _hover,
+                          way: _addWay,
+                          onBack: _addBack,
                           onPick: _pickAdd,
                           onClose: _closeAdd,
                         ),
                 ),
               // In the middle, above the quick buttons: every way with a line on what it
               // does (owner 2026-10-27).
-              if (_addShown && actionSide() == ActionSide.center)
+              if (_addShown && actionSide() == ActionSide.center && !empty)
                 Positioned(
                   left: 16,
                   right: 16,
@@ -3239,6 +3256,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   child: AddCard(
                     open: _adding,
                     ways: _allWays(),
+                    way: _addWay,
+                    onBack: _addBack,
                     onPick: _pickAdd,
                   ),
                 ),
@@ -3699,10 +3718,12 @@ class _SectionTitle extends StatelessWidget {
 
 /// What a mode looks like before it holds anything, and how to add the first one.
 class _Empty extends StatelessWidget {
-  const _Empty({required this.icon, required this.title, required this.body});
+  const _Empty({required this.icon, required this.title, required this.body, this.action});
   final IconData icon;
   final String title;
   final String body;
+  /// A button under the words (the empty Passwords: New password).
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -3720,6 +3741,7 @@ class _Empty extends StatelessWidget {
               Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Text(body, textAlign: TextAlign.center, style: TextStyle(color: c.muted, height: 1.5)),
+              if (action != null) ...[const SizedBox(height: 18), action!],
             ],
           ),
         ),

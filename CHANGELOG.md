@@ -4,6 +4,22 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.31 (2026-11-07)
+
+### Changed
+- The + card is the one place to choose: Photos / Files, Note / Voice and Password ask
+  their second question inside the same card, where it already is by +, with ‹ to go
+  back. No second card in the middle of the screen, no new page, nothing dimmed on top.
+  Password offers Login, Two-factor code and Recovery codes there, and the steps open on
+  the first question of the one picked.
+- The home page always shows Passwords under "Browse by kind", even with none yet (0);
+  it opens Passwords, whose empty page has a New password button.
+
+### Fixed
+- Scanning a 2FA QR code no longer locks the vault (iPhone). The camera is now a page
+  inside the app on every phone, read by the app's own QR decoder, as when pairing
+  devices.
+
 ## 0.2.30 (2026-11-07)
 
 ### Added

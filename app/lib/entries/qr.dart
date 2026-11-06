@@ -39,10 +39,12 @@ final class QrNoCamera extends QrResult {
   const QrNoCamera();
 }
 
-/// Reading a two-factor setup code from a QR code: on iOS a camera page of its own
-/// (AVFoundation) and Vision for a photo, on a Mac Vision for an image file, on Android
-/// the app's own Rust decoder (rqrr, [rust.qrReadText], as for pairing devices) on the
-/// camera's frames and on a photo turned to grey. Everything stays in memory: no frame
+/// Reading a two-factor setup code from a QR code. The camera, on every phone, is a page
+/// inside the app ([QrCameraScreen], the `camera` plugin as for pairing devices) whose
+/// frames the app's own Rust decoder reads (rqrr, [rust.qrReadText]): the app never
+/// leaves, so the vault does not lock (0.2.30 locked on iPhone, where a native camera
+/// page over the app counted as leaving it). A photo: Vision on iOS and a Mac, the Rust
+/// decoder on Android (the picture turned to grey). Everything stays in memory: no frame
 /// or picture is written to a file, kept in the photo library or logged; only the code's
 /// text comes back, and only an `otpauth://totp/` link is taken.
 abstract final class QrCode {
@@ -50,6 +52,9 @@ abstract final class QrCode {
 
   /// Tests and mockups: what this device offers, in place of the platform's.
   static ({bool camera, bool photo})? debugAvailable;
+
+  /// Tests and mockups: what the camera reads, in place of the camera page.
+  static Future<String?> Function()? debugScan;
 
   /// The camera can read one (phones).
   static bool get canScan => debugAvailable?.camera ?? (Device.iOS || Device.android);
@@ -71,29 +76,13 @@ abstract final class QrCode {
 
   /// Point the camera at a QR code. Null when closed without one.
   static Future<QrResult?> scan(BuildContext context) async {
-    final String? text;
-    if (Device.android) {
-      final got = await Navigator.of(context).push<Object>(
-          MaterialPageRoute(fullscreenDialog: true, builder: (_) => const QrCameraScreen()));
-      if (got is QrNoCamera) return got;
-      text = got is String ? got : null;
-    } else {
-      final cancel = AppLocalizations.of(context).cancel;
-      try {
-        text = await channel.invokeMethod<String>('scan', {'cancel': cancel});
-      } on PlatformException {
-        return const QrNoCamera();
-      }
-    }
-    return text == null ? null : read(text);
-  }
-
-  /// The vault is locking: the camera page closes (iOS draws it over the app).
-  static Future<void> cancel() async {
-    if (!Device.iOS) return;
-    try {
-      await channel.invokeMethod<void>('cancel');
-    } catch (_) {}
+    final scan = debugScan;
+    final Object? got = scan != null
+        ? await scan()
+        : await Navigator.of(context).push<Object>(
+            MaterialPageRoute(fullscreenDialog: true, builder: (_) => const QrCameraScreen()));
+    if (got is QrNoCamera) return got;
+    return got is String ? read(got) : null;
   }
 
   /// Pick a screenshot or photo holding a QR code. Null when none was picked.
@@ -120,8 +109,9 @@ abstract final class QrCode {
   }
 }
 
-/// Android's QR camera: the `camera` plugin's preview, and a few frames a second read
-/// by the Rust decoder ([rust.qrReadText], the luminance plane only, in memory). Pops the
+/// The QR camera on every phone: the `camera` plugin's preview inside the app, and a few
+/// frames a second read by the Rust decoder ([rust.qrReadText], the luminance plane only:
+/// YUV 420's first plane, on iOS the bi-planar Y plane, with its row stride; in memory). Pops the
 /// code's text, or nothing.
 class QrCameraScreen extends StatefulWidget {
   const QrCameraScreen({super.key});

@@ -488,9 +488,24 @@ everywhere, easy to hit with a thumb.
   camera, opening on Photo, with the Photo | Video switch inside; only with a camera),
   **Photos / Files** (then a second question: Photos & videos, or Files), **Note / Voice**
   (then Text or Voice; where nothing records, just **Note**, opening a note at once),
-  **Password** (the steps, ADR 0009). The second question is a card with two big
-  choices (`showChoice`, `ChoiceCard`), the same pieces as "What to add?" in Password.
-  `addWays`, `AddWhat.camera/device/memo`, `_add` in vault_home.dart.
+  **Password** (then Login, Two-factor code or Recovery codes, each its kind's icon and
+  colour; the steps open on that kind's first question, ADR 0009).
+- **The add card answers its second question in place** (owner 2026-11-07: "update that
+  same card only, where it is convenient right at that gesture"; and: no dimming over a
+  sub-menu). Tapping a way with a second question (`hasSubChoices`) swaps the card's
+  rows for its choices (`addSubChoices`), a short slide and fade, the card's bottom kept
+  by + (on a computer its top under Add), its height following the rows; ‹ in its header
+  (tooltip Back) returns to the four ways. Same card, same page: no `showCard`, no
+  route, no barrier or blur, the backdrop as it was. A quick button or a tile of the
+  empty vault with a second question opens the card already on its choices. A finger
+  sliding up from + picks among the four ways only; the second choices are tapped.
+  Before 0.2.31 the second question was a separate card in the middle (`showChoice`,
+  removed) and Password a page with its own "What to add?". `AddCard` (`way`, `onBack`),
+  `addWays`, `AddWhat`, `_pickAdd`, `_add` in vault_home.dart.
+- **Passwords always on the home page** (owner 2026-11-07): "Browse by kind" shows the
+  kinds held, plus Passwords even at 0 (count faint), so a vault without one still has a
+  way in. Its empty page has a New password button that opens the add card on its three
+  kinds. Search's tiles keep showing only what is held (they narrow results).
 - **Bottom bar: the app's own by default**; on iOS 26 Debug can switch to the system's
   (`NativeVaultBar`, UIKit tab bar + glass lock). Change one, change the other.
 - **Hold the home tab to lock** (owner 2026-10-22), no lock button by default.

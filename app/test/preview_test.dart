@@ -712,9 +712,7 @@ void main() {
         _photos.isEmpty ? const ColoredBox(color: Colors.black) : Image.memory(_photos[3]!, fit: BoxFit.cover);
     CameraView.debugLast = (_items.firstWhere((i) => i.kind == ItemKind.photo), _photos[0] ?? _thumbnails[0]!);
   }
-  _screen('camera', 'Chụp / Quay → máy ảnh, mở ở Ảnh', () => camera(video: false), setup: still,
-      change: 'SỬA: cách thêm "Chụp / Quay" mở máy ảnh ở chế độ Ảnh; đổi sang Video ngay trong máy ảnh bằng công tắc Ảnh | Video (như máy ảnh iPhone)',
-      marks: [() => find.byKey(const ValueKey('camera-photo')), () => find.byKey(const ValueKey('camera-video'))]);
+  _screen('camera', 'Chụp / Quay → máy ảnh, mở ở Ảnh', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
   void drive({bool failed = false, bool moving = false, bool pending = false, SyncWait? waiting}) {
     Prefs.write('drive-account', 'ban.do@gmail.com');
@@ -901,7 +899,11 @@ void main() {
   // Adding a password step by step (owner 2026-11-07), and QR codes for 2FA.
   void qrMock() {
     QrCode.debugAvailable = (camera: true, photo: true);
-    addTearDown(() => QrCode.debugAvailable = null);
+    QrCode.debugScan = () async => 'otpauth://totp/GitHub:nguyenvana?secret=JBSWY3DPEHPK3PXP&issuer=GitHub';
+    addTearDown(() {
+      QrCode.debugAvailable = null;
+      QrCode.debugScan = null;
+    });
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
         QrCode.channel, (_) async => 'otpauth://totp/GitHub:nguyenvana?secret=JBSWY3DPEHPK3PXP&issuer=GitHub');
     addTearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, null));
@@ -927,84 +929,53 @@ void main() {
     _screen(narrow ? 'steps-chooser-393' : 'steps-chooser',
         '${narrow ? 'iPhone 393 pt · ' : ''}Mật khẩu → Thêm gì? (bước 0)', wizard,
         size: narrow ? const Size(393, 852) : _phone,
-        setup: withEntries,
-        change: 'MỚI: thêm mật khẩu bắt đầu bằng câu hỏi "Thêm gì?" với ba thẻ lớn, mỗi loại một biểu tượng và một màu: Đăng nhập (chìa khoá, cam), Mã xác minh (khiên khoá, xanh dương), Mã dự phòng (bàn phím số, tím); bỏ công tắc chọn loại ở đầu trang',
-        marks: [
-          () => find.byKey(const ValueKey('steps-kind-login')),
-          () => find.byKey(const ValueKey('steps-kind-otp')),
-          () => find.byKey(const ValueKey('steps-kind-codes')),
-        ]);
+        setup: withEntries);
   }
   for (final narrow in [false, true]) {
     _screen(narrow ? 'steps-site-393' : 'steps-site', '${narrow ? 'iPhone 393 pt · ' : ''}Đăng nhập · bước 1: trang web nào?', wizard,
         size: narrow ? const Size(393, 852) : _phone,
         setup: withEntries,
-        act: toLogin,
-        change: 'MỚI: chọn trang web bằng một chạm: trang đã có trong két (dùng nhiều lên trước), rồi danh sách phổ biến (Google, Zalo, Shopee, Vietcombank…, chỉ chữ cái đầu, không logo); ô tìm lọc ngay khi gõ; "Dán liên kết" đọc bộ nhớ tạm một lần; "Khác" để gõ tên',
-        marks: [
-          () => find.byKey(const ValueKey('step-progress')),
-          () => find.byKey(const ValueKey('steps-site-search')),
-          () => find.byKey(const ValueKey('steps-site-paste')),
-        ]);
+        act: toLogin);
   }
   _screen('steps-account', 'Đăng nhập · bước 2: tài khoản nào?', wizard, setup: withEntries,
-      act: (t) => toLogin(t, steps: 1),
-      change: 'MỚI: tài khoản đã dùng trong két hiện thành nút, chạm là sang bước sau; hoặc gõ vào ô (bàn phím email); có "Bỏ qua"',
-      marks: [() => find.byKey(const ValueKey('steps-account-0')), () => find.byKey(const ValueKey('steps-account-field'))]);
+      act: (t) => toLogin(t, steps: 1));
   _screen('steps-password', 'Đăng nhập · bước 3: mật khẩu', wizard, setup: withEntries,
-      act: (t) => toLogin(t, steps: 2),
-      change: 'MỚI: mật khẩu mạnh tạo sẵn, che bằng chấm, mắt để xem; nút lớn "Dùng mật khẩu này"; "Tạo cái khác", "Dán", "Tự gõ mật khẩu" (tự gõ thì hiện độ mạnh)',
-      marks: [
-        () => find.byKey(const ValueKey('steps-password-card')),
-        () => find.byKey(const ValueKey('steps-password-use')),
-        () => find.byKey(const ValueKey('steps-password-own')),
-      ]);
+      act: (t) => toLogin(t, steps: 2));
   _screen('steps-2fa', 'Đăng nhập · bước 4: mã xác minh (không bắt buộc)', wizard, setup: () {
     withEntries();
     qrMock();
-  }, act: (t) => toLogin(t, steps: 3),
-      change: 'MỚI: thêm mã xác minh hai bước: "Quét mã QR" (máy ảnh, chỉ trên điện thoại), "Từ ảnh chụp màn hình" (ảnh chỉ đọc trong bộ nhớ, không lưu), "Dán khoá thiết lập"; "Bỏ qua" ở dưới. Mã QR không phải otpauth thì báo ngay',
-      marks: [
-        () => find.byKey(const ValueKey('steps-qr-scan')),
-        () => find.byKey(const ValueKey('steps-qr-photo')),
-        () => find.byKey(const ValueKey('steps-2fa-skip')),
-      ]);
+  }, act: (t) => toLogin(t, steps: 3));
   _screen('steps-qr-wrong', 'Mã xác minh · quét phải mã QR không phải otpauth', wizard, setup: () {
     withEntries();
     qrMock();
+    QrCode.debugScan = () async => 'https://shopee.vn/khuyen-mai';
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(QrCode.channel, (_) async => 'https://shopee.vn/khuyen-mai');
   }, act: (t) async {
     await tapStep(t, 'steps-kind-otp');
     await tapStep(t, 'steps-qr-scan');
-  }, change: 'MỚI: quét nhầm mã QR khác (link khuyến mãi, Wi‑Fi) thì báo "Mã QR này không phải mã thiết lập xác minh hai bước" và ở lại bước này',
-      marks: [() => find.byKey(const ValueKey('steps-problem'))]);
+  });
   _screen('steps-review', 'Đăng nhập · bước 5: xem lại và lưu', wizard, setup: () {
     withEntries();
     qrMock();
-  }, act: (t) => toLogin(t, steps: 4),
-      change: 'MỚI: thẻ xem lại gọn: tên (lấy theo trang web, sửa ngay tại chỗ), trang web, tài khoản, mật khẩu che, mã xác minh có/không kèm mã đang chạy; chạm một dòng để quay lại sửa; "Lưu" ghim dưới đáy',
-      marks: [() => find.byKey(const ValueKey('steps-name')), () => find.byKey(const ValueKey('steps-save'))]);
+  }, act: (t) => toLogin(t, steps: 4));
   _screen('steps-key-confirm', 'Mã xác minh · dán khoá trần: xem mã trước khi nhận', wizard,
       setup: () => clipboardHolds('JBSW Y3DP EHPK 3PXP'), act: (t) async {
     await tapStep(t, 'steps-kind-otp');
     await tapStep(t, 'steps-qr-paste');
     await t.pump(const Duration(milliseconds: 300));
-  }, change: 'MỚI: dán khoá thiết lập (không phải liên kết otpauth) thì hiện mã 6 số nó tạo ra để so với trang web trước khi nhận; "Dán lại" nếu sai',
-      marks: [() => find.byKey(const ValueKey('steps-code-preview')), () => find.byKey(const ValueKey('steps-key-again'))]);
+  });
   _screen('steps-otp-review', 'Mã xác minh · sau khi quét: xem lại', wizard, setup: qrMock, act: (t) async {
     await tapStep(t, 'steps-kind-otp');
     await tapStep(t, 'steps-qr-scan');
     await t.pump(const Duration(milliseconds: 300));
-  }, change: 'MỚI: quét xong tự điền dịch vụ và tài khoản từ mã QR (sửa được), hiện mã 6 số đang chạy để đối chiếu với trang web',
-      marks: [() => find.byKey(const ValueKey('steps-code-preview')), () => find.byKey(const ValueKey('steps-issuer'))]);
+  });
   _screen('steps-codes', 'Mã dự phòng · bước 2: dán mã', wizard, setup: () => clipboardHolds('7f3a-9k2q\n4mxv-2pl9\nwz8e-hs4r\nq2k7-rt5n\nb6cd-1zx8\nv9pl-3mn2\nt4ty-8ws1\nh5jk-6yu7'),
       act: (t) async {
     await tapStep(t, 'steps-kind-codes');
     await tapStep(t, 'steps-site-google.com');
     await tapStep(t, 'steps-codes-paste');
-  }, change: 'MỚI: mã dự phòng: chọn dịch vụ, rồi một nút "Dán mã" (tự tách theo dòng hoặc dấu phẩy, đếm số mã, che bằng chấm; bộ nhớ tạm bị xoá sau khi dán); "Tự gõ" nếu cần',
-      marks: [() => find.byKey(const ValueKey('steps-codes-list')), () => find.byKey(const ValueKey('steps-next'))]);
+  });
   _screen('password-otp', 'Mật khẩu · mã xác minh', () => EntryScreen(item: entry('pw5')));
   _screen('password-codes', 'Mật khẩu · mã dự phòng', () => EntryScreen(item: entry('pw6')));
   _screen('password-codes-shown', 'Mật khẩu · mã dự phòng · bấm mắt', () => EntryScreen(item: entry('pw6')),
@@ -1018,18 +989,11 @@ void main() {
       setup: () => EntryScreen.debugVersionJson = (_) => jsonEncode({'v': 1, 'username': 'nguyenvana', 'password': 'MatKhauCu-2025', 'urls': ['https://github.com/login']}));
   _screen('password-newer', 'Mật khẩu · mục tạo bằng bản app mới hơn', () => EntryScreen(item: entry('pw3')),
       setup: () => _entryOverride = {'pw3': {'v': 2, 'username': '0912 345 678', 'password': 'Vcb#2026-an', 'urls': ['https://vcbdigibank.vietcombank.com.vn']}});
-  for (final narrow in [false, true]) {
-    _screen(narrow ? 'add-four-393' : 'add-four', '${narrow ? 'iPhone 393 pt · ' : ''}Tổng quan · bấm +: bốn cách thêm', home,
-        section: 'home',
-        size: narrow ? const Size(393, 852) : _phone,
-        setup: () {
-      debugCamera = true;
-      Prefs.write('action-side', 'center');
-    }, act: (t) async {
-      await t.tap(find.byKey(const ValueKey('vault-action')));
-      await t.pumpAndSettle();
-    }, change: 'SỬA: thẻ + còn bốn cách (trước là bảy), tên ghi rõ cả hai việc: Chụp / Quay, Ảnh / Tệp, Ghi chú / Ghi âm, Mật khẩu; mỗi cách một biểu tượng mới (Material Symbols) và một màu; ba nút nhanh phía trên cũng theo bốn cách này',
-        marks: [() => find.byKey(const ValueKey('add-card'))]);
+  // Adding in place (owner 2026-11-07): a way's second choices replace the four ways in
+  // the same card, by +, nothing dimmed on top; Passwords always on the home page.
+  void addSetup() {
+    debugCamera = true;
+    Prefs.write('action-side', 'center');
   }
   Future<void> openWay(WidgetTester t, String way) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
@@ -1037,18 +1001,62 @@ void main() {
     await t.tap(find.byKey(ValueKey('add-card-$way')));
     await t.pumpAndSettle();
   }
-  _screen('add-device-choice', 'Bấm + → Ảnh / Tệp: hỏi tiếp', home, section: 'home', setup: () {
-    debugCamera = true;
-    Prefs.write('action-side', 'center');
-  }, act: (t) => openWay(t, 'device'),
-      change: 'MỚI: Ảnh / Tệp hỏi một câu: "Ảnh và video" (thư viện ảnh) hay "Tệp" (trình chọn tệp), hai thẻ lớn có biểu tượng',
-      marks: [() => find.byKey(const ValueKey('add-choice-photos')), () => find.byKey(const ValueKey('add-choice-file'))]);
-  _screen('add-memo-choice', 'Bấm + → Ghi chú / Ghi âm: hỏi tiếp', home, section: 'home', setup: () {
-    debugCamera = true;
-    Prefs.write('action-side', 'center');
-  }, act: (t) => openWay(t, 'memo'),
-      change: 'MỚI: Ghi chú / Ghi âm hỏi "Viết hay ghi âm?": Văn bản hoặc Ghi âm. Trên máy tính (không ghi âm) chỉ có "Ghi chú", mở ghi chú ngay',
-      marks: [() => find.byKey(const ValueKey('add-choice-note')), () => find.byKey(const ValueKey('add-choice-voice'))]);
+  _screen('add-four', 'Tổng quan · bấm +: bốn cách thêm', home, section: 'home', setup: addSetup, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('vault-action')));
+    await t.pumpAndSettle();
+  }, change: 'SỬA: thẻ + là nơi chọn duy nhất: cách nào còn hỏi tiếp (Ảnh / Tệp, Ghi chú / Ghi âm, Mật khẩu) có dấu › ở cuối dòng, và câu hỏi tiếp hiện ngay trong thẻ này',
+      marks: [
+        () => find.byKey(const ValueKey('add-card-device')),
+        () => find.byKey(const ValueKey('add-card-memo')),
+        () => find.byKey(const ValueKey('add-card-password')),
+      ]);
+  for (final narrow in [false, true]) {
+    _screen(narrow ? 'add-password-choice-393' : 'add-password-choice',
+        '${narrow ? 'iPhone 393 pt · ' : ''}Bấm + → Mật khẩu: ba loại ngay trong thẻ', home,
+        section: 'home', size: narrow ? const Size(393, 852) : _phone, setup: addSetup, act: (t) => openWay(t, 'password'),
+        change: 'SỬA: Mật khẩu không mở trang mới nữa: thẻ + đổi tại chỗ thành "Thêm gì?" với Đăng nhập (cam), Mã xác minh (xanh), Mã dự phòng (tím), cùng vị trí trên nút +, không phủ thêm lớp tối; ‹ ở đầu thẻ để quay lại bốn cách',
+        marks: [
+          () => find.byKey(const ValueKey('add-card-back')),
+          () => find.byKey(const ValueKey('add-choice-login')),
+          () => find.byKey(const ValueKey('add-choice-otp')),
+          () => find.byKey(const ValueKey('add-choice-codes')),
+        ]);
+  }
+  _screen('add-device-choice', 'Bấm + → Ảnh / Tệp: hỏi tiếp ngay trong thẻ', home, section: 'home', setup: addSetup,
+      act: (t) => openWay(t, 'device'),
+      change: 'SỬA: Ảnh / Tệp không mở thẻ thứ hai giữa màn hình nữa: "Ảnh và video" hay "Tệp" hiện ngay trong thẻ +, cùng chỗ, có ‹ để quay lại',
+      marks: [
+        () => find.byKey(const ValueKey('add-card-back')),
+        () => find.byKey(const ValueKey('add-choice-photos')),
+        () => find.byKey(const ValueKey('add-choice-file')),
+      ]);
+  _screen('add-memo-choice', 'Bấm + → Ghi chú / Ghi âm: hỏi tiếp ngay trong thẻ', home, section: 'home', setup: addSetup,
+      act: (t) => openWay(t, 'memo'),
+      change: 'SỬA: Ghi chú / Ghi âm hỏi "Viết hay ghi âm?" ngay trong thẻ +: Văn bản hoặc Ghi âm (máy không ghi âm được thì "Ghi chú" mở ghi chú luôn)',
+      marks: [
+        () => find.byKey(const ValueKey('add-card-back')),
+        () => find.byKey(const ValueKey('add-choice-note')),
+        () => find.byKey(const ValueKey('add-choice-voice')),
+      ]);
+  _screen('steps-login-direct', 'Bấm + → Mật khẩu → Đăng nhập: mở thẳng bước 1', home, section: 'home', setup: () {
+    addSetup();
+    withEntries();
+  }, act: (t) async {
+    await openWay(t, 'password');
+    await t.tap(find.byKey(const ValueKey('add-choice-login')));
+    await t.pumpAndSettle();
+  }, change: 'SỬA: chọn Đăng nhập trong thẻ + thì mở thẳng bước "Trang web nào?" (không còn trang "Thêm gì?" nữa); ← ở bước đầu là thoát',
+      marks: [() => find.byKey(const ValueKey('step-progress')), () => find.byKey(const ValueKey('step-title'))]);
+  _screen('home-passwords-0', 'Tổng quan · két chưa có mật khẩu: vẫn có ô Mật khẩu', home, section: 'home',
+      change: 'MỚI: ô Mật khẩu luôn có trong "Xem theo loại", kể cả khi chưa có cái nào (số 0 nhạt); bấm vào mở mục Mật khẩu, có nút "Mật khẩu mới"',
+      marks: [() => find.byKey(const ValueKey('kind-row-password'))]);
+  _screen('passwords-empty', 'Tổng quan → ô Mật khẩu (0): mục trống có nút Mật khẩu mới', home, section: 'home',
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('kind-row-password')));
+    await t.pumpAndSettle();
+  },
+      change: 'MỚI: mục Mật khẩu trống có nút "Mật khẩu mới", mở thẻ + ngay ở ba loại',
+      marks: [() => find.byKey(const ValueKey('empty-add-password'))]);
   _screen('ts-passwords', 'Két Tuyệt mật · Mật khẩu: mở ngay trong app', () => EntryScreen(item: entry('pw2')));
   _screen('more-menu', 'Ghi chú · bấm ⋯', home, section: 'note', act: (t) async {
     await t.tap(find.byKey(const ValueKey('more-button')));

@@ -14,11 +14,13 @@ import 'package:cozysafe/entries/qr.dart';
 import 'package:cozysafe/screens/entry_editor.dart';
 import 'package:cozysafe/screens/entry_steps.dart';
 import 'package:cozysafe/widgets/secure_menu.dart';
+import 'package:cozysafe/widgets/vault_bar.dart' show debugVoice;
 import 'package:cozysafe/item_kind.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/platform.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/screens/entry_page.dart';
+import 'package:cozysafe/screens/note.dart';
 import 'package:cozysafe/screens/quick_look.dart';
 import 'package:cozysafe/screens/vault_home.dart';
 import 'package:cozysafe/src/rust/api/history.dart';
@@ -315,40 +317,113 @@ void main() {
     await _settle(t, 3);
   }
 
-  testWidgets('+ → Password asks what to add: three kinds, each leading to its own steps', (t) async {
+  // ---- the add card: second choices in place (owner 2026-11-07) ----
+
+  /// A vault holding one note: the home page, the + button.
+  Future<void> homeWithNote(WidgetTester t) async {
+    _fake.put('n1', ItemKind.note, 'Shopping', const {});
     await _pump(t, const VaultHomeScreen(libraryDir: '', vault: _vault));
-    // An empty vault offers every way to add, Password among them.
-    await t.tap(find.byKey(const ValueKey('add-password')));
-    await _settle(t);
-    expect(find.text('What to add?'), findsOneWidget);
-    expect(find.byKey(const ValueKey('entry-kind')), findsNothing, reason: 'no switch in the header any more');
-    Future<void> into(String kind, String step) async {
-      await t.tap(find.byKey(ValueKey('steps-kind-$kind')));
-      await _settle(t, 2);
-      expect(find.byKey(ValueKey('steps-$step')), findsOneWidget, reason: kind);
-      await t.tap(find.byKey(const ValueKey('step-back')));
-      await _settle(t, 2);
-      expect(find.byKey(const ValueKey('steps-chooser')), findsOneWidget);
+  }
+
+  Future<void> openPlus(WidgetTester t) async {
+    await t.tap(find.byTooltip('Add to vault'));
+    await _settle(t, 3);
+    expect(find.byKey(const ValueKey('add-card')), findsOneWidget);
+  }
+
+  testWidgets('the choices of a way replace the four ways in the same card: no new card, page or dimming', (t) async {
+    debugVoice = true;
+    addTearDown(() => debugVoice = false);
+    await homeWithNote(t);
+    await openPlus(t);
+    final route = ModalRoute.of(t.element(find.byKey(const ValueKey('add-card'))));
+    final barriers = find.byType(ModalBarrier).evaluate().length;
+    final blurs = find.byType(BackdropFilter).evaluate().length;
+    final bottom = t.getRect(find.byKey(const ValueKey('add-card'))).bottom;
+    Future<void> into(String way, List<String> choices, String title) async {
+      await t.tap(find.byKey(ValueKey('add-card-$way')));
+      await _settle(t, 3);
+      for (final c in choices) {
+        expect(find.byKey(ValueKey('add-choice-$c')), findsOneWidget, reason: '$way → $c');
+      }
+      expect(find.byKey(const ValueKey('add-card')), findsOneWidget);
+      expect(find.byKey(ValueKey('add-card-$way')), findsNothing, reason: 'the four ways made room');
+      expect(find.text(title), findsOneWidget);
+      // The same card on the same page, where it was: no route, barrier or blur on top.
+      expect(ModalRoute.of(t.element(find.byKey(const ValueKey('add-card')))), same(route));
+      expect(find.byType(ModalBarrier).evaluate().length, barriers);
+      expect(find.byType(BackdropFilter).evaluate().length, blurs);
+      expect(find.byType(EntryWizard), findsNothing);
+      expect(t.getRect(find.byKey(const ValueKey('add-card'))).bottom, closeTo(bottom, 1), reason: 'anchored by +');
+      expect(find.byTooltip('Back'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('add-card-back')));
+      await _settle(t, 3);
+      expect(find.byKey(ValueKey('add-card-$way')), findsOneWidget, reason: 'back to the four ways');
+      expect(find.byKey(ValueKey('add-choice-${choices.first}')), findsNothing);
     }
 
-    await into(ItemKind.login, 'site');
-    await into(ItemKind.otp, 'otpSource');
-    await into(ItemKind.codes, 'site');
+    await into('password', ['login', 'otp', 'codes'], 'What to add?');
+    await into('device', ['photos', 'file'], 'Add from this device');
+    await into('memo', ['note', 'voice'], 'Write or record?');
   });
 
-  testWidgets('the add card has four ways; Photos / Files and Note / Voice ask which', (t) async {
+  testWidgets('each kind of password opens the steps on its own first step; Back leaves', (t) async {
+    await homeWithNote(t);
+    for (final (kind, step) in [('login', 'site'), ('otp', 'otpSource'), ('codes', 'site')]) {
+      await openPlus(t);
+      await t.tap(find.byKey(const ValueKey('add-card-password')));
+      await _settle(t, 3);
+      await t.tap(find.byKey(ValueKey('add-choice-$kind')));
+      await _settle(t, 4);
+      expect(find.byType(EntryWizard), findsOneWidget, reason: kind);
+      expect(find.byKey(ValueKey('steps-$step')), findsOneWidget, reason: kind);
+      expect(find.byKey(const ValueKey('steps-chooser')), findsNothing, reason: 'chosen in the card already');
+      expect(find.byKey(const ValueKey('add-card')), findsNothing, reason: 'the card closed');
+      await t.tap(find.byKey(const ValueKey('step-back')));
+      await _settle(t, 4);
+      expect(find.byType(EntryWizard), findsNothing, reason: '$kind: Back from the first step leaves');
+    }
+  });
+
+  testWidgets('without voice, Note opens a note at once', (t) async {
+    await homeWithNote(t);
+    await openPlus(t);
+    expect(find.byKey(const ValueKey('add-card-memo')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('add-card-note')));
+    await _settle(t, 4);
+    expect(find.byKey(const ValueKey('add-choice-note')), findsNothing);
+    expect(find.byType(NoteScreen), findsOneWidget);
+  });
+
+  testWidgets('an empty vault: the Password tile opens the add card on its three kinds', (t) async {
     await _pump(t, const VaultHomeScreen(libraryDir: '', vault: _vault));
-    for (final k in ['add-device', 'add-password']) {
-      expect(find.byKey(ValueKey(k)), findsOneWidget, reason: k);
+    await t.tap(find.byKey(const ValueKey('add-password')));
+    await _settle(t, 3);
+    expect(find.byKey(const ValueKey('add-card')), findsOneWidget);
+    for (final k in ['login', 'otp', 'codes']) {
+      expect(find.byKey(ValueKey('add-choice-$k')), findsOneWidget, reason: k);
     }
-    for (final k in ['add-photos', 'add-file', 'add-video', 'add-photo']) {
-      expect(find.byKey(ValueKey(k)), findsNothing, reason: '$k is a second choice now');
-    }
-    await t.tap(find.byKey(const ValueKey('add-device')));
-    await _settle(t, 2);
-    expect(find.text('Add from this device'), findsOneWidget);
-    expect(find.byKey(const ValueKey('add-choice-photos')), findsOneWidget);
-    expect(find.byKey(const ValueKey('add-choice-file')), findsOneWidget);
+    expect(find.byType(EntryWizard), findsNothing);
+  });
+
+  testWidgets('the home page always shows Passwords, 0 included; it opens the section, which offers to add one', (t) async {
+    await homeWithNote(t);
+    final tile = find.byKey(const ValueKey('kind-row-password'));
+    expect(tile, findsOneWidget);
+    expect(find.descendant(of: tile, matching: find.text('0')), findsOneWidget);
+    await t.tap(tile);
+    await _settle(t, 3);
+    expect(find.text('No passwords yet'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('empty-add-password')));
+    await _settle(t, 3);
+    expect(find.byKey(const ValueKey('add-choice-login')), findsOneWidget);    await t.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('a vault with passwords counts them on the tile', (t) async {
+    _fake.put('l0', ItemKind.login, 'GitHub', {'username': 'na', 'urls': ['https://github.com']});
+    _fake.put('n1', ItemKind.note, 'Shopping', const {});
+    await _pump(t, const VaultHomeScreen(libraryDir: '', vault: _vault));
+    expect(find.descendant(of: find.byKey(const ValueKey('kind-row-password')), matching: find.text('1')), findsOneWidget);
   });
 
   testWidgets('a new login with taps only: a known site, an account used before, the password made, no 2FA', (t) async {
@@ -412,13 +487,15 @@ void main() {
     final scans = <String?>[];
     setUp(() {
       QrCode.debugAvailable = (camera: true, photo: true);
+      QrCode.debugScan = () async => scans.removeAt(0);
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, (call) async {
-        if (call.method == 'scan' || call.method == 'pickImage') return scans.removeAt(0);
+        if (call.method == 'pickImage') return scans.removeAt(0);
         return null;
       });
     });
     tearDown(() {
       QrCode.debugAvailable = null;
+      QrCode.debugScan = null;
       scans.clear();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, null);
     });
@@ -464,10 +541,10 @@ void main() {
 
     testWidgets('a scan that ends after the vault locked is dropped', (t) async {
       await pushed(t, const EntryWizard());
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, (call) async {
+      QrCode.debugScan = () async {
         vaultLock.set(true);
         return 'otpauth://totp/GitHub:na?secret=JBSWY3DPEHPK3PXP&issuer=GitHub';
-      });
+      };
       await t.tap(find.byKey(const ValueKey('steps-kind-otp')));
       await _settle(t, 2);
       await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
