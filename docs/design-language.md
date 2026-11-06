@@ -125,7 +125,8 @@ out as Photos):
 - Icons only; the word is the tooltip and what a screen reader says.
 - On a narrow phone the middle circles shrink together; they never wrap or overflow.
 
-**Section header** (Overview, Library, Files, Notes, inside a group):
+**Section header** (Overview, Library, Files, Notes, Passwords, inside a group; the same
+on every tab, the Overview too: no search field of its own, owner 2026-11-07):
 
 ```
  Library                       (⋯) (🔍) (⚙)
@@ -168,6 +169,8 @@ under it.
 
 ## 5. Not unified yet (do it this way when you touch them)
 
+- Kinds and sections are ranked by how many items they hold, most first, wherever
+  they are listed (bar, overview tiles, search tiles; owner 2026-11-07).
 - Lists: one look everywhere, rows grouped in one rounded card (as Settings), rows about
   54 high, a thin line between rows, the kind's icon on the left.
 - The bottom bars sit about 44 above the screen's edge; Photos' sit about 20.
