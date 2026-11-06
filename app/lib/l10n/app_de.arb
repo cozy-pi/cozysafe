@@ -962,5 +962,6 @@
   "entryShowCodes": "Codes zeigen",
   "entryHideCodes": "Codes ausblenden",
   "entryUnsavedCopy": "{name} (nicht gespeichert)",
-  "syncPeerOldVersion": "Auf dem anderen Gerät ist eine ältere Version von Cozy Safe. Aktualisiere die App auf beiden Geräten und versuche es erneut."
+  "syncPeerOldVersion": "Auf dem anderen Gerät ist eine ältere Version von Cozy Safe. Aktualisiere die App auf beiden Geräten und versuche es erneut.",
+  "syncNeedsNewerApp": "Dieser Tresor wurde von einer neueren Version von Cozy Safe synchronisiert. Aktualisiere die App, um weiter zu synchronisieren."
 }

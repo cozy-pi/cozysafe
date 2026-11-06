@@ -4,6 +4,13 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.2.29 (2026-11-06)
+
+### Changed
+- Built to grow: a newer version's additions to an item are kept when an older one
+  edits it, and a newer version can ask older ones to stop syncing a vault rather than
+  damage it; the app then says to update.
+
 ## 0.2.28 (2026-11-06)
 
 **Update Cozy Safe on every device before you keep passwords.** Older versions do not

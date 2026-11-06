@@ -557,6 +557,14 @@ pub trait VaultSync {
     fn sync_with(&self, remote: &dyn Remote, progress: &dyn Fn(SyncProgress))
         -> Result<SyncReport>;
 
+    /// The least version a place asks of the devices syncing with it: `<vault>/level`,
+    /// sealed; 0 when absent (every version before 0.2.28). See [`SYNC_LEVEL`].
+    fn place_level(&self, remote: &dyn Remote) -> Result<u32>;
+
+    /// Ask every device syncing with this place for at least `level` (a newer version
+    /// whose changes an older one would damage). Never lowers it.
+    fn raise_place_level(&self, remote: &dyn Remote, level: u32) -> Result<()>;
+
     /// A device's head read from `remote` (`None`: it has none, as devices from before
     /// heads). Sealed under its path, so it cannot pass for another device's.
     fn read_head(&self, remote: &dyn Remote, device: &str) -> Result<Option<Head>>;
@@ -603,6 +611,11 @@ impl VaultSync for OpenVault {
             bytes: 0,
             bytes_total: 0,
         });
+        // A place a newer version raised above this one is left alone: syncing it could
+        // damage what that version wrote. The app says to update (docs/data-model.md).
+        if self.place_level(&counted)? > SYNC_LEVEL {
+            return Err(Error::Corrupt("sync needs newer app"));
+        }
         let synced = self
             .pull(&counted, &mut report, progress)
             .and_then(|()| self.push(&counted, &mut report, progress));
@@ -613,6 +626,32 @@ impl VaultSync for OpenVault {
         // Content taken from the other side brings its own account and sites.
         let _ = self.restore_summaries();
         synced.map(|()| report)
+    }
+
+    fn place_level(&self, remote: &dyn Remote) -> Result<u32> {
+        let mut sealed = Capped::new(MAX_SMALL);
+        if !remote.get(&format!("{}/level", self.sync_dir()), &mut sealed)? {
+            return Ok(0);
+        }
+        let aad = crate::aad(&self.id, "sync/level");
+        let json = self.sealer().open(&sealed.0, &aad)?;
+        let v: serde_json::Value =
+            serde_json::from_slice(&json).map_err(|_| Error::Corrupt("sync level"))?;
+        v.get("level")
+            .and_then(serde_json::Value::as_u64)
+            .and_then(|n| u32::try_from(n).ok())
+            .ok_or(Error::Corrupt("sync level"))
+    }
+
+    fn raise_place_level(&self, remote: &dyn Remote, level: u32) -> Result<()> {
+        if self.place_level(remote)? >= level {
+            return Ok(());
+        }
+        let json = serde_json::json!({ "level": level }).to_string();
+        let sealed = self
+            .sealer()
+            .seal(json.as_bytes(), &crate::aad(&self.id, "sync/level"));
+        remote.put(&format!("{}/level", self.sync_dir()), &mut &sealed[..])
     }
 
     fn read_head(&self, remote: &dyn Remote, device: &str) -> Result<Option<Head>> {
@@ -2053,6 +2092,12 @@ const MAX_SMALL: usize = 1 << 20;
 const MAX_NOTE: usize = 64 << 20;
 
 /// A memory buffer that refuses to grow past its cap.
+/// The level of the sync format this version reads and writes. Raised (with
+/// `raise_place_level`) only when a change would be damaged by an older version
+/// syncing the same place: those versions then stop and ask to be updated. Versions
+/// before 0.2.28 do not check it.
+pub const SYNC_LEVEL: u32 = 1;
+
 struct Capped(Vec<u8>, usize);
 
 impl Capped {
@@ -2209,6 +2254,27 @@ pub(crate) mod tests {
         walk(&t.cloud.root, &mut all);
         let hay = String::from_utf8_lossy(&all);
         assert!(!hay.contains("Bank PIN") && !hay.contains("4921"));
+    }
+
+    #[test]
+    fn a_place_a_newer_version_raised_is_left_alone() {
+        let t = two();
+        let id = note(&t.a, "List", "milk");
+        t.a.sync(&t.cloud).unwrap();
+        assert_eq!(t.a.place_level(&t.cloud).unwrap(), 0);
+        // Its own level, or lower, changes nothing.
+        t.a.raise_place_level(&t.cloud, SYNC_LEVEL).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        assert_eq!(text(&t.b, &id), "milk");
+        // A newer version asks for more: this one stops before touching anything.
+        t.a.raise_place_level(&t.cloud, SYNC_LEVEL + 1).unwrap();
+        t.a.raise_place_level(&t.cloud, SYNC_LEVEL).unwrap(); // never lowered
+        t.b.replace_item(&id, "List", &b"milk, eggs"[..]).unwrap();
+        match t.b.sync(&t.cloud) {
+            Err(Error::Corrupt(what)) => assert_eq!(what, "sync needs newer app"),
+            other => panic!("{other:?}"),
+        }
+        assert_eq!(t.a.place_level(&t.cloud).unwrap(), SYNC_LEVEL + 1);
     }
 
     #[test]

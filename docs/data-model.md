@@ -169,7 +169,10 @@ twice, byte for byte the same: in `<item>.meta` and in `vault.db` (`items.sealed
 The current layout is `RECORD_FORMAT = 2`.
 
 Fields are written in this order. Optional fields are left out when empty or default, so
-older apps keep reading newer records.
+older apps keep reading newer records. **Fields this version does not know are kept**
+(`ItemRecord::extra`) and written back after the known ones, so an older app that
+renames, favours or deletes an item never drops what a newer one added (since 0.2.28;
+0.2.27 and older drop them, which is why secure items rebuild their `summary`).
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
@@ -398,7 +401,16 @@ serves a folder. There is no iCloud Drive sync today. Details and rationale:
 <vault>/log/<device>/<n>           sealed journal entry n of one device
 <vault>/head/<device>              sealed: the device's last entry and what it has read
 <vault>/lock/<ms>-<sha256>.json    the vault's lock (to join from the place)
+<vault>/level                      sealed {"level": n}: the least sync level a device must
+                                   have; absent = 0 (see below)
 ```
+
+**Sync level** (`SYNC_LEVEL`, `core/cs-vault/src/sync.rs`, since 0.2.28). A version whose
+changes an older one would damage raises `<vault>/level` (`raise_place_level`, never
+lowered). Before touching a place, a device reads it and stops if it is above its own
+`SYNC_LEVEL`; the app says to update (`sync-needs-newer-app`). Versions before 0.2.28 do
+not read it: the next change that needs it can stop every version from 0.2.28 on. Sealed
+with the Master Key (AAD `sync/level`), so nobody without the vault can lower it.
 
 - Nothing is overwritten, except each device's own `head`.
 - Blob names use the record's `data_rev`.
@@ -475,6 +487,7 @@ Source: `app/lib/secret_key_store.dart` (`SecretKeyStore`, `PinStore`),
 | `HEADER_FILE` | `"header.json"` | `core/cs-core/src/vault.rs` |
 | `HISTORY_DIR` | `"history"` | `core/cs-core/src/history.rs` |
 | `TRASH_DAYS` | `30` | `core/cs-core/src/items.rs` |
+| `SYNC_LEVEL` | `1` | `core/cs-vault/src/sync.rs` |
 | `CONNECTION_LOG_LEN` | `50` | `core/cs-core/src/vault.rs` |
 | `LOG_EVERY` | `50` | `core/cs-vault/src/sync.rs` |
 | Kinds | `"photo"`, `"video"`, `"note"`, `"audio"`, `"file"`, `"tag"`, `"login"`, `"otp"`, `"codes"`, `"folder"` | `core/cs-core/src/items.rs` |

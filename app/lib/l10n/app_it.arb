@@ -962,5 +962,6 @@
   "entryShowCodes": "Mostra codici",
   "entryHideCodes": "Nascondi codici",
   "entryUnsavedCopy": "{name} (non salvato)",
-  "syncPeerOldVersion": "L’altro dispositivo ha una versione precedente di Cozy Safe. Aggiorna l’app su entrambi i dispositivi e riprova."
+  "syncPeerOldVersion": "L’altro dispositivo ha una versione precedente di Cozy Safe. Aggiorna l’app su entrambi i dispositivi e riprova.",
+  "syncNeedsNewerApp": "Questa cassaforte è stata sincronizzata da una versione più recente di Cozy Safe. Aggiorna l’app per continuare a sincronizzarla."
 }

@@ -412,7 +412,40 @@ pub struct ItemRecord {
     pub summary: Option<Summary>,
     /// Format 1: the folder the item was in. Read, never written.
     pub legacy_folder_id: Option<String>,
+    /// Fields this version does not know (a newer app wrote them), kept as they were and
+    /// written back after the known ones, so an older app editing a record never drops
+    /// them (0.2.28 lost a newer field this way before; docs/data-model.md).
+    pub extra: Vec<(String, Value)>,
 }
+
+/// Every key [`ItemRecord`] reads, old names included: anything else goes to `extra`.
+/// `color` and `space` were format-1 folder fields, no longer record fields: dropped.
+const RECORD_KEYS: &[&str] = &[
+    "format",
+    "kind",
+    "name",
+    "mime",
+    "created_ms",
+    "size_bytes",
+    "size",
+    "has_thumbnail",
+    "has_thumb",
+    "wrapped_dek",
+    "deleted_ms",
+    "duration_ms",
+    "tag_ids",
+    "is_favorite",
+    "modified_ms",
+    "rev",
+    "base_rev",
+    "hlc",
+    "device",
+    "data_rev",
+    "data_hash",
+    "thumb_hash",
+    "summary",
+    "folder",
+];
 
 impl ItemRecord {
     const WHAT: &'static str = "item record";
@@ -448,6 +481,9 @@ impl ItemRecord {
         o = str_if(o, "thumb_hash", &self.thumb_hash);
         if let Some(summary) = &self.summary {
             o = o.put("summary", summary.value());
+        }
+        for (k, v) in &self.extra {
+            o = o.put(k, v.clone());
         }
         json::to_vec(&o.build())
     }
@@ -485,6 +521,14 @@ impl ItemRecord {
                 .flatten()
                 .and_then(|o| Summary::read(&o)),
             legacy_folder_id: may(f.str("folder"), w)?.map(str::to_owned),
+            extra: match &v {
+                Value::Object(all) => all
+                    .iter()
+                    .filter(|(k, _)| !RECORD_KEYS.contains(&k.as_str()))
+                    .cloned()
+                    .collect(),
+                _ => Vec::new(),
+            },
         })
     }
 }

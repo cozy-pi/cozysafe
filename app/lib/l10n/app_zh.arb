@@ -962,5 +962,6 @@
   "entryShowCodes": "显示代码",
   "entryHideCodes": "隐藏代码",
   "entryUnsavedCopy": "{name}（未保存）",
-  "syncPeerOldVersion": "另一台设备上的 Cozy Safe 版本较旧。请在两台设备上都更新应用，然后重试。"
+  "syncPeerOldVersion": "另一台设备上的 Cozy Safe 版本较旧。请在两台设备上都更新应用，然后重试。",
+  "syncNeedsNewerApp": "此保险库已由更新版本的 Cozy Safe 同步。请更新应用以继续同步。"
 }

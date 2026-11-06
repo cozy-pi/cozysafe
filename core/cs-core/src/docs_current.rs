@@ -140,6 +140,7 @@ fn every_item_record_field_is_in_the_data_model() {
             of: "o".into(),
         }),
         legacy_folder_id: None,
+        extra: Vec::new(),
     };
     let Ok(Value::Object(fields)) = json::parse(&full.to_json()) else {
         panic!("a record is a JSON object");
