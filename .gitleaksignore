@@ -15,3 +15,6 @@ d9082769cc1dca1289015347f7ff7a69d246a69a:app/test/preview_test.dart:generic-api-
 deb5b81992a75cfe9ca5930a668904918606d3c2:app/test/preview_test.dart:generic-api-key:789
 # RFC 4231 test case 6 data, a public test vector (core/cs-crypto/tests/vectors.rs).
 f43d545f51c9788d8c707f8aec26b4d960ec5fb7:core/cs-crypto/tests/vectors.rs:generic-api-key:64
+# Made-up base32 TOTP keys in the secure items tests (0.2.28).
+1ee0ffe2684f3091ce1702ea48ee5e17f674ea29:app/test/entries_ui_test.dart:generic-api-key:366
+1ee0ffe2684f3091ce1702ea48ee5e17f674ea29:app/test/entries_ui_test.dart:generic-api-key:387
