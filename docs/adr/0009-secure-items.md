@@ -139,18 +139,25 @@ mostly taps; changing an item keeps the form (`entry_editor.dart`).
 - Only an `otpauth://totp/` link is taken (`Totp.parse`); any other QR code (a web
   link, Wi-Fi) is refused with "This QR code is not a two-factor setup code", and a
   picture without one says so.
-- On Apple devices with the system's own tools: on iPhone a camera page of its own
-  (AVFoundation's QR reader) and Vision for a picked picture; on a Mac Vision for an
-  image file. On Android with what the app already ships: its camera (a few frames a
-  second, the luminance plane only) and the system photo picker (the picture turned to
-  grey in memory), both read by the Rust QR decoder that pairs devices (rqrr,
-  `qr_read_text`). No new library. Windows and Linux: paste only.
+- One decoder path for the camera, on every phone: a page inside the app (the `camera`
+  plugin, YUV 420, a few frames a second, the luminance plane only, with its row
+  stride; on iPhone the bi-planar Y plane), read by the Rust QR decoder that pairs
+  devices (rqrr, `qr_read_text`). Since 0.2.31: in 0.2.30 the iPhone used a native
+  AVFoundation camera page over the app, which Flutter reported as leaving the app, so
+  the vault locked mid-scan; that page is gone. A picked picture: Vision on iPhone and
+  on a Mac (an image file), kept because it reads the image file as picked; on Android
+  the system photo picker, the picture turned to grey in memory and read by rqrr. No new
+  library. Windows and Linux: paste only.
+- The photo picker is the system's: the vault allows leaving for it
+  (`LockGuard.allowAway`) and ends that as soon as it returns. The camera needs no such
+  grace, the app never leaves.
 - A pasted bare key (not a link) is shown with the code it makes before it is taken, so
   a wrong paste is caught against the site's own screen.
 - In memory only: no frame or picture is written to a file, kept in the photo library,
   copied into the vault or logged; only the QR code's text comes back, and the picture
   is dropped. The photo picker shows one picture without access to the library.
-- The vault locking closes the camera.
+- The vault locking closes the camera page and lets the camera go; every way out
+  releases it.
 - Top Secret Mode offers the camera and Paste only: no picture from the library.
 
 ## Rejected

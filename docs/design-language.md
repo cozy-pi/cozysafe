@@ -82,7 +82,8 @@ later (docs/backlog.md).
 | A group of settings rows | `SettingsGroup` | `screens/settings.dart` |
 | A secret (password, 24 words) | `SecretField` | `widgets/secret.dart` |
 | One question per screen: Back, progress, big title on the left, main button pinned, a second choice as text | `StepPage`, `StepProgress`, `StepMainButton`, `StepTextButton` | `widgets/steps.dart` |
-| Pick one of a few ways (the kind chooser): big cards, icon in a coloured rounded square, title and one line | `ChoiceCard`; over the page `showChoice` | `widgets/steps.dart` |
+| Pick one of a few ways inside a step (the wizard's fallback kind chooser): big cards, icon in a coloured rounded square, title and one line | `ChoiceCard` | `widgets/steps.dart` |
+| The ways to add, and a way's second choices in place | `AddCard` (`way`, `onBack`), `addSubChoices` | `widgets/vault_bar.dart` |
 | A kind of password's icon and colour | `entryIcon`, `entryKindColor`, `EntryBadge`, `EntryKindLine` | `widgets/entry_row.dart`, `widgets/vault_bar.dart` |
 | A new icon | `Sym` (Material Symbols Rounded) | `widgets/symbols.dart` |
 | Red for Delete | `recordRed(context)` | `theme.dart` |
@@ -150,10 +151,17 @@ removed). The strength line under it says how to make a better one.
 **Steps** (create a vault, restore, add a password): create is Password → 24 words →
 four typed back → Face ID → look; the intro lists them in that order. Progress on top with Back, the title big on the
 left, one main button the width of the page at the bottom (`PinnedAction`), a second
-choice as plain text under it (`StepPage`). Adding a password (owner 2026-11-07): what
-to add first, as big cards (`ChoiceCard`), then one question per screen, answered with
-taps where possible: what the vault already holds first, then common choices, typing
-last.
+choice as plain text under it (`StepPage`). Adding a password (owner 2026-11-07): the
+kind is picked in the add card, then one question per screen from that kind's first,
+answered with taps where possible: what the vault already holds first, then common
+choices, typing last. Back from the first step leaves.
+
+**The add card** (owner 2026-11-07): one card, near the thumb, just above + (under Add
+on a computer). A way that asks a second question (Photos / Files, Note / Voice,
+Password) shows its choices **in that same card**, in place of the four ways, with ‹
+in the card's header to go back; the card keeps its place and grows to fit. Never a
+separate card, a page or another dim or blur on top for a way's choices. Choosing one
+closes the card and does it. The camera, and Note where nothing records, act at once.
 
 **Confirm a deletion**: a sheet with one red button the width of the page, Cancel as text
 under it.

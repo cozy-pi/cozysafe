@@ -91,9 +91,13 @@ class VaultOverview extends StatelessWidget {
       for (final s in VaultSection.values)
         if (things.any((i) => sectionOf(i) == s)) s,
     ];
+    // The kinds held; Passwords always (owner 2026-11-07: otherwise a vault without one
+    // shows no way into Passwords), its count 0 until there is one.
     final kinds = [
       for (final k in OverviewKind.values)
-        if (things.where((i) => overviewKindOf(i) == k).length case final n when n > 0) (k, n),
+        if (things.where((i) => overviewKindOf(i) == k).length case final n
+            when n > 0 || (k == OverviewKind.password && vaultSections().contains(VaultSection.password)))
+          (k, n),
     ];
     final recent = [...things]..sort((a, b) => b.createdMs.compareTo(a.createdMs));
     final groups = items.where((g) => g.kind == ItemKind.tag && count(g) > 0).toList();
@@ -431,7 +435,9 @@ class KindCard extends StatelessWidget {
                       child: Icon(look(k).$1, color: look(k).$2, size: 18),
                     ),
                     const Spacer(),
-                    Text('$n', style: TextStyle(fontSize: CsType.subhead, color: c.muted)),
+                    // None yet: the count fainter, the tile the same.
+                    Text('$n',
+                        style: TextStyle(fontSize: CsType.subhead, color: n == 0 ? c.muted.withValues(alpha: .5) : c.muted)),
                   ]),
                   const Spacer(),
                   Text(look(k).$3,

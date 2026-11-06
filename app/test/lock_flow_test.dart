@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cozysafe/biometric.dart';
+import 'package:cozysafe/entries/qr.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/lock_guard.dart';
 import 'package:cozysafe/lock_resume.dart';
@@ -264,6 +265,56 @@ void main() {
     await _settle(t);
     expect(find.byType(UnlockScreen), findsNothing);
     expect(find.byType(SettingsScreen), findsOneWidget);
+  });
+
+  testWidgets('scanning a 2FA QR code does not lock the vault; leaving after it does', (t) async {
+    // 0.2.30 on iPhone: the native camera page over the app counted as leaving it and
+    // locked the vault. The camera is a page inside the app now, on every phone.
+    final calls = <String>[];
+    QrCode.debugAvailable = (camera: true, photo: true);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, (call) async {
+      calls.add(call.method);
+      return null;
+    });
+    addTearDown(() {
+      QrCode.debugAvailable = null;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(QrCode.channel, null);
+    });
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    await _tapDigits(t, _pin);
+    await _settle(t);
+    await t.tap(find.byKey(const ValueKey('add-password')));
+    await _settle(t);
+    await t.tap(find.byKey(const ValueKey('add-choice-otp')));
+    await _settle(t);
+    await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
+    await _settle(t);
+    expect(find.byType(QrCameraScreen), findsOneWidget);
+    expect(calls, isEmpty, reason: 'no native camera page over the app');
+    // The camera's permission question takes the screen for a moment: the app is only
+    // inactive, never gone.
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await _settle(t);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await _settle(t);
+    expect(vaultLock.locked, isFalse);
+    expect(find.byType(QrCameraScreen), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('qr-cancel')));
+    await _settle(t);
+    expect(find.byKey(const ValueKey('steps-otpSource')), findsOneWidget);
+    expect(LockGuard.away, isFalse, reason: 'no grace left over from the scan');
+    // Leaving the app now locks, as always.
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await _settle(t);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await _settle(t);
+    expect(vaultLock.locked, isTrue);
+    expect(find.byType(UnlockScreen), findsOneWidget);
   });
 
   testWidgets('a sync keeps going behind the lock screen, which shows how far it is', (t) async {

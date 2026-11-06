@@ -57,7 +57,11 @@ that needs a provisioning profile the Developer ID build does not have. Instead:
 
 - **Leaving locks at once** by default (`vault_home.dart`, `didChangeAppLifecycleState`),
   except for 60 s when the app itself opened a picker, the camera or the share sheet
-  (`LockGuard.allowAway`).
+  (`LockGuard.allowAway`), ended as soon as it returns (`LockGuard.clear`). The 2FA QR
+  photo picker uses it; the 2FA QR camera does not need it: since 0.2.31 it is a page
+  inside the app on every phone (the `camera` plugin, as when pairing devices), so the
+  app never leaves. In 0.2.30 the iPhone's native camera page over the app counted as
+  leaving it and locked the vault.
 - **"Lock as soon as I leave the app" off** (owner check to turn off): the vault stays
   open in the background and locks once it has been away for the auto-lock time, counted
   from the moment it left, not from the last touch. Time away is the longer of a

@@ -11,6 +11,7 @@ import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
 import '../platform.dart';
 import '../prefs.dart';
+import 'entry_row.dart' show entryIcon, entryKindLabel;
 import 'readable.dart';
 import 'symbols.dart';
 import '../top_secret_mode.dart';
@@ -732,10 +733,47 @@ class _ActionButtonState extends State<ActionButton> {
 }
 
 /// The ways to add something to a vault. The add card offers four (owner 2026-11-07:
-/// [camera], [device], [memo] or a plain [note], [password]); [device] and [memo] then ask
-/// which ([photos] or [file], [note] or [voice]), and the camera switches between photo
+/// [camera], [device], [memo] or a plain [note], [password]); [device], [memo] and
+/// [password] then ask which, in the same card ([addSubChoices]: [photos] or [file],
+/// [note] or [voice], [login], [otp] or [codes]), and the camera switches between photo
 /// and [video] inside.
-enum AddWhat { note, photo, video, photos, voice, file, password, camera, device, memo }
+enum AddWhat { note, photo, video, photos, voice, file, password, camera, device, memo, login, otp, codes }
+
+/// The ways that ask a second question, in the add card itself (owner 2026-11-07: one
+/// card, never a second card or a page for it).
+bool hasSubChoices(AddWhat w) => w == AddWhat.device || w == AddWhat.memo || w == AddWhat.password;
+
+/// A way's second choices, shown in place of the four ways in the same card.
+List<(AddWhat, IconData, String)> addSubChoices(AppLocalizations l, AddWhat way) => switch (way) {
+      AddWhat.device => [
+          (AddWhat.photos, Sym.photoLibrary, l.addChoicePhotos),
+          (AddWhat.file, Sym.folder, l.addChoiceFiles),
+        ],
+      AddWhat.memo => [
+          (AddWhat.note, Sym.notes, l.addChoiceText),
+          (AddWhat.voice, Sym.mic, l.addChoiceVoice),
+        ],
+      AddWhat.password => [
+          for (final w in const [AddWhat.login, AddWhat.otp, AddWhat.codes])
+            (w, entryIcon(addEntryKind(w)!), entryKindLabel(l, addEntryKind(w)!)),
+        ],
+      _ => const [],
+    };
+
+/// The add card's title over [way]'s second choices.
+String addSubTitle(AppLocalizations l, AddWhat way) => switch (way) {
+      AddWhat.device => l.addChoiceDeviceTitle,
+      AddWhat.memo => l.addChoiceMemoTitle,
+      _ => l.addWhatTitle,
+    };
+
+/// The kind of secure item a password choice makes.
+String? addEntryKind(AddWhat w) => switch (w) {
+      AddWhat.login => ItemKind.login,
+      AddWhat.otp => ItemKind.otp,
+      AddWhat.codes => ItemKind.codes,
+      _ => null,
+    };
 
 /// Each section's colour (owner 2026-10-31: more colour in the icons): the tiles on the
 /// overview, the storage bar, the tabs and the ways to add.
@@ -770,6 +808,7 @@ Color addWayColor(AddWhat w) => switch (w) {
       AddWhat.camera => sectionColor(VaultSection.library),
       AddWhat.device => sectionColor(VaultSection.file),
       AddWhat.memo => sectionColor(VaultSection.note),
+      AddWhat.login || AddWhat.otp || AddWhat.codes => entryKindColor(addEntryKind(w)!),
     };
 
 /// The four ways to add, in the fixed order (owner 2026-11-07: seven were too many), each
@@ -1004,13 +1043,28 @@ String addWayNote(AppLocalizations l, AddWhat what) => switch (what) {
       AddWhat.camera => l.addNoteCamera,
       AddWhat.device => l.addNoteDevice,
       AddWhat.memo => l.addNoteMemo,
+      AddWhat.login => l.addKindLoginLine,
+      AddWhat.otp => l.addKindOtpLine,
+      AddWhat.codes => l.addKindCodesLine,
     };
 
 /// Opened by + with the quick row (owner 2026-10-27: "a page to choose and understand",
 /// the quick buttons stay): every way to add with its full name and a line on what it
 /// does, in a card at eye level above the row. Tapping a line is the same as its button.
+/// A way with a second question ([hasSubChoices]) shows its choices in this same card, in
+/// place of the four ways, with ‹ to go back (owner 2026-11-07: one card, where the thumb
+/// is; no second card, page or dimming on top).
 class AddCard extends StatefulWidget {
-  const AddCard({super.key, required this.open, required this.ways, required this.onPick, this.hovered, this.drop = false});
+  const AddCard({
+    super.key,
+    required this.open,
+    required this.ways,
+    required this.onPick,
+    this.hovered,
+    this.drop = false,
+    this.way,
+    this.onBack,
+  });
   final bool open;
   /// Hangs from the top of its space (a menu under a computer's Add button), instead of
   /// standing on its bottom.
@@ -1020,6 +1074,10 @@ class AddCard extends StatefulWidget {
   /// The ways with their full names ([addWays]).
   final List<(AddWhat, IconData, String)> ways;
   final ValueChanged<AddWhat> onPick;
+  /// The way whose second choices show ([addSubChoices]); none: the four ways.
+  final AddWhat? way;
+  /// ‹ in the header, back to the four ways.
+  final VoidCallback? onBack;
 
   @override
   State<AddCard> createState() => _AddCardState();
@@ -1044,12 +1102,89 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _row(BuildContext context, AddWhat what, IconData icon, String label, {required bool sub}) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final ink = Theme.of(context).colorScheme.onSurface;
+    final row = InkWell(
+      key: ValueKey(sub ? 'add-choice-${what.name}' : 'add-card-${what.name}'),
+      onTap: () => widget.onPick(what),
+      child: Container(
+        color: !sub && widget.hovered == what ? ink.withValues(alpha: .08) : null,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+        child: Row(children: [
+          Container(
+            width: Ui.tap,
+            height: Ui.tap,
+            decoration: BoxDecoration(color: addWayColor(what).withValues(alpha: .16), shape: BoxShape.circle),
+            child: Icon(icon, color: addWayColor(what), size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text(addWayNote(l, what), style: TextStyle(fontSize: CsType.footnote, height: 1.3, color: c.muted)),
+            ]),
+          ),
+          // A way with more to choose says so.
+          if (!sub && hasSubChoices(what)) Icon(Icons.chevron_right_rounded, color: ink.withValues(alpha: .35)),
+        ]),
+      ),
+    );
+    // Only the four ways answer a finger sliding up from +; second choices are tapped.
+    return sub ? row : MetaData(metaData: what, behavior: HitTestBehavior.opaque, child: row);
+  }
+
+  Widget _content(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final way = widget.way;
+    final rows = way == null
+        ? [for (final (what, icon, label) in widget.ways) _row(context, what, icon, label, sub: false)]
+        : [for (final (what, icon, label) in addSubChoices(l, way)) _row(context, what, icon, label, sub: true)];
+    const titleStyle = TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.2);
+    return SingleChildScrollView(
+      key: ValueKey('add-card-page-${way?.name ?? 'ways'}'),
+      padding: const EdgeInsets.fromLTRB(0, 18, 0, 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (way == null)
+            Padding(padding: const EdgeInsets.fromLTRB(22, 0, 22, 6), child: Text(l.addToVault, style: titleStyle))
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 22, 6),
+              child: Row(children: [
+                IconButton(
+                  key: const ValueKey('add-card-back'),
+                  tooltip: l.back,
+                  onPressed: widget.onBack,
+                  icon: const Icon(Icons.chevron_left_rounded, size: 30),
+                ),
+                const SizedBox(width: 2),
+                Expanded(
+                  child: Text(addSubTitle(l, way),
+                      key: const ValueKey('add-card-title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: titleStyle),
+                ),
+              ]),
+            ),
+          ...rows,
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final a = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
+    final back = widget.way == null;
     return Align(
       alignment: widget.drop ? Alignment.topLeft : Alignment.bottomCenter,
       child: FadeTransition(
@@ -1065,45 +1200,37 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
               clipBehavior: Clip.antiAlias,
               elevation: 12,
               shadowColor: Colors.black38,
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(0, 18, 0, 10),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(22, 0, 22, 6),
-                    child: Text(l.addToVault,
-                        style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.2)),
+              // The card keeps its place (its bottom by +, or its top under Add) and grows
+              // or shrinks to what it shows; the content slides in from the side it goes.
+              child: AnimatedSize(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                alignment: widget.drop ? Alignment.topCenter : Alignment.bottomCenter,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: widget.drop ? Alignment.topCenter : Alignment.bottomCenter,
+                    children: [
+                      for (final p in previous) IgnorePointer(child: p),
+                      ?current,
+                    ],
                   ),
-                  for (final (what, icon, label) in widget.ways)
-                    MetaData(
-                      metaData: what,
-                      behavior: HitTestBehavior.opaque,
-                      child: InkWell(
-                      key: ValueKey('add-card-${what.name}'),
-                      onTap: () => widget.onPick(what),
-                      child: Container(
-                        color: widget.hovered == what ? ink.withValues(alpha: .08) : null,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                        child: Row(children: [
-                          Container(
-                            width: Ui.tap,
-                            height: Ui.tap,
-                            decoration: BoxDecoration(color: addWayColor(what).withValues(alpha: .16), shape: BoxShape.circle),
-                            child: Icon(icon, color: addWayColor(what), size: 24),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(label, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 2),
-                              Text(addWayNote(l, what), style: TextStyle(fontSize: CsType.footnote, height: 1.3, color: c.muted)),
-                            ]),
-                          ),
-                        ]),
+                  transitionBuilder: (child, t) {
+                    final coming = child.key == ValueKey('add-card-page-${widget.way?.name ?? 'ways'}');
+                    // Forward: the choices come from the right; back: the ways from the left.
+                    final from = (coming ? 1 : -1) * (back ? -.08 : .08);
+                    return FadeTransition(
+                      opacity: t,
+                      child: SlideTransition(
+                        position: Tween(begin: Offset(from, 0), end: Offset.zero).animate(t),
+                        child: child,
                       ),
-                    ),
-                    ),
-                ],
+                    );
+                  },
+                  child: _content(context),
+                ),
               ),
             ),
           ),
@@ -1127,6 +1254,8 @@ class AddCardOverlay extends StatelessWidget {
     required this.onClose,
     required this.onGone,
     this.dropFrom,
+    this.way,
+    this.onBack,
   });
   final bool open;
   final List<(AddWhat, IconData, String)> ways;
@@ -1139,10 +1268,14 @@ class AddCardOverlay extends StatelessWidget {
   final ValueChanged<AddWhat> onPick;
   final VoidCallback onClose;
   final VoidCallback onGone;
+  /// The way whose second choices the card shows ([AddCard.way]).
+  final AddWhat? way;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
     final page = Theme.of(context).scaffoldBackgroundColor;
+    final card = AddCard(open: open, ways: ways, onPick: onPick, hovered: hovered, drop: dropFrom != null, way: way, onBack: onBack);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: open ? 1 : 0),
       duration: Duration(milliseconds: open ? 260 : 160),
@@ -1159,19 +1292,13 @@ class AddCardOverlay extends StatelessWidget {
         child!,
       ]),
       child: dropFrom != null
-          ? Positioned(
-              left: dropFrom!.dx,
-              top: dropFrom!.dy,
-              bottom: bottom,
-              width: 440,
-              child: AddCard(open: open, ways: ways, onPick: onPick, hovered: hovered, drop: true),
-            )
+          ? Positioned(left: dropFrom!.dx, top: dropFrom!.dy, bottom: bottom, width: 440, child: card)
           : Positioned(
               left: 16,
               right: 16,
               top: MediaQuery.paddingOf(context).top + 12,
               bottom: bottom,
-              child: AddCard(open: open, ways: ways, onPick: onPick, hovered: hovered),
+              child: card,
             ),
     );
   }
