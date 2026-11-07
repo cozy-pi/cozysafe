@@ -340,7 +340,7 @@ class OverviewRow extends StatelessWidget {
                   Row(
                     children: [
                       Flexible(
-                        child: FileNameText(name, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600)),
+                        child: FileNameText(name, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w400)),
                       ),
                       if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],

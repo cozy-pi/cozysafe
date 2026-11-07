@@ -10,7 +10,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
-import '../widgets/steps.dart' show StepProgress;
+import '../widgets/steps.dart' show StepMainButton, StepPage, StepTextButton;
 import '../widgets/edge_swipe_back.dart';
 import '../widgets/password_strength.dart';
 import '../widgets/recovery_words.dart';
@@ -322,7 +322,6 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final page = Theme.of(context).scaffoldBackgroundColor;
-    final ink = Theme.of(context).colorScheme.onSurface;
     final steps = _steps;
     final progress = steps.indexOf(_step);
     final title = switch (_step) {
@@ -362,99 +361,35 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       enabled: _canGoBack,
       follow: true,
       onBack: _back,
+      // The steps' one frame (docs/design-language.md, Steps; 2026-11-07 review: this
+      // flow had its own, centred, with a short button off to the right): Back with the
+      // progress on top, the title big on the left, the main button the page's width.
       child: Scaffold(
       backgroundColor: page,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: VaultBackdrop()),
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                  child: StepProgress(count: steps.length, at: progress),
-                ),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, box) => SingleChildScrollView(
-                      key: ValueKey(_step),
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(minHeight: box.maxHeight),
-                        // In the upper part, not the middle (owner 2026-11-01): the steps
-                        // hold more now, and the room is below them.
-                        child: Align(
-                          alignment: const Alignment(0, -.6),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 380),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(height: 16),
-                                Text(
-                                  title,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: ink, fontSize: CsType.title2, fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  hint,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: ink.withValues(alpha: .78),
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                body,
-                                const SizedBox(height: 16),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Back and each step's main button under the thumbs, large, instead of a
-                // small arrow in the top corner and a button under the fields (owner
-                // 2026-10-25: every button within the thumb's reach). The very first
-                // vault has nothing to cancel back to.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                  child: Row(
-                    children: [
-                      // Face ID's question: its No where Back would be.
-                      if (_step == _Step.biometric)
-                        StepButton(
-                          key: const ValueKey('bio-no'),
-                          label: l.biometricOfferNo,
-                          onTap: _busy ? null : () => _biometricAnswer(false),
-                        )
-                      else if (_canGoBack)
-                        StepButton(
-                          key: const ValueKey('new-vault-back'),
-                          icon: Icons.arrow_back,
-                          label: l.back,
-                          onTap: _back,
-                        )
-                      else if (!widget.first && _vault == null)
-                        StepButton(
-                          key: const ValueKey('new-vault-cancel'),
-                          label: l.cancel,
-                          onTap: _busy ? null : () => Navigator.of(context).maybePop(),
-                        ),
-                      if (_primaryButton(l) case final primary?) ...[
-                        const SizedBox(width: 12),
-                        Expanded(child: Align(alignment: Alignment.centerRight, child: primary)),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
+      body: StepPage(
+        key: ValueKey(_step),
+        title: title,
+        lead: hint,
+        count: steps.length,
+        at: progress,
+        onBack: _canGoBack ? _back : () => Navigator.of(context).maybePop(),
+        actions: [
+          ?_primaryButton(l),
+          // Face ID's question: its No under Yes.
+          if (_step == _Step.biometric)
+            StepTextButton(
+              key: const ValueKey('bio-no'),
+              label: l.biometricOfferNo,
+              onTap: _busy ? null : () => _biometricAnswer(false),
+            )
+          else if (!_canGoBack && !widget.first && _vault == null)
+            StepTextButton(
+              key: const ValueKey('new-vault-cancel'),
+              label: l.cancel,
+              onTap: _busy ? null : () => Navigator.of(context).maybePop(),
             ),
-          ),
         ],
+        body: body,
       ),
     ),
     ),
@@ -475,12 +410,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   /// The step's main button, at the right of the bottom row.
   Widget? _primaryButton(AppLocalizations l) {
-    Widget button(Key key, String label, VoidCallback? onTap) => FilledButton(
-          key: key,
-          style: FilledButton.styleFrom(minimumSize: const Size(140, 52), shape: const StadiumBorder()),
-          onPressed: onTap,
-          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-        );
+    Widget button(Key key, String label, VoidCallback? onTap) => StepMainButton(key: key, label: label, onTap: onTap);
     // The first vault waits for its words to be made (a moment, at the very start).
     final loading = widget.first && _words == null && NewVaultScreen.debugWords == null;
     return switch (_step) {
@@ -603,7 +533,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       final on = _topSecret == topSecret;
       final edge = topSecret ? topSecretRed : privateGreen;
       return Material(
-        color: solidTint(context, (on ? edge : ink).withValues(alpha: on ? .12 : .06)),
+        color: on ? Color.alphaBlend(edge.withValues(alpha: .12), Theme.of(context).cardColor) : Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: on ? edge : Colors.transparent, width: 2),
@@ -664,7 +594,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     Widget choice(bool own, IconData icon, String title, String note) {
       final on = _ownKey == own;
       return Material(
-        color: solidTint(context, ink.withValues(alpha: on ? .1 : .05)),
+        color: on ? Color.alphaBlend(ink.withValues(alpha: .08), Theme.of(context).cardColor) : Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: on ? ink : Colors.transparent, width: 2),
@@ -713,7 +643,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final ink = Theme.of(context).colorScheme.onSurface;
     final google = KeyBackup.google;
     return Material(
-      color: solidTint(context, ink.withValues(alpha: .06)),
+      color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         key: const ValueKey('words-cloud'),

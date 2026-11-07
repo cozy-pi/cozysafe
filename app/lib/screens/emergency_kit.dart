@@ -71,7 +71,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
             decoration: BoxDecoration(
-              color: c.soft,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: c.border),
             ),

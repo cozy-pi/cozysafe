@@ -112,7 +112,7 @@ void main() {
   testWidgets('no mode is chosen for the person: Next waits for a tap', (t) async {
     await _pump(t, _app(const NewVaultScreen(libraryDir: 'lib', first: false)));
     await _settle(t);
-    FilledButton next() => t.widget<FilledButton>(find.byKey(const ValueKey('mode-next')));
+    FilledButton next() => t.widget<FilledButton>(find.descendant(of: find.byKey(const ValueKey('mode-next')), matching: find.byType(FilledButton)));
     expect(next().onPressed, isNull);
     await t.tap(find.byKey(const ValueKey('mode-top-secret')));
     await t.pump();

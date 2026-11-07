@@ -1027,5 +1027,7 @@
   "addChoiceVoice": "Ses",
   "qrConfirmTitle": "Site bu kodu gösteriyor mu?",
   "qrConfirmLead": "Site bitirmek için kod isterse bunu girin. Her 30 saniyede değişir.",
-  "qrPasteAgain": "Tekrar yapıştır"
+  "qrPasteAgain": "Tekrar yapıştır",
+  "stepPasswordTypeLead": "Bu hesapta kullandığınız parolayı yazın veya yapıştırın.",
+  "stepPasswordMake": "Güçlü bir tane oluştur"
 }

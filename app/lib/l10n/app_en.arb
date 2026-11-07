@@ -1362,5 +1362,9 @@
   "qrConfirmLead": "If the site asks for a code to finish, type this one there. It changes every 30 seconds.",
   "@qrConfirmLead": {"description": "Under the question after pasting a bare setup key."},
   "qrPasteAgain": "Paste again",
-  "@qrPasteAgain": {"description": "Second choice when checking a pasted setup key: paste another one."}
+  "@qrPasteAgain": {"description": "Second choice when checking a pasted setup key: paste another one."},
+  "stepPasswordTypeLead": "Type or paste the password you use for this account.",
+  "@stepPasswordTypeLead": {"description": "Password step, shown first: the person types or pastes the password they already use."},
+  "stepPasswordMake": "Make a strong one",
+  "@stepPasswordMake": {"description": "Password step, second choice: fill in a generated strong password instead."}
 }

@@ -116,7 +116,7 @@ class EntryRow extends StatelessWidget {
                         key: ValueKey('entry-name-${item.id}'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600),
+                        style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w400),
                       ),
                     ),
                     if (favorite && item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],

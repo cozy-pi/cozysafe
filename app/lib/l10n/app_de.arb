@@ -1027,5 +1027,7 @@
   "addChoiceVoice": "Sprache",
   "qrConfirmTitle": "Zeigt die Website diesen Code?",
   "qrConfirmLead": "Fragt die Website zum Abschluss nach einem Code, geben Sie diesen dort ein. Er ändert sich alle 30 Sekunden.",
-  "qrPasteAgain": "Erneut einfügen"
+  "qrPasteAgain": "Erneut einfügen",
+  "stepPasswordTypeLead": "Gib das Passwort ein, das du für dieses Konto nutzt, oder füge es ein.",
+  "stepPasswordMake": "Starkes erstellen"
 }

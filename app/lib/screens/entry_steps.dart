@@ -85,9 +85,11 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
 
   /// The site or app picked: a host name ("github.com") or a name typed ("Bank app").
   String _site = '';
-  /// The password was typed or pasted (its strength shows), not generated.
-  bool _ownPassword = false;
-  bool _typing = false;
+  /// The password was typed or pasted (its strength shows), not generated. Typing is
+  /// the first choice (2026-11-07 review: people mostly keep a password they already
+  /// use, and a ready-made one as the big button got saved by mistake).
+  bool _ownPassword = true;
+  bool _typing = true;
   /// The two-factor code taken (from a QR code or a pasted key).
   Totp? _totp;
   /// Showing the field for a setup key (the clipboard held none).
@@ -119,7 +121,6 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _password.text = widget.debugPassword ?? generatePassword();
     final kind = widget.debugKind ?? widget.kind;
     if (kind != null) _choose(kind, quiet: true);
     if (widget.debugStep != null) _step = widget.debugStep!;
@@ -200,9 +201,9 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
     setState(() {
       _cleared = false;
       if (_kind == ItemKind.login) {
-        _password.text = widget.debugPassword ?? generatePassword();
-        _ownPassword = false;
-        _typing = false;
+        _password.clear();
+        _ownPassword = true;
+        _typing = true;
       }
       _saved = _snapshot;
     });
@@ -349,7 +350,7 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
   }
 
   void _generate() {
-    _password.text = generatePassword();
+    _password.text = widget.debugPassword ?? generatePassword();
     _ownPassword = false;
     _typing = false;
     _shown.value = true;
@@ -873,14 +874,20 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
       l,
       steps,
       title: l.stepPasswordTitle,
-      lead: _typing || _ownPassword ? null : l.stepPasswordLead,
+      lead: _ownPassword ? l.stepPasswordTypeLead : l.stepPasswordLead,
       actions: [
         StepMainButton(
           key: const ValueKey('steps-password-use'),
-          label: l.stepPasswordUse,
+          label: _ownPassword ? l.pinNext : l.stepPasswordUse,
           onTap: _password.text.isEmpty ? null : _next,
         ),
-        if (!_typing)
+        if (_ownPassword)
+          StepTextButton(
+            key: const ValueKey('steps-password-make'),
+            label: l.stepPasswordMake,
+            onTap: () => setState(_generate),
+          )
+        else
           StepTextButton(
             key: const ValueKey('steps-password-own'),
             label: l.stepPasswordOwn,
@@ -902,12 +909,13 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
           ],
           const SizedBox(height: 8),
           Wrap(spacing: 4, children: [
-            TextButton.icon(
-              key: const ValueKey('steps-password-again'),
-              onPressed: _generate,
-              icon: const Icon(Sym.autorenew, size: 20),
-              label: Text(l.stepPasswordAgain),
-            ),
+            if (!_ownPassword)
+              TextButton.icon(
+                key: const ValueKey('steps-password-again'),
+                onPressed: () => setState(_generate),
+                icon: const Icon(Sym.autorenew, size: 20),
+                label: Text(l.stepPasswordAgain),
+              ),
             TextButton.icon(
               key: const ValueKey('steps-password-paste'),
               onPressed: _pastePassword,

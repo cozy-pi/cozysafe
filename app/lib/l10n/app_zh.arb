@@ -1027,5 +1027,7 @@
   "addChoiceVoice": "录音",
   "qrConfirmTitle": "网站显示的是这个码吗？",
   "qrConfirmLead": "如果网站要求输入验证码完成设置，请输入这个。它每 30 秒变一次。",
-  "qrPasteAgain": "重新粘贴"
+  "qrPasteAgain": "重新粘贴",
+  "stepPasswordTypeLead": "输入或粘贴你在这个账户上使用的密码。",
+  "stepPasswordMake": "生成强密码"
 }

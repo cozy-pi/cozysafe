@@ -1027,5 +1027,7 @@
   "addChoiceVoice": "녹음",
   "qrConfirmTitle": "사이트에 이 코드가 보이나요?",
   "qrConfirmLead": "사이트가 완료용 코드를 물으면 이 코드를 입력하세요. 30초마다 바뀝니다.",
-  "qrPasteAgain": "다시 붙여넣기"
+  "qrPasteAgain": "다시 붙여넣기",
+  "stepPasswordTypeLead": "이 계정에 쓰는 비밀번호를 입력하거나 붙여 넣으세요.",
+  "stepPasswordMake": "강력한 비밀번호 만들기"
 }

@@ -1027,5 +1027,7 @@
   "addChoiceVoice": "เสียง",
   "qrConfirmTitle": "เว็บแสดงรหัสนี้ไหม",
   "qrConfirmLead": "ถ้าเว็บขอรหัสเพื่อยืนยัน ให้พิมพ์รหัสนี้ รหัสเปลี่ยนทุก 30 วินาที",
-  "qrPasteAgain": "วางอีกครั้ง"
+  "qrPasteAgain": "วางอีกครั้ง",
+  "stepPasswordTypeLead": "พิมพ์หรือวางรหัสผ่านที่คุณใช้กับบัญชีนี้",
+  "stepPasswordMake": "สร้างรหัสผ่านที่รัดกุม"
 }

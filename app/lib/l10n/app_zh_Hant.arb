@@ -1027,5 +1027,7 @@
   "addChoiceVoice": "錄音",
   "qrConfirmTitle": "網站顯示的是這組碼嗎？",
   "qrConfirmLead": "如果網站要求輸入驗證碼完成設定，請輸入這組。每 30 秒會變一次。",
-  "qrPasteAgain": "重新貼上"
+  "qrPasteAgain": "重新貼上",
+  "stepPasswordTypeLead": "輸入或貼上你在這個帳號使用的密碼。",
+  "stepPasswordMake": "產生強密碼"
 }

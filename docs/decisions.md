@@ -6,6 +6,24 @@ depends on memory. Details live in the linked docs; this page is the index.
 How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
 [cryptography.md](cryptography.md).
 
+## 2026-11-07 — A look-and-feel review, tried on a branch
+
+**Owner (2026-11-07):** the app does not look good or friendly enough yet; have it
+reviewed. Three people played on the real screenshots (an older user, a security-minded
+one, a first-time one) and a designer read the screens against this design language.
+Their common points, tried on the `ui-refresh` branch for the owner to compare:
+- Grouped everywhere: light pages grey with white cards (white cards a shade of grey on
+  white did not stand apart); the big title of Settings 34 as on every tab; row names
+  17 regular; buttons round-ended.
+- The tabs in one ink with a word under each (five colours and no words: people could
+  not tell the tabs apart). Reverses the tab colours of 2026-10-31.
+- A login's password step opens on typing the password in use; making one is second.
+- Creating a vault in the steps' frame (`StepPage`), the title no longer centred and lost.
+- The add card alone in the middle mode too; Keep as big as Delete for the originals.
+Kept as decided (the owner may revisit): pairing by a 3-digit number that goes on by
+itself after 5 seconds; the lock button only in the Library (hold home to lock); a Top
+Secret vault opening a file in another app.
+
 ## 2026-11-06 — Passwords and two-factor codes; a post-quantum rule; technical docs
 
 **Owner (2026-11-06):** a password and 2FA store, the storage format agreed first;

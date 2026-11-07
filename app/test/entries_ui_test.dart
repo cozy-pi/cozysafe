@@ -437,11 +437,15 @@ void main() {
     await _settle(t, 2);
     await t.tap(find.byKey(const ValueKey('steps-account-0')));
     await _settle(t, 2);
-    // Generated, masked until the eye.
-    expect(find.text('gen-erated-1'), findsNothing);
+    // Typing comes first; a strong one on request.
+    expect(find.byKey(const ValueKey('steps-password-input')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('steps-password-make')));
+    await t.pump();
+    // Made on request, so shown at once (the person asked for it); the eye hides it.
+    expect(find.text('gen-erated-1'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('steps-password-eye')));
     await t.pump();
-    expect(find.text('gen-erated-1'), findsOneWidget);
+    expect(find.text('gen-erated-1'), findsNothing);
     await t.tap(find.byKey(const ValueKey('steps-password-use')));
     await _settle(t, 2);
     await t.tap(find.byKey(const ValueKey('steps-2fa-skip')));
@@ -565,6 +569,8 @@ void main() {
       await _settle(t, 2);
       await t.tap(find.byKey(const ValueKey('steps-skip')));
       await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-password-make')));
+      await t.pump();
       await t.tap(find.byKey(const ValueKey('steps-password-use')));
       await _settle(t, 2);
       await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
@@ -760,6 +766,8 @@ void main() {
     await t.pump();
     await t.tap(find.byKey(const ValueKey('steps-next')));
     await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-password-make')));
+    await t.pump();
     await t.tap(find.byKey(const ValueKey('steps-password-eye')));
     await t.pump();
     await LockGuard.beforeLock!();

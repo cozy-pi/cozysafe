@@ -1041,5 +1041,7 @@
   "addChoiceVoice": "Ghi âm",
   "qrConfirmTitle": "Trang web có hiện mã này không?",
   "qrConfirmLead": "Nếu trang web hỏi mã để hoàn tất, hãy nhập mã này vào đó. Mã đổi sau mỗi 30 giây.",
-  "qrPasteAgain": "Dán lại"
+  "qrPasteAgain": "Dán lại",
+  "stepPasswordTypeLead": "Gõ hoặc dán mật khẩu bạn đang dùng cho tài khoản này.",
+  "stepPasswordMake": "Tạo mật khẩu mạnh"
 }

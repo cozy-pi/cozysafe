@@ -334,6 +334,7 @@ class _CentreTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final primary = Theme.of(context).colorScheme.primary;
+    final ink = Theme.of(context).colorScheme.onSurface;
     Widget tab(VaultSection s) {
       final on = s == section;
       return Expanded(
@@ -355,17 +356,34 @@ class _CentreTabs extends StatelessWidget {
                       HapticFeedback.heavyImpact();
                       onHoldHome!();
                     },
-              child: Center(
-                // A small pop as it becomes the one on show (the pill slides under it).
-                child: AnimatedScale(
-                  scale: on ? 1.08 : 1,
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutBack,
-                  child: s == VaultSection.home && home != null
-                      ? home!
-                      // Each tab in its section's colour (owner 2026-10-31), brighter on show.
-                      : Icon(_icon(s), size: 28, color: on ? sectionColor(s) : sectionColor(s).withValues(alpha: .7)),
-                ),
+              // One ink, as the phone's own tab bars: the tab on show full ink, the
+              // others faded; a small word under each icon, so no tab has to be guessed.
+              // The section colours stay where kinds are counted (overview, storage).
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: 30,
+                    child: Center(
+                      child: s == VaultSection.home && home != null
+                          ? home!
+                          : Icon(_icon(s), size: 26, color: on ? ink : ink.withValues(alpha: .5)),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    sectionLabel(l, s),
+                    maxLines: 1,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                    textScaler: TextScaler.noScaling,
+                    style: TextStyle(
+                      fontSize: CsType.caption2,
+                      fontWeight: on ? FontWeight.w700 : FontWeight.w500,
+                      color: on ? ink : ink.withValues(alpha: .6),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -388,7 +406,7 @@ class _CentreTabs extends StatelessWidget {
       // Where the lit pill sits: under the section on show, sliding from one to the
       // next (owner 2026-10-24: "like Instagram").
       final i = sections.indexOf(section);
-      const pillW = 52.0, pillH = Ui.bar - 12;
+      const pillW = 64.0, pillH = Ui.bar - 6;
       final double? pillX = i < 0 ? null : tabX(i) + (tabW(i) - pillW) / 2;
       return Stack(
         alignment: Alignment.center,
@@ -404,7 +422,7 @@ class _CentreTabs extends StatelessWidget {
               child: DecoratedBox(
                 key: const ValueKey('tab-pill'),
                 decoration: BoxDecoration(
-                  color: primary.withValues(alpha: .16),
+                  color: primary.withValues(alpha: .10),
                   borderRadius: BorderRadius.circular(pillH / 2),
                 ),
               ),

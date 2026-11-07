@@ -269,6 +269,7 @@ class _Fake implements RustLibApi {
     if (n.contains('ChooseMode')) return true;
     if (n.contains('QrMatrix')) return QrMatrix(size: 29, dark: [for (final c in _qrBits.split('')) c == '1']);
     if (n.contains('P2PCodeAddress')) return '192.168.1.37';
+    if (n.contains('ListVaults')) return Future<List<VaultSlot>>.value(const []);
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_itemsNow ?? _items);
     if (n.contains('ListHeld')) return Future<List<ItemInfo>>.value(_noTrash ? const [] : _trashHeld);
     if (n.contains('ListTrash')) return Future<List<ItemInfo>>.value(_noTrash ? const [] : _trash);
@@ -518,6 +519,7 @@ void _screen(String name, String caption, Widget Function() home,
       TopSecretMode.on = _topSecretShot(name);
       NewVaultScreen.debugSkipMode = false;
       TopSecretMode.debugClosesItself = false; // the owner's iPhone
+      BiometricUnlock.debugKind = BiometricKind.face; // a screen that wants a fingerprint sets it
       // A MacBook or Windows frame is a computer: Finder-style rows and toolbar.
       if (size.width >= 1280) Device.debugDesktop = true;
       setup?.call();
@@ -781,15 +783,6 @@ void main() {
           await t.pumpAndSettle();
         });
   }
-  _screen('mac-home-cloud', 'MacBook · Tổng quan: bấm đám mây xanh',
-      home, section: 'home', size: mac, setup: () {
-        SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|drive|Google Drive|ok|12|3'];
-        drive();
-      },
-      act: (t) async {
-        await t.tap(find.byKey(const ValueKey('home-sync-ok')));
-        await t.pumpAndSettle();
-      });
   _screen('mac-add', 'MacBook · bấm Thêm vào két', home,
       section: 'library', size: mac, setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
       act: (t) async {
@@ -924,7 +917,10 @@ void main() {
     await tapStep(t, 'steps-kind-login');
     if (steps > 0) await tapStep(t, 'steps-site-github.com');
     if (steps > 1) await tapStep(t, 'steps-account-0');
-    if (steps > 2) await tapStep(t, 'steps-password-use');
+    if (steps > 2) {
+      await tapStep(t, 'steps-password-make');
+      await tapStep(t, 'steps-password-use');
+    }
     if (steps > 3) await tapStep(t, 'steps-qr-scan');
   }
   for (final narrow in [false, true]) {
@@ -1797,7 +1793,7 @@ void main() {
   });
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
       act: (t) async {
-    await t.scrollUntilVisible(find.text('Chặn chụp màn hình'), 200, scrollable: find.byType(Scrollable).first);
+    await t.scrollUntilVisible(find.text('Tự khoá'), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
   });
   _screen('identity-card', 'Cài đặt · Đổi biểu tượng và màu', () => Builder(builder: (context) {

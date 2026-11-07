@@ -1027,5 +1027,7 @@
   "addChoiceVoice": "Voz",
   "qrConfirmTitle": "O site mostra este código?",
   "qrConfirmLead": "Se o site pedir um código para concluir, digite este. Ele muda a cada 30 segundos.",
-  "qrPasteAgain": "Colar de novo"
+  "qrPasteAgain": "Colar de novo",
+  "stepPasswordTypeLead": "Digite ou cole a senha que você usa nesta conta.",
+  "stepPasswordMake": "Criar uma forte"
 }
