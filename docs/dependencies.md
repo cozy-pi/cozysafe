@@ -11,7 +11,7 @@ Every third-party package Cozy Safe is built from, grouped by how much harm a bu
 | 1 | Reads data from outside | 4 | 12 | 0 | 16 |
 | 2 | Native code in the app | 4 | 38 | 8 | 50 |
 | 3 | Other code in the app | 120 | 81 | 0 | 201 |
-| 4 | Build, test and tooling only | 60 | 19 | 0 | 79 |
+| 4 | Build, test and tooling only | 59 | 19 | 0 | 78 |
 
 Plus 443 Gradle artifacts in 151 groups (Android build tools and libraries, [below](#android-gradle)).
 
@@ -75,7 +75,11 @@ Last review: **2026-10-28**.
 | removed | Rust zeroize_derive | 1.5.0 |
 | removed | Rust zxcvbn | 3.1.1 |
 | updated | Rust ctutils | 0.4.4 → 0.4.8 |
+| updated | Rust libsqlite3-sys | 0.38.2 → 0.39.1 |
 | updated | Rust rand_core | 0.6.4 → 0.10.1, 0.6.4 |
+| updated | Rust rusqlite | 0.40.2 → 0.41.0 |
+| updated | Rust rustix | 1.1.5 → 1.1.6 |
+| updated | Rust windows-sys | 0.52.0, 0.61.2 → 0.52.0 |
 
 ## Tier 1: Reads data from outside
 
@@ -145,7 +149,7 @@ Plugins and SDKs in Kotlin/Java, Swift/Objective-C or C/C++, and Rust crates tha
 | Dart [url_launcher_windows](https://pub.dev/packages/url_launcher_windows/versions/3.1.6) | 3.1.6 | 2026-08-28 | share_plus | flutter.dev | native code (plugin, FFI or build hook) |
 | Dart [win32](https://pub.dev/packages/win32/versions/6.4.0) | 6.4.0 | 2026-08-05 | package_info_plus | halildurmus.dev | native code (plugin, FFI or build hook) |
 | Rust [dart-sys](https://crates.io/crates/dart-sys/4.1.5) | 4.1.5 | 2024-03-09 | flutter_rust_bridge | OptimisticPeach, gutenfries | compiles C or links a system library; cackle: unsafe, build: fs |
-| Rust [libsqlite3-sys](https://crates.io/crates/libsqlite3-sys/0.38.2) | 0.38.2 | 2026-08-08 | rusqlite | gwenn, thomcc | compiles C or links a system library; cackle: unsafe, build: fs |
+| Rust [libsqlite3-sys](https://crates.io/crates/libsqlite3-sys/0.39.1) | 0.39.1 | 2026-10-25 | rusqlite | gwenn, thomcc | compiles C or links a system library; cackle: unsafe, build: fs |
 | Rust [oslog](https://crates.io/crates/oslog/0.2.0) | 0.2.0 | 2022-02-17 | flutter_rust_bridge | madsmtm, steven-joruk | compiles C or links a system library |
 | Rust [ring](https://crates.io/crates/ring/0.17.14) | 0.17.14 | 2025-03-11 | direct | briansmith | compiles C or links a system library; cackle: unsafe, build: fs, build: process |
 | Swift [app-check](https://github.com/google/app-check) | 11.3.2 |  | google_sign_in (iOS, macOS) | google | native SDK (Swift Package Manager) |
@@ -339,7 +343,7 @@ Rust and Dart that ships in the app.
 | Rust [regex](https://crates.io/crates/regex/1.13.1) | 1.13.1 | 2026-07-15 | env_filter | BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner | cackle: unsafe |
 | Rust [regex-automata](https://crates.io/crates/regex-automata/0.4.18) | 0.4.18 | 2026-08-04 | regex | BurntSushi, rust-lang-owner | cackle: unsafe |
 | Rust [regex-syntax](https://crates.io/crates/regex-syntax/0.8.11) | 0.8.11 | 2026-06-09 | regex | BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner |  |
-| Rust [rusqlite](https://crates.io/crates/rusqlite/0.40.2) | 0.40.2 | 2026-08-08 | direct | gwenn, thomcc | cackle: unsafe, fs |
+| Rust [rusqlite](https://crates.io/crates/rusqlite/0.41.0) | 0.41.0 | 2026-10-24 | direct | gwenn, thomcc | cackle: unsafe, fs |
 | Rust [rustc-demangle](https://crates.io/crates/rustc-demangle/0.1.28) | 0.1.28 | 2026-07-08 | backtrace | rust-lang-owner | cackle: unsafe |
 | Rust [rustls-pki-types](https://crates.io/crates/rustls-pki-types/1.15.1) | 1.15.1 | 2026-07-23 | rustls | djc, github:rustls:publishers | cackle: unsafe |
 | Rust [scopeguard](https://crates.io/crates/scopeguard/1.2.0) | 1.2.0 | 2023-07-17 | lock_api | Amanieu, bluss |  |
@@ -373,7 +377,7 @@ Rust and Dart that ships in the app.
 
 Never ships in the app, but runs on the build machines (build scripts, proc macros, code generators, test frameworks).
 
-<details><summary>79 packages</summary>
+<details><summary>78 packages</summary>
 
 | Package | Version | Released | Comes in through | Owners / publisher | Notes |
 |---|---|---|---|---|---|
@@ -425,7 +429,7 @@ Never ships in the app, but runs on the build machines (build scripts, proc macr
 | Rust [redox_syscall](https://crates.io/crates/redox_syscall/0.5.18) | 0.5.18 | 2025-10-04 |  | 4lDO2, jackpot51 | in the lock file, but built for none of the platforms the app ships on |
 | Rust [rsqlite-vfs](https://crates.io/crates/rsqlite-vfs/0.1.1) | 0.1.1 | 2026-05-19 |  | Spxg | in the lock file, but built for none of the platforms the app ships on |
 | Rust [rustc_version](https://crates.io/crates/rustc_version/0.4.1) | 0.4.1 | 2024-08-28 | curve25519-dalek | Kimundi, djc |  |
-| Rust [rustix](https://crates.io/crates/rustix/1.1.5) | 1.1.5 | 2026-09-16 | tempfile | sunfishcode |  |
+| Rust [rustix](https://crates.io/crates/rustix/1.1.6) | 1.1.6 | 2026-10-27 | tempfile | sunfishcode |  |
 | Rust [rustversion](https://crates.io/crates/rustversion/1.0.23) | 1.0.23 | 2026-07-07 |  | dtolnay | in the lock file, but built for none of the platforms the app ships on |
 | Rust [semver](https://crates.io/crates/semver/1.0.28) | 1.0.28 | 2026-04-04 | rustc_version | dtolnay |  |
 | Rust [serde_derive](https://crates.io/crates/serde_derive/1.0.229) | 1.0.229 | 2026-07-18 | serde | dtolnay, github:serde-rs:publish |  |
@@ -445,17 +449,16 @@ Never ships in the app, but runs on the build machines (build scripts, proc macr
 | Rust [wasm-bindgen-macro-support](https://crates.io/crates/wasm-bindgen-macro-support/0.2.129) | 0.2.129 | 2026-09-25 |  | RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford | in the lock file, but built for none of the platforms the app ships on |
 | Rust [wasm-bindgen-shared](https://crates.io/crates/wasm-bindgen-shared/0.2.129) | 0.2.129 | 2026-09-25 |  | RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford | in the lock file, but built for none of the platforms the app ships on |
 | Rust [web-sys](https://crates.io/crates/web-sys/0.3.106) | 0.3.106 | 2026-09-25 |  | RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford | in the lock file, but built for none of the platforms the app ships on |
-| Rust [windows-sys](https://crates.io/crates/windows-sys/0.52.0) | 0.52.0 | 2023-11-15 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
-| Rust [windows-sys](https://crates.io/crates/windows-sys/0.61.2) | 0.61.2 | 2025-10-06 | tempfile | kennykerr |  |
-| Rust [windows-targets](https://crates.io/crates/windows-targets/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
+| Rust [windows-sys](https://crates.io/crates/windows-sys/0.52.0) | 0.52.0 | 2023-11-15 | tempfile | kennykerr |  |
+| Rust [windows-targets](https://crates.io/crates/windows-targets/0.52.6) | 0.52.6 | 2024-07-03 | windows-sys | kennykerr |  |
 | Rust [windows_aarch64_gnullvm](https://crates.io/crates/windows_aarch64_gnullvm/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
 | Rust [windows_aarch64_msvc](https://crates.io/crates/windows_aarch64_msvc/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
 | Rust [windows_i686_gnu](https://crates.io/crates/windows_i686_gnu/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
 | Rust [windows_i686_gnullvm](https://crates.io/crates/windows_i686_gnullvm/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
 | Rust [windows_i686_msvc](https://crates.io/crates/windows_i686_msvc/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
-| Rust [windows_x86_64_gnu](https://crates.io/crates/windows_x86_64_gnu/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
+| Rust [windows_x86_64_gnu](https://crates.io/crates/windows_x86_64_gnu/0.52.6) | 0.52.6 | 2024-07-03 | windows-targets | kennykerr |  |
 | Rust [windows_x86_64_gnullvm](https://crates.io/crates/windows_x86_64_gnullvm/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
-| Rust [windows_x86_64_msvc](https://crates.io/crates/windows_x86_64_msvc/0.52.6) | 0.52.6 | 2024-07-03 |  | kennykerr | in the lock file, but built for none of the platforms the app ships on |
+| Rust [windows_x86_64_msvc](https://crates.io/crates/windows_x86_64_msvc/0.52.6) | 0.52.6 | 2024-07-03 | windows-targets | kennykerr |  |
 
 </details>
 
