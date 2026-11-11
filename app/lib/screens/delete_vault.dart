@@ -200,7 +200,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
   /// to be deleted in [VaultManagerScreen.forgotWait] unless opened with its password.
   Future<void> _schedule() async {
     final l = AppLocalizations.of(context);
-    if (!await confirmOwnerForSetting(l.vaultScheduleTitle, context: context) || !mounted) return;
+    if (!await confirmOwnerForSetting(l.vaultScheduleTitle, context: context, always: true) || !mounted) return;
     final yes = await showModalBottomSheet<bool>(
       context: context,
       builder: (context) => SafeArea(

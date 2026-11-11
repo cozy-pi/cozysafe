@@ -551,6 +551,30 @@ void main() {
       expect(find.byType(UnlockScreen), findsOneWidget);
     });
 
+    testWidgets('on: sent out by the app (a copied password), back in time stays open; never back locks', (t) async {
+      await open(t);
+      LockGuard.allowAway(LockGuard.afterCopy);
+      await leave(t);
+      await comeBack(t);
+      expect(find.byType(UnlockScreen), findsNothing, reason: 'back for the 2FA code at once');
+      LockGuard.allowAway(LockGuard.afterCopy);
+      await leave(t);
+      await t.pump(LockGuard.afterCopy + const Duration(seconds: 1));
+      await comeBack(t);
+      expect(find.byType(UnlockScreen), findsOneWidget, reason: 'the time given ran out in the background');
+    });
+
+    testWidgets('playing a video or recording counts as use', (t) async {
+      await open(t);
+      var used = 0;
+      final keep = LockGuard.onActivity;
+      LockGuard.onActivity = () => used++;
+      addTearDown(() => LockGuard.onActivity = keep);
+      LockGuard.playing();
+      LockGuard.playing(); // the player's next update: passed on once, not every frame
+      expect(used, 1);
+    });
+
     testWidgets('on (the default): leaving locks at once', (t) async {
       expect(Settings.lockOnLeave, isTrue);
       await open(t);

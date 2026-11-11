@@ -6,6 +6,17 @@ depends on memory. Details live in the linked docs; this page is the index.
 How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
 [cryptography.md](cryptography.md).
 
+## 2026-11-11 — Stop interrupting: what locks, and when
+
+**Owner (2026-11-11):** the app does not feel good to use, without knowing where. Three
+agents read the code (everyday tasks, interruptions, interaction); the strongest common
+point was the vault locking in the middle of what the person was doing. Approved, on the
+`ui-refresh` branch: a playing video or recording is use; a picker gets 10 minutes, a
+copied password 2 minutes away (not in Top Secret Mode); one owner check covers the next
+settings for 2 minutes (not the Recovery Key, deleting, or Top Secret); opening again
+after leaving for a moment is a quick fade, and reduced motion drops the icon reveal.
+Details: [security.md](security.md), leaving and security settings.
+
 ## 2026-11-07 — A look-and-feel review, tried on a branch
 
 **Owner (2026-11-07):** the app does not look good or friendly enough yet; have it

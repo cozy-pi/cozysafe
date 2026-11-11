@@ -8,16 +8,42 @@ import 'package:flutter/services.dart';
 /// the vault) and typing, which on phones produces no pointer or key events.
 ///
 /// When the app itself sends the person to another app (share sheet, file or photo
-/// picker), the vault stays open for 60 seconds: docs/ui.md, locking.
+/// picker), the vault stays open for a while: 60 seconds unless the caller says how
+/// long ([forPicking], [afterCopy]); docs/security.md, leaving.
 abstract final class LockGuard {
   static DateTime? _until;
-  static void allowAway() => _until = DateTime.now().add(const Duration(seconds: 60));
+  static void allowAway([Duration time = const Duration(seconds: 60)]) => _until = DateTime.now().add(time);
   static bool get away => _until != null && DateTime.now().isBefore(_until!);
+  /// Until when leaving is allowed (null: it is not); read as the app leaves, so coming
+  /// back is measured against the time it was given, not a fixed 60 seconds.
+  static DateTime? get until => _until;
   static void clear() => _until = null;
+
+  /// A photo or file picker: as long as the person needs to choose, with a cap (2026-11-11
+  /// review: past 60 seconds the vault locked and the photos chosen were lost).
+  static const forPicking = Duration(minutes: 10);
+
+  /// After a password, account or code is copied: time to paste it in the app that asks
+  /// and come back for the next one (2026-11-11 review: copy the password, paste it in
+  /// Safari, back for the 2FA code meant Face ID and the opening again). Not in Top
+  /// Secret Mode, which locks as it leaves.
+  static const afterCopy = Duration(minutes: 2);
 
   /// Set by the open vault screen; called on every touch and keystroke.
   static void Function()? onActivity;
   static void activity() => onActivity?.call();
+
+  static DateTime? _played;
+
+  /// A video or recording playing is use, as recording is (2026-11-11 review: a long
+  /// video locked the vault mid-way, nobody touches the screen while watching). Called
+  /// on the player's every update; passed on at most every 15 seconds.
+  static void playing() {
+    final now = DateTime.now();
+    if (_played != null && now.difference(_played!) < const Duration(seconds: 15)) return;
+    _played = now;
+    activity();
+  }
 
   /// Set by a screen holding unsaved text (the note editor): the vault calls it
   /// before locking so nothing typed is lost.

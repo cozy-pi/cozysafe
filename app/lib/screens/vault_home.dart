@@ -150,7 +150,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// being recorded, a note being written), until another is picked.
   bool _keepSection = false;
   /// The vault's icon after unlocking: on unless turned off in Settings.
-  late final bool _revealOn = VaultHomeScreen.debugReveal && revealIconOn();
+  late final bool _revealOn = VaultHomeScreen.debugReveal &&
+      revealIconOn() &&
+      // Reduced motion: no icon coming and going before the content.
+      !WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
   /// The + column is open; [_hover] is the way under a finger sliding up from +.
   bool _adding = false;
   /// The column stays on screen while it closes.
@@ -456,11 +459,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       if (!mounted) return;
       // A sync waiting or running counts as use: nobody touches the phone while it works.
       if (Awake.busy) return _touch();
-      if (!LockGuard.away) _lock();
+      // Allowed away (just copied a password): it counts as use, the wait starts again.
+      if (LockGuard.away) return _touch();
+      _lock();
     });
   }
 
   Duration get _awayLimit => Duration(minutes: Settings.autoLockMinutes);
+  /// Until when the app had allowed leaving, as it left ([LockGuard.until]).
+  DateTime? _awayUntil;
 
   /// A computer's window hidden this long counts as leaving (see didChangeAppLifecycleState).
   static const _windowGrace = Duration(seconds: 3);
@@ -469,6 +476,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
       if (_locked || _away != null) return;
+      _awayUntil = LockGuard.away ? LockGuard.until : null;
       final leaveLocks = Settings.lockOnLeave;
       // Leaving locks at once (the default), unless the app itself sent the person out.
       // On a computer the window reports itself hidden for a moment while it is resized,
@@ -480,6 +488,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         _idleTimer?.cancel();
         _awayTimer?.cancel();
         _awayTimer = Timer(_windowGrace, () {
+          if (mounted && _away != null) _lock(animate: false);
+        });
+        return;
+      }
+      // Sent out by the app (a picker, a copy): it locks when that time is up even if the
+      // person never comes back, so the vault is not left open in the background.
+      final until = _awayUntil;
+      if (leaveLocks && until != null) {
+        _idleTimer?.cancel();
+        _awayTimer?.cancel();
+        _awayTimer = Timer(until.difference(DateTime.now()), () {
           if (mounted && _away != null) _lock(animate: false);
         });
         return;
@@ -499,9 +518,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       _awayTimer?.cancel();
       LockGuard.clear();
       // Back in time: the vault shows again. Too late: it locks before anything shows.
+      // Sent out by the app itself (a picker, a copy): the time it was given counts, on a
+      // computer too (its 3-second window grace is for resizing, not for a picker).
+      final allowed = _awayUntil;
+      _awayUntil = null;
+      final late = allowed == null || DateTime.now().isAfter(allowed);
       final tooLong = Settings.lockOnLeave
-          ? gone > (Device.desktop ? _windowGrace : const Duration(seconds: 60))
-          : gone >= _awayLimit;
+          ? (allowed != null ? late : gone > (Device.desktop ? _windowGrace : const Duration(seconds: 60)))
+          : gone >= _awayLimit && late;
       if (tooLong) {
         _lock(animate: false);
       } else {
@@ -536,6 +560,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     _idleTimer?.cancel();
     _awayTimer?.cancel();
     _away = null;
+    _awayUntil = null;
+    // Whatever leave the app had given ends with the lock.
+    LockGuard.clear();
+    forgetOwnerCheck();
     final nav = Navigator.of(context);
     void go() async {
       // The pages kept under the lock let go first: players pause, typed passwords and
@@ -795,7 +823,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<void> _import({required bool photos}) async {
     final l = AppLocalizations.of(context);
-    LockGuard.allowAway();
+    LockGuard.allowAway(LockGuard.forPicking);
     try {
       final picking = Stopwatch()..start();
       final batch = await Originals.pick(photos: photos);
@@ -990,7 +1018,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       );
 
   Future<void> _showKit() async {
-    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings, context: context) || !mounted) return;
+    if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings, context: context, always: true) || !mounted) return;
     // Face ID, then the vault password too: the 24 words are half of what opens the vault
     // anywhere (owner 2026-10-24).
     String? password = await KitPasswordScreen.ask(context, widget.libraryDir);

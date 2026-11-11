@@ -7,11 +7,13 @@ import '../entries/secure_clipboard.dart';
 import '../entries/totp.dart';
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
+import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../note_format.dart' show safeLink;
 import '../platform.dart';
 import '../src/rust/api/history.dart' as hist;
 import '../src/rust/api/vault.dart' as rust;
+import '../top_secret_mode.dart';
 import '../theme.dart';
 import '../widgets/bottom_bar.dart';
 import '../widgets/confirm_delete.dart';
@@ -50,6 +52,9 @@ String groupedCode(String code) {
 Future<void> copySecret(BuildContext context, String text) async {
   final l = AppLocalizations.of(context);
   await SecureClipboard.copy(text);
+  // Time to paste it in the app that asks and come back for the next one; Top Secret
+  // Mode still locks as it leaves.
+  if (!TopSecretMode.on) LockGuard.allowAway(LockGuard.afterCopy);
   if (!context.mounted) return;
   final s = SecureClipboard.seconds;
   showToast(context, s == 0 ? l.detailsCopied : l.entryCopied(s), icon: Icons.copy_rounded);

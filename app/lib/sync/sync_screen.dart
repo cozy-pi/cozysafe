@@ -332,7 +332,7 @@ class _SyncScreenState extends State<SyncScreen> {
     final l = AppLocalizations.of(context);
     final id = rust.openVaultInfo()?.id;
     if (id == null) return;
-    if (!await confirmOwnerForSetting(l.driveDeleteTitle, context: context) || !mounted) return;
+    if (!await confirmOwnerForSetting(l.driveDeleteTitle, context: context, always: true) || !mounted) return;
     final ok = await confirmDelete(context,
         title: l.driveDeleteTitle, body: l.driveDeleteBody, action: l.driveDeleteRow, icon: Icons.cloud_off_rounded);
     if (!ok || !mounted) return;

@@ -9,8 +9,11 @@ adding a screen, a setting or anything that shows a secret. Encryption itself is
 ## Security settings ask for the owner
 
 Anything that weakens or reveals the vault's protection asks for Face ID, fingerprint or
-the phone's passcode first (`confirmOwnerForSetting` in `app/lib/biometric.dart`), every
-time, wherever it is opened from:
+the phone's passcode first (`confirmOwnerForSetting` in `app/lib/biometric.dart`),
+wherever it is opened from. One check covers the next settings for 2 minutes
+(`ownerGrace`, 2026-11-11 review: Face ID for every row, one after another), ended by
+the vault locking; never for the Recovery Key, deleting the vault or deleting it from
+Google Drive (`always: true`), and never in Top Secret Mode, which asks every time:
 
 | Setting | Where the check is |
 |---|---|
@@ -56,8 +59,15 @@ that needs a provisioning profile the Developer ID build does not have. Instead:
 
 
 - **Leaving locks at once** by default (`vault_home.dart`, `didChangeAppLifecycleState`),
-  except for 60 s when the app itself opened a picker, the camera or the share sheet
-  (`LockGuard.allowAway`), ended as soon as it returns (`LockGuard.clear`). The 2FA QR
+  except for a while when the app itself sent the person out (`LockGuard.allowAway`),
+  ended as soon as it returns (`LockGuard.clear`) and by the vault locking: 60 s for the
+  share sheet, a link or the system's own question; 10 minutes for a photo or file
+  picker (`LockGuard.forPicking`; past 60 s the photos chosen were lost); 2 minutes
+  after a password, account or code is copied (`LockGuard.afterCopy`, not in Top Secret
+  Mode), to paste it and come back for the next. Coming back is measured against the
+  time given, on a computer too; never coming back, it locks when that time is up.
+- **Playing is use:** a video or recording playing keeps the idle lock away, as
+  recording and typing do (`LockGuard.playing`, at most every 15 s). The 2FA QR
   photo picker uses it; the 2FA QR camera does not need it: since 0.2.31 it is a page
   inside the app on every phone (the `camera` plugin, as when pairing devices), so the
   app never leaves. In 0.2.30 the iPhone's native camera page over the app counted as

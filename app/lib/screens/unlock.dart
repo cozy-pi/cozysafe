@@ -399,7 +399,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     if (!mounted) return;
     TopSecretMode.opened(vault);
     final nav = Navigator.of(context);
-    await playVaultSpin(context, opening: true,
+    await playVaultSpin(context, opening: true, quick: vault.id == widget.resumeVaultId,
         behind: revealIconOn() ? VaultBadge(icon: vault.icon, color: vault.color, size: 120) : null,
         glow: colorById(vault.color).color, onCovered: () {
       if (vault.id == widget.resumeVaultId) {
