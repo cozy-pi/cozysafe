@@ -80,6 +80,7 @@ Last review: **2026-10-28**.
 | updated | Rust rusqlite | 0.40.2 → 0.41.0 |
 | updated | Rust rustix | 1.1.5 → 1.1.6 |
 | updated | Rust windows-sys | 0.52.0, 0.61.2 → 0.52.0 |
+| owners changed | Rust pkg-config | joshtriplett, rust-lang-owner, sdroege → rust-lang-owner |
 
 ## Tier 1: Reads data from outside
 
@@ -422,7 +423,7 @@ Never ships in the app, but runs on the build machines (build scripts, proc macr
 | Rust [js-sys](https://crates.io/crates/js-sys/0.3.106) | 0.3.106 | 2026-09-25 |  | RReverser, daxpedda, github:wasm-bindgen:wasm-bindgen-publish, guybedford | in the lock file, but built for none of the platforms the app ships on |
 | Rust [linux-raw-sys](https://crates.io/crates/linux-raw-sys/0.12.1) | 0.12.1 | 2025-12-23 | rustix | sunfishcode |  |
 | Rust [md-5](https://crates.io/crates/md-5/0.10.6) | 0.10.6 | 2023-09-22 | flutter_rust_bridge_macros | github:rustcrypto:hashes, newpavlov |  |
-| Rust [pkg-config](https://crates.io/crates/pkg-config/0.3.34) | 0.3.34 | 2026-08-14 | libsqlite3-sys | joshtriplett, rust-lang-owner, sdroege |  |
+| Rust [pkg-config](https://crates.io/crates/pkg-config/0.3.34) | 0.3.34 | 2026-08-14 | libsqlite3-sys | rust-lang-owner |  |
 | Rust [proc-macro2](https://crates.io/crates/proc-macro2/1.0.107) | 1.0.107 | 2026-07-19 | serde_derive | dtolnay |  |
 | Rust [quote](https://crates.io/crates/quote/1.0.47) | 1.0.47 | 2026-07-19 | serde_derive | dtolnay |  |
 | Rust [r-efi](https://crates.io/crates/r-efi/6.0.0) | 6.0.0 | 2026-02-03 |  | dvdhrm | in the lock file, but built for none of the platforms the app ships on |
