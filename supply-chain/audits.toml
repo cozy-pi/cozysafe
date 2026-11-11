@@ -177,6 +177,14 @@ forbid(unsafe_code); KEM traits only (Kem, Encapsulate, Decapsulate, FromSeed) a
 Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
 """
 
+[[audits.libsqlite3-sys]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+delta = "0.38.2 -> 0.39.1"
+notes = """
+build.rs and src/ read in full. Bindings hold only generated consts, structs, type aliases and body-less unsafe extern blocks (no link directives); SQLITE_VERSION 3.54.1. The bundled sqlite3.c, sqlite3.h and sqlite3ext.h are byte-identical to sqlite.org's sqlite-amalgamation-3540100.zip (its published SHA3-256 checked). The bundled build still only copies pre-generated bindings into OUT_DIR and compiles sqlite3/sqlite3.c with cc; the only define change drops the no-op SQLITE_ENABLE_MEMORY_MANAGEMENT. bundled-sqlcipher now takes its source from the sqlcipher-src crate (not enabled here); the rest is edition 2024, minimum SQLite 3.45.3 and more rerun-if-env-changed lines. No network, no writes outside OUT_DIR. Fixes RUSTSEC-2026-0459 (SQLite before 3.54.0). Machine-assisted review of the copy in third_party/rust/ (2026-11-11).
+"""
+
 [[audits.ml-dsa]]
 who = "Cozy Pi <dev@cozypi.com>"
 criteria = "safe-to-deploy"
@@ -222,6 +230,14 @@ Every src/ file read. No unsafe, no dependencies, no features, no OS RNG: traits
 Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
 """
 
+[[audits.rusqlite]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+delta = "0.40.2 -> 0.41.0"
+notes = """
+Every changed src/ hunk compiled with features ["bundled"] (plus the default cache) read; feature-gated hooks, trace, functions, vtab, session, serialize, wal, collation, backup, blob only grepped for I/O. Most of the diff is the edition-2024 move (explicit unsafe blocks, &raw mut) and dropping the pre-3.45 modern_sqlite gates. New safe Connection::file_control takes typed &mut arguments checked against SQLite's per-opcode types; new unsafe set/get_clientdata. The busy handler is now a boxed closure held in SQLite client data and freed by SQLite: sound, except that an out-of-memory inside sqlite3_set_clientdata frees the closure after it was registered (busy_handler(Some) only; cs-core calls busy_timeout alone). pragma_* helpers now check names against pragma_pragma_list (cs-core uses user_version only). No I/O, no build script. Machine-assisted review of the copy in third_party/rust/ (2026-11-11).
+"""
+
 [[audits.rustc_version]]
 who = "Cozy Pi <dev@cozypi.com>"
 criteria = "safe-to-deploy"
@@ -229,6 +245,14 @@ version = "0.4.1"
 notes = """
 Build-time only (curve25519-dalek build script). Every src/ file read. No unsafe, no network, no file writes: runs $RUSTC -vV (through RUSTC_WRAPPER if set) and parses the output with semver.
 Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.rustix]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-run"
+delta = "1.1.5 -> 1.1.6"
+notes = """
+Every changed src/ file read; build.rs unchanged. Contains the RUSTSEC-2026-0486 fix (the get/list xattr functions no longer mark buffer bytes initialised when given a zero-length buffer; new *_query functions for size queries), clamps cmsg_len to the control buffer in RecvAncillaryBuffer, and wraps reserved struct fields in a MaybeUninit Padding type. The rest is 32-bit uid/gid syscall numbers, corrected ST_* and IPV6_MULTICAST_HOPS constants, and cfg and doc changes; nothing spawns processes or touches the network. Test-only (tempfile). Machine-assisted review of the crates.io source (2026-11-11).
 """
 
 [[audits.semver]]

@@ -177,6 +177,14 @@ forbid(unsafe_code); KEM traits only (Kem, Encapsulate, Decapsulate, FromSeed) a
 Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
 """
 
+[[audits.libsqlite3-sys]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+delta = "0.38.2 -> 0.39.1"
+notes = """
+build.rs and src/ read in full. Bindings hold only generated consts, structs, type aliases and body-less unsafe extern blocks (no link directives); SQLITE_VERSION 3.54.1. The bundled sqlite3.c, sqlite3.h and sqlite3ext.h are byte-identical to sqlite.org's sqlite-amalgamation-3540100.zip (its published SHA3-256 checked). The bundled build still only copies pre-generated bindings into OUT_DIR and compiles sqlite3/sqlite3.c with cc; the only define change drops the no-op SQLITE_ENABLE_MEMORY_MANAGEMENT. bundled-sqlcipher now takes its source from the sqlcipher-src crate (not enabled here); the rest is edition 2024, minimum SQLite 3.45.3 and more rerun-if-env-changed lines. No network, no writes outside OUT_DIR. Fixes RUSTSEC-2026-0459 (SQLite before 3.54.0). Machine-assisted review of the copy in third_party/rust/ (2026-11-11).
+"""
+
 [[audits.ml-dsa]]
 who = "Cozy Pi <dev@cozypi.com>"
 criteria = "safe-to-deploy"
@@ -220,6 +228,14 @@ version = "0.10.1"
 notes = """
 Every src/ file read. No unsafe, no dependencies, no features, no OS RNG: traits (TryRng, Rng, CryptoRng, SeedableRng), UnwrapErr, BlockRng and LE helpers only. seed_from_u64 (PCG32) is documented as not for cryptography; nothing in the core calls it. No I/O, no build script.
 Machine-assisted review of the copy in third_party/rust/ (2026-11-06).
+"""
+
+[[audits.rusqlite]]
+who = "Cozy Pi <dev@cozypi.com>"
+criteria = "safe-to-deploy"
+delta = "0.40.2 -> 0.41.0"
+notes = """
+Every changed src/ hunk compiled with features ["bundled"] (plus the default cache) read; feature-gated hooks, trace, functions, vtab, session, serialize, wal, collation, backup, blob only grepped for I/O. Most of the diff is the edition-2024 move (explicit unsafe blocks, &raw mut) and dropping the pre-3.45 modern_sqlite gates. New safe Connection::file_control takes typed &mut arguments checked against SQLite's per-opcode types; new unsafe set/get_clientdata. The busy handler is now a boxed closure held in SQLite client data and freed by SQLite: sound, except that an out-of-memory inside sqlite3_set_clientdata frees the closure after it was registered (busy_handler(Some) only; cs-core calls busy_timeout alone). pragma_* helpers now check names against pragma_pragma_list (cs-core uses user_version only). No I/O, no build script. Machine-assisted review of the copy in third_party/rust/ (2026-11-11).
 """
 
 [[audits.rustc_version]]
