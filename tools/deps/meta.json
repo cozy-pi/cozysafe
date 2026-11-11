@@ -3745,9 +3745,7 @@
    "taiki-e"
   ],
   "pkg-config": [
-   "joshtriplett",
-   "rust-lang-owner",
-   "sdroege"
+   "rust-lang-owner"
   ],
   "poly1305": [
    "github:rustcrypto:macs",
