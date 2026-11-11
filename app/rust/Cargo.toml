@@ -73,7 +73,7 @@ inout = { path = "../../third_party/rust/inout-0.1.4" }
 keccak = { path = "../../third_party/rust/keccak-0.2.2" }
 kem = { path = "../../third_party/rust/kem-0.3.0" }
 libc = { path = "../../third_party/rust/libc-0.2.191" }
-libsqlite3-sys = { path = "../../third_party/rust/libsqlite3-sys-0.38.2" }
+libsqlite3-sys = { path = "../../third_party/rust/libsqlite3-sys-0.39.1" }
 ml-dsa = { path = "../../third_party/rust/ml-dsa-0.1.2" }
 ml-kem = { path = "../../third_party/rust/ml-kem-0.3.4" }
 module-lattice = { path = "../../third_party/rust/module-lattice-0.2.4" }
@@ -86,7 +86,7 @@ poly1305 = { path = "../../third_party/rust/poly1305-0.8.0" }
 rand_core = { path = "../../third_party/rust/rand_core-0.10.1" }
 rand_core_0_6_4 = { package = "rand_core", path = "../../third_party/rust/rand_core-0.6.4" }
 ring = { path = "../../third_party/rust/ring-0.17.14" }
-rusqlite = { path = "../../third_party/rust/rusqlite-0.40.2" }
+rusqlite = { path = "../../third_party/rust/rusqlite-0.41.0" }
 rustc_version = { path = "../../third_party/rust/rustc_version-0.4.1" }
 semver = { path = "../../third_party/rust/semver-1.0.28" }
 sha2 = { path = "../../third_party/rust/sha2-0.11.1" }

@@ -1842,8 +1842,8 @@
    "published": "2026-10-16",
    "published_by": ""
   },
-  "libsqlite3-sys@0.38.2": {
-   "published": "2026-08-08",
+  "libsqlite3-sys@0.39.1": {
+   "published": "2026-10-25",
    "published_by": "gwenn"
   },
   "linux-raw-sys@0.12.1": {
@@ -1998,8 +1998,8 @@
    "published": "2026-05-19",
    "published_by": "Spxg"
   },
-  "rusqlite@0.40.2": {
-   "published": "2026-08-08",
+  "rusqlite@0.41.0": {
+   "published": "2026-10-24",
    "published_by": "gwenn"
   },
   "rustc-demangle@0.1.28": {
@@ -2010,8 +2010,8 @@
    "published": "2024-08-28",
    "published_by": "djc"
   },
-  "rustix@1.1.5": {
-   "published": "2026-09-16",
+  "rustix@1.1.6": {
+   "published": "2026-10-27",
    "published_by": "sunfishcode"
   },
   "rustls-pki-types@1.15.1": {
@@ -2184,10 +2184,6 @@
   },
   "windows-sys@0.52.0": {
    "published": "2023-11-15",
-   "published_by": "kennykerr"
-  },
-  "windows-sys@0.61.2": {
-   "published": "2025-10-06",
    "published_by": "kennykerr"
   },
   "windows-targets@0.52.6": {
@@ -2770,7 +2766,7 @@
    "native": false,
    "via": "ring"
   },
-  "libsqlite3-sys@0.38.2": {
+  "libsqlite3-sys@0.39.1": {
    "direct": false,
    "kind": "runtime",
    "native": true,
@@ -3004,7 +3000,7 @@
    "native": false,
    "via": ""
   },
-  "rusqlite@0.40.2": {
+  "rusqlite@0.41.0": {
    "direct": true,
    "kind": "runtime",
    "native": false,
@@ -3022,7 +3018,7 @@
    "native": false,
    "via": "curve25519-dalek"
   },
-  "rustix@1.1.5": {
+  "rustix@1.1.6": {
    "direct": false,
    "kind": "dev",
    "native": false,
@@ -3282,21 +3278,15 @@
   },
   "windows-sys@0.52.0": {
    "direct": false,
-   "kind": "none",
-   "native": false,
-   "via": ""
-  },
-  "windows-sys@0.61.2": {
-   "direct": false,
    "kind": "dev",
    "native": false,
    "via": "tempfile"
   },
   "windows-targets@0.52.6": {
    "direct": false,
-   "kind": "none",
+   "kind": "dev",
    "native": false,
-   "via": ""
+   "via": "windows-sys"
   },
   "windows_aarch64_gnullvm@0.52.6": {
    "direct": false,
@@ -3330,9 +3320,9 @@
   },
   "windows_x86_64_gnu@0.52.6": {
    "direct": false,
-   "kind": "none",
+   "kind": "dev",
    "native": false,
-   "via": ""
+   "via": "windows-targets"
   },
   "windows_x86_64_gnullvm@0.52.6": {
    "direct": false,
@@ -3342,9 +3332,9 @@
   },
   "windows_x86_64_msvc@0.52.6": {
    "direct": false,
-   "kind": "none",
+   "kind": "dev",
    "native": false,
-   "via": ""
+   "via": "windows-targets"
   },
   "x25519-dalek@3.0.0": {
    "direct": true,
