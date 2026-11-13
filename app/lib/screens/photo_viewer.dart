@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/physics.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 
 import '../item_bytes.dart';
 import '../item_kind.dart';
@@ -72,6 +73,11 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
 
   /// The strip of small photos at the bottom, the one shown in the middle.
   final _stripScroll = ScrollController();
+
+  /// True while a finger moves the strip (and through its fling): the photo above follows
+  /// it, so the strip is not recentred under the finger and photos are not decoded on
+  /// each one passed, only where it stops.
+  bool _stripDriving = false;
 
   /// ⋯: the photo's menu over it; the photo stays.
   Future<void> _more(BuildContext button) async {
@@ -197,7 +203,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
           maxWidth: box.maxWidth + _gap,
           child: NotificationListener<ScrollEndNotification>(
             onNotification: (_) {
-              _around(_index.value);
+              if (!_stripDriving) _around(_index.value);
               return false;
             },
             child: ValueListenableBuilder<bool>(
@@ -211,7 +217,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
                   // A tick for each photo passed, as a wheel clicks (owner 2026-10-29).
                   HapticFeedback.selectionClick();
                   _index.value = i;
-                  _centreStrip(i);
+                  if (!_stripDriving) _centreStrip(i);
                 },
                 itemBuilder: (context, i) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: _gap / 2),
@@ -314,8 +320,26 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
     }
   }
 
-  /// Every photo and video small, as in Photos: tap one to go to it. Blurred like the
-  /// library when thumbnails are hidden (PrivateThumb).
+  /// Scrolling the strip moves the photo above with it, one tick per photo passed (owner
+  /// 2026-11-13); where it stops, it settles on the photo in the middle.
+  bool _onStrip(ScrollNotification n) {
+    if (n is UserScrollNotification) {
+      if (n.direction != ScrollDirection.idle) {
+        _stripDriving = true;
+      } else if (_stripDriving) {
+        _stripDriving = false;
+        _centreStrip(_index.value);
+        _around(_index.value);
+      }
+    } else if (n is ScrollUpdateNotification && _stripDriving && _items.isNotEmpty) {
+      final i = (n.metrics.pixels / _cell).round().clamp(0, _items.length - 1);
+      if (i != _index.value && _pages.hasClients) _pages.jumpToPage(i);
+    }
+    return false;
+  }
+
+  /// Every photo and video small, as in Photos: tap one to go to it, or scroll through
+  /// them. Blurred like the library when thumbnails are hidden (PrivateThumb).
   Widget _strip() => LayoutBuilder(
         builder: (context, box) {
           final pad = (box.maxWidth - _cell) / 2;
@@ -325,32 +349,35 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
           return SizedBox(
             key: const ValueKey('photo-strip'),
             height: 44,
-            child: ListView.builder(
-              controller: _stripScroll,
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: pad),
-              itemExtent: _cell,
-              itemCount: _items.length,
-              itemBuilder: (context, i) => GestureDetector(
-                onTap: () => _pages.jumpToPage(i),
-                child: ValueListenableBuilder<int>(
-                  valueListenable: _index,
-                  builder: (context, at, child) => Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 2, vertical: at == i ? 0 : 4),
-                    child: DecoratedBox(
-                      position: DecorationPosition.foreground,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        border: at == i ? Border.all(color: Colors.white, width: 2) : null,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: _onStrip,
+              child: ListView.builder(
+                controller: _stripScroll,
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: pad),
+                itemExtent: _cell,
+                itemCount: _items.length,
+                itemBuilder: (context, i) => GestureDetector(
+                  onTap: () => _pages.jumpToPage(i),
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _index,
+                    builder: (context, at, child) => Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 2, vertical: at == i ? 0 : 4),
+                      child: DecoratedBox(
+                        position: DecorationPosition.foreground,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          border: at == i ? Border.all(color: Colors.white, width: 2) : null,
+                        ),
+                        child: ClipRRect(borderRadius: BorderRadius.circular(4), child: child),
                       ),
-                      child: ClipRRect(borderRadius: BorderRadius.circular(4), child: child),
                     ),
-                  ),
-                  child: FutureBuilder<Uint8List>(
-                    future: _thumbnail(_items[i].id),
-                    builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                        ? PrivateThumb(snap.data!)
-                        : const ColoredBox(color: Color(0xFF2C2C2E)),
+                    child: FutureBuilder<Uint8List>(
+                      future: _thumbnail(_items[i].id),
+                      builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
+                          ? PrivateThumb(snap.data!)
+                          : const ColoredBox(color: Color(0xFF2C2C2E)),
+                    ),
                   ),
                 ),
               ),

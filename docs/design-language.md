@@ -110,7 +110,9 @@ out as Photos):
 ```
 
 - A photo or video opens straight to full screen; there is no preview box first. The
-  strip shows every photo and video, blurred when thumbnails are hidden.
+  strip shows every photo and video, blurred when thumbnails are hidden. Scrolling the
+  strip moves the photo above with it, a haptic tick per photo passed, and it settles
+  with one photo in the middle.
 - A note, recording or file opens in the box over the page; a tap beside it or a swipe
   down closes it, as Back does. A tap on the item opens it (the editor, the file page).
 - No ×. In Recently deleted: no ⋯; Restore · Info · Delete for good.
