@@ -250,7 +250,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
         if (snap.hasError) {
           final l = AppLocalizations.of(context);
           return Center(
-              child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)));
+              child: Text(withCode(l, l.errorOpen, snap.error!), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)));
         }
         final bytes = snap.data;
         if (bytes == null) return still;

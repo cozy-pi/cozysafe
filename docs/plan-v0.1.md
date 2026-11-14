@@ -1,5 +1,10 @@
 # v0.1: usable on one device, no cloud sync
 
+> **Closed.** This was the plan for the first version (2026-10). Everything in it is
+> built, and so is what it left for later (sync, originals removed after import). Kept
+> for the record; what the app does today is in the [README](../README.md), what is
+> open in [backlog.md](backlog.md).
+
 Goal: someone can keep real documents and photos in Cozy Safe on one phone or
 computer without risk of losing them. Sync comes after v0.1.
 

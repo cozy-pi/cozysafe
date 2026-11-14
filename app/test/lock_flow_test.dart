@@ -227,6 +227,86 @@ void main() {
     expect(find.text('No vault opens with this password.'), findsOneWidget);
   });
 
+  // The lock screen tries a password while it is typed, and counts a miss only later:
+  // closing the app on each miss must not make them free (review 2026-11-14).
+  testWidgets('a wrong password tried while typing counts when the app is closed on it', (t) async {
+    _fake.pinLength = 0;
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    await t.enterText(find.byType(TextField), 'not the password');
+    await t.pump(const Duration(milliseconds: 400));
+    await _settle(t);
+    const store = FlutterSecureStorage();
+    expect(await store.read(key: 'password-fails') ?? '0', '0'); // not yet: it may be typed on
+    // The app goes away and starts again: a new lock screen.
+    await t.pumpWidget(const SizedBox());
+    await _pump(t, _app(UnlockScreen(key: UniqueKey(), libraryDir: 'lib')));
+    await _settle(t);
+    expect(await store.read(key: 'password-fails'), '1');
+    // Counted once, not at every start.
+    await t.pumpWidget(const SizedBox());
+    await _pump(t, _app(UnlockScreen(key: UniqueKey(), libraryDir: 'lib')));
+    await _settle(t);
+    expect(await store.read(key: 'password-fails'), '1');
+  });
+
+  testWidgets('typing on from a quiet miss to the right password counts nothing', (t) async {
+    _fake.pinLength = 0;
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    await t.enterText(find.byType(TextField), _password.substring(0, 14));
+    await t.pump(const Duration(milliseconds: 400));
+    await _settle(t);
+    await t.enterText(find.byType(TextField), _password);
+    await t.pump(const Duration(milliseconds: 400));
+    await _settle(t);
+    expect(find.byType(VaultHomeScreen), findsOneWidget);
+    const store = FlutterSecureStorage();
+    expect(await store.read(key: 'password-fails'), '0');
+    expect(await store.read(key: 'password-quiet-try'), isNull);
+  });
+
+  testWidgets('the wait for wrong passwords shows on the lock screen, typing or not', (t) async {
+    _fake.pinLength = 0;
+    FlutterSecureStorage.setMockInitialValues({'password-fails': '9'});
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    await t.enterText(find.byType(TextField), 'not the password');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await _settle(t);
+    expect(find.textContaining('Too many tries'), findsOneWidget);
+    // Still there while another one is typed: it was cleared at the first key before.
+    final calls = _fake.unlockCalls;
+    await t.enterText(find.byType(TextField), 'another password');
+    await t.pump(const Duration(milliseconds: 400));
+    await _settle(t);
+    expect(find.textContaining('Too many tries'), findsOneWidget);
+    expect(_fake.unlockCalls, calls); // and nothing is tried meanwhile
+    // And on a lock screen opened during the wait.
+    await t.pumpWidget(const SizedBox());
+    await _pump(t, _app(UnlockScreen(key: UniqueKey(), libraryDir: 'lib')));
+    await _settle(t);
+    expect(find.textContaining('Too many tries'), findsOneWidget);
+  });
+
+  testWidgets('the second wrong password says the way back in, with Face ID set', (t) async {
+    _fake
+      ..pinLength = 0
+      ..biometric = true;
+    BiometricUnlock.debugKind = BiometricKind.face;
+    FlutterSecureStorage.setMockInitialValues({'vault-unlock-key': base64Encode(List.filled(32, 5))});
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib', askBiometricNow: false)));
+    await _settle(t);
+    await t.enterText(find.byType(TextField), 'not the password');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await _settle(t);
+    expect(find.byKey(const ValueKey('lock-forgot-hint')), findsNothing);
+    await t.enterText(find.byType(TextField), 'nor this password');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await _settle(t);
+    expect(find.byKey(const ValueKey('lock-forgot-hint')), findsOneWidget);
+  });
+
   testWidgets('locking by hand does not ask for Face ID again at once', (t) async {
     await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
     await t.pump();

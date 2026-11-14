@@ -1029,5 +1029,11 @@
   "qrConfirmLead": "Si le site demande un code pour terminer, saisissez celui-ci. Il change toutes les 30 secondes.",
   "qrPasteAgain": "Coller à nouveau",
   "stepPasswordTypeLead": "Saisissez ou collez le mot de passe que vous utilisez pour ce compte.",
-  "stepPasswordMake": "En créer un robuste"
+  "stepPasswordMake": "En créer un robuste",
+  "forgotPasswordHint": "Oublié ? Ouvrez le coffre avec Face ID ou votre empreinte, puis définissez un nouveau mot de passe dans Réglages.",
+  "importNotAdded": "{count} sur {total} n'ont pas pu être ajoutés.",
+  "importStopped": "Le coffre s'est verrouillé avant la fin de l'ajout : {done} sur {total} y sont. Ajoutez le reste à nouveau.",
+  "errorOpen": "Impossible d'ouvrir ceci. Fermez puis réessayez.",
+  "driveFailed": "Impossible de joindre Google Drive. Vérifiez la connexion internet puis réessayez.",
+  "restoredEnterPassword": "Restauré. Saisissez le mot de passe de ce coffre pour l'ouvrir."
 }

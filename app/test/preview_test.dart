@@ -625,6 +625,33 @@ void main() {
       LaunchHandoff.debugHold = false;
     });
   }
+  // Review 2026-11-14: the wait shows while it lasts; a forgotten password has a way in.
+  _screen('lock-wrong-twice', 'Màn khoá · nhập sai mật khẩu lần thứ hai (máy có Face ID)', lock,
+      change: 'MỚI: từ lần nhập sai thứ hai, nếu két mở được bằng Face ID/vân tay thì màn khoá chỉ đường quay lại: mở bằng Face ID rồi đặt mật khẩu mới trong Cài đặt',
+      marks: [() => find.byKey(const ValueKey('lock-forgot-hint'))],
+      setup: () => BiometricUnlock.debugKind = BiometricKind.face,
+      act: (t) async {
+    for (final wrong in ['mat khau sai mot', 'mat khau sai hai']) {
+      await t.enterText(find.byType(TextField).first, wrong);
+      await t.testTextInput.receiveAction(TextInputAction.done);
+      for (var i = 0; i < 4; i++) {
+        await t.pump(const Duration(milliseconds: 300));
+      }
+    }
+  });
+  _screen('lock-wait', 'Màn khoá · sai quá nhiều lần: thời gian chờ hiện suốt, kể cả khi đang gõ', lock,
+      change: 'SỬA: thời gian chờ sau khi sai mật khẩu nhiều lần hiện ngay trên màn khoá và đếm lùi (trước chỉ hiện sau khi bấm Xong, gõ tiếp là mất)',
+      marks: [() => find.byKey(const ValueKey('lock-password-error'))],
+      setup: () => FlutterSecureStorage.setMockInitialValues({'password-fails': '12'}),
+      act: (t) async {
+    await t.enterText(find.byType(TextField).first, 'mat khau sai');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    for (var i = 0; i < 4; i++) {
+      await t.pump(const Duration(milliseconds: 300));
+    }
+    await t.enterText(find.byType(TextField).first, 'dang go tiep');
+    await t.pump();
+  });
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock,
@@ -726,8 +753,7 @@ void main() {
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
-      section: 'home',
-      marks: [() => find.byKey(const ValueKey('search-button')), () => find.byKey(const ValueKey('kind-card'))]);
+      section: 'home');
   _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home', act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-video')));
     await t.pumpAndSettle();

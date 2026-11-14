@@ -84,8 +84,9 @@ jobs:
           BUILD_NUMBER: ${{ inputs.build || github.run_number }}
           VERSION: ${{ inputs.version }}
           BUILD: ${{ inputs.build }}
-          TEST_LOGIN: ${{ inputs.test_login && 'true' || '' }}
-        run: flutter build apk --release --target-platform android-arm64 --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA" ${TEST_LOGIN:+--dart-define=TEST_LOGIN=true}
+        # Never with Test sign-in: this APK is the public download (the GitHub release, the
+        # website's link). Only the Play bundle below, for closed testing, may carry it.
+        run: flutter build apk --release --target-platform android-arm64 --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
       - name: App bundle for Google Play (all ABIs; Play serves each device its own)
         working-directory: app
         env: # inputs reach the shell as variables, never pasted into the script

@@ -500,7 +500,12 @@ impl OpenVault {
                         if top && is_bucket(&name) && entry.file_type()?.is_dir() {
                             dirs.push(entry.path());
                         } else if let Some(id) = name.strip_suffix(".meta") {
-                            on_disk.insert(id.to_owned());
+                            // Only item ids: any other name (a computer's `._x.meta`, a
+                            // conflict copy, a file from a tampered backup) is not an
+                            // item, and must not keep the vault from opening.
+                            if crate::vault::id_name(id).is_some() {
+                                on_disk.insert(id.to_owned());
+                            }
                         }
                     }
                 }
@@ -984,6 +989,29 @@ mod tests {
             content,
             thumbnail: Some(b"thumb"),
         }
+    }
+
+    #[test]
+    fn a_file_that_is_not_an_item_does_not_keep_the_vault_from_opening() {
+        let tmp = tempfile::tempdir().unwrap();
+        let v = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk())
+            .unwrap()
+            .create_vault("A", pw())
+            .unwrap();
+        let a = v.add_item(photo(b"one", 1)).unwrap();
+        // What a computer or a tampered backup can leave beside the items.
+        let dir = v.items_dir();
+        fs::write(dir.join("._x.meta"), b"x").unwrap();
+        fs::write(dir.join(format!("{}.meta", a.id.to_uppercase())), b"x").unwrap();
+        fs::write(dir.join("notes (conflict).meta"), b"x").unwrap();
+        drop(v);
+        let v = Library::open_or_create(tmp.path(), FAST, crate::vault::tests::sk())
+            .unwrap()
+            .unlock(pw())
+            .unwrap()
+            .unwrap();
+        let ids: Vec<_> = v.items().unwrap().into_iter().map(|m| m.id).collect();
+        assert_eq!(ids, vec![a.id]);
     }
 
     #[test]

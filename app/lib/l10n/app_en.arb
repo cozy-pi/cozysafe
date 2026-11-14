@@ -1366,5 +1366,17 @@
   "stepPasswordTypeLead": "Type or paste the password you use for this account.",
   "@stepPasswordTypeLead": {"description": "Password step, shown first: the person types or pastes the password they already use."},
   "stepPasswordMake": "Make a strong one",
-  "@stepPasswordMake": {"description": "Password step, second choice: fill in a generated strong password instead."}
+  "@stepPasswordMake": {"description": "Password step, second choice: fill in a generated strong password instead."},
+  "forgotPasswordHint": "Forgot it? Open the vault with Face ID or your fingerprint, then set a new password in Settings.",
+  "@forgotPasswordHint": {"description": "Lock screen, under the error from the second wrong password entered, when Face ID or a fingerprint opens this vault: the way back in for someone who forgot the password."},
+  "importNotAdded": "{count} of {total} could not be added.",
+  "@importNotAdded": {"description": "Toast after an import: files that did not go in.", "placeholders": {"count": {"type": "int"}, "total": {"type": "int"}}},
+  "importStopped": "The vault locked before everything was added: {done} of {total} are in. Add the rest again.",
+  "@importStopped": {"description": "Toast after unlocking: an import the vault's lock cut short.", "placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+  "errorOpen": "Couldn't open this. Close it and try again.",
+  "@errorOpen": {"description": "Error: an item (a photo, a file, a note, a list) could not be read. Not about saving."},
+  "driveFailed": "Could not reach Google Drive. Check the internet connection and try again.",
+  "@driveFailed": {"description": "Error: a sync with or a restore from Google Drive failed for a reason without its own message."},
+  "restoredEnterPassword": "Restored. Enter this vault's password to open it.",
+  "@restoredEnterPassword": {"description": "Toast on the lock screen after a restore from a backup file whose password is not the one typed."}
 }

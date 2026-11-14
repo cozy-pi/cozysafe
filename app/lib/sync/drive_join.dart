@@ -133,7 +133,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
               sync.JoinOutcome.wrongWords => l.joinWrongWords,
               sync.JoinOutcome.wrongPassword => l.wrongPassword,
               sync.JoinOutcome.signIn => l.syncSignInAgain,
-              final other => withCode(l, l.syncFailed, other.name),
+              final other => withCode(l, l.driveFailed, other.name),
             });
         if (r.outcome == sync.JoinOutcome.signIn) _session = null;
         return;
@@ -168,7 +168,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
     } catch (e) {
       // Which step, by name (owner 2026-11-01: a bare "check the Wi-Fi" told nothing).
       ErrorLog.add('drive-join', errorWord(e));
-      if (mounted) setState(() => _error = withCode(l, l.syncFailed, e));
+      if (mounted) setState(() => _error = withCode(l, l.driveFailed, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

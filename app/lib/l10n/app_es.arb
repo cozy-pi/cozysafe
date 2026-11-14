@@ -1029,5 +1029,11 @@
   "qrConfirmLead": "Si el sitio pide un código para terminar, escribe este. Cambia cada 30 segundos.",
   "qrPasteAgain": "Pegar de nuevo",
   "stepPasswordTypeLead": "Escribe o pega la contraseña que usas en esta cuenta.",
-  "stepPasswordMake": "Crear una segura"
+  "stepPasswordMake": "Crear una segura",
+  "forgotPasswordHint": "¿La has olvidado? Abre la caja fuerte con Face ID o tu huella y luego define una contraseña nueva en Ajustes.",
+  "importNotAdded": "No se pudieron añadir {count} de {total}.",
+  "importStopped": "La caja fuerte se bloqueó antes de añadirlo todo: hay {done} de {total}. Vuelve a añadir el resto.",
+  "errorOpen": "No se pudo abrir. Ciérralo y vuelve a intentarlo.",
+  "driveFailed": "No se pudo conectar con Google Drive. Comprueba la conexión a internet y vuelve a intentarlo.",
+  "restoredEnterPassword": "Restaurada. Introduce la contraseña de esta caja fuerte para abrirla."
 }

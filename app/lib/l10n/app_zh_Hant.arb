@@ -1029,5 +1029,11 @@
   "qrConfirmLead": "如果網站要求輸入驗證碼完成設定，請輸入這組。每 30 秒會變一次。",
   "qrPasteAgain": "重新貼上",
   "stepPasswordTypeLead": "輸入或貼上你在這個帳號使用的密碼。",
-  "stepPasswordMake": "產生強密碼"
+  "stepPasswordMake": "產生強密碼",
+  "forgotPasswordHint": "忘記了？用 Face ID 或指紋打開保險箱，然後在「設定」中設定新密碼。",
+  "importNotAdded": "{total} 個項目中有 {count} 個無法加入。",
+  "importStopped": "保險箱在全部加入之前已鎖定：{total} 個項目中已加入 {done} 個。請重新加入其餘項目。",
+  "errorOpen": "無法打開。請關閉後再試一次。",
+  "driveFailed": "無法連線到 Google 雲端硬碟。請檢查網路連線後再試一次。",
+  "restoredEnterPassword": "已還原。請輸入此保險箱的密碼以打開。"
 }

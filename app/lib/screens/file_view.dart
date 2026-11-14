@@ -250,6 +250,13 @@ Future<List<rust.ItemInfo>> importFiles(
   return [for (final a in added) a.$1];
 }
 
+/// What became of an import: how many of the picked files went in, and what stopped one
+/// that did not (the last such error).
+class ImportTally {
+  int files = 0;
+  Object? error;
+}
+
 /// [importFiles] for a pick whose files arrive one by one: each is encrypted as soon as
 /// it is there, while the platform is still copying the next ones. Gives each added item
 /// with where it came from.
@@ -259,6 +266,9 @@ Future<List<(rust.ItemInfo, String?)>> importPicked(
   void Function(int done, int total)? progress,
   bool Function()? cancelled,
   String Function(String kind, String extension)? mediaName,
+  /// With it, a file that cannot be added does not end the import: the others still go
+  /// in, and the caller says how many did not. Without it, the first failure ends it.
+  ImportTally? tally,
 }) async {
   final tmp = (await getTemporaryDirectory()).path;
   final added = <(rust.ItemInfo, String?)>[];
@@ -279,8 +289,17 @@ Future<List<(rust.ItemInfo, String?)>> importPicked(
       ImportStats.firstMs ??= total.elapsedMilliseconds;
       ImportStats.copyMs += p!.copyMs;
       final items = <rust.ItemInfo>[];
-      await importOne(p.file, tmp, photos: photos, cancelled: cancelled, mediaName: mediaName, added: items,
-          tag: '#$i w$w copy ${p.copyMs} ms ·');
+      try {
+        await importOne(p.file, tmp, photos: photos, cancelled: cancelled, mediaName: mediaName, added: items,
+            tag: '#$i w$w copy ${p.copyMs} ms ·');
+      } catch (e) {
+        // The vault locked: nothing more can go in. Anything else is this file's own
+        // trouble (unreadable, too large for the space left).
+        if (tally == null || e == rust.VaultError.locked) rethrow;
+        tally.error = e;
+        DebugLog.add('import #$i not added: ${errorWord(e)}');
+      }
+      if (items.isNotEmpty) tally?.files++;
       for (final it in items) {
         added.add((it, p.origin));
       }
@@ -560,7 +579,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
                 // Only the first part is decrypted: a 1 GB log never sits in memory.
                 future: _bytes ??= rust.itemContentHead(id: _item.id, max: _textLimit + 1),
                 builder: (context, snap) {
-                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center));
+                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorOpen, snap.error!), textAlign: TextAlign.center));
                   final data = snap.data;
                   if (data == null) return const Center(child: CircularProgressIndicator());
                   final cut = data.length > _textLimit;
@@ -613,7 +632,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
             ? FutureBuilder<File>(
                 future: _pdfCopy ??= readThroughLock(() => playbackCopy(_item, fallbackExt: '.pdf')),
                 builder: (context, snap) {
-                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center));
+                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorOpen, snap.error!), textAlign: TextAlign.center));
                   final f = snap.data;
                   if (f == null) return const Center(child: CircularProgressIndicator());
                   return PdfViewer.file(f.path);
@@ -622,7 +641,7 @@ class _FileViewScreenState extends State<FileViewScreen> {
             : FutureBuilder<Uint8List>(
                 future: _bytes ??= itemBytes(_item.id),
                 builder: (context, snap) {
-                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center));
+                  if (snap.hasError) return Center(child: Text(withCode(l, l.errorOpen, snap.error!), textAlign: TextAlign.center));
                   final data = snap.data;
                   if (data == null) return const Center(child: CircularProgressIndicator());
                   return PdfViewer.data(data, sourceName: _item.id);

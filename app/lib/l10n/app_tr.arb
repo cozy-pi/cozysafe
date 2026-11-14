@@ -1029,5 +1029,11 @@
   "qrConfirmLead": "Site bitirmek için kod isterse bunu girin. Her 30 saniyede değişir.",
   "qrPasteAgain": "Tekrar yapıştır",
   "stepPasswordTypeLead": "Bu hesapta kullandığınız parolayı yazın veya yapıştırın.",
-  "stepPasswordMake": "Güçlü bir tane oluştur"
+  "stepPasswordMake": "Güçlü bir tane oluştur",
+  "forgotPasswordHint": "Unuttunuz mu? Kasayı Face ID veya parmak izinizle açın, sonra Ayarlar'dan yeni bir parola belirleyin.",
+  "importNotAdded": "{total} öğeden {count} tanesi eklenemedi.",
+  "importStopped": "Her şey eklenmeden kasa kilitlendi: {total} öğeden {done} tanesi içeride. Kalanını yeniden ekleyin.",
+  "errorOpen": "Bu açılamadı. Kapatıp yeniden deneyin.",
+  "driveFailed": "Google Drive'a ulaşılamadı. İnternet bağlantısını kontrol edip yeniden deneyin.",
+  "restoredEnterPassword": "Geri yüklendi. Açmak için bu kasanın parolasını girin."
 }

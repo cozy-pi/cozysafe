@@ -8,6 +8,7 @@ import 'package:cozysafe/screens/key_check.dart';
 import 'package:cozysafe/src/rust/frb_generated.dart';
 import 'package:cozysafe/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The core's answers: words fit when they parse (and [fits]), the password is right
@@ -15,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 class _Fake implements RustLibApi {
   bool fits = true;
   String right = '';
+  int checks = 0;
 
   @override
   dynamic noSuchMethod(Invocation call) {
@@ -24,7 +26,10 @@ class _Fake implements RustLibApi {
       return text.trim().split(RegExp(r'\s+')).length == 24 ? Uint8List(32) : null;
     }
     if (name.contains('SecretKeyFits')) return fits;
-    if (name.contains('CheckPassword')) return Future.value(call.namedArguments[#password] == right);
+    if (name.contains('CheckPassword')) {
+      checks++;
+      return Future.value(call.namedArguments[#password] == right);
+    }
     return null;
   }
 }
@@ -43,6 +48,7 @@ String words(String w) => List.filled(24, w).join(' ');
 
 void main() {
   setUpAll(() => RustLib.initMock(api: _fake = _Fake()));
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   testWidgets('the right words and password say so', (t) async {
     _fake
@@ -70,5 +76,32 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('No match. Check each word and their order.'), findsOneWidget);
     expect(find.text('Wrong password.'), findsOneWidget);
+  });
+
+  // With the vault open this page tries passwords too: the same count and waits as the
+  // lock screen, or it would be where the password is guessed for free.
+  testWidgets('wrong passwords count here as anywhere, and then it waits', (t) async {
+    FlutterSecureStorage.setMockInitialValues({'password-fails': '9'});
+    _fake
+      ..right = 'something-else'
+      ..checks = 0;
+    await t.pumpWidget(app());
+    final field = find.descendant(of: find.byKey(const ValueKey('key-check-password')), matching: find.byType(TextField));
+    await t.enterText(field, 'nope-nope');
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('key-check-go')));
+    await t.pumpAndSettle();
+    expect(_fake.checks, 1);
+    expect(find.text('Wrong password.'), findsOneWidget);
+    // The tenth wrong one started a wait: the next is not even tried.
+    await t.enterText(field, 'nope-again');
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('key-check-go')));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 400));
+    expect(_fake.checks, 1);
+    expect(find.textContaining('Too many tries'), findsOneWidget);
+    await t.pump(const Duration(seconds: 9));
+    await t.pumpAndSettle();
   });
 }

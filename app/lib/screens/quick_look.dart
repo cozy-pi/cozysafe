@@ -540,7 +540,7 @@ class _QuickLookState extends State<QuickLook> {
               height: 200,
               child: Center(
                   child: _noteFailed
-                      ? Text(withCode(AppLocalizations.of(context), AppLocalizations.of(context).errorStorage, 'read-note'),
+                      ? Text(withCode(AppLocalizations.of(context), AppLocalizations.of(context).errorOpen, 'read-note'),
                           textAlign: TextAlign.center)
                       : const CircularProgressIndicator())));
     }
@@ -589,7 +589,7 @@ class _QuickLookState extends State<QuickLook> {
           builder: (context, snap) {
             if (snap.hasError) {
               final l = AppLocalizations.of(context);
-              return SizedBox(height: 200, child: Center(child: Text(withCode(l, l.errorStorage, snap.error!), textAlign: TextAlign.center)));
+              return SizedBox(height: 200, child: Center(child: Text(withCode(l, l.errorOpen, snap.error!), textAlign: TextAlign.center)));
             }
             if (!snap.hasData) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
             final text = _head(utf8.decode(snap.data!, allowMalformed: true));

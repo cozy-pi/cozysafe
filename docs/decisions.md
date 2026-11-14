@@ -6,16 +6,38 @@ depends on memory. Details live in the linked docs; this page is the index.
 How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
 [cryptography.md](cryptography.md).
 
-## 2026-11-11 — Stop interrupting: what locks, and when
+## 2026-11-14 — A review of the whole app: sync with three devices, password tries, quiet losses
 
-**Owner (2026-11-11):** the app does not feel good to use, without knowing where. Three
-agents read the code (everyday tasks, interruptions, interaction); the strongest common
-point was the vault locking in the middle of what the person was doing. Approved, on the
-`ui-refresh` branch: a playing video or recording is use; a picker gets 10 minutes, a
-copied password 2 minutes away (not in Top Secret Mode); one owner check covers the next
-settings for 2 minutes (not the Recovery Key, deleting, or Top Secret); opening again
-after leaving for a moment is a quick fade, and reduced motion drops the icon reveal.
-Details: [security.md](security.md), leaving and security settings.
+A read of the core, sync, the app's platform layer, the journeys and the docs. What
+mattered is fixed in the same change; the rest is in [backlog.md](backlog.md).
+
+- **Sync never lets an older revision or deletion replace a newer edit**, and never
+  passes over a journal entry it could not read ([ADR 0003](adr/0003-sync.md), "Read in
+  sequence, applied by age"). With three devices the first happened with an honest
+  place too. The lock a joining device reads is capped while read.
+- **Password tries**: a try made while typing counts even when the app is closed on it;
+  Check your 24 words and password counts like every other page; the wait shows on the
+  lock screen while it lasts ([security.md](security.md)).
+- **Deleting a vault keeps the cloud copy of its 24 words unless its copy in Google
+  Drive is deleted too.** It went with the vault before: someone who never wrote the
+  words down could not restore the Drive copy they chose to keep. The words alone open
+  nothing. (The 2026-10-24 decision stands for this device: its own copy of the words
+  goes with its last vault.)
+- **The 24 words are copied as a password is** (sensitive, this device only, 60 s).
+- **Hostile files**: a file that is not an item no longer keeps a vault from opening;
+  backup names must be ids exactly as the app writes them; Argon2 is refused above
+  1 GiB or 8 passes (was 4 GiB, 32: more than a phone has).
+- **iPhone**: the app's `tmp/` folder is swept with its Caches.
+- **Nothing lost quietly**: an import says how many files did not go in, and how far it
+  got when the lock cut it short; reading failures say "couldn't open", not "couldn't
+  save"; Google Drive failures no longer say "same Wi-Fi"; Recently deleted and Earlier
+  versions say when they could not be read; an error with its code stays 8 s.
+- **A forgotten password**: from the second wrong one, with Face ID or a fingerprint
+  set, the lock screen says the way back in. Said where it is needed, not before.
+- **The public APK never has Test sign-in**; only the Play bundle for closed testing may.
+- Not changed, for the owner: Android 12 and older may show the vault in Recents with
+  screenshots allowed (to check on a device); `website/.wrangler/` was tracked with the
+  Cloudflare account's id and name, now untracked and ignored (still in history).
 
 ## 2026-11-14 — Quick add back; a lighter dim; the strip moves the photo
 
@@ -48,6 +70,17 @@ Their common points, tried on the `ui-refresh` branch for the owner to compare:
 Kept as decided (the owner may revisit): pairing by a 3-digit number that goes on by
 itself after 5 seconds; the lock button only in the Library (hold home to lock); a Top
 Secret vault opening a file in another app.
+
+## 2026-11-11 — Stop interrupting: what locks, and when
+
+**Owner (2026-11-11):** the app does not feel good to use, without knowing where. Three
+agents read the code (everyday tasks, interruptions, interaction); the strongest common
+point was the vault locking in the middle of what the person was doing. Approved, on the
+`ui-refresh` branch: a playing video or recording is use; a picker gets 10 minutes, a
+copied password 2 minutes away (not in Top Secret Mode); one owner check covers the next
+settings for 2 minutes (not the Recovery Key, deleting, or Top Secret); opening again
+after leaving for a moment is a quick fade, and reduced motion drops the icon reveal.
+Details: [security.md](security.md), leaving and security settings.
 
 ## 2026-11-06 — Passwords and two-factor codes; a post-quantum rule; technical docs
 
@@ -784,9 +817,8 @@ picker cannot delete what it returns, so it would need the broad "read all photo
 videos" permission and a Google Play declaration. Recommended: iPhone only, and on Android
 a hint to delete the originals in the Photos app.
 
-**Commit messages may name the assistant.** Two commits were pushed with an assistant
-trailer; the owner chose not to rewrite history ("cứ để Claude cũng được"). Personal names
-and emails stay out of the repository.
+**Commit trailers.** Two commits were pushed with a tool's trailer; the owner chose not
+to rewrite history for them. Personal names and emails stay out of the repository.
 
 **Releases: each platform ships as soon as it is built, and store keys stay out of build
 jobs.** Owner: Android and iOS wait for nobody; after weighing the risk (a hijacked build

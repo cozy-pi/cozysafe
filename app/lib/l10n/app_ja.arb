@@ -1029,5 +1029,11 @@
   "qrConfirmLead": "サイトが確認コードを求めたら、これを入力してください。30秒ごとに変わります。",
   "qrPasteAgain": "もう一度貼り付け",
   "stepPasswordTypeLead": "このアカウントで使っているパスワードを入力するか貼り付けてください。",
-  "stepPasswordMake": "強力なパスワードを作成"
+  "stepPasswordMake": "強力なパスワードを作成",
+  "forgotPasswordHint": "お忘れですか？Face ID または指紋で金庫を開き、設定で新しいパスワードを設定してください。",
+  "importNotAdded": "{total}件中{count}件を追加できませんでした。",
+  "importStopped": "すべて追加する前に金庫がロックされました：{total}件中{done}件が入りました。残りをもう一度追加してください。",
+  "errorOpen": "開けませんでした。閉じてからもう一度お試しください。",
+  "driveFailed": "Google ドライブに接続できませんでした。インターネット接続を確認してもう一度お試しください。",
+  "restoredEnterPassword": "復元しました。この金庫のパスワードを入力して開いてください。"
 }

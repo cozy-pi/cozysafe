@@ -57,6 +57,7 @@ that needs a provisioning profile the Developer ID build does not have. Instead:
   off as on a phone, and it can be turned on again after the password.
 - Macs without Touch ID (or without a Secure Enclave) do not offer it.
 
+## Leaving the app
 
 - **Leaving locks at once** by default (`vault_home.dart`, `didChangeAppLifecycleState`),
   except for a while when the app itself sent the person out (`LockGuard.allowAway`),
@@ -188,7 +189,7 @@ running."
 
 ## How strong is it? Compared with a Bitcoin wallet
 
-What an attacker needs, as the code stands (2026-10-21). "Recovery Key" is the Secret
+What an attacker needs, as the code stands (2026-10-21, reviewed 2026-11-14). "Recovery Key" is the Secret
 Key as people see it (it was the Emergency Kit); "vault password" was the backup password.
 
 | | Bitcoin, 12 words | Bitcoin, 24 words | Cozy Safe |
@@ -252,15 +253,27 @@ By case:
   the wipe after wrong tries were kept by the app. PINs of vaults with a password are
   removed at the lock screen (`forget_pins_with_password`), and the device key with the
   last one. A vault made with only a PIN keeps it until it gets a password. Wrong vault
-  passwords still wait (10 free tries of 8 characters or more, then growing waits), on a
-  clock the phone's date cannot move.
+  passwords still wait (9 free tries of 8 characters or more, the wait starting at the
+  10th, then growing), on a clock the phone's date cannot move. One count for every page
+  that takes the password: the lock screen, the Recovery Key, Delete vault and, since
+  2026-11-14, Settings → Check your 24 words and password (it tried passwords with no
+  count: with the vault open, the password could be guessed there for free).
+- **A password tried while it is typed counts** (2026-11-14). The lock screen opens on
+  the right password without Enter, so it tries what is typed after a pause. A miss is
+  not counted while the person goes on typing from it (a long password typed slowly must
+  not lock its owner out on its own beginnings), only once the text is left for another.
+  That pending miss lived in memory only: closing the app after each one made every
+  guess free. Now a mark is written before the try (`PinStore.quietTryOut`; that a try
+  is out, never its text) and a mark left behind is counted as one wrong password by the
+  next lock screen. The wait itself shows on the lock screen while it lasts, counting
+  down, not only when a password is entered into it.
 
 Compared with a hardware wallet (Ledger, Trezor): the same 24 BIP39 words once the
 Recovery Key is 256-bit. A hardware wallet keeps its key inside a secure chip that never
 lets it out, which a phone app cannot match; but its 24 words alone empty the wallet,
 while the Recovery Key alone opens nothing without the vault password.
 
-In short: the key alone is as strong as a 12-word wallet (24-word after the move); the whole scheme is harder to
+In short: the key alone is as strong as a 24-word wallet; the whole scheme is harder to
 break than a Bitcoin wallet, because two independent secrets are needed and guessing the
 password is deliberately expensive.
 
@@ -312,7 +325,9 @@ absolutely"). On 2026-11-02 the owner turned Copy, Save to a file and Open file 
 copying 24 words by hand was too much (`lib/words_export.dart`, `wordsExport`, on unless
 built with `--dart-define=WORDS_EXPORT=false`). The cost is accepted: the clipboard is a
 disk in practice (Android keyboards keep a history, an iPhone hands it to a nearby Mac;
-the app empties it after 60 s and on lock), and a saved file or the share sheet puts the
+the app empties it after 60 s and on lock, and since 2026-11-14 copies the words as it
+copies a password, `SecureClipboard`: marked sensitive on Android, this device only and
+expiring by itself on iPhone and Mac, for 60 s whatever the setting for passwords says), and a saved file or the share sheet puts the
 words where the app can never wipe them (Notes, Drive, a chat). The words alone open
 nothing: the vault password is needed as well. The copy in the iCloud Keychain / Google
 Block Store was kept off then; it is offered when a vault is made since 2026-11-05. The pages that show the words stay on and keep the vault from locking
@@ -335,7 +350,11 @@ person imports. A decoder is where a phone gets taken over (libwebp 2023, FORCED
   and Linux the app keeps `tmp/` beside the vault, user-only, as the system one is shared
   between programs: `lib/temp_files.dart`). It is emptied at start, before anything
   else, and when the vault locks. Before, only a video's playback copy was swept, and a
-  crash during an import, a share or a backup left plain copies behind.
+  crash during an import, a share or a backup left plain copies behind. On an iPhone
+  that folder is `Library/Caches`; the app's other temporary folder, `tmp/`, is swept
+  with it since 2026-11-14 (the camera writes a video there while it records, and a file
+  picker puts the copy it hands over there). A file the 24 words are read from is deleted
+  as soon as it is read, on phones (the picker's copy, never the person's own file).
 - **Photos decode at screen size.** An Android HEIC is decoded by the system at most to
   the screen's longer side (1024–3000 px), not 4096 (a ~50 MB bitmap); the viewer reads
   ahead one photo each side, not two. At most 800 thumbnails stay in memory; Flutter's

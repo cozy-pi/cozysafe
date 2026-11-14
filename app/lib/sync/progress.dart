@@ -841,7 +841,9 @@ class _SyncProgressState extends State<SyncProgress>
           _Status(icon: Icons.system_update_rounded, color: const Color(0xFFFF9500), title: l.syncNeedsNewerApp),
         sync.SyncStep.failed when e.code == 'p2p-add-old-version' =>
           _Status(icon: Icons.system_update_rounded, color: const Color(0xFFFF9500), title: l.syncPeerOldVersion),
-        sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: const Color(0xFFFF3B30), title: l.syncFailed),
+        // Google Drive is not "the same Wi-Fi, both devices".
+        sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: const Color(0xFFFF3B30),
+            title: widget.place == SyncPlace.drive ? l.driveFailed : l.syncFailed),
         sync.SyncStep.signIn => _Status(icon: Icons.account_circle_rounded, color: const Color(0xFFFF9500), title: l.syncSignInAgain),
         sync.SyncStep.peerWrongWords => _Status(icon: Icons.key_off_rounded, color: const Color(0xFFFF9500), title: l.syncPeerWrongWords),
         sync.SyncStep.peerWrongPassword => _Status(icon: Icons.password_rounded, color: const Color(0xFFFF9500), title: l.syncPeerWrongPassword),

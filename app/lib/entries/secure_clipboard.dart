@@ -37,8 +37,9 @@ abstract final class SecureClipboard {
   static Timer? _timer;
   static _Resume? _resume;
 
-  static Future<void> copy(String text) async {
-    final s = seconds;
+  /// [lasting]: a fixed time instead of the setting's (the 24 words: never "never").
+  static Future<void> copy(String text, {int? lasting}) async {
+    final s = lasting ?? seconds;
     var native = false;
     final channel = Device.iOS || Device.android ? _channel : (Device.macOS ? _mac : null);
     if (channel != null) {

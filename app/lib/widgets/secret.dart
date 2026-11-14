@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
+import '../platform.dart';
 import '../theme.dart';
 import '../words_export.dart';
 
@@ -163,6 +165,14 @@ Future<String?> openWordsFile() async {
   }
   if (file == null) return null;
   final text = wordsFromText(await file.readAsString());
+  // On phones the picker hands over its own copy in the app's temporary folder: it holds
+  // the words in the clear, and goes now, not at the next sweep. On a computer the path
+  // is the person's own file, and is left alone.
+  if (Device.iOS || Device.android) {
+    try {
+      File(file.path).deleteSync();
+    } catch (_) {}
+  }
   return text.isEmpty ? null : text;
 }
 

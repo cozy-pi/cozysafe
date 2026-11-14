@@ -101,9 +101,10 @@
     "Berechtigungen",
     [
      "Kamera: nur um Fotos direkt in einen Tresor aufzunehmen, wenn Sie die Kamera öffnen. Fotos werden nicht in Ihrer Fotomediathek gespeichert.",
+     "Fotomediathek: nur wenn Sie Fotos oder Videos daraus in einen Tresor legen, und um danach auf Wunsch die Originale zu entfernen.",
+     "Mikrofon: nur während Sie in der App eine Sprachnotiz oder ein Video aufnehmen. Aufnahmen gehen direkt in den Tresor.",
      "Biometrie: nur wenn Sie das Entsperren per Face ID, Touch ID oder Fingerabdruck aktivieren. Ihre biometrischen Daten verlassen nie die sichere Hardware des Geräts und sind für die App nie zugänglich.",
      "Lokales Netzwerk (iPhone) / Internet (Android) / Netzwerk (macOS): nur zum Synchronisieren mit Ihrem anderen Gerät im selben WLAN, wenn Sie es starten.",
-     "Mitteilungen (Android): nur während einer Synchronisierung, um ihren Fortschritt zu zeigen und sie bei gesperrtem Telefon weiterlaufen zu lassen. Wenn Sie ablehnen, läuft die Synchronisierung trotzdem.",
      "Internet (Google Drive): nur, wenn Sie Google Drive verbinden, um sich bei Google anzumelden und Ihr Drive zu erreichen."
     ]
    ],

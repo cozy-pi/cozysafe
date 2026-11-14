@@ -101,9 +101,10 @@
     "Autorizzazioni",
     [
      "Fotocamera: solo per scattare foto direttamente in una cassaforte, quando apri la fotocamera. Le foto non vengono salvate nella tua libreria foto.",
+     "Libreria foto: solo quando aggiungi foto o video da lì a una cassaforte, e per rimuovere poi gli originali se lo chiedi.",
+     "Microfono: solo mentre registri un memo vocale o un video nell'app. Le registrazioni vanno direttamente nella cassaforte.",
      "Biometria: solo se attivi lo sblocco con Face ID, Touch ID o impronta digitale. I tuoi dati biometrici non lasciano mai l'hardware sicuro del dispositivo e non sono mai accessibili all'app.",
      "Rete locale (iPhone) / internet (Android) / rete (macOS): solo per sincronizzare con l'altro tuo dispositivo sulla stessa Wi-Fi, quando la avvii.",
-     "Notifiche (Android): solo durante una sincronizzazione, per mostrarne l'avanzamento e farla proseguire con il telefono bloccato. Se rifiuti, la sincronizzazione continua comunque.",
      "Internet (Google Drive): solo se colleghi Google Drive, per accedere con Google e raggiungere il tuo Drive."
     ]
    ],
