@@ -171,7 +171,8 @@ choice (2026-11-07 review: the ready-made one as the main button got saved by mi
 **The add card** (owner 2026-11-07): one card, near the thumb, just above + (under Add
 on a computer). A way that asks a second question (Photos / Files, Note / Voice,
 Password) shows its choices **in that same card**, in place of the four ways, with ‹
-in the card's header to go back; the card keeps its place and grows to fit. Never a
+in the card's header to go back; the card keeps its place and its size (owner 2026-11-14:
+shrinking to fewer choices was unpleasant), growing only for more lines. Never a
 separate card, a page or another dim or blur on top for a way's choices. Choosing one
 closes the card and does it. With + in the middle, three quick buttons sit just above +,
 solid in their colours: the ways of the three kinds the vault holds most, the most over +

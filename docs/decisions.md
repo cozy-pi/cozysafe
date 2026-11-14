@@ -27,6 +27,7 @@ Dropbox's sheet of a few big buttons). So, on `ui-refresh`:
   colours so they stand out; the card of every way stays above them. Reverses that line
   of the 2026-11-07 review.
 - The page behind the ways to add dims to 60% instead of 92%.
+- A way's second choices keep the card as tall as the four ways; it no longer shrinks.
 - (2026-11-13) Scrolling the strip of small photos in the full-screen viewer moves the
   photo above with it, a haptic tick per photo, settling on the one in the middle.
 

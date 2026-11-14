@@ -1107,6 +1107,16 @@ class AddCard extends StatefulWidget {
 }
 
 class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
+  /// The four ways' page, measured so a way's second choices keep the card that tall
+  /// (owner 2026-11-14: the card shrinking on the way in was unpleasant).
+  final _waysPage = GlobalKey();
+  double _waysHeight = 0;
+
+  void _measureWays() {
+    final h = _waysPage.currentContext?.size?.height;
+    if (h != null && h != _waysHeight) _waysHeight = h;
+  }
+
   late final _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 260),
@@ -1169,10 +1179,21 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
         ? [for (final (what, icon, label) in widget.ways) _row(context, what, icon, label, sub: false)]
         : [for (final (what, icon, label) in addSubChoices(l, way)) _row(context, what, icon, label, sub: true)];
     const titleStyle = TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.2);
+    if (way == null) WidgetsBinding.instance.addPostFrameCallback((_) => _measureWays());
     return SingleChildScrollView(
       key: ValueKey('add-card-page-${way?.name ?? 'ways'}'),
       padding: const EdgeInsets.fromLTRB(0, 18, 0, 10),
-      child: Column(
+      child: way == null ? KeyedSubtree(key: _waysPage, child: _page(rows, way, titleStyle, l))
+          : ConstrainedBox(
+              // The padding above and below is outside the measured page.
+              constraints: BoxConstraints(minHeight: _waysHeight),
+              child: _page(rows, way, titleStyle, l),
+            ),
+    );
+  }
+
+  Widget _page(List<Widget> rows, AddWhat? way, TextStyle titleStyle, AppLocalizations l) {
+    return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1200,7 +1221,6 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
             ),
           ...rows,
         ],
-      ),
     );
   }
 
@@ -1223,8 +1243,9 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
               clipBehavior: Clip.antiAlias,
               elevation: 12,
               shadowColor: Colors.black38,
-              // The card keeps its place (its bottom by +, or its top under Add) and grows
-              // or shrinks to what it shows; the content slides in from the side it goes.
+              // The card keeps its place (its bottom by +, or its top under Add) and its
+              // size: a way's second choices are as tall as the four ways (it grows only
+              // for more lines); the content slides in from the side it goes.
               child: AnimatedSize(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
