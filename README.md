@@ -1,7 +1,8 @@
 # Cozy Safe
 
-An open-source, cross-platform encrypted vault for photos, documents, files and
-notes. Everything is encrypted on your device before it is saved.
+An open-source, cross-platform encrypted vault for photos, documents, files, notes,
+passwords and two-factor codes. Everything is encrypted on your device before it is
+saved.
 
 ## Top Secret Mode
 
@@ -158,8 +159,9 @@ get hijacked, so this is checked on every build, in layers (details and limits:
   password already made. A two-factor code comes from its QR code (camera on iPhone and
   Android, or a screenshot; read in memory, never saved) or a pasted setup key.
   Format: [ADR 0009](docs/adr/0009-secure-items.md).
-- **Groups:** put anything in one or more groups ("Passport": the photo, the scan and the
-  note) and open a group from any section.
+- **Groups** (hidden for the beta, `app/lib/hidden_features.dart`; groups made before
+  stay in the vault and in sync): put anything in one or more groups ("Passport": the
+  photo, the scan and the note) and open a group from any section.
 - **One way to open anything:** tap any item (photo, video, note, recording, PDF, file) and
   it opens over the page, centred, with one bar of buttons where the bottom bar is:
   Close, Open, Send, More, Delete. Every action button in the app sits at the bottom,
@@ -184,14 +186,17 @@ get hijacked, so this is checked on every build, in layers (details and limits:
   fingerprint or the phone's passcode first ([security rules](docs/security.md)).
 - **Simple to start:** an empty vault offers big tiles to add the first thing; the bottom
   bar shows the overview and the three kinds the vault holds most of, with a quick add
-  button for each above +, and + always offers every way to add (photos, camera, video,
-  note, voice memo, file).
-- **Sync with your other device on the same Wi‑Fi:** one shows a 3-digit code, the other
-  finds it on the network by itself and takes the code (a QR works too). Only a device
-  holding the same vault can answer; the code works once, for 5 minutes. Both devices end
-  up the same; notes edited on both keep both texts.
-- **Sync through Google Drive** (iPhone, Android): a sealed copy in a "Cozy Safe" folder,
-  only encrypted files, with progress in MB and time left.
+  button for each above +, and + always offers every way to add, four of them (Photo /
+  Video, Photos / Files, Note / Voice, Password), each showing its second choices in the
+  same card.
+- **Sync with your other device on the same Wi‑Fi:** both open Sync and find each other
+  on the network by themselves; no code to type. Both screens ask "Sync with …?" next to
+  the same 3-digit number, and it starts when both people tap Sync (a QR works too, for
+  networks that block looking). Only a device holding the same vault can answer. Both
+  devices end up the same; notes edited on both keep both texts; with three devices or
+  more, a newer edit is never replaced by an older one read late.
+- **Sync through Google Drive** (iPhone, Android, Mac, Windows, Linux): a sealed copy in
+  a "Cozy Safe" folder, only encrypted files, with progress in MB and time left.
 - **Nothing lost by mistake:** an item deleted for good on another device is kept here in
   Recently deleted for 30 days, not synced back; restore it and it returns everywhere.
 - **A new device from the 24 words and password alone:** from Google Drive or from your
@@ -204,10 +209,8 @@ get hijacked, so this is checked on every build, in layers (details and limits:
 - **15 languages**, light and dark. Pick one in Settings → Language, or in the
   system's settings for the app (iPhone, Android 13+); the two stay the same.
 
-Not yet: Google Drive on
-computers, keeping a sync going with an Android phone locked
-(waiting for Google Play), and the security work listed in
-[`docs/decisions.md`](docs/decisions.md).
+Not yet: keeping a sync going with an Android phone locked (waiting for Google Play),
+and what is listed in [`docs/backlog.md`](docs/backlog.md).
 
 ## Install
 
@@ -282,7 +285,10 @@ screen in dark and light inside an iPhone frame, with the changed parts outlined
 | Path | What |
 |---|---|
 | `core/cs-crypto` | Key derivation, key wrapping, streaming encryption, Recovery Key words (BIP39) |
-| `core/cs-vault` | Library and vaults on disk: items, biometric and PIN copies, backup |
+| `core/cs-core` | Library and vaults on disk: items, the index, version history, password rules. All a Top secret vault uses, with `cs-crypto` |
+| `core/cs-identity` | A vault's identity keys and code (hybrid post-quantum signing and sealing); X-Wing, the key exchange for adding a device |
+| `core/cs-vault` | On top of `cs-core`: sync, joining from another device or Google Drive, backup |
+| `core/cs-net` | All network code: nearby sync, Google Drive, sign-in, TLS |
 | `core/cs-photo` | Camera frames to JPEG in memory (no temp files, no EXIF) |
 | `app/` | Flutter app; `app/rust` is the bridge crate |
 | `website/` | safe.cozypi.com (Cloudflare Worker) |
@@ -298,6 +304,9 @@ screen in dark and light inside an iPhone frame, with the changed parts outlined
 | [Supply chain](docs/supply-chain.md) | How no library can send data out, and the limits |
 | [Dependencies](docs/dependencies.md) | Every third-party package, grouped by risk, and what changed since the last review |
 | [Security rules](docs/security.md) | Owner check on security settings; secrets and note text hidden on screen |
+| [Threat model](docs/threat-model.md) | Who the app protects against, and who it does not: the summary to check a change against |
+| [Design language](docs/design-language.md) | The rules, sizes and shared pieces of the interface |
+| [Export compliance](docs/export-compliance.md) | Encryption and the app stores' export questions |
 | [Data model](docs/data-model.md) | Every file, table and record a vault stores, on the device, in backups and in the cloud |
 | [Backlog](docs/backlog.md) | Things found and judged not urgent, kept for later |
 | [Cryptography](docs/cryptography.md) | Algorithms, key hierarchy, what is encrypted and what is visible |

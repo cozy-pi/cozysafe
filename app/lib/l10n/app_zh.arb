@@ -1027,5 +1027,11 @@
   "addChoiceVoice": "录音",
   "qrConfirmTitle": "网站显示的是这个码吗？",
   "qrConfirmLead": "如果网站要求输入验证码完成设置，请输入这个。它每 30 秒变一次。",
-  "qrPasteAgain": "重新粘贴"
+  "qrPasteAgain": "重新粘贴",
+  "forgotPasswordHint": "忘记了？用面容 ID 或指纹打开保险箱，然后在“设置”中设置新密码。",
+  "importNotAdded": "{total} 项中有 {count} 项未能添加。",
+  "importStopped": "保险箱在全部添加完之前已锁定：{total} 项中已添加 {done} 项。请重新添加其余项目。",
+  "errorOpen": "无法打开。请关闭后重试。",
+  "driveFailed": "无法连接 Google 云端硬盘。请检查网络连接后重试。",
+  "restoredEnterPassword": "已恢复。请输入此保险箱的密码以打开。"
 }

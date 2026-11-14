@@ -112,7 +112,7 @@ void main() {
         expect(firstLines, contains('if (!wordsExport) return'), reason: '$path: $head');
       }
       // And nothing else in these files reaches the clipboard, a file or the share sheet.
-      final reaches = RegExp(r'Clipboard\.setData|SharePlus\.instance|getSaveLocation|writeAsString|openFile\(')
+      final reaches = RegExp(r'Clipboard\.setData|SecureClipboard\.copy|SharePlus\.instance|getSaveLocation|writeAsString|openFile\(')
           .allMatches(source)
           .length;
       final allowed = {

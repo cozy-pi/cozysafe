@@ -76,7 +76,7 @@ flowchart TD
 | `PHONE_FLOOR` | 131072 (128 MiB) | 3 | 1 | Cost of a library made on iOS or Android. |
 | `DESKTOP_FLOOR` | 524288 (512 MiB) | 3 | 4 | Cost of a library made on macOS, Windows or Linux. |
 | `ACCEPTED_FLOOR` | = `PHONE_FLOOR` | | | Least cost accepted when opening a library, joining from a sync lock or restoring a backup. Lower means tampering: refused with `KdfTooWeak`. |
-| Upper bounds | ≤ 4194304 (4 GiB) | ≤ 32 | ≤ 16 | A hostile header cannot exhaust memory or time. |
+| Upper bounds | ≤ 1048576 (1 GiB) | ≤ 8 | ≤ 16 | A hostile header cannot exhaust memory or time: twice the memory of the costliest library the app makes, which a phone still opens. |
 
 The cost is chosen when the library is made, stored in `library.json`, and used for every
 vault in it. Lanes run one after another (no threads); the output depends only on `p`.
@@ -346,7 +346,9 @@ Source: `core/cs-vault/src/backup.rs`, `core/cs-vault/src/sync.rs` (`MAX_SMALL`,
   picked with rejection sampling.
 - **Wrong tries:** after 9 wrong passwords in a row (only tries of 8 characters or more
   count), the app makes you wait, longer each time (1, 5, 15, then 60 minutes), with a
-  countdown the phone's clock cannot shorten.
+  countdown the phone's clock cannot shorten. The count is the app's (the keystore), one
+  for every page that takes the password; a password tried while it is typed counts even
+  if the app is closed on it (`docs/security.md`).
 
 Source: `core/cs-crypto/src/secret_key_text.rs`, `core/cs-core/src/passwords.rs`
 (`MIN_PASSWORD_LEN`, `MIN_DISTINCT_CHARS`), `core/cs-vault/src/passphrase.rs`
@@ -424,7 +426,7 @@ Full list: [threat-model.md](threat-model.md). Rules for the app: [security.md](
 | `FINGERPRINT_HEX` | `4` | `core/cs-crypto/src/lib.rs` |
 | `PHONE_FLOOR` | `m_kib: 128 * 1024, t: 3, p: 1` | `core/cs-crypto/src/kdf.rs` |
 | `DESKTOP_FLOOR` | `m_kib: 512 * 1024, t: 3, p: 4` | `core/cs-crypto/src/kdf.rs` |
-| `MAX_M_KIB` / `MAX_T` / `MAX_P` | `4 * 1024 * 1024` / `32` / `16` | `core/cs-crypto/src/kdf.rs` |
+| `MAX_M_KIB` / `MAX_T` / `MAX_P` | `1024 * 1024` / `8` / `16` | `core/cs-crypto/src/kdf.rs` |
 | `CHUNK_LEN` | `64 * 1024` | `core/cs-crypto/src/stream.rs` |
 | `HEADER_LEN` (stream) | `1 + PREFIX_LEN` = 20 | `core/cs-crypto/src/stream.rs` |
 | Sealed value version, stream version | `1`, `1` | `wrap.rs`, `stream.rs` |

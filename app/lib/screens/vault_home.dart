@@ -101,6 +101,9 @@ class VaultHomeScreen extends StatefulWidget {
 class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late rust.VaultInfo _vault = widget.vault;
   bool _locked = false;
+  /// An import stopped by the vault locking (files added, files picked), told at the
+  /// next unlock.
+  (int, int)? _importStopped;
   List<rust.ItemInfo>? _items;
   /// Decrypted previews, in memory only, dropped with this screen.
   final Map<String, Future<Uint8List>> _thumbnails = {};
@@ -582,6 +585,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       Settings.apply();
       _reload();
       _touch();
+      // An import the lock cut short: how far it got.
+      if (_importStopped case (final done, final total)?) {
+        _importStopped = null;
+        _snack(AppLocalizations.of(context).importStopped(done, total));
+      }
     }
 
     if (animate) {
@@ -825,11 +833,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         },
       );
       final List<(rust.ItemInfo, String?)> picked;
+      final tally = ImportTally();
       try {
-        picked = await importPicked(batch, photos: photos, progress: (d, _) {
+        picked = await importPicked(batch, photos: photos, tally: tally, progress: (d, _) {
           done.value = d;
           LockGuard.activity(); // a long import is not idleness
         }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(DateTime.now(), ext));
+      } on rust.VaultError catch (e) {
+        // Stopped by the lock: said once the vault is open again ([_lock]), not over
+        // the lock screen.
+        if (e == rust.VaultError.locked) _importStopped = (tally.files, batch.count);
+        rethrow;
       } finally {
         final r = sheetRoute;
         if (r != null && r.isCurrent) {
@@ -850,6 +864,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       }
       // No "N added" message: the items appear at once, and the bar showed progress.
       if (mounted) _reload();
+      // But files that did not go in are said (a file the phone could not hand over, one
+      // the vault could not take): the person must not believe all of them are safe here.
+      final missing = cancel ? 0 : batch.count - tally.files;
+      if (missing > 0 && mounted && !_locked) {
+        _snack(withCode(l, l.importNotAdded(missing, batch.count), tally.error ?? 'unreadable'));
+      }
       // What went in (the first ones: a cancel only skips the rest) can be removed from
       // the phone, after asking here and then again by the system.
       final from = [for (final p in picked) ?p.$2];
@@ -3756,7 +3776,13 @@ class _MediaTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = CsColors.of(context);
     final duration = item.durationMs;
-    return GestureDetector(
+    // Named for a screen reader: a tile is a picture with no text of its own.
+    return Semantics(
+      label: item.name,
+      button: true,
+      image: true,
+      selected: selecting ? selected : null,
+      child: GestureDetector(
       onTap: onTap,
       // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
       onLongPress: null,
@@ -3810,6 +3836,7 @@ class _MediaTile extends StatelessWidget {
             if (selected) const ColoredBox(color: Color(0x33FFFFFF)),
           ],
         ),
+      ),
       ),
     );
   }

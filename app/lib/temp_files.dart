@@ -24,12 +24,20 @@ Future<Directory> privateTemp() async {
 /// leaves plain copies behind otherwise; only a playback copy used to be swept.
 Future<void> clearTemp() async {
   try {
-    final d = await privateTemp();
-    if (!d.existsSync()) return;
-    for (final e in d.listSync(followLinks: false)) {
-      try {
-        e.deleteSync(recursive: true);
-      } catch (_) {} // in use (a picker still writing): the next sweep takes it
-    }
+    _empty(await privateTemp());
+    // On an iPhone [privateTemp] is the app's Caches folder; its other temporary folder
+    // (`tmp/`) is where the camera writes a video being recorded and where a file picker
+    // puts the copy it hands over (the 24 words read from a file). The app's own, like
+    // Caches: nothing else writes there.
+    if (Device.iOS) _empty(Directory.systemTemp);
   } catch (_) {}
+}
+
+void _empty(Directory d) {
+  if (!d.existsSync()) return;
+  for (final e in d.listSync(followLinks: false)) {
+    try {
+      e.deleteSync(recursive: true);
+    } catch (_) {} // in use (a picker still writing): the next sweep takes it
+  }
 }

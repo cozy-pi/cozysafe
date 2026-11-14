@@ -101,9 +101,10 @@
     "Quyền truy cập",
     [
      "Camera: chỉ để chụp ảnh thẳng vào két, khi bạn mở camera. Ảnh không lưu vào thư viện ảnh của máy.",
+     "Thư viện ảnh: chỉ khi bạn thêm ảnh hoặc video từ đó vào két, và để xoá bản gốc sau đó nếu bạn yêu cầu.",
+     "Micro: chỉ trong lúc bạn ghi âm hoặc quay video trong ứng dụng. Bản ghi vào thẳng két.",
      "Sinh trắc học: chỉ khi bạn bật mở khoá bằng Face ID, Touch ID hoặc vân tay. Dữ liệu sinh trắc học không rời phần cứng bảo mật của máy và app không bao giờ truy cập được.",
      "Mạng cục bộ (iPhone) / internet (Android) / mạng (macOS): chỉ để đồng bộ với máy khác của bạn trong cùng Wi-Fi, khi bạn bắt đầu.",
-     "Thông báo (Android): chỉ trong lúc đồng bộ, để hiện tiến trình và giữ việc đồng bộ chạy tiếp khi khoá máy. Nếu bạn không cho phép, việc đồng bộ vẫn chạy.",
      "Internet (Google Drive): chỉ khi bạn kết nối Google Drive, để đăng nhập Google và truy cập Drive của bạn."
     ]
    ],

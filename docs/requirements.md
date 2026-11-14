@@ -1,5 +1,13 @@
 # Requirements and roadmap
 
+> **The first plan (2026-10), kept for the record.** The product moved since: the PIN is
+> gone (vault password, Face ID or fingerprint), the licence is GPL-3.0 with no app-store
+> exception, screenshots are allowed by default outside Top Secret Mode, the app speaks
+> 15 languages, sync and passwords with two-factor codes are built. Where this page and the code differ, the
+> code and these pages are right: [README](../README.md) (what works today),
+> [security.md](security.md), [threat-model.md](threat-model.md),
+> [data-model.md](data-model.md), [decisions.md](decisions.md).
+
 ## Product
 
 Cozy Safe is an encrypted vault for notes, files and photos. It is a product of
@@ -246,7 +254,7 @@ easy but never silent.
   so every time, in the same words whatever vaults exist (it must not reveal how
   many vaults there are).
 
-### Sync (see `architecture.md`)
+### Sync (see [ADR 0003](adr/0003-sync.md))
 
 - v0.2: cloud folder (iCloud Drive, Google Drive, Dropbox, Syncthing — any
   folder the OS syncs) and LAN peer-to-peer.
@@ -282,7 +290,8 @@ easy but never silent.
 
 - Vault open on a mid-range phone: under 1.5 s with Argon2id floors of
   128 MiB (phones) / 512 MiB (desktop), t = 3 (`adr/0001-encryption.md`).
-- No plaintext secret ever crosses into Dart. See `architecture.md`.
+- No plaintext secret ever crosses into Dart. (No longer whole: a login's fields are
+  shown and edited in Dart, [ADR 0009](adr/0009-secure-items.md).)
 - Accessibility: screen readers, dynamic type, WCAG AA contrast.
 - Touch targets ≥ 44 px.
 

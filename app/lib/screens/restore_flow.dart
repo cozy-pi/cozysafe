@@ -250,7 +250,9 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       if (vault != null) await TestLogin.noteUnlocked(vault, _password.text);
       if (!mounted) return;
       if (vault == null) {
-        // Right words, another password: the unlock screen asks for it.
+        // Right words, another password: the unlock screen asks for it, and is told why
+        // it is there (it used to appear without a word, as if the restore had failed).
+        showToast(context, l.restoredEnterPassword, icon: Icons.check_rounded);
         await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute<void>(builder: (_) => UnlockScreen(libraryDir: widget.libraryDir)),
           (_) => false,

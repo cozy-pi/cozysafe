@@ -1027,5 +1027,11 @@
   "addChoiceVoice": "녹음",
   "qrConfirmTitle": "사이트에 이 코드가 보이나요?",
   "qrConfirmLead": "사이트가 완료용 코드를 물으면 이 코드를 입력하세요. 30초마다 바뀝니다.",
-  "qrPasteAgain": "다시 붙여넣기"
+  "qrPasteAgain": "다시 붙여넣기",
+  "forgotPasswordHint": "잊으셨나요? Face ID나 지문으로 금고를 연 다음 설정에서 새 비밀번호를 설정하세요.",
+  "importNotAdded": "{total}개 중 {count}개를 추가하지 못했습니다.",
+  "importStopped": "모두 추가하기 전에 금고가 잠겼습니다: {total}개 중 {done}개가 들어갔습니다. 나머지를 다시 추가하세요.",
+  "errorOpen": "열지 못했습니다. 닫은 뒤 다시 시도하세요.",
+  "driveFailed": "Google Drive에 연결하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도하세요.",
+  "restoredEnterPassword": "복원했습니다. 이 금고의 비밀번호를 입력해 여세요."
 }

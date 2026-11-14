@@ -618,7 +618,7 @@ everywhere, easy to hit with a thumb.
   item gives a little under the finger and its menu opens when the finger lifts (or after
   0.65 s): a menu opened at once would end the touch, so no drag could follow.
 
-## Quick tour (mockup 2026-10-26, waiting for the owner)
+## Quick tour (mockup 2026-10-26; built, shown once after a vault is made or restored)
 
 - Tips on the real vault page (coach marks, `lib/screens/tour.dart`), not picture cards
   (owner 2026-10-26). The page dims; the widget being explained stays lit in a rounded

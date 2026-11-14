@@ -179,7 +179,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
       if (!mounted) return;
       setState(() => _saving = false);
       final l = AppLocalizations.of(context);
-      showToast(context, withCode(l, l.errorStorage, e), icon: Icons.error_outline_rounded);
+      showToast(context, e is rust.VaultError ? vaultErrorText(l, e) : withCode(l, l.errorStorage, e), icon: Icons.error_outline_rounded);
     }
   }
 
@@ -194,7 +194,7 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
       if (!mounted) return;
       setState(() => _saving = false);
       final l = AppLocalizations.of(context);
-      showToast(context, withCode(l, l.errorStorage, e), icon: Icons.error_outline_rounded);
+      showToast(context, e is rust.VaultError ? vaultErrorText(l, e) : withCode(l, l.errorStorage, e), icon: Icons.error_outline_rounded);
     }
   }
 

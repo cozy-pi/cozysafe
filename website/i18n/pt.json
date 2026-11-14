@@ -101,9 +101,10 @@
     "Permissões",
     [
      "Câmera: só para tirar fotos direto para um cofre, quando você abre a câmera. As fotos não são salvas na sua biblioteca de fotos.",
+     "Fototeca: apenas quando você adiciona fotos ou vídeos dela a um cofre, e para remover os originais depois, se você pedir.",
+     "Microfone: apenas enquanto você grava uma nota de voz ou um vídeo no app. As gravações vão direto para o cofre.",
      "Biometria: só se você ativar o desbloqueio por Face ID, Touch ID ou impressão digital. Seus dados biométricos nunca saem do hardware seguro do dispositivo e nunca ficam disponíveis para o app.",
      "Rede local (iPhone) / internet (Android) / rede (macOS): só para sincronizar com seu outro dispositivo na mesma Wi-Fi, quando você inicia.",
-     "Notificações (Android): só durante uma sincronização, para mostrar o progresso e mantê-la rodando com o celular bloqueado. Se você não permitir, a sincronização continua mesmo assim.",
      "Internet (Google Drive): só se você conectar o Google Drive, para entrar com o Google e acessar seu Drive."
     ]
    ],

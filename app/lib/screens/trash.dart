@@ -12,7 +12,9 @@ import '../widgets/drag_select.dart';
 import '../widgets/item_menu.dart';
 import '../widgets/selectable_row.dart';
 import '../widgets/selection_bar.dart';
+import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart';
+import 'common.dart';
 import '../widgets/entry_row.dart' show entryIcon;
 import 'file_view.dart';
 import 'item_info.dart';
@@ -97,8 +99,12 @@ class _TrashScreenState extends State<TrashScreen> {
           _picked.removeWhere((id) => !all.any((i) => i.id == id));
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _items = const []);
+    } catch (e) {
+      // Not "nothing deleted": the list could not be read, and says so.
+      if (!mounted) return;
+      setState(() => _items = const []);
+      final l = AppLocalizations.of(context);
+      showToast(context, e is rust.VaultError ? vaultErrorText(l, e) : withCode(l, l.errorOpen, e), icon: Icons.error_outline_rounded);
     }
   }
 
@@ -548,7 +554,11 @@ class _Tile extends StatelessWidget {
     final c = CsColors.of(context);
     final video = item.kind == ItemKind.video;
     final duration = item.durationMs;
-    return GestureDetector(
+    return Semantics(
+      label: item.name,
+      button: true,
+      image: true,
+      child: GestureDetector(
       onTap: onTap,
       child: ColoredBox(
         color: c.soft,
@@ -619,6 +629,7 @@ class _Tile extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }

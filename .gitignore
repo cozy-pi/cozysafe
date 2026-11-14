@@ -1,2 +1,5 @@
 docs/*.txt
 /target
+/core/target
+/tools/core-offline/target
+.wrangler/

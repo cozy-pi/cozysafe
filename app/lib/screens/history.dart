@@ -72,8 +72,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _days = days;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _versions = const []);
+    } catch (e) {
+      // Not "no earlier versions": they could not be read, and it says so.
+      if (!mounted) return;
+      setState(() => _versions = const []);
+      final l = AppLocalizations.of(context);
+      showToast(context, e is rust.VaultError ? vaultErrorText(l, e) : withCode(l, l.errorOpen, e), icon: Icons.error_outline_rounded);
     }
   }
 

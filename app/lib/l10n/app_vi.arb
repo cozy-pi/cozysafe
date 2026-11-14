@@ -1041,5 +1041,11 @@
   "addChoiceVoice": "Ghi âm",
   "qrConfirmTitle": "Trang web có hiện mã này không?",
   "qrConfirmLead": "Nếu trang web hỏi mã để hoàn tất, hãy nhập mã này vào đó. Mã đổi sau mỗi 30 giây.",
-  "qrPasteAgain": "Dán lại"
+  "qrPasteAgain": "Dán lại",
+  "forgotPasswordHint": "Quên mật khẩu? Mở két bằng Face ID hoặc vân tay, rồi đặt mật khẩu mới trong Cài đặt.",
+  "importNotAdded": "{count} trong {total} mục chưa thêm được.",
+  "importStopped": "Két đã khoá trước khi thêm xong: đã vào {done} trong {total}. Hãy thêm lại phần còn lại.",
+  "errorOpen": "Không mở được mục này. Đóng lại rồi thử lại.",
+  "driveFailed": "Không kết nối được Google Drive. Kiểm tra kết nối mạng rồi thử lại.",
+  "restoredEnterPassword": "Đã khôi phục. Nhập mật khẩu của két này để mở."
 }

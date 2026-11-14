@@ -1027,5 +1027,11 @@
   "addChoiceVoice": "Voz",
   "qrConfirmTitle": "O site mostra este código?",
   "qrConfirmLead": "Se o site pedir um código para concluir, digite este. Ele muda a cada 30 segundos.",
-  "qrPasteAgain": "Colar de novo"
+  "qrPasteAgain": "Colar de novo",
+  "forgotPasswordHint": "Esqueceu? Abra o cofre com o Face ID ou a impressão digital e depois defina uma nova senha em Ajustes.",
+  "importNotAdded": "Não foi possível adicionar {count} de {total}.",
+  "importStopped": "O cofre foi bloqueado antes de adicionar tudo: {done} de {total} entraram. Adicione o restante de novo.",
+  "errorOpen": "Não foi possível abrir. Feche e tente novamente.",
+  "driveFailed": "Não foi possível conectar ao Google Drive. Verifique a conexão com a internet e tente novamente.",
+  "restoredEnterPassword": "Restaurado. Digite a senha deste cofre para abri-lo."
 }

@@ -1027,5 +1027,11 @@
   "addChoiceVoice": "Voce",
   "qrConfirmTitle": "Il sito mostra questo codice?",
   "qrConfirmLead": "Se il sito chiede un codice per finire, inserisci questo. Cambia ogni 30 secondi.",
-  "qrPasteAgain": "Incolla di nuovo"
+  "qrPasteAgain": "Incolla di nuovo",
+  "forgotPasswordHint": "Dimenticata? Apri la cassaforte con Face ID o l'impronta, poi imposta una nuova password in Impostazioni.",
+  "importNotAdded": "{count} di {total} non sono stati aggiunti.",
+  "importStopped": "La cassaforte si è bloccata prima di aggiungere tutto: {done} di {total} sono dentro. Aggiungi di nuovo il resto.",
+  "errorOpen": "Impossibile aprire. Chiudi e riprova.",
+  "driveFailed": "Impossibile raggiungere Google Drive. Controlla la connessione a internet e riprova.",
+  "restoredEnterPassword": "Ripristinata. Inserisci la password di questa cassaforte per aprirla."
 }

@@ -16,7 +16,7 @@ use crate::{
 };
 
 /// A lock is a few kilobytes.
-const MAX_LOCK: u64 = 1 << 20;
+const MAX_LOCK: usize = 1 << 20;
 
 /// A vault's lock as the sync place keeps it: `{"library": …, "vault": …}`.
 struct Lock {
@@ -83,11 +83,10 @@ impl LibraryJoin for Library {
             .filter(|n| n.ends_with(".json"))
             .max()
             .ok_or(Error::Corrupt("no vault lock there"))?;
-        let mut bytes = Vec::new();
+        // Capped while it is read: the place is not trusted yet.
+        let mut bytes = crate::sync::Capped::new(MAX_LOCK);
         remote.get(&format!("{vault_id}/lock/{newest}"), &mut bytes)?;
-        if bytes.len() as u64 > MAX_LOCK {
-            return Err(Error::Corrupt("vault lock too large"));
-        }
+        let bytes = bytes.0;
         let lock = Lock::from_json(&bytes).ok_or(Error::Corrupt("vault lock"))?;
         let lib = &lock.library;
         let fits = |f: &Option<String>| {
