@@ -4,9 +4,30 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.2.37 (2026-11-14)
+## 0.3.0 (2026-11-14)
 
-From a review of the whole app (docs/decisions.md, 2026-11-14).
+A new look, fewer interruptions, and the fixes of a review of the whole app
+(docs/decisions.md, 2026-11-07 to 2026-11-14). The test builds 0.2.33 to 0.2.36 carried
+parts of it.
+
+### New look
+- Pages are grouped: light pages grey with white cards, the same big title on every tab
+  and in Settings, round-ended buttons.
+- The tabs are in one colour, with a word under each.
+- Adding a login: the password step opens on typing the password you already use;
+  making a new one comes second.
+- Creating a vault uses the same step-by-step frame as the rest.
+- The three quick add buttons are back above +, in their colours; the page behind the
+  ways to add dims less, and the card keeps its size when a way shows its choices.
+- Photos full screen: scrolling the strip of small photos moves the photo with it.
+
+### Fewer interruptions
+- A playing video or a recording counts as using the app: the vault does not lock on it.
+- Choosing photos or files gets up to 10 minutes before the vault locks; after copying a
+  password or code you have 2 minutes to paste it and come back (not in Top Secret Mode).
+- One owner check (Face ID, fingerprint, passcode) covers the next security settings for
+  2 minutes (not the Recovery Key, deleting, or Top Secret Mode).
+- Coming back after a moment away opens with a quick fade.
 
 ### Fixed
 - Sync with three devices or more: a newer edit could be replaced by an older one read
