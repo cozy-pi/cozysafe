@@ -17,6 +17,19 @@ settings for 2 minutes (not the Recovery Key, deleting, or Top Secret); opening 
 after leaving for a moment is a quick fade, and reduced motion drops the icon reveal.
 Details: [security.md](security.md), leaving and security settings.
 
+## 2026-11-14 — Quick add back; a lighter dim; the strip moves the photo
+
+**Owner (2026-11-14):** there is no quick add any more; look at how similar apps do it;
+the black behind is too heavy. Similar apps put the common ways one or two taps away by
+the thumb (a speed dial of round buttons over +, Keep's bar of quick icons, Drive's and
+Dropbox's sheet of a few big buttons). So, on `ui-refresh`:
+- The three round quick buttons above + are back in the middle mode, solid in their
+  colours so they stand out; the card of every way stays above them. Reverses that line
+  of the 2026-11-07 review.
+- The page behind the ways to add dims to 60% instead of 92%.
+- (2026-11-13) Scrolling the strip of small photos in the full-screen viewer moves the
+  photo above with it, a haptic tick per photo, settling on the one in the middle.
+
 ## 2026-11-07 — A look-and-feel review, tried on a branch
 
 **Owner (2026-11-07):** the app does not look good or friendly enough yet; have it

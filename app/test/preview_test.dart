@@ -677,7 +677,7 @@ void main() {
   });
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
-  _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
+  _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', change: 'SỬA: nền tối phía sau thẻ nhạt hơn (.92 → .6)', setup: _leftCamera, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
@@ -727,7 +727,6 @@ void main() {
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
       section: 'home',
-      change: 'SỬA: Tổng quan có nút 🔍 tròn ở đầu trang như mọi trang khác (bỏ ô tìm kiếm to); các ô "Xem theo loại" xếp theo số lượng giảm dần',
       marks: [() => find.byKey(const ValueKey('search-button')), () => find.byKey(const ValueKey('kind-card'))]);
   _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home', act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-video')));
@@ -855,14 +854,14 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
     await t.pumpAndSettle();
   });
-  _screen('add-library-center', 'Thư viện · bấm +: đủ mọi loại, 3 ô mỗi hàng', home, section: 'library', setup: () {
+  _screen('add-library-center', 'Thư viện · bấm +: đủ mọi loại, 3 ô mỗi hàng', home, section: 'library', change: 'SỬA: bấm + lại có 3 nút thêm nhanh tròn ngay trên + (loại dùng nhiều nhất ở giữa), tô đặc màu cho nổi; nền tối phía sau nhạt hơn (.92 → .6), vẫn thấy trang', marks: [() => find.byKey(const ValueKey('add-row'))], setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
+  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', change: 'SỬA: bấm + lại có 3 nút thêm nhanh tròn ngay trên + (loại dùng nhiều nhất ở giữa), tô đặc màu cho nổi; nền tối phía sau nhạt hơn (.92 → .6), vẫn thấy trang', marks: [() => find.byKey(const ValueKey('add-row'))], setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {

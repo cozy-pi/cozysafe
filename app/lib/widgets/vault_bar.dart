@@ -885,6 +885,10 @@ List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, int Function(Vau
   return top.length < 2 ? top : [top[1], top[0], ...top.skip(2)];
 }
 
+/// How much the page dims behind the ways to add (owner 2026-11-14: .92 hid it almost
+/// entirely, too heavy).
+const addDim = .6;
+
 /// + never does one thing at once: it always opens the card of every way and the quick
 /// buttons ([quickWays]).
 AddWhat? addDirect(VaultSection section, {required bool camera}) => null;
@@ -972,8 +976,9 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
         Positioned.fill(
           child: GestureDetector(
             onTap: w.onClose,
-            // Denser than the column's veil: the labels sit over whatever is behind.
-            child: FadeTransition(opacity: dim, child: ColoredBox(color: page.withValues(alpha: .92))),
+            // Light enough that the page still shows through (owner 2026-11-14: the black
+            // behind was too heavy); the buttons and the card are solid over it.
+            child: FadeTransition(opacity: dim, child: ColoredBox(color: page.withValues(alpha: addDim))),
           ),
         ),
         Positioned(
@@ -1304,7 +1309,7 @@ class AddCardOverlay extends StatelessWidget {
         Positioned.fill(
           child: GestureDetector(
             onTap: onClose,
-            child: ColoredBox(color: page.withValues(alpha: (dropFrom != null ? .45 : .92) * t)),
+            child: ColoredBox(color: page.withValues(alpha: (dropFrom != null ? .45 : addDim) * t)),
           ),
         ),
         child!,
@@ -1351,10 +1356,13 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
                 height: circle,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: hovered ? addWayColor(what) : Color.alphaBlend(addWayColor(what).withValues(alpha: .16), page),
-                  boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
+                  // Solid in its colour (owner 2026-11-14): over the lighter dim, a pale
+                  // circle was lost among the photos behind it.
+                  color: addWayColor(what),
+                  border: hovered ? Border.all(color: page, width: 3) : null,
+                  boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 12, offset: Offset(0, 4))],
                 ),
-                child: Icon(icon, size: 26, color: hovered ? Colors.white : addWayColor(what)),
+                child: Icon(icon, size: 26, color: Colors.white),
               ),
             ),
           ),

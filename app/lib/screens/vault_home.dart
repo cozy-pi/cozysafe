@@ -703,6 +703,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
+  /// The quick buttons above +.
+  List<(AddWhat, IconData, String)> _addWays() =>
+      quickWays(AppLocalizations.of(context), _countIn, camera: _hasCamera);
+
   /// Every way, for the card above the quick buttons and the computer's Add.
   List<(AddWhat, IconData, String)> _allWays() =>
       addWays(AppLocalizations.of(context), camera: _hasCamera, voice: vaultSections().contains(VaultSection.audio));
@@ -3218,11 +3222,23 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
               if (_addShown)
                 Positioned.fill(
-                  // The card alone just above +, wherever + is (owner 2026-10-27: a column
-                  // beside the card looked broken; 2026-11-07 review: a row of round
-                  // buttons under the card repeated its lines). Its lines are the quick
-                  // buttons: a finger sliding up from + picks the line it lets go on.
-                  child: AddCardOverlay(
+                  // An empty vault (its tiles, no +) has the card alone, as on an edge.
+                  child: actionSide() == ActionSide.center && !empty
+                      // In the middle: the ways side by side just above the + (owner
+                      // 2026-10-24: the fan put them too far apart).
+                      ? AddRow(
+                          open: _adding,
+                          onGone: _addGone,
+                          ways: _addWays(),
+                          bottom: bottom + actionLift() + Ui.primary + 10,
+                          centreX: centreX,
+                          hovered: _hover,
+                          onPick: _pickAdd,
+                          onClose: _closeAdd,
+                        )
+                      // On an edge: the card alone just above + (owner 2026-10-27: a column
+                      // beside the card looked broken); its lines are the quick buttons.
+                      : AddCardOverlay(
                           open: _adding,
                           onGone: _addGone,
                           ways: _allWays(),
@@ -3233,6 +3249,22 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                           onPick: _pickAdd,
                           onClose: _closeAdd,
                         ),
+                ),
+              // In the middle, above the quick buttons: every way with a line on what it
+              // does (owner 2026-10-27).
+              if (_addShown && actionSide() == ActionSide.center && !empty)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  top: MediaQuery.paddingOf(context).top + 12,
+                  bottom: bottom + actionLift() + Ui.primary + 10 + Ui.bar + 40,
+                  child: AddCard(
+                    open: _adding,
+                    ways: _allWays(),
+                    way: _addWay,
+                    onBack: _addBack,
+                    onPick: _pickAdd,
+                  ),
                 ),
               // Above the lock (left thumb), on the right, or in the middle above the bar
               // (Settings). An empty vault has the add tiles on screen instead.

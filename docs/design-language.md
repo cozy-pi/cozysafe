@@ -173,9 +173,12 @@ on a computer). A way that asks a second question (Photos / Files, Note / Voice,
 Password) shows its choices **in that same card**, in place of the four ways, with ‹
 in the card's header to go back; the card keeps its place and grows to fit. Never a
 separate card, a page or another dim or blur on top for a way's choices. Choosing one
-closes the card and does it. The card is alone wherever + is, the middle too: no row of
-round buttons under it (2026-11-07 review: they repeated its lines). A finger sliding up
-from + picks the card's line it lets go on. The camera, and Note where nothing records, act at once.
+closes the card and does it. With + in the middle, three quick buttons sit just above +,
+solid in their colours: the ways of the three kinds the vault holds most, the most over +
+(owner 2026-11-14: the card alone left no quick add; brought back from before the
+2026-11-07 review). On an edge the card is alone and its lines are the quick buttons. A
+finger sliding up from + picks the button or line it lets go on. The page behind dims to
+60% (owner 2026-11-14: 92% was too heavy). The camera, and Note where nothing records, act at once.
 
 **Confirm a deletion**: a sheet with one red button the width of the page, Cancel as text
 under it. Where keeping is the safe and likely answer (the originals after an import),
