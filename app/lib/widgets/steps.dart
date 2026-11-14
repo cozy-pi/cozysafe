@@ -55,7 +55,7 @@ class ChoiceCard extends StatelessWidget {
     return Semantics(
       button: true,
       child: Material(
-        color: ink.withValues(alpha: .06),
+        color: Theme.of(context).cardColor,
         shape: RoundedSuperellipseBorder(borderRadius: BorderRadius.circular(Ui.radius)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -157,7 +157,7 @@ class StepPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(Ui.side - 4, 8, Ui.side, 4),
             child: Row(
               children: [
-                GlassButton(key: const ValueKey('step-back'), icon: Icons.arrow_back_rounded, tooltip: l.back, onTap: onBack),
+                GlassButton(key: const ValueKey('step-back'), icon: Icons.arrow_back_ios_new_rounded, tooltip: l.back, onTap: onBack),
                 const SizedBox(width: 16),
                 Expanded(child: count > 1 ? StepProgress(count: count, at: at) : const SizedBox()),
                 const SizedBox(width: 8),

@@ -155,23 +155,12 @@ abstract final class CsType {
 
 /// The big title on the left for a top page (Settings), on every platform.
 TextStyle? largeTitle(BuildContext context) =>
-    Theme.of(context).appBarTheme.titleTextStyle?.copyWith(fontSize: CsType.title3, fontWeight: FontWeight.w700);
+    Theme.of(context).appBarTheme.titleTextStyle?.copyWith(fontSize: CsType.largeTitle, fontWeight: FontWeight.w700);
 
-/// The phone's grouped list in light mode: a pale grey page and the groups on white, so
-/// each group stands out as a card. Dark mode is already black with grey groups.
-Widget groupedPage(BuildContext context, Widget child) {
-  final t = Theme.of(context);
-  if (t.brightness == Brightness.dark) return child;
-  final grey = t.cardColor;
-  return Theme(
-    data: t.copyWith(
-      scaffoldBackgroundColor: grey,
-      cardColor: t.scaffoldBackgroundColor,
-      appBarTheme: t.appBarTheme.copyWith(backgroundColor: grey),
-    ),
-    child: child,
-  );
-}
+/// The phone's grouped list. Every page is grouped now (the page grey, cards white in
+/// light mode; black and dark grey in dark), so this keeps the page as it is; kept for
+/// the callers.
+Widget groupedPage(BuildContext context, Widget child) => child;
 
 ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   final dark = brightness == Brightness.dark;
@@ -182,8 +171,11 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   final page = dark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
   final pen = dark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
   Color tone(double alpha) => Color.alphaBlend(pen.withValues(alpha: alpha), page);
-  final bg = p?.bg ?? page;
-  final surface = p?.surface ?? tone(dark ? .09 : .045);
+  // Grouped everywhere, as the phone's own Settings and Passwords: in light mode a pale
+  // grey page with the cards white on it, so a card stands out (white cards a shade of
+  // grey on white barely did, about 1.08:1); in dark mode black with dark grey cards.
+  final bg = p?.bg ?? (dark ? page : const Color(0xFFF2F2F5));
+  final surface = p?.surface ?? (dark ? const Color(0xFF1C1C1E) : page);
   final ink = p?.ink ?? pen;
   final accent = p?.accent ?? pen;
   final accentInk = p?.onAccent ?? page;
@@ -257,7 +249,9 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: colors.soft,
+      // A shade deeper in light mode: the page is grey now, and the field must read on
+      // it as well as on a white card.
+      fillColor: dark ? colors.soft : tone(.1),
       border: field(null),
       enabledBorder: field(null),
       focusedBorder: field(accent),
@@ -279,7 +273,8 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
         disabledBackgroundColor: tone(dark ? .12 : .08),
         disabledForegroundColor: tone(.38),
         minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        // Buttons are round-ended everywhere, as the steps' main button (one shape).
+        shape: const StadiumBorder(),
         textStyle: label.copyWith(fontSize: CsType.callout, fontWeight: FontWeight.w700),
       ),
     ),
@@ -291,7 +286,7 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
         foregroundColor: pen,
         side: BorderSide(color: colors.border, width: 1.5),
         minimumSize: const Size(64, 52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: const StadiumBorder(),
         textStyle: label.copyWith(fontSize: CsType.callout, fontWeight: FontWeight.w600),
       ),
     ),

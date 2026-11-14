@@ -171,7 +171,7 @@ The current layout is `RECORD_FORMAT = 2`.
 Fields are written in this order. Optional fields are left out when empty or default, so
 older apps keep reading newer records. **Fields this version does not know are kept**
 (`ItemRecord::extra`) and written back after the known ones, so an older app that
-renames, favours or deletes an item never drops what a newer one added (since 0.2.28;
+renames, favours or deletes an item never drops what a newer one added (since 0.2.29;
 0.2.27 and older drop them, which is why secure items rebuild their `summary`).
 
 | Field | Type | Required | Meaning |
@@ -405,11 +405,11 @@ serves a folder. There is no iCloud Drive sync today. Details and rationale:
                                    have; absent = 0 (see below)
 ```
 
-**Sync level** (`SYNC_LEVEL`, `core/cs-vault/src/sync.rs`, since 0.2.28). A version whose
+**Sync level** (`SYNC_LEVEL`, `core/cs-vault/src/sync.rs`, since 0.2.29). A version whose
 changes an older one would damage raises `<vault>/level` (`raise_place_level`, never
 lowered). Before touching a place, a device reads it and stops if it is above its own
-`SYNC_LEVEL`; the app says to update (`sync-needs-newer-app`). Versions before 0.2.28 do
-not read it: the next change that needs it can stop every version from 0.2.28 on. Sealed
+`SYNC_LEVEL`; the app says to update (`sync-needs-newer-app`). Versions before 0.2.29 do
+not read it: the next change that needs it can stop every version from 0.2.29 on. Sealed
 with the Master Key (AAD `sync/level`), so nobody without the vault can lower it.
 
 - Nothing is overwritten, except each device's own `head`.
@@ -463,7 +463,7 @@ These never go into the library folder. Values are base64 unless noted.
 | Test vault marker (Android test builds only) | `cozysafe_test_login` | `vault` | No |
 
 The **vault code** (like `7F3A-9K2Q`) comes from the vault's identity keys (see
-[cryptography.md](cryptography.md#identity-keys)). It is a label, not a secret.
+[cryptography.md](cryptography.md#7-identity-keys)). It is a label, not a secret.
 
 Source: `app/lib/secret_key_store.dart` (`SecretKeyStore`, `PinStore`),
 `app/lib/key_backup.dart` (`KeyBackup`), `app/lib/biometric.dart` (`BiometricUnlock`,

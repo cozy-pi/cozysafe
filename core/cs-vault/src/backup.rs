@@ -232,8 +232,10 @@ fn allowed(name: &str) -> Option<PathBuf> {
     ok.then(|| parts.iter().collect())
 }
 
+/// An id exactly as the app writes one (32 lowercase hex digits): a capital would pass a
+/// looser check, then be a file the vault cannot name.
 fn is_hex_id(s: &str) -> bool {
-    s.len() == 32 && s.bytes().all(|b| b.is_ascii_hexdigit())
+    crate::id_name(s).is_some()
 }
 
 #[cfg(test)]
@@ -330,6 +332,17 @@ pub(crate) mod tests {
         evil.extend(1u32.to_be_bytes());
         assert!(matches!(import(&evil[..], &target), Err(Error::BadBackup)));
         assert!(!b.path().join("evil").exists() && !target.exists());
+    }
+
+    #[test]
+    fn only_names_the_app_writes_are_let_in() {
+        let v = "0123456789abcdef0123456789abcdef";
+        assert!(allowed(&format!("vaults/{v}/items/{v}.meta")).is_some());
+        // A capital in an id: a file the vault could not name once restored.
+        let up = v.to_uppercase();
+        assert!(allowed(&format!("vaults/{v}/items/{up}.meta")).is_none());
+        assert!(allowed(&format!("vaults/{up}/vault.json")).is_none());
+        assert!(allowed(&format!("vaults/{v}/items/+{}.meta", &v[1..])).is_none());
     }
 
     /// Lower `library.json`'s Argon2 memory under the floor, as a tampered copy would.

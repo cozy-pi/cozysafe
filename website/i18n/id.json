@@ -101,9 +101,10 @@
     "Izin",
     [
      "Kamera: hanya untuk mengambil foto langsung ke dalam brankas, saat Anda membuka kamera. Foto tidak disimpan ke galeri foto Anda.",
+     "Galeri foto: hanya saat Anda menambahkan foto atau video dari sana ke brankas, dan untuk menghapus aslinya setelah itu jika Anda minta.",
+     "Mikrofon: hanya saat Anda merekam memo suara atau video di aplikasi. Rekaman langsung masuk ke brankas.",
      "Biometrik: hanya jika Anda mengaktifkan buka kunci dengan Face ID, Touch ID, atau sidik jari. Data biometrik Anda tidak pernah meninggalkan perangkat keras aman di perangkat dan tidak pernah dapat diakses oleh aplikasi.",
      "Jaringan lokal (iPhone) / internet (Android) / jaringan (macOS): hanya untuk sinkronisasi dengan perangkat Anda yang lain di Wi-Fi yang sama, saat Anda memulainya.",
-     "Notifikasi (Android): hanya selama sinkronisasi berjalan, untuk menampilkan progresnya dan menjaganya tetap berjalan saat ponsel terkunci. Jika Anda menolak, sinkronisasi tetap berjalan.",
      "Internet (Google Drive): hanya jika Anda menghubungkan Google Drive, untuk masuk dengan Google dan menjangkau Drive Anda."
     ]
    ],

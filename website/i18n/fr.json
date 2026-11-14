@@ -101,9 +101,10 @@
     "Autorisations",
     [
      "Appareil photo : uniquement pour prendre des photos directement dans un coffre, lorsque vous ouvrez l'appareil photo. Les photos ne sont pas enregistrées dans votre photothèque.",
+     "Photothèque : seulement quand vous ajoutez des photos ou des vidéos de celle-ci à un coffre, et pour supprimer ensuite les originaux si vous le demandez.",
+     "Microphone : seulement pendant que vous enregistrez un mémo vocal ou une vidéo dans l'app. Les enregistrements vont directement dans le coffre.",
      "Biométrie : uniquement si vous activez le déverrouillage par Face ID, Touch ID ou empreinte digitale. Vos données biométriques ne quittent jamais le matériel sécurisé de l'appareil et ne sont jamais accessibles à l'app.",
      "Réseau local (iPhone) / Internet (Android) / réseau (macOS) : uniquement pour synchroniser avec votre autre appareil sur le même Wi-Fi, quand vous la lancez.",
-     "Notifications (Android) : uniquement pendant une synchronisation, pour en montrer la progression et la poursuivre téléphone verrouillé. Si vous refusez, la synchronisation continue quand même.",
      "Internet (Google Drive) : seulement si vous connectez Google Drive, pour vous connecter à Google et accéder à votre Drive."
     ]
    ],

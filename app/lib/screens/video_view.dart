@@ -118,6 +118,11 @@ class Playback extends ChangeNotifier {
   /// What stopped the playing, for the code under the message.
   Object get error => _error ?? 'play-video';
 
+  /// Playing keeps the vault from locking for lack of touches ([LockGuard.playing]).
+  void _inUse() {
+    if (_player?.value.isPlaying ?? false) LockGuard.playing();
+  }
+
   Future<void> _open(int round) async {
     File? copy;
     VideoPlayerController? p;
@@ -132,7 +137,9 @@ class Playback extends ChangeNotifier {
         return;
       }
       _copy = copy;
-      _player = p..addListener(notifyListeners);
+      _player = p
+        ..addListener(notifyListeners)
+        ..addListener(_inUse);
       notifyListeners();
       if (_playing) await p.play();
     } catch (e) {
@@ -158,7 +165,9 @@ class Playback extends ChangeNotifier {
     if (p != null) {
       _at = p.value.position;
       _playing = p.value.isPlaying;
-      p.removeListener(notifyListeners);
+      p
+        ..removeListener(notifyListeners)
+        ..removeListener(_inUse);
     }
     _player = null;
     _failed = false;
@@ -180,6 +189,7 @@ class Playback extends ChangeNotifier {
     _round++;
     vaultLock.removeListener(_lockChanged);
     _player?.removeListener(notifyListeners);
+    _player?.removeListener(_inUse);
     _player?.dispose();
     _delete(_copy);
     super.dispose();

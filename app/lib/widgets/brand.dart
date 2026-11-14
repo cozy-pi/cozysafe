@@ -429,6 +429,7 @@ class _CollagePainter extends CustomPainter {
 Future<void> playVaultSpin(
   BuildContext context, {
   required bool opening,
+  bool quick = false,
   required VoidCallback onCovered,
   Widget? behind,
   Color? glow,
@@ -440,7 +441,10 @@ Future<void> playVaultSpin(
   final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
   final controller = AnimationController(
     vsync: overlay,
-    duration: Duration(milliseconds: opening ? 1150 : 1050),
+    // [quick]: the vault opened again after leaving the app for a moment (2026-11-11
+    // review: the full turn on every return, about a second, felt slow). Reduced motion
+    // keeps only the fade, short.
+    duration: Duration(milliseconds: reduce ? 200 : quick ? 280 : opening ? 1150 : 1050),
   );
   final entry = OverlayEntry(
       builder: (_) => _Spin(

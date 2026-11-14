@@ -70,8 +70,21 @@ class _KeyCheckScreenState extends State<KeyCheckScreen> with VaultLockAware {
         }
       }
       if (widget.hasPassword && _password.text.isNotEmpty) {
+        // The same count and waits as every other place a password is tried: with the
+        // vault open, this page must not be where it is guessed for free.
+        final until = await PinStore.passwordWaitUntil();
+        if (until != null) {
+          final m = (until.difference(DateTime.now()).inSeconds / 60).ceil();
+          if (mounted) showToast(context, AppLocalizations.of(context).pinWait(m < 1 ? 1 : m), icon: Icons.hourglass_bottom_rounded);
+          return;
+        }
         // An Argon2id run, as when opening.
         _passwordOk = await rust.checkPassword(dir: widget.libraryDir, password: _password.text);
+        if (_passwordOk == true) {
+          await PinStore.resetPasswordFails();
+        } else {
+          await PinStore.addPasswordFail();
+        }
       }
     } catch (e) {
       // A failure, not a wrong answer: nothing is marked wrong, the toast says what failed.

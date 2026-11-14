@@ -8,7 +8,8 @@ import 'vault_bar.dart';
 ///
 /// At the top of the screen, just under the status bar (owner 2026-10-25: at the bottom
 /// they sat over the bar and the + and did not look right). It slides down, stays 3 s
-/// (5 s with an action such as Undo), and a swipe up closes it early. One at a time: a
+/// (5 s with an action such as Undo, 8 s for an error with its code: two lines to read,
+/// and a code to note), and a swipe up closes it early. A screen reader is told of it. One at a time: a
 /// new message replaces the one showing. [besideAction] is from when it sat by the +
 /// button and is no longer needed.
 void showToast(
@@ -28,7 +29,7 @@ void showToast(
     icon: icon,
     actionLabel: actionLabel,
     onAction: onAction,
-    shown: Duration(seconds: actionLabel == null ? 3 : 5),
+    shown: Duration(seconds: actionLabel != null ? 5 : (text.contains('\n') ? 8 : 3)),
     onGone: () {
       if (identical(_current, toast)) _current = null;
     },
@@ -175,11 +176,15 @@ class _TopToastViewState extends State<_TopToastView> with TickerProviderStateMi
                 },
                 child: Material(
                   type: MaterialType.transparency,
-                  child: _Toast(
-                    text: widget.text,
-                    icon: widget.icon,
-                    actionLabel: widget.actionLabel,
-                    onAction: widget.onAction,
+                  child: Semantics(
+                    container: true,
+                    liveRegion: true,
+                    child: _Toast(
+                      text: widget.text,
+                      icon: widget.icon,
+                      actionLabel: widget.actionLabel,
+                      onAction: widget.onAction,
+                    ),
                   ),
                 ),
               ),

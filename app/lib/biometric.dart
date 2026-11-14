@@ -237,14 +237,30 @@ Future<bool> confirmOwner(String reason, {BuildContext? context}) async {
 /// Every security setting asks who is holding the phone first (docs/security.md,
 /// security settings): Face ID, fingerprint, or the phone's passcode. The vault stays
 /// open while the system prompt is up.
-Future<bool> confirmOwnerForSetting(String reason, {BuildContext? context}) async {
+///
+/// Once the owner has been confirmed, the next setting within [ownerGrace] does not ask
+/// again (2026-11-11 review: Face ID for every row of Settings, one after another),
+/// unless [always]: what shows the 24 words or deletes for good asks every time, and so
+/// does everything in Top Secret Mode. The vault locking ends the grace.
+Future<bool> confirmOwnerForSetting(String reason, {BuildContext? context, bool always = false}) async {
+  final last = _ownerConfirmed;
+  if (!always && !TopSecretMode.on && last != null && DateTime.now().difference(last) < ownerGrace) return true;
   LockGuard.allowAway();
   try {
-    return await confirmOwner(reason, context: context);
+    final ok = await confirmOwner(reason, context: context);
+    _ownerConfirmed = ok ? DateTime.now() : null;
+    return ok;
   } finally {
     LockGuard.clear();
   }
 }
+
+/// How long one owner check covers the next security settings ([confirmOwnerForSetting]).
+const ownerGrace = Duration(minutes: 2);
+DateTime? _ownerConfirmed;
+
+/// The vault locked: the next security setting asks again.
+void forgetOwnerCheck() => _ownerConfirmed = null;
 
 /// Turn biometric unlock on for the open vault: Rust makes the wrapped copy, the key goes
 /// into the gated store (Android asks for a fingerprint here). Rolls back on failure.

@@ -334,6 +334,7 @@ class _CentreTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final primary = Theme.of(context).colorScheme.primary;
+    final ink = Theme.of(context).colorScheme.onSurface;
     Widget tab(VaultSection s) {
       final on = s == section;
       return Expanded(
@@ -355,17 +356,34 @@ class _CentreTabs extends StatelessWidget {
                       HapticFeedback.heavyImpact();
                       onHoldHome!();
                     },
-              child: Center(
-                // A small pop as it becomes the one on show (the pill slides under it).
-                child: AnimatedScale(
-                  scale: on ? 1.08 : 1,
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutBack,
-                  child: s == VaultSection.home && home != null
-                      ? home!
-                      // Each tab in its section's colour (owner 2026-10-31), brighter on show.
-                      : Icon(_icon(s), size: 28, color: on ? sectionColor(s) : sectionColor(s).withValues(alpha: .7)),
-                ),
+              // One ink, as the phone's own tab bars: the tab on show full ink, the
+              // others faded; a small word under each icon, so no tab has to be guessed.
+              // The section colours stay where kinds are counted (overview, storage).
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: 30,
+                    child: Center(
+                      child: s == VaultSection.home && home != null
+                          ? home!
+                          : Icon(_icon(s), size: 26, color: on ? ink : ink.withValues(alpha: .5)),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    sectionLabel(l, s),
+                    maxLines: 1,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                    textScaler: TextScaler.noScaling,
+                    style: TextStyle(
+                      fontSize: CsType.caption2,
+                      fontWeight: on ? FontWeight.w700 : FontWeight.w500,
+                      color: on ? ink : ink.withValues(alpha: .6),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -388,7 +406,7 @@ class _CentreTabs extends StatelessWidget {
       // Where the lit pill sits: under the section on show, sliding from one to the
       // next (owner 2026-10-24: "like Instagram").
       final i = sections.indexOf(section);
-      const pillW = 52.0, pillH = Ui.bar - 12;
+      const pillW = 64.0, pillH = Ui.bar - 6;
       final double? pillX = i < 0 ? null : tabX(i) + (tabW(i) - pillW) / 2;
       return Stack(
         alignment: Alignment.center,
@@ -404,7 +422,7 @@ class _CentreTabs extends StatelessWidget {
               child: DecoratedBox(
                 key: const ValueKey('tab-pill'),
                 decoration: BoxDecoration(
-                  color: primary.withValues(alpha: .16),
+                  color: primary.withValues(alpha: .10),
                   borderRadius: BorderRadius.circular(pillH / 2),
                 ),
               ),
@@ -867,6 +885,10 @@ List<(AddWhat, IconData, String)> quickWays(AppLocalizations l, int Function(Vau
   return top.length < 2 ? top : [top[1], top[0], ...top.skip(2)];
 }
 
+/// How much the page dims behind the ways to add (owner 2026-11-14: .92 hid it almost
+/// entirely, too heavy).
+const addDim = .6;
+
 /// + never does one thing at once: it always opens the card of every way and the quick
 /// buttons ([quickWays]).
 AddWhat? addDirect(VaultSection section, {required bool camera}) => null;
@@ -954,8 +976,9 @@ class _AddRowState extends State<AddRow> with SingleTickerProviderStateMixin {
         Positioned.fill(
           child: GestureDetector(
             onTap: w.onClose,
-            // Denser than the column's veil: the labels sit over whatever is behind.
-            child: FadeTransition(opacity: dim, child: ColoredBox(color: page.withValues(alpha: .92))),
+            // Light enough that the page still shows through (owner 2026-11-14: the black
+            // behind was too heavy); the buttons and the card are solid over it.
+            child: FadeTransition(opacity: dim, child: ColoredBox(color: page.withValues(alpha: addDim))),
           ),
         ),
         Positioned(
@@ -1084,6 +1107,16 @@ class AddCard extends StatefulWidget {
 }
 
 class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
+  /// The four ways' page, measured so a way's second choices keep the card that tall
+  /// (owner 2026-11-14: the card shrinking on the way in was unpleasant).
+  final _waysPage = GlobalKey();
+  double _waysHeight = 0;
+
+  void _measureWays() {
+    final h = _waysPage.currentContext?.size?.height;
+    if (h != null && h != _waysHeight) _waysHeight = h;
+  }
+
   late final _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 260),
@@ -1146,10 +1179,21 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
         ? [for (final (what, icon, label) in widget.ways) _row(context, what, icon, label, sub: false)]
         : [for (final (what, icon, label) in addSubChoices(l, way)) _row(context, what, icon, label, sub: true)];
     const titleStyle = TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w800, letterSpacing: -.2);
+    if (way == null) WidgetsBinding.instance.addPostFrameCallback((_) => _measureWays());
     return SingleChildScrollView(
       key: ValueKey('add-card-page-${way?.name ?? 'ways'}'),
       padding: const EdgeInsets.fromLTRB(0, 18, 0, 10),
-      child: Column(
+      child: way == null ? KeyedSubtree(key: _waysPage, child: _page(rows, way, titleStyle, l))
+          : ConstrainedBox(
+              // The padding above and below is outside the measured page.
+              constraints: BoxConstraints(minHeight: _waysHeight),
+              child: _page(rows, way, titleStyle, l),
+            ),
+    );
+  }
+
+  Widget _page(List<Widget> rows, AddWhat? way, TextStyle titleStyle, AppLocalizations l) {
+    return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1177,7 +1221,6 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
             ),
           ...rows,
         ],
-      ),
     );
   }
 
@@ -1200,8 +1243,9 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
               clipBehavior: Clip.antiAlias,
               elevation: 12,
               shadowColor: Colors.black38,
-              // The card keeps its place (its bottom by +, or its top under Add) and grows
-              // or shrinks to what it shows; the content slides in from the side it goes.
+              // The card keeps its place (its bottom by +, or its top under Add) and its
+              // size: a way's second choices are as tall as the four ways (it grows only
+              // for more lines); the content slides in from the side it goes.
               child: AnimatedSize(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
@@ -1286,7 +1330,7 @@ class AddCardOverlay extends StatelessWidget {
         Positioned.fill(
           child: GestureDetector(
             onTap: onClose,
-            child: ColoredBox(color: page.withValues(alpha: (dropFrom != null ? .45 : .92) * t)),
+            child: ColoredBox(color: page.withValues(alpha: (dropFrom != null ? .45 : addDim) * t)),
           ),
         ),
         child!,
@@ -1333,10 +1377,13 @@ Widget addWayButton(BuildContext context, AddWhat what, IconData icon, String la
                 height: circle,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: hovered ? addWayColor(what) : Color.alphaBlend(addWayColor(what).withValues(alpha: .16), page),
-                  boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 3))],
+                  // Solid in its colour (owner 2026-11-14): over the lighter dim, a pale
+                  // circle was lost among the photos behind it.
+                  color: addWayColor(what),
+                  border: hovered ? Border.all(color: page, width: 3) : null,
+                  boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 12, offset: Offset(0, 4))],
                 ),
-                child: Icon(icon, size: 26, color: hovered ? Colors.white : addWayColor(what)),
+                child: Icon(icon, size: 26, color: Colors.white),
               ),
             ),
           ),

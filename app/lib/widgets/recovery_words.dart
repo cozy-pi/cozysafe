@@ -4,9 +4,9 @@ import 'dart:math';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../entries/secure_clipboard.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../platform.dart';
@@ -41,6 +41,9 @@ List<int> pickFourWords({bool fixed = false, List<int>? not}) {
 /// the warning; the screen stays on while they are copied out by hand ([WordsAwake]).
 /// Copy (wiped from the clipboard after 60 s and on lock) and Save only in a build with
 /// [wordsExport]. The screen pins its own button at the bottom.
+/// How long the 24 words stay on the clipboard.
+const wordsClipboardSeconds = 60;
+
 class RecoveryWordsPanel extends StatelessWidget {
   const RecoveryWordsPanel({super.key, required this.words});
   final List<String> words;
@@ -50,7 +53,10 @@ class RecoveryWordsPanel extends StatelessWidget {
     final l = AppLocalizations.of(context);
     // Numbered, one per line (owner 2026-11-03), as the file and the grid; Paste reads it back.
     final text = numberedWords(words);
-    await Clipboard.setData(ClipboardData(text: text));
+    // As a password is copied (marked sensitive on Android: not in the preview, not kept
+    // by keyboards; this device only and expiring by itself on iPhone and Mac), and for
+    // 60 s whatever the setting. Wiped on lock as well.
+    await SecureClipboard.copy(text, lasting: wordsClipboardSeconds);
     LockGuard.copied(text);
     if (context.mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
   }

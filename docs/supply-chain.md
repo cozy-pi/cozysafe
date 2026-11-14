@@ -126,10 +126,13 @@ dumps the permissions of the built APK (`aapt2 dump permissions`) and of the Pla
 and fails if a network permission beyond it appears (network or Wi‑Fi state, changing
 them, multicast, nearby devices). The protection against a library using INTERNET is
 the other layers. The other permissions in the manifest give no network access:
-USE_BIOMETRIC, RECORD_AUDIO, and FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC and
-POST_NOTIFICATIONS, which keep a running sync alive with the phone locked (a dataSync
-foreground service, `SyncService.kt`, showing its progress in a quiet notification, only
-while a sync runs).
+USE_BIOMETRIC, RECORD_AUDIO and DETECT_SCREEN_CAPTURE (Android 14+: told when a
+screenshot is taken, to warn it is not encrypted). FOREGROUND_SERVICE,
+FOREGROUND_SERVICE_DATA_SYNC and POST_NOTIFICATIONS are **not requested for now**
+(commented out in the manifest, `SYNC_SERVICE = false`, owner 2026-10-25): they would
+keep a running sync alive with the phone locked (a dataSync foreground service,
+`SyncService.kt`, with a quiet notification), and wait for Google Play's foreground
+service declaration.
 
 **macOS.** The release build runs in the App Sandbox with `network.client` and
 `network.server` (sync: one device listens, the other connects). `tools/check-entitlements`

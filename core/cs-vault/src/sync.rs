@@ -558,7 +558,7 @@ pub trait VaultSync {
         -> Result<SyncReport>;
 
     /// The least version a place asks of the devices syncing with it: `<vault>/level`,
-    /// sealed; 0 when absent (every version before 0.2.28). See [`SYNC_LEVEL`].
+    /// sealed; 0 when absent (every version before 0.2.29). See [`SYNC_LEVEL`].
     fn place_level(&self, remote: &dyn Remote) -> Result<u32>;
 
     /// Ask every device syncing with this place for at least `level` (a newer version
@@ -942,6 +942,14 @@ impl SyncSteps for OpenVault {
                 .filter(|n| *n > cursor)
                 .collect();
             entries.sort_unstable();
+            // In sequence only: a number missing from the listing (a place hiding an
+            // entry, or a listing that lags) stops this device's journal there until it
+            // shows, so the cursor never passes an entry that was not read.
+            let mut next = cursor;
+            entries.retain(|n| {
+                next += 1;
+                *n == next
+            });
             wanted.extend(entries.into_iter().map(|n| (device.clone(), n)));
         }
         let fetched: Vec<Mutex<Option<Entry>>> = wanted.iter().map(|_| Mutex::new(None)).collect();
@@ -1245,7 +1253,19 @@ impl SyncSteps for OpenVault {
             return Ok(());
         }
         let changed_here = synced.as_deref() != Some(ours.rev.as_str());
-        if !changed_here || theirs.base_rev.as_deref() == Some(ours.rev.as_str()) {
+        let built_on_ours = theirs.base_rev.as_deref() == Some(ours.rev.as_str());
+        if !changed_here && !built_on_ours {
+            // Not changed here, and not built on what is here: an entry read late (journals
+            // are read device by device, not in the order things happened) may name a
+            // revision older than the one already taken from another device. It must not
+            // replace the newer one.
+            let ours_built_on_theirs = ours.base_rev.as_deref() == Some(theirs.rev.as_str());
+            let theirs_newer = (theirs.hlc, &theirs.device) > (ours.hlc, &ours.device);
+            if ours_built_on_theirs || !theirs_newer {
+                return Ok(());
+            }
+        }
+        if !changed_here || built_on_ours {
             // Only they changed it (or they built on ours): take theirs.
             if theirs.data_rev != ours.data_rev {
                 self.fetch_blobs(remote, id, &theirs)?;
@@ -1422,10 +1442,10 @@ impl SyncSteps for OpenVault {
             return Ok(());
         };
         let ours = self.open_record(id, &sealed)?;
-        let changed_here =
-            self.index().synced_rev(&remote.key(), id)?.as_deref() != Some(ours.rev.as_str());
-        if changed_here && ours.hlc > hlc {
-            return Ok(()); // edited here after: it stays (and goes up again)
+        if ours.hlc > hlc {
+            // Edited after the deletion, here (it goes up again) or on another device
+            // whose revision was read before this older deletion: it stays.
+            return Ok(());
         }
         // Kept here for 30 days, not removed (owner 2026-10-25); a tag simply goes.
         let held = ours.kind != crate::items::kind::TAG;
@@ -2095,13 +2115,13 @@ const MAX_NOTE: usize = 64 << 20;
 /// The level of the sync format this version reads and writes. Raised (with
 /// `raise_place_level`) only when a change would be damaged by an older version
 /// syncing the same place: those versions then stop and ask to be updated. Versions
-/// before 0.2.28 do not check it.
+/// before 0.2.29 do not check it.
 pub const SYNC_LEVEL: u32 = 1;
 
-struct Capped(Vec<u8>, usize);
+pub(crate) struct Capped(pub(crate) Vec<u8>, usize);
 
 impl Capped {
-    fn new(cap: usize) -> Capped {
+    pub(crate) fn new(cap: usize) -> Capped {
         Capped(Vec::new(), cap)
     }
 }
@@ -2481,6 +2501,98 @@ pub(crate) mod tests {
         t.a.sync(&t.cloud).unwrap();
         assert_eq!(text(&t.b, &id), "v2");
         assert_eq!(text(&t.a, &id), "v2");
+    }
+
+    /// A third device of the same vault, as [two] makes its second.
+    fn third(t: &Two) -> (tempfile::TempDir, OpenVault) {
+        let dc = tempfile::tempdir().unwrap();
+        copy_dir(t._dirs.0.path(), dc.path());
+        let c = Library::open_or_create(dc.path(), FAST, crate::tests::sk())
+            .unwrap()
+            .unlock(pw())
+            .unwrap()
+            .unwrap();
+        (dc, c)
+    }
+
+    /// `first` edits, `second` builds on that edit, and only then does `reader` read both
+    /// journals at once. Journals are read by device id, so one of the two ways round
+    /// reads the newer revision before the older one.
+    fn read_late(first_is_a: bool) {
+        let t = two();
+        let (_dc, c) = third(&t);
+        let id = note(&t.a, "Plan", "v1");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        c.sync(&t.cloud).unwrap();
+        let (first, second) = if first_is_a { (&t.a, &c) } else { (&c, &t.a) };
+        first.replace_item(&id, "Plan", &b"v2"[..]).unwrap();
+        first.sync(&t.cloud).unwrap();
+        second.sync(&t.cloud).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        second.replace_item(&id, "Plan", &b"v3"[..]).unwrap();
+        second.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        assert_eq!(text(&t.b, &id), "v3");
+        assert_eq!(
+            t.b.record(&id).unwrap().rev,
+            second.record(&id).unwrap().rev
+        );
+        // And nothing moves after: no one sends the older one back.
+        first.sync(&t.cloud).unwrap();
+        assert_eq!(t.b.sync(&t.cloud).unwrap(), SyncReport::default());
+        assert_eq!(text(first, &id), "v3");
+    }
+
+    #[test]
+    fn an_older_revision_read_late_never_replaces_a_newer_one() {
+        read_late(true);
+        read_late(false);
+    }
+
+    /// `deleter` deletes, `editor` edits after it, and `reader` reads both journals at
+    /// once: in one of the two ways round the deletion is read after the newer edit.
+    fn deleted_then_edited(deleter_is_a: bool) {
+        let t = two();
+        let (_dc, c) = third(&t);
+        let id = note(&t.a, "Keep", "v1");
+        t.a.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        c.sync(&t.cloud).unwrap();
+        let (deleter, editor) = if deleter_is_a { (&t.a, &c) } else { (&c, &t.a) };
+        deleter.delete_item(&id).unwrap();
+        deleter.sync(&t.cloud).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        editor.replace_item(&id, "Keep", &b"v2"[..]).unwrap();
+        editor.sync(&t.cloud).unwrap();
+        t.b.sync(&t.cloud).unwrap();
+        assert_eq!(text(&t.b, &id), "v2");
+        assert!(t.b.held().unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_deletion_read_late_does_not_take_an_item_edited_after_it() {
+        deleted_then_edited(true);
+        deleted_then_edited(false);
+    }
+
+    #[test]
+    fn a_journal_entry_missing_from_the_place_stops_the_journal_there() {
+        let t = two();
+        note(&t.a, "One", "x");
+        t.a.sync(&t.cloud).unwrap();
+        note(&t.a, "Two", "x");
+        t.a.sync(&t.cloud).unwrap();
+        let me_a = device_id(t.a.index()).unwrap();
+        let first = t.cloud.root.join(&t.a.id).join("log").join(&me_a).join("1");
+        let away = t._dirs.2.path().join("away");
+        fs::rename(&first, &away).unwrap();
+        // Entry 2 is there, entry 1 is not: nothing is taken, and nothing is passed over.
+        assert_eq!(t.b.sync(&t.cloud).unwrap().received, 0);
+        assert!(names(&t.b).is_empty());
+        fs::rename(&away, &first).unwrap();
+        assert_eq!(t.b.sync(&t.cloud).unwrap().received, 2);
+        assert_eq!(names(&t.b), ["One", "Two"]);
     }
 
     #[test]
@@ -3118,14 +3230,13 @@ pub(crate) mod tests {
         let t = two();
         note(&t.a, "N", "x");
         t.a.sync(&t.cloud).unwrap();
-        // Renumber A's entry 1 as 2: its sealed number no longer matches.
+        // A's entry 1 handed out again as entry 2: its sealed number does not match.
         let log = t.cloud.root.join(&t.a.id).join("log");
         let dev = fs::read_dir(&log).unwrap().next().unwrap().unwrap().path();
-        fs::rename(dev.join("1"), dev.join("2")).unwrap();
+        fs::copy(dev.join("1"), dev.join("2")).unwrap();
         assert!(t.b.sync(&t.cloud).is_err());
         // A made-up entry fails as well.
-        fs::write(dev.join("3"), b"not sealed").unwrap();
-        fs::rename(dev.join("2"), dev.join("1")).unwrap();
+        fs::write(dev.join("2"), b"not sealed").unwrap();
         assert!(t.b.sync(&t.cloud).is_err());
     }
 

@@ -269,6 +269,7 @@ class _Fake implements RustLibApi {
     if (n.contains('ChooseMode')) return true;
     if (n.contains('QrMatrix')) return QrMatrix(size: 29, dark: [for (final c in _qrBits.split('')) c == '1']);
     if (n.contains('P2PCodeAddress')) return '192.168.1.37';
+    if (n.contains('ListVaults')) return Future<List<VaultSlot>>.value(const []);
     if (n.contains('ListItems')) return Future<List<ItemInfo>>.value(_itemsNow ?? _items);
     if (n.contains('ListHeld')) return Future<List<ItemInfo>>.value(_noTrash ? const [] : _trashHeld);
     if (n.contains('ListTrash')) return Future<List<ItemInfo>>.value(_noTrash ? const [] : _trash);
@@ -518,6 +519,7 @@ void _screen(String name, String caption, Widget Function() home,
       TopSecretMode.on = _topSecretShot(name);
       NewVaultScreen.debugSkipMode = false;
       TopSecretMode.debugClosesItself = false; // the owner's iPhone
+      BiometricUnlock.debugKind = BiometricKind.face; // a screen that wants a fingerprint sets it
       // A MacBook or Windows frame is a computer: Finder-style rows and toolbar.
       if (size.width >= 1280) Device.debugDesktop = true;
       setup?.call();
@@ -623,6 +625,33 @@ void main() {
       LaunchHandoff.debugHold = false;
     });
   }
+  // Review 2026-11-14: the wait shows while it lasts; a forgotten password has a way in.
+  _screen('lock-wrong-twice', 'Màn khoá · nhập sai mật khẩu lần thứ hai (máy có Face ID)', lock,
+      change: 'MỚI: từ lần nhập sai thứ hai, nếu két mở được bằng Face ID/vân tay thì màn khoá chỉ đường quay lại: mở bằng Face ID rồi đặt mật khẩu mới trong Cài đặt',
+      marks: [() => find.byKey(const ValueKey('lock-forgot-hint'))],
+      setup: () => BiometricUnlock.debugKind = BiometricKind.face,
+      act: (t) async {
+    for (final wrong in ['mat khau sai mot', 'mat khau sai hai']) {
+      await t.enterText(find.byType(TextField).first, wrong);
+      await t.testTextInput.receiveAction(TextInputAction.done);
+      for (var i = 0; i < 4; i++) {
+        await t.pump(const Duration(milliseconds: 300));
+      }
+    }
+  });
+  _screen('lock-wait', 'Màn khoá · sai quá nhiều lần: thời gian chờ hiện suốt, kể cả khi đang gõ', lock,
+      change: 'SỬA: thời gian chờ sau khi sai mật khẩu nhiều lần hiện ngay trên màn khoá và đếm lùi (trước chỉ hiện sau khi bấm Xong, gõ tiếp là mất)',
+      marks: [() => find.byKey(const ValueKey('lock-password-error'))],
+      setup: () => FlutterSecureStorage.setMockInitialValues({'password-fails': '12'}),
+      act: (t) async {
+    await t.enterText(find.byType(TextField).first, 'mat khau sai');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    for (var i = 0; i < 4; i++) {
+      await t.pump(const Duration(milliseconds: 300));
+    }
+    await t.enterText(find.byType(TextField).first, 'dang go tiep');
+    await t.pump();
+  });
   _screen('lock-fingerprint', 'Màn khoá · máy dùng vân tay', lock,
       setup: () => BiometricUnlock.debugKind = BiometricKind.fingerprint);
   _screen('lock-menu', 'Màn khoá · nút ⋯', lock,
@@ -675,7 +704,7 @@ void main() {
   });
   _screen('lock-button', 'Thư viện · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'library',
       setup: () => Prefs.write('hold-home-lock', '0'));
-  _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', setup: _leftCamera, act: (t) async {
+  _screen('add-library', 'Thư viện · nút bên trái · bấm +', home, section: 'library', change: 'SỬA: nền tối phía sau thẻ nhạt hơn (.92 → .6)', setup: _leftCamera, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
@@ -724,9 +753,7 @@ void main() {
     AutoSync.lastOk.value = DateTime.now().subtract(const Duration(minutes: 5));
   }
   _screen('home', 'Trang chủ · chưa cài đồng bộ', home,
-      section: 'home',
-      change: 'SỬA: Tổng quan có nút 🔍 tròn ở đầu trang như mọi trang khác (bỏ ô tìm kiếm to); các ô "Xem theo loại" xếp theo số lượng giảm dần',
-      marks: [() => find.byKey(const ValueKey('search-button')), () => find.byKey(const ValueKey('kind-card'))]);
+      section: 'home');
   _screen('home-tap-video', 'Tổng quan → chạm Video: mở Thư viện, chip Video bật sẵn', home, section: 'home', act: (t) async {
     await t.tap(find.byKey(const ValueKey('kind-row-video')));
     await t.pumpAndSettle();
@@ -781,15 +808,6 @@ void main() {
           await t.pumpAndSettle();
         });
   }
-  _screen('mac-home-cloud', 'MacBook · Tổng quan: bấm đám mây xanh',
-      home, section: 'home', size: mac, setup: () {
-        SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|drive|Google Drive|ok|12|3'];
-        drive();
-      },
-      act: (t) async {
-        await t.tap(find.byKey(const ValueKey('home-sync-ok')));
-        await t.pumpAndSettle();
-      });
   _screen('mac-add', 'MacBook · bấm Thêm vào két', home,
       section: 'library', size: mac, setup: () => SettingsScreen.debugSyncLog = ['${_now - 5 * 60000}|join|192.168.1.21|ok|12|3'],
       act: (t) async {
@@ -862,14 +880,14 @@ void main() {
     await t.drag(find.byType(Scrollable).first, const Offset(0, -500));
     await t.pumpAndSettle();
   });
-  _screen('add-library-center', 'Thư viện · bấm +: đủ mọi loại, 3 ô mỗi hàng', home, section: 'library', setup: () {
+  _screen('add-library-center', 'Thư viện · bấm +: đủ mọi loại, 3 ô mỗi hàng', home, section: 'library', change: 'SỬA: bấm + lại có 3 nút thêm nhanh tròn ngay trên + (loại dùng nhiều nhất ở giữa), tô đặc màu cho nổi; nền tối phía sau nhạt hơn (.92 → .6), vẫn thấy trang', marks: [() => find.byKey(const ValueKey('add-row'))], setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {
     await t.tap(find.byKey(const ValueKey('vault-action')));
     await t.pumpAndSettle();
   });
-  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', setup: () {
+  _screen('home-add-center', 'Trang chủ · nút ở giữa · bấm +', home, section: 'home', change: 'SỬA: bấm + lại có 3 nút thêm nhanh tròn ngay trên + (loại dùng nhiều nhất ở giữa), tô đặc màu cho nổi; nền tối phía sau nhạt hơn (.92 → .6), vẫn thấy trang', marks: [() => find.byKey(const ValueKey('add-row'))], setup: () {
     debugCamera = true;
     Prefs.write('action-side', 'center');
   }, act: (t) async {
@@ -924,7 +942,10 @@ void main() {
     await tapStep(t, 'steps-kind-login');
     if (steps > 0) await tapStep(t, 'steps-site-github.com');
     if (steps > 1) await tapStep(t, 'steps-account-0');
-    if (steps > 2) await tapStep(t, 'steps-password-use');
+    if (steps > 2) {
+      await tapStep(t, 'steps-password-make');
+      await tapStep(t, 'steps-password-use');
+    }
     if (steps > 3) await tapStep(t, 'steps-qr-scan');
   }
   for (final narrow in [false, true]) {
@@ -1797,7 +1818,7 @@ void main() {
   });
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
       act: (t) async {
-    await t.scrollUntilVisible(find.text('Chặn chụp màn hình'), 200, scrollable: find.byType(Scrollable).first);
+    await t.scrollUntilVisible(find.text('Tự khoá'), 200, scrollable: find.byType(Scrollable).first);
     await t.pump();
   });
   _screen('identity-card', 'Cài đặt · Đổi biểu tượng và màu', () => Builder(builder: (context) {

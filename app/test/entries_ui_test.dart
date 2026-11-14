@@ -334,12 +334,17 @@ void main() {
   testWidgets('the choices of a way replace the four ways in the same card: no new card, page or dimming', (t) async {
     debugVoice = true;
     addTearDown(() => debugVoice = false);
+    // A phone's height: the test's default 600 squeezes the card to the same size either way.
+    t.view.physicalSize = const Size(1179, 2556);
+    t.view.devicePixelRatio = 3;
+    addTearDown(t.view.reset);
     await homeWithNote(t);
     await openPlus(t);
     final route = ModalRoute.of(t.element(find.byKey(const ValueKey('add-card'))));
     final barriers = find.byType(ModalBarrier).evaluate().length;
     final blurs = find.byType(BackdropFilter).evaluate().length;
     final bottom = t.getRect(find.byKey(const ValueKey('add-card'))).bottom;
+    final height = t.getRect(find.byKey(const ValueKey('add-card'))).height;
     Future<void> into(String way, List<String> choices, String title) async {
       await t.tap(find.byKey(ValueKey('add-card-$way')));
       await _settle(t, 3);
@@ -355,6 +360,10 @@ void main() {
       expect(find.byType(BackdropFilter).evaluate().length, blurs);
       expect(find.byType(EntryWizard), findsNothing);
       expect(t.getRect(find.byKey(const ValueKey('add-card'))).bottom, closeTo(bottom, 1), reason: 'anchored by +');
+      await t.pump(const Duration(seconds: 1)); // the card's resize runs a moment after
+      await t.pump(const Duration(seconds: 1));
+      // Owner 2026-11-14: the card shrinking to the fewer choices was unpleasant.
+      expect(t.getRect(find.byKey(const ValueKey('add-card'))).height, closeTo(height, 1), reason: 'as tall as before');
       expect(find.byTooltip('Back'), findsOneWidget);
       await t.tap(find.byKey(const ValueKey('add-card-back')));
       await _settle(t, 3);
@@ -437,11 +446,15 @@ void main() {
     await _settle(t, 2);
     await t.tap(find.byKey(const ValueKey('steps-account-0')));
     await _settle(t, 2);
-    // Generated, masked until the eye.
-    expect(find.text('gen-erated-1'), findsNothing);
+    // Typing comes first; a strong one on request.
+    expect(find.byKey(const ValueKey('steps-password-input')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('steps-password-make')));
+    await t.pump();
+    // Made on request, so shown at once (the person asked for it); the eye hides it.
+    expect(find.text('gen-erated-1'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('steps-password-eye')));
     await t.pump();
-    expect(find.text('gen-erated-1'), findsOneWidget);
+    expect(find.text('gen-erated-1'), findsNothing);
     await t.tap(find.byKey(const ValueKey('steps-password-use')));
     await _settle(t, 2);
     await t.tap(find.byKey(const ValueKey('steps-2fa-skip')));
@@ -565,6 +578,8 @@ void main() {
       await _settle(t, 2);
       await t.tap(find.byKey(const ValueKey('steps-skip')));
       await _settle(t, 2);
+      await t.tap(find.byKey(const ValueKey('steps-password-make')));
+      await t.pump();
       await t.tap(find.byKey(const ValueKey('steps-password-use')));
       await _settle(t, 2);
       await t.tap(find.byKey(const ValueKey('steps-qr-scan')));
@@ -760,6 +775,8 @@ void main() {
     await t.pump();
     await t.tap(find.byKey(const ValueKey('steps-next')));
     await _settle(t, 2);
+    await t.tap(find.byKey(const ValueKey('steps-password-make')));
+    await t.pump();
     await t.tap(find.byKey(const ValueKey('steps-password-eye')));
     await t.pump();
     await LockGuard.beforeLock!();

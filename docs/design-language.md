@@ -14,8 +14,9 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
    Everything else is that ink at an opacity. The only colours: a vault's own icon and
    colour, the system red for Delete and recording, Settings' small coloured icons, and
    the colour per kind of item where kinds are counted (storage). Since 2026-10-31
-   (owner: more colour in the icons) also: each section's colour on its tab and on the
-   ways to add (`sectionColor`, `addWayColor`), and the two modes' shields (`topSecretRed`
+   (owner: more colour in the icons) also: each section's colour on the ways to add
+   and the overview's tiles (`sectionColor`, `addWayColor`; the tabs went back to one
+   ink with a word under each, 2026-11-07 review), and the two modes' shields (`topSecretRed`
    with a lock, `privateGreen` with a photo); a vault in Top Secret Mode washes the top
    of its page with a little red (`TopSecretWash`, owner 2026-10-31, in place of a shield
    on the Settings button); each common kind of file its icon and colour
@@ -31,6 +32,11 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
 5. **Same thing, same place, same word.** An action keeps its icon, its position and its
    name on every screen.
 6. **Roomy.** 20 side margins, big title, large corners. Content runs under the glass.
+7. **Grouped, as the phone's Settings** (2026-11-07 review). Light mode: the page a pale
+   grey (`#F2F2F5`), cards and list groups white on it. Dark mode: black, cards
+   `#1C1C1E`. Every page alike; `groupedPage` is kept for callers and changes nothing.
+8. **Quiet type.** A row's name is 17 regular; bold is for the big title, a page title
+   and a card's heading. Weight is not how a row stands out; its place and its icon are.
 
 ## 2. Numbers (`lib/theme.dart`)
 
@@ -50,7 +56,7 @@ Type: the phone's own font, sizes from `CsType` only:
 - big title 34 bold (`largeTitle`), with a 15 grey line under it on every tab alike:
   `N items · size`, then the Google Drive cloud (`HomeSyncIcon(dense: true)`, 8 after)
 - page title in a bar 17 semibold (`headline`)
-- body and row names 17 (`body`)
+- body and row names 17 regular (`body`), also the big title of Settings (34, as every tab)
 - second line of a row 15 (`subhead`)
 - dates, sizes, notes 13 (`footnote`)
 
@@ -104,7 +110,9 @@ out as Photos):
 ```
 
 - A photo or video opens straight to full screen; there is no preview box first. The
-  strip shows every photo and video, blurred when thumbnails are hidden.
+  strip shows every photo and video, blurred when thumbnails are hidden. Scrolling the
+  strip moves the photo above with it, a haptic tick per photo passed, and it settles
+  with one photo in the middle.
 - A note, recording or file opens in the box over the page; a tap beside it or a swipe
   down closes it, as Back does. A tap on the item opens it (the editor, the file page).
 - No ×. In Recently deleted: no ⋯; Restore · Info · Delete for good.
@@ -149,30 +157,44 @@ removed). The strength line under it says how to make a better one.
 
 **Selection marks**: round everywhere (the theme's `checkboxTheme`), as on a photo.
 
-**Steps** (create a vault, restore, add a password): create is Password → 24 words →
+**Steps** (create a vault, restore, add a password), all in one frame, `StepPage`
+(creating a vault moved onto it 2026-11-07; Back is ‹ as everywhere): create is Password → 24 words →
 four typed back → Face ID → look; the intro lists them in that order. Progress on top with Back, the title big on the
 left, one main button the width of the page at the bottom (`PinnedAction`), a second
 choice as plain text under it (`StepPage`). Adding a password (owner 2026-11-07): the
 kind is picked in the add card, then one question per screen from that kind's first,
 answered with taps where possible: what the vault already holds first, then common
-choices, typing last. Back from the first step leaves.
+choices, typing last. Back from the first step leaves. A login's password step opens on
+an empty field to type or paste the password in use; "Make a strong one" is the second
+choice (2026-11-07 review: the ready-made one as the main button got saved by mistake).
 
 **The add card** (owner 2026-11-07): one card, near the thumb, just above + (under Add
 on a computer). A way that asks a second question (Photos / Files, Note / Voice,
 Password) shows its choices **in that same card**, in place of the four ways, with ‹
-in the card's header to go back; the card keeps its place and grows to fit. Never a
+in the card's header to go back; the card keeps its place and its size (owner 2026-11-14:
+shrinking to fewer choices was unpleasant), growing only for more lines. Never a
 separate card, a page or another dim or blur on top for a way's choices. Choosing one
-closes the card and does it. The camera, and Note where nothing records, act at once.
+closes the card and does it. With + in the middle, three quick buttons sit just above +,
+solid in their colours: the ways of the three kinds the vault holds most, the most over +
+(owner 2026-11-14: the card alone left no quick add; brought back from before the
+2026-11-07 review). On an edge the card is alone and its lines are the quick buttons. A
+finger sliding up from + picks the button or line it lets go on. The page behind dims to
+60% (owner 2026-11-14: 92% was too heavy). The camera, and Note where nothing records, act at once.
 
 **Confirm a deletion**: a sheet with one red button the width of the page, Cancel as text
-under it.
+under it. Where keeping is the safe and likely answer (the originals after an import),
+Keep is a full button as big as Delete, not text.
+
+**Buttons** are round-ended (stadium) everywhere: the theme's filled and outlined
+buttons, a step's main button. No 10-corner buttons.
 
 ## 5. Not unified yet (do it this way when you touch them)
 
 - Kinds and sections are ranked by how many items they hold, most first, wherever
   they are listed (bar, overview tiles, search tiles; owner 2026-11-07).
 - Lists: one look everywhere, rows grouped in one rounded card (as Settings), rows about
-  54 high, a thin line between rows, the kind's icon on the left.
+  54 high, a thin line between rows, the kind's icon on the left. (The page and card
+  colours are done, principle 7; row height and icon size are not yet.)
 - The bottom bars sit about 44 above the screen's edge; Photos' sit about 20.
 
 **Wide window** (iPad, computer): a page opened from the content (Sync from the home

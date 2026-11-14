@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../entries/secure_clipboard.dart';
 import '../l10n/app_localizations.dart';
 import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../theme.dart';
-import '../widgets/recovery_words.dart' show RecoveryWordsCheck, numberedWords, pickFourWords, saveWordsFile;
+import '../widgets/recovery_words.dart' show RecoveryWordsCheck, numberedWords, pickFourWords, saveWordsFile, wordsClipboardSeconds;
 import '../widgets/secret.dart';
 import '../widgets/words_awake.dart';
 import '../words_export.dart';
@@ -43,7 +43,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
     if (!wordsExport) return;
     final l = AppLocalizations.of(context);
     final text = numberedWords(_words); // "1. word" per line, as Paste reads it back
-    await Clipboard.setData(ClipboardData(text: text));
+    await SecureClipboard.copy(text, lasting: wordsClipboardSeconds); // as a password is copied
     LockGuard.copied(text); // wiped from the clipboard after 60 s and on lock
     if (mounted) showToast(context, l.kitCopied, icon: Icons.check_rounded);
   }
@@ -71,7 +71,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
             decoration: BoxDecoration(
-              color: c.soft,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: c.border),
             ),

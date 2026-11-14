@@ -121,6 +121,10 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       _remind = true;
     }
     PinStore.waitUntil().then(_startWait);
+    // A try made while typing that the last lock screen left unsettled counts now; then
+    // the wait for wrong passwords shows from the start, counting down as the PIN's does.
+    _settled = PinStore.countQuietTryLeftBehind();
+    _settled.then((_) => PinStore.passwordWaitUntil()).then(_startPasswordWait);
     _bioOn = BiometricUnlock.platformSupported && rust.hasBiometricUnlock(dir: widget.libraryDir);
     if (_bioOn) {
       BiometricUnlock.available().then((kind) {
@@ -156,8 +160,31 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     });
   }
 
-  String _waitText(AppLocalizations l) {
-    final left = _waitUntil!.difference(DateTime.now());
+  /// The wait after too many wrong passwords, shown while it lasts (not only when a
+  /// password is entered into it).
+  DateTime? _passwordWaitUntil;
+  Timer? _passwordWaitTick;
+  /// The last lock screen's unsettled try is counted: no password is tried before.
+  late final Future<void> _settled;
+  /// Wrong passwords entered (not tried quietly) on this screen: from the second, the
+  /// way back in for someone who forgot it is said.
+  int _wrongEntered = 0;
+
+  void _startPasswordWait(DateTime? until) {
+    _passwordWaitTick?.cancel();
+    if (!mounted) return;
+    setState(() => _passwordWaitUntil = until);
+    if (until == null) return;
+    _passwordWaitTick = Timer.periodic(const Duration(seconds: 1), (_) async {
+      final now = await PinStore.passwordWaitUntil();
+      if (!mounted) return;
+      if (now == null) _passwordWaitTick?.cancel();
+      setState(() => _passwordWaitUntil = now);
+    });
+  }
+
+  String _waitText(AppLocalizations l, [DateTime? until]) {
+    final left = (until ?? _waitUntil!).difference(DateTime.now());
     final m = (left.inSeconds / 60).ceil();
     return l.pinWait(m < 1 ? 1 : m);
   }
@@ -165,6 +192,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
   @override
   void dispose() {
     _waitTick?.cancel();
+    _passwordWaitTick?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _debounce?.cancel();
     _password.dispose();
@@ -327,32 +355,38 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       // A wrong try made while typing counts once the person leaves that text for another
       // one, never while they go on typing it (a long password typed slowly was locking
       // its owner out on its own beginnings).
+      await _settled;
       final missed = _quietMiss;
       if (missed != null && !text.startsWith(missed)) {
         _quietMiss = null;
-        await PinStore.addPasswordFail();
+        await PinStore.quietTryOut(false);
+        final wait = await PinStore.addPasswordFail();
+        if (wait > Duration.zero) _startPasswordWait(DateTime.now().add(wait));
       }
       final until = await PinStore.passwordWaitUntil();
       if (until != null) {
-        final m = (until.difference(DateTime.now()).inSeconds / 60).ceil();
-        if (mounted && _busy) setState(() => _error = l.pinWait(m < 1 ? 1 : m));
+        _startPasswordWait(until);
         return;
       }
+      // From 8 characters, the least any vault password was ever allowed (the rule
+      // was 8 until 2026-10-31, 12 since): shorter text cannot be a password.
+      final possible = text.characters.length >= _oldestMinPasswordLength;
+      // Said before the try, not after: the app closed during or after a quiet miss
+      // must not make that miss free (it counts at the next start).
+      if (possible && quiet) await PinStore.quietTryOut(true);
       final vault = await rust.unlock(dir: widget.libraryDir, password: text);
       if (vault != null) await TestLogin.noteUnlocked(vault, text);
       _tried = text;
       if (!mounted) return;
-      // From 8 characters, the least any vault password was ever allowed (the rule
-      // was 8 until 2026-10-31, 12 since): shorter text cannot be a password.
-      final possible = text.characters.length >= _oldestMinPasswordLength;
       if (vault == null && possible && quiet) {
         _quietMiss = text;
       } else if (vault == null && possible) {
         _quietMiss = null;
+        _wrongEntered++;
+        await PinStore.quietTryOut(false);
         final wait = await PinStore.addPasswordFail();
         if (wait > Duration.zero && mounted) {
-          final m = (wait.inSeconds / 60).ceil();
-          setState(() => _error = l.pinWait(m < 1 ? 1 : m));
+          _startPasswordWait(DateTime.now().add(wait));
           return;
         }
       }
@@ -396,10 +430,13 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     if (offerBiometric && !rust.hasBiometricUnlock(dir: widget.libraryDir)) {
       await _maybeOfferBiometric(l);
     }
+    // Opened another way (Face ID, a PIN) over a password half typed: nothing is owed.
+    _quietMiss = null;
+    await PinStore.quietTryOut(false);
     if (!mounted) return;
     TopSecretMode.opened(vault);
     final nav = Navigator.of(context);
-    await playVaultSpin(context, opening: true,
+    await playVaultSpin(context, opening: true, quick: vault.id == widget.resumeVaultId,
         behind: revealIconOn() ? VaultBadge(icon: vault.icon, color: vault.color, size: 120) : null,
         glow: colorById(vault.color).color, onCovered: () {
       if (vault.id == widget.resumeVaultId) {
@@ -505,13 +542,25 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                         ),
                       ),
                     )
-                  else if (_error != null) ...[
+                  else if (_passwordWaitUntil != null || _error != null) ...[
                     const SizedBox(height: 10),
                     Text(
-                      _error!,
+                      _passwordWaitUntil != null ? _waitText(l, _passwordWaitUntil) : _error!,
+                      key: const ValueKey('lock-password-error'),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600, fontSize: CsType.footnote),
                     ),
+                    // Said where it is needed, from the second wrong password entered:
+                    // with Face ID or a fingerprint set, a forgotten password is not the end.
+                    if (_wrongEntered >= 2 && _bioOn && _bioKind != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        l.forgotPasswordHint,
+                        key: const ValueKey('lock-forgot-hint'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: ink.withValues(alpha: .7), fontSize: CsType.footnote),
+                      ),
+                    ],
                   ],
                   // Android test builds: straight into the test vault, on the screen
                   // itself (owner 2026-11-01: hidden in ⋯ it was not found).

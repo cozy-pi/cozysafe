@@ -1027,5 +1027,13 @@
   "addChoiceVoice": "Sprache",
   "qrConfirmTitle": "Zeigt die Website diesen Code?",
   "qrConfirmLead": "Fragt die Website zum Abschluss nach einem Code, geben Sie diesen dort ein. Er ändert sich alle 30 Sekunden.",
-  "qrPasteAgain": "Erneut einfügen"
+  "qrPasteAgain": "Erneut einfügen",
+  "stepPasswordTypeLead": "Gib das Passwort ein, das du für dieses Konto nutzt, oder füge es ein.",
+  "stepPasswordMake": "Starkes erstellen",
+  "forgotPasswordHint": "Vergessen? Öffnen Sie den Tresor mit Face ID oder Fingerabdruck und legen Sie dann in den Einstellungen ein neues Passwort fest.",
+  "importNotAdded": "{count} von {total} konnten nicht hinzugefügt werden.",
+  "importStopped": "Der Tresor wurde gesperrt, bevor alles hinzugefügt war: {done} von {total} sind drin. Fügen Sie den Rest erneut hinzu.",
+  "errorOpen": "Das ließ sich nicht öffnen. Schließen und erneut versuchen.",
+  "driveFailed": "Google Drive ist nicht erreichbar. Internetverbindung prüfen und erneut versuchen.",
+  "restoredEnterPassword": "Wiederhergestellt. Geben Sie das Passwort dieses Tresors ein, um ihn zu öffnen."
 }

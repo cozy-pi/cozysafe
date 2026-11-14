@@ -79,12 +79,18 @@ class SecretKeyStore {
 
   /// Forget the key (the last vault on this device was deleted): a new vault starts
   /// with new words, and backups of the old one cannot be opened with this device's copy.
-  static Future<void> delete([String? dir]) async {
+  ///
+  /// [keepCloudCopy]: leave the copy of the words in iCloud Keychain or Google Block Store.
+  /// Deleting a vault from this device leaves its other copies (Google Drive unless that
+  /// box was ticked, a backup file, another device), and those open only with these
+  /// words: someone who never wrote them down would be locked out of a copy they chose
+  /// to keep. The words alone open nothing.
+  static Future<void> delete([String? dir, bool keepCloudCopy = false]) async {
     final name = _nameOf(dir);
     final old = await read(dir);
     await _storage.delete(key: name);
     if (await read(dir) != null) throw StateError('The keystore still holds the Secret Key');
-    if (old != null && KeyBackup.isOn(old)) await KeyBackup.remove(old);
+    if (!keepCloudCopy && old != null && KeyBackup.isOn(old)) await KeyBackup.remove(old);
   }
 }
 
@@ -201,6 +207,8 @@ class PinStore {
   // count; tries happen while typing, so the first 10 are free.
   static const _pwFails = 'password-fails';
   static const _pwUntil = 'password-wait-until';
+  /// A password try made while typing is not settled yet ([quietTryOut]).
+  static const _pwQuiet = 'password-quiet-try';
 
   static Duration passwordWaitFor(int fails) => fails < 10 ? Duration.zero : waitFor(fails - 5);
 
@@ -222,8 +230,35 @@ class PinStore {
   static Future<void> resetPasswordFails() async {
     try {
       await _storage.write(key: _pwFails, value: '0');
+      await _storage.delete(key: _pwQuiet);
       await TryWait.clear(_storage, _pwUntil);
     } catch (_) {}
+  }
+
+  /// A password is being tried while it is typed (the lock screen opens on the right one
+  /// without Enter), and a miss is not counted yet. Written before the try, so closing
+  /// the app after each miss gains nothing: [countQuietTryLeftBehind] counts it at the
+  /// next start. Only that a try is out is kept, never its text.
+  static Future<void> quietTryOut(bool out) async {
+    try {
+      if (out) {
+        await _storage.write(key: _pwQuiet, value: '1');
+      } else {
+        await _storage.delete(key: _pwQuiet);
+      }
+    } catch (_) {}
+  }
+
+  /// A quiet try the last lock screen never settled (the app was closed on it): one
+  /// wrong password.
+  static Future<void> countQuietTryLeftBehind() async {
+    try {
+      if (await _storage.read(key: _pwQuiet) != '1') return;
+      await _storage.delete(key: _pwQuiet);
+    } catch (_) {
+      return;
+    }
+    await addPasswordFail();
   }
 
   static Future<void> resetFails() async {

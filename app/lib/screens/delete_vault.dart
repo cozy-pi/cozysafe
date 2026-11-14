@@ -150,8 +150,12 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       }
       await PinStore.resetPasswordFails();
       _pw.clear();
+      // The cloud copy of the 24 words goes only with the vault's copy in Google Drive:
+      // a copy left there (or a backup file) opens with those words and nothing else.
+      var driveGone = false;
       if (_alsoDrive && mounted) {
         final failure = await whileWorking(context, l.driveDeleting, () => _deleteFromDrive(id));
+        driveGone = failure == null;
         if (failure != null && mounted) showToast(context, withCode(l, l.deleteDriveFailed, failure), icon: Icons.error_outline_rounded);
       }
       final any = rust.hasVaults(dir: widget.libraryDir);
@@ -160,7 +164,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
       // vault was not safe).
       try {
         if (own != null && !rust.libraryHasVaults(dir: own) && await rust.resetEmptyLibrary(dir: own)) {
-          await SecretKeyStore.delete(own);
+          await SecretKeyStore.delete(own, !driveGone);
         }
         if (!any) {
           await PinStore.resetFails();
@@ -200,7 +204,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
   /// to be deleted in [VaultManagerScreen.forgotWait] unless opened with its password.
   Future<void> _schedule() async {
     final l = AppLocalizations.of(context);
-    if (!await confirmOwnerForSetting(l.vaultScheduleTitle, context: context) || !mounted) return;
+    if (!await confirmOwnerForSetting(l.vaultScheduleTitle, context: context, always: true) || !mounted) return;
     final yes = await showModalBottomSheet<bool>(
       context: context,
       builder: (context) => SafeArea(

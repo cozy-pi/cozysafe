@@ -1027,5 +1027,13 @@
   "addChoiceVoice": "Suara",
   "qrConfirmTitle": "Apakah situs menampilkan kode ini?",
   "qrConfirmLead": "Jika situs meminta kode untuk menyelesaikan, ketik kode ini di sana. Kode berganti tiap 30 detik.",
-  "qrPasteAgain": "Tempel lagi"
+  "qrPasteAgain": "Tempel lagi",
+  "stepPasswordTypeLead": "Ketik atau tempel kata sandi yang Anda pakai untuk akun ini.",
+  "stepPasswordMake": "Buat yang kuat",
+  "forgotPasswordHint": "Lupa? Buka brankas dengan Face ID atau sidik jari, lalu buat kata sandi baru di Pengaturan.",
+  "importNotAdded": "{count} dari {total} tidak bisa ditambahkan.",
+  "importStopped": "Brankas terkunci sebelum semuanya ditambahkan: {done} dari {total} sudah masuk. Tambahkan sisanya lagi.",
+  "errorOpen": "Tidak bisa membuka ini. Tutup lalu coba lagi.",
+  "driveFailed": "Tidak bisa terhubung ke Google Drive. Periksa koneksi internet, lalu coba lagi.",
+  "restoredEnterPassword": "Dipulihkan. Masukkan kata sandi brankas ini untuk membukanya."
 }

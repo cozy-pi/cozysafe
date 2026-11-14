@@ -57,9 +57,12 @@ impl KdfParams {
     };
 
     /// Upper bounds when *opening*, so a hostile header cannot make the app
-    /// allocate unbounded memory or spin for minutes.
-    const MAX_M_KIB: u32 = 4 * 1024 * 1024;
-    const MAX_T: u32 = 32;
+    /// allocate unbounded memory or spin for minutes. Twice the memory and under three
+    /// times the passes of the costliest library the app makes ([`KdfParams::DESKTOP_FLOOR`]),
+    /// which a phone must still open: 4 GiB and 32 passes, the first bounds, were more than
+    /// a phone has, so a tampered library, lock or backup could end the app at unlock.
+    const MAX_M_KIB: u32 = 1024 * 1024;
+    const MAX_T: u32 = 8;
     const MAX_P: u32 = 16;
 
     /// True when these parameters are at least as strong as `floor` in every dimension

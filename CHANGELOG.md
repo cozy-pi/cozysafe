@@ -4,6 +4,61 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.3.0 (2026-11-14)
+
+A new look, fewer interruptions, and the fixes of a review of the whole app
+(docs/decisions.md, 2026-11-07 to 2026-11-14). The test builds 0.2.33 to 0.2.36 carried
+parts of it.
+
+### New look
+- Pages are grouped: light pages grey with white cards, the same big title on every tab
+  and in Settings, round-ended buttons.
+- The tabs are in one colour, with a word under each.
+- Adding a login: the password step opens on typing the password you already use;
+  making a new one comes second.
+- Creating a vault uses the same step-by-step frame as the rest.
+- The three quick add buttons are back above +, in their colours; the page behind the
+  ways to add dims less, and the card keeps its size when a way shows its choices.
+- Photos full screen: scrolling the strip of small photos moves the photo with it.
+
+### Fewer interruptions
+- A playing video or a recording counts as using the app: the vault does not lock on it.
+- Choosing photos or files gets up to 10 minutes before the vault locks; after copying a
+  password or code you have 2 minutes to paste it and come back (not in Top Secret Mode).
+- One owner check (Face ID, fingerprint, passcode) covers the next security settings for
+  2 minutes (not the Recovery Key, deleting, or Top Secret Mode).
+- Coming back after a moment away opens with a quick fade.
+
+### Fixed
+- Sync with three devices or more: a newer edit could be replaced by an older one read
+  late, and an item edited after it was deleted elsewhere could still go to Recently
+  deleted. The newer edit now stays.
+- Sync: a change is never passed over when the place shows a later one first.
+- Wrong passwords: one tried while typing on the lock screen now counts even if the app
+  is closed on it, and Check your 24 words and password counts wrong passwords like the
+  lock screen does.
+- Deleting a vault from a phone no longer removes the copy of its 24 words from iCloud
+  Keychain or Google, unless its copy in Google Drive is deleted too.
+- A stray file among a vault's items (from a computer, or a damaged backup) no longer
+  keeps the vault from opening.
+- iPhone: a video being recorded when the app is closed, and a file the 24 words were
+  read from, are no longer left in the app's temporary folder.
+- Opening a photo, file or note that cannot be read says so, instead of "Couldn't save
+  the vault". A Google Drive failure no longer says to check the Wi‑Fi of both devices.
+
+### Changed
+- The wait after too many wrong passwords shows on the lock screen, counting down.
+- Forgot the password? From the second wrong one, the lock screen says how to get back
+  in when Face ID or a fingerprint opens the vault.
+- Adding many files: says how many could not be added, and how far it got if the vault
+  locked before the end.
+- The 24 words are copied like a password: hidden from the clipboard preview and
+  keyboards on Android, never to your other devices on iPhone, gone after 60 seconds.
+- After restoring from a backup file with another password, the lock screen says so.
+- Error messages with a code stay longer, and are read out by a screen reader. Photos
+  and videos in the vault have names for a screen reader.
+- The Android download from the release page never has Test sign-in.
+
 ## 0.2.32 (2026-11-07)
 
 ### Changed
