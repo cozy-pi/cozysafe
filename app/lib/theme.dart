@@ -234,6 +234,8 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
+      // An example in a field is grey and regular, so it never reads as typed text.
+      hintStyle: TextStyle(color: colors.muted, fontWeight: FontWeight.w400),
       // A shade deeper in light mode: the page is grey now, and the field must read on
       // it as well as on a white card.
       fillColor: dark ? colors.soft : tone(.1),

@@ -258,6 +258,8 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
                             const SizedBox(height: 12),
                             Text(
                               switch (_failed) {
+                                // Reading failed: not the "couldn't save" words of a storage error.
+                                rust.VaultError.storage => withCode(l, l.errorOpen, 'storage'),
                                 final rust.VaultError e => vaultErrorText(l, e),
                                 final e => withCode(l, l.errorOpen, e!),
                               },

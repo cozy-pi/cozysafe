@@ -692,7 +692,7 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
           padding: const EdgeInsets.only(top: 12),
           child: Text(_problem!,
               key: const ValueKey('steps-problem'),
-              style: TextStyle(color: recordRed(context), fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
+              style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
         );
 
   /// Which site or app: the vault's own first, then well-known ones, filtered as typed.
