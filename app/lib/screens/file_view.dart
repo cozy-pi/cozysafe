@@ -6,6 +6,8 @@ import 'dart:ui' as ui;
 import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import '../widgets/ask.dart';
+import '../widgets/cs_switch.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -870,33 +872,14 @@ Future<bool> confirmShareOut(BuildContext context, String vaultId) async {
   if (Prefs.read(key) == '1') return true;
   final l = AppLocalizations.of(context);
   var again = false;
-  final ok = await showModalBottomSheet<bool>(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, set) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l.shareOutTitle, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              Text(l.shareOutBody, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l.dontAskAgain),
-                value: again,
-                onChanged: (v) => set(() => again = v),
-              ),
-              FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.continueAction)),
-              const SizedBox(height: 6),
-              TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-            ],
-          ),
-        ),
-      ),
+  final ok = await askSheet<bool>(
+    context,
+    title: l.shareOutTitle,
+    body: [l.shareOutBody],
+    content: StatefulBuilder(
+      builder: (context, set) => CsSwitchLine(title: l.dontAskAgain, value: again, onChanged: (v) => set(() => again = v)),
     ),
+    actions: [AskAction.main(l.continueAction, true), AskAction.quiet(l.cancel, false)],
   );
   if (ok == true && again) Prefs.write(key, '1');
   return ok == true;

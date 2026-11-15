@@ -1785,22 +1785,25 @@ Future<T?> pushPage<T>(BuildContext context, {required String title, bool groupe
 /// the bottom too far from the eye). A tap outside closes; no × on top (owner 2026-10-25:
 /// every button within the thumb's reach): a card without buttons of its own sets
 /// [closeButton] for a Close at its bottom. Long scrolling lists stay pages ([pushPage]);
-/// actions for the thumb stay bottom sheets.
-Future<T?> showCard<T>(BuildContext context, {String? title, bool closeButton = false, required WidgetBuilder builder}) =>
+/// actions for the thumb stay bottom sheets. [dismissible] false: a tap outside does
+/// nothing (a countdown, a name asked once). The card rises clear of the keyboard.
+Future<T?> showCard<T>(BuildContext context,
+        {String? title, bool closeButton = false, bool dismissible = true, required WidgetBuilder builder}) =>
     showGeneralDialog<T>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: dismissible,
       barrierLabel: AppLocalizations.of(context).close,
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (context, _, _) {
         final page = Theme.of(context).scaffoldBackgroundColor;
         final size = MediaQuery.sizeOf(context);
+        final keyboard = MediaQuery.viewInsetsOf(context).bottom;
         return Stack(
           children: [
             Positioned.fill(
               child: GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
+                onTap: dismissible ? () => Navigator.of(context).pop() : null,
                 child: BackdropFilter(
                   filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
                   child: ColoredBox(color: page.withValues(alpha: .55)),
@@ -1809,9 +1812,9 @@ Future<T?> showCard<T>(BuildContext context, {String? title, bool closeButton = 
             ),
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.fromLTRB(16, 0, 16, keyboard),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 440, maxHeight: size.height * .8),
+                  constraints: BoxConstraints(maxWidth: 440, maxHeight: (size.height - keyboard) * .8),
                   child: Material(
                     key: const ValueKey('card'),
                     color: Theme.of(context).cardColor,

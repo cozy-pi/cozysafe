@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:flutter/material.dart';
+import 'widgets/ask.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -289,18 +290,19 @@ Future<void> offerBiometric(BuildContext context) async {
   final kind = await BiometricUnlock.available();
   if (kind == null || !context.mounted) return;
   final l = AppLocalizations.of(context);
-  final yes = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(l.biometricOfferTitle),
-      content: Text(l.biometricOfferBody),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.biometricOfferNo)),
-        FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.biometricOfferYes)),
-      ],
-    ),
-  );
+  final yes = await askBiometric(context);
   if (yes == true) await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
+}
+
+/// The one question both offers ask (after a restore, and once on an older library).
+Future<bool?> askBiometric(BuildContext context) {
+  final l = AppLocalizations.of(context);
+  return askCard<bool>(
+    context,
+    title: l.biometricOfferTitle,
+    body: l.biometricOfferBody,
+    actions: [AskAction.main(l.biometricOfferYes, true), AskAction.quiet(l.biometricOfferNo, false)],
+  );
 }
 
 Future<void> turnOffBiometric(BiometricUnlock store) async {

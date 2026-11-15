@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/ask.dart';
+import '../widgets/cs_switch.dart';
 
 import '../item_kind.dart';
 import '../l10n/app_localizations.dart';
@@ -65,10 +67,9 @@ Future<void> showSealedItem(
               height: 1.4,
             ),
           ),
-          SwitchListTile(
+          CsSwitchLine(
             key: const ValueKey('sealed-dont-ask'),
-            contentPadding: EdgeInsets.zero,
-            title: Text(l.dontAskAgain),
+            title: l.dontAskAgain,
             value: again,
             onChanged: (v) => set(() => again = v),
           ),
@@ -100,34 +101,15 @@ Future<void> nameNewItem(BuildContext context, rust.ItemInfo item) async {
   final ext = dot > 0 && item.name.length - dot <= 6
       ? item.name.substring(dot)
       : '';
-  final text = TextEditingController();
-  final name = await showDialog<String>(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      title: Text(item.kind == ItemKind.photo ? l.namePhotoTitle : l.rename),
-      content: TextField(
-        key: const ValueKey('name-new-item'),
-        controller: text,
-        autofocus: true,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(hintText: l.namePhotoHint),
-        onSubmitted: (v) => Navigator.pop(context, v.trim()),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l.lookSkip),
-        ),
-        TextButton(
-          key: const ValueKey('name-new-item-save'),
-          onPressed: () => Navigator.pop(context, text.text.trim()),
-          child: Text(l.save),
-        ),
-      ],
-    ),
+  final name = await promptCard(
+    context,
+    title: item.kind == ItemKind.photo ? l.namePhotoTitle : l.rename,
+    hint: l.namePhotoHint,
+    cancel: l.lookSkip,
+    fieldKey: const ValueKey('name-new-item'),
+    saveKey: const ValueKey('name-new-item-save'),
+    dismissible: false,
   );
-  text.dispose();
   if (name == null || name.isEmpty) return;
   try {
     await rust.renameItem(id: item.id, name: '$name$ext');

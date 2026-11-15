@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../widgets/cs_switch.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -152,7 +153,7 @@ class _DebugScreenState extends State<DebugScreen> {
                   key: const ValueKey('debug-build'),
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                   child: Row(children: [
-                    const SettingTile(icon: Icons.build_rounded, color: SettingsHue.xam),
+                    const SettingTile(icon: Icons.build_rounded, color: SettingsHue.grey),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -177,7 +178,7 @@ class _DebugScreenState extends State<DebugScreen> {
                 SettingsRow(
                   key: const ValueKey('debug-drive-check'),
                   icon: Icons.cloud_rounded,
-                  color: SettingsHue.xanhLa,
+                  color: SettingsHue.green,
                   title: l.debugDriveCheck,
                   onTap: () => _open(l.debugDriveCheck, (_) => const DriveCheckScreen()),
                 ),
@@ -187,14 +188,14 @@ class _DebugScreenState extends State<DebugScreen> {
                   SettingsRow(
                     key: const ValueKey('debug-sync-now'),
                     icon: Icons.cloud_upload_rounded,
-                    color: SettingsHue.xanh,
+                    color: SettingsHue.blue,
                     title: l.debugSyncNow,
                     value: _syncNow,
                   ),
                 SettingsRow(
                   key: const ValueKey('debug-sync-log'),
                   icon: Icons.sync_rounded,
-                  color: SettingsHue.xanh,
+                  color: SettingsHue.blue,
                   title: l.debugSyncLog,
                   value: l.debugLines(syncLines),
                   onTap: () => _open(l.debugSyncLog, (_) => _LogPage(lines: SyncLog.lines, clear: SyncLog.clear)),
@@ -202,7 +203,7 @@ class _DebugScreenState extends State<DebugScreen> {
                 SettingsRow(
                   key: const ValueKey('debug-log-row'),
                   icon: Icons.receipt_long_rounded,
-                  color: SettingsHue.xam,
+                  color: SettingsHue.grey,
                   title: l.debugLog,
                   value: l.debugLines(debugLines),
                   onTap: () => _open(l.debugLog, (_) => _LogPage(lines: () => DebugLog.lines().reversed.toList(), clear: DebugLog.clear)),
@@ -210,7 +211,7 @@ class _DebugScreenState extends State<DebugScreen> {
                 SettingsRow(
                   key: const ValueKey('debug-vaults'),
                   icon: Icons.lock_rounded,
-                  color: SettingsHue.cham,
+                  color: SettingsHue.indigo,
                   title: l.vaultManagerTitle,
                   onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
                     builder: (_) => Readable(child: VaultManagerScreen(libraryDir: '${Prefs.dir}${Platform.pathSeparator}library')),
@@ -222,14 +223,14 @@ class _DebugScreenState extends State<DebugScreen> {
                 SettingsRow(
                   key: const ValueKey('debug-network'),
                   icon: Icons.wifi_off_rounded,
-                  color: blocked ? SettingsHue.xanhLa : SettingsHue.doTuoi,
+                  color: blocked ? SettingsHue.green : SettingsHue.red,
                   title: l.debugNetwork,
                   trailing: Text(blocked ? l.debugNetworkOn : l.debugNetworkOff,
                       style: TextStyle(fontSize: CsType.body, color: blocked ? c.muted : recordRed(context), fontWeight: blocked ? null : FontWeight.w600)),
                 ),
                 SettingsRow(
                   icon: Icons.fingerprint_rounded,
-                  color: SettingsHue.hong,
+                  color: SettingsHue.pink,
                   title: l.debugBiometric,
                   value: switch (_bio) {
                     BiometricKind.face => 'Face ID',
@@ -237,37 +238,37 @@ class _DebugScreenState extends State<DebugScreen> {
                     _ => l.debugNone,
                   },
                 ),
-                SettingsRow(icon: Icons.timer_rounded, color: SettingsHue.cam, title: l.debugAutoLock, value: l.debugMinutes(Settings.autoLockMinutes)),
+                SettingsRow(icon: Icons.timer_rounded, color: SettingsHue.orange, title: l.debugAutoLock, value: l.debugMinutes(Settings.autoLockMinutes)),
                 SettingsRow(
                   key: const ValueKey('debug-items'),
                   icon: Icons.grid_view_rounded,
-                  color: SettingsHue.ngoc,
+                  color: SettingsHue.teal,
                   title: l.debugItems,
                   value: '${items.length}',
                   onTap: () => _open(l.debugItems, (_) => ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: [
                         SettingsGroup(rows: [
-                          SettingsRow(icon: Icons.photo_rounded, color: SettingsHue.xanh, title: l.kindPhotos, value: '${count(ItemKind.photo)}'),
-                          SettingsRow(icon: Icons.videocam_rounded, color: SettingsHue.tim, title: l.cameraVideo, value: '${count(ItemKind.video)}'),
-                          SettingsRow(icon: Icons.book_rounded, color: SettingsHue.vang, title: l.kindNotes, value: '${count(ItemKind.note)}'),
-                          SettingsRow(icon: Icons.mic_rounded, color: SettingsHue.cam, title: l.modeAudio, value: '${count(ItemKind.audio)}'),
-                          SettingsRow(icon: Icons.folder_rounded, color: SettingsHue.xanhLa, title: l.kindFiles, value: '${count(ItemKind.file)}'),
+                          SettingsRow(icon: Icons.photo_rounded, color: SettingsHue.blue, title: l.kindPhotos, value: '${count(ItemKind.photo)}'),
+                          SettingsRow(icon: Icons.videocam_rounded, color: SettingsHue.purple, title: l.cameraVideo, value: '${count(ItemKind.video)}'),
+                          SettingsRow(icon: Icons.book_rounded, color: SettingsHue.yellow, title: l.kindNotes, value: '${count(ItemKind.note)}'),
+                          SettingsRow(icon: Icons.mic_rounded, color: SettingsHue.orange, title: l.modeAudio, value: '${count(ItemKind.audio)}'),
+                          SettingsRow(icon: Icons.folder_rounded, color: SettingsHue.green, title: l.kindFiles, value: '${count(ItemKind.file)}'),
                         ]),
                       ])),
                 ),
                 SettingsRow(
                   icon: Icons.file_download_rounded,
-                  color: SettingsHue.troi,
+                  color: SettingsHue.sky,
                   title: l.debugImport,
                   value: ImportStats.items == null ? l.debugImportNone : '${ImportStats.items} · ${_seconds(ImportStats.totalMs)}',
                   onTap: ImportStats.items == null
                       ? null
                       : () => _open(l.debugImport, (_) => ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: [
                             SettingsGroup(rows: [
-                              SettingsRow(icon: Icons.tag_rounded, color: SettingsHue.xam, title: l.debugImportCount, value: '${ImportStats.items}'),
-                              SettingsRow(icon: Icons.photo_library_rounded, color: SettingsHue.xam, title: l.debugImportPick, value: _seconds(ImportStats.pickMs)),
-                              SettingsRow(icon: Icons.image_rounded, color: SettingsHue.xam, title: l.debugImportThumbnails, value: _seconds(ImportStats.thumbnailMs)),
-                              SettingsRow(icon: Icons.lock_rounded, color: SettingsHue.xam, title: l.debugImportVault, value: _seconds(ImportStats.vaultMs)),
-                              SettingsRow(icon: Icons.functions_rounded, color: SettingsHue.xam, title: l.debugImportTotal, value: _seconds(ImportStats.totalMs)),
+                              SettingsRow(icon: Icons.tag_rounded, color: SettingsHue.grey, title: l.debugImportCount, value: '${ImportStats.items}'),
+                              SettingsRow(icon: Icons.photo_library_rounded, color: SettingsHue.grey, title: l.debugImportPick, value: _seconds(ImportStats.pickMs)),
+                              SettingsRow(icon: Icons.image_rounded, color: SettingsHue.grey, title: l.debugImportThumbnails, value: _seconds(ImportStats.thumbnailMs)),
+                              SettingsRow(icon: Icons.lock_rounded, color: SettingsHue.grey, title: l.debugImportVault, value: _seconds(ImportStats.vaultMs)),
+                              SettingsRow(icon: Icons.functions_rounded, color: SettingsHue.grey, title: l.debugImportTotal, value: _seconds(ImportStats.totalMs)),
                             ]),
                           ])),
                 ),
@@ -275,7 +276,7 @@ class _DebugScreenState extends State<DebugScreen> {
                 SettingsRow(
                   key: const ValueKey('debug-memory'),
                   icon: Icons.memory_rounded,
-                  color: SettingsHue.tim,
+                  color: SettingsHue.purple,
                   title: l.debugMemory,
                   // Now / the most since the app started; a tap reads it again.
                   value: '${_mb(ProcessInfo.currentRss)} / ${_mb(ProcessInfo.maxRss)} MB',
@@ -284,7 +285,7 @@ class _DebugScreenState extends State<DebugScreen> {
                 SettingsRow(
                   key: const ValueKey('debug-playback'),
                   icon: Icons.play_circle_rounded,
-                  color: SettingsHue.tim,
+                  color: SettingsHue.purple,
                   title: l.debugPlayback,
                   value: _temp == null ? '…' : fileSize(BigInt.from(_temp!)),
                   trailing: TextButton(
@@ -305,11 +306,11 @@ class _DebugScreenState extends State<DebugScreen> {
                 SettingsRow(
                   key: const ValueKey('debug-native-bar'),
                   icon: Icons.space_bar_rounded,
-                  color: SettingsHue.xanh,
+                  color: SettingsHue.blue,
                   title: l.debugNativeBar,
                   value: NativeBar.available ? null : l.debugNativeBarNone,
                   trailing: NativeBar.available
-                      ? SettingsSwitch(value: nativeBarOn(), onChanged: (v) => setState(() => Prefs.write(nativeBarPref, v ? '1' : '0')))
+                      ? CsSwitch(value: nativeBarOn(), onChanged: (v) => setState(() => Prefs.write(nativeBarPref, v ? '1' : '0')))
                       : null,
                 ),
               ]),
@@ -371,7 +372,7 @@ class _LogPageState extends State<_LogPage> {
           SettingsRow(
             key: const ValueKey('debug-log-copy'),
             icon: Icons.copy_rounded,
-            color: SettingsHue.xanh,
+            color: SettingsHue.blue,
             title: l.debugLogCopy,
             chevron: false,
             onTap: lines.isEmpty
@@ -383,7 +384,7 @@ class _LogPageState extends State<_LogPage> {
           ),
           SettingsRow(
             icon: Icons.delete_rounded,
-            color: SettingsHue.doTuoi,
+            color: SettingsHue.red,
             title: l.debugLogClear,
             chevron: false,
             onTap: lines.isEmpty ? null : () => setState(widget.clear),

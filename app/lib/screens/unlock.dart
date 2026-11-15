@@ -459,17 +459,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     final marker = File('${widget.libraryDir}/.biometric-offered');
     if (marker.existsSync() || await BiometricUnlock.available() == null || !mounted) return;
     marker.writeAsStringSync('1');
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.biometricOfferTitle),
-        content: Text(l.biometricOfferBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.biometricOfferNo)),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.biometricOfferYes)),
-        ],
-      ),
-    );
+    final yes = await askBiometric(context);
     if (yes == true) await turnOnBiometric(_bioStore(l));
   }
 

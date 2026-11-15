@@ -113,7 +113,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
             Expanded(
               child: FilledButton(
                 key: const ValueKey('vault-details-delete'),
-                style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
+                style: FilledButton.styleFrom(backgroundColor: recordRed(context), foregroundColor: Colors.white),
                 onPressed: () => Navigator.of(context).pop(true),
                 child: Text(l.deleteVaultAction),
               ),

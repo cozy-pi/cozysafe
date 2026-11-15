@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/cs_switch.dart';
 import 'package:intl/intl.dart';
 
 import '../error_log.dart';
@@ -176,7 +177,7 @@ class _SyncScreenState extends State<SyncScreen> {
                 Icon(Icons.sync_rounded, size: 20, color: CsColors.of(context).muted),
                 const SizedBox(width: 10),
                 Expanded(child: Text(l.syncAuto, style: const TextStyle(fontSize: CsType.callout))),
-                _Toggle(value: auto, onChanged: (v) => set(() => auto = v)),
+                CsSwitch(value: auto, onChanged: (v) => set(() => auto = v)),
               ],
             ),
           );
@@ -310,7 +311,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       color: const Color(0xFF34A853),
                       title: l.syncAuto,
                       chevron: false,
-                      trailing: _Toggle(value: AutoSync.enabled, onChanged: (v) => set(() => AutoSync.enabled = v)),
+                      trailing: CsSwitch(value: AutoSync.enabled, onChanged: (v) => set(() => AutoSync.enabled = v)),
                     ),
                     if (AutoSync.enabled)
                       _Action(
@@ -319,7 +320,7 @@ class _SyncScreenState extends State<SyncScreen> {
                         color: const Color(0xFF007AFF),
                         title: l.syncWifiOnly,
                         chevron: false,
-                        trailing: _Toggle(value: AutoSync.wifiOnly, onChanged: (v) => set(() => AutoSync.wifiOnly = v)),
+                        trailing: CsSwitch(value: AutoSync.wifiOnly, onChanged: (v) => set(() => AutoSync.wifiOnly = v)),
                       ),
                   ]),
                   const SizedBox(height: 24),
@@ -503,21 +504,6 @@ class _Action extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A switch as in Settings: the iPhone's green with a white knob.
-class _Toggle extends StatelessWidget {
-  const _Toggle({required this.value, required this.onChanged});
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Switch.adaptive(
-        value: value,
-        onChanged: onChanged,
-        activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : const Color(0xFF34C759),
-        activeThumbColor: Colors.white,
-      );
 }
 
 /// One line of the connection log: `<ms>|<host|join>|<address or ->|<outcome>|<in>|<out>`.

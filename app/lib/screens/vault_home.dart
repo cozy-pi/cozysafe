@@ -41,6 +41,8 @@ import 'quick_look.dart';
 import 'note.dart';
 import 'recorder.dart';
 import '../widgets/item_menu.dart';
+import '../widgets/ask.dart';
+import '../widgets/cs_switch.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/drag_select.dart';
 import '../widgets/selection_bar.dart';
@@ -1039,28 +1041,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   /// Always the same words, whatever vaults exist: the sheet must not reveal how many.
-  Future<bool?> _confirmBackup(AppLocalizations l) => showModalBottomSheet<bool>(
-        context: context,
-        builder: (context) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(l.backup, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Text(l.backupWhatsIn, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
-                const SizedBox(height: 6),
-                Text(l.backupNeeds, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
-                const SizedBox(height: 16),
-                FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.backupSave)),
-                const SizedBox(height: 6),
-                TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-              ],
-            ),
-          ),
-        ),
+  Future<bool?> _confirmBackup(AppLocalizations l) => askSheet<bool>(
+        context,
+        title: l.backup,
+        body: [l.backupWhatsIn, l.backupNeeds],
+        actions: [AskAction.main(l.backupSave, true), AskAction.quiet(l.cancel, false)],
       );
 
   Future<void> _showKit() async {
@@ -1113,17 +1098,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<bool> _confirmBiometricMove(AppLocalizations l) async {
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const ValueKey('bio-move'),
-        title: Text(l.biometricMoveTitle),
-        content: Text(l.biometricMoveBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-          FilledButton(key: const ValueKey('bio-move-yes'), onPressed: () => Navigator.pop(context, true), child: Text(l.biometricMoveYes)),
-        ],
-      ),
+    final yes = await askCard<bool>(
+      context,
+      boxKey: const ValueKey('bio-move'),
+      title: l.biometricMoveTitle,
+      body: l.biometricMoveBody,
+      actions: [
+        AskAction.main(l.biometricMoveYes, true, key: const ValueKey('bio-move-yes')),
+        AskAction.quiet(l.cancel, false),
+      ],
     );
     return yes == true;
   }
@@ -1370,26 +1353,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     final dot = item.name.lastIndexOf('.');
     final ext = dot > 0 && item.name.length - dot <= 6 ? item.name.substring(dot) : '';
-    final text = TextEditingController(text: ext.isEmpty ? item.name : item.name.substring(0, dot));
-    text.selection = TextSelection(baseOffset: 0, extentOffset: text.text.length);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.rename),
-        content: TextField(
-          key: const ValueKey('rename-field'),
-          controller: text,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          onSubmitted: (v) => Navigator.pop(context, v.trim()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
-          TextButton(onPressed: () => Navigator.pop(context, text.text.trim()), child: Text(l.save)),
-        ],
-      ),
+    final name = await promptCard(
+      context,
+      title: l.rename,
+      initial: ext.isEmpty ? item.name : item.name.substring(0, dot),
+      fieldKey: const ValueKey('rename-field'),
     );
-    text.dispose();
     if (name == null || name.isEmpty || '$name$ext' == item.name) return;
     try {
       await rust.renameItem(id: item.id, name: '$name$ext');
@@ -1562,10 +1531,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 Text(l.shotBlockedHow(l.blockScreenshots, settingsPath(l, SettingsSpot.blockScreenshots)), style: TextStyle(fontSize: CsType.subhead, height: 1.45, color: c.muted)),
               ] else ...[
                 const SizedBox(height: 6),
-                SwitchListTile.adaptive(
+                CsSwitchLine(
                   key: const ValueKey('shot-quiet'),
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l.dontRemindAgain, style: const TextStyle(fontSize: CsType.subhead)),
+                  title: l.dontRemindAgain,
                   value: quiet,
                   onChanged: (v) => setCard(() => quiet = v),
                 ),
@@ -2144,30 +2112,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<String?> _askTagName({required String title, String name = ''}) {
     final l = AppLocalizations.of(context);
-    final text = TextEditingController(text: name);
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: text,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(hintText: l.tagName),
-          onSubmitted: (v) => v.trim().isEmpty ? null : Navigator.pop(context, v.trim()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
-          TextButton(
-            onPressed: () {
-              final n = text.text.trim();
-              if (n.isNotEmpty) Navigator.pop(context, n);
-            },
-            child: Text(l.save),
-          ),
-        ],
-      ),
-    ).whenComplete(text.dispose);
+    return promptCard(context, title: title, initial: name, hint: l.tagName, allowEmpty: false);
   }
 
   Future<rust.ItemInfo?> _newTag() async {

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
+import '../widgets/cs_switch.dart';
 import 'package:flutter/services.dart';
 
 import '../biometric.dart';
@@ -665,7 +666,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                     style: TextStyle(color: ink.withValues(alpha: .65), fontSize: CsType.footnote, height: 1.3)),
               ]),
             ),
-            Switch.adaptive(key: const ValueKey('words-cloud-switch'), value: _cloud, onChanged: _cloudSwitch),
+            CsSwitch(key: const ValueKey('words-cloud-switch'), value: _cloud, onChanged: _cloudSwitch),
           ]),
         ),
       ),

@@ -59,6 +59,8 @@ Type: the phone's own font, sizes from `CsType` only:
 - body and row names 17 regular (`body`), also the big title of Settings (34, as every tab)
 - second line of a row 15 (`subhead`)
 - dates, sizes, notes 13 (`footnote`)
+- a number that is the screen's subject (a recording's time, a code to read out, a
+  countdown) 44 (`display`)
 
 Do not write a font size by hand.
 
@@ -85,6 +87,9 @@ later (docs/backlog.md).
 | A small menu at the finger (long press, ⋯) | `showItemMenu` + `MenuEntry` | `widgets/item_menu.dart` |
 | A long page, and every sub-page of Settings (never swapped in place: owner 2026-10-31) | `pushPage` | `widgets/vault_bar.dart` |
 | Short content over the page | `showCard` | `widgets/vault_bar.dart` |
+| A short question (yes or no, save or discard, a name to type): never a system dialog | `askCard`, `promptCard` + `AskAction` (built on `showCard`) | `widgets/ask.dart` |
+| A question before something leaves the vault or is saved outside, at the thumb | `askSheet` (`AskSheetBody`) | `widgets/ask.dart` |
+| A switch, and a line that ends in one | `CsSwitch`, `CsSwitchLine` | `widgets/cs_switch.dart` |
 | A group of settings rows | `SettingsGroup` | `screens/settings.dart` |
 | A secret (password, 24 words) | `SecretField` | `widgets/secret.dart` |
 | One question per screen: Back, progress, big title on the left, main button pinned, a second choice as text | `StepPage`, `StepProgress`, `StepMainButton`, `StepTextButton` | `widgets/steps.dart` |
@@ -180,6 +185,15 @@ solid in their colours: the ways of the three kinds the vault holds most, the mo
 2026-11-07 review). On an edge the card is alone and its lines are the quick buttons. A
 finger sliding up from + picks the button or line it lets go on. The page behind dims to
 60% (owner 2026-11-14: 92% was too heavy). The camera, and Note where nothing records, act at once.
+
+**A short question** (2026-11-15 review): a card in the middle (`askCard`), never
+the system's own dialog: the title, a few grey lines, then the answers one under the
+other, each the width of the card: the main one filled (red when it deletes), a second
+way outlined, Cancel as plain text last. A name is asked the same way (`promptCard`: one
+field, Cancel and Save side by side). The countdown before a vault is deleted is that
+card too; a tap outside does not stop it.
+
+**A switch** is green when on, everywhere (`CsSwitch`).
 
 **Confirm a deletion**: a sheet with one red button the width of the page, Cancel as text
 under it. Where keeping is the safe and likely answer (the originals after an import),

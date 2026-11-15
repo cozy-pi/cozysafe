@@ -137,6 +137,9 @@ class VaultPalette {
 /// Text sizes by role, the iPhone's own scale (Apple's Human Interface Guidelines,
 /// default size). New text takes one of these, not a size of its own.
 abstract final class CsType {
+  /// A number that is the screen's subject: a recording's time, a code to read out, a
+  /// countdown.
+  static const display = 44.0;
   static const largeTitle = 34.0;
   static const title1 = 28.0;
   static const title2 = 22.0;

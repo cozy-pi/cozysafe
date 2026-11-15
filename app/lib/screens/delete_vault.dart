@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/ask.dart';
 import 'package:flutter/services.dart';
 
 import '../widgets/countdown.dart';
@@ -205,26 +206,14 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
   Future<void> _schedule() async {
     final l = AppLocalizations.of(context);
     if (!await confirmOwnerForSetting(l.vaultScheduleTitle, context: context, always: true) || !mounted) return;
-    final yes = await showModalBottomSheet<bool>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(Ui.side, 20, Ui.side, 12),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(l.vaultScheduleTitle, style: const TextStyle(fontSize: CsType.title3, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Text(l.vaultScheduleBody, style: TextStyle(fontSize: CsType.subhead, height: 1.4, color: CsColors.of(context).muted)),
-            const SizedBox(height: 20),
-            FilledButton(
-              key: const ValueKey('vault-schedule-go'),
-              style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l.vaultScheduleAction),
-            ),
-            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-          ]),
-        ),
-      ),
+    final yes = await askSheet<bool>(
+      context,
+      title: l.vaultScheduleTitle,
+      body: [l.vaultScheduleBody],
+      actions: [
+        AskAction.main(l.vaultScheduleAction, true, key: const ValueKey('vault-schedule-go'), danger: true),
+        AskAction.quiet(l.cancel, false),
+      ],
     );
     if (yes != true || !mounted) return;
     try {
@@ -280,7 +269,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
           actions: [
             FilledButton(
               key: const ValueKey('delete-vault-go'),
-              style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(backgroundColor: recordRed(context), foregroundColor: Colors.white),
               onPressed: _pw.text.isNotEmpty && !_busy ? _confirm : null,
               child: Text(l.deleteVaultAction),
             ),

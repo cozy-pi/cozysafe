@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import '../widgets/ask.dart';
 
 import '../biometric.dart';
 import '../debug_log.dart';
@@ -92,28 +93,21 @@ class _RestorePickScreenState extends State<RestorePickScreen> {
     ));
   }
 
-  void _nothingLeft() {
+  Future<void> _nothingLeft() async {
     final l = AppLocalizations.of(context);
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.restoreNoneTitle),
-        content: Text(l.restoreNoneBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l.cancel)),
-          FilledButton(
-            key: const ValueKey('restore-none-new'),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: !rust.hasVaults(dir: widget.libraryDir))),
-              ));
-            },
-            child: Text(l.welcomeNew),
-          ),
-        ],
-      ),
+    final fresh = await askCard<bool>(
+      context,
+      title: l.restoreNoneTitle,
+      body: l.restoreNoneBody,
+      actions: [
+        AskAction.main(l.welcomeNew, true, key: const ValueKey('restore-none-new')),
+        AskAction.quiet(l.cancel, false),
+      ],
     );
+    if (fresh != true || !mounted) return;
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: !rust.hasVaults(dir: widget.libraryDir))),
+    ));
   }
 
   @override
