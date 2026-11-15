@@ -866,7 +866,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         picked = await importPicked(batch, photos: photos, tally: tally, progress: (d, _) {
           done.value = d;
           LockGuard.activity(); // a long import is not idleness
-        }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(DateTime.now(), ext));
+        }, cancelled: () => cancel, realDates: true, mediaName: (kind, ext, at) => captureName(at, ext));
       } on rust.VaultError catch (e) {
         // Stopped by the lock: said once the vault is open again ([_lock]), not over
         // the lock screen.

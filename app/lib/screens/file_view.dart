@@ -32,6 +32,7 @@ import '../temp_files.dart';
 import '../prefs.dart';
 import 'common.dart';
 import '../capture_name.dart';
+import '../media_date.dart';
 import '../item_kind.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show GlassButton;
@@ -237,8 +238,9 @@ Future<List<rust.ItemInfo>> importFiles(
   required bool photos,
   void Function(int done, int total)? progress,
   bool Function()? cancelled,
-  /// Name for a photo or video whose picked name is made up ([isMadeUpName]).
-  String Function(String kind, String extension)? mediaName,
+  /// Name for a photo or video whose picked name is made up ([isMadeUpName]); [at] is
+  /// the date the item gets.
+  String Function(String kind, String extension, DateTime at)? mediaName,
 }) async {
   final added = await importPicked(
     PickedBatch(files.length, Stream.fromIterable([for (final f in files) PickedCopy(f, null, 0)])),
@@ -265,12 +267,16 @@ Future<List<(rust.ItemInfo, String?)>> importPicked(
   required bool photos,
   void Function(int done, int total)? progress,
   bool Function()? cancelled,
-  String Function(String kind, String extension)? mediaName,
+  String Function(String kind, String extension, DateTime at)? mediaName,
+  /// Photos and videos get the date they were made instead of now (lib/media_date.dart).
+  /// Off for what the app's own camera just recorded.
+  bool realDates = false,
   /// With it, a file that cannot be added does not end the import: the others still go
   /// in, and the caller says how many did not. Without it, the first failure ends it.
   ImportTally? tally,
 }) async {
   final tmp = (await getTemporaryDirectory()).path;
+  final startedMs = realDates ? DateTime.now().millisecondsSinceEpoch : null;
   final added = <(rust.ItemInfo, String?)>[];
   final total = Stopwatch()..start();
   ImportStats.items = batch.count;
@@ -291,7 +297,7 @@ Future<List<(rust.ItemInfo, String?)>> importPicked(
       final items = <rust.ItemInfo>[];
       try {
         await importOne(p.file, tmp, photos: photos, cancelled: cancelled, mediaName: mediaName, added: items,
-            tag: '#$i w$w copy ${p.copyMs} ms ·');
+            importStartedMs: startedMs, tag: '#$i w$w copy ${p.copyMs} ms ·');
       } catch (e) {
         // The vault locked: nothing more can go in. Anything else is this file's own
         // trouble (unreadable, too large for the space left).
@@ -352,8 +358,10 @@ Future<void> importOne(
   String tmp, {
   required bool photos,
   required bool Function()? cancelled,
-  required String Function(String kind, String extension)? mediaName,
+  required String Function(String kind, String extension, DateTime at)? mediaName,
   required List<rust.ItemInfo> added,
+  /// When the import began: with it a photo or video gets its real date ([chooseCreatedMs]).
+  int? importStartedMs,
   String tag = '',
 }) async {
   // Cancel keeps what is finished; the current file is never half added.
@@ -369,8 +377,19 @@ Future<void> importOne(
   final isImage = mime.startsWith('image/');
   final isVideo = mime.startsWith('video/');
   final dot = f.name.lastIndexOf('.');
+  final now = DateTime.now().millisecondsSinceEpoch;
+  // Top secret never decodes a picture or video (ADR 0005): only the file's own time.
+  final createdMs = importStartedMs == null || !(isImage || isVideo)
+      ? now
+      : chooseCreatedMs(
+          takenMs: TopSecretMode.on ? null : await embeddedDateMs(f.path, video: isVideo),
+          modifiedMs: await modifiedDateMs(f.path),
+          startedMs: importStartedMs,
+          nowMs: now,
+        );
   final name = (isImage || isVideo) && mediaName != null && isMadeUpName(f.name)
-      ? mediaName(isVideo ? ItemKind.video : ItemKind.photo, dot < 0 ? '' : f.name.substring(dot).toLowerCase())
+      ? mediaName(isVideo ? ItemKind.video : ItemKind.photo, dot < 0 ? '' : f.name.substring(dot).toLowerCase(),
+          DateTime.fromMillisecondsSinceEpoch(createdMs))
       : f.name;
   final watch = Stopwatch()..start();
   var way = isVideo ? 'video' : '';
@@ -393,7 +412,7 @@ Future<void> importOne(
             : (isImage && (photos || thumbnail != null) ? ItemKind.photo : ItemKind.file),
     name: name,
     mime: mime,
-    createdMs: nowMs(),
+    createdMs: i64(createdMs),
     thumbnail: thumbnail,
   );
   ImportStats.vaultMs += watch.elapsedMilliseconds;

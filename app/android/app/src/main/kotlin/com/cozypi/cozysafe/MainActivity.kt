@@ -323,6 +323,25 @@ class MainActivity : FlutterFragmentActivity() {
         super.onDestroy()
     }
 
+    /// When a picked item was taken or last changed, if its provider says: the photo
+    /// picker and MediaStore answer "datetaken", document providers "last_modified"
+    /// (both in milliseconds). A provider that does not know a column is skipped.
+    private fun originalMs(uri: Uri): Long? {
+        for (column in arrayOf("datetaken", DocumentsContract.Document.COLUMN_LAST_MODIFIED)) {
+            try {
+                contentResolver.query(uri, arrayOf(column), null, null, null)?.use { c ->
+                    if (c.moveToFirst() && c.columnCount > 0 && !c.isNull(0)) {
+                        val ms = c.getLong(0)
+                        if (ms > 0) return ms
+                    }
+                }
+            } catch (e: Exception) {
+                // Not a column this provider has.
+            }
+        }
+        return null
+    }
+
     /// Copy each picked item into the app's cache (the vault encrypts from there; the copy
     /// is deleted right after) and say where it came from.
     private fun deliver(uris: List<Uri>) {
@@ -347,6 +366,9 @@ class MainActivity : FlutterFragmentActivity() {
                 val safe = name.replace('/', '-')
                 val copy = File(dir, "${System.nanoTime()}-$safe")
                 contentResolver.openInputStream(uri)?.use { input -> copy.outputStream().use { input.copyTo(it) } }
+                // The copy keeps the original's date: the vault files a photo under the day
+                // it was made when the picture itself does not say (lib/media_date.dart).
+                originalMs(uri)?.let { copy.setLastModified(it) }
                 item.putAll(mapOf(
                     "path" to copy.path,
                     "name" to safe,
