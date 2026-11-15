@@ -15,6 +15,7 @@ import '../widgets/selection_bar.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart';
 import 'common.dart';
+import '../bulk_text.dart';
 import '../widgets/entry_row.dart' show entryIcon;
 import 'file_view.dart';
 import 'item_info.dart';
@@ -141,14 +142,21 @@ class _TrashScreenState extends State<TrashScreen> {
         return;
       }
     }
+    var failed = 0;
     for (final it in items) {
       try {
         _held.contains(it.id) ? await rust.restoreHeld(id: it.id) : await rust.restoreItem(id: it.id);
-      } catch (_) {}
+      } catch (_) {
+        failed++;
+      }
     }
     if (!mounted) return;
     setState(_endSelect);
     await _load();
+    if (!mounted) return;
+    // All back: the list shows it. Some not: said, with both counts.
+    final said = restoredText(AppLocalizations.of(context), restored: items.length - failed, failed: failed);
+    if (said != null) showToast(context, said, icon: Icons.error_outline_rounded);
   }
 
   /// Deleting for good always asks first ([asked]: the preview did).
@@ -161,16 +169,22 @@ class _TrashScreenState extends State<TrashScreen> {
           othersKeep: !items.every((i) => _held.contains(i.id)));
       if (!ok || !mounted) return;
     }
+    var failed = 0;
     for (final it in items) {
       try {
         _held.contains(it.id) ? await rust.purgeHeld(id: it.id) : await rust.deleteItem(id: it.id);
-      } catch (_) {}
-      _thumbnails.remove(it.id);
+        _thumbnails.remove(it.id);
+      } catch (_) {
+        failed++;
+      }
     }
     AutoSync.changedOutOfList();
     if (!mounted) return;
     setState(_endSelect);
     await _load();
+    if (!mounted) return;
+    final said = deletedForGoodText(AppLocalizations.of(context), deleted: items.length - failed, failed: failed);
+    if (said != null) showToast(context, said, icon: Icons.error_outline_rounded);
   }
 
   /// A long press: the same actions, icons and order as the preview's bar (owner

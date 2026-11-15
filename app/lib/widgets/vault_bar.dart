@@ -371,16 +371,21 @@ class _CentreTabs extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    sectionLabel(l, s),
-                    maxLines: 1,
-                    overflow: TextOverflow.fade,
-                    softWrap: false,
-                    textScaler: TextScaler.noScaling,
-                    style: TextStyle(
-                      fontSize: CsType.caption2,
-                      fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-                      color: on ? ink : ink.withValues(alpha: .6),
+                  // Follows the phone's text size a little (up to 1.3: the bar's height
+                  // holds that), and a word too wide for its tab shrinks to fit rather
+                  // than being cut.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      sectionLabel(l, s),
+                      maxLines: 1,
+                      softWrap: false,
+                      textScaler: MediaQuery.textScalerOf(context).clamp(minScaleFactor: 1, maxScaleFactor: tabLabelMaxScale),
+                      style: TextStyle(
+                        fontSize: CsType.caption2,
+                        fontWeight: on ? FontWeight.w700 : FontWeight.w500,
+                        color: on ? ink : ink.withValues(alpha: .6),
+                      ),
                     ),
                   ),
                 ],
@@ -439,6 +444,9 @@ class _CentreTabs extends StatelessWidget {
     });
   }
 }
+
+/// How far the words under the tabs grow with the phone's text size.
+const double tabLabelMaxScale = 1.3;
 
 /// The + in the middle of the bar: a little smaller than the bar's other buttons.
 const double centrePlusSize = 46;

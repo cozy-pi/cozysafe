@@ -57,6 +57,10 @@ class _SearchScreenState extends State<SearchScreen> {
     _loadNotes();
   }
 
+  /// The notes' texts are all read: until then a search that finds nothing may still
+  /// find something, and says it is searching.
+  bool _notesRead = false;
+
   Future<void> _loadNotes() async {
     for (final it in widget.items.where((i) => i.kind == ItemKind.note)) {
       try {
@@ -66,8 +70,20 @@ class _SearchScreenState extends State<SearchScreen> {
       } catch (_) {}
       if (!mounted) return;
     }
-    if (mounted) setState(() {});
+    if (mounted) setState(() => _notesRead = true);
   }
+
+  Widget _searching(BuildContext context, AppLocalizations l) => Center(
+        key: const ValueKey('search-searching'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 0, 32, 80),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const SizedBox.square(dimension: 26, child: CircularProgressIndicator(strokeWidth: 2.5)),
+            const SizedBox(height: 14),
+            Text(l.searchSearching, textAlign: TextAlign.center, style: TextStyle(color: CsColors.of(context).muted)),
+          ]),
+        ),
+      );
 
   @override
   void dispose() {
@@ -147,7 +163,11 @@ class _SearchScreenState extends State<SearchScreen> {
             child: browsing
                 ? _browse(context, l)
                 : shown.isEmpty && groupHits.isEmpty
-                    ? _nothing(context, l)
+                    // Notes are matched by their text, read in the background: "nothing"
+                    // only once all of it is there.
+                    ? (!_notesRead && q.isNotEmpty && (_kind == null || _kind == VaultSection.note)
+                        ? _searching(context, l)
+                        : _nothing(context, l))
                     : _results(context, l, q, shown, _kind == null ? groupHits : const []),
           ),
           if (!browsing && (counts.isNotEmpty || _kind != null)) _chips(context, l, hits.length, counts),

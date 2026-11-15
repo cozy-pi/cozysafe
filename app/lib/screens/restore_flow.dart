@@ -211,6 +211,8 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   }
 
   void _next() {
+    // Enter in the password field while a restore is under way must not start another.
+    if (_busy) return;
     final l = AppLocalizations.of(context);
     if (rust.parseSecretKey(text: _words.text) == null) {
       setState(() => _error = l.secretKeyTypo);

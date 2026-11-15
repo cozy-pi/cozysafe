@@ -357,26 +357,35 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> with SingleTicker
                 padding: EdgeInsets.symmetric(horizontal: pad),
                 itemExtent: _cell,
                 itemCount: _items.length,
-                itemBuilder: (context, i) => GestureDetector(
-                  onTap: () => _pages.jumpToPage(i),
-                  child: ValueListenableBuilder<int>(
-                    valueListenable: _index,
-                    builder: (context, at, child) => Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 2, vertical: at == i ? 0 : 4),
-                      child: DecoratedBox(
-                        position: DecorationPosition.foreground,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          border: at == i ? Border.all(color: Colors.white, width: 2) : null,
+                // The whole cell takes the tap (the gaps around the small picture too),
+                // and a screen reader hears which one it is.
+                itemBuilder: (context, i) => Semantics(
+                  key: ValueKey('strip-$i'),
+                  button: true,
+                  image: true,
+                  label: '${_items[i].name}, ${AppLocalizations.of(context).tourStep(i + 1, _items.length)}',
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _pages.jumpToPage(i),
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _index,
+                      builder: (context, at, child) => Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 2, vertical: at == i ? 0 : 4),
+                        child: DecoratedBox(
+                          position: DecorationPosition.foreground,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            border: at == i ? Border.all(color: Colors.white, width: 2) : null,
+                          ),
+                          child: ClipRRect(borderRadius: BorderRadius.circular(4), child: child),
                         ),
-                        child: ClipRRect(borderRadius: BorderRadius.circular(4), child: child),
                       ),
-                    ),
-                    child: FutureBuilder<Uint8List>(
-                      future: _thumbnail(_items[i].id),
-                      builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
-                          ? PrivateThumb(snap.data!)
-                          : const ColoredBox(color: Color(0xFF2C2C2E)),
+                      child: FutureBuilder<Uint8List>(
+                        future: _thumbnail(_items[i].id),
+                        builder: (context, snap) => snap.hasData && snap.data!.isNotEmpty
+                            ? PrivateThumb(snap.data!)
+                            : const ColoredBox(color: Color(0xFF2C2C2E)),
+                      ),
                     ),
                   ),
                 ),

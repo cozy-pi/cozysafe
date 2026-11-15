@@ -421,6 +421,18 @@ name) are kept.
   system colour. Biometrics show the device's real symbol (Face ID glyph, or a fingerprint).
 - Messages float as a glass capsule (`showToast`, widgets/toast.dart); in a vault they sit on
   the row of the main action, beside it, never over the bottom bar.
+- **Slow work says what it is doing** (`whileWorking`, widgets/working_card.dart; 0.3.1):
+  making a backup, getting a selection ready to send ("Getting 3 of 12 ready to send"), a
+  sync by hand waiting for the automatic one. The card cannot be dismissed and closes only
+  itself, so a lock screen that came on top stays.
+- **What could not be done is said** (0.3.1): deleting, restoring and deleting for good
+  count their failures ("2 moved to Recently deleted, 1 could not be moved",
+  `lib/bulk_text.dart`); a failed rename or group change is a message with its code.
+- **Imported photos and videos keep their date** (0.3.1, `lib/media_date.dart`): the date
+  inside the file (EXIF date taken; the creation time of an MP4 / MOV), else the file's
+  last-modified time when it is older than the import, else now. Top Secret Mode reads no
+  file content: the file's time only. A photo whose picker name is made up is named after
+  that date.
 - **Main action on the left or right** (Settings → Display → Add button; left by default,
   under the left thumb). Messages move to the other side of it.
 - Notes list: title, then when it was made (time today, weekday this week, else the
