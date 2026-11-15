@@ -4,6 +4,32 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.3.1 (unreleased)
+
+### Fixed
+- iPhone: a file opened in another app (Quick Look) or a share sheet no longer stays on
+  screen above the lock screen when the vault locks.
+- Android: text copied from a note is now really wiped from the clipboard when the vault
+  locks or after a minute, also once you have left the app.
+- Android: a copied password is cleared the next time the app opens if Android closed the
+  app before its time was up.
+- A new Recovery Key: wrong passwords typed there count and wait like on the lock screen.
+- Restore from a backup on the lock screen now works on a device that already has a
+  vault; it used to say to restore on a fresh install.
+- A voice recording or video that could not be saved (no space left) is no longer
+  deleted: a card says what went wrong, with Try Again and Discard. It is kept until
+  the vault locks.
+- iPhone: when the 24 words could not be kept in iCloud Keychain, the app now says so.
+- Version history: a setting that could not be saved is said, instead of showing a
+  choice that was not applied.
+
+### Changed
+- Turning off the copy of the 24 words in iCloud Keychain or your Google account asks
+  for Face ID, fingerprint or the passcode, then confirms: the copy is removed for every
+  device on the account, and you can check your 24 words first.
+- Turning version history off asks first: every earlier version, earlier passwords too,
+  is erased at once.
+
 ## 0.3.0 (2026-11-14)
 
 A new look, fewer interruptions, and the fixes of a review of the whole app
