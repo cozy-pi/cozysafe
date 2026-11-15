@@ -67,6 +67,17 @@ that needs a provisioning profile the Developer ID build does not have. Instead:
   after a password, account or code is copied (`LockGuard.afterCopy`, not in Top Secret
   Mode), to paste it and come back for the next. Coming back is measured against the
   time given, on a computer too; never coming back, it locks when that time is up.
+- **Nothing decrypted stays above the lock screen** (iPhone, 0.3.1). "Open in another
+  app" shows a decrypted copy in Quick Look, in a card over the app, or in a share
+  sheet; Share puts a share sheet there too. They are the system's, not Flutter pages,
+  so the lock screen came up under them and the file stayed readable, in Top Secret
+  Mode too. As the vault locks, Dart asks for them to come down (`closeOpened`, the
+  `close` method of `cozysafe/open`, `AppDelegate.closeOpen`) before the temporary
+  copies are removed. Natively too, with no word from Dart: coming back after 60 s or
+  more away (the leave an open file is given) takes them down while the cover is still
+  up. The app switcher never showed them: the cover sits over the whole window.
+  Pickers stay, they show the phone's own photos and files. On Android the copy is
+  shown by another app, which this app cannot close; the copy is removed on lock.
 - **Playing is use:** a video or recording playing keeps the idle lock away, as
   recording and typing do (`LockGuard.playing`, at most every 15 s). The 2FA QR
   photo picker uses it; the 2FA QR camera does not need it: since 0.2.31 it is a page
@@ -169,14 +180,26 @@ running."
   the share sheet.
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
-  the clipboard after 60 seconds and when the vault locks.
+  the clipboard after 60 seconds and when the vault locks, if the clipboard still holds
+  it (something copied since is left alone). On Android an app that is not in front is
+  shown an empty clipboard, and the vault locks as the app leaves: the compare never
+  matched and the text stayed for good (fixed 0.3.1). There the clipboard is emptied as
+  it is (`clearClipboard` in `MainActivity.kt`): what it holds cannot be known, so
+  something copied in another app in that minute goes with it. If that fails, the wipe
+  is done, with the compare, when the app is in front again. A password copied
+  afterwards is not touched by that wipe (`LockGuard.replaced`).
 - **A copied password, code or recovery code is the exception** (ADR 0009): it has to
   outlive the lock, which happens as soon as the person switches to the app that asks
   for it. It goes through `SecureClipboard` instead: the system forgets it after 90
   seconds by default (Settings: 30 s, 90 s, 3 min, never; Top Secret fixed at 90 s);
   iPhone and Mac keep it on this device only (no Universal Clipboard), the Mac marks it
   concealed and transient for clipboard managers, Android marks it sensitive and clears
-  it on time even in the background (and when the app comes back if the process died).
+  it on time even in the background. If Android ends the process before that, nothing
+  in memory is left to do it, so since 0.3.1 a note is kept on the phone (the time
+  only, never the text: `SecureClipboard.kt`, a private preference): the next time the
+  app is in front, the time left is waited out or, if it is past, the clipboard is
+  cleared when it still holds the app's own copy. Until the app is opened again the
+  password stays on the clipboard: nothing of the app is running to remove it.
   The editor's own fields copy the same way, never to the plain clipboard.
 - **Secure items** (ADR 0009): passwords and recovery codes are masked (always the same
   dots), revealed one tap at a time, hidden again after 30 seconds, when the app leaves
@@ -257,7 +280,9 @@ By case:
   10th, then growing), on a clock the phone's date cannot move. One count for every page
   that takes the password: the lock screen, the Recovery Key, Delete vault and, since
   2026-11-14, Settings → Check your 24 words and password (it tried passwords with no
-  count: with the vault open, the password could be guessed there for free).
+  count: with the vault open, the password could be guessed there for free), and since
+  0.3.1 the new Recovery Key page, which asks for the password again after a lock or
+  for another vault's (`change_key.dart`; the same hole).
 - **A password tried while it is typed counts** (2026-11-14). The lock screen opens on
   the right password without Enter, so it tries what is typed after a pause. A miss is
   not counted while the person goes on typing from it (a long password typed slowly must

@@ -41,6 +41,8 @@ import Vision
                        name: UIScene.didEnterBackgroundNotification, object: nil)
     center.addObserver(self, selector: #selector(sceneDidActivate(_:)),
                        name: UIScene.didActivateNotification, object: nil)
+    center.addObserver(self, selector: #selector(sceneWillEnterForeground),
+                       name: UIScene.willEnterForegroundNotification, object: nil)
     center.addObserver(self, selector: #selector(captureChanged),
                        name: UIScreen.capturedDidChangeNotification, object: nil)
     // iOS cannot stop a screenshot; after one, Dart says where it went (Photos, unencrypted).
@@ -170,7 +172,14 @@ import Vision
       }
       let open = FlutterMethodChannel(name: "cozysafe/open", binaryMessenger: registrar.messenger())
       open.setMethodCallHandler { [weak self] call, result in
-        guard let self, call.method == "openWith", let args = call.arguments as? [String: Any],
+        guard let self else { return result(FlutterMethodNotImplemented) }
+        // The vault locks (lib/screens/file_view.dart, closeOpened): what shows a
+        // decrypted copy comes down before the copy is removed.
+        if call.method == "close" {
+          self.closeOpen()
+          return result(nil)
+        }
+        guard call.method == "openWith", let args = call.arguments as? [String: Any],
               let path = args["path"] as? String else { return result(FlutterMethodNotImplemented) }
         self.openWith(path: path, result: result)
       }
@@ -265,6 +274,19 @@ import Vision
   /// Leaving the app always covers, even if it left during the Face ID prompt.
   @objc private func sceneDidEnterBackground(_ note: Notification) {
     cover(note)
+    if leftAt == nil { leftAt = (Date(), ProcessInfo.processInfo.systemUptime) }
+  }
+
+  /// Back after longer than a file may stay open while away (the 60 seconds Dart gives
+  /// "Open with", lib/lock_guard.dart): Quick Look or the share sheet showing a decrypted
+  /// copy comes down here, under the cover, without waiting for Dart to lock. Either
+  /// clock saying so is enough: the date can be set back, and the other one stops while
+  /// the phone sleeps.
+  @objc private func sceneWillEnterForeground() {
+    guard let left = leftAt else { return }
+    leftAt = nil
+    let gone = max(Date().timeIntervalSince(left.0), ProcessInfo.processInfo.systemUptime - left.1)
+    if gone >= 60 || gone < 0 { closeOpen() }
   }
 
   private func cover(_ note: Notification) {
@@ -382,6 +404,11 @@ import Vision
   private var openResult: FlutterResult?
   /// Quick Look's data source while a file is open in it (it holds its source weakly).
   private var openItem: OpenItem?
+  /// What "cozysafe/open" put on screen (the Quick Look card or the share sheet), so it
+  /// can be taken down when the vault locks.
+  private weak var openShown: UIViewController?
+  /// When the app went to the background (the date, and the time since the phone started).
+  private var leftAt: (Date, TimeInterval)?
   /// Picked files, by the id given to Dart, still open for their security scope.
   private var pickedFiles: [String: URL] = [:]
 
@@ -491,6 +518,7 @@ extension AppDelegate {
       card.sheetPresentationController?.prefersGrabberVisible = true
       // Swiped down: the sheet says so.
       card.presentationController?.delegate = item
+      openShown = card
       top.present(card, animated: true)
       return
     }
@@ -508,6 +536,7 @@ extension AppDelegate {
       pop.sourceView = view
       pop.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.maxY - 80, width: 1, height: 1)
     }
+    openShown = sheet
     top.present(sheet, animated: true)
   }
 
@@ -515,6 +544,31 @@ extension AppDelegate {
     openResult?(true)
     openResult = nil
     openItem = nil
+  }
+
+  /// The vault locks: nothing showing a decrypted copy stays above the lock screen. Takes
+  /// down the Quick Look card or the share sheet put up by `openWith`, with anything they
+  /// opened themselves (Quick Look's own share sheet), and any other share sheet over the
+  /// app (Share sends a decrypted copy too, with its name and preview on top). Pickers
+  /// stay: they show the phone's photos and files, not the vault's. Dart then removes the
+  /// copy. Nothing up: nothing happens.
+  func closeOpen() {
+    let mine = openShown
+    openShown = nil
+    for scene in UIApplication.shared.connectedScenes {
+      guard let scene = scene as? UIWindowScene else { continue }
+      for window in scene.windows {
+        var shown = window.rootViewController?.presentedViewController
+        while let controller = shown {
+          if controller === mine || controller is UIActivityViewController {
+            controller.presentingViewController?.dismiss(animated: false)
+            break
+          }
+          shown = controller.presentedViewController
+        }
+      }
+    }
+    finishOpen()
   }
 
   /// What Share does, not Open with: sending the copy on, copying, printing, saving.

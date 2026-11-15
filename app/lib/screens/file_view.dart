@@ -783,6 +783,18 @@ Future<void> shareById(BuildContext context, String id, String mime, String name
 
 const _openChannel = MethodChannel('cozysafe/open');
 
+/// The vault locks: whatever [openWithById] or a share put up over the app (iPhone: the
+/// Quick Look card, the share sheet) comes down, so no decrypted copy stays readable
+/// above the lock screen. Called before the temporary copies are removed. Nothing where
+/// the system shows the copy in another app (Android) or there is no such door.
+Future<void> closeOpened() async {
+  try {
+    await _openChannel.invokeMethod<void>('close');
+  } on MissingPluginException {
+    // Android, computers, tests: nothing of ours is up.
+  } catch (_) {}
+}
+
 /// Open one item in another app, as a computer's "Open with" (owner 2026-10-31: the share
 /// sheet only sent it): Android's own "Open with" (a read-only link to the copy, for the
 /// app picked); on iPhone, Quick Look as the Files app opens it (drawn by the system, not

@@ -588,6 +588,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       thumbsRevealed.value = false;
       Settings.apply();
       LockGuard.clearCopied();
+      closeOpened(); // Quick Look or a share sheet showing a decrypted copy (iPhone), first
       clearTemp(); // the video being played, and anything else decrypted for a moment
       _thumbnails.clear();
       _thumbReady.clear();

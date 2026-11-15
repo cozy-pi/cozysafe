@@ -95,12 +95,31 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
       _error = null;
     });
     final all = [..._passwords, if (_asking) typed];
+    // A password typed here is a try like any other: the same count and waits as the
+    // lock screen (key_check.dart), or with the vault open this page would be where a
+    // password is guessed for free.
+    final trying = _asking;
     try {
+      if (trying) {
+        final until = await PinStore.passwordWaitUntil();
+        if (until != null) {
+          final m = (until.difference(DateTime.now()).inSeconds / 60).ceil();
+          if (mounted) setState(() => _error = l.pinWait(m < 1 ? 1 : m));
+          return;
+        }
+      }
       final r = await rust.changeSecretKey(
         dir: widget.libraryDir,
         passwords: all,
         newKey: _key,
       );
+      if (trying) {
+        if (r.step == rust.KeyChangeStep.wrongPassword) {
+          await PinStore.addPasswordFail();
+        } else {
+          await PinStore.resetPasswordFails();
+        }
+      }
       if (!mounted) return;
       switch (r.step) {
         case rust.KeyChangeStep.wrongPassword:

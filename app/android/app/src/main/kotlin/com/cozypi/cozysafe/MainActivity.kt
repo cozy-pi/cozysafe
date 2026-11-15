@@ -198,6 +198,11 @@ class MainActivity : FlutterFragmentActivity() {
                 // A password or one-time code (lib/entries/secure_clipboard.dart).
                 SecureClipboard.copy(this, call.argument<String>("text") ?: "", call.argument<Int>("seconds") ?: 90)
                 result.success(true)
+            } else if (call.method == "clearClipboard") {
+                // Text copied from a note, wiped as the vault locks or after its minute
+                // while the app is not in front and cannot read the clipboard to compare
+                // (lib/lock_guard.dart): emptied as it is.
+                result.success(SecureClipboard.clear(this, false))
             } else if (call.method == "setSecure") {
                 secureWanted = call.arguments == true
                 setSecure(secureWanted)
@@ -315,6 +320,13 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onResume() {
         super.onResume()
         if (Build.VERSION.SDK_INT < 33) setSecure(secureWanted)
+    }
+
+    // A password copied before the process died is cleared once the app is in front
+    // again, where the clipboard can be read (SecureClipboard).
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) SecureClipboard.leftBehind(this)
     }
 
     override fun onDestroy() {
