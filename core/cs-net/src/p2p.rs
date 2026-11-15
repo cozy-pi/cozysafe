@@ -35,9 +35,10 @@
 //!
 //! Adding a device (ADR 0003, point 11): the new device, with neither the vault nor its
 //! words, finds the old one on the Wi-Fi and the two make a key together (X-Wing, hybrid
-//! ML-KEM-768 and X25519, the new device committing first; ADR 0010); the old device shows
-//! 8 digits from that key and the new device's person types them, so someone in the
-//! middle is caught. The new device then
+//! ML-KEM-768 and X25519, the new device committing first; ADR 0010); the new device shows
+//! 8 digits from that key and the person types them on the old one, which compares them:
+//! someone in the middle is caught, and a device no one is looking at gets nowhere. The
+//! new device then
 //! sends the password the person typed; the old device checks it and only then sends the
 //! 24 words and the vault's id, and the restore goes on as above (the lock, the Master
 //! Key proof, the items).
@@ -74,10 +75,17 @@ const MODE_INTRO: u8 = 4;
 /// [`MODE_INTRO`] for a device restoring (the 24 words' key).
 const MODE_INTRO_RESTORE: u8 = 5;
 /// A new device being added (ADR 0003, point 11): neither the vault nor its words; the
-/// two make a key together (X-Wing, ADR 0010) and its person types the code the old one
-/// shows. The QR invite of 0.2.2–0.2.7 (mode 7) is refused, and so is the X25519-only
-/// exchange of 0.2.8–0.2.27 ([`MODE_ADD_X25519`]).
-const MODE_ADD: u8 = 10;
+/// two make a key together (X-Wing, ADR 0010), the new device shows the code and the
+/// person types it on the old one, which compares it. The QR invite of 0.2.2–0.2.7
+/// (mode 7) is refused, and so are the X25519-only exchange of 0.2.8–0.2.27
+/// ([`MODE_ADD_X25519`]) and the exchange whose code the new device checked
+/// ([`MODE_ADD_CHECKED_THERE`]).
+const MODE_ADD: u8 = 11;
+/// The same exchange in 0.2.28–0.3.0, where the old device showed the code and trusted
+/// the new device's word that it was typed right: a device on the Wi-Fi could say so
+/// without anyone seeing the old screen, and go on to guess the password. Refused
+/// ([`refuse_old_add`]).
+const MODE_ADD_CHECKED_THERE: u8 = 10;
 /// The classical-only exchange before ADR 0010: a quantum computer could open a recorded
 /// one later, password and 24 words included. Refused, and told so ([`refuse_old_add`]).
 const MODE_ADD_X25519: u8 = 8;
@@ -88,7 +96,7 @@ pub const ADD_LIFETIME: Duration = Duration::from_secs(120);
 /// Wrong codes, and wrong passwords, before adding ends (owner 2026-11-01: a typo should
 /// not mean starting again; it gives no one in the middle anything, see [`add_keys`]).
 pub const ADD_TRIES: u32 = 3;
-/// Digits of the code the old device shows ("1234 - 5678").
+/// Digits of the code the new device shows ("1234 - 5678").
 pub const ADD_CODE_DIGITS: usize = 8;
 const ADD_CODE_SPACE: u64 = 100_000_000;
 /// Bytes of the new device's X-Wing public key (ML-KEM-768, then X25519).
@@ -129,8 +137,9 @@ const HOST_KEY: &str = "p2p-host";
 const JOIN_KEY: &str = "p2p-join";
 /// One person's answer to "Sync with …?", sent to the other: `[OP_CONFIRM, 1 or 0]`.
 const OP_CONFIRM: u8 = 10;
-/// The new device being added, to the old: the code typed matched (`1`) or did not,
-/// [`ADD_TRIES`] times (`0`). The code itself never crosses.
+/// The old device, to the new one being added: the code its person typed here matched
+/// (`1`) or did not, [`ADD_TRIES`] times (`0`). The code itself never crosses, and the
+/// new device has no say in the verdict.
 const OP_CODE: u8 = 14;
 
 /// Where a waiting device listens and its id: what the QR code carries.
@@ -447,7 +456,7 @@ fn handshake_host(
     if keys.adding {
         match mode {
             MODE_ADD => return Ok((add_host(token, &hello[2..], stream)?, mode)),
-            MODE_ADD_X25519 => return Err(refuse_old_add(stream)),
+            MODE_ADD_X25519 | MODE_ADD_CHECKED_THERE => return Err(refuse_old_add(mode, stream)),
             _ => {}
         }
     }
@@ -495,16 +504,18 @@ fn handshake_host(
 // post-quantum, both must hold): the new device sends a fresh X-Wing public key (ML-KEM-768
 // and X25519) with a commitment to a nonce it keeps back; the old device encapsulates to
 // that key and sends the ciphertext and its own nonce; the new device then reveals its
-// nonce, which must open the commitment. The old device shows 8 digits drawn from the
-// shared secret and the whole exchange; the new device's person types them and the new
-// device compares them with its own.
+// nonce, which must open the commitment. The new device shows 8 digits drawn from the
+// shared secret and the whole exchange; the person types them on the old device, which
+// compares them with its own and goes on only when they match. So the old device knows
+// that the device it is talking to is the one its person is looking at: a device on the
+// Wi-Fi that knocks first has a code no one will type.
 //
 // Someone in the middle holds two exchanges with two different secrets, so the digits the
-// old device shows are not the new device's. No one can steer them to match: towards the
+// new device shows are not the old device's. No one can steer them to match: towards the
 // new device, whatever they send is fixed before the new device's nonce is known (it is
 // only committed to); towards the old device, their own key and nonce are fixed (sent and
 // committed to) before the old device's ciphertext and nonce, fresh randomness, are seen.
-// One chance in 10^8 per session. The typed digits never leave the new device.
+// One chance in 10^8 per session. The typed digits never leave the old device.
 //
 // A recorded session stays closed to a quantum computer: the key behind the channel (the
 // password and the 24 words cross it) needs ML-KEM-768 broken as well as X25519.
@@ -564,7 +575,7 @@ fn add_join(token: &[u8], mut stream: TcpStream) -> Result<Channel> {
     write_frame(&mut stream, &hello)?;
     let reply = match read_frame(&mut stream) {
         Ok(r) => r,
-        // A device of 0.2.27 or older closes on a hello it does not know.
+        // A device of 0.3.0 or older closes on a hello it does not know.
         Err(Error::Io(e))
             if matches!(
                 e.kind(),
@@ -620,12 +631,28 @@ fn add_host(token: &[u8], hello: &[u8], mut stream: TcpStream) -> Result<Channel
     Ok(ch)
 }
 
-/// A new device of 0.2.27 or older (X25519 alone) asked to be added: tell it this device
-/// speaks [`MODE_ADD`] (it ends there, the reply not being its exchange's) and stop
-/// waiting, so the person sees the failure on both screens rather than a wait.
-fn refuse_old_add(mut stream: TcpStream) -> Error {
-    let _ = write_frame(&mut stream, &[VERSION, MODE_ADD]);
+/// A new device with an older app asked to be added: stop waiting, so the person sees
+/// the failure on both screens rather than a wait. One of 0.2.27 or older (X25519 alone)
+/// is told this device speaks [`MODE_ADD`] (it ends there, the reply not being its
+/// exchange's). One of 0.2.28–0.3.0 gets the connection closed with no reply, which it
+/// reads as an old version on the other side ("update the app on both devices").
+fn refuse_old_add(mode: u8, mut stream: TcpStream) -> Error {
+    if mode == MODE_ADD_X25519 {
+        let _ = write_frame(&mut stream, &[VERSION, MODE_ADD]);
+    }
     Error::Corrupt("p2p add old version")
+}
+
+/// Whether the other device is still there and has sent nothing: asked while this
+/// device's person types, when the protocol has the other side silent. False once it
+/// closed, or sent anything (it stopped, or it does not follow the protocol).
+fn waits_quietly(stream: &TcpStream) -> bool {
+    if stream.set_nonblocking(true).is_err() {
+        return true;
+    }
+    let got = stream.peek(&mut [0u8; 1]);
+    let _ = stream.set_nonblocking(false);
+    matches!(got, Err(e) if e.kind() == std::io::ErrorKind::WouldBlock)
 }
 
 /// After the handshake, the joiner says its name and hears the other's: inside the
@@ -1289,6 +1316,11 @@ pub enum Seen {
 /// person said no. True for Sync.
 pub type Confirm<'a> = dyn Fn(&str, u16, &dyn Fn() -> bool) -> bool + 'a;
 
+/// Adding a device: the 8 digits the new device shows, typed on this one. The first
+/// argument is the tries left ([`ADD_TRIES`] at first, fewer after a wrong one); the
+/// second turns true once the new device went, to stop asking. None: the person stopped.
+pub type TypedCode<'a> = dyn Fn(u32, &dyn Fn() -> bool) -> Option<Zeroizing<String>> + 'a;
+
 /// What the person sees and says while two devices pair.
 pub struct Ask<'a> {
     pub seen: &'a dyn Fn(Seen),
@@ -1303,13 +1335,15 @@ pub struct Ask<'a> {
     /// the other person said no (or the other device went): stop asking then.
     pub confirm: &'a Confirm<'a>,
     /// A new device (named so) restoring with the 24 words asks to come in: allow it?
-    /// Also the device being added, once its code matched (no number to compare then).
+    /// Also the device being added, once the code typed here matched ([`Ask::code`]; no
+    /// number to compare then).
     pub allow: &'a dyn Fn(&str, u16) -> bool,
     /// Whether this password, typed on the device being added, opens the vault (checked
     /// the way unlocking does). Never asked otherwise.
     pub password: &'a dyn Fn(&str) -> bool,
-    /// Adding a device: the 8 digits to show, for its person to type there.
-    pub code: &'a dyn Fn(&str),
+    /// Adding a device: the code the new device shows, typed here (any character that
+    /// is not a digit is dropped) and compared here.
+    pub code: &'a TypedCode<'a>,
     pub progress: &'a dyn Fn(SyncProgress),
 }
 
@@ -1712,7 +1746,9 @@ fn host_side(
     let paired = (|| {
         let mut ch = ch;
         let invited = mode == MODE_ADD;
-        // Adding a device: no name before the code matched (someone in the middle would
+        // Adding a device: the person types the new device's code here first. Nothing
+        // is read from the new device and no name is told before it matched (a device
+        // no one is looking at gets no password try; someone in the middle would
         // otherwise learn this device's model).
         if invited {
             add_code_host(&mut ch, ask)?;
@@ -2108,23 +2144,40 @@ pub fn restore_nearby(
     }
 }
 
-/// The old device shows the code ([`Ask::code`]) and waits for the new one to say the
-/// person typed it right; nothing is sent meanwhile.
+/// The old device asks its person for the code the new device shows ([`Ask::code`]) and
+/// compares it here, in constant time, [`ADD_TRIES`] times at most. Only this device
+/// decides: nothing the new device sends is read before the code matched, so a device
+/// that only claims to be the new one (it found this one on the Wi-Fi, no one sees its
+/// code) never reaches the password. The verdict goes to the new device; the code never
+/// crosses.
 fn add_code_host(ch: &mut Channel, ask: &Ask) -> Result<()> {
     let code = ch.add_code.take().ok_or(Error::Corrupt("p2p hello"))?;
-    (ask.code)(&code);
-    drop(code);
-    // Time for the person there to read it and type it, three times at most.
-    ch.stream.set_read_timeout(Some(ALLOW_WAIT))?;
-    match ch.recv()?.as_slice() {
-        [OP_CODE, 1] => Ok(()),
-        [OP_CODE, 0] => Err(Error::Corrupt("p2p add wrong code")),
-        [OP_ABORT, _] => Err(Error::Corrupt("p2p peer stopped")),
-        _ => Err(Error::Corrupt("p2p request")),
+    let mut left = ADD_TRIES;
+    loop {
+        let stream = &ch.stream;
+        let gone = || !waits_quietly(stream);
+        let Some(typed) = (ask.code)(left, &gone) else {
+            // The new device went (or spoke out of turn), or this person stopped.
+            if gone() {
+                return Err(Error::Corrupt("p2p peer stopped"));
+            }
+            let _ = ch.send(&[OP_ABORT, ABORT_STOPPED]);
+            return Err(Error::Corrupt("p2p cancelled"));
+        };
+        let digits: Zeroizing<String> =
+            Zeroizing::new(typed.chars().filter(char::is_ascii_digit).collect());
+        if same(digits.as_bytes(), code.as_bytes()) {
+            return ch.send(&[OP_CODE, 1]);
+        }
+        left -= 1;
+        if left == 0 {
+            let _ = ch.send(&[OP_CODE, 0]);
+            return Err(Error::Corrupt("p2p add wrong code"));
+        }
     }
 }
 
-/// After the code on the old device: the person may still cancel; then the new
+/// After the code typed on the old device: the person may still cancel; then the new
 /// device's password, checked here ([`Ask::password`]), [`ADD_TRIES`] times at most;
 /// only a right one makes this send the Recovery Key and the vault's id.
 fn hand_over(
@@ -2171,11 +2224,10 @@ fn hand_over(
 
 /// What the person on the new device sees and says while it is added.
 pub struct AddAsk<'a> {
-    /// The 8 digits the old device shows, typed here (digits only); the argument is the
-    /// tries left ([`ADD_TRIES`] at first, fewer after a wrong one). None: the person
-    /// stopped.
-    pub code: &'a dyn Fn(u32) -> Option<Zeroizing<String>>,
-    /// The code matched: connected to the old device, named so.
+    /// The 8 digits to show, for the person to type on the old device. Shown until
+    /// [`AddAsk::connected`] or the end.
+    pub code: &'a dyn Fn(&str),
+    /// The old device took the code: connected to it, named so.
     pub connected: &'a dyn Fn(&str),
     /// The vault's password, typed now; the argument is the tries left after a wrong one
     /// (0 the first time). None: the person stopped.
@@ -2225,10 +2277,11 @@ fn scan_add(permit: Permit) -> Result<Vec<Peer>> {
 }
 
 /// Be added: look on the Wi-Fi (`look` gives a permit for each look) for the device
-/// adding one, then the code, the password, and the restore into `dir` (no vault in
-/// it). Some Recovery Key (to keep in the keystore) once the vault is in `dir`; None when
-/// the person stopped. Two devices adding at once on this Wi-Fi: refused (the person
-/// closes one), so the code is never typed for the wrong one.
+/// adding one, then the code (shown here, typed there), the password, and the restore
+/// into `dir` (no vault in it). Some Recovery Key (to keep in the keystore) once the
+/// vault is in `dir`; None when the person stopped. Two devices adding at once on this
+/// Wi-Fi: refused (the person closes one), so the password is never typed for the wrong
+/// one.
 pub fn restore_add(
     dir: &Path,
     look: &dyn Fn() -> Option<Permit>,
@@ -2279,27 +2332,21 @@ fn add_inner(
     stream.set_read_timeout(Some(Duration::from_secs(60)))?;
     set_live(stream.try_clone().ok());
     let mut ch = add_join(token, stream)?;
-    // The code, compared here: it never crosses, so a typo retyped tells no one anything.
+    // The code, shown here and typed on the old device, which compares it: it never
+    // crosses, and this device sends nothing until the old one said it matched.
     let code = ch.add_code.take().ok_or(Error::Corrupt("p2p add key"))?;
-    let mut left = ADD_TRIES;
-    loop {
-        let Some(typed) = (ask.code)(left) else {
-            let _ = ch.send(&[OP_ABORT, ABORT_STOPPED]);
-            return Ok(None);
-        };
-        let digits: Zeroizing<String> =
-            Zeroizing::new(typed.chars().filter(char::is_ascii_digit).collect());
-        if same(digits.as_bytes(), code.as_bytes()) {
-            ch.send(&[OP_CODE, 1])?;
-            break;
-        }
-        left -= 1;
-        if left == 0 {
-            let _ = ch.send(&[OP_CODE, 0]);
-            return Err(Error::Corrupt("p2p add wrong code"));
-        }
-    }
+    (ask.code)(&code);
     drop(code);
+    // Time for the person to read it and type it there, ADD_TRIES times at most.
+    ch.stream
+        .set_read_timeout(Some(ALLOW_WAIT * ADD_TRIES + Duration::from_secs(15)))?;
+    match ch.recv()?.as_slice() {
+        [OP_CODE, 1] => {}
+        [OP_CODE, 0] => return Err(Error::Corrupt("p2p add wrong code")),
+        [OP_ABORT, _] => return Err(Error::Corrupt("p2p peer stopped")),
+        _ => return Err(Error::Corrupt("p2p request")),
+    }
+    ch.stream.set_read_timeout(Some(Duration::from_secs(60)))?;
     // Names only now, the code having matched.
     let theirs = swap_names_join(&mut ch, &clean_name(name))?;
     (ask.connected)(&theirs);
@@ -2432,7 +2479,7 @@ mod tests {
             picked: &|| me.pick.lock().unwrap().take(),
             confirm: &confirm,
             password: &|_| false,
-            code: &|_| (),
+            code: &|_, _| None,
             allow: &|_, _| me.allow,
             progress: &|p| me.told.lock().unwrap().push(p),
         };
@@ -2714,7 +2761,7 @@ mod tests {
             picked: &|| None,
             confirm: &confirm,
             password: &|_| false,
-            code: &|_| (),
+            code: &|_, _| None,
             allow: &|_, _| false,
             progress: &|_| (),
         };
@@ -2767,7 +2814,7 @@ mod tests {
             picked: &|| None,
             confirm: &|_, _, _| panic!("not proven"),
             password: &|_| false,
-            code: &|_| (),
+            code: &|_, _| None,
             allow: &|_, _| false,
             progress: &|_| (),
         };
@@ -2805,7 +2852,7 @@ mod tests {
             picked: &|| None,
             confirm: &|_, _, _| true,
             password: &|_| false,
-            code: &|_| (),
+            code: &|_, _| None,
             allow: &|_, _| false,
             progress: &|_| (),
         };
@@ -2976,7 +3023,7 @@ mod tests {
             picked: &|| None,
             confirm: &|_, _, _| true,
             password: &|_| false,
-            code: &|_| (),
+            code: &|_, _| None,
             allow: &|_, _| false,
             progress: &|_| (),
         };
@@ -3068,7 +3115,7 @@ mod tests {
             picked: &|| None,
             confirm: &|_, _, _| true,
             password: &|_| false,
-            code: &|_| (),
+            code: &|_, _| None,
             allow: &|n, c| {
                 *asked.lock().unwrap() = Some((n.to_owned(), c));
                 allow
@@ -3225,7 +3272,7 @@ mod tests {
         assert!(started.elapsed() < Duration::from_secs(1));
     }
 
-    /// What the person on the new device types for the code.
+    /// What the person types on the old device for the code.
     #[derive(Clone, Copy)]
     enum Typed {
         Right,
@@ -3233,58 +3280,43 @@ mod tests {
         Stop,
     }
 
-    /// What the new device was asked, and what it ended with.
+    /// What both devices were asked, and what they ended with.
     struct Added {
         got: Result<Option<SecretKey>>,
         hosted: Result<Paired>,
         dir: tempfile::TempDir,
-        /// The tries left each time the code was asked.
+        /// The tries left each time the old device asked for the code.
         codes: Vec<u32>,
         /// The tries left each time the password was asked (0 the first time).
         asked: Vec<u32>,
         /// The old device's name, as the new one was told.
         shown: Option<String>,
+        /// Every password the old device was given to check.
+        checked: Vec<String>,
     }
 
-    /// The old device adds a device; the new one finds it on the Wi-Fi, types `codes`
-    /// one after the other, then `passwords` (None: it stops).
+    /// The old device adds a device; the new one finds it on the Wi-Fi and shows its
+    /// code; the person types `codes` on the old device one after the other, then
+    /// `passwords` on the new one (None: they stop).
     fn add_with(t: &Two, codes: Vec<Typed>, passwords: Vec<Option<String>>) -> Added {
         let mirror = tempfile::tempdir().unwrap();
         let fresh = tempfile::tempdir().unwrap();
         let prepared = host_add(&t.a, &t.sk, "Old phone", mirror.path()).unwrap();
         let w = wait(prepared, Permit::listen(Ipv4Addr::LOCALHOST), 0).unwrap();
         let addr = w.code.addr;
-        // The digits the old device shows, read by the person on the new one.
+        // The digits the new device shows, read by the person and typed on the old one.
         let shown: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let stop = Arc::new(AtomicBool::new(false));
         let (dir, s2, seen) = (fresh.path().to_path_buf(), stop.clone(), shown.clone());
         let new_device = std::thread::spawn(move || {
-            let codes_asked = Mutex::new(Vec::new());
             let asked = Mutex::new(Vec::new());
-            let typed = Mutex::new(codes.into_iter());
             let left = Mutex::new(passwords.into_iter());
             let name = Mutex::new(None);
             let ask = AddAsk {
-                code: &|tries| {
-                    codes_asked.lock().unwrap().push(tries);
-                    let until = Instant::now() + Duration::from_secs(10);
-                    let code = loop {
-                        if let Some(c) = seen.lock().unwrap().clone() {
-                            break c;
-                        }
-                        assert!(Instant::now() < until, "no code shown");
-                        std::thread::sleep(Duration::from_millis(10));
-                    };
-                    match typed.lock().unwrap().next()? {
-                        Typed::Right => {
-                            Some(Zeroizing::new(format!("{} - {}", &code[..4], &code[4..])))
-                        }
-                        Typed::Wrong => {
-                            let n: u64 = code.parse().unwrap();
-                            Some(Zeroizing::new(format!("{:08}", (n + 1) % ADD_CODE_SPACE)))
-                        }
-                        Typed::Stop => None,
-                    }
+                code: &|c| {
+                    assert_eq!(c.len(), ADD_CODE_DIGITS);
+                    assert!(c.chars().all(|ch| ch.is_ascii_digit()));
+                    *seen.lock().unwrap() = Some(c.to_owned());
                 },
                 connected: &|n| *name.lock().unwrap() = Some(n.to_owned()),
                 password: &|tries| {
@@ -3303,38 +3335,68 @@ mod tests {
                 &mine,
             );
             s2.store(true, Ordering::Relaxed);
-            (
-                got,
-                codes_asked.into_inner().unwrap(),
-                asked.into_inner().unwrap(),
-                name.into_inner().unwrap(),
-            )
+            (got, asked.into_inner().unwrap(), name.into_inner().unwrap())
         });
         let pw = t.pw.clone();
+        let codes_asked = Mutex::new(Vec::new());
+        let checked = Mutex::new(Vec::new());
+        let typed = Mutex::new(codes.into_iter());
         let ask = Ask {
             seen: &|_| (),
             found: &|_| (),
             picked: &|| None,
             confirm: &|_, _, _| panic!("adding a device asks no question of this kind"),
             allow: &|n, _| n == "New phone",
-            password: &|p| p == pw,
-            code: &|c| {
-                assert_eq!(c.len(), ADD_CODE_DIGITS);
-                assert!(c.chars().all(|ch| ch.is_ascii_digit()));
-                *shown.lock().unwrap() = Some(c.to_owned());
+            password: &|p| {
+                checked.lock().unwrap().push(p.to_owned());
+                p == pw
+            },
+            code: &|tries, gone| {
+                codes_asked.lock().unwrap().push(tries);
+                let code = read_shown(&shown, gone)?;
+                match typed.lock().unwrap().next()? {
+                    Typed::Right => {
+                        Some(Zeroizing::new(format!("{} - {}", &code[..4], &code[4..])))
+                    }
+                    Typed::Wrong => Some(Zeroizing::new(other_code(&code))),
+                    Typed::Stop => None,
+                }
             },
             progress: &|_| (),
         };
         let hosted = w.run(&t.a, &|| None, &ask, &stop);
-        let (got, codes, asked, shown) = new_device.join().unwrap();
+        let (got, asked, shown) = new_device.join().unwrap();
         Added {
             got,
             hosted,
             dir: fresh,
-            codes,
+            codes: codes_asked.into_inner().unwrap(),
             asked,
             shown,
+            checked: checked.into_inner().unwrap(),
         }
+    }
+
+    /// The person reads the code off the new device's screen (None once that device
+    /// went before showing one).
+    fn read_shown(shown: &Mutex<Option<String>>, gone: &dyn Fn() -> bool) -> Option<String> {
+        let until = Instant::now() + Duration::from_secs(10);
+        loop {
+            if let Some(c) = shown.lock().unwrap().clone() {
+                return Some(c);
+            }
+            if gone() {
+                return None;
+            }
+            assert!(Instant::now() < until, "no code shown");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    /// Eight digits that are not `code`.
+    fn other_code(code: &str) -> String {
+        let n: u64 = code.parse().unwrap();
+        format!("{:08}", (n + 1) % ADD_CODE_SPACE)
     }
 
     fn served_of(id: &str) -> Vec<String> {
@@ -3367,6 +3429,7 @@ mod tests {
             vec![0, ADD_TRIES - 1],
             "asked again after a wrong one"
         );
+        assert_eq!(r.checked.len(), 2);
         assert_eq!(r.shown.as_deref(), Some("Old phone"));
         let v = crate::testkit::open(r.dir.path(), &sk, &t.pw);
         assert_eq!(v.id, t.a.id);
@@ -3374,7 +3437,7 @@ mod tests {
     }
 
     #[test]
-    fn three_wrong_codes_end_it_before_any_password() {
+    fn three_wrong_codes_on_the_old_device_end_it_before_any_password() {
         let t = two();
         let r = add_with(&t, vec![Typed::Wrong; 5], vec![Some(t.pw.clone())]);
         assert!(
@@ -3387,8 +3450,9 @@ mod tests {
             "{:?}",
             r.hosted
         );
-        assert_eq!(r.codes.len(), ADD_TRIES as usize);
+        assert_eq!(r.codes, vec![ADD_TRIES, ADD_TRIES - 1, ADD_TRIES - 2]);
         assert!(r.asked.is_empty(), "no password typed");
+        assert!(r.checked.is_empty(), "no password checked");
         assert!(r.shown.is_none(), "not connected");
         assert!(served_of(&t.a.id).is_empty());
         assert!(!Library::has_vaults(r.dir.path()));
@@ -3413,15 +3477,188 @@ mod tests {
         // Not even the lock: the words never crossed.
         assert!(served_of(&t.a.id).is_empty());
         assert!(!Library::has_vaults(r.dir.path()));
-        // Stopping instead of typing the code: nothing either, and the old device is told.
+        // Stopping instead of typing the code: nothing either, and the new device is told.
         let r = add_with(&t, vec![Typed::Stop], vec![]);
-        assert!(matches!(r.got, Ok(None)), "{:?}", r.got);
+        assert!(
+            matches!(r.got, Err(Error::Corrupt("p2p peer stopped"))),
+            "{:?}",
+            r.got
+        );
+        assert!(
+            matches!(r.hosted, Err(Error::Corrupt("p2p cancelled"))),
+            "{:?}",
+            r.hosted
+        );
+        assert!(r.asked.is_empty() && r.checked.is_empty());
+        assert!(served_of(&t.a.id).is_empty());
+    }
+
+    /// What a device that only claims to be the new one got from the old device.
+    struct Claimed {
+        hosted: Result<Paired>,
+        /// The tries left each time the old device asked its person for the code.
+        codes: Vec<u32>,
+        /// Every password the old device was given to check.
+        checked: Vec<String>,
+        /// Whether the old device said the code matched.
+        told_ok: bool,
+        /// Whether anything but a refusal came back (a name, a password verdict, words).
+        got_more: bool,
+    }
+
+    /// Someone on the Wi-Fi finds the old device while it adds one, makes the key with it
+    /// (so they know the code), says "the code matched" as the app of 0.3.0 did, and goes
+    /// straight on with a name and password guesses. No one sees their code: the person
+    /// at the old device types `typed` (nothing: they leave the field alone).
+    fn claim_without_being_seen(t: &Two, typed: Vec<String>) -> Claimed {
+        let mirror = tempfile::tempdir().unwrap();
+        let prepared = host_add(&t.a, &t.sk, "Old phone", mirror.path()).unwrap();
+        let w = wait(prepared, Permit::listen(Ipv4Addr::LOCALHOST), 0).unwrap();
+        let addr = w.code.addr;
+        let pw = t.pw.clone();
+        let stop = Arc::new(AtomicBool::new(false));
+        let s2 = stop.clone();
+        let attacker = std::thread::spawn(move || {
+            let token = probe_add(addr)
+                .expect("found, as any device on the Wi-Fi")
+                .token;
+            let stream = TcpStream::connect(addr).unwrap();
+            stream
+                .set_read_timeout(Some(Duration::from_secs(5)))
+                .unwrap();
+            let mut ch = add_join(&token, stream).unwrap();
+            assert!(ch.add_code.is_some(), "they hold the code of their session");
+            // What made the old device of 0.3.0 go on, then a name and the password.
+            let _ = ch.send(&[OP_CODE, 1]);
+            let _ = ch.send(b"New phone");
+            let mut guess = vec![OP_PASSWORD];
+            guess.extend_from_slice(pw.as_bytes());
+            let _ = ch.send(&guess);
+            let (mut told_ok, mut got_more) = (false, false);
+            while let Ok(frame) = ch.recv() {
+                match frame.as_slice() {
+                    [OP_CODE, 1] => told_ok = true,
+                    [OP_CODE, 0] | [OP_ABORT, _] => {}
+                    _ => got_more = true,
+                }
+            }
+            s2.store(true, Ordering::Relaxed);
+            (told_ok, got_more)
+        });
+        let codes_asked = Mutex::new(Vec::new());
+        let checked = Mutex::new(Vec::new());
+        let typed = Mutex::new(typed.into_iter());
+        let pw = t.pw.clone();
+        let ask = Ask {
+            seen: &|_| (),
+            found: &|_| (),
+            picked: &|| None,
+            confirm: &|_, _, _| panic!("adding a device asks no question of this kind"),
+            allow: &|_, _| true,
+            password: &|p| {
+                checked.lock().unwrap().push(p.to_owned());
+                p == pw
+            },
+            code: &|tries, gone| {
+                codes_asked.lock().unwrap().push(tries);
+                match typed.lock().unwrap().next() {
+                    Some(code) => Some(Zeroizing::new(code)),
+                    // The field left alone, as the app waits: until the other went.
+                    None => {
+                        let until = Instant::now() + Duration::from_secs(10);
+                        while !gone() && Instant::now() < until {
+                            std::thread::sleep(Duration::from_millis(10));
+                        }
+                        None
+                    }
+                }
+            },
+            progress: &|_| (),
+        };
+        let hosted = w.run(&t.a, &|| None, &ask, &stop);
+        let (told_ok, got_more) = attacker.join().unwrap();
+        Claimed {
+            hosted,
+            codes: codes_asked.into_inner().unwrap(),
+            checked: checked.into_inner().unwrap(),
+            told_ok,
+            got_more,
+        }
+    }
+
+    #[test]
+    fn saying_the_code_matched_gets_a_device_no_one_looks_at_nothing() {
+        let t = two();
+        note(&t.a, "bank", "PIN 4821");
+        // The person never types anything: the claim alone moves nothing.
+        let r = claim_without_being_seen(&t, vec![]);
         assert!(
             matches!(r.hosted, Err(Error::Corrupt("p2p peer stopped"))),
             "{:?}",
             r.hosted
         );
+        assert_eq!(
+            r.codes,
+            vec![ADD_TRIES],
+            "asked once, then it saw them speak"
+        );
+        assert!(r.checked.is_empty(), "no password try, right as it was");
+        assert!(!r.told_ok && !r.got_more);
         assert!(served_of(&t.a.id).is_empty());
+        // The person types the code of the device in their hand, which is another
+        // session's (the old device takes one): wrong each time, and still no try.
+        let r = claim_without_being_seen(&t, vec!["12345678".into(); ADD_TRIES as usize]);
+        assert!(
+            matches!(
+                r.hosted,
+                Err(Error::Corrupt("p2p add wrong code" | "p2p peer stopped"))
+            ),
+            "{:?}",
+            r.hosted
+        );
+        assert!(r.checked.is_empty(), "no password try, right as it was");
+        assert!(!r.told_ok && !r.got_more);
+        assert!(served_of(&t.a.id).is_empty());
+    }
+
+    #[test]
+    fn the_old_device_reads_nothing_before_the_code_typed_on_it_matched() {
+        let token: Token = random();
+        let l = TcpListener::bind("127.0.0.1:0").unwrap();
+        let at = l.local_addr().unwrap();
+        let old = std::thread::spawn(move || {
+            let mut ch = host_once(&l, token).unwrap();
+            let right = ch.add_code.clone().unwrap();
+            let asked = Mutex::new(Vec::new());
+            let ask = Ask {
+                seen: &|_| (),
+                found: &|_| (),
+                picked: &|| None,
+                confirm: &|_, _, _| false,
+                allow: &|_, _| false,
+                password: &|_| panic!("no password before the code"),
+                // The person ignores that the other spoke, and types wrong, then right.
+                code: &|tries, _| {
+                    asked.lock().unwrap().push(tries);
+                    Some(Zeroizing::new(if tries == ADD_TRIES {
+                        other_code(&right)
+                    } else {
+                        right.to_string()
+                    }))
+                },
+                progress: &|_| (),
+            };
+            let verdict = add_code_host(&mut ch, &ask);
+            // Only now is the new device's first frame read: the one it sent early.
+            (verdict, asked.into_inner().unwrap(), ch.recv())
+        });
+        let mut new = add_join(&token, TcpStream::connect(at).unwrap()).unwrap();
+        new.send(&[OP_CODE, 1]).unwrap();
+        let (verdict, asked, first) = old.join().unwrap();
+        assert!(verdict.is_ok(), "the right code typed here is what counts");
+        assert_eq!(asked, vec![ADD_TRIES, ADD_TRIES - 1]);
+        assert_eq!(first.unwrap(), vec![OP_CODE, 1], "left unread until then");
+        assert_eq!(new.recv().unwrap(), vec![OP_CODE, 1]);
     }
 
     /// Accept one connection on `l` and run the old device's side of the exchange.
@@ -3448,13 +3685,13 @@ mod tests {
             (towards_new.add_code.unwrap(), towards_old.add_code.unwrap())
         });
         let new = add_join(&token, TcpStream::connect(fake_at).unwrap()).unwrap();
-        let shown_on_old = old.join().unwrap();
+        let expected_on_old = old.join().unwrap();
         let (m_new, m_old) = middle.join().unwrap();
         // Each exchange agrees with itself...
         assert_eq!(*new.add_code.as_ref().unwrap(), m_new);
-        assert_eq!(shown_on_old, m_old);
-        // ...but what the old device shows is not what the new device expects.
-        assert_ne!(*new.add_code.unwrap(), *shown_on_old);
+        assert_eq!(expected_on_old, m_old);
+        // ...but what the new device shows is not what the old device expects.
+        assert_ne!(*new.add_code.unwrap(), *expected_on_old);
     }
 
     #[test]
@@ -3620,8 +3857,50 @@ mod tests {
     }
 
     #[test]
+    fn a_new_device_that_checks_the_code_itself_is_refused_at_once() {
+        let t = two();
+        let mirror = tempfile::tempdir().unwrap();
+        let prepared = host_add(&t.a, &t.sk, "A", mirror.path()).unwrap();
+        let w = wait(prepared, Permit::listen(Ipv4Addr::LOCALHOST), 0).unwrap();
+        let addr = w.code.addr;
+        let Two { a, dirs, .. } = t;
+        let stop = Arc::new(AtomicBool::new(false));
+        let s2 = stop.clone();
+        let started = Instant::now();
+        let host = std::thread::spawn(move || run_as(w, &a, vec![], &Person::says(true), &s2));
+        // An app of 0.2.28–0.3.0 finds it and sends the same hello under its mode.
+        assert!(probe_add(addr).is_some());
+        let mut s = TcpStream::connect(addr).unwrap();
+        let (_, public) = add_half();
+        let mut hello = vec![VERSION, MODE_ADD_CHECKED_THERE];
+        hello.extend_from_slice(&public);
+        hello.extend_from_slice(&add_commit(&public, &random::<NONCE_LEN>()));
+        write_frame(&mut s, &hello).unwrap();
+        // Closed with no reply: what that app reads as "p2p add old version".
+        assert!(matches!(
+            read_frame(&mut s),
+            Err(Error::Io(e)) if matches!(
+                e.kind(),
+                std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::ConnectionReset
+            )
+        ));
+        let got = host.join().unwrap();
+        assert!(
+            matches!(got, Err(Error::Corrupt("p2p add old version"))),
+            "{:?}",
+            got.map(|_| ())
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(20),
+            "no wait to the end"
+        );
+        stop.store(true, Ordering::Relaxed);
+        drop(dirs);
+    }
+
+    #[test]
     fn an_older_device_adding_is_told_apart_from_a_failure() {
-        // A device of 0.2.27 or older reads the hello, does not know it, and closes.
+        // A device of 0.3.0 or older reads the hello, does not know it, and closes.
         let l = TcpListener::bind("127.0.0.1:0").unwrap();
         let at = l.local_addr().unwrap();
         let old = std::thread::spawn(move || {
@@ -3696,7 +3975,7 @@ mod tests {
             confirm: &|_, _, _| true,
             allow: &|_, _| true,
             password: &|_| true,
-            code: &|_| (),
+            code: &|_, _| None,
             progress: &|_| (),
         };
         assert!(join_code(

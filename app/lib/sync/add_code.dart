@@ -6,14 +6,15 @@ import '../theme.dart';
 import 'progress.dart' show SyncLink;
 
 /// Adding a device by a code (ADR 0003, point 11, 2026-11-01): the two devices find each
-/// other on the Wi-Fi and make a key together (X25519, the new device committing to its
-/// half first); the old device shows 8 digits drawn from that key and the new device's
-/// person types them. Someone in the middle holds two different keys, so the digits the
-/// old device shows are not the ones the new device works out, however often they are
-/// typed: the new device compares them itself and never sends them, so retyping after a
-/// typo gives no one in the middle anything. A wrong code ends the
-/// try; three wrong codes, or three wrong passwords, end the session (owner 2026-11-01:
-/// a typo should not mean starting again).
+/// other on the Wi-Fi and make a key together (X-Wing, the new device committing to its
+/// half first); the new device shows 8 digits drawn from that key and the person types
+/// them on the old device (since 0.3.1; before, the other way round). The old device
+/// compares them itself and never sends them, so it knows the new device is the one in
+/// the person's hands: a device on the Wi-Fi that got there first shows its code to no
+/// one. Someone in the middle holds two different keys, so the digits the new device
+/// shows are not the ones the old device works out, however often they are typed. A
+/// wrong code ends the try; three wrong codes, or three wrong passwords, end the session
+/// (owner 2026-11-01: a typo should not mean starting again).
 
 /// How many digits the code has, and how it is shown: "1234 - 5678".
 const addCodeDigits = 8;
@@ -67,7 +68,7 @@ class AddCodeSearching extends StatelessWidget {
       );
 }
 
-/// The old device once the new one connected: the code to type there.
+/// The new device once it found the old one: the code to type there.
 class AddCodeShown extends StatelessWidget {
   const AddCodeShown({super.key, required this.code});
   final String code;
@@ -98,7 +99,8 @@ class AddCodeShown extends StatelessWidget {
   }
 }
 
-/// The new device: the 8 digits the old one shows, typed. [onCode] gets the digits alone.
+/// The old device once a new one connected: the 8 digits that one shows, typed.
+/// [onCode] gets the digits alone.
 class AddCodeEntry extends StatefulWidget {
   const AddCodeEntry({super.key, required this.onCode, this.left});
   final ValueChanged<String> onCode;
@@ -149,7 +151,7 @@ class _AddCodeEntryState extends State<AddCodeEntry> {
             hintText: '0000 - 0000',
             errorText: widget.left == null ? null : l.addCodeWrongLeft(widget.left!),
           ),
-          // The 8th digit connects; no Next to tap (owner 2026-11-02).
+          // The 8th digit is the answer; no Next to tap (owner 2026-11-02).
           onChanged: (_) {
             if (_ready && !_sent) {
               _sent = true;
@@ -175,7 +177,7 @@ class _CodeFormatter extends TextInputFormatter {
 
 /// How adding a device ended when it did not: on either device, one message and nothing
 /// to try again here (after three wrong codes or three wrong passwords).
-enum AddCodeEnd { wrongCode, wrongPassword, closed, alreadyHere }
+enum AddCodeEnd { wrongCode, wrongPassword, alreadyHere }
 
 class AddCodeEnded extends StatelessWidget {
   const AddCodeEnded({super.key, required this.end});
@@ -188,7 +190,6 @@ class AddCodeEnded extends StatelessWidget {
     final (title, lead) = switch (end) {
       AddCodeEnd.wrongCode => (l.addCodeWrong, l.addCodeWrongLead),
       AddCodeEnd.wrongPassword => (l.addPasswordWrong, l.addPasswordWrongLead),
-      AddCodeEnd.closed => (l.addCodeClosed, l.addCodeClosedLead),
       AddCodeEnd.alreadyHere => (l.restoreAlreadyHere, l.restoreAlreadyHereLead),
     };
     return Column(
