@@ -132,7 +132,7 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
               sync.JoinOutcome.noVault => l.joinNoVault,
               sync.JoinOutcome.wrongWords => l.joinWrongWords,
               sync.JoinOutcome.wrongPassword => l.wrongPassword,
-              sync.JoinOutcome.signIn => l.syncSignInAgain,
+              sync.JoinOutcome.signIn => l.joinSignInAgain,
               final other => withCode(l, l.driveFailed, other.name),
             });
         if (r.outcome == sync.JoinOutcome.signIn) _session = null;
