@@ -240,8 +240,10 @@ By case:
   still needs the vault password. One item per set of words (`secret-key.<4 hex
   fingerprint>`, ADR 0008), holding the key and the codes of the vaults using it, so
   several vaults or sets never overwrite each other; a restore picks the set that fits.
-  Turning it on in Settings asks for the owner; turning it off deletes the copy; a new
-  Recovery Key replaces it. **Never for a Top secret vault**: none is offered, the
+  Turning it on or off in Settings asks for the owner. Off deletes the copy for every
+  device on the account, and it may be the only place the words are: since 0.3.1 a card
+  says so first and offers Check your 24 words (it went on one tap of the switch, with
+  no owner check). A new Recovery Key replaces it. **Never for a Top secret vault**: none is offered, the
   switch is hidden, a Top secret vault never shares a set that has a copy (it gets its
   own), and opening a Top secret vault takes its set's copy out. The PIN's device key
   never goes there.
@@ -329,7 +331,8 @@ unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.m
   item's older records, sealed exactly as they were, and its older content, encrypted as
   it was. File names hold only a time and random revision ids. Local only: never synced,
   never in backups. Deleting an item for good deletes its history; Settings → Version
-  history clears it all or turns it off. Until then, an older version of a note stays
+  history clears it all or turns it off (off erases every earlier version at once,
+  and asks first since 0.3.1). Until then, an older version of a note stays
   readable by whoever opens the vault, as the item itself is.
 - **Not built:** size padding (Padmé), so sizes are exact within a few bytes; a
   monotonic header revision against rollback; locked memory (`mlock`). Keys are wiped
@@ -380,6 +383,16 @@ person imports. A decoder is where a phone gets taken over (libwebp 2023, FORCED
   with it since 2026-11-14 (the camera writes a video there while it records, and a file
   picker puts the copy it hands over there). A file the 24 words are read from is deleted
   as soon as it is read, on phones (the picker's copy, never the person's own file).
+- **A recording or video that could not be encrypted** (no space left, most often;
+  0.3.1). A voice recording and a video are plain files in that folder while they are
+  made, encrypted and deleted when they stop. When encrypting failed, the file was
+  deleted with the error and the take was gone. Now it stays there while a card says
+  what failed, with Try Again and Discard (`lib/widgets/take_kept.dart`), and is
+  deleted once saved or discarded. It never outlives the session: the vault locking
+  closes the card and empties the folder (as does the next start), and the card says
+  that locking or leaving loses it. A recording stopped by the lock itself that cannot
+  be encrypted is deleted as before: nobody is there to ask, and a plain file is not
+  kept under a locked vault.
 - **Photos decode at screen size.** An Android HEIC is decoded by the system at most to
   the screen's longer side (1024–3000 px), not 4096 (a ~50 MB bitmap); the viewer reads
   ahead one photo each side, not two. At most 800 thumbnails stay in memory; Flutter's

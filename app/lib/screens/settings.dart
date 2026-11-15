@@ -414,14 +414,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ok = key != null && await KeyBackup.save(key, vault: widget.vault().code);
     if (!mounted) return;
     // Block Store keeps nothing without a screen lock (end to end encryption) or Google.
-    if (!ok && google) {
-      showToast(context, withCode(l, l.keyBackupGoogleFailed, key == null ? 'no-recovery-key' : 'key-backup-google'),
+    // An iPhone signed out of iCloud, or with iCloud Keychain off, keeps nothing either:
+    // the switch going back by itself said nothing (it used to be told for Google only).
+    if (!ok) {
+      showToast(
+          context,
+          google
+              ? withCode(l, l.keyBackupGoogleFailed, key == null ? 'no-recovery-key' : 'key-backup-google')
+              : withCode(l, l.keyBackupFailed, key == null ? 'no-recovery-key' : 'key-backup-icloud'),
           icon: Icons.error_outline_rounded);
     }
     setState(() => _keyBackup = ok);
   }
 
+  /// Off takes the copy away from every device on the account, and it may be the only
+  /// place the 24 words are: after the owner check (it used to go on one tap of the
+  /// switch), a card says so and offers to check the words first.
   Future<void> _keyBackupOff() async {
+    final l = AppLocalizations.of(context);
+    final choice = await showCard<_KeyBackupOff>(context, title: l.keyBackupOffTitle, builder: (context) {
+      final c = CsColors.of(context);
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 14),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(l.keyBackupOffBody, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
+          const SizedBox(height: 18),
+          OutlinedButton(
+            key: const ValueKey('key-backup-off-check'),
+            onPressed: () => Navigator.of(context).pop(_KeyBackupOff.check),
+            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 50)),
+            child: Text(l.keyBackupOffCheck, textAlign: TextAlign.center),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(
+            key: const ValueKey('key-backup-off-go'),
+            onPressed: () => Navigator.of(context).pop(_KeyBackupOff.remove),
+            style: FilledButton.styleFrom(
+              backgroundColor: recordRed(context),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 50),
+            ),
+            child: Text(l.keyBackupOffGo),
+          ),
+          const SizedBox(height: 6),
+          TextButton(
+            key: const ValueKey('key-backup-off-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              minimumSize: const Size(0, 50),
+            ),
+            child: Text(l.cancel),
+          ),
+        ]),
+      );
+    });
+    if (!mounted) return;
+    if (choice == _KeyBackupOff.check) {
+      final vault = widget.vault();
+      await pushPage<void>(context,
+          title: l.keyCheckRow,
+          builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword));
+      return;
+    }
+    if (choice != _KeyBackupOff.remove) return;
     final key = await SecretKeyStore.readOpen();
     if (key != null) await KeyBackup.remove(key);
     if (mounted) setState(() => _keyBackup = false);
@@ -994,7 +1050,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword)),
               ),
             ),
-            // Turning it on is weaker, so it asks for the owner and says the trade (owner
+            // On or off, it asks for the owner: on is weaker and says the trade (owner
             // 2026-10-26); a new vault offers it, on by default (2026-11-05). Never for a
             // Top secret vault (ADR 0008).
             if (KeyBackup.supported && !vault.topSecret)
@@ -1007,7 +1063,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: KeyBackup.google ? l.keyBackupRowGoogle : l.keyBackupRow,
                   trailing: SettingsSwitch(
                     value: _keyBackup,
-                    onChanged: (on) => on ? _guarded(_keyBackupOn) : _keyBackupOff(),
+                    onChanged: (on) => _guarded(on ? _keyBackupOn : _keyBackupOff),
                   ),
                 ),
               ),
@@ -1684,3 +1740,6 @@ String _langCode(BuildContext context) {
   return l.scriptCode == 'Hant' ? 'zh_Hant' : l.languageCode;
 }
 
+
+/// What the card asked before the cloud copy of the 24 words goes answered.
+enum _KeyBackupOff { check, remove }

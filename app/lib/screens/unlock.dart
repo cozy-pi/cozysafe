@@ -19,7 +19,7 @@ import 'common.dart';
 import 'debug.dart' show debugModeOn;
 import 'vault_manager.dart';
 import 'welcome.dart';
-import 'restore.dart';
+import 'restore_flow.dart';
 import 'top_secret_page.dart' show restartForMode;
 import 'vault_home.dart';
 import '../theme.dart';
@@ -742,13 +742,17 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
               onPressed: _busy ? null : _newVault,
               child: Text(l.newVault),
             ),
+          // Beside the vaults already here: the restored one gets a library of its own
+          // (restore_flow.dart). The page that picked a file into this device's own
+          // library could only fail here, a vault being there already.
           MenuItemButton(
+            key: const ValueKey('lock-restore'),
             style: _menuItem,
             leadingIcon: const Icon(Icons.settings_backup_restore_rounded),
             onPressed: _busy
                 ? null
                 : () => Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: true)),
+                      builder: (_) => Readable(child: RestorePickScreen(libraryDir: widget.libraryDir, offerNew: false)),
                     )),
             child: Text(l.restoreFromBackup),
           ),

@@ -1035,5 +1035,17 @@
   "importStopped": "Brankas terkunci sebelum semuanya ditambahkan: {done} dari {total} sudah masuk. Tambahkan sisanya lagi.",
   "errorOpen": "Tidak bisa membuka ini. Tutup lalu coba lagi.",
   "driveFailed": "Tidak bisa terhubung ke Google Drive. Periksa koneksi internet, lalu coba lagi.",
-  "restoredEnterPassword": "Dipulihkan. Masukkan kata sandi brankas ini untuk membukanya."
+  "restoredEnterPassword": "Dipulihkan. Masukkan kata sandi brankas ini untuk membukanya.",
+  "takeKeptTitle": "Belum tersimpan",
+  "takeKeptBody": "Rekaman ini belum ada di brankas. Rekaman hanya disimpan sampai brankas terkunci: jika Anda mengunci atau meninggalkan aplikasi sekarang, rekaman hilang.",
+  "tryAgain": "Coba lagi",
+  "takeDiscard": "Buang",
+  "keyBackupOffTitle": "Hapus salinan 24 kata di cloud?",
+  "keyBackupOffBody": "Salinan dihapus untuk semua perangkat di akun ini. Ponsel baru nanti perlu 24 kata diketik. Periksa dulu apakah Anda masih menyimpannya.",
+  "keyBackupOffCheck": "Periksa 24 kata dulu",
+  "keyBackupOffGo": "Hapus",
+  "keyBackupFailed": "Tidak tersimpan. Aktifkan iCloud Keychain di Pengaturan iPhone ini, lalu coba lagi.",
+  "historyOffTitle": "Nonaktifkan riwayat versi?",
+  "historyOffBody": "Semua versi lama di perangkat ini dihapus sekarang, termasuk kata sandi lama. Yang sekarang tetap seperti semula.",
+  "historyOffGo": "Nonaktifkan"
 }

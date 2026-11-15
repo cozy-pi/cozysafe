@@ -1035,5 +1035,17 @@
   "importStopped": "모두 추가하기 전에 금고가 잠겼습니다: {total}개 중 {done}개가 들어갔습니다. 나머지를 다시 추가하세요.",
   "errorOpen": "열지 못했습니다. 닫은 뒤 다시 시도하세요.",
   "driveFailed": "Google Drive에 연결하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도하세요.",
-  "restoredEnterPassword": "복원했습니다. 이 금고의 비밀번호를 입력해 여세요."
+  "restoredEnterPassword": "복원했습니다. 이 금고의 비밀번호를 입력해 여세요.",
+  "takeKeptTitle": "아직 저장되지 않았습니다",
+  "takeKeptBody": "이 녹음·녹화는 아직 금고에 없습니다. 금고가 잠길 때까지만 보관됩니다. 지금 잠그거나 앱을 나가면 사라집니다.",
+  "tryAgain": "다시 시도",
+  "takeDiscard": "버리기",
+  "keyBackupOffTitle": "클라우드에 있는 24개 단어 사본을 제거할까요?",
+  "keyBackupOffBody": "사본은 이 계정의 모든 기기에서 제거됩니다. 그러면 새 휴대전화에서는 24개 단어를 직접 입력해야 합니다. 먼저 단어를 아직 가지고 있는지 확인하세요.",
+  "keyBackupOffCheck": "먼저 24개 단어 확인",
+  "keyBackupOffGo": "제거",
+  "keyBackupFailed": "보관하지 못했습니다. 이 iPhone의 설정에서 iCloud 키체인을 켠 뒤 다시 시도하세요.",
+  "historyOffTitle": "버전 기록을 끌까요?",
+  "historyOffBody": "이 기기의 이전 버전이 이전 비밀번호까지 지금 모두 지워집니다. 현재 내용은 그대로입니다.",
+  "historyOffGo": "끄기"
 }

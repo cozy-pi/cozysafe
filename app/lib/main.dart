@@ -107,7 +107,7 @@ class CozySafeApp extends StatelessWidget {
               ? UnlockScreen(libraryDir: libraryDir)
               // Vaults are here but this device has no Secret Key (reinstall,
               // restored phone): ask for the Emergency Kit.
-              : RestoreScreen(libraryDir: libraryDir, needFile: false),
+              : RestoreScreen(libraryDir: libraryDir),
       ),
     );
   }

@@ -1035,5 +1035,17 @@
   "importStopped": "Her şey eklenmeden kasa kilitlendi: {total} öğeden {done} tanesi içeride. Kalanını yeniden ekleyin.",
   "errorOpen": "Bu açılamadı. Kapatıp yeniden deneyin.",
   "driveFailed": "Google Drive'a ulaşılamadı. İnternet bağlantısını kontrol edip yeniden deneyin.",
-  "restoredEnterPassword": "Geri yüklendi. Açmak için bu kasanın parolasını girin."
+  "restoredEnterPassword": "Geri yüklendi. Açmak için bu kasanın parolasını girin.",
+  "takeKeptTitle": "Henüz kaydedilmedi",
+  "takeKeptBody": "Bu kayıt kasada değil. Yalnızca kasa kilitlenene kadar saklanır: şimdi kilitlerseniz veya uygulamadan çıkarsanız kaybolur.",
+  "tryAgain": "Yeniden dene",
+  "takeDiscard": "Vazgeç ve sil",
+  "keyBackupOffTitle": "24 kelimenin buluttaki kopyası kaldırılsın mı?",
+  "keyBackupOffBody": "Kopya bu hesaptaki tüm cihazlar için kaldırılır. Yeni bir telefonda 24 kelimeyi elle yazmanız gerekir. Önce kelimelerin hâlâ sizde olduğunu kontrol edin.",
+  "keyBackupOffCheck": "Önce 24 kelimeyi kontrol et",
+  "keyBackupOffGo": "Kaldır",
+  "keyBackupFailed": "Saklanamadı. Bu iPhone'un Ayarlar'ında iCloud Anahtar Zinciri'ni açın, sonra yeniden deneyin.",
+  "historyOffTitle": "Sürüm geçmişi kapatılsın mı?",
+  "historyOffBody": "Bu cihazdaki tüm eski sürümler, eski parolalar da dahil, şimdi silinir. Şimdiki hâli olduğu gibi kalır.",
+  "historyOffGo": "Kapat"
 }

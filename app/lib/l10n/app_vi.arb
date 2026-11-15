@@ -1049,5 +1049,17 @@
   "importStopped": "Két đã khoá trước khi thêm xong: đã vào {done} trong {total}. Hãy thêm lại phần còn lại.",
   "errorOpen": "Không mở được mục này. Đóng lại rồi thử lại.",
   "driveFailed": "Không kết nối được Google Drive. Kiểm tra kết nối mạng rồi thử lại.",
-  "restoredEnterPassword": "Đã khôi phục. Nhập mật khẩu của két này để mở."
+  "restoredEnterPassword": "Đã khôi phục. Nhập mật khẩu của két này để mở.",
+  "takeKeptTitle": "Chưa lưu được",
+  "takeKeptBody": "Bản ghi này chưa nằm trong két. Nó chỉ được giữ tới khi két khoá: nếu bạn khoá hoặc rời app lúc này, nó sẽ mất.",
+  "tryAgain": "Thử lại",
+  "takeDiscard": "Bỏ",
+  "keyBackupOffTitle": "Gỡ bản 24 từ trên đám mây?",
+  "keyBackupOffBody": "Bản này bị gỡ khỏi mọi thiết bị dùng tài khoản này. Khi đó máy mới sẽ phải gõ lại 24 từ. Hãy kiểm tra bạn còn giữ 24 từ trước đã.",
+  "keyBackupOffCheck": "Kiểm tra 24 từ trước",
+  "keyBackupOffGo": "Gỡ",
+  "keyBackupFailed": "Chưa giữ được. Hãy bật iCloud Keychain trong Cài đặt của iPhone này, rồi thử lại.",
+  "historyOffTitle": "Tắt lịch sử phiên bản?",
+  "historyOffBody": "Mọi bản cũ trên máy này bị xoá ngay, kể cả mật khẩu cũ. Bản hiện tại vẫn giữ nguyên.",
+  "historyOffGo": "Tắt"
 }
