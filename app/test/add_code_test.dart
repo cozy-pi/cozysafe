@@ -125,8 +125,14 @@ void main() {
     await t.pump();
     await t.pump(const Duration(seconds: 5));
     expect(find.byKey(const ValueKey('add-code-waiting')), findsNothing);
-    // Confirmed: the wait for the new device starts.
+    // Confirmed: the wait for the new device starts. A fresh page: the first tap is still
+    // waiting for an answer no one gives here, and one start runs at a time.
     debugOwnerConfirmed = true;
+    await t.pumpWidget(const SizedBox());
+    await t.pumpWidget(app(SyncScreen(libraryDir: '', onSynced: () {})));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('sync-local')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('sync-invite')));
     await t.pump();
     await t.pump(const Duration(seconds: 1));
