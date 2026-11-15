@@ -91,7 +91,7 @@ class AddCodeShown extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
             decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Ui.groupRadius)),
             child: Text(addCodeText(code),
-                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: 2, fontFeatures: [FontFeature.tabularFigures()])),
+                style: const TextStyle(fontSize: CsType.display, fontWeight: FontWeight.w800, letterSpacing: 2, fontFeatures: [FontFeature.tabularFigures()])),
           ),
         ),
       ],
@@ -146,7 +146,7 @@ class _AddCodeEntryState extends State<AddCodeEntry> {
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
           inputFormatters: [_CodeFormatter()],
-          style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w700, letterSpacing: 2, fontFeatures: [FontFeature.tabularFigures()]),
+          style: const TextStyle(fontSize: CsType.title1, fontWeight: FontWeight.w700, letterSpacing: 2, fontFeatures: [FontFeature.tabularFigures()]),
           decoration: InputDecoration(
             hintText: '0000 - 0000',
             errorText: widget.left == null ? null : l.addCodeWrongLeft(widget.left!),

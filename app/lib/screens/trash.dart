@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../file_kinds.dart';
 import 'package:flutter/services.dart';
 
 import '../hidden_features.dart';
@@ -664,8 +665,6 @@ class _Row extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
-    final dot = item.name.lastIndexOf('.');
-    final ext = item.kind != ItemKind.file || dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     final icon = switch (item.kind) {
       ItemKind.login || ItemKind.otp || ItemKind.codes => entryIcon(item.kind),
       ItemKind.note => Icons.book_rounded,
@@ -681,21 +680,23 @@ class _Row extends StatelessWidget {
       onLongPress: null,
       child: Row(
         children: [
-          Container(
-            width: 42,
-            height: 48,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(8)),
-            child: ext.isEmpty || ext.length > 4
-                ? Icon(icon, color: primary)
-                : Text(ext, style: TextStyle(color: primary, fontSize: CsType.caption2, fontWeight: FontWeight.w800)),
-          ),
+          // A file wears its kind's badge, as in the Files list (FileKindBadge).
+          if (item.kind == ItemKind.file)
+            FileKindBadge(name: item.name, mime: item.mime)
+          else
+            Container(
+              width: 42,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, color: primary),
+            ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(shownName(l, item), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead)),
+                Text(shownName(l, item), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.body)),
                 const SizedBox(height: 2),
                 Row(
                   children: [

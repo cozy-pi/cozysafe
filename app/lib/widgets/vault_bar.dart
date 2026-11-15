@@ -205,6 +205,23 @@ class GlassButton extends StatelessWidget {
       );
 }
 
+/// Back in a header built by hand (search, the steps, a group's page): the one round
+/// button with ‹, as the theme draws for every app bar (docs/design-language.md).
+/// Leaves the page unless [onTap] says otherwise.
+class RoundBack extends StatelessWidget {
+  const RoundBack({super.key, this.onTap, this.size = Ui.circle});
+  final VoidCallback? onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => GlassButton(
+        icon: Icons.arrow_back_ios_new_rounded,
+        tooltip: AppLocalizations.of(context).back,
+        size: size,
+        onTap: onTap ?? () => Navigator.of(context).maybePop(),
+      );
+}
+
 /// The bottom row: the lock on the left, then the sections in a capsule. Tapping a section
 /// switches; dragging along the capsule switches as the finger passes each one.
 /// Only [sections] that hold something are offered; with one or none, no capsule.

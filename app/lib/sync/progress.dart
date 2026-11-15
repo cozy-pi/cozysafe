@@ -1190,7 +1190,7 @@ class _Number extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
         decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Ui.groupRadius)),
         child: Text(text,
-            style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: 3, fontFeatures: [FontFeature.tabularFigures()])),
+            style: const TextStyle(fontSize: CsType.display, fontWeight: FontWeight.w800, letterSpacing: 3, fontFeatures: [FontFeature.tabularFigures()])),
       );
 }
 

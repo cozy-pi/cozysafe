@@ -141,7 +141,7 @@ class _SearchScreenState extends State<SearchScreen> {
             padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 8),
             child: Row(
               children: [
-                GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: () => Navigator.of(context).maybePop()),
+                const RoundBack(),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(l.search,
@@ -422,9 +422,8 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Plain weight while searching so the matched words stand out in bold.
-                  MarkedText(_shownName(l, it), q,
-                      maxLines: 1, style: TextStyle(fontSize: CsType.callout, fontWeight: q.isEmpty ? FontWeight.w600 : FontWeight.w400)),
+                  // A row's name, 17 regular as everywhere; the matched words stand out in bold.
+                  MarkedText(_shownName(l, it), q, maxLines: 1, style: const TextStyle(fontSize: CsType.body)),
                   const SizedBox(height: 3),
                   if (under != null && snippet != null && notePreviews())
                     MarkedText(under, q, maxLines: 2, style: TextStyle(color: c.muted, fontSize: CsType.footnote, height: 1.3))

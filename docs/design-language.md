@@ -56,10 +56,11 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
 
 Type: the phone's own font, sizes from `CsType` only:
 
-- big title 34 bold (`largeTitle`), with a 15 grey line under it on every tab alike:
+- big title 34 bold (`largeTitle`, weight 700 on every tab and in Settings), with a 15 grey line under it on every tab alike:
   `N items · size`, then the Google Drive cloud (`HomeSyncIcon(dense: true)`, 8 after)
 - page title in a bar 17 semibold (`headline`)
-- body and row names 17 regular (`body`), also the big title of Settings (34, as every tab)
+- body and row names 17 regular (`body`) in every list: files, recordings, search
+  results, Recently deleted, the vaults; also the big title of Settings (34, as every tab)
 - second line of a row 15 (`subhead`)
 - dates, sizes, notes 13 (`footnote`)
 - a number that is the screen's subject (a recording's time, a code to read out, a
@@ -84,10 +85,11 @@ later (docs/backlog.md).
 | Actions while selecting many | `SelectionBar` (built on `ActionBar`) | `widgets/selection_bar.dart` |
 | A form's main button pinned at the bottom | `PinnedAction` | `widgets/bottom_bar.dart` |
 | A round button in a header | `GlassButton` (size `Ui.circle`) | `widgets/vault_bar.dart` |
+| Back in a header built by hand (search, steps, a group's page, the welcome pages) | `RoundBack` | `widgets/vault_bar.dart` |
 | Glass behind anything | `Glass` (page glass), `GlassPill` (dark, over photos) | `widgets/vault_bar.dart`, `screens/glass.dart` |
 | A row in a vault list | `SelectableRow` | `widgets/selectable_row.dart` |
 | Chips over Files and the Library (All, Photos, Videos, Documents, Other) | `_fileChips`, `FileGroup` | `screens/vault_home.dart`, `file_kinds.dart` |
-| A small menu at the finger (long press, ⋯) | `showItemMenu` + `MenuEntry` | `widgets/item_menu.dart` |
+| A small menu at the finger (long press, ⋯), and a setting's few choices at its row (the chosen one ticked) | `showItemMenu` + `MenuEntry` | `widgets/item_menu.dart` |
 | A long page, and every sub-page of Settings (never swapped in place: owner 2026-10-31) | `pushPage` | `widgets/vault_bar.dart` |
 | Short content over the page | `showCard` | `widgets/vault_bar.dart` |
 | A short question (yes or no, save or discard, a name to type): never a system dialog | `askCard`, `promptCard` + `AskAction` (built on `showCard`) | `widgets/ask.dart` |
@@ -129,6 +131,10 @@ out as Photos):
 - With the bars shown, a photo sits between them; a tap hides them and it fills the screen.
 - ⋯ opens the item's menu right there, beside the button (`ViewerMenu`): the viewer
   stays. Never close the viewer to show a menu elsewhere.
+- A picture kept as a file opens on the same black page with the same top bar
+  (`ViewerTopBar(onMedia: true)`), its name in the middle.
+- Over a camera (scanning a QR code for a password): the hint in a `GlassPill` under
+  the square, Cancel in a `GlassPill` at the bottom, where the camera's own Close is.
 
 **Action bar** (editing a note, selecting):
 
@@ -263,4 +269,6 @@ that offers either checks its switch.
 - A menu (long press, ⋯) uses **line icons** only, the same weight on every row, as the
   iPhone's own menus (owner 2026-10-29: a solid black check on Select stood out). The
   only solid one is a state: the star of a favourite. Delete's icon and word are red.
+  A list to pick one from (Sort, Appearance, Auto-lock) shows ✓ on the chosen line and
+  no other icon.
 - Bars and action circles keep solid icons.

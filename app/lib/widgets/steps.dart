@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../l10n/app_localizations.dart';
 import '../theme.dart';
 import 'bottom_bar.dart' show PinnedAction;
-import 'vault_bar.dart' show GlassButton;
+import 'vault_bar.dart' show RoundBack;
 
 /// How far along the steps are: one short bar per step, the done ones in ink (create a
 /// vault, add a password).
@@ -129,7 +128,6 @@ class StepPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final head = [
       Text(title,
@@ -159,7 +157,7 @@ class StepPage extends StatelessWidget {
             child: Row(
               children: [
                 if (onBack != null)
-                  GlassButton(key: const ValueKey('step-back'), icon: Icons.arrow_back_ios_new_rounded, tooltip: l.back, onTap: onBack)
+                  RoundBack(key: const ValueKey('step-back'), onTap: onBack)
                 else
                   const SizedBox(height: Ui.circle),
                 const SizedBox(width: 16),

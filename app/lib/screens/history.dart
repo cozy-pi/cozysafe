@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import '../widgets/readable.dart';
 import 'package:intl/intl.dart';
 
 import '../item_kind.dart';
@@ -102,7 +103,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     // (ADR 0009); its content is never read as plain bytes here.
     final restored = ItemKind.isEntry(widget.item.kind)
         ? await Navigator.of(context).push<rust.ItemInfo>(
-            MaterialPageRoute(builder: (_) => EntryScreen(item: widget.item, version: v)))
+            MaterialPageRoute(builder: (_) => Readable(child: EntryScreen(item: widget.item, version: v))))
         : await pushPage<rust.ItemInfo>(
             context,
             title: historyWhen(context, v.replacedMs),

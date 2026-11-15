@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/readable.dart';
 
 import '../l10n/app_localizations.dart';
 import '../biometric.dart';
@@ -160,13 +161,13 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
       return;
     }
     final gone = await Navigator.of(context).push<bool>(MaterialPageRoute(
-      builder: (_) => DeleteVaultScreen(
+      builder: (_) => Readable(child: DeleteVaultScreen(
         libraryDir: widget.libraryDir,
         otherId: slot.id,
         deleteAtMs: slot.deleteAtMs?.toInt(),
         sizeText: fileSize(slot.sizeBytes),
         slot: slot,
-      ),
+      )),
     ));
     if (gone == true && mounted) showToast(context, AppLocalizations.of(context).vaultDeleted, icon: Icons.check_rounded);
     await _load();
@@ -236,7 +237,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                                         _title(l, s),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w600),
+                                        style: const TextStyle(fontSize: CsType.body),
                                       ),
                                     ),
                                     if (s.isOpen && (open?.topSecret ?? false)) ...[

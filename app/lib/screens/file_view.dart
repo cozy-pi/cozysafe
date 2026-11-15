@@ -30,6 +30,7 @@ import '../widgets/text_styles.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import 'glass.dart' show GlassPill;
 import '../temp_files.dart';
 import '../prefs.dart';
 import 'common.dart';
@@ -530,11 +531,34 @@ class _FileViewScreenState extends State<FileViewScreen> {
 
   Widget _imageView(AppLocalizations l) => Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          title: Text(_item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.callout, color: Colors.white)),
-          actions: _moreButton(l),
+        // The viewers' own top bar, dark glass on the black page (docs/design-language.md,
+        // Viewer), not the app's bar: its pale discs glared on black in light mode.
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(Ui.action + 4),
+          child: SafeArea(
+            bottom: false,
+            child: ViewerTopBar(
+              onMedia: true,
+              back: BarIcon(
+                  key: const ValueKey('file-back'),
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  tooltip: l.back,
+                  onTap: (_) => Navigator.of(context).maybePop()),
+              more: BarIcon(key: const ValueKey('file-more'), icon: Icons.more_horiz, tooltip: l.more, onTap: _busy ? null : _more),
+              center: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: GlassPill(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(_item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600, color: Colors.white)),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
         // Dark glass over the black page, whatever the app's theme.
         bottomNavigationBar: Theme(data: buildTheme(Brightness.dark), child: Builder(builder: (_) => _bar(l))),

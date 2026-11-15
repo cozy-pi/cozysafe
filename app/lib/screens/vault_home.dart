@@ -2317,15 +2317,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.border))),
       child: Row(children: [
         if (open != null)
-          IconButton(
-              tooltip: l.back, icon: const Icon(Icons.chevron_left_rounded), onPressed: () => setState(() => _tagId = null)),
+          Padding(padding: const EdgeInsets.only(right: 8), child: RoundBack(size: 36, onTap: () => setState(() => _tagId = null))),
         Expanded(
           child: Text(
             open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
             key: const ValueKey('vault-title'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700),
           ),
         ),
         if (_deskSectionHasViews && any) ...[
@@ -2359,7 +2358,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 const SizedBox(width: 8),
                 Icon(Icons.search, size: 17, color: c.muted),
                 const SizedBox(width: 6),
-                Text(l.search, style: TextStyle(fontSize: 13, color: c.muted)),
+                Text(l.search, style: TextStyle(fontSize: CsType.footnote, color: c.muted)),
               ]),
             ),
           ),
@@ -2380,7 +2379,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       alignment: Alignment.center,
       decoration: BoxDecoration(border: Border(top: BorderSide(color: c.border))),
       child: Text(shown.isEmpty ? '' : l.storageUsed(fileSize(bytes), shown.length),
-          style: TextStyle(fontSize: 12, color: c.muted)),
+          style: TextStyle(fontSize: CsType.caption1, color: c.muted)),
     );
   }
 
@@ -2511,7 +2510,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         children: [
           // No vault icon here: it shows once when the vault opens; change it in Settings.
           if (open != null) ...[
-            GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, size: Ui.circle, onTap: () => setState(() => _tagId = null)),
+            RoundBack(onTap: () => setState(() => _tagId = null)),
             const SizedBox(width: 10),
           ],
           Expanded(
@@ -2531,7 +2530,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       key: const ValueKey('vault-title'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w800, letterSpacing: -.5),
+                      style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w700, letterSpacing: -.5),
                     ),
                   ),
                 ]),
@@ -2594,9 +2593,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         MenuEntry(Icons.swap_vert_rounded, l.sortBy, _sortMenu, key: const ValueKey('sort-button')),
       if (_viewPref(_section) case final pref?)
         Prefs.read(pref) == 'grid'
-            ? MenuEntry(Icons.view_list_rounded, l.viewList, () => setState(() => Prefs.write(pref, 'list')),
+            ? MenuEntry(Icons.format_list_bulleted_rounded, l.viewList, () => setState(() => Prefs.write(pref, 'list')),
                 key: const ValueKey('files-view'))
-            : MenuEntry(Icons.grid_view_rounded, l.viewGrid, () => setState(() => Prefs.write(pref, 'grid')),
+            : MenuEntry(Icons.grid_view_outlined, l.viewGrid, () => setState(() => Prefs.write(pref, 'grid')),
                 key: const ValueKey('files-view')),
       if (open != null) ...[
         MenuEntry(Icons.edit_outlined, l.renameTag, () => _renameTag(open), key: const ValueKey('rename-tag')),
@@ -2751,7 +2750,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The item opened from the list, in the main column in place of the list (a wide
   /// window): Back returns to the list where it was.
   Widget _wideItem(BuildContext context, rust.ItemInfo item) {
-    final l = AppLocalizations.of(context);
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Column(
@@ -2760,12 +2758,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
             child: Row(children: [
-              TextButton.icon(
-                key: const ValueKey('wide-item-back'),
-                onPressed: () => setState(() => _focus = null),
-                icon: const Icon(Icons.arrow_back_rounded),
-                label: Text(l.back),
-              ),
+              RoundBack(key: const ValueKey('wide-item-back'), onTap: () => setState(() => _focus = null)),
             ]),
           ),
           Expanded(
@@ -3666,7 +3659,7 @@ class _FileRow extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Flexible(child: FileNameText(item.name, style: const TextStyle(fontSize: CsType.subhead))),
+                      Flexible(child: FileNameText(item.name, style: const TextStyle(fontSize: CsType.body))),
                       if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],
                   ),

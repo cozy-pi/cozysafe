@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import '../widgets/vault_bar.dart' show RoundBack;
 import '../widgets/brand.dart';
 import 'new_vault.dart';
 import 'restore_flow.dart';
@@ -90,11 +91,7 @@ class ChoicePage extends StatelessWidget {
                       if (back)
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                            onPressed: () => Navigator.of(context).maybePop(),
-                            icon: const Icon(Icons.arrow_back),
-                          ),
+                          child: const Padding(padding: EdgeInsets.only(top: 8), child: RoundBack()),
                         ),
                       const Spacer(flex: 3),
                       if (mark != null) ...[

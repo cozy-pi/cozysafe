@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../widgets/cs_switch.dart';
+import '../widgets/item_menu.dart';
 import 'package:flutter/rendering.dart' show RenderAbstractViewport;
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -528,41 +529,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ThemeMode.system => l.appearanceAuto,
       };
 
+  /// A few choices in a menu at the row, the chosen one ticked: the same menu as Sort
+  /// ([showItemMenu]; docs/design-language.md, icons in menus). What was picked, or null.
+  Future<T?> _pickAt<T>(GlobalKey row, T now, List<(T, String, Key?)> choices) async {
+    T? picked;
+    await showItemMenu(context, from: row.currentContext, entries: [
+      for (final (value, label, key) in choices)
+        MenuEntry(value == now ? Icons.check_rounded : null, label, () {
+          picked = value;
+        }, key: key),
+    ]);
+    return picked;
+  }
+
   /// Automatic · Light · Dark: a menu at the row, like auto-lock.
   final _appearanceKey = GlobalKey();
   Future<void> _pickAppearance() async {
     final l = AppLocalizations.of(context);
-    final box = _appearanceKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final at = box.localToGlobal(Offset.zero) & box.size;
-    final size = MediaQuery.sizeOf(context);
-    final now = Appearance.mode.value;
-    final picked = await showMenu<ThemeMode>(
-      context: context,
-      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
-      items: [
-        for (final m in Appearance.choices)
-          PopupMenuItem(
-            key: ValueKey('appearance-${m.name}'),
-            value: m,
-            height: Ui.circle,
-            child: Row(children: [
-              SizedBox(width: 26, child: m == now ? const Icon(Icons.check_rounded, size: 20) : null),
-              Icon(
-                switch (m) {
-                  ThemeMode.light => Icons.light_mode_rounded,
-                  ThemeMode.dark => Icons.dark_mode_rounded,
-                  ThemeMode.system => Icons.brightness_auto_rounded,
-                },
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Text(_appearanceName(l, m), style: TextStyle(fontWeight: m == now ? FontWeight.w700 : FontWeight.w500)),
-            ]),
-          ),
-      ],
-    );
+    final picked = await _pickAt<ThemeMode>(_appearanceKey, Appearance.mode.value, [
+      for (final m in Appearance.choices) (m, _appearanceName(l, m), ValueKey('appearance-${m.name}')),
+    ]);
     if (picked == null || !mounted) return;
     Appearance.choose(picked);
     setState(() {});
@@ -572,27 +558,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _autoLockKey = GlobalKey();
   Future<void> _pickAutoLock() async {
     final l = AppLocalizations.of(context);
-    final box = _autoLockKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final at = box.localToGlobal(Offset.zero) & box.size;
-    final size = MediaQuery.sizeOf(context);
-    final picked = await showMenu<int>(
-      context: context,
-      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
-      items: [
-        for (final m in Settings.autoLockChoices)
-          PopupMenuItem(
-            value: m,
-            height: Ui.circle,
-            child: Row(children: [
-              SizedBox(width: 26, child: m == _minutes ? const Icon(Icons.check_rounded, size: 20) : null),
-              Text(l.minutesLong(m), style: TextStyle(fontWeight: m == _minutes ? FontWeight.w700 : FontWeight.w500)),
-            ]),
-          ),
-      ],
-    );
-    if (picked == null) return;
+    final picked = await _pickAt<int>(_autoLockKey, _minutes, [
+      for (final m in Settings.autoLockChoices) (m, l.minutesLong(m), null),
+    ]);
+    if (picked == null || !mounted) return;
     setState(() => _minutes = picked);
     Settings.autoLockMinutes = picked;
   }
@@ -602,28 +571,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _clipboardKey = GlobalKey();
   Future<void> _pickClipboard() async {
     final l = AppLocalizations.of(context);
-    final box = _clipboardKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final at = box.localToGlobal(Offset.zero) & box.size;
-    final size = MediaQuery.sizeOf(context);
     final now = SecureClipboard.seconds;
-    final picked = await showMenu<int>(
-      context: context,
-      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
-      items: [
-        for (final s in SecureClipboard.choices)
-          PopupMenuItem(
-            key: ValueKey('clipboard-$s'),
-            value: s,
-            height: Ui.circle,
-            child: Row(children: [
-              SizedBox(width: 26, child: s == now ? const Icon(Icons.check_rounded, size: 20) : null),
-              Text(clipboardChoice(l, s), style: TextStyle(fontWeight: s == now ? FontWeight.w700 : FontWeight.w500)),
-            ]),
-          ),
-      ],
-    );
+    final picked = await _pickAt<int>(_clipboardKey, now, [
+      for (final s in SecureClipboard.choices) (s, clipboardChoice(l, s), ValueKey('clipboard-$s')),
+    ]);
     if (picked == null || picked == now || !mounted) return;
     void apply() => setState(() => Prefs.write(SecureClipboard.pref, '$picked'));
     final longer = picked == 0 || (now != 0 && picked > now);

@@ -224,7 +224,7 @@ class RecorderViewState extends State<RecorderView> {
             const SizedBox(height: 14),
             Text(
               '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}',
-              style: TextStyle(color: recordRed(context), fontSize: 44, fontWeight: FontWeight.w300, fontFeatures: const [FontFeature.tabularFigures()]),
+              style: TextStyle(color: recordRed(context), fontSize: CsType.display, fontWeight: FontWeight.w300, fontFeatures: const [FontFeature.tabularFigures()]),
             ),
             const SizedBox(height: 4),
             Text(l.recordingHint, style: TextStyle(color: c.muted)),
@@ -317,7 +317,7 @@ class RecorderViewState extends State<RecorderView> {
                     children: [
                       Flexible(
                         child: Text(it.name.replaceAll(RegExp(r'\.m4a$'), ''),
-                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.body)),
                       ),
                       if (it.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],

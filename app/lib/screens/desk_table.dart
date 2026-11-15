@@ -71,7 +71,7 @@ class _DeskTableState extends State<DeskTable> {
       return '${ml.formatShortDate(d)}, ${ml.formatTimeOfDay(TimeOfDay.fromDateTime(d), alwaysUse24HourFormat: true)}';
     }
 
-    const small = TextStyle(fontSize: 13);
+    const small = TextStyle(fontSize: CsType.footnote);
     Widget cells(List<Widget> four) => Row(children: [
           Expanded(flex: 6, child: four[0]),
           Expanded(flex: 2, child: four[1]),
@@ -93,7 +93,7 @@ class _DeskTableState extends State<DeskTable> {
                 child: Text(label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: on ? ink : c.muted, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
+                    style: TextStyle(fontSize: CsType.caption1, color: on ? ink : c.muted, fontWeight: on ? FontWeight.w700 : FontWeight.w500)),
               ),
               if (on) Icon(widget.ascending ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 16, color: ink),
             ],

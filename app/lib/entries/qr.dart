@@ -9,6 +9,7 @@ import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../platform.dart';
 import '../src/rust/api/sync.dart' as rust;
+import '../screens/glass.dart' show GlassPill;
 import '../theme.dart';
 import '../top_secret_mode.dart';
 import 'totp.dart';
@@ -237,31 +238,42 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
               ),
             ),
           ),
+          // Over the camera: dark glass, as on a photo (docs/design-language.md, GlassPill).
+          // The hint under the frame; the way out at the bottom, within the thumb's reach.
           SafeArea(
+            minimum: const EdgeInsets.only(bottom: Ui.edge),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: Ui.side),
               child: Column(
                 children: [
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: TextButton(
-                      key: const ValueKey('qr-cancel'),
-                      onPressed: () => _finish(null),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.black54,
-                        shape: const StadiumBorder(),
-                        minimumSize: const Size(0, Ui.tap),
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                      ),
-                      child: Text(l.cancel),
+                  const Spacer(),
+                  // Clear of the square to aim with (240, centred on the whole screen).
+                  const SizedBox(height: 240 + 130),
+                  GlassPill(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text(l.qrAim,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white, fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.35)),
                     ),
                   ),
                   const Spacer(),
-                  Text(l.qrAim,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: CsType.callout, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: Ui.action,
+                    child: GlassPill(
+                      child: TextButton(
+                        key: const ValueKey('qr-cancel'),
+                        onPressed: () => _finish(null),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          shape: const StadiumBorder(),
+                          minimumSize: const Size(0, Ui.action),
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                        ),
+                        child: Text(l.cancel, style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
