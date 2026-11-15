@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import '../widgets/steps.dart';
 
 import '../error_log.dart';
 import '../key_backup.dart';
@@ -177,40 +178,34 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
-    final theme = Theme.of(context);
     final account = _account;
     return Scaffold(
-      appBar: AppBar(),
-      body: FormColumn(
+      body: StepPage(
+        title: l.joinDriveTitle,
+        lead: l.joinDriveLead,
+        onBack: () => Navigator.of(context).maybePop(),
         actions: [
           if (account == null)
-            FilledButton.icon(
+            StepMainButton(
               key: const ValueKey('join-sign-in'),
-              onPressed: _signIn,
-              icon: const Icon(Icons.account_circle_rounded),
-              label: Text(l.joinSignIn),
+              icon: Icons.account_circle_rounded,
+              label: l.joinSignIn,
+              onTap: _signIn,
             )
           else
-            FilledButton(
+            StepMainButton(
               key: const ValueKey('join-open'),
-              onPressed: _busy ||
-                      (widget.words == null && (_words.text.trim().isEmpty || _password.text.isEmpty))
-                  ? null
-                  : _open,
-              child: BusyLabel(busy: _busy, idle: l.joinOpen, working: l.restoring),
+              label: l.joinOpen,
+              busyLabel: _busy ? l.restoring : null,
+              onTap: _busy || (widget.words == null && (_words.text.trim().isEmpty || _password.text.isEmpty)) ? null : _open,
             ),
         ],
-        children: [
-          Text(l.joinDriveTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(l.joinDriveLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
-          const SizedBox(height: 24),
+        body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           if (account != null) ...[
             Row(children: [
               const Icon(Icons.cloud_done_rounded, size: 20, color: Color(0xFF34A853)),
               const SizedBox(width: 8),
-              Expanded(child: Text(account, style: const TextStyle(fontWeight: FontWeight.w600))),
+              Expanded(child: Text(account, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600))),
             ]),
             if (widget.words == null) ...[
             const SizedBox(height: 16),
@@ -231,11 +226,8 @@ class _DriveJoinScreenState extends State<DriveJoinScreen> {
             ),
             ],
           ],
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
-          ],
-        ],
+          if (_error != null) StepError(_error!),
+        ]),
       ),
     );
   }

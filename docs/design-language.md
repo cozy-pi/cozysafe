@@ -172,6 +172,12 @@ answered with taps where possible: what the vault already holds first, then comm
 choices, typing last. Back from the first step leaves. A login's password step opens on
 an empty field to type or paste the password in use; "Make a strong one" is the second
 choice (2026-11-07 review: the ready-made one as the main button got saved by mistake).
+Restoring (the missing words, from a file, from Google Drive), setting or changing the
+vault password and the Recovery Key page sit in the same frame since 2026-11-15: no app
+bar and no centred headline of their own. The main button is `StepMainButton`
+(`busyLabel` while a slow call runs), an error under the fields is `StepError`. A page
+with nothing under it, or one that must be finished (the Recovery Key shown right after
+the password is set), has no Back (`onBack: null`).
 
 **The add card** (owner 2026-11-07): one card, near the thumb, just above + (under Add
 on a computer). A way that asks a second question (Photos / Files, Note / Voice,

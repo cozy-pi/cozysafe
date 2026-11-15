@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/steps.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
@@ -91,23 +92,21 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(),
       body: AutofillGroup(
         onDisposeAction: AutofillContextAction.cancel,
-        child: FormColumn(
+        child: StepPage(
+        title: widget.change ? l.changePasswordTitle : l.backupPasswordTitle,
+        onBack: () => Navigator.of(context).maybePop(),
         actions: [
-          FilledButton(
+          StepMainButton(
             key: const ValueKey('backup-password-save'),
-            onPressed: _ready ? _save : null,
-            child: BusyLabel(busy: _busy, idle: l.save, working: l.saving),
+            label: l.save,
+            busyLabel: _busy ? l.saving : null,
+            onTap: _ready ? _save : null,
           ),
         ],
-        children: [
-          Text(widget.change ? l.changePasswordTitle : l.backupPasswordTitle,
-              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 18),
+        body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           // The account the password manager keeps it under, never shown.
           if (_autofill)
             Offstage(
@@ -133,11 +132,8 @@ class _BackupPasswordScreenState extends State<BackupPasswordScreen> with VaultL
             errorText: _again.text.isNotEmpty && _again.text != _pw.text ? l.passwordsDiffer : null,
             onChanged: (_) => setState(() {}),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
-          ],
-        ],
+          if (_error != null) StepError(_error!),
+        ]),
       ),
       ),
     );

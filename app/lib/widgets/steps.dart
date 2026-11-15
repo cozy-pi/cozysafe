@@ -110,7 +110,7 @@ class StepPage extends StatelessWidget {
     required this.body,
     this.count = 0,
     this.at = 0,
-    required this.onBack,
+    this.onBack,
     this.actions = const [],
     this.scroll = true,
   });
@@ -120,7 +120,8 @@ class StepPage extends StatelessWidget {
   /// Steps in the flow (none: no progress shown) and the one on screen.
   final int count;
   final int at;
-  final VoidCallback onBack;
+  /// Null: no Back on top (a page with nothing under it, or one that must be finished).
+  final VoidCallback? onBack;
   /// The main button, then a quieter one ([StepTextButton]).
   final List<Widget> actions;
   /// The body scrolls with the title; false where it holds its own list.
@@ -157,7 +158,10 @@ class StepPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(Ui.side - 4, 8, Ui.side, 4),
             child: Row(
               children: [
-                GlassButton(key: const ValueKey('step-back'), icon: Icons.arrow_back_ios_new_rounded, tooltip: l.back, onTap: onBack),
+                if (onBack != null)
+                  GlassButton(key: const ValueKey('step-back'), icon: Icons.arrow_back_ios_new_rounded, tooltip: l.back, onTap: onBack)
+                else
+                  const SizedBox(height: Ui.circle),
                 const SizedBox(width: 16),
                 Expanded(child: count > 1 ? StepProgress(count: count, at: at) : const SizedBox()),
                 const SizedBox(width: 8),
@@ -206,10 +210,12 @@ class StepTextButton extends StatelessWidget {
 
 /// The main button of a step, the width of the page.
 class StepMainButton extends StatelessWidget {
-  const StepMainButton({super.key, required this.label, required this.onTap, this.icon});
+  const StepMainButton({super.key, required this.label, required this.onTap, this.icon, this.busyLabel});
   final String label;
   final VoidCallback? onTap;
   final IconData? icon;
+  /// While a slow call runs (Argon2id): a spinner and these words in place of [label].
+  final String? busyLabel;
 
   @override
   Widget build(BuildContext context) => FilledButton(
@@ -218,9 +224,27 @@ class StepMainButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[Icon(icon, size: 22), const SizedBox(width: 8)],
-            Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            if (busyLabel != null) ...[
+              const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2.4)),
+              const SizedBox(width: 12),
+            ] else if (icon != null) ...[
+              Icon(icon, size: 22),
+              const SizedBox(width: 8),
+            ],
+            Flexible(child: Text(busyLabel ?? label, maxLines: 1, overflow: TextOverflow.ellipsis)),
           ],
         ),
+      );
+}
+
+/// What went wrong in a step, under its fields: red, with the code to copy.
+class StepError extends StatelessWidget {
+  const StepError(this.text, {super.key});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Text(text, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.35)),
       );
 }

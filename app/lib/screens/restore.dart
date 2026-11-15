@@ -7,7 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
-import '../theme.dart';
+import '../widgets/steps.dart';
 import '../widgets/words_input.dart';
 import 'common.dart';
 import 'unlock.dart';
@@ -84,34 +84,29 @@ class _RestoreScreenState extends State<RestoreScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
-    final theme = Theme.of(context);
+    // The steps' frame (docs/design-language.md, Steps). This page is the app's first
+    // one when the words are missing: nothing is under it, so no Back.
     return Scaffold(
-      body: FormColumn(
+      body: StepPage(
+        title: l.restoreTitle,
+        lead: l.restoreLeadKey,
+        onBack: Navigator.of(context).canPop() ? () => Navigator.of(context).maybePop() : null,
         actions: [
-          FilledButton(
-            onPressed: _busy || _key.text.trim().isEmpty ? null : _useKey,
-            child: BusyLabel(busy: _busy, idle: l.restoreContinue, working: l.restoring),
+          StepMainButton(
+            label: l.restoreContinue,
+            busyLabel: _busy ? l.restoring : null,
+            onTap: _busy || _key.text.trim().isEmpty ? null : _useKey,
           ),
         ],
-        children: [
-          const BrandHeader(),
-          const SizedBox(height: 28),
-          Text(l.restoreTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(l.restoreLeadKey, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
-          const SizedBox(height: 24),
+        body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           RecoveryKeyInput(
             key: const ValueKey('restore-key'),
             controller: _key,
             enabled: !_busy,
             onChanged: () => setState(() => _error = null),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
-          ],
-        ],
+          if (_error != null) StepError(_error!),
+        ]),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import '../widgets/steps.dart';
 import '../widgets/ask.dart';
 
 import '../biometric.dart';
@@ -276,28 +277,26 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(),
-      body: FormColumn(
+      body: StepPage(
+        title: l.restoreFromFile,
+        lead: l.restoreKeysLead,
+        onBack: () => Navigator.of(context).maybePop(),
         actions: [
-          FilledButton(
+          StepMainButton(
             key: const ValueKey('restore-next'),
-            onPressed: _busy || _words.text.trim().isEmpty || _password.text.isEmpty ? null : _next,
-            child: BusyLabel(busy: _busy, idle: l.restoreContinue, working: l.restoring),
+            label: l.restoreContinue,
+            busyLabel: _busy ? l.restoring : null,
+            onTap: _busy || _words.text.trim().isEmpty || _password.text.isEmpty ? null : _next,
           ),
         ],
-        children: [
-          Text(l.restoreFromFile, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
+        body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             Icon(Icons.insert_drive_file_rounded, size: 18, color: c.muted),
             const SizedBox(width: 6),
-            Expanded(child: Text(widget.fileName, key: const ValueKey('restore-file-name'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
+            Expanded(child: Text(widget.fileName, key: const ValueKey('restore-file-name'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600))),
           ]),
-          const SizedBox(height: 8),
-          Text(l.restoreKeysLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           RecoveryKeyInput(
             key: const ValueKey('restore-words'),
             controller: _words,
@@ -316,11 +315,8 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
             onChanged: (_) => setState(() => _error = null),
             onSubmitted: (_) => _next(),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
-          ],
-        ],
+          if (_error != null) StepError(_error!),
+        ]),
       ),
     );
   }

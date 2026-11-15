@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/steps.dart';
 
 import '../entries/secure_clipboard.dart';
 import '../l10n/app_localizations.dart';
@@ -9,7 +10,6 @@ import '../widgets/recovery_words.dart' show RecoveryWordsCheck, numberedWords, 
 import '../widgets/secret.dart';
 import '../widgets/words_awake.dart';
 import '../words_export.dart';
-import 'common.dart';
 import '../widgets/toast.dart';
 
 /// The Secret Key, written for people. Shown once after the first vault (and later from
@@ -58,16 +58,18 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: widget.confirm ? null : AppBar(),
       body: WordsAwake(
-        child: FormColumn(
-        children: [
-          Text(l.kitTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(l.kitLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
-          const SizedBox(height: 20),
+        // The steps' frame (docs/design-language.md, Steps). Shown after the password is
+        // first set ([confirm]), it has no Back: it ends with its own button.
+        child: StepPage(
+        title: l.kitTitle,
+        lead: l.kitLead,
+        onBack: widget.confirm ? null : () => Navigator.of(context).maybePop(),
+        actions: [
+          if (widget.confirm) StepMainButton(label: l.kitDone, onTap: _ok ? widget.onDone : null),
+        ],
+        body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
             decoration: BoxDecoration(
@@ -136,10 +138,8 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
               ask: _ask,
               onValid: (ok) => setState(() => _wordsOk = ok),
             ),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: _ok ? widget.onDone : null, child: Text(l.kitDone)),
           ],
-        ],
+        ]),
         ),
       ),
     );
