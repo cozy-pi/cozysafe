@@ -56,6 +56,9 @@ import 'trash.dart';
 import 'unlock.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
+import '../bulk_text.dart';
+import '../send_names.dart';
+import '../widgets/working_card.dart';
 import '../hidden_features.dart';
 import '../item_kind.dart';
 import '../widgets/edge_swipe_back.dart';
@@ -920,9 +923,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// then iOS or Android asks once more and does it.
   Future<void> _offerDeleteOriginals(List<String> ids, {required bool photos}) async {
     final l = AppLocalizations.of(context);
+    // With no other device, no Drive and no backup file yet, removing the originals
+    // leaves the vault as the only copy: the question says so.
+    final onlyCopy = !await SecondPlaceNudge.exists();
+    if (!mounted) return Originals.release();
     final yes = await showModalBottomSheet<bool>(
       context: context,
-      builder: (context) => DeleteOriginalsSheet(count: ids.length, photos: photos),
+      builder: (context) => DeleteOriginalsSheet(count: ids.length, photos: photos, onlyCopy: onlyCopy),
     );
     if (yes != true) return Originals.release();
     LockGuard.allowAway(); // the system's own question takes the screen for a moment
@@ -968,6 +975,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// user picks. Phone: hand it to the share sheet (Files, Drive, AirDrop…), then remove
   /// the temp copy.
   Future<void> _backup() async {
+    // One at a time: a second tap while the file is being written did it all again.
+    if (_backingUp) return;
+    _backingUp = true;
+    try {
+      await _backupOnce();
+    } finally {
+      _backingUp = false;
+    }
+  }
+
+  bool _backingUp = false;
+
+  Future<void> _backupOnce() async {
     final l = AppLocalizations.of(context);
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings, context: context) || !mounted) return;
     if (!await _ensurePassword() || !mounted) return;
@@ -978,14 +998,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     try {
       if (_desktop) {
         final loc = await getSaveLocation(suggestedName: name);
-        if (loc == null) return;
-        await rust.exportBackup(dir: widget.libraryDir, path: loc.path);
+        if (loc == null || !mounted) return;
+        await whileWorking(context, l.backupWorking, () => rust.exportBackup(dir: widget.libraryDir, path: loc.path));
         _backedUp();
         if (mounted) _snack(l.backupDone);
         return;
       }
       final tmp = File('${(await privateTemp()).path}${Platform.pathSeparator}$name');
-      await rust.exportBackup(dir: widget.libraryDir, path: tmp.path);
+      if (!mounted) return;
+      await whileWorking(context, l.backupWorking, () => rust.exportBackup(dir: widget.libraryDir, path: tmp.path));
       if (!mounted) return;
       final box = context.findRenderObject() as RenderBox?;
       final shared = await SharePlus.instance.share(ShareParams(
@@ -1217,6 +1238,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   void _snack(String text) => showToast(context, text, besideAction: _selected.isEmpty);
 
+  /// What to say when the vault could not take a change (a rename, a group).
+  String _failure(Object e) {
+    final l = AppLocalizations.of(context);
+    return e is rust.VaultError ? vaultErrorText(l, e) : withCode(l, l.errorStorage, e);
+  }
+
   // ---------- content ----------
 
   /// At most this many thumbnails stay in memory (~30 KB each, ~25 MB), the ones seen
@@ -1363,7 +1390,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     );
     text.dispose();
     if (name == null || name.isEmpty || '$name$ext' == item.name) return;
-    await rust.renameItem(id: item.id, name: '$name$ext');
+    try {
+      await rust.renameItem(id: item.id, name: '$name$ext');
+    } catch (e) {
+      if (mounted && !_locked) _snack(_failure(e));
+      return;
+    }
     await _reload();
   }
 
@@ -1386,23 +1418,31 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (mounted) setState(_endSelect);
   }
 
-  /// "Moved to Recently deleted · Undo".
-  void _trashed(List<String> ids) {
+  /// "Moved to Recently deleted · Undo". [failed] of them could not be moved: said too.
+  void _trashed(List<String> ids, {int failed = 0}) {
     final l = AppLocalizations.of(context);
     showToast(
       context,
-      ids.length == 1 ? l.movedToTrash : l.movedToTrashCount(ids.length),
-      icon: Icons.delete_outline_rounded,
-      actionLabel: l.undo,
+      trashedText(l, moved: ids.length, failed: failed),
+      icon: failed > 0 ? Icons.error_outline_rounded : Icons.delete_outline_rounded,
+      actionLabel: ids.isEmpty ? null : l.undo,
       besideAction: _selected.isEmpty,
-      onAction: () async {
-        for (final id in ids) {
-          try {
-            await rust.restoreItem(id: id);
-          } catch (_) {}
-        }
-        if (!_locked) _reload();
-      },
+      onAction: ids.isEmpty
+          ? null
+          : () async {
+              var notBack = 0;
+              for (final id in ids) {
+                try {
+                  await rust.restoreItem(id: id);
+                } catch (_) {
+                  notBack++;
+                }
+              }
+              if (_locked || !mounted) return;
+              _reload();
+              final said = restoredText(l, restored: ids.length - notBack, failed: notBack);
+              if (said != null) _snack(said);
+            },
     );
   }
 
@@ -1420,14 +1460,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     if (!await confirmTrash(context, count: ids.length, name: one == null ? null : _shownName(l, one)) || !mounted) return;
     final now = nowMs();
+    final moved = <String>[];
     for (final id in ids) {
       try {
         await rust.trashItem(id: id, nowMs: now);
+        moved.add(id);
       } catch (_) {}
     }
+    if (!mounted) return;
     setState(_endSelect);
     _reload();
-    if (ids.isNotEmpty) _trashed(ids);
+    _trashed(moved, failed: ids.length - moved.length);
   }
 
   /// Decrypted copies of the selection go to the share sheet, then the copies are wiped.
@@ -1436,16 +1479,28 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!await confirmShareOut(context, _vault.id) || !mounted) return;
     final items =
         (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id) && i.kind != ItemKind.tag && !ItemKind.isEntry(i.kind) && ItemKind.isKnown(i.kind)).toList();
+    if (items.isEmpty || !mounted) return;
     final dir = await (await privateTemp()).createTemp('send');
+    if (!mounted) return;
     LockGuard.allowAway();
     try {
       final files = <XFile>[];
-      for (final (n, it) in items.indexed) {
-        var name = it.name.isEmpty ? 'item-$n' : it.name.replaceAll(RegExp(r'[/\\:]'), '-');
-        if (it.kind == ItemKind.note && !name.endsWith('.txt')) name = '$name.txt';
-        final path = '${dir.path}${Platform.pathSeparator}$name';
-        await rust.exportItem(id: it.id, path: path);
-        files.add(XFile(path, mimeType: it.kind == ItemKind.note ? 'text/plain' : it.mime));
+      // Two items with one name would land on one file: each gets its own ("a (2).jpg").
+      final names = sendNames([for (final it in items) (name: it.name, note: it.kind == ItemKind.note)]);
+      // Decrypting takes a while for many or large items: say how far it is.
+      final progress = ValueNotifier(l.sendPreparing(0, items.length));
+      try {
+        await whileWorking(context, progress.value, live: progress, () async {
+          for (final (n, it) in items.indexed) {
+            final path = '${dir.path}${Platform.pathSeparator}${names[n]}';
+            await rust.exportItem(id: it.id, path: path);
+            files.add(XFile(path, mimeType: it.kind == ItemKind.note ? 'text/plain' : it.mime));
+            progress.value = l.sendPreparing(n + 1, items.length);
+            LockGuard.activity(); // a long preparation is not idleness
+          }
+        });
+      } finally {
+        progress.dispose();
       }
       if (!mounted) return;
       final box = context.findRenderObject() as RenderBox?;
@@ -2132,7 +2187,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     final name = await _askTagName(title: l.renameTag, name: tag.name);
     if (name == null) return;
-    await rust.renameTag(tagId: tag.id, name: name);
+    try {
+      await rust.renameTag(tagId: tag.id, name: name);
+    } catch (e) {
+      if (mounted && !_locked) _snack(_failure(e));
+      return;
+    }
     _reload();
   }
 
@@ -2141,7 +2201,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final ok = await confirmDelete(context,
         title: l.deleteTagTitle(tag.name), body: l.deleteTagBody, action: l.deleteTag, icon: Icons.sell_rounded);
     if (!ok || !mounted) return;
-    await rust.deleteTag(tagId: tag.id);
+    try {
+      await rust.deleteTag(tagId: tag.id);
+    } catch (e) {
+      if (mounted && !_locked) _snack(_failure(e));
+      return;
+    }
+    if (!mounted) return;
     if (_tagId == tag.id) setState(() => _tagId = null);
     _reload();
   }
@@ -3957,9 +4023,12 @@ class _Welcome extends StatelessWidget {
 
 /// After an import: remove the originals from the phone? (owner 2026-10-21: always ask).
 class DeleteOriginalsSheet extends StatelessWidget {
-  const DeleteOriginalsSheet({super.key, required this.count, required this.photos});
+  const DeleteOriginalsSheet({super.key, required this.count, required this.photos, this.onlyCopy = false});
   final int count;
   final bool photos;
+  /// The vault is nowhere else yet (no sync, no backup file): one more sentence says the
+  /// vault will then hold the only copy.
+  final bool onlyCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -3979,6 +4048,13 @@ class DeleteOriginalsSheet extends StatelessWidget {
             const SizedBox(height: 8),
             Text(photos ? l.originalsBodyPhotos(count) : l.originalsBodyFiles(count),
                 textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.45)),
+            if (onlyCopy) ...[
+              const SizedBox(height: 8),
+              Text(l.originalsOnlyCopy,
+                  key: const ValueKey('originals-only-copy'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.45)),
+            ],
             const SizedBox(height: 18),
             FilledButton(
               key: const ValueKey('originals-delete'),

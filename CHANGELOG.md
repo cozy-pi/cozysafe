@@ -4,6 +4,35 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.3.1 (unreleased)
+
+### Fixes from the review of what people see
+- Photos and videos you add keep the date they were taken, instead of all landing under
+  "Today": read from the photo or video itself, else from the file's date.
+- Sending several items shows how far it is ("Getting 3 of 12 ready to send"), and two
+  items with the same name are both sent (the second as "name (2).jpg").
+- "Back up now" shows that the backup is being made, and a second tap no longer starts
+  another one.
+- Starting a sync while an automatic sync is running says "Finishing the current sync…";
+  extra taps no longer queue more syncs.
+- Creating a vault: if Face ID or fingerprint was cancelled or failed, the app says it
+  was not turned on and that Settings can turn it on.
+- "Remove the originals" says when the vault would then hold the only copy (not yet on
+  another device, in Google Drive or in a backup file).
+- Deleting, undoing, restoring and deleting for good say how many items could not be
+  done instead of always reporting success.
+- A note that cannot be read shows the error instead of loading for ever; search shows
+  "Searching…" until the notes have been read; a failed rename, group rename or group
+  delete shows a message.
+- Restore from a file: pressing Enter while it is working no longer starts it again.
+- Declining to connect Google Drive no longer leaves the account connected.
+- The words under the tabs follow the phone's text size (up to 1.3×); the small photos
+  under a full-screen photo are easier to tap and are read by screen readers.
+- Clearer words: the sign-in-again message names the button that exists, the wrong
+  Recovery Key message says "another vault", the password step says what is lost when
+  the password is forgotten, and a video that could not be prepared for lack of space
+  says so.
+
 ## 0.3.0 (2026-11-14)
 
 A new look, fewer interruptions, and the fixes of a review of the whole app

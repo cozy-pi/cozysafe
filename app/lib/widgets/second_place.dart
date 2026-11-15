@@ -20,6 +20,19 @@ class SecondPlaceNudge extends StatefulWidget {
   /// For the mockup renders: show it whatever the log says.
   static bool debugShow = false;
 
+  /// Whether the open vault is known to be somewhere else too: a backup file made, or
+  /// any sync that went through (another device, Google Drive). [unknown] is the answer
+  /// when the connection log cannot be read.
+  static Future<bool> exists({bool unknown = false}) async {
+    if (Prefs.read('last-backup') != null) return true;
+    try {
+      final log = await sync.connectionLog();
+      return log.any((line) => line.split('|').elementAtOrNull(3) == 'ok');
+    } catch (_) {
+      return unknown;
+    }
+  }
+
   @override
   State<SecondPlaceNudge> createState() => _SecondPlaceNudgeState();
 }
@@ -43,14 +56,8 @@ class _SecondPlaceNudgeState extends State<SecondPlaceNudge> {
         DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(hidden)) < SecondPlaceNudge._hideFor) {
       return;
     }
-    // A backup file made, or any sync that went through, is a second place.
-    if (Prefs.read('last-backup') != null) return;
-    try {
-      final log = await sync.connectionLog();
-      if (log.any((line) => line.split('|').elementAtOrNull(3) == 'ok')) return;
-    } catch (_) {
-      return; // no log to read: say nothing rather than nag
-    }
+    // No log to read: say nothing rather than nag.
+    if (await SecondPlaceNudge.exists(unknown: true)) return;
     if (mounted) setState(() => _show = true);
   }
 

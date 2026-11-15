@@ -309,9 +309,12 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final l = AppLocalizations.of(context);
     if (yes) {
       setState(() => _busy = true);
-      await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
+      final on = await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
       if (!mounted) return;
       setState(() => _busy = false);
+      // Cancelled or failed: the vault opens all the same, but not without a word (the
+      // person believes Face ID is on). The message stays over the vault as it opens.
+      if (!on) showToast(context, l.biometricNotOn, icon: Icons.info_outline_rounded);
     }
     await _enter();
   }

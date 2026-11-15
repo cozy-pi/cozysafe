@@ -76,13 +76,22 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
     }
   }
 
+  /// Why the note could not be read (not the lock: that one is read again on opening).
+  Object? _failed;
+
   void _load(String id) {
+    if (_failed != null) setState(() => _failed = null);
     rust.itemContent(id: id).then((bytes) {
       if (!mounted || _ready) return;
       _loaded = _decode(bytes);
       _text.text = _loaded;
       setState(() => _ready = true);
-    }, onError: (Object _) {}); // locked meanwhile: read again once it opens
+    }, onError: (Object e) {
+      // Locked meanwhile: read again once it opens. Anything else is said: the wheel
+      // turned for ever on a note that cannot be read (2026-11-15 review).
+      if (!mounted || _ready || e == rust.VaultError.locked) return;
+      setState(() => _failed = e);
+    });
   }
 
   /// The editor stays open under the lock with its text (written before the lock); one
@@ -238,7 +247,26 @@ class _NoteScreenState extends State<NoteScreen> with VaultLockAware {
               const SizedBox(height: 12),
               Expanded(
                 child: !_ready
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(
+                  child: _failed == null
+                      ? const CircularProgressIndicator()
+                      : Padding(
+                          key: const ValueKey('note-failed'),
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.error_outline_rounded, size: 44, color: c.muted),
+                            const SizedBox(height: 12),
+                            Text(
+                              switch (_failed) {
+                                final rust.VaultError e => vaultErrorText(l, e),
+                                final e => withCode(l, l.errorOpen, e!),
+                              },
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.45),
+                            ),
+                          ]),
+                        ),
+                )
               : Padding(
                   padding: const EdgeInsets.fromLTRB(24, 6, 24, 12),
                   child: TextField(

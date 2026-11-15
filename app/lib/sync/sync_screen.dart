@@ -67,6 +67,25 @@ class _SyncScreenState extends State<SyncScreen> {
     _loadLog();
   }
 
+  /// One start at a time: a second tap while the first still waits (for the address, for
+  /// Google, for a sync under way) opened a second page or a second sync.
+  bool _starting = false;
+  Future<void> _once(Future<void> Function() start) async {
+    if (_starting) return;
+    _starting = true;
+    try {
+      await start();
+    } finally {
+      _starting = false;
+    }
+  }
+
+  /// A sync by hand waits for the automatic one under way, and says so meanwhile.
+  Future<void> _idle() async {
+    if (!AutoSync.running.value) return;
+    await whileWorking(context, AppLocalizations.of(context).syncFinishing, AutoSync.idle);
+  }
+
   /// Both devices open this and wait: they find each other on this Wi-Fi and both people
   /// confirm (docs/adr/0003-sync.md). The tap is the consent: no card asking first (owner
   /// 2026-11-03: "they tapped it already"); the same for [_invite] and Sync now.
@@ -78,7 +97,7 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    await AutoSync.idle();
+    await _idle();
     if (!mounted) return;
     await pushPage<void>(context,
         title: l.syncRow,
@@ -96,7 +115,7 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    await AutoSync.idle();
+    await _idle();
     if (!mounted) return;
     await pushPage<void>(context,
         title: l.syncLocalNew,
@@ -115,8 +134,8 @@ class _SyncScreenState extends State<SyncScreen> {
                 const Padding(padding: EdgeInsets.only(top: 12), child: SyncLink(moving: false)),
                 const SizedBox(height: 24),
                 _Card(children: [
-                  _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncLocalExisting, onTap: _nearby),
-                  _Action(key: const ValueKey('sync-invite'), icon: Icons.add_to_home_screen_rounded, color: const Color(0xFF5856D6), title: l.syncLocalNew, onTap: _invite),
+                  _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncLocalExisting, onTap: () => _once(_nearby)),
+                  _Action(key: const ValueKey('sync-invite'), icon: Icons.add_to_home_screen_rounded, color: const Color(0xFF5856D6), title: l.syncLocalNew, onTap: () => _once(_invite)),
                 ]),
               ],
             ));
@@ -158,9 +177,20 @@ class _SyncScreenState extends State<SyncScreen> {
               ],
             ),
           );
-    if (adding && !await allowConnection(context, l.syncAllowDrive(session.email), below: below) || !mounted) return;
+    if (adding && !await allowConnection(context, l.syncAllowDrive(session.email), below: below)) {
+      // Declined: the sign-in above already remembered the account, so forget it again,
+      // or Drive would show as connected (and automatic sync would start using it).
+      if (SyncScreen.debugSession == null) {
+        try {
+          await driveSignOut();
+        } catch (_) {}
+      }
+      if (mounted) setState(() {});
+      return;
+    }
+    if (!mounted) return;
     if (adding) setState(() => AutoSync.enabled = auto);
-    await AutoSync.idle();
+    await _idle();
     if (!mounted) return;
     final token = session.token;
     await pushPage<void>(context,
@@ -211,7 +241,7 @@ class _SyncScreenState extends State<SyncScreen> {
                 logo: const DriveLogo(size: 20),
                 title: 'Google Drive',
                 alert: true,
-                onTap: _account == null ? _drive : _openDrive),
+                onTap: _account == null ? () => _once(_drive) : _openDrive),
           ]),
           const SizedBox(height: 24),
         ],
@@ -264,7 +294,7 @@ class _SyncScreenState extends State<SyncScreen> {
                   ]),
                   const SizedBox(height: 24),
                   _Card(children: [
-                    _Action(key: const ValueKey('sync-drive-now'), icon: Icons.sync_rounded, color: const Color(0xFF007AFF), title: l.syncNow, onTap: _drive),
+                    _Action(key: const ValueKey('sync-drive-now'), icon: Icons.sync_rounded, color: const Color(0xFF007AFF), title: l.syncNow, onTap: () => _once(_drive)),
                   ]),
                   const SizedBox(height: 24),
                   _Card(children: [
