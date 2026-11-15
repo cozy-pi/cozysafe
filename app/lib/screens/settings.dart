@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../widgets/ask.dart';
 import '../widgets/cs_switch.dart';
 import '../widgets/item_menu.dart';
 import 'package:flutter/rendering.dart' show RenderAbstractViewport;
@@ -389,27 +390,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _keyBackupOn() async {
     final l = AppLocalizations.of(context);
     final google = KeyBackup.google;
-    final yes = await showCard<bool>(context, title: google ? l.keyBackupTitleGoogle : l.keyBackupTitle, builder: (context) {
-      final c = CsColors.of(context);
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(google ? l.keyBackupBodyGoogle : l.keyBackupBody, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
-          const SizedBox(height: 18),
-          Row(children: [
-            Expanded(child: OutlinedButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.cancel))),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton(
-                key: const ValueKey('key-backup-yes'),
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text(l.keyBackupOn),
-              ),
-            ),
-          ]),
-        ]),
-      );
-    });
+    final yes = await askCard<bool>(
+      context,
+      title: google ? l.keyBackupTitleGoogle : l.keyBackupTitle,
+      body: google ? l.keyBackupBodyGoogle : l.keyBackupBody,
+      actions: [
+        AskAction.main(l.keyBackupOn, true, key: const ValueKey('key-backup-yes')),
+        AskAction.quiet(l.cancel, false),
+      ],
+    );
     if (yes != true || !mounted) return;
     // The open vault's set: the device's, or the vault's own (ADR 0008, one copy per set).
     final key = await SecretKeyStore.readOpen();
@@ -434,43 +423,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// switch), a card says so and offers to check the words first.
   Future<void> _keyBackupOff() async {
     final l = AppLocalizations.of(context);
-    final choice = await showCard<_KeyBackupOff>(context, title: l.keyBackupOffTitle, builder: (context) {
-      final c = CsColors.of(context);
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(22, 4, 22, 14),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(l.keyBackupOffBody, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
-          const SizedBox(height: 18),
-          OutlinedButton(
-            key: const ValueKey('key-backup-off-check'),
-            onPressed: () => Navigator.of(context).pop(_KeyBackupOff.check),
-            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 50)),
-            child: Text(l.keyBackupOffCheck, textAlign: TextAlign.center),
-          ),
-          const SizedBox(height: 8),
-          FilledButton(
-            key: const ValueKey('key-backup-off-go'),
-            onPressed: () => Navigator.of(context).pop(_KeyBackupOff.remove),
-            style: FilledButton.styleFrom(
-              backgroundColor: recordRed(context),
-              foregroundColor: Colors.white,
-              minimumSize: const Size(0, 50),
-            ),
-            child: Text(l.keyBackupOffGo),
-          ),
-          const SizedBox(height: 6),
-          TextButton(
-            key: const ValueKey('key-backup-off-cancel'),
-            onPressed: () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.onSurface,
-              minimumSize: const Size(0, 50),
-            ),
-            child: Text(l.cancel),
-          ),
-        ]),
-      );
-    });
+    final choice = await askCard<_KeyBackupOff>(
+      context,
+      title: l.keyBackupOffTitle,
+      body: l.keyBackupOffBody,
+      actions: [
+        AskAction(l.keyBackupOffCheck, _KeyBackupOff.check, key: const ValueKey('key-backup-off-check')),
+        AskAction.main(l.keyBackupOffGo, _KeyBackupOff.remove, key: const ValueKey('key-backup-off-go'), danger: true),
+        AskAction.quiet(l.cancel, null, key: const ValueKey('key-backup-off-cancel')),
+      ],
+    );
     if (!mounted) return;
     if (choice == _KeyBackupOff.check) {
       final vault = widget.vault();

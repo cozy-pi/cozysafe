@@ -152,20 +152,24 @@ class StepPage extends StatelessWidget {
       bottom: false,
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Ui.side - 4, 8, Ui.side, 4),
-            child: Row(
-              children: [
-                if (onBack != null)
-                  RoundBack(key: const ValueKey('step-back'), onTap: onBack)
-                else
-                  const SizedBox(height: Ui.circle),
-                const SizedBox(width: 16),
-                Expanded(child: count > 1 ? StepProgress(count: count, at: at) : const SizedBox()),
-                const SizedBox(width: 8),
-              ],
-            ),
-          ),
+          // Neither Back nor progress: no empty band over the title.
+          if (onBack != null || count > 1)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.side, 4),
+              child: Row(
+                children: [
+                  if (onBack != null)
+                    RoundBack(key: const ValueKey('step-back'), onTap: onBack)
+                  else
+                    const SizedBox(height: Ui.circle),
+                  const SizedBox(width: 16),
+                  Expanded(child: count > 1 ? StepProgress(count: count, at: at) : const SizedBox()),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            )
+          else
+            const SizedBox(height: 12),
           Expanded(
             child: Align(
               alignment: Alignment.topCenter,
