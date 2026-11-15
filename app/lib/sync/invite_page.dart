@@ -19,11 +19,12 @@ import 'add_code.dart';
 import 'progress.dart';
 import 'wifi.dart';
 
-/// "Set up a new device" (ADR 0003, point 11): this device, with the vault open, waits
-/// for a new device on the Wi-Fi. When one connects, the two make a key together and this
-/// device shows 8 digits from it; the person types them on the new device, then the vault
-/// password. Only both right make this device send the 24 words and the vault. It waits
-/// two minutes; screenshots are blocked while it shows the code.
+/// "Set up a new device" (ADR 0003, point 11): this device, with the vault open and its
+/// owner just confirmed (the caller asks), waits for a new device on the Wi-Fi. When one
+/// connects, the two make a key together and the new device shows 8 digits from it; the
+/// person types them here, where they are compared, then the vault password there. Only
+/// both right make this device send the 24 words and the vault. It waits two minutes;
+/// screenshots are blocked while the page is up.
 class InvitePage extends StatefulWidget {
   const InvitePage({super.key, required this.address, required this.mirror, required this.onSynced});
   final String address;
@@ -84,7 +85,7 @@ class _InvitePageState extends State<InvitePage> {
     }
     final seconds = _seconds;
     if (seconds == null || _events == null) return const Center(child: CircularProgressIndicator());
-    // Kept awake, out of screenshots and recordings, while the code is up.
+    // Kept awake, out of screenshots and recordings, while the code is typed.
     return WordsAwake(
       child: SyncProgress(
         events: _events!,
@@ -131,7 +132,7 @@ class _CountdownState extends State<_Countdown> {
 
 /// The new device, with no vault in `dir`, is added: the tap on restore from another
 /// device is the allowing (owner 2026-11-03, no card asking again), then find the old
-/// device, the code, the password, restore. Returns the vault opened
+/// device, the code (shown here, typed there), the password, restore. Returns the vault opened
 /// here, its 24 words kept under the library it went into; null otherwise.
 Future<rust.VaultInfo?> restoreByCode(BuildContext context, {required String libraryDir, required String dir}) async {
   final l = AppLocalizations.of(context);

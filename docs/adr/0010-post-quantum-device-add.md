@@ -22,7 +22,8 @@ draft-connolly-cfrg-xwing-kem-11): a key encapsulation instead of a Diffie-Hellm
 exchange. The implementation is the vault identity's (`cs_identity::xwing`, ADR 0008,
 checked against the draft's vectors); no new crate.
 
-- **New device** (mode 10): a fresh X-Wing key pair (32-byte seed from the system's
+- **New device** (mode 10; mode 11 since 0.3.1, same bytes, see the note under
+  Compatibility): a fresh X-Wing key pair (32-byte seed from the system's
   generator, wiped after use) and a nonce `nj`. It sends its public key and a commitment
   `SHA-256("cozysafe/p2p/v2/add-commit" ‖ public key ‖ nj)`, keeping `nj` back.
 - **Old device:** checks the key (ML-KEM's modulus check), encapsulates to it (64 fresh
@@ -33,8 +34,9 @@ checked against the draft's vectors); no new crate.
   key ‖ ciphertext ‖ nj ‖ nh)`, each part length-prefixed. From the X-Wing shared secret,
   HKDF (`kdf::subkey`) gives the pairing key `p2p-add/v2/key/<T>` and the code
   `p2p-add/v2/code/<T>` (first 8 bytes as a number, mod 10^8). Everything after (the
-  sealed, numbered frames, the code typed on the new device, the password, the words) is
-  as in ADR 0003.
+  sealed, numbered frames, the code, the password, the words) is as in ADR 0003 (the
+  code was typed on the new device until 0.3.0; since 0.3.1 the new device shows it and
+  it is typed and compared on the old one).
 - **Hybrid inside.** X-Wing's shared secret is SHA3-256 over both the ML-KEM and the
   X25519 secrets (and the X25519 keys), so the key holds while either one does: a flaw in
   the young lattice scheme still leaves X25519, and a quantum computer still leaves
@@ -73,6 +75,13 @@ Both devices need this version; there is no fallback to X25519 alone.
 - **New app on the new device, old app adding it:** the old app does not know the hello
   and closes; the new app reads that as "p2p add old version" and ends at once. The old
   app counts it as a failed try and keeps waiting (as it does for any stranger).
+
+**0.3.1: mode 11.** The exchange and its labels are unchanged; what follows it is not
+(who shows the code and who compares it, ADR 0003 point 11), so the mode byte moved from
+10 to 11 and the two can never mix. An app of 0.2.28–0.3.0 on the new device has the
+connection closed on its mode 10 hello and reads that as "p2p add old version"; a 0.3.1
+new device meeting such an app adding it is closed on the same way. Mode 8 is answered
+`[2, 11]` as it was `[2, 10]`.
 - Both cases show the app's ordinary "could not" screen; there is no screen yet that says
   "update the app".
 

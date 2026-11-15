@@ -87,7 +87,9 @@ class _SyncScreenState extends State<SyncScreen> {
   }
 
   /// "Add a new device" (ADR 0003, point 11): a one-time code for a device that has no
-  /// vault yet; it gets the vault after its person types the vault password there.
+  /// vault yet; it gets the vault after its person types the vault password there. It
+  /// ends with the 24 words leaving this device, so the owner is asked first, every time
+  /// (as before showing the words): an open vault in someone else's hands starts nothing.
   Future<void> _invite() async {
     final l = AppLocalizations.of(context);
     final address = SyncScreen.debugAddress ?? await localAddress();
@@ -96,6 +98,7 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
+    if (!await confirmOwnerForSetting(l.syncLocalNew, context: context, always: true) || !mounted) return;
     await AutoSync.idle();
     if (!mounted) return;
     await pushPage<void>(context,

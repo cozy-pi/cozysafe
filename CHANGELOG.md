@@ -4,6 +4,15 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.3.1 (unreleased)
+
+### Fixed
+- Set up a new device: the code now shows on the new device and you type it on the
+  device that has the vault, which checks it itself and asks who is holding it (Face ID,
+  fingerprint or passcode) before it starts. Before, someone on the same Wi‑Fi during
+  those 2 minutes could pretend the code had matched and try 3 vault passwords. Both
+  devices need this version.
+
 ## 0.3.0 (2026-11-14)
 
 A new look, fewer interruptions, and the fixes of a review of the whole app

@@ -12,8 +12,9 @@ Anything that weakens or reveals the vault's protection asks for Face ID, finger
 the phone's passcode first (`confirmOwnerForSetting` in `app/lib/biometric.dart`),
 wherever it is opened from. One check covers the next settings for 2 minutes
 (`ownerGrace`, 2026-11-11 review: Face ID for every row, one after another), ended by
-the vault locking; never for the Recovery Key, deleting the vault or deleting it from
-Google Drive (`always: true`), and never in Top Secret Mode, which asks every time:
+the vault locking; never for the Recovery Key, setting up a new device, deleting the
+vault or deleting it from Google Drive (`always: true`), and never in Top Secret Mode,
+which asks every time:
 
 | Setting | Where the check is |
 |---|---|
@@ -27,6 +28,7 @@ Google Drive (`always: true`), and never in Top Secret Mode, which asks every ti
 | Blur thumbnails (off only) | `settings.dart` (`_guarded`) |
 | Delete this vault | `settings.dart` (`_guarded`), then the vault's password |
 | New vault | `confirmOwner` (lock screen and vault) |
+| Set up a new device (it ends with the 24 words sent to it): every time, `always: true` | `sync_screen.dart` `_invite` |
 | How long a copied password or code stays (longer or "never" only; Settings → Privacy; hidden in Top Secret, fixed at 90 s) | `settings.dart` (`_guarded`) |
 
 A new security setting gets the same check in the same commit, and a row in this table.
@@ -415,6 +417,14 @@ attack. Moving a vault is done by the app's own backup file or sync.
   with your vault on another device or Set up a new device; that tap is the allowing (owner
   2026-11-03: a card asking again after it was "too many questions"). The wait ends
   after 5 minutes or when the page closes.
+- **Set up a new device asks who is holding the phone, then for the new device's code**
+  (0.3.1). Face ID, fingerprint or passcode every time before the 2-minute wait starts
+  (it can end with the 24 words leaving the device). The new device shows 8 digits; the
+  person types them on the old device, which compares them itself: 3 tries, then it
+  closes. Only then does it take the vault password from the new device (3 tries). A
+  device on the Wi-Fi that merely says it is the new one gets nothing: no one types its
+  code. Up to 0.3.0 the code was typed and checked on the new device, and the old one
+  believed it ([ADR 0003](adr/0003-sync.md), point 11).
 - **Both people confirm, comparing a number** (0.1.73), like Bluetooth pairing: both
   screens ask "Sync with iPhone 15 Pro Max?" next to the same 3-digit number, and nothing
   is served until both tapped Sync; Cancel on either stops both. Strangers are already
@@ -484,7 +494,7 @@ Where things stand ([details](cryptography.md#post-quantum-status)):
 | Password guessing | Argon2id, 128 MiB per try | Yes (not realistic inside a quantum computer) |
 | Sync between devices that hold the vault (nearby, Google Drive) | keys from the Master Key by HKDF; content sealed before it leaves | Yes |
 | Vault identity (ADR 0008) | Ed25519 + ML-DSA-65, X-Wing | Yes (hybrid) |
-| Adding a new device on the Wi-Fi | X-Wing (ML-KEM-768 + X25519) with a commitment and an 8-digit code ([ADR 0010](adr/0010-post-quantum-device-add.md)); X25519 alone until 0.2.27 | Yes (hybrid) since 0.2.28 |
+| Adding a new device on the Wi-Fi | X-Wing (ML-KEM-768 + X25519) with a commitment and an 8-digit code, shown on the new device and typed on the old ([ADR 0010](adr/0010-post-quantum-device-add.md)); X25519 alone until 0.2.27 | Yes (hybrid) since 0.2.28 |
 | HTTPS to Google Drive | TLS 1.3, classical key exchange (`rustls` + `ring`) | Content: yes (sealed before it leaves). The OAuth tokens: no. The hybrid X25519MLKEM768 group needs `rustls`' `aws-lc-rs` provider; the app uses `ring`, which has none |
 | Face ID / fingerprint wraps | Secure Enclave / Keystore, never leave the device | Not exposed |
 

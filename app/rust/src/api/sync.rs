@@ -84,20 +84,20 @@ pub enum SyncStep {
     Rejected,
     /// Host only, not the end: a device has just connected and is proving the vault.
     Knock,
-    /// Adding a device, not the end: the new device (`name`) typed the code and its
-    /// person types the vault password next. Cancel with [`p2p_cancel`].
+    /// Adding a device, not the end: the code typed here matched the new device's
+    /// (`name`), whose person types the vault password next. Cancel with [`p2p_cancel`].
     Invited,
     /// Being added, not the end: type the vault password and give it with
     /// [`p2p_invite_password`]; `check` is the tries left after a wrong one (0 at first).
     AskPassword,
-    /// Adding a device, not the end: a new device connected; show the 8 digits in `name`
-    /// for its person to type there (ADR 0003, point 11).
+    /// Being added, not the end: the old device was found; show the 8 digits in `name`
+    /// for the person to type on it (ADR 0003, point 11).
     AddCode,
-    /// Being added, not the end: type the 8 digits the old device shows and give them with
-    /// [`p2p_add_code`]; `check` is the tries left (3 at first).
+    /// Adding a device, not the end: a new device connected; type the 8 digits it shows
+    /// and give them with [`p2p_add_code`]; `check` is the tries left (3 at first).
     AskCode,
-    /// Adding a device ended: the code was typed wrong three times (or someone was in
-    /// the middle). Nothing crossed.
+    /// Adding a device ended, on either device: the code was typed wrong three times on
+    /// the old one (or someone was in the middle). Nothing crossed.
     AddWrongCode,
     /// Being added: two devices on this Wi-Fi are adding one; close one of them.
     AddSeveral,
@@ -384,12 +384,13 @@ pub fn p2p_wait_start(ip: String, mirror: String, name: String) -> Result<Hostin
 }
 
 /// "Set up a new device" (ADR 0003, point 11): like [`p2p_wait_start`], but this device
-/// waits for a new device alone and answers nothing else. When one connects, the code to
-/// show comes as [`SyncStep::AddCode`]; its person types it and the vault password there,
-/// and only both right make this device send the 24 words ([`p2p_wait_run`] runs it).
-/// Returns the seconds it waits.
+/// waits for a new device alone and answers nothing else. When one connects, it shows a
+/// code and this device asks for it ([`SyncStep::AskCode`]) and compares it here; then
+/// the vault password is typed there, and only both right make this device send the 24
+/// words ([`p2p_wait_run`] runs it). Returns the seconds it waits.
 pub fn p2p_add_start(ip: String, mirror: String, name: String) -> Result<u32, VaultError> {
     STOP.store(false, Ordering::Relaxed);
+    *ADD_CODE.lock().unwrap_or_else(|p| p.into_inner()) = None;
     let permit = Permit::listen_on(&ip).ok_or(VaultError::Storage)?;
     let dir = Path::new(&mirror);
     let _ = std::fs::remove_dir_all(dir);
@@ -498,8 +499,9 @@ fn with_ask<T>(
     };
     let allow = |name: &str, check: u16| {
         remember(name);
-        // The device being added typed the code: named, and on to its password at once
-        // (Cancel ends it, the socket being live).
+        // The code typed here matched the new device's, so the person is looking at
+        // both: named, and on to its password at once, no second question (Cancel ends
+        // it, the socket being live).
         if invited {
             let _ = sink.add(named(SyncStep::Invited, name, 0));
             return true;
@@ -525,9 +527,7 @@ fn with_ask<T>(
         confirm: &confirm,
         allow: &allow,
         password,
-        code: &|c| {
-            let _ = sink.add(named(SyncStep::AddCode, c, 0));
-        },
+        code: &|left, gone| typed_code(sink, left, gone),
         progress: &|p| {
             let _ = sink.add(progress_event(p));
         },
@@ -760,8 +760,37 @@ static INVITE_KEY: Mutex<Option<zeroize::Zeroizing<Vec<u8>>>> = Mutex::new(None)
 static ADD_CODE: Mutex<Option<Option<String>>> = Mutex::new(None);
 static ADD_TYPED: Condvar = Condvar::new();
 
-/// The answer to [`SyncStep::AskCode`]: the 8 digits typed, compared on this device and
-/// never sent.
+/// The old device asks for the code the new one shows ([`SyncStep::AskCode`], `left`
+/// tries) and waits for [`p2p_add_code`]. None: the person stopped, the wait ran out, or
+/// the new device went (`gone`).
+fn typed_code(
+    sink: &StreamSink<SyncEvent>,
+    left: u32,
+    gone: &dyn Fn() -> bool,
+) -> Option<zeroize::Zeroizing<String>> {
+    let mut slot = ADD_CODE.lock().unwrap_or_else(|p| p.into_inner());
+    *slot = None;
+    let _ = sink.add(SyncEvent {
+        check: left as u16,
+        ..step(SyncStep::AskCode)
+    });
+    let until = Instant::now() + p2p::ALLOW_WAIT;
+    loop {
+        if let Some(answer) = slot.take() {
+            return answer.map(zeroize::Zeroizing::new);
+        }
+        if STOP.load(Ordering::Relaxed) || Instant::now() > until || gone() {
+            return None;
+        }
+        slot = ADD_TYPED
+            .wait_timeout(slot, Duration::from_millis(200))
+            .unwrap_or_else(|p| p.into_inner())
+            .0;
+    }
+}
+
+/// The answer to [`SyncStep::AskCode`] on the old device: the 8 digits typed, compared
+/// on this device and never sent.
 #[flutter_rust_bridge::frb(sync)]
 pub fn p2p_add_code(code: Option<String>) {
     *ADD_CODE.lock().unwrap_or_else(|p| p.into_inner()) = Some(code);
@@ -787,14 +816,13 @@ pub fn p2p_invite_key() -> Option<Vec<u8>> {
 }
 
 /// A new device with no vault in `dir` is added: it looks on the Wi-Fi where it has `ip`
-/// for the device adding one, asks the person for the code it shows
-/// ([`SyncStep::AskCode`]), then the vault password ([`SyncStep::AskPassword`]), and once
-/// the old device took both, gets the 24 words and the vault. On Done the vault is open
-/// here and [`p2p_invite_key`] holds the words.
+/// for the device adding one, shows the code for the person to type there
+/// ([`SyncStep::AddCode`]), then asks the vault password ([`SyncStep::AskPassword`]), and
+/// once the old device took both, gets the 24 words and the vault. On Done the vault is
+/// open here and [`p2p_invite_key`] holds the words.
 pub fn p2p_add_restore(dir: String, ip: String, name: String, sink: StreamSink<SyncEvent>) {
     STOP.store(false, Ordering::Relaxed);
     *INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner()) = None;
-    *ADD_CODE.lock().unwrap_or_else(|p| p.into_inner()) = None;
     *INVITE_KEY.lock().unwrap_or_else(|p| p.into_inner()) = None;
     let Ok(dir) = super::run::library_dir(&dir) else {
         let _ = sink.add(step(SyncStep::Failed));
@@ -809,26 +837,8 @@ pub fn p2p_add_restore(dir: String, ip: String, name: String, sink: StreamSink<S
     let typed: Mutex<Option<zeroize::Zeroizing<String>>> = Mutex::new(None);
     // The password typed opens a vault here already: stopped before anything comes in.
     let clash = std::sync::atomic::AtomicBool::new(false);
-    let code = |left: u32| {
-        let mut slot = ADD_CODE.lock().unwrap_or_else(|p| p.into_inner());
-        *slot = None;
-        let _ = sink.add(SyncEvent {
-            check: left as u16,
-            ..step(SyncStep::AskCode)
-        });
-        let until = Instant::now() + p2p::ALLOW_WAIT;
-        loop {
-            if let Some(answer) = slot.take() {
-                return answer.map(zeroize::Zeroizing::new);
-            }
-            if STOP.load(Ordering::Relaxed) || Instant::now() > until {
-                return None;
-            }
-            slot = ADD_TYPED
-                .wait_timeout(slot, Duration::from_millis(200))
-                .unwrap_or_else(|p| p.into_inner())
-                .0;
-        }
+    let code = |digits: &str| {
+        let _ = sink.add(named(SyncStep::AddCode, digits, 0));
     };
     let password = |left: u32| {
         let mut slot = INVITE_PASSWORD.lock().unwrap_or_else(|p| p.into_inner());

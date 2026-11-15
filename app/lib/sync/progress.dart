@@ -779,7 +779,8 @@ class _SyncProgressState extends State<SyncProgress>
             ],
           ),
         sync.SyncStep.askPassword => _passwordCard(l, c, wrong: e.check > 0, left: e.check),
-        // Adding a device by its code (ADR 0003, point 11).
+        // Adding a device by its code (ADR 0003, point 11): shown on the new device,
+        // typed on the old one, which is the one that compares it.
         sync.SyncStep.addCode => AddCodeShown(code: e.name),
         sync.SyncStep.askCode => KeyedSubtree(
             key: ValueKey('add-code-try-${e.check}'),
@@ -788,7 +789,7 @@ class _SyncProgressState extends State<SyncProgress>
               onCode: (c) => sync.p2PAddCode(code: c),
             ),
           ),
-        sync.SyncStep.addWrongCode => AddCodeEnded(end: widget.restoring ? AddCodeEnd.wrongCode : AddCodeEnd.closed),
+        sync.SyncStep.addWrongCode => const AddCodeEnded(end: AddCodeEnd.wrongCode),
         sync.SyncStep.addWrongPassword => const AddCodeEnded(end: AddCodeEnd.wrongPassword),
         sync.SyncStep.alreadyHere => const AddCodeEnded(end: AddCodeEnd.alreadyHere),
         sync.SyncStep.addSeveral => _Status(icon: Icons.devices_rounded, color: const Color(0xFFFF9500), title: l.addCodeSeveral),
