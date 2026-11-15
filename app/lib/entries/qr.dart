@@ -117,6 +117,9 @@ abstract final class QrCode {
 class QrCameraScreen extends StatefulWidget {
   const QrCameraScreen({super.key});
 
+  /// For the mockup renders: a still image instead of the camera.
+  static Widget? debugPreview;
+
   @override
   State<QrCameraScreen> createState() => _QrCameraScreenState();
 }
@@ -132,7 +135,7 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
   @override
   void initState() {
     super.initState();
-    _start();
+    if (QrCameraScreen.debugPreview == null) _start();
   }
 
   bool get _gone => !mounted || _done || vaultLock.locked;
@@ -218,6 +221,7 @@ class _QrCameraScreenState extends State<QrCameraScreen> with VaultLockAware {
       body: Stack(
         fit: StackFit.expand,
         children: [
+          ?QrCameraScreen.debugPreview,
           if (c != null && c.value.isInitialized) Center(child: CameraPreview(c)),
           if (_failed)
             Center(
