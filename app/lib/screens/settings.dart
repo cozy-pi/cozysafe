@@ -856,13 +856,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l = AppLocalizations.of(context);
     final main = _page == _Page.main;
     return PopScope(
-      // A sub-page goes back to the main page first.
+      // A sub-page is a route of its own ([_show]), so this page is the main one and pops.
+      // Only a mockup draws a sub-page in place (debugPage): Back there shows the main page.
       canPop: main,
       onPopInvokedWithResult: (popped, _) {
         if (!popped) _show(_Page.main);
       },
-      // Sub-pages are shown in place, so the system swipe has nothing to pop: an edge
-      // swipe goes back to the main page (iPhone).
+      // The same for the edge swipe, on a sub-page drawn in place (mockups only).
       child: EdgeSwipeBack(
       enabled: !main,
       onBack: () => _show(_Page.main),
@@ -909,8 +909,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final vault = widget.vault();
     final dark = Theme.of(context).brightness == Brightness.dark;
     return [
-          // One page, every setting on it in groups (owner 2026-10-31: the main page was
-          // empty and the sub-pages long); only About opens a page of its own.
+          // The main page holds most settings in groups (owner 2026-10-31: it was empty
+          // and the sub-pages long); Screen, Look and About each open a page of their own.
           if (page == _Page.main) ...[
             _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), figures: _figures.value, onTap: _openStorage),
             // Top Secret Mode in a card of its own, near the top (owner 2026-10-31: people
@@ -952,10 +952,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   minimumSize: const Size(0, 34),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: const StadiumBorder(),
-                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: CsType.footnote, fontWeight: FontWeight.w600),
                 ),
                 onPressed: () => _then(widget.onBackup),
-                child: Text(l.backupNow),
+                // A long translation wraps inside the button; the row's name keeps its room.
+                child: Text(l.backupNow,
+                    textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
               ),
             ),
           ]),
@@ -1568,7 +1569,10 @@ class SettingsRow extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 46),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
-          child: Row(
+          // What sits at the row's end (a button, a three-way switch) takes at most this
+          // much of the row, and wraps or shrinks inside it: in French or Russian it used
+          // to squeeze the name into a few letters per line.
+          child: LayoutBuilder(builder: (context, box) => Row(
             children: [
               SettingTile(icon: icon, color: color, glyph: glyph),
               const SizedBox(width: 12),
@@ -1586,13 +1590,16 @@ class SettingsRow extends StatelessWidget {
                       maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: CsType.body)),
                 ),
               ],
-              if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                ConstrainedBox(constraints: BoxConstraints(maxWidth: box.maxWidth * .56), child: trailing!),
+              ],
               if (onTap != null && trailing == null && chevron) ...[
                 const SizedBox(width: 4),
                 Icon(Icons.chevron_right, color: c.muted, size: 20),
               ],
             ],
-          ),
+          )),
         ),
       ),
     );
@@ -1627,14 +1634,18 @@ class _SideSwitch extends StatelessWidget {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(19)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        part(labels.$1, ActionSide.left),
-        part(labels.$2, ActionSide.center),
-        part(labels.$3, ActionSide.right),
-      ]),
+    // Three long words (a translation) shrink together rather than overflow the row.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(19)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          part(labels.$1, ActionSide.left),
+          part(labels.$2, ActionSide.center),
+          part(labels.$3, ActionSide.right),
+        ]),
+      ),
     );
   }
 }

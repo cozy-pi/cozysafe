@@ -54,6 +54,9 @@ Dates are UTC.
   says so.
 
 ### Changed
+- One look across the app: short questions are cards instead of system dialogs, restore
+  and Recovery Key pages use the same step layout as creating a vault, cards share their
+  margins and corners, and errors under a field are red.
 - Turning off the copy of the 24 words in iCloud Keychain or your Google account asks
   for Face ID, fingerprint or the passcode, then confirms: the copy is removed for every
   device on the account, and you can check your 24 words first.

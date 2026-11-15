@@ -217,7 +217,14 @@ under it. Where keeping is the safe and likely answer (the originals after an im
 Keep is a full button as big as Delete, not text.
 
 **Buttons** are round-ended (stadium) everywhere: the theme's filled and outlined
-buttons, a step's main button. No 10-corner buttons.
+buttons, a step's main button. No 10-corner buttons. A button's size and weight of text
+come from the theme; one that differs sets them on its `Text`, never as `textStyle:` in
+the button's style (that replaces the font too, and drew boxes in the renders;
+test/theme_test.dart keeps it so).
+
+**Settings rows**: what sits at a row's end (a button, the three-way side switch) takes
+at most a little over half the row and wraps or shrinks inside it; the row's name keeps
+the rest and wraps, so a long translation never leaves it a few letters per line.
 
 ## 5. Not unified yet (do it this way when you touch them)
 
@@ -225,7 +232,9 @@ buttons, a step's main button. No 10-corner buttons.
   they are listed (bar, overview tiles, search tiles; owner 2026-11-07).
 - Lists: one look everywhere, rows grouped in one rounded card (as Settings), rows about
   54 high, a thin line between rows, the kind's icon on the left. (The page and card
-  colours are done, principle 7; row height and icon size are not yet.)
+  colours are done, principle 7, and so are the names, 17 regular everywhere, and the
+  cards' margin and corners, `Ui.groupSide` and `Ui.groupRadius`; row height and icon
+  size are not yet.)
 - The bottom bars sit about 44 above the screen's edge; Photos' sit about 20.
 
 **Wide window** (iPad, computer): a page opened from the content (Sync from the home
