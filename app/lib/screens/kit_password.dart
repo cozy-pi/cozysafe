@@ -84,7 +84,7 @@ class _KitPasswordScreenState extends State<KitPasswordScreen> with VaultLockAwa
     return Scaffold(
       appBar: AppBar(title: Text(l.showKit)),
       body: PinnedAction(
-        padding: 20,
+        padding: Ui.side,
         actions: [
           FilledButton(
             key: const ValueKey('kit-password-go'),
@@ -93,7 +93,7 @@ class _KitPasswordScreenState extends State<KitPasswordScreen> with VaultLockAwa
           ),
         ],
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(Ui.side, 12, Ui.side, 24),
           children: [
             Text(l.kitPasswordLead, style: TextStyle(color: c.muted, fontSize: CsType.callout, height: 1.4)),
             const SizedBox(height: 18),

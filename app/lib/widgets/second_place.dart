@@ -77,7 +77,7 @@ class _SecondPlaceNudgeState extends State<SecondPlaceNudge> {
       child: Material(
         key: const ValueKey('second-place'),
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Ui.groupRadius),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

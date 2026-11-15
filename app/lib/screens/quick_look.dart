@@ -826,10 +826,10 @@ class _QuickLookState extends State<QuickLook> {
       key: const ValueKey('quick-look'),
       constraints: box,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Ui.radius),
         boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 40, offset: Offset(0, 16))],
       ),
-      child: ClipRRect(borderRadius: BorderRadius.circular(20), child: media),
+      child: ClipRRect(borderRadius: BorderRadius.circular(Ui.radius), child: media),
     );
     // A tap on the item opens it (full screen, the editor, the file page); a video plays
     // and pauses here instead. Recently deleted only looks.

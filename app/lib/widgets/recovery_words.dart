@@ -74,7 +74,7 @@ class RecoveryWordsPanel extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
+          decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(Ui.groupRadius), border: Border.all(color: c.border)),
           child: SecretText(
             text: words.join(' '),
             builder: (context, shown) => WordGrid(words: words, shown: shown),
@@ -106,7 +106,7 @@ class RecoveryWordsPanel extends StatelessWidget {
         const SizedBox(height: 12),
         Material(
           color: c.warnBg,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: CsType.subhead, height: 1.45)),

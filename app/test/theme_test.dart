@@ -20,5 +20,13 @@ void main() {
         expect(contrast(Colors.white, p.dock), greaterThanOrEqualTo(4.5), reason: 'dock labels');
       });
     }
+    // An error is red, and its words still read on the page and on a card.
+    test('${b.name}: an error is red and readable', () {
+      final theme = buildTheme(b);
+      final red = theme.colorScheme.error;
+      expect(red.r, greaterThan(red.g + .5), reason: 'red, not the ink');
+      expect(contrast(red, theme.scaffoldBackgroundColor), greaterThanOrEqualTo(4.5), reason: 'error text on the page');
+      expect(contrast(red, theme.cardColor), greaterThanOrEqualTo(4.5), reason: 'error text on a card');
+    });
   }
 }

@@ -539,12 +539,12 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       return Material(
         color: on ? Color.alphaBlend(edge.withValues(alpha: .12), Theme.of(context).cardColor) : Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           side: BorderSide(color: on ? edge : Colors.transparent, width: 2),
         ),
         child: InkWell(
           key: ValueKey(topSecret ? 'mode-top-secret' : 'mode-everyday'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           onTap: () => setState(() => _topSecret = topSecret),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
@@ -600,12 +600,12 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       return Material(
         color: on ? Color.alphaBlend(ink.withValues(alpha: .08), Theme.of(context).cardColor) : Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           side: BorderSide(color: on ? ink : Colors.transparent, width: 2),
         ),
         child: InkWell(
           key: ValueKey(own ? 'keys-new' : 'keys-device'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           onTap: () => setState(() => _ownKey = own),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
@@ -648,10 +648,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final google = KeyBackup.google;
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       child: InkWell(
         key: const ValueKey('words-cloud'),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Ui.groupRadius),
         onTap: () => _cloudSwitch(!_cloud),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),

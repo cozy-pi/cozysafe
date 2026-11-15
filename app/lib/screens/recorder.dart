@@ -256,7 +256,7 @@ class RecorderViewState extends State<RecorderView> {
       children: [
         Material(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [

@@ -31,7 +31,8 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
    most three round buttons.
 5. **Same thing, same place, same word.** An action keeps its icon, its position and its
    name on every screen.
-6. **Roomy.** 20 side margins, big title, large corners. Content runs under the glass.
+6. **Roomy.** 20 side margins (cards start at 16, section 2), big title, large corners.
+   Content runs under the glass.
 7. **Grouped, as the phone's Settings** (2026-11-07 review). Light mode: the page a pale
    grey (`#F2F2F5`), cards and list groups white on it. Dark mode: black, cards
    `#1C1C1E`. Every page alike; `groupedPage` is kept for callers and changes nothing.
@@ -42,12 +43,14 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
 
 | Token | Value | Use |
 |---|---|---|
-| `Ui.side` | 20 | page side margin |
+| `Ui.side` | 20 | page side margin: text, fields and buttons that sit on the page itself |
+| `Ui.groupSide` | 16 | where a card starts on a page made of cards (Settings, Sync, Storage, Version history, the overview, search), and a header's round buttons |
 | `Ui.circle` | 44 | round buttons in a header |
 | `Ui.bar` | 62 | the section bar at the bottom |
 | `Ui.action` | 62 | each action circle at the bottom (as big as Photos' search) |
 | `Ui.tap` | 48 | smallest touch target |
-| `Ui.radius` | 24 | cards and tiles |
+| `Ui.radius` | 24 | cards and tiles that stand on their own: a choice, a card or sheet over the page |
+| `Ui.groupRadius` | 14 | a group of rows (`SettingsGroup`), a panel or note inside a page, a menu, a text field |
 | `Ui.chip` | 40 | chips, segmented switches |
 | `Ui.edge` | 10 | gap between a bottom bar and the safe area |
 
@@ -97,7 +100,8 @@ later (docs/backlog.md).
 | The ways to add, and a way's second choices in place | `AddCard` (`way`, `onBack`), `addSubChoices` | `widgets/vault_bar.dart` |
 | A kind of password's icon and colour | `entryIcon`, `entryKindColor`, `EntryBadge`, `EntryKindLine` | `widgets/entry_row.dart`, `widgets/vault_bar.dart` |
 | A new icon | `Sym` (Material Symbols Rounded) | `widgets/symbols.dart` |
-| Red for Delete | `recordRed(context)` | `theme.dart` |
+| Red for Delete, recording and a failure's mark | `recordRed(context)`: no red of its own anywhere | `theme.dart` |
+| Red for an error's words and a field's ring | `Theme.of(context).colorScheme.error` (as `recordRed` in dark; deeper in light, so small text reads at 4.5:1) | `theme.dart` |
 
 ## 4. Layouts
 
@@ -153,8 +157,9 @@ drawn for every page by the theme's `actionIconTheme`) on the left, the title 17
 semibold in the middle, at most one round button on the right (Recently deleted: ⋯ with
 Select).
 
-**Text fields**: one look from the theme, a soft grey rounded field (14), no outline at
-rest, a ring of ink while typing, red on an error. The border is `RoundFieldBorder`: the
+**Text fields**: one look from the theme, a soft grey rounded field (`Ui.groupRadius`),
+no outline at rest, a ring of ink while typing, a red ring and red words on an error
+(the theme's `colorScheme.error`; it was the ink until 2026-11-15). The border is `RoundFieldBorder`: the
 label floats inside the field, at its top, never onto the ring.
 
 **No helper button over a password field** (owner 2026-10-29: "Suggest a password"

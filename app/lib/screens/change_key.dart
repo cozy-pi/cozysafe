@@ -177,7 +177,7 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
     final c = CsColors.of(context);
     final note = Material(
       color: c.warnBg,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Text(
@@ -320,10 +320,10 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
               : null,
         ),
         body: PinnedAction(
-          padding: 20,
+          padding: Ui.side,
           actions: actions,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            padding: const EdgeInsets.fromLTRB(Ui.side, 12, Ui.side, 28),
             children: [body],
           ),
         ),

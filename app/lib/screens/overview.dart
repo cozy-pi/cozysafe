@@ -110,7 +110,7 @@ class VaultOverview extends StatelessWidget {
     // A card of rows (favourites).
     Widget rows(List<rust.ItemInfo> list) => Material(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           clipBehavior: Clip.antiAlias,
           child: Column(children: [
             for (final (i, it) in list.indexed) ...[
@@ -128,7 +128,7 @@ class VaultOverview extends StatelessWidget {
           child: Text(t, style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w700, color: c.muted)),
         );
     return ListView(
-      padding: EdgeInsets.fromLTRB(14, 0, 14, bottomPad),
+      padding: EdgeInsets.fromLTRB(Ui.groupSide, 0, Ui.groupSide, bottomPad),
       children: [
         ?header,
         if (onCategory != null && kinds.isNotEmpty) ...[
@@ -278,9 +278,9 @@ class OverviewTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       child: Container(
-        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Ui.groupRadius)),
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

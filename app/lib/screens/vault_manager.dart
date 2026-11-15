@@ -191,6 +191,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
           : SafeArea(
               top: false,
               child: PinnedAction(
+              padding: Ui.groupSide,
               actions: [
                 if (widget.onNewVault != null)
                   FilledButton.icon(
@@ -201,7 +202,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                   ),
               ],
               child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 24),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(4, 4, 4, 14),
@@ -373,7 +374,7 @@ class _VaultFactsState extends State<VaultFacts> {
       ],
       Container(
         key: const ValueKey('vault-details'),
-        decoration: BoxDecoration(color: c.muted.withValues(alpha: .08), borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(color: c.muted.withValues(alpha: .08), borderRadius: BorderRadius.circular(Ui.groupRadius)),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         child: Column(children: [
           for (final (label, value, red) in rows)

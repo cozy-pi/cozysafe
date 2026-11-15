@@ -133,7 +133,7 @@ class _SyncScreenState extends State<SyncScreen> {
     await pushPage<void>(context,
         title: l.syncLocalRow,
         builder: (_) => ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+              padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 28),
               children: [
                 const Padding(padding: EdgeInsets.only(top: 12), child: SyncLink(moving: false)),
                 const SizedBox(height: 24),
@@ -221,7 +221,7 @@ class _SyncScreenState extends State<SyncScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+      padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 28),
       children: [
         // A picture instead of the explanations (owner 2026-10-26: people need to know
         // only that the data is safe): this device, the lock on the way, the other.
@@ -273,7 +273,7 @@ class _SyncScreenState extends State<SyncScreen> {
               final l = AppLocalizations.of(context);
               final account = _account;
               return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                padding: const EdgeInsets.fromLTRB(Ui.groupSide, 12, Ui.groupSide, 28),
                 children: [
                   // Whose Drive, under its logo, as an account page on the iPhone (owner
                   // 2026-10-27). No "Sign in again": to change account, remove it and sync
@@ -284,7 +284,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       height: 64,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(Ui.groupRadius),
                         border: Border.all(color: CsColors.of(context).border),
                       ),
                       alignment: Alignment.center,
@@ -336,7 +336,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Center(
-                          child: Text(l.driveDeleteRow, style: const TextStyle(fontSize: CsType.body, color: Color(0xFFFF3B30))),
+                          child: Text(l.driveDeleteRow, style: TextStyle(fontSize: CsType.body, color: recordRed(context))),
                         ),
                       ),
                     ),
@@ -349,7 +349,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Center(
-                          child: Text(l.driveRemove, style: const TextStyle(fontSize: CsType.body, color: Color(0xFFFF3B30))),
+                          child: Text(l.driveRemove, style: TextStyle(fontSize: CsType.body, color: recordRed(context))),
                         ),
                       ),
                     ),
@@ -409,7 +409,7 @@ class _SyncScreenState extends State<SyncScreen> {
         final l = AppLocalizations.of(context);
         final c = CsColors.of(context);
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          padding: const EdgeInsets.fromLTRB(Ui.groupSide, 16, Ui.groupSide, 28),
           children: [
             const SyncLink(moving: false),
             const SizedBox(height: 24),
@@ -439,7 +439,7 @@ class _Card extends StatelessWidget {
     final c = CsColors.of(context);
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       clipBehavior: Clip.antiAlias,
       child: Column(children: [
         for (var i = 0; i < children.length; i++) ...[

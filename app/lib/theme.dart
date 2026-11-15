@@ -182,7 +182,10 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   final ink = p?.ink ?? pen;
   final accent = p?.accent ?? pen;
   final accentInk = p?.onAccent ?? page;
-  final danger = pen;
+  // An error is red (docs/design-language.md, Text fields): the ring of a field and the
+  // words under it. Dark: the same red as Delete ([recordRed]). Light: that red deepened,
+  // so a small line of text still reads at 4.5:1 on the grey page (test/theme_test.dart).
+  final danger = dark ? const Color(0xFFFF453A) : const Color(0xFFD70015);
   final colors = CsColors(
     muted: p?.muted ?? tone(.68), // .6 was hard to read for older eyes (user testing)
     soft: p?.soft ?? tone(dark ? .14 : .08),
@@ -199,7 +202,7 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
     secondary: accent,
     onSecondary: accentInk,
     error: danger,
-    onError: page,
+    onError: const Color(0xFFFFFFFF),
     surface: surface,
     onSurface: ink,
     outline: colors.border,
@@ -326,12 +329,20 @@ abstract final class Ui {
   static const double action = bar;
   /// The page's side margin, as the iPhone's own apps (20).
   static const double side = 20;
+  /// Where a card starts on a page made of cards (Settings, Sync, Storage, the overview),
+  /// and a header's round buttons: a little nearer the edge than [side], as the phone's
+  /// own grouped lists, since a card's own padding sets its text further in.
+  static const double groupSide = 16;
   /// Chips (groups) and segmented switches.
   static const double chip = 40;
   /// Large add tiles (the add sheet, an empty vault).
   static const double tile = 96;
-  /// Corner radius of cards and tiles; buttons are round or stadium-shaped.
+  /// Corner radius of cards and tiles that stand on their own (a choice, a card over the
+  /// page, a confirm sheet); buttons are round or stadium-shaped.
   static const double radius = 24;
+  /// Corner radius of a group of rows (Settings-style), a panel or note inside a page, a
+  /// menu, and a text field: the phone's own grouped lists.
+  static const double groupRadius = 14;
   /// Space between the bottom bar, the main action and the screen edge.
   static const double edge = 10;
   /// The main action's bottom above the safe area when on an edge: clear of the bottom bar
@@ -351,7 +362,7 @@ Color solidTint(BuildContext context, Color color) =>
 /// ring and cuts a gap there (owner 2026-10-29: on Android "Password" sat across the
 /// field's edge).
 class RoundFieldBorder extends InputBorder {
-  const RoundFieldBorder({super.borderSide = BorderSide.none, this.radius = 14});
+  const RoundFieldBorder({super.borderSide = BorderSide.none, this.radius = Ui.groupRadius});
 
   final double radius;
 

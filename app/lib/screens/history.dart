@@ -121,7 +121,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final versions = _versions;
     if (versions == null) return const SizedBox.shrink();
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(Ui.groupSide, 16, Ui.groupSide, 24),
       children: [
         if (versions.isEmpty)
           Padding(
@@ -135,7 +135,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         else ...[
           Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
@@ -158,7 +158,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const SizedBox(height: 28),
           Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               key: const ValueKey('history-clear-item'),
@@ -298,7 +298,7 @@ class _VersionPageState extends State<_VersionPage> {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Ui.groupRadius)),
         child: SelectableText(
           text,
           key: const ValueKey('history-text'),
@@ -308,7 +308,7 @@ class _VersionPageState extends State<_VersionPage> {
     }
     if (v.kind == ItemKind.photo) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Ui.groupRadius),
         child: Image.memory(bytes!, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
       );
     }
@@ -331,7 +331,7 @@ class _VersionPageState extends State<_VersionPage> {
       children: [
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            padding: const EdgeInsets.fromLTRB(Ui.groupSide, 16, Ui.groupSide, 16),
             children: [
               Text(v.item.name, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
@@ -348,7 +348,7 @@ class _VersionPageState extends State<_VersionPage> {
         SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            padding: const EdgeInsets.fromLTRB(Ui.groupSide, 4, Ui.groupSide, 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -484,7 +484,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
         ),
         Material(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
@@ -522,7 +522,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
     final c = CsColors.of(context);
     final used = _used;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+      padding: const EdgeInsets.fromLTRB(Ui.groupSide, 20, Ui.groupSide, 24),
       children: [
         // One choice (owner 2026-10-27): how much; how long follows from it.
         _group(context, l.historyKeepUntil, [
@@ -542,7 +542,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
           const SizedBox(height: 28),
           Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               key: const ValueKey('history-clear-all'),

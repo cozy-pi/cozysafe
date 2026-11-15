@@ -1222,7 +1222,7 @@ class _SiteRow extends StatelessWidget {
     final bare = label.startsWith('www.') ? label.substring(4) : label;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
         child: Row(children: [

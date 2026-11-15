@@ -1247,7 +1247,7 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
             child: Material(
               key: const ValueKey('add-card'),
               color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(Ui.radius),
               clipBehavior: Clip.antiAlias,
               elevation: 12,
               shadowColor: Colors.black38,
@@ -1818,7 +1818,7 @@ Future<T?> showCard<T>(BuildContext context,
                   child: Material(
                     key: const ValueKey('card'),
                     color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(26),
+                    borderRadius: BorderRadius.circular(Ui.radius),
                     clipBehavior: Clip.antiAlias,
                     elevation: 12,
                     shadowColor: Colors.black45,

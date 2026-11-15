@@ -89,7 +89,7 @@ class AddCodeShown extends StatelessWidget {
           child: Container(
             key: const ValueKey('add-code-digits'),
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-            decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Ui.groupRadius)),
             child: Text(addCodeText(code),
                 style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: 2, fontFeatures: [FontFeature.tabularFigures()])),
           ),

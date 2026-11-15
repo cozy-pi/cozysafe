@@ -284,7 +284,7 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
           ],
           child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: Ui.side, vertical: 8),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 380),
               child: Column(

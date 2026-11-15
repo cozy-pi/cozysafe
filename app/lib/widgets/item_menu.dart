@@ -123,7 +123,7 @@ class _Menu extends StatelessWidget {
             elevation: 12,
             shadowColor: Colors.black45,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(Ui.groupRadius),
               side: BorderSide(color: ink.withValues(alpha: .10)),
             ),
             clipBehavior: Clip.antiAlias,

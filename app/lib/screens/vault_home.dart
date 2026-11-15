@@ -3095,7 +3095,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             // Says what is at stake, not how it works (docs/ui.md, review 1).
             child: Material(
               color: c.warnBg,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(Ui.groupRadius),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                 child: Column(
@@ -3707,11 +3707,11 @@ class _FileTile extends StatelessWidget {
       onTap: onTap,
       // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
       onLongPress: null,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       child: Container(
         decoration: BoxDecoration(
           color: selected ? primary.withValues(alpha: .12) : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
         ),
         padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
         child: Stack(

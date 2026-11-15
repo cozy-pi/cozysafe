@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../theme.dart';
 import '../widgets/bottom_bar.dart';
 
 /// An error as the person sees it: the sentence, then a short code to copy (owner
@@ -49,7 +50,7 @@ class FormColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final form = Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        padding: const EdgeInsets.fromLTRB(Ui.side, 24, Ui.side, 32),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: Column(

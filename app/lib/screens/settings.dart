@@ -749,7 +749,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         builder: (context, _, _) => ListView(
           key: ValueKey('settings-page-${page.name}'),
           controller: scroll,
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+          padding: const EdgeInsets.fromLTRB(Ui.groupSide, 4, Ui.groupSide, 28),
           children: _children(AppLocalizations.of(context), page),
         ),
       ),
@@ -935,7 +935,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: ListView(
         controller: _scroll,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+        padding: const EdgeInsets.fromLTRB(Ui.groupSide, 4, Ui.groupSide, 28),
         children: [
           ..._children(l, _page),
         ],
@@ -1425,7 +1425,7 @@ class _TopSecretCard extends StatelessWidget {
       padding: const EdgeInsets.only(top: 18),
       child: Material(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Ui.groupRadius),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           key: const ValueKey('top-secret-row'),
@@ -1485,7 +1485,7 @@ class _VaultCard extends StatelessWidget {
     final fg = Theme.of(context).colorScheme.onSurface;
     return Material(
       color: bg,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(Ui.radius),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         key: const ValueKey('storage-card'),
@@ -1551,7 +1551,7 @@ class SettingsGroup extends StatelessWidget {
         children: [
           Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [

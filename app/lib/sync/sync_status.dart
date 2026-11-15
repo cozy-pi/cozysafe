@@ -9,10 +9,6 @@ import 'drive.dart';
 /// a red dot on Settings and on the Sync rows when it failed, and a quiet line on the
 /// home page saying when the vault last synced.
 
-/// iPhone's red for the dot.
-Color _red(BuildContext context) =>
-    Theme.of(context).brightness == Brightness.dark ? const Color(0xFFFF453A) : const Color(0xFFFF3B30);
-
 /// iPhone's green for "synced" (owner 2026-10-28: green when fine, red when not).
 Color _green(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : const Color(0xFF248A3D);
@@ -35,7 +31,7 @@ class SyncAlertDot extends StatelessWidget {
             ? Padding(
                 key: const ValueKey('sync-alert-dot'),
                 padding: const EdgeInsets.only(left: 8),
-                child: Container(width: 10, height: 10, decoration: BoxDecoration(color: _red(context), shape: BoxShape.circle)),
+                child: Container(width: 10, height: 10, decoration: BoxDecoration(color: recordRed(context), shape: BoxShape.circle)),
               )
             : const SizedBox.shrink(),
       );
@@ -62,7 +58,7 @@ class SyncAlertBadge extends StatelessWidget {
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: _red(context),
+                    color: recordRed(context),
                     shape: BoxShape.circle,
                     border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
                   ),
@@ -103,7 +99,7 @@ class HomeSyncIcon extends StatelessWidget {
         final (String key, Widget icon, String label) = switch (null) {
           _ when driveAccount == null => ('none', Icon(Icons.cloud_off_rounded, size: 20, color: c.muted), l.syncNotSetUp),
           _ when AutoSync.failed.value && AutoSync.enabled =>
-            ('failed', _MarkedCloud(color: _red(context), mark: Icons.priority_high_rounded), l.syncProblem),
+            ('failed', _MarkedCloud(color: recordRed(context), mark: Icons.priority_high_rounded), l.syncProblem),
           _ when AutoSync.moving.value => ('moving', _RisingCloud(color: _blue(context)), l.syncWorking),
           _ when waitingChanges && AutoSync.waiting.value == SyncWait.wifi =>
             ('wifi', _MarkedCloud(color: _amber(context), mark: Icons.wifi_rounded), l.syncWaitWifi),

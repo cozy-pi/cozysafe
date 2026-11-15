@@ -74,7 +74,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(Ui.groupRadius),
               border: Border.all(color: c.border),
             ),
             child: SecretText(
@@ -113,7 +113,7 @@ class _EmergencyKitScreenState extends State<EmergencyKitScreen> with VaultLockA
           const SizedBox(height: 16),
           Material(
             color: c.warnBg,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: CsType.subhead, height: 1.45)),

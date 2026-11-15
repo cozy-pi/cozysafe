@@ -487,7 +487,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 44),
         decoration: BoxDecoration(
           color: cardColor,
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(Ui.radius),
           boxShadow: const [BoxShadow(color: Color(0x66041410), blurRadius: 50, offset: Offset(0, 24))],
         ),
         child: Stack(
@@ -695,7 +695,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
           backgroundColor: WidgetStatePropertyAll(_menuFill),
           surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
           elevation: const WidgetStatePropertyAll(10),
-          shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+          shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.groupRadius))),
           side: WidgetStatePropertyAll(
               BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .10))),
           padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 6)),

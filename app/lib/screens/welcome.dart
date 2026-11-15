@@ -146,9 +146,9 @@ class BigChoice extends StatelessWidget {
     final fill = strong ? scheme.onSurface : solidTint(context, scheme.onSurface.withValues(alpha: .08));
     return Material(
       color: fill,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(Ui.radius),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Ui.radius),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),

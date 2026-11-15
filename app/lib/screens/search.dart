@@ -138,7 +138,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: SafeArea(
           bottom: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+            padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 8),
             child: Row(
               children: [
                 GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: () => Navigator.of(context).maybePop()),
@@ -255,7 +255,7 @@ class _SearchScreenState extends State<SearchScreen> {
       height: Ui.chip + 12,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(14, 2, 6, 8),
+        padding: const EdgeInsets.fromLTRB(Ui.groupSide, 2, 6, 8),
         children: [
           chip(l.searchAll, _query.text.trim().isEmpty ? null : all, _kind == null, () => setState(() => _kind = null)),
           for (final e in counts.entries)
@@ -297,7 +297,7 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Text(t, style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w700, color: c.muted)),
         );
     return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+      padding: const EdgeInsets.fromLTRB(Ui.groupSide, 0, Ui.groupSide, 24),
       children: [
         if (groups.isNotEmpty) ...[
           title(l.searchGroups),
@@ -366,7 +366,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final c = CsColors.of(context);
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       clipBehavior: Clip.antiAlias,
       child: Column(children: [
         for (final (i, r) in rows.indexed) ...[
