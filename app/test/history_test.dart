@@ -30,6 +30,7 @@ class _Fake implements RustLibApi {
   final calls = <String>[];
   var days = 30;
   var maxBytes = BigInt.from(1 << 30);
+  var failSet = false;
 
   @override
   dynamic noSuchMethod(Invocation call) {
@@ -47,6 +48,7 @@ class _Fake implements RustLibApi {
       return Future.value(_note('List'));
     }
     if (name.contains('SetHistorySettings')) {
+      if (failSet) return Future<void>.error(VaultError.storage);
       days = a[#days] as int;
       maxBytes = a[#maxBytes] as BigInt;
       calls.add('set $days $maxBytes');
@@ -76,6 +78,7 @@ void main() {
   setUpAll(() => RustLib.initMock(api: _fake = _Fake()));
   setUp(() => _fake
     ..calls.clear()
+    ..failSet = false
     ..days = 30
     ..maxBytes = BigInt.from(1 << 30));
 
@@ -107,12 +110,44 @@ void main() {
     await t.tap(find.byKey(ValueKey('history-max-${BigInt.from(5) * BigInt.from(1 << 30)}')));
     await t.pumpAndSettle();
     expect(_fake.calls.last, 'set 30 ${5 * (1 << 30)}');
+    // Off erases every earlier version at once: it asks first, and Cancel changes nothing.
     await t.tap(find.byKey(const ValueKey('history-days-0')));
+    await t.pumpAndSettle();
+    expect(find.text('Turn off version history?'), findsOneWidget);
+    expect(find.textContaining('earlier passwords too'), findsOneWidget);
+    expect(_fake.calls.last, 'set 30 ${5 * (1 << 30)}');
+    await t.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
+    await t.pumpAndSettle();
+    expect(_fake.calls.last, 'set 30 ${5 * (1 << 30)}');
+    await t.tap(find.byKey(const ValueKey('history-days-0')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('confirm-delete-go')));
     await t.pumpAndSettle();
     expect(_fake.calls.last, 'set 0 ${5 * (1 << 30)}');
     // Off, then a size again: back on, with the 30 days.
     await t.tap(find.byKey(ValueKey('history-max-${BigInt.zero}')));
     await t.pumpAndSettle();
     expect(_fake.calls.last, 'set 30 0');
+  });
+
+  testWidgets('a change the vault did not take is said, and the choice shown goes back', (t) async {
+    await t.pumpWidget(app(const HistorySettingsScreen()));
+    await t.pumpAndSettle();
+    Finder ticked(String key) =>
+        find.descendant(of: find.byKey(ValueKey(key)), matching: find.byIcon(Icons.check_rounded));
+    final one = 'history-max-${BigInt.from(1 << 30)}';
+    final five = 'history-max-${BigInt.from(5) * BigInt.from(1 << 30)}';
+    expect(ticked(one), findsOneWidget);
+    _fake.failSet = true;
+    await t.tap(find.byKey(ValueKey(five)));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 400));
+    expect(_fake.calls, isEmpty);
+    expect(find.textContaining('Error code: storage'), findsOneWidget);
+    expect(ticked(one), findsOneWidget);
+    expect(ticked(five), findsNothing);
+    // The toast goes by itself.
+    await t.pump(const Duration(seconds: 9));
+    await t.pumpAndSettle();
   });
 }

@@ -67,8 +67,12 @@ Future<void> openRestored(BuildContext context, String libraryDir, rust.VaultInf
 /// the 24 words and the password, then it goes. Works on a device that holds vaults too
 /// (the restored one gets a library of its own).
 class RestorePickScreen extends StatefulWidget {
-  const RestorePickScreen({super.key, required this.libraryDir});
+  const RestorePickScreen({super.key, required this.libraryDir, this.offerNew = true});
   final String libraryDir;
+
+  /// "Not kept anywhere else?", which leads to a new vault. Not from the lock screen: a
+  /// vault is here already, and making another is not offered there.
+  final bool offerNew;
 
   /// For the mockup renders: offer Google Drive on any platform.
   static bool debugDrive = false;
@@ -150,11 +154,12 @@ class _RestorePickScreenState extends State<RestorePickScreen> {
           note: l.restoreFromFileNote,
           onTap: _file,
         ),
-        TextButton(
-          key: const ValueKey('restore-none'),
-          onPressed: _nothingLeft,
-          child: Text(l.restoreNoneLink),
-        ),
+        if (widget.offerNew)
+          TextButton(
+            key: const ValueKey('restore-none'),
+            onPressed: _nothingLeft,
+            child: Text(l.restoreNoneLink),
+          ),
       ],
     );
   }
@@ -239,7 +244,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       if (!rust.secretKeyFits(dir: target, key: key)) {
         // The file is in; these words are not its own. Ask for them again.
         await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute<void>(builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: false))),
+          MaterialPageRoute<void>(builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir))),
           (_) => false,
         );
         return;

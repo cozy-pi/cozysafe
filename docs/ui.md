@@ -326,7 +326,12 @@ deniability).
 - The list: name, date, length; ▶ plays in place with a progress bar; tapping a row
   offers Rename, Send, Delete. Recording: level bars and a large timer.
 - The recorder writes to the app's private temp folder; the file is encrypted into the
-  vault and deleted as soon as recording stops, and before the vault locks.
+  vault and deleted as soon as recording stops, and before the vault locks. When
+  encrypting fails (no space left), a recording or a video the person stopped is not
+  deleted with the error (0.3.1): a card (`showCard`, `retryOrDiscardTake`) says what
+  failed and that it is kept only until the vault locks, with Try Again as the main
+  button and Discard in red under it. A tap beside the card does not close it: only the
+  two buttons decide.
 
 ## Vault bar (approved 2026-10-20, 0.1.6)
 

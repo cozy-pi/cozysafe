@@ -420,6 +420,20 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
   }
 
   Future<void> _set(int days, BigInt max) async {
+    final l = AppLocalizations.of(context);
+    // Off erases every earlier version at once, earlier passwords too: it asks first, as
+    // Clear All History below does (it went on one tap). Nothing kept: nothing to ask.
+    if (days == 0 && _days != 0 && _used != BigInt.zero) {
+      final ok = await confirmDelete(
+        context,
+        title: l.historyOffTitle,
+        action: l.historyOffGo,
+        body: l.historyOffBody,
+        icon: Icons.history_toggle_off_rounded,
+      );
+      if (!ok || !mounted) return;
+    }
+    final (wasDays, wasMax) = (_days, _max);
     setState(() {
       _days = days;
       _max = max;
@@ -427,7 +441,18 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
     if (HistorySettingsScreen.debugState != null) return;
     try {
       await hist.setHistorySettings(days: days, maxBytes: max, nowMs: DateTime.now().millisecondsSinceEpoch);
-    } catch (_) {}
+    } catch (e) {
+      // Not changed: the choice shown goes back, and the failure is said (it was swallowed,
+      // the page showing a choice the vault never took).
+      if (!mounted) return;
+      setState(() {
+        _days = wasDays;
+        _max = wasMax;
+      });
+      showToast(context, e is rust.VaultError ? vaultErrorText(l, e) : withCode(l, l.errorStorage, e),
+          icon: Icons.error_outline_rounded);
+      return;
+    }
     widget.onChanged?.call();
     _load();
   }

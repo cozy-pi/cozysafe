@@ -1033,5 +1033,17 @@
   "importStopped": "Le coffre s'est verrouillé avant la fin de l'ajout : {done} sur {total} y sont. Ajoutez le reste à nouveau.",
   "errorOpen": "Impossible d'ouvrir ceci. Fermez puis réessayez.",
   "driveFailed": "Impossible de joindre Google Drive. Vérifiez la connexion internet puis réessayez.",
-  "restoredEnterPassword": "Restauré. Saisissez le mot de passe de ce coffre pour l'ouvrir."
+  "restoredEnterPassword": "Restauré. Saisissez le mot de passe de ce coffre pour l'ouvrir.",
+  "takeKeptTitle": "Pas encore enregistré",
+  "takeKeptBody": "Cet enregistrement n'est pas dans le coffre. Il n'est conservé que jusqu'au verrouillage du coffre : si vous verrouillez ou quittez l'app maintenant, il est perdu.",
+  "tryAgain": "Réessayer",
+  "takeDiscard": "Abandonner",
+  "keyBackupOffTitle": "Retirer la copie des 24 mots dans le cloud ?",
+  "keyBackupOffBody": "La copie est retirée pour tous les appareils de ce compte. Un nouveau téléphone demandera alors de saisir les 24 mots. Vérifiez d'abord que vous les avez toujours.",
+  "keyBackupOffCheck": "Vérifier d'abord les 24 mots",
+  "keyBackupOffGo": "Retirer",
+  "keyBackupFailed": "Non gardés. Activez le trousseau iCloud dans les Réglages de cet iPhone, puis réessayez.",
+  "historyOffTitle": "Désactiver l’historique des versions ?",
+  "historyOffBody": "Toutes les versions précédentes sur cet appareil sont effacées maintenant, les anciens mots de passe aussi. L’actuel ne change pas.",
+  "historyOffGo": "Désactiver"
 }

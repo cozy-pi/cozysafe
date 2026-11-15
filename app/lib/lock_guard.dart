@@ -1,7 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+
+import 'platform.dart';
 
 /// What keeps an open vault open. The vault screen locks after 2 minutes with no
 /// activity; activity is any touch anywhere in the app (also on screens pushed above
@@ -53,22 +55,93 @@ abstract final class LockGuard {
   /// unless something else has been copied since.
   static String? _copied;
   static Timer? _clipTimer;
+  static int _copies = 0;
+
+  /// A wipe that could not be done when it was due (the clipboard could be neither read
+  /// nor emptied): done when the app is in front again.
+  static bool _wipeDue = false;
+  static _Back? _back;
+  static const _privacy = MethodChannel('cozysafe/privacy');
+
+  /// For tests: act as an Android phone (or not).
+  @visibleForTesting
+  static bool? debugAndroid;
 
   static void copied(String text) {
     _copied = text;
+    _copies++;
+    _wipeDue = false;
     _clipTimer?.cancel();
     _clipTimer = Timer(const Duration(seconds: 60), clearCopied);
   }
 
+  /// The app itself put something else on the clipboard (a password, which has its own
+  /// time: `SecureClipboard`): the text noted before is no longer there to wipe, and a
+  /// wipe on lock must not take the password with it.
+  static void replaced() {
+    _clipTimer?.cancel();
+    _copies++;
+    _wiped();
+  }
+
+  /// Wipe what [copied] noted, if the clipboard still holds it. Android 10+ shows an app
+  /// that is not in front an empty clipboard, and the vault locks exactly as the app
+  /// leaves: the compare never matched and the text stayed for good. There the clipboard
+  /// is emptied as it is, natively (MainActivity, `clearClipboard`): what it holds cannot
+  /// be known, and leaving a note's text behind is the worse of the two. Where that
+  /// cannot be done either, the wipe waits for the app to be in front, and compares then.
   static Future<void> clearCopied() async {
     _clipTimer?.cancel();
     final mine = _copied;
-    _copied = null;
     if (mine == null) return;
+    final turn = _copies;
+    String? now;
+    var read = true;
     try {
-      final now = await Clipboard.getData(Clipboard.kTextPlain);
-      if (now?.text == mine) await Clipboard.setData(const ClipboardData(text: ''));
-    } catch (_) {}
+      now = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
+    } catch (_) {
+      read = false;
+    }
+    if (turn != _copies) return; // copied again meanwhile: that copy has its own minute
+    if (read && now == mine) {
+      try {
+        await Clipboard.setData(const ClipboardData(text: ''));
+        return _wiped();
+      } catch (_) {
+        return _later();
+      }
+    }
+    // Something else was copied since: left alone.
+    if (read && now != null) return _wiped();
+    final state = WidgetsBinding.instance.lifecycleState;
+    final inFront = state == null || state == AppLifecycleState.resumed;
+    // In front and nothing to read: the clipboard is empty.
+    if (read && inFront) return _wiped();
+    if (debugAndroid ?? Device.android) {
+      try {
+        if (await _privacy.invokeMethod<bool>('clearClipboard') ?? false) return _wiped();
+      } catch (_) {}
+    }
+    _later();
+  }
+
+  static void _wiped() {
+    _copied = null;
+    _wipeDue = false;
+  }
+
+  static void _later() {
+    _wipeDue = true;
+    _back ??= _Back()..listen();
+  }
+}
+
+class _Back with WidgetsBindingObserver {
+  void listen() => WidgetsBinding.instance.addObserver(this);
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && LockGuard._wipeDue) LockGuard.clearCopied();
   }
 }
 

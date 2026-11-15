@@ -1033,5 +1033,17 @@
   "importStopped": "Der Tresor wurde gesperrt, bevor alles hinzugefügt war: {done} von {total} sind drin. Fügen Sie den Rest erneut hinzu.",
   "errorOpen": "Das ließ sich nicht öffnen. Schließen und erneut versuchen.",
   "driveFailed": "Google Drive ist nicht erreichbar. Internetverbindung prüfen und erneut versuchen.",
-  "restoredEnterPassword": "Wiederhergestellt. Geben Sie das Passwort dieses Tresors ein, um ihn zu öffnen."
+  "restoredEnterPassword": "Wiederhergestellt. Geben Sie das Passwort dieses Tresors ein, um ihn zu öffnen.",
+  "takeKeptTitle": "Noch nicht gespeichert",
+  "takeKeptBody": "Diese Aufnahme ist nicht im Tresor. Sie bleibt nur, bis der Tresor gesperrt wird: Wenn Sie jetzt sperren oder die App verlassen, ist sie verloren.",
+  "tryAgain": "Erneut versuchen",
+  "takeDiscard": "Verwerfen",
+  "keyBackupOffTitle": "Cloud-Kopie der 24 Wörter entfernen?",
+  "keyBackupOffBody": "Die Kopie wird für alle Geräte dieses Accounts entfernt. Ein neues Telefon braucht dann die 24 Wörter von Hand. Prüfen Sie zuerst, ob Sie sie noch haben.",
+  "keyBackupOffCheck": "Zuerst die 24 Wörter prüfen",
+  "keyBackupOffGo": "Entfernen",
+  "keyBackupFailed": "Nicht aufbewahrt. Aktivieren Sie den iCloud-Schlüsselbund in den Einstellungen dieses iPhones und versuchen Sie es erneut.",
+  "historyOffTitle": "Versionsverlauf ausschalten?",
+  "historyOffBody": "Alle früheren Versionen auf diesem Gerät werden jetzt gelöscht, auch frühere Passwörter. Der jetzige Stand bleibt.",
+  "historyOffGo": "Ausschalten"
 }

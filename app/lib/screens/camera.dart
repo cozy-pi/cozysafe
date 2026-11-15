@@ -14,6 +14,7 @@ import '../widgets/vault_bar.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'common.dart';
 import 'file_view.dart';
+import '../widgets/take_kept.dart';
 import '../widgets/toast.dart';
 import '../theme.dart';
 import '../top_secret_mode.dart';
@@ -503,7 +504,9 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     if (c == null || !_recording) return;
     HapticFeedback.mediumImpact();
     setState(() => _saving = true);
-    final item = await _finishVideo(c);
+    // What went wrong is said there, by its own name, and a video that could not be
+    // encrypted is kept while the person chooses.
+    final item = await _finishVideo(c, ask: true);
     if (!mounted) return;
     if (item != null && TopSecretMode.on) {
       // Top secret: nothing of the video is shown; it is named at once (ADR 0005).
@@ -520,9 +523,6 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       });
       widget.onChanged?.call();
       widget.onSaved(item);
-    } else {
-      final l = AppLocalizations.of(context);
-      _snack(withCode(l, l.videoSaveFailed, 'save-video'));
     }
     setState(() => _saving = false);
     try {
@@ -531,13 +531,28 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     } catch (_) {}
   }
 
-  /// Stop the recording, encrypt it into the vault, delete the plain file.
-  Future<rust.ItemInfo?> _finishVideo(CameraController c) async {
+  /// Stop the recording, encrypt it into the vault, delete the plain file. A failure is
+  /// told here, by its own name (it used to be one fixed code, whatever went wrong).
+  /// [ask]: the person stopped it and is there to answer, so a video that cannot be
+  /// encrypted (no space left) is kept while a card offers Try Again or Discard
+  /// ([retryOrDiscardTake]); it was deleted with the error before. Without [ask] (the
+  /// vault is locking, the page is going) the plain file cannot stay: it goes.
+  Future<rust.ItemInfo?> _finishVideo(CameraController c, {bool ask = false}) async {
     if (!_recording) return null;
     _recording = false;
     if (LockGuard.beforeLock == _saveBeforeLock) LockGuard.beforeLock = null;
     widget.onRecordingChanged?.call(false);
+    final tagId = widget.tagId;
     XFile? file;
+    rust.ItemInfo? item;
+    // Runs again on Try Again: what went in the first time is not added twice.
+    Future<void> save() async {
+      final added = item ??= (await importFiles([file!], photos: true)).firstOrNull;
+      if (added == null) throw 'save-video';
+      if (tagId != null) await rust.setTag(itemIds: [added.id], tagId: tagId, tagged: true);
+    }
+
+    var kept = false;
     try {
       file = await c.stopVideoRecording();
       // The file itself takes the name: on a phone XFile's `name` is only the path's last
@@ -546,15 +561,23 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       final recorded = File(file.path);
       final named = recorded.renameSync('${recorded.parent.path}${Platform.pathSeparator}${_videoName ?? 'Video.mp4'}');
       file = XFile(named.path, mimeType: 'video/mp4');
-      final added = await importFiles([file], photos: true);
-      final item = added.firstOrNull;
-      final tagId = widget.tagId;
-      if (item != null && tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
+      await save();
       return item;
-    } catch (_) {
+    } catch (e) {
+      final path = file?.path;
+      if (ask && mounted && path != null && File(path).existsSync()) {
+        kept = true; // the card deletes it, saved or discarded
+        final saved = await retryOrDiscardTake(context,
+            path: path, error: e, sentence: AppLocalizations.of(context).videoSaveFailed, save: save);
+        return saved ? item : null;
+      }
+      if (mounted) {
+        final l = AppLocalizations.of(context);
+        _snack(e is rust.VaultError ? vaultErrorText(l, e) : withCode(l, l.videoSaveFailed, e));
+      }
       return null;
     } finally {
-      if (file != null) {
+      if (!kept && file != null) {
         try {
           File(file.path).deleteSync();
         } catch (_) {}

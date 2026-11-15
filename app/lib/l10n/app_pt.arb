@@ -1033,5 +1033,17 @@
   "importStopped": "O cofre foi bloqueado antes de adicionar tudo: {done} de {total} entraram. Adicione o restante de novo.",
   "errorOpen": "Não foi possível abrir. Feche e tente novamente.",
   "driveFailed": "Não foi possível conectar ao Google Drive. Verifique a conexão com a internet e tente novamente.",
-  "restoredEnterPassword": "Restaurado. Digite a senha deste cofre para abri-lo."
+  "restoredEnterPassword": "Restaurado. Digite a senha deste cofre para abri-lo.",
+  "takeKeptTitle": "Ainda não foi salvo",
+  "takeKeptBody": "Esta gravação não está no cofre. Ela só fica guardada até o cofre ser bloqueado: se você bloquear ou sair do app agora, ela se perde.",
+  "tryAgain": "Tentar de novo",
+  "takeDiscard": "Descartar",
+  "keyBackupOffTitle": "Remover a cópia das 24 palavras na nuvem?",
+  "keyBackupOffBody": "A cópia é removida de todos os dispositivos desta conta. Um telefone novo vai então precisar das 24 palavras digitadas. Verifique antes se você ainda as tem.",
+  "keyBackupOffCheck": "Verificar antes as 24 palavras",
+  "keyBackupOffGo": "Remover",
+  "keyBackupFailed": "Não foram guardadas. Ative o Porta-chaves do iCloud nos Ajustes deste iPhone e tente de novo.",
+  "historyOffTitle": "Desativar o histórico de versões?",
+  "historyOffBody": "Todas as versões anteriores neste dispositivo são apagadas agora, as senhas anteriores também. O atual fica como está.",
+  "historyOffGo": "Desativar"
 }

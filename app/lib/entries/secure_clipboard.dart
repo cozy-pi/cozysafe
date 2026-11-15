@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../lock_guard.dart';
 import '../platform.dart';
 import '../prefs.dart';
 import '../top_secret_mode.dart';
@@ -13,8 +14,10 @@ import '../top_secret_mode.dart';
 /// (`LockGuard.copied`). Instead the system forgets it after [seconds]: on iOS the
 /// pasteboard's own expiry (and never to other devices through Universal Clipboard); on
 /// Android it is marked sensitive (hidden in the preview, not kept by keyboards) and
-/// cleared on time while the app runs, else when it comes back; on a Mac concealed,
-/// transient and this Mac only, cleared natively if unchanged. Elsewhere a timer.
+/// cleared on time while the app runs; if the process dies first, a note kept natively
+/// (a time, never the text: `SecureClipboard.kt`) has it cleared the next time the app
+/// is in front; on a Mac concealed, transient and this Mac only, cleared natively if
+/// unchanged. Elsewhere a timer.
 abstract final class SecureClipboard {
   static const _channel = MethodChannel('cozysafe/privacy');
   static const _mac = MethodChannel('cozysafe/clipboard');
@@ -40,6 +43,9 @@ abstract final class SecureClipboard {
   /// [lasting]: a fixed time instead of the setting's (the 24 words: never "never").
   static Future<void> copy(String text, {int? lasting}) async {
     final s = lasting ?? seconds;
+    // Text copied from a note before this is replaced: its wipe on lock must not empty
+    // the clipboard under the password.
+    LockGuard.replaced();
     var native = false;
     final channel = Device.iOS || Device.android ? _channel : (Device.macOS ? _mac : null);
     if (channel != null) {
@@ -50,8 +56,9 @@ abstract final class SecureClipboard {
     if (!native) await Clipboard.setData(ClipboardData(text: text));
     _timer?.cancel();
     // The system clears it on iPhone and Mac: reading the clipboard back to check would
-    // only ask "Allow Paste" there. Android's process may die first, so it checks on
-    // return; other computers have only this timer. Never cleared: nothing kept here.
+    // only ask "Allow Paste" there. Android clears it natively, and after the process
+    // died too (SecureClipboard.kt); this check on return is a second look while it
+    // lives. Other computers have only this timer. Never cleared: nothing kept here.
     if (s == 0 || (native && (Device.iOS || Device.macOS))) {
       _copied = null;
       _until = null;

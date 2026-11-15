@@ -16,6 +16,7 @@ import 'common.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
 import '../item_kind.dart';
+import '../widgets/take_kept.dart';
 import '../widgets/toast.dart';
 
 /// Voice memos (docs/ui.md, voice memos): the list of recordings, each opening in the
@@ -96,7 +97,7 @@ class RecorderViewState extends State<RecorderView> {
   }
 
   /// The dock's button: start, or stop and save.
-  Future<void> toggle() => recording ? stopAndSave() : _start();
+  Future<void> toggle() => recording ? stopAndSave(ask: true) : _start();
 
   Future<void> _start() async {
     final l = AppLocalizations.of(context);
@@ -130,8 +131,12 @@ class RecorderViewState extends State<RecorderView> {
     }
   }
 
-  /// Stop and encrypt into the vault. Also called before the vault locks.
-  Future<void> stopAndSave() async {
+  /// Stop and encrypt into the vault. Also called before the vault locks and as the page
+  /// goes. [ask]: the person stopped it and is there to answer, so a recording that
+  /// cannot be encrypted (no space left) is kept while a card offers Try Again or Discard
+  /// ([retryOrDiscardTake]); it was deleted with the error before. Without [ask] (the
+  /// vault is locking) there is nobody to ask and the plain file cannot stay: it goes.
+  Future<void> stopAndSave({bool ask = false}) async {
     final started = _started;
     if (started == null || _saving) return;
     _saving = true;
@@ -141,31 +146,41 @@ class RecorderViewState extends State<RecorderView> {
     final length = DateTime.now().difference(started);
     if (mounted) setState(() => _started = null);
     widget.onRecordingChanged(false);
+    final name = _name ?? 'Recording.m4a';
+    final tagId = widget.tagId;
+    final onSaved = widget.onSaved;
     String? path;
+    rust.ItemInfo? item;
+    // Runs again on Try Again: what went in the first time is not added twice.
+    Future<void> save() async {
+      final added = item ??= await rust.addFile(
+        path: path!,
+        kind: ItemKind.audio,
+        name: name,
+        mime: 'audio/mp4',
+        createdMs: i64(started.millisecondsSinceEpoch),
+        thumbnail: null,
+      );
+      await rust.setItemDuration(id: added.id, durationMs: i64(length.inMilliseconds));
+      if (tagId != null) await rust.setTag(itemIds: [added.id], tagId: tagId, tagged: true);
+      onSaved();
+    }
+
+    var kept = false;
     try {
       path = await _rec.stop() ?? _path;
-      if (path != null && File(path).existsSync()) {
-        final when = started;
-        final item = await rust.addFile(
-          path: path,
-          kind: ItemKind.audio,
-          name: _name ?? 'Recording.m4a',
-          mime: 'audio/mp4',
-          createdMs: i64(when.millisecondsSinceEpoch),
-          thumbnail: null,
-        );
-        await rust.setItemDuration(id: item.id, durationMs: i64(length.inMilliseconds));
-        final tagId = widget.tagId;
-        if (tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
-        widget.onSaved();
-      }
+      if (path != null && File(path).existsSync()) await save();
     } catch (e) {
-      if (mounted) {
+      final file = path;
+      if (ask && mounted && file != null && File(file).existsSync()) {
+        kept = true; // the card deletes it, saved or discarded
+        await retryOrDiscardTake(context, path: file, error: e, sentence: AppLocalizations.of(context).recordFailed, save: save);
+      } else if (mounted) {
         final l = AppLocalizations.of(context);
         _snack(withCode(l, l.recordFailed, e));
       }
     } finally {
-      if (path != null) {
+      if (!kept && path != null) {
         try {
           File(path).deleteSync();
         } catch (_) {}

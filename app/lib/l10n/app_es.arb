@@ -1033,5 +1033,17 @@
   "importStopped": "La caja fuerte se bloqueó antes de añadirlo todo: hay {done} de {total}. Vuelve a añadir el resto.",
   "errorOpen": "No se pudo abrir. Ciérralo y vuelve a intentarlo.",
   "driveFailed": "No se pudo conectar con Google Drive. Comprueba la conexión a internet y vuelve a intentarlo.",
-  "restoredEnterPassword": "Restaurada. Introduce la contraseña de esta caja fuerte para abrirla."
+  "restoredEnterPassword": "Restaurada. Introduce la contraseña de esta caja fuerte para abrirla.",
+  "takeKeptTitle": "Aún no se ha guardado",
+  "takeKeptBody": "Esta grabación no está en la caja fuerte. Solo se conserva hasta que la caja fuerte se bloquee: si la bloqueas o sales de la app ahora, se pierde.",
+  "tryAgain": "Reintentar",
+  "takeDiscard": "Descartar",
+  "keyBackupOffTitle": "¿Quitar la copia de las 24 palabras en la nube?",
+  "keyBackupOffBody": "La copia se quita de todos los dispositivos de esta cuenta. Un teléfono nuevo necesitará entonces que escribas las 24 palabras. Comprueba antes que aún las tienes.",
+  "keyBackupOffCheck": "Comprobar antes las 24 palabras",
+  "keyBackupOffGo": "Quitar",
+  "keyBackupFailed": "No se guardó. Activa el Llavero de iCloud en los Ajustes de este iPhone y vuelve a intentarlo.",
+  "historyOffTitle": "¿Desactivar el historial de versiones?",
+  "historyOffBody": "Todas las versiones anteriores de este dispositivo se borran ahora, también las contraseñas anteriores. Lo actual queda igual.",
+  "historyOffGo": "Desactivar"
 }

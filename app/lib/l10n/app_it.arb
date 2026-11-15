@@ -1033,5 +1033,17 @@
   "importStopped": "La cassaforte si è bloccata prima di aggiungere tutto: {done} di {total} sono dentro. Aggiungi di nuovo il resto.",
   "errorOpen": "Impossibile aprire. Chiudi e riprova.",
   "driveFailed": "Impossibile raggiungere Google Drive. Controlla la connessione a internet e riprova.",
-  "restoredEnterPassword": "Ripristinata. Inserisci la password di questa cassaforte per aprirla."
+  "restoredEnterPassword": "Ripristinata. Inserisci la password di questa cassaforte per aprirla.",
+  "takeKeptTitle": "Non ancora salvato",
+  "takeKeptBody": "Questa registrazione non è nella cassaforte. Resta solo finché la cassaforte non si blocca: se la blocchi o esci dall'app adesso, va persa.",
+  "tryAgain": "Riprova",
+  "takeDiscard": "Scarta",
+  "keyBackupOffTitle": "Rimuovere la copia delle 24 parole nel cloud?",
+  "keyBackupOffBody": "La copia viene rimossa per tutti i dispositivi di questo account. Un nuovo telefono avrà poi bisogno delle 24 parole scritte a mano. Verifica prima di averle ancora.",
+  "keyBackupOffCheck": "Verifica prima le 24 parole",
+  "keyBackupOffGo": "Rimuovi",
+  "keyBackupFailed": "Non conservate. Attiva il Portachiavi iCloud nelle Impostazioni di questo iPhone, poi riprova.",
+  "historyOffTitle": "Disattivare la cronologia versioni?",
+  "historyOffBody": "Tutte le versioni precedenti su questo dispositivo vengono cancellate ora, anche le password precedenti. Quella attuale resta com’è.",
+  "historyOffGo": "Disattiva"
 }
