@@ -4,6 +4,12 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.3.2 (2026-11-15)
+
+### Changed
+- Android: the app draws edge to edge on every Android version, as Android 15 already
+  does, so the status and navigation bars sit over the app's own background.
+
 ## 0.3.1 (2026-11-15)
 
 ### Fixed

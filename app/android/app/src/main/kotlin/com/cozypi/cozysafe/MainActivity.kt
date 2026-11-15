@@ -13,6 +13,7 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.view.WindowManager
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.PickVisualMediaRequest
@@ -57,6 +58,9 @@ class MainActivity : FlutterFragmentActivity() {
     private var openResult: MethodChannel.Result? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Edge to edge on every Android, as Android 15 already does for SDK 35 (Google Play's
+        // warning, 0.2.25): Flutter's SafeArea and MediaQuery padding keep clear of the bars.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // Hide the vault from the recent-apps preview and from screenshots
         // (docs/ui.md, review 2). Settings can turn it off ("cozysafe/privacy").
