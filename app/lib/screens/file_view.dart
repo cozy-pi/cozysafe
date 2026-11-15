@@ -6,6 +6,8 @@ import 'dart:ui' as ui;
 import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import '../widgets/ask.dart';
+import '../widgets/cs_switch.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -28,10 +30,12 @@ import '../widgets/text_styles.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
+import 'glass.dart' show GlassPill;
 import '../temp_files.dart';
 import '../prefs.dart';
 import 'common.dart';
 import '../capture_name.dart';
+import '../media_date.dart';
 import '../item_kind.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show GlassButton;
@@ -237,8 +241,9 @@ Future<List<rust.ItemInfo>> importFiles(
   required bool photos,
   void Function(int done, int total)? progress,
   bool Function()? cancelled,
-  /// Name for a photo or video whose picked name is made up ([isMadeUpName]).
-  String Function(String kind, String extension)? mediaName,
+  /// Name for a photo or video whose picked name is made up ([isMadeUpName]); [at] is
+  /// the date the item gets.
+  String Function(String kind, String extension, DateTime at)? mediaName,
 }) async {
   final added = await importPicked(
     PickedBatch(files.length, Stream.fromIterable([for (final f in files) PickedCopy(f, null, 0)])),
@@ -265,12 +270,16 @@ Future<List<(rust.ItemInfo, String?)>> importPicked(
   required bool photos,
   void Function(int done, int total)? progress,
   bool Function()? cancelled,
-  String Function(String kind, String extension)? mediaName,
+  String Function(String kind, String extension, DateTime at)? mediaName,
+  /// Photos and videos get the date they were made instead of now (lib/media_date.dart).
+  /// Off for what the app's own camera just recorded.
+  bool realDates = false,
   /// With it, a file that cannot be added does not end the import: the others still go
   /// in, and the caller says how many did not. Without it, the first failure ends it.
   ImportTally? tally,
 }) async {
   final tmp = (await getTemporaryDirectory()).path;
+  final startedMs = realDates ? DateTime.now().millisecondsSinceEpoch : null;
   final added = <(rust.ItemInfo, String?)>[];
   final total = Stopwatch()..start();
   ImportStats.items = batch.count;
@@ -291,7 +300,7 @@ Future<List<(rust.ItemInfo, String?)>> importPicked(
       final items = <rust.ItemInfo>[];
       try {
         await importOne(p.file, tmp, photos: photos, cancelled: cancelled, mediaName: mediaName, added: items,
-            tag: '#$i w$w copy ${p.copyMs} ms ·');
+            importStartedMs: startedMs, tag: '#$i w$w copy ${p.copyMs} ms ·');
       } catch (e) {
         // The vault locked: nothing more can go in. Anything else is this file's own
         // trouble (unreadable, too large for the space left).
@@ -352,8 +361,10 @@ Future<void> importOne(
   String tmp, {
   required bool photos,
   required bool Function()? cancelled,
-  required String Function(String kind, String extension)? mediaName,
+  required String Function(String kind, String extension, DateTime at)? mediaName,
   required List<rust.ItemInfo> added,
+  /// When the import began: with it a photo or video gets its real date ([chooseCreatedMs]).
+  int? importStartedMs,
   String tag = '',
 }) async {
   // Cancel keeps what is finished; the current file is never half added.
@@ -369,8 +380,19 @@ Future<void> importOne(
   final isImage = mime.startsWith('image/');
   final isVideo = mime.startsWith('video/');
   final dot = f.name.lastIndexOf('.');
+  final now = DateTime.now().millisecondsSinceEpoch;
+  // Top secret never decodes a picture or video (ADR 0005): only the file's own time.
+  final createdMs = importStartedMs == null || !(isImage || isVideo)
+      ? now
+      : chooseCreatedMs(
+          takenMs: TopSecretMode.on ? null : await embeddedDateMs(f.path, video: isVideo),
+          modifiedMs: await modifiedDateMs(f.path),
+          startedMs: importStartedMs,
+          nowMs: now,
+        );
   final name = (isImage || isVideo) && mediaName != null && isMadeUpName(f.name)
-      ? mediaName(isVideo ? ItemKind.video : ItemKind.photo, dot < 0 ? '' : f.name.substring(dot).toLowerCase())
+      ? mediaName(isVideo ? ItemKind.video : ItemKind.photo, dot < 0 ? '' : f.name.substring(dot).toLowerCase(),
+          DateTime.fromMillisecondsSinceEpoch(createdMs))
       : f.name;
   final watch = Stopwatch()..start();
   var way = isVideo ? 'video' : '';
@@ -393,7 +415,7 @@ Future<void> importOne(
             : (isImage && (photos || thumbnail != null) ? ItemKind.photo : ItemKind.file),
     name: name,
     mime: mime,
-    createdMs: nowMs(),
+    createdMs: i64(createdMs),
     thumbnail: thumbnail,
   );
   ImportStats.vaultMs += watch.elapsedMilliseconds;
@@ -509,11 +531,34 @@ class _FileViewScreenState extends State<FileViewScreen> {
 
   Widget _imageView(AppLocalizations l) => Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          title: Text(_item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.callout, color: Colors.white)),
-          actions: _moreButton(l),
+        // The viewers' own top bar, dark glass on the black page (docs/design-language.md,
+        // Viewer), not the app's bar: its pale discs glared on black in light mode.
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(Ui.action + 4),
+          child: SafeArea(
+            bottom: false,
+            child: ViewerTopBar(
+              onMedia: true,
+              back: BarIcon(
+                  key: const ValueKey('file-back'),
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  tooltip: l.back,
+                  onTap: (_) => Navigator.of(context).maybePop()),
+              more: BarIcon(key: const ValueKey('file-more'), icon: Icons.more_horiz, tooltip: l.more, onTap: _busy ? null : _more),
+              center: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: GlassPill(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(_item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: CsType.callout, fontWeight: FontWeight.w600, color: Colors.white)),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
         // Dark glass over the black page, whatever the app's theme.
         bottomNavigationBar: Theme(data: buildTheme(Brightness.dark), child: Builder(builder: (_) => _bar(l))),
@@ -783,6 +828,18 @@ Future<void> shareById(BuildContext context, String id, String mime, String name
 
 const _openChannel = MethodChannel('cozysafe/open');
 
+/// The vault locks: whatever [openWithById] or a share put up over the app (iPhone: the
+/// Quick Look card, the share sheet) comes down, so no decrypted copy stays readable
+/// above the lock screen. Called before the temporary copies are removed. Nothing where
+/// the system shows the copy in another app (Android) or there is no such door.
+Future<void> closeOpened() async {
+  try {
+    await _openChannel.invokeMethod<void>('close');
+  } on MissingPluginException {
+    // Android, computers, tests: nothing of ours is up.
+  } catch (_) {}
+}
+
 /// Open one item in another app, as a computer's "Open with" (owner 2026-10-31: the share
 /// sheet only sent it): Android's own "Open with" (a read-only link to the copy, for the
 /// app picked); on iPhone, Quick Look as the Files app opens it (drawn by the system, not
@@ -839,33 +896,14 @@ Future<bool> confirmShareOut(BuildContext context, String vaultId) async {
   if (Prefs.read(key) == '1') return true;
   final l = AppLocalizations.of(context);
   var again = false;
-  final ok = await showModalBottomSheet<bool>(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, set) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l.shareOutTitle, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              Text(l.shareOutBody, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l.dontAskAgain),
-                value: again,
-                onChanged: (v) => set(() => again = v),
-              ),
-              FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.continueAction)),
-              const SizedBox(height: 6),
-              TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-            ],
-          ),
-        ),
-      ),
+  final ok = await askSheet<bool>(
+    context,
+    title: l.shareOutTitle,
+    body: [l.shareOutBody],
+    content: StatefulBuilder(
+      builder: (context, set) => CsSwitchLine(title: l.dontAskAgain, value: again, onChanged: (v) => set(() => again = v)),
     ),
+    actions: [AskAction.main(l.continueAction, true), AskAction.quiet(l.cancel, false)],
   );
   if (ok == true && again) Prefs.write(key, '1');
   return ok == true;

@@ -304,8 +304,10 @@ alone opens nothing.
 restoring proves the 24 words (`cozysafe/v1/p2p-restore`), gets only the lock, and must
 prove the Master Key before any item is served. **Adding a device** that has neither the
 vault nor the words uses an X-Wing exchange (ML-KEM-768 + X25519; the new device sends
-its public key and commits to a nonce first) and an 8-digit code typed on the new device;
-then the password and the 24 words cross that channel ([ADR 0010](adr/0010-post-quantum-device-add.md)).
+its public key and commits to a nonce first) and an 8-digit code that the new device shows
+and the person types on the old device, which compares it in constant time and reads
+nothing from the new device before it matched (mode 11, since 0.3.1; the code never
+crosses); then the password and the 24 words cross that channel ([ADR 0010](adr/0010-post-quantum-device-add.md)).
 
 **Share inbox.** Not built. ADR 0001 describes one; there is no inbox code.
 
@@ -412,7 +414,8 @@ Full list: [threat-model.md](threat-model.md). Rules for the app: [security.md](
 | Blobs swapped, reordered, truncated or moved between items or vaults | AEAD with AAD naming vault, item and role; STREAM counter and last-chunk flag. |
 | A sync place rolling back or swapping content | `data_hash` / `thumb_hash` sealed in the record; files never overwritten. |
 | A stranger on the Wi-Fi | Cannot find or pair without a key from the vault or the 24 words; frames sealed and numbered. |
-| Someone in the middle while adding a device | Commitment + 8-digit code typed on the new device. |
+| Someone in the middle while adding a device | Commitment + 8-digit code shown on the new device, typed and compared on the old one. |
+| A device on the Wi-Fi that claims to be the new one | The old device goes on only after the code typed on it matched; the claim alone gets no password try. |
 | A crafted backup writing outside the library | Only exact library path shapes are accepted. |
 | Not covered | Malware on the device, a forced unlock, losing both the words and the password, memory attacks on an unlocked phone. |
 

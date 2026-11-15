@@ -134,16 +134,16 @@ class _DriveCheckScreenState extends State<DriveCheckScreen> {
         ),
         if (r != null) ...[
           SettingsGroup(boxKey: const ValueKey('drive-check-result'), rows: [
-            SettingsRow(icon: Icons.grid_view_rounded, color: SettingsHue.ngoc, title: l.debugDriveItems, value: '${r.items}'),
-            SettingsRow(icon: Icons.insert_drive_file_rounded, color: SettingsHue.xanh, title: l.debugDriveCurrent, value: withSize(r.current, r.currentBytes)),
-            SettingsRow(icon: Icons.history_rounded, color: SettingsHue.cam, title: l.debugDriveOld, value: withSize(r.old, r.oldBytes)),
-            SettingsRow(icon: Icons.receipt_long_rounded, color: SettingsHue.xam, title: l.debugDriveJournal, value: '${r.journal}'),
-            SettingsRow(icon: Icons.folder_rounded, color: SettingsHue.xam, title: l.debugDriveFolders, value: '${r.folders}'),
-            if (r.unknown > 0) SettingsRow(icon: Icons.help_rounded, color: SettingsHue.tim, title: l.debugDriveUnknown, value: '${r.unknown}'),
+            SettingsRow(icon: Icons.grid_view_rounded, color: SettingsHue.teal, title: l.debugDriveItems, value: '${r.items}'),
+            SettingsRow(icon: Icons.insert_drive_file_rounded, color: SettingsHue.blue, title: l.debugDriveCurrent, value: withSize(r.current, r.currentBytes)),
+            SettingsRow(icon: Icons.history_rounded, color: SettingsHue.orange, title: l.debugDriveOld, value: withSize(r.old, r.oldBytes)),
+            SettingsRow(icon: Icons.receipt_long_rounded, color: SettingsHue.grey, title: l.debugDriveJournal, value: '${r.journal}'),
+            SettingsRow(icon: Icons.folder_rounded, color: SettingsHue.grey, title: l.debugDriveFolders, value: '${r.folders}'),
+            if (r.unknown > 0) SettingsRow(icon: Icons.help_rounded, color: SettingsHue.purple, title: l.debugDriveUnknown, value: '${r.unknown}'),
             SettingsRow(
               key: const ValueKey('drive-check-junk'),
               icon: r.junk > 0 ? Icons.delete_rounded : Icons.check_rounded,
-              color: r.junk > 0 ? SettingsHue.doTuoi : SettingsHue.xanhLa,
+              color: r.junk > 0 ? SettingsHue.red : SettingsHue.green,
               title: l.debugDriveJunk,
               trailing: Text(r.junk > 0 ? withSize(r.junk, r.junkBytes) : l.debugDriveNoJunk,
                   style: TextStyle(fontSize: CsType.body, color: r.junk > 0 ? red : c.muted, fontWeight: r.junk > 0 ? FontWeight.w600 : null)),

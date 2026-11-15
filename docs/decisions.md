@@ -6,6 +6,20 @@ depends on memory. Details live in the linked docs; this page is the index.
 How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
 [cryptography.md](cryptography.md).
 
+## 2026-11-15 — Set up a new device: the old device checks the code, and asks for the owner
+
+A security finding: the old device showed the 8-digit code and believed the new device's
+"it matched". Anyone on the same Wi-Fi during the 2 minutes could play the new device,
+say so, and get 3 guesses at the vault password (a right one gave the 24 words and the
+vault) without seeing the old screen. Decided and built (0.3.1):
+
+- **The new device shows the code; the person types it on the old device, which compares
+  it** (3 tries, then it closes) and takes no password before it matched. The code never
+  crosses. Mode 11; apps up to 0.3.0 are refused on both sides ("update the app on both
+  devices"), no fallback ([ADR 0003](adr/0003-sync.md) point 11).
+- **Set up a new device asks for the owner every time** (Face ID, fingerprint,
+  passcode), as showing the 24 words does ([security.md](security.md)).
+
 ## 2026-11-14 — A review of the whole app: sync with three devices, password tries, quiet losses
 
 A read of the core, sync, the app's platform layer, the journeys and the docs. What

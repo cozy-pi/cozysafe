@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/cs_switch.dart';
 import 'package:intl/intl.dart';
 
 import '../error_log.dart';
@@ -67,6 +68,25 @@ class _SyncScreenState extends State<SyncScreen> {
     _loadLog();
   }
 
+  /// One start at a time: a second tap while the first still waits (for the address, for
+  /// Google, for a sync under way) opened a second page or a second sync.
+  bool _starting = false;
+  Future<void> _once(Future<void> Function() start) async {
+    if (_starting) return;
+    _starting = true;
+    try {
+      await start();
+    } finally {
+      _starting = false;
+    }
+  }
+
+  /// A sync by hand waits for the automatic one under way, and says so meanwhile.
+  Future<void> _idle() async {
+    if (!AutoSync.running.value) return;
+    await whileWorking(context, AppLocalizations.of(context).syncFinishing, AutoSync.idle);
+  }
+
   /// Both devices open this and wait: they find each other on this Wi-Fi and both people
   /// confirm (docs/adr/0003-sync.md). The tap is the consent: no card asking first (owner
   /// 2026-11-03: "they tapped it already"); the same for [_invite] and Sync now.
@@ -78,7 +98,7 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    await AutoSync.idle();
+    await _idle();
     if (!mounted) return;
     await pushPage<void>(context,
         title: l.syncRow,
@@ -87,7 +107,9 @@ class _SyncScreenState extends State<SyncScreen> {
   }
 
   /// "Add a new device" (ADR 0003, point 11): a one-time code for a device that has no
-  /// vault yet; it gets the vault after its person types the vault password there.
+  /// vault yet; it gets the vault after its person types the vault password there. It
+  /// ends with the 24 words leaving this device, so the owner is asked first, every time
+  /// (as before showing the words): an open vault in someone else's hands starts nothing.
   Future<void> _invite() async {
     final l = AppLocalizations.of(context);
     final address = SyncScreen.debugAddress ?? await localAddress();
@@ -96,7 +118,8 @@ class _SyncScreenState extends State<SyncScreen> {
       showToast(context, l.syncNoWifi, icon: Icons.wifi_off_rounded);
       return;
     }
-    await AutoSync.idle();
+    if (!await confirmOwnerForSetting(l.syncLocalNew, context: context, always: true) || !mounted) return;
+    await _idle();
     if (!mounted) return;
     await pushPage<void>(context,
         title: l.syncLocalNew,
@@ -110,13 +133,13 @@ class _SyncScreenState extends State<SyncScreen> {
     await pushPage<void>(context,
         title: l.syncLocalRow,
         builder: (_) => ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+              padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 28),
               children: [
                 const Padding(padding: EdgeInsets.only(top: 12), child: SyncLink(moving: false)),
                 const SizedBox(height: 24),
                 _Card(children: [
-                  _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncLocalExisting, onTap: _nearby),
-                  _Action(key: const ValueKey('sync-invite'), icon: Icons.add_to_home_screen_rounded, color: const Color(0xFF5856D6), title: l.syncLocalNew, onTap: _invite),
+                  _Action(key: const ValueKey('sync-nearby'), icon: Icons.devices_rounded, color: const Color(0xFF007AFF), title: l.syncLocalExisting, onTap: () => _once(_nearby)),
+                  _Action(key: const ValueKey('sync-invite'), icon: Icons.add_to_home_screen_rounded, color: const Color(0xFF5856D6), title: l.syncLocalNew, onTap: () => _once(_invite)),
                 ]),
               ],
             ));
@@ -154,13 +177,24 @@ class _SyncScreenState extends State<SyncScreen> {
                 Icon(Icons.sync_rounded, size: 20, color: CsColors.of(context).muted),
                 const SizedBox(width: 10),
                 Expanded(child: Text(l.syncAuto, style: const TextStyle(fontSize: CsType.callout))),
-                _Toggle(value: auto, onChanged: (v) => set(() => auto = v)),
+                CsSwitch(value: auto, onChanged: (v) => set(() => auto = v)),
               ],
             ),
           );
-    if (adding && !await allowConnection(context, l.syncAllowDrive(session.email), below: below) || !mounted) return;
+    if (adding && !await allowConnection(context, l.syncAllowDrive(session.email), below: below)) {
+      // Declined: the sign-in above already remembered the account, so forget it again,
+      // or Drive would show as connected (and automatic sync would start using it).
+      if (SyncScreen.debugSession == null) {
+        try {
+          await driveSignOut();
+        } catch (_) {}
+      }
+      if (mounted) setState(() {});
+      return;
+    }
+    if (!mounted) return;
     if (adding) setState(() => AutoSync.enabled = auto);
-    await AutoSync.idle();
+    await _idle();
     if (!mounted) return;
     final token = session.token;
     await pushPage<void>(context,
@@ -187,7 +221,7 @@ class _SyncScreenState extends State<SyncScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+      padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 28),
       children: [
         // A picture instead of the explanations (owner 2026-10-26: people need to know
         // only that the data is safe): this device, the lock on the way, the other.
@@ -211,7 +245,7 @@ class _SyncScreenState extends State<SyncScreen> {
                 logo: const DriveLogo(size: 20),
                 title: 'Google Drive',
                 alert: true,
-                onTap: _account == null ? _drive : _openDrive),
+                onTap: _account == null ? () => _once(_drive) : _openDrive),
           ]),
           const SizedBox(height: 24),
         ],
@@ -239,7 +273,7 @@ class _SyncScreenState extends State<SyncScreen> {
               final l = AppLocalizations.of(context);
               final account = _account;
               return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                padding: const EdgeInsets.fromLTRB(Ui.groupSide, 12, Ui.groupSide, 28),
                 children: [
                   // Whose Drive, under its logo, as an account page on the iPhone (owner
                   // 2026-10-27). No "Sign in again": to change account, remove it and sync
@@ -250,7 +284,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       height: 64,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(Ui.groupRadius),
                         border: Border.all(color: CsColors.of(context).border),
                       ),
                       alignment: Alignment.center,
@@ -264,7 +298,7 @@ class _SyncScreenState extends State<SyncScreen> {
                   ]),
                   const SizedBox(height: 24),
                   _Card(children: [
-                    _Action(key: const ValueKey('sync-drive-now'), icon: Icons.sync_rounded, color: const Color(0xFF007AFF), title: l.syncNow, onTap: _drive),
+                    _Action(key: const ValueKey('sync-drive-now'), icon: Icons.sync_rounded, color: const Color(0xFF007AFF), title: l.syncNow, onTap: () => _once(_drive)),
                   ]),
                   const SizedBox(height: 24),
                   _Card(children: [
@@ -277,7 +311,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       color: const Color(0xFF34A853),
                       title: l.syncAuto,
                       chevron: false,
-                      trailing: _Toggle(value: AutoSync.enabled, onChanged: (v) => set(() => AutoSync.enabled = v)),
+                      trailing: CsSwitch(value: AutoSync.enabled, onChanged: (v) => set(() => AutoSync.enabled = v)),
                     ),
                     if (AutoSync.enabled)
                       _Action(
@@ -286,7 +320,7 @@ class _SyncScreenState extends State<SyncScreen> {
                         color: const Color(0xFF007AFF),
                         title: l.syncWifiOnly,
                         chevron: false,
-                        trailing: _Toggle(value: AutoSync.wifiOnly, onChanged: (v) => set(() => AutoSync.wifiOnly = v)),
+                        trailing: CsSwitch(value: AutoSync.wifiOnly, onChanged: (v) => set(() => AutoSync.wifiOnly = v)),
                       ),
                   ]),
                   const SizedBox(height: 24),
@@ -302,7 +336,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Center(
-                          child: Text(l.driveDeleteRow, style: const TextStyle(fontSize: CsType.body, color: Color(0xFFFF3B30))),
+                          child: Text(l.driveDeleteRow, style: TextStyle(fontSize: CsType.body, color: recordRed(context))),
                         ),
                       ),
                     ),
@@ -315,7 +349,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Center(
-                          child: Text(l.driveRemove, style: const TextStyle(fontSize: CsType.body, color: Color(0xFFFF3B30))),
+                          child: Text(l.driveRemove, style: TextStyle(fontSize: CsType.body, color: recordRed(context))),
                         ),
                       ),
                     ),
@@ -375,7 +409,7 @@ class _SyncScreenState extends State<SyncScreen> {
         final l = AppLocalizations.of(context);
         final c = CsColors.of(context);
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          padding: const EdgeInsets.fromLTRB(Ui.groupSide, 16, Ui.groupSide, 28),
           children: [
             const SyncLink(moving: false),
             const SizedBox(height: 24),
@@ -405,7 +439,7 @@ class _Card extends StatelessWidget {
     final c = CsColors.of(context);
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       clipBehavior: Clip.antiAlias,
       child: Column(children: [
         for (var i = 0; i < children.length; i++) ...[
@@ -470,21 +504,6 @@ class _Action extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A switch as in Settings: the iPhone's green with a white knob.
-class _Toggle extends StatelessWidget {
-  const _Toggle({required this.value, required this.onChanged});
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Switch.adaptive(
-        value: value,
-        onChanged: onChanged,
-        activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : const Color(0xFF34C759),
-        activeThumbColor: Colors.white,
-      );
 }
 
 /// One line of the connection log: `<ms>|<host|join>|<address or ->|<outcome>|<in>|<out>`.

@@ -12,8 +12,9 @@ Anything that weakens or reveals the vault's protection asks for Face ID, finger
 the phone's passcode first (`confirmOwnerForSetting` in `app/lib/biometric.dart`),
 wherever it is opened from. One check covers the next settings for 2 minutes
 (`ownerGrace`, 2026-11-11 review: Face ID for every row, one after another), ended by
-the vault locking; never for the Recovery Key, deleting the vault or deleting it from
-Google Drive (`always: true`), and never in Top Secret Mode, which asks every time:
+the vault locking; never for the Recovery Key, setting up a new device, deleting the
+vault or deleting it from Google Drive (`always: true`), and never in Top Secret Mode,
+which asks every time:
 
 | Setting | Where the check is |
 |---|---|
@@ -27,6 +28,7 @@ Google Drive (`always: true`), and never in Top Secret Mode, which asks every ti
 | Blur thumbnails (off only) | `settings.dart` (`_guarded`) |
 | Delete this vault | `settings.dart` (`_guarded`), then the vault's password |
 | New vault | `confirmOwner` (lock screen and vault) |
+| Set up a new device (it ends with the 24 words sent to it): every time, `always: true` | `sync_screen.dart` `_invite` |
 | How long a copied password or code stays (longer or "never" only; Settings → Privacy; hidden in Top Secret, fixed at 90 s) | `settings.dart` (`_guarded`) |
 
 A new security setting gets the same check in the same commit, and a row in this table.
@@ -67,6 +69,17 @@ that needs a provisioning profile the Developer ID build does not have. Instead:
   after a password, account or code is copied (`LockGuard.afterCopy`, not in Top Secret
   Mode), to paste it and come back for the next. Coming back is measured against the
   time given, on a computer too; never coming back, it locks when that time is up.
+- **Nothing decrypted stays above the lock screen** (iPhone, 0.3.1). "Open in another
+  app" shows a decrypted copy in Quick Look, in a card over the app, or in a share
+  sheet; Share puts a share sheet there too. They are the system's, not Flutter pages,
+  so the lock screen came up under them and the file stayed readable, in Top Secret
+  Mode too. As the vault locks, Dart asks for them to come down (`closeOpened`, the
+  `close` method of `cozysafe/open`, `AppDelegate.closeOpen`) before the temporary
+  copies are removed. Natively too, with no word from Dart: coming back after 60 s or
+  more away (the leave an open file is given) takes them down while the cover is still
+  up. The app switcher never showed them: the cover sits over the whole window.
+  Pickers stay, they show the phone's own photos and files. On Android the copy is
+  shown by another app, which this app cannot close; the copy is removed on lock.
 - **Playing is use:** a video or recording playing keeps the idle lock away, as
   recording and typing do (`LockGuard.playing`, at most every 15 s). The 2FA QR
   photo picker uses it; the 2FA QR camera does not need it: since 0.2.31 it is a page
@@ -169,14 +182,26 @@ running."
   the share sheet.
 - PINs show as dots only, one per digit, no count of the remaining digits.
 - **Copied secrets are wiped:** anything copied out (`LockGuard.copied`) is removed from
-  the clipboard after 60 seconds and when the vault locks.
+  the clipboard after 60 seconds and when the vault locks, if the clipboard still holds
+  it (something copied since is left alone). On Android an app that is not in front is
+  shown an empty clipboard, and the vault locks as the app leaves: the compare never
+  matched and the text stayed for good (fixed 0.3.1). There the clipboard is emptied as
+  it is (`clearClipboard` in `MainActivity.kt`): what it holds cannot be known, so
+  something copied in another app in that minute goes with it. If that fails, the wipe
+  is done, with the compare, when the app is in front again. A password copied
+  afterwards is not touched by that wipe (`LockGuard.replaced`).
 - **A copied password, code or recovery code is the exception** (ADR 0009): it has to
   outlive the lock, which happens as soon as the person switches to the app that asks
   for it. It goes through `SecureClipboard` instead: the system forgets it after 90
   seconds by default (Settings: 30 s, 90 s, 3 min, never; Top Secret fixed at 90 s);
   iPhone and Mac keep it on this device only (no Universal Clipboard), the Mac marks it
   concealed and transient for clipboard managers, Android marks it sensitive and clears
-  it on time even in the background (and when the app comes back if the process died).
+  it on time even in the background. If Android ends the process before that, nothing
+  in memory is left to do it, so since 0.3.1 a note is kept on the phone (the time
+  only, never the text: `SecureClipboard.kt`, a private preference): the next time the
+  app is in front, the time left is waited out or, if it is past, the clipboard is
+  cleared when it still holds the app's own copy. Until the app is opened again the
+  password stays on the clipboard: nothing of the app is running to remove it.
   The editor's own fields copy the same way, never to the plain clipboard.
 - **Secure items** (ADR 0009): passwords and recovery codes are masked (always the same
   dots), revealed one tap at a time, hidden again after 30 seconds, when the app leaves
@@ -217,8 +242,10 @@ By case:
   still needs the vault password. One item per set of words (`secret-key.<4 hex
   fingerprint>`, ADR 0008), holding the key and the codes of the vaults using it, so
   several vaults or sets never overwrite each other; a restore picks the set that fits.
-  Turning it on in Settings asks for the owner; turning it off deletes the copy; a new
-  Recovery Key replaces it. **Never for a Top secret vault**: none is offered, the
+  Turning it on or off in Settings asks for the owner. Off deletes the copy for every
+  device on the account, and it may be the only place the words are: since 0.3.1 a card
+  says so first and offers Check your 24 words (it went on one tap of the switch, with
+  no owner check). A new Recovery Key replaces it. **Never for a Top secret vault**: none is offered, the
   switch is hidden, a Top secret vault never shares a set that has a copy (it gets its
   own), and opening a Top secret vault takes its set's copy out. The PIN's device key
   never goes there.
@@ -257,7 +284,9 @@ By case:
   10th, then growing), on a clock the phone's date cannot move. One count for every page
   that takes the password: the lock screen, the Recovery Key, Delete vault and, since
   2026-11-14, Settings → Check your 24 words and password (it tried passwords with no
-  count: with the vault open, the password could be guessed there for free).
+  count: with the vault open, the password could be guessed there for free), and since
+  0.3.1 the new Recovery Key page, which asks for the password again after a lock or
+  for another vault's (`change_key.dart`; the same hole).
 - **A password tried while it is typed counts** (2026-11-14). The lock screen opens on
   the right password without Enter, so it tries what is typed after a pause. A miss is
   not counted while the person goes on typing from it (a long password typed slowly must
@@ -304,7 +333,8 @@ unlocking: no vault gets locked out. Details in [ADR 0001](adr/0001-encryption.m
   item's older records, sealed exactly as they were, and its older content, encrypted as
   it was. File names hold only a time and random revision ids. Local only: never synced,
   never in backups. Deleting an item for good deletes its history; Settings → Version
-  history clears it all or turns it off. Until then, an older version of a note stays
+  history clears it all or turns it off (off erases every earlier version at once,
+  and asks first since 0.3.1). Until then, an older version of a note stays
   readable by whoever opens the vault, as the item itself is.
 - **Not built:** size padding (Padmé), so sizes are exact within a few bytes; a
   monotonic header revision against rollback; locked memory (`mlock`). Keys are wiped
@@ -355,6 +385,16 @@ person imports. A decoder is where a phone gets taken over (libwebp 2023, FORCED
   with it since 2026-11-14 (the camera writes a video there while it records, and a file
   picker puts the copy it hands over there). A file the 24 words are read from is deleted
   as soon as it is read, on phones (the picker's copy, never the person's own file).
+- **A recording or video that could not be encrypted** (no space left, most often;
+  0.3.1). A voice recording and a video are plain files in that folder while they are
+  made, encrypted and deleted when they stop. When encrypting failed, the file was
+  deleted with the error and the take was gone. Now it stays there while a card says
+  what failed, with Try Again and Discard (`lib/widgets/take_kept.dart`), and is
+  deleted once saved or discarded. It never outlives the session: the vault locking
+  closes the card and empties the folder (as does the next start), and the card says
+  that locking or leaving loses it. A recording stopped by the lock itself that cannot
+  be encrypted is deleted as before: nobody is there to ask, and a plain file is not
+  kept under a locked vault.
 - **Photos decode at screen size.** An Android HEIC is decoded by the system at most to
   the screen's longer side (1024–3000 px), not 4096 (a ~50 MB bitmap); the viewer reads
   ahead one photo each side, not two. At most 800 thumbnails stay in memory; Flutter's
@@ -415,6 +455,14 @@ attack. Moving a vault is done by the app's own backup file or sync.
   with your vault on another device or Set up a new device; that tap is the allowing (owner
   2026-11-03: a card asking again after it was "too many questions"). The wait ends
   after 5 minutes or when the page closes.
+- **Set up a new device asks who is holding the phone, then for the new device's code**
+  (0.3.1). Face ID, fingerprint or passcode every time before the 2-minute wait starts
+  (it can end with the 24 words leaving the device). The new device shows 8 digits; the
+  person types them on the old device, which compares them itself: 3 tries, then it
+  closes. Only then does it take the vault password from the new device (3 tries). A
+  device on the Wi-Fi that merely says it is the new one gets nothing: no one types its
+  code. Up to 0.3.0 the code was typed and checked on the new device, and the old one
+  believed it ([ADR 0003](adr/0003-sync.md), point 11).
 - **Both people confirm, comparing a number** (0.1.73), like Bluetooth pairing: both
   screens ask "Sync with iPhone 15 Pro Max?" next to the same 3-digit number, and nothing
   is served until both tapped Sync; Cancel on either stops both. Strangers are already
@@ -484,7 +532,7 @@ Where things stand ([details](cryptography.md#post-quantum-status)):
 | Password guessing | Argon2id, 128 MiB per try | Yes (not realistic inside a quantum computer) |
 | Sync between devices that hold the vault (nearby, Google Drive) | keys from the Master Key by HKDF; content sealed before it leaves | Yes |
 | Vault identity (ADR 0008) | Ed25519 + ML-DSA-65, X-Wing | Yes (hybrid) |
-| Adding a new device on the Wi-Fi | X-Wing (ML-KEM-768 + X25519) with a commitment and an 8-digit code ([ADR 0010](adr/0010-post-quantum-device-add.md)); X25519 alone until 0.2.27 | Yes (hybrid) since 0.2.28 |
+| Adding a new device on the Wi-Fi | X-Wing (ML-KEM-768 + X25519) with a commitment and an 8-digit code, shown on the new device and typed on the old ([ADR 0010](adr/0010-post-quantum-device-add.md)); X25519 alone until 0.2.27 | Yes (hybrid) since 0.2.28 |
 | HTTPS to Google Drive | TLS 1.3, classical key exchange (`rustls` + `ring`) | Content: yes (sealed before it leaves). The OAuth tokens: no. The hybrid X25519MLKEM768 group needs `rustls`' `aws-lc-rs` provider; the app uses `ring`, which has none |
 | Face ID / fingerprint wraps | Secure Enclave / Keystore, never leave the device | Not exposed |
 

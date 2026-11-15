@@ -138,7 +138,7 @@ class _ConfirmSheet extends StatelessWidget {
                 elevation: 12,
                 shadowColor: Colors.black45,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(26),
+                  borderRadius: BorderRadius.circular(Ui.radius),
                   side: BorderSide(color: ink.withValues(alpha: .10)),
                 ),
                 clipBehavior: Clip.antiAlias,

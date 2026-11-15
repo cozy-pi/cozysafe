@@ -205,6 +205,23 @@ class GlassButton extends StatelessWidget {
       );
 }
 
+/// Back in a header built by hand (search, the steps, a group's page): the one round
+/// button with ‹, as the theme draws for every app bar (docs/design-language.md).
+/// Leaves the page unless [onTap] says otherwise.
+class RoundBack extends StatelessWidget {
+  const RoundBack({super.key, this.onTap, this.size = Ui.circle});
+  final VoidCallback? onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => GlassButton(
+        icon: Icons.arrow_back_ios_new_rounded,
+        tooltip: AppLocalizations.of(context).back,
+        size: size,
+        onTap: onTap ?? () => Navigator.of(context).maybePop(),
+      );
+}
+
 /// The bottom row: the lock on the left, then the sections in a capsule. Tapping a section
 /// switches; dragging along the capsule switches as the finger passes each one.
 /// Only [sections] that hold something are offered; with one or none, no capsule.
@@ -371,16 +388,21 @@ class _CentreTabs extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    sectionLabel(l, s),
-                    maxLines: 1,
-                    overflow: TextOverflow.fade,
-                    softWrap: false,
-                    textScaler: TextScaler.noScaling,
-                    style: TextStyle(
-                      fontSize: CsType.caption2,
-                      fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-                      color: on ? ink : ink.withValues(alpha: .6),
+                  // Follows the phone's text size a little (up to 1.3: the bar's height
+                  // holds that), and a word too wide for its tab shrinks to fit rather
+                  // than being cut.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      sectionLabel(l, s),
+                      maxLines: 1,
+                      softWrap: false,
+                      textScaler: MediaQuery.textScalerOf(context).clamp(minScaleFactor: 1, maxScaleFactor: tabLabelMaxScale),
+                      style: TextStyle(
+                        fontSize: CsType.caption2,
+                        fontWeight: on ? FontWeight.w700 : FontWeight.w500,
+                        color: on ? ink : ink.withValues(alpha: .6),
+                      ),
                     ),
                   ),
                 ],
@@ -439,6 +461,9 @@ class _CentreTabs extends StatelessWidget {
     });
   }
 }
+
+/// How far the words under the tabs grow with the phone's text size.
+const double tabLabelMaxScale = 1.3;
 
 /// The + in the middle of the bar: a little smaller than the bar's other buttons.
 const double centrePlusSize = 46;
@@ -1239,7 +1264,7 @@ class _AddCardState extends State<AddCard> with SingleTickerProviderStateMixin {
             child: Material(
               key: const ValueKey('add-card'),
               color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(Ui.radius),
               clipBehavior: Clip.antiAlias,
               elevation: 12,
               shadowColor: Colors.black38,
@@ -1777,22 +1802,25 @@ Future<T?> pushPage<T>(BuildContext context, {required String title, bool groupe
 /// the bottom too far from the eye). A tap outside closes; no × on top (owner 2026-10-25:
 /// every button within the thumb's reach): a card without buttons of its own sets
 /// [closeButton] for a Close at its bottom. Long scrolling lists stay pages ([pushPage]);
-/// actions for the thumb stay bottom sheets.
-Future<T?> showCard<T>(BuildContext context, {String? title, bool closeButton = false, required WidgetBuilder builder}) =>
+/// actions for the thumb stay bottom sheets. [dismissible] false: a tap outside does
+/// nothing (a countdown, a name asked once). The card rises clear of the keyboard.
+Future<T?> showCard<T>(BuildContext context,
+        {String? title, bool closeButton = false, bool dismissible = true, required WidgetBuilder builder}) =>
     showGeneralDialog<T>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: dismissible,
       barrierLabel: AppLocalizations.of(context).close,
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (context, _, _) {
         final page = Theme.of(context).scaffoldBackgroundColor;
         final size = MediaQuery.sizeOf(context);
+        final keyboard = MediaQuery.viewInsetsOf(context).bottom;
         return Stack(
           children: [
             Positioned.fill(
               child: GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
+                onTap: dismissible ? () => Navigator.of(context).pop() : null,
                 child: BackdropFilter(
                   filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
                   child: ColoredBox(color: page.withValues(alpha: .55)),
@@ -1801,13 +1829,13 @@ Future<T?> showCard<T>(BuildContext context, {String? title, bool closeButton = 
             ),
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.fromLTRB(16, 0, 16, keyboard),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 440, maxHeight: size.height * .8),
+                  constraints: BoxConstraints(maxWidth: 440, maxHeight: (size.height - keyboard) * .8),
                   child: Material(
                     key: const ValueKey('card'),
                     color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(26),
+                    borderRadius: BorderRadius.circular(Ui.radius),
                     clipBehavior: Clip.antiAlias,
                     elevation: 12,
                     shadowColor: Colors.black45,

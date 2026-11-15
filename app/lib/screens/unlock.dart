@@ -19,7 +19,7 @@ import 'common.dart';
 import 'debug.dart' show debugModeOn;
 import 'vault_manager.dart';
 import 'welcome.dart';
-import 'restore.dart';
+import 'restore_flow.dart';
 import 'top_secret_page.dart' show restartForMode;
 import 'vault_home.dart';
 import '../theme.dart';
@@ -459,17 +459,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
     final marker = File('${widget.libraryDir}/.biometric-offered');
     if (marker.existsSync() || await BiometricUnlock.available() == null || !mounted) return;
     marker.writeAsStringSync('1');
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.biometricOfferTitle),
-        content: Text(l.biometricOfferBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.biometricOfferNo)),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.biometricOfferYes)),
-        ],
-      ),
-    );
+    final yes = await askBiometric(context);
     if (yes == true) await turnOnBiometric(_bioStore(l));
   }
 
@@ -497,7 +487,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 44),
         decoration: BoxDecoration(
           color: cardColor,
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(Ui.radius),
           boxShadow: const [BoxShadow(color: Color(0x66041410), blurRadius: 50, offset: Offset(0, 24))],
         ),
         child: Stack(
@@ -705,7 +695,7 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
           backgroundColor: WidgetStatePropertyAll(_menuFill),
           surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
           elevation: const WidgetStatePropertyAll(10),
-          shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+          shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.groupRadius))),
           side: WidgetStatePropertyAll(
               BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .10))),
           padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 6)),
@@ -742,13 +732,17 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
               onPressed: _busy ? null : _newVault,
               child: Text(l.newVault),
             ),
+          // Beside the vaults already here: the restored one gets a library of its own
+          // (restore_flow.dart). The page that picked a file into this device's own
+          // library could only fail here, a vault being there already.
           MenuItemButton(
+            key: const ValueKey('lock-restore'),
             style: _menuItem,
             leadingIcon: const Icon(Icons.settings_backup_restore_rounded),
             onPressed: _busy
                 ? null
                 : () => Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: true)),
+                      builder: (_) => Readable(child: RestorePickScreen(libraryDir: widget.libraryDir, offerNew: false)),
                     )),
             child: Text(l.restoreFromBackup),
           ),

@@ -95,12 +95,31 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
       _error = null;
     });
     final all = [..._passwords, if (_asking) typed];
+    // A password typed here is a try like any other: the same count and waits as the
+    // lock screen (key_check.dart), or with the vault open this page would be where a
+    // password is guessed for free.
+    final trying = _asking;
     try {
+      if (trying) {
+        final until = await PinStore.passwordWaitUntil();
+        if (until != null) {
+          final m = (until.difference(DateTime.now()).inSeconds / 60).ceil();
+          if (mounted) setState(() => _error = l.pinWait(m < 1 ? 1 : m));
+          return;
+        }
+      }
       final r = await rust.changeSecretKey(
         dir: widget.libraryDir,
         passwords: all,
         newKey: _key,
       );
+      if (trying) {
+        if (r.step == rust.KeyChangeStep.wrongPassword) {
+          await PinStore.addPasswordFail();
+        } else {
+          await PinStore.resetPasswordFails();
+        }
+      }
       if (!mounted) return;
       switch (r.step) {
         case rust.KeyChangeStep.wrongPassword:
@@ -158,7 +177,7 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
     final c = CsColors.of(context);
     final note = Material(
       color: c.warnBg,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Text(
@@ -301,10 +320,10 @@ class _ChangeKeyScreenState extends State<ChangeKeyScreen> with VaultLockAware {
               : null,
         ),
         body: PinnedAction(
-          padding: 20,
+          padding: Ui.side,
           actions: actions,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            padding: const EdgeInsets.fromLTRB(Ui.side, 12, Ui.side, 28),
             children: [body],
           ),
         ),

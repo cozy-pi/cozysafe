@@ -114,7 +114,7 @@ class StorageScreen extends StatelessWidget {
         // Every part is listed, even empty: a row that comes and goes would move the rest.
         final parts = [...storageParts]..sort((a, b) => f.size(b.$1).compareTo(f.size(a.$1)));
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+          padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 28),
           children: [
             Text(l.storageUsed(fileSize(f.total), f.count),
                 key: const ValueKey('storage-total'), style: const TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w700)),
@@ -123,7 +123,7 @@ class StorageScreen extends StatelessWidget {
             const SizedBox(height: 22),
             Material(
               color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(Ui.groupRadius),
               clipBehavior: Clip.antiAlias,
               child: Column(children: [
                 for (final (i, (part, color)) in parts.indexed) ...[

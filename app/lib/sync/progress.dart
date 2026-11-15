@@ -523,7 +523,7 @@ class _SyncProgressState extends State<SyncProgress>
         const SizedBox(height: 18),
         Material(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           clipBehavior: Clip.antiAlias,
           child: Column(children: [
             for (var i = 0; i < _peers.length; i++) ...[
@@ -779,7 +779,8 @@ class _SyncProgressState extends State<SyncProgress>
             ],
           ),
         sync.SyncStep.askPassword => _passwordCard(l, c, wrong: e.check > 0, left: e.check),
-        // Adding a device by its code (ADR 0003, point 11).
+        // Adding a device by its code (ADR 0003, point 11): shown on the new device,
+        // typed on the old one, which is the one that compares it.
         sync.SyncStep.addCode => AddCodeShown(code: e.name),
         sync.SyncStep.askCode => KeyedSubtree(
             key: ValueKey('add-code-try-${e.check}'),
@@ -788,7 +789,7 @@ class _SyncProgressState extends State<SyncProgress>
               onCode: (c) => sync.p2PAddCode(code: c),
             ),
           ),
-        sync.SyncStep.addWrongCode => AddCodeEnded(end: widget.restoring ? AddCodeEnd.wrongCode : AddCodeEnd.closed),
+        sync.SyncStep.addWrongCode => const AddCodeEnded(end: AddCodeEnd.wrongCode),
         sync.SyncStep.addWrongPassword => const AddCodeEnded(end: AddCodeEnd.wrongPassword),
         sync.SyncStep.alreadyHere => const AddCodeEnded(end: AddCodeEnd.alreadyHere),
         sync.SyncStep.addSeveral => _Status(icon: Icons.devices_rounded, color: const Color(0xFFFF9500), title: l.addCodeSeveral),
@@ -834,7 +835,7 @@ class _SyncProgressState extends State<SyncProgress>
         sync.SyncStep.cancelled => _Status(icon: Icons.close_rounded, title: l.syncCancelled),
         sync.SyncStep.locked => _Status(icon: Icons.lock_outline_rounded, title: l.syncLocked),
         sync.SyncStep.otherVault => _Status(icon: Icons.no_encryption_gmailerrorred_rounded, color: const Color(0xFFFF9500), title: l.syncOtherVault),
-        sync.SyncStep.unreachable => _Status(icon: Icons.wifi_off_rounded, color: const Color(0xFFFF3B30), title: l.syncUnreachable),
+        sync.SyncStep.unreachable => _Status(icon: Icons.wifi_off_rounded, color: recordRed(context), title: l.syncUnreachable),
         // Adding a device between 0.2.28+ and an older app (ADR 0010): say what to do.
         // A newer version raised the place's level (docs/data-model.md): update, not retry.
         sync.SyncStep.failed when e.code == 'sync-needs-newer-app' =>
@@ -842,7 +843,7 @@ class _SyncProgressState extends State<SyncProgress>
         sync.SyncStep.failed when e.code == 'p2p-add-old-version' =>
           _Status(icon: Icons.system_update_rounded, color: const Color(0xFFFF9500), title: l.syncPeerOldVersion),
         // Google Drive is not "the same Wi-Fi, both devices".
-        sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: const Color(0xFFFF3B30),
+        sync.SyncStep.failed => _Status(icon: Icons.error_outline_rounded, color: recordRed(context),
             title: widget.place == SyncPlace.drive ? l.driveFailed : l.syncFailed),
         sync.SyncStep.signIn => _Status(icon: Icons.account_circle_rounded, color: const Color(0xFFFF9500), title: l.syncSignInAgain),
         sync.SyncStep.peerWrongWords => _Status(icon: Icons.key_off_rounded, color: const Color(0xFFFF9500), title: l.syncPeerWrongWords),
@@ -1187,9 +1188,9 @@ class _Number extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Ui.groupRadius)),
         child: Text(text,
-            style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: 3, fontFeatures: [FontFeature.tabularFigures()])),
+            style: const TextStyle(fontSize: CsType.display, fontWeight: FontWeight.w800, letterSpacing: 3, fontFeatures: [FontFeature.tabularFigures()])),
       );
 }
 

@@ -88,7 +88,7 @@ class BarText extends StatelessWidget {
 /// just above the keyboard while it is open, so it never floats mid-page or hides. The
 /// same on every form.
 class PinnedAction extends StatelessWidget {
-  const PinnedAction({super.key, required this.child, required this.actions, this.padding = 24});
+  const PinnedAction({super.key, required this.child, required this.actions, this.padding = Ui.side});
 
   final Widget child;
   /// The main button first, stretched to the page's width; a quieter one may follow.

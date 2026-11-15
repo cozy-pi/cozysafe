@@ -326,7 +326,12 @@ deniability).
 - The list: name, date, length; ▶ plays in place with a progress bar; tapping a row
   offers Rename, Send, Delete. Recording: level bars and a large timer.
 - The recorder writes to the app's private temp folder; the file is encrypted into the
-  vault and deleted as soon as recording stops, and before the vault locks.
+  vault and deleted as soon as recording stops, and before the vault locks. When
+  encrypting fails (no space left), a recording or a video the person stopped is not
+  deleted with the error (0.3.1): a card (`showCard`, `retryOrDiscardTake`) says what
+  failed and that it is kept only until the vault locks, with Try Again as the main
+  button and Discard in red under it. A tap beside the card does not close it: only the
+  two buttons decide.
 
 ## Vault bar (approved 2026-10-20, 0.1.6)
 
@@ -416,6 +421,18 @@ name) are kept.
   system colour. Biometrics show the device's real symbol (Face ID glyph, or a fingerprint).
 - Messages float as a glass capsule (`showToast`, widgets/toast.dart); in a vault they sit on
   the row of the main action, beside it, never over the bottom bar.
+- **Slow work says what it is doing** (`whileWorking`, widgets/working_card.dart; 0.3.1):
+  making a backup, getting a selection ready to send ("Getting 3 of 12 ready to send"), a
+  sync by hand waiting for the automatic one. The card cannot be dismissed and closes only
+  itself, so a lock screen that came on top stays.
+- **What could not be done is said** (0.3.1): deleting, restoring and deleting for good
+  count their failures ("2 moved to Recently deleted, 1 could not be moved",
+  `lib/bulk_text.dart`); a failed rename or group change is a message with its code.
+- **Imported photos and videos keep their date** (0.3.1, `lib/media_date.dart`): the date
+  inside the file (EXIF date taken; the creation time of an MP4 / MOV), else the file's
+  last-modified time when it is older than the import, else now. Top Secret Mode reads no
+  file content: the file's time only. A photo whose picker name is made up is named after
+  that date.
 - **Main action on the left or right** (Settings → Display → Add button; left by default,
   under the left thumb). Messages move to the other side of it.
 - Notes list: title, then when it was made (time today, weekday this week, else the

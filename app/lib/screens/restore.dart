@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../key_backup.dart';
@@ -8,19 +7,21 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
-import '../theme.dart';
+import '../widgets/steps.dart';
 import '../widgets/words_input.dart';
 import 'common.dart';
 import 'unlock.dart';
 
-/// Bring vaults back onto this device: pick a backup file (skipped when the library is
-/// already here but its Secret Key is not, e.g. after a reinstall), then type the
-/// Secret Key from the Emergency Kit.
+/// The vaults are on this device but their 24 words are not (after a reinstall, or a
+/// backup file restored with another vault's words): type them. Restoring from a backup
+/// file, Drive or another device is `RestorePickScreen` (restore_flow.dart), on a new
+/// device and from the lock screen alike: this page used to pick a backup file too, into
+/// the device's own library, which the core refuses once a vault is there
+/// (`LibraryExists`), so from the lock screen it could only ever fail.
 class RestoreScreen extends StatefulWidget {
-  const RestoreScreen({super.key, required this.libraryDir, required this.needFile});
+  const RestoreScreen({super.key, required this.libraryDir});
 
   final String libraryDir;
-  final bool needFile;
 
   @override
   State<RestoreScreen> createState() => _RestoreScreenState();
@@ -28,7 +29,6 @@ class RestoreScreen extends StatefulWidget {
 
 class _RestoreScreenState extends State<RestoreScreen> {
   final _key = TextEditingController();
-  late bool _needFile = widget.needFile;
   bool _busy = false;
   String? _error;
 
@@ -49,26 +49,6 @@ class _RestoreScreenState extends State<RestoreScreen> {
   void dispose() {
     _key.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickBackup() async {
-    final l = AppLocalizations.of(context);
-    final file = await openFile();
-    if (file == null) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await rust.importBackup(path: file.path, dir: widget.libraryDir);
-      if (mounted) setState(() => _needFile = false);
-    } on rust.VaultError catch (e) {
-      if (mounted) setState(() => _error = vaultErrorText(l, e));
-    } catch (e) {
-      if (mounted) setState(() => _error = withCode(l, l.errorBadBackup, e));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
   }
 
   Future<void> _useKey() async {
@@ -104,46 +84,29 @@ class _RestoreScreenState extends State<RestoreScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
-    final theme = Theme.of(context);
+    // The steps' frame (docs/design-language.md, Steps). This page is the app's first
+    // one when the words are missing: nothing is under it, so no Back.
     return Scaffold(
-      appBar: widget.needFile ? AppBar() : null,
-      body: FormColumn(
+      body: StepPage(
+        title: l.restoreTitle,
+        lead: l.restoreLeadKey,
+        onBack: Navigator.of(context).canPop() ? () => Navigator.of(context).maybePop() : null,
         actions: [
-          if (_needFile)
-            FilledButton.icon(
-              onPressed: _busy ? null : _pickBackup,
-              icon: const Icon(Icons.file_open_rounded),
-              label: BusyLabel(busy: _busy, idle: l.restorePick, working: l.restoring),
-            )
-          else
-            FilledButton(
-              onPressed: _busy || _key.text.trim().isEmpty ? null : _useKey,
-              child: BusyLabel(busy: _busy, idle: l.restoreContinue, working: l.restoring),
-            ),
-        ],
-        children: [
-          if (!widget.needFile) ...[const BrandHeader(), const SizedBox(height: 28)],
-          Text(l.restoreTitle, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(
-            _needFile ? l.restoreLeadFile : l.restoreLeadKey,
-            style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5),
+          StepMainButton(
+            label: l.restoreContinue,
+            busyLabel: _busy ? l.restoring : null,
+            onTap: _busy || _key.text.trim().isEmpty ? null : _useKey,
           ),
-          if (!_needFile) ...[
-            const SizedBox(height: 24),
-            RecoveryKeyInput(
-              key: const ValueKey('restore-key'),
-              controller: _key,
-              enabled: !_busy,
-              onChanged: () => setState(() => _error = null),
-            ),
-          ],
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
-          ],
         ],
+        body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          RecoveryKeyInput(
+            key: const ValueKey('restore-key'),
+            controller: _key,
+            enabled: !_busy,
+            onChanged: () => setState(() => _error = null),
+          ),
+          if (_error != null) StepError(_error!),
+        ]),
       ),
     );
   }

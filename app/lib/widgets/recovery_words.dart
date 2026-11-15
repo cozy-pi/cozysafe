@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
+import 'ask.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -73,7 +74,7 @@ class RecoveryWordsPanel extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
+          decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(Ui.groupRadius), border: Border.all(color: c.border)),
           child: SecretText(
             text: words.join(' '),
             builder: (context, shown) => WordGrid(words: words, shown: shown),
@@ -105,7 +106,7 @@ class RecoveryWordsPanel extends StatelessWidget {
         const SizedBox(height: 12),
         Material(
           color: c.warnBg,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Text(l.kitWarning, style: TextStyle(color: c.warnInk, fontSize: CsType.subhead, height: 1.45)),
@@ -213,27 +214,14 @@ Future<void> saveWordsFile(BuildContext button, List<String> words) async {
 
 Future<bool?> _askBeforeSaving(BuildContext context) {
   final l = AppLocalizations.of(context);
-  return showModalBottomSheet<bool>(
-    context: context,
-    builder: (context) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
-        child: Column(
-          key: const ValueKey('words-save-ask'),
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l.wordsSaveAskTitle, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Text(l.wordsSaveAskBody, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
-            const SizedBox(height: 16),
-            FilledButton(
-                key: const ValueKey('words-save-go'), onPressed: () => Navigator.pop(context, true), child: Text(l.wordsSaveAskGo)),
-            const SizedBox(height: 6),
-            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-          ],
-        ),
-      ),
-    ),
+  return askSheet<bool>(
+    context,
+    boxKey: const ValueKey('words-save-ask'),
+    title: l.wordsSaveAskTitle,
+    body: [l.wordsSaveAskBody],
+    actions: [
+      AskAction.main(l.wordsSaveAskGo, true, key: const ValueKey('words-save-go')),
+      AskAction.quiet(l.cancel, false),
+    ],
   );
 }

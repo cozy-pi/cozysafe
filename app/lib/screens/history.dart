@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import '../widgets/readable.dart';
 import 'package:intl/intl.dart';
 
 import '../item_kind.dart';
@@ -102,7 +103,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     // (ADR 0009); its content is never read as plain bytes here.
     final restored = ItemKind.isEntry(widget.item.kind)
         ? await Navigator.of(context).push<rust.ItemInfo>(
-            MaterialPageRoute(builder: (_) => EntryScreen(item: widget.item, version: v)))
+            MaterialPageRoute(builder: (_) => Readable(child: EntryScreen(item: widget.item, version: v))))
         : await pushPage<rust.ItemInfo>(
             context,
             title: historyWhen(context, v.replacedMs),
@@ -121,7 +122,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final versions = _versions;
     if (versions == null) return const SizedBox.shrink();
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(Ui.groupSide, 16, Ui.groupSide, 24),
       children: [
         if (versions.isEmpty)
           Padding(
@@ -135,7 +136,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         else ...[
           Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
@@ -158,7 +159,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const SizedBox(height: 28),
           Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               key: const ValueKey('history-clear-item'),
@@ -298,7 +299,7 @@ class _VersionPageState extends State<_VersionPage> {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Ui.groupRadius)),
         child: SelectableText(
           text,
           key: const ValueKey('history-text'),
@@ -308,7 +309,7 @@ class _VersionPageState extends State<_VersionPage> {
     }
     if (v.kind == ItemKind.photo) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Ui.groupRadius),
         child: Image.memory(bytes!, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink()),
       );
     }
@@ -331,7 +332,7 @@ class _VersionPageState extends State<_VersionPage> {
       children: [
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            padding: const EdgeInsets.fromLTRB(Ui.groupSide, 16, Ui.groupSide, 16),
             children: [
               Text(v.item.name, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
@@ -348,7 +349,7 @@ class _VersionPageState extends State<_VersionPage> {
         SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            padding: const EdgeInsets.fromLTRB(Ui.groupSide, 4, Ui.groupSide, 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -420,6 +421,20 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
   }
 
   Future<void> _set(int days, BigInt max) async {
+    final l = AppLocalizations.of(context);
+    // Off erases every earlier version at once, earlier passwords too: it asks first, as
+    // Clear All History below does (it went on one tap). Nothing kept: nothing to ask.
+    if (days == 0 && _days != 0 && _used != BigInt.zero) {
+      final ok = await confirmDelete(
+        context,
+        title: l.historyOffTitle,
+        action: l.historyOffGo,
+        body: l.historyOffBody,
+        icon: Icons.history_toggle_off_rounded,
+      );
+      if (!ok || !mounted) return;
+    }
+    final (wasDays, wasMax) = (_days, _max);
     setState(() {
       _days = days;
       _max = max;
@@ -427,7 +442,18 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
     if (HistorySettingsScreen.debugState != null) return;
     try {
       await hist.setHistorySettings(days: days, maxBytes: max, nowMs: DateTime.now().millisecondsSinceEpoch);
-    } catch (_) {}
+    } catch (e) {
+      // Not changed: the choice shown goes back, and the failure is said (it was swallowed,
+      // the page showing a choice the vault never took).
+      if (!mounted) return;
+      setState(() {
+        _days = wasDays;
+        _max = wasMax;
+      });
+      showToast(context, e is rust.VaultError ? vaultErrorText(l, e) : withCode(l, l.errorStorage, e),
+          icon: Icons.error_outline_rounded);
+      return;
+    }
     widget.onChanged?.call();
     _load();
   }
@@ -459,7 +485,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
         ),
         Material(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
@@ -497,7 +523,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
     final c = CsColors.of(context);
     final used = _used;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+      padding: const EdgeInsets.fromLTRB(Ui.groupSide, 20, Ui.groupSide, 24),
       children: [
         // One choice (owner 2026-10-27): how much; how long follows from it.
         _group(context, l.historyKeepUntil, [
@@ -517,7 +543,7 @@ class _HistorySettingsScreenState extends State<HistorySettingsScreen> {
           const SizedBox(height: 28),
           Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               key: const ValueKey('history-clear-all'),

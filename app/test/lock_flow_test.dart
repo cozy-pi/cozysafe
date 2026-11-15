@@ -15,6 +15,8 @@ import 'package:cozysafe/lock_resume.dart';
 import 'package:cozysafe/prefs.dart';
 import 'package:cozysafe/screens/kit_password.dart';
 import 'package:cozysafe/screens/note.dart';
+import 'package:cozysafe/screens/restore.dart';
+import 'package:cozysafe/screens/restore_flow.dart';
 import 'package:cozysafe/screens/emergency_kit.dart';
 import 'package:cozysafe/secret_key_store.dart';
 import 'package:cozysafe/screens/settings.dart';
@@ -202,6 +204,25 @@ void main() {
     await t.pump();
     expect(find.text('Use password'), findsNothing);
     expect(find.byType(TextField), findsNothing);
+  });
+
+  // The lock screen only shows when a vault is here, and the page it used to open put a
+  // backup file into this device's own library, which the core refuses once a vault is
+  // there: it could only say "restore on a fresh install". Now it opens the restore that
+  // works beside the vaults already here.
+  testWidgets('Restore from a backup on the lock screen opens the restore that works beside a vault', (t) async {
+    await _pump(t, _app(const UnlockScreen(libraryDir: 'lib')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('more-button')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('lock-restore')));
+    await _settle(t);
+    expect(find.byType(RestorePickScreen), findsOneWidget);
+    expect(find.byType(RestoreScreen), findsNothing);
+    expect(find.byKey(const ValueKey('restore-file')), findsOneWidget);
+    expect(find.byKey(const ValueKey('restore-device')), findsOneWidget);
+    // A vault is here already: making another is not offered from the lock screen.
+    expect(find.byKey(const ValueKey('restore-none')), findsNothing);
   });
 
   testWidgets('the right password opens without pressing Enter', (t) async {

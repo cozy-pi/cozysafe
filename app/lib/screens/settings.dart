@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../widgets/ask.dart';
+import '../widgets/cs_switch.dart';
+import '../widgets/item_menu.dart';
 import 'package:flutter/rendering.dart' show RenderAbstractViewport;
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -105,15 +108,15 @@ abstract final class Settings {
 /// A setting Settings can open at (the quick tour's "Set up sync now" opens Sync), with
 /// its row's symbol and colour.
 enum SettingsSpot {
-  sync(Icons.sync_rounded, SettingsHue.xanhLa),
-  keyCheck(Icons.fact_check_rounded, SettingsHue.xanhLa),
-  keyBackup(Icons.cloud_rounded, SettingsHue.troi),
-  autoLock(Icons.timer_rounded, SettingsHue.cam),
-  blockScreenshots(Icons.visibility_off_rounded, SettingsHue.hong),
-  blurThumbs(Icons.blur_on_rounded, SettingsHue.ngoc),
-  hideNoteText(Icons.notes_rounded, SettingsHue.bacHa),
-  appearance(Icons.contrast_rounded, SettingsHue.cham),
-  language(Icons.translate_rounded, SettingsHue.xanh);
+  sync(Icons.sync_rounded, SettingsHue.green),
+  keyCheck(Icons.fact_check_rounded, SettingsHue.green),
+  keyBackup(Icons.cloud_rounded, SettingsHue.sky),
+  autoLock(Icons.timer_rounded, SettingsHue.orange),
+  blockScreenshots(Icons.visibility_off_rounded, SettingsHue.pink),
+  blurThumbs(Icons.blur_on_rounded, SettingsHue.teal),
+  hideNoteText(Icons.notes_rounded, SettingsHue.mint),
+  appearance(Icons.contrast_rounded, SettingsHue.indigo),
+  language(Icons.translate_rounded, SettingsHue.blue);
 
   const SettingsSpot(this.icon, this.color);
   final IconData icon;
@@ -387,41 +390,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _keyBackupOn() async {
     final l = AppLocalizations.of(context);
     final google = KeyBackup.google;
-    final yes = await showCard<bool>(context, title: google ? l.keyBackupTitleGoogle : l.keyBackupTitle, builder: (context) {
-      final c = CsColors.of(context);
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(google ? l.keyBackupBodyGoogle : l.keyBackupBody, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.4)),
-          const SizedBox(height: 18),
-          Row(children: [
-            Expanded(child: OutlinedButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l.cancel))),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton(
-                key: const ValueKey('key-backup-yes'),
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text(l.keyBackupOn),
-              ),
-            ),
-          ]),
-        ]),
-      );
-    });
+    final yes = await askCard<bool>(
+      context,
+      title: google ? l.keyBackupTitleGoogle : l.keyBackupTitle,
+      body: google ? l.keyBackupBodyGoogle : l.keyBackupBody,
+      actions: [
+        AskAction.main(l.keyBackupOn, true, key: const ValueKey('key-backup-yes')),
+        AskAction.quiet(l.cancel, false),
+      ],
+    );
     if (yes != true || !mounted) return;
     // The open vault's set: the device's, or the vault's own (ADR 0008, one copy per set).
     final key = await SecretKeyStore.readOpen();
     final ok = key != null && await KeyBackup.save(key, vault: widget.vault().code);
     if (!mounted) return;
     // Block Store keeps nothing without a screen lock (end to end encryption) or Google.
-    if (!ok && google) {
-      showToast(context, withCode(l, l.keyBackupGoogleFailed, key == null ? 'no-recovery-key' : 'key-backup-google'),
+    // An iPhone signed out of iCloud, or with iCloud Keychain off, keeps nothing either:
+    // the switch going back by itself said nothing (it used to be told for Google only).
+    if (!ok) {
+      showToast(
+          context,
+          google
+              ? withCode(l, l.keyBackupGoogleFailed, key == null ? 'no-recovery-key' : 'key-backup-google')
+              : withCode(l, l.keyBackupFailed, key == null ? 'no-recovery-key' : 'key-backup-icloud'),
           icon: Icons.error_outline_rounded);
     }
     setState(() => _keyBackup = ok);
   }
 
+  /// Off takes the copy away from every device on the account, and it may be the only
+  /// place the 24 words are: after the owner check (it used to go on one tap of the
+  /// switch), a card says so and offers to check the words first.
   Future<void> _keyBackupOff() async {
+    final l = AppLocalizations.of(context);
+    final choice = await askCard<_KeyBackupOff>(
+      context,
+      title: l.keyBackupOffTitle,
+      body: l.keyBackupOffBody,
+      actions: [
+        AskAction(l.keyBackupOffCheck, _KeyBackupOff.check, key: const ValueKey('key-backup-off-check')),
+        AskAction.main(l.keyBackupOffGo, _KeyBackupOff.remove, key: const ValueKey('key-backup-off-go'), danger: true),
+        AskAction.quiet(l.cancel, null, key: const ValueKey('key-backup-off-cancel')),
+      ],
+    );
+    if (!mounted) return;
+    if (choice == _KeyBackupOff.check) {
+      final vault = widget.vault();
+      await pushPage<void>(context,
+          title: l.keyCheckRow,
+          builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword));
+      return;
+    }
+    if (choice != _KeyBackupOff.remove) return;
     final key = await SecretKeyStore.readOpen();
     if (key != null) await KeyBackup.remove(key);
     if (mounted) setState(() => _keyBackup = false);
@@ -471,41 +491,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ThemeMode.system => l.appearanceAuto,
       };
 
+  /// A few choices in a menu at the row, the chosen one ticked: the same menu as Sort
+  /// ([showItemMenu]; docs/design-language.md, icons in menus). What was picked, or null.
+  Future<T?> _pickAt<T>(GlobalKey row, T now, List<(T, String, Key?)> choices) async {
+    T? picked;
+    await showItemMenu(context, from: row.currentContext, entries: [
+      for (final (value, label, key) in choices)
+        MenuEntry(value == now ? Icons.check_rounded : null, label, () {
+          picked = value;
+        }, key: key),
+    ]);
+    return picked;
+  }
+
   /// Automatic · Light · Dark: a menu at the row, like auto-lock.
   final _appearanceKey = GlobalKey();
   Future<void> _pickAppearance() async {
     final l = AppLocalizations.of(context);
-    final box = _appearanceKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final at = box.localToGlobal(Offset.zero) & box.size;
-    final size = MediaQuery.sizeOf(context);
-    final now = Appearance.mode.value;
-    final picked = await showMenu<ThemeMode>(
-      context: context,
-      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
-      items: [
-        for (final m in Appearance.choices)
-          PopupMenuItem(
-            key: ValueKey('appearance-${m.name}'),
-            value: m,
-            height: Ui.circle,
-            child: Row(children: [
-              SizedBox(width: 26, child: m == now ? const Icon(Icons.check_rounded, size: 20) : null),
-              Icon(
-                switch (m) {
-                  ThemeMode.light => Icons.light_mode_rounded,
-                  ThemeMode.dark => Icons.dark_mode_rounded,
-                  ThemeMode.system => Icons.brightness_auto_rounded,
-                },
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Text(_appearanceName(l, m), style: TextStyle(fontWeight: m == now ? FontWeight.w700 : FontWeight.w500)),
-            ]),
-          ),
-      ],
-    );
+    final picked = await _pickAt<ThemeMode>(_appearanceKey, Appearance.mode.value, [
+      for (final m in Appearance.choices) (m, _appearanceName(l, m), ValueKey('appearance-${m.name}')),
+    ]);
     if (picked == null || !mounted) return;
     Appearance.choose(picked);
     setState(() {});
@@ -515,27 +520,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _autoLockKey = GlobalKey();
   Future<void> _pickAutoLock() async {
     final l = AppLocalizations.of(context);
-    final box = _autoLockKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final at = box.localToGlobal(Offset.zero) & box.size;
-    final size = MediaQuery.sizeOf(context);
-    final picked = await showMenu<int>(
-      context: context,
-      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
-      items: [
-        for (final m in Settings.autoLockChoices)
-          PopupMenuItem(
-            value: m,
-            height: Ui.circle,
-            child: Row(children: [
-              SizedBox(width: 26, child: m == _minutes ? const Icon(Icons.check_rounded, size: 20) : null),
-              Text(l.minutesLong(m), style: TextStyle(fontWeight: m == _minutes ? FontWeight.w700 : FontWeight.w500)),
-            ]),
-          ),
-      ],
-    );
-    if (picked == null) return;
+    final picked = await _pickAt<int>(_autoLockKey, _minutes, [
+      for (final m in Settings.autoLockChoices) (m, l.minutesLong(m), null),
+    ]);
+    if (picked == null || !mounted) return;
     setState(() => _minutes = picked);
     Settings.autoLockMinutes = picked;
   }
@@ -545,28 +533,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _clipboardKey = GlobalKey();
   Future<void> _pickClipboard() async {
     final l = AppLocalizations.of(context);
-    final box = _clipboardKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final at = box.localToGlobal(Offset.zero) & box.size;
-    final size = MediaQuery.sizeOf(context);
     final now = SecureClipboard.seconds;
-    final picked = await showMenu<int>(
-      context: context,
-      position: RelativeRect.fromLTRB(at.right - 220, at.bottom - 8, size.width - at.right + 12, 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.radius)),
-      items: [
-        for (final s in SecureClipboard.choices)
-          PopupMenuItem(
-            key: ValueKey('clipboard-$s'),
-            value: s,
-            height: Ui.circle,
-            child: Row(children: [
-              SizedBox(width: 26, child: s == now ? const Icon(Icons.check_rounded, size: 20) : null),
-              Text(clipboardChoice(l, s), style: TextStyle(fontWeight: s == now ? FontWeight.w700 : FontWeight.w500)),
-            ]),
-          ),
-      ],
-    );
+    final picked = await _pickAt<int>(_clipboardKey, now, [
+      for (final s in SecureClipboard.choices) (s, clipboardChoice(l, s), ValueKey('clipboard-$s')),
+    ]);
     if (picked == null || picked == now || !mounted) return;
     void apply() => setState(() => Prefs.write(SecureClipboard.pref, '$picked'));
     final longer = picked == 0 || (now != 0 && picked > now);
@@ -692,7 +662,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         builder: (context, _, _) => ListView(
           key: ValueKey('settings-page-${page.name}'),
           controller: scroll,
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+          padding: const EdgeInsets.fromLTRB(Ui.groupSide, 4, Ui.groupSide, 28),
           children: _children(AppLocalizations.of(context), page),
         ),
       ),
@@ -848,13 +818,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l = AppLocalizations.of(context);
     final main = _page == _Page.main;
     return PopScope(
-      // A sub-page goes back to the main page first.
+      // A sub-page is a route of its own ([_show]), so this page is the main one and pops.
+      // Only a mockup draws a sub-page in place (debugPage): Back there shows the main page.
       canPop: main,
       onPopInvokedWithResult: (popped, _) {
         if (!popped) _show(_Page.main);
       },
-      // Sub-pages are shown in place, so the system swipe has nothing to pop: an edge
-      // swipe goes back to the main page (iPhone).
+      // The same for the edge swipe, on a sub-page drawn in place (mockups only).
       child: EdgeSwipeBack(
       enabled: !main,
       onBack: () => _show(_Page.main),
@@ -878,7 +848,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: ListView(
         controller: _scroll,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+        padding: const EdgeInsets.fromLTRB(Ui.groupSide, 4, Ui.groupSide, 28),
         children: [
           ..._children(l, _page),
         ],
@@ -901,8 +871,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final vault = widget.vault();
     final dark = Theme.of(context).brightness == Brightness.dark;
     return [
-          // One page, every setting on it in groups (owner 2026-10-31: the main page was
-          // empty and the sub-pages long); only About opens a page of its own.
+          // The main page holds most settings in groups (owner 2026-10-31: it was empty
+          // and the sub-pages long); Screen, Look and About each open a page of their own.
           if (page == _Page.main) ...[
             _VaultCard(vault: vault, sizeText: _sizeText, lastBackup: widget.lastBackup(), figures: _figures.value, onTap: _openStorage),
             // Top Secret Mode in a card of its own, near the top (owner 2026-10-31: people
@@ -932,22 +902,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: _here(_backupRowKey, page) ?? const ValueKey('backup-row'),
               icon: Icons.cloud_upload_rounded,
-              color: SettingsHue.xanh,
+              color: SettingsHue.blue,
               title: l.backupToFile,
               trailing: FilledButton(
                 key: const ValueKey('backup-now'),
                 style: FilledButton.styleFrom(
                   // Settings may use colour (owner): a soft tint of the backup blue, low
                   // contrast in both modes, never a black or white slab.
-                  backgroundColor: SettingsHue.xanh.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? .22 : .12),
-                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF64A8FF) : SettingsHue.xanh,
+                  backgroundColor: SettingsHue.blue.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? .22 : .12),
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF64A8FF) : SettingsHue.blue,
                   minimumSize: const Size(0, 34),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: const StadiumBorder(),
-                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: CsType.footnote, fontWeight: FontWeight.w600),
                 ),
                 onPressed: () => _then(widget.onBackup),
-                child: Text(l.backupNow),
+                // A long translation wraps inside the button; the row's name keeps its room.
+                child: Text(l.backupNow,
+                    textAlign: TextAlign.center, style: const TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
               ),
             ),
           ]),
@@ -957,18 +928,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (widget.canBiometric)
               SettingsRow(
                 icon: Icons.face_retouching_natural_rounded,
-                color: SettingsHue.xanhLa,
+                color: SettingsHue.green,
                 // The device's own symbol: the Face ID glyph, or a fingerprint (biometric.dart).
                 glyph: BiometricGlyph(kind: _bioKind, size: 19, color: Colors.white),
                 title: opensThisVaultLabel(l, _bioKind),
-                trailing: SettingsSwitch(
+                trailing: CsSwitch(
                   value: widget.biometricOn(),
                   onChanged: (_) => _then(widget.onToggleBiometric),
                 ),
               ),
             SettingsRow(
               icon: Icons.key_rounded,
-              color: SettingsHue.vang,
+              color: SettingsHue.yellow,
               title: l.backupPasswordLabel,
               value: vault.hasPassword ? l.isSet : l.notSet,
               onTap: () => _then(widget.onPassword),
@@ -977,7 +948,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SettingsRow(
                 key: const ValueKey('kit-row'),
                 icon: Icons.medical_services_rounded,
-                color: SettingsHue.doTuoi,
+                color: SettingsHue.red,
                 title: l.showKit,
                 onTap: widget.onShowKit,
               ),
@@ -994,7 +965,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     builder: (_) => KeyCheckScreen(libraryDir: widget.libraryDir, hasPassword: vault.hasPassword)),
               ),
             ),
-            // Turning it on is weaker, so it asks for the owner and says the trade (owner
+            // On or off, it asks for the owner: on is weaker and says the trade (owner
             // 2026-10-26); a new vault offers it, on by default (2026-11-05). Never for a
             // Top secret vault (ADR 0008).
             if (KeyBackup.supported && !vault.topSecret)
@@ -1005,9 +976,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: SettingsSpot.keyBackup.icon,
                   color: SettingsSpot.keyBackup.color,
                   title: KeyBackup.google ? l.keyBackupRowGoogle : l.keyBackupRow,
-                  trailing: SettingsSwitch(
+                  trailing: CsSwitch(
                     value: _keyBackup,
-                    onChanged: (on) => on ? _guarded(_keyBackupOn) : _keyBackupOff(),
+                    onChanged: (on) => _guarded(on ? _keyBackupOn : _keyBackupOff),
                   ),
                 ),
               ),
@@ -1017,7 +988,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SettingsRow(
                 key: const ValueKey('vault-code-row'),
                 icon: Icons.tag_rounded,
-                color: SettingsHue.cham,
+                color: SettingsHue.indigo,
                 title: l.vaultCode,
                 value: vault.code,
                 onTap: () {
@@ -1043,9 +1014,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('lock-on-leave-row'),
               icon: Icons.exit_to_app_rounded,
-              color: SettingsHue.troi,
+              color: SettingsHue.sky,
               title: l.lockOnLeave,
-              trailing: SettingsSwitch(
+              trailing: CsSwitch(
                 value: _lockOnLeave,
                 onChanged: (on) {
                   void apply() {
@@ -1060,9 +1031,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('hold-home-row'),
               icon: Icons.lock_rounded,
-              color: SettingsHue.tim,
+              color: SettingsHue.purple,
               title: l.holdHomeTitle,
-              trailing: SettingsSwitch(
+              trailing: CsSwitch(
                 value: holdHomeLocks(),
                 onChanged: (on) => setState(() => Prefs.write(holdHomePref, on ? '1' : '0')),
               ),
@@ -1075,7 +1046,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: SettingsRow(
                   key: _clipboardKey,
                   icon: Icons.content_paste_off_rounded,
-                  color: SettingsHue.vang,
+                  color: SettingsHue.yellow,
                   title: l.clipboardClear,
                   value: clipboardChoice(l, SecureClipboard.seconds),
                   onTap: _pickClipboard,
@@ -1084,14 +1055,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('settings-screen'),
               icon: Icons.visibility_off_rounded,
-              color: SettingsHue.hong,
+              color: SettingsHue.pink,
               title: l.settingsScreen,
               onTap: () => _show(_Page.screen),
             ),
             SettingsRow(
               key: const ValueKey('settings-look'),
               icon: Icons.brightness_6_rounded,
-              color: SettingsHue.cham,
+              color: SettingsHue.indigo,
               title: l.settingsLook,
               onTap: () => _show(_Page.look),
             ),
@@ -1107,7 +1078,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: SettingsSpot.blockScreenshots.icon,
                 color: SettingsSpot.blockScreenshots.color,
                 title: l.blockScreenshots,
-                trailing: SettingsSwitch(
+                trailing: CsSwitch(
                   value: _secure && !_testVault,
                   // Turning it on only makes the vault safer: no Face ID for that
                   // (owner 2026-10-24). Turning it off still asks.
@@ -1132,7 +1103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: SettingsSpot.blurThumbs.icon,
                 color: SettingsSpot.blurThumbs.color,
                 title: l.blurThumbs,
-                trailing: SettingsSwitch(
+                trailing: CsSwitch(
                   // The test vault shows thumbnails clearly always: off, and fixed, as above.
                   value: blurThumbsOn() && !_testVault,
                   // Turning it on protects more; turning it off asks for the owner.
@@ -1154,7 +1125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 // like "Blur thumbnails". The pref keeps its old meaning (1 = show text).
                 key: const ValueKey('hide-note-text-row'),
                 title: l.hideNoteText,
-                trailing: SettingsSwitch(
+                trailing: CsSwitch(
                   value: !notePreviews(),
                   // Showing more is weaker: turning "hide" off asks for the owner.
                   onChanged: (hide) => hide
@@ -1170,13 +1141,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('identity-row'),
               icon: Icons.palette_rounded,
-              color: SettingsHue.tim,
+              color: SettingsHue.purple,
               title: l.changeIdentity,
               onTap: () => _then(widget.onChangeIdentity),
             ),
             SettingsRow(
               icon: Icons.delete_sweep_rounded,
-              color: SettingsHue.xam,
+              color: SettingsHue.grey,
               title: l.recentlyDeleted,
               onTap: () => _then(_openTrash),
             ),
@@ -1184,7 +1155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('history-row'),
               icon: Icons.history_rounded,
-              color: SettingsHue.ngoc,
+              color: SettingsHue.teal,
               title: l.versionHistory,
               value: _historyDays == 0 ? l.historyOff : historySizeText(l, _historyMax),
               onTap: _openHistory,
@@ -1193,7 +1164,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('vaults-row'),
               icon: Icons.inventory_2_rounded,
-              color: SettingsHue.cam,
+              color: SettingsHue.orange,
               title: l.vaultManagerTitle,
               onTap: _openVaults,
             ),
@@ -1229,7 +1200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('side-row'),
               icon: Icons.back_hand_rounded,
-              color: SettingsHue.cam,
+              color: SettingsHue.orange,
               title: l.actionSide,
               trailing: _SideSwitch(
                 side: actionSide(),
@@ -1241,9 +1212,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('reveal-row'),
               icon: Icons.auto_awesome_rounded,
-              color: SettingsHue.cham,
+              color: SettingsHue.indigo,
               title: l.revealIcon,
-              trailing: SettingsSwitch(
+              trailing: CsSwitch(
                 value: revealIconOn(),
                 onChanged: (v) => setState(() => Prefs.write(revealIconPref, v ? '1' : '0')),
               ),
@@ -1258,14 +1229,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: SettingsRow(
                   key: const ValueKey('guide-row'),
                   icon: Icons.school_rounded,
-                  color: SettingsHue.vang,
+                  color: SettingsHue.yellow,
                   title: l.userGuide,
                   onTap: _tour,
                 ),
               ),
             SettingsRow(
               icon: Icons.verified_user_rounded,
-              color: SettingsHue.ngoc,
+              color: SettingsHue.teal,
               title: l.securityTitle,
               onTap: _showSecurity,
             ),
@@ -1273,7 +1244,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('feedback-row'),
               icon: Icons.chat_bubble_rounded,
-              color: SettingsHue.xanh,
+              color: SettingsHue.blue,
               title: l.feedback,
               onTap: Links.canOpen ? () => Links.open(Links.feedback(_langCode(context))) : null,
             ),
@@ -1281,7 +1252,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('report-row'),
               icon: Icons.bug_report_rounded,
-              color: SettingsHue.cam,
+              color: SettingsHue.orange,
               title: l.reportProblem,
               onTap: () => pushPage<void>(context, title: l.reportProblem, builder: (_) => const ErrorReportScreen()),
             ),
@@ -1289,7 +1260,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsRow(
               key: const ValueKey('settings-help'),
               icon: Icons.info_rounded,
-              color: SettingsHue.xam,
+              color: SettingsHue.grey,
               title: l.aboutTitle,
               onTap: () => _show(_Page.help),
             ),
@@ -1312,7 +1283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SettingsRow(
                   key: const ValueKey('about-version'),
                   icon: Icons.info_rounded,
-                  color: SettingsHue.xam,
+                  color: SettingsHue.grey,
                   title: l.aboutVersion,
                   value: version,
                   onTap: _versionTap,
@@ -1320,7 +1291,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 SettingsRow(
                   icon: Icons.schedule_rounded,
-                  color: SettingsHue.xam,
+                  color: SettingsHue.grey,
                   title: l.aboutBuilt,
                   value: built == null
                       ? l.aboutLocal
@@ -1328,16 +1299,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 SettingsRow(
                   icon: Icons.code_rounded,
-                  color: SettingsHue.xam,
+                  color: SettingsHue.grey,
                   title: l.aboutCommit,
                   value: buildCommit.isEmpty ? l.aboutLocal : buildCommitShort,
                 ),
-                SettingsRow(icon: Icons.gavel_rounded, color: SettingsHue.xam, title: l.aboutLicense, value: 'GPL-3.0'),
+                SettingsRow(icon: Icons.gavel_rounded, color: SettingsHue.grey, title: l.aboutLicense, value: 'GPL-3.0'),
                 if (debugModeOn())
                   SettingsRow(
                     key: _debugRowKey,
                     icon: Icons.bug_report_rounded,
-                    color: SettingsHue.doTuoi,
+                    color: SettingsHue.red,
                     title: l.debugMode,
                     onTap: () async {
                       await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => Readable(child: const DebugScreen())));
@@ -1368,7 +1339,7 @@ class _TopSecretCard extends StatelessWidget {
       padding: const EdgeInsets.only(top: 18),
       child: Material(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Ui.groupRadius),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           key: const ValueKey('top-secret-row'),
@@ -1428,7 +1399,7 @@ class _VaultCard extends StatelessWidget {
     final fg = Theme.of(context).colorScheme.onSurface;
     return Material(
       color: bg,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(Ui.radius),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         key: const ValueKey('storage-card'),
@@ -1494,7 +1465,7 @@ class SettingsGroup extends StatelessWidget {
         children: [
           Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
@@ -1516,10 +1487,10 @@ class SettingsGroup extends StatelessWidget {
 /// (and a second line), then a value with a chevron, a switch, or a button.
 /// iOS system colours for the setting tiles.
 abstract final class SettingsHue {
-  static const tim = Color(0xFFAF52DE), xam = Color(0xFF8E8E93), xanhLa = Color(0xFF34C759),
-      cham = Color(0xFF5856D6), cam = Color(0xFFFF9500), xanh = Color(0xFF007AFF),
-      doTuoi = Color(0xFFFF3B30), ngoc = Color(0xFF30B0C7), hong = Color(0xFFFF2D55), troi = Color(0xFF32ADE6),
-      vang = Color(0xFFFFB300), bacHa = Color(0xFF00C7BE); // brown (nau) dropped: owner found it ugly
+  static const purple = Color(0xFFAF52DE), grey = Color(0xFF8E8E93), green = Color(0xFF34C759),
+      indigo = Color(0xFF5856D6), orange = Color(0xFFFF9500), blue = Color(0xFF007AFF),
+      red = Color(0xFFFF3B30), teal = Color(0xFF30B0C7), pink = Color(0xFFFF2D55), sky = Color(0xFF32ADE6),
+      yellow = Color(0xFFFFB300), mint = Color(0xFF00C7BE); // brown dropped: owner found it ugly
 }
 
 class SettingsRow extends StatelessWidget {
@@ -1560,7 +1531,10 @@ class SettingsRow extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 46),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
-          child: Row(
+          // What sits at the row's end (a button, a three-way switch) takes at most this
+          // much of the row, and wraps or shrinks inside it: in French or Russian it used
+          // to squeeze the name into a few letters per line.
+          child: LayoutBuilder(builder: (context, box) => Row(
             children: [
               SettingTile(icon: icon, color: color, glyph: glyph),
               const SizedBox(width: 12),
@@ -1578,35 +1552,20 @@ class SettingsRow extends StatelessWidget {
                       maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: c.muted, fontSize: CsType.body)),
                 ),
               ],
-              if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                ConstrainedBox(constraints: BoxConstraints(maxWidth: box.maxWidth * .56), child: trailing!),
+              ],
               if (onTap != null && trailing == null && chevron) ...[
                 const SizedBox(width: 4),
                 Icon(Icons.chevron_right, color: c.muted, size: 20),
               ],
             ],
-          ),
+          )),
         ),
       ),
     );
   }
-}
-
-/// A switch in ink: on is solid ink with a page-coloured thumb.
-class SettingsSwitch extends StatelessWidget {
-  const SettingsSwitch({super.key, required this.value, required this.onChanged});
-  final bool value;
-  /// Null: shown greyed, it cannot be changed here.
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) => Switch.adaptive(
-        value: value,
-        onChanged: onChanged,
-        // On is the iPhone's green with a white knob (settings may use colour; a black or
-        // white track was too strong, owner 2026-10-21).
-        activeTrackColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF30D158) : SettingsHue.xanhLa,
-        activeThumbColor: Colors.white,
-      );
 }
 
 class _SideSwitch extends StatelessWidget {
@@ -1637,14 +1596,18 @@ class _SideSwitch extends StatelessWidget {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(19)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        part(labels.$1, ActionSide.left),
-        part(labels.$2, ActionSide.center),
-        part(labels.$3, ActionSide.right),
-      ]),
+    // Three long words (a translation) shrink together rather than overflow the row.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(color: ink.withValues(alpha: .08), borderRadius: BorderRadius.circular(19)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          part(labels.$1, ActionSide.left),
+          part(labels.$2, ActionSide.center),
+          part(labels.$3, ActionSide.right),
+        ]),
+      ),
     );
   }
 }
@@ -1684,3 +1647,6 @@ String _langCode(BuildContext context) {
   return l.scriptCode == 'Hant' ? 'zh_Hant' : l.languageCode;
 }
 
+
+/// What the card asked before the cloud copy of the 24 words goes answered.
+enum _KeyBackupOff { check, remove }

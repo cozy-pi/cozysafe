@@ -198,6 +198,11 @@ class MainActivity : FlutterFragmentActivity() {
                 // A password or one-time code (lib/entries/secure_clipboard.dart).
                 SecureClipboard.copy(this, call.argument<String>("text") ?: "", call.argument<Int>("seconds") ?: 90)
                 result.success(true)
+            } else if (call.method == "clearClipboard") {
+                // Text copied from a note, wiped as the vault locks or after its minute
+                // while the app is not in front and cannot read the clipboard to compare
+                // (lib/lock_guard.dart): emptied as it is.
+                result.success(SecureClipboard.clear(this, false))
             } else if (call.method == "setSecure") {
                 secureWanted = call.arguments == true
                 setSecure(secureWanted)
@@ -317,10 +322,36 @@ class MainActivity : FlutterFragmentActivity() {
         if (Build.VERSION.SDK_INT < 33) setSecure(secureWanted)
     }
 
+    // A password copied before the process died is cleared once the app is in front
+    // again, where the clipboard can be read (SecureClipboard).
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) SecureClipboard.leftBehind(this)
+    }
+
     override fun onDestroy() {
         // The app is closing (not just turning): no sync is left to keep alive.
         if (isFinishing && SYNC_SERVICE) SyncService.stop(this)
         super.onDestroy()
+    }
+
+    /// When a picked item was taken or last changed, if its provider says: the photo
+    /// picker and MediaStore answer "datetaken", document providers "last_modified"
+    /// (both in milliseconds). A provider that does not know a column is skipped.
+    private fun originalMs(uri: Uri): Long? {
+        for (column in arrayOf("datetaken", DocumentsContract.Document.COLUMN_LAST_MODIFIED)) {
+            try {
+                contentResolver.query(uri, arrayOf(column), null, null, null)?.use { c ->
+                    if (c.moveToFirst() && c.columnCount > 0 && !c.isNull(0)) {
+                        val ms = c.getLong(0)
+                        if (ms > 0) return ms
+                    }
+                }
+            } catch (e: Exception) {
+                // Not a column this provider has.
+            }
+        }
+        return null
     }
 
     /// Copy each picked item into the app's cache (the vault encrypts from there; the copy
@@ -347,6 +378,9 @@ class MainActivity : FlutterFragmentActivity() {
                 val safe = name.replace('/', '-')
                 val copy = File(dir, "${System.nanoTime()}-$safe")
                 contentResolver.openInputStream(uri)?.use { input -> copy.outputStream().use { input.copyTo(it) } }
+                // The copy keeps the original's date: the vault files a photo under the day
+                // it was made when the picture itself does not say (lib/media_date.dart).
+                originalMs(uri)?.let { copy.setLastModified(it) }
                 item.putAll(mapOf(
                     "path" to copy.path,
                     "name" to safe,

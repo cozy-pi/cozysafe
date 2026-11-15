@@ -57,6 +57,10 @@ class _SearchScreenState extends State<SearchScreen> {
     _loadNotes();
   }
 
+  /// The notes' texts are all read: until then a search that finds nothing may still
+  /// find something, and says it is searching.
+  bool _notesRead = false;
+
   Future<void> _loadNotes() async {
     for (final it in widget.items.where((i) => i.kind == ItemKind.note)) {
       try {
@@ -66,8 +70,20 @@ class _SearchScreenState extends State<SearchScreen> {
       } catch (_) {}
       if (!mounted) return;
     }
-    if (mounted) setState(() {});
+    if (mounted) setState(() => _notesRead = true);
   }
+
+  Widget _searching(BuildContext context, AppLocalizations l) => Center(
+        key: const ValueKey('search-searching'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 0, 32, 80),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const SizedBox.square(dimension: 26, child: CircularProgressIndicator(strokeWidth: 2.5)),
+            const SizedBox(height: 14),
+            Text(l.searchSearching, textAlign: TextAlign.center, style: TextStyle(color: CsColors.of(context).muted)),
+          ]),
+        ),
+      );
 
   @override
   void dispose() {
@@ -122,10 +138,10 @@ class _SearchScreenState extends State<SearchScreen> {
         child: SafeArea(
           bottom: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+            padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 8),
             child: Row(
               children: [
-                GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, onTap: () => Navigator.of(context).maybePop()),
+                const RoundBack(),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(l.search,
@@ -147,7 +163,11 @@ class _SearchScreenState extends State<SearchScreen> {
             child: browsing
                 ? _browse(context, l)
                 : shown.isEmpty && groupHits.isEmpty
-                    ? _nothing(context, l)
+                    // Notes are matched by their text, read in the background: "nothing"
+                    // only once all of it is there.
+                    ? (!_notesRead && q.isNotEmpty && (_kind == null || _kind == VaultSection.note)
+                        ? _searching(context, l)
+                        : _nothing(context, l))
                     : _results(context, l, q, shown, _kind == null ? groupHits : const []),
           ),
           if (!browsing && (counts.isNotEmpty || _kind != null)) _chips(context, l, hits.length, counts),
@@ -235,7 +255,7 @@ class _SearchScreenState extends State<SearchScreen> {
       height: Ui.chip + 12,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(14, 2, 6, 8),
+        padding: const EdgeInsets.fromLTRB(Ui.groupSide, 2, 6, 8),
         children: [
           chip(l.searchAll, _query.text.trim().isEmpty ? null : all, _kind == null, () => setState(() => _kind = null)),
           for (final e in counts.entries)
@@ -277,7 +297,7 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Text(t, style: TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w700, color: c.muted)),
         );
     return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+      padding: const EdgeInsets.fromLTRB(Ui.groupSide, 0, Ui.groupSide, 24),
       children: [
         if (groups.isNotEmpty) ...[
           title(l.searchGroups),
@@ -346,7 +366,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final c = CsColors.of(context);
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       clipBehavior: Clip.antiAlias,
       child: Column(children: [
         for (final (i, r) in rows.indexed) ...[
@@ -402,9 +422,8 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Plain weight while searching so the matched words stand out in bold.
-                  MarkedText(_shownName(l, it), q,
-                      maxLines: 1, style: TextStyle(fontSize: CsType.callout, fontWeight: q.isEmpty ? FontWeight.w600 : FontWeight.w400)),
+                  // A row's name, 17 regular as everywhere; the matched words stand out in bold.
+                  MarkedText(_shownName(l, it), q, maxLines: 1, style: const TextStyle(fontSize: CsType.body)),
                   const SizedBox(height: 3),
                   if (under != null && snippet != null && notePreviews())
                     MarkedText(under, q, maxLines: 2, style: TextStyle(color: c.muted, fontSize: CsType.footnote, height: 1.3))

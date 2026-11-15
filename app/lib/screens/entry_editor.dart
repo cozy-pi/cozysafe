@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../widgets/ask.dart';
 
 import '../entries/entry.dart';
 import '../entries/password_gen.dart';
@@ -11,7 +12,6 @@ import '../lock_guard.dart';
 import '../lock_resume.dart';
 import '../platform.dart';
 import '../src/rust/api/vault.dart' as rust;
-import '../theme.dart';
 import '../widgets/entry_row.dart';
 import '../widgets/password_strength.dart';
 import '../widgets/secret.dart';
@@ -313,26 +313,16 @@ class _EntryEditorState extends State<EntryEditor> with WidgetsBindingObserver, 
   /// on screen; reload it (dropping the typing) or save over that change.
   Future<void> _changedElsewhere() async {
     final l = AppLocalizations.of(context);
-    final answer = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const ValueKey('entry-changed'),
-        title: Text(l.entryChangedTitle),
-        content: Text(l.entryChangedBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
-          TextButton(
-            key: const ValueKey('entry-changed-reload'),
-            onPressed: () => Navigator.pop(context, 'reload'),
-            child: Text(l.entryReload),
-          ),
-          TextButton(
-            key: const ValueKey('entry-changed-save'),
-            onPressed: () => Navigator.pop(context, 'save'),
-            child: Text(l.entrySaveAnyway),
-          ),
-        ],
-      ),
+    final answer = await askCard<String>(
+      context,
+      boxKey: const ValueKey('entry-changed'),
+      title: l.entryChangedTitle,
+      body: l.entryChangedBody,
+      actions: [
+        AskAction(l.entryReload, 'reload', key: const ValueKey('entry-changed-reload')),
+        AskAction(l.entrySaveAnyway, 'save', key: const ValueKey('entry-changed-save')),
+        AskAction.quiet(l.cancel, null),
+      ],
     );
     if (!mounted || answer == null) return;
     if (answer == 'reload') return _reload();
@@ -353,27 +343,15 @@ class _EntryEditorState extends State<EntryEditor> with WidgetsBindingObserver, 
   Future<void> _askLeave() async {
     final l = AppLocalizations.of(context);
     final nav = Navigator.of(context);
-    final answer = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const ValueKey('entry-leave'),
-        title: Text(l.entryLeaveTitle),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
-          TextButton(
-            key: const ValueKey('entry-discard'),
-            onPressed: () => Navigator.pop(context, 'discard'),
-            style: TextButton.styleFrom(foregroundColor: recordRed(context)),
-            child: Text(l.entryDiscard),
-          ),
-          if (_canSave)
-            TextButton(
-              key: const ValueKey('entry-leave-save'),
-              onPressed: () => Navigator.pop(context, 'save'),
-              child: Text(l.save),
-            ),
-        ],
-      ),
+    final answer = await askCard<String>(
+      context,
+      boxKey: const ValueKey('entry-leave'),
+      title: l.entryLeaveTitle,
+      actions: [
+        if (_canSave) AskAction.main(l.save, 'save', key: const ValueKey('entry-leave-save')),
+        AskAction(l.entryDiscard, 'discard', key: const ValueKey('entry-discard'), danger: true),
+        AskAction.quiet(l.cancel, null),
+      ],
     );
     if (!mounted) return;
     if (answer == 'save') return _saveAndLeave();

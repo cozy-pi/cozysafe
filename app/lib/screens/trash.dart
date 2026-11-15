@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../file_kinds.dart';
 import 'package:flutter/services.dart';
 
 import '../hidden_features.dart';
@@ -15,6 +16,7 @@ import '../widgets/selection_bar.dart';
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart';
 import 'common.dart';
+import '../bulk_text.dart';
 import '../widgets/entry_row.dart' show entryIcon;
 import 'file_view.dart';
 import 'item_info.dart';
@@ -141,14 +143,21 @@ class _TrashScreenState extends State<TrashScreen> {
         return;
       }
     }
+    var failed = 0;
     for (final it in items) {
       try {
         _held.contains(it.id) ? await rust.restoreHeld(id: it.id) : await rust.restoreItem(id: it.id);
-      } catch (_) {}
+      } catch (_) {
+        failed++;
+      }
     }
     if (!mounted) return;
     setState(_endSelect);
     await _load();
+    if (!mounted) return;
+    // All back: the list shows it. Some not: said, with both counts.
+    final said = restoredText(AppLocalizations.of(context), restored: items.length - failed, failed: failed);
+    if (said != null) showToast(context, said, icon: Icons.error_outline_rounded);
   }
 
   /// Deleting for good always asks first ([asked]: the preview did).
@@ -161,16 +170,22 @@ class _TrashScreenState extends State<TrashScreen> {
           othersKeep: !items.every((i) => _held.contains(i.id)));
       if (!ok || !mounted) return;
     }
+    var failed = 0;
     for (final it in items) {
       try {
         _held.contains(it.id) ? await rust.purgeHeld(id: it.id) : await rust.deleteItem(id: it.id);
-      } catch (_) {}
-      _thumbnails.remove(it.id);
+        _thumbnails.remove(it.id);
+      } catch (_) {
+        failed++;
+      }
     }
     AutoSync.changedOutOfList();
     if (!mounted) return;
     setState(_endSelect);
     await _load();
+    if (!mounted) return;
+    final said = deletedForGoodText(AppLocalizations.of(context), deleted: items.length - failed, failed: failed);
+    if (said != null) showToast(context, said, icon: Icons.error_outline_rounded);
   }
 
   /// A long press: the same actions, icons and order as the preview's bar (owner
@@ -650,8 +665,6 @@ class _Row extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
-    final dot = item.name.lastIndexOf('.');
-    final ext = item.kind != ItemKind.file || dot < 0 ? '' : item.name.substring(dot + 1).toUpperCase();
     final icon = switch (item.kind) {
       ItemKind.login || ItemKind.otp || ItemKind.codes => entryIcon(item.kind),
       ItemKind.note => Icons.book_rounded,
@@ -667,21 +680,23 @@ class _Row extends StatelessWidget {
       onLongPress: null,
       child: Row(
         children: [
-          Container(
-            width: 42,
-            height: 48,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(8)),
-            child: ext.isEmpty || ext.length > 4
-                ? Icon(icon, color: primary)
-                : Text(ext, style: TextStyle(color: primary, fontSize: CsType.caption2, fontWeight: FontWeight.w800)),
-          ),
+          // A file wears its kind's badge, as in the Files list (FileKindBadge).
+          if (item.kind == ItemKind.file)
+            FileKindBadge(name: item.name, mime: item.mime)
+          else
+            Container(
+              width: 42,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, color: primary),
+            ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(shownName(l, item), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead)),
+                Text(shownName(l, item), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.body)),
                 const SizedBox(height: 2),
                 Row(
                   children: [

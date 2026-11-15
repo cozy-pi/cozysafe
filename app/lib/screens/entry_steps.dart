@@ -692,7 +692,7 @@ class EntryWizardState extends State<EntryWizard> with WidgetsBindingObserver, V
           padding: const EdgeInsets.only(top: 12),
           child: Text(_problem!,
               key: const ValueKey('steps-problem'),
-              style: TextStyle(color: recordRed(context), fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
+              style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: CsType.subhead, fontWeight: FontWeight.w600)),
         );
 
   /// Which site or app: the vault's own first, then well-known ones, filtered as typed.
@@ -1222,7 +1222,7 @@ class _SiteRow extends StatelessWidget {
     final bare = label.startsWith('www.') ? label.substring(4) : label;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
         child: Row(children: [

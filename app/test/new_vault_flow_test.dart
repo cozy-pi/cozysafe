@@ -137,7 +137,7 @@ void main() {
   testWidgets('with the cloud copy (on by default) the words are not asked back, and the copy names the vault', (t) async {
     await _start(t, topSecret: false);
     expect(find.byKey(const ValueKey('words-cloud')), findsOneWidget);
-    expect(t.widget<Switch>(find.byKey(const ValueKey('words-cloud-switch'))).value, isTrue);
+    expect(t.widget<Switch>(find.descendant(of: find.byKey(const ValueKey('words-cloud-switch')), matching: find.byType(Switch))).value, isTrue);
     await t.tap(find.byKey(const ValueKey('words-done')));
     await _settle(t);
     // Straight to the password: no check.

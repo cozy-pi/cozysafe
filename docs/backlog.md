@@ -88,8 +88,7 @@ judged low):
   Secret).
 - More kinds: bank cards, bank accounts, IDs with expiry reminders, Wi-Fi, crypto seed
   phrases, SSH and API keys, passkeys.
-- The 2FA key field's error shows in ink, not red (the theme's error colour); the
-  editor's form is centred, leaving a gap above short kinds.
+- The password editor's form is centred, leaving a gap above short kinds.
 
 ## Interface
 

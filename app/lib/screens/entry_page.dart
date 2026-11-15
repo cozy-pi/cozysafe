@@ -480,7 +480,7 @@ class _EntryScreenState extends State<EntryScreen> with WidgetsBindingObserver, 
           padding: const EdgeInsets.only(top: 12),
           child: Material(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               key: const ValueKey('entry-otp'),
@@ -635,7 +635,7 @@ class EntryGroup extends StatelessWidget {
       padding: EdgeInsets.only(top: top),
       child: Material(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Ui.groupRadius),
         clipBehavior: Clip.antiAlias,
         child: Column(
           children: [

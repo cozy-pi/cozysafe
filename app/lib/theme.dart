@@ -20,7 +20,6 @@ class CsColors extends ThemeExtension<CsColors> {
     required this.border,
     required this.warnBg,
     required this.warnInk,
-    required this.dock,
   });
 
   final Color muted;
@@ -28,8 +27,6 @@ class CsColors extends ThemeExtension<CsColors> {
   final Color border;
   final Color warnBg;
   final Color warnInk;
-  /// The add dock at the bottom of a vault: the vault's colour, deepened.
-  final Color dock;
 
   static CsColors of(BuildContext context) =>
       Theme.of(context).extension<CsColors>()!;
@@ -41,7 +38,6 @@ class CsColors extends ThemeExtension<CsColors> {
     Color? border,
     Color? warnBg,
     Color? warnInk,
-    Color? dock,
   }) =>
       CsColors(
         muted: muted ?? this.muted,
@@ -49,7 +45,6 @@ class CsColors extends ThemeExtension<CsColors> {
         border: border ?? this.border,
         warnBg: warnBg ?? this.warnBg,
         warnInk: warnInk ?? this.warnInk,
-        dock: dock ?? this.dock,
       );
 
   @override
@@ -61,20 +56,8 @@ class CsColors extends ThemeExtension<CsColors> {
       border: Color.lerp(border, other.border, t)!,
       warnBg: Color.lerp(warnBg, other.warnBg, t)!,
       warnInk: Color.lerp(warnInk, other.warnInk, t)!,
-      dock: Color.lerp(dock, other.dock, t)!,
     );
   }
-}
-
-/// Brand colours that stay the same in light and dark (design B2, docs/ui.md).
-abstract final class Brand {
-  static const green = Color(0xFF165B4C);
-  static const deep = Color(0xFF0F3D33);
-  static const night = Color(0xFF0B2B24);
-  static const gold = Color(0xFFF3D08E);
-  static const goldInk = Color(0xFF0F3D33);
-  /// The add dock, identical on the lock screen and inside the vault.
-  static const dock = Color(0xFF0A2A23);
 }
 
 /// The open vault's colour, or null while locked. The whole app takes it (design B,
@@ -97,9 +80,6 @@ Color _readable(Color c, Color to, List<Color> bgs, double ratio) {
   }
   return x;
 }
-
-/// [c] darkened just enough for white text on it (the Settings vault card).
-Color deepForWhite(Color c) => _readable(c, const Color(0xFF000000), [const Color(0xFFFFFFFF)], 4.5);
 
 /// Design B: the whole screen in the vault's colour, content on neutral cards. Light:
 /// the colour mixed pale, dark text. Dark: the colour deepened, light text. Every
@@ -137,6 +117,9 @@ class VaultPalette {
 /// Text sizes by role, the iPhone's own scale (Apple's Human Interface Guidelines,
 /// default size). New text takes one of these, not a size of its own.
 abstract final class CsType {
+  /// A number that is the screen's subject: a recording's time, a code to read out, a
+  /// countdown.
+  static const display = 44.0;
   static const largeTitle = 34.0;
   static const title1 = 28.0;
   static const title2 = 22.0;
@@ -179,12 +162,14 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
   final ink = p?.ink ?? pen;
   final accent = p?.accent ?? pen;
   final accentInk = p?.onAccent ?? page;
-  final danger = pen;
+  // An error is red (docs/design-language.md, Text fields): the ring of a field and the
+  // words under it. Dark: the same red as Delete ([recordRed]). Light: that red deepened,
+  // so a small line of text still reads at 4.5:1 on the grey page (test/theme_test.dart).
+  final danger = dark ? const Color(0xFFFF453A) : const Color(0xFFD70015);
   final colors = CsColors(
     muted: p?.muted ?? tone(.68), // .6 was hard to read for older eyes (user testing)
     soft: p?.soft ?? tone(dark ? .14 : .08),
     border: p?.border ?? tone(dark ? .18 : .12),
-    dock: p?.dock ?? pen,
     warnBg: tone(dark ? .12 : .06),
     warnInk: pen,
   );
@@ -196,7 +181,7 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
     secondary: accent,
     onSecondary: accentInk,
     error: danger,
-    onError: page,
+    onError: const Color(0xFFFFFFFF),
     surface: surface,
     onSurface: ink,
     outline: colors.border,
@@ -249,6 +234,8 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
+      // An example in a field is grey and regular, so it never reads as typed text.
+      hintStyle: TextStyle(color: colors.muted, fontWeight: FontWeight.w400),
       // A shade deeper in light mode: the page is grey now, and the field must read on
       // it as well as on a white card.
       fillColor: dark ? colors.soft : tone(.1),
@@ -290,11 +277,6 @@ ThemeData buildTheme(Brightness brightness, {Color? vault}) {
         textStyle: label.copyWith(fontSize: CsType.callout, fontWeight: FontWeight.w600),
       ),
     ),
-    // Messages float with a margin, rounded, never flush against the bottom bar.
-    snackBarTheme: const SnackBarThemeData(
-      behavior: SnackBarBehavior.floating,
-      insetPadding: EdgeInsets.fromLTRB(12, 0, 12, 10),
-    ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: accent,
@@ -323,12 +305,18 @@ abstract final class Ui {
   static const double action = bar;
   /// The page's side margin, as the iPhone's own apps (20).
   static const double side = 20;
+  /// Where a card starts on a page made of cards (Settings, Sync, Storage, the overview),
+  /// and a header's round buttons: a little nearer the edge than [side], as the phone's
+  /// own grouped lists, since a card's own padding sets its text further in.
+  static const double groupSide = 16;
   /// Chips (groups) and segmented switches.
   static const double chip = 40;
-  /// Large add tiles (the add sheet, an empty vault).
-  static const double tile = 96;
-  /// Corner radius of cards and tiles; buttons are round or stadium-shaped.
+  /// Corner radius of cards and tiles that stand on their own (a choice, a card over the
+  /// page, a confirm sheet); buttons are round or stadium-shaped.
   static const double radius = 24;
+  /// Corner radius of a group of rows (Settings-style), a panel or note inside a page, a
+  /// menu, and a text field: the phone's own grouped lists.
+  static const double groupRadius = 14;
   /// Space between the bottom bar, the main action and the screen edge.
   static const double edge = 10;
   /// The main action's bottom above the safe area when on an edge: clear of the bottom bar
@@ -348,7 +336,7 @@ Color solidTint(BuildContext context, Color color) =>
 /// ring and cuts a gap there (owner 2026-10-29: on Android "Password" sat across the
 /// field's edge).
 class RoundFieldBorder extends InputBorder {
-  const RoundFieldBorder({super.borderSide = BorderSide.none, this.radius = 14});
+  const RoundFieldBorder({super.borderSide = BorderSide.none, this.radius = Ui.groupRadius});
 
   final double radius;
 

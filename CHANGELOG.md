@@ -4,6 +4,65 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
+## 0.3.1 (2026-11-15)
+
+### Fixed
+- Set up a new device: the code now shows on the new device and you type it on the
+  device that has the vault, which checks it itself and asks who is holding it (Face ID,
+  fingerprint or passcode) before it starts. Before, someone on the same Wi‑Fi during
+  those 2 minutes could pretend the code had matched and try 3 vault passwords. Both
+  devices need this version.
+- iPhone: a file opened in another app (Quick Look) or a share sheet no longer stays on
+  screen above the lock screen when the vault locks.
+- Android: text copied from a note is now really wiped from the clipboard when the vault
+  locks or after a minute, also once you have left the app.
+- Android: a copied password is cleared the next time the app opens if Android closed the
+  app before its time was up.
+- A new Recovery Key: wrong passwords typed there count and wait like on the lock screen.
+- Restore from a backup on the lock screen now works on a device that already has a
+  vault; it used to say to restore on a fresh install.
+- A voice recording or video that could not be saved (no space left) is no longer
+  deleted: a card says what went wrong, with Try Again and Discard. It is kept until
+  the vault locks.
+- iPhone: when the 24 words could not be kept in iCloud Keychain, the app now says so.
+- Version history: a setting that could not be saved is said, instead of showing a
+  choice that was not applied.
+- Photos and videos you add keep the date they were taken, instead of all landing under
+  "Today": read from the photo or video itself, else from the file's date.
+- Sending several items shows how far it is ("Getting 3 of 12 ready to send"), and two
+  items with the same name are both sent (the second as "name (2).jpg").
+- "Back up now" shows that the backup is being made, and a second tap no longer starts
+  another one.
+- Starting a sync while an automatic sync is running says "Finishing the current sync…";
+  extra taps no longer queue more syncs.
+- Creating a vault: if Face ID or fingerprint was cancelled or failed, the app says it
+  was not turned on and that Settings can turn it on.
+- "Remove the originals" says when the vault would then hold the only copy (not yet on
+  another device, in Google Drive or in a backup file).
+- Deleting, undoing, restoring and deleting for good say how many items could not be
+  done instead of always reporting success.
+- A note that cannot be read shows the error instead of loading for ever; search shows
+  "Searching…" until the notes have been read; a failed rename, group rename or group
+  delete shows a message.
+- Restore from a file: pressing Enter while it is working no longer starts it again.
+- Declining to connect Google Drive no longer leaves the account connected.
+- The words under the tabs follow the phone's text size (up to 1.3×); the small photos
+  under a full-screen photo are easier to tap and are read by screen readers.
+- Clearer words: the sign-in-again message names the button that exists, the wrong
+  Recovery Key message says "another vault", the password step says what is lost when
+  the password is forgotten, and a video that could not be prepared for lack of space
+  says so.
+
+### Changed
+- One look across the app: short questions are cards instead of system dialogs, restore
+  and Recovery Key pages use the same step layout as creating a vault, cards share their
+  margins and corners, and errors under a field are red.
+- Turning off the copy of the 24 words in iCloud Keychain or your Google account asks
+  for Face ID, fingerprint or the passcode, then confirms: the copy is removed for every
+  device on the account, and you can check your 24 words first.
+- Turning version history off asks first: every earlier version, earlier passwords too,
+  is erased at once.
+
 ## 0.3.0 (2026-11-14)
 
 A new look, fewer interruptions, and the fixes of a review of the whole app

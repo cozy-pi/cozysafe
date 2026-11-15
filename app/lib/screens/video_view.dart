@@ -277,7 +277,11 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                   ? Padding(
                       padding: const EdgeInsets.all(32),
                       child: Text(
-                        withCode(l, l.videoFailed, _playback.error),
+                        // The decrypted copy to play could not be written (most often
+                        // no space left): not "can't be played here", which reads as a
+                        // format this device does not know.
+                        withCode(l, _playback.error == rust.VaultError.storage || _playback.error is FileSystemException ? l.videoNoSpace : l.videoFailed,
+                            _playback.error),
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.white),
                       ),

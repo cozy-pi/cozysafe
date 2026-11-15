@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../src/rust/api/vault.dart' as rust;
+import '../theme.dart';
 import '../widgets/bottom_bar.dart';
 
 /// An error as the person sees it: the sentence, then a short code to copy (owner
@@ -49,7 +50,7 @@ class FormColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final form = Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        padding: const EdgeInsets.fromLTRB(Ui.side, 24, Ui.side, 32),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: Column(
@@ -84,31 +85,6 @@ class BusyLabel extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Text(working),
-      ],
-    );
-  }
-}
-
-/// App icon + name, at the top of the screens shown before a vault is open.
-class BrandHeader extends StatelessWidget {
-  const BrandHeader({super.key, this.center = false});
-
-  final bool center;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: center ? MainAxisAlignment.center : MainAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(9),
-          child: Image.asset('assets/icon.png', width: 36, height: 36, filterQuality: FilterQuality.medium),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          'Cozy Safe',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.2),
-        ),
       ],
     );
   }

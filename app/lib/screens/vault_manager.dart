@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/readable.dart';
 
 import '../l10n/app_localizations.dart';
 import '../biometric.dart';
@@ -113,7 +114,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
             Expanded(
               child: FilledButton(
                 key: const ValueKey('vault-details-delete'),
-                style: FilledButton.styleFrom(backgroundColor: dangerRed, foregroundColor: Colors.white),
+                style: FilledButton.styleFrom(backgroundColor: recordRed(context), foregroundColor: Colors.white),
                 onPressed: () => Navigator.of(context).pop(true),
                 child: Text(l.deleteVaultAction),
               ),
@@ -160,13 +161,13 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
       return;
     }
     final gone = await Navigator.of(context).push<bool>(MaterialPageRoute(
-      builder: (_) => DeleteVaultScreen(
+      builder: (_) => Readable(child: DeleteVaultScreen(
         libraryDir: widget.libraryDir,
         otherId: slot.id,
         deleteAtMs: slot.deleteAtMs?.toInt(),
         sizeText: fileSize(slot.sizeBytes),
         slot: slot,
-      ),
+      )),
     ));
     if (gone == true && mounted) showToast(context, AppLocalizations.of(context).vaultDeleted, icon: Icons.check_rounded);
     await _load();
@@ -191,6 +192,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
           : SafeArea(
               top: false,
               child: PinnedAction(
+              padding: Ui.groupSide,
               actions: [
                 if (widget.onNewVault != null)
                   FilledButton.icon(
@@ -201,7 +203,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                   ),
               ],
               child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.groupSide, 24),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(4, 4, 4, 14),
@@ -235,7 +237,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
                                         _title(l, s),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w600),
+                                        style: const TextStyle(fontSize: CsType.body),
                                       ),
                                     ),
                                     if (s.isOpen && (open?.topSecret ?? false)) ...[
@@ -373,7 +375,7 @@ class _VaultFactsState extends State<VaultFacts> {
       ],
       Container(
         key: const ValueKey('vault-details'),
-        decoration: BoxDecoration(color: c.muted.withValues(alpha: .08), borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(color: c.muted.withValues(alpha: .08), borderRadius: BorderRadius.circular(Ui.groupRadius)),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         child: Column(children: [
           for (final (label, value, red) in rows)

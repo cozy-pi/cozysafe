@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
+import '../widgets/cs_switch.dart';
 import 'package:flutter/services.dart';
 
 import '../biometric.dart';
@@ -309,9 +310,12 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final l = AppLocalizations.of(context);
     if (yes) {
       setState(() => _busy = true);
-      await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
+      final on = await turnOnBiometric(BiometricUnlock(promptTitle: l.biometricPrompt, promptCancel: l.cancel));
       if (!mounted) return;
       setState(() => _busy = false);
+      // Cancelled or failed: the vault opens all the same, but not without a word (the
+      // person believes Face ID is on). The message stays over the vault as it opens.
+      if (!on) showToast(context, l.biometricNotOn, icon: Icons.info_outline_rounded);
     }
     await _enter();
   }
@@ -535,12 +539,12 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       return Material(
         color: on ? Color.alphaBlend(edge.withValues(alpha: .12), Theme.of(context).cardColor) : Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           side: BorderSide(color: on ? edge : Colors.transparent, width: 2),
         ),
         child: InkWell(
           key: ValueKey(topSecret ? 'mode-top-secret' : 'mode-everyday'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           onTap: () => setState(() => _topSecret = topSecret),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
@@ -596,12 +600,12 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       return Material(
         color: on ? Color.alphaBlend(ink.withValues(alpha: .08), Theme.of(context).cardColor) : Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           side: BorderSide(color: on ? ink : Colors.transparent, width: 2),
         ),
         child: InkWell(
           key: ValueKey(own ? 'keys-new' : 'keys-device'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
           onTap: () => setState(() => _ownKey = own),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
@@ -644,10 +648,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final google = KeyBackup.google;
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       child: InkWell(
         key: const ValueKey('words-cloud'),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Ui.groupRadius),
         onTap: () => _cloudSwitch(!_cloud),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
@@ -662,7 +666,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
                     style: TextStyle(color: ink.withValues(alpha: .65), fontSize: CsType.footnote, height: 1.3)),
               ]),
             ),
-            Switch.adaptive(key: const ValueKey('words-cloud-switch'), value: _cloud, onChanged: _cloudSwitch),
+            CsSwitch(key: const ValueKey('words-cloud-switch'), value: _cloud, onChanged: _cloudSwitch),
           ]),
         ),
       ),
@@ -740,31 +744,3 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 /// The vault's 24 words were not typed back when it was made (the check was skipped): a
 /// tip on the vault's home reminds once (vault_home.dart); checking them clears it.
 String wordsUncheckedPref(String vaultId) => 'words-unchecked.$vaultId';
-
-/// A large, thumb-height text button for the bottom of the steps (and of the quick tour).
-class StepButton extends StatelessWidget {
-  const StepButton({super.key, this.icon, required this.label, required this.onTap});
-  final IconData? icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => TextButton(
-        onPressed: onTap,
-        style: TextButton.styleFrom(
-          foregroundColor: Theme.of(context).colorScheme.onSurface,
-          minimumSize: const Size(96, 52),
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          backgroundColor: solidTint(context, Theme.of(context).colorScheme.onSurface.withValues(alpha: .1)),
-          shape: const StadiumBorder(),
-          textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: CsType.callout, fontWeight: FontWeight.w600),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
-            Text(label),
-          ],
-        ),
-      );
-}

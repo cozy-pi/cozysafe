@@ -41,6 +41,8 @@ import 'quick_look.dart';
 import 'note.dart';
 import 'recorder.dart';
 import '../widgets/item_menu.dart';
+import '../widgets/ask.dart';
+import '../widgets/cs_switch.dart';
 import '../widgets/confirm_delete.dart';
 import '../widgets/drag_select.dart';
 import '../widgets/selection_bar.dart';
@@ -56,6 +58,9 @@ import 'trash.dart';
 import 'unlock.dart';
 import 'video_view.dart';
 import '../capture_name.dart';
+import '../bulk_text.dart';
+import '../send_names.dart';
+import '../widgets/working_card.dart';
 import '../hidden_features.dart';
 import '../item_kind.dart';
 import '../widgets/edge_swipe_back.dart';
@@ -588,6 +593,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       thumbsRevealed.value = false;
       Settings.apply();
       LockGuard.clearCopied();
+      closeOpened(); // Quick Look or a share sheet showing a decrypted copy (iPhone), first
       clearTemp(); // the video being played, and anything else decrypted for a moment
       _thumbnails.clear();
       _thumbReady.clear();
@@ -866,7 +872,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         picked = await importPicked(batch, photos: photos, tally: tally, progress: (d, _) {
           done.value = d;
           LockGuard.activity(); // a long import is not idleness
-        }, cancelled: () => cancel, mediaName: (kind, ext) => captureName(DateTime.now(), ext));
+        }, cancelled: () => cancel, realDates: true, mediaName: (kind, ext, at) => captureName(at, ext));
       } on rust.VaultError catch (e) {
         // Stopped by the lock: said once the vault is open again ([_lock]), not over
         // the lock screen.
@@ -920,9 +926,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// then iOS or Android asks once more and does it.
   Future<void> _offerDeleteOriginals(List<String> ids, {required bool photos}) async {
     final l = AppLocalizations.of(context);
+    // With no other device, no Drive and no backup file yet, removing the originals
+    // leaves the vault as the only copy: the question says so.
+    final onlyCopy = !await SecondPlaceNudge.exists();
+    if (!mounted) return Originals.release();
     final yes = await showModalBottomSheet<bool>(
       context: context,
-      builder: (context) => DeleteOriginalsSheet(count: ids.length, photos: photos),
+      builder: (context) => DeleteOriginalsSheet(count: ids.length, photos: photos, onlyCopy: onlyCopy),
     );
     if (yes != true) return Originals.release();
     LockGuard.allowAway(); // the system's own question takes the screen for a moment
@@ -968,6 +978,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// user picks. Phone: hand it to the share sheet (Files, Drive, AirDrop…), then remove
   /// the temp copy.
   Future<void> _backup() async {
+    // One at a time: a second tap while the file is being written did it all again.
+    if (_backingUp) return;
+    _backingUp = true;
+    try {
+      await _backupOnce();
+    } finally {
+      _backingUp = false;
+    }
+  }
+
+  bool _backingUp = false;
+
+  Future<void> _backupOnce() async {
     final l = AppLocalizations.of(context);
     if (!await confirmOwnerForSetting(AppLocalizations.of(context).ownerCheckSettings, context: context) || !mounted) return;
     if (!await _ensurePassword() || !mounted) return;
@@ -978,14 +1001,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     try {
       if (_desktop) {
         final loc = await getSaveLocation(suggestedName: name);
-        if (loc == null) return;
-        await rust.exportBackup(dir: widget.libraryDir, path: loc.path);
+        if (loc == null || !mounted) return;
+        await whileWorking(context, l.backupWorking, () => rust.exportBackup(dir: widget.libraryDir, path: loc.path));
         _backedUp();
         if (mounted) _snack(l.backupDone);
         return;
       }
       final tmp = File('${(await privateTemp()).path}${Platform.pathSeparator}$name');
-      await rust.exportBackup(dir: widget.libraryDir, path: tmp.path);
+      if (!mounted) return;
+      await whileWorking(context, l.backupWorking, () => rust.exportBackup(dir: widget.libraryDir, path: tmp.path));
       if (!mounted) return;
       final box = context.findRenderObject() as RenderBox?;
       final shared = await SharePlus.instance.share(ShareParams(
@@ -1017,28 +1041,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   /// Always the same words, whatever vaults exist: the sheet must not reveal how many.
-  Future<bool?> _confirmBackup(AppLocalizations l) => showModalBottomSheet<bool>(
-        context: context,
-        builder: (context) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(l.backup, style: const TextStyle(fontSize: CsType.body, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Text(l.backupWhatsIn, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
-                const SizedBox(height: 6),
-                Text(l.backupNeeds, style: TextStyle(color: CsColors.of(context).muted, height: 1.45)),
-                const SizedBox(height: 16),
-                FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.backupSave)),
-                const SizedBox(height: 6),
-                TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-              ],
-            ),
-          ),
-        ),
+  Future<bool?> _confirmBackup(AppLocalizations l) => askSheet<bool>(
+        context,
+        title: l.backup,
+        body: [l.backupWhatsIn, l.backupNeeds],
+        actions: [AskAction.main(l.backupSave, true), AskAction.quiet(l.cancel, false)],
       );
 
   Future<void> _showKit() async {
@@ -1091,17 +1098,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   Future<bool> _confirmBiometricMove(AppLocalizations l) async {
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const ValueKey('bio-move'),
-        title: Text(l.biometricMoveTitle),
-        content: Text(l.biometricMoveBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
-          FilledButton(key: const ValueKey('bio-move-yes'), onPressed: () => Navigator.pop(context, true), child: Text(l.biometricMoveYes)),
-        ],
-      ),
+    final yes = await askCard<bool>(
+      context,
+      boxKey: const ValueKey('bio-move'),
+      title: l.biometricMoveTitle,
+      body: l.biometricMoveBody,
+      actions: [
+        AskAction.main(l.biometricMoveYes, true, key: const ValueKey('bio-move-yes')),
+        AskAction.quiet(l.cancel, false),
+      ],
     );
     return yes == true;
   }
@@ -1216,6 +1221,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   }
 
   void _snack(String text) => showToast(context, text, besideAction: _selected.isEmpty);
+
+  /// What to say when the vault could not take a change (a rename, a group).
+  String _failure(Object e) {
+    final l = AppLocalizations.of(context);
+    return e is rust.VaultError ? vaultErrorText(l, e) : withCode(l, l.errorStorage, e);
+  }
 
   // ---------- content ----------
 
@@ -1342,28 +1353,19 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     final dot = item.name.lastIndexOf('.');
     final ext = dot > 0 && item.name.length - dot <= 6 ? item.name.substring(dot) : '';
-    final text = TextEditingController(text: ext.isEmpty ? item.name : item.name.substring(0, dot));
-    text.selection = TextSelection(baseOffset: 0, extentOffset: text.text.length);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.rename),
-        content: TextField(
-          key: const ValueKey('rename-field'),
-          controller: text,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          onSubmitted: (v) => Navigator.pop(context, v.trim()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
-          TextButton(onPressed: () => Navigator.pop(context, text.text.trim()), child: Text(l.save)),
-        ],
-      ),
+    final name = await promptCard(
+      context,
+      title: l.rename,
+      initial: ext.isEmpty ? item.name : item.name.substring(0, dot),
+      fieldKey: const ValueKey('rename-field'),
     );
-    text.dispose();
     if (name == null || name.isEmpty || '$name$ext' == item.name) return;
-    await rust.renameItem(id: item.id, name: '$name$ext');
+    try {
+      await rust.renameItem(id: item.id, name: '$name$ext');
+    } catch (e) {
+      if (mounted && !_locked) _snack(_failure(e));
+      return;
+    }
     await _reload();
   }
 
@@ -1386,23 +1388,31 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (mounted) setState(_endSelect);
   }
 
-  /// "Moved to Recently deleted · Undo".
-  void _trashed(List<String> ids) {
+  /// "Moved to Recently deleted · Undo". [failed] of them could not be moved: said too.
+  void _trashed(List<String> ids, {int failed = 0}) {
     final l = AppLocalizations.of(context);
     showToast(
       context,
-      ids.length == 1 ? l.movedToTrash : l.movedToTrashCount(ids.length),
-      icon: Icons.delete_outline_rounded,
-      actionLabel: l.undo,
+      trashedText(l, moved: ids.length, failed: failed),
+      icon: failed > 0 ? Icons.error_outline_rounded : Icons.delete_outline_rounded,
+      actionLabel: ids.isEmpty ? null : l.undo,
       besideAction: _selected.isEmpty,
-      onAction: () async {
-        for (final id in ids) {
-          try {
-            await rust.restoreItem(id: id);
-          } catch (_) {}
-        }
-        if (!_locked) _reload();
-      },
+      onAction: ids.isEmpty
+          ? null
+          : () async {
+              var notBack = 0;
+              for (final id in ids) {
+                try {
+                  await rust.restoreItem(id: id);
+                } catch (_) {
+                  notBack++;
+                }
+              }
+              if (_locked || !mounted) return;
+              _reload();
+              final said = restoredText(l, restored: ids.length - notBack, failed: notBack);
+              if (said != null) _snack(said);
+            },
     );
   }
 
@@ -1420,14 +1430,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     if (!await confirmTrash(context, count: ids.length, name: one == null ? null : _shownName(l, one)) || !mounted) return;
     final now = nowMs();
+    final moved = <String>[];
     for (final id in ids) {
       try {
         await rust.trashItem(id: id, nowMs: now);
+        moved.add(id);
       } catch (_) {}
     }
+    if (!mounted) return;
     setState(_endSelect);
     _reload();
-    if (ids.isNotEmpty) _trashed(ids);
+    _trashed(moved, failed: ids.length - moved.length);
   }
 
   /// Decrypted copies of the selection go to the share sheet, then the copies are wiped.
@@ -1436,16 +1449,28 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (!await confirmShareOut(context, _vault.id) || !mounted) return;
     final items =
         (_items ?? const <rust.ItemInfo>[]).where((i) => _selected.contains(i.id) && i.kind != ItemKind.tag && !ItemKind.isEntry(i.kind) && ItemKind.isKnown(i.kind)).toList();
+    if (items.isEmpty || !mounted) return;
     final dir = await (await privateTemp()).createTemp('send');
+    if (!mounted) return;
     LockGuard.allowAway();
     try {
       final files = <XFile>[];
-      for (final (n, it) in items.indexed) {
-        var name = it.name.isEmpty ? 'item-$n' : it.name.replaceAll(RegExp(r'[/\\:]'), '-');
-        if (it.kind == ItemKind.note && !name.endsWith('.txt')) name = '$name.txt';
-        final path = '${dir.path}${Platform.pathSeparator}$name';
-        await rust.exportItem(id: it.id, path: path);
-        files.add(XFile(path, mimeType: it.kind == ItemKind.note ? 'text/plain' : it.mime));
+      // Two items with one name would land on one file: each gets its own ("a (2).jpg").
+      final names = sendNames([for (final it in items) (name: it.name, note: it.kind == ItemKind.note)]);
+      // Decrypting takes a while for many or large items: say how far it is.
+      final progress = ValueNotifier(l.sendPreparing(0, items.length));
+      try {
+        await whileWorking(context, progress.value, live: progress, () async {
+          for (final (n, it) in items.indexed) {
+            final path = '${dir.path}${Platform.pathSeparator}${names[n]}';
+            await rust.exportItem(id: it.id, path: path);
+            files.add(XFile(path, mimeType: it.kind == ItemKind.note ? 'text/plain' : it.mime));
+            progress.value = l.sendPreparing(n + 1, items.length);
+            LockGuard.activity(); // a long preparation is not idleness
+          }
+        });
+      } finally {
+        progress.dispose();
       }
       if (!mounted) return;
       final box = context.findRenderObject() as RenderBox?;
@@ -1506,10 +1531,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 Text(l.shotBlockedHow(l.blockScreenshots, settingsPath(l, SettingsSpot.blockScreenshots)), style: TextStyle(fontSize: CsType.subhead, height: 1.45, color: c.muted)),
               ] else ...[
                 const SizedBox(height: 6),
-                SwitchListTile.adaptive(
+                CsSwitchLine(
                   key: const ValueKey('shot-quiet'),
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l.dontRemindAgain, style: const TextStyle(fontSize: CsType.subhead)),
+                  title: l.dontRemindAgain,
                   value: quiet,
                   onChanged: (v) => setCard(() => quiet = v),
                 ),
@@ -2088,30 +2112,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Future<String?> _askTagName({required String title, String name = ''}) {
     final l = AppLocalizations.of(context);
-    final text = TextEditingController(text: name);
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: text,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(hintText: l.tagName),
-          onSubmitted: (v) => v.trim().isEmpty ? null : Navigator.pop(context, v.trim()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
-          TextButton(
-            onPressed: () {
-              final n = text.text.trim();
-              if (n.isNotEmpty) Navigator.pop(context, n);
-            },
-            child: Text(l.save),
-          ),
-        ],
-      ),
-    ).whenComplete(text.dispose);
+    return promptCard(context, title: title, initial: name, hint: l.tagName, allowEmpty: false);
   }
 
   Future<rust.ItemInfo?> _newTag() async {
@@ -2132,7 +2133,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final l = AppLocalizations.of(context);
     final name = await _askTagName(title: l.renameTag, name: tag.name);
     if (name == null) return;
-    await rust.renameTag(tagId: tag.id, name: name);
+    try {
+      await rust.renameTag(tagId: tag.id, name: name);
+    } catch (e) {
+      if (mounted && !_locked) _snack(_failure(e));
+      return;
+    }
     _reload();
   }
 
@@ -2141,7 +2147,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final ok = await confirmDelete(context,
         title: l.deleteTagTitle(tag.name), body: l.deleteTagBody, action: l.deleteTag, icon: Icons.sell_rounded);
     if (!ok || !mounted) return;
-    await rust.deleteTag(tagId: tag.id);
+    try {
+      await rust.deleteTag(tagId: tag.id);
+    } catch (e) {
+      if (mounted && !_locked) _snack(_failure(e));
+      return;
+    }
+    if (!mounted) return;
     if (_tagId == tag.id) setState(() => _tagId = null);
     _reload();
   }
@@ -2305,15 +2317,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.border))),
       child: Row(children: [
         if (open != null)
-          IconButton(
-              tooltip: l.back, icon: const Icon(Icons.chevron_left_rounded), onPressed: () => setState(() => _tagId = null)),
+          Padding(padding: const EdgeInsets.only(right: 8), child: RoundBack(size: 36, onTap: () => setState(() => _tagId = null))),
         Expanded(
           child: Text(
             open?.name ?? (_empty ? '' : sectionLabel(l, _section)),
             key: const ValueKey('vault-title'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700),
           ),
         ),
         if (_deskSectionHasViews && any) ...[
@@ -2347,7 +2358,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 const SizedBox(width: 8),
                 Icon(Icons.search, size: 17, color: c.muted),
                 const SizedBox(width: 6),
-                Text(l.search, style: TextStyle(fontSize: 13, color: c.muted)),
+                Text(l.search, style: TextStyle(fontSize: CsType.footnote, color: c.muted)),
               ]),
             ),
           ),
@@ -2368,7 +2379,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       alignment: Alignment.center,
       decoration: BoxDecoration(border: Border(top: BorderSide(color: c.border))),
       child: Text(shown.isEmpty ? '' : l.storageUsed(fileSize(bytes), shown.length),
-          style: TextStyle(fontSize: 12, color: c.muted)),
+          style: TextStyle(fontSize: CsType.caption1, color: c.muted)),
     );
   }
 
@@ -2499,7 +2510,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         children: [
           // No vault icon here: it shows once when the vault opens; change it in Settings.
           if (open != null) ...[
-            GlassButton(icon: Icons.arrow_back_ios_new, tooltip: l.back, size: Ui.circle, onTap: () => setState(() => _tagId = null)),
+            RoundBack(onTap: () => setState(() => _tagId = null)),
             const SizedBox(width: 10),
           ],
           Expanded(
@@ -2519,7 +2530,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       key: const ValueKey('vault-title'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w800, letterSpacing: -.5),
+                      style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w700, letterSpacing: -.5),
                     ),
                   ),
                 ]),
@@ -2582,9 +2593,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         MenuEntry(Icons.swap_vert_rounded, l.sortBy, _sortMenu, key: const ValueKey('sort-button')),
       if (_viewPref(_section) case final pref?)
         Prefs.read(pref) == 'grid'
-            ? MenuEntry(Icons.view_list_rounded, l.viewList, () => setState(() => Prefs.write(pref, 'list')),
+            ? MenuEntry(Icons.format_list_bulleted_rounded, l.viewList, () => setState(() => Prefs.write(pref, 'list')),
                 key: const ValueKey('files-view'))
-            : MenuEntry(Icons.grid_view_rounded, l.viewGrid, () => setState(() => Prefs.write(pref, 'grid')),
+            : MenuEntry(Icons.grid_view_outlined, l.viewGrid, () => setState(() => Prefs.write(pref, 'grid')),
                 key: const ValueKey('files-view')),
       if (open != null) ...[
         MenuEntry(Icons.edit_outlined, l.renameTag, () => _renameTag(open), key: const ValueKey('rename-tag')),
@@ -2739,7 +2750,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The item opened from the list, in the main column in place of the list (a wide
   /// window): Back returns to the list where it was.
   Widget _wideItem(BuildContext context, rust.ItemInfo item) {
-    final l = AppLocalizations.of(context);
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Column(
@@ -2748,12 +2758,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
             child: Row(children: [
-              TextButton.icon(
-                key: const ValueKey('wide-item-back'),
-                onPressed: () => setState(() => _focus = null),
-                icon: const Icon(Icons.arrow_back_rounded),
-                label: Text(l.back),
-              ),
+              RoundBack(key: const ValueKey('wide-item-back'), onTap: () => setState(() => _focus = null)),
             ]),
           ),
           Expanded(
@@ -3083,7 +3088,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
             // Says what is at stake, not how it works (docs/ui.md, review 1).
             child: Material(
               color: c.warnBg,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(Ui.groupRadius),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                 child: Column(
@@ -3654,7 +3659,7 @@ class _FileRow extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Flexible(child: FileNameText(item.name, style: const TextStyle(fontSize: CsType.subhead))),
+                      Flexible(child: FileNameText(item.name, style: const TextStyle(fontSize: CsType.body))),
                       if (item.isFavorite) ...[const SizedBox(width: 5), const FavoriteStar()],
                     ],
                   ),
@@ -3695,11 +3700,11 @@ class _FileTile extends StatelessWidget {
       onTap: onTap,
       // The long press is the [DragSelectItem]'s around it (menu, or drag to select).
       onLongPress: null,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Ui.groupRadius),
       child: Container(
         decoration: BoxDecoration(
           color: selected ? primary.withValues(alpha: .12) : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
         ),
         padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
         child: Stack(
@@ -3957,9 +3962,12 @@ class _Welcome extends StatelessWidget {
 
 /// After an import: remove the originals from the phone? (owner 2026-10-21: always ask).
 class DeleteOriginalsSheet extends StatelessWidget {
-  const DeleteOriginalsSheet({super.key, required this.count, required this.photos});
+  const DeleteOriginalsSheet({super.key, required this.count, required this.photos, this.onlyCopy = false});
   final int count;
   final bool photos;
+  /// The vault is nowhere else yet (no sync, no backup file): one more sentence says the
+  /// vault will then hold the only copy.
+  final bool onlyCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -3979,6 +3987,13 @@ class DeleteOriginalsSheet extends StatelessWidget {
             const SizedBox(height: 8),
             Text(photos ? l.originalsBodyPhotos(count) : l.originalsBodyFiles(count),
                 textAlign: TextAlign.center, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.45)),
+            if (onlyCopy) ...[
+              const SizedBox(height: 8),
+              Text(l.originalsOnlyCopy,
+                  key: const ValueKey('originals-only-copy'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.45)),
+            ],
             const SizedBox(height: 18),
             FilledButton(
               key: const ValueKey('originals-delete'),

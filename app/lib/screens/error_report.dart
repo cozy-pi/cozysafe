@@ -44,7 +44,7 @@ class _ErrorReportScreenState extends State<ErrorReportScreen> {
     return Column(children: [
       Expanded(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          padding: const EdgeInsets.fromLTRB(Ui.groupSide, 16, Ui.groupSide, 16),
           children: [
             if (_entries.isEmpty)
               Padding(
@@ -54,7 +54,7 @@ class _ErrorReportScreenState extends State<ErrorReportScreen> {
             else
               Material(
                 color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(Ui.groupRadius),
                 clipBehavior: Clip.antiAlias,
                 child: Column(children: [
                   for (final (i, (t, place, code)) in _entries.take(60).indexed) ...[
@@ -79,7 +79,7 @@ class _ErrorReportScreenState extends State<ErrorReportScreen> {
       SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          padding: const EdgeInsets.fromLTRB(Ui.groupSide, 4, Ui.groupSide, 12),
           child: Row(children: [
             if (Links.canOpen) ...[
               Expanded(

@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import '../widgets/steps.dart';
+import '../widgets/ask.dart';
 
 import '../biometric.dart';
 import '../debug_log.dart';
@@ -67,8 +69,12 @@ Future<void> openRestored(BuildContext context, String libraryDir, rust.VaultInf
 /// the 24 words and the password, then it goes. Works on a device that holds vaults too
 /// (the restored one gets a library of its own).
 class RestorePickScreen extends StatefulWidget {
-  const RestorePickScreen({super.key, required this.libraryDir});
+  const RestorePickScreen({super.key, required this.libraryDir, this.offerNew = true});
   final String libraryDir;
+
+  /// "Not kept anywhere else?", which leads to a new vault. Not from the lock screen: a
+  /// vault is here already, and making another is not offered there.
+  final bool offerNew;
 
   /// For the mockup renders: offer Google Drive on any platform.
   static bool debugDrive = false;
@@ -88,28 +94,21 @@ class _RestorePickScreenState extends State<RestorePickScreen> {
     ));
   }
 
-  void _nothingLeft() {
+  Future<void> _nothingLeft() async {
     final l = AppLocalizations.of(context);
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.restoreNoneTitle),
-        content: Text(l.restoreNoneBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l.cancel)),
-          FilledButton(
-            key: const ValueKey('restore-none-new'),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: !rust.hasVaults(dir: widget.libraryDir))),
-              ));
-            },
-            child: Text(l.welcomeNew),
-          ),
-        ],
-      ),
+    final fresh = await askCard<bool>(
+      context,
+      title: l.restoreNoneTitle,
+      body: l.restoreNoneBody,
+      actions: [
+        AskAction.main(l.welcomeNew, true, key: const ValueKey('restore-none-new')),
+        AskAction.quiet(l.cancel, false),
+      ],
     );
+    if (fresh != true || !mounted) return;
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => Readable(child: NewVaultScreen(libraryDir: widget.libraryDir, first: !rust.hasVaults(dir: widget.libraryDir))),
+    ));
   }
 
   @override
@@ -150,11 +149,12 @@ class _RestorePickScreenState extends State<RestorePickScreen> {
           note: l.restoreFromFileNote,
           onTap: _file,
         ),
-        TextButton(
-          key: const ValueKey('restore-none'),
-          onPressed: _nothingLeft,
-          child: Text(l.restoreNoneLink),
-        ),
+        if (widget.offerNew)
+          TextButton(
+            key: const ValueKey('restore-none'),
+            onPressed: _nothingLeft,
+            child: Text(l.restoreNoneLink),
+          ),
       ],
     );
   }
@@ -206,6 +206,8 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   }
 
   void _next() {
+    // Enter in the password field while a restore is under way must not start another.
+    if (_busy) return;
     final l = AppLocalizations.of(context);
     if (rust.parseSecretKey(text: _words.text) == null) {
       setState(() => _error = l.secretKeyTypo);
@@ -239,7 +241,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       if (!rust.secretKeyFits(dir: target, key: key)) {
         // The file is in; these words are not its own. Ask for them again.
         await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute<void>(builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir, needFile: false))),
+          MaterialPageRoute<void>(builder: (_) => Readable(child: RestoreScreen(libraryDir: widget.libraryDir))),
           (_) => false,
         );
         return;
@@ -275,28 +277,26 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(),
-      body: FormColumn(
+      body: StepPage(
+        title: l.restoreFromFile,
+        lead: l.restoreKeysLead,
+        onBack: () => Navigator.of(context).maybePop(),
         actions: [
-          FilledButton(
+          StepMainButton(
             key: const ValueKey('restore-next'),
-            onPressed: _busy || _words.text.trim().isEmpty || _password.text.isEmpty ? null : _next,
-            child: BusyLabel(busy: _busy, idle: l.restoreContinue, working: l.restoring),
+            label: l.restoreContinue,
+            busyLabel: _busy ? l.restoring : null,
+            onTap: _busy || _words.text.trim().isEmpty || _password.text.isEmpty ? null : _next,
           ),
         ],
-        children: [
-          Text(l.restoreFromFile, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
+        body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             Icon(Icons.insert_drive_file_rounded, size: 18, color: c.muted),
             const SizedBox(width: 6),
-            Expanded(child: Text(widget.fileName, key: const ValueKey('restore-file-name'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
+            Expanded(child: Text(widget.fileName, key: const ValueKey('restore-file-name'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w600))),
           ]),
-          const SizedBox(height: 8),
-          Text(l.restoreKeysLead, style: TextStyle(color: c.muted, fontSize: CsType.subhead, height: 1.5)),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           RecoveryKeyInput(
             key: const ValueKey('restore-words'),
             controller: _words,
@@ -315,11 +315,8 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
             onChanged: (_) => setState(() => _error = null),
             onSubmitted: (_) => _next(),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(_error!, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
-          ],
-        ],
+          if (_error != null) StepError(_error!),
+        ]),
       ),
     );
   }
