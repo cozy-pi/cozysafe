@@ -744,31 +744,3 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 /// The vault's 24 words were not typed back when it was made (the check was skipped): a
 /// tip on the vault's home reminds once (vault_home.dart); checking them clears it.
 String wordsUncheckedPref(String vaultId) => 'words-unchecked.$vaultId';
-
-/// A large, thumb-height text button for the bottom of the steps (and of the quick tour).
-class StepButton extends StatelessWidget {
-  const StepButton({super.key, this.icon, required this.label, required this.onTap});
-  final IconData? icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => TextButton(
-        onPressed: onTap,
-        style: TextButton.styleFrom(
-          foregroundColor: Theme.of(context).colorScheme.onSurface,
-          minimumSize: const Size(96, 52),
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          backgroundColor: solidTint(context, Theme.of(context).colorScheme.onSurface.withValues(alpha: .1)),
-          shape: const StadiumBorder(),
-          textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: CsType.callout, fontWeight: FontWeight.w600),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
-            Text(label),
-          ],
-        ),
-      );
-}

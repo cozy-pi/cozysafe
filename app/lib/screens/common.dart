@@ -90,31 +90,6 @@ class BusyLabel extends StatelessWidget {
   }
 }
 
-/// App icon + name, at the top of the screens shown before a vault is open.
-class BrandHeader extends StatelessWidget {
-  const BrandHeader({super.key, this.center = false});
-
-  final bool center;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: center ? MainAxisAlignment.center : MainAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(9),
-          child: Image.asset('assets/icon.png', width: 36, height: 36, filterQuality: FilterQuality.medium),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          'Cozy Safe',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.2),
-        ),
-      ],
-    );
-  }
-}
-
 /// A page that fades in over the current one instead of sliding: for the pages with the
 /// lock screen's background (creating a vault, setting a PIN), so a plain page and that
 /// background never sit side by side during the move (owner 2026-10-24: the slide showed

@@ -321,31 +321,3 @@ class TopSecretWash extends StatelessWidget {
     );
   }
 }
-
-/// [child] with Top Secret Mode's mark on its bottom-right corner, ringed in [ring] to
-/// stand off it.
-class TopSecretCorner extends StatelessWidget {
-  const TopSecretCorner({super.key, required this.child, required this.ring, this.size = 18, this.offset = -3});
-  final Widget child;
-  final Color ring;
-  final double size;
-  final double offset;
-
-  @override
-  Widget build(BuildContext context) => Stack(
-        clipBehavior: Clip.none,
-        children: [
-          child,
-          Positioned(
-            right: offset,
-            bottom: offset,
-            child: Container(
-              key: const ValueKey('top-secret-corner'),
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(color: ring, shape: BoxShape.circle),
-              child: TopSecretMark(size: size),
-            ),
-          ),
-        ],
-      );
-}
