@@ -4,7 +4,7 @@ Preview builds. Each release has one version name on every platform (iPhone,
 Android, macOS, Windows, Linux); the build number only matters to the stores.
 Dates are UTC.
 
-## 0.3.1 (unreleased)
+## 0.3.1 (2026-11-15)
 
 ### Fixed
 - Set up a new device: the code now shows on the new device and you type it on the
