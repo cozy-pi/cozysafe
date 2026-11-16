@@ -11,7 +11,8 @@
 import { readFileSync } from 'node:fs';
 import { createSign } from 'node:crypto';
 
-const PKG = 'com.cozypi.cozysafe';
+// PLAY_PACKAGE: the beta app (com.cozypi.cozysafe.beta) when release.yml runs with beta=true.
+const PKG = process.env.PLAY_PACKAGE || 'com.cozypi.cozysafe';
 const [keyPath, versionCode, track] = process.argv.slice(2);
 if (!keyPath) {
   console.error('Usage: node tools/play-track.mjs <service-account.json> [versionCode track]');

@@ -15,6 +15,14 @@
 #   gh workflow run release.yml -R cozy-pi/cozysafe --ref <branch> -f internal_only=true
 # TestFlight (internal testers) and Google Play internal testing only: no closed test
 # (alpha) and no GitHub release, so the website's download links stay on the last release.
+# The same build as a second app, "Cozy Beta" (com.cozypi.cozysafe.beta), which installs
+# next to Cozy Safe and keeps its own vaults, so trying a build never touches a real one:
+#   gh workflow run release.yml -R cozy-pi/cozysafe --ref <branch> -f beta=true
+# Always internal testers only. Needs, once: the app com.cozypi.cozysafe.beta in App Store
+# Connect and in Google Play (Play takes its first bundle by hand), and its App Store
+# profile with Associated Domains as the IOS_BETA_PROFILE_BASE64 secret. Google Drive and
+# the system password manager are tied to the app id, so they work in the beta only once
+# it has its own OAuth clients and is named in cozypi.com's association files.
 name: release
 
 on:
@@ -33,6 +41,10 @@ on:
         description: "Android: show Test sign-in (closed testing); off for a build for everyone"
         type: boolean
         default: true
+      beta:
+        description: "Cozy Beta: a separate app next to Cozy Safe, with its own data (internal testers only)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -64,7 +76,7 @@ jobs:
       - id: v
         env:
           BUMP: ${{ inputs.bump }}
-          INTERNAL: ${{ inputs.internal_only && 'yes' || '' }}
+          INTERNAL: ${{ (inputs.internal_only || inputs.beta) && 'yes' || '' }}
         run: |
           # Base: the highest vX.Y.Z tag, or used/vX.Y.Z (a name a run took that never
           # became a release: a failed build must not hand its name to the next run;
@@ -92,11 +104,13 @@ jobs:
       upload: true # a release always uploads; never rely on a default here
       version: ${{ needs.version.outputs.name }}
       build: ${{ needs.version.outputs.build }}
+      beta: ${{ inputs.beta }}
     # Only what the iOS job uses (Semgrep: secrets: inherit hands over every secret).
     secrets:
       IOS_DIST_P12_BASE64: ${{ secrets.IOS_DIST_P12_BASE64 }}
       IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
       IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+      IOS_BETA_PROFILE_BASE64: ${{ secrets.IOS_BETA_PROFILE_BASE64 }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       ASC_ADMIN_KEY_ID: ${{ secrets.ASC_ADMIN_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -109,8 +123,9 @@ jobs:
       version: ${{ needs.version.outputs.name }}
       build: ${{ needs.version.outputs.build }}
       publish: true
-      internal_only: ${{ inputs.internal_only }}
+      internal_only: ${{ inputs.internal_only || inputs.beta }}
       test_login: ${{ inputs.test_login }}
+      beta: ${{ inputs.beta }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
