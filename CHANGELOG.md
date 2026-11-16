@@ -1,8 +1,20 @@
 # Changelog
 
-Preview builds. Each release has one version name on every platform (iPhone,
-Android, macOS, Windows, Linux); the build number only matters to the stores.
-Dates are UTC.
+Each release has one version name on every platform (iPhone, Android, macOS,
+Windows, Linux); the build number only matters to the stores. Dates are UTC.
+Versions before 1.0.0 were preview builds.
+
+## 1.0.0 (2026-11-16)
+
+The first public version, for the App Store and Google Play. It works like 0.3.2.
+
+### Added
+- The App Store and Google Play pages in 15 languages.
+- iPhone and iPad: the app carries Apple's privacy manifest. It says what the app
+  already did: no tracking, no data collected.
+
+### Changed
+- Android: builds no longer show the "Test sign-in" button unless a test build asks for it.
 
 ## 0.3.2 (2026-11-15)
 

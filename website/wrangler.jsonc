@@ -5,6 +5,7 @@
   // removing it sends the host back to the wildcard.
   "name": "cozysafe-site",
   "compatibility_date": "2025-06-01",
-  "assets": { "directory": "./public" },
+  // An unknown address gets public/404.html; headers for every answer: public/_headers.
+  "assets": { "directory": "./public", "not_found_handling": "404-page" },
   "routes": [{ "pattern": "safe.cozypi.com", "custom_domain": true }]
 }

@@ -1,7 +1,7 @@
 name: cozysafe
 description: "Cozy Safe: an open-source encrypted vault for notes, files and photos."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.13.5
