@@ -53,7 +53,7 @@ Output `store/feature-graphic-<en|vi>.png` (Google Play, 1024x500).
 
 - [ ] Dashboard → Apply for production access: answers in `docs/play-production-answers.txt`
       (not in git). Google answers by email, usually within a week.
-- [ ] Main store listing (en-US, vi): title, short and full description from `store/`,
+- [ ] Main store listing, 15 languages: title, short and full description from `store/text/`,
       icon `branding/icon-1024.png` (512 px), feature graphic, phone screenshots.
 - [ ] Store settings: category Productivity, contact email, privacy policy URL.
 - [ ] Countries / regions for production.
@@ -66,8 +66,8 @@ Output `store/feature-graphic-<en|vi>.png` (Google Play, 1024x500).
 ## 5. App Store
 
 - [ ] Version: rename 1.0 to 1.0.0 (must equal the build's version).
-- [ ] en-US and vi: name, subtitle, promotional text, description, keywords, URLs,
-      copyright, screenshots (iPhone 6.3", iPad 13").
+- [ ] Text in 15 languages: `gh workflow run store-text.yml -R cozy-pi/cozysafe -f write=true`.
+      By hand: copyright, screenshots (iPhone 6.3", iPad 13").
 - [ ] App Information: category, age rating, content rights. App Privacy: Data Not Collected.
       Pricing: free, every country EXCEPT France (docs/export-compliance.md: the
       "no export documents" answer holds only while France is left out). Business → trader status for the EU.
@@ -93,5 +93,10 @@ Output `store/feature-graphic-<en|vi>.png` (Google Play, 1024x500).
 - Filled in as drafts that day, English only: App Store version 1.0.0 (text, URLs, review
   notes, manual release, iPhone and iPad screenshots), App Information (name, subtitle,
   categories), Play default listing (title, descriptions, phone screenshots).
-- Still by hand: Vietnamese on both stores, App Privacy and its policy URL, age rating,
-  content rights, review contact, the EU trader status, Play seller status.
+- All 15 languages are on both stores as drafts: App Store through the store-text
+  workflow (it also set the privacy policy URL), Google Play by hand in the Console
+  (Manage languages, then title, short and full description per language, Save as draft;
+  the service account has no right to edit the listing). Screenshots are English only:
+  a language without its own shows the English ones.
+- Still by hand: Vietnamese screenshots, App Privacy answers, age rating, content rights,
+  review contact, the EU trader status, Play seller status, France unticked in availability.
