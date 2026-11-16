@@ -4,6 +4,9 @@
 //   flutter test test/website_shots_test.dart --update-goldens --dart-define=SHOTS=true
 // Output: test/website/<device>-<screen>-<lang>-<light|dark>.png (not committed);
 // website/shots.sh turns them into the site's WebP files.
+// The same screens in the sizes the stores ask for (add --dart-define=STORE=true):
+//   test/store/<device>-<screen>-<lang>-<light|dark>.png (not committed)
+//   iphone 1206x2622 (App Store 6.3"), ipad 2064x2752 (App Store 13"), play 1080x1920 (Google Play, 9:16).
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -30,13 +33,21 @@ const _enabled = bool.fromEnvironment('SHOTS');
 final _now = DateTime.now().millisecondsSinceEpoch;
 const _day = 86400000;
 
-/// Window size in points and the system bars' safe areas (top, bottom).
-const _devices = {
-  'iphone': (Size(390, 844), 47.0, 34.0),
-  'android': (Size(412, 915), 32.0, 24.0),
-  'ipad': (Size(820, 1180), 24.0, 20.0),
-  'mac': (Size(1200, 760), 0.0, 0.0),
-};
+const _store = bool.fromEnvironment('STORE');
+
+/// Window size in points, the system bars' safe areas (top, bottom), pixels per point.
+const _devices = _store
+    ? {
+        'iphone': (Size(402, 874), 62.0, 34.0, 3.0),
+        'ipad': (Size(1032, 1376), 24.0, 20.0, 2.0),
+        'play': (Size(360, 640), 24.0, 16.0, 3.0),
+      }
+    : {
+        'iphone': (Size(390, 844), 47.0, 34.0, 2.0),
+        'android': (Size(412, 915), 32.0, 24.0, 2.0),
+        'ipad': (Size(820, 1180), 24.0, 20.0, 2.0),
+        'mac': (Size(1200, 760), 0.0, 0.0, 2.0),
+      };
 
 ItemInfo _item(String id, String kind, String name, int sizeBytes,
         {int ago = 0, int? duration, List<String> tags = const []}) =>
@@ -131,11 +142,11 @@ class _Fake implements RustLibApi {
       if (m < 0) return Future<Uint8List>.value(Uint8List(0));
       return Future<Uint8List>.value(_photos[m % _photos.length] ?? _thumbnails[0]);
     }
-    if (n.contains('PinLengths')) return Uint32List.fromList([4]);
+    if (n.contains('PinLengths')) return Uint32List.fromList([]);
     if (n.contains('AnyPassword')) return true;
     if (n.contains('HasBiometricUnlock')) return true;
     if (n.contains('BiometricEnabled')) return true;
-    if (n.contains('PinEnabled')) return true;
+    if (n.contains('PinEnabled')) return false; // PINs are retired: the lock asks for the vault password
     if (n.contains('Unlock')) return Future<VaultInfo?>.value(null);
     return null;
   }
@@ -202,17 +213,11 @@ void main() {
     'notes': (home, 'note', null),
     'voice': (home, 'audio', null),
     'files': (home, 'file', null),
-    'group': (home, 'library', (t) async {
-      final row = find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.right).first;
-      final label = _lang == 'vi' ? 'Du lịch' : 'Travel';
-      await t.scrollUntilVisible(find.text(label), 120, scrollable: row);
-      await t.pump();
-      await t.tap(find.text(label).first);
-    }),
+    // No 'group' screen: groups are hidden in the app (lib/hidden_features.dart).
     'settings': (settings, null, null),
   };
 
-  for (final MapEntry(key: device, value: (size, top, bottom)) in _devices.entries) {
+  for (final MapEntry(key: device, value: (size, top, bottom, ratio)) in _devices.entries) {
     for (final MapEntry(key: name, value: (screen, section, act)) in screens.entries) {
       for (final lang in ['en', 'vi']) {
         for (final b in [Brightness.light, Brightness.dark]) {
@@ -221,15 +226,18 @@ void main() {
             Prefs.dir = Directory.systemTemp.createTempSync('prefs').path;
             if (section != null) Prefs.write('vault-section', section);
             Prefs.write('add-column-hint', '3');
+            // The photos themselves, as after a tap on the eye, and no first-time tip over them.
+            Prefs.write(blurThumbsPref, '0');
+            Prefs.write('blur-tip-seen', '1');
             VaultHomeScreen.debugReveal = false;
             debugVoice = device != 'mac'; // voice memos: phones and tablets only
-            BiometricUnlock.debugKind = device == 'android' ? BiometricKind.fingerprint : BiometricKind.face;
+            BiometricUnlock.debugKind = device == 'android' || device == 'play' ? BiometricKind.fingerprint : BiometricKind.face;
             debugDisableShadows = false;
             try {
-              t.view.physicalSize = size * 2;
-              t.view.devicePixelRatio = 2;
-              t.view.padding = FakeViewPadding(top: top * 2, bottom: bottom * 2);
-              t.view.viewPadding = FakeViewPadding(top: top * 2, bottom: bottom * 2);
+              t.view.physicalSize = size * ratio;
+              t.view.devicePixelRatio = ratio;
+              t.view.padding = FakeViewPadding(top: top * ratio, bottom: bottom * ratio);
+              t.view.viewPadding = FakeViewPadding(top: top * ratio, bottom: bottom * ratio);
               addTearDown(t.view.reset);
               await t.pumpWidget(MaterialApp(
                 debugShowCheckedModeBanner: false,
@@ -250,7 +258,7 @@ void main() {
                   await t.pump(const Duration(milliseconds: 100));
                 }
               }
-              await expectLater(find.byType(MaterialApp), matchesGoldenFile('website/$device-$name-$lang-${b.name}.png'));
+              await expectLater(find.byType(MaterialApp), matchesGoldenFile('${_store ? 'store' : 'website'}/$device-$name-$lang-${b.name}.png'));
               await t.pump(const Duration(seconds: 2));
             } finally {
               debugDisableShadows = true;

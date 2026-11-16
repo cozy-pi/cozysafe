@@ -57,5 +57,6 @@ app.*.map.json
 /test/screenshots/
 test/preview/
 test/website/
+test/store/
 test/preview_assets
 web/preview/

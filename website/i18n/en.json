@@ -2,18 +2,19 @@
  "lang_label": "Language",
  "home": {
   "title": "Cozy Safe: an open-source encrypted vault",
-  "desc": "Cozy Safe keeps your notes, photos, videos, voice memos and files encrypted on your own device. No account, no server. Free and open source.",
+  "desc": "Cozy Safe keeps your notes, photos, videos, voice memos, files, passwords and two-factor codes encrypted on your own device. No account, no server. Free and open source.",
   "nav_how": "How it works",
   "nav_dl": "Download",
   "nav_src": "Source code",
   "h1": "A secure vault for your important data.",
-  "lead": "Notes, photos, documents and files, encrypted right on your device. Without your password nobody can open them, not even us.",
+  "lead": "Notes, photos, documents, passwords and two-factor codes, encrypted right on your device. Without your password nobody can open them, not even us.",
   "btn": "Download",
   "btn_for": "Download for {p}",
   "btn_src": "View the source",
   "unlock": "Unlock",
   "unlock_bio": "Unlock with Face ID",
   "note": "<strong>Preview.</strong> The app is new: use <em>Back up to a file</em> often, and don't keep the only copy of anything important here.",
+  "note_live": "The app is new: use <em>Back up to a file</em> often, and don't keep the only copy of anything important here.",
   "h_how": "How Cozy Safe keeps you safe",
   "p_how": "Your data never leaves your device unencrypted, and the code that does it is public.",
   "c1h": "Encrypted on your device",
@@ -25,7 +26,7 @@
   "h_lim": "Good to know first",
   "l1h": "There is no recovery",
   "l1": [
-   "Lose both the Recovery Key and the vault password, and nobody can get your data back.",
+   "Lose the vault password, or both your device and the Recovery Key, and nobody can get your data back.",
    "Pick a password you can remember, like a short sentence."
   ],
   "l2h": "What it cannot do",
@@ -41,6 +42,9 @@
   "lin": "Extract and run <code>./cozysafe</code>. Needs GTK 3 and libsecret.",
   "andr": "Signed with the Cozy Pi key. When Android asks, allow your browser to install apps.",
   "ios": "Being tested on TestFlight, invite only for now.",
+  "ios_store": "For iPhone and iPad, from the App Store.",
+  "andr_store": "From Google Play. The same app as a file, signed with the Cozy Pi key, is below.",
+  "apk": "APK file",
   "get": "Download",
   "soon": "Coming soon",
   "verify": "To check a download, compare it with <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> or run <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Older versions are on the <a href=\"{REPO}/releases\">releases page</a>.",
@@ -94,13 +98,14 @@
      "A backup is one encrypted file, saved where you choose (for example iCloud Drive, Google Drive or Dropbox). Only encrypted data is written there; the provider you choose cannot read it.",
      "Sync with your other device: when you start it and allow it, the vault's encrypted data goes over your Wi-Fi straight to your own device. Nothing goes through us or any server.",
      "Sync through Google Drive: only if you connect your Google account. The app then keeps the vault's encrypted data in a “Cozy Safe” folder in your own Drive and can only see the files it made there. If you allow automatic sync (you can turn it off, or limit it to Wi-Fi), it updates that folder while the vault is open. Google sees encrypted files with their sizes and times, never your items' names or contents; nothing goes through us.",
+     "A copy of your Recovery Key (the 24 words): when you make a vault, the app offers to keep a copy in your iCloud Keychain (iPhone) or with Google (Android), so a new device signed in to your account can get the words back. It is on unless you turn it off, and is never kept for a vault in Top Secret Mode. Apple or Google stores it end-to-end encrypted under your own account; it never comes to us, and the words alone do not open a vault: the vault password is needed too. If you let your phone's password manager save the vault password, it is kept there under that manager's terms.",
      "When you share, export or open an item in another app, that app receives an unencrypted copy and handles it under its own terms."
     ]
    ],
    [
     "Permissions",
     [
-     "Camera: only to take photos straight into a vault, when you open the camera. Photos are not saved to your photo library.",
+     "Camera: only when you open it, to take photos and videos straight into a vault or to scan a two-factor QR code. They are not saved to your photo library.",
      "Photo library: only when you add photos or videos from it to a vault, and to remove the originals afterwards if you ask.",
      "Microphone: only while you record a voice memo or a video in the app. Recordings go straight into the vault.",
      "Biometrics: only if you turn on Face ID, Touch ID or fingerprint unlock. Your biometric data never leaves the device's secure hardware and is never available to the app.",

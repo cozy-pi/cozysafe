@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Google Play's feature graphic (1024x500), drawn from the app icon's own shapes
+# (branding/icon.svg) with ImageMagick:  tools/store-feature-graphic
+# Output: store/feature-graphic-<en|vi>.png
+set -euo pipefail
+cd "$(dirname "$0")/.."
+fonts="${FLUTTER_ROOT:-$HOME/development/flutter}/bin/cache/artifacts/material_fonts"
+make() { # language, tagline line 1, tagline line 2
+  magick -size 1024x500 xc:'#165b4c' \
+    -fill '#ffffff' -draw 'circle 220,258 220,116' \
+    -fill '#165b4c' -draw 'circle 220,258 220,142' \
+    -fill '#ffffff' -draw 'circle 220,258 220,208' \
+    -fill '#f3d08e' -draw 'roundrectangle 209,98 231,164 11,11' \
+    -fill '#ffffff' -font "$fonts/Roboto-Bold.ttf" -pointsize 92 -annotate +420+238 'Cozy Safe' \
+    -fill '#d7e6e1' -font "$fonts/Roboto-Regular.ttf" -pointsize 34 -annotate +424+300 "$2" -annotate +424+346 "$3" \
+    "store/feature-graphic-$1.png"
+}
+make en 'Your private vault,' 'encrypted on your device.'
+make vi 'Chiếc két riêng của bạn,' 'mã hoá ngay trên máy.'
+ls -l store/feature-graphic-*.png

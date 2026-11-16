@@ -29,10 +29,12 @@ on:
         description: "Internal testers only (TestFlight, Play internal): no alpha, no GitHub release"
         type: boolean
         default: false
+      # Off unless asked for: the app is public, and play-production.yml can put any build
+      # in front of everyone. A build with it shows a button that opens a test vault.
       test_login:
-        description: "Android: show Test sign-in (closed testing); off for a build for everyone"
+        description: "Android: show Test sign-in (only for a closed-testing build, never a public one)"
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write

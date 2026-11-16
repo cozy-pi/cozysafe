@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+"""Checks store/text/<lang>.json: every language of the app is there, every field is
+filled and inside the stores' limits, and the description keeps the English layout
+(same number of lines and bullets).   tools/check-store-text"""
+import json, os, sys
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+LIMITS = {'name': 30, 'subtitle': 30, 'promo': 170, 'keywords': 100, 'short': 80, 'description': 4000, 'whats_new': 500}
+langs = sorted(f[4:-4].replace('_', '-') for f in os.listdir('app/lib/l10n') if f.startswith('app_') and f.endswith('.arb'))
+en = json.load(open('store/text/en.json'))
+bad = 0
+for lang in langs:
+    path = f'store/text/{lang}.json'
+    if not os.path.exists(path):
+        print(f'{lang}: missing {path}'); bad += 1; continue
+    t = json.load(open(path))
+    for k, limit in LIMITS.items():
+        v = t.get(k, '')
+        if not v.strip(): print(f'{lang}: {k} is empty'); bad += 1
+        elif k not in ('description', 'whats_new') and ('\n' in v or '`' in v or v != v.strip()): print(f'{lang}: {k} is not one clean line'); bad += 1
+        elif len(v) > limit: print(f'{lang}: {k} is {len(v)} characters, limit {limit}'); bad += 1
+    if set(t) != set(LIMITS): print(f'{lang}: fields {sorted(set(t) ^ set(LIMITS))}'); bad += 1
+    d, e = t.get('description', ''), en['description']
+    if d.count('\n') != e.count('\n') or d.count('•') != e.count('•'):
+        print(f'{lang}: description has {d.count(chr(10))} line breaks and {d.count("•")} bullets, English has {e.count(chr(10))} and {e.count("•")}'); bad += 1
+    if not t.get('name', '').startswith('Cozy Safe'): print(f'{lang}: name must start with Cozy Safe'); bad += 1
+print(f'{len(langs)} languages, {bad} problem(s)')
+sys.exit(1 if bad else 0)

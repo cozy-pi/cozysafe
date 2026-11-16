@@ -2,18 +2,19 @@
  "lang_label": "Idioma",
  "home": {
   "title": "Cozy Safe: um cofre criptografado de código aberto",
-  "desc": "O Cozy Safe guarda suas notas, fotos, vídeos, gravações de voz e arquivos criptografados no seu dispositivo. Sem conta, sem servidor. Gratuito e open source.",
+  "desc": "O Cozy Safe guarda suas notas, fotos, vídeos, gravações de voz, arquivos, senhas e códigos de duas etapas criptografados no seu dispositivo. Sem conta, sem servidor. Gratuito e open source.",
   "nav_how": "Como funciona",
   "nav_dl": "Baixar",
   "nav_src": "Código-fonte",
   "h1": "Um cofre seguro para seus dados importantes.",
-  "lead": "Notas, fotos, documentos e arquivos, criptografados no seu próprio aparelho. Sem a sua senha ninguém consegue abrir, nem mesmo nós.",
+  "lead": "Notas, fotos, documentos, senhas e códigos de duas etapas, criptografados no seu próprio aparelho. Sem a sua senha ninguém consegue abrir, nem mesmo nós.",
   "btn": "Baixar",
   "btn_for": "Baixar para {p}",
   "btn_src": "Ver o código",
   "unlock": "Desbloquear",
   "unlock_bio": "Desbloquear com Face ID",
   "note": "<strong>Versão preliminar.</strong> O app é novo: use <em>Fazer backup em arquivo</em> com frequência e não guarde aqui a única cópia de nada importante.",
+  "note_live": "O app é novo: use <em>Fazer backup em arquivo</em> com frequência e não guarde aqui a única cópia de nada importante.",
   "h_how": "Como o Cozy Safe protege você",
   "p_how": "Seus dados nunca saem do seu dispositivo sem criptografia, e o código que faz isso é público.",
   "c1h": "Criptografado no seu dispositivo",
@@ -25,7 +26,7 @@
   "h_lim": "Bom saber antes",
   "l1h": "Não há recuperação",
   "l1": [
-   "Se você perder a Chave de recuperação e também a senha do cofre, ninguém consegue recuperar seus dados.",
+   "Se você perder a senha do cofre, ou perder o aparelho e também a Chave de recuperação, ninguém consegue recuperar seus dados.",
    "Escolha uma senha que você consiga lembrar, como uma frase curta."
   ],
   "l2h": "O que ele não faz",
@@ -41,6 +42,9 @@
   "lin": "Extraia e execute <code>./cozysafe</code>. Requer GTK 3 e libsecret.",
   "andr": "Assinado com a chave da Cozy Pi. Quando o Android pedir, permita que o navegador instale apps.",
   "ios": "Em testes no TestFlight, por enquanto só com convite.",
+  "ios_store": "Para iPhone e iPad, na App Store.",
+  "andr_store": "No Google Play. O mesmo app em arquivo, assinado com a chave da Cozy Pi, está logo abaixo.",
+  "apk": "Arquivo APK",
   "get": "Baixar",
   "soon": "Em breve",
   "verify": "Para conferir um download, compare-o com <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> ou execute <code>gh attestation verify &lt;arquivo&gt; -R cozy-pi/cozysafe</code>. As versões anteriores estão na <a href=\"{REPO}/releases\">página de versões</a>.",
@@ -94,13 +98,14 @@
      "Um backup é um único arquivo criptografado, salvo onde você escolher (por exemplo, iCloud Drive, Google Drive ou Dropbox). Somente dados criptografados são gravados ali; o provedor escolhido não consegue lê-los.",
      "Sincronização com seu outro dispositivo: quando você inicia e permite, os dados criptografados do cofre vão pela sua Wi-Fi direto para o seu próprio dispositivo. Nada passa por nós nem por nenhum servidor.",
      "Sincronizar pelo Google Drive: só se você conectar sua conta Google. O app guarda então os dados criptografados do cofre numa pasta “Cozy Safe” no seu próprio Drive e só vê os arquivos que criou lá. Se você permitir a sincronização automática (dá para desligar ou limitar ao Wi-Fi), ele atualiza essa pasta enquanto o cofre está aberto. O Google vê arquivos criptografados com tamanho e horário, nunca os nomes nem o conteúdo dos seus itens; nada passa por nós.",
+     "Uma cópia da sua Chave de recuperação (as 24 palavras): quando você cria um cofre, o app oferece guardar uma cópia no seu Porta-chaves do iCloud (iPhone) ou com o Google (Android), para que um novo aparelho conectado à sua conta possa recuperar as palavras. Fica ativado, a menos que você desative, e a cópia nunca é guardada para um cofre no Modo Ultrassecreto. A Apple ou o Google a armazena com criptografia de ponta a ponta na sua própria conta; ela nunca chega até nós, e as palavras sozinhas não abrem um cofre: a senha do cofre também é necessária. Se você deixar o gerenciador de senhas do seu celular salvar a senha do cofre, ela fica guardada lá conforme os termos desse gerenciador.",
      "Quando você compartilha, exporta ou abre um item em outro app, esse app recebe uma cópia sem criptografia e a trata conforme os próprios termos."
     ]
    ],
    [
     "Permissões",
     [
-     "Câmera: só para tirar fotos direto para um cofre, quando você abre a câmera. As fotos não são salvas na sua biblioteca de fotos.",
+     "Câmera: só quando você a abre, para tirar fotos e gravar vídeos direto para um cofre ou para escanear um código QR de duas etapas. Eles não são salvos na sua biblioteca de fotos.",
      "Fototeca: apenas quando você adiciona fotos ou vídeos dela a um cofre, e para remover os originais depois, se você pedir.",
      "Microfone: apenas enquanto você grava uma nota de voz ou um vídeo no app. As gravações vão direto para o cofre.",
      "Biometria: só se você ativar o desbloqueio por Face ID, Touch ID ou impressão digital. Seus dados biométricos nunca saem do hardware seguro do dispositivo e nunca ficam disponíveis para o app.",

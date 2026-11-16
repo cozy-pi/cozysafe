@@ -25,7 +25,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = 'https://github.com/cozy-pi/cozysafe/releases/latest/download/'
 REPO = 'https://github.com/cozy-pi/cozysafe'
 SITE = 'https://safe.cozypi.com'
-UPDATED = '2026-11-14'  # privacy policy date
+UPDATED = '2026-11-16'  # privacy policy date
+# The app's pages on the stores. LIVE turns the site from "preview" to "on the stores":
+# set it the day both stores have approved 1.0.0 (docs/release-public.md), not before
+# (the links answer "not found" until then).
+LIVE = False
+APP_STORE = 'https://apps.apple.com/app/id6824510222'
+GOOGLE_PLAY = 'https://play.google.com/store/apps/details?id=com.cozypi.cozysafe'
 
 # Same list and order as Flip Match (lib/i18n.ts NGON_NGU); cozypi.com uses the same codes.
 LANGS = [
@@ -137,7 +143,7 @@ COLLAGE = '<div class="collage" aria-hidden="true">' + ''.join(
 # in CSS px. Sizes are the device's window in points (app/test/website_shots_test.dart).
 SHOTS = [
     ('iphone', 'lock', 240), ('iphone', 'library', 240), ('iphone', 'notes', 240),
-    ('iphone', 'voice', 240), ('iphone', 'group', 240), ('iphone', 'settings', 240),
+    ('iphone', 'voice', 240), ('iphone', 'settings', 240),  # no 'group': groups are hidden in the app
     ('ipad', 'notes', 360), ('android', 'voice', 200),
 ]
 DEVICE_SIZE = {'iphone': (390, 844), 'android': (412, 915), 'ipad': (820, 1180), 'mac': (1200, 760)}
@@ -177,12 +183,24 @@ def page(lang, texts, css):
         f'{shot(d, s, lang, plain(t["d_" + d]), w)}</div><figcaption>{t["d_" + d]}</figcaption></figure>'
         for d, s, w in SHOTS if d != 'iphone')
     li = lambda items: ''.join(f'<li>{x}</li>' for x in items)
-    cards = ''.join(
-        f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t[key]}</p>'
-        f'<a class="get" href="{BASE}{f}">{ic("download", 18)}{t["get"]}</a><small title="{f}">{f}</small></div>'
-        for icon, name, f, key in PLATFORMS)
-    cards += (f'<div class="dl soon"><div class="os">{ic("iphone", 30)}iPhone</div><p>{t["ios"]}</p>'
-              f'<span class="get">{t["soon"]}</span><small aria-hidden="true">&nbsp;</small></div>')
+    def card(icon, name, f, key):
+        if LIVE and key == 'andr':  # Google Play first, the signed APK as the second way
+            return (f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t["andr_store"]}</p>'
+                    f'<a class="get" href="{GOOGLE_PLAY}">{ic("download", 18)}Google Play</a>'
+                    f'<small><a href="{BASE}{f}" title="{f}">{t["apk"]}</a></small></div>')
+        return (f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t[key]}</p>'
+                f'<a class="get" href="{BASE}{f}">{ic("download", 18)}{t["get"]}</a><small title="{f}">{f}</small></div>')
+    cards = ''.join(card(*p) for p in PLATFORMS)
+    if LIVE:
+        cards += (f'<div class="dl"><div class="os">{ic("iphone", 30)}iPhone</div><p>{t["ios_store"]}</p>'
+                  f'<a class="get" href="{APP_STORE}">{ic("download", 18)}App Store</a><small aria-hidden="true">&nbsp;</small></div>')
+    else:
+        cards += (f'<div class="dl soon"><div class="os">{ic("iphone", 30)}iPhone</div><p>{t["ios"]}</p>'
+                  f'<span class="get">{t["soon"]}</span><small aria-hidden="true">&nbsp;</small></div>')
+    note = t['note_live'] if LIVE else t['note']
+    # The main button on a phone: the store once the app is there, the APK until then.
+    android_to = GOOGLE_PLAY if LIVE else BASE + 'CozySafe-android.apk'
+    ios_to = f"p = 'iPhone'; to = '{APP_STORE}';" if LIVE else 'return;'
     studio = 'https://cozypi.com/' + ('' if lang == 'en' else f'{lang}/')
     return f'''<!doctype html>
 <html lang="{HTML_LANG.get(lang, lang)}">
@@ -228,7 +246,7 @@ def page(lang, texts, css):
   </div>
 </header>
 <main class="wrap">
-  <section class="block"><p class="note">{t['note']}</p></section>
+  <section class="block"><p class="note">{note}</p></section>
   <section class="block" id="tour" aria-labelledby="h-see">
     <h2 id="h-see">{t['h_see']}</h2>
     <p class="section-lead">{t['p_see']}</p>
@@ -276,12 +294,12 @@ def page(lang, texts, css):
 <script>
 // Point the main button at the file for this device; without JS it jumps to the cards.
 (function () {{
-  var ua = navigator.userAgent, p = null, f = null;
-  if (/Android/i.test(ua)) {{ p = 'Android'; f = 'CozySafe-android.apk'; }}
-  else if (/iPhone|iPad|iPod/i.test(ua)) {{ return; }}
+  var ua = navigator.userAgent, p = null, to = null;
+  if (/Android/i.test(ua)) {{ p = 'Android'; to = '{android_to}'; }}
+  else if (/iPhone|iPad|iPod/i.test(ua)) {{ {ios_to} }}
   if (!p) return;
   var b = document.getElementById('primary');
-  b.href = '{BASE}' + f;
+  b.href = to;
   b.querySelector('span').textContent = {json.dumps(t['btn_for'], ensure_ascii=False)}.replace('{{p}}', p);
 }})();
 </script>
