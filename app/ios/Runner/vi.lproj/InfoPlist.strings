@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "Ảnh bạn chụp vào thẳng két đã mã hoá. Camera cũng dùng để quét mã QR xác minh hai bước.";
+"NSFaceIDUsageDescription" = "Mở két bằng Face ID.";
+"NSLocalNetworkUsageDescription" = "Đồng bộ két với máy khác của bạn trong cùng Wi-Fi, chỉ khi bạn bắt đầu. Máy kia chỉ tham gia được khi có két này và mã dùng một lần bạn đưa cho nó xem. Mọi thứ gửi đi đều được mã hoá.";
+"NSMicrophoneUsageDescription" = "Bản ghi âm của bạn vào thẳng két đã mã hoá.";
+"NSPhotoLibraryUsageDescription" = "Chuyển ảnh và video vào két đã mã hoá, và xoá bản gốc khỏi Ảnh khi bạn yêu cầu.";

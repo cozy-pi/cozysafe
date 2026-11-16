@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "Çektiğiniz fotoğraflar doğrudan şifreli kasanıza girer. Kamera iki adımlı QR kodlarını da okur.";
+"NSFaceIDUsageDescription" = "Kasanızı Face ID ile açın.";
+"NSLocalNetworkUsageDescription" = "Kasanızı aynı Wi-Fi ağındaki diğer cihazınızla, yalnızca siz başlattığınızda eşitleyin. Diğer cihaz ancak bu kasaya ve ona gösterdiğiniz tek kullanımlık koda sahipse katılabilir. Gönderilen her şey şifrelidir.";
+"NSMicrophoneUsageDescription" = "Kaydettiğiniz sesli notlar doğrudan şifreli kasanıza girer.";
+"NSPhotoLibraryUsageDescription" = "Fotoğraf ve videoları şifreli kasanıza taşıyın ve istediğinizde asıllarını Fotoğraflar’dan silin.";

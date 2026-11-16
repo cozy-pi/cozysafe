@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "Le foto che scatti vanno direttamente nella tua cassaforte cifrata. La fotocamera legge anche i codici QR a due fattori.";
+"NSFaceIDUsageDescription" = "Apri la tua cassaforte con Face ID.";
+"NSLocalNetworkUsageDescription" = "Sincronizza la tua cassaforte con l’altro tuo dispositivo sulla stessa Wi-Fi, solo quando la avvii tu. L’altro dispositivo può unirsi solo se ha questa cassaforte e il codice monouso che gli mostri. Tutto ciò che viene inviato è cifrato.";
+"NSMicrophoneUsageDescription" = "I memo vocali che registri vanno direttamente nella tua cassaforte cifrata.";
+"NSPhotoLibraryUsageDescription" = "Sposta foto e video nella tua cassaforte cifrata e rimuovi gli originali da Foto quando lo chiedi.";

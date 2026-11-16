@@ -12,6 +12,8 @@ The first public version, for the App Store and Google Play. It works like 0.3.2
 - The App Store and Google Play pages in 15 languages.
 - iPhone and iPad: the app carries Apple's privacy manifest. It says what the app
   already did: no tracking, no data collected.
+- iPhone and iPad: the questions asking for the camera, microphone, Face ID, photos and
+  local network are in the app's 15 languages. They were in English only.
 
 ### Changed
 - Android: builds no longer show the "Test sign-in" button unless a test build asks for it.

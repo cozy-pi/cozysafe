@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "你拍的照片會直接存入加密的保險箱。相機也用來掃描兩步驟驗證的 QR 碼。";
+"NSFaceIDUsageDescription" = "用 Face ID 打開保險箱。";
+"NSLocalNetworkUsageDescription" = "僅在你開始同步時，與同一 Wi-Fi 下你的另一台裝置同步保險箱。另一台裝置必須擁有這個保險箱，並持有你出示的一次性代碼才能加入。傳送的內容全部加密。";
+"NSMicrophoneUsageDescription" = "你錄製的語音備忘錄會直接存入加密的保險箱。";
+"NSPhotoLibraryUsageDescription" = "將照片和影片移入加密的保險箱，並在你要求時從「照片」中刪除原始檔。";

@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "촬영한 사진은 암호화된 금고에 바로 들어갑니다. 카메라는 2단계 인증 QR 코드를 읽는 데에도 사용합니다.";
+"NSFaceIDUsageDescription" = "Face ID로 금고를 엽니다.";
+"NSLocalNetworkUsageDescription" = "사용자가 시작했을 때에만 같은 Wi-Fi에 있는 다른 기기와 금고를 동기화합니다. 다른 기기는 이 금고를 가지고 있고 사용자가 보여 주는 일회용 코드가 있어야만 참여할 수 있습니다. 전송되는 모든 것은 암호화됩니다.";
+"NSMicrophoneUsageDescription" = "녹음한 음성 메모는 암호화된 금고에 바로 들어갑니다.";
+"NSPhotoLibraryUsageDescription" = "사진과 동영상을 암호화된 금고로 옮기고, 요청하면 사진 앱에서 원본을 삭제합니다.";

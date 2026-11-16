@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "Les photos que vous prenez vont directement dans votre coffre chiffré. L’appareil photo lit aussi les QR codes à deux facteurs.";
+"NSFaceIDUsageDescription" = "Ouvrez votre coffre avec Face ID.";
+"NSLocalNetworkUsageDescription" = "Synchronisez votre coffre avec votre autre appareil sur le même Wi-Fi, uniquement quand vous le lancez. L’autre appareil ne peut se joindre que s’il possède ce coffre et le code à usage unique que vous lui montrez. Tout ce qui est envoyé est chiffré.";
+"NSMicrophoneUsageDescription" = "Les mémos vocaux que vous enregistrez vont directement dans votre coffre chiffré.";
+"NSPhotoLibraryUsageDescription" = "Déplacez des photos et des vidéos dans votre coffre chiffré, et supprimez les originaux de Photos quand vous le demandez.";
