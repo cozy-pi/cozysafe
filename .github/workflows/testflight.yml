@@ -23,7 +23,7 @@ on:
         type: string
         default: ""
       beta:
-        description: "Cozy Beta (com.cozypi.cozysafe.beta): installs next to Cozy Safe"
+        description: "Cozy Safe Beta (com.cozypi.cozysafe.beta): installs next to Cozy Safe"
         type: boolean
         default: false
   workflow_call:
@@ -119,12 +119,12 @@ jobs:
           assert s.count(old) == 3, s.count(old)   # Debug, Release, Profile of Runner
           s = s.replace(old, old + ' CODE_SIGN_STYLE = Manual; DEVELOPMENT_TEAM = %s; "CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution"; PROVISIONING_PROFILE_SPECIFIER = "%s";'
                         % (os.environ['TEAM'], os.environ['PROFILE_NAME']))
-          # Cozy Beta: its own bundle id, so it installs next to Cozy Safe with its own data.
+          # Cozy Safe Beta: its own bundle id, so it installs next to Cozy Safe with its own data.
           if os.environ.get('BETA'):
               s = s.replace(old, 'PRODUCT_BUNDLE_IDENTIFIER = com.cozypi.cozysafe.beta;')
           open(p, 'w').write(s)
           EOF
-          if [ -n "$BETA" ]; then plutil -replace CFBundleDisplayName -string "Cozy Beta" Runner/Info.plist; fi
+          if [ -n "$BETA" ]; then plutil -replace CFBundleDisplayName -string "Cozy Safe Beta" Runner/Info.plist; fi
       - name: Export options
         env:
           TEAM: ${{ secrets.APPLE_TEAM_ID }}

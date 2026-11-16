@@ -15,7 +15,7 @@
 #   gh workflow run release.yml -R cozy-pi/cozysafe --ref <branch> -f internal_only=true
 # TestFlight (internal testers) and Google Play internal testing only: no closed test
 # (alpha) and no GitHub release, so the website's download links stay on the last release.
-# The same build as a second app, "Cozy Beta" (com.cozypi.cozysafe.beta), which installs
+# The same build as a second app, "Cozy Safe Beta" (com.cozypi.cozysafe.beta), which installs
 # next to Cozy Safe and keeps its own vaults, so trying a build never touches a real one:
 #   gh workflow run release.yml -R cozy-pi/cozysafe --ref <branch> -f beta=true
 # Always internal testers only. Needs, once: the app com.cozypi.cozysafe.beta in App Store
@@ -42,7 +42,7 @@ on:
         type: boolean
         default: true
       beta:
-        description: "Cozy Beta: a separate app next to Cozy Safe, with its own data (internal testers only)"
+        description: "Cozy Safe Beta: a separate app next to Cozy Safe, with its own data (internal testers only)"
         type: boolean
         default: false
 

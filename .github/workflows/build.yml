@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       beta:
-        description: "Android: Cozy Beta (com.cozypi.cozysafe.beta), installs next to Cozy Safe"
+        description: "Android: Cozy Safe Beta (com.cozypi.cozysafe.beta), installs next to Cozy Safe"
         type: boolean
         default: false
   push:
@@ -37,7 +37,7 @@ on:
       test_login:
         type: boolean
         default: false
-      # Android: "Cozy Beta" (com.cozypi.cozysafe.beta), installed next to Cozy Safe.
+      # Android: "Cozy Safe Beta" (com.cozypi.cozysafe.beta), installed next to Cozy Safe.
       beta:
         type: boolean
         default: false

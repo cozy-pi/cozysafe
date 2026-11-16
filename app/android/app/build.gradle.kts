@@ -4,7 +4,7 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// CS_BETA=1 builds "Cozy Beta": its own application id, so it installs next to Cozy Safe
+// CS_BETA=1 builds "Cozy Safe Beta": its own application id, so it installs next to Cozy Safe
 // with its own data (work in progress never touches a real vault). Set by CI only
 // (release.yml, beta=true).
 val beta = System.getenv("CS_BETA") == "1"
@@ -32,7 +32,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         if (beta) applicationIdSuffix = ".beta"
-        manifestPlaceholders["appLabel"] = if (beta) "Cozy Beta" else "Cozy Safe"
+        manifestPlaceholders["appLabel"] = if (beta) "Cozy Safe Beta" else "Cozy Safe"
     }
 
     // Release key comes from CI secrets (ANDROID_KEYSTORE_*); without them (local
