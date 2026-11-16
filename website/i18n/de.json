@@ -2,18 +2,19 @@
  "lang_label": "Sprache",
  "home": {
   "title": "Cozy Safe: ein verschlüsselter Open-Source-Tresor",
-  "desc": "Cozy Safe speichert Notizen, Fotos, Videos, Sprachmemos und Dateien verschlüsselt auf Ihrem Gerät. Kein Konto, kein Server. Kostenlos und Open Source.",
+  "desc": "Cozy Safe speichert Notizen, Fotos, Videos, Sprachmemos, Dateien, Passwörter und Codes für die Zwei-Faktor-Anmeldung verschlüsselt auf Ihrem Gerät. Kein Konto, kein Server. Kostenlos und Open Source.",
   "nav_how": "So funktioniert's",
   "nav_dl": "Download",
   "nav_src": "Quellcode",
   "h1": "Ein sicherer Tresor für Ihre wichtigen Daten.",
-  "lead": "Notizen, Fotos, Dokumente und Dateien, direkt auf Ihrem Gerät verschlüsselt. Ohne Ihr Passwort kann niemand sie öffnen, auch wir nicht.",
+  "lead": "Notizen, Fotos, Dokumente, Passwörter und Codes für die Zwei-Faktor-Anmeldung, direkt auf Ihrem Gerät verschlüsselt. Ohne Ihr Passwort kann niemand sie öffnen, auch wir nicht.",
   "btn": "Herunterladen",
   "btn_for": "Für {p} herunterladen",
   "btn_src": "Quellcode ansehen",
   "unlock": "Entsperren",
   "unlock_bio": "Mit Face ID entsperren",
   "note": "<strong>Vorschau.</strong> Die App ist neu: Nutzen Sie regelmäßig <em>In Datei sichern</em> und bewahren Sie hier nicht die einzige Kopie von etwas Wichtigem auf.",
+  "note_live": "Die App ist neu: Nutzen Sie regelmäßig <em>In Datei sichern</em> und bewahren Sie hier nicht die einzige Kopie von etwas Wichtigem auf.",
   "h_how": "So schützt Sie Cozy Safe",
   "p_how": "Ihre Daten verlassen Ihr Gerät nie unverschlüsselt, und der Code dafür ist öffentlich.",
   "c1h": "Verschlüsselt auf Ihrem Gerät",
@@ -25,7 +26,7 @@
   "h_lim": "Gut zu wissen",
   "l1h": "Keine Wiederherstellung",
   "l1": [
-   "Verlieren Sie sowohl den Wiederherstellungsschlüssel als auch das Tresor-Passwort, kann niemand Ihre Daten zurückholen.",
+   "Verlieren Sie das Tresor-Passwort oder sowohl Ihr Gerät als auch den Wiederherstellungsschlüssel, kann niemand Ihre Daten zurückholen.",
    "Wählen Sie ein Passwort, das Sie sich merken können, etwa einen kurzen Satz."
   ],
   "l2h": "Was es nicht kann",
@@ -41,6 +42,9 @@
   "lin": "Entpacken und <code>./cozysafe</code> ausführen. Benötigt GTK 3 und libsecret.",
   "andr": "Mit dem Schlüssel von Cozy Pi signiert. Wenn Android nachfragt, erlauben Sie Ihrem Browser, Apps zu installieren.",
   "ios": "Im Test über TestFlight, vorerst nur auf Einladung.",
+  "ios_store": "Für iPhone und iPad, aus dem App Store.",
+  "andr_store": "Aus Google Play. Dieselbe App als Datei, mit dem Schlüssel von Cozy Pi signiert, finden Sie unten.",
+  "apk": "APK-Datei",
   "get": "Herunterladen",
   "soon": "Demnächst",
   "verify": "Um einen Download zu prüfen, vergleichen Sie ihn mit <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> oder führen Sie <code>gh attestation verify &lt;Datei&gt; -R cozy-pi/cozysafe</code> aus. Ältere Versionen finden Sie auf der <a href=\"{REPO}/releases\">Release-Seite</a>.",
@@ -94,13 +98,14 @@
      "Ein Backup ist eine einzelne verschlüsselte Datei, gespeichert an einem Ort Ihrer Wahl (zum Beispiel iCloud Drive, Google Drive oder Dropbox). Dort werden nur verschlüsselte Daten gespeichert; der gewählte Anbieter kann sie nicht lesen.",
      "Synchronisierung mit Ihrem anderen Gerät: Wenn Sie sie starten und erlauben, gehen die verschlüsselten Daten des Tresors über Ihr WLAN direkt zu Ihrem eigenen Gerät. Nichts läuft über uns oder einen Server.",
      "Synchronisierung über Google Drive: nur, wenn Sie Ihr Google-Konto verbinden. Die App speichert dann die verschlüsselten Daten des Tresors in einem Ordner „Cozy Safe“ in Ihrem eigenen Drive und sieht nur die Dateien, die sie dort angelegt hat. Wenn Sie die automatische Synchronisierung erlauben (abschaltbar oder nur über WLAN), aktualisiert sie diesen Ordner, solange der Tresor geöffnet ist. Google sieht verschlüsselte Dateien mit Größe und Zeit, nie Namen oder Inhalte Ihrer Einträge; nichts läuft über uns.",
+     "Eine Kopie Ihres Wiederherstellungsschlüssels (der 24 Wörter): Wenn Sie einen Tresor anlegen, bietet die App an, eine Kopie in Ihrem iCloud-Schlüsselbund (iPhone) oder bei Google (Android) aufzubewahren, damit ein neues Gerät, das mit Ihrem Konto angemeldet ist, die Wörter zurückholen kann. Das ist eingeschaltet, solange Sie es nicht ausschalten, und für einen Tresor im Streng-geheim-Modus wird nie eine Kopie aufbewahrt. Apple oder Google speichert sie Ende-zu-Ende-verschlüsselt unter Ihrem eigenen Konto; sie gelangt nie zu uns, und die Wörter allein öffnen keinen Tresor: Auch das Tresor-Passwort wird benötigt. Wenn Sie den Passwortmanager Ihres Telefons das Tresor-Passwort speichern lassen, wird es dort nach den Bestimmungen dieses Managers aufbewahrt.",
      "Wenn Sie ein Element teilen, exportieren oder in einer anderen App öffnen, erhält diese App eine unverschlüsselte Kopie und verarbeitet sie nach ihren eigenen Bestimmungen."
     ]
    ],
    [
     "Berechtigungen",
     [
-     "Kamera: nur um Fotos direkt in einen Tresor aufzunehmen, wenn Sie die Kamera öffnen. Fotos werden nicht in Ihrer Fotomediathek gespeichert.",
+     "Kamera: nur wenn Sie sie öffnen, um Fotos und Videos direkt in einen Tresor aufzunehmen oder einen QR-Code für die Zwei-Faktor-Anmeldung zu scannen. Sie werden nicht in Ihrer Fotomediathek gespeichert.",
      "Fotomediathek: nur wenn Sie Fotos oder Videos daraus in einen Tresor legen, und um danach auf Wunsch die Originale zu entfernen.",
      "Mikrofon: nur während Sie in der App eine Sprachnotiz oder ein Video aufnehmen. Aufnahmen gehen direkt in den Tresor.",
      "Biometrie: nur wenn Sie das Entsperren per Face ID, Touch ID oder Fingerabdruck aktivieren. Ihre biometrischen Daten verlassen nie die sichere Hardware des Geräts und sind für die App nie zugänglich.",

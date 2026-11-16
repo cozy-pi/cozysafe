@@ -2,18 +2,19 @@
  "lang_label": "Langue",
  "home": {
   "title": "Cozy Safe : un coffre-fort chiffré et open source",
-  "desc": "Cozy Safe garde vos notes, photos, vidéos, mémos vocaux et fichiers chiffrés sur votre appareil. Sans compte, sans serveur. Gratuit et open source.",
+  "desc": "Cozy Safe garde vos notes, photos, vidéos, mémos vocaux, fichiers, mots de passe et codes à deux facteurs chiffrés sur votre appareil. Sans compte, sans serveur. Gratuit et open source.",
   "nav_how": "Fonctionnement",
   "nav_dl": "Télécharger",
   "nav_src": "Code source",
   "h1": "Un coffre-fort sécurisé pour vos données importantes.",
-  "lead": "Notes, photos, documents et fichiers, chiffrés directement sur votre appareil. Sans votre mot de passe, personne ne peut les ouvrir, pas même nous.",
+  "lead": "Notes, photos, documents, mots de passe et codes à deux facteurs, chiffrés directement sur votre appareil. Sans votre mot de passe, personne ne peut les ouvrir, pas même nous.",
   "btn": "Télécharger",
   "btn_for": "Télécharger pour {p}",
   "btn_src": "Voir le code source",
   "unlock": "Déverrouiller",
   "unlock_bio": "Déverrouiller avec Face ID",
   "note": "<strong>Version préliminaire.</strong> L'app est récente : utilisez souvent <em>Sauvegarder dans un fichier</em>, et n'y gardez pas l'unique copie de quoi que ce soit d'important.",
+  "note_live": "L'app est récente : utilisez souvent <em>Sauvegarder dans un fichier</em>, et n'y gardez pas l'unique copie de quoi que ce soit d'important.",
   "h_how": "Comment Cozy Safe vous protège",
   "p_how": "Vos données ne quittent jamais votre appareil sans être chiffrées, et le code qui s'en charge est public.",
   "c1h": "Chiffré sur votre appareil",
@@ -25,7 +26,7 @@
   "h_lim": "À savoir avant de commencer",
   "l1h": "Aucune récupération possible",
   "l1": [
-   "Si vous perdez à la fois la Clé de récupération et le mot de passe du coffre, personne ne pourra récupérer vos données.",
+   "Si vous perdez le mot de passe du coffre, ou à la fois votre appareil et la Clé de récupération, personne ne pourra récupérer vos données.",
    "Choisissez un mot de passe dont vous vous souviendrez, comme une courte phrase."
   ],
   "l2h": "Ce qu'il ne peut pas faire",
@@ -41,6 +42,9 @@
   "lin": "Décompressez l'archive et lancez <code>./cozysafe</code>. Nécessite GTK 3 et libsecret.",
   "andr": "Signé avec la clé de Cozy Pi. Quand Android le demande, autorisez votre navigateur à installer des applications.",
   "ios": "En test sur TestFlight, sur invitation uniquement pour l'instant.",
+  "ios_store": "Pour iPhone et iPad, sur l'App Store.",
+  "andr_store": "Sur Google Play. La même app sous forme de fichier, signée avec la clé de Cozy Pi, se trouve plus bas.",
+  "apk": "Fichier APK",
   "get": "Télécharger",
   "soon": "Bientôt disponible",
   "verify": "Pour vérifier un téléchargement, comparez-le à <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> ou lancez <code>gh attestation verify &lt;fichier&gt; -R cozy-pi/cozysafe</code>. Les versions précédentes se trouvent sur la <a href=\"{REPO}/releases\">page des versions</a>.",
@@ -94,13 +98,14 @@
      "Une sauvegarde est un seul fichier chiffré, enregistré à l'endroit de votre choix (par exemple iCloud Drive, Google Drive ou Dropbox). Seules des données chiffrées y sont écrites ; le fournisseur choisi ne peut pas les lire.",
      "Synchronisation avec votre autre appareil : quand vous la lancez et l'autorisez, les données chiffrées du coffre passent par votre Wi-Fi directement vers votre propre appareil. Rien ne passe par nous ni par un serveur.",
      "Synchronisation via Google Drive : seulement si vous connectez votre compte Google. L’app garde alors les données chiffrées du coffre dans un dossier « Cozy Safe » de votre propre Drive et ne voit que les fichiers qu’elle y a créés. Si vous autorisez la synchro automatique (désactivable, ou limitée au Wi-Fi), elle met ce dossier à jour tant que le coffre est ouvert. Google voit des fichiers chiffrés avec leur taille et leur date, jamais les noms ni le contenu de vos éléments ; rien ne passe par nous.",
+     "Une copie de votre Clé de récupération (les 24 mots) : quand vous créez un coffre, l'app propose d'en garder une copie dans votre trousseau iCloud (iPhone) ou chez Google (Android), afin qu'un nouvel appareil connecté à votre compte puisse retrouver les mots. C'est activé sauf si vous le désactivez, et aucune copie n'est jamais gardée pour un coffre en Mode Top secret. Apple ou Google la stocke chiffrée de bout en bout sous votre propre compte ; elle ne nous parvient jamais, et les mots seuls n'ouvrent pas un coffre : il faut aussi le mot de passe du coffre. Si vous laissez le gestionnaire de mots de passe de votre téléphone enregistrer le mot de passe du coffre, il y est conservé selon les conditions de ce gestionnaire.",
      "Lorsque vous partagez, exportez ou ouvrez un élément dans une autre app, cette app reçoit une copie non chiffrée et la traite selon ses propres conditions."
     ]
    ],
    [
     "Autorisations",
     [
-     "Appareil photo : uniquement pour prendre des photos directement dans un coffre, lorsque vous ouvrez l'appareil photo. Les photos ne sont pas enregistrées dans votre photothèque.",
+     "Appareil photo : uniquement lorsque vous l'ouvrez, pour prendre des photos et des vidéos directement dans un coffre ou pour scanner un QR code à deux facteurs. Elles ne sont pas enregistrées dans votre photothèque.",
      "Photothèque : seulement quand vous ajoutez des photos ou des vidéos de celle-ci à un coffre, et pour supprimer ensuite les originaux si vous le demandez.",
      "Microphone : seulement pendant que vous enregistrez un mémo vocal ou une vidéo dans l'app. Les enregistrements vont directement dans le coffre.",
      "Biométrie : uniquement si vous activez le déverrouillage par Face ID, Touch ID ou empreinte digitale. Vos données biométriques ne quittent jamais le matériel sécurisé de l'appareil et ne sont jamais accessibles à l'app.",

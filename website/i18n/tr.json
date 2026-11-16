@@ -2,18 +2,19 @@
  "lang_label": "Dil",
  "home": {
   "title": "Cozy Safe: açık kaynaklı şifreli kasa",
-  "desc": "Cozy Safe notlarınızı, fotoğraf ve videolarınızı, ses kayıtlarınızı ve dosyalarınızı cihazınızda şifreli tutar. Hesap yok, sunucu yok. Ücretsiz, açık kaynak.",
+  "desc": "Cozy Safe notlarınızı, fotoğraf ve videolarınızı, ses kayıtlarınızı, dosyalarınızı, parolalarınızı ve iki adımlı kodlarınızı cihazınızda şifreli tutar. Hesap yok, sunucu yok. Ücretsiz, açık kaynak.",
   "nav_how": "Nasıl çalışır",
   "nav_dl": "İndir",
   "nav_src": "Kaynak kodu",
   "h1": "Önemli verileriniz için güvenli bir kasa.",
-  "lead": "Notlar, fotoğraflar, belgeler ve dosyalar doğrudan cihazınızda şifrelenir. Parolanız olmadan kimse açamaz, biz bile.",
+  "lead": "Notlar, fotoğraflar, belgeler, parolalar ve iki adımlı kodlar doğrudan cihazınızda şifrelenir. Parolanız olmadan kimse açamaz, biz bile.",
   "btn": "İndir",
   "btn_for": "{p} için indir",
   "btn_src": "Kaynak koduna bak",
   "unlock": "Kilidi aç",
   "unlock_bio": "Face ID ile kilidi aç",
   "note": "<strong>Önizleme.</strong> Uygulama yeni: <em>Dosyaya yedekle</em> özelliğini sık kullanın ve önemli bir şeyin tek kopyasını burada tutmayın.",
+  "note_live": "Uygulama yeni: <em>Dosyaya yedekle</em> özelliğini sık kullanın ve önemli bir şeyin tek kopyasını burada tutmayın.",
   "h_how": "Cozy Safe sizi nasıl korur",
   "p_how": "Verileriniz cihazınızdan asla şifresiz çıkmaz ve bunu yapan kod herkese açıktır.",
   "c1h": "Cihazınızda şifrelenir",
@@ -25,7 +26,7 @@
   "h_lim": "Önce bilmeniz gerekenler",
   "l1h": "Kurtarma yoktur",
   "l1": [
-   "Hem Kurtarma Anahtarını hem kasa parolasını kaybederseniz verilerinizi kimse geri getiremez.",
+   "Kasa parolasını ya da hem cihazınızı hem Kurtarma Anahtarını kaybederseniz verilerinizi kimse geri getiremez.",
    "Hatırlayabileceğiniz bir parola seçin, örneğin kısa bir cümle."
   ],
   "l2h": "Yapamadıkları",
@@ -41,6 +42,9 @@
   "lin": "Arşivi açın ve <code>./cozysafe</code> komutunu çalıştırın. GTK 3 ve libsecret gerekir.",
   "andr": "Cozy Pi anahtarıyla imzalanmıştır. Android sorduğunda tarayıcınızın uygulama yüklemesine izin verin.",
   "ios": "TestFlight üzerinde test ediliyor; şimdilik yalnızca davetle.",
+  "ios_store": "iPhone ve iPad için, App Store'dan.",
+  "andr_store": "Google Play'den. Aynı uygulamanın Cozy Pi anahtarıyla imzalanmış dosya hali aşağıdadır.",
+  "apk": "APK dosyası",
   "get": "İndir",
   "soon": "Yakında",
   "verify": "İndirdiğiniz dosyayı kontrol etmek için <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> ile karşılaştırın veya <code>gh attestation verify &lt;dosya&gt; -R cozy-pi/cozysafe</code> komutunu çalıştırın. Eski sürümler <a href=\"{REPO}/releases\">sürümler sayfasında</a>.",
@@ -94,13 +98,14 @@
      "Yedek, seçtiğiniz bir yere kaydedilen tek bir şifreli dosyadır (örneğin iCloud Drive, Google Drive veya Dropbox). Oraya yalnızca şifreli veri yazılır; seçtiğiniz sağlayıcı bu veriyi okuyamaz.",
      "Diğer cihazınızla eşitleme: siz başlatıp izin verdiğinizde kasanın şifreli verileri Wi-Fi ağınız üzerinden doğrudan kendi cihazınıza gider. Hiçbir şey bizden veya herhangi bir sunucudan geçmez.",
      "Google Drive ile eşitleme: yalnızca Google hesabınızı bağlarsanız. Uygulama, kasanın şifreli verilerini kendi Drive’ınızdaki “Cozy Safe” klasöründe tutar ve yalnızca orada oluşturduğu dosyaları görebilir. Otomatik eşitlemeye izin verirseniz (kapatılabilir veya yalnızca Wi-Fi ile sınırlanabilir), kasa açıkken o klasörü günceller. Google boyut ve zamanlarıyla şifreli dosyaları görür, ögelerinizin adlarını veya içeriğini asla görmez; hiçbir şey bizden geçmez.",
+     "Kurtarma Anahtarınızın (24 kelime) bir kopyası: bir kasa oluşturduğunuzda uygulama, hesabınızla oturum açılmış yeni bir cihazın kelimeleri geri alabilmesi için bir kopyayı iCloud Anahtar Zinciri'nizde (iPhone) veya Google'da (Android) tutmayı önerir. Siz kapatmadıkça açıktır ve Çok Gizli Mod'daki bir kasa için asla kopya tutulmaz. Apple veya Google bu kopyayı kendi hesabınızda uçtan uca şifreli olarak saklar; kopya bize asla ulaşmaz ve kelimeler tek başına bir kasayı açmaz: kasa parolası da gerekir. Telefonunuzun parola yöneticisinin kasa parolasını kaydetmesine izin verirseniz parola orada, o yöneticinin koşullarına göre tutulur.",
      "Bir öğeyi paylaştığınızda, dışa aktardığınızda veya başka bir uygulamada açtığınızda o uygulama şifresiz bir kopya alır ve bunu kendi koşullarına göre işler."
     ]
    ],
    [
     "İzinler",
     [
-     "Kamera: yalnızca kamerayı siz açtığınızda, fotoğrafları doğrudan bir kasaya çekmek için. Fotoğraflar fotoğraf arşivinize kaydedilmez.",
+     "Kamera: yalnızca siz açtığınızda, fotoğraf ve videoları doğrudan bir kasaya çekmek veya iki adımlı bir QR kodunu taramak için. Bunlar fotoğraf arşivinize kaydedilmez.",
      "Fotoğraf arşivi: yalnızca oradan bir kasaya fotoğraf veya video eklediğinizde ve isterseniz sonrasında asıllarını silmek için.",
      "Mikrofon: yalnızca uygulamada sesli not veya video kaydederken. Kayıtlar doğrudan kasaya girer.",
      "Biyometri: yalnızca Face ID, Touch ID veya parmak iziyle kilit açmayı etkinleştirirseniz. Biyometrik verileriniz cihazın güvenli donanımından asla çıkmaz ve uygulamanın erişimine hiçbir zaman açık değildir.",

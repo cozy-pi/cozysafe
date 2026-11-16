@@ -2,18 +2,19 @@
  "lang_label": "Ngôn ngữ",
  "home": {
   "title": "Cozy Safe: két mã hoá mã nguồn mở",
-  "desc": "Cozy Safe giữ ghi chú, ảnh, video, ghi âm và tệp của bạn được mã hoá ngay trên máy. Không tài khoản, không máy chủ. Miễn phí, mã nguồn mở.",
+  "desc": "Cozy Safe giữ ghi chú, ảnh, video, ghi âm, tệp, mật khẩu và mã xác minh hai bước của bạn được mã hoá ngay trên máy. Không tài khoản, không máy chủ. Miễn phí, mã nguồn mở.",
   "nav_how": "Cách hoạt động",
   "nav_dl": "Tải về",
   "nav_src": "Mã nguồn",
   "h1": "Két bảo mật cho các dữ liệu quan trọng của bạn.",
-  "lead": "Ghi chú, ảnh, giấy tờ và tệp được mã hoá ngay trên máy của bạn. Không có mật khẩu của bạn thì không ai mở được, kể cả chúng tôi.",
+  "lead": "Ghi chú, ảnh, giấy tờ, mật khẩu và mã xác minh hai bước được mã hoá ngay trên máy của bạn. Không có mật khẩu của bạn thì không ai mở được, kể cả chúng tôi.",
   "btn": "Tải về",
   "btn_for": "Tải cho {p}",
   "btn_src": "Xem mã nguồn",
   "unlock": "Mở két",
   "unlock_bio": "Mở bằng Face ID",
   "note": "<strong>Bản thử nghiệm.</strong> App còn mới: hãy <em>Sao lưu ra tệp</em> thường xuyên, và đừng để bản duy nhất của thứ gì quan trọng ở đây.",
+  "note_live": "App còn mới: hãy <em>Sao lưu ra tệp</em> thường xuyên, và đừng để bản duy nhất của thứ gì quan trọng ở đây.",
   "h_how": "Cozy Safe giữ an toàn cho bạn thế nào",
   "p_how": "Dữ liệu không bao giờ rời máy ở dạng chưa mã hoá, và đoạn mã làm việc đó ai cũng đọc được.",
   "c1h": "Mã hoá ngay trên máy",
@@ -25,7 +26,7 @@
   "h_lim": "Những điều nên biết trước",
   "l1h": "Không có cách khôi phục",
   "l1": [
-   "Mất cả Khoá khôi phục lẫn mật khẩu két thì không ai lấy lại được dữ liệu.",
+   "Mất mật khẩu két, hoặc mất cả máy lẫn Khoá khôi phục, thì không ai lấy lại được dữ liệu.",
    "Hãy chọn mật khẩu bạn nhớ được, ví dụ một câu gồm vài từ."
   ],
   "l2h": "Những gì app không làm được",
@@ -41,6 +42,9 @@
   "lin": "Giải nén rồi chạy <code>./cozysafe</code>. Cần GTK 3 và libsecret.",
   "andr": "Ký bằng khoá của Cozy Pi. Khi Android hỏi, cho phép trình duyệt cài ứng dụng.",
   "ios": "Đang thử nghiệm qua TestFlight, hiện chỉ theo lời mời.",
+  "ios_store": "Cho iPhone và iPad, tải từ App Store.",
+  "andr_store": "Tải từ Google Play. Bản dạng tệp của cùng app này, ký bằng khoá của Cozy Pi, nằm ở dưới.",
+  "apk": "Tệp APK",
   "get": "Tải về",
   "soon": "Sắp có",
   "verify": "Muốn kiểm file tải về, so với <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> hoặc chạy <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Các phiên bản cũ ở <a href=\"{REPO}/releases\">trang phát hành</a>.",
@@ -94,13 +98,14 @@
      "Bản sao lưu là một tệp đã mã hoá, lưu ở nơi bạn chọn (ví dụ iCloud Drive, Google Drive hay Dropbox). Chỉ dữ liệu đã mã hoá được ghi ra đó; nhà cung cấp bạn chọn không đọc được.",
      "Đồng bộ với máy khác của bạn: khi bạn bắt đầu và cho phép, dữ liệu đã mã hoá của két đi qua Wi-Fi thẳng tới máy của chính bạn. Không có gì đi qua chúng tôi hay máy chủ nào.",
      "Đồng bộ qua Google Drive: chỉ khi bạn kết nối tài khoản Google. Khi đó app giữ dữ liệu đã mã hoá của két trong thư mục “Cozy Safe” trên Drive của chính bạn và chỉ thấy được các tệp do nó tạo ra ở đó. Nếu bạn cho phép đồng bộ tự động (có thể tắt, hoặc chỉ dùng Wi-Fi), app cập nhật thư mục đó khi két đang mở. Google chỉ thấy các tệp đã mã hoá cùng dung lượng và thời gian, không bao giờ thấy tên hay nội dung các mục của bạn; không có gì đi qua chúng tôi.",
+     "Bản sao Khoá khôi phục (24 từ) của bạn: khi bạn tạo két, app đề nghị giữ một bản sao trong iCloud Keychain của bạn (iPhone) hoặc ở Google (Android), để máy mới đã đăng nhập tài khoản của bạn lấy lại được các từ đó. Tính năng này bật sẵn trừ khi bạn tắt, và không bao giờ giữ bản sao cho két đang ở Chế độ tuyệt mật. Apple hoặc Google lưu bản sao dưới dạng mã hoá đầu cuối trong tài khoản của chính bạn; nó không bao giờ tới chỗ chúng tôi, và chỉ riêng các từ đó thì không mở được két: còn cần cả mật khẩu két. Nếu bạn để trình quản lý mật khẩu của điện thoại lưu mật khẩu két, mật khẩu được giữ ở đó theo điều khoản của trình quản lý ấy.",
      "Khi bạn chia sẻ, xuất hay mở một mục bằng app khác, app đó nhận bản không mã hoá và xử lý theo điều khoản của họ."
     ]
    ],
    [
     "Quyền truy cập",
     [
-     "Camera: chỉ để chụp ảnh thẳng vào két, khi bạn mở camera. Ảnh không lưu vào thư viện ảnh của máy.",
+     "Camera: chỉ khi bạn mở camera, để chụp ảnh và quay video thẳng vào két hoặc quét mã QR xác minh hai bước. Ảnh và video không lưu vào thư viện ảnh của máy.",
      "Thư viện ảnh: chỉ khi bạn thêm ảnh hoặc video từ đó vào két, và để xoá bản gốc sau đó nếu bạn yêu cầu.",
      "Micro: chỉ trong lúc bạn ghi âm hoặc quay video trong ứng dụng. Bản ghi vào thẳng két.",
      "Sinh trắc học: chỉ khi bạn bật mở khoá bằng Face ID, Touch ID hoặc vân tay. Dữ liệu sinh trắc học không rời phần cứng bảo mật của máy và app không bao giờ truy cập được.",

@@ -1,0 +1,41 @@
+# The store pages' text in every language (store/text/<lang>.json), put on the App Store
+# page of the version being prepared (tools/store-text-asc.mjs). Text only, nothing is
+# sent for review. Dry run unless write=true:
+#   gh workflow run store-text.yml -R cozy-pi/cozysafe [--ref <branch>] [-f write=true]
+name: store-text
+
+on:
+  workflow_dispatch:
+    inputs:
+      write:
+        description: "Write to App Store Connect (off: only say what would change)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-text
+  cancel-in-progress: false
+
+jobs:
+  app-store:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Every language is there and inside the stores' limits
+        run: python3 tools/check-store-text
+      - name: App Store Connect
+        env:
+          KEY_ID: ${{ secrets.ASC_ADMIN_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_B64: ${{ secrets.ASC_ADMIN_KEY_P8_BASE64 }}
+          WRITE: ${{ inputs.write && '--write' || '' }}
+        run: |
+          set -o pipefail # tee must not hide a failure
+          node tools/store-text-asc.mjs $WRITE | tee asc.log
+          { echo "### App Store text"; echo '```'; cat asc.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

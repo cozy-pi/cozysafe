@@ -2,18 +2,19 @@
  "lang_label": "Bahasa",
  "home": {
   "title": "Cozy Safe: brankas terenkripsi sumber terbuka",
-  "desc": "Cozy Safe menyimpan catatan, foto, video, memo suara, dan file Anda dalam keadaan terenkripsi di perangkat Anda sendiri. Tanpa akun, tanpa server. Gratis dan sumber terbuka.",
+  "desc": "Cozy Safe menyimpan catatan, foto, video, memo suara, file, kata sandi, dan kode dua langkah Anda dalam keadaan terenkripsi di perangkat Anda sendiri. Tanpa akun, tanpa server. Gratis dan sumber terbuka.",
   "nav_how": "Cara kerjanya",
   "nav_dl": "Unduh",
   "nav_src": "Kode sumber",
   "h1": "Brankas aman untuk data penting Anda.",
-  "lead": "Catatan, foto, dokumen, dan file dienkripsi langsung di perangkat Anda. Tanpa kata sandi Anda, tidak ada yang bisa membukanya, termasuk kami.",
+  "lead": "Catatan, foto, dokumen, kata sandi, dan kode dua langkah dienkripsi langsung di perangkat Anda. Tanpa kata sandi Anda, tidak ada yang bisa membukanya, termasuk kami.",
   "btn": "Unduh",
   "btn_for": "Unduh untuk {p}",
   "btn_src": "Lihat kode sumber",
   "unlock": "Buka kunci",
   "unlock_bio": "Buka kunci dengan Face ID",
   "note": "<strong>Pratinjau.</strong> Aplikasi ini masih baru: sering-seringlah menggunakan <em>Cadangkan ke file</em>, dan jangan simpan satu-satunya salinan hal penting di sini.",
+  "note_live": "Aplikasi ini masih baru: sering-seringlah menggunakan <em>Cadangkan ke file</em>, dan jangan simpan satu-satunya salinan hal penting di sini.",
   "h_how": "Cara Cozy Safe melindungi Anda",
   "p_how": "Data Anda tidak pernah meninggalkan perangkat dalam keadaan tidak terenkripsi, dan kode yang melakukannya terbuka untuk umum.",
   "c1h": "Dienkripsi di perangkat Anda",
@@ -25,7 +26,7 @@
   "h_lim": "Yang perlu diketahui dulu",
   "l1h": "Tidak ada pemulihan",
   "l1": [
-   "Jika Kunci Pemulihan dan kata sandi brankas sama-sama hilang, tidak ada yang bisa mengembalikan data Anda.",
+   "Jika kata sandi brankas hilang, atau perangkat dan Kunci Pemulihan sama-sama hilang, tidak ada yang bisa mengembalikan data Anda.",
    "Pilih kata sandi yang mudah Anda ingat, misalnya kalimat pendek."
   ],
   "l2h": "Yang tidak bisa dilakukannya",
@@ -41,6 +42,9 @@
   "lin": "Ekstrak lalu jalankan <code>./cozysafe</code>. Memerlukan GTK 3 dan libsecret.",
   "andr": "Ditandatangani dengan kunci Cozy Pi. Saat Android meminta, izinkan browser Anda menginstal aplikasi.",
   "ios": "Sedang diuji di TestFlight, untuk saat ini hanya dengan undangan.",
+  "ios_store": "Untuk iPhone dan iPad, dari App Store.",
+  "andr_store": "Dari Google Play. Aplikasi yang sama dalam bentuk file, ditandatangani dengan kunci Cozy Pi, ada di bawah.",
+  "apk": "File APK",
   "get": "Unduh",
   "soon": "Segera hadir",
   "verify": "Untuk memeriksa unduhan, bandingkan dengan <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> atau jalankan <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Versi lama tersedia di <a href=\"{REPO}/releases\">halaman rilis</a>.",
@@ -94,13 +98,14 @@
      "Cadangan adalah satu file terenkripsi yang disimpan di tempat pilihan Anda (misalnya iCloud Drive, Google Drive, atau Dropbox). Hanya data terenkripsi yang ditulis ke sana; penyedia yang Anda pilih tidak bisa membacanya.",
      "Sinkronisasi dengan perangkat Anda yang lain: saat Anda memulai dan mengizinkannya, data brankas yang terenkripsi dikirim lewat Wi-Fi Anda langsung ke perangkat Anda sendiri. Tidak ada yang melewati kami atau server mana pun.",
      "Sinkronisasi lewat Google Drive: hanya jika Anda menghubungkan akun Google. Aplikasi lalu menyimpan data brankas yang terenkripsi di folder “Cozy Safe” di Drive Anda sendiri dan hanya bisa melihat file yang dibuatnya di sana. Jika Anda mengizinkan sinkronisasi otomatis (bisa dimatikan atau dibatasi ke Wi-Fi), aplikasi memperbarui folder itu selama brankas terbuka. Google melihat file terenkripsi beserta ukuran dan waktunya, tidak pernah nama atau isi item Anda; tidak ada yang melewati kami.",
+     "Salinan Kunci Pemulihan Anda (24 kata): saat Anda membuat brankas, aplikasi menawarkan untuk menyimpan salinannya di iCloud Keychain Anda (iPhone) atau di Google (Android), supaya perangkat baru yang masuk ke akun Anda bisa mendapatkan kembali kata-kata itu. Fitur ini aktif kecuali Anda mematikannya, dan salinan tidak pernah disimpan untuk brankas dalam Mode Sangat Rahasia. Apple atau Google menyimpannya dengan enkripsi ujung ke ujung di akun Anda sendiri; salinan itu tidak pernah sampai ke kami, dan kata-kata itu saja tidak bisa membuka brankas: kata sandi brankas juga diperlukan. Jika Anda mengizinkan pengelola kata sandi di ponsel menyimpan kata sandi brankas, kata sandi itu disimpan di sana sesuai ketentuan pengelola tersebut.",
      "Saat Anda membagikan, mengekspor, atau membuka item di aplikasi lain, aplikasi itu menerima salinan yang tidak terenkripsi dan menanganinya sesuai ketentuannya sendiri."
     ]
    ],
    [
     "Izin",
     [
-     "Kamera: hanya untuk mengambil foto langsung ke dalam brankas, saat Anda membuka kamera. Foto tidak disimpan ke galeri foto Anda.",
+     "Kamera: hanya saat Anda membukanya, untuk mengambil foto dan video langsung ke dalam brankas atau memindai kode QR dua langkah. Hasilnya tidak disimpan ke galeri foto Anda.",
      "Galeri foto: hanya saat Anda menambahkan foto atau video dari sana ke brankas, dan untuk menghapus aslinya setelah itu jika Anda minta.",
      "Mikrofon: hanya saat Anda merekam memo suara atau video di aplikasi. Rekaman langsung masuk ke brankas.",
      "Biometrik: hanya jika Anda mengaktifkan buka kunci dengan Face ID, Touch ID, atau sidik jari. Data biometrik Anda tidak pernah meninggalkan perangkat keras aman di perangkat dan tidak pernah dapat diakses oleh aplikasi.",

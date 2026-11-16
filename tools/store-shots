@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# The stores' screenshots, rendered from the app itself (app/test/website_shots_test.dart
+# with STORE=true), then saved without an alpha channel, which both stores refuse:
+#   tools/store-shots
+# Output: app/test/store/<iphone|ipad|play>-<screen>-<en|vi>-<light|dark>.png (not committed).
+# Needs Flutter, ImageMagick and app/test/preview_assets/*.jpg (docs/release-public.md).
+set -euo pipefail
+cd "$(dirname "$0")/../app"
+ls test/preview_assets/*.jpg >/dev/null 2>&1 || { echo "No photos in app/test/preview_assets" >&2; exit 1; }
+flutter gen-l10n >/dev/null
+rm -rf test/store
+flutter test test/website_shots_test.dart --update-goldens --dart-define=SHOTS=true --dart-define=STORE=true
+for f in test/store/*.png; do magick "$f" -background white -alpha remove -alpha off "PNG24:$f"; done
+ls test/store | wc -l | xargs echo "pictures:"

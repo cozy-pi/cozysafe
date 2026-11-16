@@ -1,0 +1,50 @@
+# Google Play: put a build that is already on a testing track into production (everyone).
+# Google reviews it first. Run by hand, only after the owner says so (docs/release-public.md):
+#   gh workflow run play-production.yml -R cozy-pi/cozysafe -f build=1180 -f confirm=production
+name: play-production
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: "Build number already on Google Play (the release run's summary names it)"
+        type: string
+        required: true
+      confirm:
+        description: "Type production to go ahead"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: play-production
+  cancel-in-progress: false
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Asked for on purpose
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+          BUILD: ${{ inputs.build }}
+        run: |
+          [ "$CONFIRM" = production ] || { echo "::error::confirm must be: production"; exit 1; }
+          case "$BUILD" in ''|*[!0-9]*) echo "::error::build must be a number"; exit 1;; esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: tools
+          persist-credentials: false
+      - name: Google Play, the build into production
+        env:
+          SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          BUILD: ${{ inputs.build }}
+        run: |
+          set -o pipefail # tee must not hide a failure
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          trap 'rm -f "$RUNNER_TEMP/sa.json"' EXIT
+          node tools/play-track.mjs "$RUNNER_TEMP/sa.json" "$BUILD" production | tee play.log
+          { echo "### Google Play"; echo '```'; cat play.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
