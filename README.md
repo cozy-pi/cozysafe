@@ -24,9 +24,8 @@ make each vault, and can change it later in Settings; every vault has its own mo
   cryptography and SQLite, nothing else, built from copies kept in this repository
   ([supply chain](docs/supply-chain.md)).
 
-> **Status: preview.** Sync works (with a device on the same Wi‑Fi, or through your
-> Google Drive on phones), but the app is young. Don't keep your only copy of something
-> important in it yet, and use **Back up to a file** often. Decisions and what is next: [`docs/decisions.md`](docs/decisions.md).
+> **Status: 1.0, the first public version.** The app is still young: don't keep your
+> only copy of something important in it, and use **Back up to a file** often. Decisions and what is next: [`docs/decisions.md`](docs/decisions.md).
 
 Website and downloads: <https://safe.cozypi.com>
 
@@ -270,7 +269,7 @@ flutter run
 ```
 
 Releases are one button: `gh workflow run release.yml -R cozy-pi/cozysafe` picks
-the next version name (0.1.0, 0.1.1, …; `-f bump=minor` for 0.2.0) and publishes it
+the next version name (1.0.0, 1.0.1, …; `-f bump=minor` for 1.1.0) and publishes it
 everywhere at once: TestFlight, Google Play (internal and Alpha), and a GitHub release
 with the desktop builds and the APK. Each platform ships as soon as its build is done;
 signing and store keys never reach the build jobs ([supply chain](docs/supply-chain.md)).

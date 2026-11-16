@@ -10,17 +10,17 @@ is sent to a store without the owner saying so on the day. Listing text: `store/
 - [ ] Sample photos in `app/test/preview_assets/*.jpg` (free photos, not in git): the
       `library` screenshot needs them. Twelve square ones are enough, for example
       `https://picsum.photos/id/<n>/1200/1200.jpg` (Unsplash licence).
-- [ ] `beta` branch's CI changes merged into `main` (Cozy Safe Beta keeps working after 1.0.0).
+- [x] `beta` branch's CI changes merged into `main` (Cozy Safe Beta keeps working after 1.0.0).
 
 ## 1. Code, on a branch, merged to `main`
 
-- [ ] `app/pubspec.yaml`: `version: 1.0.0+1`. release.yml starts a new line at X.Y.0, so
+- [x] `app/pubspec.yaml`: `version: 1.0.0+1`. release.yml starts a new line at X.Y.0, so
       the next release is named 1.0.0.
-- [ ] `README.md`: the "Status: preview" note. `website/i18n/*.json`: `home.note`
-      (preview) and `home.ios` ("invite only"), then `website/build.py`.
-- [ ] `.github/workflows/build.yml`, job `release`: the title "(preview)" and the notes
+- [x] `README.md`: the "Status: preview" note. The website keeps "Preview" and "invite
+      only" until `LIVE = True` in `website/build.py` (step 6): both are true until then.
+- [x] `.github/workflows/build.yml`, job `release`: the title "(preview)" and the notes
       "Preview build for testing".
-- [ ] `CHANGELOG.md`: `## 1.0.0 (date)`.
+- [x] `CHANGELOG.md`: `## 1.0.0 (date)`.
 - [ ] `flutter gen-l10n && flutter analyze --fatal-infos && flutter test`; `ci` green on main.
 
 ## 2. Build
@@ -78,7 +78,9 @@ Output `store/feature-graphic-<en|vi>.png` (Google Play, 1024x500).
 ## 6. After both are approved
 
 - [ ] Release on the App Store (manual release) and check the Play production rollout.
-- [ ] `website`: the iPhone card links to the App Store, Android to Google Play.
+- [ ] `website`: `LIVE = True` in `website/build.py`, `python3 website/build.py`, then
+      `npx wrangler deploy` from `website/`: the iPhone card links to the App Store,
+      Android to Google Play, and the "Preview" note goes.
 - [ ] Cozy Safe Beta: rebase `beta` on `main`; new work is tried there first.
 
 ## Learned in the trial run (2026-11-16)

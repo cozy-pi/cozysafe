@@ -10,6 +10,11 @@ name: build
 
 on:
   workflow_dispatch:
+    inputs:
+      beta:
+        description: "Android: Cozy Safe Beta (com.cozypi.cozysafe.beta), installs next to Cozy Safe"
+        type: boolean
+        default: false
   push:
     tags: ["v*"]
   # From release.yml: one version name for every platform.
@@ -30,6 +35,10 @@ on:
         default: false
       # Android: the Test sign-in button for closed testing (lib/test_login.dart).
       test_login:
+        type: boolean
+        default: false
+      # Android: "Cozy Safe Beta" (com.cozypi.cozysafe.beta), installed next to Cozy Safe.
+      beta:
         type: boolean
         default: false
     # Named one by one (release.yml passes exactly these, never `secrets: inherit`).
@@ -84,6 +93,7 @@ jobs:
           BUILD_NUMBER: ${{ inputs.build || github.run_number }}
           VERSION: ${{ inputs.version }}
           BUILD: ${{ inputs.build }}
+          CS_BETA: ${{ inputs.beta && '1' || '' }}
         # Never with Test sign-in: this APK is the public download (the GitHub release, the
         # website's link). Only the Play bundle below, for closed testing, may carry it.
         run: flutter build apk --release --target-platform android-arm64 --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA"
@@ -94,6 +104,7 @@ jobs:
           VERSION: ${{ inputs.version }}
           BUILD: ${{ inputs.build }}
           TEST_LOGIN: ${{ inputs.test_login && 'true' || '' }}
+          CS_BETA: ${{ inputs.beta && '1' || '' }}
         run: flutter build appbundle --release --build-number "$BUILD_NUMBER" ${VERSION:+--build-name "$VERSION.$BUILD"} --dart-define=BUILD_DATE="$BUILD_DATE" --dart-define=BUILD_COMMIT="$GITHUB_SHA" ${TEST_LOGIN:+--dart-define=TEST_LOGIN=true}
       - run: |
           mv app/build/app/outputs/flutter-apk/app-release.apk built-android.apk
@@ -101,6 +112,15 @@ jobs:
       # Network only for local sync (docs/supply-chain.md): no network permission but
       # INTERNET after every plugin's manifest is merged, and the shipped Rust library
       # does no name lookups (it can only reach an address someone typed or scanned).
+      # The beta must never land in the real app's listing, nor the real app in the beta's.
+      - name: Check the APK is the app this run was asked for
+        env:
+          WANT: ${{ inputs.beta && 'com.cozypi.cozysafe.beta' || 'com.cozypi.cozysafe' }}
+        run: |
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          GOT=$("$AAPT2" dump packagename built-android.apk)
+          echo "$GOT"
+          [ "$GOT" = "$WANT" ]
       - name: Check the APK and bundle ask for no other network permission
         run: tools/check-apk-permissions built-android.apk built-android.aab
       - name: Check the shipped Rust library does no name lookups
@@ -375,7 +395,7 @@ jobs:
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.cozypi.cozysafe
+          packageName: ${{ inputs.beta && 'com.cozypi.cozysafe.beta' || 'com.cozypi.cozysafe' }}
           releaseFiles: CozySafe-android-play.aab
           # Same as the app's Android version name: 0.1.4.1009.
           releaseName: ${{ inputs.version }}.${{ inputs.build }}
@@ -390,6 +410,7 @@ jobs:
         env:
           SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           BUILD: ${{ inputs.build }}
+          PLAY_PACKAGE: ${{ inputs.beta && 'com.cozypi.cozysafe.beta' || 'com.cozypi.cozysafe' }}
         run: |
           set -o pipefail # tee must not hide a failure
           printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
@@ -419,5 +440,5 @@ jobs:
           TAG: ${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}
         run: |
           gh release create "$TAG" CozySafe-* SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "Cozy Safe $TAG (preview)" \
-            --notes "Preview build for testing. macOS: signed with Developer ID and notarized by Apple. Android: signed with the Cozy Pi release key (SHA-256 D0:82:E9:7B:D2:93:E3:CB:69:4D:66:69:A2:82:AD:E1:1E:6F:1C:1E:04:B8:4C:48:AA:07:BA:32:AF:C2:9D:A4); allow installing from this source. Windows: not signed yet, choose More info → Run anyway. Every file has a build-provenance attestation: gh attestation verify <file> -R cozy-pi/cozysafe. What changed: https://github.com/cozy-pi/cozysafe/blob/main/CHANGELOG.md"
+            --title "Cozy Safe $TAG" \
+            --notes "macOS: signed with Developer ID and notarized by Apple. Android: signed with the Cozy Pi release key (SHA-256 D0:82:E9:7B:D2:93:E3:CB:69:4D:66:69:A2:82:AD:E1:1E:6F:1C:1E:04:B8:4C:48:AA:07:BA:32:AF:C2:9D:A4); allow installing from this source. Windows: not signed yet, choose More info → Run anyway. Every file has a build-provenance attestation: gh attestation verify <file> -R cozy-pi/cozysafe. What changed: https://github.com/cozy-pi/cozysafe/blob/main/CHANGELOG.md"
