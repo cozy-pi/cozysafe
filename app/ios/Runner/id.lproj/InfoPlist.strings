@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "Foto yang Anda ambil langsung masuk ke brankas terenkripsi Anda. Kamera juga membaca kode QR dua langkah.";
+"NSFaceIDUsageDescription" = "Buka brankas Anda dengan Face ID.";
+"NSLocalNetworkUsageDescription" = "Sinkronkan brankas dengan perangkat Anda yang lain di Wi-Fi yang sama, hanya saat Anda memulainya. Perangkat lain hanya bisa bergabung jika memiliki brankas ini dan kode sekali pakai yang Anda tunjukkan. Semua yang dikirim terenkripsi.";
+"NSMicrophoneUsageDescription" = "Memo suara yang Anda rekam langsung masuk ke brankas terenkripsi Anda.";
+"NSPhotoLibraryUsageDescription" = "Pindahkan foto dan video ke brankas terenkripsi Anda, dan hapus aslinya dari Foto jika Anda minta.";

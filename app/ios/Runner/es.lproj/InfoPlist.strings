@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "Las fotos que haces van directamente a tu caja fuerte cifrada. La cámara también lee códigos QR de dos pasos.";
+"NSFaceIDUsageDescription" = "Abre tu caja fuerte con Face ID.";
+"NSLocalNetworkUsageDescription" = "Sincroniza tu caja fuerte con tu otro dispositivo en la misma Wi-Fi, solo cuando tú lo inicias. El otro dispositivo solo puede unirse si tiene esta caja fuerte y el código de un solo uso que le muestras. Todo lo que se envía va cifrado.";
+"NSMicrophoneUsageDescription" = "Las notas de voz que grabas van directamente a tu caja fuerte cifrada.";
+"NSPhotoLibraryUsageDescription" = "Mueve fotos y vídeos a tu caja fuerte cifrada y elimina los originales de Fotos cuando lo pidas.";

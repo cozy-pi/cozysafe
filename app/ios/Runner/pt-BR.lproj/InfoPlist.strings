@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "As fotos que você tira vão direto para o seu cofre criptografado. A câmera também lê códigos QR de duas etapas.";
+"NSFaceIDUsageDescription" = "Abra seu cofre com o Face ID.";
+"NSLocalNetworkUsageDescription" = "Sincronize seu cofre com seu outro dispositivo na mesma Wi-Fi, só quando você inicia. O outro dispositivo só pode entrar se tiver este cofre e o código de uso único que você mostra a ele. Tudo o que é enviado vai criptografado.";
+"NSMicrophoneUsageDescription" = "As notas de voz que você grava vão direto para o seu cofre criptografado.";
+"NSPhotoLibraryUsageDescription" = "Mova fotos e vídeos para o seu cofre criptografado e remova os originais do app Fotos quando você pedir.";

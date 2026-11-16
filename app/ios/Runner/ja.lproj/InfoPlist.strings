@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "撮影した写真は暗号化された金庫に直接入ります。カメラは2段階認証のQRコードの読み取りにも使います。";
+"NSFaceIDUsageDescription" = "Face IDで金庫を開きます。";
+"NSLocalNetworkUsageDescription" = "お客様が開始したときにのみ、同じ Wi-Fi 上の別のデバイスと金庫を同期します。相手のデバイスは、この金庫を持ち、お客様が見せる1回限りのコードがある場合にのみ参加できます。送信されるものはすべて暗号化されます。";
+"NSMicrophoneUsageDescription" = "録音したボイスメモは暗号化された金庫に直接入ります。";
+"NSPhotoLibraryUsageDescription" = "写真やビデオを暗号化された金庫に移し、ご希望の場合は「写真」から元のデータを削除します。";

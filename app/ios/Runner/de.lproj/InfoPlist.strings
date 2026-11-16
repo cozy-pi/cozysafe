@@ -1,0 +1,6 @@
+/* Permission questions in this language; English is in Info.plist. */
+"NSCameraUsageDescription" = "Fotos, die Sie aufnehmen, gehen direkt in Ihren verschlüsselten Tresor. Die Kamera liest auch QR-Codes für die Zwei-Faktor-Anmeldung.";
+"NSFaceIDUsageDescription" = "Öffnen Sie Ihren Tresor mit Face ID.";
+"NSLocalNetworkUsageDescription" = "Synchronisieren Sie Ihren Tresor mit Ihrem anderen Gerät im selben WLAN, nur wenn Sie es starten. Das andere Gerät kann nur teilnehmen, wenn es diesen Tresor hat und den Einmalcode kennt, den Sie ihm zeigen. Alles Gesendete ist verschlüsselt.";
+"NSMicrophoneUsageDescription" = "Sprachnotizen, die Sie aufnehmen, gehen direkt in Ihren verschlüsselten Tresor.";
+"NSPhotoLibraryUsageDescription" = "Verschieben Sie Fotos und Videos in Ihren verschlüsselten Tresor und entfernen Sie auf Wunsch die Originale aus Fotos.";
