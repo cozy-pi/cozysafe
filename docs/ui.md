@@ -539,6 +539,9 @@ everywhere, easy to hit with a thumb.
   `test/selection_test.dart` fails on a long press that does anything else.
 - **A tap never changes tab by itself**: a recording opened from home or search plays in
   a card over the page you are on.
+- **Wide phone screens** (iPhone Duo's inner display, 669 pt; owner 2026-11-17): the
+  phone layout up to 700 pt, but the bar stops at `barMaxWidth` (520), centred, and the
+  library starts at five photos a row from `wideishPhone` (600) until pinched.
 - **Bottom bar: icons only** (owner 2026-11-17, both layouts: + in the middle, + on a
   side). The section's name is the tooltip and the screen reader's label. With the + on a
   side the home tab stays put on the left and the others share the rest, scrolling
