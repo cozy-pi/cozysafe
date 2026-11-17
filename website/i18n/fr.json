@@ -58,6 +58,7 @@
   "s_library": "<strong>Photos et vidéos.</strong> Prenez-les avec l'appareil photo de l'app : elles n'arrivent jamais dans votre photothèque.",
   "s_notes": "<strong>Notes.</strong> Les listes et la recherche n'affichent que les titres : personne à côté ne peut les lire.",
   "s_voice": "<strong>Mémos vocaux,</strong> chiffrés dès que vous arrêtez l'enregistrement.",
+  "s_files": "<strong>Fichiers.</strong> PDF, documents scannés et tout autre fichier, chiffrés dans le même coffre.",
   "s_group": "<strong>Groupes.</strong> La photo du passeport, son scan et la note réunis, accessibles depuis n'importe quelle section.",
   "s_settings": "<strong>Chaque réglage de sécurité demande d'abord Face ID.</strong> Voyez d'un coup d'œil ce qui prend de la place.",
   "h_dev": "Sur votre téléphone et votre tablette",

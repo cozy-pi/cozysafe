@@ -58,6 +58,7 @@
   "s_library": "<strong>Fotoğraflar ve videolar.</strong> Uygulamanın kendi kamerasıyla çekin: fotoğraf arşivinize asla düşmezler.",
   "s_notes": "<strong>Notlar.</strong> Listeler ve arama yalnızca başlıkları gösterir, yanınızdaki kimse okuyamaz.",
   "s_voice": "<strong>Ses kayıtları,</strong> kaydı durdurduğunuz anda şifrelenir.",
+  "s_files": "<strong>Dosyalar.</strong> PDF'ler, taramalar ve diğer tüm dosyalar, aynı kasada şifreli.",
   "s_group": "<strong>Gruplar.</strong> Pasaport fotoğrafı, taraması ve notu bir arada; hangi bölümden olursa olsun açılır.",
   "s_settings": "<strong>Her güvenlik ayarı önce Face ID ister.</strong> Neyin yer kapladığını bir bakışta görün.",
   "h_dev": "Telefonunuzda ve tabletinizde",

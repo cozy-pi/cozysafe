@@ -143,7 +143,7 @@ COLLAGE = '<div class="collage" aria-hidden="true">' + ''.join(
 # in CSS px. Sizes are the device's window in points (app/test/website_shots_test.dart).
 SHOTS = [
     ('iphone', 'lock', 240), ('iphone', 'library', 240), ('iphone', 'notes', 240),
-    ('iphone', 'voice', 240), ('iphone', 'settings', 240),  # no 'group': groups are hidden in the app
+    ('iphone', 'voice', 240), ('iphone', 'files', 240), ('iphone', 'settings', 240),  # six: a 3x2 grid; no 'group' (hidden in the app)
     ('ipad', 'notes', 360), ('android', 'voice', 200),
 ]
 DEVICE_SIZE = {'iphone': (390, 844), 'android': (412, 915), 'ipad': (820, 1180), 'mac': (1200, 760)}
@@ -162,10 +162,10 @@ def shot(device, screen, lang, alt, width):
 # Google Drive and Touch ID; taken off on 2026-10-27 while it was the phone's screen made
 # bigger.
 PLATFORMS = [
+    ('android', 'Android', 'CozySafe-android.apk', 'andr'),
     ('apple', 'macOS', 'CozySafe-macos.dmg', 'mac'),
     ('windows', 'Windows', 'CozySafe-windows-x64.zip', 'win'),
     ('linux', 'Linux', 'CozySafe-linux-x64.tar.gz', 'lin'),
-    ('android', 'Android', 'CozySafe-android.apk', 'andr'),
 ]
 
 
@@ -190,14 +190,14 @@ def page(lang, texts, css):
                     f'<small><a href="{BASE}{f}" title="{f}">{t["apk"]}</a></small></div>')
         return (f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t[key]}</p>'
                 f'<a class="get" href="{BASE}{f}">{ic("download", 18)}{t["get"]}</a><small title="{f}">{f}</small></div>')
-    cards = ''.join(card(*p) for p in PLATFORMS)
+    # iPhone, Android, then the computers (owner 2026-11-17).
     if LIVE:
-        cards += (f'<div class="dl"><div class="os">{ic("iphone", 30)}iPhone</div><p>{t["ios_store"]}</p>'
-                  f'<a class="get" href="{APP_STORE}">{ic("download", 18)}App Store</a><small aria-hidden="true">&nbsp;</small></div>')
+        cards = (f'<div class="dl"><div class="os">{ic("iphone", 30)}iPhone</div><p>{t["ios_store"]}</p>'
+                 f'<a class="get" href="{APP_STORE}">{ic("download", 18)}App Store</a><small aria-hidden="true">&nbsp;</small></div>')
     else:
-        cards += (f'<div class="dl soon"><div class="os">{ic("iphone", 30)}iPhone</div><p>{t["ios"]}</p>'
-                  f'<span class="get">{t["soon"]}</span><small aria-hidden="true">&nbsp;</small></div>')
-    note = t['note_live'] if LIVE else t['note']
+        cards = (f'<div class="dl soon"><div class="os">{ic("iphone", 30)}iPhone</div><p>{t["ios"]}</p>'
+                 f'<span class="get">{t["soon"]}</span><small aria-hidden="true">&nbsp;</small></div>')
+    cards += ''.join(card(*p) for p in PLATFORMS)
     # The main button on a phone: the store once the app is there, the APK until then.
     android_to = GOOGLE_PLAY if LIVE else BASE + 'CozySafe-android.apk'
     ios_to = f"p = 'iPhone'; to = '{APP_STORE}';" if LIVE else 'return;'
@@ -246,7 +246,6 @@ def page(lang, texts, css):
   </div>
 </header>
 <main class="wrap">
-  <section class="block"><p class="note">{note}</p></section>
   <section class="block" id="tour" aria-labelledby="h-see">
     <h2 id="h-see">{t['h_see']}</h2>
     <p class="section-lead">{t['p_see']}</p>

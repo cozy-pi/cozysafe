@@ -58,6 +58,7 @@
   "s_library": "<strong>Photos and videos.</strong> Shoot them with the app's own camera: they never reach your photo library.",
   "s_notes": "<strong>Notes.</strong> Lists and search show titles only, so nobody nearby can read them.",
   "s_voice": "<strong>Voice memos,</strong> encrypted the moment you stop recording.",
+  "s_files": "<strong>Files.</strong> PDFs, scans and any other file, encrypted in the same vault.",
   "s_group": "<strong>Groups.</strong> The passport photo, its scan and the note together, open from any section.",
   "s_settings": "<strong>Every security setting asks for Face ID first.</strong> See at a glance what takes space.",
   "h_dev": "On your phone and tablet",

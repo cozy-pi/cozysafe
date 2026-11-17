@@ -114,7 +114,8 @@ figcaption strong { color: var(--ink); }
 .shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 48px 36px; }
 .shot .frame { width: 254px; max-width: 100%; }
 h3.sub { margin: 72px 0 24px; font-size: 22px; }
-.devices { display: grid; grid-template-columns: minmax(0, 760fr) minmax(0, 330fr) minmax(0, 190fr); gap: 32px; align-items: end; }
+/* iPad and Android side by side, the same height (820x1180 vs 412x915: widths 1.54 : 1). */
+.devices { display: grid; grid-template-columns: minmax(0, 1.54fr) minmax(0, 1fr); gap: 40px; align-items: end; max-width: 720px; margin: 0 auto; }
 .dev .frame { width: 100%; }
 @media (max-width: 860px) {
   /* Phones: one swipeable row, the next shot peeking in so it reads as scrollable. */
@@ -122,7 +123,7 @@ h3.sub { margin: 72px 0 24px; font-size: 22px; }
   .shots::-webkit-scrollbar { display: none; }
   .shot { flex: 0 0 62%; max-width: 240px; scroll-snap-align: center; }
   .shot .frame { width: 100%; }
-  .devices { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 32px 20px; }
+  .devices { gap: 20px; }
   .dev-mac { grid-column: 1 / -1; }
   h3.sub { margin-top: 48px; }
 }
@@ -145,8 +146,9 @@ h2 { margin: 0 0 12px; font-size: clamp(28px, 3.6vw, 38px); line-height: 1.15; l
 .limit li { margin: 6px 0; }
 
 .downloads { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
-@media (max-width: 1000px) { .downloads { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .downloads { grid-template-columns: 1fr; } }
+/* Tablets: the two phones on the first row, the three computers under them. */
+@media (max-width: 1000px) { .downloads { grid-template-columns: repeat(6, minmax(0, 1fr)); } .dl { grid-column: span 2; } .dl:nth-child(-n+2) { grid-column: span 3; } }
+@media (max-width: 560px) { .downloads { grid-template-columns: 1fr; } .dl, .dl:nth-child(-n+2) { grid-column: auto; } }
 .dl { padding: 22px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
 .dl .os { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 19px; }
 .dl .os svg { width: 30px; height: 30px; color: var(--green); }
@@ -247,8 +249,9 @@ footer { background: #000; border-top: 1px solid var(--border); }
 @media (max-width: 860px) {
   /* The unlock card is a drawing of the lock screen, and the tour's first shot is the real one. */
   .hero .unlock { display: none; }
-  .hero-grid { padding-bottom: 48px; }
+  .hero-grid { padding-bottom: 40px; }
   .hero-text { padding: 12px 0 40px; }
+  section.block { padding-top: 56px; }
   /* Icon beside the title, not above it: six features stop filling three screens. */
   .feat { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; align-items: start; }
   .feat .ic { width: 44px; height: 44px; border-radius: 13px; margin: 0; grid-row: span 2; }

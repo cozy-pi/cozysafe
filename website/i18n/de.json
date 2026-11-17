@@ -58,6 +58,7 @@
   "s_library": "<strong>Fotos und Videos.</strong> Mit der eigenen Kamera der App aufgenommen: Sie landen nie in Ihrer Fotomediathek.",
   "s_notes": "<strong>Notizen.</strong> Listen und Suche zeigen nur Titel, so kann niemand in der Nähe mitlesen.",
   "s_voice": "<strong>Sprachmemos,</strong> verschlüsselt, sobald Sie die Aufnahme beenden.",
+  "s_files": "<strong>Dateien.</strong> PDFs, Scans und jede andere Datei, verschlüsselt im selben Tresor.",
   "s_group": "<strong>Gruppen.</strong> Passfoto, Scan und Notiz zusammen, aus jedem Bereich erreichbar.",
   "s_settings": "<strong>Jede Sicherheitseinstellung fragt zuerst nach Face ID.</strong> Auf einen Blick sehen, was Platz belegt.",
   "h_dev": "Auf Telefon und Tablet",

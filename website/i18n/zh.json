@@ -58,6 +58,7 @@
   "s_library": "<strong>照片和视频。</strong>用应用自带的相机拍摄，绝不会进入系统相册。",
   "s_notes": "<strong>笔记。</strong>列表和搜索只显示标题，旁人看不到内容。",
   "s_voice": "<strong>语音备忘录，</strong>停止录音的那一刻即完成加密。",
+  "s_files": "<strong>文件。</strong>PDF、扫描件和任何其他文件，都加密存放在同一个保险箱里。",
   "s_group": "<strong>分组。</strong>护照照片、扫描件和笔记放在一起，从任何分类都能打开。",
   "s_settings": "<strong>所有安全设置都需先通过 Face ID 验证。</strong>存储占用一目了然。",
   "h_dev": "在手机和平板上",

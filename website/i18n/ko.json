@@ -58,6 +58,7 @@
   "s_library": "<strong>사진과 동영상.</strong> 앱 자체 카메라로 촬영하므로 사진 보관함에 절대 남지 않습니다.",
   "s_notes": "<strong>메모.</strong> 목록과 검색에는 제목만 표시되어 주변 사람이 읽을 수 없습니다.",
   "s_voice": "<strong>음성 메모는</strong> 녹음을 멈추는 순간 암호화됩니다.",
+  "s_files": "<strong>파일.</strong> PDF, 스캔한 서류, 그 밖의 모든 파일을 같은 금고에 암호화해 보관합니다.",
   "s_group": "<strong>그룹.</strong> 여권 사진, 스캔본, 메모를 한데 묶어 어느 섹션에서든 열 수 있습니다.",
   "s_settings": "<strong>모든 보안 설정은 먼저 Face ID를 요구합니다.</strong> 무엇이 공간을 차지하는지 한눈에 볼 수 있습니다.",
   "h_dev": "휴대전화와 태블릿에서",

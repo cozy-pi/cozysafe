@@ -58,6 +58,7 @@
   "s_library": "<strong>Fotos e vídeos.</strong> Tire com a câmera do próprio app: eles nunca vão para a sua galeria.",
   "s_notes": "<strong>Notas.</strong> Listas e busca mostram só os títulos, então ninguém por perto consegue ler.",
   "s_voice": "<strong>Gravações de voz,</strong> criptografadas assim que você para de gravar.",
+  "s_files": "<strong>Arquivos.</strong> PDFs, digitalizações e qualquer outro arquivo, criptografados no mesmo cofre.",
   "s_group": "<strong>Grupos.</strong> A foto do passaporte, o escaneamento e a nota juntos, acessíveis de qualquer seção.",
   "s_settings": "<strong>Toda configuração de segurança pede Face ID antes.</strong> Veja num relance o que ocupa espaço.",
   "h_dev": "No seu telemóvel e tablet",

@@ -58,6 +58,7 @@
   "s_library": "<strong>照片和影片。</strong>用 App 內建的相機拍攝，絕不會進入手機的相簿。",
   "s_notes": "<strong>筆記。</strong>列表和搜尋只顯示標題，旁人看不到內容。",
   "s_voice": "<strong>語音備忘錄，</strong>停止錄音的那一刻就完成加密。",
+  "s_files": "<strong>檔案。</strong>PDF、掃描文件和任何其他檔案，都加密存放在同一個保險箱裡。",
   "s_group": "<strong>群組。</strong>護照照片、掃描檔和筆記放在一起，從任何分類都能開啟。",
   "s_settings": "<strong>所有安全性設定都要先通過 Face ID 驗證。</strong>儲存空間用量一目了然。",
   "h_dev": "在手機和平板上",
