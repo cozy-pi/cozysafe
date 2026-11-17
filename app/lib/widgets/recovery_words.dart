@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'ask.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:share_plus/share_plus.dart';
@@ -177,9 +178,10 @@ String wordsFileName(DateTime day) {
 }
 
 /// "Save to a file" writes a real .txt file (owner 2026-10-29: it used to share plain
-/// text, which is not a file): on a computer through the Save dialog; on a phone a file
-/// in the app's temporary folder, handed to the share sheet (Save to Files) and deleted
-/// right after, so the words do not stay on the phone outside the vault.
+/// text, which is not a file): on a computer and on Android through the system's Save
+/// dialog (Android's share sheet cannot save to the phone itself: a tester, 2026-11-17);
+/// on iPhone a file in the app's temporary folder, handed to the share sheet (Save to
+/// Files) and deleted right after, so the words do not stay on the phone outside the vault.
 Future<void> saveWordsFile(BuildContext button, List<String> words) async {
   if (!wordsExport) return;
   final l = AppLocalizations.of(button);
@@ -197,6 +199,10 @@ Future<void> saveWordsFile(BuildContext button, List<String> words) async {
       if (loc != null) await File(loc.path).writeAsString(text);
       return;
     }
+    if (Device.android) {
+      await _saveFile.invokeMethod<bool>('saveText', {'name': name, 'text': text});
+      return;
+    }
     final tmp = File('${(await privateTemp()).path}${Platform.pathSeparator}$name');
     await tmp.writeAsString(text);
     try {
@@ -211,6 +217,8 @@ Future<void> saveWordsFile(BuildContext button, List<String> words) async {
     LockGuard.clear();
   }
 }
+
+const _saveFile = MethodChannel('cozysafe/savefile'); // MainActivity.kt
 
 Future<bool?> _askBeforeSaving(BuildContext context) {
   final l = AppLocalizations.of(context);
