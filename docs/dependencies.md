@@ -80,6 +80,7 @@ Last review: **2026-10-28**.
 | updated | Rust rusqlite | 0.40.2 → 0.41.0 |
 | updated | Rust rustix | 1.1.5 → 1.1.6 |
 | updated | Rust windows-sys | 0.52.0, 0.61.2 → 0.52.0 |
+| owners changed | Rust bitflags | KodrAus, rust-lang-owner → KodrAus |
 | owners changed | Rust pkg-config | joshtriplett, rust-lang-owner, sdroege → rust-lang-owner |
 
 ## Tier 1: Reads data from outside
@@ -263,7 +264,7 @@ Rust and Dart that ships in the app.
 | Rust [atomic](https://crates.io/crates/atomic/0.5.3) | 0.5.3 | 2023-05-15 | allo-isolate | Amanieu | cackle: unsafe |
 | Rust [backtrace](https://crates.io/crates/backtrace/0.3.76) | 0.3.76 | 2025-09-26 | allo-isolate | rust-lang-owner | cackle: unsafe |
 | Rust [base64ct](https://crates.io/crates/base64ct/1.8.3) | 1.8.3 | 2026-01-12 | argon2 | github:rustcrypto:formats, tarcieri | cackle: unsafe |
-| Rust [bitflags](https://crates.io/crates/bitflags/2.13.2) | 2.13.2 | 2026-09-10 | rusqlite | KodrAus, rust-lang-owner | cackle: unsafe |
+| Rust [bitflags](https://crates.io/crates/bitflags/2.13.2) | 2.13.2 | 2026-09-10 | rusqlite | KodrAus | cackle: unsafe |
 | Rust [blake2](https://crates.io/crates/blake2/0.11.0) | 0.11.0 | 2026-08-26 | argon2 | github:rustcrypto:hashes, newpavlov | cackle: unsafe |
 | Rust [block-buffer](https://crates.io/crates/block-buffer/0.12.1) | 0.12.1 | 2026-06-11 | digest | github:rustcrypto:utils, newpavlov | cackle: unsafe |
 | Rust [bytemuck](https://crates.io/crates/bytemuck/1.25.2) | 1.25.2 | 2026-07-19 | image | Lokathor, github:rust-bus:maintainers | cackle: unsafe |

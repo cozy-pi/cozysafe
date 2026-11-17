@@ -3421,8 +3421,7 @@
    "tarcieri"
   ],
   "bitflags": [
-   "KodrAus",
-   "rust-lang-owner"
+   "KodrAus"
   ],
   "blake2": [
    "github:rustcrypto:hashes",
