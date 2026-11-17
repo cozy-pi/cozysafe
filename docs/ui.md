@@ -539,10 +539,11 @@ everywhere, easy to hit with a thumb.
   `test/selection_test.dart` fails on a long press that does anything else.
 - **A tap never changes tab by itself**: a recording opened from home or search plays in
   a card over the page you are on.
-- **Bottom bar words are never cut** (owner 2026-10-21): the home tab stays put on the
-  left; the other tabs get room in proportion to their words when they all fit, and
-  otherwise scroll sideways (no loop) with a fade at the right edge, the chosen tab
-  scrolled into view. `test/tabs_fit_test.dart` checks every language at 360 and 430 pt.
+- **Bottom bar: icons only** (owner 2026-11-17, both layouts: + in the middle, + on a
+  side). The section's name is the tooltip and the screen reader's label. With the + on a
+  side the home tab stays put on the left and the others share the rest, scrolling
+  sideways (no loop) with a fade at the right edge on a phone too narrow for them all.
+  `test/tabs_fit_test.dart` checks every language at 360 and 430 pt.
 - **Home tab (Overview)** (owner 2026-10-21): first in the capsule, drawn as the vault's own
   badge. A search field, the storage line, the sections as tiles with counts (tap: that
   tab), the groups (tap: open it) and the last six items. The vault opens on it unless

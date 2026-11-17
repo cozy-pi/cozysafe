@@ -4,6 +4,13 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
+## 1.0.2 (2026-11-17)
+
+### Changed
+- The bar at the bottom of the vault shows icons only, without the small words under
+  them (and with the + on a side, icons in place of words). Holding a tab shows its
+  name, and screen readers still say it.
+
 ## 1.0.1 (2026-11-17)
 
 ### Fixed
