@@ -4,7 +4,7 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
-## Unreleased
+## 1.0.1 (2026-11-17)
 
 ### Fixed
 - Android: "Save to a file" for the 24 words opens the system's Save dialog, so the
